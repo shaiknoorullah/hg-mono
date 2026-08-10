@@ -1,0 +1,679 @@
+                                                Websleak
+        Scope of Work (SOW) for Halal App Design, Development, Testing & Deployment
+
+
+
+
+     1. Project Objectives
+
+   ●​ Problem Statement:
+                 ○​ Muslim community in Canada is facing difficulties in finding, validating, and purchasing
+                     halal food.
+○​ To find restaurants that provide halal food with proper certification, requires immense amount of research,
+   knowledge and dedication
+         ●​ Project Goals:
+                 ○​ The Project aims to build a platform where users could easily find restaurants around them
+                     that provide halal certified food.
+                 ○​ The Platform would also focus on providing halal certified restaurants to sign up and
+                     register with documentation to prove their food is halal certified.
+                 ○​ The Platform would also incorporate a central management entity to approve the restaurants
+                     against the submitted documents
+                 ○​ The Platform would feature mobile app(s) and/or web app(s), websites/landing pages for
+                     restaurant owners, delivery agents (riders) and customers.
+                 ○​ The Platform would be built as a PaaS (Platform-as-a-service) for the aforementioned types
+                     of users.
+
+
+
+
+                 2. Scope of Work
+
+         ●​ Project Description:
+                 ○​ This Project will drive forth the planning, execution, and deployment of the platform and
+                     supporting digital assets such as websites, landing page/s, forms, etc.
+                 ○​ The Platform must include the following modules:
+                         1.​ Backend:
+                                   ■​ Restaurant
+                                   ■​ Customer
+                                   ■​ Order
+                                   ■​ Payment
+                                   ■​ Rider
+                                   ■​ User
+              2.​ Frontend
+                      ■​ Super Admin (Web & Mobile)
+                      ■​ Customer (Web & Mobile)
+                      ■​ Rider (Mobile)
+                      ■​ Restaurants (Web & Mobile)
+              3.​ Website / Landing Page
+                      ■​ Website / Landing page for idea evaluation
+                      ■​ A 3-page website about the application with additional landing page for
+                           marketing purposes to promote the application amongst Restaurants and
+                           Customers
+                      ■​ Signup for early access, and forms feature to collect contacts to perform:
+                               ■​ Research
+                               ■​ User Feedback
+                               ■​ Promote
+●​ In-Scope Activities:​
+   The Final Application may include a subset or entire features listed below.
+      ○​ Restaurants:
+              1.​ Account Management:
+                      ■​ Signup and Registration: Restaurants can register on the application by
+                           providing basic details (e.g., name, location, cuisine type) and uploading
+                           necessary legal documents (e.g., business license, FSSAI certificate, Halal
+                           Certificate).
+                      ■​ Document Verification: Upload and submit legal documents for
+                           verification. Track the verification status in real-time.
+                      ■​ Profile Management: Update restaurant details (e.g., address, contact
+                           information, cuisine type, operating hours) and upload images (e.g., logo,
+                           menu, restaurant photos).
+                      ■​ Support and Help: Access to FAQs, live chat, or call support for assistance.
+              2.​ Menu Management:
+                      ■​ Add/Edit Menu: Create and update the food menu with details like dish
+                           names, descriptions, prices, ingredients, dietary information (e.g., vegetarian,
+                           vegan, gluten-free), and images.
+                      ■​ Categorize Menu: Organize the menu into categories (e.g., starters, main
+                           course, desserts, beverages) for easier navigation.
+                      ■​ Special Offers: Add discounts, combo offers, or promotional items to the
+                           menu.
+                      ■​ Out-of-Stock Management: Mark items as out of stock or temporarily
+                           unavailable.
+3.​ Order Management:
+      ■​ Order Dashboard: View incoming orders in real-time with details like
+          customer name, order items, delivery address, and special instructions.
+      ■​ Order Acceptance/Rejection: Accept or reject orders based on
+          availability or operational capacity.
+      ■​ Order Preparation Status: Update the status of orders (e.g., received,
+          preparing, ready for pickup).
+      ■​ Order History: View past orders with details like date, time, customer,
+          items, and total cost.
+4.​ Communication Features:
+      ■​ Rider Communication: Notify riders when orders are ready for pickup or
+          communicate delays.
+      ■​ Customer Support: Raise escalations or contact customer support for
+          assistance with orders, payments, or technical issues.
+5.​ Sales and Analytics:
+      ■​ Sales Dashboard: Visualize sales performance with metrics like total
+          orders, revenue, popular dishes, and peak hours.
+      ■​ Performance Reports: Generate detailed reports on sales trends,
+          customer feedback, and order cancellations.
+6.​ Payment Management:
+      ■​ Add & Verify Bank Account:
+              ■​ Add bank account details
+              ■​ Submit for verification and track verification status (pending,
+                  verified, failed).
+      ■​ Payout Requests:
+              ■​ Request payouts for accumulated earnings.
+              ■​ Track payout status in real-time (pending, processed, failed).
+      ■​ Payment History:
+              ■​ View detailed records, receipts of all payments received, including
+                  order ID, amount, and date.
+      ■​ Payout Preferences:
+              ■​ Set payout frequency (daily, weekly, monthly).
+              ■​ Choose preferred payout methods
+7.​ Escalations and Disputes:
+      ■​ Raise Escalations: Submit escalations to customer support for issues like
+          incorrect orders, payment disputes, or technical problems.
+      ■​ Dispute Resolution: Track the status of escalations and receive updates on
+          resolutions.
+8.​ Notifications And Alerts:
+      ■​ Order Alerts: Receive real-time notifications for new orders, order updates,
+          and customer cancellations.
+      ■​ Payment Alerts: Notifications for successful payments, cashout requests,
+          and refunds.
+      ■​ Promotions and Offers: Alerts about platform-wide promotions or
+          campaigns that restaurants can participate in.
+
+Customers
+
+9.​ Account Management:
+      ■​ Registration: Customers can register on the application using their phone
+          number and OTP verification.
+      ■​ Login/Logout: Customers can login and logout to and from the application
+      ■​ Profile Management:
+             ■​ Manage preferences
+             ■​ Update personal information
+      ■​ Support and Help:
+             ■​ Access FAQs
+             ■​ Live chat
+             ■​ Call support
+10.​ Restaurant and Food Discovery:
+      ■​ Search and Filter: Customers can search for restaurants or dishes by
+          name, cuisine, or location. Advanced filters include price range, ratings, and
+          delivery time.
+      ■​ Halal Certification: View and verify Halal certifications for restaurants.
+      ■​ Restaurant Details: View detailed information about restaurants,
+          including menus, ratings, reviews, and delivery options.
+      ■​ Food Details: View detailed descriptions, images, ingredients, and
+          nutritional information for each dish.
+11.​ Order Management:
+      ■​ Cart Management: Add food items to the cart, with the ability to edit
+          quantities or remove items. Note: Only one restaurant per order is allowed.
+      ■​ Coupons and Discounts: Add or apply coupons, promo codes, or
+          discounts to orders.
+      ■​ Order Placement: Place orders with selected items, delivery address, and
+          payment method.
+       ■​ Order History: View past orders with details like date, time, restaurant,
+          items, and total cost.
+       ■​ Order Receipts: Access digital receipts for completed orders.
+12.​ Delivery and Tracking:
+       ■​ Delivery Address Management: Add, edit, or remove delivery addresses.
+          Option to save multiple addresses for convenience.
+       ■​ Live Order Tracking: Track orders in real-time with a map interface,
+          showing the rider’s location and estimated delivery time.
+       ■​ Delivery Instructions: Add special instructions for the rider (e.g., “Leave
+          at the door,” “Call before delivery”).
+13.​ Payment Management:
+       ■​ Payment Methods: Add, edit, or remove payment methods (e.g.,
+          credit/debit cards).
+       ■​ Secure Payments: Integration with secure payment gateways for seamless
+          and safe transactions.
+       ■​ Refund Requests: Request refunds for canceled or unsatisfactory orders
+          and track refund status.
+14.​ Reviews and Feedback:
+       ■​ Restaurant Reviews: Rate and review restaurants based on food quality,
+          service, and overall experience.
+       ■​ Food Reviews: Rate and review individual dishes.
+       ■​ Rider Reviews: Rate and review delivery riders based on punctuality,
+          behavior, and service.
+       ■​ Grievances: Submit grievances or complaints regarding orders, restaurants,
+          or riders.
+15.​ Communication Features:
+       ■​ Customer Support: Chat or call customer service for assistance with
+          orders, payments, or other issues.
+       ■​ Restaurant Communication: Contact restaurants directly for special
+          requests or clarifications (if supported by the app).
+       ■​ Rider Communication: Chat or call the rider for delivery updates or
+          instructions.
+16.​ Notification and Alerts:
+       ■​ Order Updates: Push notifications for order confirmation, preparation
+          status, dispatch, and delivery.
+       ■​ Promotions and Offers: Notifications about discounts, coupons, or special
+          offers from restaurants.
+           ■​ Account Alerts: Alerts for profile updates, payment confirmations, or
+               refund status.
+     17.​ Refunds and Disputes:
+           ■​ Refund Requests: Submit refund requests for canceled, incorrect, or
+               unsatisfactory orders.
+           ■​ Refund Tracking: Track the status of refund requests.
+           ■​ Dispute Resolution: Escalate unresolved issues to customer support for
+               further assistance.
+○​ Rider
+     1.​ Account Management
+           ■​ Login/Logout: Simple login using mobile number or email, with OTP
+               verification for security
+           ■​ Signup/Register: Register with document upload, age verification, licence,
+               phone and vehicle documents.
+           ■​ Track Registration Verification Status:
+                   ■​ Notifications: Get notifications on verification status
+                   ■​ Support: Get support on verification rejections
+                   ■​ Request For Reverification: Request reverification, re upload
+                       documents
+           ■​ Profile management:
+                   ■​ Update Personal Information
+                   ■​ Upload Documents
+                   ■​ Manage Availability Settings
+           ■​ Support & Help:
+                   ■​ Access FAQs
+                   ■​ Live Chat
+                   ■​ Call Support for Assistance
+     2.​ Order Management:
+           ■​ Order Dashboard: View available order with details like pickup location,
+               drop-off location, customer name, and order items.
+           ■​ Order Acceptance/Rejection: Option to accept or decline orders based on
+               availability or preferences.
+           ■​ Order Details: View detailed information about the order, including special
+               instructions from the customer.
+           ■​ Order Status Updates: Update order status (eg., picked up, in transit,
+               delivered) in real-time.
+     3.​ Navigation & Maps:
+           ■​ Real-Time Navigation: Integration with Google Maps or similar services
+                 for turn-by-turn directions and optimized routes.
+           ■​ Distance Tracking: Track distance traveled for accurate payment
+                 calculations.
+     4.​ Communication Features:
+           ■​ Customer Communication: In-app chat or call functionality to contact
+                 customers for delivery instructions or updates.
+           ■​ Restaurant Communication: Notify restaurants upon arrival or if there
+                 are issues with the order.
+     5.​ Earnings and Performance Tracking:
+           ■​ Earnings Dashboard: View daily, weekly, and monthly earnings.
+           ■​ Performance Metrics: Track metrics like delivery time, customer ratings,
+                 and order completion rates.
+     6.​ Support:
+           ■​ Report Incidents: Get support from the application support team to report
+                 incidents such as customer disputes, incorrect addresses, restaurant delays,
+                 order abandonment, etc.
+     7.​ Notification and Alerts:
+           ■​ Order Alerts: Push notifications for new orders, order updates, and
+                 delivery confirmations.
+     8.​ Delivery History
+           ■​ Order History: View past deliveries with details like date, time, earnings,
+                 and customer feedback.
+     9.​ Feedback and Ratings:
+           ■​ View customer feedback and ratings for each delivery.
+○​ Super Admin
+     1.​ User Role & Management:
+           ■​ Create and Manage Admins: Add, edit, or remove admins and assign
+                 roles/permissions.
+           ■​ Role-Based Access Control: Define and manage access levels for admins,
+                 support teams, and other roles.
+           ■​ Audit Logs: View logs of all admin activities for accountability and security.
+     2.​ Platform Configuration:
+           ■​ Global Settings: Configure platform-wide settings (e.g., currency, delivery
+                 fees).
+           ■​ Promotions and Campaigns: Create and manage platform-wide
+                 promotions, discounts.
+           ■​ Content Management: Manage static content (e.g., FAQs, terms and
+                 conditions, privacy policy).
+     3.​ Analytics And Reporting:
+            ■​ Platform Analytics: View detailed reports on platform performance,
+               including user growth, order volume, and revenue.
+     4.​ Support & Escalation:
+            ■​ Escalation Handling: Resolve high-priority escalations from admins,
+               support teams, or users.
+            ■​ Support Team Oversight: Monitor the performance of support teams and
+               provide guidance.
+     5.​ Access to All Features and Modules for other management roles.
+○​ Admin:
+     1.​ Restaurant Management:
+            ■​ Restaurant Onboarding: Review and approve restaurant registrations
+               and documents.
+            ■​ Menu Approval: Approve or reject restaurant menus and updates.
+            ■​ Compliance Monitoring: Ensure restaurants comply with platform
+               policies (e.g., pricing, food quality, delivery times).
+            ■​ Halal Certification Verification: Verify and approve Halal certifications
+               for restaurants. Track verification status (pending, approved, rejected).
+            ■​ Restaurant Approval/Rejection: Approve or reject restaurant
+               registrations based on submitted documents and compliance.
+            ■​ Restaurant Performance Monitoring: Monitor key metrics like order
+               volume, customer ratings, and compliance with platform policies.
+     2.​ Customer Management:
+            ■​ Customer Support: Handle customer complaints, refund requests, and
+               disputes.
+            ■​ Account Management: Suspend or reinstate customer accounts based on
+               violations or complaints.
+            ■​ Feedback Review: Monitor and analyze customer feedback and ratings.
+     3.​ Rider Management:
+            ■​ Rider Onboarding: Review and approve rider registrations and
+               documents.
+            ■​ Performance Monitoring: Track rider performance metrics (e.g., delivery
+               times, customer ratings).
+            ■​ Incident Handling: Resolve rider-related incidents (e.g., disputes,
+               accidents).
+     4.​ Content Moderation:
+            ■​ Review Moderation: Moderate customer reviews and ratings for
+               restaurants and riders.
+            ■​ Report Handling: Address reports from users (e.g., inappropriate content,
+                 fraudulent activities).
+○​ Support Agent:
+      1.​ Restaurant Support:
+            ■​ Document Verification: Assist restaurants with document uploads and
+                 verification.
+            ■​ Order Issues: Resolve order-related issues (e.g., incorrect orders, payment
+                 disputes).
+            ■​ Technical Support: Provide technical assistance for restaurant app
+                 features.
+      2.​ Customer Support:
+            ■​ Account Assistance: Help customers with account-related issues (e.g.,
+                 login problems, profile updates).
+            ■​ Order Support: Assist customers with order placement, tracking, and
+                 refunds.
+            ■​ Feedback Handling: Address customer feedback and complaints.
+      3.​ Rider Support:
+            ■​ Onboarding Assistance: Help riders with registration and document
+                 uploads.
+            ■​ Delivery Issues: Resolve delivery-related issues (e.g., incorrect addresses,
+                 order delays).
+            ■​ Earnings Support: Assist riders with payout related disputes/grievances.
+○​ Development:
+      1.​ MVP:
+            ■​ Backend Serverless Application
+            ■​ Service Discovery
+            ■​ Authentication
+            ■​ Authorization
+      2.​ Version 1.0:
+            ■​ Migrate Architecture to Modular Monolith
+            ■​ Scaling of services
+            ■​ Add Additional Features, Enhancements Based on User Feedback
+      3.​ Version 2.0:
+            ■​ Migration Of Service Architecture to Distributed Systems
+            ■​ Microservices
+            ■​ Scale Further
+            ■​ Add Additional Features, Enhancements Based on User Feedback
+      4.​ Version 3.0:
+                     ■​ Enhancements of features
+                     ■​ Additional Final Features
+      ○​ Testing:
+             1.​ User Testing
+             2.​ User Feedback
+             3.​ Unit Testing
+             4.​ Integration Testing
+             5.​ End-to-End Testing
+      ○​ Deployment:
+             1.​ Deploy MVP to Websleak Cloud (Serverless)
+             2.​ Develop CI/CD Pipelines
+             3.​ Deployment to Websleak Cloud
+             4.​ Configure for HA
+             5.​ Configure for Failover
+      ○​ Maintenance:
+             1.​ Application Maintenance
+             2.​ Resolution of critical bugs
+             3.​ User Feedback and Developer Support
+      ○​ Project Documentation & Assets Handover:
+             1.​ User Documentation
+             2.​ Developer Documentation
+                     ■​ API Documentation
+                     ■​ Code Documentation
+                     ■​ Infrastructure & Architecture Documentation
+             3.​ Assets Handover
+●​ Out-of-Scope Activities:
+      ○​ Anything not included in the features/in-scope activities
+      ○​ Cloud maintenance
+      ○​ User Feedback gathering
+      ○​ Helpdesk
+      ○​ Sales Assistance
+      ○​ R&D
+      ○​ Business Specific Legal Compliance Measures
+      ○​ Content Generation
+             1.​ Policies
+                     ■​ Privacy Policy
+                     ■​ Refund Policy
+                     ■​ Riders Policy
+                        ■​ Restaurant Policy
+                        ■​ Terms of Service
+
+
+
+
+        3. Project Schedule and Milestones
+
+  ●​ Project Start Date:
+        ○​ Last week, Jan 2025
+  ●​ Project End Date:
+        ○​ Last Week, August 2025
+
+
+
+
+        4. Milestones
+        Month 1: MVP (Minimum Viable Product)
+MVP Features:
+
+
+  ●​ Website/Landing Page:
+        ○​ Design and develop a 3-page website/landing page for idea evaluation and marketing.
+                2.​ Include signup forms for early access, user feedback, and promotional purposes.
+        ○​ Backend:
+                2.​ Basic serverless architecture with essential services (e.g., authentication,
+                    authorization, service discovery).
+                3.​ Core modules: Restaurant, Customer, Order, Payment, Rider, and User.
+        ○​ Frontend:
+                2.​ Super Admin Portal (Web): Basic dashboard for managing restaurants, customers,
+                    and riders.
+                3.​ Customer App (Mobile): Basic features like registration, restaurant search, and order
+                    placement.
+                4.​ Rider App (Mobile): Basic features like order acceptance, navigation, and delivery
+                    tracking.
+                5.​ Restaurant App (Web): Basic features like registration, menu management, and
+                    order handling.
+        ○​ Testing:
+                2.​ Unit testing for core functionalities.
+                3.​ User testing for MVP features.
+        ○​ Deployment:
+              2.​ Deploy MVP to Websleak Cloud (Serverless).
+              3.​ Configure basic CI/CD pipelines.
+●​ Month 2: Version 1.0​
+   Version 1.0 Features:
+      ○​ Backend:
+              2.​ Migrate architecture to a modular monolith for better scalability.
+              3.​ Add advanced features like payment gateway integration, and analytics.
+      ○​ Frontend:
+              2.​ Enhance Super Admin Portal with detailed analytics and reporting.
+              3.​ Add advanced features to Customer App (e.g., live order tracking, reviews, and
+                  feedback).
+              4.​ Add advanced features to Rider App (e.g., earnings dashboard, performance metrics).
+              5.​ Add advanced features to Restaurant App (e.g., sales dashboard, performance
+                  reports).
+      ○​ Testing:
+              2.​ Integration testing for all modules.
+              3.​ User feedback collection and iterative improvements.
+      ○​ Deployment:
+              2.​ Deploy Version 1.0 to Websleak Cloud.
+              3.​ Configure for high availability (HA) and failover.
+●​ Month 3: Testing 1.0​
+   Testing Activities:
+      ○​ End-to-end testing for all features in Version 1.0.
+      ○​ Performance testing to ensure scalability and reliability.
+      ○​ Security testing to identify and fix vulnerabilities.
+      ○​ User acceptance testing (UAT) with real users.
+      ○​ Bug fixing and optimization based on testing results.
+●​ Month 4: Version 2.0​
+   Version 2.0 Features:
+      ○​ Backend:
+              2.​ Migrate to a distributed system architecture (microservices).
+              3.​ Add advanced features like fraud detection, AI-based recommendations, and
+                  dynamic pricing.
+      ○​ Frontend:
+              2.​ Enhance Super Admin Portal with AI-driven insights and advanced reporting.
+              3.​ Add AI-based recommendations and personalized offers to the Customer App.
+              4.​ Add advanced navigation and route optimization to the Rider App.
+              5.​ Add inventory management and advanced analytics to the Restaurant App.
+      ○​ Testing:
+             2.​ Integration testing for microservices.
+             3.​ User feedback collection and iterative improvements.
+      ○​ Deployment:
+             2.​ Deploy Version 2.0 to Websleak Cloud.
+             3.​ Configure for further scaling and optimization.
+●​ Month 5: Testing 2.0​
+   Testing Activities:
+      ○​ End-to-end testing for all features in Version 2.0.
+      ○​ Load testing to ensure the platform can handle high traffic.
+      ○​ Security testing for microservices and distributed systems.
+      ○​ User acceptance testing (UAT) with real users.
+      ○​ Bug fixing and optimization based on testing results.
+●​ Month 6: Version 3.0​
+   Version 3.0 Features:
+      ○​ Backend:
+             2.​ Final enhancements to microservices architecture.
+      ○​ Frontend:
+             2.​ Final enhancements to all apps (Super Admin, Customer, Rider, Restaurant).
+      ○​ Testing:
+             2.​ Final end-to-end testing for all features.
+             3.​ Final user acceptance testing (UAT) with real users.
+      ○​ Deployment:
+             2.​ Deploy Version 3.0 to Websleak Cloud.
+             3.​ Final configuration for high availability, failover, and global scalability.
+●​ Month 7: Project Documentation & Assets Handover​
+   Documentation:
+      ○​ User Documentation:
+             2.​ User guides for Super Admin, Customer, Rider, and Restaurant apps.
+      ○​ Developer Documentation:
+             2.​ API documentation.
+             3.​ Code documentation.
+             4.​ Infrastructure and architecture documentation.
+      ○​ Deployment Documentation:
+             2.​ Deployment scripts and guidelines.
+             3.​ CI/CD pipeline documentation.
+●​ Assets Handover:
+      ○​ Handover all project assets, including source code, design files, and documentation.
+               ○​ Conduct a final review and sign-off with the client.
+
+  Timeline Summary
+
+Month               Milestone                     Key Activities
+
+
+
+Month 1             MVP                           Design, develop, test, and deploy MVP features.
+
+
+
+Month 2             Version 1.0                   Develop and deploy advanced features for Version 1.0.
+
+
+
+Month 3             Testing 1.0                   Conduct end-to-end, performance, and security testing for Version 1.0.
+
+
+
+Month 4             Version 2.0                   Migrate to microservices and develop advanced features for Version
+                                                       2.0.
+
+
+
+Month 5             Testing 2.0                   Conduct end-to-end, load, and security testing for Version 2.0.
+
+
+
+Month 6             Version 3.0                   Finalize and deploy Version 3.0
+
+
+
+Month 7             Documentation & Handover      Prepare and handover project documentation and assets.
+
+
+
+
+               5. Deliverables
+   List of Deliverables:
+
+
+        ●​ Application Executables:
+                      ■​ Rider Application
+                      ■​ Admin Portal
+                      ■​ Customer Application
+                      ■​ Restaurant Application
+                      ■​ Deployed Application on Websleak Cloud
+                      ■​ User Documentation
+                      ■​ Deployment Scripts
+      6. Payment Information
+
+●​ Project Cost:
+      ○​ Base Project Cost (without DevOps Engineers & Cloud Manager): ₹14,68,000
+             ■​ Advance Payment: ₹4,68,000 (due immediately upon agreement to initiate the
+                   project)
+             ■​ Remaining Balance: ₹10,00,000 (paid in bi-weekly installments of ₹1,00,000 over
+                   5 months)
+      ○​ Updated Project Cost (with DevOps Engineers & Cloud Manager): ₹17,24,500
+             ■​ Advance Payment: ₹4,68,000 (due immediately upon agreement to initiate the
+                   project)
+             ■​ Remaining Balance: ₹12,56,500 (paid in bi-weekly installments of ₹1,25,650 over
+                   5 months)
+●​ Payment Terms:
+      ○​ Advance Payment: ₹4,68,000 will be due immediately upon agreement to kickstart the
+         project and secure resources. This is applicable in both the base and updated cost scenarios.
+      ○​ Remaining Balance Payments:
+             ■​ Without DevOps Engineers & Cloud Manager: The remaining amount of
+                   ₹10,00,000 will be paid over 5 months (monthly installments of ₹2,00,000 each).
+                   Each monthly installment will be divided into bi-weekly payments of ₹1,00,000.
+             ■​ With DevOps Engineers & Cloud Manager: The remaining amount of
+                   ₹12,56,500 will be paid over 5 months (monthly installments of ₹2,51,300 each).
+                   Each monthly installment will be divided into bi-weekly payments of ₹1,25,650.
+      ○​ Invoice Generation and Payment Deadline: An invoice will be generated at the start of
+         the second week of each bi-weekly period. Payment is due by the end of the second week of
+         the invoice generation. Failure to clear payment by the due date will result in the immediate
+         stoppage of work. The project milestones will be adjusted accordingly, and the timeline for
+         completion will be extended to account for any delays caused by non-payment.
+      ○​ Working Days: The team will work from Monday to Friday as per the standard workweek.
+         Due to project urgency and to meet deadlines, from January to March, the team will work
+         from Monday to Saturday.
+
+
+
+
+      7. Terms, Conditions, and Requirements
+      Definitions
+  ●​ Halal Certification: Official certification provided by recognized authorities confirming that food
+      products comply with Islamic dietary laws.
+  ●​ PaaS (Platform-as-a-Service): A cloud computing model where a third-party provider delivers
+      hardware and software tools over the internet, typically for application development.
+  ●​ MVP (Minimum Viable Product): The initial version of the application with core features to
+      validate the concept and gather user feedback.
+  ●​ CI/CD (Continuous Integration/Continuous Deployment): A software development practice
+      where code changes are automatically tested and deployed to production.
+  ●​ Microservices: An architectural style that structures an application as a collection of loosely
+      coupled, independently deployable services.
+  ●​ Super Admin: The highest-level user with full access to manage the platform, including
+      restaurants, customers, and riders.
+  ●​ UAT (User Acceptance Testing): The final phase of testing where end-users validate the
+      application against their requirements.
+
+Assumptions
+
+
+  1.​ Restaurant Participation: It is assumed that a sufficient number of restaurants will register on
+      the platform and provide valid Halal certifications.
+  2.​ User Adoption: It is assumed that the target audience (Muslim community in Canada) will adopt
+      the platform for finding and ordering Halal food.
+  3.​ Third-Party Services: It is assumed that third-party services (e.g., payment gateways, Google
+      Maps) will be available and integrated without significant issues.
+  4.​ Documentation: It is assumed that all necessary legal and technical documentation will be
+      provided by the client in a timely manner.
+  5.​ Timely Feedback: It is assumed that the client will provide timely feedback during the
+      development and testing phases to avoid delays.
+
+Dependencies
+
+
+  1.​ Third-Party APIs: The project depends on third-party APIs for payment processing (e.g., Stripe,
+      PayPal), navigation (e.g., Google Maps), and communication (e.g., Twilio).
+  2.​ Cloud Infrastructure: The project relies on Websleak Cloud for hosting and deployment. Any
+      downtime or issues with the cloud provider could impact the project.
+  3.​ Client Input: Timely approval of designs, features, and deliverables by the client is critical to
+      maintaining the project schedule.
+  4.​ Legal Compliance: The project depends on the client’s ability to ensure compliance with local laws
+      and regulations (e.g., data privacy, Halal certification standards).
+  5.​ User Feedback: The success of the MVP and subsequent versions depends on user feedback
+      collected during testing phases.
+Confidentiality
+
+
+   ●​ Confidentiality Agreement: All parties involved in the project agree to maintain the
+      confidentiality of proprietary information, including but not limited to:
+          ○​ Source code.
+          ○​ Design documents.
+          ○​ Business strategies.
+          ○​ User data.
+   ●​ Data Security: The platform will implement industry-standard security measures (e.g., encryption,
+      secure APIs) to protect sensitive data.
+   ●​ Non-Disclosure: Neither party shall disclose any confidential information to third parties without
+      prior written consent.
+   ●​ Duration: The confidentiality obligations shall remain in effect for one year after the completion
+      of the project.
+
+Change Management
+
+
+   ●​ Change Request Process:
+          ○​ Any changes to the project scope, schedule, or budget must be submitted in writing as a
+              Change Request (CR).
+          ○​ The CR will be reviewed by the project team, and an impact analysis will be conducted (e.g.,
+              timeline, cost, resources).
+          ○​ The client will be notified of the impact, and approval must be provided before proceeding.
+   ●​ Approval:
+          ○​ Minor changes (e.g., UI tweaks, non-critical bug fixes) can be approved by the project
+              manager.
+          ○​ Major changes (e.g., new features, architectural changes) require client approval.
+
+
+
+
+   ●​ Documentation:
+          ○​ All changes will be documented in the Change Log, including details like the date,
+              description, impact, and approval status.
+   ●​ Communication:
+          ○​ Changes will be communicated to all stakeholders through regular project updates and
+              meetings.
+
+          9. Approval and Signatures
+●​ Client Sign-Off:
+      ○​ Signature: ____________________
+      ○​ Name: _________________________
+      ○​ Title: __________________________
+      ○​ Date: __________________________
+●​ Vendor Sign-Off:
+      ○​ Signature: ____________________
+      ○​ Name: _________________________
+      ○​ Title: __________________________
+      ○​ Date: __________________________
+
