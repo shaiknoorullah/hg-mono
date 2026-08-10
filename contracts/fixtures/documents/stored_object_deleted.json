@@ -1,0 +1,22 @@
+{
+  "scenario": "stored_object_deleted",
+  "domain": "documents",
+  "schema": "StoredObject",
+  "describes": "Purged. Attaching it is `404 UPLOAD_NOT_FOUND`.",
+  "operations": [
+    "confirmUpload"
+  ],
+  "status": 200,
+  "tags": [
+    "state-matrix",
+    "documents"
+  ],
+  "payload": {
+    "id": "f3ffe38d-699e-4fc2-ab90-84993959c015",
+    "purpose": "KYC_DOCUMENT",
+    "state": "DELETED",
+    "content_type": "image/jpeg",
+    "byte_size": 20,
+    "reject_reason": "Reject Reason"
+  }
+}

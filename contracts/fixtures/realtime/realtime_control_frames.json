@@ -1,0 +1,135 @@
+{
+  "scenario": "realtime_control_frames",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "Every control frame, `seq: 0` and no channel: `hello`, `subscribed`, `ping`, `subscribe_error` (`not_found` for someone else's order — never `forbidden`), `unsubscribed`, `resume_complete` with `truncated: true`, `reauth_required` and an `error`.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "control"
+  ],
+  "payload": [
+    {
+      "id": "E19PBK51M3SX6X30MZFS4Q8D2P",
+      "seq": 0,
+      "channel": "",
+      "type": "hello",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "account_id": "c2a83f3e-d7b9-4a92-abb3-af31e948f03f",
+        "roles": [
+          {
+            "r": "CUSTOMER",
+            "s": null
+          }
+        ],
+        "session_id": "7631a5c7-bdd9-4337-a116-f82167d008b7",
+        "allowed_channels": [
+          "account:c2a83f3e-d7b9-4a92-abb3-af31e948f03f",
+          "order:c622bd1b-2de3-40be-aa8f-9996517b6aed"
+        ],
+        "server_time": "2026-08-10T18:42:11.412Z",
+        "heartbeat_s": 25,
+        "protocol": 1
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "E19PBK51M3SX6X30MZFS4Q8D2P",
+      "seq": 0,
+      "channel": "",
+      "type": "subscribed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.612Z",
+      "data": {
+        "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "cursor_seq": 1487
+      },
+      "_delay_ms": 200
+    },
+    {
+      "id": "E19PBK51M3SX6X30MZFS4Q8D2P",
+      "seq": 0,
+      "channel": "",
+      "type": "ping",
+      "v": 1,
+      "ts": "2026-08-10T18:42:36.412Z",
+      "data": {
+        "t": 1786000000123
+      },
+      "_delay_ms": 25000
+    },
+    {
+      "id": "E19PBK51M3SX6X30MZFS4Q8D2P",
+      "seq": 0,
+      "channel": "",
+      "type": "subscribe_error",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.812Z",
+      "data": {
+        "channel": "order:00000000-0000-4000-a000-000000000000",
+        "code": "not_found",
+        "message": "No such order."
+      },
+      "_delay_ms": 400
+    },
+    {
+      "id": "E19PBK51M3SX6X30MZFS4Q8D2P",
+      "seq": 0,
+      "channel": "",
+      "type": "unsubscribed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.012Z",
+      "data": {
+        "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "reason": "order_terminal"
+      },
+      "_delay_ms": 600
+    },
+    {
+      "id": "E19PBK51M3SX6X30MZFS4Q8D2P",
+      "seq": 0,
+      "channel": "",
+      "type": "resume_complete",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.212Z",
+      "data": {
+        "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from_seq": 3,
+        "to_seq": 1487,
+        "replayed": 1000,
+        "truncated": true
+      },
+      "_delay_ms": 800
+    },
+    {
+      "id": "E19PBK51M3SX6X30MZFS4Q8D2P",
+      "seq": 0,
+      "channel": "",
+      "type": "reauth_required",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.412Z",
+      "data": {
+        "deadline": "2026-08-10T18:47:11.412Z"
+      },
+      "_delay_ms": 1000
+    },
+    {
+      "id": "E19PBK51M3SX6X30MZFS4Q8D2P",
+      "seq": 0,
+      "channel": "",
+      "type": "error",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.612Z",
+      "data": {
+        "code": "RATE_LIMITED",
+        "message": "Slow down — 20 frames per second.",
+        "retryable": true
+      },
+      "_delay_ms": 1200
+    }
+  ]
+}

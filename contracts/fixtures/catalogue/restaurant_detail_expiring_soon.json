@@ -1,0 +1,112 @@
+{
+  "scenario": "restaurant_detail_expiring_soon",
+  "domain": "catalogue",
+  "schema": "RestaurantDetail",
+  "describes": "Restaurant detail with `halal.display_state = EXPIRING_SOON`. Certificate expires in 18 days — badge shows the countdown, the restaurant keeps trading.",
+  "operations": [
+    "getRestaurant"
+  ],
+  "status": 200,
+  "tags": [
+    "state-matrix",
+    "halal"
+  ],
+  "payload": {
+    "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "name": "Karachi Kitchen",
+    "slug": "karachi-kitchen",
+    "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
+    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+    "cuisines": [
+      "Pakistani",
+      "Biryani",
+      "Halal"
+    ],
+    "rating_avg": 4.8,
+    "rating_count": 412,
+    "price_band": "$$",
+    "halal": {
+      "display_state": "EXPIRING_SOON",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "expires_on": "2026-08-28"
+    },
+    "availability": {
+      "state": "OPEN",
+      "opens_at": "2026-08-10T12:24:11.412Z",
+      "closes_at": "2026-08-10T22:00:11.412Z",
+      "eta_min_minutes": 25,
+      "eta_max_minutes": 40,
+      "indicative_delivery_fee_cents": 449,
+      "minimum_order_cents": 1500,
+      "distance_m": 1200,
+      "out_of_range_reason": null
+    },
+    "description": "A Danforth institution since 2011. Charcoal grill, hand-pounded masala, and a kitchen that has been HMA-certified every year we have traded.",
+    "address": {
+      "line1": "1245 Danforth Avenue",
+      "line2": null,
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M4J 1M4",
+      "latitude": 43.6817,
+      "longitude": -79.3403
+    },
+    "timezone": "America/Toronto",
+    "public_phone_e164": "+14165550142",
+    "certification": {
+      "display_state": "EXPIRING_SOON",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "certificate_number": "HMA-ON-40182",
+      "scope": "WHOLE_ESTABLISHMENT",
+      "issued_on": "2026-03-09",
+      "expires_on": "2026-08-28",
+      "verified_at": "2026-03-11T18:42:11.412Z",
+      "certificate_viewable": true,
+      "disclaimer": "Certification verified by Halal Goes on 9 March 2026. Halal Goes does not itself certify food."
+    },
+    "hours": [
+      {
+        "day_of_week": 0,
+        "opens_at": "12:00",
+        "closes_at": "21:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      }
+    ]
+  }
+}

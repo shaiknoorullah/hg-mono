@@ -1,0 +1,32 @@
+{
+  "scenario": "restaurant_onboarding_documents_review",
+  "domain": "onboarding",
+  "schema": "RestaurantOnboardingStatus",
+  "describes": "`onboarding_state = DOCUMENTS_REVIEW`. Pack submitted and locked. The applicant can only wait.",
+  "operations": [
+    "getRestaurantOnboardingStatus",
+    "submitRestaurantDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "restaurant"
+  ],
+  "payload": {
+    "onboarding_state": "DOCUMENTS_REVIEW",
+    "account_state": "PENDING",
+    "current_step": "AWAITING_REVIEW",
+    "progress_percent": 60,
+    "steps_completed": {
+      "profile": true,
+      "documents_uploaded": true,
+      "documents_submitted": true,
+      "documents_approved": false,
+      "payout_account": false,
+      "menu_published": false
+    },
+    "blocking_reason": null,
+    "review_cycle": 1,
+    "rejection": null
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "scenario": "halal_certificate_status_pending",
+  "domain": "halal",
+  "schema": "HalalCertificate",
+  "describes": "`status = PENDING`. Uploaded, transcribed, not yet decided. `checks` are NOT_ASSESSED.",
+  "operations": [
+    "getHalalCertificate",
+    "decideHalalCertificate",
+    "recordHalalChecks",
+    "transcribeHalalCertificate"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "certificate-status-matrix"
+  ],
+  "payload": {
+    "id": "4ced9ef8-3459-44b9-a82f-d42cb8e0b642",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "document_id": "0b4ba5e7-7c43-474e-a787-86f76034d497",
+    "certificate_number": "HMA-ON-40638",
+    "issuing_body": {
+      "id": "26484eaa-64d5-4ac4-a09d-64c9e4c6a417",
+      "name": "Halal Munchies Scarborough",
+      "aliases": [
+        "Aliases",
+        "Aliases"
+      ],
+      "country": "Country",
+      "region": "ca-central-1",
+      "website": "https://cdn.halalgoes.ca/img/asset/5dabf2de.webp",
+      "accreditation_ref": "Accreditation Ref",
+      "requires_issuer_confirmation": true,
+      "status": "ACCEPTED",
+      "notes": "Notes"
+    },
+    "certified_legal_name": "Karachi Kitchen Inc.",
+    "certified_address": "1245 Danforth Avenue, Toronto, ON M4J 1M4",
+    "scope": "WHOLE_ESTABLISHMENT",
+    "issued_on": "2026-03-09",
+    "expires_on": "2027-03-09",
+    "status": "PENDING",
+    "checklist_version": 3,
+    "checks": [
+      {
+        "check_key": "H1_LEGIBLE_COMPLETE",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H2_ISSUER_ACCEPTED",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H3_NAME_MATCH",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H4_ADDRESS_MATCH",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H5_DATES_VALID",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H6_SCOPE_SUFFICIENT",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H7_UNIQUE_NOT_REUSED",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      }
+    ],
+    "rejection_reason_code": null,
+    "rejection_reason_text": null,
+    "verified_by": null,
+    "verified_at": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "scenario": "cart_empty",
+  "domain": "cart",
+  "schema": "Cart",
+  "describes": "No lines, no restaurant pinned. `is_quotable: false` with an empty `blocking_reasons` — nothing is wrong, there is simply nothing in it.",
+  "operations": [
+    "getCart",
+    "clearCart"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "payload": {
+    "id": "3c68f80e-c54c-41cd-ad50-601cec1bd3f0",
+    "restaurant": null,
+    "delivery_address_id": null,
+    "lines": [],
+    "item_count": 0,
+    "indicative_subtotal_cents": 0,
+    "currency": "CAD",
+    "is_quotable": false,
+    "blocking_reasons": []
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "scenario": "receipt_with_refund",
+  "domain": "orders",
+  "schema": "Receipt",
+  "describes": "The same receipt after a settled partial refund. Both spellings of the reason code exist in the enum (`ITEM_MISSING` and `MISSING_ITEMS`) — contradiction log #8 is still OPEN and this fixture uses the customer-spec spelling.",
+  "operations": [
+    "getOrderReceipt"
+  ],
+  "status": 200,
+  "tags": [
+    "money"
+  ],
+  "payload": {
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "order_code": "HG-COED-9X",
+    "receipt_number": "HG-2026-000148213",
+    "issued_at": "2026-08-10T18:41:11.412Z",
+    "platform_legal_name": "Halal Goes Technologies Inc.",
+    "platform_tax_registration_number": "701234567RT0001",
+    "restaurant_legal_name": "Karachi Kitchen Inc.",
+    "restaurant_tax_registration_number": "812345678RT0001",
+    "delivery_address": {
+      "line1": "88 Harbour Street",
+      "line2": "Unit 4211",
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M5J 0C3",
+      "latitude": 43.6412,
+      "longitude": -79.381
+    },
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "variant_name": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 2,
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "variant_name": "Full",
+        "addons": [],
+        "quantity": 1,
+        "special_request": "Extra gravy on the side",
+        "unit_price_cents": 3695,
+        "line_total_cents": 3695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 3,
+        "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+        "name": "Chicken Karahi (Half)",
+        "variant_name": null,
+        "addons": [
+          {
+            "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+            "addon_name": "Garlic naan",
+            "addon_quantity": 2,
+            "addon_price_cents": 349
+          }
+        ],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 2597,
+        "line_total_cents": 2597,
+        "currency": "CAD"
+      }
+    ],
+    "money": {
+      "subtotal_cents": 7987,
+      "discount_cents": 0,
+      "delivery_fee_cents": 449,
+      "service_fee_cents": 399,
+      "tax_lines": [
+        {
+          "jurisdiction_code": "CA-ON",
+          "tax_kind": "HST",
+          "statutory_label": "HST (13%)",
+          "rate": "0.13",
+          "base_cents": 8835,
+          "amount_cents": 1149,
+          "rebate_applied": false,
+          "remittable_by": "RESTAURANT"
+        }
+      ],
+      "tax_total_cents": 1149,
+      "tip_cents": 700,
+      "total_cents": 10684,
+      "currency": "CAD"
+    },
+    "payment": {
+      "card_brand": "visa",
+      "card_last4": "4242",
+      "wallet": null,
+      "amount_charged_cents": 10684,
+      "currency": "CAD"
+    },
+    "refunds": [
+      {
+        "id": "edd93172-e739-44c8-acbb-1e29db05230d",
+        "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+        "kind": "PARTIAL_ITEMS",
+        "scope": "PARTIAL_ITEMS",
+        "reason_code": "MISSING_ITEMS",
+        "amount_cents": 1695,
+        "tax_cents": 220,
+        "currency": "CAD",
+        "state": "SETTLED",
+        "liability_split": {
+          "platform_cents": 0,
+          "restaurant_cents": 1915,
+          "rider_cents": 0
+        },
+        "note": null,
+        "requested_at": "2026-08-10T18:02:11.412Z",
+        "settled_at": "2026-08-10T18:12:11.412Z",
+        "failure_message": null
+      }
+    ],
+    "placed_at": "2026-08-10T18:10:11.412Z",
+    "delivered_at": "2026-08-10T18:40:11.412Z"
+  }
+}

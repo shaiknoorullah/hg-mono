@@ -1,0 +1,18 @@
+{
+  "scenario": "error_below_minimum_order",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `BELOW_MINIMUM_ORDER`. Pairs with `cart_single_line`. The amount is server-computed — the client renders the sentence, it does not do the subtraction.",
+  "operations": [],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "BELOW_MINIMUM_ORDER",
+      "message": "This kitchen has a $15.00 minimum. Add $4.05 more to continue.",
+      "request_id": "HXJQC4DTZ087JN329147SWEMWR"
+    }
+  }
+}

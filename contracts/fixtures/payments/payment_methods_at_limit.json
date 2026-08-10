@@ -1,0 +1,101 @@
+{
+  "scenario": "payment_methods_at_limit",
+  "domain": "payments",
+  "schema": "array<PaymentMethod>",
+  "describes": "Ten saved cards — the cap. Adding an eleventh is `409 PAYMENT_METHOD_LIMIT`.",
+  "operations": [
+    "listPaymentMethods"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "boundary"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 10
+  },
+  "payload": [
+    {
+      "id": "639d7412-d714-4e2e-a105-d1120a19276b",
+      "brand": "visa",
+      "last4": "4000",
+      "exp_month": 1,
+      "exp_year": 2027,
+      "is_default": true
+    },
+    {
+      "id": "5cb36799-413d-4a87-acc9-41fc99533bc3",
+      "brand": "mastercard",
+      "last4": "4001",
+      "exp_month": 2,
+      "exp_year": 2028,
+      "is_default": false
+    },
+    {
+      "id": "8ba6f365-abce-464f-af5b-1ee3c2d1facb",
+      "brand": "amex",
+      "last4": "4002",
+      "exp_month": 3,
+      "exp_year": 2029,
+      "is_default": false
+    },
+    {
+      "id": "df3c5355-abaa-41ac-a67e-5173bc199c7e",
+      "brand": "visa",
+      "last4": "4003",
+      "exp_month": 4,
+      "exp_year": 2027,
+      "is_default": false
+    },
+    {
+      "id": "6c1a2c53-c4cc-4ee4-a747-742f795f93d1",
+      "brand": "mastercard",
+      "last4": "4004",
+      "exp_month": 5,
+      "exp_year": 2028,
+      "is_default": false
+    },
+    {
+      "id": "7ac8f0bc-598f-4414-adcc-dfd6151a682f",
+      "brand": "amex",
+      "last4": "4005",
+      "exp_month": 6,
+      "exp_year": 2029,
+      "is_default": false
+    },
+    {
+      "id": "b363d198-e89a-4490-a8d5-3a7835acd759",
+      "brand": "visa",
+      "last4": "4006",
+      "exp_month": 7,
+      "exp_year": 2027,
+      "is_default": false
+    },
+    {
+      "id": "3695e45f-5bb0-4c17-a305-9b66a92155a9",
+      "brand": "mastercard",
+      "last4": "4007",
+      "exp_month": 8,
+      "exp_year": 2028,
+      "is_default": false
+    },
+    {
+      "id": "b67dee21-fe8f-405f-a43a-fa011cf0dbf4",
+      "brand": "amex",
+      "last4": "4008",
+      "exp_month": 9,
+      "exp_year": 2029,
+      "is_default": false
+    },
+    {
+      "id": "6aefc74e-cba1-4180-aac1-1fc13b921957",
+      "brand": "visa",
+      "last4": "4009",
+      "exp_month": 10,
+      "exp_year": 2027,
+      "is_default": false
+    }
+  ]
+}

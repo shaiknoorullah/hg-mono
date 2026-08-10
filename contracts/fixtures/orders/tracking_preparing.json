@@ -1,0 +1,61 @@
+{
+  "scenario": "tracking_preparing",
+  "domain": "orders",
+  "schema": "OrderTracking",
+  "describes": "Kitchen cooking, no rider yet — the map shows the restaurant only.",
+  "operations": [
+    "getOrderTracking"
+  ],
+  "status": 200,
+  "tags": [
+    "tracking",
+    "order-state-matrix"
+  ],
+  "payload": {
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "PREPARING",
+    "dispatch_state": "SEARCHING",
+    "eta_at": "2026-08-10T18:55:11.412Z",
+    "eta_window_minutes": 10,
+    "restaurant_location": {
+      "latitude": 43.6817,
+      "longitude": -79.3403
+    },
+    "destination_location": {
+      "latitude": 43.6412,
+      "longitude": -79.381
+    },
+    "rider_location": null,
+    "rider": null,
+    "timeline": [
+      {
+        "from_state": null,
+        "to_state": "CREATED",
+        "actor_kind": "CUSTOMER",
+        "reason": null,
+        "at": "2026-08-10T18:10:11.412Z"
+      },
+      {
+        "from_state": "CREATED",
+        "to_state": "AUTHORIZED",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:10:15.412Z"
+      },
+      {
+        "from_state": "AUTHORIZED",
+        "to_state": "RESTAURANT_PENDING",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:11:11.412Z"
+      },
+      {
+        "from_state": "RESTAURANT_PENDING",
+        "to_state": "PREPARING",
+        "actor_kind": "RESTAURANT",
+        "reason": null,
+        "at": "2026-08-10T18:13:11.412Z"
+      }
+    ]
+  }
+}

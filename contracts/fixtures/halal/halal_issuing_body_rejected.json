@@ -1,0 +1,31 @@
+{
+  "scenario": "halal_issuing_body_rejected",
+  "domain": "halal",
+  "schema": "HalalIssuingBody",
+  "describes": "`status = REJECTED`. Considered and refused.",
+  "operations": [
+    "listHalalIssuingBodies",
+    "proposeHalalIssuingBody",
+    "setHalalIssuingBodyStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "7947259e-9f39-4efc-a6f4-8421db51cbb4",
+    "name": "Halal Monitoring Authority (HMA Canada)",
+    "aliases": [
+      "Aliases",
+      "Aliases"
+    ],
+    "country": "Country",
+    "region": "ca-central-1",
+    "website": "https://cdn.halalgoes.ca/img/asset/74bfedad.webp",
+    "accreditation_ref": "Accreditation Ref",
+    "requires_issuer_confirmation": true,
+    "status": "REJECTED",
+    "notes": "Notes"
+  }
+}

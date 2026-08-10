@@ -1,0 +1,30 @@
+{
+  "scenario": "error_validation_failed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. Per-field detail lives in `error.details` as `FieldError[]` (contradiction log #2). Note the enum message: `CALL_ON_ARRIVAL` was dropped in favour of the platform's five values (contradiction log #6).",
+  "operations": [],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "Some fields could not be accepted.",
+      "request_id": "J0BYF4CYHN83TY8285MKFEH0D0",
+      "details": [
+        {
+          "field": "delivery_instructions[0]",
+          "code": "enum",
+          "message": "CALL_ON_ARRIVAL is not a valid delivery instruction."
+        },
+        {
+          "field": "tip_cents",
+          "code": "minimum",
+          "message": "Tip cannot be negative."
+        }
+      ]
+    }
+  }
+}

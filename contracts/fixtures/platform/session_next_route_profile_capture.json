@@ -1,0 +1,39 @@
+{
+  "scenario": "session_next_route_profile_capture",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = PROFILE_CAPTURE`. First sign-in — we have a phone and nothing else.",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 4,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "9b3a7e59-ebd8-42b2-a340-ab5ac6ead724",
+      "session_id": "3d3a26c7-69c3-4bda-ac5a-e3429473e07a",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "300d10ac-58d4-49c7-a545-5f997e591993"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

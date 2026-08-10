@@ -1,0 +1,16 @@
+{
+  "scenario": "restaurant_document_pack_empty",
+  "domain": "documents",
+  "schema": "array<KycDocument>",
+  "describes": "Nothing uploaded yet — the first thing a new partner sees.",
+  "operations": [
+    "listRestaurantDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty",
+    "documents"
+  ],
+  "payload": []
+}

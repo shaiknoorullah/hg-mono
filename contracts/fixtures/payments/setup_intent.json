@@ -1,0 +1,13 @@
+{
+  "scenario": "setup_intent",
+  "domain": "payments",
+  "schema": "SetupIntent",
+  "describes": "The client secret for attaching a new card. The card never touches our servers.",
+  "operations": [
+    "createPaymentMethodSetupIntent"
+  ],
+  "status": 200,
+  "payload": {
+    "client_secret": "seti_1QkR7mE8xVn2LbQ1_secret_TzP4nR8wKcJ2"
+  }
+}

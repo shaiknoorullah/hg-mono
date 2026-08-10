@@ -1,0 +1,18 @@
+{
+  "scenario": "error_offer_already_taken",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `OFFER_ALREADY_TAKEN`. Already SCREAMING_SNAKE before the normalisation — the rider spec's spelling.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "OFFER_ALREADY_TAKEN",
+      "message": "Another rider took this order.",
+      "request_id": "9CYJFMGQY53KDYG3FZ7CCKN8PT"
+    }
+  }
+}

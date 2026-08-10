@@ -1,0 +1,91 @@
+{
+  "scenario": "realtime_gap_and_resume",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "A deliberate **seq gap** (3 → 7). A conforming client detects `seq > last_seq + 1`, sends `resume {channel, after_seq: 3}`, and receives the missing events followed by `resume_complete`. Use this to prove the gap-detection path before shipping.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "edge"
+  ],
+  "payload": [
+    {
+      "id": "8K3AJK2XS5G2F461YSXVTKE3G7",
+      "seq": 1,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": null,
+        "to": "CREATED",
+        "at": "2026-08-10T18:42:11.412Z",
+        "reason": null,
+        "actor_kind": "CUSTOMER",
+        "deadline_at": "2026-08-10T18:57:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "5EB390B0NT2QT1KA3KGYB3FHPE",
+      "seq": 2,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "CREATED",
+        "to": "AUTHORIZED",
+        "at": "2026-08-10T18:42:12.412Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": "2026-08-10T18:57:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 1000
+    },
+    {
+      "id": "BN9VVM267G35RAENJEMN9G2SVG",
+      "seq": 3,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:13.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "AUTHORIZED",
+        "to": "RESTAURANT_PENDING",
+        "at": "2026-08-10T18:42:13.412Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": "2026-08-10T18:45:13.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 2000
+    },
+    {
+      "id": "CF94Z5QB6KHBT0DDP7KD6B9V45",
+      "seq": 7,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:19.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "PREPARING",
+        "to": "READY_FOR_PICKUP",
+        "at": "2026-08-10T18:42:19.412Z",
+        "reason": null,
+        "actor_kind": "RESTAURANT",
+        "deadline_at": "2026-08-10T18:52:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 8000
+    }
+  ]
+}

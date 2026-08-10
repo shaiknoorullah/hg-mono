@@ -1,0 +1,39 @@
+{
+  "scenario": "session_next_route_active_delivery",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = ACTIVE_DELIVERY`. A rider with a delivery in progress resumes it, wherever they were.",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 18,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "90d29b37-0d0a-4fb4-a5ce-21de53b8637c",
+      "session_id": "b0064562-017d-4b3b-af7e-d85270eb5166",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "4a88532e-62ac-463b-a43f-d294e07d6fd9"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

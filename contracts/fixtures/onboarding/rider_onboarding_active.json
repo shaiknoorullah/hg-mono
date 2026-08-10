@@ -1,0 +1,131 @@
+{
+  "scenario": "rider_onboarding_active",
+  "domain": "onboarding",
+  "schema": "RiderOnboardingStatus",
+  "describes": "`onboarding_state = ACTIVE`. Approved and able to go online. Terminal, happy.",
+  "operations": [
+    "getRiderOnboardingStatus",
+    "submitRiderDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "rider"
+  ],
+  "payload": {
+    "onboarding_state": "ACTIVE",
+    "account_status": "ACTIVE",
+    "progress_percent": 100,
+    "next_step": "DONE",
+    "next_route": "HOME",
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "decided_at": "2026-08-08T18:42:11.412Z",
+    "attempt_number": 1,
+    "documents": [
+      {
+        "id": "0508fd9e-d9fb-4f45-a635-baa0a252f29c",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "DRIVERS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "12564912-06c5-4cf9-af62-e20faafacc6a",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "VEHICLE_REGISTRATION",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "30e6f4e8-6360-431d-a0c2-011f200d79e0",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "VEHICLE_INSURANCE",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "29591264-39a0-4056-a23d-15c604cb661d",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "GOVERNMENT_ID",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "d0feffd8-30cf-4a3e-a6e6-0d10d5d66330",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "WORK_ELIGIBILITY",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "0029c657-9114-43b9-a212-3723852fd267",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "PROFILE_PHOTO",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": null,
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      }
+    ],
+    "steps_completed": {
+      "phone_verified": true,
+      "profile": true,
+      "vehicle": true,
+      "documents_submitted": true,
+      "documents_approved": true,
+      "payout_onboarded": true
+    }
+  }
+}

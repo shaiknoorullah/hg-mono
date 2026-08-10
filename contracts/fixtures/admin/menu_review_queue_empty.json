@@ -1,0 +1,21 @@
+{
+  "scenario": "menu_review_queue_empty",
+  "domain": "admin",
+  "schema": "array<MenuItemVersion>",
+  "describes": "Nothing queued. A stalled queue must never freeze a restaurant's trading, which is why price and availability bypass review entirely.",
+  "operations": [
+    "listMenuReviewQueue"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

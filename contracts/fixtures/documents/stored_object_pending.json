@@ -1,0 +1,22 @@
+{
+  "scenario": "stored_object_pending",
+  "domain": "documents",
+  "schema": "StoredObject",
+  "describes": "Slot reserved, nothing uploaded yet. Expires in an hour.",
+  "operations": [
+    "confirmUpload"
+  ],
+  "status": 200,
+  "tags": [
+    "state-matrix",
+    "documents"
+  ],
+  "payload": {
+    "id": "682105d0-e1ec-443b-aac8-a7e4c31b7aa9",
+    "purpose": "KYC_DOCUMENT",
+    "state": "PENDING",
+    "content_type": "image/jpeg",
+    "byte_size": 14,
+    "reject_reason": "Reject Reason"
+  }
+}

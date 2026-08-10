@@ -1,0 +1,30 @@
+{
+  "scenario": "payment_failed",
+  "domain": "payments",
+  "schema": "OrderPayment",
+  "describes": "The card was declined at capture (`capture_failed` / `card_declined`). The order is cancelled and nothing is owed.",
+  "operations": [
+    "getOrderPayment"
+  ],
+  "status": 200,
+  "tags": [
+    "payment-state-matrix"
+  ],
+  "payload": {
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "FAILED",
+    "kind": "ORDER",
+    "amount_authorized_cents": 10684,
+    "amount_captured_cents": 0,
+    "amount_refunded_cents": 0,
+    "currency": "CAD",
+    "card_brand": "visa",
+    "card_last4": "4242",
+    "wallet": null,
+    "failure_code": "card_declined",
+    "decline_code": "insufficient_funds",
+    "client_secret": null,
+    "authorized_at": "2026-08-10T18:11:11.412Z",
+    "captured_at": null
+  }
+}

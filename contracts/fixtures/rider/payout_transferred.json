@@ -1,0 +1,27 @@
+{
+  "scenario": "payout_transferred",
+  "domain": "rider",
+  "schema": "Payout",
+  "describes": "Stripe accepted the transfer; not yet in the bank.",
+  "operations": [
+    "listRiderPayouts",
+    "listRestaurantPayouts"
+  ],
+  "status": 200,
+  "tags": [
+    "payout-state-matrix",
+    "money"
+  ],
+  "payload": {
+    "id": "bbd0d751-4d14-44b7-a29a-6709d487067d",
+    "period_start": "2026-08-03T18:42:11.412Z",
+    "period_end": "2026-08-10T18:42:11.412Z",
+    "amount_cents": 6706,
+    "currency": "CAD",
+    "state": "TRANSFERRED",
+    "hold_reason": "Hold Reason",
+    "entry_count": 0,
+    "paid_at": "2026-08-09T18:42:11.412Z",
+    "failure_message": null
+  }
+}

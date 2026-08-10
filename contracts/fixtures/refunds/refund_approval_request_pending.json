@@ -1,0 +1,23 @@
+{
+  "scenario": "refund_approval_request_pending",
+  "domain": "refunds",
+  "schema": "RefundApprovalRequest",
+  "describes": "A refund over the agent's cap: `202 Accepted` with the approval request, not a `201` refund. The two-response shape of `issueRefund`.",
+  "operations": [
+    "issueRefund"
+  ],
+  "status": 202,
+  "tags": [
+    "admin"
+  ],
+  "payload": {
+    "id": "b225fd9a-afe2-4a8c-aa03-1a4ecfd8bf07",
+    "order_id": "2e24b9a3-5c76-42e3-aaf9-18534b201ae9",
+    "proposed_amount_cents": 4500,
+    "currency": "CAD",
+    "required_role": "ADMIN",
+    "case_id": "e7a1b206-7844-4faa-a7e7-d4a9021deb24",
+    "status": "PENDING",
+    "requested_at": "2026-08-10T18:37:11.412Z"
+  }
+}

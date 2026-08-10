@@ -1,0 +1,33 @@
+{
+  "scenario": "refund_full_never_delivered",
+  "domain": "refunds",
+  "schema": "Refund",
+  "describes": "A full refund for an order that never arrived. Note both spellings survive in the enum (`NEVER_DELIVERED` / `ORDER_NEVER_ARRIVED`) — contradiction log #8 is OPEN.",
+  "operations": [
+    "getRefund"
+  ],
+  "status": 200,
+  "tags": [
+    "money"
+  ],
+  "payload": {
+    "id": "02ac012b-fba7-4930-aa78-4f1872aa3290",
+    "order_id": "ca26cb66-950d-4c39-a919-3bb5477168fa",
+    "kind": "FULL",
+    "scope": "FULL",
+    "reason_code": "ORDER_NEVER_ARRIVED",
+    "amount_cents": 6706,
+    "tax_cents": 691,
+    "currency": "CAD",
+    "state": "SETTLED",
+    "liability_split": {
+      "platform_cents": 6706,
+      "restaurant_cents": 0,
+      "rider_cents": 0
+    },
+    "note": null,
+    "requested_at": "2026-08-10T16:42:11.412Z",
+    "settled_at": "2026-08-10T17:42:11.412Z",
+    "failure_message": null
+  }
+}

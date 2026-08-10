@@ -1,0 +1,30 @@
+{
+  "scenario": "public_config",
+  "domain": "platform",
+  "schema": "PublicConfig",
+  "describes": "Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05).",
+  "operations": [
+    "getPublicConfig"
+  ],
+  "status": 200,
+  "tags": [
+    "platform"
+  ],
+  "payload": {
+    "currency": "CAD",
+    "served_provinces": [
+      "ON"
+    ],
+    "quote_ttl_seconds": 11,
+    "restaurant_response_window_seconds": 180,
+    "max_tip_cents": 1695,
+    "support_enabled": true,
+    "support_phone_e164": "+18005550199",
+    "support_hours": "Support Hours",
+    "default_map_center": {
+      "latitude": 43.6199,
+      "longitude": -79.6033
+    },
+    "terms_version": "2026-05-01"
+  }
+}

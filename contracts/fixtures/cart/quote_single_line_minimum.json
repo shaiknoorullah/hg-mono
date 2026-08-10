@@ -1,0 +1,69 @@
+{
+  "scenario": "quote_single_line_minimum",
+  "domain": "cart",
+  "schema": "Quote",
+  "describes": "Exactly one line at the cheapest item on the menu, tip 0 — the smallest legal order. Every money row is at its minimum.",
+  "operations": [
+    "createQuote"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "boundary",
+    "money"
+  ],
+  "payload": {
+    "id": "b5da81a3-1264-45ad-a8b0-ed4b1ed0a312",
+    "cart_id": "febc4423-41c4-4919-ac41-a84c10f6f600",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "delivery_address_id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+    "fulfilment": "DELIVERY",
+    "currency": "CAD",
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "0dd909e0-fd53-4dd2-a627-d9abf3f052df",
+        "menu_item_name": "Mango Lassi",
+        "variant_id": null,
+        "variant_name": null,
+        "variant_pricing_mode": null,
+        "addons": [],
+        "quantity": 1,
+        "base_price_cents": 549,
+        "variant_part_cents": 0,
+        "addons_part_cents": 0,
+        "line_unit_cents": 549,
+        "line_total_cents": 549,
+        "special_request": null,
+        "tax_category": "PREPARED_FOOD"
+      }
+    ],
+    "subtotal_cents": 549,
+    "discount_items_cents": 0,
+    "discount_delivery_cents": 0,
+    "discount_service_cents": 0,
+    "discount": null,
+    "delivery_fee_cents": 449,
+    "service_fee_cents": 27,
+    "tax_lines": [
+      {
+        "jurisdiction_code": "CA-ON",
+        "tax_kind": "HST",
+        "statutory_label": "HST (13%)",
+        "rate": "0.13",
+        "base_cents": 1025,
+        "amount_cents": 133,
+        "rebate_applied": false,
+        "remittable_by": "RESTAURANT"
+      }
+    ],
+    "tax_total_cents": 133,
+    "tip_cents": 0,
+    "total_cents": 1158,
+    "billable_km": 4,
+    "route_meters": 3180,
+    "route_source": "ROUTED",
+    "expires_at": "2026-08-10T18:51:51.412Z",
+    "created_at": "2026-08-10T18:41:51.412Z"
+  }
+}

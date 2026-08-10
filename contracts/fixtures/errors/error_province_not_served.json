@@ -1,0 +1,18 @@
+{
+  "scenario": "error_province_not_served",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `PROVINCE_NOT_SERVED`. **A collision case**: `province_not_served` (pricing) and `PROVINCE_NOT_SERVED` (address) merged. Gated by `getPublicConfig.served_provinces` (O-05).",
+  "operations": [],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "PROVINCE_NOT_SERVED",
+      "message": "We do not deliver in that province yet.",
+      "request_id": "QNMWRW0M8EPZHPNZPZFMXHGTD7"
+    }
+  }
+}

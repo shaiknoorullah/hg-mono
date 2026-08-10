@@ -1,0 +1,15 @@
+{
+  "scenario": "presigned_download",
+  "domain": "documents",
+  "schema": "PresignedDownload",
+  "describes": "A short-lived GET for viewing a certificate or a document.",
+  "operations": [
+    "createDocumentDownloadUrl",
+    "createCertificateViewUrl"
+  ],
+  "status": 200,
+  "payload": {
+    "url": "https://cdn.halalgoes.ca/img/asset/fe601348.webp",
+    "expires_at": "2026-08-10T18:51:11.412Z"
+  }
+}

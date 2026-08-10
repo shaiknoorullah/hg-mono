@@ -1,0 +1,24 @@
+{
+  "scenario": "rider_vehicle_on_foot",
+  "domain": "onboarding",
+  "schema": "RiderVehicle",
+  "describes": "`ON_FOOT`: no plate, no make, no model, no insurance requirement. Every vehicle-shaped field is null at once (`FIELD_NOT_APPLICABLE`).",
+  "operations": [
+    "submitRiderVehicle"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "edge"
+  ],
+  "payload": {
+    "id": "5a60fa9f-3c54-4580-a8f9-1f1bea7fb84b",
+    "vehicle_type": "ON_FOOT",
+    "make": null,
+    "model": null,
+    "year": null,
+    "colour": null,
+    "licence_plate": "Licence Plate",
+    "is_active": true
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "scenario": "error_quote_expired",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `QUOTE_EXPIRED`. Was `quote_expired`. Pairs with the `quote_expired` fixture.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "QUOTE_EXPIRED",
+      "message": "This quote has expired. Fetch a new one to continue.",
+      "request_id": "G1EWHB558ES5BSQPQSDGWPPYNB"
+    }
+  }
+}

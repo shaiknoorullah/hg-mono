@@ -1,0 +1,21 @@
+{
+  "scenario": "notifications_empty",
+  "domain": "platform",
+  "schema": "array<Notification>",
+  "describes": "Nothing to show. The bell must not render a zero badge.",
+  "operations": [
+    "listNotifications"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

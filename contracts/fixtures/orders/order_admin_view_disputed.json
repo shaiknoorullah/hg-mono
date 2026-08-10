@@ -1,0 +1,351 @@
+{
+  "scenario": "order_admin_view_disputed",
+  "domain": "orders",
+  "schema": "OrderAdminView",
+  "describes": "A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored).",
+  "operations": [
+    "getOrderAdmin"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "error-path"
+  ],
+  "payload": {
+    "id": "2e24b9a3-5c76-42e3-aaf9-18534b201ae9",
+    "code": "HG-DIED-8X",
+    "state": "DISPUTED",
+    "state_since": "2026-08-10T18:40:41.412Z",
+    "deadline_at": "2026-08-12T18:42:11.412Z",
+    "quote_id": "f8dfea78-0bca-41ef-ab51-59115257cf62",
+    "restaurant": {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      }
+    },
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "variant_name": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 2,
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "variant_name": "Full",
+        "addons": [],
+        "quantity": 1,
+        "special_request": "Extra gravy on the side",
+        "unit_price_cents": 3695,
+        "line_total_cents": 3695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 3,
+        "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+        "name": "Chicken Karahi (Half)",
+        "variant_name": null,
+        "addons": [
+          {
+            "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+            "addon_name": "Garlic naan",
+            "addon_quantity": 2,
+            "addon_price_cents": 349
+          }
+        ],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 2597,
+        "line_total_cents": 2597,
+        "currency": "CAD"
+      }
+    ],
+    "money": {
+      "subtotal_cents": 7987,
+      "discount_cents": 0,
+      "delivery_fee_cents": 449,
+      "service_fee_cents": 399,
+      "tax_lines": [
+        {
+          "jurisdiction_code": "CA-ON",
+          "tax_kind": "HST",
+          "statutory_label": "HST (13%)",
+          "rate": "0.13",
+          "base_cents": 8835,
+          "amount_cents": 1149,
+          "rebate_applied": false,
+          "remittable_by": "RESTAURANT"
+        }
+      ],
+      "tax_total_cents": 1149,
+      "tip_cents": 700,
+      "total_cents": 10684,
+      "currency": "CAD"
+    },
+    "delivery_address": {
+      "id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+      "label": "Home",
+      "line1": "88 Harbour Street",
+      "line2": null,
+      "unit": "Unit 4211",
+      "buzzer": "4211",
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M5J 0C3",
+      "country": "CA",
+      "latitude": 43.6412,
+      "longitude": -79.381,
+      "timezone": "America/Toronto",
+      "delivery_notes": "Buzz the unit, then leave it at the door. Please don't knock.",
+      "is_default": true
+    },
+    "delivery_instructions": [
+      "LEAVE_AT_DOOR",
+      "DO_NOT_RING_BELL"
+    ],
+    "special_instructions": "Please leave it on the mat, not the shoe rack.",
+    "rider": {
+      "first_name": "Bilal",
+      "last_initial": "S",
+      "photo_url": "https://cdn.halalgoes.ca/img/avatar/rider-bilal.webp",
+      "vehicle_type": "SCOOTER",
+      "rating_avg": 4.9
+    },
+    "dispatch_state": "COMPLETED",
+    "cancel_reason": null,
+    "reject_reason": null,
+    "eta_at": "2026-08-10T18:55:11.412Z",
+    "can_cancel": false,
+    "placed_at": "2026-08-10T18:10:11.412Z",
+    "accepted_at": "2026-08-10T18:13:11.412Z",
+    "ready_at": "2026-08-10T18:28:11.412Z",
+    "picked_up_at": "2026-08-10T18:31:11.412Z",
+    "delivered_at": "2026-08-10T18:40:11.412Z",
+    "completed_at": null,
+    "timeline": [
+      {
+        "from_state": null,
+        "to_state": "CREATED",
+        "actor_kind": "CUSTOMER",
+        "reason": null,
+        "at": "2026-08-10T18:10:11.412Z"
+      },
+      {
+        "from_state": "CREATED",
+        "to_state": "AUTHORIZED",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:10:15.412Z"
+      },
+      {
+        "from_state": "AUTHORIZED",
+        "to_state": "RESTAURANT_PENDING",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:11:11.412Z"
+      },
+      {
+        "from_state": "RESTAURANT_PENDING",
+        "to_state": "PREPARING",
+        "actor_kind": "RESTAURANT",
+        "reason": null,
+        "at": "2026-08-10T18:13:11.412Z"
+      },
+      {
+        "from_state": "PREPARING",
+        "to_state": "READY_FOR_PICKUP",
+        "actor_kind": "RESTAURANT",
+        "reason": null,
+        "at": "2026-08-10T18:28:11.412Z"
+      },
+      {
+        "from_state": "READY_FOR_PICKUP",
+        "to_state": "PICKED_UP",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:31:11.412Z"
+      },
+      {
+        "from_state": "PICKED_UP",
+        "to_state": "ARRIVED",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:39:11.412Z"
+      },
+      {
+        "from_state": "ARRIVED",
+        "to_state": "DELIVERED",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:40:11.412Z"
+      },
+      {
+        "from_state": "DELIVERED",
+        "to_state": "COMPLETED",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:41:11.412Z"
+      },
+      {
+        "from_state": "COMPLETED",
+        "to_state": "DISPUTED",
+        "actor_kind": "CUSTOMER",
+        "reason": "Customer reported a missing item",
+        "at": "2026-08-10T18:41:31.412Z"
+      }
+    ],
+    "dispatch_history": [
+      {
+        "state": "PENDING",
+        "wave": null,
+        "radius_m": null,
+        "rider_account_id": null,
+        "offer_outcome": null,
+        "at": "2026-08-10T18:13:11.412Z"
+      },
+      {
+        "state": "SEARCHING",
+        "wave": 1,
+        "radius_m": 3000,
+        "rider_account_id": null,
+        "offer_outcome": null,
+        "at": "2026-08-10T18:14:11.412Z"
+      },
+      {
+        "state": "OFFERED",
+        "wave": 1,
+        "radius_m": 3000,
+        "rider_account_id": "bb344e16-80c9-43e7-a3b2-c6bc1d3ef231",
+        "offer_outcome": "EXPIRED",
+        "at": "2026-08-10T18:15:11.412Z"
+      },
+      {
+        "state": "OFFERED",
+        "wave": 2,
+        "radius_m": 6000,
+        "rider_account_id": "360dc1c7-7ab4-4557-a148-035991eda5e5",
+        "offer_outcome": "ACCEPTED",
+        "at": "2026-08-10T18:26:11.412Z"
+      },
+      {
+        "state": "ASSIGNED",
+        "wave": 2,
+        "radius_m": 6000,
+        "rider_account_id": "360dc1c7-7ab4-4557-a148-035991eda5e5",
+        "offer_outcome": null,
+        "at": "2026-08-10T18:26:11.412Z"
+      }
+    ],
+    "payment": {
+      "order_id": "2e24b9a3-5c76-42e3-aaf9-18534b201ae9",
+      "state": "SUCCEEDED",
+      "kind": "ORDER",
+      "amount_authorized_cents": 10684,
+      "amount_captured_cents": 10684,
+      "amount_refunded_cents": 0,
+      "currency": "CAD",
+      "card_brand": "visa",
+      "card_last4": "4242",
+      "wallet": null,
+      "failure_code": null,
+      "decline_code": null,
+      "client_secret": null,
+      "authorized_at": "2026-08-10T18:11:11.412Z",
+      "captured_at": "2026-08-10T18:13:11.412Z"
+    },
+    "refunds": [
+      {
+        "id": "73fbf1ad-a4e8-4805-a86d-5da003c4c3b9",
+        "order_id": "2e24b9a3-5c76-42e3-aaf9-18534b201ae9",
+        "kind": "PARTIAL_ITEMS",
+        "scope": "PARTIAL_ITEMS",
+        "reason_code": "ITEM_MISSING",
+        "amount_cents": 1695,
+        "tax_cents": 220,
+        "currency": "CAD",
+        "state": "PENDING_APPROVAL",
+        "liability_split": {
+          "platform_cents": 0,
+          "restaurant_cents": 1695,
+          "rider_cents": 0
+        },
+        "note": "Customer reports the biryani was missing from the bag.",
+        "requested_at": "2026-08-10T18:24:11.412Z",
+        "settled_at": null,
+        "failure_message": null
+      }
+    ],
+    "internal_money": {
+      "commission_cents": 0,
+      "restaurant_net_cents": 7987,
+      "rider_earnings_cents": 1149,
+      "platform_gross_cents": 399,
+      "ledger_residual_cents": 0,
+      "ledger_entries": [
+        {
+          "batch_id": "e016fe00-79fd-476d-af28-0376f728ab37",
+          "batch_kind": "CAPTURE",
+          "account": "CUSTOMER_CHARGES",
+          "component": "SUBTOTAL",
+          "counterparty_type": "RESTAURANT",
+          "counterparty_id": "295f72b9-a422-4394-a788-aaf71d5ff3f3",
+          "amount_cents": -10684,
+          "currency": "CAD",
+          "memo": "Memo",
+          "posted_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "batch_id": "e0fb6731-0fb2-42e0-ad34-57e18ec34b48",
+          "batch_kind": "CAPTURE",
+          "account": "RESTAURANT_PAYABLE",
+          "component": "SUBTOTAL",
+          "counterparty_type": "RESTAURANT",
+          "counterparty_id": "da6ff446-3eec-44d3-a3df-eacc4ecce4c4",
+          "amount_cents": 7987,
+          "currency": "CAD",
+          "memo": "Memo",
+          "posted_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "batch_id": "c361e876-17a8-4b80-a144-3fdba02f2dbd",
+          "batch_kind": "CAPTURE",
+          "account": "RIDER_PAYABLE",
+          "component": "TIP",
+          "counterparty_type": "RESTAURANT",
+          "counterparty_id": "366ea3ff-94f7-437f-ac08-94988cbd2b01",
+          "amount_cents": 700,
+          "currency": "CAD",
+          "memo": "Memo",
+          "posted_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "batch_id": "ab90d5b3-10ec-4373-a040-ec5dc6dfa65a",
+          "batch_kind": "CAPTURE",
+          "account": "PLATFORM_REVENUE",
+          "component": "SERVICE_FEE",
+          "counterparty_type": "RESTAURANT",
+          "counterparty_id": "bf6c4068-ad08-4a18-a988-726778227720",
+          "amount_cents": 399,
+          "currency": "CAD",
+          "memo": "Memo",
+          "posted_at": "2026-08-10T18:32:11.412Z"
+        }
+      ],
+      "currency": "CAD"
+    },
+    "pii_revealed": false
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "scenario": "session_grant_customer",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "A customer session issued by phone OTP, with `next_route` telling the app where to land — the client contains no branching tree of its own (P-04).",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession",
+    "verifyEmail",
+    "changePassword"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 13,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "b975577b-f4b4-4f76-ab39-c3c4283be37b",
+      "session_id": "9b37e961-17ce-4374-a426-29ac5c907710",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "bb3bcaf3-7171-42cd-ab9e-853fe55fe18d"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

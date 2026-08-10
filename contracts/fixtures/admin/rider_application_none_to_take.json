@@ -1,0 +1,16 @@
+{
+  "scenario": "rider_application_none_to_take",
+  "domain": "admin",
+  "schema": "RiderApplication|null",
+  "describes": "Empty rider queue — null data.",
+  "operations": [
+    "takeNextRiderApplication"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "edge",
+    "empty"
+  ],
+  "payload": null
+}

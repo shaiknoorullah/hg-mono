@@ -1,0 +1,22 @@
+{
+  "scenario": "stored_object_rejected",
+  "domain": "documents",
+  "schema": "StoredObject",
+  "describes": "Failed the content-type or checksum gate at confirm time.",
+  "operations": [
+    "confirmUpload"
+  ],
+  "status": 200,
+  "tags": [
+    "state-matrix",
+    "documents"
+  ],
+  "payload": {
+    "id": "9272a2c0-d1af-4052-af61-2505c9aa3238",
+    "purpose": "KYC_DOCUMENT",
+    "state": "REJECTED",
+    "content_type": "image/jpeg",
+    "byte_size": 16,
+    "reject_reason": "Reject Reason"
+  }
+}

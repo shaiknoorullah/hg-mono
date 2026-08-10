@@ -1,0 +1,49 @@
+{
+  "scenario": "menu_single_item",
+  "domain": "catalogue",
+  "schema": "Menu",
+  "describes": "Exactly one category holding exactly one item. Catches carousels that need at least two children and 'N items' copy that pluralises wrongly.",
+  "operations": [
+    "getRestaurantMenu"
+  ],
+  "status": 200,
+  "tags": [
+    "edge"
+  ],
+  "payload": {
+    "restaurant_id": "4cfb4391-7c9b-44c2-a8c5-e15db084c3e0",
+    "categories": [
+      {
+        "id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+        "name": "Biryani & Rice",
+        "description": null,
+        "sort_order": 1,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+            "name": "Chicken Biryani",
+            "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+            "price_cents": 1695,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 22,
+            "variant_groups": [],
+            "addon_groups": []
+          }
+        ]
+      }
+    ]
+  }
+}

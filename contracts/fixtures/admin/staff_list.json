@@ -1,0 +1,62 @@
+{
+  "scenario": "staff_list",
+  "domain": "admin",
+  "schema": "array<StaffUser>",
+  "describes": "Platform staff across every `StaffStatus`.",
+  "operations": [
+    "listStaff",
+    "createStaffUser"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "state-matrix"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 4
+  },
+  "payload": [
+    {
+      "id": "7a38a91f-2f1f-41f3-af8c-68e3c9a7f0e1",
+      "email": "owner@karachikitchen.ca",
+      "full_name": "Full Name",
+      "role": "CUSTOMER",
+      "status": "ACTIVE",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T18:32:11.412Z",
+      "created_at": "2026-08-10T17:57:11.412Z"
+    },
+    {
+      "id": "f8298e26-27b1-4102-af62-0bbc308abfd6",
+      "email": "owner@karachikitchen.ca",
+      "full_name": "Full Name",
+      "role": "CUSTOMER",
+      "status": "INVITED",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T18:32:11.412Z",
+      "created_at": "2026-08-10T17:57:11.412Z"
+    },
+    {
+      "id": "6475cac7-079a-4961-a480-bf122e00bfd8",
+      "email": "owner@karachikitchen.ca",
+      "full_name": "Full Name",
+      "role": "CUSTOMER",
+      "status": "SUSPENDED",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T18:32:11.412Z",
+      "created_at": "2026-08-10T17:57:11.412Z"
+    },
+    {
+      "id": "0b8405b1-cb33-434b-a92e-962bb0fd6f34",
+      "email": "owner@karachikitchen.ca",
+      "full_name": "Full Name",
+      "role": "CUSTOMER",
+      "status": "DEACTIVATED",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T18:32:11.412Z",
+      "created_at": "2026-08-10T17:57:11.412Z"
+    }
+  ]
+}

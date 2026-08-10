@@ -1,0 +1,169 @@
+{
+  "scenario": "search_results_populated",
+  "domain": "catalogue",
+  "schema": "SearchResults",
+  "describes": "Restaurant and dish hits for the query 'biryani'.",
+  "operations": [
+    "search"
+  ],
+  "status": 200,
+  "meta": {
+    "restaurants": {
+      "next_cursor": "Next Cursor",
+      "has_more": false,
+      "total": 3
+    },
+    "dishes": {
+      "next_cursor": "Next Cursor",
+      "has_more": false,
+      "total": 3
+    },
+    "relaxation_hint": "Relaxation Hint"
+  },
+  "payload": {
+    "restaurants": [
+      {
+        "id": "4c4c14e5-0081-4242-a696-729f571f0992",
+        "name": "Bosphorus Turkish Kebab",
+        "slug": "zaytoun-mediterranean-grill",
+        "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/3a35fb86.webp",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/b53a9910.webp",
+        "cuisines": [
+          "Cuisines",
+          "Cuisines",
+          "Cuisines"
+        ],
+        "rating_avg": 4.6,
+        "rating_count": 412,
+        "price_band": "$$",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Islamic Food and Nutrition Council of Canada",
+          "expires_on": "2027-03-08"
+        },
+        "availability": {
+          "state": "OPEN",
+          "opens_at": "2026-08-10T12:42:11.412Z",
+          "closes_at": "2026-08-10T22:42:11.412Z",
+          "eta_min_minutes": 25,
+          "eta_max_minutes": 40,
+          "indicative_delivery_fee_cents": 449,
+          "minimum_order_cents": 1500,
+          "distance_m": 3180,
+          "out_of_range_reason": null
+        }
+      },
+      {
+        "id": "558f29ee-61f1-4e9e-af7a-3e7eba17f165",
+        "name": "Marhaba Fried Chicken",
+        "slug": "bismillah-biryani-house",
+        "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/75a7f169.webp",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/119e436d.webp",
+        "cuisines": [
+          "Cuisines",
+          "Cuisines",
+          "Cuisines"
+        ],
+        "rating_avg": 4.6,
+        "rating_count": 412,
+        "price_band": "$$",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Advisory Council of Ontario",
+          "expires_on": "2027-03-08"
+        },
+        "availability": {
+          "state": "OPEN",
+          "opens_at": "2026-08-10T12:42:11.412Z",
+          "closes_at": "2026-08-10T22:42:11.412Z",
+          "eta_min_minutes": 25,
+          "eta_max_minutes": 40,
+          "indicative_delivery_fee_cents": 449,
+          "minimum_order_cents": 1500,
+          "distance_m": 3180,
+          "out_of_range_reason": null
+        }
+      }
+    ],
+    "dishes": [
+      {
+        "menu_item_id": "32c821a0-efd5-4e02-a55b-a8e606f66119",
+        "name": "Lahore Tikka Corner",
+        "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/05716fa3.webp",
+        "price_cents": 1695,
+        "currency": "CAD",
+        "restaurant": {
+          "id": "d47d967b-6b7c-4059-a620-e43623def1dd",
+          "name": "Bosphorus Turkish Kebab",
+          "slug": "lahore-tikka-corner",
+          "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/da2e9976.webp",
+          "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/8de8df97.webp",
+          "cuisines": [
+            "Cuisines",
+            "Cuisines",
+            "Cuisines"
+          ],
+          "rating_avg": 4.6,
+          "rating_count": 412,
+          "price_band": "$$",
+          "halal": {
+            "display_state": "CERTIFIED",
+            "certifying_body_name": "Islamic Food and Nutrition Council of Canada",
+            "expires_on": "2027-03-08"
+          },
+          "availability": {
+            "state": "OPEN",
+            "opens_at": "2026-08-10T12:42:11.412Z",
+            "closes_at": "2026-08-10T22:42:11.412Z",
+            "eta_min_minutes": 25,
+            "eta_max_minutes": 40,
+            "indicative_delivery_fee_cents": 449,
+            "minimum_order_cents": 1500,
+            "distance_m": 3180,
+            "out_of_range_reason": null
+          }
+        }
+      },
+      {
+        "menu_item_id": "d8638990-77d8-45d3-a55d-91f2a2758ecc",
+        "name": "Lahore Tikka Corner",
+        "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/ab872c1c.webp",
+        "price_cents": 1695,
+        "currency": "CAD",
+        "restaurant": {
+          "id": "c4da2777-7d52-44c3-a1df-5f9d269b9019",
+          "name": "Lahore Tikka Corner",
+          "slug": "karachi-kitchen",
+          "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/234f9ba6.webp",
+          "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/45a7efc9.webp",
+          "cuisines": [
+            "Cuisines",
+            "Cuisines",
+            "Cuisines"
+          ],
+          "rating_avg": 4.6,
+          "rating_count": 412,
+          "price_band": "$$",
+          "halal": {
+            "display_state": "CERTIFIED",
+            "certifying_body_name": "Halal Advisory Council of Ontario",
+            "expires_on": "2027-03-08"
+          },
+          "availability": {
+            "state": "OPEN",
+            "opens_at": "2026-08-10T12:42:11.412Z",
+            "closes_at": "2026-08-10T22:42:11.412Z",
+            "eta_min_minutes": 25,
+            "eta_max_minutes": 40,
+            "indicative_delivery_fee_cents": 449,
+            "minimum_order_cents": 1500,
+            "distance_m": 3180,
+            "out_of_range_reason": null
+          }
+        }
+      }
+    ]
+  }
+}

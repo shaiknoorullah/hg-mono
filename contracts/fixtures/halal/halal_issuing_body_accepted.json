@@ -1,0 +1,31 @@
+{
+  "scenario": "halal_issuing_body_accepted",
+  "domain": "halal",
+  "schema": "HalalIssuingBody",
+  "describes": "`status = ACCEPTED`. On the list. Promotion to this state is gated to a super admin (O-02).",
+  "operations": [
+    "listHalalIssuingBodies",
+    "proposeHalalIssuingBody",
+    "setHalalIssuingBodyStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "70a88526-42e0-459a-a3cc-3331d203a835",
+    "name": "Halal Monitoring Authority (HMA Canada)",
+    "aliases": [
+      "Aliases",
+      "Aliases"
+    ],
+    "country": "Country",
+    "region": "ca-central-1",
+    "website": "https://cdn.halalgoes.ca/img/asset/2f70cafa.webp",
+    "accreditation_ref": "Accreditation Ref",
+    "requires_issuer_confirmation": true,
+    "status": "ACCEPTED",
+    "notes": "Notes"
+  }
+}

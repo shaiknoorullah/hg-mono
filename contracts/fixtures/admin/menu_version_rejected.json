@@ -1,0 +1,40 @@
+{
+  "scenario": "menu_version_rejected",
+  "domain": "admin",
+  "schema": "MenuItemVersion",
+  "describes": "`REJECTED`. Refused with `UNSUBSTANTIATED_HALAL_CLAIM`.",
+  "operations": [
+    "listMenuReviewQueue",
+    "decideMenuVersion"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "state-matrix",
+    "review-queue"
+  ],
+  "payload": {
+    "id": "5c219fe7-894c-4cc6-a997-404dc75bacf6",
+    "menu_item_id": "00331253-744b-4ca6-a636-fe174c8787f2",
+    "restaurant_id": "f54bbbd6-eafb-4bea-a790-b59a0e4f5e68",
+    "version": 0,
+    "name": "Al-Noor Shawarma House",
+    "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "dietary_tags": [
+      "VEGETARIAN",
+      "VEGETARIAN"
+    ],
+    "allergen_tags": [
+      "PEANUTS",
+      "PEANUTS"
+    ],
+    "image_url": "https://cdn.halalgoes.ca/img/dish/93537b30.webp",
+    "review_status": "REJECTED",
+    "rejection_reason_code": "MISLEADING_DESCRIPTION",
+    "review_note": "Review Note",
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "reviewed_at": "2026-07-11T18:42:11.412Z",
+    "created_at": "2026-08-10T17:57:11.412Z"
+  }
+}

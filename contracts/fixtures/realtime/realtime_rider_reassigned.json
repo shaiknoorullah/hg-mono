@@ -1,0 +1,96 @@
+{
+  "scenario": "realtime_rider_reassigned",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "The assigned rider drops out mid-delivery. The customer sees `dispatch.unassigned` then a second `dispatch.assigned`; the old rider is force-unsubscribed from the order channel within 2 seconds.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "8K3AJK2XS5G2F461YSXVTKE3G7",
+      "seq": 1,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.assigned",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "rider": {
+          "first_name": "Bilal",
+          "photo_url": null,
+          "vehicle_type": "SCOOTER",
+          "rating_avg": 4.9
+        },
+        "pickup_eta_at": "2026-08-10T18:50:11.412Z"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "5EB390B0NT2QT1KA3KGYB3FHPE",
+      "seq": 2,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.unassigned",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "reason": "rider_unresponsive"
+      },
+      "_delay_ms": 12000
+    },
+    {
+      "id": "BN9VVM267G35RAENJEMN9G2SVG",
+      "seq": 3,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.512Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "ASSIGNED",
+        "to": "UNASSIGNED",
+        "at": "2026-08-10T18:42:23.512Z"
+      },
+      "_delay_ms": 12100
+    },
+    {
+      "id": "2Z0P3H3TNWFVZRQ4C7BJ1MTCRT",
+      "seq": 4,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:24.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "UNASSIGNED",
+        "to": "SEARCHING",
+        "at": "2026-08-10T18:42:24.412Z"
+      },
+      "_delay_ms": 13000
+    },
+    {
+      "id": "3HR82X0Q9SQ5EVFR9EHRTRRZVY",
+      "seq": 5,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.assigned",
+      "v": 1,
+      "ts": "2026-08-10T18:42:33.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "rider": {
+          "first_name": "Omar",
+          "photo_url": null,
+          "vehicle_type": "CAR",
+          "rating_avg": 4.7
+        },
+        "pickup_eta_at": "2026-08-10T18:53:11.412Z"
+      },
+      "_delay_ms": 22000
+    }
+  ]
+}

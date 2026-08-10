@@ -1,0 +1,34 @@
+{
+  "scenario": "refund_goodwill_admin",
+  "domain": "refunds",
+  "schema": "Refund",
+  "describes": "Admin goodwill — the only refund carrying a client-supplied `amount_cents`, capped and dual-approved (one of exactly three money-in-request allowlist entries).",
+  "operations": [
+    "issueRefund"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "id": "9fd73ae0-7e75-494c-acd3-76ac447e3134",
+    "order_id": "2e24b9a3-5c76-42e3-aaf9-18534b201ae9",
+    "kind": "GOODWILL",
+    "scope": "PARTIAL_AMOUNT",
+    "reason_code": "GOODWILL",
+    "amount_cents": 1000,
+    "tax_cents": 0,
+    "currency": "CAD",
+    "state": "PENDING_APPROVAL",
+    "liability_split": {
+      "platform_cents": 1000,
+      "restaurant_cents": 0,
+      "rider_cents": 0
+    },
+    "note": "Third late delivery this month; retention call.",
+    "requested_at": "2026-08-10T18:37:11.412Z",
+    "settled_at": null,
+    "failure_message": null
+  }
+}

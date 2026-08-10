@@ -1,0 +1,32 @@
+{
+  "scenario": "restaurant_onboarding_active",
+  "domain": "onboarding",
+  "schema": "RestaurantOnboardingStatus",
+  "describes": "`onboarding_state = ACTIVE`. Live and trading. Terminal, happy.",
+  "operations": [
+    "getRestaurantOnboardingStatus",
+    "submitRestaurantDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "restaurant"
+  ],
+  "payload": {
+    "onboarding_state": "ACTIVE",
+    "account_state": "LIVE",
+    "current_step": "DONE",
+    "progress_percent": 100,
+    "steps_completed": {
+      "profile": true,
+      "documents_uploaded": true,
+      "documents_submitted": true,
+      "documents_approved": true,
+      "payout_account": true,
+      "menu_published": true
+    },
+    "blocking_reason": null,
+    "review_cycle": 1,
+    "rejection": null
+  }
+}

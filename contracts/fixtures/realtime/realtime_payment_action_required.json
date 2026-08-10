@@ -1,0 +1,106 @@
+{
+  "scenario": "realtime_payment_action_required",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "3-D Secure is a **normal** path: `payment.action_required` fires, the order stays `CREATED` under its 15-minute deadline, then authorises and proceeds.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script"
+  ],
+  "payload": [
+    {
+      "id": "8K3AJK2XS5G2F461YSXVTKE3G7",
+      "seq": 1,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.created",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "code": "HG-4K2M-9T",
+        "state": "CREATED",
+        "restaurant": {
+          "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+          "name": "Karachi Kitchen"
+        },
+        "total_cents": 6706,
+        "currency": "CAD",
+        "placed_at": "2026-08-10T18:42:11.412Z",
+        "deadline_at": "2026-08-10T18:57:11.412Z"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "5EB390B0NT2QT1KA3KGYB3FHPE",
+      "seq": 2,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "payment.action_required",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.212Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "client_secret": "pi_3QkR7mE8xVn2LbQ1_secret_5cGvA9pQ",
+        "expires_at": "2026-08-10T18:57:11.412Z"
+      },
+      "_delay_ms": 800
+    },
+    {
+      "id": "BN9VVM267G35RAENJEMN9G2SVG",
+      "seq": 3,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "payment.authorized",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "amount_cents": 6706,
+        "currency": "CAD",
+        "card": {
+          "brand": "visa",
+          "last4": "3184"
+        }
+      },
+      "_delay_ms": 9000
+    },
+    {
+      "id": "2Z0P3H3TNWFVZRQ4C7BJ1MTCRT",
+      "seq": 4,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.512Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "CREATED",
+        "to": "AUTHORIZED",
+        "at": "2026-08-10T18:42:20.512Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": "2026-08-10T18:57:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 9100
+    },
+    {
+      "id": "3HR82X0Q9SQ5EVFR9EHRTRRZVY",
+      "seq": 5,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.912Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "AUTHORIZED",
+        "to": "RESTAURANT_PENDING",
+        "at": "2026-08-10T18:42:20.912Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": "2026-08-10T18:45:20.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 9500
+    }
+  ]
+}

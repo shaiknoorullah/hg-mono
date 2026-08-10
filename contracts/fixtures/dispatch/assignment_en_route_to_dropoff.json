@@ -1,0 +1,100 @@
+{
+  "scenario": "assignment_en_route_to_dropoff",
+  "domain": "dispatch",
+  "schema": "Assignment",
+  "describes": "Navigating to the customer.",
+  "operations": [
+    "getAssignment",
+    "acceptOffer",
+    "createAssignmentTransition",
+    "submitProofOfDelivery"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "assignment-state-matrix"
+  ],
+  "payload": {
+    "id": "4ea97aca-78d6-4735-a8f0-253dd437e00d",
+    "order_id": "abbb948c-d80a-4a97-a5e6-cf2528dfe677",
+    "order_code": "HG-PIUP-9X",
+    "state": "EN_ROUTE_TO_DROPOFF",
+    "pickup": {
+      "restaurant_name": "Karachi Kitchen",
+      "address": "1245 Danforth Avenue, Toronto, ON M4J 1M4",
+      "latitude": 43.6817,
+      "longitude": -79.3403,
+      "phone_alias": "+16475550188",
+      "pickup_notes": "Hot counter on the left. Ask for the app order by code.",
+      "order_state": "PICKED_UP"
+    },
+    "dropoff": {
+      "address": "88 Harbour Street, Toronto, ON M5J 0C3",
+      "unit": "Unit 4211",
+      "buzzer": "4211",
+      "latitude": 43.6412,
+      "longitude": -79.381,
+      "customer_display_name": "Ayesha R.",
+      "phone_alias": "+16475550233",
+      "delivery_instructions": [
+        "LEAVE_AT_DOOR",
+        "DO_NOT_RING_BELL"
+      ],
+      "special_instructions": "Please leave it on the mat, not the shoe rack."
+    },
+    "items": [
+      {
+        "name": "Chicken Biryani",
+        "quantity": 1,
+        "variant_name": null,
+        "addon_names": [],
+        "note": null,
+        "allergen_tags": [
+          "MILK"
+        ]
+      },
+      {
+        "name": "Beef Nihari",
+        "quantity": 1,
+        "variant_name": "Full",
+        "addon_names": [],
+        "note": "Extra gravy on the side",
+        "allergen_tags": [
+          "WHEAT_TRITICALE"
+        ]
+      },
+      {
+        "name": "Chicken Karahi (Half)",
+        "quantity": 1,
+        "variant_name": null,
+        "addon_names": [
+          "Garlic naan"
+        ],
+        "note": null,
+        "allergen_tags": [
+          "MILK"
+        ]
+      }
+    ],
+    "payment_status": "PREPAID",
+    "earnings": {
+      "base_cents": 449,
+      "distance_cents": 0,
+      "surge_cents": 0,
+      "tip_so_far_cents": 700,
+      "estimated_total_cents": 1149,
+      "currency": "CAD"
+    },
+    "required_pod_method": "PHOTO",
+    "pod_recorded": false,
+    "handover_method": null,
+    "tracking_health": "HEALTHY",
+    "billable_distance_m": 5240,
+    "pickup_wait_seconds": 240,
+    "assigned_at": "2026-08-10T18:26:11.412Z",
+    "arrived_pickup_at": "2026-08-10T18:30:11.412Z",
+    "picked_up_at": "2026-08-10T18:31:11.412Z",
+    "arrived_dropoff_at": null,
+    "delivered_at": null
+  }
+}

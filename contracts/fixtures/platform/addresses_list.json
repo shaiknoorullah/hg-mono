@@ -1,0 +1,70 @@
+{
+  "scenario": "addresses_list",
+  "domain": "platform",
+  "schema": "array<Address>",
+  "describes": "Three saved addresses, one default, one with no unit or buzzer.",
+  "operations": [
+    "listAddresses",
+    "createAddress",
+    "getAddress",
+    "updateAddress",
+    "setDefaultAddress"
+  ],
+  "status": 200,
+  "tags": [
+    "platform"
+  ],
+  "payload": [
+    {
+      "id": "b7b6c797-5584-44b3-ac8d-9af8e9572de8",
+      "label": "Home",
+      "line1": "88 Harbour Street",
+      "line2": null,
+      "unit": "Unit 4211",
+      "buzzer": "4211",
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M5J 0C3",
+      "country": "CA",
+      "latitude": 43.6412,
+      "longitude": -79.381,
+      "timezone": "America/Toronto",
+      "delivery_notes": "Buzz the unit, then leave it at the door. Please don't knock.",
+      "is_default": true
+    },
+    {
+      "id": "0731df2a-2c01-4aae-a49b-1d4abe9e1c31",
+      "label": "Work",
+      "line1": "35 Fontenay Court",
+      "line2": null,
+      "unit": "Unit 1802",
+      "buzzer": "1802",
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M9A 0C7",
+      "country": "CA",
+      "latitude": 43.6678,
+      "longitude": -79.5289,
+      "timezone": "America/Toronto",
+      "delivery_notes": "Buzz the unit, then leave it at the door. Please don't knock.",
+      "is_default": false
+    },
+    {
+      "id": "fdbb5d7a-07e0-4597-af00-20ac300a257b",
+      "label": null,
+      "line1": "2 Bloor Street West",
+      "line2": null,
+      "unit": null,
+      "buzzer": null,
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M4W 3E2",
+      "country": "CA",
+      "latitude": 43.67,
+      "longitude": -79.3866,
+      "timezone": "America/Toronto",
+      "delivery_notes": null,
+      "is_default": false
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "scenario": "error_restaurant_closed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `RESTAURANT_CLOSED`. Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RESTAURANT_CLOSED",
+      "message": "Karachi Kitchen is closed right now.",
+      "request_id": "V5RDKH8P4RADKBAE9J2SXC7VAB"
+    }
+  }
+}

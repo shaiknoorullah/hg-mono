@@ -1,0 +1,23 @@
+{
+  "scenario": "rider_availability_online_stale",
+  "domain": "rider",
+  "schema": "RiderAvailability",
+  "describes": "Online but the phone has not reported a position recently — offers are suppressed until it does.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "state-matrix"
+  ],
+  "payload": {
+    "availability_state": "ONLINE_STALE",
+    "since": "2026-08-10T18:36:51.412Z",
+    "can_receive_offers": false,
+    "go_offline_after_delivery": false,
+    "blocking_reasons": [
+      "STALE_LOCATION_FIX"
+    ]
+  }
+}

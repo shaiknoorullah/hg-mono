@@ -1,0 +1,45 @@
+{
+  "scenario": "offer_zero_tip_low_value",
+  "domain": "dispatch",
+  "schema": "DispatchOffer",
+  "describes": "A 12 km trip with no tip so far — CAD 4.49 estimated. Under pure pass-through earnings (decision R-02) there is no rate-card floor, so this is what the rider sees. The screen must not imply a guarantee.",
+  "operations": [
+    "getCurrentOffer"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "edge",
+    "money"
+  ],
+  "payload": {
+    "offer_id": "670cdae2-15b8-4cfe-a0a4-2108bf4dba6a",
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "PENDING",
+    "wave": 2,
+    "expires_at": "2026-08-10T18:42:39.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
+    "pickup": {
+      "restaurant_name": "Karachi Kitchen",
+      "address_short": "1245 Danforth Avenue, Toronto",
+      "latitude": 43.6817,
+      "longitude": -79.3403
+    },
+    "dropoff": {
+      "area": "Harbourfront, Toronto",
+      "latitude": 43.6412,
+      "longitude": -79.381
+    },
+    "distance_m": 12140,
+    "est_duration_s": 1680,
+    "earnings": {
+      "base_cents": 449,
+      "distance_cents": 0,
+      "surge_cents": 0,
+      "tip_so_far_cents": 0,
+      "estimated_total_cents": 449,
+      "currency": "CAD"
+    },
+    "items_count": 1
+  }
+}

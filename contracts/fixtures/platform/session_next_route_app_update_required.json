@@ -1,0 +1,39 @@
+{
+  "scenario": "session_next_route_app_update_required",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = APP_UPDATE_REQUIRED`. Below `min_supported_version`. A hard stop.",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 4,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "e046c422-dd2f-429d-a46b-7acc8d8cb26e",
+      "session_id": "b338315e-068f-42b8-a613-1ffd3dcafcfc",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "74922852-7018-447f-a587-9c1837cb56d1"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

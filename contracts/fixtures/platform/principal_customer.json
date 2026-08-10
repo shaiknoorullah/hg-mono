@@ -1,0 +1,30 @@
+{
+  "scenario": "principal_customer",
+  "domain": "platform",
+  "schema": "Principal",
+  "describes": "`GET /v1/auth/me` for a customer — one account, one role, no restaurant scope.",
+  "operations": [
+    "getCurrentPrincipal"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth"
+  ],
+  "payload": {
+    "account_id": "9cb5f7ce-816e-4e7a-a606-1340bf4aa9da",
+    "session_id": "a0caec2f-f45c-45a8-aacb-55a552269adf",
+    "roles": [
+      {
+        "role": "CUSTOMER",
+        "scope_type": "GLOBAL",
+        "scope_id": "432281ea-a9ab-439f-a7d5-f1c691f6f89a"
+      }
+    ],
+    "amr": "otp",
+    "status": "ACTIVE",
+    "locale": "en-CA",
+    "timezone": "America/Toronto",
+    "next_route": "HOME"
+  }
+}

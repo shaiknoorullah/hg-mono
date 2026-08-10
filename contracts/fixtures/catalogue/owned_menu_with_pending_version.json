@@ -1,0 +1,145 @@
+{
+  "scenario": "owned_menu_with_pending_version",
+  "domain": "catalogue",
+  "schema": "OwnedMenu",
+  "describes": "The restaurant's own menu. One item carries a `pending_version` — a claim-bearing field (description) was edited and is queued for review, while price and availability already went live unreviewed (decision R-05).",
+  "operations": [
+    "getOwnMenu"
+  ],
+  "status": 200,
+  "payload": {
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "categories": [
+      {
+        "id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+        "name": "Biryani & Rice",
+        "description": null,
+        "sort_order": 1,
+        "is_active": true,
+        "item_count": 0,
+        "items": [
+          {
+            "id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+            "name": "Chicken Biryani",
+            "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+            "price_cents": 1695,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 22,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+            "live_version": {
+              "id": "4881afd2-19aa-4df5-af2f-e2e7c0c0487f",
+              "menu_item_id": "c3aa08f6-7adc-4a94-a542-7b4bb551509f",
+              "restaurant_id": "d23d9ef0-b5cc-430a-a3dc-058a4e3a7543",
+              "version": 5,
+              "name": "Damascus Sweets & Grill",
+              "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "VEGETARIAN",
+                "VEGETARIAN"
+              ],
+              "allergen_tags": [
+                "PEANUTS",
+                "PEANUTS"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/ce57b336.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": "MISLEADING_DESCRIPTION",
+              "review_note": "Review Note",
+              "submitted_at": "2026-08-04T18:42:11.412Z",
+              "reviewed_at": "2026-07-11T18:42:11.412Z",
+              "created_at": "2026-08-10T17:57:11.412Z"
+            },
+            "pending_version": {
+              "id": "0c5e9547-f748-427f-a11c-b4839934ef64",
+              "menu_item_id": "edd88cd2-193d-448c-a367-5addf8b0e609",
+              "restaurant_id": "bbf877cb-7726-41dd-a588-e72d395073cb",
+              "version": 3,
+              "name": "Marhaba Fried Chicken",
+              "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "VEGETARIAN",
+                "VEGETARIAN"
+              ],
+              "allergen_tags": [
+                "PEANUTS",
+                "PEANUTS"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/80f67448.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": "MISLEADING_DESCRIPTION",
+              "review_note": "Review Note",
+              "submitted_at": "2026-08-04T18:42:11.412Z",
+              "reviewed_at": "2026-07-11T18:42:11.412Z",
+              "created_at": "2026-08-10T17:57:11.412Z"
+            },
+            "sort_order": 1
+          },
+          {
+            "id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+            "name": "Beef Nihari",
+            "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+            "price_cents": 2145,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 18,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+            "live_version": {
+              "id": "783b508b-b9f9-4601-a4fd-5b612a6ce12a",
+              "menu_item_id": "d179cd3e-0d50-4d44-a61f-30bcdd637b4d",
+              "restaurant_id": "48c10b76-cc8b-41af-ae45-882a22f5e23a",
+              "version": 10,
+              "name": "Marhaba Fried Chicken",
+              "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "VEGETARIAN",
+                "VEGETARIAN"
+              ],
+              "allergen_tags": [
+                "PEANUTS",
+                "PEANUTS"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/6f18a51e.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": "MISLEADING_DESCRIPTION",
+              "review_note": "Review Note",
+              "submitted_at": "2026-08-04T18:42:11.412Z",
+              "reviewed_at": "2026-07-11T18:42:11.412Z",
+              "created_at": "2026-08-10T17:57:11.412Z"
+            },
+            "pending_version": null,
+            "sort_order": 2
+          }
+        ]
+      }
+    ]
+  }
+}

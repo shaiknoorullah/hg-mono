@@ -1,0 +1,69 @@
+{
+  "scenario": "restaurant_onboarding_documents_rejected",
+  "domain": "onboarding",
+  "schema": "RestaurantOnboardingStatus",
+  "describes": "`onboarding_state = DOCUMENTS_REJECTED`. **At least one document was rejected with a reason.** The applicant must resubmit exactly the failed documents.",
+  "operations": [
+    "getRestaurantOnboardingStatus",
+    "submitRestaurantDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "restaurant"
+  ],
+  "payload": {
+    "onboarding_state": "DOCUMENTS_REJECTED",
+    "account_state": "PENDING",
+    "current_step": "FIX_DOCUMENTS",
+    "progress_percent": 60,
+    "steps_completed": {
+      "profile": true,
+      "documents_uploaded": true,
+      "documents_submitted": true,
+      "documents_approved": false,
+      "payout_account": false,
+      "menu_published": false
+    },
+    "blocking_reason": "Two documents were rejected. Re-upload them to continue.",
+    "review_cycle": 2,
+    "rejection": {
+      "reason_code": "DOCUMENTS_INSUFFICIENT",
+      "note": "The food-handling certificate has expired and the owner ID is cropped.",
+      "documents": [
+        {
+          "id": "bc6fefc6-6390-4a1a-ae70-fd2b7a1e60e0",
+          "subject_type": "RESTAURANT",
+          "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+          "doc_type": "FOOD_SAFETY",
+          "state": "REJECTED",
+          "issuer": "Province of Ontario",
+          "certificate_number": null,
+          "issued_on": "2026-03-09",
+          "valid_until": "2027-09-14",
+          "version": 1,
+          "rejection_reason_code": "EXPIRED",
+          "review_note": "This certificate expired on 2026-02-14.",
+          "reviewed_at": "2026-08-08T18:42:11.412Z",
+          "created_at": "2026-08-04T18:42:11.412Z"
+        },
+        {
+          "id": "319501b0-f385-4311-a888-81db3c301ddf",
+          "subject_type": "RESTAURANT",
+          "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+          "doc_type": "OWNER_ID",
+          "state": "REJECTED",
+          "issuer": "Province of Ontario",
+          "certificate_number": null,
+          "issued_on": "2026-03-09",
+          "valid_until": "2027-09-14",
+          "version": 1,
+          "rejection_reason_code": "INCOMPLETE_PAGES",
+          "review_note": "Page 2 is missing — we need the side showing the expiry date and the issuing authority. Re-upload both sides in one file.",
+          "reviewed_at": "2026-08-08T18:42:11.412Z",
+          "created_at": "2026-08-04T18:42:11.412Z"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "scenario": "payment_methods_empty",
+  "domain": "payments",
+  "schema": "array<PaymentMethod>",
+  "describes": "No card on file. Checkout must route to the add-card sheet rather than failing.",
+  "operations": [
+    "listPaymentMethods"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

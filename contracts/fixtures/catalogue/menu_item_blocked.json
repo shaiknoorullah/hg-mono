@@ -1,0 +1,32 @@
+{
+  "scenario": "menu_item_blocked",
+  "domain": "catalogue",
+  "schema": "MenuItem",
+  "describes": "`availability_state = BLOCKED`. Blocked by an admin after a menu review. The owner cannot un-block it.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+    "name": "Chicken Biryani",
+    "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra.",
+    "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+    "price_cents": 1695,
+    "currency": "CAD",
+    "availability_state": "BLOCKED",
+    "out_of_stock_until": null,
+    "dietary_tags": [
+      "HALAL_CERTIFIED"
+    ],
+    "allergen_tags": [
+      "MILK"
+    ],
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "tax_category": "PREPARED_FOOD",
+    "prep_minutes": 22,
+    "variant_groups": [],
+    "addon_groups": []
+  }
+}

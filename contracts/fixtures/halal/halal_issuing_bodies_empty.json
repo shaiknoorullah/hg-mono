@@ -1,0 +1,22 @@
+{
+  "scenario": "halal_issuing_bodies_empty",
+  "domain": "halal",
+  "schema": "array<HalalIssuingBody>",
+  "describes": "**The list is empty.** This is the launch-day reality until O-02 is answered: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified.",
+  "operations": [
+    "listHalalIssuingBodies"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "edge",
+    "empty",
+    "blocking-decision"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

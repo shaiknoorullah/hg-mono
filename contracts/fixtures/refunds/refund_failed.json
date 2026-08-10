@@ -1,0 +1,36 @@
+{
+  "scenario": "refund_failed",
+  "domain": "refunds",
+  "schema": "Refund",
+  "describes": "The PSP rejected the refund. Carries `failure_message`; support must intervene, and the customer must never be told they were refunded.",
+  "operations": [
+    "getRefund",
+    "listRefunds",
+    "createRefund",
+    "issueRefund"
+  ],
+  "status": 200,
+  "tags": [
+    "refund-state-matrix"
+  ],
+  "payload": {
+    "id": "ab5ff469-593d-443f-ae3c-f7de8f0d503b",
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "kind": "PARTIAL_ITEMS",
+    "scope": "PARTIAL_ITEMS",
+    "reason_code": "ITEM_MISSING",
+    "amount_cents": 1695,
+    "tax_cents": 220,
+    "currency": "CAD",
+    "state": "FAILED",
+    "liability_split": {
+      "platform_cents": 0,
+      "restaurant_cents": 1915,
+      "rider_cents": 0
+    },
+    "note": "Biryani missing from a three-item bag.",
+    "requested_at": "2026-08-10T18:02:11.412Z",
+    "settled_at": null,
+    "failure_message": "Stripe rejected the refund: the charge is older than 180 days."
+  }
+}

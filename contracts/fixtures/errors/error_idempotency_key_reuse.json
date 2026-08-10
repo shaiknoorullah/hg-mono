@@ -1,0 +1,18 @@
+{
+  "scenario": "error_idempotency_key_reuse",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `IDEMPOTENCY_KEY_REUSE`. Never a silent replay of the wrong result. Was `idempotency_key_reuse`.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "IDEMPOTENCY_KEY_REUSE",
+      "message": "This idempotency key was already used with a different request body.",
+      "request_id": "W0JKY8NH8PEQNX19G7HD9C6Z0V"
+    }
+  }
+}

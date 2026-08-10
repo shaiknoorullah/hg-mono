@@ -1,0 +1,474 @@
+{
+  "scenario": "realtime_order_happy_path",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 24 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived → delivered → completed. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script"
+  ],
+  "payload": [
+    {
+      "id": "8K3AJK2XS5G2F461YSXVTKE3G7",
+      "seq": 1,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.created",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "code": "HG-4K2M-9T",
+        "state": "CREATED",
+        "restaurant": {
+          "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+          "name": "Karachi Kitchen"
+        },
+        "total_cents": 6706,
+        "currency": "CAD",
+        "placed_at": "2026-08-10T18:42:11.412Z",
+        "deadline_at": "2026-08-10T18:57:11.412Z"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "5EB390B0NT2QT1KA3KGYB3FHPE",
+      "seq": 2,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "payment.authorized",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.912Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "amount_cents": 6706,
+        "currency": "CAD",
+        "card": {
+          "brand": "visa",
+          "last4": "4242"
+        }
+      },
+      "_delay_ms": 1500
+    },
+    {
+      "id": "BN9VVM267G35RAENJEMN9G2SVG",
+      "seq": 3,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:13.012Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "CREATED",
+        "to": "AUTHORIZED",
+        "at": "2026-08-10T18:42:13.012Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": "2026-08-10T18:57:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 1600
+    },
+    {
+      "id": "2Z0P3H3TNWFVZRQ4C7BJ1MTCRT",
+      "seq": 4,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:13.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "AUTHORIZED",
+        "to": "RESTAURANT_PENDING",
+        "at": "2026-08-10T18:42:13.412Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": "2026-08-10T18:45:13.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 2000
+    },
+    {
+      "id": "0E71EXTZZZ7EWWEG27G1FC9MGG",
+      "seq": 5,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:13.512Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "code": "HG-4K2M-9T",
+        "expires_at": "2026-08-10T18:45:13.412Z",
+        "deadline_at": "2026-08-10T18:45:13.412Z",
+        "customer_first_name": "Ayesha",
+        "lines": [
+          {
+            "name": "Chicken Biryani",
+            "variant": null,
+            "addons": [],
+            "qty": 1,
+            "note": null
+          },
+          {
+            "name": "Beef Nihari",
+            "variant": "Full",
+            "addons": [],
+            "qty": 1,
+            "note": "Extra gravy on the side"
+          },
+          {
+            "name": "Chicken Karahi (Half)",
+            "variant": null,
+            "addons": [
+              "Garlic naan"
+            ],
+            "qty": 1,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 4634,
+        "total_cents": 6706,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 20,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 2100
+    },
+    {
+      "id": "8HDAA1BR4NV39MARD6D9BQH1H2",
+      "seq": 6,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_accepted",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "accepted_by": "Hamza K.",
+        "prep_eta_minutes": 20
+      },
+      "_delay_ms": 12000
+    },
+    {
+      "id": "CF94Z5QB6KHBT0DDP7KD6B9V45",
+      "seq": 7,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.512Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "RESTAURANT_PENDING",
+        "to": "PREPARING",
+        "at": "2026-08-10T18:42:23.512Z",
+        "reason": null,
+        "actor_kind": "RESTAURANT",
+        "deadline_at": "2026-08-10T19:02:11.412Z",
+        "eta_at": "2026-08-10T19:14:11.412Z"
+      },
+      "_delay_ms": 12100
+    },
+    {
+      "id": "ZGTRTC6CGVBP772NRHHAB2CP3N",
+      "seq": 8,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "payment.captured",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.912Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "amount_cents": 6706,
+        "currency": "CAD",
+        "captured_at": "2026-08-10T18:42:23.912Z"
+      },
+      "_delay_ms": 12500
+    },
+    {
+      "id": "VJ4VVDW6724C33D19W2AVWF18Y",
+      "seq": 9,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:24.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "PENDING",
+        "to": "SEARCHING",
+        "at": "2026-08-10T18:42:24.412Z"
+      },
+      "_delay_ms": 13000
+    },
+    {
+      "id": "B1TXTDHCWE0HBJYZJ580V071C2",
+      "seq": 10,
+      "channel": "rider:bb344e16-80c9-43e7-a3b2-c6bc1d3ef231",
+      "type": "dispatch.offer",
+      "v": 1,
+      "ts": "2026-08-10T18:42:25.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "offer_id": "22ba00c2-ba81-42d3-ae34-fa51264bc8ec",
+        "expires_at": "2026-08-10T18:42:55.412Z",
+        "server_time": "2026-08-10T18:42:25.412Z",
+        "pickup": {
+          "restaurant_name": "Karachi Kitchen",
+          "address_short": "1245 Danforth Avenue, Toronto",
+          "lat": 43.6817,
+          "lng": -79.3403
+        },
+        "dropoff": {
+          "area": "Harbourfront, Toronto",
+          "lat": 43.6412,
+          "lng": -79.381
+        },
+        "distance_m": 5240,
+        "est_duration_s": 780,
+        "earnings_cents": 1149,
+        "tip_cents_estimate": 700,
+        "items_count": 3
+      },
+      "_delay_ms": 14000
+    },
+    {
+      "id": "EH2EWFAER6P0J6Z15HPD19PX3Z",
+      "seq": 11,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.assigned",
+      "v": 1,
+      "ts": "2026-08-10T18:42:31.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "rider": {
+          "first_name": "Bilal",
+          "photo_url": null,
+          "vehicle_type": "SCOOTER",
+          "rating_avg": 4.9
+        },
+        "pickup_eta_at": "2026-08-10T18:50:11.412Z"
+      },
+      "_delay_ms": 20000
+    },
+    {
+      "id": "5ENM4FTYQ1SK31437Q1TT8R7F3",
+      "seq": 12,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:31.512Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "SEARCHING",
+        "to": "ASSIGNED",
+        "at": "2026-08-10T18:42:31.512Z"
+      },
+      "_delay_ms": 20100
+    },
+    {
+      "id": "Y1MJ10AG6ZHYPC7W0233DZN50Y",
+      "seq": 13,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:37.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "PREPARING",
+        "to": "READY_FOR_PICKUP",
+        "at": "2026-08-10T18:42:37.412Z",
+        "reason": null,
+        "actor_kind": "RESTAURANT",
+        "deadline_at": "2026-08-10T18:52:11.412Z",
+        "eta_at": "2026-08-10T19:12:11.412Z"
+      },
+      "_delay_ms": 26000
+    },
+    {
+      "id": "YBMY828S5WRZ05DF7NXRBGBZPT",
+      "seq": 14,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:39.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "ASSIGNED",
+        "to": "AT_RESTAURANT",
+        "at": "2026-08-10T18:42:39.412Z"
+      },
+      "_delay_ms": 28000
+    },
+    {
+      "id": "S0X44QAH1BPEE15CAMZG3PVZBX",
+      "seq": 15,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:43.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "READY_FOR_PICKUP",
+        "to": "PICKED_UP",
+        "at": "2026-08-10T18:42:43.412Z",
+        "reason": null,
+        "actor_kind": "RIDER",
+        "deadline_at": "2026-08-10T18:56:11.412Z",
+        "eta_at": "2026-08-10T19:12:11.412Z"
+      },
+      "_delay_ms": 32000
+    },
+    {
+      "id": "XM3391QF4XBR1EW0THKQ6X95P8",
+      "seq": 16,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "rider.location",
+      "v": 1,
+      "ts": "2026-08-10T18:42:45.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "lat": 43.674,
+        "lng": -79.354,
+        "heading_deg": 214.0,
+        "speed_mps": 8.1,
+        "accuracy_m": 9.0,
+        "recorded_at": "2026-08-10T18:42:45.412Z"
+      },
+      "_delay_ms": 34000
+    },
+    {
+      "id": "MC2NS3WCVMNN5NNAN6F4TVSKG6",
+      "seq": 17,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "rider.location",
+      "v": 1,
+      "ts": "2026-08-10T18:42:50.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "lat": 43.6598,
+        "lng": -79.3652,
+        "heading_deg": 218.0,
+        "speed_mps": 7.4,
+        "accuracy_m": 12.0,
+        "recorded_at": "2026-08-10T18:42:50.412Z"
+      },
+      "_delay_ms": 39000
+    },
+    {
+      "id": "0FDJ6T003JG2YRETTPR8YG531G",
+      "seq": 18,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.eta_updated",
+      "v": 1,
+      "ts": "2026-08-10T18:42:51.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "pickup_eta_at": null,
+        "dropoff_eta_at": "2026-08-10T19:11:11.412Z",
+        "source": "ROUTED"
+      },
+      "_delay_ms": 40000
+    },
+    {
+      "id": "46G32QFV5TEPVYAQ3FVMS2Z06S",
+      "seq": 19,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "rider.location",
+      "v": 1,
+      "ts": "2026-08-10T18:42:55.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "lat": 43.646,
+        "lng": -79.377,
+        "heading_deg": 226.0,
+        "speed_mps": 5.2,
+        "accuracy_m": 8.0,
+        "recorded_at": "2026-08-10T18:42:55.412Z"
+      },
+      "_delay_ms": 44000
+    },
+    {
+      "id": "REXKZKE6E7FM4F20JRSJJYFWZR",
+      "seq": 20,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:59.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "PICKED_UP",
+        "to": "ARRIVED",
+        "at": "2026-08-10T18:42:59.412Z",
+        "reason": null,
+        "actor_kind": "RIDER",
+        "deadline_at": "2026-08-10T18:47:11.412Z",
+        "eta_at": "2026-08-10T18:44:11.412Z"
+      },
+      "_delay_ms": 48000
+    },
+    {
+      "id": "CTEBMH4RKS24GVT3WYSRW6V2KG",
+      "seq": 21,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:43:05.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "ARRIVED",
+        "to": "DELIVERED",
+        "at": "2026-08-10T18:43:05.412Z",
+        "reason": null,
+        "actor_kind": "RIDER",
+        "deadline_at": "2026-08-10T19:12:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 54000
+    },
+    {
+      "id": "9KJ0QAM7RGKX0ABJZCFEDP35DR",
+      "seq": 22,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "dispatch.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:43:05.512Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "AT_CUSTOMER",
+        "to": "COMPLETED",
+        "at": "2026-08-10T18:43:05.512Z"
+      },
+      "_delay_ms": 54100
+    },
+    {
+      "id": "B3A67BFRPR6JQ4ECMBE6HDETEC",
+      "seq": 23,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:43:09.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "DELIVERED",
+        "to": "COMPLETED",
+        "at": "2026-08-10T18:43:09.412Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": null,
+        "eta_at": null
+      },
+      "_delay_ms": 58000
+    },
+    {
+      "id": "PBA4S1C3MZ8JWDZCHNP5HR5YGD",
+      "seq": 24,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.completed",
+      "v": 1,
+      "ts": "2026-08-10T18:43:09.512Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "delivered_at": "2026-08-10T18:43:05.412Z",
+        "receipt_url": "https://halalgoes.ca/receipts/HG-2026-000148213.pdf"
+      },
+      "_delay_ms": 58100
+    }
+  ]
+}

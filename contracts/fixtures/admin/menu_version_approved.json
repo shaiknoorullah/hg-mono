@@ -1,0 +1,40 @@
+{
+  "scenario": "menu_version_approved",
+  "domain": "admin",
+  "schema": "MenuItemVersion",
+  "describes": "`APPROVED`. Live to customers.",
+  "operations": [
+    "listMenuReviewQueue",
+    "decideMenuVersion"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "state-matrix",
+    "review-queue"
+  ],
+  "payload": {
+    "id": "a29402b4-e66a-4b7a-a6dc-d3dad5579cb0",
+    "menu_item_id": "95bde23e-7231-428e-a9c1-d338f279cfca",
+    "restaurant_id": "f43d25ed-f845-405e-a743-380e64ab17e6",
+    "version": 20,
+    "name": "Tandoori Flame",
+    "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "dietary_tags": [
+      "VEGETARIAN",
+      "VEGETARIAN"
+    ],
+    "allergen_tags": [
+      "PEANUTS",
+      "PEANUTS"
+    ],
+    "image_url": "https://cdn.halalgoes.ca/img/dish/83fdb906.webp",
+    "review_status": "APPROVED",
+    "rejection_reason_code": "MISLEADING_DESCRIPTION",
+    "review_note": "Review Note",
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "reviewed_at": "2026-07-11T18:42:11.412Z",
+    "created_at": "2026-08-10T17:57:11.412Z"
+  }
+}

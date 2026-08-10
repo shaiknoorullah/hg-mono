@@ -1,0 +1,120 @@
+{
+  "scenario": "rider_application_queue",
+  "domain": "admin",
+  "schema": "array<RiderApplicationSummary>",
+  "describes": "Nine rider applications waiting.",
+  "operations": [
+    "listRiderApplications"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "review-queue"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 9
+  },
+  "payload": [
+    {
+      "rider_account_id": "166995db-4c69-420f-a599-b8dd2061076b",
+      "display_name": "Hamza H.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 9,
+      "assigned_admin_id": "609f1db6-de9b-4cca-ab45-2c3379953238",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "rider_account_id": "8f33e1f1-070d-44aa-a086-5f77786ff4a0",
+      "display_name": "Khadija C.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 3,
+      "assigned_admin_id": "4dfe4c39-1e09-4fd5-a3c5-6e29da46c849",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "rider_account_id": "ea1cb51e-f155-47cc-a351-a0e29bc41c01",
+      "display_name": "Rania F.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 6,
+      "assigned_admin_id": "8a998467-b7c3-458d-a979-5393ad36c6a1",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "rider_account_id": "1e7a0cad-095a-47f2-ab15-51ca8f90596f",
+      "display_name": "Ayesha R.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 19,
+      "assigned_admin_id": "79292ade-6dea-44be-aab6-318470c5ca42",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "rider_account_id": "3827b150-79f0-4ec6-a282-fd45760a721a",
+      "display_name": "Tariq S.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 10,
+      "assigned_admin_id": "01672844-a614-496e-a454-af2d947a6295",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "rider_account_id": "e6f20bc4-c99a-4cc3-a693-fb27fc5a03f7",
+      "display_name": "Rania F.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 2,
+      "assigned_admin_id": "4eabcc05-6f4e-48f4-a895-5717633f6130",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "rider_account_id": "4925e971-6ac6-471c-a3e6-c196c72c220b",
+      "display_name": "Bilal S.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 20,
+      "assigned_admin_id": "0a4f0f13-f3b8-4684-a2d1-99df68f6dd43",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "rider_account_id": "5949b1de-51e8-44fe-a1c8-4bad5e4e9221",
+      "display_name": "Bilal S.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 17,
+      "assigned_admin_id": "b0678257-ef55-4073-a9f0-c7d2a278b0d5",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "rider_account_id": "9ff4815b-85ac-4f65-ab2f-16c4075c9277",
+      "display_name": "Rania F.",
+      "vehicle_type": "CAR",
+      "onboarding_state": "ACTIVE",
+      "attempt_number": 14,
+      "assigned_admin_id": "c4cdfc64-9c2e-4acd-a945-6476415300e7",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    }
+  ]
+}

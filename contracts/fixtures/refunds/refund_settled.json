@@ -1,0 +1,36 @@
+{
+  "scenario": "refund_settled",
+  "domain": "refunds",
+  "schema": "Refund",
+  "describes": "Funds are back on the card. The only state that may say 'refunded'.",
+  "operations": [
+    "getRefund",
+    "listRefunds",
+    "createRefund",
+    "issueRefund"
+  ],
+  "status": 200,
+  "tags": [
+    "refund-state-matrix"
+  ],
+  "payload": {
+    "id": "ea25dbf3-0c42-40db-ae3b-2daf43fda61f",
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "kind": "PARTIAL_ITEMS",
+    "scope": "PARTIAL_ITEMS",
+    "reason_code": "ITEM_MISSING",
+    "amount_cents": 1695,
+    "tax_cents": 220,
+    "currency": "CAD",
+    "state": "SETTLED",
+    "liability_split": {
+      "platform_cents": 0,
+      "restaurant_cents": 1915,
+      "rider_cents": 0
+    },
+    "note": "Biryani missing from a three-item bag.",
+    "requested_at": "2026-08-10T18:02:11.412Z",
+    "settled_at": "2026-08-10T18:12:11.412Z",
+    "failure_message": null
+  }
+}

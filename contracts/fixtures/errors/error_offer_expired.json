@@ -1,0 +1,18 @@
+{
+  "scenario": "error_offer_expired",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `OFFER_EXPIRED`. **A collision case**: `offer_expired` (platform) and `OFFER_EXPIRED` (rider) were two members of one enum. They are now one.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "OFFER_EXPIRED",
+      "message": "This offer expired.",
+      "request_id": "JM7GDMBCJ5V67354MXRR8NMZEW"
+    }
+  }
+}

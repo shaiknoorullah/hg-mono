@@ -1,0 +1,17 @@
+{
+  "scenario": "presigned_upload",
+  "domain": "documents",
+  "schema": "PresignedUpload",
+  "describes": "A one-hour presigned PUT plus the `PENDING` stored object it will fill.",
+  "operations": [
+    "createUpload"
+  ],
+  "status": 201,
+  "payload": {
+    "upload_id": "513f90f0-460c-4290-aea5-ecc0137412d8",
+    "url": "https://cdn.halalgoes.ca/img/asset/c550b52f.webp",
+    "method": "PUT",
+    "expires_at": "2026-08-10T18:51:11.412Z",
+    "required_headers": {}
+  }
+}

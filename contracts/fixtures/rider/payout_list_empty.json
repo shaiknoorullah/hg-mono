@@ -1,0 +1,21 @@
+{
+  "scenario": "payout_list_empty",
+  "domain": "rider",
+  "schema": "array<Payout>",
+  "describes": "No payout has ever run for this partner.",
+  "operations": [
+    "listRiderPayouts",
+    "listRestaurantPayouts"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

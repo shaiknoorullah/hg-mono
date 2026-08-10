@@ -1,0 +1,31 @@
+{
+  "scenario": "halal_issuing_body_suspended",
+  "domain": "halal",
+  "schema": "HalalIssuingBody",
+  "describes": "`status = SUSPENDED`. Temporarily not accepted, pending an investigation.",
+  "operations": [
+    "listHalalIssuingBodies",
+    "proposeHalalIssuingBody",
+    "setHalalIssuingBodyStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "fdb69c4e-26b7-4127-aee2-880736a4c0dd",
+    "name": "Islamic Food and Nutrition Council of Canada",
+    "aliases": [
+      "Aliases",
+      "Aliases"
+    ],
+    "country": "Country",
+    "region": "ca-central-1",
+    "website": "https://cdn.halalgoes.ca/img/asset/16642e82.webp",
+    "accreditation_ref": "Accreditation Ref",
+    "requires_issuer_confirmation": true,
+    "status": "SUSPENDED",
+    "notes": "Notes"
+  }
+}

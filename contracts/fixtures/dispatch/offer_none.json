@@ -1,0 +1,16 @@
+{
+  "scenario": "offer_none",
+  "domain": "dispatch",
+  "schema": "DispatchOffer|null",
+  "describes": "No live offer. `getCurrentOffer` returns **null data**, not 404 — an online idle rider polls this and gets null all day.",
+  "operations": [
+    "getCurrentOffer"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "edge",
+    "empty"
+  ],
+  "payload": null
+}

@@ -1,0 +1,98 @@
+{
+  "scenario": "order_single_line",
+  "domain": "orders",
+  "schema": "OrderCustomerView",
+  "describes": "One line, quantity 1, no variant, no add-ons, no special instructions, no delivery notes — the sparsest legal order.",
+  "operations": [
+    "getOrder"
+  ],
+  "status": 200,
+  "tags": [
+    "edge"
+  ],
+  "payload": {
+    "id": "2c68a120-8f2d-4c62-a122-5bfcedb314e1",
+    "code": "HG-4K2M-9T",
+    "state": "PREPARING",
+    "state_since": "2026-08-10T18:40:41.412Z",
+    "deadline_at": "2026-08-10T18:51:11.412Z",
+    "quote_id": "0a45edb0-7a0e-4dfa-af75-7959a10f3764",
+    "restaurant": {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      }
+    },
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "variant_name": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD"
+      }
+    ],
+    "money": {
+      "subtotal_cents": 1695,
+      "discount_cents": 0,
+      "delivery_fee_cents": 449,
+      "service_fee_cents": 85,
+      "tax_lines": [
+        {
+          "jurisdiction_code": "CA-ON",
+          "tax_kind": "HST",
+          "statutory_label": "HST (13%)",
+          "rate": "0.13",
+          "base_cents": 2229,
+          "amount_cents": 290,
+          "rebate_applied": false,
+          "remittable_by": "RESTAURANT"
+        }
+      ],
+      "tax_total_cents": 290,
+      "tip_cents": 200,
+      "total_cents": 2719,
+      "currency": "CAD"
+    },
+    "delivery_address": {
+      "id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+      "label": "Home",
+      "line1": "88 Harbour Street",
+      "line2": null,
+      "unit": "Unit 4211",
+      "buzzer": "4211",
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M5J 0C3",
+      "country": "CA",
+      "latitude": 43.6412,
+      "longitude": -79.381,
+      "timezone": "America/Toronto",
+      "delivery_notes": "Buzz the unit, then leave it at the door. Please don't knock.",
+      "is_default": true
+    },
+    "delivery_instructions": [],
+    "special_instructions": null,
+    "rider": null,
+    "dispatch_state": "SEARCHING",
+    "cancel_reason": null,
+    "reject_reason": null,
+    "eta_at": "2026-08-10T18:55:11.412Z",
+    "can_cancel": false,
+    "placed_at": "2026-08-10T18:10:11.412Z",
+    "accepted_at": "2026-08-10T18:13:11.412Z",
+    "ready_at": null,
+    "picked_up_at": null,
+    "delivered_at": null,
+    "completed_at": null
+  }
+}

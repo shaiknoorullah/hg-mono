@@ -1,0 +1,37 @@
+{
+  "scenario": "rider_me",
+  "domain": "rider",
+  "schema": "RiderMe",
+  "describes": "The rider's own bootstrap payload — identity, onboarding state, availability and what screen to land on.",
+  "operations": [
+    "getRiderMe"
+  ],
+  "status": 200,
+  "tags": [
+    "rider"
+  ],
+  "payload": {
+    "account_id": "d7dfe8ad-4afb-4b43-aad1-b31644addcf7",
+    "first_name": "Imran",
+    "last_name": "Cheema",
+    "phone_e164": "+14165553934",
+    "photo_url": "https://cdn.halalgoes.ca/img/avatar/c526fd94.webp",
+    "onboarding_state": "ACTIVE",
+    "account_status": "ACTIVE",
+    "availability_state": "ONLINE_IDLE",
+    "vehicle": {
+      "id": "02195e77-7de2-4a82-aedc-d80026b91b5b",
+      "vehicle_type": "CAR",
+      "make": "Toyota",
+      "model": "iPhone 15",
+      "year": 2,
+      "colour": "Silver",
+      "licence_plate": "Licence Plate",
+      "is_active": true
+    },
+    "active_assignment_id": "d32c6111-bbee-4947-a3db-005a8ae50058",
+    "rating_avg": 4.6,
+    "timezone": "America/Toronto",
+    "next_route": "HOME"
+  }
+}

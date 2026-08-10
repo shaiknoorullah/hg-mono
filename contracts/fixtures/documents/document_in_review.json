@@ -1,0 +1,31 @@
+{
+  "scenario": "document_in_review",
+  "domain": "documents",
+  "schema": "KycDocument",
+  "describes": "A reviewer holds the lock. Locked to the applicant (`DOCUMENT_LOCKED_FOR_REVIEW`).",
+  "operations": [
+    "attachRestaurantDocument",
+    "reviewRestaurantDocument",
+    "reviewRiderDocument"
+  ],
+  "status": 200,
+  "tags": [
+    "document-state-matrix"
+  ],
+  "payload": {
+    "id": "777ebf7d-3e23-482d-ac06-fffa773d6d5e",
+    "subject_type": "RESTAURANT",
+    "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+    "doc_type": "BUSINESS_LICENCE",
+    "state": "IN_REVIEW",
+    "issuer": "Province of Ontario",
+    "certificate_number": null,
+    "issued_on": "2026-03-09",
+    "valid_until": "2027-09-14",
+    "version": 1,
+    "rejection_reason_code": null,
+    "review_note": null,
+    "reviewed_at": null,
+    "created_at": "2026-08-04T18:42:11.412Z"
+  }
+}

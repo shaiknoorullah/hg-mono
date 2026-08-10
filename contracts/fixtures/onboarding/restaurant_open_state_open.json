@@ -1,0 +1,24 @@
+{
+  "scenario": "restaurant_open_state_open",
+  "domain": "onboarding",
+  "schema": "RestaurantAvailability",
+  "describes": "`open_state = OPEN`. Trading. R-22 evaluates these in strict precedence.",
+  "operations": [
+    "getRestaurantAvailability",
+    "setRestaurantAcceptingOrders"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "state-matrix"
+  ],
+  "payload": {
+    "open_state": "OPEN",
+    "is_accepting_orders": true,
+    "pause_until": "2026-08-10T18:32:11.412Z",
+    "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
+    "missed_order_count": 11,
+    "reason": "Closed for a scheduled deep clean. Reopening at 14:00.",
+    "resolvable_by": "RESTAURANT"
+  }
+}

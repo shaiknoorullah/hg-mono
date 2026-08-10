@@ -1,0 +1,111 @@
+{
+  "scenario": "restaurant_detail_closed",
+  "domain": "catalogue",
+  "schema": "RestaurantDetail",
+  "describes": "Detail page for a kitchen that is closed right now. Ordering is blocked; the hours table and the 'opens at' line are the whole screen.",
+  "operations": [
+    "getRestaurant"
+  ],
+  "status": 200,
+  "tags": [
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "11f93069-62e0-4d02-a081-8c5bb11987b8",
+    "name": "Bismillah Biryani House",
+    "slug": "bismillah-biryani-house",
+    "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/bismillah-biryani-house.webp",
+    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/bismillah-biryani-house.webp",
+    "cuisines": [
+      "Indian",
+      "Biryani",
+      "Halal"
+    ],
+    "rating_avg": 4.4,
+    "rating_count": 96,
+    "price_band": "$$",
+    "halal": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "expires_on": "2027-03-09"
+    },
+    "availability": {
+      "state": "CLOSED_HOURS",
+      "opens_at": "2026-08-11T09:42:11.412Z",
+      "closes_at": null,
+      "eta_min_minutes": null,
+      "eta_max_minutes": null,
+      "indicative_delivery_fee_cents": 449,
+      "minimum_order_cents": 1500,
+      "distance_m": 3180,
+      "out_of_range_reason": null
+    },
+    "description": "A Danforth institution since 2011. Charcoal grill, hand-pounded masala, and a kitchen that has been HMA-certified every year we have traded.",
+    "address": {
+      "line1": "890 Markham Road",
+      "line2": null,
+      "city": "Scarborough",
+      "province": "ON",
+      "postal_code": "M1H 2Y2",
+      "latitude": 43.7699,
+      "longitude": -79.2298
+    },
+    "timezone": "America/Toronto",
+    "public_phone_e164": "+14165550142",
+    "certification": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "certificate_number": "HMA-ON-40182",
+      "scope": "WHOLE_ESTABLISHMENT",
+      "issued_on": "2026-03-09",
+      "expires_on": "2027-03-09",
+      "verified_at": "2026-03-11T18:42:11.412Z",
+      "certificate_viewable": true,
+      "disclaimer": "Certification verified by Halal Goes on 9 March 2026. Halal Goes does not itself certify food."
+    },
+    "hours": [
+      {
+        "day_of_week": 0,
+        "opens_at": "12:00",
+        "closes_at": "21:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      }
+    ]
+  }
+}

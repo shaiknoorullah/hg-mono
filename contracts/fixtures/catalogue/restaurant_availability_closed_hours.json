@@ -1,0 +1,22 @@
+{
+  "scenario": "restaurant_availability_closed_hours",
+  "domain": "catalogue",
+  "schema": "RestaurantAvailabilityInfo",
+  "describes": "Outside trading hours — `opens_at` is tomorrow 11:00 local, no ETA.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "state-matrix"
+  ],
+  "payload": {
+    "state": "CLOSED_HOURS",
+    "opens_at": "2026-08-11T09:42:11.412Z",
+    "closes_at": null,
+    "eta_min_minutes": null,
+    "eta_max_minutes": null,
+    "indicative_delivery_fee_cents": 449,
+    "minimum_order_cents": 1500,
+    "distance_m": 3180,
+    "out_of_range_reason": null
+  }
+}

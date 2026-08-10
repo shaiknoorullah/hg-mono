@@ -1,0 +1,27 @@
+{
+  "scenario": "payout_held",
+  "domain": "rider",
+  "schema": "Payout",
+  "describes": "Held by compliance pending a review. The partner sees the hold, not the reason.",
+  "operations": [
+    "listRiderPayouts",
+    "listRestaurantPayouts"
+  ],
+  "status": 200,
+  "tags": [
+    "payout-state-matrix",
+    "money"
+  ],
+  "payload": {
+    "id": "4e4be67c-f45e-475f-a71f-8cd84e734987",
+    "period_start": "2026-08-03T18:42:11.412Z",
+    "period_end": "2026-08-10T18:42:11.412Z",
+    "amount_cents": 6706,
+    "currency": "CAD",
+    "state": "HELD",
+    "hold_reason": "Hold Reason",
+    "entry_count": 2,
+    "paid_at": "2026-08-09T18:42:11.412Z",
+    "failure_message": null
+  }
+}

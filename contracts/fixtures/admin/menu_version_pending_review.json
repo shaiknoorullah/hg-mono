@@ -1,0 +1,40 @@
+{
+  "scenario": "menu_version_pending_review",
+  "domain": "admin",
+  "schema": "MenuItemVersion",
+  "describes": "`PENDING_REVIEW`. Claim-bearing fields queued. **Never auto-approved** (decision R-05).",
+  "operations": [
+    "listMenuReviewQueue",
+    "decideMenuVersion"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "state-matrix",
+    "review-queue"
+  ],
+  "payload": {
+    "id": "25b236c7-be4b-498e-a42a-3337cd84015a",
+    "menu_item_id": "67cd84ec-a737-4727-a8dd-c38417db0de6",
+    "restaurant_id": "6de72710-09d8-4ea3-a55d-4f319901a773",
+    "version": 15,
+    "name": "Halal Munchies Scarborough",
+    "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "dietary_tags": [
+      "VEGETARIAN",
+      "VEGETARIAN"
+    ],
+    "allergen_tags": [
+      "PEANUTS",
+      "PEANUTS"
+    ],
+    "image_url": "https://cdn.halalgoes.ca/img/dish/6ac58b3e.webp",
+    "review_status": "PENDING_REVIEW",
+    "rejection_reason_code": "MISLEADING_DESCRIPTION",
+    "review_note": "Review Note",
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "reviewed_at": "2026-07-11T18:42:11.412Z",
+    "created_at": "2026-08-10T17:57:11.412Z"
+  }
+}

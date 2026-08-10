@@ -1,0 +1,18 @@
+{
+  "scenario": "error_internal_error",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`500` · `INTERNAL_ERROR`. Was `internal_error`. The only correct client behaviour is retry-with-backoff and show `request_id` in the support sheet.",
+  "operations": [],
+  "status": 500,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Something went wrong on our side.",
+      "request_id": "7V51J9JDKE98T8TMN21KKMPQ21"
+    }
+  }
+}

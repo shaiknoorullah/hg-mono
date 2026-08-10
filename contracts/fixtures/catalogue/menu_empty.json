@@ -1,0 +1,18 @@
+{
+  "scenario": "menu_empty",
+  "domain": "catalogue",
+  "schema": "Menu",
+  "describes": "A restaurant with **no menu at all** — approved, live, zero categories. Pair with `restaurant_detail_no_menu`.",
+  "operations": [
+    "getRestaurantMenu"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "payload": {
+    "restaurant_id": "d4dcd956-1d09-4422-ad4b-b00517ae4fd8",
+    "categories": []
+  }
+}

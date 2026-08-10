@@ -1,0 +1,22 @@
+{
+  "scenario": "restaurant_availability_no_address",
+  "domain": "catalogue",
+  "schema": "RestaurantAvailabilityInfo",
+  "describes": "Customer has no address yet, so nothing distance-derived can be computed.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "state-matrix"
+  ],
+  "payload": {
+    "state": "NO_ADDRESS",
+    "opens_at": null,
+    "closes_at": null,
+    "eta_min_minutes": null,
+    "eta_max_minutes": null,
+    "indicative_delivery_fee_cents": null,
+    "minimum_order_cents": 1500,
+    "distance_m": null,
+    "out_of_range_reason": null
+  }
+}

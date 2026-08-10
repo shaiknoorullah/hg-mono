@@ -1,0 +1,31 @@
+{
+  "scenario": "halal_issuing_body_proposed",
+  "domain": "halal",
+  "schema": "HalalIssuingBody",
+  "describes": "`status = PROPOSED`. Suggested by a reviewer; **not yet usable**. `H2_ISSUER_ACCEPTED` fails against it.",
+  "operations": [
+    "listHalalIssuingBodies",
+    "proposeHalalIssuingBody",
+    "setHalalIssuingBodyStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "64185789-c00f-4e20-a368-f68b57dda92c",
+    "name": "Halal Monitoring Authority (HMA Canada)",
+    "aliases": [
+      "Aliases",
+      "Aliases"
+    ],
+    "country": "Country",
+    "region": "ca-central-1",
+    "website": "https://cdn.halalgoes.ca/img/asset/b51346df.webp",
+    "accreditation_ref": "Accreditation Ref",
+    "requires_issuer_confirmation": true,
+    "status": "PROPOSED",
+    "notes": "Notes"
+  }
+}

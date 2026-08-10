@@ -1,0 +1,42 @@
+{
+  "scenario": "payment_methods_list",
+  "domain": "payments",
+  "schema": "array<PaymentMethod>",
+  "describes": "Three saved cards, one default.",
+  "operations": [
+    "listPaymentMethods",
+    "setDefaultPaymentMethod"
+  ],
+  "status": 200,
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 3
+  },
+  "payload": [
+    {
+      "id": "414fb15b-3af2-480f-a8b6-d8128170836b",
+      "brand": "visa",
+      "last4": "4242",
+      "exp_month": 11,
+      "exp_year": 2029,
+      "is_default": true
+    },
+    {
+      "id": "a8004b2b-2fbd-4756-a0ef-7fc141f2f832",
+      "brand": "mastercard",
+      "last4": "5454",
+      "exp_month": 3,
+      "exp_year": 2027,
+      "is_default": false
+    },
+    {
+      "id": "65730f49-abcf-443b-a13c-91114d3a61ee",
+      "brand": "amex",
+      "last4": "0005",
+      "exp_month": 8,
+      "exp_year": 2026,
+      "is_default": false
+    }
+  ]
+}

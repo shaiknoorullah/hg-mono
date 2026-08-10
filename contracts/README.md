@@ -41,35 +41,56 @@ Concretely:
 ## Regenerating clients
 
 ```bash
-# 0. Validate. Both must pass before anything is generated.
-make contracts-validate           # YAML parse + $ref resolution + spectral lint + custom invariants
+# 0. Validate. Must pass before anything is generated.
+pnpm validate:contract     # YAML parse + $ref resolution + operationId/x-roles/x-version
+                           # + money and mass-assignment invariants + ErrorCode casing
+                           # + YAML-1.1 truthy scalars + unsatisfiable allOf
 
-# 1. TypeScript clients for the four frontends (customer, rider, restaurant, admin)
-make contracts-gen-ts             # → apps/*/src/api/generated/
+# 1. The TypeScript client the four frontends share
+pnpm generate              # → packages/api-client/src/generated/openapi.d.ts
+pnpm generate:check        # regenerate, then `git diff --exit-code` — the drift gate
 
-# 2. Go server interfaces and DTOs
-make contracts-gen-go             # → services/hg/internal/http/gen/
+# 2. Fixtures, and the proof they still match the contract
+pnpm fixtures:build        # → contracts/fixtures/**  (deterministic; diffable)
+pnpm validate:fixtures     # every fixture against its named schema
 
-# 3. Realtime event types (from GET /v1/realtime/schema's committed snapshot)
-make contracts-gen-realtime       # → apps/*/src/realtime/generated/, services/hg/internal/realtime/gen/
+# 3. Everything CI runs
+pnpm check
 
-# All of the above
-make contracts
+# Not yet built (no Go service exists):
+make contracts-gen-go       # oapi-codegen (strict-server, chi) → services/hg/internal/http/gen/
+make contracts-gen-realtime # from GET /v1/realtime/schema's committed snapshot
 ```
 
 Under the hood:
 
-| Target | Tool | Notes |
+| Command | Tool | Notes |
 |---|---|---|
-| `contracts-validate` | `python3 -c "import yaml…"`, `redocly lint`, `scripts/contract-invariants.py` | The invariant script enforces the money and mass-assignment rules below. |
-| `contracts-gen-ts` | `openapi-typescript` + `openapi-fetch` | Types only plus a thin typed fetch wrapper — no heavyweight runtime, no hand-written wrapper layer. |
+| `pnpm validate:contract` | `tools/contract-tools/src/validate-contract.ts` | Enforces every invariant in §"What CI enforces" below. |
+| `pnpm generate` | `openapi-typescript` + `openapi-fetch` | Types only plus a thin typed fetch wrapper — no heavyweight runtime, no hand-written wrapper layer. See `packages/api-client/README.md` for why. |
+| `pnpm fixtures:build` | `contracts/fixtures/_build/build.py` | Walks the real schemas and fills them in; nothing is typed against a remembered field list. |
+| `pnpm validate:fixtures` | Ajv 2020-12 over the OpenAPI 3.1 document | 3.1 schemas *are* JSON Schema 2020-12, so no translation step. |
 | `contracts-gen-go` | `oapi-codegen` (`strict-server`, `chi`) | Produces server interfaces the router must satisfy, so an unimplemented operation is a compile error. |
-| `contracts-gen-realtime` | `json-schema-to-typescript` / `go-jsonschema` | Consumes the JSON-Schema bundle served by `getRealtimeSchema`. |
+| `contracts-gen-realtime` | `json-schema-to-typescript` / `go-jsonschema` | Consumes the JSON-Schema bundle served by `getRealtimeSchema`. Until it exists, `packages/api-client/src/realtime.ts` is the one hand-maintained shim. |
 
-**Frontend agents working against a contract with no backend running:** generate the TypeScript
-client, then use the fixtures under `contracts/fixtures/` (one representative response per
-operation, generated from the schema examples) with Mock Service Worker. Every shape in a fixture
-is schema-validated in CI, so a fixture can never drift from the contract.
+**Frontend agents working against a contract with no backend running:** everything you need is
+already built.
+
+```bash
+pnpm install
+pnpm generate        # TypeScript client → packages/api-client/src/generated/
+pnpm mock            # the whole API at http://localhost:4010, no backend
+```
+
+`packages/api-client` is the generated client plus the money helpers; **it is the only place a
+frontend may get a request or response type from.** `contracts/fixtures/` holds 310 named
+scenarios covering every state in the contract — not one representative response per operation
+but every order state, every dispatch state, every empty list, every overflowing name. Read
+`contracts/fixtures/README.md`: it is the menu. Select one with `?scenario=` or
+`X-Mock-Scenario:` against the mock, or import the JSON directly into Mock Service Worker.
+
+Every fixture is schema-validated by `pnpm validate:fixtures` in CI, so a fixture can never
+drift from the contract.
 
 ---
 
@@ -113,7 +134,7 @@ header (client-generated UUID or ULID, 16–128 chars), scoped
 
 * two concurrent requests with the same key produce **exactly one** business effect;
 * a replay returns the original status and body byte-identically, with `Idempotency-Replayed: true`;
-* the same key with a **different** body is `409 idempotency_key_reuse`, never a silent replay of
+* the same key with a **different** body is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of
   the wrong result;
 * the record commits in the same transaction as the business effect, so "money moved but the
   idempotency record did not commit" cannot happen.
@@ -173,7 +194,7 @@ exists either way.
 |---|---|---|---|---|
 | 1 | **Base path** — `/v1` vs `/api/v1` | 01 §P-02 vs 02 §0.2, 04 §0.1 | `/v1` | Platform normative |
 | 2 | **Response envelope** — `{data, meta}`/`{error}` vs an always-three-key `{data, error, meta}` vs `{error:{code,message,field_errors}}` | 01 §G-6 vs 02 §0.2 vs 03 §1.1 | `{data, meta?}` on 2xx, `{error}` on non-2xx; per-field detail lives in `error.details` as `FieldError[]` | Platform G-6 |
-| 3 | **Error-code casing** — `snake_case` (`quote_stale`) vs `SCREAMING_SNAKE` (`OFFER_ALREADY_TAKEN`, `DIFFERENT_RESTAURANT`) | 01 vs 02/04/05 | **Both reproduced verbatim** in one `ErrorCode` enum. The brief named codes in both casings; normalising would have silently renamed codes the specs pin in acceptance criteria. | **Needs a decision** — a one-time normalisation is cheap now and expensive later |
+| 3 | **Error-code casing** — `snake_case` (`quote_stale`) vs `SCREAMING_SNAKE` (`OFFER_ALREADY_TAKEN`, `DIFFERENT_RESTAURANT`) | 01 vs 02/04/05 | **RESOLVED — normalised to `SCREAMING_SNAKE_CASE`.** All 78 `snake_case` members were upper-cased and the three resulting collisions collapsed, taking the enum from 147 members to 144. See §"Error-code normalisation" below. | The normalisation this row asked for, done before any client existed |
 | 4 | **Money storage and rounding** — customer spec says DB columns are `numeric(12,2)` *and* int64 cents in the same table, and that percentage discounts round **half-down** ("ties toward the customer"); platform bans `numeric` in money paths and mandates **half-up** everywhere | 02 §0.1 vs 01 §G-2, §P-12 | `int64` cents only; `round_half_up`, symmetric away from zero for negatives so a full refund reverses exactly | Platform G-2/P-12; the customer spec contradicts itself internally |
 | 5 | **Halal state vocabulary** — three enums: `halal_display_state {CERTIFIED, EXPIRING_SOON, EXPIRED, UNVERIFIED}`, `halal_status {CERTIFIED, SELF_DECLARED, NOT_HALAL}`, `halal_status {NONE, PENDING, CERTIFIED, LAPSED, REJECTED, REVOKED}` | 02 §C-12 vs 01 §P-34 vs 05 §A-15 | `HalalDisplayState` (the four customer-visible values) on every customer-facing payload; `HalalCertificateStatus` (the admin lifecycle) on the admin surface. The platform's `SELF_DECLARED` is **not** exposed — decision O-06's default is to hide self-declared restaurants entirely. | Brief names the four-value set; O-06 default |
 | 6 | **Delivery-instruction enum** — 3 values (customer), 5 values incl. `MEET_AT_DOOR`/`MEET_IN_LOBBY` (platform), 5 values incl. `CALL_ON_ARRIVAL` (rider) | 02 §C-33 vs 01 §P-36 vs 04 §D-19 | The platform's five. `CALL_ON_ARRIVAL` is dropped; `MEET_AT_DOOR`/`MEET_IN_LOBBY` map to OTP proof-of-delivery, the rest to photo. | Platform normative — its validation message enumerates exactly five |
@@ -187,7 +208,7 @@ exists either way.
 | 14 | **Discount funding** — platform-funded vs restaurant-funded | 02 §C-21 vs 03 | **Restaurant-funded**. `QuoteDiscount` carries `funded_by` *and* `reimbursable` as separate fields because they answer different questions (who bears it; how the CRA coupon rules tax it). | Decision R-06 |
 | 15 | **Commission rate** — 20% / 18% / 15% | 01 vs 03 vs 05 | **0%** at launch. `commission_rate_bps` is present, read-only to partners, switchable without a release. | Decisions S-01 / R-01 |
 | 16 | **Payout minimum** — CAD 25 (restaurant), CAD 10 (rider), or none | 01 §P-19, 04 §0.5 vs decisions | **No minimum**, weekly, Monday, automatic, for both partner types | Decisions S-04 / R-03 |
-| 17 | **Pricing mechanism** — an HMAC-signed pricing snapshot echoed by the client and re-verified, vs a persisted `quote` row whose id is the only thing checkout accepts | 02 §C-22 vs 01 §P-09 | **The persisted quote.** `createOrder` accepts `quote_id` and nothing money-shaped; the server re-executes `Quote()` and returns `409 quote_stale` with the new quote embedded on any difference. Nothing signed by the server is ever echoed back by the client. | Platform P-09 — a signed snapshot is still a client-supplied number, only harder to audit |
+| 17 | **Pricing mechanism** — an HMAC-signed pricing snapshot echoed by the client and re-verified, vs a persisted `quote` row whose id is the only thing checkout accepts | 02 §C-22 vs 01 §P-09 | **The persisted quote.** `createOrder` accepts `quote_id` and nothing money-shaped; the server re-executes `Quote()` and returns `409 QUOTE_STALE` with the new quote embedded on any difference. Nothing signed by the server is ever echoed back by the client. | Platform P-09 — a signed snapshot is still a client-supplied number, only harder to audit |
 | 18 | **Menu auto-approval** — a 24-hour auto-approve backstop for pending menu versions vs never auto-approving | 03 §R-17 (D-22) vs 05 §A-19 | **Never auto-approve claim-bearing fields.** Price, availability and ordering are instant and unreviewed, so a stalled queue cannot freeze a restaurant's trading. | Decision R-05: silence must never become consent on a halal claim |
 | 19 | **Halal certificate expiry consequence** — hide the restaurant entirely; keep trading without the badge then suspend at 14 days; delist | 02 §C-12 vs 01 §P-29/P-34 vs 05 §A-17 | Customer-visible only for `CERTIFIED` and `EXPIRING_SOON`; everything else is `404` from every customer read path. `RestaurantAccountState.DELISTED` carries the non-punitive system state. | 02 §C-12 default, consistent with A-17's delist semantics |
 | 20 | **Document-set naming** — `BUSINESS_LICENCE / FOOD_SAFETY / OWNER_ID` vs `BUSINESS_REGISTRATION / FOOD_HANDLING_PERMIT / OWNER_GOVERNMENT_ID / VOID_CHEQUE_OR_BANK_LETTER`; riders similarly (`GOVERNMENT_ID` vs `PROVINCIAL_ID`, plus `WORK_ELIGIBILITY` and `BANKING`) | 03 §R-07 vs 05 §A-13 / §A-23 | The partner-spec names (`RestaurantDocType`, `RiderDocType`). `VOID_CHEQUE_OR_BANK_LETTER` and `BANKING` are omitted — Stripe Connect supersedes them and the platform stores no bank details. `WORK_ELIGIBILITY` is retained on the rider enum. | Partner specs own the upload flow; both spec sets agree the FSSAI certificate is replaced (decision R-08) |
@@ -195,6 +216,42 @@ exists either way.
 | 22 | **Fee parameters** — $2.99 + $1.00/km (overview); $2.99 + 3 km included + $1.20/km, min $2.99 / max $12.99, small-order threshold (P-09); base 299 + 150/km, flat platform fee 499 (C-22) | 00 vs 01 §P-09 vs 02 §C-22 | **None of them are in the contract.** Fees live in `pricing_config` and reach clients only as computed cents on a quote. `getPublicConfig` deliberately exposes no fee parameter, so no client can compute a price. | Overview §Money model is authoritative for the values; the contract's job is to make them unreachable by clients |
 | 23 | **OTP rate limits** — 5/hour + 10/day per phone, 5 verify attempts (platform); 3 per 15 min per phone, 5 verify attempts (customer); 3 per 15 min + 10/day + 20/hour per IP (rider) | 01 §P-02 vs 02 §C-01 vs 04 §D-01 | Not fixed in the contract — the wire carries `resend_after_s` and `expires_at`, and the client renders the server's cooldown. The platform's limits are the implementation default. | Same reasoning as #13 |
 | 24 | **Concurrent orders** — the customer spec forbids a second active order; no other spec mentions it | 02 §C-26 | **One active order per customer.** `createOrder` returns `409 ACTIVE_ORDER_EXISTS`; `getActiveOrder` returns zero or one. | 02 §C-26 default — it removes a class of tracking and refund ambiguity and can be relaxed without a migration |
+
+### Error-code normalisation (contradiction #3, resolved)
+
+Row 3 said a one-time normalisation was "cheap now and expensive later". It was done while
+"now" was still true — before a single client, handler or fixture existed to be renamed.
+
+**The rule: every `ErrorCode` member is `SCREAMING_SNAKE_CASE`. To map a spec that still
+writes a code in `snake_case`, upper-case it. Nothing was renamed, split or dropped.**
+
+Three pairs became identical once cased alike, and were collapsed to one member each:
+
+| Kept | Absorbed | Consequence |
+|---|---|---|
+| `OTP_INCORRECT` | `otp_incorrect` | The auth OTP code and the **proof-of-delivery** OTP code are now one member. They were always distinguishable only by endpoint, and still are — `POST /v1/auth/otp/verify` versus `submitProofOfDelivery`. `OTP_LOCKED` and `POD_METHOD_MISMATCH` remain separate. |
+| `OFFER_EXPIRED` | `offer_expired` | Same meaning in both specs — a dispatch offer whose countdown ran out. A genuine duplicate. |
+| `PROVINCE_NOT_SERVED` | `province_not_served` | The address-validation code and the quote-time code. Same customer-facing outcome, gated by the same `getPublicConfig.served_provinces` list (decision O-05). |
+
+Scope of the change: **162 token replacements** across `contracts/openapi.yaml` — the enum
+itself plus every backtick-quoted reference in a `description`, and nothing else. English
+prose was untouched: "hand-edited clients are **forbidden**" and "a rejection or **timeout**
+voids the authorisation" still read as sentences, because only code tokens inside backticks
+and bare enum list items were rewritten.
+
+`pnpm validate:contract` now fails the build on any `ErrorCode` member that is not
+`SCREAMING_SNAKE_CASE`, and `pnpm validate:fixtures` fails on any error fixture whose `code`
+is not a member of the enum. The casing cannot regress.
+
+### Two contract defects fixed alongside it
+
+Both were found by generating fixtures against the document — which is the point of
+generating fixtures against the document.
+
+| Defect | Effect | Fix |
+|---|---|---|
+| **`Province: enum [AB, …, ON, …]`** — `ON` unquoted | In **YAML 1.1** (PyYAML, libyaml, `gopkg.in/yaml.v2`) a bare `ON` is the boolean `true`. Ontario — the only province served at launch — silently became `true` for every YAML-1.1 consumer, while the YAML-1.2 JS toolchain read `"ON"`. A Go server and a TypeScript client would have disagreed about Ontario. | Every member quoted. `validate-contract.ts` now fails on any unquoted YAML-1.1 truthy scalar in an `enum`, `examples` or `default`. |
+| **Nine `allOf` compositions over a base with `additionalProperties: false`** — `RestaurantDetail`, `MenuCategoryWithItems`, `MenuItemOwnerView`, `OrderAdminView`, `RiderLocation`, `PayoutDetail`, `RestaurantApplication`, `RiderApplication`, and the inline category in `OwnedMenu` | An `additionalProperties` assertion only sees the properties of **its own** subschema, so the base rejected every field the extension added. These nine schemas were **unsatisfiable**: no instance could validate. That covers the customer app's restaurant detail, every menu, the restaurant app's menu editor and the admin order view. | `additionalProperties: false` removed from the eight base schemas that are extended, each with a comment saying why. `validate-contract.ts` fails on any new instance of the pattern. |
 
 ### Blocking open decisions that the contract encodes as defaults
 
@@ -207,7 +264,7 @@ either way, but the **values** need a human before launch:
 | **O-02** Accepted halal certifying bodies | `HalalIssuingBody` registry with `PROPOSED → ACCEPTED` promotion gated to super admin. Check `H2_ISSUER_ACCEPTED` fails until the list is seeded, so **no restaurant can be certified until the client supplies it**. |
 | **O-03** SMS / A2P registration | `requestOtp` is fully specified; nobody can sign in until a provider is live. No contract impact, total launch impact. |
 | **O-04** Refund liability allocation | `RefundLiabilitySplit` is computed at authorisation and stored. The reason-code → split mapping is server config, not contract. |
-| **O-05** Launch provinces | `Province` enumerates all thirteen; `getPublicConfig.served_provinces` gates them; a quote outside the list fails `province_not_served`. |
+| **O-05** Launch provinces | `Province` enumerates all thirteen; `getPublicConfig.served_provinces` gates them; a quote outside the list fails `PROVINCE_NOT_SERVED`. |
 | **O-06** Self-declared restaurants | Hidden entirely. `HalalDisplayState` has no `SELF_DECLARED` member, so a listing surface cannot accidentally render one. |
 
 ---
@@ -223,4 +280,9 @@ either way, but the **values** need a human before launch:
 | Mass-assignment invariant | A request body contains a price-shaped field outside the three-item allowlist |
 | Component reachability | A schema, parameter or response is declared and never referenced |
 | Contract drift | The document generated from the route registry differs from the committed one |
-| Fixture validity | Any fixture under `contracts/fixtures/` does not validate against its operation's schema |
+| Fixture validity | Any fixture under `contracts/fixtures/` does not validate against its named schema (`pnpm validate:fixtures`) |
+| Error-code casing | Any `ErrorCode` member is not `SCREAMING_SNAKE_CASE`, or the enum contains a duplicate |
+| YAML 1.1 truthy scalars | An unquoted `ON`/`OFF`/`YES`/`NO` appears in an `enum`, `examples` or `default` — see §"Two contract defects" |
+| Unsatisfiable `allOf` | An `allOf` extends a base that sets `additionalProperties: false` |
+| Generated-client drift | `pnpm generate` changes `packages/api-client/src/generated/**` (`git diff --exit-code`) |
+| Fixture drift | `pnpm fixtures:build` changes anything under `contracts/fixtures/` (`git diff --exit-code`) |

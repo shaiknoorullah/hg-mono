@@ -1,0 +1,18 @@
+{
+  "scenario": "restaurant_registration",
+  "domain": "onboarding",
+  "schema": "RestaurantRegistration",
+  "describes": "The response to `registerRestaurant` — the only public write that creates a partner account.",
+  "operations": [
+    "registerRestaurant"
+  ],
+  "status": 201,
+  "tags": [
+    "restaurant"
+  ],
+  "payload": {
+    "restaurant_id": "ee44e173-9f75-4de7-a55d-0aa2480463af",
+    "email": "owner@karachikitchen.ca",
+    "onboarding_state": "ACTIVE"
+  }
+}

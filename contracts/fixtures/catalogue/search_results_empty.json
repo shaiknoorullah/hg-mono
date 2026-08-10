@@ -1,0 +1,31 @@
+{
+  "scenario": "search_results_empty",
+  "domain": "catalogue",
+  "schema": "SearchResults",
+  "describes": "No hits at all — the 'nothing matched' state, distinct from an error and from an unserved postal code.",
+  "operations": [
+    "search"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "restaurants": {
+      "next_cursor": "Next Cursor",
+      "has_more": false,
+      "total": 3
+    },
+    "dishes": {
+      "next_cursor": "Next Cursor",
+      "has_more": false,
+      "total": 3
+    },
+    "relaxation_hint": "Relaxation Hint"
+  },
+  "payload": {
+    "restaurants": [],
+    "dishes": []
+  }
+}

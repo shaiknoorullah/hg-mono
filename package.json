@@ -1,0 +1,18 @@
+{
+  "name": "hg-mono",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "generate": "pnpm --filter @hg/api-client generate",
+    "generate:check": "pnpm generate && git diff --exit-code -- packages/api-client/src/generated",
+    "validate:contract": "pnpm --filter @hg/contract-tools validate:contract",
+    "validate:fixtures": "pnpm --filter @hg/contract-tools validate:fixtures",
+    "fixtures:build": "pnpm --filter @hg/contract-tools fixtures:build",
+    "mock": "pnpm --filter @hg/mock-server start",
+    "typecheck": "pnpm -r typecheck",
+    "check": "pnpm validate:contract && pnpm validate:fixtures && pnpm generate:check && pnpm typecheck"
+  }
+}

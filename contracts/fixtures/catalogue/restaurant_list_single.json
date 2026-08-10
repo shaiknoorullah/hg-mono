@@ -1,0 +1,51 @@
+{
+  "scenario": "restaurant_list_single",
+  "domain": "catalogue",
+  "schema": "array<RestaurantCard>",
+  "describes": "Exactly one result. Catches layouts that only look right with a full grid, and 'showing 1 of 1' copy that pluralises wrongly.",
+  "operations": [
+    "listRestaurants"
+  ],
+  "status": 200,
+  "tags": [
+    "edge"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 1
+  },
+  "payload": [
+    {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "slug": "karachi-kitchen",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 1200,
+        "out_of_range_reason": null
+      }
+    }
+  ]
+}

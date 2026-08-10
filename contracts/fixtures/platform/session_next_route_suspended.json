@@ -1,0 +1,39 @@
+{
+  "scenario": "session_next_route_suspended",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = SUSPENDED`. Account suspended; a dead end with an explanation.",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 12,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "5cbf14dd-5f63-490e-a99f-66ec19a2c6ed",
+      "session_id": "0c29d105-c812-449e-a72d-70177a3cfcc0",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "d3c0cb85-5895-49bd-ae18-8c6eef0d4e6c"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

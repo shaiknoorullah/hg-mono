@@ -1,0 +1,18 @@
+{
+  "scenario": "error_rate_limited",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`429` · `RATE_LIMITED`. Was `rate_limited`. Also the code on the realtime `error` control frame at the 20 frames/second soft limit.",
+  "operations": [],
+  "status": 429,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "Too many requests. Try again in 45 seconds.",
+      "request_id": "E669J7KPG1NQ268WWQV8PYVQMM"
+    }
+  }
+}

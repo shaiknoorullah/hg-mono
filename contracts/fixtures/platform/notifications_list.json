@@ -1,0 +1,80 @@
+{
+  "scenario": "notifications_list",
+  "domain": "platform",
+  "schema": "array<Notification>",
+  "describes": "Mixed read and unread notifications across channels and priorities.",
+  "operations": [
+    "listNotifications"
+  ],
+  "status": 200,
+  "tags": [
+    "platform"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 4
+  },
+  "payload": [
+    {
+      "id": "39460ab7-c760-4560-a30f-9c353bcb9bfe",
+      "kind": "ORDER_PICKED_UP",
+      "title": "Your order is on the way",
+      "body": "Bilal picked up your order from Karachi Kitchen.",
+      "deep_link": "halalgoes://orders/04d01047-5b78-451b-ab6a-97ec2a0ff780",
+      "priority": "NORMAL",
+      "channels_attempted": [
+        "PUSH",
+        "PUSH"
+      ],
+      "order_id": "e2de33f0-d4f5-478e-a30c-0f81270d408b",
+      "created_at": "2026-08-10T17:57:11.412Z",
+      "read_at": "2026-08-10T18:02:11.412Z"
+    },
+    {
+      "id": "e206c8d9-0f9b-4085-a5f4-4c0eaebcf353",
+      "kind": "ORDER_PICKED_UP",
+      "title": "Your order is on the way",
+      "body": "Bilal picked up your order from Karachi Kitchen.",
+      "deep_link": "halalgoes://orders/41b68199-22db-4cb9-ad1c-cf0b0d3a4d3f",
+      "priority": "NORMAL",
+      "channels_attempted": [
+        "PUSH",
+        "PUSH"
+      ],
+      "order_id": "1e97c499-0f25-49c4-af72-ecb9c2f93e73",
+      "created_at": "2026-08-10T17:57:11.412Z",
+      "read_at": "2026-08-10T18:02:11.412Z"
+    },
+    {
+      "id": "4b651d4e-ad4b-4e8c-a7e7-52c7e2611c2d",
+      "kind": "ORDER_PICKED_UP",
+      "title": "Your order is on the way",
+      "body": "Bilal picked up your order from Karachi Kitchen.",
+      "deep_link": "halalgoes://orders/aeb8063c-936d-47a3-a386-3faa3c2a5a17",
+      "priority": "NORMAL",
+      "channels_attempted": [
+        "PUSH",
+        "PUSH"
+      ],
+      "order_id": "63d6caf8-fcea-4781-a984-cba2c0930ed1",
+      "created_at": "2026-08-10T17:57:11.412Z",
+      "read_at": "2026-08-10T18:02:11.412Z"
+    },
+    {
+      "id": "17f6cc99-4e3c-4953-a12c-fe42d4388d5f",
+      "kind": "ORDER_PICKED_UP",
+      "title": "Your order is on the way",
+      "body": "Bilal picked up your order from Karachi Kitchen.",
+      "deep_link": "halalgoes://orders/c1598748-b1e3-4a54-a133-34f1a518a86f",
+      "priority": "NORMAL",
+      "channels_attempted": [
+        "PUSH",
+        "PUSH"
+      ],
+      "order_id": "6072e658-ebcc-4ff3-af36-3d32052479b2",
+      "created_at": "2026-08-10T17:57:11.412Z",
+      "read_at": "2026-08-10T18:02:11.412Z"
+    }
+  ]
+}

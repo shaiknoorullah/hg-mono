@@ -1,0 +1,17 @@
+{
+  "scenario": "restaurant_heartbeat",
+  "domain": "onboarding",
+  "schema": "RestaurantHeartbeat",
+  "describes": "The tablet's liveness ping response.",
+  "operations": [
+    "sendRestaurantHeartbeat"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant"
+  ],
+  "payload": {
+    "open_state": "OPEN",
+    "received_at": "2026-08-10T18:32:11.412Z"
+  }
+}

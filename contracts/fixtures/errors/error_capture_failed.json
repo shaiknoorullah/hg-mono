@@ -1,0 +1,18 @@
+{
+  "scenario": "error_capture_failed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `CAPTURE_FAILED`. Was `capture_failed`. The order is cancelled; nothing is owed. Pairs with `payment_failed`.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "CAPTURE_FAILED",
+      "message": "Your card was declined when we tried to charge it.",
+      "request_id": "VWX0TTHT788YPJ0AH4HG8NQM83"
+    }
+  }
+}

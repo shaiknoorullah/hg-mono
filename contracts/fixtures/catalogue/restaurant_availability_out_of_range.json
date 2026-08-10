@@ -1,0 +1,22 @@
+{
+  "scenario": "restaurant_availability_out_of_range",
+  "domain": "catalogue",
+  "schema": "RestaurantAvailabilityInfo",
+  "describes": "21.4 km from the saved address; carries `out_of_range_reason` copy.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "state-matrix"
+  ],
+  "payload": {
+    "state": "OUT_OF_RANGE",
+    "opens_at": "2026-08-10T12:24:11.412Z",
+    "closes_at": "2026-08-10T22:00:11.412Z",
+    "eta_min_minutes": null,
+    "eta_max_minutes": null,
+    "indicative_delivery_fee_cents": null,
+    "minimum_order_cents": 1500,
+    "distance_m": 21400,
+    "out_of_range_reason": "This kitchen delivers within 12 km. You are 21.4 km away."
+  }
+}

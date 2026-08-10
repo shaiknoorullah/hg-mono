@@ -1,0 +1,116 @@
+{
+  "scenario": "rider_application_pending_review",
+  "domain": "admin",
+  "schema": "RiderApplication",
+  "describes": "A rider application with six documents and a vehicle on file.",
+  "operations": [
+    "getRiderApplication",
+    "takeNextRiderApplication",
+    "decideRiderApplication"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "review-queue"
+  ],
+  "payload": {
+    "rider_account_id": "dfd8d2a2-871a-4dc2-a585-c5b442ad43b7",
+    "display_name": "Ayesha R.",
+    "vehicle_type": "CAR",
+    "onboarding_state": "ACTIVE",
+    "attempt_number": 20,
+    "assigned_admin_id": "1bd3389d-bb65-4eb6-a9b1-1a93089a9e44",
+    "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "sla_due_at": "2026-08-10T18:32:11.412Z",
+    "profile": {
+      "account_id": "21d4f251-e433-4013-a8b2-d9a47b1081d3",
+      "first_name": "Imran",
+      "last_name": "Rahman",
+      "email": "owner@karachikitchen.ca",
+      "date_of_birth": "1994-03-17",
+      "timezone": "America/Toronto"
+    },
+    "vehicle": {
+      "id": "f357de8b-9b71-4406-a7ac-69d1612c5b63",
+      "vehicle_type": "CAR",
+      "make": "Toyota",
+      "model": "iPhone 15",
+      "year": 14,
+      "colour": "Silver",
+      "licence_plate": "Licence Plate",
+      "is_active": true
+    },
+    "documents": [
+      {
+        "id": "0d134b93-3c1f-4eea-aec0-8c245eafe5b2",
+        "subject_type": "RESTAURANT",
+        "subject_id": "abc5ee05-3579-453f-a346-8080018cdbf6",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Issuer",
+        "certificate_number": "HMA-ON-99808",
+        "issued_on": "2025-10-14",
+        "valid_until": "2026-08-10",
+        "version": 11,
+        "rejection_reason_code": "ILLEGIBLE",
+        "review_note": "Review Note",
+        "reviewed_at": "2026-07-11T18:42:11.412Z",
+        "created_at": "2026-08-10T17:57:11.412Z"
+      },
+      {
+        "id": "156327e0-ec19-42c6-a42b-d7053dd53087",
+        "subject_type": "RESTAURANT",
+        "subject_id": "60babe59-e515-454d-a328-2987dacaac86",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Issuer",
+        "certificate_number": "HMA-ON-15249",
+        "issued_on": "2025-10-14",
+        "valid_until": "2026-08-10",
+        "version": 1,
+        "rejection_reason_code": "ILLEGIBLE",
+        "review_note": "Review Note",
+        "reviewed_at": "2026-07-11T18:42:11.412Z",
+        "created_at": "2026-08-10T17:57:11.412Z"
+      },
+      {
+        "id": "3516415a-5f97-43fe-ab81-97d144049e8d",
+        "subject_type": "RESTAURANT",
+        "subject_id": "b4d1bd65-8ec9-4efc-a0a3-e0bd495c4968",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Issuer",
+        "certificate_number": "HMA-ON-41376",
+        "issued_on": "2025-10-14",
+        "valid_until": "2026-08-10",
+        "version": 10,
+        "rejection_reason_code": "ILLEGIBLE",
+        "review_note": "Review Note",
+        "reviewed_at": "2026-07-11T18:42:11.412Z",
+        "created_at": "2026-08-10T17:57:11.412Z"
+      },
+      {
+        "id": "037a77c9-89aa-4c61-ac1c-a42aac476a64",
+        "subject_type": "RESTAURANT",
+        "subject_id": "178fb46e-d259-441b-a67d-eb91da854fc4",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Issuer",
+        "certificate_number": "HMA-ON-40886",
+        "issued_on": "2025-10-14",
+        "valid_until": "2026-08-10",
+        "version": 18,
+        "rejection_reason_code": "ILLEGIBLE",
+        "review_note": "Review Note",
+        "reviewed_at": "2026-07-11T18:42:11.412Z",
+        "created_at": "2026-08-10T17:57:11.412Z"
+      }
+    ],
+    "computed_age_years": 5,
+    "blockers": [
+      "Blockers",
+      "Blockers"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "scenario": "payment_processing",
+  "domain": "payments",
+  "schema": "OrderPayment",
+  "describes": "Submitted to the PSP, outcome unknown. The UI must not claim success.",
+  "operations": [
+    "getOrderPayment"
+  ],
+  "status": 200,
+  "tags": [
+    "payment-state-matrix"
+  ],
+  "payload": {
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "PROCESSING",
+    "kind": "ORDER",
+    "amount_authorized_cents": 0,
+    "amount_captured_cents": 0,
+    "amount_refunded_cents": 0,
+    "currency": "CAD",
+    "card_brand": "visa",
+    "card_last4": "4242",
+    "wallet": null,
+    "failure_code": null,
+    "decline_code": null,
+    "client_secret": null,
+    "authorized_at": null,
+    "captured_at": null
+  }
+}

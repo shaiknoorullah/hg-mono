@@ -1,0 +1,21 @@
+{
+  "scenario": "restaurant_application_queue_empty",
+  "domain": "admin",
+  "schema": "array<RestaurantApplicationSummary>",
+  "describes": "Queue drained. `takeNextRestaurantApplication` returns **null data**, not 404.",
+  "operations": [
+    "listRestaurantApplications"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

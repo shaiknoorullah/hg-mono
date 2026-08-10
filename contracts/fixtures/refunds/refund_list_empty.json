@@ -1,0 +1,20 @@
+{
+  "scenario": "refund_list_empty",
+  "domain": "refunds",
+  "schema": "array<Refund>",
+  "describes": "No refunds on this account — the common case.",
+  "operations": [
+    "listRefunds"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

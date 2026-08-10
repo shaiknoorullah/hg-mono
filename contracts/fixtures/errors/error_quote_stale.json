@@ -1,0 +1,18 @@
+{
+  "scenario": "error_quote_stale",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `QUOTE_STALE`. **Was `quote_stale` before the normalisation.** The server re-executes `Quote()` on `createOrder` and returns this with the new quote embedded in `details`; nothing server-signed is ever echoed back by the client (contradiction log #17).",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "QUOTE_STALE",
+      "message": "Prices changed while you were checking out. Review the updated total.",
+      "request_id": "1DGHS5QKVAYAMDFNG841ZZM282"
+    }
+  }
+}

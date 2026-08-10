@@ -1,0 +1,389 @@
+{
+  "scenario": "restaurant_list_populated",
+  "domain": "catalogue",
+  "schema": "array<RestaurantCard>",
+  "describes": "Twelve open, certified Ontario restaurants — the default browse screen. One card (index 3) is EXPIRING_SOON so the badge variant is always on screen.",
+  "operations": [
+    "listRestaurants"
+  ],
+  "status": 200,
+  "meta": {
+    "next_cursor": "01K4S9ZC0F8V7Q2R3T5Y6M8N9P",
+    "has_more": true,
+    "total": 47
+  },
+  "payload": [
+    {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "slug": "karachi-kitchen",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 1200,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "92291a8d-1006-4090-a8ba-4cfd1967ffbd",
+      "name": "Al-Noor Shawarma House",
+      "slug": "al-noor-shawarma-house",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/al-noor-shawarma-house.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/al-noor-shawarma-house.webp",
+      "cuisines": [
+        "Middle Eastern",
+        "Shawarma",
+        "Halal"
+      ],
+      "rating_avg": 4.6,
+      "rating_count": 1183,
+      "price_band": "$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 2140,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "11f93069-62e0-4d02-a081-8c5bb11987b8",
+      "name": "Bismillah Biryani House",
+      "slug": "bismillah-biryani-house",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/bismillah-biryani-house.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/bismillah-biryani-house.webp",
+      "cuisines": [
+        "Indian",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.4,
+      "rating_count": 96,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 3080,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "a12be53e-1468-4f99-a72e-862f5c7be4e1",
+      "name": "Zaytoun Mediterranean Grill",
+      "slug": "zaytoun-mediterranean-grill",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/zaytoun-mediterranean-grill.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/zaytoun-mediterranean-grill.webp",
+      "cuisines": [
+        "Mediterranean",
+        "Grill",
+        "Halal"
+      ],
+      "rating_avg": 4.9,
+      "rating_count": 2741,
+      "price_band": "$$$",
+      "halal": {
+        "display_state": "EXPIRING_SOON",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2026-08-28"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 4020,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "b1fcf360-9a59-4b3a-adf6-d7a703ac00ce",
+      "name": "Tandoori Flame",
+      "slug": "tandoori-flame",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/tandoori-flame.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/tandoori-flame.webp",
+      "cuisines": [
+        "Indian",
+        "Tandoori",
+        "Halal"
+      ],
+      "rating_avg": 4.2,
+      "rating_count": 38,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 4960,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "d93fa82e-31d0-4986-a8d1-06cd0c041979",
+      "name": "Bosphorus Turkish Kebab",
+      "slug": "bosphorus-turkish-kebab",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/bosphorus-turkish-kebab.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/bosphorus-turkish-kebab.webp",
+      "cuisines": [
+        "Turkish",
+        "Kebab",
+        "Halal"
+      ],
+      "rating_avg": 4.7,
+      "rating_count": 604,
+      "price_band": "$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 5900,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "0aa5f4b0-7dd1-4fbb-ab88-39fd9247a0e4",
+      "name": "Barakah Charcoal Grill",
+      "slug": "barakah-charcoal-grill",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/barakah-charcoal-grill.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/barakah-charcoal-grill.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 6840,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "6bb8f132-e35b-47d2-af84-26c75ae20d9b",
+      "name": "Lahore Tikka Corner",
+      "slug": "lahore-tikka-corner",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/lahore-tikka-corner.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/lahore-tikka-corner.webp",
+      "cuisines": [
+        "Middle Eastern",
+        "Shawarma",
+        "Halal"
+      ],
+      "rating_avg": 4.6,
+      "rating_count": 1183,
+      "price_band": "$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 7780,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "3b72cef3-3b6a-452e-a499-d1bb605196a3",
+      "name": "Damascus Sweets & Grill",
+      "slug": "damascus-sweets-and-grill",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/damascus-sweets-and-grill.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/damascus-sweets-and-grill.webp",
+      "cuisines": [
+        "Indian",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.4,
+      "rating_count": 96,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 8720,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "4bab1ab9-4aad-4085-ad81-c127cfa38c0b",
+      "name": "Sultan's Table",
+      "slug": "sultans-table",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/sultans-table.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/sultans-table.webp",
+      "cuisines": [
+        "Mediterranean",
+        "Grill",
+        "Halal"
+      ],
+      "rating_avg": 4.9,
+      "rating_count": 2741,
+      "price_band": "$$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 9660,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "e7bd51d6-e8ea-4172-a997-6ea9f58e2548",
+      "name": "Halal Munchies Scarborough",
+      "slug": "halal-munchies-scarborough",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/halal-munchies-scarborough.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/halal-munchies-scarborough.webp",
+      "cuisines": [
+        "Indian",
+        "Tandoori",
+        "Halal"
+      ],
+      "rating_avg": 4.2,
+      "rating_count": 38,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 10600,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "1fc9a466-f2c3-48d8-af76-904653594ebc",
+      "name": "Marhaba Fried Chicken",
+      "slug": "marhaba-fried-chicken",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/marhaba-fried-chicken.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/marhaba-fried-chicken.webp",
+      "cuisines": [
+        "Turkish",
+        "Kebab",
+        "Halal"
+      ],
+      "rating_avg": 4.7,
+      "rating_count": 604,
+      "price_band": "$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 11540,
+        "out_of_range_reason": null
+      }
+    }
+  ]
+}

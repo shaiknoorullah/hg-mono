@@ -1,0 +1,69 @@
+{
+  "scenario": "restaurant_application_queue",
+  "domain": "admin",
+  "schema": "array<RestaurantApplicationSummary>",
+  "describes": "Four applications waiting, oldest first.",
+  "operations": [
+    "listRestaurantApplications"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "review-queue"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 4
+  },
+  "payload": [
+    {
+      "restaurant_id": "2536622a-2c61-4b1e-ae8e-12d40d7b288f",
+      "display_name": "Bilal S.",
+      "city": "Scarborough",
+      "province": "ON",
+      "onboarding_state": "ACTIVE",
+      "submission_count": 0,
+      "assigned_admin_id": "23fd4868-d8f8-475c-a1ca-a16c342c119c",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "restaurant_id": "efae64e3-6d24-4b20-adc1-a83ad37ffdc8",
+      "display_name": "Sana A.",
+      "city": "Scarborough",
+      "province": "ON",
+      "onboarding_state": "ACTIVE",
+      "submission_count": 20,
+      "assigned_admin_id": "cec92314-a975-4847-a5b1-1c740da3fbef",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "restaurant_id": "7caf5176-73a2-4568-a32f-1ed29999a99b",
+      "display_name": "Fatima K.",
+      "city": "Brampton",
+      "province": "ON",
+      "onboarding_state": "ACTIVE",
+      "submission_count": 2,
+      "assigned_admin_id": "199bda35-1b3a-4b23-a611-038cbcca642b",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    },
+    {
+      "restaurant_id": "a05e72e4-af43-40f1-aece-f7ebfd6cbd17",
+      "display_name": "Zainab R.",
+      "city": "Mississauga",
+      "province": "ON",
+      "onboarding_state": "ACTIVE",
+      "submission_count": 3,
+      "assigned_admin_id": "f409eb17-7bf8-4c89-a3f1-9abe7f9f1ba0",
+      "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+      "submitted_at": "2026-08-04T18:42:11.412Z",
+      "sla_due_at": "2026-08-10T18:32:11.412Z"
+    }
+  ]
+}

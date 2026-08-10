@@ -1,0 +1,32 @@
+{
+  "scenario": "restaurant_onboarding_email_verified",
+  "domain": "onboarding",
+  "schema": "RestaurantOnboardingStatus",
+  "describes": "`onboarding_state = EMAIL_VERIFIED`. Email confirmed; the profile form is next.",
+  "operations": [
+    "getRestaurantOnboardingStatus",
+    "submitRestaurantDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "restaurant"
+  ],
+  "payload": {
+    "onboarding_state": "EMAIL_VERIFIED",
+    "account_state": "PENDING",
+    "current_step": "PROFILE",
+    "progress_percent": 10,
+    "steps_completed": {
+      "profile": false,
+      "documents_uploaded": false,
+      "documents_submitted": false,
+      "documents_approved": false,
+      "payout_account": false,
+      "menu_published": false
+    },
+    "blocking_reason": null,
+    "review_cycle": 1,
+    "rejection": null
+  }
+}

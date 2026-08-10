@@ -1,0 +1,31 @@
+{
+  "scenario": "halal_issuing_body_retired",
+  "domain": "halal",
+  "schema": "HalalIssuingBody",
+  "describes": "`status = RETIRED`. No longer issuing; existing certificates stand until expiry.",
+  "operations": [
+    "listHalalIssuingBodies",
+    "proposeHalalIssuingBody",
+    "setHalalIssuingBodyStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "b8fd80db-20a1-4d07-a1de-6033dfa29f9c",
+    "name": "Halal Advisory Council of Ontario",
+    "aliases": [
+      "Aliases",
+      "Aliases"
+    ],
+    "country": "Country",
+    "region": "ca-central-1",
+    "website": "https://cdn.halalgoes.ca/img/asset/5ded2160.webp",
+    "accreditation_ref": "Accreditation Ref",
+    "requires_issuer_confirmation": true,
+    "status": "RETIRED",
+    "notes": "Notes"
+  }
+}

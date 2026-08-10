@@ -1,0 +1,21 @@
+{
+  "scenario": "rider_availability_offline",
+  "domain": "rider",
+  "schema": "RiderAvailability",
+  "describes": "Rider is off shift. No offers will be sent.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "state-matrix"
+  ],
+  "payload": {
+    "availability_state": "OFFLINE",
+    "since": "2026-08-10T18:00:11.412Z",
+    "can_receive_offers": false,
+    "go_offline_after_delivery": false,
+    "blocking_reasons": []
+  }
+}

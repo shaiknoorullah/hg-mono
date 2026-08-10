@@ -1,0 +1,19 @@
+{
+  "scenario": "otp_challenge",
+  "domain": "platform",
+  "schema": "OtpChallenge",
+  "describes": "The OTP request response. The wire carries `resend_after_s` and `expires_at` and the client renders the **server's** cooldown — rate limits are not contract constants (contradiction log #23).",
+  "operations": [
+    "requestOtp"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth"
+  ],
+  "payload": {
+    "challenge_id": "d7d4c0e1-5469-41e0-a991-a23dd706c596",
+    "resend_after_s": 45,
+    "expires_at": "2026-08-10T18:51:11.412Z"
+  }
+}

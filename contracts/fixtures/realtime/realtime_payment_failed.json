@@ -1,0 +1,201 @@
+{
+  "scenario": "realtime_payment_failed",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "The card is declined at capture. The order cancels and the customer owes nothing.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "8K3AJK2XS5G2F461YSXVTKE3G7",
+      "seq": 1,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.created",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "code": "HG-4K2M-9T",
+        "state": "CREATED",
+        "restaurant": {
+          "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+          "name": "Karachi Kitchen"
+        },
+        "total_cents": 6706,
+        "currency": "CAD",
+        "placed_at": "2026-08-10T18:42:11.412Z",
+        "deadline_at": "2026-08-10T18:57:11.412Z"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "5EB390B0NT2QT1KA3KGYB3FHPE",
+      "seq": 2,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "payment.authorized",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.912Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "amount_cents": 6706,
+        "currency": "CAD",
+        "card": {
+          "brand": "visa",
+          "last4": "4242"
+        }
+      },
+      "_delay_ms": 1500
+    },
+    {
+      "id": "BN9VVM267G35RAENJEMN9G2SVG",
+      "seq": 3,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:13.012Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "CREATED",
+        "to": "AUTHORIZED",
+        "at": "2026-08-10T18:42:13.012Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": "2026-08-10T18:57:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 1600
+    },
+    {
+      "id": "2Z0P3H3TNWFVZRQ4C7BJ1MTCRT",
+      "seq": 4,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:13.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "AUTHORIZED",
+        "to": "RESTAURANT_PENDING",
+        "at": "2026-08-10T18:42:13.412Z",
+        "reason": null,
+        "actor_kind": "SYSTEM",
+        "deadline_at": "2026-08-10T18:45:13.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 2000
+    },
+    {
+      "id": "0E71EXTZZZ7EWWEG27G1FC9MGG",
+      "seq": 5,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:13.512Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "code": "HG-4K2M-9T",
+        "expires_at": "2026-08-10T18:45:13.412Z",
+        "deadline_at": "2026-08-10T18:45:13.412Z",
+        "customer_first_name": "Ayesha",
+        "lines": [
+          {
+            "name": "Chicken Biryani",
+            "variant": null,
+            "addons": [],
+            "qty": 1,
+            "note": null
+          },
+          {
+            "name": "Beef Nihari",
+            "variant": "Full",
+            "addons": [],
+            "qty": 1,
+            "note": "Extra gravy on the side"
+          },
+          {
+            "name": "Chicken Karahi (Half)",
+            "variant": null,
+            "addons": [
+              "Garlic naan"
+            ],
+            "qty": 1,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 4634,
+        "total_cents": 6706,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 20,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 2100
+    },
+    {
+      "id": "8HDAA1BR4NV39MARD6D9BQH1H2",
+      "seq": 6,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_accepted",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "accepted_by": "Hamza K.",
+        "prep_eta_minutes": 20
+      },
+      "_delay_ms": 12000
+    },
+    {
+      "id": "CF94Z5QB6KHBT0DDP7KD6B9V45",
+      "seq": 7,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "payment.failed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.812Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "code": "CAPTURE_FAILED",
+        "decline_code": "insufficient_funds",
+        "message": "Your card was declined when we tried to charge it.",
+        "retryable": false
+      },
+      "_delay_ms": 12400
+    },
+    {
+      "id": "ZGTRTC6CGVBP772NRHHAB2CP3N",
+      "seq": 8,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.912Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "from": "RESTAURANT_PENDING",
+        "to": "CANCELLED",
+        "at": "2026-08-10T18:42:23.912Z",
+        "reason": "CAPTURE_FAILED",
+        "actor_kind": "SYSTEM",
+        "deadline_at": null,
+        "eta_at": null
+      },
+      "_delay_ms": 12500
+    },
+    {
+      "id": "YF8TKMRYXRCJ1THE9KTHAN2G3H",
+      "seq": 9,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offer_withdrawn",
+      "v": 1,
+      "ts": "2026-08-10T18:42:24.012Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "reason": "payment_failed"
+      },
+      "_delay_ms": 12600
+    }
+  ]
+}

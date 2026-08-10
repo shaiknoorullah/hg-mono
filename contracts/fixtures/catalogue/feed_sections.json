@@ -1,0 +1,216 @@
+{
+  "scenario": "feed_sections",
+  "domain": "catalogue",
+  "schema": "array<FeedSection>",
+  "describes": "The home feed's merchandised rails.",
+  "operations": [
+    "getHomeFeed"
+  ],
+  "status": 200,
+  "payload": [
+    {
+      "key": "order_again",
+      "title": "Your order is on the way",
+      "restaurants": [
+        {
+          "id": "6274cc56-d866-4553-a3bb-ed927274dbb4",
+          "name": "Sultan's Table",
+          "slug": "lahore-tikka-corner",
+          "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/19f37772.webp",
+          "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/3305eea3.webp",
+          "cuisines": [
+            "Cuisines",
+            "Cuisines",
+            "Cuisines"
+          ],
+          "rating_avg": 4.6,
+          "rating_count": 412,
+          "price_band": "$$",
+          "halal": {
+            "display_state": "CERTIFIED",
+            "certifying_body_name": "Canadian Halal Certification Bureau",
+            "expires_on": "2027-03-08"
+          },
+          "availability": {
+            "state": "OPEN",
+            "opens_at": "2026-08-10T12:42:11.412Z",
+            "closes_at": "2026-08-10T22:42:11.412Z",
+            "eta_min_minutes": 25,
+            "eta_max_minutes": 40,
+            "indicative_delivery_fee_cents": 449,
+            "minimum_order_cents": 1500,
+            "distance_m": 3180,
+            "out_of_range_reason": null
+          }
+        },
+        {
+          "id": "ae1614ad-aed9-4924-a2fc-c0f7fe63271f",
+          "name": "Tandoori Flame",
+          "slug": "bosphorus-turkish-kebab",
+          "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/9c0d082c.webp",
+          "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/2196465b.webp",
+          "cuisines": [
+            "Cuisines",
+            "Cuisines",
+            "Cuisines"
+          ],
+          "rating_avg": 4.6,
+          "rating_count": 412,
+          "price_band": "$$",
+          "halal": {
+            "display_state": "CERTIFIED",
+            "certifying_body_name": "Halal Advisory Council of Ontario",
+            "expires_on": "2027-03-08"
+          },
+          "availability": {
+            "state": "OPEN",
+            "opens_at": "2026-08-10T12:42:11.412Z",
+            "closes_at": "2026-08-10T22:42:11.412Z",
+            "eta_min_minutes": 25,
+            "eta_max_minutes": 40,
+            "indicative_delivery_fee_cents": 449,
+            "minimum_order_cents": 1500,
+            "distance_m": 3180,
+            "out_of_range_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "key": "order_again",
+      "title": "Your order is on the way",
+      "restaurants": [
+        {
+          "id": "41329f69-330b-4070-a9bf-6b8a4edffcf1",
+          "name": "Lahore Tikka Corner",
+          "slug": "karachi-kitchen",
+          "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/15129c5a.webp",
+          "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/bbf4f16a.webp",
+          "cuisines": [
+            "Cuisines",
+            "Cuisines",
+            "Cuisines"
+          ],
+          "rating_avg": 4.6,
+          "rating_count": 412,
+          "price_band": "$$",
+          "halal": {
+            "display_state": "CERTIFIED",
+            "certifying_body_name": "Canadian Halal Certification Bureau",
+            "expires_on": "2027-03-08"
+          },
+          "availability": {
+            "state": "OPEN",
+            "opens_at": "2026-08-10T12:42:11.412Z",
+            "closes_at": "2026-08-10T22:42:11.412Z",
+            "eta_min_minutes": 25,
+            "eta_max_minutes": 40,
+            "indicative_delivery_fee_cents": 449,
+            "minimum_order_cents": 1500,
+            "distance_m": 3180,
+            "out_of_range_reason": null
+          }
+        },
+        {
+          "id": "37ebf7cd-f33e-49b0-aeca-3e85ae20613e",
+          "name": "Sultan's Table",
+          "slug": "marhaba-fried-chicken",
+          "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/c9b8d2ad.webp",
+          "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/b4485918.webp",
+          "cuisines": [
+            "Cuisines",
+            "Cuisines",
+            "Cuisines"
+          ],
+          "rating_avg": 4.6,
+          "rating_count": 412,
+          "price_band": "$$",
+          "halal": {
+            "display_state": "CERTIFIED",
+            "certifying_body_name": "Halal Advisory Council of Ontario",
+            "expires_on": "2027-03-08"
+          },
+          "availability": {
+            "state": "OPEN",
+            "opens_at": "2026-08-10T12:42:11.412Z",
+            "closes_at": "2026-08-10T22:42:11.412Z",
+            "eta_min_minutes": 25,
+            "eta_max_minutes": 40,
+            "indicative_delivery_fee_cents": 449,
+            "minimum_order_cents": 1500,
+            "distance_m": 3180,
+            "out_of_range_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "key": "order_again",
+      "title": "Your order is on the way",
+      "restaurants": [
+        {
+          "id": "c58ef2d6-bcb1-4f59-a368-38bf63dbb69c",
+          "name": "Bosphorus Turkish Kebab",
+          "slug": "karachi-kitchen",
+          "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/a5833a42.webp",
+          "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/5b99769a.webp",
+          "cuisines": [
+            "Cuisines",
+            "Cuisines",
+            "Cuisines"
+          ],
+          "rating_avg": 4.6,
+          "rating_count": 412,
+          "price_band": "$$",
+          "halal": {
+            "display_state": "CERTIFIED",
+            "certifying_body_name": "Halal Advisory Council of Ontario",
+            "expires_on": "2027-03-08"
+          },
+          "availability": {
+            "state": "OPEN",
+            "opens_at": "2026-08-10T12:42:11.412Z",
+            "closes_at": "2026-08-10T22:42:11.412Z",
+            "eta_min_minutes": 25,
+            "eta_max_minutes": 40,
+            "indicative_delivery_fee_cents": 449,
+            "minimum_order_cents": 1500,
+            "distance_m": 3180,
+            "out_of_range_reason": null
+          }
+        },
+        {
+          "id": "56ddaf00-c118-462a-af47-56ee3d7a27f5",
+          "name": "Damascus Sweets & Grill",
+          "slug": "karachi-kitchen",
+          "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/fbf99987.webp",
+          "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/0a3e2136.webp",
+          "cuisines": [
+            "Cuisines",
+            "Cuisines",
+            "Cuisines"
+          ],
+          "rating_avg": 4.6,
+          "rating_count": 412,
+          "price_band": "$$",
+          "halal": {
+            "display_state": "CERTIFIED",
+            "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+            "expires_on": "2027-03-08"
+          },
+          "availability": {
+            "state": "OPEN",
+            "opens_at": "2026-08-10T12:42:11.412Z",
+            "closes_at": "2026-08-10T22:42:11.412Z",
+            "eta_min_minutes": 25,
+            "eta_max_minutes": 40,
+            "indicative_delivery_fee_cents": 449,
+            "minimum_order_cents": 1500,
+            "distance_m": 3180,
+            "out_of_range_reason": null
+          }
+        }
+      ]
+    }
+  ]
+}

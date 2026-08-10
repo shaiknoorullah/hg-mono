@@ -1,0 +1,28 @@
+{
+  "scenario": "readiness_ok",
+  "domain": "platform",
+  "schema": "ReadinessStatus",
+  "describes": "Every dependency reachable.",
+  "operations": [
+    "getReadiness"
+  ],
+  "status": 200,
+  "tags": [
+    "platform"
+  ],
+  "payload": {
+    "ready": true,
+    "dependencies": [
+      {
+        "name": "postgres",
+        "ready": true,
+        "detail": "Detail"
+      },
+      {
+        "name": "postgres",
+        "ready": true,
+        "detail": "Detail"
+      }
+    ]
+  }
+}

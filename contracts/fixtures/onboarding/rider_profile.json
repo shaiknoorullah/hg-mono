@@ -1,0 +1,21 @@
+{
+  "scenario": "rider_profile",
+  "domain": "onboarding",
+  "schema": "RiderProfile",
+  "describes": "A submitted rider profile with an Ontario address and a 1994 date of birth.",
+  "operations": [
+    "submitRiderProfile"
+  ],
+  "status": 200,
+  "tags": [
+    "rider"
+  ],
+  "payload": {
+    "account_id": "88c2c9da-158b-4667-a665-30b1cdd57abb",
+    "first_name": "Fatima",
+    "last_name": "Rahman",
+    "email": "owner@karachikitchen.ca",
+    "date_of_birth": "1994-03-17",
+    "timezone": "America/Toronto"
+  }
+}

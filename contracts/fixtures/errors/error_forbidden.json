@@ -1,0 +1,18 @@
+{
+  "scenario": "error_forbidden",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `FORBIDDEN`. Was `forbidden`. Note the English word 'forbidden' in prose was **not** rewritten by the normalisation — only code tokens were.",
+  "operations": [],
+  "status": 403,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "FORBIDDEN",
+      "message": "You do not have permission to perform this action.",
+      "request_id": "G1ASGHKQ9JFMB7QNGSZWAT60V9"
+    }
+  }
+}

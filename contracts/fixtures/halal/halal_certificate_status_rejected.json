@@ -1,0 +1,107 @@
+{
+  "scenario": "halal_certificate_status_rejected",
+  "domain": "halal",
+  "schema": "HalalCertificate",
+  "describes": "`status = REJECTED`. Refused with `ISSUER_NOT_ACCEPTED` — the issuer is not on the O-02 list, so `H2_ISSUER_ACCEPTED` fails. **Until the client seeds that list, no restaurant can be certified.**",
+  "operations": [
+    "getHalalCertificate",
+    "decideHalalCertificate",
+    "recordHalalChecks",
+    "transcribeHalalCertificate"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "certificate-status-matrix"
+  ],
+  "payload": {
+    "id": "5370db08-d7b2-4edc-a51a-10a539dcd98c",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "document_id": "d88dbb77-6707-4975-a87c-c2c2659118af",
+    "certificate_number": "HMA-ON-44661",
+    "issuing_body": {
+      "id": "26484eaa-64d5-4ac4-a09d-64c9e4c6a417",
+      "name": "Halal Munchies Scarborough",
+      "aliases": [
+        "Aliases",
+        "Aliases"
+      ],
+      "country": "Country",
+      "region": "ca-central-1",
+      "website": "https://cdn.halalgoes.ca/img/asset/5dabf2de.webp",
+      "accreditation_ref": "Accreditation Ref",
+      "requires_issuer_confirmation": true,
+      "status": "ACCEPTED",
+      "notes": "Notes"
+    },
+    "certified_legal_name": "Karachi Kitchen Inc.",
+    "certified_address": "1245 Danforth Avenue, Toronto, ON M4J 1M4",
+    "scope": "WHOLE_ESTABLISHMENT",
+    "issued_on": "2026-03-09",
+    "expires_on": "2027-03-09",
+    "status": "REJECTED",
+    "checklist_version": 3,
+    "checks": [
+      {
+        "check_key": "H1_LEGIBLE_COMPLETE",
+        "result": "PASS",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H2_ISSUER_ACCEPTED",
+        "result": "FAIL",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": "Issuer is not on the accepted list (O-02).",
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H3_NAME_MATCH",
+        "result": "PASS",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H4_ADDRESS_MATCH",
+        "result": "PASS",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H5_DATES_VALID",
+        "result": "PASS",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H6_SCOPE_SUFFICIENT",
+        "result": "PASS",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      },
+      {
+        "check_key": "H7_UNIQUE_NOT_REUSED",
+        "result": "PASS",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": "2026-03-11T18:42:11.412Z"
+      }
+    ],
+    "rejection_reason_code": "ISSUER_NOT_ACCEPTED",
+    "rejection_reason_text": "The certifying body on this certificate is not on our accepted list. If you believe it should be, reply with the issuer's registration details.",
+    "verified_by": "138fa339-791b-4547-ae91-5fb049a39a3c",
+    "verified_at": "2026-03-11T18:42:11.412Z"
+  }
+}

@@ -1,0 +1,302 @@
+{
+  "scenario": "menu_item_many_variants_and_addons",
+  "domain": "catalogue",
+  "schema": "MenuItem",
+  "describes": "Three required variant groups (16 variants, one unavailable) and four add-on groups (16 add-ons, two unavailable, one group with `min_select: 1`). The item sheet's hardest case.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "edge",
+    "dense"
+  ],
+  "payload": {
+    "id": "c5ec6eae-ceb5-4957-a9e2-0e1ab3a4ef1c",
+    "name": "Mixed Charcoal Grill Platter",
+    "description": "Chicken tikka, seekh kebab, lamb chop and malai boti over saffron rice, with grilled tomato, naan and three chutneys. Built to share.",
+    "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+    "price_cents": 2499,
+    "currency": "CAD",
+    "availability_state": "AVAILABLE",
+    "out_of_stock_until": null,
+    "dietary_tags": [
+      "HALAL_CERTIFIED"
+    ],
+    "allergen_tags": [
+      "SESAME",
+      "MILK"
+    ],
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "tax_category": "PREPARED_FOOD",
+    "prep_minutes": 26,
+    "variant_groups": [
+      {
+        "id": "ec4c482e-beea-41f7-ac67-ff52bac02aa3",
+        "name": "Platter size",
+        "required": true,
+        "variants": [
+          {
+            "id": "da43f4c3-9c6d-484a-a7f2-9c67b3ef436d",
+            "name": "For one",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 2499,
+            "delta_cents": null,
+            "is_default": true,
+            "is_available": true
+          },
+          {
+            "id": "8dbd507f-30a2-44bb-a77e-f89de84f9da8",
+            "name": "For two",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 4299,
+            "delta_cents": null,
+            "is_default": false,
+            "is_available": true
+          },
+          {
+            "id": "a0991ce2-569f-40c1-af0c-b67be721eb64",
+            "name": "Family (serves 4)",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 7899,
+            "delta_cents": null,
+            "is_default": false,
+            "is_available": true
+          },
+          {
+            "id": "76de3dfc-2e61-467c-a1e7-7ae628b6d8ae",
+            "name": "Party tray (serves 8–10)",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 14999,
+            "delta_cents": null,
+            "is_default": false,
+            "is_available": false
+          }
+        ]
+      },
+      {
+        "id": "65f25cbd-0eb0-4146-a0c8-831086f4ffe8",
+        "name": "Rice",
+        "required": true,
+        "variants": [
+          {
+            "id": "e2356a21-bfc9-4205-afcd-794d251b9e48",
+            "name": "Saffron basmati",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0,
+            "is_default": true,
+            "is_available": true
+          },
+          {
+            "id": "9f8b7ac0-a042-4748-ae81-ae72ef042957",
+            "name": "Kabuli pulao",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 300,
+            "is_default": false,
+            "is_available": true
+          },
+          {
+            "id": "2ce86aa2-1083-43cd-a026-a20fec61206d",
+            "name": "Garlic butter rice",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 250,
+            "is_default": false,
+            "is_available": true
+          },
+          {
+            "id": "7ec4e9a6-9c6b-4725-af50-30583094f6d0",
+            "name": "Swap rice for salad",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0,
+            "is_default": false,
+            "is_available": true
+          },
+          {
+            "id": "f6c5f9a4-314f-4e62-ae36-5926ddba4226",
+            "name": "No rice",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": -200,
+            "is_default": false,
+            "is_available": true
+          }
+        ]
+      },
+      {
+        "id": "bc59d4db-de3b-4d7c-aa62-01407241b5bd",
+        "name": "Heat level",
+        "required": true,
+        "variants": [
+          {
+            "id": "f0a8c100-0dd8-43f8-a6cb-5a4583f24b03",
+            "name": "Mild",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0,
+            "is_default": true,
+            "is_available": true
+          },
+          {
+            "id": "a5dd3a2a-7a3f-4358-a0c2-29929d858523",
+            "name": "Medium",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0,
+            "is_default": false,
+            "is_available": true
+          },
+          {
+            "id": "3af3f517-dde1-4494-a413-cc1675b47fe3",
+            "name": "Hot",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0,
+            "is_default": false,
+            "is_available": true
+          },
+          {
+            "id": "07606b9b-e90c-4f94-a547-68765b3f984b",
+            "name": "Peshawari hot",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0,
+            "is_default": false,
+            "is_available": true
+          }
+        ]
+      }
+    ],
+    "addon_groups": [
+      {
+        "id": "0b3d8dae-2317-4af5-a0e1-1f4ba5320b11",
+        "name": "Breads",
+        "min_select": 0,
+        "max_select": 6,
+        "addons": [
+          {
+            "id": "9dae0590-c681-44cf-a856-119073306d8a",
+            "name": "Plain naan",
+            "price_cents": 249,
+            "is_available": true
+          },
+          {
+            "id": "43558166-60e5-4262-a969-0f2100759962",
+            "name": "Garlic naan",
+            "price_cents": 349,
+            "is_available": true
+          },
+          {
+            "id": "4c17bab3-70f5-4b70-a3b8-73b4c19a172f",
+            "name": "Roghni naan",
+            "price_cents": 399,
+            "is_available": true
+          },
+          {
+            "id": "19765473-6f3f-488f-a4a5-79e6c07a1d93",
+            "name": "Tandoori roti",
+            "price_cents": 199,
+            "is_available": true
+          },
+          {
+            "id": "92dd11d2-d38b-4a38-ad80-101f16fab339",
+            "name": "Paratha",
+            "price_cents": 349,
+            "is_available": false
+          }
+        ]
+      },
+      {
+        "id": "c70ab3b8-5b41-4d88-a941-cba686327eda",
+        "name": "Chutneys and sauces",
+        "min_select": 1,
+        "max_select": 5,
+        "addons": [
+          {
+            "id": "3bc085fa-3dfa-44c5-a514-e2237fd764fe",
+            "name": "Garlic toum",
+            "price_cents": 149,
+            "is_available": true
+          },
+          {
+            "id": "8db167ea-0291-44f2-aee3-dd9770e9a263",
+            "name": "Mint raita",
+            "price_cents": 149,
+            "is_available": true
+          },
+          {
+            "id": "aba16420-5d5c-45cd-ab68-bfb4807c21f8",
+            "name": "Imli (tamarind) chutney",
+            "price_cents": 149,
+            "is_available": true
+          },
+          {
+            "id": "c37c34c4-2c78-456c-a94d-5f6c59937c4b",
+            "name": "Peri sauce",
+            "price_cents": 199,
+            "is_available": true
+          },
+          {
+            "id": "aa2b8538-f16c-48da-a186-dfe2a8bf31d8",
+            "name": "Extra green chilli",
+            "price_cents": 99,
+            "is_available": true
+          }
+        ]
+      },
+      {
+        "id": "c93a6dad-2065-4416-a707-5063ccafe5b3",
+        "name": "Add a skewer",
+        "min_select": 0,
+        "max_select": 3,
+        "addons": [
+          {
+            "id": "4a068b65-49b3-486e-a168-d302f91117b1",
+            "name": "Extra seekh kebab",
+            "price_cents": 599,
+            "is_available": true
+          },
+          {
+            "id": "120b9c0d-caf1-4008-abc4-c2e498f8706e",
+            "name": "Extra malai boti",
+            "price_cents": 699,
+            "is_available": true
+          },
+          {
+            "id": "e65086f4-208a-4aca-ae48-887323abdc8a",
+            "name": "Extra lamb chop",
+            "price_cents": 899,
+            "is_available": false
+          }
+        ]
+      },
+      {
+        "id": "aa449d80-d4ad-4341-acca-68f4a2038467",
+        "name": "Make it a meal",
+        "min_select": 0,
+        "max_select": 2,
+        "addons": [
+          {
+            "id": "5f3592e2-51bb-47e5-ac00-610cb69527fc",
+            "name": "Mango lassi",
+            "price_cents": 549,
+            "is_available": true
+          },
+          {
+            "id": "2858c53d-191d-4f26-a8bf-dc25809a0818",
+            "name": "Salted lassi",
+            "price_cents": 499,
+            "is_available": true
+          },
+          {
+            "id": "e8ef1e09-dd32-4709-a106-56b9d07d324e",
+            "name": "Kashmiri chai",
+            "price_cents": 449,
+            "is_available": true
+          }
+        ]
+      }
+    ]
+  }
+}

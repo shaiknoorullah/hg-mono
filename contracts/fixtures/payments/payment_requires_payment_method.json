@@ -1,0 +1,30 @@
+{
+  "scenario": "payment_requires_payment_method",
+  "domain": "payments",
+  "schema": "OrderPayment",
+  "describes": "No card attached yet. Checkout has not been attempted.",
+  "operations": [
+    "getOrderPayment"
+  ],
+  "status": 200,
+  "tags": [
+    "payment-state-matrix"
+  ],
+  "payload": {
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "REQUIRES_PAYMENT_METHOD",
+    "kind": "ORDER",
+    "amount_authorized_cents": 0,
+    "amount_captured_cents": 0,
+    "amount_refunded_cents": 0,
+    "currency": "CAD",
+    "card_brand": null,
+    "card_last4": null,
+    "wallet": null,
+    "failure_code": null,
+    "decline_code": null,
+    "client_secret": null,
+    "authorized_at": null,
+    "captured_at": null
+  }
+}

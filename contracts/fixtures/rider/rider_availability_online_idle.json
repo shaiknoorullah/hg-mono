@@ -1,0 +1,21 @@
+{
+  "scenario": "rider_availability_online_idle",
+  "domain": "rider",
+  "schema": "RiderAvailability",
+  "describes": "Online, no assignment, waiting for an offer.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "state-matrix"
+  ],
+  "payload": {
+    "availability_state": "ONLINE_IDLE",
+    "since": "2026-08-10T18:00:11.412Z",
+    "can_receive_offers": true,
+    "go_offline_after_delivery": false,
+    "blocking_reasons": []
+  }
+}

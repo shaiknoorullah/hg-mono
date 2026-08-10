@@ -1,0 +1,22 @@
+{
+  "scenario": "restaurant_availability_open",
+  "domain": "catalogue",
+  "schema": "RestaurantAvailabilityInfo",
+  "describes": "Open and accepting, with a live ETA band.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "state-matrix"
+  ],
+  "payload": {
+    "state": "OPEN",
+    "opens_at": "2026-08-10T12:24:11.412Z",
+    "closes_at": "2026-08-10T22:00:11.412Z",
+    "eta_min_minutes": 25,
+    "eta_max_minutes": 40,
+    "indicative_delivery_fee_cents": 449,
+    "minimum_order_cents": 1500,
+    "distance_m": 3180,
+    "out_of_range_reason": null
+  }
+}

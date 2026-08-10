@@ -1,0 +1,143 @@
+{
+  "scenario": "rider_dashboard_active",
+  "domain": "rider",
+  "schema": "RiderDashboard",
+  "describes": "A rider mid-shift with an assignment in progress and earnings accrued today.",
+  "operations": [
+    "getRiderDashboard"
+  ],
+  "status": 200,
+  "tags": [
+    "rider"
+  ],
+  "payload": {
+    "mode": "ONLINE_IDLE",
+    "today": {
+      "gross_cents": 1149,
+      "currency": "CAD",
+      "trips": 6,
+      "online_seconds": 20
+    },
+    "active_assignment": {
+      "id": "b44f56ab-1d11-4ba9-a92f-60a113f6fc05",
+      "order_id": "e30927a6-6279-4417-a635-9ef47beb1c88",
+      "order_code": "HG-4K2M-9T",
+      "state": "EN_ROUTE_TO_DROPOFF",
+      "pickup": {
+        "restaurant_name": "Tandoori Flame",
+        "address": "777 Bay Street, Toronto, ON",
+        "latitude": 43.6817,
+        "longitude": -80.4402,
+        "phone_alias": "+16475550188",
+        "pickup_notes": "Collect from the hot counter on the left, ask for the app order.",
+        "order_state": "PREPARING"
+      },
+      "dropoff": {
+        "address": "890 Markham Road, Scarborough, ON",
+        "unit": "Unit 12",
+        "buzzer": "1204",
+        "latitude": 43.6817,
+        "longitude": -79.869,
+        "customer_display_name": "Tariq S.",
+        "phone_alias": "+16475550188",
+        "delivery_instructions": [
+          "LEAVE_AT_DOOR"
+        ],
+        "special_instructions": "Extra napkins please, and no cutlery."
+      },
+      "items": [
+        {
+          "name": "Marhaba Fried Chicken",
+          "quantity": 1,
+          "variant_name": "Regular",
+          "addon_names": [
+            "Addon Names"
+          ],
+          "note": "Customer called to confirm the buzzer code.",
+          "allergen_tags": [
+            "PEANUTS",
+            "PEANUTS"
+          ]
+        },
+        {
+          "name": "Bismillah Biryani House",
+          "quantity": 1,
+          "variant_name": "Regular",
+          "addon_names": [
+            "Addon Names"
+          ],
+          "note": "Customer called to confirm the buzzer code.",
+          "allergen_tags": [
+            "PEANUTS",
+            "PEANUTS"
+          ]
+        },
+        {
+          "name": "Bismillah Biryani House",
+          "quantity": 1,
+          "variant_name": "Regular",
+          "addon_names": [
+            "Addon Names"
+          ],
+          "note": "Customer called to confirm the buzzer code.",
+          "allergen_tags": [
+            "PEANUTS",
+            "PEANUTS"
+          ]
+        }
+      ],
+      "payment_status": "PREPAID",
+      "earnings": {
+        "base_cents": 4634,
+        "distance_cents": 0,
+        "surge_cents": 0,
+        "tip_so_far_cents": 700,
+        "estimated_total_cents": 1149,
+        "currency": "CAD"
+      },
+      "required_pod_method": "PHOTO",
+      "pod_recorded": false,
+      "handover_method": "LEFT_AT_DOOR",
+      "tracking_health": "HEALTHY",
+      "billable_distance_m": 3180,
+      "pickup_wait_seconds": 240,
+      "assigned_at": "2026-08-10T18:26:11.412Z",
+      "arrived_pickup_at": "2026-08-10T18:30:11.412Z",
+      "picked_up_at": "2026-08-10T18:31:11.412Z",
+      "arrived_dropoff_at": "2026-08-10T18:39:11.412Z",
+      "delivered_at": "2026-08-10T18:40:11.412Z"
+    },
+    "current_offer": {
+      "offer_id": "b55e65a5-2839-45ec-aedc-f8763f22b214",
+      "order_id": "ff9d9cf1-1c1f-46c8-aaaf-fe60746c868e",
+      "state": "PENDING",
+      "wave": 2,
+      "expires_at": "2026-08-10T18:51:11.412Z",
+      "server_time": "2026-08-10T18:42:11.412Z",
+      "pickup": {
+        "restaurant_name": "Bismillah Biryani House",
+        "address_short": "275 Bank Street, Ottawa",
+        "latitude": 45.4159,
+        "longitude": -79.3403
+      },
+      "dropoff": {
+        "area": "Greektown",
+        "latitude": 43.7369,
+        "longitude": -79.3856
+      },
+      "distance_m": 3180,
+      "est_duration_s": 660,
+      "earnings": {
+        "base_cents": 4634,
+        "distance_cents": 0,
+        "surge_cents": 0,
+        "tip_so_far_cents": 700,
+        "estimated_total_cents": 1149,
+        "currency": "CAD"
+      },
+      "items_count": 3
+    },
+    "tracking_health": "HEALTHY",
+    "blocking_reasons": []
+  }
+}

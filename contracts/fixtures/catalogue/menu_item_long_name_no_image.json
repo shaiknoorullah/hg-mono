@@ -1,0 +1,35 @@
+{
+  "scenario": "menu_item_long_name_no_image",
+  "domain": "catalogue",
+  "schema": "MenuItem",
+  "describes": "A 150-character dish name, a six-line description and **no image**. The item row, the item sheet and the cart line all have to survive it.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "edge",
+    "overflow",
+    "missing-media"
+  ],
+  "payload": {
+    "id": "459a71c3-e272-4811-a9bd-4773d843e0bc",
+    "name": "Slow-Cooked Bone-In Lamb Nihari with Saffron Basmati, House Naan, Pickled Onion Salad and Two Chutneys (Family Size, Serves Four to Six)",
+    "description": "Our nihari is started at nine the night before and never leaves the pot until service. The shank is cut to order, the marrow is spooned over at the pass, and the gravy is thickened with nothing but atta and time. Comes with two house naan from the tandoor, a pickled onion salad dressed with lime and green chilli, and both the mint and the imli chutney. If you want it hotter, ask — we will not be offended, and the kitchen keeps a separate pot of Peshawari heat for exactly this.",
+    "image_url": null,
+    "price_cents": 2145,
+    "currency": "CAD",
+    "availability_state": "AVAILABLE",
+    "out_of_stock_until": null,
+    "dietary_tags": [
+      "HALAL_CERTIFIED",
+      "SPICY"
+    ],
+    "allergen_tags": [
+      "WHEAT_TRITICALE"
+    ],
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "tax_category": "PREPARED_FOOD",
+    "prep_minutes": 18,
+    "variant_groups": [],
+    "addon_groups": []
+  }
+}

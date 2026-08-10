@@ -1,0 +1,25 @@
+{
+  "scenario": "error_unknown_field",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `UNKNOWN_FIELD`. The decoder runs with `DisallowUnknownFields`. `is_accepting` against `is_accepting_orders` is a 422 at the boundary, not a cheerful 200 over an unchanged row — the exact bug this contract exists to kill.",
+  "operations": [],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "UNKNOWN_FIELD",
+      "message": "The request contained a field that does not exist on this endpoint.",
+      "request_id": "T9BW3KHMVXC78KW2S4ABMWPF20",
+      "details": [
+        {
+          "field": "is_accepting",
+          "code": "unknown_field",
+          "message": "Did you mean is_accepting_orders?"
+        }
+      ]
+    }
+  }
+}

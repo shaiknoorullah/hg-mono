@@ -1,0 +1,224 @@
+{
+  "scenario": "restaurant_application_pending_review",
+  "domain": "admin",
+  "schema": "RestaurantApplication",
+  "describes": "A complete application sitting in the queue: five documents, a halal certificate awaiting the seven checks, and no decision yet.",
+  "operations": [
+    "getRestaurantApplication",
+    "takeNextRestaurantApplication",
+    "decideRestaurantApplication"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "review-queue"
+  ],
+  "payload": {
+    "restaurant_id": "28dcb17a-30ff-49cf-a15a-99ca74f504d3",
+    "display_name": "Tariq S.",
+    "city": "Scarborough",
+    "province": "ON",
+    "onboarding_state": "ACTIVE",
+    "submission_count": 5,
+    "assigned_admin_id": "7f814633-d948-4cc7-ab1c-17dda2bf790e",
+    "review_lock_expires_at": "2026-08-10T18:32:11.412Z",
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "sla_due_at": "2026-08-10T18:32:11.412Z",
+    "profile": {
+      "id": "5bca97d3-6558-46e8-aa41-d60bbcbfd829",
+      "legal_name": "Al-Noor Shawarma House Inc.",
+      "display_name": "Yusuf O.",
+      "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+      "owner_first_name": "Owner First Name",
+      "owner_last_name": "Owner Last Name",
+      "phone_e164": "+14165558084",
+      "public_phone_e164": "+14165559983",
+      "gst_hst_number": "812345678RT0001",
+      "address": {
+        "line1": "275 Bank Street",
+        "line2": null,
+        "city": "Kitchener",
+        "province": "ON",
+        "postal_code": "K2P 1X7",
+        "latitude": 43.6199,
+        "longitude": -79.6212
+      },
+      "timezone": "America/Toronto",
+      "cuisine_ids": [
+        "8970c0cd-71b0-4085-acb9-7a18754f4c6b",
+        "1664a28a-3e2e-4ed7-a69a-338214d9bc06"
+      ],
+      "avg_prep_minutes": 46,
+      "delivery_radius_m": 11,
+      "account_state": "LIVE",
+      "onboarding_state": "ACTIVE",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-08"
+      },
+      "commission_rate_bps": 0
+    },
+    "documents": [
+      {
+        "id": "40ba7fb3-e91a-4523-ae48-039bd83babda",
+        "subject_type": "RESTAURANT",
+        "subject_id": "cb74ea93-998c-4e22-a200-6e9fc3151866",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Issuer",
+        "certificate_number": "HMA-ON-23087",
+        "issued_on": "2025-10-14",
+        "valid_until": "2026-08-10",
+        "version": 13,
+        "rejection_reason_code": "ILLEGIBLE",
+        "review_note": "Review Note",
+        "reviewed_at": "2026-07-11T18:42:11.412Z",
+        "created_at": "2026-08-10T17:57:11.412Z"
+      },
+      {
+        "id": "2c5393eb-a114-4350-afcd-21a01ef8a3be",
+        "subject_type": "RESTAURANT",
+        "subject_id": "388e8670-f161-46a0-a1ad-92c79dad3f4e",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Issuer",
+        "certificate_number": "HMA-ON-88134",
+        "issued_on": "2025-10-14",
+        "valid_until": "2026-08-10",
+        "version": 12,
+        "rejection_reason_code": "ILLEGIBLE",
+        "review_note": "Review Note",
+        "reviewed_at": "2026-07-11T18:42:11.412Z",
+        "created_at": "2026-08-10T17:57:11.412Z"
+      },
+      {
+        "id": "d5ed6693-1400-4650-aad4-dadcd8ec63d7",
+        "subject_type": "RESTAURANT",
+        "subject_id": "380322bc-fa52-46a6-a453-076fecccfbcc",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Issuer",
+        "certificate_number": "HMA-ON-23103",
+        "issued_on": "2025-10-14",
+        "valid_until": "2026-08-10",
+        "version": 14,
+        "rejection_reason_code": "ILLEGIBLE",
+        "review_note": "Review Note",
+        "reviewed_at": "2026-07-11T18:42:11.412Z",
+        "created_at": "2026-08-10T17:57:11.412Z"
+      },
+      {
+        "id": "a2381f3d-8edd-48dc-a8d7-e4f6ca04bac5",
+        "subject_type": "RESTAURANT",
+        "subject_id": "65eacddd-3db9-43da-afba-8a79f2a78c81",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Issuer",
+        "certificate_number": "HMA-ON-46326",
+        "issued_on": "2025-10-14",
+        "valid_until": "2026-08-10",
+        "version": 12,
+        "rejection_reason_code": "ILLEGIBLE",
+        "review_note": "Review Note",
+        "reviewed_at": "2026-07-11T18:42:11.412Z",
+        "created_at": "2026-08-10T17:57:11.412Z"
+      }
+    ],
+    "halal_certificate": {
+      "id": "222e91a4-e4e3-4aca-af66-8cdac0637f38",
+      "restaurant_id": "c788a1bc-f486-41cd-a6a2-ef5e133090ca",
+      "document_id": "e38f28fe-1250-4046-a935-7976a4560f47",
+      "certificate_number": "HMA-ON-40603",
+      "issuing_body": {
+        "id": "7f8d5665-0372-42fe-a33e-a9635c390513",
+        "name": "Halal Munchies Scarborough",
+        "aliases": [
+          "Aliases",
+          "Aliases"
+        ],
+        "country": "Country",
+        "region": "ca-central-1",
+        "website": "https://cdn.halalgoes.ca/img/asset/e66c38b2.webp",
+        "accreditation_ref": "Accreditation Ref",
+        "requires_issuer_confirmation": true,
+        "status": "ACCEPTED",
+        "notes": "Notes"
+      },
+      "certified_legal_name": "Barakah Charcoal Grill Inc.",
+      "certified_address": "2350 Eglinton Avenue East, Scarborough, ON M1K 2M2",
+      "scope": "WHOLE_ESTABLISHMENT",
+      "issued_on": "2025-10-14",
+      "expires_on": "2027-03-08",
+      "status": "APPROVED",
+      "checklist_version": 3,
+      "checks": [
+        {
+          "check_key": "H1_LEGIBLE_COMPLETE",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": true,
+          "note": "Customer called to confirm the buzzer code.",
+          "checked_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "check_key": "H1_LEGIBLE_COMPLETE",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": true,
+          "note": "Customer called to confirm the buzzer code.",
+          "checked_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "check_key": "H1_LEGIBLE_COMPLETE",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": true,
+          "note": "Customer called to confirm the buzzer code.",
+          "checked_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "check_key": "H1_LEGIBLE_COMPLETE",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": true,
+          "note": "Customer called to confirm the buzzer code.",
+          "checked_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "check_key": "H1_LEGIBLE_COMPLETE",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": true,
+          "note": "Customer called to confirm the buzzer code.",
+          "checked_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "check_key": "H1_LEGIBLE_COMPLETE",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": true,
+          "note": "Customer called to confirm the buzzer code.",
+          "checked_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "check_key": "H1_LEGIBLE_COMPLETE",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": true,
+          "note": "Customer called to confirm the buzzer code.",
+          "checked_at": "2026-08-10T18:32:11.412Z"
+        }
+      ],
+      "rejection_reason_code": "ILLEGIBLE",
+      "rejection_reason_text": "The uploaded page is cropped — the expiry date is not visible.",
+      "verified_by": "742f0109-6ed8-4be1-abe6-c9131de2a89b",
+      "verified_at": "2026-07-11T18:42:11.412Z"
+    },
+    "blockers": [
+      "Blockers",
+      "Blockers"
+    ],
+    "address_pin_warning": "Address Pin Warning"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scenario": "halal_badge_expiring_soon",
+  "domain": "halal",
+  "schema": "HalalBadge",
+  "describes": "Amber. 18 days left; body and expiry present.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "display_state": "EXPIRING_SOON",
+    "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+    "expires_on": "2026-08-28"
+  }
+}

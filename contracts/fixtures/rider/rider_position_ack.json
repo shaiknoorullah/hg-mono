@@ -1,0 +1,27 @@
+{
+  "scenario": "rider_position_ack",
+  "domain": "rider",
+  "schema": "RiderPositionAck",
+  "describes": "Acknowledgement of a batched position upload. Points older than the server's tolerance come back rejected (`STALE_POINT`) rather than silently dropped.",
+  "operations": [
+    "reportRiderPositions"
+  ],
+  "status": 202,
+  "tags": [
+    "rider"
+  ],
+  "payload": {
+    "accepted": 16,
+    "rejected": [
+      {
+        "index": 5,
+        "code": "STALE_POINT"
+      },
+      {
+        "index": 17,
+        "code": "STALE_POINT"
+      }
+    ],
+    "current_position_recorded_at": "2026-08-10T18:32:11.412Z"
+  }
+}

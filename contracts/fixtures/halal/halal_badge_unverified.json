@@ -1,0 +1,17 @@
+{
+  "scenario": "halal_badge_unverified",
+  "domain": "halal",
+  "schema": "HalalBadge",
+  "describes": "No body, no expiry. Never rendered on a customer surface.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "display_state": "UNVERIFIED",
+    "certifying_body_name": null,
+    "expires_on": null
+  }
+}

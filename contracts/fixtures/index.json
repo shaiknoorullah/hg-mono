@@ -1,0 +1,5619 @@
+{
+  "generated_by": "contracts/fixtures/_build/build.py",
+  "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
+  "frozen_clock": "2026-08-10T18:42:11.412Z",
+  "count": 310,
+  "counts_by_domain": {
+    "admin": 15,
+    "cart": 12,
+    "catalogue": 31,
+    "dispatch": 31,
+    "documents": 23,
+    "errors": 21,
+    "halal": 24,
+    "onboarding": 34,
+    "orders": 41,
+    "payments": 12,
+    "platform": 23,
+    "realtime": 8,
+    "refunds": 14,
+    "rider": 21
+  },
+  "fixtures": [
+    {
+      "scenario": "menu_review_queue_empty",
+      "domain": "admin",
+      "schema": "array<MenuItemVersion>",
+      "describes": "Nothing queued. A stalled queue must never freeze a restaurant's trading, which is why price and availability bypass review entirely.",
+      "operations": [
+        "listMenuReviewQueue"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "admin/menu_review_queue_empty.json"
+    },
+    {
+      "scenario": "menu_version_approved",
+      "domain": "admin",
+      "schema": "MenuItemVersion",
+      "describes": "`APPROVED`. Live to customers.",
+      "operations": [
+        "listMenuReviewQueue",
+        "decideMenuVersion"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix",
+        "review-queue"
+      ],
+      "file": "admin/menu_version_approved.json"
+    },
+    {
+      "scenario": "menu_version_draft",
+      "domain": "admin",
+      "schema": "MenuItemVersion",
+      "describes": "`DRAFT`. The owner is still editing.",
+      "operations": [
+        "listMenuReviewQueue",
+        "decideMenuVersion"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix",
+        "review-queue"
+      ],
+      "file": "admin/menu_version_draft.json"
+    },
+    {
+      "scenario": "menu_version_pending_review",
+      "domain": "admin",
+      "schema": "MenuItemVersion",
+      "describes": "`PENDING_REVIEW`. Claim-bearing fields queued. **Never auto-approved** (decision R-05).",
+      "operations": [
+        "listMenuReviewQueue",
+        "decideMenuVersion"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix",
+        "review-queue"
+      ],
+      "file": "admin/menu_version_pending_review.json"
+    },
+    {
+      "scenario": "menu_version_rejected",
+      "domain": "admin",
+      "schema": "MenuItemVersion",
+      "describes": "`REJECTED`. Refused with `UNSUBSTANTIATED_HALAL_CLAIM`.",
+      "operations": [
+        "listMenuReviewQueue",
+        "decideMenuVersion"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix",
+        "review-queue"
+      ],
+      "file": "admin/menu_version_rejected.json"
+    },
+    {
+      "scenario": "menu_version_superseded",
+      "domain": "admin",
+      "schema": "MenuItemVersion",
+      "describes": "`SUPERSEDED`. A newer version replaced it in the queue.",
+      "operations": [
+        "listMenuReviewQueue",
+        "decideMenuVersion"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix",
+        "review-queue"
+      ],
+      "file": "admin/menu_version_superseded.json"
+    },
+    {
+      "scenario": "menu_version_withdrawn",
+      "domain": "admin",
+      "schema": "MenuItemVersion",
+      "describes": "`WITHDRAWN`. Pulled by the owner before review.",
+      "operations": [
+        "listMenuReviewQueue",
+        "decideMenuVersion"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix",
+        "review-queue"
+      ],
+      "file": "admin/menu_version_withdrawn.json"
+    },
+    {
+      "scenario": "restaurant_application_none_to_take",
+      "domain": "admin",
+      "schema": "RestaurantApplication|null",
+      "describes": "`takeNextRestaurantApplication` with an empty queue — null, not an error.",
+      "operations": [
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "admin/restaurant_application_none_to_take.json"
+    },
+    {
+      "scenario": "restaurant_application_pending_review",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "A complete application sitting in the queue: five documents, a halal certificate awaiting the seven checks, and no decision yet.",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue"
+      ],
+      "file": "admin/restaurant_application_pending_review.json"
+    },
+    {
+      "scenario": "restaurant_application_queue",
+      "domain": "admin",
+      "schema": "array<RestaurantApplicationSummary>",
+      "describes": "Four applications waiting, oldest first.",
+      "operations": [
+        "listRestaurantApplications"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue"
+      ],
+      "file": "admin/restaurant_application_queue.json"
+    },
+    {
+      "scenario": "restaurant_application_queue_empty",
+      "domain": "admin",
+      "schema": "array<RestaurantApplicationSummary>",
+      "describes": "Queue drained. `takeNextRestaurantApplication` returns **null data**, not 404.",
+      "operations": [
+        "listRestaurantApplications"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "admin/restaurant_application_queue_empty.json"
+    },
+    {
+      "scenario": "rider_application_none_to_take",
+      "domain": "admin",
+      "schema": "RiderApplication|null",
+      "describes": "Empty rider queue — null data.",
+      "operations": [
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "admin/rider_application_none_to_take.json"
+    },
+    {
+      "scenario": "rider_application_pending_review",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "A rider application with six documents and a vehicle on file.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication",
+        "decideRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue"
+      ],
+      "file": "admin/rider_application_pending_review.json"
+    },
+    {
+      "scenario": "rider_application_queue",
+      "domain": "admin",
+      "schema": "array<RiderApplicationSummary>",
+      "describes": "Nine rider applications waiting.",
+      "operations": [
+        "listRiderApplications"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue"
+      ],
+      "file": "admin/rider_application_queue.json"
+    },
+    {
+      "scenario": "staff_list",
+      "domain": "admin",
+      "schema": "array<StaffUser>",
+      "describes": "Platform staff across every `StaffStatus`.",
+      "operations": [
+        "listStaff",
+        "createStaffUser"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix"
+      ],
+      "file": "admin/staff_list.json"
+    },
+    {
+      "scenario": "cart_at_quantity_cap",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "A line at the hard cap of **20** (contradiction log #21 — the customer spec's 1–20 wins over P-36's passing mention of 99). The stepper's `+` must be disabled.",
+      "operations": [
+        "getCart",
+        "updateCartLine"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "boundary"
+      ],
+      "file": "cart/cart_at_quantity_cap.json"
+    },
+    {
+      "scenario": "cart_empty",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "No lines, no restaurant pinned. `is_quotable: false` with an empty `blocking_reasons` — nothing is wrong, there is simply nothing in it.",
+      "operations": [
+        "getCart",
+        "clearCart"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "cart/cart_empty.json"
+    },
+    {
+      "scenario": "cart_has_unavailable_items",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "Three lines: one fine, one 86'd, one repriced upward since it was added. `blocking_reasons: [CART_HAS_UNAVAILABLE_ITEMS, PRICE_CHANGED]` and `is_quotable: false`. This is the error code that used to be spelled `cart_has_unavailable_items` before the normalisation.",
+      "operations": [
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "error-path"
+      ],
+      "file": "cart/cart_has_unavailable_items.json"
+    },
+    {
+      "scenario": "cart_many_lines",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "Six lines including a family platter with a variant, three add-on groups and a special request. Tests the cart's densest row and the sticky total bar.",
+      "operations": [
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "dense"
+      ],
+      "file": "cart/cart_many_lines.json"
+    },
+    {
+      "scenario": "cart_single_line",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "Exactly one line, quantity 1, below the $15.00 minimum order — `blocking_reasons: [BELOW_MINIMUM_ORDER]`.",
+      "operations": [
+        "getCart",
+        "addCartLine"
+      ],
+      "status": 200,
+      "tags": [
+        "edge"
+      ],
+      "file": "cart/cart_single_line.json"
+    },
+    {
+      "scenario": "quote_expired",
+      "domain": "cart",
+      "schema": "Quote",
+      "describes": "`expires_at` is 40 seconds in the past. Checking out with it is `409 QUOTE_EXPIRED`; see the `error_quote_stale` fixture for the re-quote path.",
+      "operations": [
+        "getQuote"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "error-path"
+      ],
+      "file": "cart/quote_expired.json"
+    },
+    {
+      "scenario": "quote_large_tip",
+      "domain": "cart",
+      "schema": "Quote",
+      "describes": "A CAD 100.00 tip on a CAD 60 order — larger than the subtotal. Catches tip percentage displays that assume tip < total and currency fields sized for two digits.",
+      "operations": [
+        "createQuote",
+        "getQuote"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "boundary",
+        "money"
+      ],
+      "file": "cart/quote_large_tip.json"
+    },
+    {
+      "scenario": "quote_pickup",
+      "domain": "cart",
+      "schema": "Quote",
+      "describes": "`fulfilment: PICKUP` — delivery fee is 0, there is no delivery address, and `billable_km` is 0. The delivery-fee row must disappear, not render as $0.00.",
+      "operations": [
+        "createQuote",
+        "getQuote"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "cart/quote_pickup.json"
+    },
+    {
+      "scenario": "quote_single_line_minimum",
+      "domain": "cart",
+      "schema": "Quote",
+      "describes": "Exactly one line at the cheapest item on the menu, tip 0 — the smallest legal order. Every money row is at its minimum.",
+      "operations": [
+        "createQuote"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "boundary",
+        "money"
+      ],
+      "file": "cart/quote_single_line_minimum.json"
+    },
+    {
+      "scenario": "quote_standard",
+      "domain": "cart",
+      "schema": "Quote",
+      "describes": "Three lines, 15% tip, Ontario HST at 13% on items + delivery + service. Every number is derived, so the total genuinely equals the sum of the parts.",
+      "operations": [
+        "createQuote",
+        "getQuote"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "cart/quote_standard.json"
+    },
+    {
+      "scenario": "quote_with_discount",
+      "domain": "cart",
+      "schema": "Quote",
+      "describes": "A restaurant-funded CAD 5.00 item discount (contradiction log #14). `funded_by` and `reimbursable` are separate fields because they answer different questions.",
+      "operations": [
+        "createQuote",
+        "getQuote"
+      ],
+      "status": 200,
+      "tags": [
+        "money"
+      ],
+      "file": "cart/quote_with_discount.json"
+    },
+    {
+      "scenario": "quote_zero_tip",
+      "domain": "cart",
+      "schema": "Quote",
+      "describes": "`tip_cents: 0`. The one customer-chosen monetary input at its floor — the tip row must still render, and rider earnings must not go negative.",
+      "operations": [
+        "createQuote",
+        "getQuote"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "boundary",
+        "money"
+      ],
+      "file": "cart/quote_zero_tip.json"
+    },
+    {
+      "scenario": "feed_empty",
+      "domain": "catalogue",
+      "schema": "array<FeedSection>",
+      "describes": "No rails — a brand-new service area with nothing to merchandise yet.",
+      "operations": [
+        "getHomeFeed"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/feed_empty.json"
+    },
+    {
+      "scenario": "feed_sections",
+      "domain": "catalogue",
+      "schema": "array<FeedSection>",
+      "describes": "The home feed's merchandised rails.",
+      "operations": [
+        "getHomeFeed"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "catalogue/feed_sections.json"
+    },
+    {
+      "scenario": "menu_empty",
+      "domain": "catalogue",
+      "schema": "Menu",
+      "describes": "A restaurant with **no menu at all** — approved, live, zero categories. Pair with `restaurant_detail_no_menu`.",
+      "operations": [
+        "getRestaurantMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/menu_empty.json"
+    },
+    {
+      "scenario": "menu_full",
+      "domain": "catalogue",
+      "schema": "Menu",
+      "describes": "Three categories, twelve items, one out-of-stock dessert and the many-variant/many-addon platter. The default menu for every app.",
+      "operations": [
+        "getRestaurantMenu"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "catalogue/menu_full.json"
+    },
+    {
+      "scenario": "menu_item_available",
+      "domain": "catalogue",
+      "schema": "MenuItem",
+      "describes": "`availability_state = AVAILABLE`. Orderable now.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_available.json"
+    },
+    {
+      "scenario": "menu_item_blocked",
+      "domain": "catalogue",
+      "schema": "MenuItem",
+      "describes": "`availability_state = BLOCKED`. Blocked by an admin after a menu review. The owner cannot un-block it.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_blocked.json"
+    },
+    {
+      "scenario": "menu_item_hidden",
+      "domain": "catalogue",
+      "schema": "MenuItem",
+      "describes": "`availability_state = HIDDEN`. Owner-hidden. Absent from customer reads; visible in the owner's menu editor.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_hidden.json"
+    },
+    {
+      "scenario": "menu_item_long_name_no_image",
+      "domain": "catalogue",
+      "schema": "MenuItem",
+      "describes": "A 150-character dish name, a six-line description and **no image**. The item row, the item sheet and the cart line all have to survive it.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "edge",
+        "overflow",
+        "missing-media"
+      ],
+      "file": "catalogue/menu_item_long_name_no_image.json"
+    },
+    {
+      "scenario": "menu_item_many_variants_and_addons",
+      "domain": "catalogue",
+      "schema": "MenuItem",
+      "describes": "Three required variant groups (16 variants, one unavailable) and four add-on groups (16 add-ons, two unavailable, one group with `min_select: 1`). The item sheet's hardest case.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "edge",
+        "dense"
+      ],
+      "file": "catalogue/menu_item_many_variants_and_addons.json"
+    },
+    {
+      "scenario": "menu_item_out_of_stock",
+      "domain": "catalogue",
+      "schema": "MenuItem",
+      "describes": "`availability_state = OUT_OF_STOCK`. 86'd until 22:42 local; still rendered, marked unavailable, never hidden (R-19).",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_out_of_stock.json"
+    },
+    {
+      "scenario": "menu_single_item",
+      "domain": "catalogue",
+      "schema": "Menu",
+      "describes": "Exactly one category holding exactly one item. Catches carousels that need at least two children and 'N items' copy that pluralises wrongly.",
+      "operations": [
+        "getRestaurantMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "edge"
+      ],
+      "file": "catalogue/menu_single_item.json"
+    },
+    {
+      "scenario": "owned_menu_with_pending_version",
+      "domain": "catalogue",
+      "schema": "OwnedMenu",
+      "describes": "The restaurant's own menu. One item carries a `pending_version` — a claim-bearing field (description) was edited and is queued for review, while price and availability already went live unreviewed (decision R-05).",
+      "operations": [
+        "getOwnMenu"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "catalogue/owned_menu_with_pending_version.json"
+    },
+    {
+      "scenario": "restaurant_availability_closed_hours",
+      "domain": "catalogue",
+      "schema": "RestaurantAvailabilityInfo",
+      "describes": "Outside trading hours — `opens_at` is tomorrow 11:00 local, no ETA.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_availability_closed_hours.json"
+    },
+    {
+      "scenario": "restaurant_availability_no_address",
+      "domain": "catalogue",
+      "schema": "RestaurantAvailabilityInfo",
+      "describes": "Customer has no address yet, so nothing distance-derived can be computed.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_availability_no_address.json"
+    },
+    {
+      "scenario": "restaurant_availability_open",
+      "domain": "catalogue",
+      "schema": "RestaurantAvailabilityInfo",
+      "describes": "Open and accepting, with a live ETA band.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_availability_open.json"
+    },
+    {
+      "scenario": "restaurant_availability_out_of_range",
+      "domain": "catalogue",
+      "schema": "RestaurantAvailabilityInfo",
+      "describes": "21.4 km from the saved address; carries `out_of_range_reason` copy.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_availability_out_of_range.json"
+    },
+    {
+      "scenario": "restaurant_availability_paused",
+      "domain": "catalogue",
+      "schema": "RestaurantAvailabilityInfo",
+      "describes": "Kitchen paused itself (R-22 short pause). Still listed, cannot be ordered from.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_availability_paused.json"
+    },
+    {
+      "scenario": "restaurant_detail_certified",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `halal.display_state = CERTIFIED`. Full badge, certificate viewable, 211 days of validity left.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix",
+        "halal"
+      ],
+      "file": "catalogue/restaurant_detail_certified.json"
+    },
+    {
+      "scenario": "restaurant_detail_closed",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Detail page for a kitchen that is closed right now. Ordering is blocked; the hours table and the 'opens at' line are the whole screen.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_detail_closed.json"
+    },
+    {
+      "scenario": "restaurant_detail_expired",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `halal.display_state = EXPIRED`. Expired 9 days ago. **Customer read paths 404 this restaurant** (contradiction log #19) — the fixture exists for the admin and owner surfaces.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix",
+        "halal"
+      ],
+      "file": "catalogue/restaurant_detail_expired.json"
+    },
+    {
+      "scenario": "restaurant_detail_expiring_soon",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `halal.display_state = EXPIRING_SOON`. Certificate expires in 18 days — badge shows the countdown, the restaurant keeps trading.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix",
+        "halal"
+      ],
+      "file": "catalogue/restaurant_detail_expiring_soon.json"
+    },
+    {
+      "scenario": "restaurant_detail_no_menu",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "An approved restaurant that has not published a single menu item. Pair with `menu_empty`. The detail screen must not assume a menu exists.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/restaurant_detail_no_menu.json"
+    },
+    {
+      "scenario": "restaurant_detail_unverified",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `halal.display_state = UNVERIFIED`. No accepted certificate on file. Never customer-visible; `SELF_DECLARED` does not exist in this contract (decision O-06).",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix",
+        "halal"
+      ],
+      "file": "catalogue/restaurant_detail_unverified.json"
+    },
+    {
+      "scenario": "restaurant_hours_standard",
+      "domain": "catalogue",
+      "schema": "RestaurantHours",
+      "describes": "Mon–Thu 11:00–22:00, Fri–Sat 11:00–01:00 (crosses midnight), Sun 12:00–21:00, plus one closed-for-Eid override.",
+      "operations": [
+        "getRestaurantHours",
+        "setRestaurantHours"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "catalogue/restaurant_hours_standard.json"
+    },
+    {
+      "scenario": "restaurant_list_empty",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "Zero results — no halal kitchen serves this postal code yet. The empty state, not an error.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/restaurant_list_empty.json"
+    },
+    {
+      "scenario": "restaurant_list_long_names",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "Names and cuisine lists that overflow one line at every breakpoint. Truncation, wrapping and the accessible full name all have to survive this.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "overflow"
+      ],
+      "file": "catalogue/restaurant_list_long_names.json"
+    },
+    {
+      "scenario": "restaurant_list_missing_images",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "No hero, no logo, and on the first card no rating and no price band either — a kitchen that went live this morning. Every image slot must have a placeholder.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "missing-media"
+      ],
+      "file": "catalogue/restaurant_list_missing_images.json"
+    },
+    {
+      "scenario": "restaurant_list_populated",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "Twelve open, certified Ontario restaurants — the default browse screen. One card (index 3) is EXPIRING_SOON so the badge variant is always on screen.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "catalogue/restaurant_list_populated.json"
+    },
+    {
+      "scenario": "restaurant_list_single",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "Exactly one result. Catches layouts that only look right with a full grid, and 'showing 1 of 1' copy that pluralises wrongly.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "edge"
+      ],
+      "file": "catalogue/restaurant_list_single.json"
+    },
+    {
+      "scenario": "search_results_empty",
+      "domain": "catalogue",
+      "schema": "SearchResults",
+      "describes": "No hits at all — the 'nothing matched' state, distinct from an error and from an unserved postal code.",
+      "operations": [
+        "search"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/search_results_empty.json"
+    },
+    {
+      "scenario": "search_results_populated",
+      "domain": "catalogue",
+      "schema": "SearchResults",
+      "describes": "Restaurant and dish hits for the query 'biryani'.",
+      "operations": [
+        "search"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "catalogue/search_results_populated.json"
+    },
+    {
+      "scenario": "assignment_arrived_at_dropoff",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "At the door; proof of delivery is required to proceed.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_arrived_at_dropoff.json"
+    },
+    {
+      "scenario": "assignment_arrived_at_pickup",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "At the restaurant; the wait timer is running.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_arrived_at_pickup.json"
+    },
+    {
+      "scenario": "assignment_assigned",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Accepted, not yet moving.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_assigned.json"
+    },
+    {
+      "scenario": "assignment_cancelled_by_platform",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Support pulled the assignment mid-delivery.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_cancelled_by_platform.json"
+    },
+    {
+      "scenario": "assignment_delivered",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "POD recorded. Terminal, happy.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_delivered.json"
+    },
+    {
+      "scenario": "assignment_en_route_to_dropoff",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Navigating to the customer.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_en_route_to_dropoff.json"
+    },
+    {
+      "scenario": "assignment_en_route_to_pickup",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Navigating to the restaurant.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_en_route_to_pickup.json"
+    },
+    {
+      "scenario": "assignment_no_instructions_no_unit",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "A house, not a condo: no unit, no buzzer, no instructions, no special request, no pickup notes. Every optional row on the rider card is absent at once.",
+      "operations": [
+        "getAssignment"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge"
+      ],
+      "file": "dispatch/assignment_no_instructions_no_unit.json"
+    },
+    {
+      "scenario": "assignment_otp_pod_required",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "`MEET_AT_DOOR` maps to **OTP** proof of delivery (contradiction log #6), not a photo. The rider must be shown a code entry, and a photo must not satisfy it (`POD_METHOD_MISMATCH`).",
+      "operations": [
+        "getAssignment",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge"
+      ],
+      "file": "dispatch/assignment_otp_pod_required.json"
+    },
+    {
+      "scenario": "assignment_picked_up",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Bag in hand. **The full customer address and unit appear only now** (§5).",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_picked_up.json"
+    },
+    {
+      "scenario": "assignment_reassigned",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Moved to another rider. Terminal for this rider.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_reassigned.json"
+    },
+    {
+      "scenario": "assignment_returned",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Handed back at the restaurant. Terminal.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_returned.json"
+    },
+    {
+      "scenario": "assignment_returning",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Taking the food back to the restaurant.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_returning.json"
+    },
+    {
+      "scenario": "assignment_undeliverable",
+      "domain": "dispatch",
+      "schema": "Assignment",
+      "describes": "Nobody home, no safe drop. Awaiting a support decision.",
+      "operations": [
+        "getAssignment",
+        "acceptOffer",
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "assignment-state-matrix"
+      ],
+      "file": "dispatch/assignment_undeliverable.json"
+    },
+    {
+      "scenario": "dispatch_assigned",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = ASSIGNED` on an order in `READY_FOR_PICKUP`. A rider accepted. `dispatch.assigned` has fired to the customer.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_assigned.json"
+    },
+    {
+      "scenario": "dispatch_at_customer",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = AT_CUSTOMER` on an order in `ARRIVED`. Rider is at the drop-off; proof of delivery is next.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_at_customer.json"
+    },
+    {
+      "scenario": "dispatch_at_restaurant",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = AT_RESTAURANT` on an order in `READY_FOR_PICKUP`. Rider is at the pickup, waiting on the pass.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_at_restaurant.json"
+    },
+    {
+      "scenario": "dispatch_carrying",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = CARRYING` on an order in `PICKED_UP`. Bag collected; `rider.location` is publishing at most once per 5 s.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_carrying.json"
+    },
+    {
+      "scenario": "dispatch_completed",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = COMPLETED` on an order in `DELIVERED`. Handover recorded. Terminal, happy.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_completed.json"
+    },
+    {
+      "scenario": "dispatch_no_rider_found",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = NO_RIDER_FOUND` on an order in `FAILED`. Every wave exhausted. Terminal — the order fails and is refunded.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_no_rider_found.json"
+    },
+    {
+      "scenario": "dispatch_offered",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = OFFERED` on an order in `PREPARING`. One or more riders are looking at a live offer with a running countdown.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_offered.json"
+    },
+    {
+      "scenario": "dispatch_pending",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = PENDING` on an order in `RESTAURANT_PENDING`. Dispatch has the order but has not started searching — the restaurant has not accepted yet.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_pending.json"
+    },
+    {
+      "scenario": "dispatch_searching",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = SEARCHING` on an order in `PREPARING`. A wave is open; no rider has been offered this order in this wave yet.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_searching.json"
+    },
+    {
+      "scenario": "dispatch_unassigned",
+      "domain": "dispatch",
+      "schema": "OrderCustomerView",
+      "describes": "`dispatch_state = UNASSIGNED` on an order in `PREPARING`. The assigned rider dropped it or was removed; dispatch will re-search. The old rider is force-unsubscribed from `order:{id}` within 2 seconds.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "dispatch-state-matrix"
+      ],
+      "file": "dispatch/dispatch_unassigned.json"
+    },
+    {
+      "scenario": "offer_expired",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "`expires_at` is in the past. Accepting is `409 OFFER_EXPIRED` — one of the three codes that collided during the SCREAMING_SNAKE normalisation.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "error-path",
+        "offer-state-matrix"
+      ],
+      "file": "dispatch/offer_expired.json"
+    },
+    {
+      "scenario": "offer_none",
+      "domain": "dispatch",
+      "schema": "DispatchOffer|null",
+      "describes": "No live offer. `getCurrentOffer` returns **null data**, not 404 — an online idle rider polls this and gets null all day.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge",
+        "empty"
+      ],
+      "file": "dispatch/offer_none.json"
+    },
+    {
+      "scenario": "offer_pending",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "A live offer with 28 seconds left. The countdown is `expires_at - server_time`, corrected for device clock skew — a phone whose clock is ten minutes fast must still show ~28 s.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "offer-state-matrix"
+      ],
+      "file": "dispatch/offer_pending.json"
+    },
+    {
+      "scenario": "offer_rejected",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "This rider declined it (`EARNINGS_TOO_LOW`). Kept so the rejection reason sheet has something to render against.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "offer-state-matrix"
+      ],
+      "file": "dispatch/offer_rejected.json"
+    },
+    {
+      "scenario": "offer_taken_by_another",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "Another rider accepted first. Accepting is `409 OFFER_ALREADY_TAKEN`.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "error-path",
+        "offer-state-matrix"
+      ],
+      "file": "dispatch/offer_taken_by_another.json"
+    },
+    {
+      "scenario": "offer_withdrawn",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "Withdrawn because the customer cancelled. The card must dismiss itself rather than wait for the rider to tap.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "offer-state-matrix"
+      ],
+      "file": "dispatch/offer_withdrawn.json"
+    },
+    {
+      "scenario": "offer_zero_tip_low_value",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "A 12 km trip with no tip so far — CAD 4.49 estimated. Under pure pass-through earnings (decision R-02) there is no rate-card floor, so this is what the rider sees. The screen must not imply a guarantee.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge",
+        "money"
+      ],
+      "file": "dispatch/offer_zero_tip_low_value.json"
+    },
+    {
+      "scenario": "document_approved",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Cleared.",
+      "operations": [
+        "attachRestaurantDocument",
+        "reviewRestaurantDocument",
+        "reviewRiderDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix"
+      ],
+      "file": "documents/document_approved.json"
+    },
+    {
+      "scenario": "document_expired",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Was approved; the expiry date has since passed. Trading may continue for some doc types and not others.",
+      "operations": [
+        "attachRestaurantDocument",
+        "reviewRestaurantDocument",
+        "reviewRiderDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix"
+      ],
+      "file": "documents/document_expired.json"
+    },
+    {
+      "scenario": "document_in_review",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "A reviewer holds the lock. Locked to the applicant (`DOCUMENT_LOCKED_FOR_REVIEW`).",
+      "operations": [
+        "attachRestaurantDocument",
+        "reviewRestaurantDocument",
+        "reviewRiderDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix"
+      ],
+      "file": "documents/document_in_review.json"
+    },
+    {
+      "scenario": "document_rejected",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "**Rejected with a machine-readable reason code and free text.** `INCOMPLETE_PAGES` here — the applicant resubmits exactly this document.",
+      "operations": [
+        "attachRestaurantDocument",
+        "reviewRestaurantDocument",
+        "reviewRiderDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix"
+      ],
+      "file": "documents/document_rejected.json"
+    },
+    {
+      "scenario": "document_rejected_expired",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Rejected with `EXPIRED`. Every rejection carries a code **and** the reviewer's sentence — the applicant must never see a bare code.",
+      "operations": [
+        "reviewRestaurantDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix",
+        "error-path"
+      ],
+      "file": "documents/document_rejected_expired.json"
+    },
+    {
+      "scenario": "document_rejected_illegible",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Rejected with `ILLEGIBLE`. Every rejection carries a code **and** the reviewer's sentence — the applicant must never see a bare code.",
+      "operations": [
+        "reviewRestaurantDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix",
+        "error-path"
+      ],
+      "file": "documents/document_rejected_illegible.json"
+    },
+    {
+      "scenario": "document_rejected_name_mismatch",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Rejected with `NAME_MISMATCH`. Every rejection carries a code **and** the reviewer's sentence — the applicant must never see a bare code.",
+      "operations": [
+        "reviewRestaurantDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix",
+        "error-path"
+      ],
+      "file": "documents/document_rejected_name_mismatch.json"
+    },
+    {
+      "scenario": "document_rejected_plate_mismatch",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Rejected with `PLATE_MISMATCH`. Every rejection carries a code **and** the reviewer's sentence — the applicant must never see a bare code.",
+      "operations": [
+        "reviewRestaurantDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix",
+        "error-path"
+      ],
+      "file": "documents/document_rejected_plate_mismatch.json"
+    },
+    {
+      "scenario": "document_rejected_suspected_forgery",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Rejected with `SUSPECTED_FORGERY`. Every rejection carries a code **and** the reviewer's sentence — the applicant must never see a bare code.",
+      "operations": [
+        "reviewRestaurantDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix",
+        "error-path"
+      ],
+      "file": "documents/document_rejected_suspected_forgery.json"
+    },
+    {
+      "scenario": "document_rejected_wrong_document_type",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Rejected with `WRONG_DOCUMENT_TYPE`. Every rejection carries a code **and** the reviewer's sentence — the applicant must never see a bare code.",
+      "operations": [
+        "reviewRestaurantDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix",
+        "error-path"
+      ],
+      "file": "documents/document_rejected_wrong_document_type.json"
+    },
+    {
+      "scenario": "document_submitted",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Uploaded and queued. Editable until the pack is submitted.",
+      "operations": [
+        "attachRestaurantDocument",
+        "reviewRestaurantDocument",
+        "reviewRiderDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix"
+      ],
+      "file": "documents/document_submitted.json"
+    },
+    {
+      "scenario": "document_superseded",
+      "domain": "documents",
+      "schema": "KycDocument",
+      "describes": "Replaced by a newer upload of the same `doc_type`; kept for audit.",
+      "operations": [
+        "attachRestaurantDocument",
+        "reviewRestaurantDocument",
+        "reviewRiderDocument"
+      ],
+      "status": 200,
+      "tags": [
+        "document-state-matrix"
+      ],
+      "file": "documents/document_superseded.json"
+    },
+    {
+      "scenario": "presigned_download",
+      "domain": "documents",
+      "schema": "PresignedDownload",
+      "describes": "A short-lived GET for viewing a certificate or a document.",
+      "operations": [
+        "createDocumentDownloadUrl",
+        "createCertificateViewUrl"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "documents/presigned_download.json"
+    },
+    {
+      "scenario": "presigned_upload",
+      "domain": "documents",
+      "schema": "PresignedUpload",
+      "describes": "A one-hour presigned PUT plus the `PENDING` stored object it will fill.",
+      "operations": [
+        "createUpload"
+      ],
+      "status": 201,
+      "tags": [],
+      "file": "documents/presigned_upload.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_complete",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "All five restaurant document types present and APPROVED. Note `VOID_CHEQUE_OR_BANK_LETTER` is absent by design — Stripe Connect supersedes it and the platform stores no bank details (contradiction log #20).",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents"
+      ],
+      "file": "documents/restaurant_document_pack_complete.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_empty",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "Nothing uploaded yet — the first thing a new partner sees.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty",
+        "documents"
+      ],
+      "file": "documents/restaurant_document_pack_empty.json"
+    },
+    {
+      "scenario": "restaurant_document_pack_incomplete",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "Two of five uploaded, one rejected, two never attached. Submitting is `422 INCOMPLETE_DOCUMENT_PACK`.",
+      "operations": [
+        "listRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "documents",
+        "error-path"
+      ],
+      "file": "documents/restaurant_document_pack_incomplete.json"
+    },
+    {
+      "scenario": "rider_document_pack_complete",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "All six rider document types APPROVED, including `WORK_ELIGIBILITY` (retained per contradiction log #20).",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents"
+      ],
+      "file": "documents/rider_document_pack_complete.json"
+    },
+    {
+      "scenario": "rider_document_pack_rejected",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The licence was rejected for cropping and the insurance has expired. The rider resubmits exactly two documents, not the whole pack.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents",
+        "error-path"
+      ],
+      "file": "documents/rider_document_pack_rejected.json"
+    },
+    {
+      "scenario": "stored_object_deleted",
+      "domain": "documents",
+      "schema": "StoredObject",
+      "describes": "Purged. Attaching it is `404 UPLOAD_NOT_FOUND`.",
+      "operations": [
+        "confirmUpload"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix",
+        "documents"
+      ],
+      "file": "documents/stored_object_deleted.json"
+    },
+    {
+      "scenario": "stored_object_pending",
+      "domain": "documents",
+      "schema": "StoredObject",
+      "describes": "Slot reserved, nothing uploaded yet. Expires in an hour.",
+      "operations": [
+        "confirmUpload"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix",
+        "documents"
+      ],
+      "file": "documents/stored_object_pending.json"
+    },
+    {
+      "scenario": "stored_object_ready",
+      "domain": "documents",
+      "schema": "StoredObject",
+      "describes": "Uploaded and checksum-verified. Only a READY object may be attached.",
+      "operations": [
+        "confirmUpload"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix",
+        "documents"
+      ],
+      "file": "documents/stored_object_ready.json"
+    },
+    {
+      "scenario": "stored_object_rejected",
+      "domain": "documents",
+      "schema": "StoredObject",
+      "describes": "Failed the content-type or checksum gate at confirm time.",
+      "operations": [
+        "confirmUpload"
+      ],
+      "status": 200,
+      "tags": [
+        "state-matrix",
+        "documents"
+      ],
+      "file": "documents/stored_object_rejected.json"
+    },
+    {
+      "scenario": "error_active_order_exists",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ACTIVE_ORDER_EXISTS`. One active order per customer (contradiction log #24). `getActiveOrder` returns zero or one — see `order_no_active`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_active_order_exists.json"
+    },
+    {
+      "scenario": "error_authentication_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `AUTHENTICATION_REQUIRED`. Was `authentication_required`. Triggers the client's refresh-then-retry-once path.",
+      "operations": [],
+      "status": 401,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_authentication_required.json"
+    },
+    {
+      "scenario": "error_below_minimum_order",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `BELOW_MINIMUM_ORDER`. Pairs with `cart_single_line`. The amount is server-computed — the client renders the sentence, it does not do the subtraction.",
+      "operations": [],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_below_minimum_order.json"
+    },
+    {
+      "scenario": "error_capture_failed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `CAPTURE_FAILED`. Was `capture_failed`. The order is cancelled; nothing is owed. Pairs with `payment_failed`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_capture_failed.json"
+    },
+    {
+      "scenario": "error_cart_has_unavailable_items",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `CART_HAS_UNAVAILABLE_ITEMS`. Was `cart_has_unavailable_items`. Pairs with the `cart_has_unavailable_items` fixture.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_cart_has_unavailable_items.json"
+    },
+    {
+      "scenario": "error_documents_incomplete",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `INCOMPLETE_DOCUMENT_PACK`. Was `incomplete_document_pack`. Pairs with `restaurant_document_pack_incomplete`.",
+      "operations": [],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_documents_incomplete.json"
+    },
+    {
+      "scenario": "error_forbidden",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `FORBIDDEN`. Was `forbidden`. Note the English word 'forbidden' in prose was **not** rewritten by the normalisation — only code tokens were.",
+      "operations": [],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_forbidden.json"
+    },
+    {
+      "scenario": "error_idempotency_key_reuse",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `IDEMPOTENCY_KEY_REUSE`. Never a silent replay of the wrong result. Was `idempotency_key_reuse`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_idempotency_key_reuse.json"
+    },
+    {
+      "scenario": "error_internal_error",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`500` · `INTERNAL_ERROR`. Was `internal_error`. The only correct client behaviour is retry-with-backoff and show `request_id` in the support sheet.",
+      "operations": [],
+      "status": 500,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_internal_error.json"
+    },
+    {
+      "scenario": "error_not_found",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`404` · `NOT_FOUND`. A principal with **no relationship** to a subject gets 404 — existence is never leaked. 403 means 'you can see this but may not do that'.",
+      "operations": [],
+      "status": 404,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_not_found.json"
+    },
+    {
+      "scenario": "error_offer_already_taken",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `OFFER_ALREADY_TAKEN`. Already SCREAMING_SNAKE before the normalisation — the rider spec's spelling.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_offer_already_taken.json"
+    },
+    {
+      "scenario": "error_offer_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `OFFER_EXPIRED`. **A collision case**: `offer_expired` (platform) and `OFFER_EXPIRED` (rider) were two members of one enum. They are now one.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_offer_expired.json"
+    },
+    {
+      "scenario": "error_otp_incorrect",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Disambiguate by endpoint, not by code.",
+      "operations": [],
+      "status": 401,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_otp_incorrect.json"
+    },
+    {
+      "scenario": "error_pod_method_mismatch",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `POD_METHOD_MISMATCH`. `MEET_AT_DOOR`/`MEET_IN_LOBBY` map to OTP proof of delivery; the rest map to photo (contradiction log #6). Pairs with `assignment_otp_pod_required`.",
+      "operations": [],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_pod_method_mismatch.json"
+    },
+    {
+      "scenario": "error_province_not_served",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `PROVINCE_NOT_SERVED`. **A collision case**: `province_not_served` (pricing) and `PROVINCE_NOT_SERVED` (address) merged. Gated by `getPublicConfig.served_provinces` (O-05).",
+      "operations": [],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_province_not_served.json"
+    },
+    {
+      "scenario": "error_quote_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `QUOTE_EXPIRED`. Was `quote_expired`. Pairs with the `quote_expired` fixture.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_quote_expired.json"
+    },
+    {
+      "scenario": "error_quote_stale",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `QUOTE_STALE`. **Was `quote_stale` before the normalisation.** The server re-executes `Quote()` on `createOrder` and returns this with the new quote embedded in `details`; nothing server-signed is ever echoed back by the client (contradiction log #17).",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_quote_stale.json"
+    },
+    {
+      "scenario": "error_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED`. Was `rate_limited`. Also the code on the realtime `error` control frame at the 20 frames/second soft limit.",
+      "operations": [],
+      "status": 429,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_rate_limited.json"
+    },
+    {
+      "scenario": "error_restaurant_closed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RESTAURANT_CLOSED`. Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_restaurant_closed.json"
+    },
+    {
+      "scenario": "error_unknown_field",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `UNKNOWN_FIELD`. The decoder runs with `DisallowUnknownFields`. `is_accepting` against `is_accepting_orders` is a 422 at the boundary, not a cheerful 200 over an unchanged row — the exact bug this contract exists to kill.",
+      "operations": [],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_unknown_field.json"
+    },
+    {
+      "scenario": "error_validation_failed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. Per-field detail lives in `error.details` as `FieldError[]` (contradiction log #2). Note the enum message: `CALL_ON_ARRIVAL` was dropped in favour of the platform's five values (contradiction log #6).",
+      "operations": [],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_validation_failed.json"
+    },
+    {
+      "scenario": "certification_panel_certified",
+      "domain": "halal",
+      "schema": "CertificationPanel",
+      "describes": "The customer-facing certification panel in `CERTIFIED`.",
+      "operations": [
+        "getRestaurantCertification"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/certification_panel_certified.json"
+    },
+    {
+      "scenario": "certification_panel_expired",
+      "domain": "halal",
+      "schema": "CertificationPanel",
+      "describes": "The customer-facing certification panel in `EXPIRED`.",
+      "operations": [
+        "getRestaurantCertification"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/certification_panel_expired.json"
+    },
+    {
+      "scenario": "certification_panel_expiring_soon",
+      "domain": "halal",
+      "schema": "CertificationPanel",
+      "describes": "The customer-facing certification panel in `EXPIRING_SOON`.",
+      "operations": [
+        "getRestaurantCertification"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/certification_panel_expiring_soon.json"
+    },
+    {
+      "scenario": "certification_panel_unverified",
+      "domain": "halal",
+      "schema": "CertificationPanel",
+      "describes": "The customer-facing certification panel in `UNVERIFIED`.",
+      "operations": [
+        "getRestaurantCertification"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/certification_panel_unverified.json"
+    },
+    {
+      "scenario": "halal_badge_certified",
+      "domain": "halal",
+      "schema": "HalalBadge",
+      "describes": "The green badge. Certifying body and expiry both present.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_badge_certified.json"
+    },
+    {
+      "scenario": "halal_badge_expired",
+      "domain": "halal",
+      "schema": "HalalBadge",
+      "describes": "Red. Never rendered on a customer surface — the restaurant 404s.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_badge_expired.json"
+    },
+    {
+      "scenario": "halal_badge_expiring_soon",
+      "domain": "halal",
+      "schema": "HalalBadge",
+      "describes": "Amber. 18 days left; body and expiry present.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_badge_expiring_soon.json"
+    },
+    {
+      "scenario": "halal_badge_unverified",
+      "domain": "halal",
+      "schema": "HalalBadge",
+      "describes": "No body, no expiry. Never rendered on a customer surface.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_badge_unverified.json"
+    },
+    {
+      "scenario": "halal_certificate_expired",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "**Expired** nine days ago. The restaurant 404s from every customer read path; the admin and owner surfaces still show this.",
+      "operations": [
+        "getHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate"
+      ],
+      "file": "halal/halal_certificate_expired.json"
+    },
+    {
+      "scenario": "halal_certificate_expiring_tomorrow",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "The tightest boundary: expires **tomorrow**. Any 'days remaining' arithmetic that is off by one shows up here.",
+      "operations": [
+        "getHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate",
+        "boundary",
+        "edge"
+      ],
+      "file": "halal/halal_certificate_expiring_tomorrow.json"
+    },
+    {
+      "scenario": "halal_certificate_expiring_within_30_days",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "**Expiring within 30 days** — expires in 18 days. Drives `EXPIRING_SOON` on the customer badge; the restaurant keeps trading (contradiction log #19).",
+      "operations": [
+        "getHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate",
+        "boundary"
+      ],
+      "file": "halal/halal_certificate_expiring_within_30_days.json"
+    },
+    {
+      "scenario": "halal_certificate_status_approved",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "`status = APPROVED`. Decided in favour. Same as `halal_certificate_valid`.",
+      "operations": [
+        "getHalalCertificate",
+        "decideHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate-status-matrix"
+      ],
+      "file": "halal/halal_certificate_status_approved.json"
+    },
+    {
+      "scenario": "halal_certificate_status_expired",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "`status = EXPIRED`. Lapsed on its own expiry date.",
+      "operations": [
+        "getHalalCertificate",
+        "decideHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate-status-matrix"
+      ],
+      "file": "halal/halal_certificate_status_expired.json"
+    },
+    {
+      "scenario": "halal_certificate_status_pending",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "`status = PENDING`. Uploaded, transcribed, not yet decided. `checks` are NOT_ASSESSED.",
+      "operations": [
+        "getHalalCertificate",
+        "decideHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate-status-matrix"
+      ],
+      "file": "halal/halal_certificate_status_pending.json"
+    },
+    {
+      "scenario": "halal_certificate_status_rejected",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "`status = REJECTED`. Refused with `ISSUER_NOT_ACCEPTED` — the issuer is not on the O-02 list, so `H2_ISSUER_ACCEPTED` fails. **Until the client seeds that list, no restaurant can be certified.**",
+      "operations": [
+        "getHalalCertificate",
+        "decideHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate-status-matrix"
+      ],
+      "file": "halal/halal_certificate_status_rejected.json"
+    },
+    {
+      "scenario": "halal_certificate_status_revoked",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "`status = REVOKED`. Withdrawn by the issuer or by us after the fact.",
+      "operations": [
+        "getHalalCertificate",
+        "decideHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate-status-matrix"
+      ],
+      "file": "halal/halal_certificate_status_revoked.json"
+    },
+    {
+      "scenario": "halal_certificate_status_superseded",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "`status = SUPERSEDED`. Replaced by a renewal. Kept for audit.",
+      "operations": [
+        "getHalalCertificate",
+        "decideHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate-status-matrix"
+      ],
+      "file": "halal/halal_certificate_status_superseded.json"
+    },
+    {
+      "scenario": "halal_certificate_valid",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "**Valid**: approved, all seven H-checks PASS, 211 days of validity remaining.",
+      "operations": [
+        "getHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "certificate"
+      ],
+      "file": "halal/halal_certificate_valid.json"
+    },
+    {
+      "scenario": "halal_issuing_bodies_empty",
+      "domain": "halal",
+      "schema": "array<HalalIssuingBody>",
+      "describes": "**The list is empty.** This is the launch-day reality until O-02 is answered: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified.",
+      "operations": [
+        "listHalalIssuingBodies"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "edge",
+        "empty",
+        "blocking-decision"
+      ],
+      "file": "halal/halal_issuing_bodies_empty.json"
+    },
+    {
+      "scenario": "halal_issuing_body_accepted",
+      "domain": "halal",
+      "schema": "HalalIssuingBody",
+      "describes": "`status = ACCEPTED`. On the list. Promotion to this state is gated to a super admin (O-02).",
+      "operations": [
+        "listHalalIssuingBodies",
+        "proposeHalalIssuingBody",
+        "setHalalIssuingBodyStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_issuing_body_accepted.json"
+    },
+    {
+      "scenario": "halal_issuing_body_proposed",
+      "domain": "halal",
+      "schema": "HalalIssuingBody",
+      "describes": "`status = PROPOSED`. Suggested by a reviewer; **not yet usable**. `H2_ISSUER_ACCEPTED` fails against it.",
+      "operations": [
+        "listHalalIssuingBodies",
+        "proposeHalalIssuingBody",
+        "setHalalIssuingBodyStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_issuing_body_proposed.json"
+    },
+    {
+      "scenario": "halal_issuing_body_rejected",
+      "domain": "halal",
+      "schema": "HalalIssuingBody",
+      "describes": "`status = REJECTED`. Considered and refused.",
+      "operations": [
+        "listHalalIssuingBodies",
+        "proposeHalalIssuingBody",
+        "setHalalIssuingBodyStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_issuing_body_rejected.json"
+    },
+    {
+      "scenario": "halal_issuing_body_retired",
+      "domain": "halal",
+      "schema": "HalalIssuingBody",
+      "describes": "`status = RETIRED`. No longer issuing; existing certificates stand until expiry.",
+      "operations": [
+        "listHalalIssuingBodies",
+        "proposeHalalIssuingBody",
+        "setHalalIssuingBodyStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_issuing_body_retired.json"
+    },
+    {
+      "scenario": "halal_issuing_body_suspended",
+      "domain": "halal",
+      "schema": "HalalIssuingBody",
+      "describes": "`status = SUSPENDED`. Temporarily not accepted, pending an investigation.",
+      "operations": [
+        "listHalalIssuingBodies",
+        "proposeHalalIssuingBody",
+        "setHalalIssuingBodyStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_issuing_body_suspended.json"
+    },
+    {
+      "scenario": "restaurant_heartbeat",
+      "domain": "onboarding",
+      "schema": "RestaurantHeartbeat",
+      "describes": "The tablet's liveness ping response.",
+      "operations": [
+        "sendRestaurantHeartbeat"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_heartbeat.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_active",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = ACTIVE`. Live and trading. Terminal, happy.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_active.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_documents_approved",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_APPROVED`. Documents cleared; Stripe Connect is next.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_documents_approved.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_documents_pending",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_PENDING`. Profile accepted; the five-document pack is outstanding.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_documents_pending.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_documents_rejected",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_REJECTED`. **At least one document was rejected with a reason.** The applicant must resubmit exactly the failed documents.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_documents_rejected.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_documents_review",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_REVIEW`. Pack submitted and locked. The applicant can only wait.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_documents_review.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_email_verified",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = EMAIL_VERIFIED`. Email confirmed; the profile form is next.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_email_verified.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_menu_pending",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = MENU_PENDING`. Payouts enabled; the first menu must exist before going live.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_menu_pending.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_payout_pending",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = PAYOUT_PENDING`. Connect onboarding started but `currently_due` is non-empty.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_payout_pending.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_profile_pending",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = PROFILE_PENDING`. Profile form open — legal name, address, GST/HST number.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_profile_pending.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_registered",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = REGISTERED`. Account created, email not yet verified. Nothing else is reachable.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_registered.json"
+    },
+    {
+      "scenario": "restaurant_onboarding_withdrawn",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = WITHDRAWN`. The applicant withdrew. Terminal.",
+      "operations": [
+        "getRestaurantOnboardingStatus",
+        "submitRestaurantDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_withdrawn.json"
+    },
+    {
+      "scenario": "restaurant_open_state_closed_holiday",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "`open_state = CLOSED_HOLIDAY`. An hours override closed today. R-22 evaluates these in strict precedence.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_closed_holiday.json"
+    },
+    {
+      "scenario": "restaurant_open_state_closed_hours",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "`open_state = CLOSED_HOURS`. Outside the trading calendar. R-22 evaluates these in strict precedence.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_closed_hours.json"
+    },
+    {
+      "scenario": "restaurant_open_state_closed_offline",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "`open_state = CLOSED_OFFLINE`. No tablet heartbeat within the window; the kitchen is presumed away. R-22 evaluates these in strict precedence.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_closed_offline.json"
+    },
+    {
+      "scenario": "restaurant_open_state_closed_suspended",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "`open_state = CLOSED_SUSPENDED`. Admin suspension. The owner cannot reopen. R-22 evaluates these in strict precedence.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_closed_suspended.json"
+    },
+    {
+      "scenario": "restaurant_open_state_closed_toggle",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "`open_state = CLOSED_TOGGLE`. `is_accepting_orders: false` — the explicit switch. R-22 evaluates these in strict precedence.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_closed_toggle.json"
+    },
+    {
+      "scenario": "restaurant_open_state_open",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "`open_state = OPEN`. Trading. R-22 evaluates these in strict precedence.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_open.json"
+    },
+    {
+      "scenario": "restaurant_open_state_paused",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "`open_state = PAUSED`. Owner pressed pause; `is_accepting_orders` is untouched underneath. R-22 evaluates these in strict precedence.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_paused.json"
+    },
+    {
+      "scenario": "restaurant_profile",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "A submitted restaurant profile: Ontario address, CRA-form GST/HST number, America/Toronto. Server-controlled fields (`is_approved`, `account_state`, `commission_rate_bps`, anything `_cents`) do not exist on this DTO at all.",
+      "operations": [
+        "getRestaurantProfile",
+        "submitRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_profile.json"
+    },
+    {
+      "scenario": "restaurant_registration",
+      "domain": "onboarding",
+      "schema": "RestaurantRegistration",
+      "describes": "The response to `registerRestaurant` — the only public write that creates a partner account.",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 201,
+      "tags": [
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_registration.json"
+    },
+    {
+      "scenario": "rider_onboarding_active",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = ACTIVE`. Approved and able to go online. Terminal, happy.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_active.json"
+    },
+    {
+      "scenario": "rider_onboarding_documents_approved",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_APPROVED`. Documents cleared; payout setup is next.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_documents_approved.json"
+    },
+    {
+      "scenario": "rider_onboarding_documents_pending",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_PENDING`. Six document types outstanding.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_documents_pending.json"
+    },
+    {
+      "scenario": "rider_onboarding_documents_rejected",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_REJECTED`. **Rejected with a reason** — e.g. the licence photo is cropped.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_documents_rejected.json"
+    },
+    {
+      "scenario": "rider_onboarding_documents_review",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_REVIEW`. Pack submitted and locked.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_documents_review.json"
+    },
+    {
+      "scenario": "rider_onboarding_payout_pending",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = PAYOUT_PENDING`. Connect started, requirements outstanding.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_payout_pending.json"
+    },
+    {
+      "scenario": "rider_onboarding_phone_verified",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = PHONE_VERIFIED`. OTP verified; identity capture is next.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_phone_verified.json"
+    },
+    {
+      "scenario": "rider_onboarding_profile_pending",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = PROFILE_PENDING`. Name, date of birth, address. Under 18 is `UNDERAGE`.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_profile_pending.json"
+    },
+    {
+      "scenario": "rider_onboarding_registered",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = REGISTERED`. Phone entered, OTP not yet verified.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_registered.json"
+    },
+    {
+      "scenario": "rider_onboarding_vehicle_pending",
+      "domain": "onboarding",
+      "schema": "RiderOnboardingStatus",
+      "describes": "`onboarding_state = VEHICLE_PENDING`. Vehicle type and plate. `ON_FOOT` skips plate and insurance.",
+      "operations": [
+        "getRiderOnboardingStatus",
+        "submitRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "onboarding-state-matrix",
+        "rider"
+      ],
+      "file": "onboarding/rider_onboarding_vehicle_pending.json"
+    },
+    {
+      "scenario": "rider_profile",
+      "domain": "onboarding",
+      "schema": "RiderProfile",
+      "describes": "A submitted rider profile with an Ontario address and a 1994 date of birth.",
+      "operations": [
+        "submitRiderProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "rider"
+      ],
+      "file": "onboarding/rider_profile.json"
+    },
+    {
+      "scenario": "rider_vehicle_on_foot",
+      "domain": "onboarding",
+      "schema": "RiderVehicle",
+      "describes": "`ON_FOOT`: no plate, no make, no model, no insurance requirement. Every vehicle-shaped field is null at once (`FIELD_NOT_APPLICABLE`).",
+      "operations": [
+        "submitRiderVehicle"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge"
+      ],
+      "file": "onboarding/rider_vehicle_on_foot.json"
+    },
+    {
+      "scenario": "rider_vehicle_scooter",
+      "domain": "onboarding",
+      "schema": "RiderVehicle",
+      "describes": "A scooter with a plate and insurance on file.",
+      "operations": [
+        "submitRiderVehicle"
+      ],
+      "status": 200,
+      "tags": [
+        "rider"
+      ],
+      "file": "onboarding/rider_vehicle_scooter.json"
+    },
+    {
+      "scenario": "order_admin_view_completed",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The full admin projection: timeline, dispatch history across two waves, payment, the ledger decomposition and `pii_revealed: false` (unmasking needs a recorded justification).",
+      "operations": [
+        "getOrderAdmin",
+        "cancelOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "orders/order_admin_view_completed.json"
+    },
+    {
+      "scenario": "order_admin_view_disputed",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored).",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "error-path"
+      ],
+      "file": "orders/order_admin_view_disputed.json"
+    },
+    {
+      "scenario": "order_admin_view_failed_no_rider",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "Three dispatch waves, eight riders offered, nobody accepted. The order failed and was fully refunded — the case `admin.dispatch_failure` fires on.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "error-path"
+      ],
+      "file": "orders/order_admin_view_failed_no_rider.json"
+    },
+    {
+      "scenario": "order_arrived",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Rider is at the drop-off, proof of delivery not yet recorded.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_arrived.json"
+    },
+    {
+      "scenario": "order_authorized",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Card authorised, not captured. The restaurant has not been asked yet. Cancellation is still free.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_authorized.json"
+    },
+    {
+      "scenario": "order_cancelled",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Terminal. Cancelled by the customer before acceptance, so the authorisation was voided rather than captured and refunded.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_cancelled.json"
+    },
+    {
+      "scenario": "order_completed",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Terminal, happy. Receipt available, rating prompt allowed, refund window open.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_completed.json"
+    },
+    {
+      "scenario": "order_created",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Order exists, payment not yet authorised. 3-D Secure lives here — the order stays CREATED under its 15-minute deadline while `payment.action_required` is outstanding.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_created.json"
+    },
+    {
+      "scenario": "order_delivered",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Proof of delivery recorded. Not yet financially settled.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_delivered.json"
+    },
+    {
+      "scenario": "order_disputed",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Delivered, then disputed by the customer. Support owns it; a refund is in flight.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_disputed.json"
+    },
+    {
+      "scenario": "order_failed",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Terminal. Dispatch exhausted every wave and found no rider (`cancel_reason: NO_RIDER_FOUND`). Fully refunded.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_failed.json"
+    },
+    {
+      "scenario": "order_large_tip",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "A CAD 100.00 tip — larger than the food. Catches percentage displays and fixed-width currency columns.",
+      "operations": [
+        "getOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "money",
+        "boundary"
+      ],
+      "file": "orders/order_large_tip.json"
+    },
+    {
+      "scenario": "order_list_active",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "The one order a customer may have in flight (`status_group=ACTIVE`).",
+      "operations": [
+        "listOrders",
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "orders/order_list_active.json"
+    },
+    {
+      "scenario": "order_list_empty",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "A customer who has never ordered. First-run empty state.",
+      "operations": [
+        "listOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "orders/order_list_empty.json"
+    },
+    {
+      "scenario": "order_list_past",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "Order history: completed, cancelled, rejected and resolved side by side, so the history row's state chip is exercised across colours.",
+      "operations": [
+        "listOrders",
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "orders/order_list_past.json"
+    },
+    {
+      "scenario": "order_no_active",
+      "domain": "orders",
+      "schema": "OrderCustomerView|null",
+      "describes": "`getActiveOrder` with nothing in flight. The contract returns **null data**, not 404 and not an empty array — one active order per customer (contradiction log #24).",
+      "operations": [
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "orders/order_no_active.json"
+    },
+    {
+      "scenario": "order_picked_up",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Rider has the bag. This is when `rider.location` starts publishing to the customer and the map goes live.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_picked_up.json"
+    },
+    {
+      "scenario": "order_pickup_no_address",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "A PICKUP order: `delivery_address` is null, `rider` is null, `dispatch_state` is null, delivery fee is 0. Every delivery-shaped affordance must disappear.",
+      "operations": [
+        "getOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "state-matrix"
+      ],
+      "file": "orders/order_pickup_no_address.json"
+    },
+    {
+      "scenario": "order_preparing",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Accepted and captured; the kitchen is cooking and dispatch is searching for a rider. Cancellation is no longer free.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_preparing.json"
+    },
+    {
+      "scenario": "order_ready_for_pickup",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Food is on the pass, a rider is assigned and en route to the restaurant.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_ready_for_pickup.json"
+    },
+    {
+      "scenario": "order_rejected",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Terminal. The restaurant rejected it — `reject_reason: ITEM_UNAVAILABLE`. The authorisation is voided; no money ever moved.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_rejected.json"
+    },
+    {
+      "scenario": "order_resolved",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Terminal. The dispute was settled with a partial refund and the case closed.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_resolved.json"
+    },
+    {
+      "scenario": "order_restaurant_pending",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "The 180-second acceptance window is running (decision R-04). `deadline_at` is the only source of the countdown — never a local constant.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder",
+        "cancelOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "order-state-matrix"
+      ],
+      "file": "orders/order_restaurant_pending.json"
+    },
+    {
+      "scenario": "order_single_line",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "One line, quantity 1, no variant, no add-ons, no special instructions, no delivery notes — the sparsest legal order.",
+      "operations": [
+        "getOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "edge"
+      ],
+      "file": "orders/order_single_line.json"
+    },
+    {
+      "scenario": "order_zero_tip",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "A delivered order with **no tip**. The tip row still renders at $0.00, and the rider's earnings for this delivery are the delivery fee alone.",
+      "operations": [
+        "getOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "money",
+        "boundary"
+      ],
+      "file": "orders/order_zero_tip.json"
+    },
+    {
+      "scenario": "receipt_pickup_zero_tip",
+      "domain": "orders",
+      "schema": "Receipt",
+      "describes": "Pickup, no tip, no delivery address. Two whole money rows are absent rather than zeroed.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "money"
+      ],
+      "file": "orders/receipt_pickup_zero_tip.json"
+    },
+    {
+      "scenario": "receipt_standard",
+      "domain": "orders",
+      "schema": "Receipt",
+      "describes": "A completed delivery's receipt. Carries **both** tax registration numbers so either answer to O-01 (who is the supplier of record) renders without a schema change.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "orders/receipt_standard.json"
+    },
+    {
+      "scenario": "receipt_with_refund",
+      "domain": "orders",
+      "schema": "Receipt",
+      "describes": "The same receipt after a settled partial refund. Both spellings of the reason code exist in the enum (`ITEM_MISSING` and `MISSING_ITEMS`) — contradiction log #8 is still OPEN and this fixture uses the customer-spec spelling.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 200,
+      "tags": [
+        "money"
+      ],
+      "file": "orders/receipt_with_refund.json"
+    },
+    {
+      "scenario": "restaurant_order_picked_up",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Collected. The tablet's job is done.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders",
+        "acceptOrder",
+        "rejectOrder",
+        "markOrderReady",
+        "delayOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_picked_up.json"
+    },
+    {
+      "scenario": "restaurant_order_preparing",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Accepted and overdue (`is_late: true`). The address is now present.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders",
+        "acceptOrder",
+        "rejectOrder",
+        "markOrderReady",
+        "delayOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_preparing.json"
+    },
+    {
+      "scenario": "restaurant_order_queue_busy",
+      "domain": "orders",
+      "schema": "array<OrderRestaurantView>",
+      "describes": "Friday 19:00: two pending, three preparing, one late, one ready. Sorted with RESTAURANT_PENDING first by `deadline_at` ascending, per R-23.",
+      "operations": [
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "dense"
+      ],
+      "file": "orders/restaurant_order_queue_busy.json"
+    },
+    {
+      "scenario": "restaurant_order_queue_empty",
+      "domain": "orders",
+      "schema": "array<OrderRestaurantView>",
+      "describes": "A quiet kitchen — no orders in any state. The tablet's idle screen.",
+      "operations": [
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty",
+        "restaurant"
+      ],
+      "file": "orders/restaurant_order_queue_empty.json"
+    },
+    {
+      "scenario": "restaurant_order_ready_for_pickup",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "On the pass, rider assigned with an ETA to the restaurant.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders",
+        "acceptOrder",
+        "rejectOrder",
+        "markOrderReady",
+        "delayOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_ready_for_pickup.json"
+    },
+    {
+      "scenario": "restaurant_order_rejected",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Rejected by the kitchen for ITEM_UNAVAILABLE.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders",
+        "acceptOrder",
+        "rejectOrder",
+        "markOrderReady",
+        "delayOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_rejected.json"
+    },
+    {
+      "scenario": "restaurant_order_restaurant_pending",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "The incoming-order card with 80 s left on the 180 s window. **No delivery address yet** — §5 withholds it until acceptance.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders",
+        "acceptOrder",
+        "rejectOrder",
+        "markOrderReady",
+        "delayOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_restaurant_pending.json"
+    },
+    {
+      "scenario": "tracking_arrived",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "Rider at the door; the countdown is to handover.",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "order-state-matrix"
+      ],
+      "file": "orders/tracking_arrived.json"
+    },
+    {
+      "scenario": "tracking_degraded_gps",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "The rider's phone has not reported for 90 seconds — `accuracy_m` is 180 m and the position is stale. The map must degrade honestly, not interpolate.",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "edge",
+        "degraded"
+      ],
+      "file": "orders/tracking_degraded_gps.json"
+    },
+    {
+      "scenario": "tracking_delivered",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "Handover done; the map freezes at the last position.",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "order-state-matrix"
+      ],
+      "file": "orders/tracking_delivered.json"
+    },
+    {
+      "scenario": "tracking_picked_up",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "Live rider position, precise (the customer projection).",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "order-state-matrix"
+      ],
+      "file": "orders/tracking_picked_up.json"
+    },
+    {
+      "scenario": "tracking_preparing",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "Kitchen cooking, no rider yet — the map shows the restaurant only.",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "order-state-matrix"
+      ],
+      "file": "orders/tracking_preparing.json"
+    },
+    {
+      "scenario": "tracking_ready_for_pickup",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "Rider assigned and approaching the restaurant.",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "order-state-matrix"
+      ],
+      "file": "orders/tracking_ready_for_pickup.json"
+    },
+    {
+      "scenario": "payment_canceled",
+      "domain": "payments",
+      "schema": "OrderPayment",
+      "describes": "The authorisation was voided — restaurant rejected or the customer cancelled in time. **No money ever moved.**",
+      "operations": [
+        "getOrderPayment"
+      ],
+      "status": 200,
+      "tags": [
+        "payment-state-matrix"
+      ],
+      "file": "payments/payment_canceled.json"
+    },
+    {
+      "scenario": "payment_failed",
+      "domain": "payments",
+      "schema": "OrderPayment",
+      "describes": "The card was declined at capture (`capture_failed` / `card_declined`). The order is cancelled and nothing is owed.",
+      "operations": [
+        "getOrderPayment"
+      ],
+      "status": 200,
+      "tags": [
+        "payment-state-matrix"
+      ],
+      "file": "payments/payment_failed.json"
+    },
+    {
+      "scenario": "payment_methods_at_limit",
+      "domain": "payments",
+      "schema": "array<PaymentMethod>",
+      "describes": "Ten saved cards — the cap. Adding an eleventh is `409 PAYMENT_METHOD_LIMIT`.",
+      "operations": [
+        "listPaymentMethods"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "boundary"
+      ],
+      "file": "payments/payment_methods_at_limit.json"
+    },
+    {
+      "scenario": "payment_methods_empty",
+      "domain": "payments",
+      "schema": "array<PaymentMethod>",
+      "describes": "No card on file. Checkout must route to the add-card sheet rather than failing.",
+      "operations": [
+        "listPaymentMethods"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "payments/payment_methods_empty.json"
+    },
+    {
+      "scenario": "payment_methods_list",
+      "domain": "payments",
+      "schema": "array<PaymentMethod>",
+      "describes": "Three saved cards, one default.",
+      "operations": [
+        "listPaymentMethods",
+        "setDefaultPaymentMethod"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "payments/payment_methods_list.json"
+    },
+    {
+      "scenario": "payment_processing",
+      "domain": "payments",
+      "schema": "OrderPayment",
+      "describes": "Submitted to the PSP, outcome unknown. The UI must not claim success.",
+      "operations": [
+        "getOrderPayment"
+      ],
+      "status": 200,
+      "tags": [
+        "payment-state-matrix"
+      ],
+      "file": "payments/payment_processing.json"
+    },
+    {
+      "scenario": "payment_requires_action",
+      "domain": "payments",
+      "schema": "OrderPayment",
+      "describes": "**3-D Secure challenge outstanding.** This is a normal path, not an error: the order stays CREATED under its 15-minute deadline and `client_secret` is present for the Stripe SDK.",
+      "operations": [
+        "getOrderPayment"
+      ],
+      "status": 200,
+      "tags": [
+        "payment-state-matrix"
+      ],
+      "file": "payments/payment_requires_action.json"
+    },
+    {
+      "scenario": "payment_requires_capture",
+      "domain": "payments",
+      "schema": "OrderPayment",
+      "describes": "Authorised, not captured. Capture happens only when the restaurant accepts; a rejection or timeout voids it.",
+      "operations": [
+        "getOrderPayment"
+      ],
+      "status": 200,
+      "tags": [
+        "payment-state-matrix"
+      ],
+      "file": "payments/payment_requires_capture.json"
+    },
+    {
+      "scenario": "payment_requires_confirmation",
+      "domain": "payments",
+      "schema": "OrderPayment",
+      "describes": "Card attached, waiting on `confirm`. A brief transient state.",
+      "operations": [
+        "getOrderPayment"
+      ],
+      "status": 200,
+      "tags": [
+        "payment-state-matrix"
+      ],
+      "file": "payments/payment_requires_confirmation.json"
+    },
+    {
+      "scenario": "payment_requires_payment_method",
+      "domain": "payments",
+      "schema": "OrderPayment",
+      "describes": "No card attached yet. Checkout has not been attempted.",
+      "operations": [
+        "getOrderPayment"
+      ],
+      "status": 200,
+      "tags": [
+        "payment-state-matrix"
+      ],
+      "file": "payments/payment_requires_payment_method.json"
+    },
+    {
+      "scenario": "payment_succeeded",
+      "domain": "payments",
+      "schema": "OrderPayment",
+      "describes": "Captured. The happy terminal state.",
+      "operations": [
+        "getOrderPayment"
+      ],
+      "status": 200,
+      "tags": [
+        "payment-state-matrix"
+      ],
+      "file": "payments/payment_succeeded.json"
+    },
+    {
+      "scenario": "setup_intent",
+      "domain": "payments",
+      "schema": "SetupIntent",
+      "describes": "The client secret for attaching a new card. The card never touches our servers.",
+      "operations": [
+        "createPaymentMethodSetupIntent"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "payments/setup_intent.json"
+    },
+    {
+      "scenario": "addresses_empty",
+      "domain": "platform",
+      "schema": "array<Address>",
+      "describes": "No address yet — the state that makes every distance and ETA uncomputable (`NO_ADDRESS` availability).",
+      "operations": [
+        "listAddresses"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "edge",
+        "empty"
+      ],
+      "file": "platform/addresses_empty.json"
+    },
+    {
+      "scenario": "addresses_list",
+      "domain": "platform",
+      "schema": "array<Address>",
+      "describes": "Three saved addresses, one default, one with no unit or buzzer.",
+      "operations": [
+        "listAddresses",
+        "createAddress",
+        "getAddress",
+        "updateAddress",
+        "setDefaultAddress"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/addresses_list.json"
+    },
+    {
+      "scenario": "connect_status_complete",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Stripe Connect fully onboarded: payouts enabled, nothing due.",
+      "operations": [
+        "getConnectStatus",
+        "createConnectAccount"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money"
+      ],
+      "file": "platform/connect_status_complete.json"
+    },
+    {
+      "scenario": "connect_status_requirements_due",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Payouts disabled with `currently_due` and `past_due` surfaced **verbatim** from Stripe — we do not paraphrase requirement ids.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "error-path"
+      ],
+      "file": "platform/connect_status_requirements_due.json"
+    },
+    {
+      "scenario": "customer_profile",
+      "domain": "platform",
+      "schema": "CustomerProfile",
+      "describes": "C-03: `first_name`/`last_name`, never a single `name`. `phone_e164` is read-only here — sending it is `422 UNKNOWN_FIELD`.",
+      "operations": [
+        "getCustomerProfile",
+        "updateCustomerProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/customer_profile.json"
+    },
+    {
+      "scenario": "dependency_report",
+      "domain": "platform",
+      "schema": "DependencyReport",
+      "describes": "Per-dependency detail for the internal status page.",
+      "operations": [
+        "getDependencyStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/dependency_report.json"
+    },
+    {
+      "scenario": "health_ok",
+      "domain": "platform",
+      "schema": "HealthStatus",
+      "describes": "Liveness. Never touches a dependency.",
+      "operations": [
+        "getHealth"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/health_ok.json"
+    },
+    {
+      "scenario": "notifications_empty",
+      "domain": "platform",
+      "schema": "array<Notification>",
+      "describes": "Nothing to show. The bell must not render a zero badge.",
+      "operations": [
+        "listNotifications"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "edge",
+        "empty"
+      ],
+      "file": "platform/notifications_empty.json"
+    },
+    {
+      "scenario": "notifications_list",
+      "domain": "platform",
+      "schema": "array<Notification>",
+      "describes": "Mixed read and unread notifications across channels and priorities.",
+      "operations": [
+        "listNotifications"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/notifications_list.json"
+    },
+    {
+      "scenario": "otp_challenge",
+      "domain": "platform",
+      "schema": "OtpChallenge",
+      "describes": "The OTP request response. The wire carries `resend_after_s` and `expires_at` and the client renders the **server's** cooldown — rate limits are not contract constants (contradiction log #23).",
+      "operations": [
+        "requestOtp"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth"
+      ],
+      "file": "platform/otp_challenge.json"
+    },
+    {
+      "scenario": "principal_customer",
+      "domain": "platform",
+      "schema": "Principal",
+      "describes": "`GET /v1/auth/me` for a customer — one account, one role, no restaurant scope.",
+      "operations": [
+        "getCurrentPrincipal"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth"
+      ],
+      "file": "platform/principal_customer.json"
+    },
+    {
+      "scenario": "public_config",
+      "domain": "platform",
+      "schema": "PublicConfig",
+      "describes": "Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05).",
+      "operations": [
+        "getPublicConfig"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/public_config.json"
+    },
+    {
+      "scenario": "readiness_ok",
+      "domain": "platform",
+      "schema": "ReadinessStatus",
+      "describes": "Every dependency reachable.",
+      "operations": [
+        "getReadiness"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/readiness_ok.json"
+    },
+    {
+      "scenario": "realtime_ticket",
+      "domain": "platform",
+      "schema": "RealtimeTicket",
+      "describes": "A single-use 30-second ticket plus the channels this principal may subscribe to. Mint a fresh one per connection attempt; never cache or reuse.",
+      "operations": [
+        "createRealtimeTicket"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "realtime"
+      ],
+      "file": "platform/realtime_ticket.json"
+    },
+    {
+      "scenario": "session_grant_customer",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "A customer session issued by phone OTP, with `next_route` telling the app where to land — the client contains no branching tree of its own (P-04).",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession",
+        "verifyEmail",
+        "changePassword"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth"
+      ],
+      "file": "platform/session_grant_customer.json"
+    },
+    {
+      "scenario": "session_next_route_active_delivery",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = ACTIVE_DELIVERY`. A rider with a delivery in progress resumes it, wherever they were.",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix"
+      ],
+      "file": "platform/session_next_route_active_delivery.json"
+    },
+    {
+      "scenario": "session_next_route_app_update_required",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = APP_UPDATE_REQUIRED`. Below `min_supported_version`. A hard stop.",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix"
+      ],
+      "file": "platform/session_next_route_app_update_required.json"
+    },
+    {
+      "scenario": "session_next_route_home",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = HOME`. Fully onboarded; go to the main surface.",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix"
+      ],
+      "file": "platform/session_next_route_home.json"
+    },
+    {
+      "scenario": "session_next_route_onboarding_documents",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = ONBOARDING_DOCUMENTS`. Mid-onboarding; documents outstanding.",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix"
+      ],
+      "file": "platform/session_next_route_onboarding_documents.json"
+    },
+    {
+      "scenario": "session_next_route_onboarding_rejected",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = ONBOARDING_REJECTED`. A document was rejected; the app must land on the reason.",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix"
+      ],
+      "file": "platform/session_next_route_onboarding_rejected.json"
+    },
+    {
+      "scenario": "session_next_route_order_tracking",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = ORDER_TRACKING`. A customer with a live order lands on tracking.",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix"
+      ],
+      "file": "platform/session_next_route_order_tracking.json"
+    },
+    {
+      "scenario": "session_next_route_profile_capture",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = PROFILE_CAPTURE`. First sign-in — we have a phone and nothing else.",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix"
+      ],
+      "file": "platform/session_next_route_profile_capture.json"
+    },
+    {
+      "scenario": "session_next_route_suspended",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = SUSPENDED`. Account suspended; a dead end with an explanation.",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix"
+      ],
+      "file": "platform/session_next_route_suspended.json"
+    },
+    {
+      "scenario": "realtime_control_frames",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "Every control frame, `seq: 0` and no channel: `hello`, `subscribed`, `ping`, `subscribe_error` (`not_found` for someone else's order — never `forbidden`), `unsubscribed`, `resume_complete` with `truncated: true`, `reauth_required` and an `error`.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "control"
+      ],
+      "file": "realtime/realtime_control_frames.json"
+    },
+    {
+      "scenario": "realtime_gap_and_resume",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "A deliberate **seq gap** (3 → 7). A conforming client detects `seq > last_seq + 1`, sends `resume {channel, after_seq: 3}`, and receives the missing events followed by `resume_complete`. Use this to prove the gap-detection path before shipping.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "edge"
+      ],
+      "file": "realtime/realtime_gap_and_resume.json"
+    },
+    {
+      "scenario": "realtime_order_happy_path",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 24 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived → delivered → completed. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script"
+      ],
+      "file": "realtime/realtime_order_happy_path.json"
+    },
+    {
+      "scenario": "realtime_order_restaurant_rejects",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "The restaurant rejects at 14 s. The authorisation is **voided**, not captured and refunded — no money ever moved.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "error-path"
+      ],
+      "file": "realtime/realtime_order_restaurant_rejects.json"
+    },
+    {
+      "scenario": "realtime_order_timeout_no_rider",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "Three dispatch waves, nobody accepts, the order fails and is fully refunded. Ends with `admin.dispatch_failure` on `admin:ops`.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "error-path"
+      ],
+      "file": "realtime/realtime_order_timeout_no_rider.json"
+    },
+    {
+      "scenario": "realtime_payment_action_required",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "3-D Secure is a **normal** path: `payment.action_required` fires, the order stays `CREATED` under its 15-minute deadline, then authorises and proceeds.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script"
+      ],
+      "file": "realtime/realtime_payment_action_required.json"
+    },
+    {
+      "scenario": "realtime_payment_failed",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "The card is declined at capture. The order cancels and the customer owes nothing.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "error-path"
+      ],
+      "file": "realtime/realtime_payment_failed.json"
+    },
+    {
+      "scenario": "realtime_rider_reassigned",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "The assigned rider drops out mid-delivery. The customer sees `dispatch.unassigned` then a second `dispatch.assigned`; the old rider is force-unsubscribed from the order channel within 2 seconds.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "error-path"
+      ],
+      "file": "realtime/realtime_rider_reassigned.json"
+    },
+    {
+      "scenario": "refund_approval_request_pending",
+      "domain": "refunds",
+      "schema": "RefundApprovalRequest",
+      "describes": "A refund over the agent's cap: `202 Accepted` with the approval request, not a `201` refund. The two-response shape of `issueRefund`.",
+      "operations": [
+        "issueRefund"
+      ],
+      "status": 202,
+      "tags": [
+        "admin"
+      ],
+      "file": "refunds/refund_approval_request_pending.json"
+    },
+    {
+      "scenario": "refund_approved",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Approved, not yet sent to the PSP.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_approved.json"
+    },
+    {
+      "scenario": "refund_authorised",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Authorised against the captured payment; the ledger entry exists.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_authorised.json"
+    },
+    {
+      "scenario": "refund_cancelled",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Withdrawn before authorisation — no money moved.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_cancelled.json"
+    },
+    {
+      "scenario": "refund_declined",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "A human declined the request, with a reason.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_declined.json"
+    },
+    {
+      "scenario": "refund_failed",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "The PSP rejected the refund. Carries `failure_message`; support must intervene, and the customer must never be told they were refunded.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_failed.json"
+    },
+    {
+      "scenario": "refund_full_never_delivered",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "A full refund for an order that never arrived. Note both spellings survive in the enum (`NEVER_DELIVERED` / `ORDER_NEVER_ARRIVED`) — contradiction log #8 is OPEN.",
+      "operations": [
+        "getRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "money"
+      ],
+      "file": "refunds/refund_full_never_delivered.json"
+    },
+    {
+      "scenario": "refund_goodwill_admin",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Admin goodwill — the only refund carrying a client-supplied `amount_cents`, capped and dual-approved (one of exactly three money-in-request allowlist entries).",
+      "operations": [
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money"
+      ],
+      "file": "refunds/refund_goodwill_admin.json"
+    },
+    {
+      "scenario": "refund_list_empty",
+      "domain": "refunds",
+      "schema": "array<Refund>",
+      "describes": "No refunds on this account — the common case.",
+      "operations": [
+        "listRefunds"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "refunds/refund_list_empty.json"
+    },
+    {
+      "scenario": "refund_pending_approval",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Above the agent's cap, waiting on a second approver (`SELF_APPROVAL_FORBIDDEN` blocks the requester from approving their own).",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_pending_approval.json"
+    },
+    {
+      "scenario": "refund_requested",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Customer asked; nothing has been decided or authorised.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_requested.json"
+    },
+    {
+      "scenario": "refund_settled",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Funds are back on the card. The only state that may say 'refunded'.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_settled.json"
+    },
+    {
+      "scenario": "refund_submitted",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Sent to Stripe, awaiting acknowledgement.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_submitted.json"
+    },
+    {
+      "scenario": "refund_succeeded",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Stripe accepted it. **Customer copy still reads 'refund in progress'** until SETTLED — money has not reached the card yet.",
+      "operations": [
+        "getRefund",
+        "listRefunds",
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_succeeded.json"
+    },
+    {
+      "scenario": "earning_entries_empty",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "No entries at all — pairs with `earnings_summary_zero`.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge",
+        "empty"
+      ],
+      "file": "rider/earning_entries_empty.json"
+    },
+    {
+      "scenario": "earning_entries_mixed",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "One of every `EarningEntryType` and `EarningEntryStatus`, including a **negative** clawback. Ledger rows must handle a minus sign.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "state-matrix"
+      ],
+      "file": "rider/earning_entries_mixed.json"
+    },
+    {
+      "scenario": "earnings_summary_week",
+      "domain": "rider",
+      "schema": "EarningsSummary",
+      "describes": "A full week: 14 deliveries, delivery fees plus 100% of tips. The rate-card component fields (`base_cents`, `distance_cents`, `wait_cents`, `guarantee_topup_cents`) are present but zero — pure pass-through at launch (contradiction log #7).",
+      "operations": [
+        "getRiderEarningsSummary"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earnings_summary_week.json"
+    },
+    {
+      "scenario": "earnings_summary_zero",
+      "domain": "rider",
+      "schema": "EarningsSummary",
+      "describes": "**Zero earnings across every bucket.** A rider who went online and got no offers. Charts must render an axis, not collapse.",
+      "operations": [
+        "getRiderEarningsSummary"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge",
+        "empty",
+        "money"
+      ],
+      "file": "rider/earnings_summary_zero.json"
+    },
+    {
+      "scenario": "payout_detail_paid",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "A paid weekly payout expanded into its constituent earning entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/payout_detail_paid.json"
+    },
+    {
+      "scenario": "payout_draft",
+      "domain": "rider",
+      "schema": "Payout",
+      "describes": "The week is still accruing. Nothing is owed yet.",
+      "operations": [
+        "listRiderPayouts",
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-state-matrix",
+        "money"
+      ],
+      "file": "rider/payout_draft.json"
+    },
+    {
+      "scenario": "payout_failed",
+      "domain": "rider",
+      "schema": "Payout",
+      "describes": "The transfer bounced — usually a Connect requirement went `past_due`.",
+      "operations": [
+        "listRiderPayouts",
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-state-matrix",
+        "money"
+      ],
+      "file": "rider/payout_failed.json"
+    },
+    {
+      "scenario": "payout_held",
+      "domain": "rider",
+      "schema": "Payout",
+      "describes": "Held by compliance pending a review. The partner sees the hold, not the reason.",
+      "operations": [
+        "listRiderPayouts",
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-state-matrix",
+        "money"
+      ],
+      "file": "rider/payout_held.json"
+    },
+    {
+      "scenario": "payout_list_empty",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "No payout has ever run for this partner.",
+      "operations": [
+        "listRiderPayouts",
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "empty"
+      ],
+      "file": "rider/payout_list_empty.json"
+    },
+    {
+      "scenario": "payout_paid",
+      "domain": "rider",
+      "schema": "Payout",
+      "describes": "Landed. **No minimum** for either partner type (contradiction log #16).",
+      "operations": [
+        "listRiderPayouts",
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-state-matrix",
+        "money"
+      ],
+      "file": "rider/payout_paid.json"
+    },
+    {
+      "scenario": "payout_ready",
+      "domain": "rider",
+      "schema": "Payout",
+      "describes": "Week closed, amount final, waiting for Monday's run.",
+      "operations": [
+        "listRiderPayouts",
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-state-matrix",
+        "money"
+      ],
+      "file": "rider/payout_ready.json"
+    },
+    {
+      "scenario": "payout_transferred",
+      "domain": "rider",
+      "schema": "Payout",
+      "describes": "Stripe accepted the transfer; not yet in the bank.",
+      "operations": [
+        "listRiderPayouts",
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-state-matrix",
+        "money"
+      ],
+      "file": "rider/payout_transferred.json"
+    },
+    {
+      "scenario": "payout_transferring",
+      "domain": "rider",
+      "schema": "Payout",
+      "describes": "Submitted to Stripe Connect.",
+      "operations": [
+        "listRiderPayouts",
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-state-matrix",
+        "money"
+      ],
+      "file": "rider/payout_transferring.json"
+    },
+    {
+      "scenario": "rider_availability_offline",
+      "domain": "rider",
+      "schema": "RiderAvailability",
+      "describes": "Rider is off shift. No offers will be sent.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "state-matrix"
+      ],
+      "file": "rider/rider_availability_offline.json"
+    },
+    {
+      "scenario": "rider_availability_on_delivery",
+      "domain": "rider",
+      "schema": "RiderAvailability",
+      "describes": "Carrying an order. Only one active delivery at a time (`ACTIVE_DELIVERY_IN_PROGRESS`).",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "state-matrix"
+      ],
+      "file": "rider/rider_availability_on_delivery.json"
+    },
+    {
+      "scenario": "rider_availability_online_idle",
+      "domain": "rider",
+      "schema": "RiderAvailability",
+      "describes": "Online, no assignment, waiting for an offer.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "state-matrix"
+      ],
+      "file": "rider/rider_availability_online_idle.json"
+    },
+    {
+      "scenario": "rider_availability_online_stale",
+      "domain": "rider",
+      "schema": "RiderAvailability",
+      "describes": "Online but the phone has not reported a position recently — offers are suppressed until it does.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "state-matrix"
+      ],
+      "file": "rider/rider_availability_online_stale.json"
+    },
+    {
+      "scenario": "rider_dashboard_active",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "A rider mid-shift with an assignment in progress and earnings accrued today.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider"
+      ],
+      "file": "rider/rider_dashboard_active.json"
+    },
+    {
+      "scenario": "rider_dashboard_zero_earnings",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "**A rider with zero earnings** — approved this morning, no deliveries yet. Every money field is 0 and every count is 0. The dashboard must read as 'not started', never as an error or a blank screen.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "edge",
+        "empty",
+        "money"
+      ],
+      "file": "rider/rider_dashboard_zero_earnings.json"
+    },
+    {
+      "scenario": "rider_me",
+      "domain": "rider",
+      "schema": "RiderMe",
+      "describes": "The rider's own bootstrap payload — identity, onboarding state, availability and what screen to land on.",
+      "operations": [
+        "getRiderMe"
+      ],
+      "status": 200,
+      "tags": [
+        "rider"
+      ],
+      "file": "rider/rider_me.json"
+    },
+    {
+      "scenario": "rider_position_ack",
+      "domain": "rider",
+      "schema": "RiderPositionAck",
+      "describes": "Acknowledgement of a batched position upload. Points older than the server's tolerance come back rejected (`STALE_POINT`) rather than silently dropped.",
+      "operations": [
+        "reportRiderPositions"
+      ],
+      "status": 202,
+      "tags": [
+        "rider"
+      ],
+      "file": "rider/rider_position_ack.json"
+    }
+  ],
+  "by_operation": {
+    "acceptOffer": [
+      "assignment_arrived_at_dropoff",
+      "assignment_arrived_at_pickup",
+      "assignment_assigned",
+      "assignment_cancelled_by_platform",
+      "assignment_delivered",
+      "assignment_en_route_to_dropoff",
+      "assignment_en_route_to_pickup",
+      "assignment_picked_up",
+      "assignment_reassigned",
+      "assignment_returned",
+      "assignment_returning",
+      "assignment_undeliverable"
+    ],
+    "acceptOrder": [
+      "restaurant_order_picked_up",
+      "restaurant_order_preparing",
+      "restaurant_order_ready_for_pickup",
+      "restaurant_order_rejected",
+      "restaurant_order_restaurant_pending"
+    ],
+    "addCartLine": [
+      "cart_single_line"
+    ],
+    "attachRestaurantDocument": [
+      "document_approved",
+      "document_expired",
+      "document_in_review",
+      "document_rejected",
+      "document_submitted",
+      "document_superseded"
+    ],
+    "cancelOrder": [
+      "order_arrived",
+      "order_authorized",
+      "order_cancelled",
+      "order_completed",
+      "order_created",
+      "order_delivered",
+      "order_disputed",
+      "order_failed",
+      "order_picked_up",
+      "order_preparing",
+      "order_ready_for_pickup",
+      "order_rejected",
+      "order_resolved",
+      "order_restaurant_pending"
+    ],
+    "cancelOrderAdmin": [
+      "order_admin_view_completed"
+    ],
+    "changePassword": [
+      "session_grant_customer"
+    ],
+    "clearCart": [
+      "cart_empty"
+    ],
+    "confirmUpload": [
+      "stored_object_deleted",
+      "stored_object_pending",
+      "stored_object_ready",
+      "stored_object_rejected"
+    ],
+    "createAddress": [
+      "addresses_list"
+    ],
+    "createAssignmentTransition": [
+      "assignment_arrived_at_dropoff",
+      "assignment_arrived_at_pickup",
+      "assignment_assigned",
+      "assignment_cancelled_by_platform",
+      "assignment_delivered",
+      "assignment_en_route_to_dropoff",
+      "assignment_en_route_to_pickup",
+      "assignment_picked_up",
+      "assignment_reassigned",
+      "assignment_returned",
+      "assignment_returning",
+      "assignment_undeliverable"
+    ],
+    "createCertificateViewUrl": [
+      "presigned_download"
+    ],
+    "createConnectAccount": [
+      "connect_status_complete"
+    ],
+    "createDocumentDownloadUrl": [
+      "presigned_download"
+    ],
+    "createPaymentMethodSetupIntent": [
+      "setup_intent"
+    ],
+    "createQuote": [
+      "quote_large_tip",
+      "quote_pickup",
+      "quote_single_line_minimum",
+      "quote_standard",
+      "quote_with_discount",
+      "quote_zero_tip"
+    ],
+    "createRealtimeTicket": [
+      "realtime_ticket"
+    ],
+    "createRefund": [
+      "refund_approved",
+      "refund_authorised",
+      "refund_cancelled",
+      "refund_declined",
+      "refund_failed",
+      "refund_pending_approval",
+      "refund_requested",
+      "refund_settled",
+      "refund_submitted",
+      "refund_succeeded"
+    ],
+    "createStaffUser": [
+      "staff_list"
+    ],
+    "createUpload": [
+      "presigned_upload"
+    ],
+    "decideHalalCertificate": [
+      "halal_certificate_status_approved",
+      "halal_certificate_status_expired",
+      "halal_certificate_status_pending",
+      "halal_certificate_status_rejected",
+      "halal_certificate_status_revoked",
+      "halal_certificate_status_superseded"
+    ],
+    "decideMenuVersion": [
+      "menu_version_approved",
+      "menu_version_draft",
+      "menu_version_pending_review",
+      "menu_version_rejected",
+      "menu_version_superseded",
+      "menu_version_withdrawn"
+    ],
+    "decideRestaurantApplication": [
+      "restaurant_application_pending_review"
+    ],
+    "decideRiderApplication": [
+      "rider_application_pending_review"
+    ],
+    "delayOrder": [
+      "restaurant_order_picked_up",
+      "restaurant_order_preparing",
+      "restaurant_order_ready_for_pickup",
+      "restaurant_order_rejected",
+      "restaurant_order_restaurant_pending"
+    ],
+    "getActiveOrder": [
+      "dispatch_assigned",
+      "dispatch_at_customer",
+      "dispatch_at_restaurant",
+      "dispatch_carrying",
+      "dispatch_completed",
+      "dispatch_no_rider_found",
+      "dispatch_offered",
+      "dispatch_pending",
+      "dispatch_searching",
+      "dispatch_unassigned",
+      "order_arrived",
+      "order_authorized",
+      "order_cancelled",
+      "order_completed",
+      "order_created",
+      "order_delivered",
+      "order_disputed",
+      "order_failed",
+      "order_no_active",
+      "order_picked_up",
+      "order_preparing",
+      "order_ready_for_pickup",
+      "order_rejected",
+      "order_resolved",
+      "order_restaurant_pending"
+    ],
+    "getAddress": [
+      "addresses_list"
+    ],
+    "getAssignment": [
+      "assignment_arrived_at_dropoff",
+      "assignment_arrived_at_pickup",
+      "assignment_assigned",
+      "assignment_cancelled_by_platform",
+      "assignment_delivered",
+      "assignment_en_route_to_dropoff",
+      "assignment_en_route_to_pickup",
+      "assignment_no_instructions_no_unit",
+      "assignment_otp_pod_required",
+      "assignment_picked_up",
+      "assignment_reassigned",
+      "assignment_returned",
+      "assignment_returning",
+      "assignment_undeliverable"
+    ],
+    "getCart": [
+      "cart_at_quantity_cap",
+      "cart_empty",
+      "cart_has_unavailable_items",
+      "cart_many_lines",
+      "cart_single_line"
+    ],
+    "getConnectStatus": [
+      "connect_status_complete",
+      "connect_status_requirements_due"
+    ],
+    "getCurrentOffer": [
+      "offer_expired",
+      "offer_none",
+      "offer_pending",
+      "offer_rejected",
+      "offer_taken_by_another",
+      "offer_withdrawn",
+      "offer_zero_tip_low_value"
+    ],
+    "getCurrentPrincipal": [
+      "principal_customer"
+    ],
+    "getCustomerProfile": [
+      "customer_profile"
+    ],
+    "getDependencyStatus": [
+      "dependency_report"
+    ],
+    "getHalalCertificate": [
+      "halal_certificate_expired",
+      "halal_certificate_expiring_tomorrow",
+      "halal_certificate_expiring_within_30_days",
+      "halal_certificate_status_approved",
+      "halal_certificate_status_expired",
+      "halal_certificate_status_pending",
+      "halal_certificate_status_rejected",
+      "halal_certificate_status_revoked",
+      "halal_certificate_status_superseded",
+      "halal_certificate_valid"
+    ],
+    "getHealth": [
+      "health_ok"
+    ],
+    "getHomeFeed": [
+      "feed_empty",
+      "feed_sections"
+    ],
+    "getOrder": [
+      "dispatch_assigned",
+      "dispatch_at_customer",
+      "dispatch_at_restaurant",
+      "dispatch_carrying",
+      "dispatch_completed",
+      "dispatch_no_rider_found",
+      "dispatch_offered",
+      "dispatch_pending",
+      "dispatch_searching",
+      "dispatch_unassigned",
+      "order_arrived",
+      "order_authorized",
+      "order_cancelled",
+      "order_completed",
+      "order_created",
+      "order_delivered",
+      "order_disputed",
+      "order_failed",
+      "order_large_tip",
+      "order_picked_up",
+      "order_pickup_no_address",
+      "order_preparing",
+      "order_ready_for_pickup",
+      "order_rejected",
+      "order_resolved",
+      "order_restaurant_pending",
+      "order_single_line",
+      "order_zero_tip"
+    ],
+    "getOrderAdmin": [
+      "order_admin_view_completed",
+      "order_admin_view_disputed",
+      "order_admin_view_failed_no_rider"
+    ],
+    "getOrderPayment": [
+      "payment_canceled",
+      "payment_failed",
+      "payment_processing",
+      "payment_requires_action",
+      "payment_requires_capture",
+      "payment_requires_confirmation",
+      "payment_requires_payment_method",
+      "payment_succeeded"
+    ],
+    "getOrderReceipt": [
+      "receipt_pickup_zero_tip",
+      "receipt_standard",
+      "receipt_with_refund"
+    ],
+    "getOrderTracking": [
+      "tracking_arrived",
+      "tracking_degraded_gps",
+      "tracking_delivered",
+      "tracking_picked_up",
+      "tracking_preparing",
+      "tracking_ready_for_pickup"
+    ],
+    "getOwnMenu": [
+      "owned_menu_with_pending_version"
+    ],
+    "getPublicConfig": [
+      "public_config"
+    ],
+    "getQuote": [
+      "quote_expired",
+      "quote_large_tip",
+      "quote_pickup",
+      "quote_standard",
+      "quote_with_discount",
+      "quote_zero_tip"
+    ],
+    "getReadiness": [
+      "readiness_ok"
+    ],
+    "getRefund": [
+      "refund_approved",
+      "refund_authorised",
+      "refund_cancelled",
+      "refund_declined",
+      "refund_failed",
+      "refund_full_never_delivered",
+      "refund_pending_approval",
+      "refund_requested",
+      "refund_settled",
+      "refund_submitted",
+      "refund_succeeded"
+    ],
+    "getRestaurant": [
+      "restaurant_detail_certified",
+      "restaurant_detail_closed",
+      "restaurant_detail_expired",
+      "restaurant_detail_expiring_soon",
+      "restaurant_detail_no_menu",
+      "restaurant_detail_unverified"
+    ],
+    "getRestaurantApplication": [
+      "restaurant_application_pending_review"
+    ],
+    "getRestaurantAvailability": [
+      "restaurant_open_state_closed_holiday",
+      "restaurant_open_state_closed_hours",
+      "restaurant_open_state_closed_offline",
+      "restaurant_open_state_closed_suspended",
+      "restaurant_open_state_closed_toggle",
+      "restaurant_open_state_open",
+      "restaurant_open_state_paused"
+    ],
+    "getRestaurantCertification": [
+      "certification_panel_certified",
+      "certification_panel_expired",
+      "certification_panel_expiring_soon",
+      "certification_panel_unverified"
+    ],
+    "getRestaurantHours": [
+      "restaurant_hours_standard"
+    ],
+    "getRestaurantMenu": [
+      "menu_empty",
+      "menu_full",
+      "menu_single_item"
+    ],
+    "getRestaurantOnboardingStatus": [
+      "restaurant_onboarding_active",
+      "restaurant_onboarding_documents_approved",
+      "restaurant_onboarding_documents_pending",
+      "restaurant_onboarding_documents_rejected",
+      "restaurant_onboarding_documents_review",
+      "restaurant_onboarding_email_verified",
+      "restaurant_onboarding_menu_pending",
+      "restaurant_onboarding_payout_pending",
+      "restaurant_onboarding_profile_pending",
+      "restaurant_onboarding_registered",
+      "restaurant_onboarding_withdrawn"
+    ],
+    "getRestaurantOrder": [
+      "restaurant_order_picked_up",
+      "restaurant_order_preparing",
+      "restaurant_order_ready_for_pickup",
+      "restaurant_order_rejected",
+      "restaurant_order_restaurant_pending"
+    ],
+    "getRestaurantProfile": [
+      "restaurant_profile"
+    ],
+    "getRiderApplication": [
+      "rider_application_pending_review"
+    ],
+    "getRiderDashboard": [
+      "rider_dashboard_active",
+      "rider_dashboard_zero_earnings"
+    ],
+    "getRiderEarningsSummary": [
+      "earnings_summary_week",
+      "earnings_summary_zero"
+    ],
+    "getRiderMe": [
+      "rider_me"
+    ],
+    "getRiderOnboardingStatus": [
+      "rider_onboarding_active",
+      "rider_onboarding_documents_approved",
+      "rider_onboarding_documents_pending",
+      "rider_onboarding_documents_rejected",
+      "rider_onboarding_documents_review",
+      "rider_onboarding_payout_pending",
+      "rider_onboarding_phone_verified",
+      "rider_onboarding_profile_pending",
+      "rider_onboarding_registered",
+      "rider_onboarding_vehicle_pending"
+    ],
+    "getRiderPayout": [
+      "payout_detail_paid"
+    ],
+    "issueRefund": [
+      "refund_approval_request_pending",
+      "refund_approved",
+      "refund_authorised",
+      "refund_cancelled",
+      "refund_declined",
+      "refund_failed",
+      "refund_goodwill_admin",
+      "refund_pending_approval",
+      "refund_requested",
+      "refund_settled",
+      "refund_submitted",
+      "refund_succeeded"
+    ],
+    "listAddresses": [
+      "addresses_empty",
+      "addresses_list"
+    ],
+    "listHalalIssuingBodies": [
+      "halal_issuing_bodies_empty",
+      "halal_issuing_body_accepted",
+      "halal_issuing_body_proposed",
+      "halal_issuing_body_rejected",
+      "halal_issuing_body_retired",
+      "halal_issuing_body_suspended"
+    ],
+    "listMenuReviewQueue": [
+      "menu_review_queue_empty",
+      "menu_version_approved",
+      "menu_version_draft",
+      "menu_version_pending_review",
+      "menu_version_rejected",
+      "menu_version_superseded",
+      "menu_version_withdrawn"
+    ],
+    "listNotifications": [
+      "notifications_empty",
+      "notifications_list"
+    ],
+    "listOrders": [
+      "order_list_active",
+      "order_list_empty",
+      "order_list_past"
+    ],
+    "listOrdersAdmin": [
+      "order_list_active",
+      "order_list_past"
+    ],
+    "listPaymentMethods": [
+      "payment_methods_at_limit",
+      "payment_methods_empty",
+      "payment_methods_list"
+    ],
+    "listRefunds": [
+      "refund_approved",
+      "refund_authorised",
+      "refund_cancelled",
+      "refund_declined",
+      "refund_failed",
+      "refund_list_empty",
+      "refund_pending_approval",
+      "refund_requested",
+      "refund_settled",
+      "refund_submitted",
+      "refund_succeeded"
+    ],
+    "listRestaurantApplications": [
+      "restaurant_application_queue",
+      "restaurant_application_queue_empty"
+    ],
+    "listRestaurantDocuments": [
+      "restaurant_document_pack_complete",
+      "restaurant_document_pack_empty",
+      "restaurant_document_pack_incomplete"
+    ],
+    "listRestaurantOrders": [
+      "restaurant_order_picked_up",
+      "restaurant_order_preparing",
+      "restaurant_order_queue_busy",
+      "restaurant_order_queue_empty",
+      "restaurant_order_ready_for_pickup",
+      "restaurant_order_rejected",
+      "restaurant_order_restaurant_pending"
+    ],
+    "listRestaurantPayouts": [
+      "payout_draft",
+      "payout_failed",
+      "payout_held",
+      "payout_list_empty",
+      "payout_paid",
+      "payout_ready",
+      "payout_transferred",
+      "payout_transferring"
+    ],
+    "listRestaurants": [
+      "restaurant_list_empty",
+      "restaurant_list_long_names",
+      "restaurant_list_missing_images",
+      "restaurant_list_populated",
+      "restaurant_list_single"
+    ],
+    "listRiderApplications": [
+      "rider_application_queue"
+    ],
+    "listRiderDocuments": [
+      "rider_document_pack_complete",
+      "rider_document_pack_rejected"
+    ],
+    "listRiderEarningEntries": [
+      "earning_entries_empty",
+      "earning_entries_mixed"
+    ],
+    "listRiderPayouts": [
+      "payout_draft",
+      "payout_failed",
+      "payout_held",
+      "payout_list_empty",
+      "payout_paid",
+      "payout_ready",
+      "payout_transferred",
+      "payout_transferring"
+    ],
+    "listStaff": [
+      "staff_list"
+    ],
+    "login": [
+      "session_grant_customer",
+      "session_next_route_active_delivery",
+      "session_next_route_app_update_required",
+      "session_next_route_home",
+      "session_next_route_onboarding_documents",
+      "session_next_route_onboarding_rejected",
+      "session_next_route_order_tracking",
+      "session_next_route_profile_capture",
+      "session_next_route_suspended"
+    ],
+    "markOrderReady": [
+      "restaurant_order_picked_up",
+      "restaurant_order_preparing",
+      "restaurant_order_ready_for_pickup",
+      "restaurant_order_rejected",
+      "restaurant_order_restaurant_pending"
+    ],
+    "proposeHalalIssuingBody": [
+      "halal_issuing_body_accepted",
+      "halal_issuing_body_proposed",
+      "halal_issuing_body_rejected",
+      "halal_issuing_body_retired",
+      "halal_issuing_body_suspended"
+    ],
+    "recordHalalChecks": [
+      "halal_certificate_status_approved",
+      "halal_certificate_status_expired",
+      "halal_certificate_status_pending",
+      "halal_certificate_status_rejected",
+      "halal_certificate_status_revoked",
+      "halal_certificate_status_superseded"
+    ],
+    "refreshSession": [
+      "session_grant_customer",
+      "session_next_route_active_delivery",
+      "session_next_route_app_update_required",
+      "session_next_route_home",
+      "session_next_route_onboarding_documents",
+      "session_next_route_onboarding_rejected",
+      "session_next_route_order_tracking",
+      "session_next_route_profile_capture",
+      "session_next_route_suspended"
+    ],
+    "registerRestaurant": [
+      "restaurant_registration"
+    ],
+    "rejectOrder": [
+      "restaurant_order_picked_up",
+      "restaurant_order_preparing",
+      "restaurant_order_ready_for_pickup",
+      "restaurant_order_rejected",
+      "restaurant_order_restaurant_pending"
+    ],
+    "reportRiderPositions": [
+      "rider_position_ack"
+    ],
+    "requestOtp": [
+      "otp_challenge"
+    ],
+    "reviewRestaurantDocument": [
+      "document_approved",
+      "document_expired",
+      "document_in_review",
+      "document_rejected",
+      "document_rejected_expired",
+      "document_rejected_illegible",
+      "document_rejected_name_mismatch",
+      "document_rejected_plate_mismatch",
+      "document_rejected_suspected_forgery",
+      "document_rejected_wrong_document_type",
+      "document_submitted",
+      "document_superseded"
+    ],
+    "reviewRiderDocument": [
+      "document_approved",
+      "document_expired",
+      "document_in_review",
+      "document_rejected",
+      "document_submitted",
+      "document_superseded"
+    ],
+    "search": [
+      "search_results_empty",
+      "search_results_populated"
+    ],
+    "sendRestaurantHeartbeat": [
+      "restaurant_heartbeat"
+    ],
+    "setDefaultAddress": [
+      "addresses_list"
+    ],
+    "setDefaultPaymentMethod": [
+      "payment_methods_list"
+    ],
+    "setHalalIssuingBodyStatus": [
+      "halal_issuing_body_accepted",
+      "halal_issuing_body_proposed",
+      "halal_issuing_body_rejected",
+      "halal_issuing_body_retired",
+      "halal_issuing_body_suspended"
+    ],
+    "setRestaurantAcceptingOrders": [
+      "restaurant_open_state_closed_holiday",
+      "restaurant_open_state_closed_hours",
+      "restaurant_open_state_closed_offline",
+      "restaurant_open_state_closed_suspended",
+      "restaurant_open_state_closed_toggle",
+      "restaurant_open_state_open",
+      "restaurant_open_state_paused"
+    ],
+    "setRestaurantHours": [
+      "restaurant_hours_standard"
+    ],
+    "setRiderAvailability": [
+      "rider_availability_offline",
+      "rider_availability_on_delivery",
+      "rider_availability_online_idle",
+      "rider_availability_online_stale"
+    ],
+    "submitProofOfDelivery": [
+      "assignment_arrived_at_dropoff",
+      "assignment_arrived_at_pickup",
+      "assignment_assigned",
+      "assignment_cancelled_by_platform",
+      "assignment_delivered",
+      "assignment_en_route_to_dropoff",
+      "assignment_en_route_to_pickup",
+      "assignment_otp_pod_required",
+      "assignment_picked_up",
+      "assignment_reassigned",
+      "assignment_returned",
+      "assignment_returning",
+      "assignment_undeliverable"
+    ],
+    "submitRestaurantDocuments": [
+      "restaurant_onboarding_active",
+      "restaurant_onboarding_documents_approved",
+      "restaurant_onboarding_documents_pending",
+      "restaurant_onboarding_documents_rejected",
+      "restaurant_onboarding_documents_review",
+      "restaurant_onboarding_email_verified",
+      "restaurant_onboarding_menu_pending",
+      "restaurant_onboarding_payout_pending",
+      "restaurant_onboarding_profile_pending",
+      "restaurant_onboarding_registered",
+      "restaurant_onboarding_withdrawn"
+    ],
+    "submitRestaurantProfile": [
+      "restaurant_profile"
+    ],
+    "submitRiderDocuments": [
+      "rider_onboarding_active",
+      "rider_onboarding_documents_approved",
+      "rider_onboarding_documents_pending",
+      "rider_onboarding_documents_rejected",
+      "rider_onboarding_documents_review",
+      "rider_onboarding_payout_pending",
+      "rider_onboarding_phone_verified",
+      "rider_onboarding_profile_pending",
+      "rider_onboarding_registered",
+      "rider_onboarding_vehicle_pending"
+    ],
+    "submitRiderProfile": [
+      "rider_profile"
+    ],
+    "submitRiderVehicle": [
+      "rider_vehicle_on_foot",
+      "rider_vehicle_scooter"
+    ],
+    "takeNextRestaurantApplication": [
+      "restaurant_application_none_to_take",
+      "restaurant_application_pending_review"
+    ],
+    "takeNextRiderApplication": [
+      "rider_application_none_to_take",
+      "rider_application_pending_review"
+    ],
+    "transcribeHalalCertificate": [
+      "halal_certificate_status_approved",
+      "halal_certificate_status_expired",
+      "halal_certificate_status_pending",
+      "halal_certificate_status_rejected",
+      "halal_certificate_status_revoked",
+      "halal_certificate_status_superseded"
+    ],
+    "updateAddress": [
+      "addresses_list"
+    ],
+    "updateCartLine": [
+      "cart_at_quantity_cap"
+    ],
+    "updateCustomerProfile": [
+      "customer_profile"
+    ],
+    "verifyEmail": [
+      "session_grant_customer"
+    ],
+    "verifyOtp": [
+      "session_grant_customer",
+      "session_next_route_active_delivery",
+      "session_next_route_app_update_required",
+      "session_next_route_home",
+      "session_next_route_onboarding_documents",
+      "session_next_route_onboarding_rejected",
+      "session_next_route_order_tracking",
+      "session_next_route_profile_capture",
+      "session_next_route_suspended"
+    ]
+  },
+  "defaults": {
+    "acceptOffer": "assignment_assigned",
+    "acceptOrder": "restaurant_order_preparing",
+    "addCartLine": "cart_single_line",
+    "attachRestaurantDocument": "document_submitted",
+    "cancelOrder": "order_cancelled",
+    "cancelOrderAdmin": "order_admin_view_completed",
+    "changePassword": "session_grant_customer",
+    "clearCart": "cart_empty",
+    "confirmUpload": "stored_object_ready",
+    "createAddress": "addresses_list",
+    "createAssignmentTransition": "assignment_picked_up",
+    "createCertificateViewUrl": "presigned_download",
+    "createConnectAccount": "connect_status_complete",
+    "createDocumentDownloadUrl": "presigned_download",
+    "createPaymentMethodSetupIntent": "setup_intent",
+    "createQuote": "quote_standard",
+    "createRealtimeTicket": "realtime_ticket",
+    "createRefund": "refund_requested",
+    "createStaffUser": "staff_list",
+    "createUpload": "presigned_upload",
+    "decideHalalCertificate": "halal_certificate_status_approved",
+    "decideMenuVersion": "menu_version_approved",
+    "decideRestaurantApplication": "restaurant_application_pending_review",
+    "decideRiderApplication": "rider_application_pending_review",
+    "delayOrder": "restaurant_order_preparing",
+    "getActiveOrder": "order_preparing",
+    "getAddress": "addresses_list",
+    "getAssignment": "assignment_en_route_to_dropoff",
+    "getCart": "cart_many_lines",
+    "getConnectStatus": "connect_status_complete",
+    "getCurrentOffer": "offer_pending",
+    "getCurrentPrincipal": "principal_customer",
+    "getCustomerProfile": "customer_profile",
+    "getDependencyStatus": "dependency_report",
+    "getHalalCertificate": "halal_certificate_valid",
+    "getHealth": "health_ok",
+    "getHomeFeed": "feed_sections",
+    "getOrder": "order_preparing",
+    "getOrderAdmin": "order_admin_view_completed",
+    "getOrderPayment": "payment_succeeded",
+    "getOrderReceipt": "receipt_standard",
+    "getOrderTracking": "tracking_picked_up",
+    "getOwnMenu": "owned_menu_with_pending_version",
+    "getPublicConfig": "public_config",
+    "getQuote": "quote_standard",
+    "getReadiness": "readiness_ok",
+    "getRefund": "refund_settled",
+    "getRestaurant": "restaurant_detail_certified",
+    "getRestaurantApplication": "restaurant_application_pending_review",
+    "getRestaurantAvailability": "restaurant_open_state_open",
+    "getRestaurantCertification": "certification_panel_certified",
+    "getRestaurantHours": "restaurant_hours_standard",
+    "getRestaurantMenu": "menu_full",
+    "getRestaurantOnboardingStatus": "restaurant_onboarding_active",
+    "getRestaurantOrder": "restaurant_order_preparing",
+    "getRestaurantProfile": "restaurant_profile",
+    "getRiderApplication": "rider_application_pending_review",
+    "getRiderDashboard": "rider_dashboard_active",
+    "getRiderEarningsSummary": "earnings_summary_week",
+    "getRiderMe": "rider_me",
+    "getRiderOnboardingStatus": "rider_onboarding_active",
+    "getRiderPayout": "payout_detail_paid",
+    "issueRefund": "refund_goodwill_admin",
+    "listAddresses": "addresses_list",
+    "listHalalIssuingBodies": "halal_issuing_body_accepted",
+    "listMenuReviewQueue": "menu_version_pending_review",
+    "listNotifications": "notifications_list",
+    "listOrders": "order_list_active",
+    "listOrdersAdmin": "order_list_past",
+    "listPaymentMethods": "payment_methods_list",
+    "listRefunds": "refund_list_empty",
+    "listRestaurantApplications": "restaurant_application_queue",
+    "listRestaurantDocuments": "restaurant_document_pack_complete",
+    "listRestaurantOrders": "restaurant_order_queue_busy",
+    "listRestaurantPayouts": "payout_paid",
+    "listRestaurants": "restaurant_list_populated",
+    "listRiderApplications": "rider_application_queue",
+    "listRiderDocuments": "rider_document_pack_complete",
+    "listRiderEarningEntries": "earning_entries_mixed",
+    "listRiderPayouts": "payout_paid",
+    "listStaff": "staff_list",
+    "login": "session_grant_customer",
+    "markOrderReady": "restaurant_order_ready_for_pickup",
+    "proposeHalalIssuingBody": "halal_issuing_body_accepted",
+    "recordHalalChecks": "halal_certificate_status_approved",
+    "refreshSession": "session_grant_customer",
+    "registerRestaurant": "restaurant_registration",
+    "rejectOrder": "restaurant_order_rejected",
+    "reportRiderPositions": "rider_position_ack",
+    "requestOtp": "otp_challenge",
+    "reviewRestaurantDocument": "document_approved",
+    "reviewRiderDocument": "document_approved",
+    "search": "search_results_populated",
+    "sendRestaurantHeartbeat": "restaurant_heartbeat",
+    "setDefaultAddress": "addresses_list",
+    "setDefaultPaymentMethod": "payment_methods_list",
+    "setHalalIssuingBodyStatus": "halal_issuing_body_accepted",
+    "setRestaurantAcceptingOrders": "restaurant_open_state_open",
+    "setRestaurantHours": "restaurant_hours_standard",
+    "setRiderAvailability": "rider_availability_online_idle",
+    "submitProofOfDelivery": "assignment_delivered",
+    "submitRestaurantDocuments": "restaurant_onboarding_documents_review",
+    "submitRestaurantProfile": "restaurant_profile",
+    "submitRiderDocuments": "rider_onboarding_documents_review",
+    "submitRiderProfile": "rider_profile",
+    "submitRiderVehicle": "rider_vehicle_scooter",
+    "takeNextRestaurantApplication": "restaurant_application_pending_review",
+    "takeNextRiderApplication": "rider_application_pending_review",
+    "transcribeHalalCertificate": "halal_certificate_status_pending",
+    "updateAddress": "addresses_list",
+    "updateCartLine": "cart_at_quantity_cap",
+    "updateCustomerProfile": "customer_profile",
+    "verifyEmail": "session_grant_customer",
+    "verifyOtp": "session_grant_customer"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "scenario": "certification_panel_expiring_soon",
+  "domain": "halal",
+  "schema": "CertificationPanel",
+  "describes": "The customer-facing certification panel in `EXPIRING_SOON`.",
+  "operations": [
+    "getRestaurantCertification"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "display_state": "EXPIRING_SOON",
+    "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+    "certificate_number": "HMA-ON-40182",
+    "scope": "WHOLE_ESTABLISHMENT",
+    "issued_on": "2026-03-09",
+    "expires_on": "2026-08-28",
+    "verified_at": "2026-03-11T18:42:11.412Z",
+    "certificate_viewable": true,
+    "disclaimer": "Certification verified by Halal Goes on 9 March 2026. Halal Goes does not itself certify food."
+  }
+}

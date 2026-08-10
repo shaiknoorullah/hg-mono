@@ -1,0 +1,117 @@
+{
+  "scenario": "restaurant_list_long_names",
+  "domain": "catalogue",
+  "schema": "array<RestaurantCard>",
+  "describes": "Names and cuisine lists that overflow one line at every breakpoint. Truncation, wrapping and the accessible full name all have to survive this.",
+  "operations": [
+    "listRestaurants"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "overflow"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 3
+  },
+  "payload": [
+    {
+      "id": "71225c75-3c7d-4334-a444-70c2084f5469",
+      "name": "The Original Charcoal-Grilled Chicken Shawarma & Mediterranean Family Restaurant of Mississauga (Hurontario at Dundas)",
+      "slug": "the-original-charcoal-grilled-chicken-shawarma-and-mediterra",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/al-noor-shawarma-house.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/al-noor-shawarma-house.webp",
+      "cuisines": [
+        "Mediterranean",
+        "Middle Eastern",
+        "Shawarma",
+        "Charcoal Grill",
+        "Family Style",
+        "Halal"
+      ],
+      "rating_avg": 4.6,
+      "rating_count": 1183,
+      "price_band": "$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 2140,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "b1fcf360-9a59-4b3a-adf6-d7a703ac00ce",
+      "name": "Tandoori Flame — Bramalea City Centre (Upper Level, Food Court Entrance)",
+      "slug": "tandoori-flame",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/tandoori-flame.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/tandoori-flame.webp",
+      "cuisines": [
+        "Indian",
+        "Tandoori",
+        "Halal"
+      ],
+      "rating_avg": 4.2,
+      "rating_count": 38,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 4960,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "slug": "karachi-kitchen",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 1200,
+        "out_of_range_reason": null
+      }
+    }
+  ]
+}

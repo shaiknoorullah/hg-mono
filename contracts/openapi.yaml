@@ -250,7 +250,7 @@ paths:
         (`rider-app` → `RIDER`, `customer-app` → `CUSTOMER`). It is never trusted for
         authorization.
 
-        Fails closed (`503 rate_limiter_unavailable`) when Redis is unreachable — this and
+        Fails closed (`503 RATE_LIMITER_UNAVAILABLE`) when Redis is unreachable — this and
         `verifyOtp` are the two endpoints where fail-open is unacceptable.
       security: []
       x-roles: [PUBLIC]
@@ -291,7 +291,7 @@ paths:
       summary: Verify a phone OTP challenge and issue a session
       description: |
         P-02. Consumes the challenge with a single conditional `UPDATE`. Zero rows ⇒
-        `otp_invalid_or_expired`; wrong code ⇒ `otp_incorrect` with `attempts_remaining`.
+        `OTP_INVALID_OR_EXPIRED`; wrong code ⇒ `OTP_INCORRECT` with `attempts_remaining`.
         On success the account is found or created by phone, `phone_verified_at` is set,
         the audience-appropriate role is granted, and a session is issued (P-04).
 
@@ -459,7 +459,7 @@ paths:
       description: |
         P-03. Argon2id verification, account status check, role auth-policy check, TOTP
         when enrolled or required. Wrong email, wrong password and unverified email all
-        return the same `401 invalid_credentials` body; the unverified case additionally
+        return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
         sets `error.details.email_verification_required` **only after** the credentials
         were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
       security: []
@@ -508,7 +508,7 @@ paths:
       summary: Exchange a refresh token for a new token pair
       description: |
         P-04. Rotating with reuse detection: presenting an already-rotated token revokes
-        the entire session family and returns `refresh_reuse_detected`. Roles are re-read
+        the entire session family and returns `REFRESH_REUSE_DETECTED`. Roles are re-read
         from `account_role` on every refresh. Web surfaces send the token in the `hg_rt`
         cookie and must supply the `X-HG-CSRF` double-submit header; native clients send it
         in the body.
@@ -804,7 +804,7 @@ paths:
       operationId: disableTotp
       tags: [auth]
       summary: Disable TOTP (step-up required)
-      description: 'Refused for roles whose policy requires TOTP (`403 mfa_required`).'
+      description: 'Refused for roles whose policy requires TOTP (`403 MFA_REQUIRED`).'
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
       x-version: V1
       requestBody:
@@ -1655,8 +1655,8 @@ paths:
                     $ref: '#/components/schemas/Cart'
         '409':
           description: |
-            `DIFFERENT_RESTAURANT`, `item_unavailable`, `VARIANT_UNAVAILABLE`,
-            `ADDON_UNAVAILABLE` or `restaurant_closed`. The cart is unchanged.
+            `DIFFERENT_RESTAURANT`, `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`,
+            `ADDON_UNAVAILABLE` or `RESTAURANT_CLOSED`. The cart is unchanged.
           content:
             application/json:
               schema:
@@ -1746,7 +1746,7 @@ paths:
         its only entry point. The request carries the cart, the delivery address, the
         fulfilment mode and `tip_cents` — the single customer-chosen monetary input. It
         carries **no price, total, fee, subtotal, tax or discount field**; those names are
-        rejected at the boundary with `422 unknown_field`.
+        rejected at the boundary with `422 UNKNOWN_FIELD`.
 
         The persisted quote expires in **10 minutes** and its `id` is the only thing
         `createOrder` accepts. Every surface — cart screen, checkout screen, payment,
@@ -1781,14 +1781,14 @@ paths:
                     $ref: '#/components/schemas/Quote'
         '409':
           description: |
-            `cart_has_unavailable_items`, `restaurant_closed`, `restaurant_unavailable`,
+            `CART_HAS_UNAVAILABLE_ITEMS`, `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE`,
             `BELOW_MINIMUM_ORDER` or `ADDRESS_OUT_OF_RANGE`.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`validation_failed`, `unknown_field`, `tax_profile_missing`, `province_not_served`.'
+          description: '`VALIDATION_FAILED`, `UNKNOWN_FIELD`, `TAX_PROFILE_MISSING`, `PROVINCE_NOT_SERVED`.'
           content:
             application/json:
               schema:
@@ -1841,9 +1841,9 @@ paths:
         `Quote()` and compares it to the stored quote:
 
         * identical ⇒ proceed;
-        * different ⇒ `409 quote_stale` with the freshly computed quote in
+        * different ⇒ `409 QUOTE_STALE` with the freshly computed quote in
           `error.details.quote`, and **no PaymentIntent is created**;
-        * expired ⇒ `409 quote_expired`.
+        * expired ⇒ `409 QUOTE_EXPIRED`.
 
         On success, one transaction creates the order in `CREATED`, its lines and add-ons,
         the `payment_intent` row and the outbox event; then the Stripe PaymentIntent is
@@ -1881,22 +1881,22 @@ paths:
                   data:
                     $ref: '#/components/schemas/OrderCreated'
         '400':
-          description: '`idempotency_key_required`.'
+          description: '`IDEMPOTENCY_KEY_REQUIRED`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: |
-            `quote_stale` (with `details.quote`), `quote_expired`,
-            `cart_has_unavailable_items`, `ACTIVE_ORDER_EXISTS`, `restaurant_unavailable`,
-            `idempotency_key_reuse`, `idempotency_in_progress`.
+            `QUOTE_STALE` (with `details.quote`), `QUOTE_EXPIRED`,
+            `CART_HAS_UNAVAILABLE_ITEMS`, `ACTIVE_ORDER_EXISTS`, `RESTAURANT_UNAVAILABLE`,
+            `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`unknown_field` (any price-shaped field), `validation_failed`, `PROFILE_INCOMPLETE`.'
+          description: '`UNKNOWN_FIELD` (any price-shaped field), `VALIDATION_FAILED`, `PROFILE_INCOMPLETE`.'
           content:
             application/json:
               schema:
@@ -2092,7 +2092,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/OrderCustomerView'
         '409':
-          description: '`CANCELLATION_WINDOW_CLOSED` or `illegal_transition`.'
+          description: '`CANCELLATION_WINDOW_CLOSED` or `ILLEGAL_TRANSITION`.'
           content:
             application/json:
               schema:
@@ -2371,7 +2371,7 @@ paths:
                     $ref: '#/components/schemas/Refund'
         '409':
           description: |
-            `refund_exceeds_captured`, `REFUND_WINDOW_CLOSED`, `REFUND_ALREADY_REQUESTED`,
+            `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `REFUND_ALREADY_REQUESTED`,
             `PAYMENT_NOT_REFUNDABLE`.
           content:
             application/json:
@@ -2531,7 +2531,7 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
         '422':
-          description: '`content_type_mismatch`, `checksum_mismatch`, `image_too_small`.'
+          description: '`CONTENT_TYPE_MISMATCH`, `CHECKSUM_MISMATCH`, `IMAGE_TOO_SMALL`.'
           content:
             application/json:
               schema:
@@ -2600,7 +2600,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/ConnectStatus'
         '409':
-          description: '`step_not_available` — the partner is not yet approved.'
+          description: '`STEP_NOT_AVAILABLE` — the partner is not yet approved.'
           content:
             application/json:
               schema:
@@ -2727,7 +2727,7 @@ paths:
 
         Server-controlled fields (`is_approved`, `account_state`, `commission_rate_bps`,
         `halal_status`, anything `_cents`) do not exist on this DTO; sending one is
-        `422 unknown_field`.
+        `422 UNKNOWN_FIELD`.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
       x-version: V0
       requestBody:
@@ -2750,9 +2750,9 @@ paths:
                     $ref: '#/components/schemas/RestaurantProfile'
         '422':
           description: |
-            `coordinates_outside_service_area`, `unsupported_country`,
-            `invalid_gst_hst_number`, `non_canadian_number`, `validation_failed`,
-            `unknown_field`.
+            `COORDINATES_OUTSIDE_SERVICE_AREA`, `UNSUPPORTED_COUNTRY`,
+            `INVALID_GST_HST_NUMBER`, `NON_CANADIAN_NUMBER`, `VALIDATION_FAILED`,
+            `UNKNOWN_FIELD`.
           content:
             application/json:
               schema:
@@ -2787,7 +2787,7 @@ paths:
       description: |
         R-06. Hours are evaluated in the restaurant's own IANA timezone, never the server's.
         Intervals crossing midnight are supported. Quoting outside the trading window fails
-        with `restaurant_closed`, so hours are enforced rather than merely stored.
+        with `RESTAURANT_CLOSED`, so hours are enforced rather than merely stored.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
       x-version: V0
       requestBody:
@@ -2873,13 +2873,13 @@ paths:
                   data:
                     $ref: '#/components/schemas/KycDocument'
         '409':
-          description: '`document_locked_for_review`, `step_not_available`.'
+          description: '`DOCUMENT_LOCKED_FOR_REVIEW`, `STEP_NOT_AVAILABLE`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`document_already_expired`, `unrecognised_certifier`.'
+          description: '`DOCUMENT_ALREADY_EXPIRED`, `UNRECOGNISED_CERTIFIER`.'
           content:
             application/json:
               schema:
@@ -2893,7 +2893,7 @@ paths:
       summary: Submit the document pack for admin review
       description: |
         R-08. Requires all four required `doc_type`s to have a current `SUBMITTED` row,
-        otherwise `422 incomplete_document_pack` naming the missing types. Idempotent: a
+        otherwise `422 INCOMPLETE_DOCUMENT_PACK` naming the missing types. Idempotent: a
         second submit while already in review returns the existing task. Documents are
         immutable while `IN_REVIEW`.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
@@ -2913,7 +2913,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/RestaurantOnboardingStatus'
         '422':
-          description: '`incomplete_document_pack` with `details.missing[]`.'
+          description: '`INCOMPLETE_DOCUMENT_PACK` with `details.missing[]`.'
           content:
             application/json:
               schema:
@@ -2977,7 +2977,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
         '409':
-          description: '`category_name_taken`.'
+          description: '`CATEGORY_NAME_TAKEN`.'
           content:
             application/json:
               schema:
@@ -3022,13 +3022,13 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`field_not_writable` — e.g. asserting `HALAL_CERTIFIED`.'
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`price_out_of_range`, `prohibited_ingredient`, `validation_failed`.'
+          description: '`PRICE_OUT_OF_RANGE`, `PROHIBITED_INGREDIENT`, `VALIDATION_FAILED`.'
           content:
             application/json:
               schema:
@@ -3107,7 +3107,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`item_blocked_by_admin` with the admin''s reason.'
+          description: '`ITEM_BLOCKED_BY_ADMIN` with the admin''s reason.'
           content:
             application/json:
               schema:
@@ -3149,7 +3149,7 @@ paths:
       description: |
         R-22. The field is spelled `is_accepting_orders` in the request body, the response
         body, the database column and the event payload — nowhere is `is_accepting` or
-        `isAccepting` accepted, and sending either is `422 unknown_field` rather than a
+        `isAccepting` accepted, and sending either is `422 UNKNOWN_FIELD` rather than a
         cheerful 200 over an unchanged row. The response is read back from the persisted row
         after the write, so a no-op write is impossible to mistake for a success.
 
@@ -3300,11 +3300,11 @@ paths:
         the authorisation for exactly `order.total_cents`, and create the dispatch row.
 
         If capture fails permanently the order does **not** enter `PREPARING`: it reaches
-        `CANCELLED` with `cancel_reason=capture_failed`, no dispatch is enqueued, and the
+        `CANCELLED` with `cancel_reason=CAPTURE_FAILED`, no dispatch is enqueued, and the
         restaurant is told specifically that payment failed. There is no path on which a
         failed money operation lets the flow continue.
 
-        Expiry is server-authoritative. A late accept is `409 offer_expired` with the final
+        Expiry is server-authoritative. A late accept is `409 OFFER_EXPIRED` with the final
         state — never a partial success. Closing the dialog, refreshing, or losing the
         socket never rejects an order.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
@@ -3332,7 +3332,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/OrderRestaurantView'
         '409':
-          description: '`offer_expired`, `illegal_transition`, `capture_failed`.'
+          description: '`OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`.'
           content:
             application/json:
               schema:
@@ -3409,7 +3409,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/OrderRestaurantView'
         '409':
-          description: '`illegal_transition` with `details.allowed[]`.'
+          description: '`ILLEGAL_TRANSITION` with `details.allowed[]`.'
           content:
             application/json:
               schema:
@@ -3452,7 +3452,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/OrderRestaurantView'
         '409':
-          description: '`delay_limit_reached`, `delay_not_allowed_in_status`.'
+          description: '`DELAY_LIMIT_REACHED`, `DELAY_NOT_ALLOWED_IN_STATUS`.'
           content:
             application/json:
               schema:
@@ -3650,7 +3650,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/KycDocument'
         '422':
-          description: '`DOCUMENT_EXPIRES_TOO_SOON`, `content_type_mismatch`.'
+          description: '`DOCUMENT_EXPIRES_TOO_SOON`, `CONTENT_TYPE_MISMATCH`.'
           content:
             application/json:
               schema:
@@ -5107,7 +5107,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemVersion'
         '409':
-          description: '`item_deleted`, `ALREADY_DECIDED`.'
+          description: '`ITEM_DELETED`, `ALREADY_DECIDED`.'
           content:
             application/json:
               schema:
@@ -5341,14 +5341,14 @@ paths:
                   data:
                     $ref: '#/components/schemas/RefundApprovalRequest'
         '400':
-          description: '`idempotency_key_required`.'
+          description: '`IDEMPOTENCY_KEY_REQUIRED`.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: |
-            `refund_exceeds_captured`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
+            `REFUND_EXCEEDS_CAPTURED`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
             `PAYMENT_NOT_REFUNDABLE`.
           content:
             application/json:
@@ -5432,7 +5432,7 @@ components:
         `(account_id, method, path_template, key)`. Two concurrent requests with the same key
         produce exactly one business effect; a replay returns the original status and body
         byte-identically with `Idempotency-Replayed: true`; the same key with a different body
-        is `409 idempotency_key_reuse`, never a silent replay of the wrong result. The record
+        is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
         is written in the same transaction as the business effect and expires after 24 h.
       schema:
         type: string
@@ -5579,7 +5579,7 @@ components:
       pattern: '^\+[1-9][0-9]{7,14}$'
       description: |
         Full E.164 including the `+` and the country code. **No country prefix is ever
-        prepended by the server** — a number without `+` is `422 invalid_phone`.
+        prepended by the server** — a number without `+` is `422 INVALID_PHONE`.
       examples: ['+14165550123']
     Password:
       type: string
@@ -5596,10 +5596,13 @@ components:
       description: 'Canadian FSA/LDU, stored uppercased with a single space.'
     Province:
       type: string
-      enum: [AB, BC, MB, NB, NL, NS, NT, NU, ON, PE, QC, SK, YT]
+      # NOTE: every member is quoted. Unquoted `ON` is a YAML 1.1 boolean (`true`) in
+      # PyYAML/libyaml — Ontario, the only province served at launch, silently became `true`
+      # for every YAML-1.1 consumer while YAML-1.2 consumers (the JS toolchain) read `"ON"`.
+      enum: ['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT']
       description: |
         ISO 3166-2:CA subdivision. Drives the tax profile (place of supply). Ontario only is
-        served at launch; other provinces are rejected at quote time with `province_not_served`
+        served at launch; other provinces are rejected at quote time with `PROVINCE_NOT_SERVED`
         even though the tax engine carries every rate.
     Timezone:
       type: string
@@ -5650,17 +5653,17 @@ components:
             details:
               description: |
                 Code-specific structured detail. Documented shapes:
-                `validation_failed` → `[{field, code, message}]`;
-                `quote_stale` → `{quote: Quote}`;
-                `illegal_transition` → `{from, to, allowed: [OrderState]}`;
+                `VALIDATION_FAILED` → `[{field, code, message}]`;
+                `QUOTE_STALE` → `{quote: Quote}`;
+                `ILLEGAL_TRANSITION` → `{from, to, allowed: [OrderState]}`;
                 `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
-                `cart_has_unavailable_items` → `{line_ids: [uuid]}`;
-                `incomplete_document_pack` → `{missing: [doc_type]}`;
+                `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
+                `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
                 `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
                 `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                 `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
                 `POD_REQUIRED` → `{required_pod_method}`;
-                `rate_limited` → `{retry_after_seconds}`.
+                `RATE_LIMITED` → `{retry_after_seconds}`.
               oneOf:
                 - type: object
                   additionalProperties: true
@@ -5688,56 +5691,64 @@ components:
     ErrorCode:
       type: string
       description: |
-        **The closed set of error codes.** Clients branch on this value. The casing is
-        inconsistent across the specification — the platform spec uses `snake_case`
-        (`quote_stale`) while the customer, rider and admin specs use `SCREAMING_SNAKE`
-        (`DIFFERENT_RESTAURANT`, `OFFER_ALREADY_TAKEN`). Both spellings are reproduced here
-        **verbatim as the specs name them** rather than silently normalised; see
-        `contracts/README.md` §"Spec contradictions", item 3.
+        **The closed set of error codes.** Clients branch on this value, never on
+        `error.message`.
+
+        **Casing is `SCREAMING_SNAKE_CASE`, without exception.** The five domain specs
+        disagreed — the platform spec wrote `snake_case` (`quote_stale`) while the customer,
+        rider and admin specs wrote `SCREAMING_SNAKE` (`DIFFERENT_RESTAURANT`,
+        `OFFER_ALREADY_TAKEN`). That contradiction is now **resolved by normalisation**: every
+        member is upper-cased, and the three pairs that collided once cased alike
+        (`otp_incorrect`/`OTP_INCORRECT`, `offer_expired`/`OFFER_EXPIRED`,
+        `province_not_served`/`PROVINCE_NOT_SERVED`) are collapsed to one member each. See
+        `contracts/README.md` §"Spec contradictions", item 3 (RESOLVED).
+
+        To map a spec that still names a code in `snake_case`, upper-case it. No other
+        transformation was applied — no code was renamed, split or dropped.
       enum:
         # --- transport / boundary -------------------------------------------------
-        - internal_error
-        - timeout
-        - payload_too_large
-        - origin_not_allowed
-        - csrf_origin_rejected
-        - rate_limited
-        - rate_limiter_unavailable
-        - validation_failed
-        - unknown_field
-        - invalid_field
-        - invalid_enum_value
-        - not_found
-        - forbidden
-        - permission_denied
-        - authentication_required
-        - method_not_allowed
-        - unsupported_media_type
+        - INTERNAL_ERROR
+        - TIMEOUT
+        - PAYLOAD_TOO_LARGE
+        - ORIGIN_NOT_ALLOWED
+        - CSRF_ORIGIN_REJECTED
+        - RATE_LIMITED
+        - RATE_LIMITER_UNAVAILABLE
+        - VALIDATION_FAILED
+        - UNKNOWN_FIELD
+        - INVALID_FIELD
+        - INVALID_ENUM_VALUE
+        - NOT_FOUND
+        - FORBIDDEN
+        - PERMISSION_DENIED
+        - AUTHENTICATION_REQUIRED
+        - METHOD_NOT_ALLOWED
+        - UNSUPPORTED_MEDIA_TYPE
         # --- idempotency ----------------------------------------------------------
-        - idempotency_key_required
-        - idempotency_key_reuse
-        - idempotency_in_progress
-        - idempotency_conflict
+        - IDEMPOTENCY_KEY_REQUIRED
+        - IDEMPOTENCY_KEY_REUSE
+        - IDEMPOTENCY_IN_PROGRESS
+        - IDEMPOTENCY_CONFLICT
         # --- identity / session ---------------------------------------------------
-        - otp_invalid_or_expired
-        - otp_incorrect
-        - invalid_phone
-        - unsupported_country
-        - invalid_credentials
-        - email_not_verified
-        - email_already_registered
-        - terms_version_stale
-        - breached_password
-        - account_temporarily_locked
-        - account_locked
-        - session_revoked
-        - session_expired
-        - refresh_reuse_detected
-        - token_consumed
-        - verification_token_expired
-        - verification_token_used
-        - mfa_required
-        - last_owner_required
+        - OTP_INVALID_OR_EXPIRED
+        - OTP_INCORRECT
+        - INVALID_PHONE
+        - UNSUPPORTED_COUNTRY
+        - INVALID_CREDENTIALS
+        - EMAIL_NOT_VERIFIED
+        - EMAIL_ALREADY_REGISTERED
+        - TERMS_VERSION_STALE
+        - BREACHED_PASSWORD
+        - ACCOUNT_TEMPORARILY_LOCKED
+        - ACCOUNT_LOCKED
+        - SESSION_REVOKED
+        - SESSION_EXPIRED
+        - REFRESH_REUSE_DETECTED
+        - TOKEN_CONSUMED
+        - VERIFICATION_TOKEN_EXPIRED
+        - VERIFICATION_TOKEN_USED
+        - MFA_REQUIRED
+        - LAST_OWNER_REQUIRED
         - ACCOUNT_SUSPENDED
         - ACCOUNT_DEACTIVATED
         - ACCOUNT_NOT_ACTIVE
@@ -5745,10 +5756,10 @@ components:
         - ONBOARDING_INCOMPLETE
         - PROFILE_INCOMPLETE
         # --- catalogue / cart -----------------------------------------------------
-        - restaurant_closed
-        - restaurant_unavailable
-        - item_unavailable
-        - cart_has_unavailable_items
+        - RESTAURANT_CLOSED
+        - RESTAURANT_UNAVAILABLE
+        - ITEM_UNAVAILABLE
+        - CART_HAS_UNAVAILABLE_ITEMS
         - DIFFERENT_RESTAURANT
         - VARIANT_UNAVAILABLE
         - ADDON_UNAVAILABLE
@@ -5759,13 +5770,12 @@ components:
         - PROVINCE_NOT_SERVED
         - FAVOURITES_LIMIT
         # --- pricing / money ------------------------------------------------------
-        - quote_stale
-        - quote_expired
-        - tax_profile_missing
-        - province_not_served
+        - QUOTE_STALE
+        - QUOTE_EXPIRED
+        - TAX_PROFILE_MISSING
         - PRICE_CHANGED
         - BLOCKED_PRICE_CHANGED
-        - refund_exceeds_captured
+        - REFUND_EXCEEDS_CAPTURED
         - PAYMENT_NOT_REFUNDABLE
         - REFUND_WINDOW_CLOSED
         - REFUND_ALREADY_REQUESTED
@@ -5775,17 +5785,16 @@ components:
         - PAYMENT_METHOD_LIMIT
         - PAYMENT_METHOD_IN_USE
         - PAYMENT_METHOD_INVALID
-        - capture_failed
-        - ledger_batch_unbalanced
+        - CAPTURE_FAILED
+        - LEDGER_BATCH_UNBALANCED
         # --- order state machine --------------------------------------------------
-        - illegal_transition
-        - illegal_status_transition
-        - transition_not_permitted_for_actor
-        - offer_expired
+        - ILLEGAL_TRANSITION
+        - ILLEGAL_STATUS_TRANSITION
+        - TRANSITION_NOT_PERMITTED_FOR_ACTOR
         - ACTIVE_ORDER_EXISTS
         - CANCELLATION_WINDOW_CLOSED
-        - delay_limit_reached
-        - delay_not_allowed_in_status
+        - DELAY_LIMIT_REACHED
+        - DELAY_NOT_ALLOWED_IN_STATUS
         # --- dispatch -------------------------------------------------------------
         - OFFER_ALREADY_TAKEN
         - OFFER_EXPIRED
@@ -5800,31 +5809,30 @@ components:
         - STALE_POINT
         - POD_REQUIRED
         - POD_METHOD_MISMATCH
-        - OTP_INCORRECT
         - OTP_LOCKED
         - CONTACT_WINDOW_CLOSED
         # --- onboarding / documents ----------------------------------------------
-        - step_not_available
-        - illegal_state_transition
-        - incomplete_document_pack
-        - document_locked_for_review
-        - document_already_expired
-        - content_type_mismatch
-        - checksum_mismatch
-        - image_too_small
-        - upload_not_found
-        - unrecognised_certifier
-        - coordinates_outside_service_area
-        - invalid_gst_hst_number
-        - non_canadian_number
-        - price_out_of_range
-        - prohibited_ingredient
-        - field_not_writable
-        - category_name_taken
-        - category_not_empty
-        - item_blocked_by_admin
-        - item_deleted
-        - no_live_menu_item
+        - STEP_NOT_AVAILABLE
+        - ILLEGAL_STATE_TRANSITION
+        - INCOMPLETE_DOCUMENT_PACK
+        - DOCUMENT_LOCKED_FOR_REVIEW
+        - DOCUMENT_ALREADY_EXPIRED
+        - CONTENT_TYPE_MISMATCH
+        - CHECKSUM_MISMATCH
+        - IMAGE_TOO_SMALL
+        - UPLOAD_NOT_FOUND
+        - UNRECOGNISED_CERTIFIER
+        - COORDINATES_OUTSIDE_SERVICE_AREA
+        - INVALID_GST_HST_NUMBER
+        - NON_CANADIAN_NUMBER
+        - PRICE_OUT_OF_RANGE
+        - PROHIBITED_INGREDIENT
+        - FIELD_NOT_WRITABLE
+        - CATEGORY_NAME_TAKEN
+        - CATEGORY_NOT_EMPTY
+        - ITEM_BLOCKED_BY_ADMIN
+        - ITEM_DELETED
+        - NO_LIVE_MENU_ITEM
         - DOCUMENTS_INCOMPLETE
         - DOCUMENT_EXPIRES_TOO_SOON
         - UNDERAGE
@@ -6395,7 +6403,7 @@ components:
       description: |
         R-15. **`HALAL_CERTIFIED` is not restaurant-settable** — it is derived from the
         restaurant's approved certificate and applied platform-side. A restaurant asserting it
-        directly receives `403 field_not_writable`.
+        directly receives `403 FIELD_NOT_WRITABLE`.
       enum:
         - VEGETARIAN
         - VEGAN
@@ -6818,7 +6826,7 @@ components:
           maxLength: 120
         terms_version:
           type: string
-          description: 'Must equal the server''s current version, else `409 terms_version_stale`.'
+          description: 'Must equal the server''s current version, else `409 TERMS_VERSION_STALE`.'
     RestaurantRegistration:
       type: object
       additionalProperties: false
@@ -6918,7 +6926,7 @@ components:
       additionalProperties: false
       description: |
         Snake_case `first_name` / `last_name`; there is no `name` field at any version.
-        `phone_e164` is deliberately absent — sending it is `422 unknown_field`.
+        `phone_e164` is deliberately absent — sending it is `422 UNKNOWN_FIELD`.
       properties:
         first_name:
           type: string
@@ -7197,7 +7205,10 @@ components:
           format: date
     RestaurantCard:
       type: object
-      additionalProperties: false
+      # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
+      # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
+      # assertion only sees the properties of *its own* branch, so leaving it here would make
+      # every extended field an error and the composed schema unsatisfiable.
       required: [id, name, halal, availability]
       properties:
         id:
@@ -7413,7 +7424,10 @@ components:
             $ref: '#/components/schemas/MenuCategoryWithItems'
     MenuCategory:
       type: object
-      additionalProperties: false
+      # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
+      # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
+      # assertion only sees the properties of *its own* branch, so leaving it here would make
+      # every extended field an error and the composed schema unsatisfiable.
       required: [id, name, sort_order, is_active]
       properties:
         id:
@@ -7444,7 +7458,10 @@ components:
                 $ref: '#/components/schemas/MenuItem'
     MenuItem:
       type: object
-      additionalProperties: false
+      # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
+      # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
+      # assertion only sees the properties of *its own* branch, so leaving it here would make
+      # every extended field an error and the composed schema unsatisfiable.
       required: [id, name, price_cents, currency, availability_state, tax_category]
       description: |
         The customer projection of a menu item: `live_version_id` content only. `price_cents`
@@ -7987,7 +8004,7 @@ components:
         P-11. Tax is computed **once per rate over the summed base**, not per line and summed,
         which avoids per-line rounding drift; per-line attribution is derived afterwards by
         largest-remainder allocation. A province with no effective rate fails the quote with
-        `tax_profile_missing` — it never defaults to zero.
+        `TAX_PROFILE_MISSING` — it never defaults to zero.
       properties:
         jurisdiction_code:
           type: string
@@ -8018,7 +8035,7 @@ components:
       required: [quote_id]
       description: |
         **No amount, total, fee or price field exists on this DTO.** A body containing one is
-        `422 unknown_field`, and no order, quote or PaymentIntent is created.
+        `422 UNKNOWN_FIELD`, and no order, quote or PaymentIntent is created.
       properties:
         quote_id:
           type: string
@@ -8165,7 +8182,10 @@ components:
           $ref: '#/components/schemas/Currency'
     OrderCustomerView:
       type: object
-      additionalProperties: false
+      # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
+      # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
+      # assertion only sees the properties of *its own* branch, so leaving it here would make
+      # every extended field an error and the composed schema unsatisfiable.
       required: [id, code, state, restaurant, lines, money, placed_at]
       description: |
         P-07. Projections are separate types per audience, never one struct with conditional
@@ -8439,7 +8459,10 @@ components:
           $ref: '#/components/schemas/Timestamp'
     GeoPoint:
       type: object
-      additionalProperties: false
+      # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
+      # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
+      # assertion only sees the properties of *its own* branch, so leaving it here would make
+      # every extended field an error and the composed schema unsatisfiable.
       required: [latitude, longitude]
       properties:
         latitude:
@@ -8838,7 +8861,10 @@ components:
           $ref: '#/components/schemas/Timestamp'
     Payout:
       type: object
-      additionalProperties: false
+      # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
+      # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
+      # assertion only sees the properties of *its own* branch, so leaving it here would make
+      # every extended field an error and the composed schema unsatisfiable.
       required: [id, period_start, period_end, amount_cents, currency, state]
       properties:
         id:
@@ -9299,11 +9325,11 @@ components:
           format: int64
           minimum: 50
           maximum: 50000
-          description: 'CAD 0.50 – CAD 500.00. Outside the band is `422 price_out_of_range`.'
+          description: 'CAD 0.50 – CAD 500.00. Outside the band is `422 PRICE_OUT_OF_RANGE`.'
         dietary_tags:
           type: array
           maxItems: 6
-          description: '`HALAL_CERTIFIED` here is `403 field_not_writable` — it is platform-derived.'
+          description: '`HALAL_CERTIFIED` here is `403 FIELD_NOT_WRITABLE` — it is platform-derived.'
           items:
             $ref: '#/components/schemas/DietaryTag'
         allergen_tags:
@@ -10273,7 +10299,10 @@ components:
           enum: [SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
     RestaurantApplicationSummary:
       type: object
-      additionalProperties: false
+      # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
+      # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
+      # assertion only sees the properties of *its own* branch, so leaving it here would make
+      # every extended field an error and the composed schema unsatisfiable.
       required: [restaurant_id, display_name, onboarding_state, submitted_at, sla_due_at]
       properties:
         restaurant_id:
@@ -10609,7 +10638,10 @@ components:
           maxLength: 2000
     RiderApplicationSummary:
       type: object
-      additionalProperties: false
+      # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
+      # (see the composed schema that extends it). In JSON Schema an `additionalProperties`
+      # assertion only sees the properties of *its own* branch, so leaving it here would make
+      # every extended field an error and the composed schema unsatisfiable.
       required: [rider_account_id, display_name, onboarding_state, submitted_at, sla_due_at]
       properties:
         rider_account_id:
@@ -10778,7 +10810,7 @@ components:
         `amount_cents` is the **only** inbound monetary field on any staff route and is
         accepted solely with `scope: PARTIAL_AMOUNT` and `reason_code: GOODWILL` (G-3's
         explicit allowlist). For every other scope the amount is computed from the order and
-        supplying one is `422 unknown_field`.
+        supplying one is `422 UNKNOWN_FIELD`.
       properties:
         order_id:
           type: string

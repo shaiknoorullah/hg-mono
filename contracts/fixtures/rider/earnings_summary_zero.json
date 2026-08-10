@@ -1,0 +1,120 @@
+{
+  "scenario": "earnings_summary_zero",
+  "domain": "rider",
+  "schema": "EarningsSummary",
+  "describes": "**Zero earnings across every bucket.** A rider who went online and got no offers. Charts must render an axis, not collapse.",
+  "operations": [
+    "getRiderEarningsSummary"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "edge",
+    "empty",
+    "money"
+  ],
+  "payload": {
+    "period": "WEEK",
+    "buckets": [
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 2,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 15,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 17,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 10,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 1,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 8,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 5,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      }
+    ],
+    "total": {
+      "bucket_start": "2026-08-10T18:32:11.412Z",
+      "gross_cents": 0,
+      "delivery_cents": 0,
+      "tip_cents": 0,
+      "bonus_cents": 0,
+      "adjustment_cents": 0,
+      "trips": 0,
+      "online_seconds": 16,
+      "distance_m": 3180,
+      "effective_cents_per_hour": 1695
+    },
+    "unpaid_balance_cents": 0,
+    "next_payout_at": "2026-08-10T18:32:11.412Z",
+    "currency": "CAD"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "scenario": "restaurant_onboarding_menu_pending",
+  "domain": "onboarding",
+  "schema": "RestaurantOnboardingStatus",
+  "describes": "`onboarding_state = MENU_PENDING`. Payouts enabled; the first menu must exist before going live.",
+  "operations": [
+    "getRestaurantOnboardingStatus",
+    "submitRestaurantDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "restaurant"
+  ],
+  "payload": {
+    "onboarding_state": "MENU_PENDING",
+    "account_state": "PENDING",
+    "current_step": "MENU",
+    "progress_percent": 95,
+    "steps_completed": {
+      "profile": true,
+      "documents_uploaded": true,
+      "documents_submitted": true,
+      "documents_approved": true,
+      "payout_account": true,
+      "menu_published": false
+    },
+    "blocking_reason": null,
+    "review_cycle": 1,
+    "rejection": null
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "scenario": "realtime_ticket",
+  "domain": "platform",
+  "schema": "RealtimeTicket",
+  "describes": "A single-use 30-second ticket plus the channels this principal may subscribe to. Mint a fresh one per connection attempt; never cache or reuse.",
+  "operations": [
+    "createRealtimeTicket"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "realtime"
+  ],
+  "payload": {
+    "ticket": "Ticket",
+    "expires_at": "2026-08-10T18:51:11.412Z",
+    "websocket_url": "https://cdn.halalgoes.ca/img/asset/b1977125.webp",
+    "allowed_channels": [
+      "Allowed Channels",
+      "Allowed Channels",
+      "Allowed Channels"
+    ]
+  }
+}

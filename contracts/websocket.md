@@ -8,6 +8,11 @@ delivery guarantees), with per-role projection rules from §P-07.
 
 Endpoint: `wss://api.halalgoes.com/v1/ws`
 
+**Mocked, end to end.** `pnpm mock` serves this contract at
+`ws://localhost:4010/v1/ws?ticket=dev` and can play a scripted event sequence — pass
+`&scenario=realtime_order_happy_path` to drive a tracking screen through a whole order
+lifecycle with no backend. The scripts are listed in `contracts/fixtures/README.md`.
+
 ---
 
 ## 0. The three rules this document exists to enforce
@@ -73,7 +78,7 @@ The server validates it exactly as the HTTP path does. Both paths converge on th
 | Limit | Value |
 |---|---|
 | Max frame size | 64 KiB |
-| Inbound frames | 20 / second (soft: `error{code:"rate_limited"}`, socket stays open) |
+| Inbound frames | 20 / second (soft: `error{code:"RATE_LIMITED"}`, socket stays open) |
 | Inbound flood | 100 / second ⇒ close `4429` |
 | Subscriptions per connection | 50 |
 | Connections per session | 4 |
@@ -171,8 +176,12 @@ Five frame types. There is nothing else, and **none of them carries identity**.
 ```
 
 Any other `type`, or any unknown field on these five, is rejected with
-`error{code:"invalid_frame"}` or `error{code:"unknown_field"}` and **the connection's principal
-is unchanged**. A frame claiming to be another user is not "rejected as unauthorized" — the
+`error{code:"UNKNOWN_FIELD"}` and **the connection's principal is unchanged**.
+
+> **Note.** Earlier drafts of this document named an `invalid_frame` code here. There is no
+> `INVALID_FRAME` member in `ErrorCode`, and `error.code` is typed `ErrorCode` (§4.1), so a
+> malformed frame uses `VALIDATION_FAILED` and an unknown field uses `UNKNOWN_FIELD`. If a
+> distinct code is wanted, it has to be added to the enum in `openapi.yaml` first. A frame claiming to be another user is not "rejected as unauthorized" — the
 field it would need does not exist in the schema.
 
 ---
@@ -189,10 +198,10 @@ that channel; the payload each role receives is the projection described in §5.
 | `hello` | `{account_id: uuid, roles: [{r: Role, s: uuid\|null}], session_id: uuid, allowed_channels: string[], server_time: Timestamp, heartbeat_s: 25, protocol: 1}` |
 | `subscribed` | `{channel: string, cursor_seq: int64}` — the current head, so a fresh subscriber knows where it starts |
 | `unsubscribed` | `{channel: string, reason: "client_request" \| "no_longer_authorized" \| "order_terminal"}` |
-| `subscribe_error` | `{channel: string, code: "not_found" \| "forbidden" \| "subscription_limit" \| "invalid_channel", message: string}` |
+| `subscribe_error` | `{channel: string, code: "not_found" \| "forbidden" \| "subscription_limit" \| "invalid_channel", message: string}` — **its own** closed set, deliberately lower case and **not** `ErrorCode` |
 | `resume_complete` | `{channel: string, from_seq: int64, to_seq: int64, replayed: int, truncated: bool}` |
 | `ping` / `pong` | `{t: int64}` (epoch ms) |
-| `error` | `{code: ErrorCode, message: string, retryable: bool}` |
+| `error` | `{code: ErrorCode, message: string, retryable: bool}` — SCREAMING_SNAKE, from the closed enum |
 | `reauth_required` | `{deadline: Timestamp}` |
 
 > A `subscribe` for an order belonging to someone else returns `subscribe_error{code:"not_found"}`

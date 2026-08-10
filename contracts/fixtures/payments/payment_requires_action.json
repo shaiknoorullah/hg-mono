@@ -1,0 +1,30 @@
+{
+  "scenario": "payment_requires_action",
+  "domain": "payments",
+  "schema": "OrderPayment",
+  "describes": "**3-D Secure challenge outstanding.** This is a normal path, not an error: the order stays CREATED under its 15-minute deadline and `client_secret` is present for the Stripe SDK.",
+  "operations": [
+    "getOrderPayment"
+  ],
+  "status": 200,
+  "tags": [
+    "payment-state-matrix"
+  ],
+  "payload": {
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "REQUIRES_ACTION",
+    "kind": "ORDER",
+    "amount_authorized_cents": 0,
+    "amount_captured_cents": 0,
+    "amount_refunded_cents": 0,
+    "currency": "CAD",
+    "card_brand": "visa",
+    "card_last4": "4242",
+    "wallet": null,
+    "failure_code": null,
+    "decline_code": null,
+    "client_secret": "pi_3QkR7mE8xVn2LbQ1_secret_5cGvA9pQ",
+    "authorized_at": null,
+    "captured_at": null
+  }
+}

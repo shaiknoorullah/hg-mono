@@ -1,0 +1,25 @@
+{
+  "scenario": "error_cart_has_unavailable_items",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `CART_HAS_UNAVAILABLE_ITEMS`. Was `cart_has_unavailable_items`. Pairs with the `cart_has_unavailable_items` fixture.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "CART_HAS_UNAVAILABLE_ITEMS",
+      "message": "Some items in your cart are no longer available.",
+      "request_id": "Y4340QY5F5DXD0DQRNXNW3CP5A",
+      "details": [
+        {
+          "field": "lines[1]",
+          "code": "OUT_OF_STOCK",
+          "message": "Beef Nihari sold out at 18:20."
+        }
+      ]
+    }
+  }
+}

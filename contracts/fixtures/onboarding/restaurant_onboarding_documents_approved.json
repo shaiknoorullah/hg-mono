@@ -1,0 +1,32 @@
+{
+  "scenario": "restaurant_onboarding_documents_approved",
+  "domain": "onboarding",
+  "schema": "RestaurantOnboardingStatus",
+  "describes": "`onboarding_state = DOCUMENTS_APPROVED`. Documents cleared; Stripe Connect is next.",
+  "operations": [
+    "getRestaurantOnboardingStatus",
+    "submitRestaurantDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "restaurant"
+  ],
+  "payload": {
+    "onboarding_state": "DOCUMENTS_APPROVED",
+    "account_state": "PENDING",
+    "current_step": "PAYOUT",
+    "progress_percent": 75,
+    "steps_completed": {
+      "profile": true,
+      "documents_uploaded": true,
+      "documents_submitted": true,
+      "documents_approved": true,
+      "payout_account": false,
+      "menu_published": false
+    },
+    "blocking_reason": null,
+    "review_cycle": 1,
+    "rejection": null
+  }
+}

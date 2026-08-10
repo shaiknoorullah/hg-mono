@@ -1,0 +1,112 @@
+{
+  "scenario": "restaurant_detail_no_menu",
+  "domain": "catalogue",
+  "schema": "RestaurantDetail",
+  "describes": "An approved restaurant that has not published a single menu item. Pair with `menu_empty`. The detail screen must not assume a menu exists.",
+  "operations": [
+    "getRestaurant"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "payload": {
+    "id": "d93fa82e-31d0-4986-a8d1-06cd0c041979",
+    "name": "Bosphorus Turkish Kebab",
+    "slug": "bosphorus-turkish-kebab",
+    "hero_image_url": null,
+    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/bosphorus-turkish-kebab.webp",
+    "cuisines": [
+      "Turkish",
+      "Kebab",
+      "Halal"
+    ],
+    "rating_avg": 4.7,
+    "rating_count": 604,
+    "price_band": "$",
+    "halal": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "expires_on": "2027-03-09"
+    },
+    "availability": {
+      "state": "OPEN",
+      "opens_at": "2026-08-10T12:24:11.412Z",
+      "closes_at": "2026-08-10T22:00:11.412Z",
+      "eta_min_minutes": 25,
+      "eta_max_minutes": 40,
+      "indicative_delivery_fee_cents": 449,
+      "minimum_order_cents": 1500,
+      "distance_m": 5900,
+      "out_of_range_reason": null
+    },
+    "description": null,
+    "address": {
+      "line1": "1500 Weber Street East",
+      "line2": null,
+      "city": "Kitchener",
+      "province": "ON",
+      "postal_code": "N2A 4E6",
+      "latitude": 43.4501,
+      "longitude": -80.4402
+    },
+    "timezone": "America/Toronto",
+    "public_phone_e164": null,
+    "certification": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "certificate_number": "HMA-ON-40182",
+      "scope": "WHOLE_ESTABLISHMENT",
+      "issued_on": "2026-03-09",
+      "expires_on": "2027-03-09",
+      "verified_at": "2026-03-11T18:42:11.412Z",
+      "certificate_viewable": true,
+      "disclaimer": "Certification verified by Halal Goes on 9 March 2026. Halal Goes does not itself certify food."
+    },
+    "hours": [
+      {
+        "day_of_week": 0,
+        "opens_at": "12:00",
+        "closes_at": "21:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      }
+    ]
+  }
+}

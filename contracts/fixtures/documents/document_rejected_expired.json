@@ -1,0 +1,30 @@
+{
+  "scenario": "document_rejected_expired",
+  "domain": "documents",
+  "schema": "KycDocument",
+  "describes": "Rejected with `EXPIRED`. Every rejection carries a code **and** the reviewer's sentence — the applicant must never see a bare code.",
+  "operations": [
+    "reviewRestaurantDocument"
+  ],
+  "status": 200,
+  "tags": [
+    "document-state-matrix",
+    "error-path"
+  ],
+  "payload": {
+    "id": "2e417b3c-5755-476e-a0bd-20f0f7293971",
+    "subject_type": "RESTAURANT",
+    "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+    "doc_type": "BUSINESS_LICENCE",
+    "state": "REJECTED",
+    "issuer": "Province of Ontario",
+    "certificate_number": null,
+    "issued_on": "2026-03-09",
+    "valid_until": "2027-09-14",
+    "version": 1,
+    "rejection_reason_code": "EXPIRED",
+    "review_note": "This certificate expired on 2026-02-14.",
+    "reviewed_at": "2026-08-08T18:42:11.412Z",
+    "created_at": "2026-08-04T18:42:11.412Z"
+  }
+}

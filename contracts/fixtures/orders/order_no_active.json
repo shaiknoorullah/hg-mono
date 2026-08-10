@@ -1,0 +1,15 @@
+{
+  "scenario": "order_no_active",
+  "domain": "orders",
+  "schema": "OrderCustomerView|null",
+  "describes": "`getActiveOrder` with nothing in flight. The contract returns **null data**, not 404 and not an empty array — one active order per customer (contradiction log #24).",
+  "operations": [
+    "getActiveOrder"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "payload": null
+}

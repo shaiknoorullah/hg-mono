@@ -1,0 +1,22 @@
+{
+  "scenario": "restaurant_availability_paused",
+  "domain": "catalogue",
+  "schema": "RestaurantAvailabilityInfo",
+  "describes": "Kitchen paused itself (R-22 short pause). Still listed, cannot be ordered from.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "state-matrix"
+  ],
+  "payload": {
+    "state": "PAUSED",
+    "opens_at": "2026-08-10T12:24:11.412Z",
+    "closes_at": "2026-08-10T22:00:11.412Z",
+    "eta_min_minutes": null,
+    "eta_max_minutes": null,
+    "indicative_delivery_fee_cents": 449,
+    "minimum_order_cents": 1500,
+    "distance_m": 3180,
+    "out_of_range_reason": null
+  }
+}

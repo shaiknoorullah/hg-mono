@@ -1,0 +1,17 @@
+{
+  "scenario": "halal_badge_expired",
+  "domain": "halal",
+  "schema": "HalalBadge",
+  "describes": "Red. Never rendered on a customer surface — the restaurant 404s.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "display_state": "EXPIRED",
+    "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+    "expires_on": "2026-08-01"
+  }
+}

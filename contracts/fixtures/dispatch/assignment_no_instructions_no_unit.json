@@ -1,0 +1,73 @@
+{
+  "scenario": "assignment_no_instructions_no_unit",
+  "domain": "dispatch",
+  "schema": "Assignment",
+  "describes": "A house, not a condo: no unit, no buzzer, no instructions, no special request, no pickup notes. Every optional row on the rider card is absent at once.",
+  "operations": [
+    "getAssignment"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "edge"
+  ],
+  "payload": {
+    "id": "4ea97aca-78d6-4735-a8f0-253dd437e00d",
+    "order_id": "abbb948c-d80a-4a97-a5e6-cf2528dfe677",
+    "order_code": "HG-PIUP-9X",
+    "state": "EN_ROUTE_TO_DROPOFF",
+    "pickup": {
+      "restaurant_name": "Karachi Kitchen",
+      "address": "1245 Danforth Avenue, Toronto, ON M4J 1M4",
+      "latitude": 43.6817,
+      "longitude": -79.3403,
+      "phone_alias": null,
+      "pickup_notes": null,
+      "order_state": "PICKED_UP"
+    },
+    "dropoff": {
+      "address": "150 Charlton Avenue East, Hamilton, ON L8N 3X2",
+      "unit": null,
+      "buzzer": null,
+      "latitude": 43.2508,
+      "longitude": -79.8657,
+      "customer_display_name": "Omar F.",
+      "phone_alias": "+16475550233",
+      "delivery_instructions": [],
+      "special_instructions": null
+    },
+    "items": [
+      {
+        "name": "Falafel Wrap",
+        "quantity": 1,
+        "variant_name": null,
+        "addon_names": [],
+        "note": null,
+        "allergen_tags": [
+          "SESAME",
+          "WHEAT_TRITICALE"
+        ]
+      }
+    ],
+    "payment_status": "PREPAID",
+    "earnings": {
+      "base_cents": 449,
+      "distance_cents": 0,
+      "surge_cents": 0,
+      "tip_so_far_cents": 700,
+      "estimated_total_cents": 1149,
+      "currency": "CAD"
+    },
+    "required_pod_method": "PHOTO",
+    "pod_recorded": false,
+    "handover_method": null,
+    "tracking_health": "HEALTHY",
+    "billable_distance_m": 5240,
+    "pickup_wait_seconds": 240,
+    "assigned_at": "2026-08-10T18:26:11.412Z",
+    "arrived_pickup_at": "2026-08-10T18:30:11.412Z",
+    "picked_up_at": "2026-08-10T18:31:11.412Z",
+    "arrived_dropoff_at": null,
+    "delivered_at": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "scenario": "error_not_found",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`404` · `NOT_FOUND`. A principal with **no relationship** to a subject gets 404 — existence is never leaked. 403 means 'you can see this but may not do that'.",
+  "operations": [],
+  "status": 404,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "Not found.",
+      "request_id": "8M6XZG0KT52MHZQQ11VWRB40B9"
+    }
+  }
+}

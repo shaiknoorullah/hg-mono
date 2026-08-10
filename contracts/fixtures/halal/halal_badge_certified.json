@@ -1,0 +1,17 @@
+{
+  "scenario": "halal_badge_certified",
+  "domain": "halal",
+  "schema": "HalalBadge",
+  "describes": "The green badge. Certifying body and expiry both present.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "halal",
+    "state-matrix"
+  ],
+  "payload": {
+    "display_state": "CERTIFIED",
+    "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+    "expires_on": "2027-03-09"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "scenario": "dependency_report",
+  "domain": "platform",
+  "schema": "DependencyReport",
+  "describes": "Per-dependency detail for the internal status page.",
+  "operations": [
+    "getDependencyStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "platform"
+  ],
+  "payload": {
+    "environment": "local",
+    "dependencies": [
+      {
+        "name": "Al-Noor Shawarma House",
+        "resolved_address": "Resolved Address",
+        "connected": true
+      },
+      {
+        "name": "Bosphorus Turkish Kebab",
+        "resolved_address": "Resolved Address",
+        "connected": true
+      }
+    ],
+    "boot_probes": [
+      {
+        "name": "bucket_privacy",
+        "passed": true,
+        "detail": "Detail"
+      },
+      {
+        "name": "bucket_privacy",
+        "passed": true,
+        "detail": "Detail"
+      }
+    ]
+  }
+}

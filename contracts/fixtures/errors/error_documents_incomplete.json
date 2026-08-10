@@ -1,0 +1,30 @@
+{
+  "scenario": "error_documents_incomplete",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `INCOMPLETE_DOCUMENT_PACK`. Was `incomplete_document_pack`. Pairs with `restaurant_document_pack_incomplete`.",
+  "operations": [],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "INCOMPLETE_DOCUMENT_PACK",
+      "message": "Three documents are still outstanding.",
+      "request_id": "HJCCVR4W21FYPMKV9VMHFDM5HZ",
+      "details": [
+        {
+          "field": "documents",
+          "code": "missing",
+          "message": "OWNER_ID has not been attached."
+        },
+        {
+          "field": "documents",
+          "code": "missing",
+          "message": "LIABILITY_INSURANCE has not been attached."
+        }
+      ]
+    }
+  }
+}

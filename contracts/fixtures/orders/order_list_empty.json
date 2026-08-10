@@ -1,0 +1,20 @@
+{
+  "scenario": "order_list_empty",
+  "domain": "orders",
+  "schema": "array<OrderSummary>",
+  "describes": "A customer who has never ordered. First-run empty state.",
+  "operations": [
+    "listOrders"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

@@ -1,0 +1,49 @@
+{
+  "scenario": "restaurant_profile",
+  "domain": "onboarding",
+  "schema": "RestaurantProfile",
+  "describes": "A submitted restaurant profile: Ontario address, CRA-form GST/HST number, America/Toronto. Server-controlled fields (`is_approved`, `account_state`, `commission_rate_bps`, anything `_cents`) do not exist on this DTO at all.",
+  "operations": [
+    "getRestaurantProfile",
+    "submitRestaurantProfile"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant"
+  ],
+  "payload": {
+    "id": "927cc55c-8ddd-4d9f-a353-353ba2a8982b",
+    "legal_name": "Barakah Charcoal Grill Inc.",
+    "display_name": "Hamza H.",
+    "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+    "owner_first_name": "Owner First Name",
+    "owner_last_name": "Owner Last Name",
+    "phone_e164": "+14165555976",
+    "public_phone_e164": "+14165555892",
+    "gst_hst_number": "812345678RT0001",
+    "address": {
+      "line1": "3255 Hurontario Street",
+      "line2": null,
+      "city": "Mississauga",
+      "province": "ON",
+      "postal_code": "M1H 2Y2",
+      "latitude": 43.7699,
+      "longitude": -80.4402
+    },
+    "timezone": "America/Toronto",
+    "cuisine_ids": [
+      "cd6fe9ce-5679-4835-a405-8d3bb9a1959a",
+      "57610de6-476b-4f3f-afa2-96fb7df6031b"
+    ],
+    "avg_prep_minutes": 19,
+    "delivery_radius_m": 7,
+    "account_state": "LIVE",
+    "onboarding_state": "ACTIVE",
+    "halal": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Canadian Halal Certification Bureau",
+      "expires_on": "2027-03-08"
+    },
+    "commission_rate_bps": 0
+  }
+}

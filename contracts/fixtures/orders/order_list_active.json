@@ -1,0 +1,42 @@
+{
+  "scenario": "order_list_active",
+  "domain": "orders",
+  "schema": "array<OrderSummary>",
+  "describes": "The one order a customer may have in flight (`status_group=ACTIVE`).",
+  "operations": [
+    "listOrders",
+    "listOrdersAdmin"
+  ],
+  "status": 200,
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 1
+  },
+  "payload": [
+    {
+      "id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "code": "HG-4K2M-9T",
+      "state": "PREPARING",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-10T18:10:11.412Z",
+      "deadline_at": "2026-08-10T18:51:11.412Z"
+    }
+  ]
+}

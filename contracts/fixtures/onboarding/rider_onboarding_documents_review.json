@@ -1,0 +1,34 @@
+{
+  "scenario": "rider_onboarding_documents_review",
+  "domain": "onboarding",
+  "schema": "RiderOnboardingStatus",
+  "describes": "`onboarding_state = DOCUMENTS_REVIEW`. Pack submitted and locked.",
+  "operations": [
+    "getRiderOnboardingStatus",
+    "submitRiderDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "rider"
+  ],
+  "payload": {
+    "onboarding_state": "DOCUMENTS_REVIEW",
+    "account_status": "PENDING",
+    "progress_percent": 70,
+    "next_step": "AWAITING_REVIEW",
+    "next_route": "ONBOARDING_AWAITING_REVIEW",
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "decided_at": null,
+    "attempt_number": 1,
+    "documents": [],
+    "steps_completed": {
+      "phone_verified": true,
+      "profile": true,
+      "vehicle": true,
+      "documents_submitted": true,
+      "documents_approved": false,
+      "payout_onboarded": false
+    }
+  }
+}

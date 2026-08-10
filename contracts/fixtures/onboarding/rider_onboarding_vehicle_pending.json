@@ -1,0 +1,34 @@
+{
+  "scenario": "rider_onboarding_vehicle_pending",
+  "domain": "onboarding",
+  "schema": "RiderOnboardingStatus",
+  "describes": "`onboarding_state = VEHICLE_PENDING`. Vehicle type and plate. `ON_FOOT` skips plate and insurance.",
+  "operations": [
+    "getRiderOnboardingStatus",
+    "submitRiderDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "rider"
+  ],
+  "payload": {
+    "onboarding_state": "VEHICLE_PENDING",
+    "account_status": "PENDING",
+    "progress_percent": 35,
+    "next_step": "VEHICLE",
+    "next_route": "ONBOARDING_VEHICLE",
+    "submitted_at": null,
+    "decided_at": null,
+    "attempt_number": 1,
+    "documents": [],
+    "steps_completed": {
+      "phone_verified": true,
+      "profile": true,
+      "vehicle": false,
+      "documents_submitted": false,
+      "documents_approved": false,
+      "payout_onboarded": false
+    }
+  }
+}

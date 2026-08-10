@@ -1,0 +1,118 @@
+{
+  "scenario": "earnings_summary_week",
+  "domain": "rider",
+  "schema": "EarningsSummary",
+  "describes": "A full week: 14 deliveries, delivery fees plus 100% of tips. The rate-card component fields (`base_cents`, `distance_cents`, `wait_cents`, `guarantee_topup_cents`) are present but zero — pure pass-through at launch (contradiction log #7).",
+  "operations": [
+    "getRiderEarningsSummary"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money"
+  ],
+  "payload": {
+    "period": "WEEK",
+    "buckets": [
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 1149,
+        "delivery_cents": 1695,
+        "tip_cents": 700,
+        "bonus_cents": 1695,
+        "adjustment_cents": 1695,
+        "trips": 15,
+        "online_seconds": 16,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 1149,
+        "delivery_cents": 1695,
+        "tip_cents": 700,
+        "bonus_cents": 1695,
+        "adjustment_cents": 1695,
+        "trips": 20,
+        "online_seconds": 7,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 1149,
+        "delivery_cents": 1695,
+        "tip_cents": 700,
+        "bonus_cents": 1695,
+        "adjustment_cents": 1695,
+        "trips": 10,
+        "online_seconds": 12,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 1149,
+        "delivery_cents": 1695,
+        "tip_cents": 700,
+        "bonus_cents": 1695,
+        "adjustment_cents": 1695,
+        "trips": 9,
+        "online_seconds": 12,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 1149,
+        "delivery_cents": 1695,
+        "tip_cents": 700,
+        "bonus_cents": 1695,
+        "adjustment_cents": 1695,
+        "trips": 7,
+        "online_seconds": 6,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 1149,
+        "delivery_cents": 1695,
+        "tip_cents": 700,
+        "bonus_cents": 1695,
+        "adjustment_cents": 1695,
+        "trips": 14,
+        "online_seconds": 11,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      },
+      {
+        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "gross_cents": 1149,
+        "delivery_cents": 1695,
+        "tip_cents": 700,
+        "bonus_cents": 1695,
+        "adjustment_cents": 1695,
+        "trips": 7,
+        "online_seconds": 2,
+        "distance_m": 3180,
+        "effective_cents_per_hour": 1695
+      }
+    ],
+    "total": {
+      "bucket_start": "2026-08-10T18:32:11.412Z",
+      "gross_cents": 1149,
+      "delivery_cents": 1695,
+      "tip_cents": 700,
+      "bonus_cents": 1695,
+      "adjustment_cents": 1695,
+      "trips": 17,
+      "online_seconds": 16,
+      "distance_m": 3180,
+      "effective_cents_per_hour": 1695
+    },
+    "unpaid_balance_cents": 1695,
+    "next_payout_at": "2026-08-10T18:32:11.412Z",
+    "currency": "CAD"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "scenario": "health_ok",
+  "domain": "platform",
+  "schema": "HealthStatus",
+  "describes": "Liveness. Never touches a dependency.",
+  "operations": [
+    "getHealth"
+  ],
+  "status": 200,
+  "tags": [
+    "platform"
+  ],
+  "payload": {
+    "status": "ok",
+    "version": "2026-05-01",
+    "started_at": "2026-08-10T18:32:11.412Z"
+  }
+}

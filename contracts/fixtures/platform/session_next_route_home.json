@@ -1,0 +1,39 @@
+{
+  "scenario": "session_next_route_home",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = HOME`. Fully onboarded; go to the main surface.",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 13,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "ebaae1ee-1f4e-4eee-a948-5a40438b38ea",
+      "session_id": "1b5d9092-6518-402e-aa92-155f44b43d17",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "0a61c495-acb9-4a5f-aec5-88febd842c64"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

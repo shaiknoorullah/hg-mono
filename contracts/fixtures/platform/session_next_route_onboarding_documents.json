@@ -1,0 +1,39 @@
+{
+  "scenario": "session_next_route_onboarding_documents",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = ONBOARDING_DOCUMENTS`. Mid-onboarding; documents outstanding.",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 7,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "ac135102-37b2-4624-a3e5-ba705a6d16f0",
+      "session_id": "12ebaa84-bd29-49b8-a112-f61a9d771ff4",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "bd018bb7-16f7-4674-a054-bfc40f04f1d7"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

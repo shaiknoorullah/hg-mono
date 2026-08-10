@@ -1,0 +1,96 @@
+{
+  "scenario": "restaurant_order_rejected",
+  "domain": "orders",
+  "schema": "OrderRestaurantView",
+  "describes": "Rejected by the kitchen for ITEM_UNAVAILABLE.",
+  "operations": [
+    "getRestaurantOrder",
+    "listRestaurantOrders",
+    "acceptOrder",
+    "rejectOrder",
+    "markOrderReady",
+    "delayOrder"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "order-state-matrix"
+  ],
+  "payload": {
+    "id": "19852393-9845-48a5-a46d-37fc07a822d9",
+    "code": "HG-REED-8X",
+    "state": "REJECTED",
+    "deadline_at": null,
+    "promised_ready_at": null,
+    "customer": {
+      "display_name": "Ayesha R.",
+      "phone_masked": "+1 416 ••• 0142"
+    },
+    "delivery_area": "Greektown",
+    "delivery_address": null,
+    "delivery_instructions": [
+      "LEAVE_AT_DOOR",
+      "DO_NOT_RING_BELL"
+    ],
+    "special_instructions": "Please leave it on the mat, not the shoe rack.",
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "variant_name": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 2,
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "variant_name": "Full",
+        "addons": [],
+        "quantity": 1,
+        "special_request": "Extra gravy on the side",
+        "unit_price_cents": 3695,
+        "line_total_cents": 3695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 3,
+        "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+        "name": "Chicken Karahi (Half)",
+        "variant_name": null,
+        "addons": [
+          {
+            "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+            "addon_name": "Garlic naan",
+            "addon_quantity": 2,
+            "addon_price_cents": 349
+          }
+        ],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 2597,
+        "line_total_cents": 2597,
+        "currency": "CAD"
+      }
+    ],
+    "money": {
+      "subtotal_cents": 7987,
+      "discount_cents": 0,
+      "commission_cents": 0,
+      "restaurant_net_cents": 7987,
+      "total_cents": 10684,
+      "currency": "CAD"
+    },
+    "rider": null,
+    "elapsed_seconds": 1920,
+    "is_late": false,
+    "placed_at": "2026-08-10T18:10:11.412Z",
+    "accepted_at": null,
+    "ready_at": null
+  }
+}

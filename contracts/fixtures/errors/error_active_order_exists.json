@@ -1,0 +1,18 @@
+{
+  "scenario": "error_active_order_exists",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ACTIVE_ORDER_EXISTS`. One active order per customer (contradiction log #24). `getActiveOrder` returns zero or one — see `order_no_active`.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ACTIVE_ORDER_EXISTS",
+      "message": "You already have an order in progress.",
+      "request_id": "04A09RPNYBSTCRKYGY1AQQGCMT"
+    }
+  }
+}

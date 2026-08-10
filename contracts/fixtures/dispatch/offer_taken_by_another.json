@@ -1,0 +1,45 @@
+{
+  "scenario": "offer_taken_by_another",
+  "domain": "dispatch",
+  "schema": "DispatchOffer",
+  "describes": "Another rider accepted first. Accepting is `409 OFFER_ALREADY_TAKEN`.",
+  "operations": [
+    "getCurrentOffer"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "error-path",
+    "offer-state-matrix"
+  ],
+  "payload": {
+    "offer_id": "2c2746c3-6865-43e6-a363-9511151ca0a4",
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "ACCEPTED",
+    "wave": 2,
+    "expires_at": "2026-08-10T18:42:10.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
+    "pickup": {
+      "restaurant_name": "Karachi Kitchen",
+      "address_short": "1245 Danforth Avenue, Toronto",
+      "latitude": 43.6817,
+      "longitude": -79.3403
+    },
+    "dropoff": {
+      "area": "Harbourfront, Toronto",
+      "latitude": 43.6412,
+      "longitude": -79.381
+    },
+    "distance_m": 5240,
+    "est_duration_s": 780,
+    "earnings": {
+      "base_cents": 449,
+      "distance_cents": 0,
+      "surge_cents": 0,
+      "tip_so_far_cents": 700,
+      "estimated_total_cents": 1149,
+      "currency": "CAD"
+    },
+    "items_count": 3
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "scenario": "error_otp_incorrect",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Disambiguate by endpoint, not by code.",
+  "operations": [],
+  "status": 401,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "OTP_INCORRECT",
+      "message": "That code is not right. 4 attempts remaining.",
+      "request_id": "F3YRRZK8YBK6TXVE1WGSQRFQD5"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "scenario": "restaurant_order_queue_empty",
+  "domain": "orders",
+  "schema": "array<OrderRestaurantView>",
+  "describes": "A quiet kitchen — no orders in any state. The tablet's idle screen.",
+  "operations": [
+    "listRestaurantOrders"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty",
+    "restaurant"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

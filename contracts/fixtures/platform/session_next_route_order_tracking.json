@@ -1,0 +1,39 @@
+{
+  "scenario": "session_next_route_order_tracking",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = ORDER_TRACKING`. A customer with a live order lands on tracking.",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 15,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "9b5b9e50-723c-4da4-a548-af678d31cdeb",
+      "session_id": "bc465832-0987-41f8-ab3c-93c5856cb7af",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "28afb47c-ee8b-44d1-a378-19bde98bd715"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

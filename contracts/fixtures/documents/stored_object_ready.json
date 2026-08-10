@@ -1,0 +1,22 @@
+{
+  "scenario": "stored_object_ready",
+  "domain": "documents",
+  "schema": "StoredObject",
+  "describes": "Uploaded and checksum-verified. Only a READY object may be attached.",
+  "operations": [
+    "confirmUpload"
+  ],
+  "status": 200,
+  "tags": [
+    "state-matrix",
+    "documents"
+  ],
+  "payload": {
+    "id": "e5055f4b-3859-4fbf-a4bd-427822520eb5",
+    "purpose": "KYC_DOCUMENT",
+    "state": "READY",
+    "content_type": "image/jpeg",
+    "byte_size": 18,
+    "reject_reason": "Reject Reason"
+  }
+}

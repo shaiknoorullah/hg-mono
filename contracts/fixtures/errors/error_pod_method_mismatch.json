@@ -1,0 +1,18 @@
+{
+  "scenario": "error_pod_method_mismatch",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `POD_METHOD_MISMATCH`. `MEET_AT_DOOR`/`MEET_IN_LOBBY` map to OTP proof of delivery; the rest map to photo (contradiction log #6). Pairs with `assignment_otp_pod_required`.",
+  "operations": [],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "POD_METHOD_MISMATCH",
+      "message": "This delivery needs a code from the customer, not a photo.",
+      "request_id": "CQEGWFGJ2XFN8RG5GFRTXZRWPM"
+    }
+  }
+}

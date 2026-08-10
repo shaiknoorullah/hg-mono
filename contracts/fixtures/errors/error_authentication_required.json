@@ -1,0 +1,18 @@
+{
+  "scenario": "error_authentication_required",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`401` · `AUTHENTICATION_REQUIRED`. Was `authentication_required`. Triggers the client's refresh-then-retry-once path.",
+  "operations": [],
+  "status": 401,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "AUTHENTICATION_REQUIRED",
+      "message": "Sign in to continue.",
+      "request_id": "H21HERPBKWKDE20SZ3FQ2GBF1P"
+    }
+  }
+}

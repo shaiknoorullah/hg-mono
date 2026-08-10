@@ -1,0 +1,39 @@
+{
+  "scenario": "session_next_route_onboarding_rejected",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = ONBOARDING_REJECTED`. A document was rejected; the app must land on the reason.",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 18,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "e8fe4e17-6242-4563-a940-4ec95de92d82",
+      "session_id": "156ed5c3-be8c-4950-aaf4-aaf9475dfde2",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "e28e0782-9cbe-409c-aafc-545bdf82b873"
+        }
+      ],
+      "amr": "otp",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

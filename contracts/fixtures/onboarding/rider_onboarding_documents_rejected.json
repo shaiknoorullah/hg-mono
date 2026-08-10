@@ -1,0 +1,67 @@
+{
+  "scenario": "rider_onboarding_documents_rejected",
+  "domain": "onboarding",
+  "schema": "RiderOnboardingStatus",
+  "describes": "`onboarding_state = DOCUMENTS_REJECTED`. **Rejected with a reason** — e.g. the licence photo is cropped.",
+  "operations": [
+    "getRiderOnboardingStatus",
+    "submitRiderDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "onboarding-state-matrix",
+    "rider"
+  ],
+  "payload": {
+    "onboarding_state": "DOCUMENTS_REJECTED",
+    "account_status": "PENDING",
+    "progress_percent": 70,
+    "next_step": "FIX_DOCUMENTS",
+    "next_route": "ONBOARDING_REJECTED",
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "decided_at": "2026-08-08T18:42:11.412Z",
+    "attempt_number": 2,
+    "documents": [
+      {
+        "id": "46ee314b-bff2-4500-afa8-7b409686bfa9",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "DRIVERS_LICENCE",
+        "state": "REJECTED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": "INCOMPLETE_PAGES",
+        "review_note": "Page 2 is missing — we need the side showing the expiry date and the issuing authority. Re-upload both sides in one file.",
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "29591264-39a0-4056-a23d-15c604cb661d",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "GOVERNMENT_ID",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      }
+    ],
+    "steps_completed": {
+      "phone_verified": true,
+      "profile": true,
+      "vehicle": true,
+      "documents_submitted": true,
+      "documents_approved": false,
+      "payout_onboarded": false
+    }
+  }
+}

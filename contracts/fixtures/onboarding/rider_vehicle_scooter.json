@@ -1,0 +1,23 @@
+{
+  "scenario": "rider_vehicle_scooter",
+  "domain": "onboarding",
+  "schema": "RiderVehicle",
+  "describes": "A scooter with a plate and insurance on file.",
+  "operations": [
+    "submitRiderVehicle"
+  ],
+  "status": 200,
+  "tags": [
+    "rider"
+  ],
+  "payload": {
+    "id": "3086350b-7ef5-4ffd-a3cb-283e1435ff30",
+    "vehicle_type": "SCOOTER",
+    "make": "Toyota",
+    "model": "iPhone 15",
+    "year": 1,
+    "colour": "Silver",
+    "licence_plate": "Licence Plate",
+    "is_active": true
+  }
+}

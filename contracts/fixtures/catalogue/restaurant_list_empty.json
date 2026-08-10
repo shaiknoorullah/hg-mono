@@ -1,0 +1,20 @@
+{
+  "scenario": "restaurant_list_empty",
+  "domain": "catalogue",
+  "schema": "array<RestaurantCard>",
+  "describes": "Zero results — no halal kitchen serves this postal code yet. The empty state, not an error.",
+  "operations": [
+    "listRestaurants"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}
