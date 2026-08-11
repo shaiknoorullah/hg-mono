@@ -1,0 +1,155 @@
+/*
+ * @hg/ui-web — global stylesheet entry.
+ *
+ *   import '@hg/ui-web/styles.css';
+ *
+ * This is the only stylesheet an app needs. It pulls in Tailwind v4, the
+ * generated custom properties (src/tokens/tokens.css) and the generated
+ * Tailwind theme (src/tokens/theme.css), then adds the base layer and the two
+ * hand-written component classes that Tailwind utilities cannot express:
+ * the two-layer focus ring and the skeleton shimmer.
+ *
+ * Nothing in this file names a colour. Every value is a custom property that
+ * the generator wrote out of docs/design/tokens.json.
+ */
+
+@import 'tailwindcss';
+@import '../tokens/tokens.css';
+@import '../tokens/theme.css';
+
+/* The library ships TypeScript source, so an app's Tailwind scan will not find
+   our utility classes on its own. This registers them. */
+@source '../**/*.{ts,tsx}';
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--hg-surface-sunken);
+    color: var(--hg-text-primary);
+    font-family: var(--hg-font-ui);
+    font-size: var(--hg-text-body-md-size);
+    line-height: var(--hg-text-body-md-line);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 01-foundations.md §3.2 — anything that changes in place must not jitter. */
+  [data-hg-numeric='tabular'] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 04-accessibility.md §4.3 — first focusable element on every page. */
+  .hg-skip-link {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    z-index: var(--hg-z-modal);
+    transform: translateY(-200%);
+    padding: var(--hg-space-3) var(--hg-space-4);
+    background-color: var(--hg-surface-base);
+    color: var(--hg-text-primary);
+    border-end-end-radius: var(--hg-radius-md);
+  }
+  .hg-skip-link:focus-visible {
+    transform: translateY(0);
+  }
+}
+
+@layer components {
+  /*
+   * THE FOCUS RING — 04-accessibility.md §4.1, 02-components.md rule 3.
+   *
+   * Two layers, because no single colour clears 3:1 on every container we ship
+   * (info.500 measures 2.84:1 on brand yellow, 2.33:1 on the halal seal,
+   * 1.05:1 on danger, 2.24:1 on accent):
+   *
+   *   control edge
+   *     └─ 2px offset in the container's own colour   (--hg-focus-ring-offset)
+   *         └─ 3px ring in the focus colour           (--hg-focus-ring-color)
+   *
+   * Both layers are custom properties, so a component on a coloured fill
+   * overrides them locally — see focusRingOn() in src/primitives/utils/focus.ts,
+   * whose flip set is COMPUTED from measured contrast by the token generator.
+   *
+   * `outline: none` alone is a lint failure; this class is the replacement.
+   */
+  .hg-focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+
+  .hg-focus:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--hg-focus-ring-offset),
+      0 0 0 5px var(--hg-focus-ring-color);
+  }
+
+  /* Wrapper variant: the ring belongs to the composite (an input's border,
+     prefix and suffix are on the wrapper), but only :focus-visible inside
+     draws it — pointer focus still draws nothing. */
+  .hg-focus-within:has(:focus-visible) {
+    box-shadow:
+      0 0 0 2px var(--hg-focus-ring-offset),
+      0 0 0 5px var(--hg-focus-ring-color);
+  }
+
+  /* For containers that clip (overflow: hidden), where an outer ring would be
+     cut off. 04-accessibility.md §4.1: "containers that clip use an inset ring
+     variant". */
+  .hg-focus-inset:focus-visible {
+    outline: none;
+    box-shadow:
+      inset 0 0 0 2px var(--hg-focus-ring-offset),
+      inset 0 0 0 5px var(--hg-focus-ring-color);
+  }
+
+  /* Skeleton shimmer — neutral.300 → neutral.200, 1.4s (02-components.md §33). */
+  .hg-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--hg-skeleton-base) 0%,
+      var(--hg-skeleton-highlight) 50%,
+      var(--hg-skeleton-base) 100%
+    );
+    background-size: 200% 100%;
+    animation: hg-shimmer 1400ms var(--hg-ease-linear, linear) infinite;
+  }
+
+  @keyframes hg-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}
+
+/*
+ * 01-foundations.md §7.4 rule 3 / 04-accessibility.md §6.
+ * Durations collapse; countdown numerals are unaffected because they are text,
+ * not animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .hg-shimmer {
+    animation: none;
+    background-image: none;
+    background-color: var(--hg-skeleton-base);
+  }
+}
