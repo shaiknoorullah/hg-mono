@@ -58,11 +58,6 @@ ruleTester.run('no-green-solids', rule, {
       errors: [{ messageId: 'greenSolid' }],
     },
     {
-      // viz.7 is a teal at hue ~175: fine in a chart legend, not as a filled surface.
-      code: 'const s = { backgroundColor: tokens.color.viz[7] };',
-      errors: [{ messageId: 'greenSolid' }],
-    },
-    {
       code: "const s = { background: 'rgb(14, 159, 110)' };",
       errors: [{ messageId: 'greenSolid' }],
     },

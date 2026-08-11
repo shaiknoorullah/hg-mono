@@ -16,9 +16,27 @@ describe('Avatar', () => {
 
   it('never lands on a reserved green: the initials palette excludes the halal hue band', () => {
     const fills: readonly string[] = themes.customer.light.color.avatarFills;
-    // viz.7 is a teal at hue ~175 and is dropped by the generator, not by this component.
-    expect(fills).not.toContain(tokens.color.viz['7']);
-    expect(fills.length).toBe(Object.keys(tokens.color.viz).length - 1);
+
+    // The invariant is the hue band itself, not any particular token. Asserting a specific
+    // index would go stale the moment the palette moves — as it did when viz.7 left the band.
+    const hueOf = (hex: string): number => {
+      const r = Number.parseInt(hex.slice(1, 3), 16) / 255;
+      const g = Number.parseInt(hex.slice(3, 5), 16) / 255;
+      const b = Number.parseInt(hex.slice(5, 7), 16) / 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+      if (d === 0) return 0;
+      const h =
+        max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return (h * 60 + 360) % 360;
+    };
+
+    const inBand = fills.filter((hex) => {
+      const h = hueOf(hex);
+      return h >= 100 && h <= 180;
+    });
+    expect(inBand).toEqual([]);
   });
 
   it('is a circle for people and a squared plate for businesses', () => {
