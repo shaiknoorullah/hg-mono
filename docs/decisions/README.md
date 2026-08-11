@@ -20,6 +20,7 @@ Format: a decision is *settled* when it is implementable without further input.
 | S-08 | Auth method by role | Customers + riders: **phone OTP**. Restaurants + admins: **email + password** |
 | S-09 | Infrastructure | Traefik + Go binary + Postgres + **Redis** + **MinIO** |
 | S-10 | Launch target | **Live, taking real orders** |
+| S-11 | Accepted halal certifying bodies *(was O-02)* | **HMA Canada · HFSAA · ISNA Canada.** A certificate from **any one** of these satisfies check `H2_ISSUER_ACCEPTED`. Seeded registry — extensible at runtime by a super admin, not a closed set. Seed fixture: `contracts/fixtures/halal/halal_issuing_bodies_seed.json` |
 
 ## Settled — reconciliations
 
@@ -40,12 +41,11 @@ Where two specs disagreed, or a spec default contradicted a client decision.
 
 ## Open — blocking
 
-Cannot proceed on engineering judgement.
+Cannot proceed on engineering judgement. *(O-02 resolved — see S-11.)*
 
 | # | Decision | Why it blocks | Owner |
 |---|---|---|---|
 | O-01 | **HST registration number + supplier position** — is the platform the deemed supplier for non-registrant restaurants, or does each restaurant remain supplier of record? | No legal basis to charge tax. Affects every invoice and payout | Client's accountant |
-| O-02 | **Accepted halal certifying bodies** — the allowlist | Verification check H2 matches the issuer against a curated registry. Free text defeats the entire mechanism | Client |
 | O-03 | **SMS / A2P registration** — which provider and account sends OTP | Nobody can sign in without it. A2P 10DLC approval takes days to weeks. Check whether the existing Supabase setup already has a usable Twilio account behind it | You — today |
 | O-04 | **Refund liability allocation** — who absorbs each refund reason code | Determines ledger postings and partner balances | You |
 | O-05 | **Launch province(s)** | Gates tax rates and address validation. Default: Ontario only | You |
