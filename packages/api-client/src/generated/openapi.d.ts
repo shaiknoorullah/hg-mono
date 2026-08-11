@@ -3343,7 +3343,7 @@ export interface components {
          *     and no rounding to any granularity other than one cent.
          * @example 4696
          */
-        Cents: number;
+        Cents: import('../money.js').Cents;
         /**
          * @description C-12. The platform's core promise, made inspectable. The standing disclaimer is fixed
          *     copy: "Certification verified by Halal Goes on {date}. Halal Goes does not itself

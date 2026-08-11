@@ -11,6 +11,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { Schema } from '@hg/api-client';
+import { cents } from '@hg/api-client';
 import { RestaurantCard } from '../RestaurantCard';
 import { OrderCard } from '../OrderCard';
 import { HalalCertificationPanel } from '../../certification/HalalCertificationPanel';
@@ -88,7 +89,7 @@ describe('OrderCard', () => {
         longitude: -79.39,
       },
       items: [{ name: 'Chicken Biryani', quantity: 2 }],
-      earnings: { currency: 'CAD', estimated_total_cents: 1140 },
+      earnings: { currency: 'CAD', estimated_total_cents: cents(1140) },
     };
 
     render(<OrderCard variant="rider" order={assignment} />);
