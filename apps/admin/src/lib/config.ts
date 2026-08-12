@@ -6,4 +6,4 @@
  * app boots with data and no real backend; override with `VITE_API_BASE_URL` if needed.
  */
 export const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4010/v1';
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4010';
