@@ -1,0 +1,97 @@
+name: migrations
+
+# The schema's guarantee: the migrations apply to a real Postgres+PostGIS, roll
+# all the way back, and the invariants they claim are the ones the database
+# actually enforces. Every assertion in test/run_invariant_tests.sh is a thing
+# the database must REFUSE; if any of them starts succeeding, this fails.
+on:
+  push:
+    branches: [main]
+    paths: ['services/hg/migrations/**', 'contracts/openapi.yaml', '.github/workflows/migrations.yml']
+  pull_request:
+    paths: ['services/hg/migrations/**', 'contracts/openapi.yaml', '.github/workflows/migrations.yml']
+
+defaults:
+  run:
+    working-directory: services/hg/migrations
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: hg
+          POSTGRES_PASSWORD: hg
+          POSTGRES_DB: hg
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hg"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    env:
+      DATABASE_URL: postgres://hg:hg@localhost:5432/hg?sslmode=disable
+      PGPASSWORD: hg
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install pyyaml
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
+      # 1. The enum migration is generated from the contract. If regenerating it
+      #    produces a diff, the contract moved and the schema did not.
+      - name: contract enums are up to date
+        run: |
+          python3 tools/gen_enums.py > /tmp/00002_enums.sql
+          diff -u 00002_enums.sql /tmp/00002_enums.sql
+
+      # 2. The migrations apply.
+      - name: goose up
+        run: goose -dir . postgres "$DATABASE_URL" up
+
+      # 3. Money and geography lints against the finished schema. (00023 already
+      #    gates on these, so a failure here means someone bypassed it.)
+      - name: schema lint
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f lint/schema_lint.sql
+
+      # 4. Every contract enum has an identical pg type or an explained exclusion.
+      - name: contract enums match the database
+        run: python3 tools/check_enums.py
+
+      # 5. Launch seed applies, and applies twice (it must be idempotent).
+      - name: seed
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f seed/seed.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f seed/seed.sql
+
+      # 6. The invariants: each case asserts the database refuses something.
+      - name: invariant tests
+        run: ./test/run_invariant_tests.sh
+
+      # 7. Down migrations are real. Full rollback must leave nothing behind,
+      #    and must be followed by a clean re-apply.
+      - name: goose reset, then up again
+        run: |
+          goose -dir . postgres "$DATABASE_URL" reset
+          LEFTOVERS=$(psql "$DATABASE_URL" -At -c "
+            SELECT tablename FROM pg_tables
+             WHERE schemaname='public' AND tablename NOT IN ('goose_db_version','spatial_ref_sys')
+            UNION ALL
+            SELECT t.typname FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace
+             WHERE n.nspname='public' AND t.typtype='e'")
+          if [ -n "$LEFTOVERS" ]; then
+            echo "rollback left objects behind:"; echo "$LEFTOVERS"; exit 1
+          fi
+          goose -dir . postgres "$DATABASE_URL" up
