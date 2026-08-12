@@ -14,3 +14,6 @@ vendor/
 
 __pycache__/
 *.pyc
+
+# expo web export output
+apps/gallery-native/dist/
