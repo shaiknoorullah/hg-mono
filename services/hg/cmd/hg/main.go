@@ -29,6 +29,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
@@ -112,23 +113,33 @@ func run() error {
 
 	// 4. Routes. Every module contributes a Routes(router, …) function; every
 	// route carries a Policy; Verify refuses to boot on a defective one.
+	//
+	// B3 (auth) provides the real P-04 token authenticator and the P-05
+	// role→action matrix, replacing the AnonymousAuthenticator/DenyAllAuthorizer
+	// stubs. Its secrets are loaded from the environment here (fail-loud, G-7).
+	authSecrets, err := auth.LoadSecrets(os.Getenv, !cfg.Env.IsLocal())
+	if err != nil {
+		return err
+	}
+	authModule := auth.NewModule(
+		st.DB().Pool, st.Cache().Client, authSecrets,
+		nil, cfg.Env.IsLocal(), log)
+
 	router := httpx.NewRouter(httpx.Options{
-		Logger:      log,
-		Env:         string(cfg.Env),
-		CORSOrigins: cfg.CORSOrigins,
-		// TODO(auth sibling): replace these two stubs with the P-04 token
-		// authenticator and the P-05 role→action matrix. Until then every
-		// non-public route answers 401, which is the correct answer for a
-		// service that cannot yet authenticate anyone.
-		Authenticator: httpx.AnonymousAuthenticator{},
-		Authorizer:    httpx.DenyAllAuthorizer{},
+		Logger:        log,
+		Env:           string(cfg.Env),
+		CORSOrigins:   cfg.CORSOrigins,
+		Authenticator: authModule.Authenticator,
+		Authorizer:    authModule.Authorizer,
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
-	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
-	// orders.Routes(router, …), dispatch.Routes(router, …),
-	// payments.Routes(router, …), realtime.Routes(router, …),
-	// files.Routes(router, …), admin.Routes(router, …).
+	auth.Routes(router, authModule.Handler)
+	// The revocation deny set refreshes from Postgres every 10 s (P-04).
+	authModule.StartRevocationRefresher(ctx)
+	// TODO(siblings): catalog.Routes(router, …), orders.Routes(router, …),
+	// dispatch.Routes(router, …), payments.Routes(router, …),
+	// realtime.Routes(router, …), files.Routes(router, …), admin.Routes(router, …).
 
 	if err := router.Verify(); err != nil {
 		return err
