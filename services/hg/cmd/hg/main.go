@@ -29,7 +29,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/admin"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
@@ -125,10 +127,23 @@ func run() error {
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
+
+	// B9 — Admin, RBAC & files (internal/admin, internal/files).
+	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
+	files.Routes(router, files.NewHandler(files.NewRepo(
+		st.DB().Pool,
+		st.Objects().Client,
+		files.Buckets{
+			KYC:     cfg.MinIO.Buckets.KYC,
+			POD:     cfg.MinIO.Buckets.POD,
+			Media:   cfg.MinIO.Buckets.Media,
+			Exports: cfg.MinIO.Buckets.Exports,
+			Tmp:     cfg.MinIO.Buckets.Tmp,
+		},
+	)))
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
-	// payments.Routes(router, …), realtime.Routes(router, …),
-	// files.Routes(router, …), admin.Routes(router, …).
+	// payments.Routes(router, …), realtime.Routes(router, …).
 
 	if err := router.Verify(); err != nil {
 		return err
