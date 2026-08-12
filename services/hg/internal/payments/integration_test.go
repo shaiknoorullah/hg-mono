@@ -62,7 +62,12 @@ func testPool(t *testing.T) *pgxpool.Pool {
 // deferred triggers accept it at COMMIT.
 func TestIntegration_RefundWithinCapture_PostsBalancedBatch(t *testing.T) {
 	pool := testPool(t)
-	defer pool.Close()
+	// Register the pool close as a cleanup rather than a defer: t.Cleanup runs
+	// AFTER all deferred calls, so a deferred pool.Close() would shut the pool
+	// before the refund cleanup below could delete its row — leaking a refund
+	// that then trips refund_within_capture on the next run. Registered first,
+	// it runs last (LIFO), after the refund cleanup.
+	t.Cleanup(pool.Close)
 	repo := NewRepo(pool)
 	ctx := context.Background()
 
@@ -162,7 +167,9 @@ func TestIntegration_UnbalancedBatch_RejectedByTrigger(t *testing.T) {
 // redelivery returns inserted=false and changes no rows (I-17.1 / acceptance 1).
 func TestIntegration_WebhookIdempotency(t *testing.T) {
 	pool := testPool(t)
-	defer pool.Close()
+	// See the note in TestIntegration_RefundWithinCapture_PostsBalancedBatch:
+	// close via Cleanup so it runs after the webhook_event delete below.
+	t.Cleanup(pool.Close)
 	repo := NewRepo(pool)
 	ctx := context.Background()
 

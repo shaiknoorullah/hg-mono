@@ -464,12 +464,17 @@ type RefundRow struct {
 	FailureMessage string
 }
 
+// The refund table carries no currency of its own; a refund is always in the
+// currency of the payment_intent it compensates (money is int64 cents, CAD at
+// launch). Source it from the joined intent so the DTO's required `currency`
+// field is authoritative rather than assumed.
 const refundSelect = `
-	SELECT id::text, order_id::text, kind::text, scope::text, reason_code::text,
-	       amount_cents, tax_cents, currency::text, state::text,
-	       restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
-	       coalesce(note,''), requested_at, settled_at, coalesce(failure_message,'')
-	  FROM refund`
+	SELECT r.id::text, r.order_id::text, r.kind::text, r.scope::text, r.reason_code::text,
+	       r.amount_cents, r.tax_cents, pi.currency::text, r.state::text,
+	       r.restaurant_chargeback_cents, r.rider_chargeback_cents, r.platform_absorbed_cents,
+	       coalesce(r.note,''), r.requested_at, r.settled_at, coalesce(r.failure_message,'')
+	  FROM refund r
+	  JOIN payment_intent pi ON pi.id = r.payment_intent_id`
 
 func scanRefund(row pgx.Row) (RefundRow, error) {
 	var rr RefundRow
@@ -485,7 +490,7 @@ func scanRefund(row pgx.Row) (RefundRow, error) {
 
 // GetRefund reads one refund by id.
 func (r *Repo) GetRefund(ctx context.Context, id string) (RefundRow, error) {
-	return scanRefund(r.pool.QueryRow(ctx, refundSelect+` WHERE id = $1`, id))
+	return scanRefund(r.pool.QueryRow(ctx, refundSelect+` WHERE r.id = $1`, id))
 }
 
 // ListRefundsFilter narrows a refund list.
@@ -501,10 +506,11 @@ type ListRefundsFilter struct {
 func (r *Repo) ListRefunds(ctx context.Context, f ListRefundsFilter) ([]RefundRow, error) {
 	sql := `
 		SELECT r.id::text, r.order_id::text, r.kind::text, r.scope::text, r.reason_code::text,
-		       r.amount_cents, r.tax_cents, r.currency::text, r.state::text,
+		       r.amount_cents, r.tax_cents, pi.currency::text, r.state::text,
 		       r.restaurant_chargeback_cents, r.rider_chargeback_cents, r.platform_absorbed_cents,
 		       coalesce(r.note,''), r.requested_at, r.settled_at, coalesce(r.failure_message,'')
-		  FROM refund r`
+		  FROM refund r
+		  JOIN payment_intent pi ON pi.id = r.payment_intent_id`
 	args := []any{}
 	conds := []string{}
 	add := func(cond string, val any) {
