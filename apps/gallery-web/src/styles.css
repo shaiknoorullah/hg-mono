@@ -1,0 +1,90 @@
+/*
+ * The gallery's only stylesheet.
+ *
+ * Rule for this app: the gallery **never names a colour**. Every value below is a
+ * design-system custom property that `@hg/ui-web/styles.css` wrote out of
+ * `docs/design/tokens.json`. If the gallery chrome ever looked right while a component
+ * looked wrong, the gallery would be lying about the system.
+ */
+
+@import '@hg/ui-web/styles.css';
+
+/* Tailwind cannot see this app's class names through the library's own @source. */
+@source './**/*.{ts,tsx}';
+
+@layer base {
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  /*
+   * Fixture image URLs point at `cdn.halalgoes.ca`, which does not resolve with no
+   * backend running. Broken-image chrome is browser furniture, not system design, so
+   * the plate stays empty instead — exactly what `RestaurantCard` documents ("every
+   * image sits on a plate, so a failed load is an empty plate, not a collapse").
+   */
+  img {
+    color: transparent;
+  }
+}
+
+@layer components {
+  /* The gallery's own scaffolding. Structure only — no colour decisions. */
+  .gx-page {
+    display: grid;
+    grid-template-columns: 16rem minmax(0, 1fr);
+    min-height: 100vh;
+    background-color: var(--hg-surface-sunken);
+    color: var(--hg-text-primary);
+  }
+
+  @media (max-width: 900px) {
+    .gx-page {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .gx-rail {
+      position: static !important;
+      height: auto !important;
+    }
+  }
+
+  .gx-rail {
+    position: sticky;
+    inset-block-start: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-inline-end: 1px solid var(--hg-border-decorative);
+    background-color: var(--hg-surface-base);
+    padding: var(--hg-space-4);
+  }
+
+  .gx-main {
+    min-width: 0;
+    padding: var(--hg-space-6);
+    padding-block-end: var(--hg-space-24);
+  }
+
+  /* A specimen frame: the neutral stage every component is shown on. */
+  .gx-stage {
+    border: 1px solid var(--hg-border-decorative);
+    border-radius: var(--hg-radius-md);
+    background-color: var(--hg-surface-base);
+    padding: var(--hg-space-4);
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  /* An inverse stage, for anything whose contrast has to be read on chrome. */
+  .gx-stage-chrome {
+    background-color: var(--hg-surface-chrome);
+  }
+
+  .gx-swatch {
+    inline-size: var(--hg-space-12);
+    block-size: var(--hg-space-12);
+    border-radius: var(--hg-radius-sm);
+    border: 1px solid var(--hg-border-decorative);
+    flex: none;
+  }
+}

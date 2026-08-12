@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Halal Goes — Native Gallery",
+    "slug": "hg-gallery-native",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "hggallery",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    }
+  }
+}
