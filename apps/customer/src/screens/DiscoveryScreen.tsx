@@ -15,7 +15,6 @@ import * as React from 'react';
 import { FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { unwrap, isApiError } from '@hg/api-client';
-import type { Schema } from '@hg/api-client';
 import {
   AppBar,
   EmptyState,
@@ -25,10 +24,9 @@ import {
   Spinner,
   useTheme,
 } from '@hg/ui-native';
+import type { Restaurant } from '@hg/ui-native';
 
 import { api } from '../api/client';
-
-type Restaurant = Schema['RestaurantCard'];
 
 type Status =
   | { kind: 'loading' }
@@ -44,7 +42,11 @@ export function DiscoveryScreen(): React.ReactElement {
     setStatus({ kind: 'loading' });
     try {
       const body = await unwrap(api.GET('/v1/restaurants', { params: { query: { limit: 20 } } }));
-      setStatus({ kind: 'ready', restaurants: body.data });
+      // `body.data` is the contract's `RestaurantCard[]`; `@hg/ui-native` re-exports the identical
+      // generated shape as `Restaurant`. The two are structurally equal but nominally distinct
+      // across the module boundary (the branded `Cents` fields), so one cast bridges them — the
+      // same single-widening the gallery does in its fixtures loader.
+      setStatus({ kind: 'ready', restaurants: body.data as unknown as Restaurant[] });
     } catch (e) {
       setStatus({ kind: 'error', code: isApiError(e) ? String(e.code) : null });
     }
