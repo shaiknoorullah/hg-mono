@@ -39,7 +39,32 @@ type Config struct {
 	Postgres Postgres
 	Redis    Redis
 	MinIO    MinIO
+	Stripe   Stripe
 }
+
+// Stripe holds the P-16..P-21 payment-provider settings. The secret key is
+// test-mode outside production; the payments module's livemode boot probe
+// (P-17 / I-17.3) asserts the key's mode matches the environment so a test key
+// can never reach production and a live key can never reach staging.
+type Stripe struct {
+	// SecretKey is the sk_test_… or sk_live_… API key. Optional at config load
+	// so a process that does not exercise payments can still boot; the payments
+	// module fails loudly at its own boot if it is missing.
+	SecretKey string
+	// WebhookSecret is the whsec_… signing secret for Stripe-Signature
+	// verification (P-17).
+	WebhookSecret string
+	// ConnectReturnURL and ConnectRefreshURL are the server-generated bases for
+	// the Stripe AccountLink (P-19): the client never supplies these URLs.
+	ConnectReturnURL  string
+	ConnectRefreshURL string
+}
+
+// Configured reports whether a Stripe API key was supplied.
+func (s Stripe) Configured() bool { return s.SecretKey != "" }
+
+// LiveMode reports whether the configured secret key is a live-mode key.
+func (s Stripe) LiveMode() bool { return strings.HasPrefix(s.SecretKey, "sk_live_") }
 
 // Postgres holds the connection settings for the only source of truth (G-1).
 type Postgres struct {
@@ -149,6 +174,13 @@ func Load(getenv func(string) string) (*Config, error) {
 			Exports: l.optional("HG_MINIO_BUCKET_EXPORTS", "hg-exports"),
 			Tmp:     l.optional("HG_MINIO_BUCKET_TMP", "hg-tmp"),
 		},
+	}
+
+	cfg.Stripe = Stripe{
+		SecretKey:         l.optional("HG_STRIPE_SECRET_KEY", ""),
+		WebhookSecret:     l.optional("HG_STRIPE_WEBHOOK_SECRET", ""),
+		ConnectReturnURL:  l.optional("HG_STRIPE_CONNECT_RETURN_URL", ""),
+		ConnectRefreshURL: l.optional("HG_STRIPE_CONNECT_REFRESH_URL", ""),
 	}
 
 	// G-7: outside local, no dependency may point at loopback. This is the
