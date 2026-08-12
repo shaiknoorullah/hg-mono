@@ -7,7 +7,7 @@
  * carries the `/v1` base path, so the origin *plus* `/v1` is what the client wants.
  */
 export const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4010/v1';
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4010';
 
 /**
  * The mock scenario forwarded as `X-Mock-Scenario`. The busy Friday queue is the one that
