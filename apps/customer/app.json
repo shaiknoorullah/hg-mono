@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Halal Goes — Customer",
+    "slug": "hg-customer",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "hgcustomer",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    }
+  }
+}
