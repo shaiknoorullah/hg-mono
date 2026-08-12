@@ -1,0 +1,66 @@
+{
+  "scenario": "halal_issuing_bodies_seed",
+  "domain": "halal",
+  "schema": "array<HalalIssuingBody>",
+  "describes": "**The launch allowlist** (decision S-11). A certificate from ANY ONE of these satisfies `H2_ISSUER_ACCEPTED`. Extensible at runtime by a super admin, so this is a starting registry, not a closed set.",
+  "operations": [
+    "listHalalIssuingBodies"
+  ],
+  "status": 200,
+  "tags": [
+    "halal",
+    "seed",
+    "launch-critical"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 3
+  },
+  "payload": [
+    {
+      "id": "b093bd99-e3f6-42b8-a816-99cab4dc92b5",
+      "name": "Halal Monitoring Authority (HMA Canada)",
+      "aliases": [
+        "HMA",
+        "HMA Canada"
+      ],
+      "country": "CA",
+      "region": "ca-central-1",
+      "website": "https://cdn.halalgoes.ca/img/asset/3a45b9b3.webp",
+      "accreditation_ref": "Accreditation Ref",
+      "requires_issuer_confirmation": true,
+      "status": "ACCEPTED",
+      "notes": "Notes"
+    },
+    {
+      "id": "5dcd0269-ae76-4ab0-ac7c-15e96c4ca8e5",
+      "name": "Halal Food Standards Alliance of America (HFSAA)",
+      "aliases": [
+        "HFSAA"
+      ],
+      "country": "US",
+      "region": "ca-central-1",
+      "website": "https://cdn.halalgoes.ca/img/asset/3bc266df.webp",
+      "accreditation_ref": "Accreditation Ref",
+      "requires_issuer_confirmation": true,
+      "status": "ACCEPTED",
+      "notes": "Notes"
+    },
+    {
+      "id": "2a3664b6-57dc-475d-aeef-c9cf6864014c",
+      "name": "ISNA Canada Halal Certification Agency",
+      "aliases": [
+        "ISNA Canada",
+        "ISNA"
+      ],
+      "country": "CA",
+      "region": "ca-central-1",
+      "website": "https://cdn.halalgoes.ca/img/asset/a4ca8e54.webp",
+      "accreditation_ref": "Accreditation Ref",
+      "requires_issuer_confirmation": true,
+      "status": "ACCEPTED",
+      "notes": "Notes"
+    }
+  ]
+}

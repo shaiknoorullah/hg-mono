@@ -15,7 +15,7 @@
     "id": "165db513-71ba-481e-a5b6-3b54d8fe48a2",
     "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
     "document_id": "46e81bce-6108-4a5f-ab99-8b9bdc7c2314",
-    "certificate_number": "HMA-ON-46263",
+    "certificate_number": "HMA-ON-47021",
     "issuing_body": {
       "id": "26484eaa-64d5-4ac4-a09d-64c9e4c6a417",
       "name": "Halal Munchies Scarborough",
@@ -37,7 +37,7 @@
     "issued_on": "2026-03-09",
     "expires_on": "2026-08-01",
     "status": "EXPIRED",
-    "checklist_version": 3,
+    "checklist_version": 1,
     "checks": [
       {
         "check_key": "H1_LEGIBLE_COMPLETE",

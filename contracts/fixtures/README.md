@@ -68,7 +68,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**310 scenarios** across 14 domains.
+**311 scenarios** across 14 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -78,7 +78,7 @@ falling through, so a typo is visible immediately.
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
 | [`errors`](#errors) | 21 | `{error}` envelopes for the codes an app actually branches on. |
-| [`halal`](#halal) | 24 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
+| [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`onboarding`](#onboarding) | 34 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
 | [`orders`](#orders) | 41 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
@@ -264,7 +264,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 
 ### halal
 
-Badges, certificates, checks and issuing bodies — the platform's core promise. — 24 scenarios.
+Badges, certificates, checks and issuing bodies — the platform's core promise. — 25 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -286,7 +286,8 @@ Badges, certificates, checks and issuing bodies — the platform's core promise.
 | `halal_certificate_status_revoked` | `HalalCertificate` | 200 | `status = REVOKED`. Withdrawn by the issuer or by us after the fact. |
 | `halal_certificate_status_superseded` | `HalalCertificate` | 200 | `status = SUPERSEDED`. Replaced by a renewal. Kept for audit. |
 | `halal_certificate_valid` | `HalalCertificate` | 200 | **Valid**: approved, all seven H-checks PASS, 211 days of validity remaining. |
-| `halal_issuing_bodies_empty` | `array&lt;HalalIssuingBody&gt;` | 200 | **The list is empty.** This is the launch-day reality until O-02 is answered: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified. |
+| `halal_issuing_bodies_empty` | `array&lt;HalalIssuingBody&gt;` | 200 | **The list is empty.** Not launch-day reality any more — O-02 is answered (S-11) and three bodies are seeded — but kept as the degenerate case: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified. A client must render this without implying the platform is broken. |
+| `halal_issuing_bodies_seed` | `array&lt;HalalIssuingBody&gt;` | 200 | **The launch allowlist** (decision S-11). A certificate from ANY ONE of these satisfies `H2_ISSUER_ACCEPTED`. Extensible at runtime by a super admin, so this is a starting registry, not a closed set. |
 | `halal_issuing_body_accepted` | `HalalIssuingBody` | 200 | `status = ACCEPTED`. On the list. Promotion to this state is gated to a super admin (O-02). |
 | `halal_issuing_body_proposed` | `HalalIssuingBody` | 200 | `status = PROPOSED`. Suggested by a reviewer; **not yet usable**. `H2_ISSUER_ACCEPTED` fails against it. |
 | `halal_issuing_body_rejected` | `HalalIssuingBody` | 200 | `status = REJECTED`. Considered and refused. |
@@ -505,7 +506,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `edge` | 49 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `rider` | 49 | Rider-facing surface. |
 | `restaurant` | 30 | Restaurant-facing surface. |
-| `halal` | 28 | Touches the halal claim surface. |
+| `halal` | 29 | Touches the halal claim surface. |
 | `money` | 25 | Exercises the money path specifically. |
 | `empty` | 24 | Zero items. The empty state, never an error. |
 | `order-state-matrix` | 24 | One per `OrderState` (all 14). |
@@ -536,6 +537,8 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `blocking-decision` | 1 | Encodes an OPEN decision from `docs/decisions/README.md`. |
 | `control` | 1 | Realtime control frames. |
 | `degraded` | 1 | A partially-broken real-world condition (stale GPS, lost tracking). |
+| `launch-critical` | 1 |  |
+| `seed` | 1 |  |
 
 ## Operation coverage
 
@@ -607,7 +610,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRiderPayout` | `payout_detail_paid` | — |
 | `issueRefund` | `refund_goodwill_admin` | `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
 | `listAddresses` | `addresses_list` | `addresses_empty` |
-| `listHalalIssuingBodies` | `halal_issuing_body_accepted` | `halal_issuing_bodies_empty`, `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
+| `listHalalIssuingBodies` | `halal_issuing_body_accepted` | `halal_issuing_bodies_empty`, `halal_issuing_bodies_seed`, `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
 | `listMenuReviewQueue` | `menu_version_pending_review` | `menu_review_queue_empty`, `menu_version_approved`, `menu_version_draft`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
 | `listNotifications` | `notifications_list` | `notifications_empty` |
 | `listOrders` | `order_list_active` | `order_list_empty`, `order_list_past` |

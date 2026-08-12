@@ -493,7 +493,7 @@ class Content:
             "line_no": 1,
             "sort_order": 1,
             "rating_count": 412,
-            "checklist_version": 3,
+            "checklist_version": 1,
             "prep_minutes": 18,
             "prep_eta_minutes": 20,
             "prep_eta_suggestion_min": 20,

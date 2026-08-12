@@ -151,7 +151,7 @@
       "issued_on": "2025-10-14",
       "expires_on": "2027-03-08",
       "status": "APPROVED",
-      "checklist_version": 3,
+      "checklist_version": 1,
       "checks": [
         {
           "check_key": "H1_LEGIBLE_COMPLETE",

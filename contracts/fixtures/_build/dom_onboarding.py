@@ -450,7 +450,7 @@ def _halal(reg, synth) -> None:
                 "issued_on": day(-154),
                 "expires_on": day(211),
                 "status": status,
-                "checklist_version": 3,
+                "checklist_version": 1,
                 "checks": [
                     {
                         "check_key": key,
@@ -605,13 +605,46 @@ def _halal(reg, synth) -> None:
         "halal_issuing_bodies_empty",
         "halal",
         "array<HalalIssuingBody>",
-        "**The list is empty.** This is the launch-day reality until O-02 is answered: with "
-        "no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no "
-        "restaurant can be certified.",
+        "**The list is empty.** Not launch-day reality any more \u2014 O-02 is answered (S-11) "
+        "and three bodies are seeded \u2014 but kept as the degenerate case: with no accepted "
+        "issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be "
+        "certified. A client must render this without implying the platform is broken.",
         [],
         operations=["listHalalIssuingBodies"],
         meta={"next_cursor": None, "has_more": False, "total": 0},
         tags=["halal", "edge", "empty", "blocking-decision"],
+    )
+
+    # The launch allowlist (decision S-11). Generated rather than hand-written: a file dropped
+    # into contracts/fixtures/ does not survive `fixtures:build`, which regenerates the tree.
+    # Authoritative copy for the running system is services/hg/migrations/seed/002.
+    accepted = []
+    for name, aliases, country in [
+        ("Halal Monitoring Authority (HMA Canada)", ["HMA", "HMA Canada"], "CA"),
+        ("Halal Food Standards Alliance of America (HFSAA)", ["HFSAA"], "US"),
+        ("ISNA Canada Halal Certification Agency", ["ISNA Canada", "ISNA"], "CA"),
+    ]:
+        body = synth.make("HalalIssuingBody", f"seed-{aliases[0]}")
+        body["status"] = "ACCEPTED"
+        if "name" in body:
+            body["name"] = name
+        if "aliases" in body:
+            body["aliases"] = aliases
+        if "country" in body:
+            body["country"] = country
+        accepted.append(body)
+
+    reg.add(
+        "halal_issuing_bodies_seed",
+        "halal",
+        "array<HalalIssuingBody>",
+        "**The launch allowlist** (decision S-11). A certificate from ANY ONE of these "
+        "satisfies `H2_ISSUER_ACCEPTED`. Extensible at runtime by a super admin, so this is a "
+        "starting registry, not a closed set.",
+        accepted,
+        operations=["listHalalIssuingBodies"],
+        meta={"next_cursor": None, "has_more": False, "total": len(accepted)},
+        tags=["halal", "seed", "launch-critical"],
     )
 
 

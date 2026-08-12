@@ -2,7 +2,7 @@
   "scenario": "halal_issuing_bodies_empty",
   "domain": "halal",
   "schema": "array<HalalIssuingBody>",
-  "describes": "**The list is empty.** This is the launch-day reality until O-02 is answered: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified.",
+  "describes": "**The list is empty.** Not launch-day reality any more — O-02 is answered (S-11) and three bodies are seeded — but kept as the degenerate case: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified. A client must render this without implying the platform is broken.",
   "operations": [
     "listHalalIssuingBodies"
   ],

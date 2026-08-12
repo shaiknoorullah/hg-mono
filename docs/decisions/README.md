@@ -20,7 +20,7 @@ Format: a decision is *settled* when it is implementable without further input.
 | S-08 | Auth method by role | Customers + riders: **phone OTP**. Restaurants + admins: **email + password** |
 | S-09 | Infrastructure | Traefik + Go binary + Postgres + **Redis** + **MinIO** |
 | S-10 | Launch target | **Live, taking real orders** |
-| S-11 | Accepted halal certifying bodies *(was O-02)* | **HMA Canada · HFSAA · ISNA Canada.** A certificate from **any one** of these satisfies check `H2_ISSUER_ACCEPTED`. Seeded registry — extensible at runtime by a super admin, not a closed set. Seed fixture: `contracts/fixtures/halal/halal_issuing_bodies_seed.json` |
+| S-11 | Accepted halal certifying bodies *(was O-02)* | **HMA Canada · HFSAA · ISNA Canada.** A certificate from **any one** of these satisfies check `H2_ISSUER_ACCEPTED`. Seeded registry — extensible at runtime by a super admin, not a closed set. Seeded in `services/hg/migrations/seed/002_halal_issuing_bodies.sql` (authoritative for the running system) and generated as the `halal_issuing_bodies_seed` fixture by `contracts/fixtures/_build/dom_onboarding.py` |
 
 ## Settled — reconciliations
 
@@ -37,6 +37,7 @@ Where two specs disagreed, or a spec default contradicted a client decision.
 | R-07 | Service fee: 8% clamped (platform spec) vs none | **Mechanism built, set to $0.00** | Correctable by configuration, not by release |
 | R-08 | FSSAI certificate (SOW) | **Replaced** with business licence, halal certificate, provincial food-safety permit, owner ID; CRA business number replaces GSTIN | FSSAI is the Indian regulator and has no Canadian meaning |
 | R-09 | Rider wait-time pay and cancellation compensation | **Deferred to V1**, funded by the service fee when enabled | No funding source under pass-through |
+| R-11 | `halal_checklist_version`: `05-admin.md` and the contract say **1**, fixtures said **3** | **1** | Greenfield system — there have been no prior checklist versions. Fixtures corrected at the generator |
 | R-10 | Repository name | **`hg-mono`** | Unambiguous against `hg-api`, `halal-goes`, `hg-docker` |
 
 ## Open — blocking

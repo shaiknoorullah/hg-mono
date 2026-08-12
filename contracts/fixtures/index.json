@@ -2,7 +2,7 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 310,
+  "count": 311,
   "counts_by_domain": {
     "admin": 15,
     "cart": 12,
@@ -10,7 +10,7 @@
     "dispatch": 31,
     "documents": 23,
     "errors": 21,
-    "halal": 24,
+    "halal": 25,
     "onboarding": 34,
     "orders": 41,
     "payments": 12,
@@ -2258,7 +2258,7 @@
       "scenario": "halal_issuing_bodies_empty",
       "domain": "halal",
       "schema": "array<HalalIssuingBody>",
-      "describes": "**The list is empty.** This is the launch-day reality until O-02 is answered: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified.",
+      "describes": "**The list is empty.** Not launch-day reality any more — O-02 is answered (S-11) and three bodies are seeded — but kept as the degenerate case: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified. A client must render this without implying the platform is broken.",
       "operations": [
         "listHalalIssuingBodies"
       ],
@@ -2270,6 +2270,22 @@
         "blocking-decision"
       ],
       "file": "halal/halal_issuing_bodies_empty.json"
+    },
+    {
+      "scenario": "halal_issuing_bodies_seed",
+      "domain": "halal",
+      "schema": "array<HalalIssuingBody>",
+      "describes": "**The launch allowlist** (decision S-11). A certificate from ANY ONE of these satisfies `H2_ISSUER_ACCEPTED`. Extensible at runtime by a super admin, so this is a starting registry, not a closed set.",
+      "operations": [
+        "listHalalIssuingBodies"
+      ],
+      "status": 200,
+      "tags": [
+        "halal",
+        "seed",
+        "launch-critical"
+      ],
+      "file": "halal/halal_issuing_bodies_seed.json"
     },
     {
       "scenario": "halal_issuing_body_accepted",
@@ -5185,6 +5201,7 @@
     ],
     "listHalalIssuingBodies": [
       "halal_issuing_bodies_empty",
+      "halal_issuing_bodies_seed",
       "halal_issuing_body_accepted",
       "halal_issuing_body_proposed",
       "halal_issuing_body_rejected",
