@@ -217,25 +217,45 @@ RETURNING id, restaurant_id, document_id::text, certificate_number, issuing_body
 	return outCert, outChecks, err
 }
 
-// upsertComputed writes computed_result for all seven checks and, for the two
-// non-overridable checks (H5, H7), sets result = computed_result so the DB
-// invariant halal_check_non_overridable_matches_computation always holds.
+// upsertComputed writes computed_result for all seven checks and seeds result
+// from the server's own computation for every check the server can evaluate
+// (H2, H5, H6, H7). H1/H3/H4 have no computation (computed_result NOT_ASSESSED)
+// and are left for a human to record.
+//
+// For the two non-overridable checks (H5, H7) the recorded result is forced to
+// equal the computation on every write, keeping the DB invariant
+// halal_check_non_overridable_matches_computation true. For the overridable
+// server-computed checks (H2, H6) the computed value is adopted as the default
+// result, but a human-recorded result is never clobbered: on conflict the
+// result is only pulled forward from the computation while it is still
+// NOT_ASSESSED.
 func (r *Repo) upsertComputed(ctx context.Context, tx pgx.Tx, certID string, computed map[string]string, staffID string) error {
 	for _, k := range AllCheckKeys {
 		cr := computed[k]
 		overridable := !NonOverridable(k)
-		// For non-overridable checks the recorded result equals the computation.
-		// For overridable checks we only seed the computed_result and default the
-		// result to NOT_ASSESSED unless a human has already recorded one.
-		if !overridable {
-			var checkedBy any
-			var checkedAt any
-			if cr != ResultNotAssessed {
-				if staffID != "" {
-					checkedBy = staffID
-				}
-				checkedAt = time.Now().UTC()
+
+		// H1/H3/H4: nothing to compute — only ensure the row exists at
+		// NOT_ASSESSED without disturbing any human-recorded result.
+		if cr == ResultNotAssessed {
+			const q = `
+INSERT INTO halal_certificate_check (halal_certificate_id, check_key, result, computed_result, overridable)
+VALUES ($1, $2, 'NOT_ASSESSED', 'NOT_ASSESSED', $3)
+ON CONFLICT (halal_certificate_id, check_key)
+DO UPDATE SET computed_result = EXCLUDED.computed_result`
+			if _, err := tx.Exec(ctx, q, certID, k, overridable); err != nil {
+				return err
 			}
+			continue
+		}
+
+		var checkedBy any
+		if staffID != "" {
+			checkedBy = staffID
+		}
+		checkedAt := time.Now().UTC()
+
+		if !overridable {
+			// Non-overridable: recorded result always equals the computation.
 			const q = `
 INSERT INTO halal_certificate_check (halal_certificate_id, check_key, result, computed_result, overridable, checked_by, checked_at)
 VALUES ($1, $2, $3, $3, false, $4, $5)
@@ -247,12 +267,25 @@ DO UPDATE SET result = EXCLUDED.computed_result, computed_result = EXCLUDED.comp
 			}
 			continue
 		}
+
+		// Overridable server-computed (H2, H6): seed the result from the
+		// computation, but keep a human override — only adopt the computed
+		// value while the recorded result is still NOT_ASSESSED.
 		const q = `
-INSERT INTO halal_certificate_check (halal_certificate_id, check_key, result, computed_result, overridable)
-VALUES ($1, $2, 'NOT_ASSESSED', $3, true)
+INSERT INTO halal_certificate_check (halal_certificate_id, check_key, result, computed_result, overridable, checked_by, checked_at)
+VALUES ($1, $2, $3, $3, true, $4, $5)
 ON CONFLICT (halal_certificate_id, check_key)
-DO UPDATE SET computed_result = EXCLUDED.computed_result`
-		if _, err := tx.Exec(ctx, q, certID, k, cr); err != nil {
+DO UPDATE SET computed_result = EXCLUDED.computed_result,
+              result = CASE WHEN halal_certificate_check.result = 'NOT_ASSESSED'
+                            THEN EXCLUDED.computed_result
+                            ELSE halal_certificate_check.result END,
+              checked_by = CASE WHEN halal_certificate_check.result = 'NOT_ASSESSED'
+                            THEN EXCLUDED.checked_by
+                            ELSE halal_certificate_check.checked_by END,
+              checked_at = CASE WHEN halal_certificate_check.result = 'NOT_ASSESSED'
+                            THEN EXCLUDED.checked_at
+                            ELSE halal_certificate_check.checked_at END`
+		if _, err := tx.Exec(ctx, q, certID, k, cr, checkedBy, checkedAt); err != nil {
 			return err
 		}
 	}
