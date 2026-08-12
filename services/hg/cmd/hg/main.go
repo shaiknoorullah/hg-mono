@@ -31,6 +31,7 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
@@ -125,10 +126,23 @@ func run() error {
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
+
+	// B8 Realtime. The gateway fans events out over Redis to the local sockets;
+	// the relay pumps the transactional outbox into Redis; both run for the life
+	// of the process and are stopped on shutdown. Node id names this replica in
+	// realtime_connection and the outbox lease.
+	nodeID := cfg.ServiceVersion + "@" + cfg.HTTPAddr
+	rtStore := realtime.NewStore(st.DB().Pool, nodeID)
+	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil)
+	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
+	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
+	go rtGateway.Run(ctx)
+	go rtRelay.Run(ctx)
+	defer rtGateway.Shutdown()
+
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
-	// payments.Routes(router, …), realtime.Routes(router, …),
-	// files.Routes(router, …), admin.Routes(router, …).
+	// payments.Routes(router, …), files.Routes(router, …), admin.Routes(router, …).
 
 	if err := router.Verify(); err != nil {
 		return err
