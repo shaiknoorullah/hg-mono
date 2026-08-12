@@ -1,0 +1,42 @@
+package admin
+
+import "github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+
+// The P-05 permission actions this module declares. Each handler names exactly
+// one, and the httpx.Router refuses to boot a route that names none (I-06.1).
+//
+// The role→action mapping itself is the auth sibling's internal/authz.Matrix
+// (a compile-time constant with a golden test). This module only *declares*
+// which action guards which route; it never decides which role holds it.
+const (
+	// Staff & RBAC (A-01, A-02).
+	ActionStaffRead   httpx.Action = "staff.read"
+	ActionStaffCreate httpx.Action = "staff.create"
+
+	// Restaurant onboarding queue (A-13, A-18).
+	ActionRestaurantApplicationRead   httpx.Action = "restaurant_application.read"
+	ActionRestaurantApplicationClaim  httpx.Action = "restaurant_application.claim"
+	ActionRestaurantApplicationDecide httpx.Action = "restaurant.approve"
+
+	// Rider onboarding queue (A-23).
+	ActionRiderApplicationRead   httpx.Action = "rider_application.read"
+	ActionRiderApplicationClaim  httpx.Action = "rider_application.claim"
+	ActionRiderApplicationDecide httpx.Action = "rider.approve"
+
+	// Document review (A-14).
+	ActionDocumentReview httpx.Action = "document.review"
+
+	// The halal seven-check (A-15, A-16) — the platform's reason to exist.
+	ActionHalalCertRead        httpx.Action = "halal_certificate.read"
+	ActionHalalCertTranscribe  httpx.Action = "halal_certificate.transcribe"
+	ActionHalalCertChecks      httpx.Action = "halal_certificate.check"
+	ActionHalalCertDecide      httpx.Action = "halal_certificate.decide"
+	ActionHalalIssuerRead      httpx.Action = "halal_issuing_body.read"
+	ActionHalalIssuerPropose   httpx.Action = "halal_issuing_body.propose"
+	ActionHalalIssuerSetStatus httpx.Action = "halal_issuing_body.set_status"
+
+	// Menu approval on claim-bearing fields (A-19).
+	ActionMenuReviewRead     httpx.Action = "menu_version.read"
+	ActionMenuReviewDecide   httpx.Action = "menu_version.decide"
+	ActionMenuCreateOnBehalf httpx.Action = "menu.create_on_behalf"
+)
