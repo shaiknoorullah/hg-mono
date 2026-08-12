@@ -428,6 +428,14 @@ func EmitInTx(ctx context.Context, tx pgx.Tx, channel, eventType string, version
 	}
 	ulid = newEventULID()
 
+	// realtime_event.audience is text[] NOT NULL: an empty array is the wire
+	// form of "all participants" (§4.2). A nil slice would be sent as SQL NULL
+	// and violate the constraint, so normalise it to an empty array — which is
+	// exactly the all-participants audience the projection gate expects.
+	if audience == nil {
+		audience = []string{}
+	}
+
 	var eventID string
 	err = tx.QueryRow(ctx, `
 		INSERT INTO realtime_event (ulid, channel, seq, type, v, audience, payload, order_id, account_id)

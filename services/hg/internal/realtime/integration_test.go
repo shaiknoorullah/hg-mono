@@ -40,7 +40,10 @@ func testPool(t *testing.T) *pgxpool.Pool {
 // registering cleanup. It uses a unique phone so parallel runs do not collide.
 func seedAccount(t *testing.T, ctx context.Context, pool *pgxpool.Pool) (accountID, sessionID string) {
 	t.Helper()
-	phone := "+1416" + time.Now().Format("0405.000000")[0:7]
+	// A valid E.164 number (account_phone_e164_shape: ^\+[1-9][0-9]{7,14}$).
+	// The trailing digits come from the clock so parallel runs stay unique;
+	// no separators, since E.164 permits digits only.
+	phone := "+1416" + time.Now().Format("150405.000000")[7:13]
 	err := pool.QueryRow(ctx, `
 		INSERT INTO account (phone_e164) VALUES ($1) RETURNING id::text`, phone).Scan(&accountID)
 	if err != nil {
