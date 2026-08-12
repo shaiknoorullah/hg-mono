@@ -29,9 +29,10 @@ export type TokenProvider = () =>
 
 export interface HgClientConfig {
   /**
-   * Origin only, no trailing `/v1` — the contract's `servers` entry already carries the
-   * base path, and every generated path is relative to it.
-   * e.g. `https://api.halalgoes.ca/v1`, or `http://localhost:4010/v1` against the mock.
+   * Origin only — scheme, host and port, with NO path. Every generated path already carries
+   * the `/v1` prefix (e.g. `/v1/restaurants`), so a trailing `/v1` here would double it into
+   * `/v1/v1/...` and 404.
+   * e.g. `https://api.halalgoes.ca`, or `http://localhost:4010` against the mock.
    */
   baseUrl: string;
   /**
