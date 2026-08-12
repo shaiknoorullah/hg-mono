@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/catalog"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
@@ -138,6 +139,18 @@ func run() error {
 	// The revocation deny set refreshes from Postgres every 10 s (P-04).
 	authModule.StartRevocationRefresher(ctx)
 	// TODO(siblings): catalog.Routes(router, …), orders.Routes(router, …),
+	// B4 — Catalogue & discovery. The media resolver and staff-scope resolver are
+	// left nil until the files and staff/RBAC modules land: a nil media renders
+	// every image as null (a neutral placeholder, per the contract), and a nil
+	// scope makes the restaurant-facing routes deny — the correct answer while no
+	// account can yet be scoped to a restaurant.
+	catalog.Routes(router, catalog.NewHandler(
+		catalog.NewRepo(st.DB().Pool),
+		nil,
+		catalog.NewMinIOPresigner(st.Objects()),
+		nil,
+	))
+	// TODO(siblings): auth.Routes(router, …), orders.Routes(router, …),
 	// dispatch.Routes(router, …), payments.Routes(router, …),
 	// realtime.Routes(router, …), files.Routes(router, …), admin.Routes(router, …).
 
