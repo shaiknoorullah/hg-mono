@@ -42,6 +42,13 @@ type seededOffer struct {
 	offerID        string
 }
 
+// e164SQL is a SQL expression that yields a random, unique-enough phone number
+// in E.164 form ('+1' followed by 9 digits), satisfying both the
+// account_has_identifier and account_phone_e164_shape constraints. It is
+// embedded directly in the INSERT so each seeded account gets a valid
+// identifier without touching the race-free accept logic under test.
+const e164SQL = `'+1' || lpad((floor(random() * 1000000000))::bigint::text, 9, '0')`
+
 func seedFixture(t *testing.T, pool *pgxpool.Pool, n int) (orderID string, offers []seededOffer) {
 	t.Helper()
 	ctx := context.Background()
@@ -49,7 +56,7 @@ func seedFixture(t *testing.T, pool *pgxpool.Pool, n int) (orderID string, offer
 
 	// A minimal quote is required by the order FK/trigger (total must match).
 	var restaurantID, quoteID, custAccount string
-	mustQuery(t, pool, `INSERT INTO account DEFAULT VALUES RETURNING id`, &custAccount)
+	mustQuery(t, pool, `INSERT INTO account (phone_e164) VALUES (`+e164SQL+`) RETURNING id`, &custAccount)
 	mustQuery(t, pool, `
 INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code, location, timezone)
 VALUES (uuid_generate_v7(), 'it-'||substr(md5(random()::text),1,10), 'IT Co', 'IT Kitchen',
@@ -100,7 +107,7 @@ VALUES ($1, 1, 3000, $2) RETURNING id`, &waveID, orderID, expires)
 
 	for i := 0; i < n; i++ {
 		var acct, offerID string
-		mustQuery(t, pool, `INSERT INTO account DEFAULT VALUES RETURNING id`, &acct)
+		mustQuery(t, pool, `INSERT INTO account (phone_e164) VALUES (`+e164SQL+`) RETURNING id`, &acct)
 		mustExec(t, pool, `
 INSERT INTO rider_profile (account_id, first_name, last_name, date_of_birth,
                            onboarding_state, account_status, availability_state, is_online, approved_at)
@@ -246,7 +253,7 @@ func TestReconcileRestoresStuckRider(t *testing.T) {
 	ctx := context.Background()
 
 	var acct string
-	mustQuery(t, pool, `INSERT INTO account DEFAULT VALUES RETURNING id`, &acct)
+	mustQuery(t, pool, `INSERT INTO account (phone_e164) VALUES (`+e164SQL+`) RETURNING id`, &acct)
 	mustExec(t, pool, `
 INSERT INTO rider_profile (account_id, first_name, last_name, date_of_birth,
                            onboarding_state, account_status, availability_state, is_online, approved_at)

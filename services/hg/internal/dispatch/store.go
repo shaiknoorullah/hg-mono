@@ -227,17 +227,30 @@ func (s *Store) AcceptOffer(ctx context.Context, riderAccountID, offerID string,
 	}
 	defer tx.Rollback(ctx)
 
-	// Step 0: read the offer for this rider, locking it. Missing ⇒ 404.
+	// Step 0: read the offer for this rider. Missing ⇒ 404. We deliberately do NOT
+	// lock the offer row here: the load-bearing arbiter is the order's dispatch row
+	// (Step 2, guarded on rider_account_id IS NULL), and concurrent accepts for the
+	// same order must take that order-level lock in a consistent order to stay
+	// deadlock-free. Locking the per-rider offer row first would let the winner hold
+	// the dispatch row while it withdraws the losers' offer rows (Step 5), each of
+	// which a loser already holds while it waits on the dispatch row — a lock cycle.
 	var st acceptOfferState
 	err = tx.QueryRow(ctx, `
 SELECT state::text, order_id, expires_at
 FROM dispatch_offer
-WHERE id = $1 AND rider_account_id = $2
-FOR UPDATE`, offerID, riderAccountID).Scan(&st.State, &st.OrderID, &st.ExpiresAt)
+WHERE id = $1 AND rider_account_id = $2`, offerID, riderAccountID).Scan(&st.State, &st.OrderID, &st.ExpiresAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", errOfferNotFound
 	}
 	if err != nil {
+		return "", err
+	}
+
+	// Step 0a: serialise same-order accepts on the order's dispatch row BEFORE
+	// touching any offer row. Every accept for this order now queues on this single
+	// row lock, so lock acquisition is globally ordered (dispatch row, then offer
+	// rows) and the Step 5 withdraw can never deadlock against a waiting loser.
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM dispatch WHERE order_id = $1 FOR UPDATE`, st.OrderID); err != nil {
 		return "", err
 	}
 
@@ -350,7 +363,6 @@ VALUES ($1, 'ONLINE_IDLE', 'ON_DELIVERY', 'OFFER_ACCEPTED', 'RIDER')`, riderAcco
 SELECT CASE
          WHEN 'MEET_AT_DOOR' = ANY(o.delivery_instructions)
            OR 'MEET_IN_LOBBY' = ANY(o.delivery_instructions)
-           OR 'CALL_ON_ARRIVAL' = ANY(o.delivery_instructions)
          THEN 'OTP'
          ELSE 'PHOTO'
        END
