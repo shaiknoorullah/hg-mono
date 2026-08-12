@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
@@ -125,10 +126,10 @@ func run() error {
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
+	dispatch.Routes(router, dispatch.NewHandler(dispatch.NewService(dispatch.NewStore(st.DB().Pool))))
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
-	// orders.Routes(router, …), dispatch.Routes(router, …),
-	// payments.Routes(router, …), realtime.Routes(router, …),
-	// files.Routes(router, …), admin.Routes(router, …).
+	// orders.Routes(router, …), payments.Routes(router, …),
+	// realtime.Routes(router, …), files.Routes(router, …), admin.Routes(router, …).
 
 	if err := router.Verify(); err != nil {
 		return err
