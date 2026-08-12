@@ -1,0 +1,35 @@
+{
+  "name": "@hg/restaurant-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The restaurant operator dashboard: a compact, operational surface that reads the live order queue from the API and renders it with @hg/ui-web.",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hg/api-client": "workspace:*",
+    "@hg/ui-web": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^26.1.0",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.7"
+  }
+}
