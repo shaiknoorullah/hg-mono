@@ -31,6 +31,7 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
@@ -125,10 +126,27 @@ func run() error {
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
+
+	// B6 — payments, ledger & payouts (P-16..P-21). The Stripe client is the
+	// live SDK when a key is configured, and nil otherwise; a nil client makes
+	// every money operation answer 503 rather than fabricating a provider id,
+	// which is the exact anti-pattern this module replaces. Read paths (saved
+	// cards, refund history, earnings, payouts) work regardless.
+	var stripeClient payments.StripeClient
+	if cfg.Stripe.Configured() {
+		stripeClient = payments.NewLiveStripe(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
+		log.Info("stripe configured",
+			slog.Bool("livemode", cfg.Stripe.LiveMode()),
+			slog.Bool("webhook_secret_set", cfg.Stripe.WebhookSecret != ""))
+	} else {
+		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
+	}
+	paymentsSvc := payments.NewService(payments.NewRepo(st.DB().Pool), stripeClient, cfg.Stripe, log)
+	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
+
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
-	// payments.Routes(router, …), realtime.Routes(router, …),
-	// files.Routes(router, …), admin.Routes(router, …).
+	// realtime.Routes(router, …), files.Routes(router, …), admin.Routes(router, …).
 
 	if err := router.Verify(); err != nil {
 		return err

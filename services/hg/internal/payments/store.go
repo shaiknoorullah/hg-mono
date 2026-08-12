@@ -246,6 +246,61 @@ func scanIntent(row pgx.Row) (IntentRow, error) {
 	return i, err
 }
 
+// AdvanceIntentState sets a payment_intent's state to `target` and stamps the
+// matching timestamp. It also clears the deadline when moving into a terminal
+// state so the deadline CHECK is satisfied. Returns applied=false when the row
+// was already in that state (idempotent re-application).
+func (r *Repo) AdvanceIntentState(ctx context.Context, stripeID string, target PaymentState) (bool, error) {
+	var authoredCol, canceledCol string
+	terminal := false
+	switch target {
+	case StateRequiresCapture:
+		authoredCol = "authorized_at = coalesce(authorized_at, now())"
+	case StateSucceeded:
+		terminal = true
+	case StateCanceled, StateFailed:
+		terminal = true
+		canceledCol = "canceled_at = coalesce(canceled_at, now())"
+	}
+	set := "state = $2"
+	if authoredCol != "" {
+		set += ", " + authoredCol
+	}
+	if canceledCol != "" {
+		set += ", " + canceledCol
+	}
+	if terminal {
+		set += ", deadline_at = NULL, deadline_action = NULL"
+	}
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE payment_intent SET `+set+`, last_stripe_event_created_at = now()
+		 WHERE stripe_payment_intent_id = $1 AND state <> $2`, stripeID, string(target))
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+// RecordCapture stamps a captured amount and posts the CAPTURE ledger batch in
+// one transaction. Both the state move and the batch are idempotent: a
+// redelivered succeeded event captures once and posts one batch (I-17.1).
+func (r *Repo) RecordCapture(ctx context.Context, stripeID string, capturedCents int64, batch LedgerBatch) error {
+	return r.tx(ctx, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, `
+			UPDATE payment_intent
+			   SET state = 'SUCCEEDED',
+			       amount_captured_cents = $2,
+			       captured_at = coalesce(captured_at, now()),
+			       last_stripe_event_created_at = now(),
+			       deadline_at = NULL, deadline_action = NULL
+			 WHERE stripe_payment_intent_id = $1`, stripeID, capturedCents)
+		if err != nil {
+			return err
+		}
+		return insertBatch(ctx, tx, batch)
+	})
+}
+
 // ---------------------------------------------------------------------------
 // Orders (read-only) — for refund computation and ledger decomposition.
 // ---------------------------------------------------------------------------
