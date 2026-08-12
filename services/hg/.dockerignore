@@ -1,0 +1,11 @@
+# The build context is services/hg. Keep it to source and module files.
+.git
+.gitignore
+*.md
+bin/
+tmp/
+**/__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
