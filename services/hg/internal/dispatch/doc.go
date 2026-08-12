@@ -22,7 +22,13 @@
 // numbers (contradiction #13). Making them contract constants would repeat the
 // mistake of hardcoding fees and ETAs in clients.
 //
-// TODO: race-free acceptance is a conditional UPDATE, not a read-then-write.
-// Two riders tapping accept in the same millisecond must produce exactly one
-// assignment and one OFFER_ALREADY_TAKEN.
+// Race-free acceptance (D-16 / P-32) is a conditional UPDATE, not a
+// read-then-write: Store.AcceptOffer claims the offer, then a single
+// `UPDATE dispatch ... WHERE rider_account_id IS NULL AND state IN (...)`
+// arbitrates simultaneous accepts — exactly one transaction commits, every
+// other gets zero rows and OFFER_ALREADY_TAKEN. Availability moves to
+// ON_DELIVERY in the same transaction. There is no Redis on the accept path, so
+// it still succeeds with Redis entirely down; restoration after terminal states
+// happens in the transition transaction, with ReconcileAvailability as the 60 s
+// backstop sweep.
 package dispatch
