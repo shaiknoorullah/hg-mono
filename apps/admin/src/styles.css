@@ -1,0 +1,37 @@
+/*
+ * The admin console's only stylesheet.
+ *
+ * Like the gallery, this app never names a colour. Every value below is a design-system
+ * custom property that `@hg/ui-web/styles.css` wrote out of the tokens. The admin theme
+ * and comfortable density are applied as attributes on a wrapper in App.tsx.
+ */
+
+@import '@hg/ui-web/styles.css';
+
+/* Tailwind cannot see this app's class names through the library's own @source. */
+@source './**/*.{ts,tsx}';
+
+@layer base {
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--hg-surface-sunken);
+    color: var(--hg-text-primary);
+  }
+}
+
+@layer components {
+  .adm-shell {
+    min-height: 100vh;
+  }
+
+  .adm-header {
+    border-block-end: 1px solid var(--hg-border-decorative);
+    background-color: var(--hg-surface-base);
+    padding: var(--hg-space-4) var(--hg-space-6);
+  }
+
+  .adm-main {
+    padding: var(--hg-space-6);
+  }
+}
