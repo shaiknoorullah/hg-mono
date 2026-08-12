@@ -51,7 +51,9 @@ Each exists because it was violated in the previous system and cost real money o
 | `docs/design/` | Design system: DTCG tokens, 41 components, patterns, accessibility |
 | `docs/analysis/legacy-system/` | Forensic analysis of the system being replaced (18 reports) |
 | `docs/analysis/base-evaluation/` | Why `ts-monorepo-template` was harvested, not forked |
-| `docs/planning/` | The six competing operating models, three judgements, and the winner |
+| `docs/planning/` | The six competing operating models, three judgements, the winner, and the backend module briefs |
+| `docs/reports/` | Standalone HTML briefs (open in a browser) |
+| `docs/SESSION-REPORT.md` | How this repo came to be, what was decided, what was got wrong |
 | `contracts/` | **Single source of truth for every API shape.** OpenAPI + WebSocket + 311 fixtures |
 | `packages/api-client/` | Generated TS client. **Hand-editing generated files is forbidden** |
 | `packages/ui-native/`, `ui-web/` | 81 components, both themes |
@@ -85,7 +87,7 @@ cd services/hg && make up && make migrate && make run
 
 **Done:** specification (198 features), decisions, design system, API contract (144 operations, 80 enums), generated client, 311 fixtures, mock server, 81 components, both galleries verified.
 
-**In progress:** the Go backend. Skeleton and compose stack landed; schema/migrations landing; the seven domain modules not yet started.
+**In progress:** the Go backend. Skeleton, compose stack and the 91-table schema have landed. The seven domain modules are **not started** — briefs ready to dispatch in `docs/planning/backend-modules.md`.
 
 **Not started:** the four apps (customer, rider, restaurant web, admin web).
 

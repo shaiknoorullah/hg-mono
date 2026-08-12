@@ -1,0 +1,366 @@
+<title>Plan G — Front Door Factory</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ground:#F5F7F5; --grid:#E9EDEA; --surface:#FFFFFF; --surface-2:#FAFBFA;
+    --ink:#14201B; --ink-2:#465049; --ink-3:#6E7A73; --hair:#E0E5E1; --hair-2:#D2D8D3;
+    --accent:#0E7C66; --accent-2:#0A5E4D; --accent-soft:#E3F1EC;
+    --crit:#B4232A; --crit-soft:#F7E3E3; --warn:#9A6510; --warn-soft:#F6ECD8; --info:#245C99; --info-soft:#E2ECF6;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(20,32,27,.04),0 4px 16px rgba(20,32,27,.05);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0C110F; --grid:#182220; --surface:#121917; --surface-2:#161F1C;
+    --ink:#E7EDEA; --ink-2:#A6B1AB; --ink-3:#788480; --hair:#222D29; --hair-2:#2C3833;
+    --accent:#38C99F; --accent-2:#5FD9B5; --accent-soft:#122B25;
+    --crit:#F0736F; --crit-soft:#2C1817; --warn:#E0A952; --warn-soft:#2A2213; --info:#71A8E4; --info-soft:#132234;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0C110F; --grid:#182220; --surface:#121917; --surface-2:#161F1C;
+    --ink:#E7EDEA; --ink-2:#A6B1AB; --ink-3:#788480; --hair:#222D29; --hair-2:#2C3833;
+    --accent:#38C99F; --accent-2:#5FD9B5; --accent-soft:#122B25;
+    --crit:#F0736F; --crit-soft:#2C1817; --warn:#E0A952; --warn-soft:#2A2213; --info:#71A8E4; --info-soft:#132234;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+  body{
+    margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:52px 52px;background-position:-1px -1px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  code,.mono{font-family:var(--mono);font-size:.86em}
+  code{background:var(--surface-2);border:1px solid var(--hair);border-radius:4px;padding:.05em .35em;color:var(--ink-2);white-space:nowrap}
+  h1,h2,h3{text-wrap:balance;line-height:1.15;letter-spacing:-.02em;margin:0}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+  p{margin:0 0 14px}.prose p{color:var(--ink-2);max-width:74ch}.prose strong{color:var(--ink);font-weight:650}
+
+  header.hero{border-bottom:1px solid var(--hair);background:linear-gradient(180deg,var(--surface),var(--surface-2))}
+  .hero .wrap{padding-top:54px;padding-bottom:38px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:clamp(32px,5.6vw,56px);font-weight:800;margin:14px 0 10px;letter-spacing:-.035em}
+  .hero p.lede{font-size:clamp(17px,2.4vw,21px);color:var(--ink-2);max-width:68ch;margin:0}
+  .metabar{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:24px;font-family:var(--mono);font-size:12.5px;color:var(--ink-3)}
+  .metabar b{color:var(--ink-2);font-weight:600}
+
+  nav.toc{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--hair)}
+  nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding:8px 24px;scrollbar-width:none}
+  nav.toc .wrap::-webkit-scrollbar{display:none}
+  nav.toc a{font-family:var(--mono);font-size:12px;color:var(--ink-2);padding:6px 11px;border-radius:6px;white-space:nowrap}
+  nav.toc a:hover{background:var(--accent-soft);color:var(--accent-2);text-decoration:none}
+
+  section{padding:50px 0;border-bottom:1px solid var(--hair)}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.15em}
+  h2{font-size:clamp(23px,3.4vw,33px);font-weight:750;margin:8px 0 6px}
+  .sec-intro{color:var(--ink-2);max-width:73ch;margin:0 0 26px}
+  h3{font-size:18px;font-weight:700;margin:0 0 4px}
+
+  .callout{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:12px;padding:20px 22px}
+  .callout h3{color:var(--accent-2)}.callout p{color:var(--ink-2);margin:8px 0 0}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:660px;background:var(--surface);font-size:13.5px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--hair);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600;background:var(--surface-2)}
+  tr:last-child td{border-bottom:none}
+  td code{white-space:normal}
+  .num{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
+  .win{color:var(--accent);font-weight:700}
+  .lose{color:var(--crit);font-weight:700}
+
+  /* tournament */
+  .bracket{display:grid;gap:12px;grid-template-columns:1fr}
+  @media(min-width:760px){.bracket{grid-template-columns:repeat(3,1fr)}}
+  .jcard{background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
+  .jcard .lens{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
+  .jcard .rank{font-family:var(--mono);font-size:15px;font-weight:700;margin:8px 0 6px;letter-spacing:-.02em}
+  .jcard .won{font-size:13px;color:var(--ink-2)}
+
+  /* mechanisms */
+  .mechs{display:flex;flex-direction:column;gap:12px;counter-reset:m}
+  .mech{background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);display:grid;grid-template-columns:32px 1fr;gap:14px}
+  .mech::before{counter-increment:m;content:counter(m);font-family:var(--mono);font-weight:700;font-size:13px;color:var(--accent-2);background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+  .mech h4{margin:5px 0 5px;font-size:15.5px;font-weight:700}
+  .mech p{font-size:14px;color:var(--ink-2);margin:0}
+  .mech .src{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:6px}
+
+  /* timeline */
+  .pipe{display:flex;flex-direction:column}
+  .stage{display:grid;grid-template-columns:96px 1fr;gap:16px;position:relative;padding-bottom:20px}
+  .stage:last-child{padding-bottom:0}
+  .stage .ph{font-family:var(--mono);font-size:12px}
+  .stage .ph b{display:block;color:var(--accent-2);font-size:13px;font-weight:700}
+  .stage:not(:last-child)::before{content:"";position:absolute;left:5px;top:22px;bottom:0;width:1.5px;background:var(--hair-2)}
+  .stage .ph::after{content:"";position:absolute;left:0;top:5px;width:11px;height:11px;border-radius:50%;background:var(--accent-soft);border:2px solid var(--accent)}
+  .stage.pilot .ph::after{background:var(--accent);border-color:var(--accent-2)}
+  .stage .bd h4{margin:0 0 4px;font-size:15px;font-weight:700}
+  .stage .bd p{font-size:13.5px;color:var(--ink-2);margin:0}
+  @media(max-width:560px){.stage{grid-template-columns:1fr;gap:4px}.stage::before,.stage .ph::after{display:none}}
+
+  .two-col{display:grid;gap:16px}
+  @media(min-width:760px){.two-col{grid-template-columns:1fr 1fr}}
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+  .card ul{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+  .card li{font-size:14px;color:var(--ink-2);padding-left:16px;position:relative}
+  .card li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+  .card li b{color:var(--ink);font-weight:650}
+
+  .qbox{background:var(--surface-2);border:1px solid var(--hair);border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;margin:14px 0}
+  .qbox .q{font-size:15px;font-weight:650;color:var(--ink)}
+  .qbox .a{font-size:13.5px;color:var(--ink-3);margin-top:4px;font-family:var(--mono)}
+
+  .disc{font-size:12.5px;color:var(--ink-3);max-width:74ch;margin-top:14px}
+  footer{padding:36px 0 60px;color:var(--ink-3);font-size:13px}
+  footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Winner · 6 plans · 3 Fable judges · 1 synthesis</div>
+    <h1>Plan G — Front Door Factory</h1>
+    <p class="lede">The operating model for rebuilding Halal Goes as <code>hg-mono</code>: Go microservices, strict TDD, full UI overhaul, compose + Traefik — built by agents, reviewed by humans in ten minutes a day.</p>
+    <div class="metabar">
+      <span><b>Spine</b> Strangler-fig (Plan C)</span>
+      <span><b>Grafted</b> mechanical falsifiers from B · D · E · F</span>
+      <span><b>Pilot</b> real paid orders, end of week 10</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="wrap">
+    <a href="#tournament">How it was chosen</a>
+    <a href="#thesis">Thesis</a>
+    <a href="#mechanisms">7 mechanisms</a>
+    <a href="#gates">Gate stack</a>
+    <a href="#human">Your 10 minutes</a>
+    <a href="#gaps">The 3 blind spots</a>
+    <a href="#timeline">Timeline</a>
+    <a href="#kill">Kill criteria</a>
+    <a href="#cut">What was cut</a>
+  </div>
+</nav>
+
+<main>
+
+<section id="tournament">
+  <div class="wrap">
+    <div class="sec-num">01 / SELECTION</div>
+    <h2>Six plans entered. One survived.</h2>
+    <p class="sec-intro">Six genuinely different operating models were designed independently, each grounded in real methodology research and each required to self-critique. Three independent Fable judges then scored them on conflicting mandates, so they could not converge politely. The incumbent plan — the lead agent's own — was entered on equal terms and <strong>lost</strong>.</p>
+
+    <div class="bracket">
+      <div class="jcard">
+        <div class="lens">Lens 1 — Delivery risk</div>
+        <div class="rank">C &gt; A &gt; E &gt; F &gt; B &gt; D</div>
+        <div class="won">Won by <b>C</b>: the only plan with real value in production in week one. Punished machinery on the critical path — <b>D scored 2/10, B 3/10</b>.</div>
+      </div>
+      <div class="jcard">
+        <div class="lens">Lens 2 — Correctness power</div>
+        <div class="rank">B &gt; F &gt; D &gt; E &gt; C &gt; A</div>
+        <div class="won">Judged empirically against <b>10 real Halal Goes defects</b>. Before-merge catches: B 7, F 7, D 6, C 5, E 5, <b>A 3.5</b>.</div>
+      </div>
+      <div class="jcard">
+        <div class="lens">Lens 3 — Review bandwidth</div>
+        <div class="rank">B &gt; F &gt; C &gt; D &gt; E &gt; A</div>
+        <div class="won">Won by <b>B</b>: verification cost scales with hardware, not model calls. <b>A finished last (4.0)</b> — its review question was unanswerable.</div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:22px">
+      <h3>Why the incumbent lost</h3>
+      <p>Plan A's verification sat <em>inside</em> the trust boundary: the agent that wrote the code also wrote the test that blessed it. Its headline gate was diff-coverage — and <strong>all ten real defects would have passed it.</strong> They compiled, type-checked, and had green tests. The tournament did its job: it falsified the lead agent's first draft instead of decorating it.</p>
+    </div>
+  </div>
+</section>
+
+<section id="thesis">
+  <div class="wrap">
+    <div class="sec-num">02 / THESIS</div>
+    <h2>Own the front door on day four</h2>
+    <div class="prose">
+      <p>The scarce resources are <strong>time-to-real-user</strong> and <strong>human judgment</strong>, in that order. So the spine is the plan that owns production routing in week one, where every increment is live, measured, and reversible with a file write — and whose cancellation story is good at <em>every</em> week.</p>
+      <p>But the strangler spine is a superb <em>migration</em> verifier and a mediocre <em>correctness</em> system: its diff oracle is the defective legacy system, so it structurally canonizes bugs like client-supplied pricing. So onto that spine we bolt the cheapest, highest-catch-power <strong>mechanical</strong> gates from the other five plans — the ones that are model-independent, cost tens of lines, and catch what a diff oracle structurally cannot.</p>
+      <p>The governing principle, taken from the correctness judge: <strong>any gate that reduces to "an agent writes tests and CI runs them" gets zero credit.</strong> Every load-bearing gate here is either <em>exogenous</em> (production traffic), <em>structural</em> (the schema makes the bug unrepresentable), or <em>authored by a different party</em> than the implementer.</p>
+    </div>
+  </div>
+</section>
+
+<section id="mechanisms">
+  <div class="wrap">
+    <div class="sec-num">03 / MECHANISMS</div>
+    <h2>The seven that define it</h2>
+    <p class="sec-intro">Every mechanism is boring, small, and traceable to a defect that actually happened.</p>
+    <div class="mechs">
+      <div class="mech"><div><h4>Take the front door</h4><p>Traefik + a Go "Fig" proxy at 100% passthrough by day ~4 — zero behavior change. It becomes recorder, contract-generator, shadow-diff engine, and identity broker. Week one ships <strong>emergency authz on the wide-open admin/refund routes</strong> and WebSocket identity enforcement: real user protection before any scaffolding exists.</p><div class="src">from C · 8-step ladder: observe → shadow → canary → contract</div></div></div>
+
+      <div class="mech"><div><h4>The Stepper — Temporal's replacement</h4><p>A ~400-line in-repo Postgres saga package. <code>deadline_at NOT NULL</code> makes the legacy wait-forever bug <strong>unrepresentable</strong>; per-step idempotency keys make retries safe by construction; state of any order is one SQL query. Zero new infrastructure. It shadows Temporal read-only for weeks, then actuates new orders only — no running order is ever migrated.</p><div class="src">from F (schema) + C (shadow-then-actuate) · River/DBOS are named escape hatches, not defaults</div></div></div>
+
+      <div class="mech"><div><h4>The Bug Ledger</h4><p>All ~30 known legacy defects committed as <em>failing</em> tests before the corresponding feature is written. The regression suite starts non-empty on day one. Every escaped defect and every human rejection joins it permanently.</p><div class="src">merges four plans' duplicate ideas (museum / bestiary / counterexamples) into one corpus</div></div></div>
+
+      <div class="mech"><div><h4>Cheap structural gates</h4><p>Config-reality probes (<code>/debug/deps</code> compares resolved-connected addresses against the manifest; a localhost-literal lint; fail-loud on missing env) — ~11 lines each, and they kill the <code>redis://localhost:6379</code>-in-Docker class outright. Plus server-authoritative money middleware, generated typed clients, stub-sniffer, assertion-count.</p><div class="src">from F + D + E · each catches a specific real defect</div></div></div>
+
+      <div class="mech"><div><h4>The Closure Ledger — invented here</h4><p>A generated Actor × Terminal-State matrix. Every cell demands a passing test or a human-signed <code>n/a</code>: <em>rider × DELIVERED → a test proving an earnings row exists</em>. Nobody has to <em>imagine</em> "did we pay the rider?" — the matrix emits the cell mechanically. Backed by a nightly query asserting every order's cash fully decomposes across all party ledgers, and a lint failing any UI input that maps to no RPC.</p><div class="src">solves the defect class no plan could catch</div></div></div>
+
+      <div class="mech"><div><h4>Dated pilot — week 10</h4><p>One real restaurant, 3–5 riders, ~30 invited customers, live <strong>paid</strong> orders 100% through the new stack. Not staging, not shadow — money moves. A value-ordered scope-cut list is signed in week 6 so schedule pressure lands on scope, never on gates.</p><div class="src">solves the delivery blind spot: no plan put a real user on the critical path</div></div></div>
+
+      <div class="mech"><div><h4>Maintaining the reviewer</h4><p>A weekly State-of-the-System briefing <strong>generated from repo facts</strong> so it cannot drift, keeping your global model current enough for local answers to mean anything. Plus monthly seeded defects aimed at <em>you</em>: miss 2 of any rolling 4 and review is declared decayed — auto-merge freezes until your catch rate recovers.</p><div class="src">solves the bandwidth blind spot: every plan audited the agents, none audited the human</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="gates">
+  <div class="wrap">
+    <div class="sec-num">04 / VERIFICATION</div>
+    <h2>The gate stack</h2>
+    <p class="sec-intro">Ordered by when they run. Each names the real defect class it catches and its cost. Anything the judges called theater was cut.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:34px">#</th><th>Gate</th><th>Catches</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td><b>Generated typed clients</b> + contract drift</td><td>60 ghost endpoints, <code>is_accepting</code> casing no-op, <code>/api</code> prefix drift</td><td>~0 — pipeline works today</td></tr>
+          <tr><td class="num">2</td><td><b>Config-reality probes</b></td><td><code>localhost:6379</code>-in-Docker; env-name mismatch</td><td>~11 lines each</td></tr>
+          <tr><td class="num">3</td><td><b>Stepper schema constraints</b></td><td>Untimeboxed waits, saga fall-through — made <em>unrepresentable</em></td><td>one-time schema design</td></tr>
+          <tr><td class="num">4</td><td><b>Server-authoritative money</b></td><td>Pay-what-you-want checkout; zero pricing persisted</td><td>~1 day</td></tr>
+          <tr><td class="num">5</td><td><b>The Bug Ledger</b></td><td>Recurrence of every known bug</td><td>~2 days seeding</td></tr>
+          <tr><td class="num">6</td><td><b>Invariant tests + stub-sniffer + assertion-count</b></td><td>Hollow-green CI; GEOADD-write/GET-read mismatch</td><td>two ~50-line CI scripts</td></tr>
+          <tr><td class="num">7</td><td><b>Shadow-diff oracle</b> (legacy only)</td><td>Hallucinated endpoint behavior; unexercised variants</td><td>CPU, not tokens</td></tr>
+          <tr><td class="num">8</td><td><b>Closure Ledger</b></td><td>Rider earnings never credited; ratings never sent</td><td>one registry + nightly query</td></tr>
+          <tr><td class="num">9</td><td><b>L3-only refutation</b>, evidence schema required</td><td>Confidently-wrong money/auth logic</td><td>bounded, ≤10% of PRs</td></tr>
+          <tr><td class="num">10</td><td><b>Diff-scoped mutation testing</b> (money/auth/saga)</td><td>Self-serving oracles — tests that wouldn't notice a wrong program</td><td>minutes per L3 PR</td></tr>
+          <tr><td class="num">11</td><td><b>Empty / Slow / Broken screenshot gate</b></td><td>Happy-path-only UI — the most reliable agent blind spot</td><td>per-screen fixtures</td></tr>
+          <tr><td class="num">12</td><td><b>Seeded-defect audits</b></td><td>Whether review is real at all — audits the other gates</td><td>cheap, unannounced</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="disc"><b>Cut as theater:</b> diff-coverage gates (all ten real defects had green tests), the per-PR adversarial verifier (linear unbounded spend), the "completeness critic", novice quizzes and readability lints, Brier calibration, the entire simulator with its seed fleets, and the custom metamodel with its six generators.</p>
+  </div>
+</section>
+
+<section id="human">
+  <div class="wrap">
+    <div class="sec-num">05 / HUMAN PROTOCOL</div>
+    <h2>Your ten minutes a day</h2>
+    <p class="sec-intro">A twice-daily digest with at most two card types. One question each, a pre-selected default, and silence is a decision.</p>
+    <div class="two-col">
+      <div class="card">
+        <h3>Promotion Card</h3>
+        <p style="font-size:14px;color:var(--ink-2);margin:8px 0 0">Traffic-weight changes. Shows shadow hours, requests, users, mismatch rate with every diff classified, latency delta, and the rollback command <em>with its drill date</em>.</p>
+        <div class="qbox"><div class="q">"Is this measured risk acceptable?"</div><div class="a">default: approve · ~90 seconds</div></div>
+      </div>
+      <div class="card">
+        <h3>PR Card (hazardous lane only)</h3>
+        <p style="font-size:14px;color:var(--ink-2);margin:8px 0 0">Five lines: WHAT / WHY / BREAKS / CHECKED / ROLLBACK. Any load-bearing adjective — <em>idempotent, atomic, authorized</em> — must cite a test ID or the card fails lint.</p>
+        <div class="qbox"><div class="q">"Does this match what we want the product to do?"</div><div class="a">default: approve · silence merges in 24h</div></div>
+      </div>
+    </div>
+    <div class="prose" style="margin-top:20px">
+      <p><strong>Never "is this code correct."</strong> The machine certifies conformance; you certify intent and risk — the two things only you can judge. Waiting is productive: a card's evidence keeps accumulating while it sits.</p>
+      <p><strong>Lanes:</strong> ~60% of PRs auto-merge unread; ~30% get gates plus a card you may skip; ~10% (money, auth, PII, order state machine, migrations, edge) need an explicit yes. <strong>5% of auto-merges are randomly sampled</strong> into your digest for real reading — the audit that stops auto-merge becoming blindness.</p>
+      <p><strong>Load shrinks by three ratchets:</strong> contracted endpoints exit review forever; every rejection you make becomes a test plus a machine check so the class never returns; anything escalated once becomes a rule and may not come back as a question.</p>
+    </div>
+  </div>
+</section>
+
+<section id="gaps">
+  <div class="wrap">
+    <div class="sec-num">06 / BLIND SPOTS</div>
+    <h2>The three things every plan missed</h2>
+    <p class="sec-intro">Each judge found a gap that none of the six designs covered. All three are now first-class mechanisms.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:150px">Blind spot</th><th>The finding</th><th>The fix</th></tr></thead>
+        <tbody>
+          <tr><td><b>No real user</b></td><td>All six equate delivery risk with defect risk. Every M1 is verification machinery; health is measured by internal proxies. For a consumer food app the dominant risk is months of provably-correct software encoding untested product guesses.</td><td>Dated pilot at week 10 with live paid orders; scope-cut list signed week 6; after pilot, cohort telemetry becomes a promotion gate.</td></tr>
+          <tr><td><b>Nobody maintains the reviewer</b></td><td>Every plan shrinks the artifact and asks a <em>local</em> question whose answer needs a <em>global</em> model — then guarantees you never build one. Judgment decays at the rate the system grows; approvals become reflexes.</td><td>Weekly briefing generated from repo facts (drift-proof) + monthly seeded defects aimed at the human, with a numeric decay threshold that freezes auto-merge.</td></tr>
+          <tr><td><b>Symptomless omissions</b></td><td>Rider earnings never credited; ratings never submitted. No invariant, no diff, no dead code, no runtime symptom. Every oracle is downstream of someone first articulating the property.</td><td>The Closure Ledger: exhaustively generated Actor × Terminal-State matrix; unfilled cell = red build. Plus nightly money-closure reconciliation and a collected-input lint.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="timeline">
+  <div class="wrap">
+    <div class="sec-num">07 / SEQUENCE</div>
+    <h2>Six weeks, then the pilot</h2>
+    <div class="diagram" style="background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:26px;box-shadow:var(--shadow);overflow-x:auto">
+      <div class="pipe">
+        <div class="stage"><div class="ph"><b>Week 1</b></div><div class="bd"><h4>Take the front door</h4><p>DNS → Traefik → Fig → legacy at 100% passthrough (rollback drilled first). Emergency authz on admin/refund routes; WS identity at handshake. PII redaction human-reviewed, then the recorder turns on. <strong>QPS validation gate</strong> — the go/no-go on this entire spine.</p></div></div>
+        <div class="stage"><div class="ph"><b>Week 2</b></div><div class="bd"><h4>Walking skeleton + corpus of truth</h4><p>Golden-path Go service template + first service (read-only catalog) through Traefik, 2 replicas, kill-a-replica green. Generated client v0. Bug Ledger seeded with ~30 failing tests. <code>closure.yaml</code> emits its first red cells.</p></div></div>
+        <div class="stage"><div class="ph"><b>Week 3</b></div><div class="bd"><h4>First endpoints contracted</h4><p>Menu + feed walk the full ladder to contracted. Promotion Cards and auto-rollback live. Design system v0: DTCG tokens → four surfaces. First burndown number published.</p></div></div>
+        <div class="stage"><div class="ph"><b>Week 4</b></div><div class="bd"><h4>The Stepper shadows Temporal</h4><p>~400-line saga package with deadline rows and declared compensations; kill-tests at 9 crash points. Runs read-only, diffing intended transitions against Temporal daily. Fig identity broker live.</p></div></div>
+        <div class="stage"><div class="ph"><b>Week 5</b></div><div class="bd"><h4>Dispatch and realtime</h4><p>New Go WS gateway with event-sequence parity; 5% of riders on the new URL. Location + availability contracted. Order-tracking screen with Empty/Slow/Broken gating merge.</p></div></div>
+        <div class="stage"><div class="ph"><b>Week 6</b></div><div class="bd"><h4>Checkout in shadow; human loop closes</h4><p>Compute-only checkout shadow — decisions logged, not performed; server-authoritative pricing behind it (legacy diffs where legacy is wrong become Bug Ledger rows). First briefing generated, first human-aimed seed. <strong>Scope-cut list signed.</strong></p></div></div>
+        <div class="stage"><div class="ph"><b>Wks 7–8</b></div><div class="bd"><h4>Stepper takes new orders</h4><p>Divergence ≈ 0 → actuator for new orders; Temporal drains. Checkout canary to internal users. Money-closure query green; payout ledger fills its matrix cells.</p></div></div>
+        <div class="stage pilot"><div class="ph"><b>Wks 9–10</b></div><div class="bd"><h4>PILOT — real money</h4><p>One restaurant, 3–5 riders, ~30 invited customers, live paid orders 100% on the new stack. Recorded unaided sessions with real people. Auto-rollback on every pilot route.</p></div></div>
+        <div class="stage"><div class="ph"><b>M4+</b></div><div class="bd"><h4>Burndown to cutover</h4><p>Per-context contract deadlines dated at each context's start. UI rolls out screen-by-screen gated on funnel telemetry. Auth strangled last. Temporal deleted at last-workflow-complete. DB contract steps last, human-gated.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="kill">
+  <div class="wrap">
+    <div class="sec-num">08 / FALSIFIERS</div>
+    <h2>Pre-committed kill criteria</h2>
+    <p class="sec-intro">Every major mechanism carries a numeric threshold at which it is abandoned, and a named replacement. This is what stops a stitched plan from decaying into ceremony.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Mechanism</th><th>Abandon when</th><th>Replaced by</th></tr></thead>
+        <tbody>
+          <tr><td><b>Shadow-diff oracle</b></td><td>Week-1 traffic under ~5k meaningful req/day or &lt;10 orders/day</td><td>Fig + ladder kept; weight shifts to Bug Ledger + invariants</td></tr>
+          <tr><td><b>The Stepper</b></td><td>Kill-tests show lost/duplicated execution unfixed in a day</td><td>River for the claiming layer, same tables</td></tr>
+          <tr><td><b>Lane rules</b></td><td>Hazardous lane &gt;15% of merges for 2 weeks</td><td>Decomposition is wrong — re-slice work, don't add process</td></tr>
+          <tr><td><b>Human review</b></td><td>Miss 2 of any rolling 4 human-aimed seeds</td><td>Auto-merge freezes; card volume halved until recovery</td></tr>
+          <tr><td><b>Pilot date</b></td><td>Week-6 checkpoint forecasts &gt;2 weeks slip</td><td>Execute the signed cut list top-down; date moves once</td></tr>
+          <tr><td><b>Per-context migration</b></td><td>&lt;90% contracted at its deadline + 2 weeks</td><td>Forced cut-or-big-bang; no silent limbo</td></tr>
+          <tr><td><b>Closure Ledger</b></td><td>Two quarters, zero catches, &gt;1 hr/week upkeep</td><td>Shrink to money-closure query + input lint</td></tr>
+          <tr><td><b>Any CI gate</b></td><td>Zero defects caught in 6 weeks AND &gt;2 min/PR</td><td>Deleted — the pay-rent rule</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="cut">
+  <div class="wrap">
+    <div class="sec-num">09 / DISCARDED</div>
+    <h2>What each plan lost</h2>
+    <div class="two-col">
+      <div class="card"><h3>Cut wholesale</h3>
+        <ul>
+          <li><b>B's simulator</b> — 4–6k permanent lines, an architecture tax on every feature, and a failure mode (a lagging sim that lies with authority) that is disqualifying. Its <em>ideas</em> survive in boring form.</li>
+          <li><b>D's metamodel + six generators</b> — the most irreversible front-loaded decision of the six, with a documented death spiral and system-wide unreviewed blast radius. Only the existing buf pipeline and design tokens survive.</li>
+          <li><b>E's org costume</b> — nine roles, charters, memory files, WIP limits, andon cords, at 3–8× token cost. Its ~8 mechanical checks are kept; the costume is deleted.</li>
+          <li><b>F's prose apparatus</b> — readability lints, glossaries, novice quizzes, calibration ledgers. Fluency and truth are uncorrelated in exactly the failure cases that matter.</li>
+        </ul>
+      </div>
+      <div class="card"><h3>Duplicates resolved</h3>
+        <ul>
+          <li><b>Bug corpus</b> — four plans proposed the same thing. One Bug Ledger survives.</li>
+          <li><b>Orchestration</b> — six proposals; three independently converged on a deadline-mandatory schema. That convergence was the strongest signal in the exercise, and the smallest implementation won.</li>
+          <li><b>PR summary</b> — five formats; two cards survive.</li>
+          <li><b>UI state gate</b> — two identical proposals; one kept.</li>
+          <li><b>Review audits</b> — both kept, because seeds audit <em>reviewers</em> and sampling audits the <em>auto-merge tier</em>. They don't overlap.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="disc">Even the spine lost pieces: rollback drills on already-contracted read-only routes, floating mismatch budgets (replaced by a tighten-only ratchet), any Fig scope beyond record/shadow/identity, and the undated long tail that is where strangler projects historically die.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Plan G — Front Door Factory · selected from 6 competing designs by 3 independent judges</span>
+    <span class="mono">hg-mono</span>
+  </div>
+</footer>

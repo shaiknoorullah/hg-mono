@@ -1,0 +1,335 @@
+<title>hg — scope locked, versions cut</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ground:#F5F7F5; --grid:#E9EDEA; --surface:#FFFFFF; --surface-2:#FAFBFA;
+    --ink:#14201B; --ink-2:#465049; --ink-3:#6E7A73; --hair:#E0E5E1; --hair-2:#C9D1CB;
+    --accent:#0E7C66; --accent-2:#0A5E4D; --accent-soft:#E3F1EC;
+    --crit:#B4232A; --crit-soft:#F7E3E3; --warn:#9A6510; --warn-soft:#F6ECD8; --info:#245C99; --info-soft:#E2ECF6;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(20,32,27,.04),0 4px 16px rgba(20,32,27,.05);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0C110F; --grid:#182220; --surface:#121917; --surface-2:#161F1C;
+    --ink:#E7EDEA; --ink-2:#A6B1AB; --ink-3:#788480; --hair:#222D29; --hair-2:#38443F;
+    --accent:#38C99F; --accent-2:#5FD9B5; --accent-soft:#122B25;
+    --crit:#F0736F; --crit-soft:#2C1817; --warn:#E0A952; --warn-soft:#2A2213; --info:#71A8E4; --info-soft:#132234;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0C110F; --grid:#182220; --surface:#121917; --surface-2:#161F1C;
+    --ink:#E7EDEA; --ink-2:#A6B1AB; --ink-3:#788480; --hair:#222D29; --hair-2:#38443F;
+    --accent:#38C99F; --accent-2:#5FD9B5; --accent-soft:#122B25;
+    --crit:#F0736F; --crit-soft:#2C1817; --warn:#E0A952; --warn-soft:#2A2213; --info:#71A8E4; --info-soft:#132234;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{text-wrap:balance;line-height:1.15;letter-spacing:-.02em;margin:0}
+  p{margin:0 0 14px;color:var(--ink-2);max-width:74ch}
+  code{font-family:var(--mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--hair);border-radius:4px;padding:.05em .35em;color:var(--ink-2)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+  header{border-bottom:1px solid var(--hair);background:var(--surface);padding:44px 0 32px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:clamp(30px,5.2vw,48px);font-weight:800;margin:12px 0 10px;letter-spacing:-.035em}
+  header p{font-size:clamp(16px,2.2vw,19px);margin:0}
+
+  section{padding:42px 0;border-bottom:1px solid var(--hair)}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.14em}
+  h2{font-size:clamp(22px,3.2vw,30px);font-weight:750;margin:8px 0 12px}
+  h3{font-size:17px;font-weight:700;margin:24px 0 8px}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:6px}
+  .tile{background:var(--surface);border:1px solid var(--hair);border-radius:11px;padding:15px;box-shadow:var(--shadow)}
+  .tile .n{font-size:28px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+  .tile .l{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;margin-top:7px}
+  .tile.v0 .n{color:var(--accent)} .tile.alert .n{color:var(--crit)} .tile.warn .n{color:var(--warn)}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;box-shadow:var(--shadow);margin-top:16px}
+  table{border-collapse:collapse;width:100%;min-width:560px;background:var(--surface);font-size:13.5px}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--hair);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600;background:var(--surface-2)}
+  tr:last-child td{border-bottom:none}
+  .n{font-variant-numeric:tabular-nums}
+  .pill{font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;white-space:nowrap}
+  .p-v0{background:var(--accent-soft);color:var(--accent-2)}
+  .p-v1{background:var(--info-soft);color:var(--info)}
+  .p-open{background:var(--warn-soft);color:var(--warn)}
+  .p-block{background:var(--crit-soft);color:var(--crit)}
+
+  figure{margin:20px 0 0;background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:20px;box-shadow:var(--shadow);overflow-x:auto}
+  figure svg{display:block;margin:0 auto;max-width:100%;height:auto;color:var(--ink-2)}
+  figcaption{margin-top:12px;font-size:13px;color:var(--ink-3);text-align:center}
+  .sv-node{font-family:var(--sans);font-size:11.5px;fill:var(--ink);font-weight:600}
+  .sv-sub{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+  .sv-edge{font-family:var(--mono);font-size:10px;fill:var(--ink-3)}
+
+  .cols{display:grid;gap:14px}
+  @media(min-width:800px){.cols{grid-template-columns:repeat(2,1fr)}}
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:13px;padding:18px;box-shadow:var(--shadow)}
+  .card h4{margin:0 0 10px;font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .card h4 span{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:600}
+  .card ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+  .card li{font-size:13.5px;color:var(--ink-2);padding-left:15px;position:relative}
+  .card li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+
+  .callout{border-radius:12px;padding:17px 19px;margin-top:16px}
+  .callout.warn{background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 34%,transparent)}
+  .callout.crit{background:var(--crit-soft);border:1px solid color-mix(in srgb,var(--crit) 34%,transparent)}
+  .callout.ok{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+  .callout h3{margin:0 0 6px;font-size:15.5px}
+  .callout.warn h3{color:var(--warn)} .callout.crit h3{color:var(--crit)} .callout.ok h3{color:var(--accent-2)}
+  .callout p{margin:0;font-size:14px}
+  footer{padding:30px 0 56px;color:var(--ink-3);font-size:13px}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">SOW disambiguated · 5 domain specs · 198 features</div>
+    <h1>Scope locked, versions cut</h1>
+    <p>Every SOW feature now has states, rules, and testable acceptance criteria. Here is what ships first, what waits, and what still blocks a real payment.</p>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">01 / WHAT THE SPEC PRODUCED</div>
+    <h2>The whole scope, counted</h2>
+    <div class="tiles">
+      <div class="tile"><div class="n">198</div><div class="l">Features specified</div></div>
+      <div class="tile"><div class="n">10.5k</div><div class="l">Lines of spec</div></div>
+      <div class="tile v0"><div class="n">43</div><div class="l">V0 — first real order</div></div>
+      <div class="tile"><div class="n">73</div><div class="l">V1 — rest of launch</div></div>
+      <div class="tile"><div class="n">82</div><div class="l">V2 + V3</div></div>
+      <div class="tile warn"><div class="n">141</div><div class="l">Decisions surfaced</div></div>
+      <div class="tile alert"><div class="n">6</div><div class="l">Still blocking</div></div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Domain</th><th class="n">Features</th><th class="n">Spec lines</th><th>What it settled</th></tr></thead>
+        <tbody>
+          <tr><td><b>Platform</b></td><td class="n">39</td><td class="n">2,850</td><td>Money model, 14-state order machine, WS catalogue, double-entry ledger, Canadian tax</td></tr>
+          <tr><td><b>Admin / Support</b></td><td class="n">42</td><td class="n">2,951</td><td>Halal 7-check verification, RBAC matrix, audit chain, refund authority</td></tr>
+          <tr><td><b>Restaurant</b></td><td class="n">36</td><td class="n">2,399</td><td>Auth-then-capture, 180s accept window, menu versioning, payouts</td></tr>
+          <tr><td><b>Customer</b></td><td class="n">40</td><td class="n">1,225</td><td>Halal display states, 9 filters, one-restaurant cart, order-bound reviews</td></tr>
+          <tr><td><b>Rider</b></td><td class="n">41</td><td class="n">1,100</td><td>Wave dispatch, race-free accept, proof of delivery, earnings ledger</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">02 / THE CUT</div>
+    <h2>V0 — one real paid order, end to end</h2>
+    <p>43 features. Everything required for a customer to order from an approved halal restaurant, a rider to deliver it, and the money to settle correctly. Nothing else.</p>
+
+    <div class="cols">
+      <div class="card">
+        <h4>Platform core <span>11</span></h4>
+        <ul>
+          <li>Phone OTP + email/password identity, sessions</li>
+          <li>Deny-by-default authorization + ownership checks</li>
+          <li>Money: int64 cents, quote flow, server-authoritative</li>
+          <li>Canadian tax table (Ontario 13% HST)</li>
+          <li>14-state order machine + <code>deadline_at</code> CHECK</li>
+          <li>Deadline ticker (<code>FOR UPDATE SKIP LOCKED</code>)</li>
+          <li>Stripe: authorise → capture on accept → void</li>
+          <li>Double-entry ledger, zero-residual invariant</li>
+          <li>WebSocket: ticket auth, outbox, per-channel <code>seq</code></li>
+          <li>Push notifications (Expo)</li>
+          <li>MinIO private buckets + presigned URLs</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Customer app <span>12</span></h4>
+        <ul>
+          <li>Phone OTP sign-in, minimal profile</li>
+          <li>Address add + geocode + PostGIS</li>
+          <li>Restaurant list — halal-gated by one SQL predicate</li>
+          <li>Halal badge + certification panel</li>
+          <li>Restaurant detail + menu + variants/addons</li>
+          <li>Cart, one restaurant enforced server-side</li>
+          <li>Quote display — the number shown is the number charged</li>
+          <li>Checkout + Stripe Payment Sheet</li>
+          <li>Live order tracking over WS</li>
+          <li>Cancel before acceptance (voids auth)</li>
+          <li>Order history + receipt</li>
+          <li>Rate order after delivery</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Restaurant web <span>6</span></h4>
+        <ul>
+          <li>Email/password sign-in</li>
+          <li>Onboarding + 4 Canadian documents upload</li>
+          <li>Menu view (admin creates it initially)</li>
+          <li>Order offer + accept/reject, 180s deadline</li>
+          <li>Mark preparing → ready</li>
+          <li>Open/closed toggle with heartbeat</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Rider app <span>7</span></h4>
+        <ul>
+          <li>Phone OTP sign-in</li>
+          <li>Onboarding + documents + Stripe Connect</li>
+          <li>Go online / offline</li>
+          <li>Location streaming (foreground + active delivery)</li>
+          <li>Receive offer, accept (race-free)</li>
+          <li>Pickup → delivered + proof of delivery</li>
+          <li>Earnings ledger view</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Admin web <span>7</span></h4>
+        <ul>
+          <li>Staff sign-in + RBAC</li>
+          <li>Restaurant onboarding queue</li>
+          <li><b>Halal verification — the 7-check list</b></li>
+          <li>Restaurant approve / reject</li>
+          <li>Rider approve / reject</li>
+          <li>Menu creation on behalf of restaurant</li>
+          <li>Order lookup + refund</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Deferred to V1 <span>73</span></h4>
+        <ul>
+          <li>Search, filters, sorting, favourites</li>
+          <li>Coupons, offers, combos, promotions</li>
+          <li>Restaurant self-serve menu editing + approval queue</li>
+          <li>Disputes, escalations, support case desk</li>
+          <li>Analytics + sales dashboards (all roles)</li>
+          <li>Compliance monitoring, review moderation</li>
+          <li>Customer ↔ rider masked calling</li>
+          <li>Content management, audit viewer, reports</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">03 / ORDER LIFECYCLE</div>
+    <h2>The state machine, settled</h2>
+    <p>Fulfilment lives on the order; rider assignment is a <em>subordinate</em> machine that can move the order forward but can never cancel it. That separation is why the old system's restaurant states were unreachable.</p>
+
+    <figure>
+      <svg viewBox="0 0 700 290" role="img" aria-label="Order state machine showing authorised, restaurant pending, preparing, ready, picked up, delivered and completed, with void and refund branches">
+        <defs><marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker></defs>
+
+        <g fill="var(--accent-soft)" stroke="var(--accent)">
+          <rect x="12" y="60" width="92" height="38" rx="7"/>
+          <rect x="132" y="60" width="112" height="38" rx="7"/>
+          <rect x="272" y="60" width="92" height="38" rx="7"/>
+          <rect x="392" y="60" width="92" height="38" rx="7"/>
+          <rect x="512" y="60" width="92" height="38" rx="7"/>
+          <rect x="612" y="60" width="76" height="38" rx="7"/>
+        </g>
+        <g class="sv-node" text-anchor="middle">
+          <text x="58" y="78">AUTHORIZED</text>
+          <text x="188" y="78">RESTAURANT</text>
+          <text x="188" y="90">_PENDING</text>
+          <text x="318" y="78">PREPARING</text>
+          <text x="438" y="78">READY</text>
+          <text x="558" y="78">PICKED_UP</text>
+          <text x="650" y="84">DELIVERED</text>
+        </g>
+        <text x="58" y="90" text-anchor="middle" class="sv-sub">funds held</text>
+        <text x="318" y="90" text-anchor="middle" class="sv-sub">captured</text>
+
+        <g stroke="currentColor" marker-end="url(#a5)">
+          <line x1="104" y1="79" x2="128" y2="79"/>
+          <line x1="244" y1="79" x2="268" y2="79"/>
+          <line x1="364" y1="79" x2="388" y2="79"/>
+          <line x1="484" y1="79" x2="508" y2="79"/>
+          <line x1="604" y1="79" x2="608" y2="79"/>
+        </g>
+        <text x="256" y="52" text-anchor="middle" class="sv-edge">accept</text>
+        <text x="376" y="52" text-anchor="middle" class="sv-edge">ready</text>
+        <text x="496" y="52" text-anchor="middle" class="sv-edge">collect</text>
+
+        <rect x="132" y="150" width="112" height="34" rx="7" fill="var(--crit-soft)" stroke="var(--crit)"/>
+        <text x="188" y="166" text-anchor="middle" class="sv-node">VOID auth</text>
+        <text x="188" y="178" text-anchor="middle" class="sv-sub">no money moved</text>
+
+        <line x1="188" y1="98" x2="188" y2="146" stroke="var(--crit)" stroke-dasharray="4 3" marker-end="url(#a5)" color="var(--crit)"/>
+        <text x="196" y="122" class="sv-edge" fill="var(--crit)">reject · 180s timeout · customer cancels</text>
+
+        <rect x="560" y="150" width="128" height="34" rx="7" fill="var(--surface-2)" stroke="var(--hair-2)"/>
+        <text x="624" y="166" text-anchor="middle" class="sv-node">COMPLETED</text>
+        <text x="624" y="178" text-anchor="middle" class="sv-sub">ledger settles</text>
+        <line x1="650" y1="98" x2="632" y2="146" stroke="currentColor" marker-end="url(#a5)"/>
+
+        <rect x="180" y="222" width="330" height="42" rx="8" fill="var(--surface-2)" stroke="var(--accent)" stroke-dasharray="4 3"/>
+        <text x="345" y="240" text-anchor="middle" class="sv-node">every non-terminal state carries deadline_at</text>
+        <text x="345" y="255" text-anchor="middle" class="sv-sub">enforced by a Postgres CHECK — "waits forever" is unrepresentable</text>
+      </svg>
+      <figcaption>Rejection and timeout <em>void an authorisation</em> rather than issue a refund — instant, free, and impossible to fail.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">04 / MONEY</div>
+    <h2>Your decisions, and one consequence</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Setting</th><th>Launch value</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>Platform commission</td><td><b>0%</b> — field exists, per-restaurant, switchable</td><td>your call</td></tr>
+          <tr><td>Delivery fee</td><td><b>$2.99 + $1.00/km</b>, 100% to rider</td><td>your call</td></tr>
+          <tr><td>Rider earnings</td><td><b>= delivery fee</b> (pure pass-through) + 100% tips</td><td>reconciled</td></tr>
+          <tr><td>Payouts</td><td><b>Weekly, Monday, automatic, no minimum</b></td><td>your call</td></tr>
+          <tr><td>Cancellation</td><td><b>Free before accept</b> (voids auth) → then support</td><td>your call</td></tr>
+          <tr><td>Service fee</td><td><b>$0.00</b> — mechanism built, switch off</td><td>proposed</td></tr>
+          <tr><td>Discounts</td><td><b>Restaurant-funded</b> at launch</td><td>proposed</td></tr>
+          <tr><td>Capture timing</td><td><b>Authorise at checkout, capture on accept</b></td><td>spec</td></tr>
+          <tr><td>Tax</td><td>Ontario 13% HST, table-driven, effective-dated</td><td>spec — needs registration</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout crit">
+      <h3>At these settings the platform loses money on every order</h3>
+      <p>0% commission + $0 service fee + all delivery to rider means no revenue line — but Stripe still charges ~2.9% + $0.30. A $30 order costs the platform about <b>$1.30</b>, and every goodwill refund is pure loss. This is fine as a deliberate acquisition cost; it is not fine as a surprise. The mechanism to fix it (service fee) ships in V0 set to zero, so switching it on later is a settings change, not a release.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">05 / BLOCKERS</div>
+    <h2>Six decisions and three real-world items</h2>
+    <p>Everything else has a written default and ships without you. These genuinely cannot proceed on my judgement.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:150px">Item</th><th>Why it blocks</th><th>Who resolves</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill p-block">Blocking</span> <b>HST registration</b></td><td>Cannot legally charge tax without a registration number and a supplier position (platform vs restaurant as remitter)</td><td>Client's accountant</td></tr>
+          <tr><td><span class="pill p-block">Blocking</span> <b>Halal certifier list</b></td><td>Verification requires a curated registry of accepted issuing bodies — free text defeats the whole check</td><td>Client</td></tr>
+          <tr><td><span class="pill p-block">Blocking</span> <b>SMS / A2P</b></td><td>No phone OTP = nobody logs in. A2P 10DLC approval takes days to weeks</td><td>You — today</td></tr>
+          <tr><td><span class="pill p-open">Decide</span> <b>Refund liability</b></td><td>Who absorbs each refund reason — platform, restaurant, or rider</td><td>You</td></tr>
+          <tr><td><span class="pill p-open">Decide</span> <b>Launch province</b></td><td>Tax rates and address validation gate on it. Default: Ontario only</td><td>You</td></tr>
+          <tr><td><span class="pill p-open">Decide</span> <b>Self-declared halal</b></td><td>List uncertified restaurants behind a filter, or hide entirely? Default: hide</td><td>You</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn">
+      <h3>The honest timeline read</h3>
+      <p>V0's 43 features are achievable fast — the backend is genuinely small and parallelises well. The risk is <b>three separate native apps plus admin web</b>, which you chose over a single role-switched app. That is the piece most likely to slip, and it is where I will come back to you first if we are behind. The <b>live payment date is gated by HST registration and A2P approval</b>, not by code.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer><div class="wrap">hg — scope locked · 198 features specified · V0 = 43 · full specs in scratchpad/spec/</div></footer>

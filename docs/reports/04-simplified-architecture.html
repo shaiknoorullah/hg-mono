@@ -1,0 +1,434 @@
+<title>hg — one binary, three days</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ground:#F5F7F5; --grid:#E9EDEA; --surface:#FFFFFF; --surface-2:#FAFBFA;
+    --ink:#14201B; --ink-2:#465049; --ink-3:#6E7A73; --hair:#E0E5E1; --hair-2:#C9D1CB;
+    --accent:#0E7C66; --accent-2:#0A5E4D; --accent-soft:#E3F1EC;
+    --crit:#B4232A; --crit-soft:#F7E3E3; --warn:#9A6510; --warn-soft:#F6ECD8;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(20,32,27,.04),0 4px 16px rgba(20,32,27,.05);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0C110F; --grid:#182220; --surface:#121917; --surface-2:#161F1C;
+    --ink:#E7EDEA; --ink-2:#A6B1AB; --ink-3:#788480; --hair:#222D29; --hair-2:#38443F;
+    --accent:#38C99F; --accent-2:#5FD9B5; --accent-soft:#122B25;
+    --crit:#F0736F; --crit-soft:#2C1817; --warn:#E0A952; --warn-soft:#2A2213;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0C110F; --grid:#182220; --surface:#121917; --surface-2:#161F1C;
+    --ink:#E7EDEA; --ink-2:#A6B1AB; --ink-3:#788480; --hair:#222D29; --hair-2:#38443F;
+    --accent:#38C99F; --accent-2:#5FD9B5; --accent-soft:#122B25;
+    --crit:#F0736F; --crit-soft:#2C1817; --warn:#E0A952; --warn-soft:#2A2213;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{text-wrap:balance;line-height:1.15;letter-spacing:-.02em;margin:0}
+  p{margin:0 0 14px;color:var(--ink-2);max-width:72ch}
+  code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--hair);border-radius:4px;padding:.05em .35em;color:var(--ink-2)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+  header{border-bottom:1px solid var(--hair);background:var(--surface);padding:44px 0 34px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:clamp(30px,5.4vw,50px);font-weight:800;margin:12px 0 10px;letter-spacing:-.035em}
+  header p{font-size:clamp(16px,2.3vw,20px);margin:0}
+
+  section{padding:44px 0;border-bottom:1px solid var(--hair)}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.14em}
+  h2{font-size:clamp(22px,3.2vw,30px);font-weight:750;margin:8px 0 14px}
+  h3{font-size:17px;font-weight:700;margin:22px 0 6px}
+
+  figure{margin:22px 0 0;background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:20px;box-shadow:var(--shadow);overflow-x:auto}
+  figure svg{display:block;margin:0 auto;max-width:100%;height:auto;color:var(--ink-2)}
+  figcaption{margin-top:14px;font-size:13px;color:var(--ink-3);text-align:center;max-width:70ch;margin-left:auto;margin-right:auto}
+  .sv-label{font-family:var(--mono);font-size:11px;fill:var(--ink-3)}
+  .sv-node{font-family:var(--sans);font-size:12.5px;fill:var(--ink);font-weight:600}
+  .sv-sub{font-family:var(--mono);font-size:10px;fill:var(--ink-3)}
+  .sv-edge{font-family:var(--mono);font-size:10.5px;fill:var(--ink-3)}
+  .sv-head{font-family:var(--sans);font-size:13px;font-weight:700;fill:var(--ink)}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;box-shadow:var(--shadow);margin-top:18px}
+  table{border-collapse:collapse;width:100%;min-width:560px;background:var(--surface);font-size:13.5px}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--hair);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600;background:var(--surface-2)}
+  tr:last-child td{border-bottom:none}
+  .yes{color:var(--accent);font-weight:700}
+  .no{color:var(--crit);font-weight:700}
+
+  .q{background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);border-radius:10px;padding:14px 16px;margin-top:12px}
+  .q b{color:var(--ink);display:block;margin-bottom:3px;font-size:14.5px}
+  .q span{font-size:13.5px;color:var(--ink-2)}
+  .callout{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:12px;padding:18px 20px;margin-top:18px}
+  .callout p{margin:0;color:var(--ink-2)}
+  footer{padding:30px 0 56px;color:var(--ink-3);font-size:13px}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Revised spec · complexity deleted</div>
+    <h1>hg — one binary, three days</h1>
+    <p>Not in production. Nothing to migrate. Stripe already works. So we delete the hard half and build the product.</p>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">01 / THE COLLAPSE</div>
+    <h2>Eight moving parts become three</h2>
+    <p>Every component on the left existed to solve a problem you don't have: strangling live traffic, migrating real data, orchestrating across service boundaries. One binary has no service boundaries to orchestrate across.</p>
+
+    <figure>
+      <svg viewBox="0 0 700 470" role="img" aria-label="Comparison of the proposed eight-component microservice stack against the three-component single-binary stack">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <text x="170" y="22" text-anchor="middle" class="sv-head">Proposed — 8 moving parts</text>
+        <text x="530" y="22" text-anchor="middle" class="sv-head" fill="var(--accent-2)">Building — 3 moving parts</text>
+
+        <g stroke="var(--hair-2)" stroke-dasharray="5 4" fill="var(--surface-2)">
+          <rect x="60" y="40" width="220" height="36" rx="7"/>
+          <rect x="60" y="93" width="220" height="36" rx="7"/>
+          <rect x="60" y="146" width="220" height="36" rx="7"/>
+          <rect x="60" y="199" width="220" height="36" rx="7"/>
+          <rect x="60" y="252" width="220" height="36" rx="7"/>
+          <rect x="60" y="305" width="220" height="36" rx="7"/>
+          <rect x="60" y="358" width="220" height="36" rx="7"/>
+          <rect x="60" y="411" width="220" height="36" rx="7"/>
+        </g>
+        <g text-anchor="middle" class="sv-node" fill="var(--ink-3)">
+          <text x="170" y="63">Traefik</text>
+          <text x="170" y="116">Fig proxy — shadow + diff</text>
+          <text x="170" y="169">api-gateway</text>
+          <text x="170" y="222">6 Go services</text>
+          <text x="170" y="275">Temporal / saga engine</text>
+          <text x="170" y="328">Kafka + outbox</text>
+          <text x="170" y="381">Redis</text>
+          <text x="170" y="434">Postgres + MinIO</text>
+        </g>
+
+        <g stroke="var(--accent)" fill="var(--accent-soft)">
+          <rect x="420" y="40" width="220" height="36" rx="7"/>
+          <rect x="420" y="120" width="220" height="60" rx="7"/>
+          <rect x="420" y="224" width="220" height="36" rx="7"/>
+          <rect x="420" y="290" width="220" height="36" rx="7"/>
+        </g>
+        <g text-anchor="middle" class="sv-node">
+          <text x="530" y="63">Traefik</text>
+          <text x="530" y="147">hg</text>
+          <text x="530" y="247">Postgres + PostGIS</text>
+          <text x="530" y="313">./files volume</text>
+        </g>
+        <text x="530" y="164" text-anchor="middle" class="sv-sub">one Go binary — HTTP + WS</text>
+
+        <g stroke="currentColor" marker-end="url(#ar)" opacity=".55">
+          <line x1="530" y1="76" x2="530" y2="114"/>
+          <line x1="530" y1="180" x2="530" y2="218"/>
+          <line x1="530" y1="260" x2="530" y2="284"/>
+        </g>
+
+        <line x1="300" y1="240" x2="400" y2="240" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar)" color="var(--accent)"/>
+        <text x="350" y="231" text-anchor="middle" class="sv-edge" fill="var(--accent-2)">delete</text>
+      </svg>
+      <figcaption>The right-hand stack is not a simplified drawing of the left — it is the whole system. Nothing on the left survives except the reverse proxy and the database.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">02 / THE BINARY</div>
+    <h2>What's inside <code>hg</code></h2>
+    <p>Packages in one module, not services. They call each other with function calls — no network, no serialization, no contracts between them, no distributed failure modes. The only contract that matters is the one facing the apps.</p>
+
+    <figure>
+      <svg viewBox="0 0 700 420" role="img" aria-label="Internal structure of the hg binary showing modules, the timeout ticker, and external connections to Postgres, Stripe and the file volume">
+        <defs>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <g fill="var(--surface-2)" stroke="var(--hair-2)">
+          <rect x="20" y="30" width="120" height="34" rx="6"/>
+          <rect x="20" y="76" width="120" height="34" rx="6"/>
+          <rect x="20" y="122" width="120" height="34" rx="6"/>
+          <rect x="20" y="168" width="120" height="34" rx="6"/>
+        </g>
+        <g class="sv-node" text-anchor="middle" font-size="11.5">
+          <text x="80" y="52">customer app</text>
+          <text x="80" y="98">rider app</text>
+          <text x="80" y="144">restaurant app</text>
+          <text x="80" y="190">admin web</text>
+        </g>
+
+        <line x1="140" y1="115" x2="196" y2="115" stroke="currentColor" marker-end="url(#ar2)"/>
+        <text x="168" y="107" text-anchor="middle" class="sv-edge">REST</text>
+        <text x="168" y="131" text-anchor="middle" class="sv-edge">WS</text>
+
+        <rect x="200" y="24" width="300" height="290" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="350" y="48" text-anchor="middle" class="sv-head" fill="var(--accent-2)">hg — single process</text>
+
+        <g fill="var(--surface)" stroke="var(--hair-2)">
+          <rect x="218" y="62" width="128" height="30" rx="6"/>
+          <rect x="354" y="62" width="128" height="30" rx="6"/>
+          <rect x="218" y="100" width="128" height="30" rx="6"/>
+          <rect x="354" y="100" width="128" height="30" rx="6"/>
+          <rect x="218" y="138" width="128" height="30" rx="6"/>
+          <rect x="354" y="138" width="128" height="30" rx="6"/>
+          <rect x="218" y="176" width="128" height="30" rx="6"/>
+          <rect x="354" y="176" width="128" height="30" rx="6"/>
+        </g>
+        <g class="sv-node" text-anchor="middle" font-size="11.5">
+          <text x="282" y="82">auth</text>
+          <text x="418" y="82">catalog</text>
+          <text x="282" y="120">orders</text>
+          <text x="418" y="120">dispatch</text>
+          <text x="282" y="158">payments</text>
+          <text x="418" y="158">realtime hub</text>
+          <text x="282" y="196">files</text>
+          <text x="418" y="196">admin</text>
+        </g>
+
+        <rect x="218" y="224" width="264" height="44" rx="7" fill="var(--surface)" stroke="var(--accent)" stroke-dasharray="4 3"/>
+        <text x="350" y="242" text-anchor="middle" class="sv-node" font-size="11.5">ticker goroutine — every 10s</text>
+        <text x="350" y="259" text-anchor="middle" class="sv-sub">SELECT … WHERE deadline_at &lt; now() → advance or cancel</text>
+
+        <text x="350" y="292" text-anchor="middle" class="sv-sub">↑ this replaces Temporal entirely</text>
+
+        <g fill="var(--surface-2)" stroke="var(--hair-2)">
+          <rect x="540" y="60" width="140" height="40" rx="7"/>
+          <rect x="540" y="130" width="140" height="40" rx="7"/>
+          <rect x="540" y="200" width="140" height="40" rx="7"/>
+        </g>
+        <g class="sv-node" text-anchor="middle" font-size="11.5">
+          <text x="610" y="85">Postgres</text>
+          <text x="610" y="155">Stripe</text>
+          <text x="610" y="225">./files</text>
+        </g>
+        <text x="610" y="98" text-anchor="middle" class="sv-sub">+ PostGIS</text>
+        <text x="610" y="168" text-anchor="middle" class="sv-sub">already working</text>
+
+        <g stroke="currentColor" marker-end="url(#ar2)">
+          <line x1="500" y1="90" x2="536" y2="80"/>
+          <line x1="500" y1="150" x2="536" y2="150"/>
+          <line x1="500" y1="200" x2="536" y2="215"/>
+        </g>
+        <text x="518" y="72" text-anchor="middle" class="sv-edge">SQL</text>
+      </svg>
+      <figcaption>Eight packages, one process, one database connection pool. The ticker goroutine is the entire orchestration layer — it is why no workflow engine appears anywhere in this system.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">03 / THE ONE HARD PART</div>
+    <h2>Order lifecycle — where deadlines live</h2>
+    <p>This is the only genuinely stateful thing in the product, and it's where the old system broke. Every state that can stall carries a <code>deadline_at</code>. A row with a passed deadline and no next state is impossible to ignore — the ticker finds it and cancels with a refund. The bug where an order waits forever cannot be written.</p>
+
+    <figure>
+      <svg viewBox="0 0 700 300" role="img" aria-label="Order state machine from placed to delivered with timeout branches to auto-cancel">
+        <defs>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <g fill="var(--accent-soft)" stroke="var(--accent)">
+          <rect x="14" y="96" width="90" height="38" rx="7"/>
+          <rect x="152" y="96" width="90" height="38" rx="7"/>
+          <rect x="290" y="96" width="90" height="38" rx="7"/>
+          <rect x="428" y="96" width="90" height="38" rx="7"/>
+          <rect x="566" y="96" width="110" height="38" rx="7"/>
+        </g>
+        <g class="sv-node" text-anchor="middle" font-size="11.5">
+          <text x="59" y="120">paid</text>
+          <text x="197" y="120">accepted</text>
+          <text x="335" y="120">ready</text>
+          <text x="473" y="120">picked up</text>
+          <text x="621" y="120">delivered</text>
+        </g>
+
+        <g stroke="currentColor" marker-end="url(#ar3)">
+          <line x1="104" y1="115" x2="148" y2="115"/>
+          <line x1="242" y1="115" x2="286" y2="115"/>
+          <line x1="380" y1="115" x2="424" y2="115"/>
+          <line x1="518" y1="115" x2="562" y2="115"/>
+        </g>
+        <g class="sv-edge" text-anchor="middle">
+          <text x="126" y="107">restaurant</text>
+          <text x="264" y="107">kitchen</text>
+          <text x="402" y="107">rider</text>
+          <text x="540" y="107">rider</text>
+        </g>
+
+        <g stroke="var(--crit)" stroke-dasharray="4 3" marker-end="url(#ar3)" color="var(--crit)">
+          <line x1="59" y1="134" x2="59" y2="196"/>
+          <line x1="335" y1="134" x2="335" y2="196"/>
+        </g>
+        <g class="sv-edge" fill="var(--crit)" text-anchor="start">
+          <text x="66" y="160">deadline 2 min</text>
+          <text x="342" y="160">deadline 5 min</text>
+        </g>
+        <text x="66" y="175" class="sv-sub" fill="var(--crit)">no restaurant answer</text>
+        <text x="342" y="175" class="sv-sub" fill="var(--crit)">no rider accepts</text>
+
+        <rect x="180" y="200" width="230" height="40" rx="7" fill="var(--crit-soft)" stroke="var(--crit)"/>
+        <text x="295" y="219" text-anchor="middle" class="sv-node" font-size="11.5">auto-cancelled + refunded</text>
+        <text x="295" y="234" text-anchor="middle" class="sv-sub">by the ticker, not by a human</text>
+
+        <line x1="59" y1="196" x2="176" y2="215" stroke="var(--crit)" stroke-dasharray="4 3" marker-end="url(#ar3)" color="var(--crit)"/>
+        <line x1="335" y1="196" x2="335" y2="196" stroke="none"/>
+
+        <text x="350" y="274" text-anchor="middle" class="sv-sub">every row: status + deadline_at NOT NULL where a wait is possible</text>
+      </svg>
+      <figcaption>Six states, two deadlines, one refund path. The state machine is roughly 150 lines of Go and one database table.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">04 / SCOPE</div>
+    <h2>What "everything working" means</h2>
+    <p>My read of the full feature set. <strong>Tell me what to cut</strong> — this is the list I'd trim first if we're tight.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:105px">Surface</th><th>Must work</th><th>Cut first if tight</th></tr></thead>
+        <tbody>
+          <tr><td><b>Customer</b></td><td>Sign in · browse restaurants · menu · cart · checkout &amp; pay · live order tracking · order history</td><td>Ratings, tips, promo codes, search, favourites, chat</td></tr>
+          <tr><td><b>Rider</b></td><td>Sign in · go online · receive offer · accept · pickup → delivered · see earnings</td><td>Navigation/maps polish, earnings breakdown, chat, scheduling</td></tr>
+          <tr><td><b>Restaurant</b></td><td>Sign in · receive order · accept/reject · mark ready · toggle open/closed</td><td>Self-serve menu editing (admin does it), analytics, hours editor</td></tr>
+          <tr><td><b>Admin</b></td><td>Approve restaurants &amp; riders · view all orders · issue refund · create menus</td><td>Analytics dashboards, disputes, settlements, email templates</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The four gates that survive</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Gate</th><th>Why this one earns its place</th></tr></thead>
+        <tbody>
+          <tr><td><b>Server prices the order</b></td><td>Client sends item IDs only. Never a price. Kills the pay-what-you-want bug by construction.</td></tr>
+          <tr><td><b>Auth on by default</b></td><td>Router requires a valid session unless a route is explicitly public. Deny-by-default, not per-handler.</td></tr>
+          <tr><td><b>One e2e smoke test</b></td><td>Order placed → paid → accepted → assigned → delivered → refunded. Runs against the compose stack. If it's green the product works.</td></tr>
+          <tr><td><b>Money adds up</b></td><td>One query: charge = restaurant + rider + platform + tip − discount, residual zero. Catches the never-paid-the-rider class.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><p><strong>Test policy:</strong> roughly 15–25 tests total, not thousands. The state machine, the pricing, the auth boundary, and the smoke path. Everything else ships untested on purpose — untested code you delete costs nothing; tested dead code costs forever.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">05 / SEQUENCE</div>
+    <h2>What's parallel, what isn't</h2>
+    <p>Only one thing is truly serial: the schema. Everything downstream of it fans out. This is hours of wall-clock, gated by your answers and by review — not by typing.</p>
+
+    <figure>
+      <svg viewBox="0 0 700 320" role="img" aria-label="Build dependency graph showing schema first, then four parallel workstreams, converging on integration and deployment">
+        <defs>
+          <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <rect x="16" y="128" width="112" height="56" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="72" y="150" text-anchor="middle" class="sv-node" font-size="11.5">schema +</text>
+        <text x="72" y="166" text-anchor="middle" class="sv-node" font-size="11.5">API spec</text>
+        <text x="72" y="200" text-anchor="middle" class="sv-sub">the only</text>
+        <text x="72" y="213" text-anchor="middle" class="sv-sub">serial step</text>
+
+        <g fill="var(--surface-2)" stroke="var(--hair-2)">
+          <rect x="212" y="26" width="180" height="46" rx="8"/>
+          <rect x="212" y="94" width="180" height="46" rx="8"/>
+          <rect x="212" y="162" width="180" height="46" rx="8"/>
+          <rect x="212" y="230" width="180" height="46" rx="8"/>
+        </g>
+        <g class="sv-node" text-anchor="middle" font-size="11.5">
+          <text x="302" y="46">auth + catalog</text>
+          <text x="302" y="114">orders + payments</text>
+          <text x="302" y="182">dispatch + realtime</text>
+          <text x="302" y="250">design system + UI</text>
+        </g>
+        <g class="sv-sub" text-anchor="middle">
+          <text x="302" y="62">sign-in, restaurants, menus</text>
+          <text x="302" y="130">state machine, ticker, Stripe</text>
+          <text x="302" y="198">offers, WS hub, tracking</text>
+          <text x="302" y="266">tokens, screens, all surfaces</text>
+        </g>
+
+        <g stroke="currentColor" marker-end="url(#ar4)" opacity=".6">
+          <path d="M128 150 C 170 150, 175 49, 208 49" fill="none"/>
+          <path d="M128 154 C 170 154, 175 117, 208 117" fill="none"/>
+          <path d="M128 160 C 170 160, 175 185, 208 185" fill="none"/>
+          <path d="M128 164 C 170 164, 175 253, 208 253" fill="none"/>
+        </g>
+        <text x="168" y="119" text-anchor="middle" class="sv-edge" fill="var(--accent-2)">fan out</text>
+
+        <rect x="470" y="128" width="104" height="56" rx="8" fill="var(--surface-2)" stroke="var(--hair-2)"/>
+        <text x="522" y="151" text-anchor="middle" class="sv-node" font-size="11.5">integrate</text>
+        <text x="522" y="167" text-anchor="middle" class="sv-node" font-size="11.5">+ smoke</text>
+
+        <g stroke="currentColor" marker-end="url(#ar4)" opacity=".6">
+          <path d="M392 49 C 430 49, 435 148, 466 148" fill="none"/>
+          <path d="M392 117 C 430 117, 435 152, 466 152" fill="none"/>
+          <path d="M392 185 C 430 185, 435 158, 466 158" fill="none"/>
+          <path d="M392 253 C 430 253, 435 162, 466 162" fill="none"/>
+        </g>
+
+        <rect x="608" y="128" width="78" height="56" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="647" y="151" text-anchor="middle" class="sv-node" font-size="11.5">compose</text>
+        <text x="647" y="167" text-anchor="middle" class="sv-node" font-size="11.5">up</text>
+
+        <line x1="574" y1="156" x2="604" y2="156" stroke="currentColor" marker-end="url(#ar4)" opacity=".6"/>
+
+        <text x="350" y="302" text-anchor="middle" class="sv-sub">gated by: your answers below, and your review — not by build time</text>
+      </svg>
+      <figcaption>Four workstreams run concurrently once the schema is fixed. The schema is therefore the one thing worth getting right before anything starts.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-num">06 / I NEED ANSWERS</div>
+    <h2>Questions that change what I build</h2>
+    <p>These genuinely fork the design. The ones in the prompt below are the blocking four; the rest I'll default as noted unless you say otherwise.</p>
+
+    <div class="q"><b>App shape</b><span>One Expo app with a role switch at login (customer / rider / restaurant), or three separate apps? One app is dramatically less work and less code to maintain — three is the norm for app-store distribution later.</span></div>
+    <div class="q"><b>Existing frontend code</b><span>Rebuild the screens fresh on a new design system, or port what's there? Given the current apps have dead contexts, mock screens and committed swap files, my instinct is fresh — but you know how much of it is good.</span></div>
+    <div class="q"><b>Definition of done in 3 days</b><span>Clickable demo on your machine, deployed somewhere the client can open a link, or actually taking real orders?</span></div>
+    <div class="q"><b>Auth</b><span>Keep Supabase phone OTP (works today, zero build), or move auth into the binary? Default: keep Supabase — it is free working code.</span></div>
+
+    <h3>Defaults I'll assume unless you object</h3>
+    <div class="tablewrap">
+      <table>
+        <tbody>
+          <tr><td><b>Database</b></td><td>Fresh schema, redesigned. Nothing preserved, nothing migrated.</td></tr>
+          <tr><td><b>Stripe</b></td><td>Port your working integration as-is. I don't touch payment logic.</td></tr>
+          <tr><td><b>Geo / dispatch</b></td><td>PostGIS <code>ST_DWithin</code> in one query. No Redis geo, no expanding-radius loop — nearest N available riders, offer to all, first accept wins.</td></tr>
+          <tr><td><b>Realtime</b></td><td>WebSocket hub in-process, subscriptions in a map. Single binary means no Redis pub/sub needed.</td></tr>
+          <tr><td><b>File uploads</b></td><td>Mounted volume + signed URLs from the binary. Private by default.</td></tr>
+          <tr><td><b>Repo shape</b></td><td>One Go module + one Expo app + one generated TS client. Three top-level folders, not five packages.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">hg — revised spec · one binary, one database, four gates</div>
+</footer>

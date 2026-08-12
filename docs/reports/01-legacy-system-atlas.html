@@ -1,0 +1,576 @@
+<title>Halal Goes — Platform Atlas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ground:#F5F7F5; --grid:#E9EDEA; --surface:#FFFFFF; --surface-2:#FAFBFA;
+    --ink:#14201B; --ink-2:#465049; --ink-3:#6E7A73; --hair:#E0E5E1; --hair-2:#D2D8D3;
+    --accent:#0E7C66; --accent-2:#0A5E4D; --accent-soft:#E3F1EC;
+    --crit:#B4232A; --crit-soft:#F7E3E3; --warn:#9A6510; --warn-soft:#F6ECD8; --info:#245C99; --info-soft:#E2ECF6;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(20,32,27,.04),0 4px 16px rgba(20,32,27,.05);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0C110F; --grid:#182220; --surface:#121917; --surface-2:#161F1C;
+    --ink:#E7EDEA; --ink-2:#A6B1AB; --ink-3:#788480; --hair:#222D29; --hair-2:#2C3833;
+    --accent:#38C99F; --accent-2:#5FD9B5; --accent-soft:#122B25;
+    --crit:#F0736F; --crit-soft:#2C1817; --warn:#E0A952; --warn-soft:#2A2213; --info:#71A8E4; --info-soft:#132234;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0C110F; --grid:#182220; --surface:#121917; --surface-2:#161F1C;
+    --ink:#E7EDEA; --ink-2:#A6B1AB; --ink-3:#788480; --hair:#222D29; --hair-2:#2C3833;
+    --accent:#38C99F; --accent-2:#5FD9B5; --accent-soft:#122B25;
+    --crit:#F0736F; --crit-soft:#2C1817; --warn:#E0A952; --warn-soft:#2A2213; --info:#71A8E4; --info-soft:#132234;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+  body{
+    margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:52px 52px;background-position:-1px -1px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,.mono{font-family:var(--mono);font-size:.86em}
+  code{background:var(--surface-2);border:1px solid var(--hair);border-radius:4px;padding:.05em .35em;color:var(--ink-2);white-space:nowrap}
+  h1,h2,h3{text-wrap:balance;line-height:1.15;letter-spacing:-.02em;margin:0}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+
+  /* ---- header ---- */
+  header.hero{border-bottom:1px solid var(--hair);background:linear-gradient(180deg,var(--surface),var(--surface-2));}
+  .hero .wrap{padding-top:56px;padding-bottom:40px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:clamp(34px,6vw,58px);font-weight:800;margin:14px 0 10px;letter-spacing:-.035em}
+  .hero p.lede{font-size:clamp(17px,2.4vw,21px);color:var(--ink-2);max-width:64ch;margin:0}
+  .metabar{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:26px;font-family:var(--mono);font-size:12.5px;color:var(--ink-3)}
+  .metabar b{color:var(--ink-2);font-weight:600}
+
+  /* ---- nav ---- */
+  nav.toc{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--hair)}
+  nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:8px;padding-bottom:8px;scrollbar-width:none}
+  nav.toc .wrap::-webkit-scrollbar{display:none}
+  nav.toc a{font-family:var(--mono);font-size:12px;color:var(--ink-2);padding:6px 11px;border-radius:6px;white-space:nowrap;letter-spacing:.02em}
+  nav.toc a:hover{background:var(--accent-soft);color:var(--accent-2);text-decoration:none}
+
+  section{padding:52px 0;border-bottom:1px solid var(--hair)}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.15em}
+  h2{font-size:clamp(24px,3.6vw,34px);font-weight:750;margin:8px 0 6px}
+  .sec-intro{color:var(--ink-2);max-width:70ch;margin:0 0 28px}
+  h3{font-size:19px;font-weight:700;margin:0 0 4px}
+
+  /* ---- stat tiles ---- */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:8px 0 0}
+  .tile{background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
+  .tile .n{font-size:32px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+  .tile .l{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
+  .tile.alert .n{color:var(--crit)}
+  .tile.warn .n{color:var(--warn)}
+
+  /* ---- cards ---- */
+  .cards{display:grid;gap:16px}
+  @media(min-width:760px){.cards.c3{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:22px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .card .tag{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .card h3{margin:6px 0 8px}
+  .card .sub{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:-4px 0 12px;word-break:break-all}
+  .card ul{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+  .card ul li{position:relative;padding-left:18px;font-size:14.5px;color:var(--ink-2)}
+  .card ul li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.65}
+
+  .kv{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+  .chip{font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--hair);color:var(--ink-2);border-radius:20px;padding:3px 9px}
+
+  p{margin:0 0 14px}
+  .prose p{color:var(--ink-2);max-width:72ch}
+  .prose strong{color:var(--ink);font-weight:650}
+
+  /* ---- diagram: topology ---- */
+  .diagram{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:26px;box-shadow:var(--shadow);overflow-x:auto}
+  .topo{min-width:640px;display:flex;flex-direction:column;gap:14px}
+  .lane{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:stretch}
+  .lane .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .node{flex:1;min-width:120px;background:var(--surface-2);border:1px solid var(--hair-2);border-radius:9px;padding:11px 13px;font-size:13px}
+  .node b{display:block;font-size:13.5px;color:var(--ink);letter-spacing:-.01em}
+  .node span{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .node.acc{border-color:var(--accent);background:var(--accent-soft)}
+  .node.acc b{color:var(--accent-2)}
+  .conn{text-align:center;font-family:var(--mono);font-size:11px;color:var(--ink-3);padding:2px 0}
+  .conn::before{content:"↓ "}
+
+  /* ---- pipeline (order flow) ---- */
+  .pipe{display:flex;flex-direction:column;gap:0;min-width:560px}
+  .stage{display:grid;grid-template-columns:34px 1fr;gap:16px;position:relative;padding-bottom:22px}
+  .stage:last-child{padding-bottom:0}
+  .stage .dot{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent-2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:13px;z-index:2}
+  .stage:not(:last-child)::before{content:"";position:absolute;left:16.5px;top:34px;bottom:0;width:1.5px;background:var(--hair-2)}
+  .stage .body h4{margin:5px 0 3px;font-size:15.5px;font-weight:700}
+  .stage .body p{font-size:14px;color:var(--ink-2);margin:0 0 6px}
+  .stage .body .meta{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:4px 14px}
+
+  /* ---- tables ---- */
+  .tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:600px;background:var(--surface);font-size:13.5px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--hair);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600;background:var(--surface-2);position:sticky;top:0}
+  tr:last-child td{border-bottom:none}
+  td code{white-space:normal}
+  .ok{color:var(--accent);font-weight:600}
+  .no{color:var(--crit);font-weight:600}
+
+  /* ---- findings ---- */
+  .find{display:flex;flex-direction:column;gap:12px}
+  .finding{background:var(--surface);border:1px solid var(--hair);border-left-width:4px;border-radius:10px;padding:16px 18px;box-shadow:var(--shadow)}
+  .finding.sev-crit{border-left-color:var(--crit)}
+  .finding.sev-warn{border-left-color:var(--warn)}
+  .finding.sev-info{border-left-color:var(--info)}
+  .finding .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .sev{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:5px}
+  .sev-crit .sev{background:var(--crit-soft);color:var(--crit)}
+  .sev-warn .sev{background:var(--warn-soft);color:var(--warn)}
+  .sev-info .sev{background:var(--info-soft);color:var(--info)}
+  .finding h4{font-size:15.5px;font-weight:700;margin:0}
+  .finding p{font-size:14px;color:var(--ink-2);margin:0}
+  .finding .loc{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:7px}
+
+  .callout{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:12px;padding:20px 22px}
+  .callout h3{color:var(--accent-2)}
+  .callout p{color:var(--ink-2);margin:8px 0 0}
+
+  .two-col{display:grid;gap:16px}
+  @media(min-width:760px){.two-col{grid-template-columns:1fr 1fr}}
+
+  .filelist{display:grid;gap:8px;grid-template-columns:1fr}
+  @media(min-width:680px){.filelist{grid-template-columns:1fr 1fr}}
+  .file{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--hair);border-radius:8px;padding:9px 12px;color:var(--ink-2);display:flex;justify-content:space-between;gap:10px}
+  .file b{color:var(--ink);font-weight:600}
+
+  footer{padding:38px 0 60px;color:var(--ink-3);font-size:13px}
+  footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:baseline}
+  .disc{font-size:12.5px;color:var(--ink-3);max-width:70ch;margin-top:8px}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Fleet analysis · 19 agents · 884 tool calls</div>
+    <h1>Halal Goes — Platform Atlas</h1>
+    <p class="lede">A complete map of the multi-sided halal food-delivery platform across its three repositories: the Temporal-orchestrated backend, the Turborepo of mobile &amp; web clients, and the Docker deployment stack.</p>
+    <div class="metabar">
+      <span><b>Repos</b> hg-api · halal-goes · hg-docker</span>
+      <span><b>Backend</b> NestJS 11 · Temporal · Prisma/PostGIS · Redis</span>
+      <span><b>Frontend</b> Expo (RN) · Next.js 15 · Turborepo</span>
+      <span><b>Compiled</b> 2026-08-09</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="wrap">
+    <a href="#overview">Overview</a>
+    <a href="#topology">Topology</a>
+    <a href="#repos">The 3 repos</a>
+    <a href="#order">Order lifecycle</a>
+    <a href="#realtime">Realtime &amp; dispatch</a>
+    <a href="#twobackends">The two backends</a>
+    <a href="#findings">Critical findings</a>
+    <a href="#data">Data model</a>
+    <a href="#reports">Reports</a>
+  </div>
+</nav>
+
+<main>
+
+<section id="overview">
+  <div class="wrap">
+    <div class="sec-num">01 / OVERVIEW</div>
+    <h2>What Halal Goes is</h2>
+    <p class="sec-intro">A four-sided food-delivery marketplace — <strong>customers</strong>, <strong>riders</strong>, <strong>restaurants</strong>, and an <strong>admin</strong> back-office — built around a single NestJS backend where nearly every operation is a Temporal workflow. Orders flow through a saga; realtime updates ride a raw WebSocket; rider dispatch runs on PostGIS geo-queries. The platform is functional but visibly mid-migration and MVP-grade, with two findings that dominate everything else: <strong>the published backend is not the one the apps actually talk to</strong>, and <strong>there is no authentication anywhere in the code that is public</strong>.</p>
+
+    <div class="tiles">
+      <div class="tile"><div class="n">3</div><div class="l">Repositories</div></div>
+      <div class="tile"><div class="n">~967</div><div class="l">Source files</div></div>
+      <div class="tile"><div class="n">~55</div><div class="l">REST routes</div></div>
+      <div class="tile"><div class="n">9</div><div class="l">Temporal queues</div></div>
+      <div class="tile"><div class="n">27</div><div class="l">Prisma models</div></div>
+      <div class="tile alert"><div class="n">0</div><div class="l">Auth guards in code</div></div>
+      <div class="tile alert"><div class="n">~60</div><div class="l">Called-but-missing endpoints</div></div>
+      <div class="tile warn"><div class="n">3+</div><div class="l">Leaked live secrets</div></div>
+    </div>
+
+    <div class="two-col prose" style="margin-top:30px">
+      <div>
+        <h3>The client surfaces</h3>
+        <p><strong>Customers</strong> use an Expo app (onboarding → phone-OTP → feed → cart → checkout → live order tracking on a map → rating). <strong>Riders</strong> use the "HalalGoes Captain" Expo app (KYC onboarding via presigned uploads → go-online toggle → GPS streaming → order offers over WebSocket → delivery states). <strong>Restaurants</strong> have two generations: a legacy Expo registration funnel and the current Next.js <code>restaurant-web</code> portal (menu CRUD + live order accept/reject). <strong>Admin</strong> is a Next.js dashboard for approvals, documents, users, and analytics.</p>
+      </div>
+      <div>
+        <h3>The backend spine</h3>
+        <p>One NestJS process hosts ten feature modules and registers a Temporal worker per module. Checkout is a saga that spawns child workflows for payment (mocked Stripe), order creation, restaurant notification, expanding-radius rider search, and a 5-hour order-tracking workflow. State lives in PostgreSQL 17 + PostGIS (via Prisma) for durable data and Redis for presence, geo, and workflow-address-book mappings. MinIO provides object storage; a full Temporal server stack runs alongside.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="topology">
+  <div class="wrap">
+    <div class="sec-num">02 / TOPOLOGY</div>
+    <h2>System topology</h2>
+    <p class="sec-intro">Every service runs on one static-IP Docker bridge network (<code>172.21.0.0/16</code>). The API container exposes REST on <code>:3456</code> and a raw WebSocket on <code>:9080</code> in the same process — which is why splitting the Temporal worker out would silently break WebSocket delivery.</p>
+
+    <div class="diagram">
+      <div class="topo">
+        <div class="lane">
+          <div class="lbl">Clients</div>
+          <div class="row">
+            <div class="node acc"><b>users</b><span>Expo · RN 0.79</span></div>
+            <div class="node acc"><b>rider</b><span>Expo · RN 0.79</span></div>
+            <div class="node acc"><b>restaurant-web</b><span>Next.js 15</span></div>
+            <div class="node acc"><b>admin-web</b><span>Next.js 15</span></div>
+          </div>
+        </div>
+        <div class="conn">HTTP :3456 &nbsp;·&nbsp; WebSocket :9080</div>
+        <div class="lane">
+          <div class="lbl">API process</div>
+          <div class="row">
+            <div class="node"><b>NestJS REST</b><span>10 controllers, no global prefix</span></div>
+            <div class="node"><b>WS Gateway</b><span>raw ws · "MVP mode" · CORS *</span></div>
+            <div class="node"><b>Temporal workers</b><span>9 task queues, in-process</span></div>
+          </div>
+        </div>
+        <div class="conn">workflows · signals · updates</div>
+        <div class="lane">
+          <div class="lbl">State &amp; infra</div>
+          <div class="row">
+            <div class="node"><b>PostgreSQL 17</b><span>+ PostGIS · Prisma · 27 models</span></div>
+            <div class="node"><b>Redis</b><span>master + 2 replica + 2 sentinel</span></div>
+            <div class="node"><b>Temporal</b><span>auto-setup · shares Postgres</span></div>
+            <div class="node"><b>MinIO</b><span>object storage (module disabled)</span></div>
+          </div>
+        </div>
+        <div class="conn">provisioned but partly bypassed</div>
+        <div class="lane">
+          <div class="lbl">Provisioned</div>
+          <div class="row">
+            <div class="node"><b>PgBouncer</b><span>deployed, but DATABASE_URL skips it</span></div>
+            <div class="node"><b>Redis Sentinel</b><span>HA present, API uses master directly</span></div>
+            <div class="node"><b>pgAdmin · RedisInsight</b><span>GUIs</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="disc">Notable: the global cache module hardcodes <code>redis://localhost:6379</code> and can't reach Redis under Docker; the API's <code>DATABASE_URL</code> points straight at Postgres, so the provisioned PgBouncer is never used; and Redis runs with <code>protected-mode no</code> and no password on a published host port.</p>
+  </div>
+</section>
+
+<section id="repos">
+  <div class="wrap">
+    <div class="sec-num">03 / REPOSITORIES</div>
+    <h2>The three repositories</h2>
+    <p class="sec-intro">One product, three repos — one of which (<code>hg-docker</code>) is a deployment vehicle whose compose file is byte-identical to the backend's except that it pulls a pre-built image instead of building from source.</p>
+
+    <div class="cards c3">
+      <div class="card">
+        <div class="tag">Backend</div>
+        <h3>hg-api</h3>
+        <div class="sub">shaiknoorullah/hg-api · v1.2.26</div>
+        <ul>
+          <li>NestJS 11, 10 feature modules, port 3456 + WS 9080</li>
+          <li>Temporal saga per module (9 task queues)</li>
+          <li>Prisma + PostgreSQL 17 + PostGIS, 27 models</li>
+          <li>Redis for presence, geo, workflow mappings</li>
+          <li>Ships as a squashed single-commit snapshot</li>
+        </ul>
+        <div class="kv">
+          <span class="chip">NestJS 11</span><span class="chip">Temporal 1.13</span><span class="chip">Prisma 6.16</span><span class="chip">ioredis</span><span class="chip">MinIO</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tag">Frontend monorepo</div>
+        <h3>halal-goes</h3>
+        <div class="sub">shaiknoorullah/halal-goes · 291 commits</div>
+        <ul>
+          <li>Turborepo · Yarn 4 · 3 Expo apps + 4 Next apps</li>
+          <li>users, rider, restaurant, restaurant-web, admin-web</li>
+          <li>web + docs are untouched starter templates</li>
+          <li>shared packages: auth, ui, config presets</li>
+          <li>Active through 2026-02 — long after the backend snapshot</li>
+        </ul>
+        <div class="kv">
+          <span class="chip">Expo 53</span><span class="chip">Next 15</span><span class="chip">Zustand</span><span class="chip">TanStack Query</span><span class="chip">NativeWind</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tag">Infrastructure</div>
+        <h3>hg-docker</h3>
+        <div class="sub">shaiknoorullah/hg-docker · infra-only</div>
+        <ul>
+          <li>13-service docker-compose stack</li>
+          <li>Pulls <code>devsupreme0/halalgoes-api</code> image</li>
+          <li>Redis master/replica/sentinel configs</li>
+          <li>2,498-line Orders API integration guide (v1.2.25)</li>
+          <li>API collection is byte-identical to hg-api's v1.2.23</li>
+        </ul>
+        <div class="kv">
+          <span class="chip">Docker Compose</span><span class="chip">PostGIS</span><span class="chip">Redis HA</span><span class="chip">MinIO</span><span class="chip">Temporal</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="prose" style="margin-top:26px">
+      <h3>Inside the frontend monorepo</h3>
+      <p>The <strong>users</strong> and <strong>rider</strong> Expo apps and the two Next.js portals are the live product. The <strong>restaurant Expo app</strong> is a superseded registration funnel that posts to a Payload CMS and never touches the backend. <strong>apps/web</strong> and <strong>apps/docs</strong> are unmodified <code>create-turbo</code> scaffolds (one even renders a stray literal "hello" in its body) that still consume CI time. Of the shared packages, only <strong>@halal-goes/auth</strong> is real product code — a phone-OTP SDK — but its shared store is broken and every app works around it with a duplicate; <code>@halal-goes/tailwind-config</code> is a literally empty preset.</p>
+    </div>
+  </div>
+</section>
+
+<section id="order">
+  <div class="wrap">
+    <div class="sec-num">04 / ORDER LIFECYCLE</div>
+    <h2>The order, end to end</h2>
+    <p class="sec-intro">Checkout is a Temporal saga inside a single process. Its workflow ID <em>is</em> the checkout ID, and stateless REST endpoints signal it back through short-lived Redis "address-book" keys. Here is the real path the code takes.</p>
+
+    <div class="diagram">
+      <div class="pipe">
+        <div class="stage"><div class="dot">1</div><div class="body">
+          <h4>Cart &amp; pricing</h4>
+          <p>Client builds a server-authoritative cart (<code>PUT /carts/:userId</code>) and is meant to fetch <code>GET /pricing/:cartId</code> before checkout.</p>
+          <div class="meta"><span>cart-queue</span><span>pricing-queue</span><span class="no">bug: pricing feeds a cartId into an Order lookup → never resolves</span></div>
+        </div></div>
+        <div class="stage"><div class="dot">2</div><div class="body">
+          <h4>Checkout saga starts</h4>
+          <p><code>PUT /orders/checkout/:cartId</code> emits an EventEmitter event → <code>initiateCheckoutWorkflow</code> (15-min timeout). The workflow ID doubles as the checkout ID.</p>
+          <div class="meta"><span>checkouts-queue</span><span class="no">charges the client-supplied price verbatim</span></div>
+        </div></div>
+        <div class="stage"><div class="dot">3</div><div class="body">
+          <h4>Payment + order creation</h4>
+          <p>Child workflows run payment (mocked Stripe — <code>stripe_&lt;nanoid&gt;</code> rows) and order creation, each signaling back via <code>paymentResponse</code> / <code>orderResponse</code>. Order is written straight to <code>CONFIRMED</code>.</p>
+          <div class="meta"><span>payments-queue</span><span>orders-queue</span><span class="no">line items drop variants &amp; addons</span></div>
+        </div></div>
+        <div class="stage"><div class="dot">4</div><div class="body">
+          <h4>Restaurant acceptance</h4>
+          <p>Restaurant gets an <code>order_request</code> over WS (1-min expiry). <code>PUT /restaurants/:id/orders/:id?action=accept</code> resolves a Redis mapping and signals the saga with <code>restaurantResponse</code>.</p>
+          <div class="meta"><span>order_checkout_mapping:{orderId}:{restaurantId}</span><span>TTL 30m</span></div>
+        </div></div>
+        <div class="stage"><div class="dot">5</div><div class="body">
+          <h4>Rider assignment</h4>
+          <p><code>orderAssignmentWorkflow</code> searches PostGIS <code>ST_DWithin</code> on rider coords at 5/10/15/20 km, notifies connected riders over WS, and waits for the first accept.</p>
+          <div class="meta"><span>riders-queue</span><span>notifications-queue</span><span class="no">first reject cancels &amp; refunds the whole order</span></div>
+        </div></div>
+        <div class="stage"><div class="dot">6</div><div class="body">
+          <h4>Live tracking</h4>
+          <p><code>orderTrackingWorkflow</code> (<code>order-tracking-{orderId}</code>, 5-hour timeout) exposes two Temporal <em>updates</em> — <code>orderStatusUpdate</code> and <code>riderLocationUpdate</code> — driven by restaurant/rider REST calls and broadcast as <code>order_update</code> to the order's WS room.</p>
+          <div class="meta"><span>subscriptions:order:{orderId}</span><span>rider GPS every 10–15s</span></div>
+        </div></div>
+        <div class="stage"><div class="dot">7</div><div class="body">
+          <h4>Delivery &amp; rating</h4>
+          <p>Rider walks <code>PICKED_UP → ON_THE_WAY → DELIVERED</code>. The rating screen exists and the <code>/ratings</code> endpoints work, but the app's submission is a <code>// TODO</code>.</p>
+          <div class="meta"><span class="no">rider earnings never credited</span><span class="no">availability never restored after delivery</span></div>
+        </div></div>
+      </div>
+    </div>
+    <p class="disc">The 11-state order status enum (<code>PENDING → PLACED → CONFIRMED → PREPARING → RIDER_ASSIGNED → PICKED_UP → ON_THE_WAY → DELIVERED</code>, plus <code>REJECTED/CANCELLED/DISPUTED</code>) is documented, but because orders are created directly at <code>CONFIRMED</code>, the <code>PLACED</code> and restaurant-prep states are unreachable through the tracking path. The <code>COMPREHENSIVE_ORDER_FLOW_DOCUMENTATION.md</code> in hg-api is the accurate reference; the hg-docker integration guide diverges (it claims a 2-minute restaurant timeout that doesn't exist).</p>
+  </div>
+</section>
+
+<section id="realtime">
+  <div class="wrap">
+    <div class="sec-num">05 / REALTIME &amp; DISPATCH</div>
+    <h2>How realtime actually works</h2>
+    <p class="sec-intro">Two subsystems that look Redis-driven in the docs turn out to run differently in the code. The fleet resolved both contradictions.</p>
+
+    <div class="two-col">
+      <div class="card">
+        <h3>Dispatch discovery is PostGIS, not Redis</h3>
+        <p class="prose" style="color:var(--ink-2)">Rider discovery for dispatch is exclusively <code>ST_DWithin</code> on <code>rider.coords</code> with expanding radii. The notification module's Redis GEO fallback (<code>riders:available:locations</code>, <code>riders:available:online</code>) is <strong>dead code</strong> — nothing on any live path ever writes those keys, so the fallback iterates permanently empty sets. The real geo pool is an undocumented <code>riders:active</code> set used only by the REST "nearby" search.</p>
+      </div>
+      <div class="card">
+        <h3>Delivery is a direct socket scan</h3>
+        <p class="prose" style="color:var(--ink-2)">Order offers aren't broadcast to channels — the gateway scans in-memory WS clients by <code>userId + userType</code> and emits <code>order_request</code> directly. The rider app's three guessed channel joins (<code>riders</code>, <code>rider:{id}</code>, <code>notifications:{id}</code>) are all ignored by the server; only <code>connect_user</code> and the post-accept join of <code>order:{orderId}</code> matter.</p>
+      </div>
+    </div>
+
+    <div class="finding sev-warn" style="margin-top:16px">
+      <div class="top"><span class="sev">Broken offline path</span><h4>Queued restaurant offers are never delivered</h4></div>
+      <p>Offline restaurant offers are pushed to <code>failed_notifications:restaurant:{id}</code>, which has zero readers, while reconnect drains a different key (<code>queue:restaurant:{id}</code>). Riders have no offline queue at all. Meanwhile the saga is told <code>queued:true</code> and waits on a response that can never come.</p>
+    </div>
+    <div class="finding sev-warn">
+      <div class="top"><span class="sev">Split-brain</span><h4>Accepted orders can strand with a dead workflow</h4></div>
+      <p>If <code>notification_workflow:{orderId}</code> has expired when a rider accepts, the DB is already <code>RIDER_ASSIGNED</code> but the <code>riderAcceptance</code> signal never fires — the assignment workflow dies on its timeout without running its cancel/refund path. Accept also never flips <code>is_accepting_orders=false</code>, so a rider mid-delivery stays in the dispatch pool.</p>
+    </div>
+  </div>
+</section>
+
+<section id="twobackends">
+  <div class="wrap">
+    <div class="sec-num">06 / THE CENTRAL FINDING</div>
+    <h2>There are two backends</h2>
+    <div class="callout">
+      <h3>The published hg-api is not the backend the apps talk to</h3>
+      <p>Git forensics are conclusive: the rider app was calling <code>http://api.halalgoes.com/riders</code> on <strong>2025-09-30, five days before hg-api's first commit</strong>, and the frontends kept integrating new backend surface for <strong>116 days after hg-api went silent</strong>. Around 60 endpoints the apps call — the entire <code>/auth/*</code> family, all onboarding flows, admin refunds/disputes/settlements, Stripe Connect — exist in <strong>no</strong> hg-api commit or API collection. The production backend at <code>api.halalgoes.com</code> is a private, richer continuation of a pre-squash ancestor; the repo you have is a snapshot published (most plausibly) for the frontend agency.</p>
+    </div>
+
+    <p class="sec-intro" style="margin-top:26px">This makes the contract-drift map essential reading: what the apps call vs. what the public backend actually implements.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Capability</th><th>Frontend calls</th><th>In public hg-api?</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>Auth &amp; login</td><td><code>/auth/otp/*</code>, <code>/auth/admin/login</code>, <code>/auth/refresh</code></td><td class="no">Missing</td><td>No login flow works against this repo</td></tr>
+          <tr><td>User onboarding</td><td><code>PUT /users/:id/onboarding/profile</code></td><td class="no">Missing</td><td>Called by users app</td></tr>
+          <tr><td>Rider onboarding + KYC</td><td>6× <code>/riders/:id/onboarding/*</code></td><td class="no">Missing</td><td>Rider can never reach ACTIVE here</td></tr>
+          <tr><td>Restaurant onboarding</td><td>8× <code>/auth/onboarding/restaurants/*</code> + Stripe</td><td class="no">Missing</td><td>restaurant-web targets prod directly</td></tr>
+          <tr><td>Admin finance</td><td>refunds, disputes, settlements, transfer-audit</td><td class="no">Missing</td><td>Fully typed in UI, no server</td></tr>
+          <tr><td>Toggle accepting</td><td>sends <code>{is_accepting}</code></td><td class="no">Mismatch</td><td>Backend reads <code>{isAccepting}</code> → silent no-op</td></tr>
+          <tr><td>Orders / cart / feed</td><td>checkout, tracking, feed</td><td class="ok">Present</td><td>Core commerce works (with bugs)</td></tr>
+          <tr><td>Ratings</td><td>—</td><td class="ok">Present</td><td>Exposed but never called by any app</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="disc">Compounding it: <code>restaurant-web</code> hardcodes <code>https://api.halalgoes.com</code> (ignoring its env var), prefixes half its calls with <code>/api/</code> that the backend never mounts, and even connects to Temporal over gRPC directly from Next server code — bypassing the API tier entirely.</p>
+  </div>
+</section>
+
+<section id="findings">
+  <div class="wrap">
+    <div class="sec-num">07 / CRITICAL FINDINGS</div>
+    <h2>What needs attention</h2>
+    <p class="sec-intro">Ranked by blast radius. Security exposures first — several are live-credential leaks that persist in git history and require rotation, not just deletion.</p>
+
+    <div class="find">
+      <div class="finding sev-crit">
+        <div class="top"><span class="sev">Critical</span><h4>No authentication anywhere in the public backend</h4></div>
+        <p>Zero guards, middleware, or JWT verification across all of <code>hg-api/api/src</code>. Bearer tokens the apps send are ignored. <code>POST /admin</code> mints an admin with an empty body; <code>DELETE /admin/users/:id</code> and refunds are world-callable; the WS gateway trusts client-declared <code>userId/userType</code> ("MVP mode"), so anyone can impersonate any actor or join any order channel carrying customer PII. <code>better-auth</code> is a dependency that is never imported.</p>
+        <div class="loc">hg-api/api/src · notifications.gateway.ts · admin.controller.ts</div>
+      </div>
+
+      <div class="finding sev-crit">
+        <div class="top"><span class="sev">Critical</span><h4>Live MinIO credentials committed in cleartext</h4></div>
+        <p><code>hg-api/minio/.minio.sys</code> is real runtime state accidentally committed and pushed. It leaks, unencrypted, an IAM user with a weak secret plus two service accounts with 40-char keys — one a child of root <code>admin@halalgoes.com</code> whose session policy grants <code>admin:* / kms:* / s3:*</code>. These are permanent leaks in git history and must be rotated.</p>
+        <div class="loc">hg-api/minio/.minio.sys · commit 86c52a7</div>
+      </div>
+
+      <div class="finding sev-crit">
+        <div class="top"><span class="sev">Critical</span><h4>Rider identity-document bucket is world-readable and writable</h4></div>
+        <p>The only application bucket ever created — <code>riders</code>, holding rider identity documents — has a public policy (<code>Principal AWS:*</code> → anonymous Get/Put/Delete/List). Anyone can read or overwrite KYC documents. (The doc buckets named elsewhere — profile-pictures, food-images — were never actually created.)</p>
+        <div class="loc">MinIO runtime state · bucket "riders"</div>
+      </div>
+
+      <div class="finding sev-crit">
+        <div class="top"><span class="sev">Critical</span><h4>Checkout charges the client-supplied price</h4></div>
+        <p>The payment workflow charges <code>pricing.amount_to_pay</code> straight from the request body; the server never recomputes it — a pay-what-you-want hole. And because <code>GET /pricing/:cartId</code> is broken (it looks up an Order by the cart ID), the users app's pricing stays at its all-zero default, so in practice every order persists client-fabricated <strong>zero</strong> monetary fields.</p>
+        <div class="loc">payments workflow · pricing.activities.ts · order.activities.ts</div>
+      </div>
+
+      <div class="finding sev-warn">
+        <div class="top"><span class="sev">High</span><h4>Hardcoded Google Maps API keys &amp; secrets in the apps</h4></div>
+        <p>A Google Maps key is committed in <code>app.json</code> across the users and rider apps and in <code>restaurant-web</code> source; a Directions key is repeated in three rider files. admin-web ships a dead Supabase project URL + anon-key JWT. JWTs are stored in plain <code>AsyncStorage</code>/<code>localStorage</code> and non-HttpOnly cookies. Staging IP <code>98.130.76.223</code> and a LAN IP leak into env examples and code.</p>
+        <div class="loc">apps/users · apps/rider · apps/restaurant-web · apps/admin-web</div>
+      </div>
+
+      <div class="finding sev-warn">
+        <div class="top"><span class="sev">High</span><h4>Payments are entirely mocked; refunds are TODO logs</h4></div>
+        <p>No real gateway integration exists — <code>PaymentLog</code> rows get <code>stripe_&lt;nanoid&gt;</code> IDs. Refunds in the no-rider and 5-hour-timeout cancellation paths are literally <code>"Payment refund would be initiated here"</code> log statements. A restaurant rejection where compensation partially fails falls through to rider assignment anyway.</p>
+        <div class="loc">payment.activities.ts · order-assignment / order-tracking activities</div>
+      </div>
+
+      <div class="finding sev-warn">
+        <div class="top"><span class="sev">High</span><h4>Geo split-brain stalls orders for new restaurants</h4></div>
+        <p>Restaurants are created writing a legacy <code>location</code> POINT column, but rider assignment reads only the newer PostGIS <code>coords</code> column (written solely by a separate location PUT). So a POST-created restaurant is discoverable and priceable but its orders stall at rider dispatch with "Restaurant location not found."</p>
+        <div class="loc">restaurants.service.ts · order-assignment.activities.ts</div>
+      </div>
+
+      <div class="finding sev-warn">
+        <div class="top"><span class="sev">High</span><h4>Money is lost between cart, pricing, and order</h4></div>
+        <p>Cart valuation <em>adds</em> a variant price to the base; order creation uses the variant price <em>instead of</em> the base. <code>OrderFoodItems</code> has a unique <code>(order_id, food_item_id)</code> and no variant/addon columns, so addon charges are dropped and two rows of the same item with different variants abort order creation. The coupon calc inverts discount vs. amount-after-discount.</p>
+        <div class="loc">carts / pricing / orders services · schema.prisma</div>
+      </div>
+
+      <div class="finding sev-info">
+        <div class="top"><span class="sev">Quality</span><h4>Redis Sentinel HA is provisioned but broken and unused</h4></div>
+        <p>Two sentinels with quorum 2 can't tolerate a single sentinel failure; sentinel-2's healthcheck pings the wrong port; <code>redis-master</code> has no data volume despite <code>appendonly yes</code>. In hg-docker the <code>redis.conf</code> bind-mount path is wrong, so the master gets an empty config. The API connects to <code>redis-master</code> directly with <code>REDIS_USE_SENTINEL</code> unset — the whole HA tier is unused.</p>
+        <div class="loc">docker-compose.yml · redis/master/redis.conf</div>
+      </div>
+
+      <div class="finding sev-info">
+        <div class="top"><span class="sev">Quality</span><h4>Large dead-code and mock surface across all repos</h4></div>
+        <p>MinIO module registration commented out; empty stub services for redis-streams and temporal; <code>/health</code> doesn't exist so the container healthcheck never passes; the users app's legacy React-Navigation entry, dead contexts, and committed vim swap files; restaurant/rider mock timers that fake arrivals and invent earnings; admin-web order UI running entirely on mock PKR data; apps/web + apps/docs untouched scaffolds. Four regional configs (Canada +1, India +91, Dubai, Malaysia) coexist — the live web flow points at Malaysia.</p>
+        <div class="loc">all three repositories</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="wrap">
+    <div class="sec-num">08 / DATA &amp; STACK</div>
+    <h2>Data model &amp; stack reference</h2>
+    <div class="two-col prose">
+      <div>
+        <h3>Persistence</h3>
+        <p>An 834-line Prisma schema: <strong>27 models, 6 enums</strong> on PostgreSQL 17 + PostGIS with 11 extensions and a deliberately varied index strategy (Hash / BTree / Gin / SpGist / Brin / Gist). Soft-delete audit triples (<code>is_deleted / deleted_at / deleted_by</code>) sit on most aggregates. Identity is <strong>phone-first</strong> (unique phone, non-unique email). Riders and restaurant addresses carry dual geo columns mid-migration. Quirks baked into migrations: a <code>contains_diary</code> typo (for "dairy"), fee defaults hardcoded in the schema (<code>delivery_fee 9.99</code>, <code>platform_fee 4.99</code>), and an <code>Admin</code> model with only <code>id</code> + timestamps — no credentials.</p>
+      </div>
+      <div>
+        <h3>Redis key registry</h3>
+        <p>Redis is the realtime store. Presence sets (<code>users:online</code>, <code>riders:active</code>, <code>restaurants:accepting</code>) with ~2h TTL; the workflow address book (<code>order_checkout_mapping:{orderId}:{restaurantId}</code>, <code>order_rider_checkout_mapping:*</code>, <code>notification_workflow:{orderId}</code>, TTL 30m); order-room membership (<code>subscriptions:order:{orderId}</code>); and a priority-scored offline notification queue (<code>queue:{type}:{id}</code> zsets, scores urgent 1000 / high 500 / normal 100 / low 10, 7-day TTL). <code>REDIS_DATA_STRUCTURE.md</code> documents ~20 patterns — several of which the live flow never populates.</p>
+      </div>
+    </div>
+
+    <div class="tablewrap" style="margin-top:8px">
+      <table>
+        <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+        <tbody>
+          <tr><td>Backend framework</td><td>NestJS 11 · TypeScript 5.7 · Node 20 · pnpm</td></tr>
+          <tr><td>Orchestration</td><td>Temporal 1.13 (@temporalio + nestjs-temporal) · 9 in-process task queues</td></tr>
+          <tr><td>Database</td><td>PostgreSQL 17 + PostGIS 3.6 · Prisma 6.16 · PgBouncer (bypassed)</td></tr>
+          <tr><td>Cache / realtime</td><td>Redis (ioredis) master+replica+sentinel · raw <code>ws</code> gateway :9080</td></tr>
+          <tr><td>Object storage</td><td>MinIO 8.0.6 client (module registration disabled in code)</td></tr>
+          <tr><td>Mobile clients</td><td>Expo 53 · React Native 0.79 · expo-router 5 · Zustand · TanStack Query · NativeWind</td></tr>
+          <tr><td>Web clients</td><td>Next.js 15 · React 19 · Tailwind v4 · shadcn/ui · Zustand · hand-rolled fetch client</td></tr>
+          <tr><td>Monorepo tooling</td><td>Turborepo 2 · Yarn 4.9 workspaces · husky + commitlint · GitHub Actions</td></tr>
+          <tr><td>Auth (intended)</td><td>Supabase phone-OTP (legacy) → custom halalgoes OTP/JWT (production only)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="reports">
+  <div class="wrap">
+    <div class="sec-num">09 / DEEP-DIVE REPORTS</div>
+    <h2>The backing reports</h2>
+    <p class="sec-intro">Eighteen exhaustive markdown reports (~4,700 lines) sit on disk in the scratchpad, each covering one area or cross-cutting concern in full detail. This atlas is their synthesis.</p>
+    <div class="filelist">
+      <div class="file"><span>hg-api-core.md</span><b>core infra</b></div>
+      <div class="file"><span>hg-api-identity-services.md</span><b>users/riders/etc</b></div>
+      <div class="file"><span>hg-api-commerce-services.md</span><b>cart→ratings</b></div>
+      <div class="file"><span>hg-api-data-deploy.md</span><b>schema + deploy</b></div>
+      <div class="file"><span>hg-api-docs-contracts.md</span><b>docs + API spec</b></div>
+      <div class="file"><span>hg-fe-users-app.md</span><b>customer app</b></div>
+      <div class="file"><span>hg-fe-rider-app.md</span><b>rider app</b></div>
+      <div class="file"><span>hg-fe-restaurant-apps.md</span><b>restaurant apps</b></div>
+      <div class="file"><span>hg-fe-admin-web.md</span><b>admin dashboard</b></div>
+      <div class="file"><span>hg-fe-web-root.md</span><b>web/docs + root</b></div>
+      <div class="file"><span>hg-fe-packages.md</span><b>shared packages</b></div>
+      <div class="file"><span>hg-docker-infra.md</span><b>infra repo</b></div>
+      <div class="file"><span>crosscut-api-contract.md</span><b>FE↔BE contract</b></div>
+      <div class="file"><span>crosscut-order-flow.md</span><b>order lifecycle</b></div>
+      <div class="file"><span>gap-contract-verification.md</span><b>contract truths</b></div>
+      <div class="file"><span>gap-realtime-dispatch.md</span><b>dispatch mechanics</b></div>
+      <div class="file"><span>gap-git-history.md</span><b>git provenance</b></div>
+      <div class="file"><span>gap-minio-infra-state.md</span><b>leaked secrets</b></div>
+    </div>
+    <p class="disc" style="margin-top:18px">Path: <code>scratchpad/fleet/*.md</code></p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Halal Goes — Platform Atlas · synthesized from a 19-agent fleet analysis</span>
+    <span class="mono">hg-api · halal-goes · hg-docker</span>
+  </div>
+</footer>
