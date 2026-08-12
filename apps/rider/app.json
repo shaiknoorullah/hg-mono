@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Halal Goes — Rider",
+    "slug": "hg-rider",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "hgrider",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    }
+  }
+}
