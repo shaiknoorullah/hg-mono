@@ -19,6 +19,10 @@ import (
 // with payouts_enabled=false gets a HELD payout with the exact requirement list,
 // and no transfer is attempted (I-19.3).
 
+// ErrNothingToPay is returned by RunWeeklyPayout when a partner has no unpaid
+// balance for the period: the cron treats it as a no-op, not a failure.
+var ErrNothingToPay = errors.New("nothing to pay this period")
+
 // PayoutPreview is what a run would pay a partner before it is executed.
 type PayoutPreview struct {
 	ConnectAccountID string
@@ -198,7 +202,9 @@ func (s *Service) RunWeeklyPayout(ctx context.Context, ownerType, ownerID string
 		return PayoutDTO{}, err
 	}
 	if payoutID == "" {
-		return PayoutDTO{}, domainErr("NO_CONTENT", 204, "Nothing to pay this period.")
+		// Nothing to pay this period — no zero-amount payout is created
+		// (acceptance 2/5). This is a normal, non-error outcome for the cron.
+		return PayoutDTO{}, ErrNothingToPay
 	}
 
 	// A HELD payout (payouts_enabled=false) makes no transfer (I-19.3).
