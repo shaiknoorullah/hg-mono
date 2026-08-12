@@ -17,3 +17,4 @@ __pycache__/
 
 # expo web export output
 apps/gallery-native/dist/
+.claude/

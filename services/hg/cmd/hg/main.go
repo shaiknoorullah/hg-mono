@@ -33,6 +33,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/catalog"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
@@ -151,6 +152,20 @@ func run() error {
 		nil,
 	))
 	// TODO(siblings): auth.Routes(router, …), orders.Routes(router, …),
+
+	// B5 — cart, quote and orders. The payment gateway is the payments sibling's
+	// to provide; until it is wired, orders uses the honest unwired gateway that
+	// 503s rather than fabricating a client_secret, and createOrder answers 503.
+	ordersStore := orders.NewStore(st.DB().Pool)
+	orders.Routes(router, orders.NewHandler(ordersStore, nil, log))
+
+	// The P-15 deadline runner: one in-process ticker per replica, claiming due
+	// order rows with FOR UPDATE SKIP LOCKED. It shares the root context so it
+	// stops on shutdown.
+	deadlineRunner := orders.NewDeadlineRunner(ordersStore, nil, log, cfg.HTTPAddr)
+	go deadlineRunner.Run(ctx)
+
+	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// dispatch.Routes(router, …), payments.Routes(router, …),
 	// realtime.Routes(router, …), files.Routes(router, …), admin.Routes(router, …).
 
