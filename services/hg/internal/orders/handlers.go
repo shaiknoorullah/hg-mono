@@ -408,6 +408,9 @@ func (h *Handler) GetOrderReceipt(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Receipt could not be decoded.", nil)
 		return
 	}
+	// The contract types refunds/tax_lines/addons as non-nullable arrays. A frozen
+	// snapshot that omits any of them (or stores null) must still render `[]`.
+	snap.normalizeArrays()
 	httpx.Respond(w, r, http.StatusOK, snap)
 }
 

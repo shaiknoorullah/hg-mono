@@ -54,6 +54,11 @@ type RiderLocation struct {
 // rounding in the realtime package.
 const coarseAccuracyThresholdM = 100.0
 
+// etaWindowMinutes is the total width of the arrival window rendered as
+// "Arriving HH:MM–HH:MM". The spec (C-32 rule 3) specifies a ±5-minute window,
+// i.e. 10 minutes total, matching the reference tracking fixtures.
+const etaWindowMinutes = 10
+
 // RiderPublicProfile is the PII-free rider snapshot exposed to the customer.
 // There is no phone, email, last_name or earnings here — by construction (C-32).
 type RiderPublicProfile struct {
@@ -76,18 +81,49 @@ type OrderTransitionRow struct {
 // ErrReceiptNotReady is returned when the order has no receipt_snapshot yet.
 var ErrReceiptNotReady = errors.New("receipt not ready")
 
+// isCanonicalUUID reports whether s is a canonical 8-4-4-4-12 hex UUID. The
+// order id path parameter is compared against a `uuid` column; feeding Postgres
+// a non-UUID literal raises `invalid input syntax for type uuid`, which would
+// otherwise surface as a bare 500. A malformed id is definitionally a resource
+// that cannot exist, so the read ops treat it as ErrOrderNotFound (404) — the
+// same answer a stranger's valid-but-unowned id gets, so this leaks nothing and
+// keeps the deny-by-default / IDOR-returns-404 contract intact. Parameterisation
+// already prevents injection; this only fixes the status code and error taxonomy.
+func isCanonicalUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	for i, c := range s {
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			if c != '-' {
+				return false
+			}
+			continue
+		}
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+		if !isHex {
+			return false
+		}
+	}
+	return true
+}
+
 // GetOrderTracking returns the customer-safe tracking projection for an order
 // owned by accountID (P-07: IDOR → 404).
 func (s *Store) GetOrderTracking(ctx context.Context, accountID, orderID string) (*OrderTracking, error) {
+	if !isCanonicalUUID(orderID) {
+		return nil, ErrOrderNotFound
+	}
 	// Load core order fields + restaurant location in one parameterised query.
 	// ownership enforced via order_visibility view (same as loadOrderView).
 	var ot OrderTracking
 	var restLat, restLng float64
 	var destLat, destLng *float64
 	var dispatchState *string
+	var etaAt *time.Time
 
 	err := s.pool.QueryRow(ctx, `
-		SELECT o.id, o.state::text,
+		SELECT o.id, o.state::text, o.eta_at,
 		       ST_Y(r.location::geometry) AS rest_lat,
 		       ST_X(r.location::geometry) AS rest_lng,
 		       d.state::text
@@ -96,7 +132,7 @@ func (s *Store) GetOrderTracking(ctx context.Context, accountID, orderID string)
 		  JOIN restaurant r ON r.id = o.restaurant_id
 		  LEFT JOIN dispatch d ON d.order_id = o.id
 		 WHERE o.id = $2`, accountID, orderID).Scan(
-		&ot.OrderID, &ot.State,
+		&ot.OrderID, &ot.State, &etaAt,
 		&restLat, &restLng,
 		&dispatchState)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -108,6 +144,15 @@ func (s *Store) GetOrderTracking(ctx context.Context, accountID, orderID string)
 
 	ot.RestaurantLocation = GeoPoint{Latitude: restLat, Longitude: restLng}
 	ot.DispatchState = dispatchState
+	// C-32 rule 3: the ETA is rendered as "Arriving HH:MM–HH:MM", a ±5-minute
+	// window (etaWindowMinutes total width). When the order carries no eta_at both
+	// fields stay null — the contract types them nullable and the client shows the
+	// last-known ETA rather than a "Calculating…" terminal state.
+	if etaAt != nil {
+		ot.ETAAt = etaAt
+		w := etaWindowMinutes
+		ot.ETAWindowMinutes = &w
+	}
 
 	// Delivery address location (destination) — may be null for PICKUP orders.
 	err = s.pool.QueryRow(ctx, `
@@ -214,6 +259,9 @@ func (s *Store) loadRiderForOrder(ctx context.Context, orderID string) (*RiderPu
 // owned by accountID (P-07). Returns ErrReceiptNotReady when the order exists
 // but is not yet COMPLETED (i.e., receipt_snapshot is NULL).
 func (s *Store) GetOrderReceipt(ctx context.Context, accountID, orderID string) (json.RawMessage, error) {
+	if !isCanonicalUUID(orderID) {
+		return nil, ErrOrderNotFound
+	}
 	var snapshot *json.RawMessage
 	err := s.pool.QueryRow(ctx, `
 		SELECT o.receipt_snapshot
@@ -238,6 +286,9 @@ func (s *Store) GetOrderReceipt(ctx context.Context, accountID, orderID string) 
 // the order is not yet in PICKED_UP or ARRIVED state (C-32: rider identity
 // hidden before pickup).
 func (s *Store) GetRiderPublicProfile(ctx context.Context, accountID, orderID string) (*RiderPublicProfile, error) {
+	if !isCanonicalUUID(orderID) {
+		return nil, ErrOrderNotFound
+	}
 	// Ownership check + state check in one query (IDOR: any failure → 404).
 	var orderState string
 	err := s.pool.QueryRow(ctx, `

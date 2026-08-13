@@ -122,6 +122,30 @@ type receiptPaymentDTO struct {
 	Currency           string  `json:"currency"`
 }
 
+// normalizeArrays guarantees the contract-required array fields render as `[]`
+// and never as JSON `null`. The receipt is re-marshalled from a frozen JSONB
+// snapshot written by another module; a snapshot that omits `refunds`,
+// `tax_lines` or a line's `addons` (or stores them as null) would otherwise
+// unmarshal to a nil slice and re-marshal to `null`, violating the contract's
+// non-nullable `type: array` for those fields (Receipt.refunds, OrderMoney.tax_lines,
+// OrderLine.addons). We do not trust the snapshot's shape; we enforce the wire shape.
+func (r *receiptSnapshotDTO) normalizeArrays() {
+	if r.Refunds == nil {
+		r.Refunds = []json.RawMessage{}
+	}
+	if r.Lines == nil {
+		r.Lines = []receiptLineDTO{}
+	}
+	if r.Money.TaxLines == nil {
+		r.Money.TaxLines = []json.RawMessage{}
+	}
+	for i := range r.Lines {
+		if r.Lines[i].Addons == nil {
+			r.Lines[i].Addons = []json.RawMessage{}
+		}
+	}
+}
+
 // ---- mappers ----
 
 func orderTrackingToDTO(ot *OrderTracking) orderTrackingDTO {
