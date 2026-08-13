@@ -145,16 +145,19 @@ func run() error {
 	// The revocation deny set refreshes from Postgres every 10 s (P-04).
 	authModule.StartRevocationRefresher(ctx)
 	// TODO(siblings): catalog.Routes(router, …), orders.Routes(router, …),
-	// B4 — Catalogue & discovery. The media resolver and staff-scope resolver are
-	// left nil until the files and staff/RBAC modules land: a nil media renders
-	// every image as null (a neutral placeholder, per the contract), and a nil
-	// scope makes the restaurant-facing routes deny — the correct answer while no
-	// account can yet be scoped to a restaurant.
+	// B4 — Catalogue & discovery. The media resolver is left nil until the files
+	// module lands (a nil media renders every image as null, a neutral placeholder
+	// per the contract). The staff-scope resolver reads the P-01 account_role table
+	// directly, so the restaurant-facing trading routes (availability, heartbeat)
+	// resolve the caller's restaurant from the server's own view of the grant —
+	// never a client-asserted id — and deny when no live RESTAURANT-scoped grant
+	// exists.
+	catalogRepo := catalog.NewRepo(st.DB().Pool)
 	catalog.Routes(router, catalog.NewHandler(
-		catalog.NewRepo(st.DB().Pool),
+		catalogRepo,
 		nil,
 		catalog.NewMinIOPresigner(st.Objects()),
-		nil,
+		catalog.NewPgScopeResolver(catalogRepo),
 	))
 	// TODO(siblings): auth.Routes(router, …), orders.Routes(router, …),
 
