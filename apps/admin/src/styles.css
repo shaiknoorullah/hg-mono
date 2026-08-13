@@ -26,12 +26,71 @@
   }
 
   .adm-header {
+    display: flex;
+    align-items: center;
+    gap: var(--hg-space-6);
     border-block-end: 1px solid var(--hg-border-decorative);
     background-color: var(--hg-surface-base);
     padding: var(--hg-space-4) var(--hg-space-6);
   }
 
+  .adm-brand {
+    text-decoration: none;
+  }
+
+  .adm-nav {
+    display: flex;
+    gap: var(--hg-space-2);
+  }
+
+  .adm-nav-link {
+    padding: var(--hg-space-1) var(--hg-space-3);
+    border-radius: var(--hg-radius-sm);
+    color: var(--hg-text-secondary);
+    text-decoration: none;
+    font: inherit;
+  }
+
+  .adm-nav-link[aria-current='page'] {
+    background-color: var(--hg-surface-sunken);
+    color: var(--hg-text-primary);
+  }
+
   .adm-main {
     padding: var(--hg-space-6);
+    max-width: 72rem;
+    margin-inline: auto;
+  }
+
+  /* A vertical rhythm helper — the one layout primitive every screen reaches for. */
+  .adm-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-4);
+  }
+
+  .adm-kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: var(--hg-space-4);
+    margin: 0;
+  }
+
+  .adm-kv {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-1);
+  }
+
+  .adm-kv dd {
+    margin: 0;
+  }
+
+  .adm-blockers {
+    margin: 0;
+    padding-inline-start: var(--hg-space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-1);
   }
 }
