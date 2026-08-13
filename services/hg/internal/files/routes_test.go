@@ -18,4 +18,20 @@ func TestRoutesVerify(t *testing.T) {
 	if pub := r.PublicRoutes(); len(pub) != 0 {
 		t.Errorf("files routes must never be public, found: %v", pub)
 	}
+	// The three contract ops must all be registered.
+	want := map[string]bool{
+		"POST /v1/uploads":                            false,
+		"POST /v1/uploads/{uploadId}/confirm":         false,
+		"GET /v1/documents/{documentId}/download-url": false,
+	}
+	for _, got := range r.Routes() {
+		if _, ok := want[got]; ok {
+			want[got] = true
+		}
+	}
+	for route, present := range want {
+		if !present {
+			t.Errorf("expected route %q to be registered", route)
+		}
+	}
 }

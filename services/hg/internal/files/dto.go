@@ -25,3 +25,13 @@ type presignedDownload struct {
 	URL       string `json:"url"`
 	ExpiresAt string `json:"expires_at"`
 }
+
+// storedObject is the contract's StoredObject.
+type storedObject struct {
+	ID           string  `json:"id"`
+	Purpose      string  `json:"purpose"`
+	State        string  `json:"state"`
+	ContentType  string  `json:"content_type"`
+	ByteSize     int64   `json:"byte_size"`
+	RejectReason *string `json:"reject_reason"`
+}

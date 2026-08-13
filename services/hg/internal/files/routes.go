@@ -9,6 +9,10 @@ const (
 	// (customers, riders, restaurant staff, admins) — the object's purpose then
 	// narrows what each may actually store.
 	ActionUploadCreate httpx.Action = "upload.create"
+	// ActionUploadConfirm guards confirmUpload. Same roster as upload.create per
+	// the contract's x-roles; ownership (only the uploader, or an admin) is
+	// enforced in the handler/repository, not by the role alone.
+	ActionUploadConfirm httpx.Action = "upload.confirm"
 	// ActionDocumentDownload guards createDocumentDownloadUrl. Partners reach it
 	// through ownership; the global kyc_document.download action lets an admin
 	// fetch any document, audited.
@@ -29,6 +33,15 @@ func Routes(r *httpx.Router, h *Handler) {
 		Idempotent:  true,
 		OperationID: "createUpload",
 	}, h.CreateUpload)
+
+	// confirmUpload is mutating and idempotent (a second confirm returns the same
+	// READY object): its Idempotency-Key is required per P-37.
+	r.Post("/v1/uploads/{uploadId}/confirm", httpx.Policy{
+		Action:      ActionUploadConfirm,
+		Class:       httpx.ClassWrite,
+		Idempotent:  true,
+		OperationID: "confirmUpload",
+	}, h.ConfirmUpload)
 
 	r.Get("/v1/documents/{documentId}/download-url", httpx.Policy{
 		Action:      ActionDocumentDownload,
