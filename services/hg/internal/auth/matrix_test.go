@@ -12,20 +12,23 @@ import (
 // changes.
 func TestMatrixGolden(t *testing.T) {
 	golden := map[httpx.Action]struct{}{
-		ActionSessionReadSelf:   {},
-		ActionSessionRevokeSelf: {},
-		// account module (gap2-account) — contract-derived from each op's x-roles:
-		//   updateCustomerProfile → account.profile_write      [CUSTOMER]
-		//   registerDevice/unregisterDevice → account.device_write
-		//   listNotifications → account.notification_read
-		//   markNotificationRead → account.notification_ack
-		httpx.Action("account.profile_write"):             {},
+		ActionSessionReadSelf:                             {},
+		ActionSessionRevokeSelf:                           {},
 		httpx.Action("account.device_write"):              {},
-		httpx.Action("account.notification_read"):         {},
 		httpx.Action("account.notification_ack"):          {},
+		httpx.Action("account.notification_read"):         {},
+		httpx.Action("account.profile_write"):             {},
+		httpx.Action("address.delete"):                    {},
+		httpx.Action("address.read"):                      {},
+		httpx.Action("address.set_default"):               {},
+		httpx.Action("address.write"):                     {},
 		httpx.Action("assignment.pod.submit"):             {},
 		httpx.Action("assignment.read"):                   {},
 		httpx.Action("assignment.transition"):             {},
+		httpx.Action("auth.password_change"):              {},
+		httpx.Action("auth.totp_disable"):                 {},
+		httpx.Action("auth.totp_enroll"):                  {},
+		httpx.Action("auth.totp_verify_enrolment"):        {},
 		httpx.Action("cart.read"):                         {},
 		httpx.Action("cart.write"):                        {},
 		httpx.Action("connect.read"):                      {},
@@ -91,7 +94,6 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("restaurant.order_ready"):            {},
 		httpx.Action("restaurant.order_reject"):           {},
 		httpx.Action("restaurant.profile_read"):           {},
-		httpx.Action("restaurant.profile_write"):          {},
 		httpx.Action("restaurant.read"):                   {},
 		httpx.Action("restaurant_application.claim"):      {},
 		httpx.Action("restaurant_application.read"):       {},
@@ -110,11 +112,6 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("staff.read"):                        {},
 		httpx.Action("upload.confirm"):                    {},
 		httpx.Action("upload.create"):                     {},
-		// gap2-authtotp additions
-		ActionChangePassword:      {},
-		ActionEnrollTOTP:          {},
-		ActionVerifyTOTPEnrolment: {},
-		ActionDisableTOTP:         {},
 	}
 	got := AllActions()
 	if len(got) != len(golden) {
