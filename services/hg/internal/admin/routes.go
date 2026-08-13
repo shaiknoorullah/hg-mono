@@ -52,6 +52,12 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Post("/v1/admin/halal-issuing-bodies", write(ActionHalalIssuerPropose, "proposeHalalIssuingBody"), h.ProposeHalalIssuingBody)
 	r.Post("/v1/admin/halal-issuing-bodies/{bodyId}/status", write(ActionHalalIssuerSetStatus, "setHalalIssuingBodyStatus"), h.SetHalalIssuingBodyStatus)
 
+	// Menu moderation (A-19): admin creates on behalf of restaurant, reviews queue.
+	r.Post("/v1/admin/restaurants/{restaurantId}/menu/categories", write(ActionMenuCreateOnBehalf, "createMenuCategoryOnBehalf"), h.CreateMenuCategoryOnBehalf)
+	r.Post("/v1/admin/restaurants/{restaurantId}/menu/items", write(ActionMenuCreateOnBehalf, "createMenuItemOnBehalf"), h.CreateMenuItemOnBehalf)
+	r.Get("/v1/admin/menu-reviews", read(ActionMenuReviewRead, "listMenuReviewQueue"), h.ListMenuReviewQueue)
+	r.Post("/v1/admin/menu-reviews/{versionId}/decision", write(ActionMenuReviewDecide, "decideMenuVersion"), h.DecideMenuVersion)
+
 	// Order oversight (A-38): staff can view any order and cancel with a reason.
 	// cancelOrderAdmin is MONEY class (idempotency key required, I-37.4).
 	money := func(action httpx.Action, op string) httpx.Policy {

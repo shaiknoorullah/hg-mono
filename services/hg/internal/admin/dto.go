@@ -408,6 +408,96 @@ type adminOrderView struct {
 	PiiRevealed   bool                    `json:"pii_revealed"`
 }
 
+// --- Menu (A-19) ---
+
+// menuCategory is the contract's MenuCategory.
+type menuCategory struct {
+	ID           string  `json:"id"`
+	RestaurantID string  `json:"restaurant_id"`
+	Name         string  `json:"name"`
+	Description  *string `json:"description"`
+	SortOrder    int     `json:"sort_order"`
+	IsActive     bool    `json:"is_active"`
+	CreatedAt    string  `json:"created_at"`
+	UpdatedAt    string  `json:"updated_at"`
+}
+
+// menuCategoryInput is the contract's MenuCategoryInput.
+type menuCategoryInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	SortOrder   *int    `json:"sort_order"`
+}
+
+// menuItemOwnerView is the contract's MenuItemOwnerView. live_version and
+// pending_version are full MenuItemVersion objects (oneOf MenuItemVersion | null),
+// not a subset — the contract references MenuItemVersion directly.
+//
+// The base MenuItem schema names neither created_at nor updated_at, so neither
+// is emitted (additionalProperties:false on MenuItemOwnerView).
+type menuItemOwnerView struct {
+	ID                string           `json:"id"`
+	RestaurantID      string           `json:"restaurant_id"`
+	CategoryID        string           `json:"category_id"`
+	PriceCents        int64            `json:"price_cents"`
+	Currency          string           `json:"currency"`
+	AvailabilityState string           `json:"availability_state"`
+	TaxCategory       string           `json:"tax_category"`
+	SortOrder         int              `json:"sort_order"`
+	Name              string           `json:"name"`
+	Description       *string          `json:"description"`
+	LiveVersion       *menuItemVersion `json:"live_version"`
+	PendingVersion    *menuItemVersion `json:"pending_version"`
+}
+
+// menuItemInput is the contract's MenuItemInput (admin-on-behalf create). Every
+// field the contract's MenuItemInput schema names is present here and nothing it
+// does not: decodeJSON runs DisallowUnknownFields, so a field that the contract
+// permits but this struct omits would be spuriously rejected as "unknown field".
+// tax_category is deliberately absent — the contract says tax_category is
+// "admin-changeable only" and is NOT a member of MenuItemInput, so accepting it
+// here would be a wire-shape drift.
+type menuItemInput struct {
+	CategoryID        string   `json:"category_id"`
+	Name              string   `json:"name"`
+	Description       *string  `json:"description"`
+	IngredientsText   *string  `json:"ingredients_text"`
+	PriceCents        int64    `json:"price_cents"`
+	DietaryTags       []string `json:"dietary_tags"`
+	AllergenTags      []string `json:"allergen_tags"`
+	AllergensDeclared *bool    `json:"allergens_declared"`
+	ImageObjectID     *string  `json:"image_object_id"`
+	PrepMinutes       *int     `json:"prep_minutes"`
+	SortOrder         *int     `json:"sort_order"`
+}
+
+// menuItemVersion is the contract's MenuItemVersion. The schema is
+// additionalProperties:false and names neither reviewed_by nor updated_at, so
+// neither is emitted; reviewed_by remains internal to the audit log only.
+type menuItemVersion struct {
+	ID                  string   `json:"id"`
+	MenuItemID          string   `json:"menu_item_id"`
+	RestaurantID        string   `json:"restaurant_id"`
+	Version             int      `json:"version"`
+	Name                string   `json:"name"`
+	Description         *string  `json:"description"`
+	DietaryTags         []string `json:"dietary_tags"`
+	AllergenTags        []string `json:"allergen_tags"`
+	ReviewStatus        string   `json:"review_status"`
+	RejectionReasonCode *string  `json:"rejection_reason_code"`
+	ReviewNote          *string  `json:"review_note"`
+	SubmittedAt         *string  `json:"submitted_at"`
+	ReviewedAt          *string  `json:"reviewed_at"`
+	CreatedAt           string   `json:"created_at"`
+}
+
+// menuDecisionInput is the contract's MenuDecisionInput.
+type menuDecisionInput struct {
+	Decision   string  `json:"decision"`
+	ReasonCode *string `json:"reason_code"`
+	ReviewNote *string `json:"review_note"`
+}
+
 // cancelOrderAdminInput is the body for cancelOrderAdmin (contract:
 // AdminOrderCancellationInput). additionalProperties:false is enforced by
 // decodeJSON/DisallowUnknownFields; every field the contract names is present
