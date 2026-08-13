@@ -64,6 +64,12 @@ type wireAcknowledgement struct {
 	Acknowledged bool `json:"acknowledged"`
 }
 
+// wireTotpEnrolment is the contract's TotpEnrolment (enrollTotp response).
+type wireTotpEnrolment struct {
+	ProvisioningURI string   `json:"provisioning_uri"`
+	RecoveryCodes   []string `json:"recovery_codes"`
+}
+
 // toWireRoles converts store grants to the wire shape.
 func toWireRoles(grants []RoleGrant) []wireRoleGrant {
 	out := make([]wireRoleGrant, 0, len(grants))

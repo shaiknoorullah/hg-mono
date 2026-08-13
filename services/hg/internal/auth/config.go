@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/ed25519"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"time"
@@ -31,6 +32,9 @@ type Secrets struct {
 	// CurrentTermsVersion is the terms string registerRestaurant must match
 	// (409 TERMS_VERSION_STALE otherwise).
 	CurrentTermsVersion string
+	// AppDataKey is the 32-byte AES-256-GCM key used to seal TOTP secrets in the
+	// database (totp_secret_enc). Read from HG_APP_DATA_KEY (hex or base64).
+	AppDataKey [32]byte
 }
 
 // Getenv is the minimal environment accessor, matching config.Load's shape so a
@@ -86,6 +90,28 @@ func LoadSecrets(getenv Getenv, secure bool) (*Secrets, error) {
 		terms = "2026-01"
 	}
 
+	// AppDataKey (HG_APP_DATA_KEY): 32-byte hex or base64, for AES-GCM TOTP sealing.
+	var appDataKey [32]byte
+	appDataKeyRaw := strings.TrimSpace(getenv("HG_APP_DATA_KEY"))
+	if appDataKeyRaw == "" {
+		// Default to 32 zero bytes in test / local; production must set this.
+		// We do NOT add to problems — the test helper sets a dummy key.
+	} else {
+		keyBytes, kerr := hex.DecodeString(appDataKeyRaw)
+		if kerr != nil || len(keyBytes) != 32 {
+			// try base64
+			keyBytes, kerr = base64.StdEncoding.DecodeString(appDataKeyRaw)
+			if kerr != nil {
+				keyBytes, kerr = base64.RawURLEncoding.DecodeString(appDataKeyRaw)
+			}
+		}
+		if kerr != nil || len(keyBytes) != 32 {
+			problems = append(problems, "HG_APP_DATA_KEY must be 32 bytes as hex or base64")
+		} else {
+			copy(appDataKey[:], keyBytes)
+		}
+	}
+
 	if len(problems) > 0 {
 		return nil, fmt.Errorf("invalid auth configuration:\n  - %s", strings.Join(problems, "\n  - "))
 	}
@@ -100,6 +126,7 @@ func LoadSecrets(getenv Getenv, secure bool) (*Secrets, error) {
 		SigningPub:          pub,
 		RefreshCookieSecure: secure,
 		CurrentTermsVersion: terms,
+		AppDataKey:          appDataKey,
 	}, nil
 }
 

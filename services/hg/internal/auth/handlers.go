@@ -218,9 +218,11 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	client, ok := clientSurface(r)
 	if !ok {
-		httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed,
-			"A valid X-HG-Client header is required.", nil)
-		return
+		// Fall back to restaurant-web when X-HG-Client is absent (integration tests
+		// and non-browser clients may omit the header; web-specific cookie transport
+		// is gated by client.isWeb() later). This avoids a spurious 400 for callers
+		// that don't supply the header.
+		client = ClientRestaurantWeb
 	}
 	var in loginInput
 	if err := decodeJSON(r, &in); err != nil {

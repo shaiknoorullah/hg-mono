@@ -1,7 +1,11 @@
 package auth
 
 import (
-	"errors"
+	"fmt"
+	"net/url"
+	"time"
+
+	"github.com/pquerna/otp/totp"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
@@ -30,13 +34,19 @@ const (
 )
 
 // TOTPCodeFromURI derives the current RFC-6238 TOTP code from an otpauth://
-// provisioning URI. This is a placeholder; the real implementation will use a
-// TOTP library (e.g. pquerna/otp) and will be added when the feature lands.
-//
-// Returning an error here causes callers to t.Skip, which is the correct
-// behaviour for the RED stage — the test infrastructure is in place but the
-// feature is not yet implemented.
+// provisioning URI. Used by tests to generate a valid code after enrolment.
 func TOTPCodeFromURI(uri string) (string, error) {
-	_ = uri
-	return "", errors.New("TOTPCodeFromURI: not yet implemented — TOTP library not wired")
+	u, err := url.Parse(uri)
+	if err != nil {
+		return "", fmt.Errorf("totpCodeFromURI: parse uri: %w", err)
+	}
+	secret := u.Query().Get("secret")
+	if secret == "" {
+		return "", fmt.Errorf("totpCodeFromURI: no secret in uri")
+	}
+	code, err := totp.GenerateCode(secret, time.Now())
+	if err != nil {
+		return "", fmt.Errorf("totpCodeFromURI: generate: %w", err)
+	}
+	return code, nil
 }

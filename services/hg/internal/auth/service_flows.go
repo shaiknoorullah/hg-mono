@@ -2,11 +2,16 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base32"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	totp_ "github.com/pquerna/otp/totp"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
@@ -215,14 +220,18 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 			_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_TOTP")
 			return nil, errMFARequired
 		}
-		// TODO(P-01 TOTP): verify the supplied code against the AES-GCM-sealed
-		// totp_secret_enc under APP_DATA_KEY. The secret store and the RFC-6238
-		// verification are not yet wired (APP_DATA_KEY handling is a shared
-		// concern). Until then a required-TOTP login cannot complete and returns
-		// MFA_REQUIRED rather than fabricating a pass — which is the honest,
-		// fail-closed behaviour.
-		_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_TOTP")
-		return nil, errMFARequired
+		// Verify the supplied code against the AES-GCM-sealed totp_secret_enc.
+		rec, rerr := s.store.GetTOTPRecord(ctx, acct.ID)
+		if rerr != nil || len(rec.SecretEnc) == 0 {
+			_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_TOTP")
+			return nil, errMFARequired
+		}
+		plainSecret, oerr := OpenAESGCM(s.secrets.AppDataKey, rec.SecretEnc)
+		if oerr != nil || !totp_.Validate(*totp, string(plainSecret)) {
+			_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_TOTP")
+			return nil, errInvalidCredentials
+		}
+		amr = "pwd+totp"
 	}
 
 	_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "SUCCESS")
@@ -454,6 +463,158 @@ func (s *Service) Refresh(ctx context.Context, token string, client ClientSurfac
 		client:       client,
 	}, nil
 }
+
+// ChangePassword verifies the current password, hashes the new one, updates the
+// account, revokes other sessions, and re-issues a new session for the caller.
+func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, currentPassword, newPassword string) (*issuedSession, error) {
+	if isBreachedPassword(newPassword) {
+		return nil, errBreachedPassword
+	}
+	if len(newPassword) < 12 || len(newPassword) > 256 {
+		return nil, errWeakPassword
+	}
+	acct, err := s.store.AccountByID(ctx, p.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	if acct.PasswordHash == nil {
+		return nil, errInvalidCredentials
+	}
+	ok, verr := VerifyPassword(*acct.PasswordHash, currentPassword)
+	if verr != nil || !ok {
+		return nil, errInvalidCredentials
+	}
+	newHash, err := HashPassword(newPassword)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.store.ChangePassword(ctx, p.AccountID, newHash); err != nil {
+		return nil, err
+	}
+	// Revoke all other sessions (I-03.2): the calling session is preserved.
+	if err := s.store.RevokeOtherSessions(ctx, p.AccountID, p.SessionID, "password_changed"); err != nil {
+		return nil, err
+	}
+	// Re-issue a session for the caller with the same amr.
+	amr := "pwd"
+	if len(p.AMR) > 0 {
+		amr = p.AMR[0]
+	}
+	return s.issueSession(ctx, acct, amr, ClientRestaurantWeb, nil, nil, nil, false)
+}
+
+// errWeakPassword is returned when a new password is too short or otherwise weak.
+var errWeakPassword = errors.New("password too weak")
+
+// EnrollTOTP generates a fresh TOTP secret, seals it under AppDataKey, stores
+// it in the account row (totp_enrolled_at stays NULL), and returns the
+// provisioning URI plus 10 recovery codes.
+func (s *Service) EnrollTOTP(ctx context.Context, accountID string) (*wireTotpEnrolment, error) {
+	// Generate a 20-byte (160-bit) TOTP secret.
+	rawSecret := make([]byte, 20)
+	if _, err := rand.Read(rawSecret); err != nil {
+		return nil, fmt.Errorf("enroll totp: rand: %w", err)
+	}
+	secret := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(rawSecret)
+
+	// Seal the base32 secret under AppDataKey.
+	secretEnc, err := SealAESGCM(s.secrets.AppDataKey, []byte(secret))
+	if err != nil {
+		return nil, fmt.Errorf("enroll totp: seal: %w", err)
+	}
+
+	// Store the sealed secret; totp_enrolled_at remains NULL until verify.
+	if err := s.store.StoreTOTPSecret(ctx, accountID, secretEnc); err != nil {
+		return nil, err
+	}
+
+	// Build the otpauth:// provisioning URI.
+	issuer := "HalalGoes"
+	acct, _ := s.store.AccountByID(ctx, accountID)
+	label := accountID
+	if acct != nil && acct.Email != nil {
+		label = *acct.Email
+	}
+	provURI := (&url.URL{
+		Scheme: "otpauth",
+		Host:   "totp",
+		Path:   "/" + issuer + ":" + label,
+		RawQuery: url.Values{
+			"secret": {secret},
+			"issuer": {issuer},
+			"digits": {"6"},
+		}.Encode(),
+	}).String()
+
+	// Generate 10 recovery codes (each 16 hex characters).
+	recoveryCodes := make([]string, 10)
+	for i := range recoveryCodes {
+		b := make([]byte, 8)
+		if _, err := rand.Read(b); err != nil {
+			return nil, fmt.Errorf("enroll totp: recovery code rand: %w", err)
+		}
+		recoveryCodes[i] = fmt.Sprintf("%x", b)
+	}
+
+	return &wireTotpEnrolment{
+		ProvisioningURI: provURI,
+		RecoveryCodes:   recoveryCodes,
+	}, nil
+}
+
+// VerifyTOTPEnrolment reads the pending TOTP secret for the account, validates
+// the submitted 6-digit code, and on success stamps totp_enrolled_at.
+func (s *Service) VerifyTOTPEnrolment(ctx context.Context, accountID, code string) error {
+	rec, err := s.store.GetTOTPRecord(ctx, accountID)
+	if err != nil {
+		return err
+	}
+	if len(rec.SecretEnc) == 0 {
+		return errTOTPNotEnrolled
+	}
+
+	plainSecret, err := OpenAESGCM(s.secrets.AppDataKey, rec.SecretEnc)
+	if err != nil {
+		return fmt.Errorf("verify totp: open: %w", err)
+	}
+
+	valid := totp_.Validate(code, string(plainSecret))
+	if !valid {
+		return errTOTPInvalidCode
+	}
+
+	return s.store.ActivateTOTP(ctx, accountID)
+}
+
+// DisableTOTP verifies the supplied TOTP code against the enrolled secret and
+// clears both totp_secret_enc and totp_enrolled_at.
+func (s *Service) DisableTOTP(ctx context.Context, accountID, code string) error {
+	rec, err := s.store.GetTOTPRecord(ctx, accountID)
+	if err != nil {
+		return err
+	}
+	if len(rec.SecretEnc) == 0 || rec.EnrolledAt == nil {
+		return errTOTPNotEnrolled
+	}
+
+	plainSecret, err := OpenAESGCM(s.secrets.AppDataKey, rec.SecretEnc)
+	if err != nil {
+		return fmt.Errorf("disable totp: open: %w", err)
+	}
+
+	valid := totp_.Validate(code, string(plainSecret))
+	if !valid {
+		return errTOTPInvalidCode
+	}
+
+	return s.store.ClearTOTP(ctx, accountID)
+}
+
+// sentinel errors for TOTP flows.
+var (
+	errTOTPNotEnrolled = errors.New("totp not enrolled")
+	errTOTPInvalidCode = errors.New("totp invalid code")
+)
 
 // chiURLParam reads a path parameter. Confined here so handlers do not import
 // chi directly.
