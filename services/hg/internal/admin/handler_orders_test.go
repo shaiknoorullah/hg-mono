@@ -1014,9 +1014,9 @@ func TestCancelOrderAdmin_PriceFieldRejected(t *testing.T) {
 
 	// "amount_cents" should not be allowed on this route (it is only allowed on issueRefund for GOODWILL).
 	body := map[string]any{
-		"reason_code": "SUPPORT_CANCELLED",
-		"reason_text": "Cancel with an injected amount_cents — must be rejected.",
-		"case_id":     "00000000-0000-0000-0000-000000000099",
+		"reason_code":  "SUPPORT_CANCELLED",
+		"reason_text":  "Cancel with an injected amount_cents — must be rejected.",
+		"case_id":      "00000000-0000-0000-0000-000000000099",
 		"amount_cents": 5000, // should be rejected as unknown field (G-3)
 	}
 	resp := doJSON(t, http.MethodPost,
@@ -1063,7 +1063,7 @@ func TestCancelOrderAdmin_ReasonTextTooShort(t *testing.T) {
 
 	body := map[string]any{
 		"reason_code": "SUPPORT_CANCELLED",
-		"reason_text": "Short",   // < 10 characters
+		"reason_text": "Short", // < 10 characters
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
 	resp := doJSON(t, http.MethodPost,
@@ -1217,9 +1217,9 @@ func TestCancelOrderAdmin_MoneyZeroResidual(t *testing.T) {
 // =========================================================================
 
 // TestAdminOrderRoutesPolicy asserts that the new routes:
-//   1. pass Verify() (have a valid policy with an action + class)
-//   2. are not public (admin surface is never public)
-//   3. cancelOrderAdmin is Idempotent (MONEY class enforcement)
+//  1. pass Verify() (have a valid policy with an action + class)
+//  2. are not public (admin surface is never public)
+//  3. cancelOrderAdmin is Idempotent (MONEY class enforcement)
 func TestAdminOrderRoutesPolicy(t *testing.T) {
 	r := httpx.NewRouter(httpx.Options{Env: "local"})
 	Routes(r, &Handler{})
