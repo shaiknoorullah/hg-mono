@@ -183,6 +183,13 @@ func (r *Repo) Create(ctx context.Context, accountID string, in addressInputDTO,
 
 // Update applies a partial update to an address owned by accountID.
 // Returns ErrAddressNotFound when the address does not exist or belongs to another account.
+//
+// The whole update runs in a transaction because a PATCH that sets
+// is_default:true must first clear the account's existing default — otherwise
+// the partial unique index address_one_default (one is_default row per account)
+// is violated and the raw UPDATE 23505s into a 500. Setting is_default:false, or
+// leaving it unset, needs no pre-clear. This mirrors SetDefault's atomicity so
+// the "exactly one default" invariant holds no matter which endpoint flips it.
 func (r *Repo) Update(ctx context.Context, accountID, id string, in addressUpdateInputDTO) (addressRow, error) {
 	// Build a dynamic update using COALESCE so unset fields are left unchanged.
 	// We always do a full re-read after UPDATE to return the canonical shape.
@@ -194,10 +201,28 @@ func (r *Repo) Update(ctx context.Context, accountID, id string, in addressUpdat
 		lon = in.Longitude
 	}
 
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return addressRow{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	// If this PATCH promotes the row to default, demote every other default for
+	// the account first (excluding this row, so a self-promotion is idempotent).
+	if in.IsDefault != nil && *in.IsDefault {
+		if _, err := tx.Exec(ctx,
+			`UPDATE address SET is_default = false, updated_at = now()
+			 WHERE account_id = $1 AND id <> $2 AND is_default = true AND deleted_at IS NULL`,
+			accountID, id,
+		); err != nil {
+			return addressRow{}, err
+		}
+	}
+
 	// Use a CTE that handles optional lat/lon for location update.
 	var row pgx.Row
 	if lat != nil && lon != nil {
-		row = r.pool.QueryRow(ctx, `
+		row = tx.QueryRow(ctx, `
 			UPDATE address SET
 			  label          = COALESCE($3, label),
 			  line1          = COALESCE($4, line1),
@@ -220,7 +245,7 @@ func (r *Repo) Update(ctx context.Context, accountID, id string, in addressUpdat
 			in.DeliveryNotes, in.IsDefault,
 		)
 	} else {
-		row = r.pool.QueryRow(ctx, `
+		row = tx.QueryRow(ctx, `
 			UPDATE address SET
 			  label          = COALESCE($3, label),
 			  line1          = COALESCE($4, line1),
@@ -243,10 +268,16 @@ func (r *Repo) Update(ctx context.Context, accountID, id string, in addressUpdat
 	}
 
 	a, err := scanRow(row)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return addressRow{}, ErrAddressNotFound
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return addressRow{}, ErrAddressNotFound
+		}
+		return addressRow{}, err
 	}
-	return a, err
+	if err := tx.Commit(ctx); err != nil {
+		return addressRow{}, err
+	}
+	return a, nil
 }
 
 // Delete soft-deletes the address identified by id for accountID.

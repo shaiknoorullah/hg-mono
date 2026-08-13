@@ -111,6 +111,16 @@ func (h *Handler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate + normalise against the contract BEFORE the DB. Keeps hostile
+	// values out of the ::province cast and the postal CHECK (which would 500),
+	// and rejects contract-illegal-but-DB-legal values (empty line1, out-of-range
+	// lat/lng that PostGIS would silently wrap) that would otherwise persist.
+	if fe := validateCreate(&body); len(fe) > 0 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"The address failed validation.", fe)
+		return
+	}
+
 	// Server derives timezone from coordinates (caller must not supply it).
 	tz := deriveTimezone(body.Latitude, body.Longitude)
 
@@ -166,6 +176,15 @@ func (h *Handler) UpdateAddress(w http.ResponseWriter, r *http.Request, addressI
 	}
 	var body addressUpdateInputDTO
 	if !decodeStrict(w, r, &body) {
+		return
+	}
+
+	// Validate + normalise the supplied (present) fields before the DB, for the
+	// same reasons as create: a bad province/postal 500s on the cast/CHECK, and
+	// an out-of-range coordinate or empty required field silently corrupts.
+	if fe := validateUpdate(&body); len(fe) > 0 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"The address failed validation.", fe)
 		return
 	}
 
