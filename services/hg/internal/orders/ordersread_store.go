@@ -41,7 +41,18 @@ type RiderLocation struct {
 	SpeedMPS   *float64
 	AccuracyM  *float64
 	RecordedAt time.Time
+	// IsCoarse is true when the position is low-quality (accuracy worse than
+	// ~100 m or unknown). The customer always receives the precise, un-rounded
+	// position; is_coarse only reflects the underlying GPS fix quality. The
+	// restaurant projection (realtime, ≈100 m rounding) is a separate path.
+	IsCoarse bool
 }
+
+// coarseAccuracyThresholdM is the accuracy boundary (metres) above which a
+// rider position is reported as coarse. It matches the ≈100 m language in the
+// contract's RiderLocation.is_coarse description and the restaurant-projection
+// rounding in the realtime package.
+const coarseAccuracyThresholdM = 100.0
 
 // RiderPublicProfile is the PII-free rider snapshot exposed to the customer.
 // There is no phone, email, last_name or earnings here — by construction (C-32).
@@ -193,6 +204,8 @@ func (s *Store) loadRiderForOrder(ctx context.Context, orderID string) (*RiderPu
 	rl.HeadingDeg = headingDeg
 	rl.SpeedMPS = speedMPS
 	rl.AccuracyM = accuracyM
+	// A position with unknown or worse-than-~100 m accuracy is coarse.
+	rl.IsCoarse = accuracyM == nil || *accuracyM > coarseAccuracyThresholdM
 
 	return &rp, &rl, nil
 }

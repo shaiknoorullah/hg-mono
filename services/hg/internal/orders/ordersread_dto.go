@@ -15,13 +15,16 @@ import (
 // ---- getOrderTracking ----
 
 type orderTrackingDTO struct {
-	OrderID             string                 `json:"order_id"`
-	State               string                 `json:"state"`
-	DispatchState       *string                `json:"dispatch_state,omitempty"`
-	ETAAt               *string                `json:"eta_at,omitempty"`
-	ETAWindowMinutes    *int                   `json:"eta_window_minutes,omitempty"`
+	OrderID string `json:"order_id"`
+	State   string `json:"state"`
+	// The following fields are contract-nullable (type: [..., 'null']) and the
+	// reference fixtures always render them — present as null when absent, never
+	// omitted. omitempty would drop the key and diverge from the fixture shape.
+	DispatchState       *string                `json:"dispatch_state"`
+	ETAAt               *string                `json:"eta_at"`
+	ETAWindowMinutes    *int                   `json:"eta_window_minutes"`
 	RestaurantLocation  geoPointDTO            `json:"restaurant_location"`
-	DestinationLocation *geoPointDTO           `json:"destination_location,omitempty"`
+	DestinationLocation *geoPointDTO           `json:"destination_location"`
 	RiderLocation       *riderLocationDTO      `json:"rider_location"`
 	Rider               *riderPublicProfileDTO `json:"rider"`
 	Timeline            []orderTransitionDTO   `json:"timeline"`
@@ -33,12 +36,16 @@ type geoPointDTO struct {
 }
 
 type riderLocationDTO struct {
-	Latitude   float64  `json:"latitude"`
-	Longitude  float64  `json:"longitude"`
-	HeadingDeg *float64 `json:"heading_deg,omitempty"`
-	SpeedMPS   *float64 `json:"speed_mps,omitempty"`
-	AccuracyM  *float64 `json:"accuracy_m,omitempty"`
+	Latitude float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	// Kinematic fields are contract-nullable (type: [number, 'null']) and the
+	// reference fixtures render them as null when the fix lacks them (e.g.
+	// tracking_degraded_gps). Present-as-null, never omitted.
+	HeadingDeg *float64 `json:"heading_deg"`
+	SpeedMPS   *float64 `json:"speed_mps"`
+	AccuracyM  *float64 `json:"accuracy_m"`
 	RecordedAt string   `json:"recorded_at"`
+	IsCoarse   bool     `json:"is_coarse"`
 }
 
 type riderPublicProfileDTO struct {
@@ -53,8 +60,10 @@ type orderTransitionDTO struct {
 	FromState *string `json:"from_state"`
 	ToState   string  `json:"to_state"`
 	ActorKind string  `json:"actor_kind"`
-	Reason    *string `json:"reason,omitempty"`
-	At        string  `json:"at"`
+	// reason is contract-nullable and the fixtures render "reason": null, never
+	// omit it.
+	Reason *string `json:"reason"`
+	At     string  `json:"at"`
 }
 
 // ---- getOrderReceipt ----
@@ -141,6 +150,7 @@ func orderTrackingToDTO(ot *OrderTracking) orderTrackingDTO {
 			SpeedMPS:   ot.RiderLocation.SpeedMPS,
 			AccuracyM:  ot.RiderLocation.AccuracyM,
 			RecordedAt: httpx.Timestamp(ot.RiderLocation.RecordedAt),
+			IsCoarse:   ot.RiderLocation.IsCoarse,
 		}
 	}
 	if ot.Rider != nil {
