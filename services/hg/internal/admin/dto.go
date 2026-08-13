@@ -450,15 +450,25 @@ type menuItemOwnerView struct {
 	PendingVersion    *menuItemVersion `json:"pending_version"`
 }
 
-// menuItemInput is the contract's AdminMenuItemInput (admin-on-behalf create).
+// menuItemInput is the contract's MenuItemInput (admin-on-behalf create). Every
+// field the contract's MenuItemInput schema names is present here and nothing it
+// does not: decodeJSON runs DisallowUnknownFields, so a field that the contract
+// permits but this struct omits would be spuriously rejected as "unknown field".
+// tax_category is deliberately absent — the contract says tax_category is
+// "admin-changeable only" and is NOT a member of MenuItemInput, so accepting it
+// here would be a wire-shape drift.
 type menuItemInput struct {
-	CategoryID   string   `json:"category_id"`
-	Name         string   `json:"name"`
-	Description  *string  `json:"description"`
-	PriceCents   int64    `json:"price_cents"`
-	DietaryTags  []string `json:"dietary_tags"`
-	AllergenTags []string `json:"allergen_tags"`
-	TaxCategory  *string  `json:"tax_category"`
+	CategoryID        string   `json:"category_id"`
+	Name              string   `json:"name"`
+	Description       *string  `json:"description"`
+	IngredientsText   *string  `json:"ingredients_text"`
+	PriceCents        int64    `json:"price_cents"`
+	DietaryTags       []string `json:"dietary_tags"`
+	AllergenTags      []string `json:"allergen_tags"`
+	AllergensDeclared *bool    `json:"allergens_declared"`
+	ImageObjectID     *string  `json:"image_object_id"`
+	PrepMinutes       *int     `json:"prep_minutes"`
+	SortOrder         *int     `json:"sort_order"`
 }
 
 // menuItemVersion is the contract's MenuItemVersion. The schema is

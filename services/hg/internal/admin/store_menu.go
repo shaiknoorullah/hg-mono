@@ -116,18 +116,34 @@ RETURNING id, restaurant_id, name, description, sort_order, is_active, created_a
 	return out, err
 }
 
+// menuItemCreate carries every validated field for an admin-on-behalf item
+// create. Grouping them keeps the store signature stable as the contract's
+// MenuItemInput grows, and makes it obvious that every value here was validated
+// at the handler before it reaches a typed column or enum cast.
+type menuItemCreate struct {
+	restaurantID      string
+	categoryID        string
+	priceCents        int64
+	name              string
+	description       *string
+	ingredientsText   *string
+	dietaryTags       []string
+	allergenTags      []string
+	allergensDeclared *bool
+	imageObjectID     *string
+	prepMinutes       *int
+	sortOrder         *int
+	taxCategory       string
+}
+
 // CreateMenuItemOnBehalf inserts a new menu_item + a version pre-approved by the
 // admin (A-19: reviewer == author, so it is immediately APPROVED with live_version_id
 // set). The restaurant and category must exist. Price validation (50..50000 cents)
-// is done at the handler layer.
+// and enum/length validation are done at the handler layer.
 func (r *Repo) CreateMenuItemOnBehalf(
-	ctx context.Context, actor auditActor,
-	restaurantID, categoryID string,
-	priceCents int64,
-	name string, description *string,
-	dietaryTags, allergenTags []string,
-	taxCategory string,
+	ctx context.Context, actor auditActor, in menuItemCreate,
 ) (menuItemRow, error) {
+	restaurantID := in.restaurantID
 	var out menuItemRow
 	err := r.inTx(ctx, func(tx pgx.Tx) error {
 		// Verify restaurant exists.
@@ -145,7 +161,7 @@ func (r *Repo) CreateMenuItemOnBehalf(
 		var catExists bool
 		if err := tx.QueryRow(ctx,
 			`SELECT EXISTS(SELECT 1 FROM menu_category WHERE id=$1 AND restaurant_id=$2 AND deleted_at IS NULL)`,
-			categoryID, restaurantID,
+			in.categoryID, restaurantID,
 		).Scan(&catExists); err != nil {
 			return err
 		}
@@ -153,17 +169,22 @@ func (r *Repo) CreateMenuItemOnBehalf(
 			return ErrNotFound
 		}
 
+		taxCategory := in.taxCategory
 		if taxCategory == "" {
 			taxCategory = "PREPARED_FOOD"
+		}
+		sortOrder := 0
+		if in.sortOrder != nil {
+			sortOrder = *in.sortOrder
 		}
 
 		// Insert the menu_item (no live/pending version yet).
 		var itemID string
 		const insItem = `
-INSERT INTO menu_item (restaurant_id, category_id, price_cents, currency, availability_state, tax_category, sort_order)
-VALUES ($1, $2, $3, 'CAD', 'AVAILABLE', $4, 0)
+INSERT INTO menu_item (restaurant_id, category_id, price_cents, currency, availability_state, tax_category, prep_minutes, sort_order)
+VALUES ($1, $2, $3, 'CAD', 'AVAILABLE', $4::tax_category, $5, $6)
 RETURNING id`
-		if err := tx.QueryRow(ctx, insItem, restaurantID, categoryID, priceCents, taxCategory).Scan(&itemID); err != nil {
+		if err := tx.QueryRow(ctx, insItem, restaurantID, in.categoryID, in.priceCents, taxCategory, in.prepMinutes, sortOrder).Scan(&itemID); err != nil {
 			return err
 		}
 
@@ -175,6 +196,11 @@ RETURNING id`
 			return err
 		}
 
+		allergensDeclared := false
+		if in.allergensDeclared != nil {
+			allergensDeclared = *in.allergensDeclared
+		}
+
 		// Insert version as APPROVED (admin creates = auto-approved per A-19).
 		var versionID string
 		var reviewedBy any
@@ -183,13 +209,15 @@ RETURNING id`
 		}
 		const insVer = `
 INSERT INTO menu_item_version
-  (menu_item_id, restaurant_id, version, name, description, dietary_tags, allergen_tags,
+  (menu_item_id, restaurant_id, version, name, description, ingredients_text,
+   dietary_tags, allergen_tags, allergens_declared, image_object_id,
    review_status, submitted_at, reviewed_by, reviewed_at)
-VALUES ($1, $2, $3, $4, $5, $6::dietary_tag[], $7::allergen_tag[], 'APPROVED', now(), $8, now())
+VALUES ($1, $2, $3, $4, $5, $6, $7::dietary_tag[], $8::allergen_tag[], $9, $10::uuid,
+        'APPROVED', now(), $11, now())
 RETURNING id`
 		if err := tx.QueryRow(ctx, insVer,
-			itemID, restaurantID, versionNo, name, description,
-			dietaryTags, allergenTags, reviewedBy,
+			itemID, restaurantID, versionNo, in.name, in.description, in.ingredientsText,
+			in.dietaryTags, in.allergenTags, allergensDeclared, in.imageObjectID, reviewedBy,
 		).Scan(&versionID); err != nil {
 			return err
 		}
@@ -232,7 +260,7 @@ SELECT mi.id, mi.restaurant_id, mi.category_id, mi.price_cents, mi.currency::tex
 			subjectType: "MENU_ITEM",
 			subjectID:   &itemID,
 			outcome:     "SUCCESS",
-			after:       map[string]any{"restaurant_id": restaurantID, "name": name, "price_cents": priceCents},
+			after:       map[string]any{"restaurant_id": restaurantID, "name": in.name, "price_cents": in.priceCents},
 		})
 	})
 	return out, err

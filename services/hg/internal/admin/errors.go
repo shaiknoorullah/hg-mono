@@ -6,6 +6,7 @@ import "github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 // contract's ErrorCode enum (contracts/openapi.yaml) — contract first, then code.
 const (
 	CodeValidationFailed httpx.ErrorCode = "VALIDATION_FAILED"
+	CodeInvalidEnumValue httpx.ErrorCode = "INVALID_ENUM_VALUE"
 	CodeNotFound         httpx.ErrorCode = "NOT_FOUND"
 	CodeForbidden        httpx.ErrorCode = "FORBIDDEN"
 

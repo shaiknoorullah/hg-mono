@@ -41,8 +41,13 @@ func (h *Handler) CreateMenuCategoryOnBehalf(w http.ResponseWriter, r *http.Requ
 	}
 
 	in.Name = strings.TrimSpace(in.Name)
-	if in.Name == "" {
-		fieldFail(w, r, "name", "name is required")
+	// Contract MenuCategoryInput: name minLength 1, maxLength 60.
+	if n := runeLen(in.Name); n < menuCategoryNameMin || n > menuCategoryNameMax {
+		fieldFail(w, r, "name", "name must be between 1 and 60 characters")
+		return
+	}
+	if in.Description != nil && runeLen(*in.Description) > menuCategoryDescMax {
+		fieldFail(w, r, "description", "description must be at most 500 characters")
 		return
 	}
 
@@ -100,6 +105,21 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	// category_id must be a well-formed UUID; otherwise the ::uuid path in the
+	// store would 22P02 into a 500 rather than a clean 404/422.
+	if !isValidUUIDStr(in.CategoryID) {
+		fieldFail(w, r, "category_id", "category_id must be a UUID")
+		return
+	}
+
+	// Dietary/allergen tags must be known enum members (else the ::dietary_tag[]
+	// / ::allergen_tag[] casts 22P02 into a 500), and dietary_tags is capped at 6.
+	if fe := validateMenuTags(in.DietaryTags, in.AllergenTags); len(fe) > 0 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeInvalidEnumValue,
+			"One or more tags are not recognised.", fe)
+		return
+	}
+
 	// Price validation: [50, 50000] cents.
 	if in.PriceCents < menuPriceMin || in.PriceCents > menuPriceMax {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodePriceOutOfRange,
@@ -110,15 +130,31 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 	}
 
 	in.Name = strings.TrimSpace(in.Name)
-	if in.Name == "" {
-		fieldFail(w, r, "name", "name is required")
+	// Contract MenuItemInput: name minLength 2, maxLength 80.
+	if n := runeLen(in.Name); n < menuItemNameMin || n > menuItemNameMax {
+		fieldFail(w, r, "name", "name must be between 2 and 80 characters")
+		return
+	}
+	if in.Description != nil && runeLen(*in.Description) > menuItemDescMax {
+		fieldFail(w, r, "description", "description must be at most 600 characters")
+		return
+	}
+	if in.IngredientsText != nil && runeLen(*in.IngredientsText) > menuIngredientsMax {
+		fieldFail(w, r, "ingredients_text", "ingredients_text must be at most 1000 characters")
+		return
+	}
+	if in.PrepMinutes != nil && (*in.PrepMinutes < menuPrepMinutesMin || *in.PrepMinutes > menuPrepMinutesMax) {
+		fieldFail(w, r, "prep_minutes", "prep_minutes must be between 1 and 120")
+		return
+	}
+	if in.ImageObjectID != nil && *in.ImageObjectID != "" && !isValidUUIDStr(*in.ImageObjectID) {
+		fieldFail(w, r, "image_object_id", "image_object_id must be a UUID")
 		return
 	}
 
+	// tax_category is admin-changeable only and is not a MenuItemInput field; the
+	// server always creates at the PREPARED_FOOD default (P-11).
 	taxCategory := "PREPARED_FOOD"
-	if in.TaxCategory != nil && *in.TaxCategory != "" {
-		taxCategory = *in.TaxCategory
-	}
 
 	dietaryTags := in.DietaryTags
 	if dietaryTags == nil {
@@ -130,8 +166,21 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 	}
 
 	row, err := h.repo.CreateMenuItemOnBehalf(r.Context(), actorFrom(r),
-		restaurantID, in.CategoryID, in.PriceCents, in.Name, in.Description,
-		dietaryTags, allergenTags, taxCategory)
+		menuItemCreate{
+			restaurantID:      restaurantID,
+			categoryID:        in.CategoryID,
+			priceCents:        in.PriceCents,
+			name:              in.Name,
+			description:       in.Description,
+			ingredientsText:   in.IngredientsText,
+			dietaryTags:       dietaryTags,
+			allergenTags:      allergenTags,
+			allergensDeclared: in.AllergensDeclared,
+			imageObjectID:     in.ImageObjectID,
+			prepMinutes:       in.PrepMinutes,
+			sortOrder:         in.SortOrder,
+			taxCategory:       taxCategory,
+		})
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
@@ -250,6 +299,12 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// review_note is bounded at 1000 chars regardless of decision (contract).
+	if in.ReviewNote != nil && runeLen(*in.ReviewNote) > menuReviewNoteMax {
+		fieldFail(w, r, "review_note", "review_note must be at most 1000 characters")
+		return
+	}
+
 	if in.Decision == "REJECT" {
 		if in.ReasonCode == nil || *in.ReasonCode == "" {
 			httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeValidationFailed,
@@ -262,6 +317,20 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 				"invalid reason_code.",
 				[]httpx.FieldError{{Field: "reason_code", Code: "invalid", Message: "unknown reason code"}})
 			return
+		}
+		// Contract: review_note must be at least 20 characters when the reason
+		// code is OTHER — a bare "OTHER" with no explanation is not accountable.
+		if *in.ReasonCode == "OTHER" {
+			note := ""
+			if in.ReviewNote != nil {
+				note = strings.TrimSpace(*in.ReviewNote)
+			}
+			if runeLen(note) < menuReviewNoteMinOTH {
+				httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeValidationFailed,
+					"review_note must be at least 20 characters when reason_code is OTHER.",
+					[]httpx.FieldError{{Field: "review_note", Code: "invalid", Message: "at least 20 characters required for OTHER"}})
+				return
+			}
 		}
 	}
 
