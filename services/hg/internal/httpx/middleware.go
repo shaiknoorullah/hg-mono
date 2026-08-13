@@ -339,10 +339,10 @@ func IdempotencyKey() Middleware {
 					"This operation requires an Idempotency-Key header.", nil)
 				return
 			}
-			if len(key) < 8 || len(key) > 128 {
+			if len(key) < 16 || len(key) > 128 {
 				Fail(w, r, http.StatusBadRequest, CodeIdempotencyKeyRequired,
-					"Idempotency-Key must be between 8 and 128 characters.",
-					[]FieldError{{Field: "Idempotency-Key", Code: "length", Message: "must be 8–128 characters"}})
+					"Idempotency-Key must be between 16 and 128 characters.",
+					[]FieldError{{Field: "Idempotency-Key", Code: "length", Message: "must be 16–128 characters"}})
 				return
 			}
 			next.ServeHTTP(w, r.WithContext(withIdempotencyKey(r.Context(), key)))

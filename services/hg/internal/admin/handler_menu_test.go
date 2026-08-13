@@ -138,7 +138,7 @@ func menuRouteExists(t *testing.T, pool *pgxpool.Pool, method, path string) bool
 
 	req, _ := http.NewRequest(method, srv.URL+path, bytes.NewReader([]byte(`{}`)))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Idempotency-Key", "route-probe-001")
+	req.Header.Set("Idempotency-Key", "menu-route-probe-001")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -205,7 +205,7 @@ func TestCreateMenuCategoryOnBehalf_AuthzAllowed(t *testing.T) {
 				fmt.Sprintf("%s/v1/admin/restaurants/%s/menu/categories", srv.URL, data.restaurantID),
 				bytes.NewReader(b))
 			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Idempotency-Key", "idem-cat-"+string(role))
+			req.Header.Set("Idempotency-Key", "menu-idem-cat-"+string(role))
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -301,7 +301,7 @@ func TestCreateMenuCategoryOnBehalf_HappyPath(t *testing.T) {
 		fmt.Sprintf("%s/v1/admin/restaurants/%s/menu/categories", srv.URL, data.restaurantID),
 		bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Idempotency-Key", "happy-cat-001")
+	req.Header.Set("Idempotency-Key", "menu-happy-cat-0001")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -377,7 +377,7 @@ func TestCreateMenuCategoryOnBehalf_DuplicateName(t *testing.T) {
 		fmt.Sprintf("%s/v1/admin/restaurants/%s/menu/categories", srv.URL, data.restaurantID),
 		bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Idempotency-Key", "dup-cat-001")
+	req.Header.Set("Idempotency-Key", "menu-dup-cat-00001")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -495,7 +495,7 @@ func TestCreateMenuItemOnBehalf_AuthzAllowed(t *testing.T) {
 				fmt.Sprintf("%s/v1/admin/restaurants/%s/menu/items", srv.URL, data.restaurantID),
 				bytes.NewReader(b))
 			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Idempotency-Key", "idem-item-"+string(role))
+			req.Header.Set("Idempotency-Key", "menu-idem-item-"+string(role))
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -551,7 +551,7 @@ func TestCreateMenuItemOnBehalf_AuthzDenied(t *testing.T) {
 			fmt.Sprintf("%s/v1/admin/restaurants/%s/menu/items", srv.URL, data.restaurantID),
 			bytes.NewReader(b))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Idempotency-Key", "anon-denied-001")
+		req.Header.Set("Idempotency-Key", "menu-anon-denied-001")
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -589,7 +589,7 @@ func TestCreateMenuItemOnBehalf_HappyPath(t *testing.T) {
 		fmt.Sprintf("%s/v1/admin/restaurants/%s/menu/items", srv.URL, data.restaurantID),
 		bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Idempotency-Key", "happy-item-001")
+	req.Header.Set("Idempotency-Key", "menu-happy-item-001")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -744,7 +744,9 @@ func TestCreateMenuItemOnBehalf_PriceOutOfRange(t *testing.T) {
 				t.Fatalf("price %d: want 422, got %d", price, resp.StatusCode)
 			}
 			var env struct {
-				Error struct{ Code string `json:"code"` } `json:"error"`
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
 			}
 			if err := json.NewDecoder(resp.Body).Decode(&env); err == nil {
 				if env.Error.Code != "PRICE_OUT_OF_RANGE" && env.Error.Code != "VALIDATION_FAILED" {
@@ -791,7 +793,9 @@ func TestCreateMenuItemOnBehalf_HalalCertifiedDietaryTagForbidden(t *testing.T) 
 		t.Fatalf("want 403 for HALAL_CERTIFIED dietary_tag assertion, got %d", resp.StatusCode)
 	}
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&env); err == nil {
 		if env.Error.Code != "FIELD_NOT_WRITABLE" {
@@ -1144,7 +1148,7 @@ func TestDecideMenuVersion_AuthzDenied(t *testing.T) {
 			fmt.Sprintf("%s/v1/admin/menu-reviews/%s/decision", srv.URL, data.versionID),
 			bytes.NewReader(b))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Idempotency-Key", "ro-denied-001")
+		req.Header.Set("Idempotency-Key", "menu-ro-denied-0001")
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -1349,7 +1353,9 @@ func TestDecideMenuVersion_AlreadyDecided(t *testing.T) {
 	}
 	if resp1.StatusCode == http.StatusOK {
 		var env struct {
-			Error struct{ Code string `json:"code"` } `json:"error"`
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
 		}
 		if err := json.NewDecoder(resp2.Body).Decode(&env); err == nil {
 			if env.Error.Code != "ALREADY_DECIDED" {
@@ -1395,7 +1401,9 @@ func TestDecideMenuVersion_ItemDeleted(t *testing.T) {
 		t.Fatalf("want 409 ITEM_DELETED, got %d", resp.StatusCode)
 	}
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&env); err == nil {
 		if env.Error.Code != "ITEM_DELETED" {

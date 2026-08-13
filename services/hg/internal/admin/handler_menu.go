@@ -153,22 +153,32 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 		SortOrder:         row.SortOrder,
 		Name:              in.Name,
 		Description:       in.Description,
-		CreatedAt:         httpx.Timestamp(row.CreatedAt),
-		UpdatedAt:         httpx.Timestamp(row.UpdatedAt),
 	}
 	if row.LiveVersionID != nil {
-		lv := &menuItemVersionSummary{
+		lv := &menuItemVersion{
 			ID:           *row.LiveVersionID,
+			MenuItemID:   row.ID,
+			RestaurantID: row.RestaurantID,
 			Version:      1,
 			Name:         in.Name,
 			ReviewStatus: "APPROVED",
+			DietaryTags:  dietaryTags,
+			AllergenTags: allergenTags,
+			Description:  row.LiveVersionDescription,
+			CreatedAt:    httpx.Timestamp(row.CreatedAt),
 		}
 		if row.LiveVersionName != nil {
 			lv.Name = *row.LiveVersionName
 		}
-		lv.Description = row.LiveVersionDescription
-		lv.DietaryTags = dietaryTags
-		lv.AllergenTags = allergenTags
+		if lv.Description == nil {
+			lv.Description = in.Description
+		}
+		if lv.DietaryTags == nil {
+			lv.DietaryTags = []string{}
+		}
+		if lv.AllergenTags == nil {
+			lv.AllergenTags = []string{}
+		}
 		if row.LiveVersionReviewedAt != nil {
 			lv.ReviewedAt = ptr(httpx.Timestamp(*row.LiveVersionReviewedAt))
 		}
@@ -277,7 +287,7 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpx.Respond(w, r, http.StatusOK, menuItemVersion{
+	out := menuItemVersion{
 		ID:                  result.ID,
 		MenuItemID:          result.MenuItemID,
 		RestaurantID:        result.RestaurantID,
@@ -290,11 +300,16 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 		RejectionReasonCode: result.RejectionReasonCode,
 		ReviewNote:          result.ReviewNote,
 		SubmittedAt:         tsPtr(result.SubmittedAt),
-		ReviewedBy:          result.ReviewedBy,
 		ReviewedAt:          tsPtr(result.ReviewedAt),
 		CreatedAt:           httpx.Timestamp(result.CreatedAt),
-		UpdatedAt:           httpx.Timestamp(result.UpdatedAt),
-	})
+	}
+	if out.DietaryTags == nil {
+		out.DietaryTags = []string{}
+	}
+	if out.AllergenTags == nil {
+		out.AllergenTags = []string{}
+	}
+	httpx.Respond(w, r, http.StatusOK, out)
 }
 
 // renderMenuItemVersion converts a menuItemVersionRow to a menuItemVersion DTO.
@@ -312,10 +327,8 @@ func renderMenuItemVersion(v menuItemVersionRow) menuItemVersion {
 		RejectionReasonCode: v.RejectionReasonCode,
 		ReviewNote:          v.ReviewNote,
 		SubmittedAt:         tsPtr(v.SubmittedAt),
-		ReviewedBy:          v.ReviewedBy,
 		ReviewedAt:          tsPtr(v.ReviewedAt),
 		CreatedAt:           httpx.Timestamp(v.CreatedAt),
-		UpdatedAt:           httpx.Timestamp(v.UpdatedAt),
 	}
 	if out.DietaryTags == nil {
 		out.DietaryTags = []string{}
