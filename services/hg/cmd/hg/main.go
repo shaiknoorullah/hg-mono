@@ -219,6 +219,7 @@ func run() error {
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
 		st.Objects().Client,
+		files.NewMinIOObjectStore(st.Objects().Client),
 		files.Buckets{
 			KYC:     cfg.MinIO.Buckets.KYC,
 			POD:     cfg.MinIO.Buckets.POD,

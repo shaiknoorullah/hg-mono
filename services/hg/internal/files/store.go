@@ -21,17 +21,20 @@ type Presigner interface {
 	PresignedGetObject(ctx context.Context, bucket, object string, expires time.Duration, reqParams url.Values) (*url.URL, error)
 }
 
-// Repo is the files module's data access plus the object presigner. It never
-// opens its own pool or client — both are the shared ones from store.Open.
+// Repo is the files module's data access plus the object presigner and the
+// object-store seam confirmUpload needs. It never opens its own pool or client —
+// both are the shared ones from store.Open.
 type Repo struct {
 	pool      *pgxpool.Pool
 	presigner Presigner
+	objects   ObjectStore
 	buckets   Buckets
 }
 
-// NewRepo builds the repository.
-func NewRepo(pool *pgxpool.Pool, presigner Presigner, buckets Buckets) *Repo {
-	return &Repo{pool: pool, presigner: presigner, buckets: buckets}
+// NewRepo builds the repository. objects may be nil, in which case confirmUpload
+// answers 503 rather than marking an object READY it never verified.
+func NewRepo(pool *pgxpool.Pool, presigner Presigner, objects ObjectStore, buckets Buckets) *Repo {
+	return &Repo{pool: pool, presigner: presigner, objects: objects, buckets: buckets}
 }
 
 // storedObjectRow is the stored_object projection.

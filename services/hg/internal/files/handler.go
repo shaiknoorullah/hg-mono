@@ -15,6 +15,9 @@ const (
 	codeValidationFailed httpx.ErrorCode = "VALIDATION_FAILED"
 	codeNotFound         httpx.ErrorCode = "NOT_FOUND"
 	codePayloadTooLarge  httpx.ErrorCode = "PAYLOAD_TOO_LARGE"
+	codeContentType      httpx.ErrorCode = "CONTENT_TYPE_MISMATCH"
+	codeChecksum         httpx.ErrorCode = "CHECKSUM_MISMATCH"
+	codeImageTooSmall    httpx.ErrorCode = "IMAGE_TOO_SMALL"
 )
 
 // Handler serves the uploads/documents operations (P-28).
@@ -135,6 +138,52 @@ func (h *Handler) CreateDocumentDownloadURL(w http.ResponseWriter, r *http.Reque
 	httpx.Respond(w, r, http.StatusOK, presignedDownload{
 		URL:       res.URL,
 		ExpiresAt: httpx.Timestamp(res.ExpiresAt),
+	})
+}
+
+// ConfirmUpload implements confirmUpload (P-28): the server HEADs the object,
+// verifies size, content type and SHA-256, sniffs the magic bytes (a .pdf that
+// is really something else is rejected and deleted), enqueues a KYC virus scan,
+// and sets state=READY. Only the owner (or an admin) may confirm; another
+// partner's upload is 404. A verification failure is a 422 with the specific
+// reason; an unwired object store is an honest 503, never a fabricated READY.
+func (h *Handler) ConfirmUpload(w http.ResponseWriter, r *http.Request) {
+	uploadID := chi.URLParam(r, "uploadId")
+	p := httpx.PrincipalFrom(r.Context())
+	canConfirmAny := p.HasRole(httpx.RoleAdmin) || p.HasRole(httpx.RoleSuperAdmin)
+
+	out, err := h.repo.ConfirmUpload(r.Context(), actorFrom(r), uploadID, canConfirmAny)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrNotFound):
+			httpx.Fail(w, r, http.StatusNotFound, codeNotFound, "No such upload.", nil)
+		case errors.Is(err, errContentType):
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, codeContentType,
+				"The uploaded bytes do not match the declared content type.", nil)
+		case errors.Is(err, errChecksum):
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, codeChecksum,
+				"The uploaded bytes do not match the declared size or checksum.", nil)
+		case errors.Is(err, errImageTooSmall):
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, codeImageTooSmall,
+				"The uploaded image is below the minimum size for a document scan.", nil)
+		case errors.Is(err, errAlreadyRejected):
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, codeChecksum,
+				"The object failed verification and cannot be confirmed.", nil)
+		case errors.Is(err, errNotConfigured):
+			httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeServiceUnavailable,
+				"The object store is not configured; the upload cannot be verified.", nil)
+		default:
+			h.failInternal(w, r, err)
+		}
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, storedObject{
+		ID:           out.ID,
+		Purpose:      out.Purpose,
+		State:        out.State,
+		ContentType:  out.ContentType,
+		ByteSize:     out.ByteSize,
+		RejectReason: out.RejectReason,
 	})
 }
 
