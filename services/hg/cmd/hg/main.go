@@ -196,6 +196,11 @@ func run() error {
 		log.Info("stripe configured",
 			slog.Bool("livemode", cfg.Stripe.LiveMode()),
 			slog.Bool("webhook_secret_set", cfg.Stripe.WebhookSecret != ""))
+	} else if cfg.Env.IsLocal() {
+		// Local dev only: a fake payment client so orders can be placed end-to-end
+		// without real Stripe credentials. Never reachable outside local env.
+		stripeClient = payments.NewFakeStripe()
+		log.Warn("stripe NOT configured — using LOCAL FAKE payment client (dev only, never production)")
 	} else {
 		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
 	}
