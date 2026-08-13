@@ -39,6 +39,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
@@ -196,6 +197,12 @@ func run() error {
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
 	dispatch.Routes(router, dispatch.NewHandler(dispatch.NewService(dispatch.NewStore(st.DB().Pool))))
+
+	// B7 — Restaurant partner portal (R-01…R-26).
+	// Scope resolver reads account_role; ownership enforced in SQL (P-07 / IDOR).
+	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
+	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil))
+
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), payments.Routes(router, …),
 	// realtime.Routes(router, …), files.Routes(router, …), admin.Routes(router, …).
