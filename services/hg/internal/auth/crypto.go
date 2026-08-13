@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/ed25519"
 	"crypto/hmac"
 	"crypto/rand"
@@ -143,3 +145,49 @@ func SignAccessToken(headerB64, claimsB64 string, priv ed25519.PrivateKey) strin
 
 // b64url is the JOSE base64url (no padding) encoder used for JWT segments.
 func b64url(b []byte) string { return base64.RawURLEncoding.EncodeToString(b) }
+
+// SealAESGCM encrypts plaintext under a 32-byte key using AES-256-GCM,
+// returning the sealed ciphertext (nonce + ciphertext + tag).
+func SealAESGCM(key []byte, plaintext []byte) ([]byte, error) {
+	if len(key) != 32 {
+		return nil, errors.New("aes-gcm: key must be 32 bytes")
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("aes-gcm: cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("aes-gcm: gcm: %w", err)
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, fmt.Errorf("aes-gcm: nonce: %w", err)
+	}
+	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+}
+
+// OpenAESGCM decrypts sealed ciphertext under a 32-byte key using AES-256-GCM.
+func OpenAESGCM(key []byte, sealed []byte) ([]byte, error) {
+	if len(key) != 32 {
+		return nil, errors.New("aes-gcm: key must be 32 bytes")
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("aes-gcm: cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("aes-gcm: gcm: %w", err)
+	}
+	nonceSize := gcm.NonceSize()
+	if len(sealed) < nonceSize {
+		return nil, errors.New("aes-gcm: ciphertext too short")
+	}
+	nonce, ciphertext := sealed[:nonceSize], sealed[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, fmt.Errorf("aes-gcm: open: %w", err)
+	}
+	return plaintext, nil
+}

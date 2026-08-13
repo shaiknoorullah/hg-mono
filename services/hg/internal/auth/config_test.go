@@ -10,9 +10,12 @@ import (
 func validEnv() map[string]string {
 	seed := make([]byte, ed25519.SeedSize)
 	_, _ = rand.Read(seed)
+	appKey := make([]byte, 32)
+	_, _ = rand.Read(appKey)
 	return map[string]string{
 		"HG_OTP_PEPPER":            "this-is-a-sixteen-plus-byte-pepper",
 		"HG_AUTH_SIGNING_KEY_SEED": base64.StdEncoding.EncodeToString(seed),
+		"HG_APP_DATA_KEY":          base64.StdEncoding.EncodeToString(appKey),
 	}
 }
 

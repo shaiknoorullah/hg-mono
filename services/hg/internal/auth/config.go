@@ -31,6 +31,9 @@ type Secrets struct {
 	// CurrentTermsVersion is the terms string registerRestaurant must match
 	// (409 TERMS_VERSION_STALE otherwise).
 	CurrentTermsVersion string
+	// AppDataKey is the 32-byte AES-256 key for sealing application data like
+	// TOTP secrets under AES-GCM.
+	AppDataKey []byte
 }
 
 // Getenv is the minimal environment accessor, matching config.Load's shape so a
@@ -43,6 +46,7 @@ type Getenv func(string) string
 //   - HG_AUTH_SIGNING_KEY_SEED (required) base64 32-byte Ed25519 seed
 //   - HG_AUTH_SIGNING_KID      (optional, default "k1")
 //   - HG_AUTH_TERMS_VERSION    (optional, default "2026-01")
+//   - HG_APP_DATA_KEY          (required) base64 32-byte AES-256 key
 //
 // secure is passed from the caller (true outside local) because whether the
 // cookie is Secure is an environment property the config package already owns.
@@ -86,6 +90,22 @@ func LoadSecrets(getenv Getenv, secure bool) (*Secrets, error) {
 		terms = "2026-01"
 	}
 
+	appDataKeyRaw := strings.TrimSpace(getenv("HG_APP_DATA_KEY"))
+	var appDataKey []byte
+	if appDataKeyRaw == "" {
+		problems = append(problems, "HG_APP_DATA_KEY is required and was not set")
+	} else {
+		k, err := base64.StdEncoding.DecodeString(appDataKeyRaw)
+		if err != nil {
+			k, err = base64.RawURLEncoding.DecodeString(appDataKeyRaw)
+		}
+		if err != nil || len(k) != 32 {
+			problems = append(problems, "HG_APP_DATA_KEY must be a base64-encoded 32-byte key")
+		} else {
+			appDataKey = k
+		}
+	}
+
 	if len(problems) > 0 {
 		return nil, fmt.Errorf("invalid auth configuration:\n  - %s", strings.Join(problems, "\n  - "))
 	}
@@ -100,6 +120,7 @@ func LoadSecrets(getenv Getenv, secure bool) (*Secrets, error) {
 		SigningPub:          pub,
 		RefreshCookieSecure: secure,
 		CurrentTermsVersion: terms,
+		AppDataKey:          appDataKey,
 	}, nil
 }
 
