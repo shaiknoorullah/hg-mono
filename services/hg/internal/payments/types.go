@@ -32,6 +32,9 @@ const (
 	CodeRefundAlreadyRequested httpx.ErrorCode = "REFUND_ALREADY_REQUESTED"
 	CodeStepNotAvailable       httpx.ErrorCode = "STEP_NOT_AVAILABLE"
 	CodeConflict               httpx.ErrorCode = "CONFLICT"
+	CodeDailyCapExceeded       httpx.ErrorCode = "DAILY_CAP_EXCEEDED"
+	CodeSelfApprovalForbidden  httpx.ErrorCode = "SELF_APPROVAL_FORBIDDEN"
+	CodeUnknownField           httpx.ErrorCode = "UNKNOWN_FIELD"
 )
 
 // MaxSavedCards is the C-24 cap on saved payment methods.
@@ -40,6 +43,16 @@ const MaxSavedCards = 5
 // GoodwillApprovalThresholdCents — a GOODWILL refund above this needs a second
 // admin approval (P-18 / decision O-04, launch default CAD 50.00).
 const GoodwillApprovalThresholdCents int64 = 5000
+
+// Rolling-24h authority caps per staff role (A-33). A request that would push
+// the operator's trailing-24h issued total over their cap is not rejected — it
+// creates an approval request and escalates to the next role up, so a customer's
+// refund is never lost. Support agents have the tightest window; a super admin
+// is the terminal approver (their above-cap path escalates to nobody).
+const (
+	CapSupportAgentCents int64 = 20000  // CAD 200.00 trailing 24h
+	CapAdminCents        int64 = 200000 // CAD 2000.00 trailing 24h
+)
 
 // PaymentState mirrors the contract PaymentState enum.
 type PaymentState string
@@ -302,6 +315,42 @@ type EarningsSummaryDTO struct {
 // AcknowledgementDTO is the inner data of the contract AcknowledgementResponse.
 type AcknowledgementDTO struct {
 	Acknowledged bool `json:"acknowledged"`
+}
+
+// AdminRefundInput is the contract AdminRefundInput schema (issueRefund body).
+// `amount_cents` is decoded as a pointer so the handler can tell "absent" from
+// "zero" — it is accepted ONLY with scope PARTIAL_AMOUNT and reason_code
+// GOODWILL (G-3's single staff-side monetary allowlist entry); any other use is
+// 422 UNKNOWN_FIELD. Every other scope's amount is computed from the order.
+type AdminRefundInput struct {
+	OrderID     string                 `json:"order_id"`
+	Scope       RefundScope            `json:"scope"`
+	ReasonCode  string                 `json:"reason_code"`
+	ReasonText  string                 `json:"reason_text"`
+	AmountCents *int64                 `json:"amount_cents"`
+	LineItems   []AdminRefundLineInput `json:"line_items"`
+	CaseID      *string                `json:"case_id"`
+}
+
+// AdminRefundLineInput is one quantity-only line of a PARTIAL_ITEMS admin refund.
+type AdminRefundLineInput struct {
+	OrderLineNo int32 `json:"order_line_no"`
+	Quantity    int32 `json:"quantity"`
+}
+
+// RefundApprovalRequestDTO is the contract RefundApprovalRequest schema — the
+// 202 body of issueRefund when the request is above the caller's authority cap.
+// It is projected from the PENDING_APPROVAL refund row itself (id == refund id),
+// so no refund is ever lost: the approval request IS the pending refund.
+type RefundApprovalRequestDTO struct {
+	ID                  string  `json:"id"`
+	OrderID             string  `json:"order_id"`
+	ProposedAmountCents int64   `json:"proposed_amount_cents"`
+	Currency            string  `json:"currency"`
+	RequiredRole        string  `json:"required_role"`
+	CaseID              *string `json:"case_id"`
+	Status              string  `json:"status"`
+	RequestedAt         string  `json:"requested_at"`
 }
 
 // strPtr returns a pointer to s, or nil for the empty string.

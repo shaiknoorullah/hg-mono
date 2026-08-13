@@ -361,6 +361,22 @@ func (r *Repo) PriorRefundedCents(ctx context.Context, q querier, orderID string
 	return sum, err
 }
 
+// IssuedByOperatorSince returns the sum of refund amounts an operator has issued
+// (as requested_by) since `since`, over refunds that still count against the
+// cap. It is the numerator of the A-33 rolling authority window: the cap is a
+// 24-hour window, not a per-request limit, so many small refunds still trip it.
+// DECLINED and CANCELLED refunds never happened for the customer, so they do not
+// consume the window.
+func (r *Repo) IssuedByOperatorSince(ctx context.Context, operatorID string, since time.Time) (int64, error) {
+	var sum int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT coalesce(sum(amount_cents),0) FROM refund
+		 WHERE requested_by = $1
+		   AND requested_at >= $2
+		   AND state NOT IN ('DECLINED','CANCELLED')`, operatorID, since).Scan(&sum)
+	return sum, err
+}
+
 // ---------------------------------------------------------------------------
 // Refunds — write path.
 // ---------------------------------------------------------------------------

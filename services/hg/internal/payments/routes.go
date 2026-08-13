@@ -37,6 +37,12 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Get("/v1/refunds", read(ActionRefundRead, "listRefunds"), h.ListRefunds)
 	r.Get("/v1/refunds/{refundId}", read(ActionRefundRead, "getRefund"), h.GetRefund)
 
+	// Admin goodwill refund under an authority cap (A-33 / P-18). MONEY-class and
+	// Idempotent — the mandatory Idempotency-Key is what stops a retried support
+	// click from issuing a second refund. Declares the refund.issue_goodwill
+	// action; the auth matrix must grant it to SUPPORT_AGENT, ADMIN, SUPER_ADMIN.
+	r.Post("/v1/admin/refunds", money(ActionRefundIssueGoodwill, "issueRefund"), h.IssueRefund)
+
 	// Stripe webhook (P-17) — the only PUBLIC route in this module.
 	r.Post("/v1/webhooks/stripe", httpx.Policy{
 		Public:      true,

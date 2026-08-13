@@ -206,6 +206,74 @@ func (h *Handler) GetRefund(w http.ResponseWriter, r *http.Request) {
 	httpx.Respond(w, r, http.StatusOK, dto)
 }
 
+// IssueRefund implements POST /v1/admin/refunds (issueRefund). A-33 / P-18.
+//
+// The authority check runs before anything reaches Stripe: within the caller's
+// rolling-24h cap the refund is authorised (201 Refund); above it, an approval
+// request is created and the case escalated (202 RefundApprovalRequest) — the
+// customer's request is never lost. amount_cents is accepted ONLY for a GOODWILL
+// PARTIAL_AMOUNT (G-3); anywhere else it is 422 UNKNOWN_FIELD.
+func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
+	p := httpx.PrincipalFrom(r.Context())
+	var in AdminRefundInput
+	if err := decodeJSON(r, &in); err != nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"The request body is not valid.", []httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
+		return
+	}
+	// Required fields (AdminRefundInput.required).
+	if in.OrderID == "" || in.Scope == "" || in.ReasonCode == "" {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"order_id, scope and reason_code are required.", nil)
+		return
+	}
+	if n := len(in.ReasonText); n < 10 || n > 1000 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"reason_text must be 10–1000 characters.",
+			[]httpx.FieldError{{Field: "reason_text", Code: "length", Message: "must be 10–1000 characters"}})
+		return
+	}
+	// G-3: amount_cents is the single staff-side inbound monetary field, allowed
+	// solely with scope PARTIAL_AMOUNT and reason_code GOODWILL. Any other use of
+	// it is a 422 UNKNOWN_FIELD — the field is treated as if it does not exist.
+	goodwill := in.Scope == ScopePartialAmount && in.ReasonCode == "GOODWILL"
+	if in.AmountCents != nil && !goodwill {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.ErrorCode(CodeUnknownField),
+			"amount_cents is accepted only for a GOODWILL PARTIAL_AMOUNT refund.",
+			[]httpx.FieldError{{Field: "amount_cents", Code: "unknown", Message: "not accepted for this scope/reason"}})
+		return
+	}
+	if goodwill {
+		if in.AmountCents == nil || *in.AmountCents <= 0 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"amount_cents is required and must be positive for a GOODWILL refund.", nil)
+			return
+		}
+	}
+	// PARTIAL_ITEMS must carry line_items.
+	if in.Scope == ScopePartialItems && len(in.LineItems) == 0 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"line_items are required for a PARTIAL_ITEMS refund.", nil)
+		return
+	}
+
+	roles := make([]string, 0, len(p.Roles))
+	for _, rr := range p.Roles {
+		roles = append(roles, string(rr))
+	}
+	refund, approval, escalated, err := h.svc.IssueAdminRefund(r.Context(), in, p.AccountID, roles)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	if escalated {
+		// Above the caller's cap: the approval request, 202 Accepted.
+		httpx.Respond(w, r, http.StatusAccepted, approval)
+		return
+	}
+	httpx.Respond(w, r, http.StatusCreated, refund)
+}
+
 // ---------------------------------------------------------------------------
 // Stripe webhook (public, signature-verified).
 // ---------------------------------------------------------------------------
