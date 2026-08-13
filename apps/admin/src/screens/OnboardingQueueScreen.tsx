@@ -8,6 +8,7 @@
  * are all real, driven by the table's own states.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 import { HgApiError, isApiError } from '@hg/api-client';
 import type { DataTableColumn, DataTableError } from '@hg/ui-web';
@@ -76,6 +77,7 @@ const COLUMNS: readonly DataTableColumn<ApplicationRow>[] = [
 ];
 
 export function OnboardingQueueScreen() {
+  const navigate = useNavigate();
   const [state, setState] = useState<QueueState>({
     status: 'loading',
     rows: [],
@@ -126,6 +128,14 @@ export function OnboardingQueueScreen() {
         getRowLabel={(row) => `application from ${row.display_name}`}
         loading={state.status === 'loading'}
         error={state.status === 'error' ? state.error : null}
+        onRowActivate={(row) => navigate(`/applications/${row.restaurant_id}`)}
+        rowActions={(row) => [
+          {
+            key: 'review',
+            label: 'Review',
+            onSelect: (r) => navigate(`/applications/${r.restaurant_id}`),
+          },
+        ]}
       />
     </section>
   );
