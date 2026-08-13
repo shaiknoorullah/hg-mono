@@ -47,6 +47,29 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
 
+// orderPaymentGateway bridges the orders module to the payments sibling: it
+// implements orders.PaymentGateway by asking the payments service to authorise
+// a manual-capture PaymentIntent for the order (P-16 step 3/4).
+type orderPaymentGateway struct{ svc *payments.Service }
+
+func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.CreateIntentInput) (orders.CreateIntentResult, error) {
+	method := ""
+	if in.PaymentMethodID != nil {
+		method = *in.PaymentMethodID
+	}
+	row, err := g.svc.Authorise(ctx, payments.AuthoriseInput{
+		OrderID:        in.OrderID,
+		AmountCents:    in.AmountCents,
+		Currency:       in.Currency,
+		StripeMethod:   method,
+		IdempotencyKey: "order:" + in.OrderID,
+	})
+	if err != nil {
+		return orders.CreateIntentResult{}, err
+	}
+	return orders.CreateIntentResult{ClientSecret: row.StripePaymentIntentID + "_secret"}, nil
+}
+
 func main() {
 	if err := run(); err != nil {
 		// Boot failures go to stderr in plain text as well as the structured
@@ -174,13 +197,9 @@ func run() error {
 	// to provide; until it is wired, orders uses the honest unwired gateway that
 	// 503s rather than fabricating a client_secret, and createOrder answers 503.
 	ordersStore := orders.NewStore(st.DB().Pool)
-	orders.Routes(router, orders.NewHandler(ordersStore, nil, log))
-
-	// The P-15 deadline runner: one in-process ticker per replica, claiming due
-	// order rows with FOR UPDATE SKIP LOCKED. It shares the root context so it
-	// stops on shutdown.
-	deadlineRunner := orders.NewDeadlineRunner(ordersStore, nil, log, cfg.HTTPAddr)
-	go deadlineRunner.Run(ctx)
+	// The orders handler + P-15 deadline runner are wired just below, AFTER the
+	// payments service, so createOrder can ask the payments gateway for a real
+	// PaymentIntent (P-16 3/4) rather than the unwired nil gateway.
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// dispatch.Routes(router, …), payments.Routes(router, …),
@@ -206,6 +225,13 @@ func run() error {
 	}
 	paymentsSvc := payments.NewService(payments.NewRepo(st.DB().Pool), stripeClient, cfg.Stripe, log)
 	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
+
+	// Wire orders to the payments gateway (deferred from B5 above): createOrder
+	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
+	orderGateway := orderPaymentGateway{svc: paymentsSvc}
+	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
+	deadlineRunner := orders.NewDeadlineRunner(ordersStore, nil, log, cfg.HTTPAddr)
+	go deadlineRunner.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
