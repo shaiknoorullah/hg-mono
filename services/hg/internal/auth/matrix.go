@@ -97,6 +97,10 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleRestaurantOwner: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		ActionChangePassword,
+		ActionEnrollTOTP,
+		ActionVerifyTOTPEnrolment,
+		ActionDisableTOTP,
 		httpx.Action("connect.read"),
 		httpx.Action("connect.write"),
 		httpx.Action("kyc_document.download"),
@@ -129,6 +133,10 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleRestaurantManager: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		ActionChangePassword,
+		ActionEnrollTOTP,
+		ActionVerifyTOTPEnrolment,
+		ActionDisableTOTP,
 		httpx.Action("connect.read"),
 		httpx.Action("kyc_document.download"),
 		httpx.Action("realtime_schema.read"),
@@ -159,6 +167,7 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleRestaurantStaff: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		ActionChangePassword,
 		httpx.Action("realtime_schema.read"),
 		httpx.Action("realtime_ticket.create"),
 		httpx.Action("restaurant.accepting_orders_set"),
@@ -180,6 +189,9 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleSupportAgent: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		ActionChangePassword,
+		ActionEnrollTOTP,
+		ActionVerifyTOTPEnrolment,
 		httpx.Action("halal_certificate.read"),
 		httpx.Action("halal_issuing_body.read"),
 		httpx.Action("order.cancel_support"),
@@ -195,6 +207,9 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleAdmin: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		ActionChangePassword,
+		ActionEnrollTOTP,
+		ActionVerifyTOTPEnrolment,
 		httpx.Action("document.review"),
 		httpx.Action("halal_certificate.check"),
 		httpx.Action("halal_certificate.decide"),
@@ -227,6 +242,9 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleSuperAdmin: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		ActionChangePassword,
+		ActionEnrollTOTP,
+		ActionVerifyTOTPEnrolment,
 		httpx.Action("document.review"),
 		httpx.Action("halal_certificate.check"),
 		httpx.Action("halal_certificate.decide"),

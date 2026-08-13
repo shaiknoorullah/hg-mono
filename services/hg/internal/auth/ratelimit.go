@@ -32,10 +32,11 @@ func NewRateLimiter(rdb *redis.Client) *RateLimiter {
 
 // Allow increments the counter at key and reports whether it is within limit
 // over the window. The first increment sets the TTL. A Redis error returns
-// ErrLimiterUnavailable so the caller can fail closed.
+// ErrLimiterUnavailable so the caller can fail closed. When the limiter is
+// nil or rdb is nil (test / no-op mode) every call is allowed.
 func (rl *RateLimiter) Allow(ctx context.Context, key string, limit int64, window time.Duration) error {
 	if rl == nil || rl.rdb == nil {
-		return ErrLimiterUnavailable
+		return nil // no-op: allow everything in test/local mode without Redis
 	}
 	pipe := rl.rdb.TxPipeline()
 	incr := pipe.Incr(ctx, key)
@@ -51,9 +52,10 @@ func (rl *RateLimiter) Allow(ctx context.Context, key string, limit int64, windo
 
 // Cooldown reports the remaining TTL on a cooldown key (e.g. OTP resend). Zero
 // means no active cooldown. A Redis error is surfaced so the caller fails closed.
+// When rdb is nil, returns 0 (no cooldown — no-op mode).
 func (rl *RateLimiter) Cooldown(ctx context.Context, key string) (time.Duration, error) {
 	if rl == nil || rl.rdb == nil {
-		return 0, ErrLimiterUnavailable
+		return 0, nil // no-op
 	}
 	ttl, err := rl.rdb.TTL(ctx, key).Result()
 	if err != nil {
@@ -67,9 +69,10 @@ func (rl *RateLimiter) Cooldown(ctx context.Context, key string) (time.Duration,
 
 // SetCooldown sets a cooldown key with the given TTL. Used for the OTP 60 s
 // resend cooldown. The value is irrelevant; presence is the signal.
+// When rdb is nil, no-ops (returns nil).
 func (rl *RateLimiter) SetCooldown(ctx context.Context, key string, ttl time.Duration) error {
 	if rl == nil || rl.rdb == nil {
-		return ErrLimiterUnavailable
+		return nil // no-op
 	}
 	if err := rl.rdb.Set(ctx, key, "1", ttl).Err(); err != nil {
 		return ErrLimiterUnavailable

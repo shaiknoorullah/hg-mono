@@ -40,6 +40,23 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Get("/v1/auth/sessions", read("listSessions"), h.ListSessions)
 	r.Delete("/v1/auth/sessions/{sessionId}", revoke("revokeSession"), h.RevokeSession)
 	r.Get("/v1/auth/me", read("getCurrentPrincipal"), h.Me)
+
+	// Password change (P-03): all email/password roles.
+	r.Post("/v1/auth/password/change",
+		httpx.Policy{Action: ActionChangePassword, Class: httpx.ClassAuth, OperationID: "changePassword"},
+		h.ChangePassword)
+
+	// TOTP enrolment flow (P-01): enroll + verify for eligible roles;
+	// disable for restaurant roles only.
+	r.Post("/v1/auth/totp/enroll",
+		httpx.Policy{Action: ActionEnrollTOTP, Class: httpx.ClassAuth, OperationID: "enrollTotp"},
+		h.EnrollTOTP)
+	r.Post("/v1/auth/totp/verify",
+		httpx.Policy{Action: ActionVerifyTOTPEnrolment, Class: httpx.ClassAuth, OperationID: "verifyTotpEnrolment"},
+		h.VerifyTOTPEnrolment)
+	r.Post("/v1/auth/totp/disable",
+		httpx.Policy{Action: ActionDisableTOTP, Class: httpx.ClassAuth, OperationID: "disableTotp"},
+		h.DisableTOTP)
 }
 
 // PublicRouteAllowlist is the checked-in set of auth public routes (I-06.2).

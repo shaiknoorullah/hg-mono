@@ -146,6 +146,7 @@ func SignAccessToken(headerB64, claimsB64 string, priv ed25519.PrivateKey) strin
 // b64url is the JOSE base64url (no padding) encoder used for JWT segments.
 func b64url(b []byte) string { return base64.RawURLEncoding.EncodeToString(b) }
 
+<<<<<<< HEAD
 // SealAESGCM encrypts plaintext under a 32-byte key using AES-256-GCM,
 // returning the sealed ciphertext (nonce + ciphertext + tag).
 func SealAESGCM(key []byte, plaintext []byte) ([]byte, error) {
@@ -190,4 +191,47 @@ func OpenAESGCM(key []byte, sealed []byte) ([]byte, error) {
 		return nil, fmt.Errorf("aes-gcm: open: %w", err)
 	}
 	return plaintext, nil
+=======
+// SealAESGCM encrypts plaintext under a 32-byte key using AES-256-GCM with a
+// random 12-byte nonce prepended to the ciphertext. The output is
+// nonce || ciphertext || tag (96 bytes overhead).
+func SealAESGCM(key [32]byte, plaintext []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		return nil, fmt.Errorf("seal: new cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("seal: new gcm: %w", err)
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, fmt.Errorf("seal: nonce: %w", err)
+	}
+	ct := gcm.Seal(nonce, nonce, plaintext, nil)
+	return ct, nil
+}
+
+// OpenAESGCM decrypts ciphertext produced by SealAESGCM. It returns an error
+// if the ciphertext is malformed or the authentication tag fails.
+func OpenAESGCM(key [32]byte, ciphertext []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		return nil, fmt.Errorf("open: new cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("open: new gcm: %w", err)
+	}
+	ns := gcm.NonceSize()
+	if len(ciphertext) < ns {
+		return nil, errors.New("open: ciphertext too short")
+	}
+	nonce, ct := ciphertext[:ns], ciphertext[ns:]
+	plain, err := gcm.Open(nil, nonce, ct, nil)
+	if err != nil {
+		return nil, fmt.Errorf("open: decrypt: %w", err)
+	}
+	return plain, nil
+>>>>>>> feat/gap2-authtotp
 }

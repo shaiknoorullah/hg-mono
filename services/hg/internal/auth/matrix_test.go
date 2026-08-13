@@ -110,6 +110,11 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("staff.read"):                        {},
 		httpx.Action("upload.confirm"):                    {},
 		httpx.Action("upload.create"):                     {},
+		// gap2-authtotp additions
+		ActionChangePassword:      {},
+		ActionEnrollTOTP:          {},
+		ActionVerifyTOTPEnrolment: {},
+		ActionDisableTOTP:         {},
 	}
 	got := AllActions()
 	if len(got) != len(golden) {
