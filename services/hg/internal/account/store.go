@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
@@ -15,7 +16,15 @@ import (
 // row. It maps to 404 NOT_FOUND (IDOR: never 403) at the handler boundary.
 var errNotFound = errors.New("not found")
 
-func isNotFound(err error) bool { return errors.Is(err, errNotFound) }
+// errEmailInUse is returned when a profile email change collides with another
+// account's email (account.email is UNIQUE). It maps to 422 EMAIL_IN_USE.
+var errEmailInUse = errors.New("email in use")
+
+func isNotFound(err error) bool   { return errors.Is(err, errNotFound) }
+func isEmailInUse(err error) bool { return errors.Is(err, errEmailInUse) }
+
+// pgUniqueViolation is the SQLSTATE for a unique-constraint violation (23505).
+const pgUniqueViolation = "23505"
 
 // Repo is the account data-access layer. All queries are scoped to the
 // caller's account_id (P-07 / IDOR ownership enforced in SQL).
@@ -46,12 +55,19 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 		CreatedAt          time.Time
 	}
 
-	// We do it as a single UPDATE … RETURNING rather than UPDATE+SELECT so it is
-	// one round-trip and avoids a TOCTOU window.
-	//
-	// Build CASE-based update: only overwrite a column when the caller supplies it.
+	// The profile update and any email change on the account row must be one
+	// atomic unit: a half-applied profile is a partial write.
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return customerProfileResponse{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // rollback after Commit is a no-op
+
+	// Single UPDATE … RETURNING, scoped to the caller AND to a live (not
+	// soft-deleted) row. A CASE-based SET overwrites a column only when the
+	// caller supplied it; a soft-deleted profile matches no row → errNotFound.
 	var row scanRow
-	err := r.pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		UPDATE customer_profile
 		SET
 			first_name           = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE first_name END,
@@ -64,6 +80,7 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 			                       END,
 			updated_at           = now()
 		WHERE account_id = $1
+		  AND deleted_at IS NULL
 		RETURNING
 			account_id,
 			first_name,
@@ -92,13 +109,45 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 		return customerProfileResponse{}, err
 	}
 
-	// Fetch phone_e164, email and email_verified_at from the account table.
+	// Email change (C-03): setting email resets email_verified (email_verified_at
+	// → NULL) so a fresh verification is required. Only the caller's OWN, live
+	// account row is touched. A collision with another account's email is a
+	// clean EMAIL_IN_USE, never a bare 500.
+	if in.Email != nil {
+		tag, uErr := tx.Exec(ctx, `
+			UPDATE account
+			SET    email = $2::citext,
+			       email_verified_at = NULL,
+			       updated_at = now()
+			WHERE  id = $1
+			  AND  deleted_at IS NULL
+		`, callerID, *in.Email)
+		if uErr != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(uErr, &pgErr) && pgErr.Code == pgUniqueViolation {
+				return customerProfileResponse{}, errEmailInUse
+			}
+			return customerProfileResponse{}, uErr
+		}
+		if tag.RowsAffected() == 0 {
+			return customerProfileResponse{}, errNotFound
+		}
+	}
+
+	// Read back phone_e164, email and email_verified_at from the (same-tx)
+	// account row so the response reflects the just-applied email change.
 	var phoneE164 *string
 	var email *string
 	var emailVerifiedAt *time.Time
-	_ = r.pool.QueryRow(ctx,
+	if err = tx.QueryRow(ctx,
 		`SELECT phone_e164, email::text, email_verified_at FROM account WHERE id = $1`, callerID,
-	).Scan(&phoneE164, &email, &emailVerifiedAt)
+	).Scan(&phoneE164, &email, &emailVerifiedAt); err != nil {
+		return customerProfileResponse{}, err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return customerProfileResponse{}, err
+	}
 
 	phone := ""
 	if phoneE164 != nil {
@@ -139,24 +188,56 @@ func (r *Repo) UpsertDevice(ctx context.Context, callerID string, in deviceRegis
 		locale = "en-CA"
 	}
 
-	// Step 1: revoke any live binding of this token to a different account.
-	_, err := r.pool.Exec(ctx, `
-		UPDATE device
-		SET    revoked_at = now()
-		WHERE  expo_push_token = $1
-		  AND  account_id <> $2
-		  AND  revoked_at IS NULL
-	`, in.ExpoPushToken, callerID)
+	// The revoke and the upsert must be one atomic unit. The token-uniqueness
+	// index device_token_one_account (expo_push_token WHERE revoked_at IS NULL)
+	// admits exactly one live row per token; doing the revoke and the insert in
+	// separate autocommit statements leaves a window where a concurrent caller
+	// can observe the pre-revoke state and collide. A transaction closes it.
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return deviceResponse{}, err
 	}
+	defer tx.Rollback(ctx) //nolint:errcheck // rollback after Commit is a no-op
 
-	// Step 2: upsert on (account_id, device_id). The unique index
-	// device_unique covers (account_id, device_id) WHERE revoked_at IS NULL.
-	// We use INSERT … ON CONFLICT to handle both the create and the update
-	// in a single statement.
+	// Serialise all concurrent registrations of the SAME token. The partial
+	// unique index device_token_one_account admits one live row per token, but
+	// under READ COMMITTED two transactions registering the same token on
+	// different device_ids can each pass the revoke without seeing the other's
+	// uncommitted insert, and the loser then trips a 23505 on commit. A
+	// transaction-scoped advisory lock keyed on the token makes those
+	// registrations run one-at-a-time; the lock is released automatically at
+	// commit/rollback. It is a cooperative lock only for this code path, so it
+	// never blocks unrelated writers.
+	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, in.ExpoPushToken); err != nil {
+		return deviceResponse{}, err
+	}
+
+	// Step 1: revoke any live binding of this token that is NOT the exact row we
+	// are about to upsert. This covers two cases the token-uniqueness index
+	// would otherwise turn into a 500:
+	//   - the token is live on a DIFFERENT account (I-25.1 / shared phone), and
+	//   - the token is live on the SAME account under a DIFFERENT device_id
+	//     (the ON CONFLICT below keys on (account_id, device_id) and would not
+	//     touch that row, so inserting a second live row with the same token
+	//     would violate the token-uniqueness index).
+	// The row we keep (same account_id AND same device_id) is left alone so the
+	// upsert can update it in place.
+	if _, err = tx.Exec(ctx, `
+		UPDATE device
+		SET    revoked_at = now()
+		WHERE  expo_push_token = $1
+		  AND  revoked_at IS NULL
+		  AND  NOT (account_id = $2 AND device_id = $3)
+	`, in.ExpoPushToken, callerID, in.DeviceID); err != nil {
+		return deviceResponse{}, err
+	}
+
+	// Step 2: upsert on (account_id, device_id). The unique index device_unique
+	// covers (account_id, device_id) WHERE revoked_at IS NULL. RETURNING carries
+	// last_seen_at back directly — no second round-trip.
 	var resp deviceResponse
-	err = r.pool.QueryRow(ctx, `
+	var lastSeen time.Time
+	if err = tx.QueryRow(ctx, `
 		INSERT INTO device
 			(account_id, device_id, role_context, expo_push_token, platform,
 			 app_version, os_version, locale, push_enabled, last_seen_at)
@@ -186,9 +267,12 @@ func (r *Repo) UpsertDevice(ctx context.Context, callerID string, in deviceRegis
 		&resp.DeviceID,
 		&resp.Platform,
 		&resp.PushEnabled,
-		new(time.Time),
-	)
-	if err != nil {
+		&lastSeen,
+	); err != nil {
+		return deviceResponse{}, err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
 		return deviceResponse{}, err
 	}
 
@@ -198,13 +282,6 @@ func (r *Repo) UpsertDevice(ctx context.Context, callerID string, in deviceRegis
 	// echo back the caller's submitted, contract-valid Role rather than the
 	// collapsed storage value — preventing enum drift on the wire.
 	resp.RoleContext = in.RoleContext
-
-	// Re-query last_seen_at as a formatted timestamp.
-	var lastSeen time.Time
-	_ = r.pool.QueryRow(ctx,
-		`SELECT last_seen_at FROM device WHERE account_id=$1 AND device_id=$2 AND revoked_at IS NULL`,
-		callerID, in.DeviceID,
-	).Scan(&lastSeen)
 	resp.LastSeenAt = httpx.Timestamp(lastSeen)
 
 	return resp, nil

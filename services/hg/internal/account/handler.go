@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,25 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
+
+// uuidRe matches the canonical 8-4-4-4-12 hex UUID form. Path params and
+// cursors that are not UUIDs must never reach the store — a non-UUID string
+// cast against a uuid column raises a Postgres error that would surface as a
+// bare 500. A malformed id is instead treated as "no such resource" (404) or,
+// for a cursor, as an absent anchor.
+var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+func isUUID(s string) bool { return uuidRe.MatchString(s) }
+
+// CodeEmailInUse is the contract ErrorCode raised when a profile email change
+// collides with another account's email (account.email is UNIQUE). It is a
+// member of the contract's ErrorCode enum.
+const CodeEmailInUse httpx.ErrorCode = "EMAIL_IN_USE"
+
+// emailRe is a deliberately permissive shape check for the contract's
+// `format: email`. It rejects obvious garbage (no @, whitespace) without
+// pretending to be a full RFC 5322 validator.
+var emailRe = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 
 // Handler serves the account self-service HTTP operations.
 type Handler struct {
@@ -76,6 +96,7 @@ func decodeStrict(w http.ResponseWriter, r *http.Request, dst any) bool {
 type customerProfileUpdateInput struct {
 	FirstName        *string `json:"first_name"`
 	LastName         *string `json:"last_name"`
+	Email            *string `json:"email"`
 	AvatarObjectID   *string `json:"avatar_object_id"`
 	MarketingConsent *bool   `json:"marketing_consent"`
 }
@@ -166,12 +187,47 @@ func (h *Handler) UpdateCustomerProfile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Validate: first_name has minLength=1 when provided.
-	if in.FirstName != nil && strings.TrimSpace(*in.FirstName) == "" {
-		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"first_name must not be empty.",
-			[]httpx.FieldError{{Field: "first_name", Code: "min_length", Message: "first_name must have at least 1 character"}})
-		return
+	// Validate: first_name has minLength=1 / maxLength=50 when provided.
+	if in.FirstName != nil {
+		if strings.TrimSpace(*in.FirstName) == "" {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"first_name must not be empty.",
+				[]httpx.FieldError{{Field: "first_name", Code: "min_length", Message: "first_name must have at least 1 character"}})
+			return
+		}
+		if len([]rune(*in.FirstName)) > 50 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"first_name is too long.",
+				[]httpx.FieldError{{Field: "first_name", Code: "max_length", Message: "first_name must have at most 50 characters"}})
+			return
+		}
+	}
+	// last_name: minLength=1 / maxLength=50 when provided (contract schema).
+	if in.LastName != nil {
+		if strings.TrimSpace(*in.LastName) == "" {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"last_name must not be empty.",
+				[]httpx.FieldError{{Field: "last_name", Code: "min_length", Message: "last_name must have at least 1 character"}})
+			return
+		}
+		if len([]rune(*in.LastName)) > 50 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"last_name is too long.",
+				[]httpx.FieldError{{Field: "last_name", Code: "max_length", Message: "last_name must have at most 50 characters"}})
+			return
+		}
+	}
+	// email: format:email / maxLength=254 when provided. Changing email resets
+	// email_verified to false (handled in the store); a duplicate is EMAIL_IN_USE.
+	if in.Email != nil {
+		e := strings.TrimSpace(*in.Email)
+		if e == "" || len(e) > 254 || !emailRe.MatchString(e) {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"email is not a valid address.",
+				[]httpx.FieldError{{Field: "email", Code: "format", Message: "email must be a valid address of at most 254 characters"}})
+			return
+		}
+		*in.Email = e
 	}
 
 	if h.repo == nil {
@@ -184,6 +240,12 @@ func (h *Handler) UpdateCustomerProfile(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		if isNotFound(err) {
 			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
+			return
+		}
+		if isEmailInUse(err) {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeEmailInUse,
+				"That email address is already in use.",
+				[]httpx.FieldError{{Field: "email", Code: "conflict", Message: "email already registered to another account"}})
 			return
 		}
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
@@ -226,6 +288,21 @@ func (h *Handler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"device_id is required.",
 			[]httpx.FieldError{{Field: "device_id", Code: "required", Message: "device_id must not be empty"}})
+		return
+	}
+
+	// Length caps from the contract (expo_push_token maxLength 256,
+	// device_id maxLength 128). An oversize value must not reach the store.
+	if len(in.ExpoPushToken) > 256 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"expo_push_token is too long.",
+			[]httpx.FieldError{{Field: "expo_push_token", Code: "max_length", Message: "expo_push_token must have at most 256 characters"}})
+		return
+	}
+	if len(in.DeviceID) > 128 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"device_id is too long.",
+			[]httpx.FieldError{{Field: "device_id", Code: "max_length", Message: "device_id must have at most 128 characters"}})
 		return
 	}
 
@@ -323,27 +400,44 @@ func (h *Handler) ListNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	q := r.URL.Query()
+
+	// Parse ?limit= (default 20, range 1..100). The contract is explicit:
+	// "A non-numeric value is a 422, never a silent NaN"; likewise an out-of-
+	// range value is rejected rather than silently clamped. This is pure input
+	// validation, done before the store guard so it holds regardless of wiring.
+	limit := 20
+	if ls := q.Get("limit"); ls != "" {
+		n, err := strconv.Atoi(ls)
+		if err != nil || n < 1 || n > 100 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"limit must be an integer between 1 and 100.",
+				[]httpx.FieldError{{Field: "limit", Code: "range", Message: "limit must be an integer between 1 and 100"}})
+			return
+		}
+		limit = n
+	}
+
+	// Parse ?cursor= (opaque keyset token = last-seen notification id). It is a
+	// UUID; a malformed cursor must not reach the store (a bad uuid cast is a
+	// 500) — it is rejected as VALIDATION_FAILED.
+	cursor := q.Get("cursor")
+	if cursor != "" && !isUUID(cursor) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"cursor is not a valid keyset token.",
+			[]httpx.FieldError{{Field: "cursor", Code: "invalid", Message: "cursor must be an opaque keyset token from meta.next_cursor"}})
+		return
+	}
+
+	// Parse ?unread_only=true (a boolean; only the literal "true" enables it,
+	// matching the contract default of false for any other value).
+	unreadOnly := q.Get("unread_only") == "true"
+
 	if h.repo == nil {
 		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
 			"listNotifications is not yet connected to a store.", nil)
 		return
 	}
-
-	q := r.URL.Query()
-
-	// Parse ?limit= (default 20, max 100).
-	limit := 20
-	if ls := q.Get("limit"); ls != "" {
-		if n, err := strconv.Atoi(ls); err == nil && n > 0 && n <= 100 {
-			limit = n
-		}
-	}
-
-	// Parse ?cursor= (opaque keyset token = last-seen notification id).
-	cursor := q.Get("cursor")
-
-	// Parse ?unread_only=true.
-	unreadOnly := q.Get("unread_only") == "true"
 
 	items, nextCursor, err := h.repo.ListNotifications(r.Context(), p.AccountID, limit, cursor, unreadOnly)
 	if err != nil {
@@ -381,6 +475,14 @@ func (h *Handler) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notificationID := chi.URLParam(r, "notificationId")
+
+	// A malformed (non-UUID) id can never match a row; casting it against the
+	// uuid column would raise a 500. It is indistinguishable from a
+	// non-existent resource, so it is a 404 (IDOR: never 500, never a 403 leak).
+	if !isUUID(notificationID) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
+		return
+	}
 
 	if h.repo == nil {
 		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
