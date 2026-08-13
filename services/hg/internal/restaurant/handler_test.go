@@ -102,7 +102,9 @@ func TestSubmitProfileRejectsPriceField(t *testing.T) {
 		t.Fatalf("status = %d, want 422 (body: %s)", rec.Code, rec.Body.String())
 	}
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &env)
 	if env.Error.Code != "UNKNOWN_FIELD" && env.Error.Code != "VALIDATION_FAILED" {
@@ -171,7 +173,9 @@ func TestCreateMenuItemRejectsHalalCertifiedField(t *testing.T) {
 		t.Fatalf("status = %d, want 403 for HALAL_CERTIFIED assertion (body: %s)", rec.Code, rec.Body.String())
 	}
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &env)
 	if env.Error.Code != "FIELD_NOT_WRITABLE" {
@@ -205,7 +209,9 @@ func TestCreateMenuItemRejectsPriceOutOfRange(t *testing.T) {
 				t.Fatalf("price=%d: status=%d, want 422", tc.price, rec.Code)
 			}
 			var env struct {
-				Error struct{ Code string `json:"code"` } `json:"error"`
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
 			}
 			_ = json.Unmarshal(rec.Body.Bytes(), &env)
 			if env.Error.Code != "PRICE_OUT_OF_RANGE" && env.Error.Code != "VALIDATION_FAILED" {

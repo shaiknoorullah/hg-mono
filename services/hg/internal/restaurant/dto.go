@@ -29,9 +29,9 @@ type profileInputDTO struct {
 
 // hoursSlot is one weekly trading slot.
 type hoursSlot struct {
-	DayOfWeek      int    `json:"day_of_week"`
-	OpensAt        string `json:"opens_at"`
-	ClosesAt       string `json:"closes_at"`
+	DayOfWeek       int    `json:"day_of_week"`
+	OpensAt         string `json:"opens_at"`
+	ClosesAt        string `json:"closes_at"`
 	CrossesMidnight *bool  `json:"crosses_midnight"`
 }
 
@@ -94,8 +94,8 @@ type menuItemUpdateDTO struct {
 // availabilityInputDTO is the MenuItemAvailabilityInput schema.
 // No price field is present (R-18: binary state, not stock count).
 type availabilityInputDTO struct {
-	IsAvailable      bool    `json:"is_available"`
-	OutOfStockUntil  *string `json:"out_of_stock_until"`
+	IsAvailable     bool    `json:"is_available"`
+	OutOfStockUntil *string `json:"out_of_stock_until"`
 }
 
 // acceptInputDTO is the OrderAcceptInput schema.

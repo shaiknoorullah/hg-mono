@@ -311,7 +311,9 @@ func TestIntegration_GetProfile_IDOR(t *testing.T) {
 		t.Fatalf("other owner profile: status=%d, want 200 (body: %s)", rec.Code, rec.Body.String())
 	}
 	var env struct {
-		Data struct{ ID string `json:"id"` } `json:"data"`
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &env)
 	if env.Data.ID == f.restaurantID {
@@ -579,7 +581,9 @@ func TestIntegration_GetOwnMenu_IDOR(t *testing.T) {
 	var env struct {
 		Data struct {
 			Categories []struct {
-				Items []struct{ ID string `json:"id"` } `json:"items"`
+				Items []struct {
+					ID string `json:"id"`
+				} `json:"items"`
 			} `json:"categories"`
 		} `json:"data"`
 	}
@@ -642,7 +646,9 @@ func TestIntegration_CreateCategory_DuplicateName_409(t *testing.T) {
 		t.Fatalf("status=%d, want 409 CATEGORY_NAME_TAKEN (body: %s)", rec.Code, rec.Body.String())
 	}
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &env)
 	if env.Error.Code != "CATEGORY_NAME_TAKEN" {
@@ -1026,7 +1032,9 @@ func TestIntegration_AcceptOrder_IllegalTransition(t *testing.T) {
 			rec.Code, rec.Body.String())
 	}
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &env)
 	if env.Error.Code != "ILLEGAL_TRANSITION" && env.Error.Code != "OFFER_EXPIRED" {
@@ -1105,7 +1113,9 @@ func TestIntegration_SubmitDocuments_IncompletePack_422(t *testing.T) {
 			rec.Code, rec.Body.String())
 	}
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &env)
 	if env.Error.Code != "INCOMPLETE_DOCUMENT_PACK" {
