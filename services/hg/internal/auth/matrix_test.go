@@ -65,6 +65,13 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("rider.approve"):                   {},
 		httpx.Action("rider.availability.write"):        {},
 		httpx.Action("rider.position.write"):            {},
+		// Rider self-service surface (internal/rider).
+		httpx.Action("rider.read_self"):                 {},
+		httpx.Action("rider.onboarding.read"):           {},
+		httpx.Action("rider.onboarding.write"):          {},
+		httpx.Action("rider.document.read"):             {},
+		httpx.Action("rider.document.write"):            {},
+		httpx.Action("rider.dashboard.read"):            {},
 		httpx.Action("rider_application.claim"):         {},
 		httpx.Action("rider_application.read"):          {},
 		httpx.Action("staff.create"):                    {},
