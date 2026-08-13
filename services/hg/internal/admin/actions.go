@@ -39,4 +39,12 @@ const (
 	ActionMenuReviewRead     httpx.Action = "menu_version.read"
 	ActionMenuReviewDecide   httpx.Action = "menu_version.decide"
 	ActionMenuCreateOnBehalf httpx.Action = "menu.create_on_behalf"
+
+	// Order oversight (A-38).
+	// ActionOrderReadAny guards listOrdersAdmin and getOrderAdmin: staff can read
+	// any order regardless of customer ownership.
+	ActionOrderReadAny httpx.Action = "order.read_any"
+	// ActionOrderCancelSupport guards cancelOrderAdmin: staff can force-cancel via
+	// the support/admin path (machine transition T11).
+	ActionOrderCancelSupport httpx.Action = "order.cancel_support"
 )
