@@ -107,3 +107,42 @@ func (s *Store) RevokeOtherSessions(ctx context.Context, accountID, keepSessionI
 		accountID, keepSessionID, reason)
 	return err
 }
+
+// ChangePasswordAndRevokeAll sets a new argon2id hash and revokes every live
+// session for the account in a single transaction. changePassword then issues
+// one fresh session for the caller.
+//
+// Atomicity matters: two separate Execs could leave the password changed while
+// stale refresh-token families on other devices survive (a partial write with a
+// security consequence — a leaked old token would still authenticate). The
+// transaction makes "password changed but old sessions live" unrepresentable.
+//
+// Revoking *all* sessions (including the calling one) rather than "all but the
+// caller" is deliberate: the caller's pre-change session is replaced by a freshly
+// issued one, so its old refresh token must not survive the change.
+func (s *Store) ChangePasswordAndRevokeAll(ctx context.Context, accountID, newHash, reason string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	ct, err := tx.Exec(ctx, `
+		UPDATE account
+		SET password_hash = $2, password_set_at = now()
+		WHERE id = $1 AND deleted_at IS NULL`, accountID, newHash)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	if _, err = tx.Exec(ctx, `
+		UPDATE session SET revoked_at = now(), revoke_reason = $2
+		WHERE account_id = $1 AND revoked_at IS NULL`, accountID, reason); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}

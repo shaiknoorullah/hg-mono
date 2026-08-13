@@ -464,9 +464,15 @@ func (s *Service) Refresh(ctx context.Context, token string, client ClientSurfac
 	}, nil
 }
 
-// ChangePassword verifies the current password, hashes the new one, updates the
-// account, revokes other sessions, and re-issues a new session for the caller.
-func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, currentPassword, newPassword string) (*issuedSession, error) {
+// ChangePassword verifies the current password, hashes the new one, atomically
+// updates the account and revokes every session (I-03.2), then issues a single
+// fresh session for the caller with the same amr and client surface.
+//
+// The old calling session is intentionally revoked (not preserved): its
+// refresh-token family is replaced by the freshly issued one. Preserving the old
+// session and *also* minting a new one would leave the pre-change refresh token
+// valid — a stolen old token would survive the password change, defeating I-03.2.
+func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, currentPassword, newPassword string, client ClientSurface) (*issuedSession, error) {
 	if isBreachedPassword(newPassword) {
 		return nil, errBreachedPassword
 	}
@@ -488,19 +494,21 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 	if err != nil {
 		return nil, err
 	}
-	if err := s.store.ChangePassword(ctx, p.AccountID, newHash); err != nil {
+	// Atomic: password change + full session revocation. A partial write here
+	// (password changed, stale sessions live) is a security defect, so both
+	// statements share one transaction.
+	if err := s.store.ChangePasswordAndRevokeAll(ctx, p.AccountID, newHash, "password_changed"); err != nil {
 		return nil, err
 	}
-	// Revoke all other sessions (I-03.2): the calling session is preserved.
-	if err := s.store.RevokeOtherSessions(ctx, p.AccountID, p.SessionID, "password_changed"); err != nil {
-		return nil, err
-	}
-	// Re-issue a session for the caller with the same amr.
+	// Re-issue a single session for the caller with the same amr and client.
 	amr := "pwd"
 	if len(p.AMR) > 0 {
 		amr = p.AMR[0]
 	}
-	return s.issueSession(ctx, acct, amr, ClientRestaurantWeb, nil, nil, nil, false)
+	if !client.valid() {
+		client = ClientRestaurantWeb
+	}
+	return s.issueSession(ctx, acct, amr, client, nil, nil, nil, false)
 }
 
 // errWeakPassword is returned when a new password is too short or otherwise weak.
@@ -588,7 +596,23 @@ func (s *Service) VerifyTOTPEnrolment(ctx context.Context, accountID, code strin
 
 // DisableTOTP verifies the supplied TOTP code against the enrolled secret and
 // clears both totp_secret_enc and totp_enrolled_at.
+//
+// Policy gate (contract disableTotp: "Refused for roles whose policy requires
+// TOTP — 403 MFA_REQUIRED"): the P-05 matrix already withholds the disable
+// action from SUPPORT_AGENT/ADMIN/SUPER_ADMIN, but authorization passes when a
+// caller holds *any* granting role. An account carrying both a restaurant role
+// and ADMIN/SUPER_ADMIN would therefore reach this handler and could strip its
+// mandatory admin MFA. Re-checking the full grant set here closes that bypass:
+// a code-side matrix entry is not sufficient because roles compose.
 func (s *Service) DisableTOTP(ctx context.Context, accountID, code string) error {
+	grants, err := s.store.RolesFor(ctx, accountID)
+	if err != nil {
+		return err
+	}
+	if requiresTOTP(grants) {
+		return errTOTPMandatory
+	}
+
 	rec, err := s.store.GetTOTPRecord(ctx, accountID)
 	if err != nil {
 		return err
@@ -614,6 +638,9 @@ func (s *Service) DisableTOTP(ctx context.Context, accountID, code string) error
 var (
 	errTOTPNotEnrolled = errors.New("totp not enrolled")
 	errTOTPInvalidCode = errors.New("totp invalid code")
+	// errTOTPMandatory is returned when a caller whose role policy requires TOTP
+	// attempts disableTotp. Mapped to 403 MFA_REQUIRED per the contract.
+	errTOTPMandatory = errors.New("totp mandatory for role")
 )
 
 // chiURLParam reads a path parameter. Confined here so handlers do not import

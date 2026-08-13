@@ -50,7 +50,10 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issued, err := h.svc.ChangePassword(r.Context(), p, in.CurrentPassword, in.NewPassword)
+	// The re-issued session must honour the caller's actual client surface so the
+	// refresh token is delivered the right way (cookie for web, body for native).
+	client, _ := clientSurface(r)
+	issued, err := h.svc.ChangePassword(r.Context(), p, in.CurrentPassword, in.NewPassword, client)
 	switch {
 	case errors.Is(err, errInvalidCredentials):
 		httpx.Fail(w, r, http.StatusUnauthorized, CodeInvalidCredentials,
@@ -180,6 +183,10 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 
 	err := h.svc.DisableTOTP(r.Context(), p.AccountID, in.TOTPCode)
 	switch {
+	case errors.Is(err, errTOTPMandatory):
+		httpx.Fail(w, r, http.StatusForbidden, CodeMFARequired,
+			"TOTP is mandatory for your role and cannot be disabled.", nil)
+		return
 	case errors.Is(err, errTOTPNotEnrolled):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"TOTP is not enabled on this account.", nil)
