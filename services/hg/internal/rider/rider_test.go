@@ -1586,3 +1586,263 @@ func TestAdminRoleDeniedOnAllRiderRoutes(t *testing.T) {
 		})
 	}
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE 4 — ADVERSARIAL REGRESSION TESTS
+//
+// Each test below reproduces a concrete bug found during adversarial review and
+// asserts the fix. Before the fix the behaviour was a 500 leak, a swallowed
+// error, or a silently stored out-of-contract value.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// TestSubmitRiderVehicle_InvalidType_NotFiveHundred: an unknown vehicle_type
+// must be a clean 422 VALIDATION_FAILED, never a 500 from the ::vehicle_type
+// enum cast leaking as an internal error (enum drift must not leak).
+func TestSubmitRiderVehicle_InvalidType_NotFiveHundred(t *testing.T) {
+	pool := openTestDB(t)
+	ctx := context.Background()
+	router, iss := buildRouter(t, pool)
+
+	riderID := seedRiderAccount(t, ctx, pool, "VEHICLE_PENDING", "PENDING")
+	for _, vt := range []string{"TRUCK", "PLANE", "", "'; DROP TABLE rider_vehicle;--", "CAR; DROP"} {
+		body := map[string]any{"vehicle_type": vt}
+		rec := do(t, router, "POST", "/v1/riders/me/onboarding/vehicle", body, bearerFor(t, iss, riderID, []string{"RIDER"}))
+		if rec.Code == http.StatusInternalServerError {
+			t.Fatalf("vehicle_type=%q returned 500 (enum drift leaked): %s", vt, rec.Body)
+		}
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Errorf("vehicle_type=%q got %d, want 422", vt, rec.Code)
+			continue
+		}
+		if code := errorCode(t, rec); code != "VALIDATION_FAILED" {
+			t.Errorf("vehicle_type=%q error.code=%q, want VALIDATION_FAILED", vt, code)
+		}
+	}
+}
+
+// TestSubmitRiderVehicle_YearAndPlateBounds: year < 1990 (contract minimum) and
+// out-of-range plate length (contract 2–8) must be rejected 422, not stored.
+func TestSubmitRiderVehicle_YearAndPlateBounds(t *testing.T) {
+	pool := openTestDB(t)
+	ctx := context.Background()
+	router, iss := buildRouter(t, pool)
+
+	cases := []struct {
+		name string
+		body map[string]any
+	}{
+		{"year_too_old", map[string]any{"vehicle_type": "CAR", "licence_plate": "AB123", "year": 1200}},
+		{"year_negative", map[string]any{"vehicle_type": "CAR", "licence_plate": "AB123", "year": -5}},
+		{"plate_too_long", map[string]any{"vehicle_type": "CAR", "licence_plate": "TOOLONGPLATE12345"}},
+		{"plate_too_short", map[string]any{"vehicle_type": "CAR", "licence_plate": "A"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			riderID := seedRiderAccount(t, ctx, pool, "VEHICLE_PENDING", "PENDING")
+			rec := do(t, router, "POST", "/v1/riders/me/onboarding/vehicle", tc.body, bearerFor(t, iss, riderID, []string{"RIDER"}))
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("%s got %d, want 422: %s", tc.name, rec.Code, rec.Body)
+			}
+			if code := errorCode(t, rec); code != "VALIDATION_FAILED" {
+				t.Errorf("%s error.code=%q, want VALIDATION_FAILED", tc.name, code)
+			}
+		})
+	}
+}
+
+// TestSubmitRiderProfile_NameBounds: empty/whitespace names (contract minLength 1)
+// and over-length names (contract maxLength 50) must be rejected 422, not stored.
+func TestSubmitRiderProfile_NameBounds(t *testing.T) {
+	pool := openTestDB(t)
+	ctx := context.Background()
+	router, iss := buildRouter(t, pool)
+
+	longName := ""
+	for i := 0; i < 200; i++ {
+		longName += "x"
+	}
+	cases := []struct {
+		name string
+		body map[string]any
+	}{
+		{"empty_first", map[string]any{"first_name": "", "last_name": "Ok", "date_of_birth": "1990-01-01"}},
+		{"whitespace_first", map[string]any{"first_name": "   ", "last_name": "Ok", "date_of_birth": "1990-01-01"}},
+		{"empty_last", map[string]any{"first_name": "Ok", "last_name": "", "date_of_birth": "1990-01-01"}},
+		{"long_first", map[string]any{"first_name": longName, "last_name": "Ok", "date_of_birth": "1990-01-01"}},
+		{"bad_email", map[string]any{"first_name": "Ok", "last_name": "Ok", "date_of_birth": "1990-01-01", "email": "not-an-email"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			riderID := seedRiderAccount(t, ctx, pool, "PHONE_VERIFIED", "PENDING")
+			rec := do(t, router, "POST", "/v1/riders/me/onboarding/profile", tc.body, bearerFor(t, iss, riderID, []string{"RIDER"}))
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("%s got %d, want 422: %s", tc.name, rec.Code, rec.Body)
+			}
+			if code := errorCode(t, rec); code != "VALIDATION_FAILED" {
+				t.Errorf("%s error.code=%q, want VALIDATION_FAILED", tc.name, code)
+			}
+		})
+	}
+}
+
+// TestAttachRiderDocument_InvalidDocType_NotFiveHundred: an unknown doc_type must
+// be a clean 422, never a 500 from the ::rider_doc_type cast.
+func TestAttachRiderDocument_InvalidDocType_NotFiveHundred(t *testing.T) {
+	pool := openTestDB(t)
+	ctx := context.Background()
+	router, iss := buildRouter(t, pool)
+
+	riderID := seedRiderAccount(t, ctx, pool, "DOCUMENTS_PENDING", "PENDING")
+	soID := seedReadyObject(t, ctx, pool, riderID)
+	for _, dt := range []string{"FOO_BAR", "PASSPORT", "", "GOVERNMENT_ID; DROP"} {
+		body := map[string]any{"doc_type": dt, "stored_object_id": soID}
+		rec := do(t, router, "POST", "/v1/riders/me/documents", body,
+			bearerFor(t, iss, riderID, []string{"RIDER"}),
+			"Idempotency-Key", fmt.Sprintf("idem-dt-%d", time.Now().UnixNano()))
+		if rec.Code == http.StatusInternalServerError {
+			t.Fatalf("doc_type=%q returned 500 (enum drift leaked): %s", dt, rec.Body)
+		}
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Errorf("doc_type=%q got %d, want 422", dt, rec.Code)
+		}
+	}
+}
+
+// TestAttachRiderDocument_MalformedStoredObjectID_NotFiveHundred: a non-UUID
+// stored_object_id must be a clean 422 (or 404), never a 500 from a 22P02 cast
+// error on the uuid column.
+func TestAttachRiderDocument_MalformedStoredObjectID_NotFiveHundred(t *testing.T) {
+	pool := openTestDB(t)
+	ctx := context.Background()
+	router, iss := buildRouter(t, pool)
+
+	riderID := seedRiderAccount(t, ctx, pool, "DOCUMENTS_PENDING", "PENDING")
+	for _, so := range []string{"not-a-uuid", "12345", "'; DROP TABLE stored_object;--", ""} {
+		body := map[string]any{"doc_type": "PROFILE_PHOTO", "stored_object_id": so}
+		rec := do(t, router, "POST", "/v1/riders/me/documents", body,
+			bearerFor(t, iss, riderID, []string{"RIDER"}),
+			"Idempotency-Key", fmt.Sprintf("idem-so-%d", time.Now().UnixNano()))
+		if rec.Code == http.StatusInternalServerError {
+			t.Fatalf("stored_object_id=%q returned 500: %s", so, rec.Body)
+		}
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Errorf("stored_object_id=%q got %d, want 422", so, rec.Code)
+		}
+	}
+}
+
+// TestAttachRiderDocument_ExpiryRequiredForNonPhoto: every rider doc type except
+// PROFILE_PHOTO must carry expires_on (contract RiderDocumentInput). Omitting it
+// must be a 422, not a silently accepted document with a null valid_until.
+func TestAttachRiderDocument_ExpiryRequiredForNonPhoto(t *testing.T) {
+	pool := openTestDB(t)
+	ctx := context.Background()
+	router, iss := buildRouter(t, pool)
+
+	riderID := seedRiderAccount(t, ctx, pool, "DOCUMENTS_PENDING", "PENDING")
+	for _, dt := range []string{"DRIVERS_LICENCE", "VEHICLE_REGISTRATION", "VEHICLE_INSURANCE", "GOVERNMENT_ID", "WORK_ELIGIBILITY"} {
+		soID := seedReadyObject(t, ctx, pool, riderID)
+		body := map[string]any{"doc_type": dt, "stored_object_id": soID}
+		rec := do(t, router, "POST", "/v1/riders/me/documents", body,
+			bearerFor(t, iss, riderID, []string{"RIDER"}),
+			"Idempotency-Key", fmt.Sprintf("idem-exp-%d", time.Now().UnixNano()))
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Errorf("doc_type=%q without expires_on got %d, want 422: %s", dt, rec.Code, rec.Body)
+		}
+	}
+
+	// PROFILE_PHOTO remains exempt: no expires_on must still succeed.
+	soID := seedReadyObject(t, ctx, pool, riderID)
+	rec := do(t, router, "POST", "/v1/riders/me/documents",
+		map[string]any{"doc_type": "PROFILE_PHOTO", "stored_object_id": soID},
+		bearerFor(t, iss, riderID, []string{"RIDER"}),
+		"Idempotency-Key", fmt.Sprintf("idem-photo-%d", time.Now().UnixNano()))
+	if rec.Code != http.StatusCreated {
+		t.Errorf("PROFILE_PHOTO without expires_on got %d, want 201: %s", rec.Code, rec.Body)
+	}
+}
+
+// TestGetRiderDashboard_ReportsTodaysEarnings is the regression for the dashboard
+// earnings bug: the query targeted a non-existent table (rider_earning) and the
+// error was swallowed, so gross_cents/trips were ALWAYS 0. This test seeds real
+// earning_entry rows for today and asserts the dashboard reports them.
+func TestGetRiderDashboard_ReportsTodaysEarnings(t *testing.T) {
+	pool := openTestDB(t)
+	ctx := context.Background()
+	router, iss := buildRouter(t, pool)
+
+	riderID := seedRiderAccount(t, ctx, pool, "ACTIVE", "ACTIVE")
+
+	// Two DELIVERY entries earned today: 1200 + 800 = 2000 cents, 2 trips.
+	// gross_cents must equal SUM(gross_cents) and each row satisfies the
+	// gross identity (base + distance + wait + guarantee + tip + adjustment).
+	for _, e := range []struct{ base, tip int64 }{{1000, 200}, {600, 200}} {
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO earning_entry (account_id, type, status, base_cents, tip_cents, gross_cents, currency, earned_at)
+			VALUES ($1, 'DELIVERY', 'AVAILABLE', $2, $3, $4, 'CAD', now())`,
+			riderID, e.base, e.tip, e.base+e.tip); err != nil {
+			t.Fatalf("seed earning_entry: %v", err)
+		}
+	}
+	t.Cleanup(func() {
+		pool.Exec(context.Background(), `DELETE FROM earning_entry WHERE account_id=$1`, riderID)
+	})
+
+	rec := do(t, router, "GET", "/v1/riders/me/dashboard", nil, bearerFor(t, iss, riderID, []string{"RIDER"}))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
+	}
+	var env struct {
+		Data struct {
+			Today struct {
+				GrossCents int64 `json:"gross_cents"`
+				Trips      int   `json:"trips"`
+			} `json:"today"`
+		} `json:"data"`
+	}
+	mustJSON(t, rec, &env)
+	if env.Data.Today.GrossCents != 2000 {
+		t.Errorf("today.gross_cents=%d, want 2000 (dashboard swallowed earnings)", env.Data.Today.GrossCents)
+	}
+	if env.Data.Today.Trips != 2 {
+		t.Errorf("today.trips=%d, want 2", env.Data.Today.Trips)
+	}
+}
+
+// TestGetRiderDashboard_ScopesEarningsToCaller: earnings must be scoped to the
+// caller's own account_id in SQL — another rider's earnings must never leak.
+func TestGetRiderDashboard_ScopesEarningsToCaller(t *testing.T) {
+	pool := openTestDB(t)
+	ctx := context.Background()
+	router, iss := buildRouter(t, pool)
+
+	rider1 := seedRiderAccount(t, ctx, pool, "ACTIVE", "ACTIVE")
+	rider2 := seedRiderAccount(t, ctx, pool, "ACTIVE", "ACTIVE")
+
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO earning_entry (account_id, type, status, base_cents, gross_cents, currency, earned_at)
+		VALUES ($1, 'DELIVERY', 'AVAILABLE', 5000, 5000, 'CAD', now())`, rider1); err != nil {
+		t.Fatalf("seed rider1 earning: %v", err)
+	}
+	t.Cleanup(func() {
+		pool.Exec(context.Background(), `DELETE FROM earning_entry WHERE account_id=$1`, rider1)
+	})
+
+	// rider2 has no earnings — must see 0, not rider1's 5000.
+	rec := do(t, router, "GET", "/v1/riders/me/dashboard", nil, bearerFor(t, iss, rider2, []string{"RIDER"}))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
+	}
+	var env struct {
+		Data struct {
+			Today struct {
+				GrossCents int64 `json:"gross_cents"`
+				Trips      int   `json:"trips"`
+			} `json:"today"`
+		} `json:"data"`
+	}
+	mustJSON(t, rec, &env)
+	if env.Data.Today.GrossCents != 0 {
+		t.Errorf("rider2 saw gross_cents=%d — earnings leaked across accounts (IDOR)", env.Data.Today.GrossCents)
+	}
+}

@@ -377,14 +377,21 @@ SELECT availability_state, is_online, availability_changed_at
 		}
 	}
 
-	// Today's earnings: sum of rider_earning rows for today.
+	// Today's earnings: sum of the rider's DELIVERY earning entries earned since
+	// local midnight in the platform timezone (America/Toronto — Ontario launch).
+	// "Today" is a wall-clock day for the rider, so the boundary is computed in
+	// the platform zone, not UTC. gross_cents is the money field (int64 cents);
+	// trips counts delivery entries. The error is NOT swallowed — a failure here
+	// is a real fault and must surface, never masquerade as zero earnings.
 	const todayQ = `
-SELECT COALESCE(SUM(amount_cents), 0)::bigint, COUNT(*)::int
-  FROM rider_earning
- WHERE rider_id = $1
-   AND created_at >= date_trunc('day', now() AT TIME ZONE 'America/Toronto') AT TIME ZONE 'America/Toronto'`
-	_ = r.pool.QueryRow(ctx, todayQ, accountID).Scan(&row.GrossCents, &row.Trips)
-	// Ignore error — table may not exist yet; earnings are 0 by default.
+SELECT COALESCE(SUM(gross_cents), 0)::bigint,
+       COUNT(*) FILTER (WHERE type = 'DELIVERY')::int
+  FROM earning_entry
+ WHERE account_id = $1
+   AND earned_at >= (date_trunc('day', now() AT TIME ZONE 'America/Toronto') AT TIME ZONE 'America/Toronto')`
+	if err := r.pool.QueryRow(ctx, todayQ, accountID).Scan(&row.GrossCents, &row.Trips); err != nil {
+		return dashboardRow{}, err
+	}
 
 	return row, nil
 }
@@ -722,6 +729,77 @@ var motorisedVehicleTypes = map[string]bool{
 	"MOTORCYCLE": true,
 }
 
+// validVehicleTypes mirrors the closed VehicleType enum in the contract. The
+// handler validates against it *before* the SQL cast to ::vehicle_type so an
+// unknown value returns 422 VALIDATION_FAILED rather than a 500 from a Postgres
+// invalid_text_representation error (enum drift must never leak as an internal
+// error).
+var validVehicleTypes = map[string]bool{
+	"CAR":        true,
+	"SCOOTER":    true,
+	"MOTORCYCLE": true,
+	"BICYCLE":    true,
+	"ON_FOOT":    true,
+}
+
+// validRiderDocTypes mirrors the closed RiderDocType enum in the contract. Same
+// rationale as validVehicleTypes: reject unknown enum members with 422 rather
+// than letting the ::rider_doc_type cast fail as a 500.
+var validRiderDocTypes = map[string]bool{
+	"DRIVERS_LICENCE":      true,
+	"VEHICLE_REGISTRATION": true,
+	"VEHICLE_INSURANCE":    true,
+	"GOVERNMENT_ID":        true,
+	"WORK_ELIGIBILITY":     true,
+	"PROFILE_PHOTO":        true,
+}
+
+// docTypeRequiresExpiry reports whether the given rider doc type must carry an
+// expires_on value. Per the contract (RiderDocumentInput.expires_on): required
+// for every type except PROFILE_PHOTO.
+func docTypeRequiresExpiry(docType string) bool {
+	return docType != "PROFILE_PHOTO"
+}
+
+// isValidUUID reports whether s is a canonical 8-4-4-4-12 hex UUID. Used to
+// reject a malformed stored_object_id before it reaches a uuid-typed SQL column
+// (where a bad value would raise a 22P02 error → 500 leak).
+func isValidUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	for i, c := range s {
+		switch i {
+		case 8, 13, 18, 23:
+			if c != '-' {
+				return false
+			}
+		default:
+			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// looksLikeEmail is a deliberately minimal check for the contract's
+// format:email — a single '@' with a non-empty local part and a dotted domain.
+// The database is the authority on uniqueness; this only rejects obvious junk so
+// a malformed value is a clean 422 rather than a silently stored non-address.
+func looksLikeEmail(s string) bool {
+	at := strings.IndexByte(s, '@')
+	if at <= 0 || at == len(s)-1 {
+		return false
+	}
+	domain := s[at+1:]
+	if strings.IndexByte(s[at+1:], '@') >= 0 {
+		return false
+	}
+	dot := strings.IndexByte(domain, '.')
+	return dot > 0 && dot < len(domain)-1
+}
+
 // ─── Handlers ─────────────────────────────────────────────────────────────────
 
 // getRiderMe implements GET /v1/riders/me.
@@ -817,6 +895,33 @@ func (h *Handler) submitRiderProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate name fields against the contract's length bounds
+	// (first_name/last_name: minLength 1, maxLength 50). Trim first so a
+	// whitespace-only value is treated as empty rather than silently stored.
+	body.FirstName = strings.TrimSpace(body.FirstName)
+	body.LastName = strings.TrimSpace(body.LastName)
+	var nameErrs []httpx.FieldError
+	if body.FirstName == "" {
+		nameErrs = append(nameErrs, httpx.FieldError{Field: "first_name", Code: "required", Message: "first_name must not be empty"})
+	} else if len(body.FirstName) > 50 {
+		nameErrs = append(nameErrs, httpx.FieldError{Field: "first_name", Code: "too_long", Message: "first_name must be at most 50 characters"})
+	}
+	if body.LastName == "" {
+		nameErrs = append(nameErrs, httpx.FieldError{Field: "last_name", Code: "required", Message: "last_name must not be empty"})
+	} else if len(body.LastName) > 50 {
+		nameErrs = append(nameErrs, httpx.FieldError{Field: "last_name", Code: "too_long", Message: "last_name must be at most 50 characters"})
+	}
+	if body.Email != nil && *body.Email != "" {
+		if len(*body.Email) > 254 || !looksLikeEmail(*body.Email) {
+			nameErrs = append(nameErrs, httpx.FieldError{Field: "email", Code: "invalid", Message: "email must be a valid address of at most 254 characters"})
+		}
+	}
+	if len(nameErrs) > 0 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"One or more fields failed validation.", nameErrs)
+		return
+	}
+
 	// Validate date_of_birth.
 	dob, err := time.Parse("2006-01-02", body.DateOfBirth)
 	if err != nil {
@@ -885,7 +990,33 @@ func (h *Handler) submitRiderVehicle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vt := strings.ToUpper(body.VehicleType)
+	vt := strings.ToUpper(strings.TrimSpace(body.VehicleType))
+
+	// Validate vehicle_type against the closed VehicleType enum *before* the SQL
+	// cast so an unknown value is a clean 422, not a 500 from an invalid enum cast.
+	if !validVehicleTypes[vt] {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"vehicle_type is not a recognised value.",
+			[]httpx.FieldError{{Field: "vehicle_type", Code: "invalid", Message: "must be one of CAR, SCOOTER, MOTORCYCLE, BICYCLE, ON_FOOT"}})
+		return
+	}
+
+	// Validate year (contract: minimum 1990) and licence_plate length
+	// (contract: minLength 2, maxLength 8) before touching the database.
+	var fieldErrs []httpx.FieldError
+	if body.Year != nil && *body.Year < 1990 {
+		fieldErrs = append(fieldErrs, httpx.FieldError{Field: "year", Code: "out_of_range", Message: "year must be 1990 or later"})
+	}
+	if body.LicencePlate != nil {
+		if l := len(strings.TrimSpace(*body.LicencePlate)); l > 0 && (l < 2 || l > 8) {
+			fieldErrs = append(fieldErrs, httpx.FieldError{Field: "licence_plate", Code: "invalid", Message: "licence_plate must be between 2 and 8 characters"})
+		}
+	}
+	if len(fieldErrs) > 0 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"One or more fields failed validation.", fieldErrs)
+		return
+	}
 
 	// Non-motorised vehicles must not have a licence plate.
 	if !motorisedVehicleTypes[vt] && body.LicencePlate != nil && *body.LicencePlate != "" {
@@ -963,8 +1094,27 @@ func (h *Handler) attachRiderDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate expires_on: if present, must be ≥ 30 days from now (D-05).
-	// PROFILE_PHOTO is exempt from expiry requirement.
+	// Validate doc_type against the closed RiderDocType enum *before* the SQL
+	// cast so an unknown value is a clean 422, not a 500 from an invalid enum cast.
+	docType := strings.ToUpper(strings.TrimSpace(body.DocType))
+	if !validRiderDocTypes[docType] {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"doc_type is not a recognised value.",
+			[]httpx.FieldError{{Field: "doc_type", Code: "invalid", Message: "must be one of DRIVERS_LICENCE, VEHICLE_REGISTRATION, VEHICLE_INSURANCE, GOVERNMENT_ID, WORK_ELIGIBILITY, PROFILE_PHOTO"}})
+		return
+	}
+
+	// Validate stored_object_id is a well-formed UUID before it reaches the
+	// uuid-typed column; a malformed value would otherwise raise 22P02 → 500.
+	if !isValidUUID(strings.TrimSpace(body.StoredObjectID)) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"stored_object_id must be a UUID.",
+			[]httpx.FieldError{{Field: "stored_object_id", Code: "invalid", Message: "must be a UUID"}})
+		return
+	}
+
+	// Validate expires_on: required for every doc type except PROFILE_PHOTO;
+	// when present must be ≥ 30 days from now (D-05).
 	var expiresOn *time.Time
 	if body.ExpiresOn != nil && *body.ExpiresOn != "" {
 		exp, err := time.Parse("2006-01-02", *body.ExpiresOn)
@@ -980,9 +1130,14 @@ func (h *Handler) attachRiderDocument(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		expiresOn = &exp
+	} else if docTypeRequiresExpiry(docType) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"expires_on is required for this document type.",
+			[]httpx.FieldError{{Field: "expires_on", Code: "required", Message: "expires_on is required for every type except PROFILE_PHOTO"}})
+		return
 	}
 
-	doc, err := h.svc.repo.AttachDocument(r.Context(), p.AccountID, body.DocType, body.StoredObjectID, expiresOn)
+	doc, err := h.svc.repo.AttachDocument(r.Context(), p.AccountID, docType, strings.TrimSpace(body.StoredObjectID), expiresOn)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, codeNotFound, "Stored object not found or not owned by this account.", nil)
 		return
