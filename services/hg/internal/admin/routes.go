@@ -28,10 +28,14 @@ func Routes(r *httpx.Router, h *Handler) {
 	// Restaurant onboarding queue (A-13).
 	r.Get("/v1/admin/restaurant-applications", read(ActionRestaurantApplicationRead, "listRestaurantApplications"), h.ListRestaurantApplications)
 	r.Post("/v1/admin/restaurant-applications/take-next", write(ActionRestaurantApplicationClaim, "takeNextRestaurantApplication"), h.TakeNextRestaurantApplication)
+	r.Get("/v1/admin/restaurant-applications/{restaurantId}", read(ActionRestaurantApplicationRead, "getRestaurantApplication"), h.GetRestaurantApplication)
+	r.Post("/v1/admin/restaurant-applications/{restaurantId}/decision", write(ActionRestaurantApplicationDecide, "decideRestaurantApplication"), h.DecideRestaurantApplication)
 
 	// Rider onboarding queue (A-23).
 	r.Get("/v1/admin/rider-applications", read(ActionRiderApplicationRead, "listRiderApplications"), h.ListRiderApplications)
 	r.Post("/v1/admin/rider-applications/take-next", write(ActionRiderApplicationClaim, "takeNextRiderApplication"), h.TakeNextRiderApplication)
+	r.Get("/v1/admin/rider-applications/{riderAccountId}", read(ActionRiderApplicationRead, "getRiderApplication"), h.GetRiderApplication)
+	r.Post("/v1/admin/rider-applications/{riderAccountId}/decision", write(ActionRiderApplicationDecide, "decideRiderApplication"), h.DecideRiderApplication)
 
 	// Document review (A-14).
 	r.Post("/v1/admin/restaurant-documents/{documentId}/review", write(ActionDocumentReview, "reviewRestaurantDocument"), h.ReviewRestaurantDocument)

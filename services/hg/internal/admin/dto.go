@@ -184,3 +184,106 @@ type riderApplicationSummary struct {
 	SubmittedAt         string  `json:"submitted_at"`
 	SLADueAt            string  `json:"sla_due_at"`
 }
+
+// --- Application detail (A-13, A-18, A-23) ---
+
+// publicAddress is the contract's PublicAddress.
+type publicAddress struct {
+	Line1      string  `json:"line1"`
+	Line2      *string `json:"line2"`
+	City       string  `json:"city"`
+	Province   string  `json:"province"`
+	PostalCode string  `json:"postal_code"`
+	Latitude   float64 `json:"latitude"`
+	Longitude  float64 `json:"longitude"`
+}
+
+// halalBadge is the contract's HalalBadge.
+type halalBadge struct {
+	DisplayState       string  `json:"display_state"`
+	CertifyingBodyName *string `json:"certifying_body_name"`
+	ExpiresOn          *string `json:"expires_on"`
+}
+
+// restaurantProfile is the contract's RestaurantProfile. Only the fields the
+// review screen carries are emitted; every one is named by the schema.
+type restaurantProfile struct {
+	ID              string        `json:"id"`
+	LegalName       string        `json:"legal_name"`
+	DisplayName     string        `json:"display_name"`
+	Description     *string       `json:"description"`
+	OwnerFirstName  *string       `json:"owner_first_name"`
+	OwnerLastName   *string       `json:"owner_last_name"`
+	PhoneE164       *string       `json:"phone_e164"`
+	PublicPhoneE164 *string       `json:"public_phone_e164"`
+	GSTHSTNumber    *string       `json:"gst_hst_number"`
+	Address         publicAddress `json:"address"`
+	Timezone        string        `json:"timezone"`
+	CuisineIDs      []string      `json:"cuisine_ids"`
+	AvgPrepMinutes  int           `json:"avg_prep_minutes"`
+	DeliveryRadiusM int           `json:"delivery_radius_m"`
+	AccountState    string        `json:"account_state"`
+	OnboardingState string        `json:"onboarding_state"`
+	Halal           *halalBadge   `json:"halal,omitempty"`
+	CommissionBps   int           `json:"commission_rate_bps"`
+}
+
+// restaurantApplication is the contract's RestaurantApplication (summary + detail).
+type restaurantApplication struct {
+	restaurantApplicationSummary
+	Profile           restaurantProfile `json:"profile"`
+	Documents         []kycDocument     `json:"documents"`
+	HalalCertificate  *halalCertificate `json:"halal_certificate"`
+	Blockers          []string          `json:"blockers"`
+	AddressPinWarning *string           `json:"address_pin_warning"`
+}
+
+// restaurantDecisionInput is the contract's RestaurantDecisionInput. No admin_id
+// is ever present: the decider is the authenticated principal.
+type restaurantDecisionInput struct {
+	Decision        string   `json:"decision"`
+	ReasonCode      string   `json:"reason_code"`
+	ReasonText      string   `json:"reason_text"`
+	InternalNote    *string  `json:"internal_note"`
+	DocumentsToRedo []string `json:"documents_to_redo"`
+}
+
+// riderProfile is the contract's RiderProfile.
+type riderProfile struct {
+	AccountID   string  `json:"account_id"`
+	FirstName   string  `json:"first_name"`
+	LastName    string  `json:"last_name"`
+	Email       *string `json:"email"`
+	DateOfBirth string  `json:"date_of_birth"`
+	Timezone    string  `json:"timezone"`
+}
+
+// riderVehicle is the contract's RiderVehicle.
+type riderVehicle struct {
+	ID           string  `json:"id"`
+	VehicleType  string  `json:"vehicle_type"`
+	Make         *string `json:"make"`
+	Model        *string `json:"model"`
+	Year         *int    `json:"year"`
+	Colour       *string `json:"colour"`
+	LicencePlate *string `json:"licence_plate"`
+	IsActive     bool    `json:"is_active"`
+}
+
+// riderApplication is the contract's RiderApplication (summary + detail).
+type riderApplication struct {
+	riderApplicationSummary
+	Profile          riderProfile  `json:"profile"`
+	Vehicle          *riderVehicle `json:"vehicle"`
+	Documents        []kycDocument `json:"documents"`
+	ComputedAgeYears *int          `json:"computed_age_years"`
+	Blockers         []string      `json:"blockers"`
+}
+
+// riderDecisionInput is the contract's RiderDecisionInput.
+type riderDecisionInput struct {
+	Decision        string   `json:"decision"`
+	ReasonCode      string   `json:"reason_code"`
+	ReasonText      string   `json:"reason_text"`
+	DocumentsToRedo []string `json:"documents_to_redo"`
+}
