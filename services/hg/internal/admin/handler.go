@@ -32,14 +32,20 @@ func DefaultConfig() Config {
 // Handler serves the admin operations. It holds the repository and the settings
 // it reads; it never opens a pool or reads identity from a request body.
 type Handler struct {
-	repo *Repo
-	cfg  Config
-	now  func() time.Time
+	repo       *Repo
+	ordersRepo *OrdersRepo
+	cfg        Config
+	now        func() time.Time
 }
 
 // NewHandler builds the admin handler.
 func NewHandler(repo *Repo, cfg Config) *Handler {
-	return &Handler{repo: repo, cfg: cfg, now: func() time.Time { return time.Now().UTC() }}
+	return &Handler{
+		repo:       repo,
+		ordersRepo: NewOrdersRepo(repo.pool),
+		cfg:        cfg,
+		now:        func() time.Time { return time.Now().UTC() },
+	}
 }
 
 // today is the America/Toronto business date used for H5's expiry arithmetic

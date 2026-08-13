@@ -37,11 +37,16 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("offer.read"):                      {},
 		httpx.Action("offer.reject"):                    {},
 		httpx.Action("order.cancel"):                    {},
+		httpx.Action("order.cancel_support"):            {},
 		httpx.Action("order.create"):                    {},
 		httpx.Action("order.read"):                      {},
+<<<<<<< HEAD
 		httpx.Action("order.tracking.read"):             {},
 		httpx.Action("order.receipt.read"):              {},
 		httpx.Action("order.rider_profile.read"):        {},
+=======
+		httpx.Action("order.read_any"):                  {},
+>>>>>>> feat/gap-adminorders
 		httpx.Action("payment.read"):                    {},
 		httpx.Action("payment_method.read"):             {},
 		httpx.Action("payment_method.write"):            {},

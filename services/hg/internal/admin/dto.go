@@ -287,3 +287,140 @@ type riderDecisionInput struct {
 	ReasonText      string   `json:"reason_text"`
 	DocumentsToRedo []string `json:"documents_to_redo"`
 }
+
+// --- Order oversight (A-38) ---
+
+// adminOrderRestaurant is the nested restaurant in OrderSummary / admin views.
+type adminOrderRestaurant struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// adminOrderSummary is the contract's OrderSummary (admin variant: no customer
+// ownership filter; includes restaurant object).
+type adminOrderSummary struct {
+	ID         string               `json:"id"`
+	Code       string               `json:"code"`
+	State      string               `json:"state"`
+	Restaurant adminOrderRestaurant `json:"restaurant"`
+	TotalCents int64                `json:"total_cents"`
+	Currency   string               `json:"currency"`
+	PlacedAt   string               `json:"placed_at"`
+}
+
+// adminOrderLine is one line in the admin order view.
+type adminOrderLine struct {
+	LineNo         int     `json:"line_no"`
+	MenuItemID     string  `json:"menu_item_id"`
+	Name           string  `json:"name"`
+	VariantName    *string `json:"variant_name"`
+	Quantity       int     `json:"quantity"`
+	SpecialRequest *string `json:"special_request"`
+	UnitPriceCents int64   `json:"unit_price_cents"`
+	LineTotalCents int64   `json:"line_total_cents"`
+	Currency       string  `json:"currency"`
+}
+
+// adminOrderMoney is the customer-visible money breakdown.
+type adminOrderMoney struct {
+	SubtotalCents    int64  `json:"subtotal_cents"`
+	DiscountCents    int64  `json:"discount_cents"`
+	DeliveryFeeCents int64  `json:"delivery_fee_cents"`
+	ServiceFeeCents  int64  `json:"service_fee_cents"`
+	TaxTotalCents    int64  `json:"tax_total_cents"`
+	TipCents         int64  `json:"tip_cents"`
+	TotalCents       int64  `json:"total_cents"`
+	Currency         string `json:"currency"`
+}
+
+// adminOrderInternalMoney is the internal split exposed only to staff.
+type adminOrderInternalMoney struct {
+	CommissionCents    int64  `json:"commission_cents"`
+	RestaurantNetCents int64  `json:"restaurant_net_cents"`
+	RiderEarningsCents int64  `json:"rider_earnings_cents"`
+	PlatformGrossCents int64  `json:"platform_gross_cents"`
+	Currency           string `json:"currency"`
+}
+
+// adminTransitionEntry is one entry in the order timeline (contract: OrderTransition).
+// The contract names the timestamp field "at" (not "occurred_at").
+type adminTransitionEntry struct {
+	FromState *string `json:"from_state"`
+	ToState   string  `json:"to_state"`
+	ActorKind string  `json:"actor_kind"`
+	Reason    *string `json:"reason"`
+	At        string  `json:"at"`
+}
+
+// adminOrderPayment is the contract's OrderPayment, projected for the admin view.
+// Required by OrderAdminView; all six required fields are always present.
+type adminOrderPayment struct {
+	OrderID               string  `json:"order_id"`
+	State                 string  `json:"state"`
+	Kind                  *string `json:"kind,omitempty"`
+	AmountAuthorizedCents int64   `json:"amount_authorized_cents"`
+	AmountCapturedCents   int64   `json:"amount_captured_cents"`
+	AmountRefundedCents   int64   `json:"amount_refunded_cents"`
+	Currency              string  `json:"currency"`
+	CardBrand             *string `json:"card_brand"`
+	CardLast4             *string `json:"card_last4"`
+	Wallet                *string `json:"wallet"`
+	FailureCode           *string `json:"failure_code"`
+	DeclineCode           *string `json:"decline_code"`
+	AuthorizedAt          *string `json:"authorized_at"`
+	CapturedAt            *string `json:"captured_at"`
+}
+
+// adminRefund is the contract's Refund, projected for the admin view.
+type adminRefund struct {
+	ID          string  `json:"id"`
+	OrderID     string  `json:"order_id"`
+	Kind        string  `json:"kind"`
+	Scope       *string `json:"scope"`
+	ReasonCode  string  `json:"reason_code"`
+	AmountCents int64   `json:"amount_cents"`
+	TaxCents    int64   `json:"tax_cents"`
+	Currency    string  `json:"currency"`
+	State       string  `json:"state"`
+	Note        *string `json:"note"`
+	RequestedAt string  `json:"requested_at"`
+	SettledAt   *string `json:"settled_at"`
+}
+
+// adminOrderView is the contract's OrderAdminView (OrderCustomerView + admin fields).
+// Only fields named by the contract are emitted (additionalProperties:false is
+// honoured by never adding a field the schema does not name).
+type adminOrderView struct {
+	ID            string                  `json:"id"`
+	Code          string                  `json:"code"`
+	State         string                  `json:"state"`
+	Restaurant    adminOrderRestaurant    `json:"restaurant"`
+	Lines         []adminOrderLine        `json:"lines"`
+	Money         adminOrderMoney         `json:"money"`
+	InternalMoney adminOrderInternalMoney `json:"internal_money"`
+	Timeline      []adminTransitionEntry  `json:"timeline"`
+	Payment       adminOrderPayment       `json:"payment"`
+	Refunds       []adminRefund           `json:"refunds"`
+	CancelReason  *string                 `json:"cancel_reason,omitempty"`
+	RejectReason  *string                 `json:"reject_reason,omitempty"`
+	PlacedAt      string                  `json:"placed_at"`
+	AcceptedAt    *string                 `json:"accepted_at"`
+	PiiRevealed   bool                    `json:"pii_revealed"`
+}
+
+// cancelOrderAdminInput is the body for cancelOrderAdmin (contract:
+// AdminOrderCancellationInput). additionalProperties:false is enforced by
+// decodeJSON/DisallowUnknownFields; every field the contract names is present
+// here so a valid body is never rejected as "unknown field".
+//
+//   - reason_code  is OrderCancellationReasonCode (a closed enum); the server
+//     validates it and writes it to order.cancel_reason verbatim (never a
+//     hard-coded substitute).
+//   - refund_kind  is optional and applies only post-capture; pre-capture the
+//     auth is voided and refund_kind is ignored.
+type cancelOrderAdminInput struct {
+	ReasonCode string  `json:"reason_code"`
+	ReasonText string  `json:"reason_text"`
+	CaseID     string  `json:"case_id"`
+	RefundKind *string `json:"refund_kind"`
+}

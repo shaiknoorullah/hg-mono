@@ -26,4 +26,7 @@ const (
 	CodeCheckFailed         httpx.ErrorCode = "CHECK_FAILED"
 	CodeDuplicateCert       httpx.ErrorCode = "DUPLICATE_CERTIFICATE"
 	CodeHalalCertRequired   httpx.ErrorCode = "HALAL_CERTIFICATE_REQUIRED"
+
+	// Order oversight (A-38).
+	CodeIllegalTransition httpx.ErrorCode = "ILLEGAL_TRANSITION"
 )

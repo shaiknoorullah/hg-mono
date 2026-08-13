@@ -51,4 +51,13 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Get("/v1/admin/halal-issuing-bodies", read(ActionHalalIssuerRead, "listHalalIssuingBodies"), h.ListHalalIssuingBodies)
 	r.Post("/v1/admin/halal-issuing-bodies", write(ActionHalalIssuerPropose, "proposeHalalIssuingBody"), h.ProposeHalalIssuingBody)
 	r.Post("/v1/admin/halal-issuing-bodies/{bodyId}/status", write(ActionHalalIssuerSetStatus, "setHalalIssuingBodyStatus"), h.SetHalalIssuingBodyStatus)
+
+	// Order oversight (A-38): staff can view any order and cancel with a reason.
+	// cancelOrderAdmin is MONEY class (idempotency key required, I-37.4).
+	money := func(action httpx.Action, op string) httpx.Policy {
+		return httpx.Policy{Action: action, Class: httpx.ClassMoney, Idempotent: true, OperationID: op}
+	}
+	r.Get("/v1/admin/orders", read(ActionOrderReadAny, "listOrdersAdmin"), h.ListOrdersAdmin)
+	r.Get("/v1/admin/orders/{orderId}", read(ActionOrderReadAny, "getOrderAdmin"), h.GetOrderAdmin)
+	r.Post("/v1/admin/orders/{orderId}/cancel", money(ActionOrderCancelSupport, "cancelOrderAdmin"), h.CancelOrderAdmin)
 }
