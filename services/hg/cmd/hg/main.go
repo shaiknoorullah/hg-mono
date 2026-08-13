@@ -39,6 +39,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
@@ -216,6 +217,9 @@ func run() error {
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
 	// payments.Routes(router, …), files.Routes(router, …), admin.Routes(router, …).
+
+	// B10 — Rider self-service (internal/rider).
+	rider.Routes(router, rider.NewHandler(rider.NewService(rider.NewRepo(st.DB().Pool))))
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
 	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
