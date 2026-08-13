@@ -12,8 +12,17 @@ import (
 // changes.
 func TestMatrixGolden(t *testing.T) {
 	golden := map[httpx.Action]struct{}{
-		ActionSessionReadSelf:                             {},
-		ActionSessionRevokeSelf:                           {},
+		ActionSessionReadSelf:   {},
+		ActionSessionRevokeSelf: {},
+		// account module (gap2-account) — contract-derived from each op's x-roles:
+		//   updateCustomerProfile → account.profile_write      [CUSTOMER]
+		//   registerDevice/unregisterDevice → account.device_write
+		//   listNotifications → account.notification_read
+		//   markNotificationRead → account.notification_ack
+		httpx.Action("account.profile_write"):             {},
+		httpx.Action("account.device_write"):              {},
+		httpx.Action("account.notification_read"):         {},
+		httpx.Action("account.notification_ack"):          {},
 		httpx.Action("assignment.pod.submit"):             {},
 		httpx.Action("assignment.read"):                   {},
 		httpx.Action("assignment.transition"):             {},
