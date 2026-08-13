@@ -36,7 +36,7 @@ type geoPointDTO struct {
 }
 
 type riderLocationDTO struct {
-	Latitude float64 `json:"latitude"`
+	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	// Kinematic fields are contract-nullable (type: [number, 'null']) and the
 	// reference fixtures render them as null when the fix lacks them (e.g.
