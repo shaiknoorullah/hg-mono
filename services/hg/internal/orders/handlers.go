@@ -39,18 +39,22 @@ const (
 	codeCancellationClosed  httpx.ErrorCode = "CANCELLATION_WINDOW_CLOSED"
 	codeIllegalTransition   httpx.ErrorCode = "ILLEGAL_TRANSITION"
 	codeNotFound            httpx.ErrorCode = "NOT_FOUND"
+	codeReceiptNotReady     httpx.ErrorCode = "RECEIPT_NOT_READY"
 )
 
 // P-05 actions this module guards its routes with. The auth sibling's matrix
 // maps roles to these; the machine package owns the transition actions.
 const (
-	ActionCartRead    httpx.Action = "cart.read"
-	ActionCartWrite   httpx.Action = "cart.write"
-	ActionQuoteCreate httpx.Action = "quote.create"
-	ActionQuoteRead   httpx.Action = "quote.read"
-	ActionOrderCreate httpx.Action = "order.create"
-	ActionOrderRead   httpx.Action = "order.read"
-	ActionOrderCancel httpx.Action = "order.cancel"
+	ActionCartRead              httpx.Action = "cart.read"
+	ActionCartWrite             httpx.Action = "cart.write"
+	ActionQuoteCreate           httpx.Action = "quote.create"
+	ActionQuoteRead             httpx.Action = "quote.read"
+	ActionOrderCreate           httpx.Action = "order.create"
+	ActionOrderRead             httpx.Action = "order.read"
+	ActionOrderCancel           httpx.Action = "order.cancel"
+	ActionOrderTrackingRead     httpx.Action = "order.tracking.read"
+	ActionOrderReceiptRead      httpx.Action = "order.receipt.read"
+	ActionOrderRiderProfileRead httpx.Action = "order.rider_profile.read"
 )
 
 // Handler serves the cart, quote and order operations.
@@ -374,6 +378,54 @@ func (h *Handler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 	httpx.Respond(w, r, http.StatusOK, orderViewToDTO(v))
 }
 
+// ---- getOrderTracking ----
+
+func (h *Handler) GetOrderTracking(w http.ResponseWriter, r *http.Request) {
+	orderID := chi.URLParam(r, "orderId")
+	ot, err := h.store.GetOrderTracking(r.Context(), h.accountID(r), orderID)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, orderTrackingToDTO(ot))
+}
+
+// ---- getOrderReceipt ----
+
+func (h *Handler) GetOrderReceipt(w http.ResponseWriter, r *http.Request) {
+	orderID := chi.URLParam(r, "orderId")
+	raw, err := h.store.GetOrderReceipt(r.Context(), h.accountID(r), orderID)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	// The snapshot is a frozen JSONB blob; unmarshal → re-marshal through the
+	// typed DTO to ensure the wire shape matches the contract exactly, with no
+	// extra fields leaking.
+	var snap receiptSnapshotDTO
+	if err := json.Unmarshal(raw, &snap); err != nil {
+		h.log.Error("receipt_snapshot unmarshal", slog.String("order_id", orderID), slog.String("error", err.Error()))
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Receipt could not be decoded.", nil)
+		return
+	}
+	// The contract types refunds/tax_lines/addons as non-nullable arrays. A frozen
+	// snapshot that omits any of them (or stores null) must still render `[]`.
+	snap.normalizeArrays()
+	httpx.Respond(w, r, http.StatusOK, snap)
+}
+
+// ---- getOrderRiderPublicProfile ----
+
+func (h *Handler) GetOrderRiderPublicProfile(w http.ResponseWriter, r *http.Request) {
+	orderID := chi.URLParam(r, "orderId")
+	rp, err := h.store.GetRiderPublicProfile(r.Context(), h.accountID(r), orderID)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, riderPublicProfileToDTO(rp))
+}
+
 // fail maps a store error to the contract ErrorCode and HTTP status.
 func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	var taxMissing *pricing.TaxProfileMissing
@@ -381,6 +433,8 @@ func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrCartNotFound), errors.Is(err, ErrOrderNotFound), errors.Is(err, ErrQuoteNotFound):
 		httpx.Fail(w, r, http.StatusNotFound, codeNotFound, "No such resource.", nil)
+	case errors.Is(err, ErrReceiptNotReady):
+		httpx.Fail(w, r, http.StatusConflict, codeReceiptNotReady, "This order does not have a receipt yet.", nil)
 	case errors.Is(err, ErrDifferentRestaurant):
 		httpx.Fail(w, r, http.StatusConflict, codeDifferentRestaurant,
 			"Your cart contains items from a different restaurant. Start a new cart to add this item.", nil)
