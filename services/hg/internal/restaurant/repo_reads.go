@@ -56,12 +56,20 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 	var hoursCount int
 	_ = r.db.QueryRow(ctx, `SELECT count(*) FROM restaurant_hours WHERE restaurant_id = $1`, restaurantID).Scan(&hoursCount)
 
-	// Count accepted documents.
-	var docCount int
-	_ = r.db.QueryRow(ctx, `SELECT count(*) FROM kyc_document WHERE subject_id = $1 AND subject_type = 'RESTAURANT' AND state NOT IN ('REJECTED') AND deleted_at IS NULL`, restaurantID).Scan(&docCount)
+	// Count DISTINCT required document types present in a reviewable state.
+	// Counting distinct types (not raw rows) prevents four copies of one type
+	// from falsely reporting a complete pack. The required set mirrors
+	// CheckDocumentPack / the contract's RestaurantDocType.
+	var distinctRequiredDocs int
+	_ = r.db.QueryRow(ctx, `
+		SELECT count(DISTINCT restaurant_doc_type) FROM kyc_document
+		 WHERE subject_id = $1 AND subject_type = 'RESTAURANT'
+		   AND restaurant_doc_type = ANY($2::restaurant_doc_type[])
+		   AND state NOT IN ('REJECTED') AND deleted_at IS NULL`,
+		restaurantID, requiredRestaurantDocTypes).Scan(&distinctRequiredDocs)
 
 	hoursOK := hoursCount > 0
-	docsReady := docCount >= 4 // BUSINESS_LICENCE, HALAL_CERT, FOOD_HANDLER, INSURANCE
+	docsReady := distinctRequiredDocs >= len(requiredRestaurantDocTypes)
 	halalVerified := halalStatus == "CERTIFIED"
 
 	pct := 0
@@ -332,9 +340,10 @@ func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in docum
 }
 
 // CheckDocumentPack verifies all required document types are present.
-// Required: BUSINESS_LICENCE, HALAL_CERTIFICATE, FOOD_HANDLER_CERTIFICATE, LIABILITY_INSURANCE.
+// Required (contract R-07 / R-08, RestaurantDocType): BUSINESS_LICENCE,
+// HALAL_CERTIFICATE, FOOD_SAFETY, OWNER_ID.
 func (r *Repo) CheckDocumentPack(ctx context.Context, restaurantID string) error {
-	required := []string{"BUSINESS_LICENCE", "HALAL_CERTIFICATE", "FOOD_HANDLER_CERTIFICATE", "LIABILITY_INSURANCE"}
+	required := requiredRestaurantDocTypes
 	for _, dt := range required {
 		var count int
 		err := r.db.QueryRow(ctx, `
@@ -505,6 +514,21 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
+	// IDOR guard: the target category must belong to THIS restaurant. The FK on
+	// menu_item.category_id references menu_category(id) globally, so without this
+	// check a caller could attach an item to another tenant's category. A
+	// foreign or non-existent category is indistinguishable → 404 (never 403).
+	var ownedCat bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM menu_category
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL)`,
+		in.CategoryID, restaurantID).Scan(&ownedCat); err != nil {
+		return nil, fmt.Errorf("verify category ownership: %w", err)
+	}
+	if !ownedCat {
+		return nil, ErrNotFound
+	}
+
 	var itemID string
 	sortOrder := 0
 	if in.SortOrder != nil {
@@ -593,6 +617,17 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 		}
 	}
 	if in.CategoryID != nil {
+		// IDOR guard: the destination category must belong to THIS restaurant.
+		var ownedCat bool
+		if err := tx.QueryRow(ctx, `
+			SELECT EXISTS(SELECT 1 FROM menu_category
+			 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL)`,
+			*in.CategoryID, restaurantID).Scan(&ownedCat); err != nil {
+			return nil, fmt.Errorf("verify category ownership: %w", err)
+		}
+		if !ownedCat {
+			return nil, ErrNotFound
+		}
 		if _, err := tx.Exec(ctx, `UPDATE menu_item SET category_id=$1::uuid, updated_at=now() WHERE id=$2`,
 			*in.CategoryID, itemID); err != nil {
 			return nil, fmt.Errorf("update category: %w", err)
@@ -915,12 +950,16 @@ func (r *Repo) RejectOrder(ctx context.Context, restaurantID, orderID, actorAcco
 		return nil, ErrIllegalTransition
 	}
 
+	// REJECTED is its own terminal state with its own reject_reason. It is NOT
+	// CANCELLED, so cancel_reason must stay NULL (there is no RESTAURANT_REJECTED
+	// member of order_cancellation_reason_code; setting it 22P02'd → 500 on every
+	// real rejection). The CHECK order_reject_has_reason is satisfied by
+	// reject_reason alone.
 	_, err = tx.Exec(ctx, `
 		UPDATE "order" SET
 			state='REJECTED', state_since=now(),
 			deadline_at=NULL, deadline_action=NULL,
 			reject_reason=$2::restaurant_reject_reason_code, reject_note=$3,
-			cancel_reason='RESTAURANT_REJECTED',
 			updated_at=now()
 		WHERE id=$1`, orderID, reason, note)
 	if err != nil {
@@ -1015,17 +1054,27 @@ func (r *Repo) DelayOrder(ctx context.Context, restaurantID, orderID, actorAccou
 		return nil, ErrIllegalTransition
 	}
 
-	// Count existing delay transitions (R-26: max 3 per order).
-	var delayCount int
+	// R-26: at most 3 delays AND at most +45 minutes cumulative per order.
+	// Count prior delay transitions and sum their added minutes. The added
+	// minutes are encoded as "delay:<minutes>:<reason>" in the transition reason.
+	var delayCount, cumulativeMinutes int
 	_ = tx.QueryRow(ctx, `
-		SELECT count(*) FROM order_transition
-		 WHERE order_id=$1 AND from_state='PREPARING' AND to_state='PREPARING'`,
-		orderID).Scan(&delayCount)
+		SELECT count(*),
+		       COALESCE(SUM((split_part(reason,':',2))::int),0)
+		  FROM order_transition
+		 WHERE order_id=$1 AND from_state='PREPARING' AND to_state='PREPARING'
+		   AND reason LIKE 'delay:%'`,
+		orderID).Scan(&delayCount, &cumulativeMinutes)
 
 	// An order that was never properly accepted (accepted_at IS NULL) means
 	// it was not transitioned through the restaurant acceptance flow. Such orders
 	// count as having exhausted delays (they are not in a delayable state).
 	if acceptedAt == nil || delayCount >= 3 {
+		return nil, ErrDelayLimitReached
+	}
+	// Enforce the cumulative +45-minute cap: this delay must not push the running
+	// total past 45. Three 20-minute delays (60 min) must NOT all succeed.
+	if cumulativeMinutes+delayMinutes > 45 {
 		return nil, ErrDelayLimitReached
 	}
 

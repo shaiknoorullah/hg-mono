@@ -142,6 +142,14 @@ func (h *Handler) SubmitRestaurantProfile(w http.ResponseWriter, r *http.Request
 	if !decodeStrict(w, r, &body) {
 		return
 	}
+	// province reaches a ::province cast in UpsertProfile; an unknown value would
+	// 22P02 into a 500. Validate against the enum → 422.
+	if body.Province != "" && !provinceSet[body.Province] {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"province must be a valid Canadian province or territory code.",
+			[]httpx.FieldError{{Field: "province", Code: "invalid", Message: "unknown province code"}})
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
@@ -193,6 +201,11 @@ func (h *Handler) SetRestaurantHours(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
+	if fe := validateHours(body); fe != nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"One or more trading-hours values are invalid.", fe)
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
@@ -241,6 +254,14 @@ func (h *Handler) AttachRestaurantDocument(w http.ResponseWriter, r *http.Reques
 	}
 	var body documentInputDTO
 	if !decodeStrict(w, r, &body) {
+		return
+	}
+	// doc_type reaches a ::restaurant_doc_type cast; validate it against the enum
+	// so an unknown value is a clean 422 rather than a 22P02-induced 500.
+	if !restaurantDocTypeSet[body.DocType] {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"doc_type must be a valid restaurant document type.",
+			[]httpx.FieldError{{Field: "doc_type", Code: "invalid", Message: "unknown document type"}})
 		return
 	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
@@ -375,11 +396,31 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 				Message: "must be between 50 (CAD 0.50) and 50000 (CAD 500.00)"}})
 		return
 	}
+	// Enum + shape validation: unknown tags or a malformed category_id would
+	// otherwise reach the ::dietary_tag[]/::allergen_tag[]/::uuid casts and 22P02
+	// into a 500. Validate up front → 422.
+	if fe := validateTags(body.DietaryTags, body.AllergenTags); fe != nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"One or more tags are not recognised.", fe)
+		return
+	}
+	if !isValidUUID(body.CategoryID) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"category_id must be a valid UUID.",
+			[]httpx.FieldError{{Field: "category_id", Code: "invalid", Message: "malformed UUID"}})
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
 	}
 	item, err := h.repo.CreateMenuItem(r.Context(), restaurantID, body)
+	if errors.Is(err, ErrNotFound) {
+		// Target category does not belong to this restaurant (or does not exist):
+		// invisible → 404, never a 403 that would confirm a foreign category.
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
@@ -399,6 +440,37 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 	var body menuItemUpdateDTO
 	if !decodeStrict(w, r, &body) {
+		return
+	}
+	// Halal gate (R-17): HALAL_CERTIFIED is platform-derived, never restaurant-settable,
+	// on update just as on create.
+	for _, tag := range body.DietaryTags {
+		if tag == "HALAL_CERTIFIED" {
+			httpx.Fail(w, r, http.StatusForbidden,
+				httpx.ErrorCode("FIELD_NOT_WRITABLE"),
+				"HALAL_CERTIFIED is derived from the restaurant's certificate and is not restaurant-settable.",
+				[]httpx.FieldError{{Field: "dietary_tags", Code: "FIELD_NOT_WRITABLE",
+					Message: "HALAL_CERTIFIED is not restaurant-settable"}})
+			return
+		}
+	}
+	if fe := validateTags(body.DietaryTags, body.AllergenTags); fe != nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"One or more tags are not recognised.", fe)
+		return
+	}
+	if body.CategoryID != nil && !isValidUUID(*body.CategoryID) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"category_id must be a valid UUID.",
+			[]httpx.FieldError{{Field: "category_id", Code: "invalid", Message: "malformed UUID"}})
+		return
+	}
+	if body.PriceCents != nil && (*body.PriceCents < 50 || *body.PriceCents > 50000) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity,
+			httpx.ErrorCode("PRICE_OUT_OF_RANGE"),
+			"price_cents must be between 50 and 50000.",
+			[]httpx.FieldError{{Field: "price_cents", Code: "PRICE_OUT_OF_RANGE",
+				Message: "must be between 50 (CAD 0.50) and 50000 (CAD 500.00)"}})
 		return
 	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
@@ -565,6 +637,15 @@ func (h *Handler) RejectOrder(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
+	// R-24: a structured reason is required and must be a known enum member.
+	// Validating here keeps a hostile value out of the ::restaurant_reject_reason_code
+	// cast, which would otherwise 22P02 into a bare 500.
+	if !restaurantRejectReasonSet[body.Reason] {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"reason must be a valid restaurant rejection reason code.",
+			[]httpx.FieldError{{Field: "reason", Code: "invalid", Message: "unknown rejection reason code"}})
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
@@ -635,6 +716,21 @@ func (h *Handler) DelayOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	var body delayInputDTO
 	if !decodeStrict(w, r, &body) {
+		return
+	}
+	// R-26: delays are canned increments (5/10/15/20) with a structured reason.
+	switch body.DelayMinutes {
+	case 5, 10, 15, 20:
+	default:
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"delay_minutes must be one of 5, 10, 15, 20.",
+			[]httpx.FieldError{{Field: "delay_minutes", Code: "invalid", Message: "must be 5, 10, 15 or 20"}})
+		return
+	}
+	if !delayReasonSet[body.Reason] {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"reason must be a valid delay reason code.",
+			[]httpx.FieldError{{Field: "reason", Code: "invalid", Message: "unknown delay reason code"}})
 		return
 	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)

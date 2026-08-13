@@ -940,12 +940,14 @@ func seedOrder(t *testing.T, pool *pgxpool.Pool, restaurantID, menuItemID, state
 	cancelPart := "NULL"
 	rejectPart := "NULL"
 	if state == "CANCELLED" {
-		cancelReason = "RESTAURANT_REJECTED"
+		// Valid order_cancellation_reason_code member (RESTAURANT_REJECTED is not one).
+		cancelReason = "RESTAURANT_CLOSED"
 		cancelPart = fmt.Sprintf("'%s'", cancelReason)
 		_ = cancelReason
 	}
 	if state == "REJECTED" {
-		rejectReason = "OUT_OF_STOCK"
+		// Valid restaurant_reject_reason_code member (OUT_OF_STOCK is not one).
+		rejectReason = "ITEM_UNAVAILABLE"
 		rejectPart = fmt.Sprintf("'%s'", rejectReason)
 		_ = rejectReason
 	}
@@ -1077,7 +1079,7 @@ func TestIntegration_DelayOrder_LimitReached(t *testing.T) {
 	// by using a Repo-level counter. Since the Repo is not yet implemented,
 	// this test fails at 501 NOT_IMPLEMENTED — which is the correct RED state.
 	h := newHandler(pool)
-	body := `{"delay_minutes":15,"reason":"PREP_OVERRUN"}`
+	body := `{"delay_minutes":15,"reason":"HIGH_VOLUME"}`
 	req := httptest.NewRequest(http.MethodPost,
 		fmt.Sprintf("/v1/restaurant/orders/%s/delay", orderID), strings.NewReader(body))
 	req.Header.Set("Idempotency-Key", "test-delay-limit-idem-123456")
