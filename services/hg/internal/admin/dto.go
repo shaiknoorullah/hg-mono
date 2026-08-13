@@ -408,6 +408,95 @@ type adminOrderView struct {
 	PiiRevealed   bool                    `json:"pii_revealed"`
 }
 
+// --- Menu (A-19) ---
+
+// menuCategory is the contract's MenuCategory.
+type menuCategory struct {
+	ID           string  `json:"id"`
+	RestaurantID string  `json:"restaurant_id"`
+	Name         string  `json:"name"`
+	Description  *string `json:"description"`
+	SortOrder    int     `json:"sort_order"`
+	IsActive     bool    `json:"is_active"`
+	CreatedAt    string  `json:"created_at"`
+	UpdatedAt    string  `json:"updated_at"`
+}
+
+// menuCategoryInput is the contract's MenuCategoryInput.
+type menuCategoryInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	SortOrder   *int    `json:"sort_order"`
+}
+
+// menuItemVersionSummary is used in the live_version / pending_version nested objects.
+type menuItemVersionSummary struct {
+	ID           string   `json:"id"`
+	Version      int      `json:"version"`
+	Name         string   `json:"name"`
+	Description  *string  `json:"description"`
+	DietaryTags  []string `json:"dietary_tags"`
+	AllergenTags []string `json:"allergen_tags"`
+	ReviewStatus string   `json:"review_status"`
+	ReviewedAt   *string  `json:"reviewed_at"`
+}
+
+// menuItemOwnerView is the contract's MenuItemOwnerView.
+type menuItemOwnerView struct {
+	ID                string                  `json:"id"`
+	RestaurantID      string                  `json:"restaurant_id"`
+	CategoryID        string                  `json:"category_id"`
+	PriceCents        int64                   `json:"price_cents"`
+	Currency          string                  `json:"currency"`
+	AvailabilityState string                  `json:"availability_state"`
+	TaxCategory       string                  `json:"tax_category"`
+	SortOrder         int                     `json:"sort_order"`
+	Name              string                  `json:"name"`
+	Description       *string                 `json:"description"`
+	LiveVersion       *menuItemVersionSummary `json:"live_version"`
+	PendingVersion    *menuItemVersionSummary `json:"pending_version"`
+	CreatedAt         string                  `json:"created_at"`
+	UpdatedAt         string                  `json:"updated_at"`
+}
+
+// menuItemInput is the contract's AdminMenuItemInput (admin-on-behalf create).
+type menuItemInput struct {
+	CategoryID   string   `json:"category_id"`
+	Name         string   `json:"name"`
+	Description  *string  `json:"description"`
+	PriceCents   int64    `json:"price_cents"`
+	DietaryTags  []string `json:"dietary_tags"`
+	AllergenTags []string `json:"allergen_tags"`
+	TaxCategory  *string  `json:"tax_category"`
+}
+
+// menuItemVersion is the contract's MenuItemVersion.
+type menuItemVersion struct {
+	ID                  string   `json:"id"`
+	MenuItemID          string   `json:"menu_item_id"`
+	RestaurantID        string   `json:"restaurant_id"`
+	Version             int      `json:"version"`
+	Name                string   `json:"name"`
+	Description         *string  `json:"description"`
+	DietaryTags         []string `json:"dietary_tags"`
+	AllergenTags        []string `json:"allergen_tags"`
+	ReviewStatus        string   `json:"review_status"`
+	RejectionReasonCode *string  `json:"rejection_reason_code"`
+	ReviewNote          *string  `json:"review_note"`
+	SubmittedAt         *string  `json:"submitted_at"`
+	ReviewedBy          *string  `json:"reviewed_by"`
+	ReviewedAt          *string  `json:"reviewed_at"`
+	CreatedAt           string   `json:"created_at"`
+	UpdatedAt           string   `json:"updated_at"`
+}
+
+// menuDecisionInput is the contract's MenuDecisionInput.
+type menuDecisionInput struct {
+	Decision   string  `json:"decision"`
+	ReasonCode *string `json:"reason_code"`
+	ReviewNote *string `json:"review_note"`
+}
+
 // cancelOrderAdminInput is the body for cancelOrderAdmin (contract:
 // AdminOrderCancellationInput). additionalProperties:false is enforced by
 // decodeJSON/DisallowUnknownFields; every field the contract names is present
