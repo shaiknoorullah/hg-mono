@@ -73,6 +73,14 @@ func (h *Handler) ListOrdersAdmin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetOrderAdmin(w http.ResponseWriter, r *http.Request) {
 	orderID := chi.URLParam(r, "orderId")
 
+	// A malformed order id can never name a real order. Answer 404 (never a
+	// 500 that leaks a database uuid-cast error, and never a distinct code that
+	// would let a caller distinguish "bad shape" from "not found").
+	if !isUUID(orderID) {
+		httpx.Fail(w, r, http.StatusNotFound, CodeNotFound, "No such order.", nil)
+		return
+	}
+
 	// reveal_pii requires a justification (query param or header). If reveal_pii
 	// is true but no justification is provided, return 422.
 	revealPII := r.URL.Query().Get("reveal_pii") == "true"
@@ -111,6 +119,13 @@ func (h *Handler) GetOrderAdmin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CancelOrderAdmin(w http.ResponseWriter, r *http.Request) {
 	orderID := chi.URLParam(r, "orderId")
 
+	// A malformed order id is a 404, not a 500 (see GetOrderAdmin). We check it
+	// before touching the body so an invalid id never reaches a uuid-typed query.
+	if !isUUID(orderID) {
+		httpx.Fail(w, r, http.StatusNotFound, CodeNotFound, "No such order.", nil)
+		return
+	}
+
 	var in cancelOrderAdminInput
 	if !decodeJSON(w, r, &in) {
 		return
@@ -122,8 +137,26 @@ func (h *Handler) CancelOrderAdmin(w http.ResponseWriter, r *http.Request) {
 			"reason_code, reason_text and case_id are required.", nil)
 		return
 	}
-	if len([]rune(in.ReasonText)) < 10 {
-		fieldFail(w, r, "reason_text", "reason_text must be at least 10 characters")
+	// reason_code is a closed enum (OrderCancellationReasonCode). An unknown
+	// value is a 422 — never silently accepted and never rewritten to a default.
+	if !validCancellationReasonCode[in.ReasonCode] {
+		fieldFail(w, r, "reason_code", "reason_code is not a valid OrderCancellationReasonCode")
+		return
+	}
+	// refund_kind, when present, is a closed enum (RefundKind) applied only
+	// post-capture. Reject an out-of-enum value rather than ignore it.
+	if in.RefundKind != nil && !validRefundKind[*in.RefundKind] {
+		fieldFail(w, r, "refund_kind", "refund_kind is not a valid RefundKind")
+		return
+	}
+	// contract: reason_text minLength 10, maxLength 1000.
+	if n := len([]rune(in.ReasonText)); n < 10 || n > 1000 {
+		fieldFail(w, r, "reason_text", "reason_text must be between 10 and 1000 characters")
+		return
+	}
+	// case_id is format:uuid; reject a non-UUID rather than write a bad audit link.
+	if !isUUID(in.CaseID) {
+		fieldFail(w, r, "case_id", "case_id must be a UUID")
 		return
 	}
 
@@ -154,7 +187,10 @@ func (h *Handler) CancelOrderAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	actor := actorFrom(r)
-	result, err := h.ordersRepo.CancelOrder(r.Context(), actor, orderID, "SUPPORT_CANCELLED", in)
+	// The order.cancel_reason column is written from the caller's reason_code
+	// verbatim (it is a validated OrderCancellationReasonCode). We never
+	// substitute a hard-coded value, which would corrupt the audit record.
+	result, err := h.ordersRepo.CancelOrder(r.Context(), actor, orderID, in.ReasonCode, in)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound, "No such order.", nil)
@@ -172,6 +208,43 @@ func (h *Handler) CancelOrderAdmin(w http.ResponseWriter, r *http.Request) {
 
 	out := buildAdminOrderView(result, false)
 	httpx.Respond(w, r, http.StatusOK, out)
+}
+
+// validCancellationReasonCode is the OrderCancellationReasonCode enum
+// (contracts/openapi.yaml) — kept in lock-step with the DB
+// order_cancellation_reason_code enum so a value that passes here never trips a
+// database CHECK at write time.
+var validCancellationReasonCode = map[string]bool{
+	"CUSTOMER_CANCELLED": true, "RESTAURANT_TIMEOUT": true, "RESTAURANT_CLOSED": true,
+	"ITEM_UNAVAILABLE": true, "CAPTURE_FAILED": true, "PAYMENT_EXPIRED": true,
+	"PREP_OVERDUE": true, "NO_RIDER_FOUND": true, "SUPPORT_CANCELLED": true,
+	"FRAUD_SUSPECTED": true, "PLATFORM_ERROR": true,
+}
+
+// validRefundKind is the RefundKind enum (contracts/openapi.yaml).
+var validRefundKind = map[string]bool{
+	"FULL": true, "PARTIAL_ITEMS": true, "FEES_ONLY": true, "GOODWILL": true,
+}
+
+// isUUID reports whether s is a canonical 8-4-4-4-12 hex UUID. It is deliberately
+// permissive on version/variant bits (any hex) but strict on shape.
+func isUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	for i, c := range s {
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			if c != '-' {
+				return false
+			}
+			continue
+		}
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+		if !isHex {
+			return false
+		}
+	}
+	return true
 }
 
 // buildAdminOrderView converts an adminOrderRow to the wire adminOrderView.

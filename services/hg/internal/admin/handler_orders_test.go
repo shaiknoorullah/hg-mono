@@ -738,7 +738,7 @@ func TestCancelOrderAdmin_IdempotencyKeyRequired(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Customer request via support chat after acceptance.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -766,7 +766,7 @@ func TestCancelOrderAdmin_HappyPath_SupportAgent_PreAcceptance(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Customer contacted support and wants to cancel their order.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -787,16 +787,20 @@ func TestCancelOrderAdmin_HappyPath_SupportAgent_PreAcceptance(t *testing.T) {
 	}
 }
 
-// (1) happy path — ADMIN cancels a PREPARING order (post-acceptance T11)
+// (1) happy path — ADMIN cancels a PREPARING order (post-acceptance T11).
+// A post-acceptance order was captured on acceptance (invariant 5), so we seed
+// a captured payment_intent + CAPTURE ledger batch: the cancel must post the
+// refund reversal atomically. The reversal itself is asserted in detail by
+// TestCancelOrderAdmin_PreparingPostsRefundAndLedgerReversal.
 func TestCancelOrderAdmin_HappyPath_Admin_PostAcceptance(t *testing.T) {
 	pool := dialTestPool(t)
-	orderID, _ := seedOrderForAdmin(t, pool, "PREPARING")
+	orderID, _ := seedCapturedPreparingOrder(t, pool)
 	p := principalFor(t, pool, httpx.RoleAdmin)
 	srv := buildAdminTestServer(t, pool, p)
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Admin is cancelling on behalf of customer after acceptance.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -831,7 +835,7 @@ func TestCancelOrderAdmin_SupportAgentForbiddenPostAcceptance(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Support agent trying to cancel after acceptance.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -860,7 +864,7 @@ func TestCancelOrderAdmin_IllegalTransition_Terminal(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Trying to cancel an already completed order.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -888,7 +892,7 @@ func TestCancelOrderAdmin_NotFound(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Cancelling an order that does not exist.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -911,7 +915,7 @@ func TestCancelOrderAdmin_Unauthenticated(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Anonymous user trying to cancel.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -935,7 +939,7 @@ func TestCancelOrderAdmin_CustomerForbidden(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Customer trying to use admin cancel endpoint.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -959,7 +963,7 @@ func TestCancelOrderAdmin_RiderForbidden(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Rider trying to use admin cancel endpoint.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -984,7 +988,7 @@ func TestCancelOrderAdmin_UnknownFieldRejected(t *testing.T) {
 
 	// "price" is an example of a field that must never appear in inbound bodies.
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Admin cancel with unknown field injected.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 		"price":       9999, // unknown field — must be rejected
@@ -1010,7 +1014,7 @@ func TestCancelOrderAdmin_PriceFieldRejected(t *testing.T) {
 
 	// "amount_cents" should not be allowed on this route (it is only allowed on issueRefund for GOODWILL).
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Cancel with an injected amount_cents — must be rejected.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 		"amount_cents": 5000, // should be rejected as unknown field (G-3)
@@ -1036,7 +1040,7 @@ func TestCancelOrderAdmin_MissingRequiredFields(t *testing.T) {
 
 	// Missing reason_text and case_id.
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 	}
 	resp := doJSON(t, http.MethodPost,
 		fmt.Sprintf("%s/v1/admin/orders/%s/cancel", srv.URL, orderID),
@@ -1058,7 +1062,7 @@ func TestCancelOrderAdmin_ReasonTextTooShort(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Short",   // < 10 characters
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -1081,7 +1085,7 @@ func TestCancelOrderAdmin_IDORReturns404(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Admin cancel of someone else's order id.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -1111,7 +1115,7 @@ func TestCancelOrderAdmin_IdempotentReplay(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Admin cancelling an order; testing idempotent replay.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -1155,7 +1159,7 @@ func TestCancelOrderAdmin_StateMachineCancelledIsTerminal(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Attempting to re-cancel an already cancelled order.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}
@@ -1180,7 +1184,7 @@ func TestCancelOrderAdmin_MoneyZeroResidual(t *testing.T) {
 	defer srv.Close()
 
 	body := map[string]any{
-		"reason_code": "SUPPORT_REQUESTED",
+		"reason_code": "SUPPORT_CANCELLED",
 		"reason_text": "Checking money zero residual after admin cancellation.",
 		"case_id":     "00000000-0000-0000-0000-000000000099",
 	}

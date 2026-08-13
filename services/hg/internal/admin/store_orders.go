@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 )
 
 // OrdersRepo holds its own pool reference (same pool as Repo, passed at
@@ -368,15 +369,21 @@ func (r *OrdersRepo) CancelOrder(ctx context.Context, actor auditActor, orderID,
 			actorKind = machine.ActorSupport // T11 lists SUPPORT/ADMIN; SUPPORT covers both
 		}
 
-		// Write the state change: clear deadline (terminal), set cancel columns.
+		// Write the state change: clear the deadline (CANCELLED is terminal) AND
+		// reset the lease/escalation columns the shared machine transition resets
+		// (I-14/I-15), so a cancelled order can never remain claimable by the
+		// deadline runner or carry a stale escalation count.
 		_, err := tx.Exec(ctx, `
 UPDATE "order"
-   SET state           = 'CANCELLED',
-       state_since     = now(),
-       deadline_at     = NULL,
-       deadline_action = NULL,
-       cancel_reason   = $2::order_cancellation_reason_code,
-       cancelled_at    = now()
+   SET state               = 'CANCELLED',
+       state_since         = now(),
+       deadline_at         = NULL,
+       deadline_action     = NULL,
+       deadline_escalations = 0,
+       lease_until         = NULL,
+       lease_owner         = NULL,
+       cancel_reason       = $2::order_cancellation_reason_code,
+       cancelled_at        = now()
  WHERE id = $1 AND state::text = $3`,
 			orderID, reasonCode, string(from))
 		if err != nil {
@@ -391,6 +398,21 @@ VALUES ($1, $2::order_state, 'CANCELLED', $3::order_actor_kind, $4, $5, $6)`,
 			orderID, fromStr, string(actorKind), nilIfEmpty(actor.staffID), in.ReasonText, nilIfEmpty(actor.requestID))
 		if err != nil {
 			return fmt.Errorf("insert order_transition: %w", err)
+		}
+
+		// MONEY (contract A-38 / T11): "Cancelling after acceptance always issues a
+		// refund per the liability matrix, in the same transaction as the state
+		// change — there is no path where the state change commits and the money
+		// does not." Post-acceptance states have a CAPTURED payment; we post the
+		// refund row and its balanced REFUND ledger batch here, inside the cancel
+		// transaction, so the reversal commits atomically with the state change.
+		// Pre-acceptance states carry only an authorisation (no capture): there is
+		// nothing to refund, the auth is voided by the payments outbox, and no
+		// ledger movement is required (T3/T5/T8: "auth voided").
+		if from == machine.StatePreparing {
+			if err := postCaptureReversal(ctx, tx, orderID, actor, in); err != nil {
+				return err
+			}
 		}
 
 		// Audit the cancel inside the same transaction (A-04: atomic).
@@ -415,6 +437,162 @@ VALUES ($1, $2::order_state, 'CANCELLED', $3::order_actor_kind, $4, $5, $6)`,
 	// Load and return the final state (outside the cancel tx).
 	result, err = r.GetOrder(ctx, orderID)
 	return result, err
+}
+
+// postCaptureReversal issues the refund that a post-acceptance (PREPARING)
+// admin cancellation requires, inside the caller's cancel transaction. It reads
+// the order's captured payment and its decomposed money, computes a FULL refund
+// (the whole still-captured amount, net of any prior refunds), builds the
+// balanced REFUND ledger batch with the payments module's own decomposition
+// (so the money math is single-sourced, never duplicated here), and inserts the
+// refund row plus the ledger batch/entries. If the batch does not balance to a
+// zero residual it refuses to write — the money-zero-residual invariant is
+// enforced before COMMIT, not merely hoped for.
+//
+// The liability reason is PLATFORM_INITIATED_CANCELLATION: the platform chose to
+// cancel a live order, so the platform absorbs the cost and the restaurant/rider
+// are made whole. This is the safe default; a future refund_kind-driven policy
+// can refine the split without changing the atomicity guarantee.
+func postCaptureReversal(ctx context.Context, tx pgx.Tx, orderID string, actor auditActor, in cancelOrderAdminInput) error {
+	// Locate the captured ORDER payment_intent. Post-acceptance orders were
+	// captured on acceptance (invariant 5), so exactly one must exist.
+	var intentID string
+	var capturedCents int64
+	err := tx.QueryRow(ctx, `
+SELECT id::text, amount_captured_cents
+  FROM payment_intent
+ WHERE order_id = $1 AND kind = 'ORDER'
+ ORDER BY created_at DESC
+ LIMIT 1`, orderID).Scan(&intentID, &capturedCents)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// No captured payment despite a post-acceptance state: this is a data
+		// integrity fault, not a normal path. Fail closed so we never cancel a
+		// captured order while silently skipping the reversal.
+		return fmt.Errorf("post-acceptance order %s has no ORDER payment_intent to reverse", orderID)
+	}
+	if err != nil {
+		return fmt.Errorf("load payment_intent: %w", err)
+	}
+	// Nothing captured (e.g. a zero-total order): no money moved, no reversal.
+	if capturedCents <= 0 {
+		return nil
+	}
+
+	// Amount already refunded (exclude terminal-void states), so a re-cancel or a
+	// prior partial refund is never double-reversed.
+	var priorRefunded int64
+	if err := tx.QueryRow(ctx, `
+SELECT coalesce(sum(amount_cents),0) FROM refund
+ WHERE order_id = $1 AND state NOT IN ('DECLINED','CANCELLED','FAILED')`, orderID).Scan(&priorRefunded); err != nil {
+		return fmt.Errorf("sum prior refunds: %w", err)
+	}
+	refundCents := capturedCents - priorRefunded
+	if refundCents <= 0 {
+		// Already fully refunded; the state change alone is correct.
+		return nil
+	}
+
+	// Decomposed order money, sourced from the order row via the payments module.
+	m, taxCents, err := loadOrderMoneyTx(ctx, tx, orderID)
+	if err != nil {
+		return err
+	}
+
+	// Liability split + balanced batch come entirely from payments (single source
+	// of the money math). itemNet is the refund net of its tax portion.
+	const reversalReason = "PLATFORM_INITIATED_CANCELLATION"
+	itemNet := refundCents - taxCents
+	if itemNet < 0 {
+		itemNet = 0
+	}
+	split := payments.ComputeLiabilitySplit(reversalReason, refundCents, itemNet, m.RiderEarningsCents)
+	batch := payments.BuildRefundBatch(m, split, refundCents,
+		fmt.Sprintf("admin-cancel-refund:%s", orderID), "admin:order.cancel")
+	if !batch.Balanced() {
+		return fmt.Errorf("refusing to post unbalanced cancel-refund batch (residual=%d)", batch.Residual())
+	}
+
+	// Insert the refund row (AUTHORISED, on a clock: deadline required by the
+	// refund_deadline_required CHECK for non-terminal states).
+	requestedBy := actor.staffID
+	if requestedBy == "" {
+		// requested_by is NOT NULL; fall back to the system account. This never
+		// happens on an authenticated staff route but keeps the write total.
+		return fmt.Errorf("cannot post cancel refund: no staff actor on request")
+	}
+	var refundID string
+	if err := tx.QueryRow(ctx, `
+INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
+                    amount_cents, tax_cents,
+                    restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
+                    state, requested_by, deadline_at, deadline_action)
+VALUES ($1,$2,'FULL','FULL',$3::refund_reason_code,$4,
+        $5,$6,$7,$8,$9,
+        'AUTHORISED',$10, now() + interval '2 minutes','SUBMIT_REFUND')
+RETURNING id::text`,
+		orderID, intentID, reversalReason, in.ReasonText,
+		refundCents, taxCents,
+		split.RestaurantChargebackCents, split.RiderChargebackCents, split.PlatformAbsorbedCents,
+		requestedBy).Scan(&refundID); err != nil {
+		return fmt.Errorf("insert cancel refund: %w", err)
+	}
+
+	// Post the balanced ledger batch and its entries, tied to the refund.
+	var batchID string
+	if err := tx.QueryRow(ctx, `
+INSERT INTO ledger_batch (kind, order_id, refund_id, idempotency_key, posted_by, memo)
+VALUES ('REFUND', $1, $2, $3, $4, 'admin cancel refund')
+RETURNING id::text`,
+		orderID, refundID, batch.IdempotencyKey, batch.PostedBy).Scan(&batchID); err != nil {
+		return fmt.Errorf("insert ledger_batch: %w", err)
+	}
+	for _, e := range batch.Entries {
+		if _, err := tx.Exec(ctx, `
+INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, counterparty_id,
+                          amount_cents, component, memo)
+VALUES ($1, $2, $3::ledger_account, $4, $5, $6, $7::ledger_component, $8)`,
+			batchID, orderID, string(e.Account),
+			nilIfEmpty(string(e.CounterpartyType)), nilIfEmptyUUID(e.CounterpartyID),
+			e.AmountCents, string(e.Component), e.Memo); err != nil {
+			return fmt.Errorf("insert ledger_entry: %w", err)
+		}
+	}
+	return nil
+}
+
+// loadOrderMoneyTx reads the order's decomposed money (and its tax total)
+// inside the caller's transaction, mirroring payments.Repo.GetOrderMoney but
+// scoped to the open tx so the read participates in the cancel's snapshot.
+func loadOrderMoneyTx(ctx context.Context, tx pgx.Tx, orderID string) (payments.OrderMoney, int64, error) {
+	var m payments.OrderMoney
+	err := tx.QueryRow(ctx, `
+SELECT o.id::text, o.restaurant_id::text,
+       o.subtotal_cents, o.discount_cents, o.delivery_fee_cents, o.service_fee_cents,
+       o.tax_total_cents, o.tip_cents, o.total_cents,
+       o.commission_cents, o.restaurant_net_cents, o.rider_earnings_cents, o.platform_gross_cents,
+       coalesce((SELECT a.rider_account_id::text FROM assignment a
+                  WHERE a.order_id = o.id AND a.state = 'DELIVERED'
+                  ORDER BY a.created_at DESC LIMIT 1), '')
+  FROM "order" o WHERE o.id = $1`, orderID).Scan(
+		&m.OrderID, &m.RestaurantID,
+		&m.SubtotalCents, &m.DiscountCents, &m.DeliveryFeeCents, &m.ServiceFeeCents,
+		&m.TaxTotalCents, &m.TipCents, &m.TotalCents,
+		&m.CommissionCents, &m.RestaurantNetCents, &m.RiderEarningsCents, &m.PlatformGrossCents,
+		&m.RiderID)
+	if err != nil {
+		return payments.OrderMoney{}, 0, fmt.Errorf("load order money: %w", err)
+	}
+	return m, m.TaxTotalCents, nil
+}
+
+// nilIfEmptyUUID returns nil for an empty counterparty id so the NULL-able
+// ledger_entry.counterparty_id is written as NULL, not an empty string that a
+// uuid column would reject.
+func nilIfEmptyUUID(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 func nilIfEmpty(s string) any {

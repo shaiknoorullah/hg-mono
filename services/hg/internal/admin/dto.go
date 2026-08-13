@@ -408,10 +408,19 @@ type adminOrderView struct {
 	PiiRevealed   bool                    `json:"pii_revealed"`
 }
 
-// cancelOrderAdminInput is the body for cancelOrderAdmin.
-// additionalProperties:false enforced by decodeJSON/DisallowUnknownFields.
+// cancelOrderAdminInput is the body for cancelOrderAdmin (contract:
+// AdminOrderCancellationInput). additionalProperties:false is enforced by
+// decodeJSON/DisallowUnknownFields; every field the contract names is present
+// here so a valid body is never rejected as "unknown field".
+//
+//   - reason_code  is OrderCancellationReasonCode (a closed enum); the server
+//     validates it and writes it to order.cancel_reason verbatim (never a
+//     hard-coded substitute).
+//   - refund_kind  is optional and applies only post-capture; pre-capture the
+//     auth is voided and refund_kind is ignored.
 type cancelOrderAdminInput struct {
-	ReasonCode string `json:"reason_code"`
-	ReasonText string `json:"reason_text"`
-	CaseID     string `json:"case_id"`
+	ReasonCode string  `json:"reason_code"`
+	ReasonText string  `json:"reason_text"`
+	CaseID     string  `json:"case_id"`
+	RefundKind *string `json:"refund_kind"`
 }
