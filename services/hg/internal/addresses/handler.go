@@ -1,9 +1,16 @@
 package addresses
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+)
+
+// Domain-level error codes emitted by this module (must exist in contracts/openapi.yaml ErrorCode enum).
+const (
+	codeAddressInUse    httpx.ErrorCode = "ADDRESS_IN_USE"
+	codeAddressLimitHit httpx.ErrorCode = "ADDRESS_LIMIT_HIT"
 )
 
 // Handler serves the customer delivery-address HTTP operations.
@@ -44,10 +51,16 @@ func requireRole(w http.ResponseWriter, r *http.Request, p httpx.Principal, role
 	return false
 }
 
-// notImplemented writes 501 to signal the handler is a stub.
-func notImplemented(w http.ResponseWriter, r *http.Request) {
-	httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
-		"Not implemented.", nil)
+// timezone returns a sensible default timezone for Canadian addresses.
+// In production this would be derived from the PostGIS point; here we
+// hard-code the sole launch province's zone (Ontario → America/Toronto).
+// This is the server-controlled value callers must never supply.
+func deriveTimezone(lat, lon float64) string {
+	// Canada-only launch: always America/Toronto for Ontario.
+	// A proper implementation would use a point-in-polygon tz lookup.
+	_ = lat
+	_ = lon
+	return "America/Toronto"
 }
 
 // ListAddresses implements GET /v1/addresses (x-roles: CUSTOMER).
@@ -59,7 +72,23 @@ func (h *Handler) ListAddresses(w http.ResponseWriter, r *http.Request) {
 	if !requireRole(w, r, p, httpx.RoleCustomer) {
 		return
 	}
-	notImplemented(w, r)
+
+	rows, err := h.repo.List(r.Context(), p.AccountID)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+			"Failed to list addresses.", nil)
+		return
+	}
+
+	dtos := make([]addressDTO, 0, len(rows))
+	for _, row := range rows {
+		dtos = append(dtos, row.toDTO())
+	}
+
+	httpx.RespondList(w, r, http.StatusOK, dtos, httpx.Meta{
+		NextCursor: nil,
+		HasMore:    false,
+	})
 }
 
 // CreateAddress implements POST /v1/addresses (x-roles: CUSTOMER).
@@ -76,7 +105,23 @@ func (h *Handler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	notImplemented(w, r)
+
+	// Server derives timezone from coordinates (caller must not supply it).
+	tz := deriveTimezone(body.Latitude, body.Longitude)
+
+	row, err := h.repo.Create(r.Context(), p.AccountID, body, tz)
+	if err != nil {
+		if errors.Is(err, ErrTooManyAddresses) {
+			httpx.Fail(w, r, http.StatusConflict, codeAddressLimitHit,
+				"Maximum of 20 addresses per customer reached.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+			"Failed to create address.", nil)
+		return
+	}
+
+	httpx.Respond(w, r, http.StatusCreated, row.toDTO())
 }
 
 // GetAddress implements GET /v1/addresses/{addressId} (x-roles: CUSTOMER).
@@ -88,7 +133,20 @@ func (h *Handler) GetAddress(w http.ResponseWriter, r *http.Request, addressID s
 	if !requireRole(w, r, p, httpx.RoleCustomer) {
 		return
 	}
-	notImplemented(w, r)
+
+	row, err := h.repo.Get(r.Context(), p.AccountID, addressID)
+	if err != nil {
+		if errors.Is(err, ErrAddressNotFound) {
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound,
+				"Address not found.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+			"Failed to retrieve address.", nil)
+		return
+	}
+
+	httpx.Respond(w, r, http.StatusOK, row.toDTO())
 }
 
 // UpdateAddress implements PATCH /v1/addresses/{addressId} (x-roles: CUSTOMER).
@@ -104,7 +162,20 @@ func (h *Handler) UpdateAddress(w http.ResponseWriter, r *http.Request, addressI
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	notImplemented(w, r)
+
+	row, err := h.repo.Update(r.Context(), p.AccountID, addressID, body)
+	if err != nil {
+		if errors.Is(err, ErrAddressNotFound) {
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound,
+				"Address not found.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+			"Failed to update address.", nil)
+		return
+	}
+
+	httpx.Respond(w, r, http.StatusOK, row.toDTO())
 }
 
 // DeleteAddress implements DELETE /v1/addresses/{addressId} (x-roles: CUSTOMER).
@@ -116,7 +187,24 @@ func (h *Handler) DeleteAddress(w http.ResponseWriter, r *http.Request, addressI
 	if !requireRole(w, r, p, httpx.RoleCustomer) {
 		return
 	}
-	notImplemented(w, r)
+
+	err := h.repo.Delete(r.Context(), p.AccountID, addressID)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrAddressNotFound):
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound,
+				"Address not found.", nil)
+		case errors.Is(err, ErrAddressInUse):
+			httpx.Fail(w, r, http.StatusConflict, codeAddressInUse,
+				"Address is referenced by a live order and cannot be deleted.", nil)
+		default:
+			httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+				"Failed to delete address.", nil)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // SetDefaultAddress implements POST /v1/addresses/{addressId}/default (x-roles: CUSTOMER).
@@ -128,5 +216,18 @@ func (h *Handler) SetDefaultAddress(w http.ResponseWriter, r *http.Request, addr
 	if !requireRole(w, r, p, httpx.RoleCustomer) {
 		return
 	}
-	notImplemented(w, r)
+
+	row, err := h.repo.SetDefault(r.Context(), p.AccountID, addressID)
+	if err != nil {
+		if errors.Is(err, ErrAddressNotFound) {
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound,
+				"Address not found.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+			"Failed to set default address.", nil)
+		return
+	}
+
+	httpx.Respond(w, r, http.StatusOK, row.toDTO())
 }

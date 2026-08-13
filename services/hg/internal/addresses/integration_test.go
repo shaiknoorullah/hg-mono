@@ -141,14 +141,14 @@ func TestIntegration_ListAddresses_HappyPath(t *testing.T) {
 	}
 	var env struct {
 		Data []struct {
-			ID        string `json:"id"`
-			Line1     string `json:"line1"`
-			City      string `json:"city"`
-			Province  string `json:"province"`
-			IsDefault bool   `json:"is_default"`
+			ID        string   `json:"id"`
+			Line1     string   `json:"line1"`
+			City      string   `json:"city"`
+			Province  string   `json:"province"`
+			IsDefault bool     `json:"is_default"`
 			Latitude  *float64 `json:"latitude"`
 			Longitude *float64 `json:"longitude"`
-			Timezone  string `json:"timezone"`
+			Timezone  string   `json:"timezone"`
 		} `json:"data"`
 		Meta struct {
 			NextCursor *string `json:"next_cursor"`
@@ -262,16 +262,16 @@ func TestIntegration_CreateAddress_HappyPath(t *testing.T) {
 	}
 	var env struct {
 		Data struct {
-			ID        string   `json:"id"`
-			Line1     string   `json:"line1"`
-			City      string   `json:"city"`
-			Province  string   `json:"province"`
+			ID         string  `json:"id"`
+			Line1      string  `json:"line1"`
+			City       string  `json:"city"`
+			Province   string  `json:"province"`
 			PostalCode string  `json:"postal_code"`
-			Country   string   `json:"country"`
-			Latitude  float64  `json:"latitude"`
-			Longitude float64  `json:"longitude"`
-			Timezone  string   `json:"timezone"`
-			IsDefault bool     `json:"is_default"`
+			Country    string  `json:"country"`
+			Latitude   float64 `json:"latitude"`
+			Longitude  float64 `json:"longitude"`
+			Timezone   string  `json:"timezone"`
+			IsDefault  bool    `json:"is_default"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
@@ -367,8 +367,8 @@ func TestIntegration_GetAddress_HappyPath(t *testing.T) {
 	}
 	var env struct {
 		Data struct {
-			ID       string `json:"id"`
-			IsDefault bool  `json:"is_default"`
+			ID        string `json:"id"`
+			IsDefault bool   `json:"is_default"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {

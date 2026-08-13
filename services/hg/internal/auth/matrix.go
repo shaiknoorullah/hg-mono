@@ -36,6 +36,10 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleCustomer: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		httpx.Action("address.read"),
+		httpx.Action("address.write"),
+		httpx.Action("address.delete"),
+		httpx.Action("address.set_default"),
 		httpx.Action("cart.read"),
 		httpx.Action("cart.write"),
 		httpx.Action("discovery.feed_read"),
