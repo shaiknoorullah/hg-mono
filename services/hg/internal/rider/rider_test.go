@@ -147,7 +147,9 @@ func mustJSON(t *testing.T, rec *httptest.ResponseRecorder, v any) {
 func errorCode(t *testing.T, rec *httptest.ResponseRecorder) string {
 	t.Helper()
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	mustJSON(t, rec, &env)
 	return env.Error.Code
@@ -327,11 +329,11 @@ func TestGetRiderMe_Happy(t *testing.T) {
 	}
 	var env struct {
 		Data struct {
-			AccountID        string `json:"account_id"`
-			OnboardingState  string `json:"onboarding_state"`
-			AccountStatus    string `json:"account_status"`
+			AccountID         string `json:"account_id"`
+			OnboardingState   string `json:"onboarding_state"`
+			AccountStatus     string `json:"account_status"`
 			AvailabilityState string `json:"availability_state"`
-			NextRoute        string `json:"next_route"`
+			NextRoute         string `json:"next_route"`
 		} `json:"data"`
 	}
 	mustJSON(t, rec, &env)
@@ -403,7 +405,9 @@ func TestGetRiderMe_ScopeOwn(t *testing.T) {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
 	}
 	var env struct {
-		Data struct{ AccountID string `json:"account_id"` } `json:"data"`
+		Data struct {
+			AccountID string `json:"account_id"`
+		} `json:"data"`
 	}
 	mustJSON(t, rec, &env)
 	if env.Data.AccountID == rider1 {
@@ -431,18 +435,18 @@ func TestGetRiderOnboardingStatus_Happy(t *testing.T) {
 	}
 	var env struct {
 		Data struct {
-			OnboardingState string  `json:"onboarding_state"`
-			AccountStatus   string  `json:"account_status"`
-			ProgressPercent int     `json:"progress_percent"`
-			NextStep        string  `json:"next_step"`
-			Documents       []any   `json:"documents"`
+			OnboardingState string `json:"onboarding_state"`
+			AccountStatus   string `json:"account_status"`
+			ProgressPercent int    `json:"progress_percent"`
+			NextStep        string `json:"next_step"`
+			Documents       []any  `json:"documents"`
 			StepsCompleted  struct {
-				PhoneVerified     bool `json:"phone_verified"`
-				Profile           bool `json:"profile"`
-				Vehicle           bool `json:"vehicle"`
+				PhoneVerified      bool `json:"phone_verified"`
+				Profile            bool `json:"profile"`
+				Vehicle            bool `json:"vehicle"`
 				DocumentsSubmitted bool `json:"documents_submitted"`
-				DocumentsApproved bool `json:"documents_approved"`
-				PayoutOnboarded   bool `json:"payout_onboarded"`
+				DocumentsApproved  bool `json:"documents_approved"`
+				PayoutOnboarded    bool `json:"payout_onboarded"`
 			} `json:"steps_completed"`
 		} `json:"data"`
 	}
@@ -639,9 +643,9 @@ func TestSubmitRiderProfile_UnknownFieldsRejected(t *testing.T) {
 
 	riderID := seedRiderAccount(t, ctx, pool, "PHONE_VERIFIED", "PENDING")
 	body := map[string]any{
-		"first_name":    "Test",
-		"last_name":     "Rider",
-		"date_of_birth": "1995-01-01",
+		"first_name":     "Test",
+		"last_name":      "Rider",
+		"date_of_birth":  "1995-01-01",
 		"admin_override": true, // unknown field
 	}
 	rec := do(t, router, "POST", "/v1/riders/me/onboarding/profile", body, bearerFor(t, iss, riderID, []string{"RIDER"}))
@@ -856,14 +860,18 @@ func TestSubmitRiderVehicle_PlateInUse(t *testing.T) {
 	ctx := context.Background()
 	router, iss := buildRouter(t, pool)
 
-	// Seed a rider who already owns the plate.
+	// Seed a rider who already owns the plate. The plate uniqueness index is
+	// scoped to active, non-deleted rows, so the colliding vehicle must be
+	// rider1's *sole active* vehicle — inserting a second active vehicle would
+	// instead trip the one-active-per-rider index and leave no active plate to
+	// collide against (which previously made this test a false pass).
 	rider1 := seedRiderAccount(t, ctx, pool, "VEHICLE_PENDING", "PENDING")
 	plate := fmt.Sprintf("DUP%04d", time.Now().UnixNano()%9999)
-	seedRiderVehicle(t, ctx, pool, rider1, "CAR") // will use a different plate
-	// Directly insert with the specific plate we want to collide on.
-	pool.Exec(ctx,
+	if _, err := pool.Exec(ctx,
 		`INSERT INTO rider_vehicle (account_id, vehicle_type, make, model, year, colour, licence_plate)
-		 VALUES ($1, 'CAR', 'Honda', 'Civic', 2019, 'Red', $2)`, rider1, plate)
+		 VALUES ($1, 'CAR', 'Honda', 'Civic', 2019, 'Red', $2)`, rider1, plate); err != nil {
+		t.Fatalf("seed colliding plate: %v", err)
+	}
 
 	rider2 := seedRiderAccount(t, ctx, pool, "VEHICLE_PENDING", "PENDING")
 	body := map[string]any{
@@ -1019,7 +1027,9 @@ func TestListRiderDocuments_IDOR(t *testing.T) {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
 	}
 	var env struct {
-		Data []struct{ SubjectID string `json:"subject_id"` } `json:"data"`
+		Data []struct {
+			SubjectID string `json:"subject_id"`
+		} `json:"data"`
 	}
 	mustJSON(t, rec, &env)
 	for _, d := range env.Data {
@@ -1412,12 +1422,12 @@ func TestGetRiderDashboard_Happy(t *testing.T) {
 	}
 	var env struct {
 		Data struct {
-			Mode   string `json:"mode"`
-			Today  struct {
-				GrossCents  int    `json:"gross_cents"`
-				Currency    string `json:"currency"`
-				Trips       int    `json:"trips"`
-				OnlineSeconds int64 `json:"online_seconds"`
+			Mode  string `json:"mode"`
+			Today struct {
+				GrossCents    int    `json:"gross_cents"`
+				Currency      string `json:"currency"`
+				Trips         int    `json:"trips"`
+				OnlineSeconds int64  `json:"online_seconds"`
 			} `json:"today"`
 			ActiveAssignment any `json:"active_assignment"`
 			CurrentOffer     any `json:"current_offer"`
@@ -1514,7 +1524,9 @@ func TestGetRiderDashboard_ScopeOwn(t *testing.T) {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
 	}
 	var env struct {
-		Data struct{ Mode string `json:"mode"` } `json:"data"`
+		Data struct {
+			Mode string `json:"mode"`
+		} `json:"data"`
 	}
 	mustJSON(t, rec, &env)
 	if env.Data.Mode == "ONLINE_IDLE" {

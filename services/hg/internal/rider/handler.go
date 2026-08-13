@@ -489,18 +489,28 @@ func Routes(r *httpx.Router, h *Handler) {
 
 // ─── Wire structs ────────────────────────────────────────────────────────────
 
-// riderMeResponse mirrors the RiderMe schema.
+// riderMeResponse mirrors the RiderMe schema. Fields are limited to those the
+// contract declares (additionalProperties:false); optional fields the server
+// does not populate are elided with omitempty so the payload stays a strict
+// subset of RiderMe.
 type riderMeResponse struct {
-	AccountID         string `json:"account_id"`
-	FirstName         string `json:"first_name"`
-	LastName          string `json:"last_name"`
-	DateOfBirth       string `json:"date_of_birth"`
-	OnboardingState   string `json:"onboarding_state"`
-	AccountStatus     string `json:"account_status"`
-	AvailabilityState string `json:"availability_state"`
-	NextRoute         string `json:"next_route"`
-	CreatedAt         string `json:"created_at"`
-	UpdatedAt         string `json:"updated_at"`
+	AccountID         string  `json:"account_id"`
+	FirstName         *string `json:"first_name"`
+	LastName          *string `json:"last_name"`
+	OnboardingState   string  `json:"onboarding_state"`
+	AccountStatus     string  `json:"account_status"`
+	AvailabilityState string  `json:"availability_state"`
+	NextRoute         string  `json:"next_route"`
+}
+
+// riderProfileResponse mirrors the RiderProfile schema returned by
+// submitRiderProfile — a distinct, narrower shape than RiderMe.
+type riderProfileResponse struct {
+	AccountID   string  `json:"account_id"`
+	FirstName   string  `json:"first_name"`
+	LastName    string  `json:"last_name"`
+	Email       *string `json:"email,omitempty"`
+	DateOfBirth string  `json:"date_of_birth"`
 }
 
 // onboardingStatusResponse mirrors RiderOnboardingStatus.
@@ -559,18 +569,19 @@ type attachDocumentRequest struct {
 	ExpiresOn      *string `json:"expires_on"`
 }
 
-// vehicleResponse mirrors RiderVehicle.
+// vehicleResponse mirrors RiderVehicle. The schema is closed
+// (additionalProperties:false) to {id, vehicle_type, make, model, year, colour,
+// licence_plate, is_active} — account_id and created_at are deliberately not on
+// the wire shape.
 type vehicleResponse struct {
 	ID           string  `json:"id"`
-	AccountID    string  `json:"account_id"`
 	VehicleType  string  `json:"vehicle_type"`
-	Make         *string `json:"make,omitempty"`
-	Model        *string `json:"model,omitempty"`
-	Year         *int    `json:"year,omitempty"`
-	Colour       *string `json:"colour,omitempty"`
-	LicencePlate *string `json:"licence_plate,omitempty"`
+	Make         *string `json:"make"`
+	Model        *string `json:"model"`
+	Year         *int    `json:"year"`
+	Colour       *string `json:"colour"`
+	LicencePlate *string `json:"licence_plate"`
 	IsActive     bool    `json:"is_active"`
-	CreatedAt    string  `json:"created_at"`
 }
 
 // dashboardTodayResponse mirrors RiderDashboardToday.
@@ -587,11 +598,6 @@ type dashboardResponse struct {
 	Today            dashboardTodayResponse `json:"today"`
 	ActiveAssignment any                    `json:"active_assignment"`
 	CurrentOffer     any                    `json:"current_offer"`
-}
-
-// submitDocumentsResponse mirrors the result of submitRiderDocuments.
-type submitDocumentsResponse struct {
-	OnboardingState string `json:"onboarding_state"`
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -615,25 +621,28 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
 	return true
 }
 
-// nextRoute derives the client-side routing hint from the onboarding state.
+// nextRoute derives the server-side routing decision from the onboarding state.
+// It returns a value from the closed NextRoute enum in the contract — never a
+// client-side path — so the app maps a known value to a screen and an unknown
+// value to "please update the app" rather than crashing.
 func nextRoute(state string) string {
 	switch state {
 	case "REGISTERED", "PHONE_VERIFIED", "PROFILE_PENDING":
-		return "/onboarding/profile"
+		return "ONBOARDING_PROFILE"
 	case "VEHICLE_PENDING":
-		return "/onboarding/vehicle"
+		return "ONBOARDING_VEHICLE"
 	case "DOCUMENTS_PENDING":
-		return "/onboarding/documents"
+		return "ONBOARDING_DOCUMENTS"
 	case "DOCUMENTS_REVIEW":
-		return "/onboarding/review"
-	case "DOCUMENTS_APPROVED", "PAYOUT_PENDING":
-		return "/onboarding/payout"
+		return "ONBOARDING_AWAITING_REVIEW"
 	case "DOCUMENTS_REJECTED":
-		return "/onboarding/documents/fix"
+		return "ONBOARDING_REJECTED"
+	case "DOCUMENTS_APPROVED", "PAYOUT_PENDING":
+		return "ONBOARDING_PAYOUT"
 	case "ACTIVE":
-		return "/dashboard"
+		return "HOME"
 	}
-	return "/onboarding"
+	return "ONBOARDING_PROFILE"
 }
 
 // onboardingProgress maps onboarding_state to a progress percentage.
@@ -729,16 +738,22 @@ func (h *Handler) getRiderMe(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.Respond(w, r, http.StatusOK, riderMeResponse{
 		AccountID:         row.AccountID,
-		FirstName:         row.FirstName,
-		LastName:          row.LastName,
-		DateOfBirth:       row.DateOfBirth.Format("2006-01-02"),
+		FirstName:         strPtr(row.FirstName),
+		LastName:          strPtr(row.LastName),
 		OnboardingState:   row.OnboardingState,
 		AccountStatus:     row.AccountStatus,
 		AvailabilityState: row.AvailabilityState,
 		NextRoute:         nextRoute(row.OnboardingState),
-		CreatedAt:         httpx.Timestamp(row.CreatedAt),
-		UpdatedAt:         httpx.Timestamp(row.UpdatedAt),
 	})
+}
+
+// strPtr returns a pointer to s, or nil when s is empty, so an unset optional
+// nullable string is rendered as JSON null rather than an empty string.
+func strPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // getRiderOnboardingStatus implements GET /v1/riders/me/onboarding/status.
@@ -754,12 +769,23 @@ func (h *Handler) getRiderOnboardingStatus(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	docs, err := h.svc.repo.ListDocuments(r.Context(), p.AccountID)
+	status, err := h.buildOnboardingStatus(r.Context(), p.AccountID, row)
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
 	}
+	httpx.Respond(w, r, http.StatusOK, status)
+}
 
+// buildOnboardingStatus assembles the RiderOnboardingStatus payload from the
+// rider's profile row and current document set. It is shared by the onboarding
+// status read and the document-submission write so both return the exact same
+// contract shape.
+func (h *Handler) buildOnboardingStatus(ctx context.Context, accountID string, row riderProfileRow) (onboardingStatusResponse, error) {
+	docs, err := h.svc.repo.ListDocuments(ctx, accountID)
+	if err != nil {
+		return onboardingStatusResponse{}, err
+	}
 	docResp := make([]kycDocumentResponse, 0, len(docs))
 	for _, d := range docs {
 		docResp = append(docResp, kycDocumentResponse{
@@ -772,15 +798,14 @@ func (h *Handler) getRiderOnboardingStatus(w http.ResponseWriter, r *http.Reques
 			CreatedAt:   httpx.Timestamp(d.CreatedAt),
 		})
 	}
-
-	httpx.Respond(w, r, http.StatusOK, onboardingStatusResponse{
+	return onboardingStatusResponse{
 		OnboardingState: row.OnboardingState,
 		AccountStatus:   row.AccountStatus,
 		ProgressPercent: onboardingProgress(row.OnboardingState),
 		NextStep:        nextStep(row.OnboardingState),
 		Documents:       docResp,
 		StepsCompleted:  stepsFrom(row.OnboardingState),
-	})
+	}, nil
 }
 
 // submitRiderProfile implements POST /v1/riders/me/onboarding/profile.
@@ -838,17 +863,16 @@ func (h *Handler) submitRiderProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpx.Respond(w, r, http.StatusOK, riderMeResponse{
-		AccountID:         row.AccountID,
-		FirstName:         row.FirstName,
-		LastName:          row.LastName,
-		DateOfBirth:       row.DateOfBirth.Format("2006-01-02"),
-		OnboardingState:   row.OnboardingState,
-		AccountStatus:     row.AccountStatus,
-		AvailabilityState: row.AvailabilityState,
-		NextRoute:         nextRoute(row.OnboardingState),
-		CreatedAt:         httpx.Timestamp(row.CreatedAt),
-		UpdatedAt:         httpx.Timestamp(row.UpdatedAt),
+	var email *string
+	if body.Email != nil && *body.Email != "" {
+		email = body.Email
+	}
+	httpx.Respond(w, r, http.StatusOK, riderProfileResponse{
+		AccountID:   row.AccountID,
+		FirstName:   row.FirstName,
+		LastName:    row.LastName,
+		Email:       email,
+		DateOfBirth: row.DateOfBirth.Format("2006-01-02"),
 	})
 }
 
@@ -897,7 +921,6 @@ func (h *Handler) submitRiderVehicle(w http.ResponseWriter, r *http.Request) {
 
 	httpx.Respond(w, r, http.StatusOK, vehicleResponse{
 		ID:           v.ID,
-		AccountID:    v.AccountID,
 		VehicleType:  v.VehicleType,
 		Make:         v.Make,
 		Model:        v.Model,
@@ -905,7 +928,6 @@ func (h *Handler) submitRiderVehicle(w http.ResponseWriter, r *http.Request) {
 		Colour:       v.Colour,
 		LicencePlate: v.LicencePlate,
 		IsActive:     v.IsActive,
-		CreatedAt:    httpx.Timestamp(v.CreatedAt),
 	})
 }
 
@@ -1023,9 +1045,24 @@ func (h *Handler) submitRiderDocuments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpx.Respond(w, r, http.StatusOK, submitDocumentsResponse{
-		OnboardingState: "DOCUMENTS_REVIEW",
-	})
+	// The contract returns the full RiderOnboardingStatus, not a bare
+	// {onboarding_state}. Re-read the freshly advanced profile so the payload
+	// reflects the new state and current document set.
+	row, err := h.svc.repo.GetRiderProfile(r.Context(), p.AccountID)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, codeNotFound, "Rider profile not found.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	status, err := h.buildOnboardingStatus(r.Context(), p.AccountID, row)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, status)
 }
 
 // requiredDocTypes returns the required rider_doc_types for the given vehicle type.
