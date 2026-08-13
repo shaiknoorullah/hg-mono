@@ -44,7 +44,9 @@ func TestStage4_SubmitDocuments_CompletePack_Succeeds(t *testing.T) {
 			t.Fatalf("attach %s: %v", dt, err)
 		}
 	}
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM kyc_document WHERE subject_id=$1`, f.restaurantID) })
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM kyc_document WHERE subject_id=$1`, f.restaurantID)
+	})
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/restaurant/documents/submit", nil)
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
@@ -74,7 +76,9 @@ func TestStage4_SubmitDocuments_MissingOneRequired_422(t *testing.T) {
 			VALUES ('RESTAURANT', $1, $2::restaurant_doc_type, $3, 'SUBMITTED', now()+interval '72h', 'ESCALATE')`,
 			f.restaurantID, dt, objID)
 	}
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM kyc_document WHERE subject_id=$1`, f.restaurantID) })
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM kyc_document WHERE subject_id=$1`, f.restaurantID)
+	})
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/restaurant/documents/submit", nil)
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
@@ -178,11 +182,11 @@ func TestStage4_DelayOrder_BadIncrementOrReason_422(t *testing.T) {
 	_, _ = pool.Exec(context.Background(), `UPDATE "order" SET accepted_at=now() WHERE id=$1`, orderID)
 
 	for _, bad := range []string{
-		`{"delay_minutes":7,"reason":"HIGH_VOLUME"}`,   // 7 not in {5,10,15,20}
-		`{"delay_minutes":0,"reason":"HIGH_VOLUME"}`,   // zero
-		`{"delay_minutes":-5,"reason":"HIGH_VOLUME"}`,  // negative
+		`{"delay_minutes":7,"reason":"HIGH_VOLUME"}`,     // 7 not in {5,10,15,20}
+		`{"delay_minutes":0,"reason":"HIGH_VOLUME"}`,     // zero
+		`{"delay_minutes":-5,"reason":"HIGH_VOLUME"}`,    // negative
 		`{"delay_minutes":10000,"reason":"HIGH_VOLUME"}`, // absurd
-		`{"delay_minutes":15,"reason":"NONSENSE"}`,     // bad reason enum
+		`{"delay_minutes":15,"reason":"NONSENSE"}`,       // bad reason enum
 	} {
 		req := httptest.NewRequest(http.MethodPost,
 			fmt.Sprintf("/v1/restaurant/orders/%s/delay", orderID), strings.NewReader(bad))
