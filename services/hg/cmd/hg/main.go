@@ -29,6 +29,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/account"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/admin"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/catalog"
@@ -144,6 +145,8 @@ func run() error {
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
 	auth.Routes(router, authModule.Handler)
+	// B2 — Account self-service (C-03, P-24, P-25): profile, devices, notifications.
+	account.Routes(router, account.NewHandler(account.NewRepo(st.DB().Pool)))
 	// The revocation deny set refreshes from Postgres every 10 s (P-04).
 	authModule.StartRevocationRefresher(ctx)
 	// TODO(siblings): catalog.Routes(router, …), orders.Routes(router, …),

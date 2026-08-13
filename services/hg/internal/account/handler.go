@@ -1,7 +1,13 @@
 package account
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
@@ -42,6 +48,90 @@ func requireRole(w http.ResponseWriter, r *http.Request, p httpx.Principal, role
 	return false
 }
 
+// decodeStrict JSON-decodes the request body into dst, refusing unknown fields
+// (additionalProperties:false from the contract) and trailing content. It
+// returns false and writes 422 VALIDATION_FAILED on any error.
+func decodeStrict(w http.ResponseWriter, r *http.Request, dst any) bool {
+	dec := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(dst); err != nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"The request body could not be parsed against the schema.",
+			[]httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
+		return false
+	}
+	if dec.More() {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"The request body carried trailing content.", nil)
+		return false
+	}
+	return true
+}
+
+// ─── Input DTOs ──────────────────────────────────────────────────────────────
+
+// customerProfileUpdateInput mirrors CustomerProfileUpdateInput in the contract.
+// Fields absent from this struct (phone_e164, account_id, price_cents, etc.)
+// will cause DisallowUnknownFields to return 422. This is the intent.
+type customerProfileUpdateInput struct {
+	FirstName        *string `json:"first_name"`
+	LastName         *string `json:"last_name"`
+	AvatarObjectID   *string `json:"avatar_object_id"`
+	MarketingConsent *bool   `json:"marketing_consent"`
+}
+
+// deviceRegistrationInput mirrors DeviceRegistrationInput in the contract.
+type deviceRegistrationInput struct {
+	ExpoPushToken string `json:"expo_push_token"`
+	DeviceID      string `json:"device_id"`
+	Platform      string `json:"platform"`
+	RoleContext   string `json:"role_context"`
+	AppVersion    string `json:"app_version"`
+	OsVersion     string `json:"os_version"`
+	Locale        string `json:"locale"`
+}
+
+// ─── Output DTOs ─────────────────────────────────────────────────────────────
+
+// customerProfileResponse mirrors the CustomerProfile schema in the contract.
+type customerProfileResponse struct {
+	AccountID        string  `json:"account_id"`
+	FirstName        string  `json:"first_name"`
+	LastName         *string `json:"last_name"`
+	AvatarURL        *string `json:"avatar_url"`
+	PhoneE164        string  `json:"phone_e164"`
+	EmailVerified    bool    `json:"email_verified"`
+	MarketingConsent bool    `json:"marketing_consent"`
+	CreatedAt        string  `json:"created_at"`
+	UpdatedAt        string  `json:"updated_at"`
+}
+
+// deviceResponse mirrors the Device schema in the contract.
+type deviceResponse struct {
+	DeviceID    string `json:"device_id"`
+	Platform    string `json:"platform"`
+	RoleContext string `json:"role_context"`
+	PushEnabled bool   `json:"push_enabled"`
+	LastSeenAt  string `json:"last_seen_at"`
+}
+
+// notificationResponse mirrors the Notification schema in the contract.
+type notificationResponse struct {
+	ID        string  `json:"id"`
+	Kind      string  `json:"kind"`
+	Title     string  `json:"title"`
+	Body      string  `json:"body"`
+	Priority  string  `json:"priority"`
+	DeepLink  *string `json:"deep_link"`
+	ReadAt    *string `json:"read_at"`
+	CreatedAt string  `json:"created_at"`
+}
+
+// valid platform values (device_platform enum from migrations/00002_enums.sql)
+var validPlatforms = map[string]bool{
+	"ios": true, "android": true, "web": true,
+}
+
 // UpdateCustomerProfile implements PATCH /v1/me/profile (C-03).
 // x-roles: CUSTOMER only.
 func (h *Handler) UpdateCustomerProfile(w http.ResponseWriter, r *http.Request) {
@@ -52,10 +142,37 @@ func (h *Handler) UpdateCustomerProfile(w http.ResponseWriter, r *http.Request) 
 	if !requireRole(w, r, p, httpx.RoleCustomer) {
 		return
 	}
-	// TODO(account): implement — decode CustomerProfileUpdateInput with
-	// DisallowUnknownFields, validate, update customer_profile scoped to p.AccountID.
-	httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
-		"updateCustomerProfile is not yet implemented.", nil)
+
+	var in customerProfileUpdateInput
+	if !decodeStrict(w, r, &in) {
+		return
+	}
+
+	// Validate: first_name has minLength=1 when provided.
+	if in.FirstName != nil && strings.TrimSpace(*in.FirstName) == "" {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"first_name must not be empty.",
+			[]httpx.FieldError{{Field: "first_name", Code: "min_length", Message: "first_name must have at least 1 character"}})
+		return
+	}
+
+	if h.repo == nil {
+		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
+			"updateCustomerProfile is not yet connected to a store.", nil)
+		return
+	}
+
+	profile, err := h.repo.UpdateCustomerProfile(r.Context(), p.AccountID, in)
+	if err != nil {
+		if isNotFound(err) {
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+
+	httpx.Respond(w, r, http.StatusOK, profile)
 }
 
 // RegisterDevice implements POST /v1/devices (P-25).
@@ -74,11 +191,47 @@ func (h *Handler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 	) {
 		return
 	}
-	// TODO(account): implement — decode DeviceRegistrationInput with
-	// DisallowUnknownFields, upsert on (account_id, device_id), revoke old
-	// binding for the same token on a different account.
-	httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
-		"registerDevice is not yet implemented.", nil)
+
+	var in deviceRegistrationInput
+	if !decodeStrict(w, r, &in) {
+		return
+	}
+
+	// Validate required fields.
+	if in.ExpoPushToken == "" {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"expo_push_token is required.",
+			[]httpx.FieldError{{Field: "expo_push_token", Code: "required", Message: "expo_push_token must not be empty"}})
+		return
+	}
+	if in.DeviceID == "" {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"device_id is required.",
+			[]httpx.FieldError{{Field: "device_id", Code: "required", Message: "device_id must not be empty"}})
+		return
+	}
+
+	// Validate platform enum.
+	if !validPlatforms[in.Platform] {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"platform must be one of: ios, android, web.",
+			[]httpx.FieldError{{Field: "platform", Code: "invalid", Message: "platform must be one of: ios, android, web"}})
+		return
+	}
+
+	if h.repo == nil {
+		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
+			"registerDevice is not yet connected to a store.", nil)
+		return
+	}
+
+	device, err := h.repo.UpsertDevice(r.Context(), p.AccountID, in)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+
+	httpx.Respond(w, r, http.StatusOK, device)
 }
 
 // UnregisterDevice implements DELETE /v1/devices/{deviceId} (P-25).
@@ -97,10 +250,27 @@ func (h *Handler) UnregisterDevice(w http.ResponseWriter, r *http.Request) {
 	) {
 		return
 	}
-	// TODO(account): implement — set revoked_at WHERE account_id=$caller AND
-	// device_id=$param; return 404 if not found (IDOR: never 403).
-	httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
-		"unregisterDevice is not yet implemented.", nil)
+
+	deviceID := chi.URLParam(r, "deviceId")
+
+	if h.repo == nil {
+		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
+			"unregisterDevice is not yet connected to a store.", nil)
+		return
+	}
+
+	err := h.repo.RevokeDevice(r.Context(), p.AccountID, deviceID)
+	if err != nil {
+		if isNotFound(err) {
+			// IDOR: return 404, never 403, even when the device exists for another account.
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ListNotifications implements GET /v1/notifications (P-24).
@@ -119,10 +289,45 @@ func (h *Handler) ListNotifications(w http.ResponseWriter, r *http.Request) {
 	) {
 		return
 	}
-	// TODO(account): implement — keyset-paginate notification WHERE account_id=$caller,
-	// optional unread_only filter; return {data:[], meta:{next_cursor, has_more}}.
-	httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
-		"listNotifications is not yet implemented.", nil)
+
+	if h.repo == nil {
+		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
+			"listNotifications is not yet connected to a store.", nil)
+		return
+	}
+
+	q := r.URL.Query()
+
+	// Parse ?limit= (default 20, max 100).
+	limit := 20
+	if ls := q.Get("limit"); ls != "" {
+		if n, err := strconv.Atoi(ls); err == nil && n > 0 && n <= 100 {
+			limit = n
+		}
+	}
+
+	// Parse ?cursor= (opaque keyset token = last-seen notification id).
+	cursor := q.Get("cursor")
+
+	// Parse ?unread_only=true.
+	unreadOnly := q.Get("unread_only") == "true"
+
+	items, nextCursor, err := h.repo.ListNotifications(r.Context(), p.AccountID, limit, cursor, unreadOnly)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+
+	hasMore := nextCursor != ""
+	var nextCursorPtr *string
+	if hasMore {
+		nextCursorPtr = &nextCursor
+	}
+
+	httpx.RespondList(w, r, http.StatusOK, items, httpx.Meta{
+		HasMore:    hasMore,
+		NextCursor: nextCursorPtr,
+	})
 }
 
 // MarkNotificationRead implements POST /v1/notifications/{notificationId}/read (P-24).
@@ -141,8 +346,25 @@ func (h *Handler) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	) {
 		return
 	}
-	// TODO(account): implement — UPDATE notification SET read_at=now()
-	// WHERE id=$param AND account_id=$caller; 404 if not found (IDOR: never 403).
-	httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
-		"markNotificationRead is not yet implemented.", nil)
+
+	notificationID := chi.URLParam(r, "notificationId")
+
+	if h.repo == nil {
+		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
+			"markNotificationRead is not yet connected to a store.", nil)
+		return
+	}
+
+	err := h.repo.MarkNotificationRead(r.Context(), p.AccountID, notificationID)
+	if err != nil {
+		if isNotFound(err) {
+			// IDOR: return 404, never 403.
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

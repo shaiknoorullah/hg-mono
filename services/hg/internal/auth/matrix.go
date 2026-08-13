@@ -36,6 +36,10 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleCustomer: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		httpx.Action("account.profile_write"),
+		httpx.Action("account.device_write"),
+		httpx.Action("account.notification_read"),
+		httpx.Action("account.notification_ack"),
 		httpx.Action("cart.read"),
 		httpx.Action("cart.write"),
 		httpx.Action("discovery.feed_read"),
@@ -66,6 +70,9 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleRider: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		httpx.Action("account.device_write"),
+		httpx.Action("account.notification_read"),
+		httpx.Action("account.notification_ack"),
 		httpx.Action("assignment.pod.submit"),
 		httpx.Action("assignment.read"),
 		httpx.Action("assignment.transition"),
@@ -93,6 +100,9 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleRestaurantOwner: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		httpx.Action("account.device_write"),
+		httpx.Action("account.notification_read"),
+		httpx.Action("account.notification_ack"),
 		httpx.Action("connect.read"),
 		httpx.Action("connect.write"),
 		httpx.Action("kyc_document.download"),
@@ -125,6 +135,9 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleRestaurantManager: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		httpx.Action("account.device_write"),
+		httpx.Action("account.notification_read"),
+		httpx.Action("account.notification_ack"),
 		httpx.Action("connect.read"),
 		httpx.Action("kyc_document.download"),
 		httpx.Action("realtime_schema.read"),
@@ -155,6 +168,9 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 	httpx.RoleRestaurantStaff: setOf(
 		ActionSessionReadSelf,
 		ActionSessionRevokeSelf,
+		httpx.Action("account.device_write"),
+		httpx.Action("account.notification_read"),
+		httpx.Action("account.notification_ack"),
 		httpx.Action("realtime_schema.read"),
 		httpx.Action("realtime_ticket.create"),
 		httpx.Action("restaurant.accepting_orders_set"),
