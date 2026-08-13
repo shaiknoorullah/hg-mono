@@ -27,6 +27,7 @@ import {
 import type { Restaurant } from '@hg/ui-native';
 
 import { api } from '../api/client';
+import { useNavigation } from '../navigation/stack';
 
 type Status =
   | { kind: 'loading' }
@@ -36,6 +37,7 @@ type Status =
 export function DiscoveryScreen(): React.ReactElement {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const nav = useNavigation();
   const [status, setStatus] = React.useState<Status>({ kind: 'loading' });
 
   const load = React.useCallback(async () => {
@@ -59,7 +61,12 @@ export function DiscoveryScreen(): React.ReactElement {
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
       <AppBar title="Discover" subtitle="Halal-certified, near you" />
-      <Body status={status} onRetry={load} bottomInset={insets.bottom} />
+      <Body
+        status={status}
+        onRetry={load}
+        onOpen={(id) => nav.push({ name: 'restaurant', restaurantId: id })}
+        bottomInset={insets.bottom}
+      />
     </View>
   );
 }
@@ -67,10 +74,12 @@ export function DiscoveryScreen(): React.ReactElement {
 function Body({
   status,
   onRetry,
+  onOpen,
   bottomInset,
 }: {
   status: Status;
   onRetry: () => void;
+  onOpen: (restaurantId: string) => void;
   bottomInset: number;
 }): React.ReactElement {
   if (status.kind === 'loading') {
@@ -110,7 +119,7 @@ function Body({
       keyExtractor={(r) => r.id}
       contentContainerStyle={{ padding: 16, paddingBottom: 16 + bottomInset, gap: 16 }}
       renderItem={({ item }) => (
-        <RestaurantCard restaurant={item} onPress={() => undefined} />
+        <RestaurantCard restaurant={item} onPress={() => onOpen(item.id)} />
       )}
     />
   );

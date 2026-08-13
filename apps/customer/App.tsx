@@ -1,17 +1,18 @@
 /**
  * Halal Goes — customer app entry.
  *
- * Minimal by design: it wraps the tree in the design system's `ThemeProvider` under this app's
- * register (`customer`, `light` scheme) and a `SafeAreaProvider`, then mounts the single smoke
- * screen. Everything domain-shaped comes from `@hg/api-client` against the mock; every visible
- * component comes from `@hg/ui-native`.
+ * It wraps the tree in the design system's `ThemeProvider` under this app's register (`customer`,
+ * `light` scheme) and a `SafeAreaProvider`, then mounts the customer journey behind a small
+ * in-app stack `Router`: Discovery → Restaurant → Cart → Checkout → Tracking. Everything
+ * domain-shaped comes from `@hg/api-client` against the mock; every visible component comes from
+ * `@hg/ui-native`.
  */
 import * as React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, setClientErrorReporter } from '@hg/ui-native';
 
-import { DiscoveryScreen } from './src/screens/DiscoveryScreen';
+import { Router } from './src/navigation/Router';
 
 export default function App(): React.ReactElement {
   React.useEffect(() => {
@@ -27,7 +28,7 @@ export default function App(): React.ReactElement {
     <SafeAreaProvider>
       <ThemeProvider theme="customer" scheme="light">
         <StatusBar style="dark" />
-        <DiscoveryScreen />
+        <Router />
       </ThemeProvider>
     </SafeAreaProvider>
   );
