@@ -70,11 +70,11 @@ func testPool(t *testing.T) *pgxpool.Pool {
 
 // accountFixtures holds IDs seeded for one test run.
 type accountFixtures struct {
-	customerAccountID  string // has CUSTOMER role
-	riderAccountID     string // has RIDER role
-	otherAccountID     string // different CUSTOMER account — used for IDOR checks
-	notificationID     string // a notification belonging to customerAccountID
-	otherNotifID       string // a notification belonging to otherAccountID
+	customerAccountID string // has CUSTOMER role
+	riderAccountID    string // has RIDER role
+	otherAccountID    string // different CUSTOMER account — used for IDOR checks
+	notificationID    string // a notification belonging to customerAccountID
+	otherNotifID      string // a notification belonging to otherAccountID
 }
 
 // seedAccountFixtures creates a minimal test dataset and registers cleanup.
@@ -204,7 +204,9 @@ func anonPrincipal() httpx.Principal { return httpx.AnonymousPrincipal() }
 // errCode decodes the {"error":{"code":"…"}} envelope.
 func errCode(body []byte) string {
 	var env struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	_ = json.Unmarshal(body, &env)
 	return env.Error.Code
@@ -1035,7 +1037,9 @@ func TestIntegration_ListNotifications_Pagination(t *testing.T) {
 		t.Fatalf("page 1: status=%d (body: %s)", rec.Code, rec.Body.String())
 	}
 	var page1 struct {
-		Data []struct{ ID string `json:"id"` } `json:"data"`
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
 		Meta struct {
 			HasMore    bool    `json:"has_more"`
 			NextCursor *string `json:"next_cursor"`
@@ -1062,7 +1066,9 @@ func TestIntegration_ListNotifications_Pagination(t *testing.T) {
 		t.Fatalf("page 2: status=%d (body: %s)", rec2.Code, rec2.Body.String())
 	}
 	var page2 struct {
-		Data []struct{ ID string `json:"id"` } `json:"data"`
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
 	}
 	if err := json.Unmarshal(rec2.Body.Bytes(), &page2); err != nil {
 		t.Fatalf("unmarshal page2: %v", err)
