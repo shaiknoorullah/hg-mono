@@ -11,6 +11,7 @@
  * DataTable contract for a surface with no audited reveal path.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { operations } from '@hg/api-client';
 import {
   DataTable,
@@ -116,6 +117,7 @@ const columns: readonly DataTableColumn<Order>[] = [
 ];
 
 export function OrderQueueScreen() {
+  const navigate = useNavigate();
   const [state, setState] = useState<QueueState>(INITIAL);
 
   const load = useCallback(async () => {
@@ -179,6 +181,7 @@ export function OrderQueueScreen() {
       rows={state.orders}
       getRowId={(order) => order.id}
       getRowLabel={(order) => `order ${order.code}`}
+      onRowActivate={(order) => navigate(`/orders/${order.id}`)}
       loading={state.status === 'loading'}
       error={state.error}
       entityPlural="orders"
