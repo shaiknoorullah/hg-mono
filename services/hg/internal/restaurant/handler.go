@@ -1,7 +1,10 @@
 package restaurant
 
 import (
+	"errors"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
@@ -70,15 +73,6 @@ func (h *Handler) resolveRestaurant(w http.ResponseWriter, r *http.Request, p ht
 	return restaurantID, true
 }
 
-// notImplemented is the placeholder body for unimplemented operations. Every
-// handler calls this until the real implementation lands, causing tests to fail
-// at runtime rather than compile time.
-func notImplemented(w http.ResponseWriter, r *http.Request) {
-	httpx.Fail(w, r, http.StatusNotImplemented,
-		httpx.ErrorCode("NOT_IMPLEMENTED"),
-		"This operation is not yet implemented.", nil)
-}
-
 // ─── Onboarding ───────────────────────────────────────────────────────────────
 
 // GetRestaurantOnboardingStatus implements GET /v1/restaurant/onboarding/status
@@ -92,10 +86,16 @@ func (h *Handler) GetRestaurantOnboardingStatus(w http.ResponseWriter, r *http.R
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	status, err := h.repo.GetOnboardingStatus(r.Context(), restaurantID)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, status)
 }
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
@@ -111,10 +111,20 @@ func (h *Handler) GetRestaurantProfile(w http.ResponseWriter, r *http.Request) {
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	profile, err := h.repo.GetProfile(r.Context(), restaurantID)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Restaurant not found.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, profile)
 }
 
 // SubmitRestaurantProfile implements PUT /v1/restaurant/profile.
@@ -132,10 +142,16 @@ func (h *Handler) SubmitRestaurantProfile(w http.ResponseWriter, r *http.Request
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	profile, err := h.repo.UpsertProfile(r.Context(), restaurantID, body)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, profile)
 }
 
 // ─── Hours ────────────────────────────────────────────────────────────────────
@@ -151,10 +167,16 @@ func (h *Handler) GetRestaurantHours(w http.ResponseWriter, r *http.Request) {
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	hours, err := h.repo.GetHours(r.Context(), restaurantID)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, hours)
 }
 
 // SetRestaurantHours implements PUT /v1/restaurant/hours.
@@ -171,10 +193,16 @@ func (h *Handler) SetRestaurantHours(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	hours, err := h.repo.SetHours(r.Context(), restaurantID, body)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, hours)
 }
 
 // ─── Documents ────────────────────────────────────────────────────────────────
@@ -189,10 +217,16 @@ func (h *Handler) ListRestaurantDocuments(w http.ResponseWriter, r *http.Request
 	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	docs, err := h.repo.ListDocuments(r.Context(), restaurantID)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, docs)
 }
 
 // AttachRestaurantDocument implements POST /v1/restaurant/documents.
@@ -209,10 +243,16 @@ func (h *Handler) AttachRestaurantDocument(w http.ResponseWriter, r *http.Reques
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	doc, err := h.repo.AttachDocument(r.Context(), restaurantID, body)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusCreated, doc)
 }
 
 // SubmitRestaurantDocuments implements POST /v1/restaurant/documents/submit.
@@ -225,10 +265,21 @@ func (h *Handler) SubmitRestaurantDocuments(w http.ResponseWriter, r *http.Reque
 	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	if err := h.repo.CheckDocumentPack(r.Context(), restaurantID); err != nil {
+		if errors.Is(err, ErrIncompleteDocumentPack) {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity,
+				httpx.ErrorCode("INCOMPLETE_DOCUMENT_PACK"),
+				"All required document types must be present before submission.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, map[string]string{"status": "SUBMITTED"})
 }
 
 // ─── Menu ─────────────────────────────────────────────────────────────────────
@@ -244,10 +295,16 @@ func (h *Handler) GetOwnMenu(w http.ResponseWriter, r *http.Request) {
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	menu, err := h.repo.GetMenu(r.Context(), restaurantID)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, menu)
 }
 
 // CreateMenuCategory implements POST /v1/restaurant/menu/categories.
@@ -264,10 +321,22 @@ func (h *Handler) CreateMenuCategory(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	cat, err := h.repo.CreateCategory(r.Context(), restaurantID, body)
+	if errors.Is(err, ErrCategoryNameTaken) {
+		httpx.Fail(w, r, http.StatusConflict,
+			httpx.ErrorCode("CATEGORY_NAME_TAKEN"),
+			"A category with this name already exists.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusCreated, cat)
 }
 
 // CreateMenuItem implements POST /v1/restaurant/menu/items.
@@ -306,10 +375,16 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 				Message: "must be between 50 (CAD 0.50) and 50000 (CAD 500.00)"}})
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	item, err := h.repo.CreateMenuItem(r.Context(), restaurantID, body)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusCreated, item)
 }
 
 // UpdateMenuItem implements PATCH /v1/restaurant/menu/items/{itemId}.
@@ -330,8 +405,17 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	_ = restaurantID
-	notImplemented(w, r)
+	itemID := chi.URLParam(r, "itemId")
+	item, err := h.repo.UpdateMenuItem(r.Context(), restaurantID, itemID, body)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, item)
 }
 
 // SetMenuItemAvailability implements PUT /v1/restaurant/menu/items/{itemId}/availability.
@@ -353,8 +437,17 @@ func (h *Handler) SetMenuItemAvailability(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	_ = restaurantID
-	notImplemented(w, r)
+	itemID := chi.URLParam(r, "itemId")
+	item, err := h.repo.SetMenuItemAvailability(r.Context(), restaurantID, itemID, body)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, item)
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
@@ -370,10 +463,16 @@ func (h *Handler) ListRestaurantOrders(w http.ResponseWriter, r *http.Request) {
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	orders, hasMore, err := h.repo.ListOrders(r.Context(), restaurantID, 20, nil)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.RespondList(w, r, http.StatusOK, orders, httpx.Meta{HasMore: hasMore})
 }
 
 // GetRestaurantOrder implements GET /v1/restaurant/orders/{orderId}.
@@ -388,10 +487,21 @@ func (h *Handler) GetRestaurantOrder(w http.ResponseWriter, r *http.Request) {
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	orderID := chi.URLParam(r, "orderId")
+	order, err := h.repo.GetOrder(r.Context(), restaurantID, orderID)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, order)
 }
 
 // AcceptOrder implements POST /v1/restaurant/orders/{orderId}/accept.
@@ -406,16 +516,37 @@ func (h *Handler) AcceptOrder(w http.ResponseWriter, r *http.Request) {
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff) {
 		return
 	}
+	var body acceptInputDTO
 	if r.Body != nil {
-		var body acceptInputDTO
 		if !decodeStrictOptional(w, r, &body) {
 			return
 		}
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	orderID := chi.URLParam(r, "orderId")
+	order, err := h.repo.AcceptOrder(r.Context(), restaurantID, orderID, p.AccountID, body.PromisedReadyMinutes)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
+		return
+	}
+	if errors.Is(err, ErrOfferExpired) {
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode("OFFER_EXPIRED"),
+			"The restaurant acceptance window has expired for this order.", nil)
+		return
+	}
+	if errors.Is(err, ErrIllegalTransition) {
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode("ILLEGAL_TRANSITION"),
+			"The order cannot be accepted in its current state.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, order)
 }
 
 // RejectOrder implements POST /v1/restaurant/orders/{orderId}/reject.
@@ -434,10 +565,26 @@ func (h *Handler) RejectOrder(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	orderID := chi.URLParam(r, "orderId")
+	order, err := h.repo.RejectOrder(r.Context(), restaurantID, orderID, p.AccountID, body.Reason, body.Note)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
+		return
+	}
+	if errors.Is(err, ErrIllegalTransition) {
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode("ILLEGAL_TRANSITION"),
+			"The order cannot be rejected in its current state.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, order)
 }
 
 // MarkOrderReady implements POST /v1/restaurant/orders/{orderId}/ready.
@@ -452,10 +599,26 @@ func (h *Handler) MarkOrderReady(w http.ResponseWriter, r *http.Request) {
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	orderID := chi.URLParam(r, "orderId")
+	order, err := h.repo.MarkOrderReady(r.Context(), restaurantID, orderID, p.AccountID)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
+		return
+	}
+	if errors.Is(err, ErrIllegalTransition) {
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode("ILLEGAL_TRANSITION"),
+			"The order cannot be marked ready in its current state.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, order)
 }
 
 // DelayOrder implements POST /v1/restaurant/orders/{orderId}/delay.
@@ -474,8 +637,29 @@ func (h *Handler) DelayOrder(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	if _, ok := h.resolveRestaurant(w, r, p); !ok {
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
 		return
 	}
-	notImplemented(w, r)
+	orderID := chi.URLParam(r, "orderId")
+	order, err := h.repo.DelayOrder(r.Context(), restaurantID, orderID, p.AccountID, body.DelayMinutes, body.Reason)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
+		return
+	}
+	if errors.Is(err, ErrDelayLimitReached) {
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode("DELAY_LIMIT_REACHED"),
+			"The maximum number of delays for this order has been reached.", nil)
+		return
+	}
+	if errors.Is(err, ErrIllegalTransition) {
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode("ILLEGAL_TRANSITION"),
+			"The order cannot be delayed in its current state.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, order)
 }
