@@ -30,6 +30,7 @@ import type { Schema } from '@hg/api-client';
 import { unwrap } from '@hg/api-client';
 
 import { api, API_BASE_URL } from './api';
+import { useNav } from './nav';
 
 type RiderMe = Schema['RiderMe'];
 
@@ -184,6 +185,7 @@ function RiderPanel({
   onRefresh: () => void;
 }): React.ReactElement {
   const theme = useTheme();
+  const nav = useNav();
   const name = useTypeStyle('heading.lg');
   const body = useTypeStyle('body.lg');
   const caption = useTypeStyle('caption');
@@ -237,6 +239,41 @@ function RiderPanel({
       </Card>
 
       {rider.vehicle ? <VehicleCard vehicle={rider.vehicle} /> : null}
+
+      {/* The rider work loop — the three V0 flows, reachable from the shift screen. */}
+      <Card>
+        <View style={{ gap: theme.target.spacing }}>
+          <Text style={{ ...caption, color: theme.color.text.secondary }}>WORK LOOP</Text>
+          <Button
+            variant="primary"
+            size="xl"
+            fullWidth
+            onPress={() => nav.push('availability', undefined)}
+          >
+            Availability — go online / offline
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onPress={() => nav.push('offer', undefined)}
+          >
+            Current offer
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onPress={() =>
+              nav.push('assignment', {
+                assignmentId: '4ea97aca-78d6-4735-a8f0-253dd437e00d',
+              })
+            }
+          >
+            Active delivery
+          </Button>
+        </View>
+      </Card>
 
       <Button variant="secondary" size="lg" fullWidth onPress={onRefresh}>
         Refresh

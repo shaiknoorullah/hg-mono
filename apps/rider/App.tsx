@@ -12,7 +12,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeProvider } from '@hg/ui-native';
 
-import { RiderHome } from './src/RiderHome';
+import { NavProvider } from './src/nav';
+import { Router } from './src/Router';
 
 export default function App(): React.ReactElement {
   return (
@@ -21,7 +22,9 @@ export default function App(): React.ReactElement {
         <StatusBar style="dark" />
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
           <View style={{ flex: 1 }}>
-            <RiderHome />
+            <NavProvider>
+              <Router />
+            </NavProvider>
           </View>
         </SafeAreaView>
       </ThemeProvider>
