@@ -8,9 +8,14 @@ import (
 )
 
 // Domain-level error codes emitted by this module (must exist in contracts/openapi.yaml ErrorCode enum).
+//
+// The contract's ErrorCode enum has ADDRESS_IN_USE but NO address-count-limit
+// member (unlike PAYMENT_METHOD_LIMIT for cards). The 20-address cap is therefore
+// reported with the generic, contract-declared VALIDATION_FAILED on the
+// createAddress operation (which explicitly documents a 422 response). Emitting a
+// fabricated ADDRESS_LIMIT_HIT would leak a code clients cannot branch on (G-7).
 const (
-	codeAddressInUse    httpx.ErrorCode = "ADDRESS_IN_USE"
-	codeAddressLimitHit httpx.ErrorCode = "ADDRESS_LIMIT_HIT"
+	codeAddressInUse httpx.ErrorCode = "ADDRESS_IN_USE"
 )
 
 // Handler serves the customer delivery-address HTTP operations.
@@ -112,8 +117,9 @@ func (h *Handler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	row, err := h.repo.Create(r.Context(), p.AccountID, body, tz)
 	if err != nil {
 		if errors.Is(err, ErrTooManyAddresses) {
-			httpx.Fail(w, r, http.StatusConflict, codeAddressLimitHit,
-				"Maximum of 20 addresses per customer reached.", nil)
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"Maximum of 20 addresses per customer reached.",
+				[]httpx.FieldError{{Field: "address", Code: "limit_reached", Message: "A customer may save at most 20 addresses."}})
 			return
 		}
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,

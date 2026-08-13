@@ -344,8 +344,21 @@ func TestIntegration_CreateAddress_MaxAddressesLimit(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.CreateAddress(rec, req)
 
-	if rec.Code != http.StatusConflict {
-		t.Errorf("status=%d, want 409 at 21st address (body: %s)", rec.Code, rec.Body.String())
+	// The contract has no address-count-limit ErrorCode; the cap is reported with
+	// the contract-declared VALIDATION_FAILED (422) rather than a fabricated code.
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status=%d, want 422 at 21st address (body: %s)", rec.Code, rec.Body.String())
+	}
+	var lenv struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &lenv); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if lenv.Error.Code != "VALIDATION_FAILED" {
+		t.Errorf("error.code=%q, want VALIDATION_FAILED (a contract ErrorCode member)", lenv.Error.Code)
 	}
 }
 
