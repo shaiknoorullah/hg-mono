@@ -24,4 +24,9 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Get("/v1/orders/active", httpx.Policy{Action: ActionOrderRead, Class: httpx.ClassRead, OperationID: "getActiveOrder"}, h.GetActiveOrder)
 	r.Get("/v1/orders/{orderId}", httpx.Policy{Action: ActionOrderRead, Class: httpx.ClassRead, OperationID: "getOrder"}, h.GetOrder)
 	r.Post("/v1/orders/{orderId}/cancel", httpx.Policy{Action: ActionOrderCancel, Class: httpx.ClassMoney, Idempotent: true, OperationID: "cancelOrder"}, h.CancelOrder)
+
+	// New read-only customer tracking operations (C-32, ordersread feature).
+	r.Get("/v1/orders/{orderId}/tracking", httpx.Policy{Action: ActionOrderTrackingRead, Class: httpx.ClassRead, OperationID: "getOrderTracking"}, h.GetOrderTracking)
+	r.Get("/v1/orders/{orderId}/receipt", httpx.Policy{Action: ActionOrderReceiptRead, Class: httpx.ClassRead, OperationID: "getOrderReceipt"}, h.GetOrderReceipt)
+	r.Get("/v1/orders/{orderId}/rider", httpx.Policy{Action: ActionOrderRiderProfileRead, Class: httpx.ClassRead, OperationID: "getOrderRiderPublicProfile"}, h.GetOrderRiderPublicProfile)
 }

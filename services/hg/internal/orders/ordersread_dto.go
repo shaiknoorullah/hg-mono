@@ -1,0 +1,182 @@
+package orders
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+)
+
+// ---- Wire DTOs for the three new read operations ----
+// Every struct mirrors the contract schema exactly (additionalProperties:false,
+// DisallowUnknownFields on inbound decoders). These are outbound-only so no
+// decoder is needed — json.Marshal is the only path.
+
+// ---- getOrderTracking ----
+
+type orderTrackingDTO struct {
+	OrderID             string                 `json:"order_id"`
+	State               string                 `json:"state"`
+	DispatchState       *string                `json:"dispatch_state,omitempty"`
+	ETAAt               *string                `json:"eta_at,omitempty"`
+	ETAWindowMinutes    *int                   `json:"eta_window_minutes,omitempty"`
+	RestaurantLocation  geoPointDTO            `json:"restaurant_location"`
+	DestinationLocation *geoPointDTO           `json:"destination_location,omitempty"`
+	RiderLocation       *riderLocationDTO      `json:"rider_location"`
+	Rider               *riderPublicProfileDTO `json:"rider"`
+	Timeline            []orderTransitionDTO   `json:"timeline"`
+}
+
+type geoPointDTO struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+type riderLocationDTO struct {
+	Latitude   float64  `json:"latitude"`
+	Longitude  float64  `json:"longitude"`
+	HeadingDeg *float64 `json:"heading_deg,omitempty"`
+	SpeedMPS   *float64 `json:"speed_mps,omitempty"`
+	AccuracyM  *float64 `json:"accuracy_m,omitempty"`
+	RecordedAt string   `json:"recorded_at"`
+}
+
+type riderPublicProfileDTO struct {
+	FirstName   string   `json:"first_name"`
+	LastInitial string   `json:"last_initial"`
+	PhotoURL    *string  `json:"photo_url"`
+	VehicleType string   `json:"vehicle_type"`
+	RatingAvg   *float64 `json:"rating_avg"`
+}
+
+type orderTransitionDTO struct {
+	FromState *string `json:"from_state"`
+	ToState   string  `json:"to_state"`
+	ActorKind string  `json:"actor_kind"`
+	Reason    *string `json:"reason,omitempty"`
+	At        string  `json:"at"`
+}
+
+// ---- getOrderReceipt ----
+// The receipt is stored as a frozen JSONB snapshot. We unmarshal it into a
+// typed struct so the handler can re-marshal it into the contract envelope,
+// ensuring no extra fields leak through even if the snapshot has extras.
+
+type receiptSnapshotDTO struct {
+	OrderID                         string            `json:"order_id"`
+	OrderCode                       string            `json:"order_code"`
+	ReceiptNumber                   string            `json:"receipt_number"`
+	IssuedAt                        string            `json:"issued_at"`
+	PlatformLegalName               string            `json:"platform_legal_name"`
+	PlatformTaxRegistrationNumber   *string           `json:"platform_tax_registration_number"`
+	RestaurantLegalName             string            `json:"restaurant_legal_name"`
+	RestaurantTaxRegistrationNumber *string           `json:"restaurant_tax_registration_number"`
+	DeliveryAddress                 *json.RawMessage  `json:"delivery_address"`
+	Lines                           []receiptLineDTO  `json:"lines"`
+	Money                           receiptMoneyDTO   `json:"money"`
+	Payment                         receiptPaymentDTO `json:"payment"`
+	Refunds                         []json.RawMessage `json:"refunds"`
+	PlacedAt                        string            `json:"placed_at"`
+	DeliveredAt                     *string           `json:"delivered_at"`
+}
+
+type receiptLineDTO struct {
+	LineNo         int               `json:"line_no"`
+	MenuItemID     string            `json:"menu_item_id"`
+	Name           string            `json:"name"`
+	VariantName    *string           `json:"variant_name"`
+	Addons         []json.RawMessage `json:"addons"`
+	Quantity       int               `json:"quantity"`
+	SpecialRequest *string           `json:"special_request"`
+	UnitPriceCents int64             `json:"unit_price_cents"`
+	LineTotalCents int64             `json:"line_total_cents"`
+	Currency       string            `json:"currency"`
+}
+
+type receiptMoneyDTO struct {
+	SubtotalCents    int64             `json:"subtotal_cents"`
+	DiscountCents    int64             `json:"discount_cents"`
+	DeliveryFeeCents int64             `json:"delivery_fee_cents"`
+	ServiceFeeCents  int64             `json:"service_fee_cents"`
+	TaxLines         []json.RawMessage `json:"tax_lines"`
+	TaxTotalCents    int64             `json:"tax_total_cents"`
+	TipCents         int64             `json:"tip_cents"`
+	TotalCents       int64             `json:"total_cents"`
+	Currency         string            `json:"currency"`
+}
+
+type receiptPaymentDTO struct {
+	CardBrand          *string `json:"card_brand"`
+	CardLast4          *string `json:"card_last4"`
+	Wallet             *string `json:"wallet"`
+	AmountChargedCents int64   `json:"amount_charged_cents"`
+	Currency           string  `json:"currency"`
+}
+
+// ---- mappers ----
+
+func orderTrackingToDTO(ot *OrderTracking) orderTrackingDTO {
+	d := orderTrackingDTO{
+		OrderID:            ot.OrderID,
+		State:              ot.State,
+		DispatchState:      ot.DispatchState,
+		RestaurantLocation: geoPointDTO{Latitude: ot.RestaurantLocation.Latitude, Longitude: ot.RestaurantLocation.Longitude},
+		Timeline:           make([]orderTransitionDTO, 0, len(ot.Timeline)),
+		// rider_location and rider are always present in the JSON (null when absent).
+	}
+	if ot.DestinationLocation != nil {
+		dl := geoPointDTO{Latitude: ot.DestinationLocation.Latitude, Longitude: ot.DestinationLocation.Longitude}
+		d.DestinationLocation = &dl
+	}
+	if ot.ETAAt != nil {
+		s := httpx.Timestamp(*ot.ETAAt)
+		d.ETAAt = &s
+	}
+	d.ETAWindowMinutes = ot.ETAWindowMinutes
+	if ot.RiderLocation != nil {
+		d.RiderLocation = &riderLocationDTO{
+			Latitude:   ot.RiderLocation.Latitude,
+			Longitude:  ot.RiderLocation.Longitude,
+			HeadingDeg: ot.RiderLocation.HeadingDeg,
+			SpeedMPS:   ot.RiderLocation.SpeedMPS,
+			AccuracyM:  ot.RiderLocation.AccuracyM,
+			RecordedAt: httpx.Timestamp(ot.RiderLocation.RecordedAt),
+		}
+	}
+	if ot.Rider != nil {
+		d.Rider = riderPublicProfileToDTO(ot.Rider)
+	}
+	for _, tr := range ot.Timeline {
+		d.Timeline = append(d.Timeline, orderTransitionDTO{
+			FromState: tr.FromState,
+			ToState:   tr.ToState,
+			ActorKind: tr.ActorKind,
+			Reason:    tr.Reason,
+			At:        httpx.Timestamp(tr.At),
+		})
+	}
+	return d
+}
+
+func riderPublicProfileToDTO(rp *RiderPublicProfile) *riderPublicProfileDTO {
+	if rp == nil {
+		return nil
+	}
+	r := riderPublicProfileDTO{
+		FirstName:   rp.FirstName,
+		LastInitial: rp.LastInitial,
+		PhotoURL:    rp.PhotoURL,
+		VehicleType: rp.VehicleType,
+		RatingAvg:   rp.RatingAvg,
+	}
+	return &r
+}
+
+// tsString converts an optional *time.Time to *string using the contract format.
+func tsString(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+	s := httpx.Timestamp(*t)
+	return &s
+}
