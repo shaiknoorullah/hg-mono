@@ -81,6 +81,13 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("realtime_ticket.create"),
 		httpx.Action("rider.availability.write"),
 		httpx.Action("rider.position.write"),
+		// Rider self-service surface (internal/rider).
+		httpx.Action("rider.read_self"),
+		httpx.Action("rider.onboarding.read"),
+		httpx.Action("rider.onboarding.write"),
+		httpx.Action("rider.document.read"),
+		httpx.Action("rider.document.write"),
+		httpx.Action("rider.dashboard.read"),
 		httpx.Action("upload.confirm"),
 		httpx.Action("upload.create"),
 	),

@@ -63,6 +63,7 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("restaurant.list"):                 {},
 		httpx.Action("restaurant.menu_read"):            {},
 		httpx.Action("restaurant.read"):                 {},
+<<<<<<< HEAD
 		// Restaurant-partner module (B-restaurant) actions — one per declared
 		// route action in internal/restaurant/routes.go, reconciled from x-roles.
 		httpx.Action("restaurant.onboarding_read"):        {},
@@ -93,6 +94,26 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("staff.read"):                        {},
 		httpx.Action("upload.confirm"):                    {},
 		httpx.Action("upload.create"):                     {},
+=======
+		httpx.Action("restaurant_application.claim"):    {},
+		httpx.Action("restaurant_application.read"):     {},
+		httpx.Action("rider.approve"):                   {},
+		httpx.Action("rider.availability.write"):        {},
+		httpx.Action("rider.position.write"):            {},
+		// Rider self-service surface (internal/rider).
+		httpx.Action("rider.read_self"):                 {},
+		httpx.Action("rider.onboarding.read"):           {},
+		httpx.Action("rider.onboarding.write"):          {},
+		httpx.Action("rider.document.read"):             {},
+		httpx.Action("rider.document.write"):            {},
+		httpx.Action("rider.dashboard.read"):            {},
+		httpx.Action("rider_application.claim"):         {},
+		httpx.Action("rider_application.read"):          {},
+		httpx.Action("staff.create"):                    {},
+		httpx.Action("staff.read"):                      {},
+		httpx.Action("upload.confirm"):                  {},
+		httpx.Action("upload.create"):                   {},
+>>>>>>> feat/gap-rider
 	}
 	got := AllActions()
 	if len(got) != len(golden) {
