@@ -194,11 +194,61 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 	timeline := make([]adminTransitionEntry, 0, len(row.Transitions))
 	for _, t := range row.Transitions {
 		timeline = append(timeline, adminTransitionEntry{
-			FromState:  t.FromState,
-			ToState:    t.ToState,
-			ActorKind:  t.ActorKind,
-			Reason:     t.Reason,
-			OccurredAt: httpx.Timestamp(t.OccurredAt),
+			FromState: t.FromState,
+			ToState:   t.ToState,
+			ActorKind: t.ActorKind,
+			Reason:    t.Reason,
+			At:        httpx.Timestamp(t.OccurredAt),
+		})
+	}
+
+	// Payment: project the real payment_intent when present; otherwise a valid
+	// zero-amount OrderPayment (all six required fields present).
+	var payment adminOrderPayment
+	if row.Payment != nil {
+		p := row.Payment
+		payment = adminOrderPayment{
+			OrderID:               row.ID,
+			State:                 p.State,
+			Kind:                  p.Kind,
+			AmountAuthorizedCents: p.AmountAuthorizedCents,
+			AmountCapturedCents:   p.AmountCapturedCents,
+			AmountRefundedCents:   p.AmountRefundedCents,
+			Currency:              p.Currency,
+			CardBrand:             p.CardBrand,
+			CardLast4:             p.CardLast4,
+			Wallet:                p.Wallet,
+			FailureCode:           p.FailureCode,
+			DeclineCode:           p.DeclineCode,
+			AuthorizedAt:          tsPtr(p.AuthorizedAt),
+			CapturedAt:            tsPtr(p.CapturedAt),
+		}
+	} else {
+		payment = adminOrderPayment{
+			OrderID:               row.ID,
+			State:                 "REQUIRES_PAYMENT_METHOD",
+			AmountAuthorizedCents: 0,
+			AmountCapturedCents:   0,
+			AmountRefundedCents:   0,
+			Currency:              row.Currency,
+		}
+	}
+
+	refunds := make([]adminRefund, 0, len(row.Refunds))
+	for _, rf := range row.Refunds {
+		refunds = append(refunds, adminRefund{
+			ID:          rf.ID,
+			OrderID:     row.ID,
+			Kind:        rf.Kind,
+			Scope:       rf.Scope,
+			ReasonCode:  rf.ReasonCode,
+			AmountCents: rf.AmountCents,
+			TaxCents:    rf.TaxCents,
+			Currency:    rf.Currency,
+			State:       rf.State,
+			Note:        rf.Note,
+			RequestedAt: httpx.Timestamp(rf.RequestedAt),
+			SettledAt:   tsPtr(rf.SettledAt),
 		})
 	}
 
@@ -229,11 +279,10 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 			Currency:           row.Currency,
 		},
 		Timeline:     timeline,
-		Payment:      map[string]any{},
-		Refunds:      []any{},
+		Payment:      payment,
+		Refunds:      refunds,
 		CancelReason: row.CancelReason,
 		RejectReason: row.RejectReason,
-		Fulfilment:   row.Fulfilment,
 		PlacedAt:     httpx.Timestamp(row.PlacedAt),
 		AcceptedAt:   tsPtr(row.AcceptedAt),
 		PiiRevealed:  piiRevealed,

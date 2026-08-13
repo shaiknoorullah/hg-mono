@@ -342,16 +342,54 @@ type adminOrderInternalMoney struct {
 	Currency           string `json:"currency"`
 }
 
-// adminTransitionEntry is one entry in the order timeline.
+// adminTransitionEntry is one entry in the order timeline (contract: OrderTransition).
+// The contract names the timestamp field "at" (not "occurred_at").
 type adminTransitionEntry struct {
-	FromState  *string `json:"from_state"`
-	ToState    string  `json:"to_state"`
-	ActorKind  string  `json:"actor_kind"`
-	Reason     *string `json:"reason"`
-	OccurredAt string  `json:"occurred_at"`
+	FromState *string `json:"from_state"`
+	ToState   string  `json:"to_state"`
+	ActorKind string  `json:"actor_kind"`
+	Reason    *string `json:"reason"`
+	At        string  `json:"at"`
 }
 
-// adminOrderView is the contract's OrderAdminView.
+// adminOrderPayment is the contract's OrderPayment, projected for the admin view.
+// Required by OrderAdminView; all six required fields are always present.
+type adminOrderPayment struct {
+	OrderID               string  `json:"order_id"`
+	State                 string  `json:"state"`
+	Kind                  *string `json:"kind,omitempty"`
+	AmountAuthorizedCents int64   `json:"amount_authorized_cents"`
+	AmountCapturedCents   int64   `json:"amount_captured_cents"`
+	AmountRefundedCents   int64   `json:"amount_refunded_cents"`
+	Currency              string  `json:"currency"`
+	CardBrand             *string `json:"card_brand"`
+	CardLast4             *string `json:"card_last4"`
+	Wallet                *string `json:"wallet"`
+	FailureCode           *string `json:"failure_code"`
+	DeclineCode           *string `json:"decline_code"`
+	AuthorizedAt          *string `json:"authorized_at"`
+	CapturedAt            *string `json:"captured_at"`
+}
+
+// adminRefund is the contract's Refund, projected for the admin view.
+type adminRefund struct {
+	ID          string  `json:"id"`
+	OrderID     string  `json:"order_id"`
+	Kind        string  `json:"kind"`
+	Scope       *string `json:"scope"`
+	ReasonCode  string  `json:"reason_code"`
+	AmountCents int64   `json:"amount_cents"`
+	TaxCents    int64   `json:"tax_cents"`
+	Currency    string  `json:"currency"`
+	State       string  `json:"state"`
+	Note        *string `json:"note"`
+	RequestedAt string  `json:"requested_at"`
+	SettledAt   *string `json:"settled_at"`
+}
+
+// adminOrderView is the contract's OrderAdminView (OrderCustomerView + admin fields).
+// Only fields named by the contract are emitted (additionalProperties:false is
+// honoured by never adding a field the schema does not name).
 type adminOrderView struct {
 	ID            string                  `json:"id"`
 	Code          string                  `json:"code"`
@@ -361,11 +399,10 @@ type adminOrderView struct {
 	Money         adminOrderMoney         `json:"money"`
 	InternalMoney adminOrderInternalMoney `json:"internal_money"`
 	Timeline      []adminTransitionEntry  `json:"timeline"`
-	Payment       map[string]any          `json:"payment"`
-	Refunds       []any                   `json:"refunds"`
+	Payment       adminOrderPayment       `json:"payment"`
+	Refunds       []adminRefund           `json:"refunds"`
 	CancelReason  *string                 `json:"cancel_reason,omitempty"`
 	RejectReason  *string                 `json:"reject_reason,omitempty"`
-	Fulfilment    string                  `json:"fulfilment"`
 	PlacedAt      string                  `json:"placed_at"`
 	AcceptedAt    *string                 `json:"accepted_at"`
 	PiiRevealed   bool                    `json:"pii_revealed"`

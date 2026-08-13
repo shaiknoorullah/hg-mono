@@ -75,6 +75,42 @@ type adminOrderRow struct {
 
 	// Order lines (from order_line joined with optional addons).
 	Lines []adminOrderLineRow
+
+	// Payment projection (nil when no payment_intent exists for the order).
+	Payment *adminPaymentRow
+
+	// Refunds for the order, requested-at ascending.
+	Refunds []adminRefundRow
+}
+
+type adminPaymentRow struct {
+	State                 string
+	Kind                  *string
+	AmountAuthorizedCents int64
+	AmountCapturedCents   int64
+	AmountRefundedCents   int64
+	Currency              string
+	CardBrand             *string
+	CardLast4             *string
+	Wallet                *string
+	FailureCode           *string
+	DeclineCode           *string
+	AuthorizedAt          *time.Time
+	CapturedAt            *time.Time
+}
+
+type adminRefundRow struct {
+	ID          string
+	Kind        string
+	Scope       *string
+	ReasonCode  string
+	AmountCents int64
+	TaxCents    int64
+	Currency    string
+	State       string
+	Note        *string
+	RequestedAt time.Time
+	SettledAt   *time.Time
 }
 
 type adminOrderLineRow struct {
@@ -210,6 +246,55 @@ SELECT line_no, menu_item_id, name_snapshot, variant_name, quantity, special_req
 		v.Lines = append(v.Lines, l)
 	}
 	if err := lRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Load the primary ORDER payment_intent (at most one per order). Absent for
+	// orders that never reached checkout; the admin view then reports a valid
+	// zero-amount payment in the REQUIRES_PAYMENT_METHOD state.
+	var pay adminPaymentRow
+	pErr := r.pool.QueryRow(ctx, `
+SELECT state::text, kind::text,
+       amount_authorized_cents, amount_captured_cents, amount_refunded_cents, currency::text,
+       card_brand, card_last4, wallet, failure_code, decline_code, authorized_at, captured_at
+  FROM payment_intent
+ WHERE order_id = $1 AND kind = 'ORDER'
+ ORDER BY created_at DESC
+ LIMIT 1`, orderID).Scan(
+		&pay.State, &pay.Kind,
+		&pay.AmountAuthorizedCents, &pay.AmountCapturedCents, &pay.AmountRefundedCents, &pay.Currency,
+		&pay.CardBrand, &pay.CardLast4, &pay.Wallet, &pay.FailureCode, &pay.DeclineCode,
+		&pay.AuthorizedAt, &pay.CapturedAt)
+	if pErr == nil {
+		v.Payment = &pay
+	} else if !errors.Is(pErr, pgx.ErrNoRows) {
+		return nil, pErr
+	}
+
+	// Load refunds for the order (contract: OrderAdminView.refunds is required).
+	// The refund table carries no currency of its own; it is always the order's
+	// currency (single-currency-per-order invariant).
+	rfRows, err := r.pool.Query(ctx, `
+SELECT id, kind::text, scope::text, reason_code::text,
+       amount_cents, tax_cents, state::text, note, requested_at, settled_at
+  FROM refund
+ WHERE order_id = $1
+ ORDER BY requested_at ASC`, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rfRows.Close()
+	for rfRows.Next() {
+		var rf adminRefundRow
+		if err := rfRows.Scan(&rf.ID, &rf.Kind, &rf.Scope, &rf.ReasonCode,
+			&rf.AmountCents, &rf.TaxCents, &rf.State, &rf.Note,
+			&rf.RequestedAt, &rf.SettledAt); err != nil {
+			return nil, err
+		}
+		rf.Currency = v.Currency
+		v.Refunds = append(v.Refunds, rf)
+	}
+	if err := rfRows.Err(); err != nil {
 		return nil, err
 	}
 
