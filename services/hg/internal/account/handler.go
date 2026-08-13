@@ -93,17 +93,25 @@ type deviceRegistrationInput struct {
 
 // ─── Output DTOs ─────────────────────────────────────────────────────────────
 
-// customerProfileResponse mirrors the CustomerProfile schema in the contract.
+// customerProfileResponse mirrors the CustomerProfile schema in the contract
+// (contracts/openapi.yaml #/components/schemas/CustomerProfile, which is
+// additionalProperties:false). The field set here is CLOSED against that schema:
+//
+//	required: account_id, first_name, phone_e164, email_verified, created_at
+//	optional: last_name, email, avatar_url, default_address_id, marketing_consent_at
+//
+// No field outside that set may appear (no updated_at, no marketing_consent bool).
 type customerProfileResponse struct {
-	AccountID        string  `json:"account_id"`
-	FirstName        string  `json:"first_name"`
-	LastName         *string `json:"last_name"`
-	AvatarURL        *string `json:"avatar_url"`
-	PhoneE164        string  `json:"phone_e164"`
-	EmailVerified    bool    `json:"email_verified"`
-	MarketingConsent bool    `json:"marketing_consent"`
-	CreatedAt        string  `json:"created_at"`
-	UpdatedAt        string  `json:"updated_at"`
+	AccountID          string  `json:"account_id"`
+	FirstName          string  `json:"first_name"`
+	LastName           *string `json:"last_name"`
+	Email              *string `json:"email"`
+	EmailVerified      bool    `json:"email_verified"`
+	PhoneE164          string  `json:"phone_e164"`
+	AvatarURL          *string `json:"avatar_url"`
+	DefaultAddressID   *string `json:"default_address_id"`
+	MarketingConsentAt *string `json:"marketing_consent_at"`
+	CreatedAt          string  `json:"created_at"`
 }
 
 // deviceResponse mirrors the Device schema in the contract.
@@ -130,6 +138,16 @@ type notificationResponse struct {
 // valid platform values (device_platform enum from migrations/00002_enums.sql)
 var validPlatforms = map[string]bool{
 	"ios": true, "android": true, "web": true,
+}
+
+// validRoleContexts is the closed set of Role enum values the contract permits
+// for DeviceRegistrationInput.role_context ($ref Role). This value is echoed
+// back on the Device response, so an out-of-enum value would be a wire leak;
+// reject it at the boundary instead.
+var validRoleContexts = map[string]bool{
+	"CUSTOMER": true, "RIDER": true,
+	"RESTAURANT_OWNER": true, "RESTAURANT_MANAGER": true, "RESTAURANT_STAFF": true,
+	"SUPPORT_AGENT": true, "ADMIN": true, "SUPER_ADMIN": true,
 }
 
 // UpdateCustomerProfile implements PATCH /v1/me/profile (C-03).
@@ -216,6 +234,21 @@ func (h *Handler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"platform must be one of: ios, android, web.",
 			[]httpx.FieldError{{Field: "platform", Code: "invalid", Message: "platform must be one of: ios, android, web"}})
+		return
+	}
+
+	// Validate role_context (required Role enum). It is echoed on the response,
+	// so a bad value cannot be silently defaulted — reject it as 422.
+	if in.RoleContext == "" {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"role_context is required.",
+			[]httpx.FieldError{{Field: "role_context", Code: "required", Message: "role_context must not be empty"}})
+		return
+	}
+	if !validRoleContexts[in.RoleContext] {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"role_context must be a valid Role.",
+			[]httpx.FieldError{{Field: "role_context", Code: "invalid", Message: "role_context must be a valid Role"}})
 		return
 	}
 

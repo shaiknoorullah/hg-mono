@@ -41,11 +41,9 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 		AccountID          string
 		FirstName          string
 		LastName           *string
+		DefaultAddressID   *string
 		MarketingConsentAt *time.Time
 		CreatedAt          time.Time
-		UpdatedAt          time.Time
-		PhoneE164          *string
-		EmailVerifiedAt    *time.Time
 	}
 
 	// We do it as a single UPDATE … RETURNING rather than UPDATE+SELECT so it is
@@ -70,9 +68,9 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 			account_id,
 			first_name,
 			last_name,
+			default_address_id,
 			marketing_consent_at,
-			created_at,
-			updated_at
+			created_at
 	`,
 		callerID,
 		optStr(in.FirstName),
@@ -83,9 +81,9 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 		&row.AccountID,
 		&row.FirstName,
 		&row.LastName,
+		&row.DefaultAddressID,
 		&row.MarketingConsentAt,
 		&row.CreatedAt,
-		&row.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return customerProfileResponse{}, errNotFound
@@ -94,28 +92,36 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 		return customerProfileResponse{}, err
 	}
 
-	// Fetch phone_e164 and email_verified_at from the account table.
+	// Fetch phone_e164, email and email_verified_at from the account table.
 	var phoneE164 *string
+	var email *string
 	var emailVerifiedAt *time.Time
 	_ = r.pool.QueryRow(ctx,
-		`SELECT phone_e164, email_verified_at FROM account WHERE id = $1`, callerID,
-	).Scan(&phoneE164, &emailVerifiedAt)
+		`SELECT phone_e164, email::text, email_verified_at FROM account WHERE id = $1`, callerID,
+	).Scan(&phoneE164, &email, &emailVerifiedAt)
 
 	phone := ""
 	if phoneE164 != nil {
 		phone = *phoneE164
 	}
 
+	var consentAt *string
+	if row.MarketingConsentAt != nil {
+		s := httpx.Timestamp(*row.MarketingConsentAt)
+		consentAt = &s
+	}
+
 	return customerProfileResponse{
-		AccountID:        row.AccountID,
-		FirstName:        row.FirstName,
-		LastName:         row.LastName,
-		AvatarURL:        nil, // presigned URL generation not wired yet
-		PhoneE164:        phone,
-		EmailVerified:    emailVerifiedAt != nil,
-		MarketingConsent: row.MarketingConsentAt != nil,
-		CreatedAt:        httpx.Timestamp(row.CreatedAt),
-		UpdatedAt:        httpx.Timestamp(row.UpdatedAt),
+		AccountID:          row.AccountID,
+		FirstName:          row.FirstName,
+		LastName:           row.LastName,
+		Email:              email,
+		EmailVerified:      emailVerifiedAt != nil,
+		PhoneE164:          phone,
+		AvatarURL:          nil, // presigned URL generation not wired yet
+		DefaultAddressID:   row.DefaultAddressID,
+		MarketingConsentAt: consentAt,
+		CreatedAt:          httpx.Timestamp(row.CreatedAt),
 	}, nil
 }
 
@@ -166,7 +172,7 @@ func (r *Repo) UpsertDevice(ctx context.Context, callerID string, in deviceRegis
 			    push_enabled    = true,
 			    last_seen_at    = now(),
 			    updated_at      = now()
-		RETURNING device_id, platform, role_context, push_enabled, last_seen_at
+		RETURNING device_id, platform, push_enabled, last_seen_at
 	`,
 		callerID,
 		in.DeviceID,
@@ -179,13 +185,19 @@ func (r *Repo) UpsertDevice(ctx context.Context, callerID string, in deviceRegis
 	).Scan(
 		&resp.DeviceID,
 		&resp.Platform,
-		&resp.RoleContext,
 		&resp.PushEnabled,
 		new(time.Time),
 	)
 	if err != nil {
 		return deviceResponse{}, err
 	}
+
+	// The DB role_context column collapses restaurant roles to 'RESTAURANT'
+	// (its CHECK allows only CUSTOMER|RESTAURANT|RIDER|ADMIN). The contract's
+	// Device.role_context is a Role enum with NO 'RESTAURANT' member, so we
+	// echo back the caller's submitted, contract-valid Role rather than the
+	// collapsed storage value — preventing enum drift on the wire.
+	resp.RoleContext = in.RoleContext
 
 	// Re-query last_seen_at as a formatted timestamp.
 	var lastSeen time.Time
