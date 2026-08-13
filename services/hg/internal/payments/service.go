@@ -254,6 +254,250 @@ func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy
 	return refundToDTO(rr), nil
 }
 
+// scopeToKind maps the admin AdminRefundInput.scope onto the internal
+// RefundKind. PARTIAL_ITEMS keeps its item semantics; PARTIAL_AMOUNT is only
+// reachable for GOODWILL (guarded in the handler); FULL is a full refund. The
+// FEES_ONLY kind has no scope of its own — an admin fee refund is expressed as
+// a PARTIAL_AMOUNT with reason PLATFORM_ERROR is out of scope here; the three
+// contract scopes map one-to-one onto the computed kinds.
+func scopeToKind(scope RefundScope, reasonCode string) RefundKind {
+	switch scope {
+	case ScopeFull:
+		return RefundFull
+	case ScopePartialItems:
+		return RefundPartialItems
+	case ScopePartialAmount:
+		if reasonCode == "GOODWILL" {
+			return RefundGoodwill
+		}
+		// A non-goodwill PARTIAL_AMOUNT is a fees-only style computed refund.
+		return RefundFeesOnly
+	default:
+		return RefundFull
+	}
+}
+
+// operatorCap returns the trailing-24h authority cap for the highest role the
+// operator holds. A SUPER_ADMIN is the terminal approver and is uncapped.
+func operatorCap(roles []string) (cap int64, uncapped bool) {
+	has := func(r string) bool {
+		for _, x := range roles {
+			if x == r {
+				return true
+			}
+		}
+		return false
+	}
+	switch {
+	case has("SUPER_ADMIN"):
+		return 0, true
+	case has("ADMIN"):
+		return CapAdminCents, false
+	default:
+		return CapSupportAgentCents, false
+	}
+}
+
+// requiresApproval is the pure A-33 authority decision: does this refund need a
+// second approver rather than immediate authorisation? A refund escalates when
+// it would push the operator's trailing-24h issued total over their cap, or when
+// it is a GOODWILL refund over the dual-approval threshold — regardless of the
+// window, so the very first large goodwill of the day still gets a second pair
+// of eyes. A SUPER_ADMIN (uncapped) still escalates a large goodwill, because
+// the threshold is about the *nature* of the refund, not the operator's balance.
+func requiresApproval(kind RefundKind, amount, issued24h, cap int64, uncapped bool) bool {
+	if kind == RefundGoodwill && amount > GoodwillApprovalThresholdCents {
+		return true
+	}
+	if uncapped {
+		return false
+	}
+	return issued24h+amount > cap
+}
+
+// escalationRole returns the role that must approve an above-cap request by the
+// given operator (one level up the authority ladder).
+func escalationRole(roles []string) string {
+	has := func(r string) bool {
+		for _, x := range roles {
+			if x == r {
+				return true
+			}
+		}
+		return false
+	}
+	if has("ADMIN") {
+		return "SUPER_ADMIN"
+	}
+	return "ADMIN"
+}
+
+// IssueAdminRefund implements issueRefund (A-33 / P-18). It authorises under a
+// rolling-24h cap BEFORE anything reaches Stripe. Amounts are server-computed
+// for every scope except a GOODWILL PARTIAL_AMOUNT, which carries the sole
+// allowlisted inbound amount (G-3). A request within the caller's cap is
+// authorised: a balanced REFUND batch is posted and the refund enters AUTHORISED
+// (201). A request above the caller's cap — or any GOODWILL over the dual-approval
+// threshold — creates a PENDING_APPROVAL refund and escalates, returning the
+// approval request (202); no refund is lost and no transfer is attempted.
+//
+// The returned bool reports whether an approval request (202) was created rather
+// than an authorised refund (201).
+func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, operatorID string, operatorRoles []string) (RefundDTO, RefundApprovalRequestDTO, bool, error) {
+	var (
+		zRefund   RefundDTO
+		zApproval RefundApprovalRequestDTO
+	)
+
+	money, _, err := s.repo.GetOrderMoney(ctx, in.OrderID)
+	if errors.Is(err, ErrNotFound) {
+		return zRefund, zApproval, false, domainErr(httpxNotFound, 404, "No such order.")
+	}
+	if err != nil {
+		return zRefund, zApproval, false, err
+	}
+
+	intent, err := s.repo.GetOrderIntent(ctx, in.OrderID)
+	if errors.Is(err, ErrNotFound) {
+		return zRefund, zApproval, false, domainErr(string(CodePaymentNotRefundable), 409, "This order has no payment.")
+	}
+	if err != nil {
+		return zRefund, zApproval, false, err
+	}
+	if intent.AmountCapturedCents <= 0 {
+		return zRefund, zApproval, false, domainErr(string(CodePaymentNotRefundable), 409,
+			"This order was never captured; cancel it instead of refunding.")
+	}
+
+	kind := scopeToKind(in.Scope, in.ReasonCode)
+
+	// Compute (or accept, for GOODWILL) the amount and split.
+	prior, err := s.repo.PriorRefundedCents(ctx, nil, in.OrderID)
+	if err != nil {
+		return zRefund, zApproval, false, err
+	}
+
+	var (
+		amount int64
+		tax    int64
+		lines  []RefundLineAmount
+	)
+	if kind == RefundGoodwill {
+		// G-3: amount_cents is mandatory and is the only accepted amount here.
+		amount = *in.AmountCents
+		tax = 0
+	} else {
+		refLines := make([]RefundLineInput, 0, len(in.LineItems))
+		for _, l := range in.LineItems {
+			refLines = append(refLines, RefundLineInput{OrderLineNo: l.OrderLineNo, Quantity: l.Quantity})
+		}
+		orderLines, err := s.repo.GetOrderLines(ctx, in.OrderID)
+		if err != nil {
+			return zRefund, zApproval, false, err
+		}
+		computed, cerr := ComputeRefundAmount(money, kind, refLines, orderLines, prior)
+		if cerr != nil {
+			return zRefund, zApproval, false, domainErr("VALIDATION_FAILED", 422, cerr.Error())
+		}
+		amount = computed.AmountCents
+		tax = computed.TaxCents
+		lines = computed.Lines
+	}
+
+	if amount <= 0 {
+		return zRefund, zApproval, false, domainErr("VALIDATION_FAILED", 422, "Refund amount must be positive.")
+	}
+
+	// I-18.1: an order's refunds may never exceed what was captured. This is
+	// checked before the cap so an incoherent request fails fast, and again by
+	// the deferred trigger at COMMIT.
+	if prior+amount > intent.AmountCapturedCents {
+		return zRefund, zApproval, false, domainErr(string(CodeRefundExceedsCaptured), 409,
+			fmt.Sprintf("Refund of %d would exceed the captured %d (already refunded %d).",
+				amount, intent.AmountCapturedCents, prior))
+	}
+
+	itemNet := amount - tax
+	split := ComputeLiabilitySplit(in.ReasonCode, amount, itemNet, money.RiderEarningsCents)
+
+	// Authority: sum the operator's trailing-24h issued refunds and add this one.
+	cap, uncapped := operatorCap(operatorRoles)
+	windowStart := s.now().Add(-24 * time.Hour)
+	issued, err := s.repo.IssuedByOperatorSince(ctx, operatorID, windowStart)
+	if err != nil {
+		return zRefund, zApproval, false, err
+	}
+	note := in.ReasonText
+
+	if requiresApproval(kind, amount, issued, cap, uncapped) {
+		// Above authority: create a PENDING_APPROVAL refund (the approval request)
+		// and escalate. No ledger batch is posted and no Stripe call is made — the
+		// money only moves once an authorised approver acts.
+		params := CreateRefundParams{
+			OrderID:         in.OrderID,
+			PaymentIntentID: intent.ID,
+			Kind:            kind,
+			Scope:           in.Scope,
+			ReasonCode:      in.ReasonCode,
+			Note:            note,
+			AmountCents:     amount,
+			TaxCents:        tax,
+			Split:           split,
+			State:           RefundPendingApproval,
+			ApprovalStatus:  "PENDING",
+			RequestedBy:     operatorID,
+			DeadlineAction:  "await_refund_approval",
+			Lines:           lines,
+		}
+		refundID, err := s.repo.CreateRefund(ctx, params)
+		if err != nil {
+			return zRefund, zApproval, false, err
+		}
+		return zRefund, RefundApprovalRequestDTO{
+			ID:                  refundID,
+			OrderID:             in.OrderID,
+			ProposedAmountCents: amount,
+			Currency:            intent.Currency,
+			RequiredRole:        escalationRole(operatorRoles),
+			CaseID:              in.CaseID,
+			Status:              "PENDING",
+			RequestedAt:         tsFor(s.now()),
+		}, true, nil
+	}
+
+	// Within authority: authorise immediately with a balanced REFUND batch.
+	batch := BuildRefundBatch(money, split, amount,
+		fmt.Sprintf("refund:%s:%d", in.OrderID, s.now().UnixNano()), "admin:"+operatorID)
+	params := CreateRefundParams{
+		OrderID:         in.OrderID,
+		PaymentIntentID: intent.ID,
+		Kind:            kind,
+		Scope:           in.Scope,
+		ReasonCode:      in.ReasonCode,
+		Note:            note,
+		AmountCents:     amount,
+		TaxCents:        tax,
+		Split:           split,
+		State:           RefundAuthorised,
+		ApprovalStatus:  "APPROVED",
+		RequestedBy:     operatorID,
+		ApprovedBy:      operatorID,
+		DeadlineAction:  "submit_refund_to_stripe",
+		Lines:           lines,
+		Ledger:          &batch,
+		Money:           money,
+	}
+	refundID, err := s.repo.CreateRefund(ctx, params)
+	if err != nil {
+		return zRefund, zApproval, false, err
+	}
+	rr, err := s.repo.GetRefund(ctx, refundID)
+	if err != nil {
+		return zRefund, zApproval, false, err
+	}
+	return refundToDTO(rr), zApproval, false, nil
+}
+
 // GetRefund reads one refund, enforcing customer ownership unless privileged.
 func (s *Service) GetRefund(ctx context.Context, id, accountID string, isPrivileged bool) (RefundDTO, error) {
 	rr, err := s.repo.GetRefund(ctx, id)
