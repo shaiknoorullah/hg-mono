@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -28,6 +29,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/account"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/addresses"
@@ -47,6 +50,36 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
+
+// orderRealtimeEmitter bridges the orders module to the realtime module: it
+// implements orders.EventEmitter by calling realtime.EmitInTx inside the
+// caller's transaction, so the outbox event and the state change commit
+// atomically (the transactional outbox). The store field is set once
+// realtime.NewStore is called in run() and before the HTTP server starts, so
+// it is always non-nil by the time any Transition can run.
+type orderRealtimeEmitter struct {
+	store *realtime.Store
+}
+
+func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error {
+	payload, err := json.Marshal(struct {
+		State string `json:"state"`
+	}{State: newState})
+	if err != nil {
+		return fmt.Errorf("marshal order transition payload: %w", err)
+	}
+	oid := orderID
+	_, _, err = realtime.EmitInTx(ctx, tx,
+		"order:"+orderID,
+		"order.state_changed",
+		1,
+		nil,
+		json.RawMessage(payload),
+		&oid,
+		nil,
+	)
+	return err
+}
 
 // orderPaymentGateway bridges the orders module to the payments sibling: it
 // implements orders.PaymentGateway by asking the payments service to authorise
@@ -216,7 +249,13 @@ func run() error {
 	// B5 — cart, quote and orders. The payment gateway is the payments sibling's
 	// to provide; until it is wired, orders uses the honest unwired gateway that
 	// 503s rather than fabricating a client_secret, and createOrder answers 503.
-	ordersStore := orders.NewStore(st.DB().Pool)
+	//
+	// The realtime emitter (Seam C) is created now and its store field is set
+	// after rtStore is built (B8 below). The HTTP server starts only after all
+	// wiring completes, so emitter.store is always non-nil before any Transition
+	// can be called.
+	rtEmitter := &orderRealtimeEmitter{}
+	ordersStore := orders.NewStore(st.DB().Pool, rtEmitter)
 	// The orders handler + P-15 deadline runner are wired just below, AFTER the
 	// payments service, so createOrder can ask the payments gateway for a real
 	// PaymentIntent (P-16 3/4) rather than the unwired nil gateway.
@@ -272,6 +311,9 @@ func run() error {
 	// realtime_connection and the outbox lease.
 	nodeID := cfg.ServiceVersion + "@" + cfg.HTTPAddr
 	rtStore := realtime.NewStore(st.DB().Pool, nodeID)
+	// Complete the Seam C wiring: orders.Store now emits realtime outbox events
+	// on every state transition via the transactional outbox (I-15 / §6.1).
+	rtEmitter.store = rtStore
 	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil)
 	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
 	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
