@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // restaurantProfileRow is the full restaurant projection the review screen needs.
@@ -297,6 +299,11 @@ INSERT INTO restaurant_onboarding_transition
   (restaurant_id, from_state, to_state, actor_kind, actor_account_id, decision_reason_code, reason, request_id)
 VALUES ($1, $2::restaurant_onboarding_state, $3::restaurant_onboarding_state, 'ADMIN', $4, $5, $6, $7)`,
 			restaurantID, curOnboarding, toState, decidedBy, reasonCode, reasonText, nullStr(actor.requestID)); err != nil {
+			return err
+		}
+		// DOCUMENTS_APPROVED → PAYOUT_PENDING is automatic (spec R, transition table);
+		// recompute advances it (and no-ops on rejection, which is out of the band).
+		if err := restaurant.RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
 			return err
 		}
 

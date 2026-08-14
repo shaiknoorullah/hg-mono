@@ -3,10 +3,13 @@ package payments
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // The auth-then-capture lifecycle (P-16), exposed as internal service methods
@@ -160,29 +163,64 @@ func capAt(st PaymentState, captured int64) any {
 // InsertConnectAccount stores a newly created Express connected account.
 func (r *Repo) InsertConnectAccount(ctx context.Context, ownerType, ownerID string, acct *StripeAccount) error {
 	reqs, _ := json.Marshal(connectReqsMap(acct))
-	_, err := r.pool.Exec(ctx, `
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if _, err := tx.Exec(ctx, `
 		INSERT INTO connect_account (owner_type, owner_id, stripe_account_id, country, default_currency,
 		                             charges_enabled, payouts_enabled, details_submitted, requirements,
 		                             disabled_reason, payout_interval, payout_anchor, minimum_payout_cents)
 		VALUES ($1, $2, $3, 'CA', 'CAD', $4, $5, $6, $7, $8, 'WEEKLY', 1, 0)
 		ON CONFLICT (owner_type, owner_id) DO NOTHING`,
 		ownerType, ownerID, acct.ID, acct.ChargesEnabled, acct.PayoutsEnabled,
-		acct.DetailsSubmitted, reqs, nullStr(acct.DisabledReason))
-	return err
+		acct.DetailsSubmitted, reqs, nullStr(acct.DisabledReason)); err != nil {
+		return err
+	}
+	// A restaurant's payout account reaching READY advances PAYOUT_PENDING → MENU_PENDING
+	// (R-11). Idempotent: no-ops unless payouts are enabled and the state is PAYOUT_PENDING.
+	if ownerType == "RESTAURANT" {
+		if err := restaurant.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 // UpdateConnectFromStripe applies an account.updated / capability.updated
 // webhook to connect_account (P-19 §account.updated keeps it current).
 func (r *Repo) UpdateConnectFromStripe(ctx context.Context, acct *StripeAccount) error {
 	reqs, _ := json.Marshal(connectReqsMap(acct))
-	_, err := r.pool.Exec(ctx, `
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if _, err := tx.Exec(ctx, `
 		UPDATE connect_account
 		   SET charges_enabled = $2, payouts_enabled = $3, details_submitted = $4,
 		       requirements = $5, disabled_reason = $6, updated_at = now()
 		 WHERE stripe_account_id = $1`,
 		acct.ID, acct.ChargesEnabled, acct.PayoutsEnabled, acct.DetailsSubmitted,
-		reqs, nullStr(acct.DisabledReason))
-	return err
+		reqs, nullStr(acct.DisabledReason)); err != nil {
+		return err
+	}
+	var ownerType, ownerID string
+	if err := tx.QueryRow(ctx,
+		`SELECT owner_type::text, owner_id::text FROM connect_account WHERE stripe_account_id = $1`,
+		acct.ID).Scan(&ownerType, &ownerID); errors.Is(err, pgx.ErrNoRows) {
+		return tx.Commit(ctx) // unknown Stripe account — nothing to reconcile
+	} else if err != nil {
+		return err
+	}
+	// A restaurant's payout account reaching READY advances PAYOUT_PENDING → MENU_PENDING (R-11).
+	if ownerType == "RESTAURANT" {
+		if err := restaurant.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 // connectReqsMap builds the requirements JSONB map to store. The

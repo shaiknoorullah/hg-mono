@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // menuCategoryRow is the projection for a menu_category row.
@@ -434,6 +436,11 @@ RETURNING id, menu_item_id, restaurant_id, version, name, description,
 UPDATE menu_item SET live_version_id=$1, pending_version_id=NULL WHERE id=$2`,
 				versionID, menuItemID,
 			); err != nil {
+				return err
+			}
+			// A newly-LIVE item can satisfy the MENU_PENDING → ACTIVE gate (R-17);
+			// recompute (no-ops unless the restaurant is MENU_PENDING with hours set).
+			if err := restaurant.RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
 				return err
 			}
 		} else {

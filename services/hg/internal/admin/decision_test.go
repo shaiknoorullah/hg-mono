@@ -144,8 +144,11 @@ func TestDecideRestaurantApplication(t *testing.T) {
 	if err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if decided.profile.OnboardingState != "DOCUMENTS_APPROVED" {
-		t.Fatalf("onboarding_state = %s, want DOCUMENTS_APPROVED", decided.profile.OnboardingState)
+	// DOCUMENTS_APPROVED → PAYOUT_PENDING is automatic (spec R, transition table):
+	// the decision recomputes the onboarding state, so approval lands the restaurant
+	// in PAYOUT_PENDING (it still needs a payout account, a live menu, and hours).
+	if decided.profile.OnboardingState != "PAYOUT_PENDING" {
+		t.Fatalf("onboarding_state = %s, want PAYOUT_PENDING", decided.profile.OnboardingState)
 	}
 	// Approval does not make the restaurant live.
 	if decided.profile.AccountState == "LIVE" {
