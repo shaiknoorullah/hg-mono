@@ -30,14 +30,14 @@ Sans) feeds all four apps; every component is owned code, not an opaque dependen
 
 ## Data tables
 
-**TanStack Table** (headless) under shadcn's table components — sorting, keyset/virtualized
-rows, column defs in TS. This is what the dense admin queues (A-15 halal, refunds, restaurant/
-rider management) need. _Confirm this is the repo you meant._
+**Use the table repo the client specified** (not TanStack Table) for the dense admin queues
+(A-15 halal, refunds, restaurant/rider management). _Pending: the client to re-share the repo
+link — it was referenced but never captured._ Whatever it is, it slots under shadcn's table
+shell on web; the column model + theming map to our tokens the same way.
 
-## Icons
+## Icons — DECIDED: Solar
 
-Hugeicons **solid-rounded is Pro** (the free Iconify set is stroke-only, 5,065 icons, MIT).
-To get the stroke-inactive / solid-active pairing you liked:
-- **(A) Hugeicons Pro** — one-time license, unlocks all 9 styles incl. solid-rounded. Best fidelity to what you chose. _Recommended if the small spend is fine._
-- **(B) Free stand-in** — Hugeicons stroke inactive + a crimson-filled pill for active (what the motion demo shows). Active isn't a true solid glyph.
-- **(C) Free single family with both** — Solar (linear+bold), MynaUI (outline+solid), or Material Symbols Rounded (fill axis). Loses the exact Hugeicons look; **Solar** is the closest.
+**Solar** — linear (inactive) / bold (active), free, huge set, rounded & friendly. Chosen over
+Hugeicons because Hugeicons' solid-rounded is a paid Pro tier (free set is stroke-only), and
+Solar ships both stroke and solid for free with the look we want. Active/selected states use a
+**soft crimson tint**, not a solid fill (per client: solid fills are "too much on the eyes").
