@@ -10,9 +10,9 @@ Status as of this session: the **v0 spine is built and integration-proven** — 
 - ✅ **Restaurant go-live wiring** — `DOCUMENTS_APPROVED → PAYOUT_PENDING → MENU_PENDING → ACTIVE` now advances through the real gates (admin doc approval, Connect payout READY, live menu + hours), `account_state` flips to LIVE; the dev stamp is gone. (`a37549e`, tested.)
 - ✅ **`EXPIRE_OFFER` / D-15** — the dispatch runner now expires lapsed offers, escalates waves with radius-widening + `NO_RIDER_FOUND` hard stop, and offlines unresponsive riders. (`b26fdd3`, tested.)
 
-**Also done this pass:** ✅ conformance coverage **70 → 137/144** (`e42c61c`, +a real HH:MM hours drift fixed) · ✅ **oapi-codegen floor** — 431 generated Go types + hermetic git-diff gate in `make check` (`cd6d815`; per-handler adoption is the documented incremental step) · ✅ **null fields** — real media-URL resolver + admin order joins (`190bb9b`).
+**Also done this pass:** ✅ conformance coverage **70 → 144/144** (`e42c61c`, `77c079c`; two more real drifts fixed along the way — HH:MM hours, and earlier the omitempty envelope) · ✅ **oapi-codegen floor** — 431 generated Go types + hermetic git-diff gate in `make check` (`cd6d815`; per-handler adoption is the documented incremental step) · ✅ **null fields** — real media-URL resolver + admin order joins (`190bb9b`). `make check` is green end-to-end (generate-check + fmt + vet + `-race` tests + conformance 144/144).
 
-**Still [ME] (small):** the last 7 conformance ops (need a live dispatch offer / payment gateway / seeded pricing / Stripe webhook — several overlap with the yours-blocked items) · cart price-snapshot migration · adopt the generated contract types per-handler.
+**Still [ME] (small):** cart price-snapshot migration · adopt the generated contract types per-handler (incremental) · rider `phone_alias` (needs the proxy-number service — overlaps yours-blocked O-03).
 
 ---
 
