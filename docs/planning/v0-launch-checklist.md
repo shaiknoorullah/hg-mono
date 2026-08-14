@@ -6,10 +6,11 @@ Owner tags: **[YOU]** = your decision / vendor / legal (I can't unblock). **[ME]
 
 Status as of this session: the **v0 spine is built and integration-proven** — contract-faithful backend (71 drifts fixed + a conformance gate now covering 70/144 ops, `make check` green end-to-end), the order lifecycle end-to-end, **all 4 apps** UI-verified against the real backend, the **onboarding/halal pipeline proven end-to-end**, and the **first `make up` working**. Bugs the deeper passes surfaced and fixed: an envelope `omitempty` corrupting every `data:null` response platform-wide; the rider go-online 500; a discovery-distance 500; the halal_certificate never being created; the take-next summary/full shape drift; the dispatch race-test flake. Below is what still stands between this and a launchable v0.
 
-**Done this pass (were [ME] items):** onboarding flow end-to-end · conformance coverage 23→70 · dispatch flake fixed · rider app UI re-verified · first `make up`. **Still [ME] — including two v0 gaps I initially under-scoped:**
-- **Restaurant go-live wiring (v0).** The `restaurant_onboarding_state` machine (`DOCUMENTS_APPROVED → PAYOUT_PENDING → MENU_PENDING → ACTIVE`) is core v0 — `ACTIVE` = "admin approval + payout account ready" is the gate to accept orders (`03-restaurant.md`). The `payments` and `catalog` modules it depends on ARE built; the state-advancement wiring through them is not (onboarding stamps `ACTIVE` in dev as a stand-in). This is v0 engineering, no external blocker.
-- **`EXPIRE_OFFER` (v0).** Offer auto-expiry (`expires_at = now+30s`, wave resolves on accept/reject/**expire**, 3 expiries → `UNRESPONSIVE`) is load-bearing for the D-15 dispatch algorithm (`04-rider.md`). Unimplemented → wave escalation stalls. v0.
-- coverage 70→more · oapi-codegen floor · the contract-valid `null` fields.
+**Done this pass (were [ME] items):** onboarding flow end-to-end · conformance coverage 23→70 · dispatch flake fixed · rider app UI re-verified · first `make up`. **Done this pass (the two v0 gaps I'd under-scoped):**
+- ✅ **Restaurant go-live wiring** — `DOCUMENTS_APPROVED → PAYOUT_PENDING → MENU_PENDING → ACTIVE` now advances through the real gates (admin doc approval, Connect payout READY, live menu + hours), `account_state` flips to LIVE; the dev stamp is gone. (`a37549e`, tested.)
+- ✅ **`EXPIRE_OFFER` / D-15** — the dispatch runner now expires lapsed offers, escalates waves with radius-widening + `NO_RIDER_FOUND` hard stop, and offlines unresponsive riders. (`b26fdd3`, tested.)
+
+**Still [ME]:** coverage 70→more · oapi-codegen floor · the contract-valid `null` fields.
 
 ---
 
