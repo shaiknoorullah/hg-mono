@@ -131,6 +131,15 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 		return fmt.Errorf("insert transition: %w", err)
 	}
 
+	// Emit a realtime outbox event in the same transaction so the customer's
+	// order channel receives a live update. The emitter is optional (nil when
+	// the realtime module is not wired, e.g. in unit tests).
+	if s.emitter != nil {
+		if err := s.emitter.EmitOrderTransition(ctx, tx, req.OrderID, string(req.To)); err != nil {
+			return fmt.Errorf("emit order transition: %w", err)
+		}
+	}
+
 	for _, eff := range effects {
 		if err := eff(tx); err != nil {
 			return err

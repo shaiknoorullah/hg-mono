@@ -17,17 +17,40 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
 )
 
+// EventEmitter is the boundary to the realtime module. orders.Store calls it
+// inside Transition — in the same database transaction — so the outbox event
+// and the state change commit atomically (the transactional outbox pattern).
+//
+// The concrete implementation lives in cmd/hg/main.go and calls
+// realtime.EmitInTx; the orders package declares only this interface so it
+// never imports realtime (the two modules are siblings, not dependents).
+type EventEmitter interface {
+	// EmitOrderTransition writes a realtime outbox event for the state change
+	// inside the caller's transaction tx. It must not commit or roll back the
+	// transaction; that responsibility stays with Transition.
+	EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error
+}
+
 // Store is the orders module's data access. It takes the shared pgx pool from
 // the top-level store; it never opens its own (per the store package's note).
 // Every method that loads an owned entity takes the caller's account id and
 // pushes the ownership predicate into SQL (P-07): there is no GetOrder(id), only
 // GetOrderForCustomer(accountID, id).
 type Store struct {
-	pool *pgxpool.Pool
+	pool    *pgxpool.Pool
+	emitter EventEmitter // optional; nil means no realtime events
 }
 
-// NewStore wraps a pgx pool.
-func NewStore(pool *pgxpool.Pool) *Store { return &Store{pool: pool} }
+// NewStore wraps a pgx pool. emitter may be nil: when nil, Transition skips
+// the outbox write and no realtime event is emitted (safe for tests that do
+// not provision the realtime schema).
+func NewStore(pool *pgxpool.Pool, emitter ...EventEmitter) *Store {
+	s := &Store{pool: pool}
+	if len(emitter) > 0 {
+		s.emitter = emitter[0]
+	}
+	return s
+}
 
 // Sentinel errors mapped to typed HTTP responses by the handlers.
 var (
