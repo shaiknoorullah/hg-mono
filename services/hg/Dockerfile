@@ -2,7 +2,9 @@
 
 # Build stage. Pinned to a specific Go minor so a toolchain bump is a reviewed
 # diff rather than something that happens on a Tuesday.
-FROM golang:1.24-bookworm AS build
+# go.mod requires go >= 1.25.0, so the base image must be 1.25 (a 1.24 image with
+# GOTOOLCHAIN=local refuses to build the module).
+FROM golang:1.25-bookworm AS build
 
 WORKDIR /src
 
@@ -36,7 +38,7 @@ RUN ! ldd /out/hg 2>/dev/null | grep -q "=>" || (echo "hg is not statically link
 # (-- +goose Up / -- +goose Down), so the runner is goose. Building it here
 # rather than pulling a third-party image keeps the toolchain, the Go version
 # and the base image identical to the server's.
-FROM golang:1.24-bookworm AS goose-build
+FROM golang:1.25-bookworm AS goose-build
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOBIN=/out go install github.com/pressly/goose/v3/cmd/goose@v3.24.1
