@@ -158,7 +158,7 @@ func seedFixtures(t *testing.T, pool *pgxpool.Pool) fixtures {
 // newHandler builds the package handler wired to the test pool.
 func newHandler(pool *pgxpool.Pool) *restaurant.Handler {
 	repo := restaurant.NewRepo(pool)
-	return restaurant.NewHandler(repo, nil)
+	return restaurant.NewHandler(repo, nil, nil)
 }
 
 // principalWithRestaurant builds a principal that carries a RESTAURANT-scoped

@@ -1,7 +1,9 @@
 package restaurant
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -16,6 +18,7 @@ import (
 type Handler struct {
 	repo   *Repo
 	scopeR ScopeResolver
+	pay    PaymentActions
 }
 
 // ScopeResolver answers "which restaurant does this principal act for?"
@@ -24,10 +27,23 @@ type ScopeResolver interface {
 	RestaurantForPrincipal(ctx http.RoundTripper) (string, bool)
 }
 
-// NewHandler builds the restaurant handler. repo and scope may be nil during
-// tests that do not reach the store layer.
-func NewHandler(repo *Repo, scope ScopeResolver) *Handler {
-	return &Handler{repo: repo, scopeR: scope}
+// PaymentActions is the seam between the restaurant module and the payments
+// sibling (T6 MoneyFX="capture", T7 "auth voided"). Both operations are
+// idempotent and keyed by order ID. Capture is called after the restaurant
+// accepts (RESTAURANT_PENDING→PREPARING); Void is called on rejection.
+// The interface is intentionally narrow: the restaurant module must not import
+// the payments package directly — only this contract.
+type PaymentActions interface {
+	Capture(ctx context.Context, orderID string, amountCents int64) error
+	Void(ctx context.Context, orderID string) error
+}
+
+// NewHandler builds the restaurant handler. repo, scope, and pay may be nil
+// during tests that do not reach the store or payments layer. When pay is nil,
+// payment side-effects are logged and skipped so boot and tests work without
+// the payments module wired.
+func NewHandler(repo *Repo, scope ScopeResolver, pay PaymentActions) *Handler {
+	return &Handler{repo: repo, scopeR: scope, pay: pay}
 }
 
 // ─── Authentication / authorization helpers ───────────────────────────────────
@@ -618,6 +634,21 @@ func (h *Handler) AcceptOrder(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
 	}
+
+	// T6 MoneyFX="capture": capture the authorised PaymentIntent now that the
+	// restaurant has accepted. This is a post-commit network effect (store-then-
+	// process): the order is already PREPARING in the database. On failure we log
+	// and return the accepted order anyway — a reconciler/webhook will retry.
+	if h.pay != nil {
+		if captureErr := h.pay.Capture(r.Context(), orderID, order.TotalCents); captureErr != nil {
+			slog.Error("payment capture failed after accept — reconciler will retry",
+				slog.String("order_id", orderID),
+				slog.String("error", captureErr.Error()))
+		}
+	} else {
+		slog.Warn("payment actions not wired — skipping capture", slog.String("order_id", orderID))
+	}
+
 	httpx.Respond(w, r, http.StatusOK, order)
 }
 
@@ -665,6 +696,20 @@ func (h *Handler) RejectOrder(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
 	}
+
+	// T7 "auth voided": void the authorised PaymentIntent on rejection (invariant 5:
+	// reject voids the auth). Same store-then-process contract as capture — the order
+	// is already REJECTED; log and continue on failure.
+	if h.pay != nil {
+		if voidErr := h.pay.Void(r.Context(), orderID); voidErr != nil {
+			slog.Error("payment void failed after reject — reconciler will retry",
+				slog.String("order_id", orderID),
+				slog.String("error", voidErr.Error()))
+		}
+	} else {
+		slog.Warn("payment actions not wired — skipping void", slog.String("order_id", orderID))
+	}
+
 	httpx.Respond(w, r, http.StatusOK, order)
 }
 

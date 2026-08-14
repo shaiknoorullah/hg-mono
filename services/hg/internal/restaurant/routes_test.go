@@ -15,7 +15,7 @@ import (
 // Action and a RateClass.
 func TestRestaurantRoutesVerify(t *testing.T) {
 	r := httpx.NewRouter(httpx.Options{Env: "test"})
-	restaurant.Routes(r, restaurant.NewHandler(nil, nil))
+	restaurant.Routes(r, restaurant.NewHandler(nil, nil, nil))
 	if err := r.Verify(); err != nil {
 		t.Fatalf("restaurant route policies are defective: %v", err)
 	}
@@ -25,7 +25,7 @@ func TestRestaurantRoutesVerify(t *testing.T) {
 // The restaurant surface is authenticated staff only; x-roles never contains PUBLIC.
 func TestRestaurantNoPublicRoutes(t *testing.T) {
 	r := httpx.NewRouter(httpx.Options{Env: "test"})
-	restaurant.Routes(r, restaurant.NewHandler(nil, nil))
+	restaurant.Routes(r, restaurant.NewHandler(nil, nil, nil))
 	if pub := r.PublicRoutes(); len(pub) != 0 {
 		t.Errorf("restaurant routes must never be public, found: %v", pub)
 	}
@@ -36,7 +36,7 @@ func TestRestaurantNoPublicRoutes(t *testing.T) {
 func TestRestaurantRouteCount(t *testing.T) {
 	const wantCount = 19
 	r := httpx.NewRouter(httpx.Options{Env: "test"})
-	restaurant.Routes(r, restaurant.NewHandler(nil, nil))
+	restaurant.Routes(r, restaurant.NewHandler(nil, nil, nil))
 	if got := len(r.Routes()); got != wantCount {
 		t.Errorf("route count = %d, want %d; routes: %v", got, wantCount, r.Routes())
 	}
@@ -48,7 +48,7 @@ func TestRestaurantRouteCount(t *testing.T) {
 // this test names the invariant explicitly.
 func TestMoneyRoutesAreIdempotent(t *testing.T) {
 	r := httpx.NewRouter(httpx.Options{Env: "test"})
-	restaurant.Routes(r, restaurant.NewHandler(nil, nil))
+	restaurant.Routes(r, restaurant.NewHandler(nil, nil, nil))
 	// If Router.Verify passes (and it does per TestRestaurantRoutesVerify),
 	// every MONEY-class route is Idempotent (I-37.4 is a Verify check).
 	if err := r.Verify(); err != nil {

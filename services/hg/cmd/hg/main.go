@@ -62,6 +62,24 @@ type orderPaymentGateway struct {
 	advanceLocal bool
 }
 
+// restaurantPayAdapter implements restaurant.PaymentActions over the payments
+// sibling service. It discards the returned IntentRow (the restaurant module
+// does not need it) and returns only the error. Both methods are idempotent and
+// keyed by order ID (P-16 / invariant 5).
+type restaurantPayAdapter struct {
+	svc *payments.Service
+}
+
+func (a restaurantPayAdapter) Capture(ctx context.Context, orderID string, amountCents int64) error {
+	_, err := a.svc.Capture(ctx, orderID, amountCents)
+	return err
+}
+
+func (a restaurantPayAdapter) Void(ctx context.Context, orderID string) error {
+	_, err := a.svc.Void(ctx, orderID)
+	return err
+}
+
 func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.CreateIntentInput) (orders.CreateIntentResult, error) {
 	method := ""
 	if in.PaymentMethodID != nil {
@@ -259,8 +277,12 @@ func run() error {
 
 	// B7 — Restaurant partner portal (R-01…R-26).
 	// Scope resolver reads account_role; ownership enforced in SQL (P-07 / IDOR).
+	// restaurantPay bridges restaurant.PaymentActions to the payments sibling so
+	// AcceptOrder captures (T6) and RejectOrder voids (T7) without importing the
+	// payments package from the restaurant package (modular-monolith seam).
 	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
-	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil))
+	restaurantPay := restaurantPayAdapter{svc: paymentsSvc}
+	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil, restaurantPay))
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), payments.Routes(router, …),

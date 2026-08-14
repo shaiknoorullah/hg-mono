@@ -51,7 +51,7 @@ func newFullRouter(p httpx.Principal) *httpx.Router {
 		Authenticator: fixedAuthenticator{p},
 		Authorizer:    auth.Matrix{},
 	})
-	restaurant.Routes(r, restaurant.NewHandler(nil, nil))
+	restaurant.Routes(r, restaurant.NewHandler(nil, nil, nil))
 	return r
 }
 
