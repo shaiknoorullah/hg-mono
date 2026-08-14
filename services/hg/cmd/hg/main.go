@@ -290,9 +290,15 @@ func run() error {
 	// never a client-asserted id — and deny when no live RESTAURANT-scoped grant
 	// exists.
 	catalogRepo := catalog.NewRepo(st.DB().Pool)
+	// The media resolver turns stored media objects into direct public URLs on
+	// the public-read hg-media bucket (no presigning; KYC/POD stay private). It
+	// is shared by catalog (restaurant cards, menu images) and orders (order and
+	// cart images), injected via each module's own interface so neither imports
+	// the other. PublicBaseURL defaults to the MinIO endpoint for dev.
+	mediaResolver := catalog.NewResolver(st.DB().Pool, cfg.MinIO.PublicBaseURL, cfg.MinIO.Buckets.Media)
 	catalog.Routes(router, catalog.NewHandler(
 		catalogRepo,
-		nil,
+		mediaResolver,
 		catalog.NewMinIOPresigner(st.Objects()),
 		catalog.NewPgScopeResolver(catalogRepo),
 	))
@@ -307,7 +313,7 @@ func run() error {
 	// wiring completes, so emitter.store is always non-nil before any Transition
 	// can be called.
 	rtEmitter := &orderRealtimeEmitter{}
-	ordersStore := orders.NewStore(st.DB().Pool, rtEmitter)
+	ordersStore := orders.NewStore(st.DB().Pool, rtEmitter).WithMedia(mediaResolver)
 	// The orders handler + P-15 deadline runner are wired just below, AFTER the
 	// payments service, so createOrder can ask the payments gateway for a real
 	// PaymentIntent (P-16 3/4) rather than the unwired nil gateway.

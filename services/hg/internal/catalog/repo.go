@@ -49,6 +49,13 @@ type restaurantRow struct {
 	// media object ids, resolved to public URLs by the MediaResolver.
 	logoObjectID  *string
 	coverObjectID *string
+	// The logo/cover objects' bucket + key, joined from stored_object (READY
+	// only) alongside the id so the card URL is built without a per-row lookup
+	// (no N+1). Null when the restaurant has no image or it is not yet READY.
+	logoObjectBucket  *string
+	logoObjectKey     *string
+	coverObjectBucket *string
+	coverObjectKey    *string
 	// cuisines associated with the restaurant, projected for the card subtitle.
 	cuisines []string
 	// halal certificate fields, joined for the badge/panel.
@@ -70,6 +77,8 @@ const cardColumns = `
 	r.rating_avg, r.rating_count, r.price_band::text, r.halal_status::text,
 	r.minimum_order_cents, r.avg_prep_minutes, r.delivery_radius_m,
 	r.logo_object_id::text, r.cover_object_id::text,
+	so_logo.bucket, so_logo.object_key,
+	so_cover.bucket, so_cover.object_key,
 	COALESCE((
 		SELECT array_agg(cu.name ORDER BY cu.sort_order, cu.name)
 		  FROM restaurant_cuisine rc
@@ -86,7 +95,9 @@ const cardColumns = `
 const cardJoins = `
 	FROM restaurant r
 	LEFT JOIN halal_certificate c ON c.id = r.halal_certificate_id
-	LEFT JOIN halal_issuing_body b ON b.id = c.issuing_body_id`
+	LEFT JOIN halal_issuing_body b ON b.id = c.issuing_body_id
+	LEFT JOIN stored_object so_logo ON so_logo.id = r.logo_object_id AND so_logo.state = 'READY'
+	LEFT JOIN stored_object so_cover ON so_cover.id = r.cover_object_id AND so_cover.state = 'READY'`
 
 // scanCard scans one restaurant card row plus an optional distance and geo. The
 // caller supplies whether the distance/geo columns are present.
@@ -98,7 +109,10 @@ func scanCard(row pgx.Row, withDistance, withGeo bool) (restaurantRow, error) {
 		&rr.publicPhone,
 		&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
 		&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
-		&rr.logoObjectID, &rr.coverObjectID, &rr.cuisines,
+		&rr.logoObjectID, &rr.coverObjectID,
+		&rr.logoObjectBucket, &rr.logoObjectKey,
+		&rr.coverObjectBucket, &rr.coverObjectKey,
+		&rr.cuisines,
 		&rr.certifyingBody, &rr.certExpiresOn,
 	}
 	if withGeo {

@@ -120,14 +120,16 @@ func (s *Store) GetOrderForCustomer(ctx context.Context, accountID, orderID stri
 func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID string) (*OrderView, error) {
 	var v OrderView
 	var halalCertExpiresOn *time.Time
-	// logo_image_url stays null on the wire until a media resolver lands (same
-	// convention as the catalog card's nilMedia): logo_object_id is a stored_object
-	// UUID, not a URI, so emitting it raw would violate the contract's `format: uri`.
-	// The halal seal (C-12) is joined here from the active certificate + issuing
-	// body so the customer order view can carry the restaurant's HalalBadge.
+	var logoBucket, logoKey *string
+	// The restaurant's logo object (READY only) is joined from stored_object so
+	// logo_image_url carries the direct public URL — logo_object_id is a
+	// stored_object UUID, not a URI, so it is resolved through the media builder
+	// rather than emitted raw (the contract types it `format: uri`). The halal
+	// seal (C-12) is joined here from the active certificate + issuing body so
+	// the customer order view can carry the restaurant's HalalBadge.
 	err := tx.QueryRow(ctx, `
 		SELECT o.id, o.code, o.state::text, o.state_since, o.deadline_at, o.quote_id,
-		       o.restaurant_id, r.display_name, NULL::text,
+		       o.restaurant_id, r.display_name, so_logo.bucket, so_logo.object_key,
 		       r.halal_status::text, b.name AS certifying_body, cert.expires_on AS cert_expires_on,
 		       d.state::text AS dispatch_state,
 		       o.subtotal_cents, o.discount_cents, o.delivery_fee_cents, o.service_fee_cents,
@@ -140,10 +142,11 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 		  JOIN restaurant r ON r.id = o.restaurant_id
 		  LEFT JOIN halal_certificate cert ON cert.id = r.halal_certificate_id
 		  LEFT JOIN halal_issuing_body b ON b.id = cert.issuing_body_id
+		  LEFT JOIN stored_object so_logo ON so_logo.id = r.logo_object_id AND so_logo.state = 'READY'
 		  LEFT JOIN dispatch d ON d.order_id = o.id
 		 WHERE o.id = $2`, accountID, orderID).Scan(
 		&v.ID, &v.Code, &v.State, &v.StateSince, &v.DeadlineAt, &v.QuoteID,
-		&v.RestaurantID, &v.RestaurantName, &v.RestaurantLogoURL,
+		&v.RestaurantID, &v.RestaurantName, &logoBucket, &logoKey,
 		&v.HalalStatus, &v.HalalCertifyingBody, &halalCertExpiresOn,
 		&v.DispatchState,
 		&v.SubtotalCents, &v.DiscountCents, &v.DeliveryFeeCents, &v.ServiceFeeCents,
@@ -161,6 +164,7 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 		s := halalCertExpiresOn.Format("2006-01-02")
 		v.HalalExpiresOn = &s
 	}
+	v.RestaurantLogoURL = s.mediaURL(logoBucket, logoKey)
 
 	// can_cancel: free only while cancellation is free (before restaurant accepts).
 	st := machine.State(v.State)

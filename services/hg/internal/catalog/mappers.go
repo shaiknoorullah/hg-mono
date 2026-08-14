@@ -1,6 +1,8 @@
 package catalog
 
 import (
+	"context"
+
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
@@ -29,8 +31,8 @@ func toCard(rr restaurantRow, avail RestaurantAvailabilityInfo, media MediaResol
 		ID:           rr.id,
 		Name:         rr.displayName,
 		Slug:         rr.slug,
-		HeroImageURL: resolveMedia(media, rr.coverObjectID),
-		LogoImageURL: resolveMedia(media, rr.logoObjectID),
+		HeroImageURL: media.URLForKey(deref(rr.coverObjectBucket), deref(rr.coverObjectKey)),
+		LogoImageURL: media.URLForKey(deref(rr.logoObjectBucket), deref(rr.logoObjectKey)),
 		Cuisines:     nonNilStrings(rr.cuisines),
 		RatingCount:  rr.ratingCount,
 		PriceBand:    rr.priceBand,
@@ -43,30 +45,32 @@ func toCard(rr restaurantRow, avail RestaurantAvailabilityInfo, media MediaResol
 	return c
 }
 
-// MediaResolver turns a stored-object id into a public media URL. The files
-// module owns the real implementation; discovery only needs to render a URL for
-// a logo/hero on the public media bucket. Until that lands, hero/logo are null,
-// which the contract renders as a neutral placeholder — never a bundled photo.
+// MediaResolver turns a stored media object into the public URL a client GETs
+// directly (hg-media is public-read; KYC/POD stay private). The list and menu
+// projections join stored_object and pass the (bucket, object_key) to URLForKey,
+// so a page of cards costs no extra round-trips (no N+1); single-item callers
+// with a context use PublicURL, which does one lookup. A missing image resolves
+// to null, which the contract renders as a neutral placeholder — never a
+// bundled photo. *Resolver (media.go) is the real implementation.
 type MediaResolver interface {
-	PublicURL(objectID string) *string
-}
-
-// resolveMedia turns an optional stored-object id into a public media URL, or nil
-// when the restaurant has no such image. A nil object id never reaches the
-// resolver, so an empty string is never presented as a key.
-func resolveMedia(media MediaResolver, objectID *string) *string {
-	if objectID == nil || *objectID == "" {
-		return nil
-	}
-	return media.PublicURL(*objectID)
+	// URLForKey builds a public URL from an already-fetched (bucket, object_key);
+	// no I/O. nil for a private bucket, an empty key, or an unconfigured base.
+	URLForKey(bucket, objectKey string) *string
+	// PublicURL resolves a single stored-object id to its public URL with one
+	// lookup; nil when missing, not READY, or private.
+	PublicURL(ctx context.Context, objectID string) *string
 }
 
 // nilMedia renders every image as null. A missing image is a neutral placeholder
-// per the contract, so this is a correct — if minimal — resolver.
+// per the contract, so this is a correct — if minimal — resolver, used when no
+// real resolver is wired (minimal wiring, tests).
 type nilMedia struct{}
 
+// URLForKey always returns nil.
+func (nilMedia) URLForKey(string, string) *string { return nil }
+
 // PublicURL always returns nil.
-func (nilMedia) PublicURL(string) *string { return nil }
+func (nilMedia) PublicURL(context.Context, string) *string { return nil }
 
 // toCertificationPanel maps a certification row to the C-12 panel.
 func toCertificationPanel(cr certificationRow, viewable bool) CertificationPanel {
@@ -104,6 +108,7 @@ func toMenuItem(it menuItemRow, vGroups []variantGroupRow, variants map[string][
 		ID:                it.id,
 		Name:              it.name,
 		Description:       it.description,
+		ImageURL:          media.URLForKey(deref(it.imageObjectBucket), deref(it.imageObjectKey)),
 		PriceCents:        it.priceCents,
 		Currency:          it.currency,
 		AvailabilityState: it.availabilityState,

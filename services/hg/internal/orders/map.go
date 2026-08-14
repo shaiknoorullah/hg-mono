@@ -104,13 +104,15 @@ func halalBadge(displayState string, certifyingBody, expiresOn *string) halalBad
 }
 
 // cartRestaurantCard renders the RestaurantCard for a bound cart, including the
-// halal seal. logo/hero are null until a media resolver lands (same convention
-// as the catalog card); the halal badge is the load-bearing field here.
+// halal seal. logo/hero carry the restaurant's public media URLs (null when it
+// has no image or none is wired); the halal badge is the load-bearing field here.
 func cartRestaurantCard(c *Cart) *restaurantCardDTO {
 	card := &restaurantCardDTO{
 		ID:           derefStr(c.RestaurantID),
 		Name:         derefStr(c.RestaurantName),
 		Slug:         c.RestaurantSlug,
+		HeroImageURL: c.RestaurantHeroURL,
+		LogoImageURL: c.RestaurantLogoURL,
 		Cuisines:     []string{},
 		RatingAvg:    c.RestaurantRatingAvg,
 		RatingCount:  c.RestaurantRatingCount,

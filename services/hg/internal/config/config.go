@@ -95,6 +95,14 @@ type MinIO struct {
 	SecretKey string
 	UseSSL    bool
 	Region    string
+	// PublicBaseURL is the scheme+host clients reach the public hg-media bucket
+	// at, without a trailing slash — e.g. "https://cdn.halalgoes.ca" in
+	// production, or "http://localhost:9000" in dev. A public media object's URL
+	// is <PublicBaseURL>/<bucket>/<object_key>, with no presigning: hg-media is
+	// public-read by design (the other buckets are never served this way). It
+	// defaults to scheme+host derived from Endpoint when unset, which is correct
+	// for the dev compose stack where MinIO is reached directly.
+	PublicBaseURL string
 	// Buckets is the P-27 bucket layout. Private buckets are subject to the
 	// boot-time privacy probe.
 	Buckets Buckets
@@ -175,6 +183,12 @@ func Load(getenv func(string) string) (*Config, error) {
 			Tmp:     l.optional("HG_MINIO_BUCKET_TMP", "hg-tmp"),
 		},
 	}
+	// The public base for hg-media defaults to the MinIO endpoint's scheme+host
+	// (dev serves objects directly off MinIO); production sets it to the CDN/edge
+	// host that fronts the public bucket. Any trailing slash is trimmed so the
+	// resolver can join "/bucket/key" without doubling it.
+	cfg.MinIO.PublicBaseURL = strings.TrimSuffix(
+		l.optional("HG_MINIO_PUBLIC_BASE_URL", defaultPublicBaseURL(cfg.MinIO.Endpoint, cfg.MinIO.UseSSL)), "/")
 
 	cfg.Stripe = Stripe{
 		SecretKey:         l.optional("HG_STRIPE_SECRET_KEY", ""),
@@ -379,6 +393,31 @@ func hostFromDSN(dsn string) string {
 		return host
 	}
 	return net.JoinHostPort(host, port)
+}
+
+// defaultPublicBaseURL derives the public media base from the MinIO endpoint
+// when HG_MINIO_PUBLIC_BASE_URL is unset. It is scheme + "://" + host, where
+// scheme follows UseSSL. An endpoint that already carries a scheme is used as
+// given (host only, dropping any path). An empty endpoint yields "" — the
+// resolver then renders every media URL as null, which is contract-valid.
+func defaultPublicBaseURL(endpoint string, useSSL bool) string {
+	if endpoint == "" {
+		return ""
+	}
+	scheme := "http"
+	if useSSL {
+		scheme = "https"
+	}
+	if strings.Contains(endpoint, "://") {
+		if u, err := url.Parse(endpoint); err == nil && u.Host != "" {
+			s := u.Scheme
+			if s == "" {
+				s = scheme
+			}
+			return s + "://" + u.Host
+		}
+	}
+	return scheme + "://" + endpoint
 }
 
 // ErrNotConfigured is returned by helpers asked for a dependency the binary was

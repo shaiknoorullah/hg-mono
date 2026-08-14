@@ -434,6 +434,38 @@ type adminOrderView struct {
 	PiiRevealed   bool                    `json:"pii_revealed"`
 }
 
+// adminAddress is the contract's Address (delivery address on the admin order
+// view). Required: id, line1, city, province, postal_code, country, latitude,
+// longitude, timezone, is_default; the rest are nullable.
+type adminAddress struct {
+	ID            string  `json:"id"`
+	Label         *string `json:"label"`
+	Line1         string  `json:"line1"`
+	Line2         *string `json:"line2"`
+	Unit          *string `json:"unit"`
+	Buzzer        *string `json:"buzzer"`
+	City          string  `json:"city"`
+	Province      string  `json:"province"`
+	PostalCode    string  `json:"postal_code"`
+	Country       string  `json:"country"`
+	Latitude      float64 `json:"latitude"`
+	Longitude     float64 `json:"longitude"`
+	Timezone      string  `json:"timezone"`
+	DeliveryNotes *string `json:"delivery_notes"`
+	IsDefault     bool    `json:"is_default"`
+}
+
+// adminRiderProfile is the contract's RiderPublicProfile — exactly these fields
+// and no others (additionalProperties:false). No phone, email, earnings or
+// record: the admin order view shows the same masked ref the customer sees.
+type adminRiderProfile struct {
+	FirstName   string   `json:"first_name"`
+	LastInitial string   `json:"last_initial"`
+	PhotoURL    *string  `json:"photo_url"`
+	VehicleType string   `json:"vehicle_type"`
+	RatingAvg   *float64 `json:"rating_avg"`
+}
+
 // adminDispatchHistoryEntry is one entry in the OrderAdminView.dispatch_history
 // array (openapi.yaml:10725-10748). All fields are nullable except state and at.
 type adminDispatchHistoryEntry struct {

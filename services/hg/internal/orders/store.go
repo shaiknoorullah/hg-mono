@@ -38,7 +38,20 @@ type EventEmitter interface {
 // GetOrderForCustomer(accountID, id).
 type Store struct {
 	pool    *pgxpool.Pool
-	emitter EventEmitter // optional; nil means no realtime events
+	emitter EventEmitter    // optional; nil means no realtime events
+	media   MediaURLBuilder // optional; nil renders every image URL as null
+}
+
+// MediaURLBuilder turns an already-fetched (bucket, object_key) into the public
+// URL a client GETs directly. The order and cart projections join stored_object
+// to fetch the key alongside the id, so building the URL costs no extra query.
+// The concrete implementation is the catalog media resolver, injected in
+// cmd/hg/main.go; the orders package declares only this interface so it never
+// imports catalog (the two modules are siblings). A nil builder renders every
+// image URL as null — contract-valid (a neutral placeholder), and the state in
+// tests and minimal wiring.
+type MediaURLBuilder interface {
+	URLForKey(bucket, objectKey string) *string
 }
 
 // NewStore wraps a pgx pool. emitter may be nil: when nil, Transition skips
@@ -50,6 +63,24 @@ func NewStore(pool *pgxpool.Pool, emitter ...EventEmitter) *Store {
 		s.emitter = emitter[0]
 	}
 	return s
+}
+
+// WithMedia attaches the media URL builder and returns the store, so wiring can
+// read as orders.NewStore(pool, emitter).WithMedia(resolver). A nil builder is
+// accepted and leaves image URLs null.
+func (s *Store) WithMedia(m MediaURLBuilder) *Store {
+	s.media = m
+	return s
+}
+
+// mediaURL builds the public URL for an optional (bucket, object_key) pair, or
+// nil when no media resolver is wired or the object is absent. Centralised so
+// the order/cart read paths never dereference a nil builder.
+func (s *Store) mediaURL(bucket, objectKey *string) *string {
+	if s.media == nil || bucket == nil || objectKey == nil {
+		return nil
+	}
+	return s.media.URLForKey(*bucket, *objectKey)
 }
 
 // Sentinel errors mapped to typed HTTP responses by the handlers.

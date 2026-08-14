@@ -337,6 +337,27 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 	deliveryInstructions := []any{}
 	dispatchHistory := []adminDispatchHistoryEntry{}
 
+	// delivery_address / rider are oneOf[object,null]: emit the object when the
+	// store joined the row, else null.
+	var deliveryAddress any
+	if row.DeliveryAddress != nil {
+		a := row.DeliveryAddress
+		deliveryAddress = adminAddress{
+			ID: a.ID, Label: a.Label, Line1: a.Line1, Line2: a.Line2, Unit: a.Unit,
+			Buzzer: a.Buzzer, City: a.City, Province: a.Province, PostalCode: a.PostalCode,
+			Country: a.Country, Latitude: a.Latitude, Longitude: a.Longitude,
+			Timezone: a.Timezone, DeliveryNotes: a.DeliveryNotes, IsDefault: a.IsDefault,
+		}
+	}
+	var rider any
+	if row.Rider != nil {
+		rd := row.Rider
+		rider = adminRiderProfile{
+			FirstName: rd.FirstName, LastInitial: rd.LastInitial, PhotoURL: rd.PhotoURL,
+			VehicleType: rd.VehicleType, RatingAvg: rd.RatingAvg,
+		}
+	}
+
 	stateSince := ptr(httpx.Timestamp(row.StateSince))
 
 	return adminOrderView{
@@ -369,11 +390,11 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 		PickedUpAt:           nil,
 		DeliveredAt:          nil,
 		CompletedAt:          tsPtr(row.CompletedAt),
-		DeliveryAddress:      nil,
+		DeliveryAddress:      deliveryAddress,
 		DeliveryInstructions: deliveryInstructions,
 		SpecialInstructions:  nil,
-		Rider:                nil,
-		DispatchState:        nil,
+		Rider:                rider,
+		DispatchState:        row.DispatchState,
 		DispatchHistory:      dispatchHistory,
 		InternalMoney: adminOrderInternalMoney{
 			CommissionCents:    row.CommissionCents,

@@ -82,6 +82,49 @@ type adminOrderRow struct {
 
 	// Refunds for the order, requested-at ascending.
 	Refunds []adminRefundRow
+
+	// dispatch_state from the order's dispatch row (nil until the restaurant
+	// accepts and a dispatch machine exists for the order).
+	DispatchState *string
+
+	// delivery_address (contract Address), nil for PICKUP orders or orders with
+	// no delivery_address_id.
+	DeliveryAddress *adminAddressRow
+
+	// rider is the assigned rider's masked public ref (no phone, no earnings),
+	// nil until a rider is on the order (A-38 / P-07).
+	Rider *adminRiderRow
+}
+
+// adminAddressRow is the delivery address projection (contract Address). Latitude
+// and longitude are decomposed from the geography point, never stored columns.
+type adminAddressRow struct {
+	ID            string
+	Label         *string
+	Line1         string
+	Line2         *string
+	Unit          *string
+	Buzzer        *string
+	City          string
+	Province      string
+	PostalCode    string
+	Country       string
+	Latitude      float64
+	Longitude     float64
+	Timezone      string
+	DeliveryNotes *string
+	IsDefault     bool
+}
+
+// adminRiderRow is the assigned rider's PII-free public ref (contract
+// RiderPublicProfile): display name masked to first name + last initial, vehicle
+// type and rating — never phone, email, earnings or record.
+type adminRiderRow struct {
+	FirstName   string
+	LastInitial string
+	PhotoURL    *string
+	VehicleType string
+	RatingAvg   *float64
 }
 
 type adminPaymentRow struct {
@@ -186,27 +229,66 @@ SELECT o.id, o.code, o.state::text, o.restaurant_id, r.display_name,
 // order does not exist, never a 403 that leaks existence).
 func (r *OrdersRepo) GetOrder(ctx context.Context, orderID string) (*adminOrderRow, error) {
 	var v adminOrderRow
+	// dispatch_state is joined here (one dispatch row per order, LEFT JOIN because
+	// it exists only after the restaurant accepts).
 	err := r.pool.QueryRow(ctx, `
 SELECT o.id, o.code, o.state::text, o.state_since, o.restaurant_id, r.display_name,
        o.subtotal_cents, o.discount_cents, o.delivery_fee_cents, o.service_fee_cents,
        o.tax_total_cents, o.tip_cents, o.total_cents, o.currency::text,
        o.cancel_reason::text, o.reject_reason::text, o.fulfilment::text,
        o.placed_at, o.accepted_at, o.cancelled_at, o.completed_at, o.deadline_at,
-       o.commission_cents, o.restaurant_net_cents, o.rider_earnings_cents, o.platform_gross_cents
+       o.commission_cents, o.restaurant_net_cents, o.rider_earnings_cents, o.platform_gross_cents,
+       d.state::text AS dispatch_state
   FROM "order" o
   JOIN restaurant r ON r.id = o.restaurant_id
+  LEFT JOIN dispatch d ON d.order_id = o.id
  WHERE o.id = $1`, orderID).Scan(
 		&v.ID, &v.Code, &v.State, &v.StateSince, &v.RestaurantID, &v.RestaurantName,
 		&v.SubtotalCents, &v.DiscountCents, &v.DeliveryFeeCents, &v.ServiceFeeCents,
 		&v.TaxTotalCents, &v.TipCents, &v.TotalCents, &v.Currency,
 		&v.CancelReason, &v.RejectReason, &v.Fulfilment,
 		&v.PlacedAt, &v.AcceptedAt, &v.CancelledAt, &v.CompletedAt, &v.DeadlineAt,
-		&v.CommissionCents, &v.RestaurantNetCents, &v.RiderEarningsCents, &v.PlatformGrossCents)
+		&v.CommissionCents, &v.RestaurantNetCents, &v.RiderEarningsCents, &v.PlatformGrossCents,
+		&v.DispatchState)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	// Delivery address (contract Address). Null for PICKUP orders. Latitude and
+	// longitude are decomposed from the geography point, never stored columns.
+	var a adminAddressRow
+	addrErr := r.pool.QueryRow(ctx, `
+SELECT a.id, a.label, a.line1, a.line2, a.unit, a.buzzer, a.city, a.province::text,
+       a.postal_code, a.country, ST_Y(a.location::geometry), ST_X(a.location::geometry),
+       a.timezone, a.delivery_notes, a.is_default
+  FROM "order" o JOIN address a ON a.id = o.delivery_address_id
+ WHERE o.id = $1 AND o.delivery_address_id IS NOT NULL`, orderID).Scan(
+		&a.ID, &a.Label, &a.Line1, &a.Line2, &a.Unit, &a.Buzzer, &a.City, &a.Province,
+		&a.PostalCode, &a.Country, &a.Latitude, &a.Longitude,
+		&a.Timezone, &a.DeliveryNotes, &a.IsDefault)
+	if addrErr == nil {
+		v.DeliveryAddress = &a
+	} else if !errors.Is(addrErr, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("load delivery address: %w", addrErr)
+	}
+
+	// Assigned rider's masked public ref (no phone, no earnings — P-07). Joined
+	// via the order's dispatch row; absent until a rider is on the order.
+	var rd adminRiderRow
+	riderErr := r.pool.QueryRow(ctx, `
+SELECT rp.first_name, left(rp.last_name, 1), NULL::text, rv.vehicle_type::text, rp.rating_avg
+  FROM dispatch d
+  JOIN rider_profile rp ON rp.account_id = d.rider_account_id
+  JOIN rider_vehicle rv ON rv.account_id = d.rider_account_id AND rv.is_active AND rv.deleted_at IS NULL
+ WHERE d.order_id = $1 AND d.rider_account_id IS NOT NULL`, orderID).Scan(
+		&rd.FirstName, &rd.LastInitial, &rd.PhotoURL, &rd.VehicleType, &rd.RatingAvg)
+	if riderErr == nil {
+		v.Rider = &rd
+	} else if !errors.Is(riderErr, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("load rider: %w", riderErr)
 	}
 
 	// Load transitions for timeline.

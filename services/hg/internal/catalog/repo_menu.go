@@ -23,6 +23,10 @@ type menuItemRow struct {
 	prepMinutes       *int32
 	dietaryTags       []string
 	allergenTags      []string
+	// The item image object's bucket + key, joined from stored_object (READY
+	// only) so the image_url is built without a per-item lookup (no N+1).
+	imageObjectBucket *string
+	imageObjectKey    *string
 }
 
 // categoryRow is a menu category header.
@@ -77,9 +81,11 @@ func (rp *Repo) getCustomerMenu(ctx context.Context, restaurantID string) ([]cat
 		SELECT mi.id, mi.category_id, mv.name, mv.description, mv.ingredients_text,
 		       mi.price_cents, mi.currency::text, mi.availability_state::text,
 		       mi.out_of_stock_until, mi.tax_category::text, mi.prep_minutes,
-		       mv.dietary_tags::text[], mv.allergen_tags::text[]
+		       mv.dietary_tags::text[], mv.allergen_tags::text[],
+		       so_img.bucket, so_img.object_key
 		  FROM menu_item mi
 		  JOIN menu_item_version mv ON mv.id = mi.live_version_id
+		  LEFT JOIN stored_object so_img ON so_img.id = mv.image_object_id AND so_img.state = 'READY'
 		 WHERE mi.restaurant_id = $1::uuid
 		   AND mi.deleted_at IS NULL
 		   AND mi.availability_state <> 'HIDDEN'
@@ -94,7 +100,8 @@ func (rp *Repo) getCustomerMenu(ctx context.Context, restaurantID string) ([]cat
 		var it menuItemRow
 		if err := itemRows.Scan(&it.id, &it.categoryID, &it.name, &it.description, &it.ingredientsText,
 			&it.priceCents, &it.currency, &it.availabilityState, &it.outOfStockUntil,
-			&it.taxCategory, &it.prepMinutes, &it.dietaryTags, &it.allergenTags); err != nil {
+			&it.taxCategory, &it.prepMinutes, &it.dietaryTags, &it.allergenTags,
+			&it.imageObjectBucket, &it.imageObjectKey); err != nil {
 			return nil, nil, err
 		}
 		byCat[it.categoryID] = append(byCat[it.categoryID], it)

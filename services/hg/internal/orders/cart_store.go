@@ -48,19 +48,26 @@ type Cart struct {
 
 // CartLine is one line with its current availability and price (C-19).
 type CartLine struct {
-	ID                string
-	MenuItemID        string
-	Name              string
-	ImageURL          *string
-	Variant           *SelectedVariant
-	Addons            []SelectedAddon
-	Quantity          int
-	SpecialRequest    *string
-	UnitPriceCents    int64
-	LineTotalCents    int64
-	Currency          string
-	IsAvailable       bool
-	UnavailReason     *string
+	ID             string
+	MenuItemID     string
+	Name           string
+	ImageURL       *string
+	Variant        *SelectedVariant
+	Addons         []SelectedAddon
+	Quantity       int
+	SpecialRequest *string
+	UnitPriceCents int64
+	LineTotalCents int64
+	Currency       string
+	IsAvailable    bool
+	UnavailReason  *string
+	// CurrentPriceCents surfaces C-19's PRICE_CHANGED signal: the item's live
+	// price when it differs from the price the line was added at. It stays nil
+	// until cart_line carries a per-line price snapshot to compare against —
+	// there is no captured "added at" price column today, so a change is not yet
+	// detectable. SCHEMA CHANGE REQUIRED: add cart_line.snapshot_unit_cents (a
+	// migration) set on insert, then set this when the live unit price diverges.
+	// Left null (contract-nullable) rather than inventing a comparison.
 	CurrentPriceCents *int64
 }
 
@@ -116,24 +123,31 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	var certExpiresOn *time.Time
 	var minOrder *int64
 	var accepting bool
+	var logoBucket, logoKey, coverBucket, coverKey *string
 	// The RestaurantCard on the cart re-asserts the chosen restaurant's halal seal
 	// before checkout (C-12): join the active certificate + issuing body so the
 	// badge carries the certifying body name and expiry, exactly as the catalog
 	// card does. LEFT JOIN because the certificate row is optional in principle.
+	// The logo/hero objects (READY only) are joined from stored_object so the
+	// card carries their public URLs without a per-object lookup.
 	err := tx.QueryRow(ctx, `
 		SELECT c.id, c.restaurant_id, r.display_name, c.delivery_address_id,
 		       r.slug, r.rating_avg, r.rating_count, r.price_band::text,
 		       r.halal_status::text, b.name AS certifying_body, cert.expires_on AS cert_expires_on,
-		       r.is_accepting_orders, r.account_state::text, r.minimum_order_cents
+		       r.is_accepting_orders, r.account_state::text, r.minimum_order_cents,
+		       so_logo.bucket, so_logo.object_key, so_cover.bucket, so_cover.object_key
 		  FROM cart c
 		  JOIN restaurant r ON r.id = c.restaurant_id
 		  LEFT JOIN halal_certificate cert ON cert.id = r.halal_certificate_id
 		  LEFT JOIN halal_issuing_body b ON b.id = cert.issuing_body_id
+		  LEFT JOIN stored_object so_logo ON so_logo.id = r.logo_object_id AND so_logo.state = 'READY'
+		  LEFT JOIN stored_object so_cover ON so_cover.id = r.cover_object_id AND so_cover.state = 'READY'
 		 WHERE c.account_id = $1 AND c.deleted_at IS NULL`, accountID).
 		Scan(&cartID, &restaurantID, &restaurantName, &addressID,
 			&slug, &ratingAvg, &ratingCount, &priceBand,
 			&halalStatus, &c.HalalCertifyingBody, &certExpiresOn,
-			&accepting, &accountState, &minOrder)
+			&accepting, &accountState, &minOrder,
+			&logoBucket, &logoKey, &coverBucket, &coverKey)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// No cart: return an empty one (id blank until first add).
 		return &Cart{Currency: "CAD", IsQuotable: false}, nil
@@ -162,14 +176,18 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	c.RestaurantIsAccepting = accepting
 	c.RestaurantAccountState = accountState
 	c.RestaurantMinOrder = minOrder
+	c.RestaurantLogoURL = s.mediaURL(logoBucket, logoKey)
+	c.RestaurantHeroURL = s.mediaURL(coverBucket, coverKey)
 
 	rows, err := tx.Query(ctx, `
 		SELECT cl.id, cl.menu_item_id, COALESCE(miv.name, ''), mi.price_cents, mi.availability_state::text,
 		       cl.variant_id, v.name, v.pricing_mode::text, v.price_cents, v.delta_cents, v.is_available,
-		       cl.quantity, cl.special_request
+		       cl.quantity, cl.special_request,
+		       so_img.bucket, so_img.object_key
 		  FROM cart_line cl
 		  JOIN menu_item mi ON mi.id = cl.menu_item_id
 		  LEFT JOIN menu_item_version miv ON miv.id = mi.live_version_id
+		  LEFT JOIN stored_object so_img ON so_img.id = miv.image_object_id AND so_img.state = 'READY'
 		  LEFT JOIN variant v ON v.id = cl.variant_id
 		 WHERE cl.cart_id = $1 ORDER BY cl.created_at`, cartID)
 	if err != nil {
@@ -184,12 +202,15 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 		var variantID, variantName, variantMode *string
 		var variantPrice, variantDelta *int64
 		var variantAvail *bool
+		var imgBucket, imgKey *string
 		if err := rows.Scan(&l.ID, &l.MenuItemID, &l.Name, &itemPrice, &availability,
 			&variantID, &variantName, &variantMode, &variantPrice, &variantDelta, &variantAvail,
-			&l.Quantity, &l.SpecialRequest); err != nil {
+			&l.Quantity, &l.SpecialRequest,
+			&imgBucket, &imgKey); err != nil {
 			return nil, err
 		}
 		l.Currency = "CAD"
+		l.ImageURL = s.mediaURL(imgBucket, imgKey)
 		unit := itemPrice
 		if variantID != nil && variantMode != nil {
 			l.Variant = &SelectedVariant{VariantID: *variantID, Name: derefStr(variantName), PricingMode: *variantMode}
