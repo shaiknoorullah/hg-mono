@@ -193,7 +193,13 @@ func TestAcceptIsRaceFree(t *testing.T) {
 				t.Errorf("winner %d returned an empty assignment id", i)
 			}
 		} else if se, ok := asServiceError(err); ok {
-			if se.Code != CodeOfferAlreadyTaken && se.Code != CodeOfferExpired && se.Code != CodeRiderNotAvailable {
+			// A loser can lose three legitimate ways: the order was claimed
+			// (OFFER_ALREADY_TAKEN), the winner's accept withdrew this sibling
+			// offer first (OFFER_WITHDRAWN, store.go Step 5 / D-15), or the offer
+			// lapsed (OFFER_EXPIRED). Which one is raced-timing-dependent; all are
+			// correct. Only a NON-loser code (or a real winner miscount) is a bug.
+			if se.Code != CodeOfferAlreadyTaken && se.Code != CodeOfferWithdrawn &&
+				se.Code != CodeOfferExpired && se.Code != CodeRiderNotAvailable {
 				t.Errorf("loser %d got unexpected code %s", i, se.Code)
 			}
 		} else {
