@@ -3,8 +3,10 @@ package admin
 import (
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
@@ -80,28 +82,26 @@ func actorFrom(r *http.Request) auditActor {
 func clientIP(r *http.Request) string {
 	// The peer address; X-Forwarded-For is trusted only behind the Traefik
 	// allowlist (P-06 stage 3), which is not this module's to configure.
+	//
+	// RemoteAddr is host:port. For IPv6 the host is bracketed ("[::1]:54321");
+	// net.SplitHostPort correctly returns the unbracketed host ("::1"), which is
+	// what the audit_event.ip inet column requires — a bracketed literal is
+	// SQLSTATE 22P02. A naive last-colon split leaves the brackets, so it is not
+	// used here.
 	host := r.RemoteAddr
-	if h, _, err := splitHostPort(host); err == nil {
-		return h
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	// Belt and braces: strip any residual brackets and an IPv6 zone suffix so a
+	// value that never reaches SplitHostPort (already a bare "[::1]") is still
+	// a valid inet literal.
+	host = strings.TrimPrefix(host, "[")
+	host = strings.TrimSuffix(host, "]")
+	if i := strings.IndexByte(host, '%'); i >= 0 {
+		host = host[:i]
 	}
 	return host
 }
-
-func splitHostPort(s string) (host, port string, err error) {
-	// net.SplitHostPort without the import churn; the caller only needs host.
-	for i := len(s) - 1; i >= 0; i-- {
-		if s[i] == ':' {
-			return s[:i], s[i+1:], nil
-		}
-	}
-	return s, "", errNoPort
-}
-
-var errNoPort = &parseErr{"no port"}
-
-type parseErr struct{ s string }
-
-func (e *parseErr) Error() string { return e.s }
 
 // decodeJSON strictly decodes the request body, refusing unknown fields
 // (contract additionalProperties:false) and trailing content. It returns false

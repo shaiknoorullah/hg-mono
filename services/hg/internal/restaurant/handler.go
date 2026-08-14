@@ -286,7 +286,20 @@ func (h *Handler) AttachRestaurantDocument(w http.ResponseWriter, r *http.Reques
 	}
 	doc, err := h.repo.AttachDocument(r.Context(), restaurantID, body)
 	if err != nil {
-		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		switch {
+		case errors.Is(err, ErrHalalCertMissingFields):
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"A halal certificate must name an issuing body, a certificate number and a valid_until.",
+				[]httpx.FieldError{{Field: "issuer_body_id", Code: "required", Message: "issuer_body_id, certificate_number and valid_until are required for HALAL_CERTIFICATE"}})
+		case errors.Is(err, ErrUnrecognisedCertifier):
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.ErrorCode("UNRECOGNISED_CERTIFIER"),
+				"The named issuing body is not in the accepted registry.", nil)
+		case errors.Is(err, ErrDocumentAlreadyExpired):
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.ErrorCode("DOCUMENT_ALREADY_EXPIRED"),
+				"The document's valid_until is in the past.", nil)
+		default:
+			httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		}
 		return
 	}
 	httpx.Respond(w, r, http.StatusCreated, doc)

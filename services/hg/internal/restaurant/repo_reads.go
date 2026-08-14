@@ -33,6 +33,21 @@ var ErrOfferExpired = errors.New("offer expired")
 // delay events recorded (R-26).
 var ErrDelayLimitReached = errors.New("delay limit reached")
 
+// ErrHalalCertMissingFields is returned when a HALAL_CERTIFICATE document is
+// attached without the fields the certificate entity requires (issuer body,
+// certificate number, valid_until). A halal claim with no issuing body is
+// unverifiable, so it is refused at attach time (R-07).
+var ErrHalalCertMissingFields = errors.New("halal certificate fields missing")
+
+// ErrDocumentAlreadyExpired is returned when a certificate/document is attached
+// with a valid_until in the past — refused at attach time, not discovered at
+// review time (contract R-07, DOCUMENT_ALREADY_EXPIRED).
+var ErrDocumentAlreadyExpired = errors.New("document already expired")
+
+// ErrUnrecognisedCertifier is returned when a HALAL_CERTIFICATE names an
+// issuing body that is not in the registry (contract R-07, UNRECOGNISED_CERTIFIER).
+var ErrUnrecognisedCertifier = errors.New("unrecognised certifier")
+
 // GetOnboardingStatus returns the onboarding state and a coarse progress
 // percentage for the restaurant the account is scoped to.
 func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*OnboardingStatus, error) {
@@ -264,9 +279,45 @@ func (r *Repo) UpsertProfile(ctx context.Context, restaurantID string, in profil
 			updated_at=now()
 		WHERE id=$1 AND deleted_at IS NULL`, locExpr)
 
-	_, err := r.db.Exec(ctx, q, args...)
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if _, err := tx.Exec(ctx, q, args...); err != nil {
 		return nil, fmt.Errorf("upsert profile: %w", err)
+	}
+
+	// Persist the cuisine set (R-05): the profile carries the restaurant's cuisine
+	// choices from the server-managed lookup, and the review screen and discovery
+	// filters both read restaurant_cuisine. Replace the set on each save.
+	if in.CuisineIDs != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM restaurant_cuisine WHERE restaurant_id=$1`, restaurantID); err != nil {
+			return nil, fmt.Errorf("clear cuisines: %w", err)
+		}
+		for _, cid := range in.CuisineIDs {
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO restaurant_cuisine (restaurant_id, cuisine_id)
+				VALUES ($1, $2::uuid)
+				ON CONFLICT (restaurant_id, cuisine_id) DO NOTHING`, restaurantID, cid); err != nil {
+				return nil, fmt.Errorf("attach cuisine: %w", err)
+			}
+		}
+	}
+
+	// The first valid profile save advances onboarding to DOCUMENTS_PENDING (R-05).
+	// Monotonic: a restaurant already past PROFILE_PENDING is left where it is.
+	if _, err := tx.Exec(ctx, `
+		UPDATE restaurant SET onboarding_state='DOCUMENTS_PENDING', updated_at=now()
+		 WHERE id=$1 AND deleted_at IS NULL
+		   AND onboarding_state IN ('PROFILE_PENDING','EMAIL_VERIFIED','REGISTERED')`,
+		restaurantID); err != nil {
+		return nil, fmt.Errorf("advance onboarding: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 	return r.GetProfile(ctx, restaurantID)
 }
@@ -406,12 +457,51 @@ func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]Docume
 	return out, rows.Err()
 }
 
-// AttachDocument attaches one kyc_document to the restaurant.
+// AttachDocument attaches one kyc_document to the restaurant (R-07). When the
+// document is a HALAL_CERTIFICATE it also creates the first-class
+// halal_certificate entity the seven-check verification instrument acts on, in
+// the same transaction as the document row: a halal claim is not a document
+// with a yes/no toggle. The certificate is created PENDING, seeded with the
+// attach-time facts (issuing body, certificate number, dates) and prefilled
+// with the restaurant's own legal name/address as a starting point the admin
+// re-transcribes and independently confirms via checks H3/H4. `scope` defaults
+// to SPECIFIC_MENU_ITEMS — which FAILS H6 — so nothing accidentally passes: the
+// admin must transcribe the real scope before approval is possible.
+//
+// Re-attaching HALAL_CERTIFICATE supersedes the prior PENDING certificate rather
+// than mutating it; full history is retained.
 func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in documentInputDTO) (*DocumentRow, error) {
+	isHalal := in.DocType == "HALAL_CERTIFICATE"
+
+	// A halal certificate must name a registry issuing body, a certificate number
+	// and an expiry. A halal claim with no issuing body is unverifiable.
+	if isHalal {
+		if in.IssuerBodyID == nil || *in.IssuerBodyID == "" ||
+			in.CertificateNumber == nil || *in.CertificateNumber == "" ||
+			in.ValidUntil == nil || *in.ValidUntil == "" {
+			return nil, ErrHalalCertMissingFields
+		}
+	}
+	// An already-expired certificate/document is refused at attach time, not
+	// discovered at review time.
+	if in.ValidUntil != nil && *in.ValidUntil != "" {
+		if vu, perr := time.Parse("2006-01-02", *in.ValidUntil); perr == nil {
+			if vu.Before(time.Now().Truncate(24 * time.Hour)) {
+				return nil, ErrDocumentAlreadyExpired
+			}
+		}
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
 	var id string
 	var version int
 	var createdAt time.Time
-	err := r.db.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id,
 			issuer, halal_issuing_body_id, certificate_number, issued_on, valid_until,
 			state, deadline_at, deadline_action)
@@ -424,6 +514,17 @@ func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in docum
 	if err != nil {
 		return nil, fmt.Errorf("attach document: %w", err)
 	}
+
+	if isHalal {
+		if err := r.createHalalCertificateTx(ctx, tx, restaurantID, id, in); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
 	return &DocumentRow{
 		ID:                id,
 		SubjectType:       "RESTAURANT",
@@ -437,6 +538,98 @@ func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in docum
 		Version:           version,
 		CreatedAt:         tsStr(createdAt),
 	}, nil
+}
+
+// halalChecklistVersion is the closed seven-check list version at V0 (A-15). It
+// mirrors admin.HalalChecklistVersion; the restaurant package seeds it onto a
+// new certificate row so the version is set from creation.
+const halalChecklistVersion = 1
+
+// createHalalCertificateTx creates a PENDING halal_certificate for a just-attached
+// HALAL_CERTIFICATE document, superseding any prior PENDING certificate for the
+// restaurant. It runs inside the attach transaction.
+func (r *Repo) createHalalCertificateTx(ctx context.Context, tx pgx.Tx, restaurantID, documentID string, in documentInputDTO) error {
+	// The issuing body must exist in the registry — free text / an unknown body
+	// is what makes a halal claim unverifiable (R-07).
+	var bodyExists bool
+	if err := tx.QueryRow(ctx,
+		`SELECT true FROM halal_issuing_body WHERE id=$1 AND deleted_at IS NULL`,
+		*in.IssuerBodyID).Scan(&bodyExists); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrUnrecognisedCertifier
+		}
+		return fmt.Errorf("lookup issuing body: %w", err)
+	}
+
+	// Prefill the certified name/address from the restaurant's own profile as a
+	// starting point; the admin re-transcribes and independently confirms H3/H4.
+	var legalName string
+	var line1, line2, city, province, postal *string
+	if err := tx.QueryRow(ctx, `
+		SELECT legal_name, line1, line2, city, province::text, postal_code
+		  FROM restaurant WHERE id=$1`, restaurantID).Scan(
+		&legalName, &line1, &line2, &city, &province, &postal); err != nil {
+		return fmt.Errorf("lookup restaurant for certificate: %w", err)
+	}
+	certifiedAddress := composeAddress(line1, line2, city, province, postal)
+
+	// issued_on defaults to today when the restaurant did not print one; the
+	// admin corrects it at transcription. expires_on is the certificate's
+	// valid_until (already validated as future above).
+	args := []any{restaurantID, documentID, *in.CertificateNumber, *in.IssuerBodyID,
+		legalName, certifiedAddress, *in.ValidUntil, halalChecklistVersion}
+	var issuedExpr string
+	if in.IssuedOn != nil && *in.IssuedOn != "" {
+		issuedExpr = "$9::date"
+		args = append(args, *in.IssuedOn)
+	} else {
+		issuedExpr = "CURRENT_DATE"
+	}
+
+	// Supersede any prior PENDING certificate for this restaurant.
+	if _, err := tx.Exec(ctx, `
+		UPDATE halal_certificate SET status='SUPERSEDED', updated_at=now()
+		 WHERE restaurant_id=$1 AND status='PENDING' AND deleted_at IS NULL`,
+		restaurantID); err != nil {
+		return fmt.Errorf("supersede prior certificate: %w", err)
+	}
+
+	// scope SPECIFIC_MENU_ITEMS FAILS H6 by construction, so a certificate can
+	// never pass approval on placeholder data — the admin must transcribe the
+	// real scope. status PENDING, checks all NOT_ASSESSED until the admin acts.
+	sql := `
+		INSERT INTO halal_certificate
+			(restaurant_id, document_id, certificate_number, issuing_body_id,
+			 certified_legal_name, certified_address, scope, issued_on, expires_on,
+			 status, checklist_version)
+		VALUES ($1, $2, $3, $4::uuid, $5, $6, 'SPECIFIC_MENU_ITEMS',
+			` + issuedExpr + `, $7::date, 'PENDING', $8)`
+	if _, err := tx.Exec(ctx, sql, args...); err != nil {
+		return fmt.Errorf("create halal certificate: %w", err)
+	}
+	return nil
+}
+
+// composeAddress joins the parts of a Canadian address into one line for the
+// certified_address seed. Nil / empty parts are skipped.
+func composeAddress(line1, line2, city, province, postal *string) string {
+	parts := make([]string, 0, 5)
+	for _, p := range []*string{line1, line2, city, province, postal} {
+		if p != nil && *p != "" {
+			parts = append(parts, *p)
+		}
+	}
+	out := ""
+	for i, p := range parts {
+		if i > 0 {
+			out += ", "
+		}
+		out += p
+	}
+	if out == "" {
+		return "Address not transcribed"
+	}
+	return out
 }
 
 // CheckDocumentPack verifies all required document types are present.
@@ -462,17 +655,71 @@ func (r *Repo) CheckDocumentPack(ctx context.Context, restaurantID string) error
 }
 
 // SubmitDocumentPack advances the restaurant's onboarding to DOCUMENTS_REVIEW
-// once the required pack is present (CheckDocumentPack passed). Idempotent: a
-// restaurant already past DOCUMENTS_PENDING is left where it is.
+// once the required pack is present (CheckDocumentPack passed) and places the
+// restaurant on the admin review queue (A-13). Entering the queue is the whole
+// point of "submit for review": it upserts the restaurant_application row with a
+// fresh submitted_at and a 72-hour SLA, and bumps the submission count on
+// resubmission. Idempotent: a restaurant already IN_REVIEW keeps its existing
+// submitted_at and is not re-queued.
 func (r *Repo) SubmitDocumentPack(ctx context.Context, restaurantID string) error {
-	_, err := r.db.Exec(ctx, `
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if _, err := tx.Exec(ctx, `
 		UPDATE restaurant
 		   SET onboarding_state = 'DOCUMENTS_REVIEW', updated_at = now()
 		 WHERE id = $1 AND deleted_at IS NULL
 		   AND onboarding_state IN ('DOCUMENTS_PENDING','DOCUMENTS_REJECTED','PROFILE_PENDING','REGISTERED','EMAIL_VERIFIED')`,
-		restaurantID)
-	if err != nil {
+		restaurantID); err != nil {
 		return fmt.Errorf("submit document pack: %w", err)
+	}
+
+	// Upsert the review-queue row. On a first submission it is created with
+	// submitted_at=now(); on a resubmission after DOCUMENTS_REJECTED it is
+	// re-queued with a new submitted_at, an incremented submission_count and its
+	// prior decision cleared. A row that is already submitted and not yet decided
+	// keeps its place (idempotent).
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO restaurant_application
+			(restaurant_id, submission_count, submitted_at, sla_due_at, address_pin_warning)
+		VALUES ($1, 1, now(), now() + interval '72 hours', false)
+		ON CONFLICT (restaurant_id) DO UPDATE
+		SET submission_count = CASE
+		        WHEN restaurant_application.decided_at IS NOT NULL
+		          OR restaurant_application.submitted_at IS NULL
+		        THEN restaurant_application.submission_count + 1
+		        ELSE restaurant_application.submission_count END,
+		    submitted_at = CASE
+		        WHEN restaurant_application.decided_at IS NOT NULL
+		          OR restaurant_application.submitted_at IS NULL
+		        THEN now() ELSE restaurant_application.submitted_at END,
+		    sla_due_at = CASE
+		        WHEN restaurant_application.decided_at IS NOT NULL
+		          OR restaurant_application.submitted_at IS NULL
+		        THEN now() + interval '72 hours' ELSE restaurant_application.sla_due_at END,
+		    decision = CASE
+		        WHEN restaurant_application.decided_at IS NOT NULL THEN NULL
+		        ELSE restaurant_application.decision END,
+		    approve_reason_code = CASE
+		        WHEN restaurant_application.decided_at IS NOT NULL THEN NULL
+		        ELSE restaurant_application.approve_reason_code END,
+		    reject_reason_code = CASE
+		        WHEN restaurant_application.decided_at IS NOT NULL THEN NULL
+		        ELSE restaurant_application.reject_reason_code END,
+		    decided_by = CASE
+		        WHEN restaurant_application.decided_at IS NOT NULL THEN NULL
+		        ELSE restaurant_application.decided_by END,
+		    decided_at = NULL,
+		    updated_at = now()`,
+		restaurantID); err != nil {
+		return fmt.Errorf("enqueue application: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit submit: %w", err)
 	}
 	return nil
 }

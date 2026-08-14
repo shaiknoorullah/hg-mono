@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -70,6 +71,7 @@ func (h *Handler) mapErr(w http.ResponseWriter, r *http.Request, err error) bool
 		h.failNotFound(w, r)
 		return true
 	}
+	slog.Error("catalog internal error", slog.String("path", r.URL.Path), slog.Any("err", err))
 	httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 		"Something went wrong reading the catalogue.", nil)
 	return true

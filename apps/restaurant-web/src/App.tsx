@@ -22,6 +22,7 @@ import { ToastProvider, TooltipProvider, themeAttributes } from '@hg/ui-web';
 import { OrderQueueScreen } from './screens/OrderQueueScreen';
 import { OrderDetailScreen } from './screens/OrderDetailScreen';
 import { MenuScreen } from './screens/MenuScreen';
+import { OnboardingScreen } from './screens/OnboardingScreen';
 import { login, logout } from './lib/auth';
 import { isAuthed, subscribe } from './lib/token';
 
@@ -96,6 +97,7 @@ function LoginGate() {
 function Shell() {
   const location = useLocation();
   const onMenu = location.pathname.startsWith('/menu');
+  const onOnboarding = location.pathname.startsWith('/onboarding');
 
   useEffect(() => {
     const root = document.documentElement;
@@ -111,11 +113,14 @@ function Shell() {
   return (
     <div {...attrs} className="rx-shell">
       <nav className="rx-nav" aria-label="Primary">
-        <Link to="/" className={`rx-nav-link${!onMenu ? ' rx-nav-link--active' : ''}`}>
+        <Link to="/" className={`rx-nav-link${!onMenu && !onOnboarding ? ' rx-nav-link--active' : ''}`}>
           Orders
         </Link>
         <Link to="/menu" className={`rx-nav-link${onMenu ? ' rx-nav-link--active' : ''}`}>
           Menu
+        </Link>
+        <Link to="/onboarding" className={`rx-nav-link${onOnboarding ? ' rx-nav-link--active' : ''}`}>
+          Onboarding
         </Link>
         <button type="button" className="rx-nav-link" onClick={() => logout()} style={{ marginLeft: 'auto' }}>
           Sign out
@@ -142,6 +147,20 @@ function QueueRoute() {
   );
 }
 
+function OnboardingRoute() {
+  return (
+    <>
+      <header className="mb-4">
+        <h1 className="text-title-md text-fg-primary">Onboarding</h1>
+        <p className="text-body-sm text-fg-secondary">
+          Your progress through halal verification — profile, documents, and admin review.
+        </p>
+      </header>
+      <OnboardingScreen />
+    </>
+  );
+}
+
 const router = createBrowserRouter([
   {
     element: <Shell />,
@@ -149,6 +168,7 @@ const router = createBrowserRouter([
       { path: '/', element: <QueueRoute /> },
       { path: '/orders/:orderId', element: <OrderDetailScreen /> },
       { path: '/menu', element: <MenuScreen /> },
+      { path: '/onboarding', element: <OnboardingRoute /> },
     ],
   },
 ]);

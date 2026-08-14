@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -252,5 +253,5 @@ func (h *Handler) failCert(w http.ResponseWriter, r *http.Request, err error) {
 func (h *Handler) failInternal(w http.ResponseWriter, r *http.Request, err error) {
 	httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 		"The server failed to process this request.", nil)
-	_ = err
+	slog.Error("admin internal error", slog.String("path", r.URL.Path), slog.Any("err", err))
 }

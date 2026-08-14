@@ -71,7 +71,10 @@ func (r *Repo) GetRestaurantApplication(ctx context.Context, restaurantID string
 		if err != nil {
 			return err
 		}
-		out.certID = out.profile.HalalCertID
+		out.certID, err = r.currentCertIDTx(ctx, tx, restaurantID, out.profile.HalalCertID)
+		if err != nil {
+			return err
+		}
 		var pinWarn bool
 		if err := tx.QueryRow(ctx, `SELECT address_pin_warning FROM restaurant_application WHERE restaurant_id=$1`, restaurantID).Scan(&pinWarn); err != nil {
 			return err
@@ -81,6 +84,32 @@ func (r *Repo) GetRestaurantApplication(ctx context.Context, restaurantID string
 		return nil
 	})
 	return out, err
+}
+
+// currentCertIDTx resolves the halal certificate the review screen should show
+// (A-13). Once a certificate is APPROVED the derived restaurant.halal_certificate_id
+// points at it, so that wins. Before approval the restaurant column is null, so we
+// surface the most recent non-superseded certificate under review — otherwise the
+// reviewer would have no certificate id to run the seven-check instrument against,
+// which is the whole point of the review screen.
+func (r *Repo) currentCertIDTx(ctx context.Context, tx pgx.Tx, restaurantID string, approvedCertID *string) (*string, error) {
+	if approvedCertID != nil {
+		return approvedCertID, nil
+	}
+	var id string
+	err := tx.QueryRow(ctx, `
+		SELECT id::text FROM halal_certificate
+		 WHERE restaurant_id = $1 AND deleted_at IS NULL
+		   AND status NOT IN ('SUPERSEDED', 'REVOKED')
+		 ORDER BY created_at DESC, id DESC
+		 LIMIT 1`, restaurantID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
 }
 
 func (r *Repo) getRestaurantProfileTx(ctx context.Context, tx pgx.Tx, id string) (restaurantProfileRow, error) {
@@ -297,7 +326,10 @@ VALUES ($1, $2::restaurant_onboarding_state, $3::restaurant_onboarding_state, 'A
 		if err != nil {
 			return err
 		}
-		out.certID = out.profile.HalalCertID
+		out.certID, err = r.currentCertIDTx(ctx, tx, restaurantID, out.profile.HalalCertID)
+		if err != nil {
+			return err
+		}
 		out.blockers = restaurantBlockers(out.profile, out.documents)
 		var pinWarn bool
 		if err := tx.QueryRow(ctx, `SELECT address_pin_warning FROM restaurant_application WHERE restaurant_id=$1`, restaurantID).Scan(&pinWarn); err != nil {

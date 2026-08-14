@@ -137,14 +137,19 @@ func (rp *Repo) listVisible(ctx context.Context, f listFilters) ([]restaurantRow
 	arg := func(v any) string { args = append(args, v); return fmt.Sprintf("$%d", len(args)) }
 
 	var distanceExpr, geoExpr string
+	// distanceSQL is the raw ST_Distance expression, reused verbatim in ORDER BY.
+	// A SELECT-list output alias (distance_m) may be used as a *standalone* sort
+	// key in Postgres but NOT inside a larger ORDER BY expression, so the blended
+	// RECOMMENDED sort must reference the expression itself, not the alias —
+	// referencing the alias there is SQLSTATE 42703 (column does not exist).
+	distanceSQL := "NULL::int"
 	withDistance := f.lat != nil && f.lng != nil
 	if withDistance {
 		pt := fmt.Sprintf("ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography",
 			arg(*f.lng), arg(*f.lat))
-		distanceExpr = ", ST_Distance(r.location, " + pt + ")::int AS distance_m"
-	} else {
-		distanceExpr = ", NULL::int AS distance_m"
+		distanceSQL = "ST_Distance(r.location, " + pt + ")::int"
 	}
+	distanceExpr = ", " + distanceSQL + " AS distance_m"
 	geoExpr = ", ST_Y(r.location::geometry) AS latitude, ST_X(r.location::geometry) AS longitude"
 
 	where := []string{visiblePredicate}
@@ -187,11 +192,14 @@ func (rp *Repo) listVisible(ctx context.Context, f listFilters) ([]restaurantRow
 		orderBy = "r.rating_avg DESC NULLS LAST, r.id ASC"
 	case "DISTANCE_ASC", "ETA_ASC":
 		if withDistance {
+			// A bare output alias is a valid standalone ORDER BY key.
 			orderBy = "distance_m ASC NULLS LAST, r.id ASC"
 		}
 	case "RECOMMENDED", "":
 		if withDistance {
-			orderBy = "(coalesce(r.rating_avg,0) * 2 - (distance_m::numeric / 5000)) DESC, r.id ASC"
+			// The alias cannot appear inside this arithmetic expression; use the
+			// raw ST_Distance expression instead.
+			orderBy = fmt.Sprintf("(coalesce(r.rating_avg,0) * 2 - ((%s)::numeric / 5000)) DESC, r.id ASC", distanceSQL)
 		} else {
 			orderBy = "r.rating_avg DESC NULLS LAST, r.id ASC"
 		}
