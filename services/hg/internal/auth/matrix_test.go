@@ -94,6 +94,7 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("restaurant.order_ready"):            {},
 		httpx.Action("restaurant.order_reject"):           {},
 		httpx.Action("restaurant.profile_read"):           {},
+		httpx.Action("restaurant.profile_write"):          {},
 		httpx.Action("restaurant.read"):                   {},
 		httpx.Action("restaurant_application.claim"):      {},
 		httpx.Action("restaurant_application.read"):       {},
