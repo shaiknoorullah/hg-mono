@@ -250,7 +250,7 @@ func run() error {
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
 	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
-	deadlineRunner := orders.NewDeadlineRunner(ordersStore, nil, log, cfg.HTTPAddr)
+	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr)
 	go deadlineRunner.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
