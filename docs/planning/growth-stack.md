@@ -25,14 +25,14 @@ data for marketing intelligence** — Martech, Adtech, CDP, engagement, flags/ex
 | Capability | Tool | Owner boundary (no overlap) |
 |---|---|---|
 | **Event collection + CDP + routing** | **RudderStack** (chosen) | Collects/identifies/routes events. Does *not* do dashboards, messaging, or flags. |
-| **Warehouse** | *v2 decision — see below* | Stores modelled behavioural data. Separate instance from telemetry's ClickHouse. |
+| **Warehouse** | **ClickHouse** (chosen) | Same engine as ClickStack telemetry (shared ops expertise), but a **separate instance/database** — different plane, retention, and access. |
 | **Transform / modelling** | **dbt** | SQL models + tests on the warehouse. The "metrics contract." |
 | **Pipeline orchestration** | **Kestra** (recommended) | Schedules/observes pipelines (the lightweight Airflow). Declarative YAML, polyglot, single-binary. |
 | **Reverse ETL / activation** | **Castled** (chosen) | Pushes warehouse audiences → engagement/ad tools. The only tool that writes *back out*. |
 | **Engagement / journeys / messaging** | **Dittofeed** (chosen) | Owns *all* marketing channel delivery (email/SMS/push/in-app). This is why we drop Novu. |
 | **Feature flags + experiments (A/B)** | **OpenFeature** + **GrowthBook** | OpenFeature = vendor-neutral SDK contract; GrowthBook = provider (flags + experiment stats). |
 | **Adtech / attribution / MMP** | **OpenAttribution** (self-host) or **Branch** (free tier) + server-side CAPI | Cross-channel ad ROI + install/deep-link attribution. |
-| **BI / dashboards** | *v2 decision — see below* | Human-facing analysis on the warehouse. The *only* dashboarding tool. |
+| **BI / dashboards** | **Metabase** (chosen) | Human-facing analysis on ClickHouse (native driver). The *only* dashboarding tool. |
 | **Consent (CMP)** | **Klaro** | Lawful-basis capture gate before any tracking. |
 | **Support / live chat** | **Chatwoot** | Omnichannel support inbox + proactive chat. |
 | **In-app tours / coach-marks** | *build in-app* (RN libs) driven by **GrowthBook** targeting + **Dittofeed** onboarding | No separate tour platform — avoids overlap with flags + engagement. |
@@ -64,21 +64,20 @@ Two notification classes with **opposite reliability requirements** — do not c
   failure domain with weaker guarantees than an in-transaction outbox — a reliability downgrade,
   not just an overlap with Dittofeed.
 
-## v2 decisions still open
+## Decisions (locked)
 
-- **Warehouse** — you're against *bare* ClickHouse for this plane. Options, lightest-first:
-  **Postgres** (fine at early v2 scale; zero new ops) → **Apache Doris** or **StarRocks**
-  (MySQL-protocol columnar, friendlier ops than CH) → ClickHouse only if volume forces it.
-  Keep it a *separate* instance from telemetry's ClickHouse. **Recommend: start Postgres, revisit at real volume.**
-- **BI tool** — the OSS options: **Metabase** (easiest, non-technical self-serve), **Superset**
-  (largest scale), **Lightdash** (dbt-native — KPIs defined in version-controlled YAML, reviewed
-  as PRs — fits our contract-first ethos), **Evidence** (code-first, Git-reviewed reports),
-  **Redash** (simple SQL). _Which was the one you had in mind?_ For our ethos I'd lean **Lightdash**
-  or **Evidence**; for ease, **Metabase**.
-- **Flag provider under OpenFeature** — **GrowthBook** (flags + experiments in one, recommended) vs
-  **flagd** (CNCF reference, ultra-light, flags-only) vs **Unleash**. GrowthBook unless we want to
-  split flags from experimentation.
-- **MMP** — OpenAttribution (self-host, immature) vs Branch (free tier, mature). Lean Branch to start.
+- **Warehouse → ClickHouse** — reuse the ClickStack engine/ops, separate instance from telemetry.
+  Dropped MySQL-protocol options (Doris/StarRocks) and Postgres-as-warehouse.
+- **BI → Metabase** — native ClickHouse driver, low barrier for non-technical self-serve.
+- **Flags → OpenFeature + GrowthBook** — GrowthBook backs flags *and* experiment stats, and can
+  read experiment exposure straight from ClickHouse (nice synergy with the warehouse choice).
+- **Orchestration → Kestra** · **Transform → dbt** · **Reverse ETL → Castled** · **CDP → RudderStack**
+  · **Engagement → Dittofeed** · **Consent → Klaro** · **Support → Chatwoot**.
+
+### Still open (one)
+
+- **MMP / attribution** — **Branch** (free tier, mature, best deep-linking) to start, vs
+  **OpenAttribution** (self-host, immature). Recommend Branch now, OpenAttribution as a watch-item.
 
 ## Phasing (all v2)
 
