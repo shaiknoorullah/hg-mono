@@ -90,6 +90,40 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 	return orders.CreateIntentResult{ClientSecret: row.StripePaymentIntentID + "_secret"}, nil
 }
 
+// orderLifecycleAdapter implements dispatch.OrderLifecycle by forwarding to the
+// orders module's Store.Transition. It is the single bridge between the dispatch
+// assignment machine and the P-14 order state machine: dispatch may not write
+// order.state directly; it must call through this interface (P-14).
+//
+// Both calls use ActorRider because the transition is triggered by the rider
+// completing a physical step (picking up / delivering the order). The orders
+// module validates the pair against the compile-time transition table, so an
+// invalid call (e.g. wrong current state) returns IllegalTransitionError and the
+// lifecycle call is a no-op.
+type orderLifecycleAdapter struct {
+	store *orders.Store
+}
+
+func (a *orderLifecycleAdapter) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
+	return a.store.Transition(ctx, orders.TransitionRequest{
+		OrderID:        orderID,
+		To:             machine.StatePickedUp,
+		Actor:          machine.ActorRider,
+		ActorAccountID: riderAccountID,
+		Reason:         "rider confirmed pickup",
+	})
+}
+
+func (a *orderLifecycleAdapter) CompleteDelivery(ctx context.Context, orderID, riderAccountID string) error {
+	return a.store.Transition(ctx, orders.TransitionRequest{
+		OrderID:        orderID,
+		To:             machine.StateDelivered,
+		Actor:          machine.ActorRider,
+		ActorAccountID: riderAccountID,
+		Reason:         "rider completed delivery",
+	})
+}
+
 func main() {
 	if err := run(); err != nil {
 		// Boot failures go to stderr in plain text as well as the structured
@@ -255,7 +289,12 @@ func run() error {
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
-	dispatch.Routes(router, dispatch.NewHandler(dispatch.NewService(dispatch.NewStore(st.DB().Pool))))
+	dispatchStore := dispatch.NewStore(st.DB().Pool)
+	dispatchLifecycle := &orderLifecycleAdapter{store: ordersStore}
+	dispatchSvc := dispatch.NewService(dispatchStore, dispatchLifecycle)
+	dispatch.Routes(router, dispatch.NewHandler(dispatchSvc))
+	dispatchRunner := dispatch.NewDispatchRunner(dispatchSvc, log, 3000, 5*time.Second)
+	go dispatchRunner.Run(ctx)
 
 	// B7 — Restaurant partner portal (R-01…R-26).
 	// Scope resolver reads account_role; ownership enforced in SQL (P-07 / IDOR).

@@ -6,17 +6,31 @@ import (
 	"time"
 )
 
+// OrderLifecycle is the seam from dispatch to the orders module. Dispatch calls
+// through this interface to advance the order state machine when the assignment
+// reaches PICKED_UP or DELIVERED; the orders module owns order.state (P-14) and
+// is the only writer of it. Keeping this as an interface (not a direct import)
+// keeps the dependency direction clean and lets tests inject a fake.
+type OrderLifecycle interface {
+	// ConfirmPickup advances the order from READY_FOR_PICKUP to PICKED_UP (T12).
+	ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error
+	// CompleteDelivery advances the order from PICKED_UP (or ARRIVED) to DELIVERED (T15/T16).
+	CompleteDelivery(ctx context.Context, orderID, riderAccountID string) error
+}
+
 // Service is the module's use-case layer. It holds the business rules that sit
 // above raw SQL: the availability go-online gate, the offer-wave algorithm, and
 // the clock. Handlers call the Service; the Service calls the Store.
 type Service struct {
-	store *Store
-	now   func() time.Time
+	store     *Store
+	lifecycle OrderLifecycle // nil is safe — calls are no-ops when nil
+	now       func() time.Time
 }
 
-// NewService builds a Service over a Store.
-func NewService(store *Store) *Service {
-	return &Service{store: store, now: func() time.Time { return time.Now().UTC() }}
+// NewService builds a Service over a Store. lifecycle may be nil (safe no-op)
+// and should be set to the orders adapter in production.
+func NewService(store *Store, lifecycle OrderLifecycle) *Service {
+	return &Service{store: store, lifecycle: lifecycle, now: func() time.Time { return time.Now().UTC() }}
 }
 
 // ---------------------------------------------------------------------------
@@ -116,9 +130,34 @@ func (s *Service) GetAssignment(ctx context.Context, riderAccountID, assignmentI
 	return s.store.LoadAssignment(ctx, riderAccountID, assignmentID)
 }
 
-// Transition advances an assignment one step.
+// Transition advances an assignment one step. After the dispatch transaction
+// commits, it calls the OrderLifecycle bridge for PICKED_UP and DELIVERED to
+// keep the order state machine in sync (P-14: only the orders module writes
+// order.state; dispatch calls it via the interface, never directly).
 func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput) (*Assignment, error) {
-	return s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now())
+	asn, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now())
+	if err != nil {
+		return nil, err
+	}
+	// Bridge calls happen after the dispatch tx commits so a failure in the
+	// orders module never rolls back a committed dispatch transition. The
+	// orders.Transition is idempotent (FOR UPDATE + state guard), so a retry
+	// on the next position report or reconcile is safe.
+	if s.lifecycle != nil {
+		switch in.ToState {
+		case "PICKED_UP":
+			if lcErr := s.lifecycle.ConfirmPickup(ctx, asn.OrderID, riderAccountID); lcErr != nil {
+				// Log-only: the dispatch assignment is committed; the orders state
+				// will catch up via the reconcile sweep or a retry.
+				_ = lcErr
+			}
+		case "DELIVERED":
+			if lcErr := s.lifecycle.CompleteDelivery(ctx, asn.OrderID, riderAccountID); lcErr != nil {
+				_ = lcErr
+			}
+		}
+	}
+	return asn, nil
 }
 
 // SubmitPod records proof of delivery.

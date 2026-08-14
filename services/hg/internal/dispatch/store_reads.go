@@ -165,6 +165,39 @@ WHERE asn.id = $1 AND asn.rider_account_id = $2`
 	return &a, nil
 }
 
+// FindUndispatchedReadyOrders returns order IDs in READY_FOR_PICKUP state that
+// have no dispatch row yet. This is the sweep query for the DispatchRunner
+// backstop (D-13): orders that arrive in READY_FOR_PICKUP but were never offered
+// to riders because the restaurant-side dispatch trigger (OFFER_RESTAURANT) has
+// not been wired yet.
+//
+// SKIP LOCKED is not used here because we want every replica to see the same
+// list — two replicas calling RunWave for the same order will contend on the
+// dispatch_wave unique index and one will log an error, which is harmless.
+func (s *Store) FindUndispatchedReadyOrders(ctx context.Context) ([]string, error) {
+	rows, err := s.db.Query(ctx, `
+SELECT o.id
+FROM "order" o
+WHERE o.state = 'READY_FOR_PICKUP'
+  AND NOT EXISTS (
+        SELECT 1 FROM dispatch d WHERE d.order_id = o.id)
+ORDER BY o.ready_at ASC NULLS FIRST
+LIMIT 50`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
 // LoadAssignmentByOrder returns the live assignment id for an order, if any.
 func (s *Store) LoadAssignmentByOrder(ctx context.Context, orderID string) (string, string, error) {
 	var id, rider string
