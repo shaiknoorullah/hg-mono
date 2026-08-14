@@ -164,7 +164,7 @@ func CORS(allowed []string) Middleware {
 	for _, o := range allowed {
 		allowSet[strings.ToLower(strings.TrimSuffix(o, "/"))] = struct{}{}
 	}
-	const allowHeaders = "Authorization, Content-Type, Idempotency-Key, X-Request-ID, X-HG-Client, X-HG-CSRF"
+	const allowHeaders = "Authorization, Content-Type, Idempotency-Key, X-Request-ID, X-HG-Client, X-HG-CSRF, X-Client-Version"
 	const exposeHeaders = "X-Request-ID, Idempotency-Replayed, Retry-After"
 
 	return func(next http.Handler) http.Handler {

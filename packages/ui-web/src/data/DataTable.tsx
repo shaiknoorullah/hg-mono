@@ -130,7 +130,10 @@ const PII_FIELD_HEURISTICS =
 
 function useDevPiiAudit<Row>(columns: readonly DataTableColumn<Row>[], caption: string): void {
   useEffect(() => {
-    if (process.env['NODE_ENV'] === 'production') return;
+    // Skip in production. `process` does not exist in a browser bundle (Vite), so it must be
+    // reached through a `typeof` guard — a bare `process.env` throws a ReferenceError and
+    // takes the whole table down with it. In dev/test (Node or Vite dev) the audit runs.
+    if (typeof process !== 'undefined' && process.env['NODE_ENV'] === 'production') return;
     for (const column of columns) {
       if (column.pii) continue;
       if (!PII_FIELD_HEURISTICS.test(column.key) && !PII_FIELD_HEURISTICS.test(column.header)) {

@@ -41,8 +41,9 @@ export interface HgClientConfig {
    */
   getToken?: TokenProvider;
   /**
-   * Which app is calling. Sent as `X-Client-Surface`; the contract's `ClientSurface` enum
-   * is the closed set.
+   * Which app is calling. Sent as `X-HG-Client` (the contract's `ClientHeader` parameter,
+   * `required: true`); the value is the closed `ClientSurface` enum. The server uses it to
+   * pick the role grant on first OTP sign-up — it is never trusted for authorization.
    */
   clientSurface?: Schemas['ClientSurface'];
   /** App version string, sent as `X-Client-Version` for the force-upgrade check. */
@@ -139,7 +140,7 @@ export function createHgClient(config: HgClientConfig) {
     async onRequest({ request }) {
       const token = await getToken?.();
       if (token) request.headers.set('Authorization', `Bearer ${token}`);
-      if (clientSurface) request.headers.set('X-Client-Surface', clientSurface);
+      if (clientSurface) request.headers.set('X-HG-Client', clientSurface);
       if (clientVersion) request.headers.set('X-Client-Version', clientVersion);
       if (mockScenario) request.headers.set('X-Mock-Scenario', mockScenario);
       for (const [k, v] of Object.entries(staticHeaders ?? {})) request.headers.set(k, v);

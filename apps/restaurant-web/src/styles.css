@@ -289,3 +289,33 @@
     gap: var(--hg-space-3);
   }
 }
+
+/* Operator sign-in gate (App LoginGate). Minimal stacked form. */
+.rx-login {
+  max-width: 22rem;
+  margin: 4rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.rx-login label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.rx-login input {
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--hg-color-border-default, #ccc);
+  border-radius: 0.375rem;
+  font: inherit;
+}
+.rx-login button {
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.375rem;
+  border: none;
+  background: var(--hg-color-bg-brand, #1f6feb);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.rx-login button:disabled { opacity: 0.6; cursor: default; }
