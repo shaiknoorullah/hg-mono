@@ -1,0 +1,291 @@
+/*
+ * The restaurant app's only stylesheet.
+ *
+ * Every colour value comes from a design-system custom property that
+ * `@hg/ui-web/styles.css` wrote out of `docs/design/tokens.json`. The app never names a
+ * colour of its own; it only lays out structure.
+ */
+
+@import '@hg/ui-web/styles.css';
+
+/* Tailwind cannot see this app's class names through the library's own @source. */
+@source './**/*.{ts,tsx}';
+
+@layer base {
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--hg-surface-sunken);
+    color: var(--hg-text-primary);
+  }
+
+  /*
+   * Fixture and API image URLs point at `cdn.halalgoes.ca`, which does not resolve with no
+   * CDN reachable. A failed avatar load stays an empty circle rather than browser
+   * broken-image chrome.
+   */
+  img {
+    color: transparent;
+  }
+}
+
+@layer components {
+  .rx-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rx-main {
+    min-width: 0;
+    padding: var(--hg-space-6);
+    padding-block-end: var(--hg-space-16);
+  }
+
+  /* Primary nav strip */
+  .rx-nav {
+    display: flex;
+    gap: var(--hg-space-2);
+    align-items: center;
+    padding: var(--hg-space-3) var(--hg-space-6);
+    border-block-end: 1px solid var(--hg-line-decorative);
+    background-color: var(--hg-surface-raised);
+  }
+
+  .rx-nav-link {
+    padding: var(--hg-space-2) var(--hg-space-3);
+    border-radius: var(--hg-radius-md);
+    color: var(--hg-text-secondary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .rx-nav-link--active {
+    color: var(--hg-text-primary);
+    background-color: var(--hg-surface-subtle);
+  }
+
+  /* A plain, honest back affordance used across the detail and menu screens. */
+  .rx-back {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-block-end: var(--hg-space-3);
+    color: var(--hg-text-secondary);
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .rx-back:hover {
+    color: var(--hg-text-primary);
+  }
+
+  /* ── Order detail ─────────────────────────────────────────────── */
+  .rx-detail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-4);
+    max-width: 60rem;
+  }
+
+  .rx-detail-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-1);
+  }
+
+  .rx-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--hg-space-4);
+  }
+
+  @media (min-width: 52rem) {
+    .rx-detail-grid {
+      grid-template-columns: 1.4fr 1fr;
+    }
+  }
+
+  .rx-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-2);
+  }
+
+  .rx-mt {
+    margin-block-start: var(--hg-space-4);
+  }
+
+  .rx-lines {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-3);
+  }
+
+  .rx-line {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--hg-space-3);
+    align-items: flex-start;
+  }
+
+  .rx-line-main {
+    display: flex;
+    gap: var(--hg-space-2);
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .rx-line-qty {
+    color: var(--hg-text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rx-addons {
+    list-style: none;
+    margin: var(--hg-space-1) 0 0;
+    padding: 0;
+  }
+
+  .rx-line-note {
+    margin: var(--hg-space-1) 0 0;
+    color: var(--hg-text-secondary);
+    font-style: italic;
+  }
+
+  .rx-kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--hg-space-1) var(--hg-space-4);
+    margin: 0;
+  }
+
+  .rx-kv dt {
+    color: var(--hg-text-secondary);
+  }
+
+  .rx-kv dd {
+    margin: 0;
+    color: var(--hg-text-primary);
+  }
+
+  .rx-money {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-2);
+    margin: 0;
+  }
+
+  .rx-money > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--hg-space-3);
+  }
+
+  .rx-money dt {
+    color: var(--hg-text-secondary);
+  }
+
+  .rx-money dd {
+    margin: 0;
+  }
+
+  .rx-money-total dt {
+    color: var(--hg-text-primary);
+    font-weight: 600;
+  }
+
+  .rx-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--hg-space-3);
+    flex-wrap: wrap;
+  }
+
+  .rx-no-actions {
+    text-align: end;
+  }
+
+  /* ── Menu ─────────────────────────────────────────────────────── */
+  .rx-menu {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-4);
+    max-width: 64rem;
+  }
+
+  .rx-menu-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-1);
+  }
+
+  .rx-menu-body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--hg-space-4);
+  }
+
+  @media (min-width: 48rem) {
+    .rx-menu-body {
+      grid-template-columns: 16rem 1fr;
+      align-items: start;
+    }
+  }
+
+  .rx-menu-rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-1);
+    border: 1px solid var(--hg-line-decorative);
+    border-radius: var(--hg-radius-lg);
+    padding: var(--hg-space-2);
+    background-color: var(--hg-surface-raised);
+  }
+
+  .rx-menu-cat {
+    appearance: none;
+    background: none;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--hg-space-2);
+    padding: var(--hg-space-2) var(--hg-space-3);
+    border-radius: var(--hg-radius-md);
+    color: var(--hg-text-primary);
+    cursor: pointer;
+    font: inherit;
+    text-align: start;
+  }
+
+  .rx-menu-cat:hover {
+    background-color: var(--hg-surface-subtle);
+  }
+
+  .rx-menu-cat--active {
+    background-color: var(--hg-surface-subtle);
+    font-weight: 600;
+  }
+
+  .rx-menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-3);
+    min-width: 0;
+  }
+
+  .rx-menu-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-3);
+  }
+}
