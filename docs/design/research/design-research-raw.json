@@ -1,0 +1,1599 @@
+{
+  "summary": "Deep design research: flows, journeys, UI/UX references for all 4 Halal Goes apps + palette/icon/map directions, anchored on HungerStation-but-cleaner",
+  "agentCount": 7,
+  "logs": [],
+  "result": {
+    "apps": [
+      {
+        "app": "Halal Goes — Customer App",
+        "primary_references": [
+          {
+            "name": "Revyl Atlas — DoorDash Screen Map",
+            "url": "https://revyl.com/atlas/doordash/",
+            "why": "The single most useful reference found: an exhaustive, structured map of 98 real DoorDash iOS screens, 112 transitions, 37 named user paths and a 651-element UI inventory, organized exactly by the flow categories this task needs (home/discovery, store/menu, cart/checkout, order tracking, account, reviews, help). Use it as a checklist of screens/states our customer app must not forget (e.g. 'Store Info Detail Sheet', 'Add Tip Sheet' post-checkout, 'Profile Badges modal', 'Disable Save Login Info confirmation').",
+            "key_screens": [
+              "Checkout: payment + tip + Place order (21 elements)",
+              "Order Tracking: Shopping in progress / Dasher Arriving / Complete",
+              "Rate Order: Items, Preferred Shopper",
+              "Account hub (DashPass, 19 elements)",
+              "Addresses & Address Details/Edit",
+              "Saved Stores (empty state)",
+              "Profile Badges (modal)"
+            ]
+          },
+          {
+            "name": "Revyl Atlas — Uber (Eats) Screen Map",
+            "url": "https://revyl.com/atlas/uber/",
+            "why": "Same structured-atlas approach applied to Uber, including the Eats vertical nested inside the ride-hailing app. Useful for the 'Home tab → checkout in 7 screens' flow shape and for cross-vertical patterns (grocery/alcohol/retail categories reusing the same restaurant-card and PDP shell) that HungerStation-style apps also use for non-restaurant verticals.",
+            "key_screens": [
+              "Home: Eats tab (30 elements)",
+              "Restaurant detail (Eats, 21 elements)",
+              "Menu item detail (customizer)",
+              "Complete your order: upsell",
+              "Checkout (Eats)"
+            ]
+          },
+          {
+            "name": "Mobbin — Food Delivery App category",
+            "url": "https://mobbin.com/explore/mobile/app-categories/food-delivery-app",
+            "why": "The canonical screen-by-screen library for this exact brief; direct URLs to individual talabat/Careem/Uber Eats/Grubhub/Grab/Swiggy flows were surfaced via search even though the category index itself 403'd to the fetch tool (it requires a logged-in session — open directly in a browser to browse further)."
+          },
+          {
+            "name": "talabat iOS — Delivery Tracking Map",
+            "url": "https://mobbin.com/explore/screens/9cf34fd0-bc79-4de1-9c9f-871eccf4f884",
+            "why": "Nearest regional competitor to HungerStation (same Delivery Hero family, same MENA audience) with a live tracking map screen showing progress, ETA and an in-app driver-chat entry point — the pattern to match/clean up for our own tracking screen."
+          },
+          {
+            "name": "talabat iOS — Login Options",
+            "url": "https://mobbin.com/explore/screens/ac4ab7ef-bd7b-42f7-b435-5718353de1a5",
+            "why": "Reference for the onboarding/auth screen shape (phone-first with social fallbacks — Google/Facebook/Apple/email) directly comparable to our OTP-first onboarding requirement."
+          },
+          {
+            "name": "talabat iOS — Giving Feedback Flow",
+            "url": "https://mobbin.com/explore/flows/f84e443e-3e17-43bd-af87-05d409989f14",
+            "why": "Post-order rating/review flow reference: rate, add detail, confirmation — a minimal-friction shape worth mirroring for our ratings/reviews flow."
+          },
+          {
+            "name": "Mapbox Showcase — Wolt",
+            "url": "https://www.mapbox.com/showcase/wolt",
+            "why": "Direct precedent for the client's Mapbox subscription: Wolt uses Mapbox Matrix API (traffic-aware ETA across bike/car/motorcycle/walking couriers, validated with live switchback experiments) for routing/ETA and Static Maps API for lightweight order-tracking map images on web. Confirms Matrix+Static (not just the interactive SDK) is a legitimate architecture for our live-tracking screen, and that ETA accuracy — not map prettiness — is what Wolt optimized first.",
+            "key_screens": [
+              "Live order tracking (courier-to-customer route)",
+              "Merchant dashboard courier-arrival visibility"
+            ]
+          },
+          {
+            "name": "Mapbox — Standard Style customization / Dark & Light basemaps",
+            "url": "https://www.mapbox.com/maps/dark",
+            "why": "Mapbox Standard's Lookup Tables (LUTs) and the Standard Style Theme Editor let us retheme roads, water, buildings and emissive glow per light/dark mode without hand-authoring a full style — the practical route to a theme-matched tracking map for both HG themes."
+          },
+          {
+            "name": "Baymard Institute — 'Add Past Purchases to Cart from Homepage'",
+            "url": "https://baymard.com/blog/grocery-food-delivery-orders",
+            "why": "Primary UX research (not a competitor screenshot) establishing that reorder/'Order Again' surfaces belong on the homepage in the first viewport, not buried in order history — users are equally likely to look for a reorder in either place, and its absence reads as a broken convention."
+          },
+          {
+            "name": "Luis Fernandez — Uber Eats, DoorDash and Glovo Checkout Process Analysis",
+            "url": "https://luiselias.com/uber-eats-doordash-and-glovo-checkout-process-analysis/",
+            "why": "Direct comparative teardown of three checkout flows (6 steps / 4 steps / 5 steps respectively) with named strengths and weaknesses per app — the best sourced material found for calibrating our own checkout step count and for concrete pitfalls (vague allergy/condiment toggles, missing confirmation screens, tipping-screen cultural sensitivity, service-fee-hidden-in-tax pattern)."
+          },
+          {
+            "name": "Blake Crosley — Zomato: Personality-Driven Food UX",
+            "url": "https://blakecrosley.com/guides/design/zomato",
+            "why": "Best-sourced material on dietary/trust badges as a first-class visual system (green circle veg / dark-green 'pure veg' badge, distinct from generic ratings) and on turning the live-tracking wait into an emotionally engaged moment — directly relevant to how we badge halal state and design the tracking screen without leaning on red/green misuse."
+          },
+          {
+            "name": "Safe Plate Alliance — DoorDash/Uber Eats allergy-safety audit",
+            "url": "https://www.safeplatealliance.org/post/we-checked-50-restaurants-on-doordash-and-ubereats-80-had-zero-allergy-safety-features",
+            "why": "Independent audit finding 80% of restaurants on the two largest US apps expose only a generic free-text box for allergen/dietary communication — the cautionary baseline our halal-badge system must beat structurally (a first-class per-item/per-restaurant field, not a comment box)."
+          },
+          {
+            "name": "Uber — Allergy-Friendly Restaurant Program FAQ",
+            "url": "https://help.uber.com/en/merchants-and-restaurants/article/allergy-friendly-restaurant-program-faq?nodeId=6af20739-74f4-4fb7-9f23-d04647d38aaf",
+            "why": "Uber Eats' actual shipped pattern for a certified-restaurant badge plus a 'DIETARY TYPE' filter (vegetarian/vegan/gluten-free/allergy-friendly) and saved user allergen preferences — structurally the closest existing shipped analogue to a halal-certified filter/badge, including the orange-banner surfacing of a diner's allergy note back to the order screen."
+          }
+        ],
+        "flows": [
+          {
+            "flow": "OTP Onboarding",
+            "steps": [
+              "Splash → phone-number entry (country code default CA) — talabat pattern layers social login (Google/Facebook/Apple) below the primary phone field; HG should keep phone/OTP as the sole primary path per O-03 blocker, no social fallback needed for MVP",
+              "OTP code entry with auto-read/paste, resend timer, and an explicit 'change number' escape hatch",
+              "First-run name + optional email capture (deferred, not blocking access to browse)",
+              "Location permission prompt — framed with a plain-language reason (Deliveroo's redesign critique flagged forcing this with no 'not now' option as a top usability complaint; give an explicit skip)",
+              "Address confirmation/pin-drop before landing on home"
+            ],
+            "reference": "https://mobbin.com/explore/screens/ac4ab7ef-bd7b-42f7-b435-5718353de1a5 (talabat login options); Deliveroo location-permission critique via netguru.com/blog/deliveroo-ux-redesign-case-study",
+            "notes": "Do not gate home-screen browsing on notification/location permission grants — ask, but let denial degrade gracefully (manual address entry, no push). Pair OTP with a visible halal-mission one-liner on the splash/first-run screen so the app's premise is stated before any menu is seen."
+          },
+          {
+            "flow": "Home / Discovery",
+            "steps": [
+              "Address bar pinned top (tap to switch saved address) — HungerStation/talabat convention",
+              "Search bar entry point (not full search screen) directly below address",
+              "Category tile row (illustrated icons) — cuisines plus a distinct 'Halal Certified' filter tile treated as a first-class category, not buried in filters",
+              "Promo/banner carousel (HungerStation uses magenta/maroon for these — HG should use the brand gold + tint accents, never solid green here since green is halal-reserved)",
+              "'Order Again' reorder rail in the first viewport — Baymard finding: users expect this at home, not only in order history",
+              "Restaurant card list/grid: hero photo, name, star rating + review count, delivery-time (shield icon per HungerStation), distance, 'Free delivery' tag, halal badge placed adjacent to the name (top-left corner of the card image, consistent slot across all cards)"
+            ],
+            "reference": "https://revyl.com/atlas/doordash/ (Home: food delivery feed, 22 elements); Baymard https://baymard.com/blog/grocery-food-delivery-orders",
+            "notes": "Missing-halal-field = no badge (invariant #8): the card layout must reserve the badge slot but render nothing rather than a placeholder/greyed icon when the field is null, so absence doesn't visually read as 'checked and failed'."
+          },
+          {
+            "flow": "Search + Filters/Sort",
+            "steps": [
+              "Search results as typeahead (restaurant + dish level) per DoorDash's 'Search (with typeahead results)' screen",
+              "Filter bottom sheet: cuisine, price, rating, delivery time, 'Halal Certified' toggle pinned near the top of the sheet (not alphabetized into obscurity) — mirrors Uber Eats' 'DIETARY TYPE' section pattern but as a trust filter, not a dietary-restriction checkbox",
+              "Sort bottom sheet: relevance / rating / delivery time / distance",
+              "Applied-filter chips row above results, each removable individually"
+            ],
+            "reference": "https://help.uber.com/en/merchants-and-restaurants/article/allergy-friendly-restaurant-program-faq (DIETARY TYPE filter precedent); https://revyl.com/atlas/doordash/ (Search)",
+            "notes": "Because halal is the platform's single load-bearing claim, do not treat it as one checkbox among many dietary tags — give it dedicated visual weight in the filter sheet (its own row/section, not alphabetically interleaved with 'Vegan')."
+          },
+          {
+            "flow": "Restaurant Page",
+            "steps": [
+              "Header: hero photo/banner, name, rating+count, cuisine tags, distance/ETA",
+              "Halal certification panel directly below header — not a small icon but a tappable block showing certifying body, expiry, and the seven-check instrument summary; this is the trust centerpiece per the project brief, deserving more real estate than a badge alone",
+              "Info row: hours, 'Free delivery' / fee, minimum order",
+              "Menu categories as sticky horizontal tabs or vertical anchor-linked sections",
+              "Item rows: photo thumbnail, name, price, short description, '+' add button"
+            ],
+            "reference": "https://blakecrosley.com/guides/design/zomato (trust/dietary signal treatment); https://revyl.com/atlas/uber/ (Restaurant detail, 21 elements)",
+            "notes": "Never render an optimistic badge while certification data loads — show a skeleton/loading state for the halal panel specifically, distinct from the generic content skeleton, so users never see a flash of 'unverified' or 'green' before data resolves."
+          },
+          {
+            "flow": "Menu-Item Modifier Sheet",
+            "steps": [
+              "Bottom sheet slides up on item tap: large photo, name, price, description",
+              "Modifier groups: required single-select (radio) vs optional multi-select (checkbox), each group labeled 'Required' or 'Select up to N'",
+              "Quantity stepper bottom-left, price-updating CTA button bottom-right/full-width ('Add to cart · $12.50')",
+              "Special-instructions free-text field below modifiers"
+            ],
+            "reference": "https://mobbin.com/glossary/bottom-sheet; DoorDash 'Menu item customizer' via https://revyl.com/atlas/doordash/",
+            "notes": "Pitfall flagged in the Uber Eats/DoorDash/Glovo teardown: DoorDash's condiment toggle is 'too vague for allergy-critical users' — since HG's modifier sheet is where cross-contamination/ingredient questions surface, keep instructions field visible (not collapsed) rather than optional-and-hidden."
+          },
+          {
+            "flow": "Cart",
+            "steps": [
+              "Restaurant header pinned, item list with quantity steppers inline",
+              "Upsell rail ('Complete your order' / 'In Case You Missed It') below items — optional, must not block checkout CTA",
+              "Subtotal → fees → tax breakdown expandable, not collapsed-by-default hiding fees (flagged as a trust-eroding pattern in the checkout teardown)",
+              "Sticky bottom CTA 'Go to checkout · $X.XX'"
+            ],
+            "reference": "https://luiselias.com/uber-eats-doordash-and-glovo-checkout-process-analysis/ ('hiding service fees with taxes aids acceptance' — flagged as a pattern to avoid, not emulate)",
+            "notes": "Per invariant #1 (server prices every order), the cart must treat all displayed prices as server-returned, not client-computed from cached item prices — re-fetch/re-price on cart open."
+          },
+          {
+            "flow": "Checkout (address + tip + pay)",
+            "steps": [
+              "Step 1 — Address + delivery time: confirm/edit saved address, choose ASAP vs scheduled",
+              "Step 2 — Cart review with delivery instructions field",
+              "Step 3 — Tip selection: percentage chips + custom amount, no amount pre-selected/defaulted high",
+              "Step 4 — Payment method select + place-order CTA with a visible order summary, not a silent submit"
+            ],
+            "reference": "https://luiselias.com/uber-eats-doordash-and-glovo-checkout-process-analysis/ (DoorDash 4-step vs Uber Eats 6-step vs Glovo 5-step); https://www.phonearena.com/news/doordash-app-nudges-you-to-leave-tip_id149753",
+            "notes": "PITFALL: DoorDash's tip UI has been publicly criticized as a dark pattern — tip pre-selected at 25% and users 'nudged' post-order to raise it. HG should default tip UNSELECTED (or to 0/no-tip highlighted equally among options), never pre-checked at a high percentage. Also from the teardown: Glovo's separate payment step risks data loss on connection failure — keep payment selection in the same screen/state as place-order, not a separate network round-trip screen."
+          },
+          {
+            "flow": "Live Order Tracking (map)",
+            "steps": [
+              "Full-bleed map with route line: restaurant pin → rider pin (live) → customer pin",
+              "Status stepper overlay: Placed → Accepted → Preparing → Picked up → Arriving → Delivered, each tied to the order's deadline_at",
+              "Rider card: photo, name, vehicle, in-app chat/call CTA",
+              "ETA countdown prominent, ETA source is traffic-aware routing (Matrix-API-style), not a static estimate"
+            ],
+            "reference": "https://www.mapbox.com/showcase/wolt (Matrix API for traffic-aware ETA + Static Maps API for lightweight tracking images); https://mobbin.com/explore/screens/9cf34fd0-bc79-4de1-9c9f-871eccf4f884 (talabat tracking map); https://blakecrosley.com/guides/design/zomato (turning wait into an engaged moment via humanized rider profile)",
+            "notes": "Recommend Mapbox Matrix API for ETA computation (validated by Wolt's own switchback experiments at scale) plus Mapbox Standard Style with Lookup-Table theming (docs: mapbox.com/maps/dark, mapbox.com/maps/light) for a route/pin style matched to HG's gold light theme and a genuinely dark dark-theme map — not just an inverted default style."
+          },
+          {
+            "flow": "Order History + Reorder",
+            "steps": [
+              "List of past orders newest-first: restaurant name/photo, date, item summary, total, status chip",
+              "Tap into an order for a receipt-style detail view",
+              "'Reorder' primary CTA on each row, re-adding items to a fresh cart (re-priced server-side, not restoring the old price)",
+              "Empty state (no orders yet): illustration + 'Browse restaurants' CTA, not a bare blank list"
+            ],
+            "reference": "https://revyl.com/atlas/doordash/ (Orders history, Order receipt); https://baymard.com/blog/grocery-food-delivery-orders",
+            "notes": "Reorder must re-price through the server pricing engine — never replay a cached total, since menu/price changes and item availability may have changed since the original order."
+          },
+          {
+            "flow": "Ratings & Reviews",
+            "steps": [
+              "Post-delivery prompt: star rating for restaurant + separate star rating for rider",
+              "Optional tags/quick-reasons (e.g. 'Great food', 'Fast delivery') to reduce free-text friction",
+              "Optional free-text comment + photo attach",
+              "Confirmation screen, dismissible"
+            ],
+            "reference": "https://mobbin.com/explore/flows/f84e443e-3e17-43bd-af87-05d409989f14 (talabat feedback flow); DoorDash 'Rate Order: Items, Preferred Shopper' via https://revyl.com/atlas/doordash/",
+            "notes": "Keep restaurant-food rating and rider-delivery rating visually separate — conflating them (one star for the whole order) is a common competitor weakness since a late rider unfairly tanks restaurant ratings."
+          },
+          {
+            "flow": "Profile, Saved Addresses, Wallet, Notifications",
+            "steps": [
+              "Profile hub: avatar, name, phone (masked), edit-info entry",
+              "Saved addresses list with labels (Home/Work/Other), map-pin edit, default-address toggle",
+              "Wallet: balance, payment methods list, add-card flow, transaction history",
+              "Notification preferences: order updates vs promotional, separately toggleable",
+              "Notifications feed: order-status pushes, promo pushes, chronological with read/unread state"
+            ],
+            "reference": "https://revyl.com/atlas/doordash/ (Account hub, Addresses & Address Details/Edit, Payment Methods, Notifications preferences)",
+            "notes": "Every list here (addresses, payment methods, notifications, order history) needs an explicit empty state per AGENTS.md 'every screen implements empty, loading and error' — this is a repo-level hard requirement, not just good practice."
+          }
+        ],
+        "ui_patterns": [
+          {
+            "pattern": "Halal badge as a dedicated slot, never optimistic",
+            "detail": "Reserve a fixed badge position on restaurant cards and the restaurant-page header; render literally nothing when the halal field is null/loading rather than a grey/placeholder icon, per invariant #8. Loading state for the certification panel must be visually distinct from generic skeletons so a 'not yet loaded' state can never be mistaken for 'checked, no badge'.",
+            "seen_in": "Uber Eats allergy-friendly badge + DIETARY TYPE filter (help.uber.com); Zomato veg/pure-veg badge system (blakecrosley.com/guides/design/zomato)"
+          },
+          {
+            "pattern": "Trust badge gets a panel, not just an icon",
+            "detail": "On the restaurant page, halal certification deserves a tappable block (certifying body, expiry, link to the seven-check detail) rather than a small corner icon — icons are for the list/card view; the page-level moment is where trust is actually established.",
+            "seen_in": "Design guidance from erikfiala.com/blog/psychology-trust-seals-badges-ui-design and gapsystudio.com/blog/ux-trust-design — position trust indicators near decision points, not scattered"
+          },
+          {
+            "pattern": "Cool-slate expired state, never red",
+            "detail": "Directly maps to a real shipped precedent: apps universally use red/orange for 'allergy warning' banners (Uber Eats' orange cross-contamination banner). HG must deliberately diverge — an expired/unverifiable halal certificate should read as neutral slate/grey, visually distinct from any warning-red used elsewhere in the app for unrelated errors, so users never pattern-match 'red = don't eat this' onto a halal ambiguity.",
+            "seen_in": "help.uber.com allergy banner (orange) as the pattern to avoid mimicking for halal state"
+          },
+          {
+            "pattern": "Reorder rail on the homepage, not just in history",
+            "detail": "Show a horizontal 'Order Again' carousel with photo thumbnails and one-tap re-add directly on the home feed, in the first viewport — validated UX research finding, not just a competitor screenshot.",
+            "seen_in": "Baymard Institute research (baymard.com/blog/grocery-food-delivery-orders)"
+          },
+          {
+            "pattern": "Shield icon for delivery time",
+            "detail": "HungerStation-family apps (talabat) use a small shield glyph next to the delivery-time estimate on restaurant cards, giving ETA a 'guaranteed/protected' visual association distinct from the star-rating glyph — a cheap, reusable bit of iconographic consistency worth adopting for our 'nice consistent icons' requirement.",
+            "seen_in": "Client-observed HungerStation videos (per task brief); talabat card conventions"
+          },
+          {
+            "pattern": "Fee breakdown expanded by default at checkout",
+            "detail": "Avoid the flagged anti-pattern of folding service fees into 'tax' or collapsing the breakdown to ease sticker shock — show subtotal / delivery fee / service fee / tax as separate visible lines.",
+            "seen_in": "Checkout teardown flagging 'hiding service fees with taxes aids acceptance' as a manipulative pattern (luiselias.com)"
+          },
+          {
+            "pattern": "Tip selector with no high default",
+            "detail": "Percentage chips (e.g. 10/15/20%) plus custom amount, with none pre-selected, or 'No tip' given equal visual weight — direct response to a publicly criticized dark pattern.",
+            "seen_in": "DoorDash tip-nudge criticism (phonearena.com/news/doordash-app-nudges-you-to-leave-tip_id149753)"
+          },
+          {
+            "pattern": "Certified-restaurant filter as its own section",
+            "detail": "In the filter bottom sheet, give the trust/certification toggle its own row at the top rather than alphabetizing it among generic dietary tags (vegan, gluten-free) — signals platform-level guarantee vs. per-user preference.",
+            "seen_in": "Uber Eats 'Allergy-Friendly Restaurant Program' badge + filter shipped pattern (help.uber.com)"
+          },
+          {
+            "pattern": "Traffic-aware ETA via routing-matrix API, not static average",
+            "detail": "Compute ETA server-side using a routing/matrix API that accounts for live traffic and courier mode (walk/bike/car), validated continuously via holdout experiments — not a flat 'X–Y min' guess.",
+            "seen_in": "Wolt + Mapbox Matrix API case study (mapbox.com/showcase/wolt)"
+          },
+          {
+            "pattern": "Map re-themed via Lookup Tables per app theme",
+            "detail": "Use Mapbox Standard's LUT-based recoloring (roads, water, buildings, emissive glow) to produce a light map matched to HG's warm gold palette and a true dark map for dark mode, rather than shipping Mapbox's stock light/dark styles unmodified.",
+            "seen_in": "mapbox.com/maps/dark, mapbox.com/maps/light, mapbox.com/blog/standard-style-updates-more-customization-options-to-personalize-the-map"
+          },
+          {
+            "pattern": "Separate ratings for food vs. rider",
+            "detail": "Two distinct star ratings post-delivery (restaurant/food quality, and rider/delivery experience) rather than one blended score, so a late/rude rider doesn't corrupt a good restaurant's rating or vice versa.",
+            "seen_in": "DoorDash 'Rate Order: Items, Preferred Shopper' as two distinct rating surfaces (revyl.com/atlas/doordash)"
+          },
+          {
+            "pattern": "Every list screen ships empty/loading/error, non-negotiably",
+            "detail": "Saved Stores empty state, Orders history empty state, notifications empty state are each individually designed in DoorDash's shipped app rather than left as a bare blank list — matches the repo's own hard requirement.",
+            "seen_in": "revyl.com/atlas/doordash/ ('Saved Stores (empty state)' listed as a distinct catalogued screen)"
+          }
+        ],
+        "pitfalls": [
+          "Pre-selecting a high tip percentage or 'nudging' users post-checkout to raise a tip — publicly called out as a DoorDash dark pattern (phonearena.com/news/doordash-app-nudges-you-to-leave-tip_id149753); HG's tip step must default to unselected/no-tip.",
+          "Hiding service fees inside a 'tax' line to ease sticker shock at checkout — flagged explicitly as a manipulative pattern in the Uber Eats/DoorDash/Glovo teardown (luiselias.com); show every fee line separately.",
+          "Reducing allergen/dietary/halal communication to a generic free-text box — an independent audit found 80% of restaurants on DoorDash/Uber Eats have zero structured allergy-safety features (safeplatealliance.org); halal must be a structured, queryable field per restaurant/item, never a comment box.",
+          "Forcing location-permission grant with no skip option during onboarding, blocking app entry — flagged as a top usability complaint in a Deliveroo UX teardown (netguru.com/blog/deliveroo-ux-redesign-case-study).",
+          "Vague/binary 'condiments included?' style toggles standing in for real allergy or ingredient controls — DoorDash's approach was specifically criticized as 'too vague for allergy-critical users' (luiselias.com); HG's modifier sheet needs a real, always-visible instructions/ingredient field, not a buried optional toggle.",
+          "Splitting payment into a separate late-stage screen/network call that risks data loss on connection failure — flagged as a Glovo checkout weakness (luiselias.com); keep payment method + place-order in one coherent step.",
+          "Rendering a badge, icon, or color the instant a halal-check API call starts (optimistic UI) before the real certification value resolves — directly forbidden by invariant #8; use a distinct loading treatment for the certification panel specifically.",
+          "Reusing red/orange for a halal-adjacent warning (mirroring Uber Eats' orange allergy-cross-contamination banner) — directly forbidden by invariant #9; any halal ambiguity or expiry must use cool slate, and red stays reserved for unrelated, non-halal system errors only.",
+          "Using solid green for generic success states (order placed, payment succeeded) — invariant #10 reserves solid green exclusively for color.halal.*; generic success must be tint-only so it never gets confused with an active halal seal.",
+          "Burying the reorder/'Order Again' entry point only inside order history — Baymard's research shows users look for it on the homepage just as often; omitting it there reads as a broken web convention, not a minor gap.",
+          "Replaying a cached price when a user hits 'Reorder' — violates invariant #1 (server prices every order); reorder must re-price server-side since menu/price/availability may have changed."
+        ]
+      },
+      {
+        "app": "Halal Goes — Rider (Courier) App",
+        "primary_references": [
+          {
+            "name": "Uber Design — \"Uber Navigation: Designing for Drivers\" (Cady Wachsman)",
+            "url": "https://medium.com/uber-design/uber-navigation-f662e7611f3",
+            "why": "The single best primary source on map-heavy driver UX. Defines the \"3-foot, 1-second rule\" that should govern every active-delivery screen decision, plus night-mode methodology and gesture minimalism.",
+            "key_screens": [
+              "Turn-by-turn navigation overlay",
+              "Overview vs first-person map toggle",
+              "Night-mode map + guidance UI",
+              "Next-pickup transition state"
+            ]
+          },
+          {
+            "name": "DoorDash — \"DoorDash Visions: Redesigning the Dasher App's Homescreen\" (Akhil Dakinedi, Medium)",
+            "url": "https://medium.com/@a_kill_/doordash-visions-redesigning-the-dasher-apps-homescreen-f40d1b09ba8c",
+            "why": "Official design-team account of the Dasher home/offer screen redesign. Directly answers the brief's \"single-glance what-do-I-do-next\" requirement with a documented information-hierarchy and communication-tiering system.",
+            "key_screens": [
+              "Home map + bottom sheet (Dash now)",
+              "Time Mode vs Offer Mode earnings pill",
+              "\"Looking for offers\" waiting screen",
+              "P0/P1/P2 notification tiers",
+              "Preferences (iOS Control Center-style)"
+            ]
+          },
+          {
+            "name": "DoorDash Help Center — \"How to Accept an Order\"",
+            "url": "https://help.doordash.com/en-us/dashers/article/how-to-accept-an-order",
+            "why": "Ground-truth spec for the offer-card pattern: what fields appear, timer length, and the deliberate accept/decline asymmetry.",
+            "key_screens": [
+              "Offer card (map thumbnail, pay, distance, item count, deadline)",
+              "Decline confirmation + reason picker"
+            ]
+          },
+          {
+            "name": "entrecourier.com — \"Accepting and Declining DoorDash Orders\"",
+            "url": "https://entrecourier.com/delivery/gig-delivery-platforms/doordash/doordash-strategies/accepting-and-declining-doordash-orders/",
+            "why": "Independent driver-side account that fills in details DoorDash's own help center omits — the ~45s countdown, the 3-step decline friction, and the Android floating widget for itemized info.",
+            "key_screens": [
+              "Offer countdown timer",
+              "Decline flow (3 steps)",
+              "Android floating order-details widget"
+            ]
+          },
+          {
+            "name": "Wolt Courier Partner app profile — MWM",
+            "url": "https://mwm.ai/apps/wolt-courier-partner/1477299281",
+            "why": "Documents the availability toggle, earnings dashboard and delivery-task screen copy/pattern with named UI elements (\"Slide to go online\", \"Dropoff to\", \"NO CONTACT DELIVERY\").",
+            "key_screens": [
+              "Offline/online slider toggle",
+              "Your earnings this week + Expected demand today graph",
+              "Delivery task detail (dropoff, no-contact flag)",
+              "In-app chat with quick actions"
+            ]
+          },
+          {
+            "name": "Wolt Newsroom — \"10 Questions About Wolt Couriers\" + \"Algorithmic Transparency: Courier Partners\"",
+            "url": "https://press.wolt.com/en-WW/257465-10-questions-about-wolt-couriers/",
+            "why": "Confirms 2025 features worth benchmarking against: City Heat Maps for demand and Early Payouts (instant cash-out after each delivery) — both strong earnings-screen patterns.",
+            "key_screens": [
+              "City heat map (demand hotspots)",
+              "Early payout / instant cash-out"
+            ]
+          },
+          {
+            "name": "Uber Help — Documents/Background Check upload flow",
+            "url": "https://help.uber.com/en/driving-and-delivering/article/uploading-documents?nodeId=7e87abc7-c250-4c08-8ba9-f15308ca1425",
+            "why": "Ground-truth spec for the onboarding document-capture pattern: per-document upload/take-photo, explicit rejection reasons (blur, missing corners, wrong type), 48h review SLA.",
+            "key_screens": [
+              "Documents list (license, insurance, registration, background check, profile photo)",
+              "Camera capture with corner-guide framing",
+              "Per-document rejection reason"
+            ]
+          },
+          {
+            "name": "Deliveroo Rider onboarding — Fountain application + Rider Hub support docs",
+            "url": "https://rider.deliveroo.co.uk/support/new-riders/document-check",
+            "why": "Details the right-to-work document check step and Onfido-powered selfie/biometric liveness match against ID — a template for KYC-heavy onboarding with a third-party verification vendor, directly relevant to a marketplace that already treats KYC as sensitive (see repo invariant on private-bucket document storage).",
+            "key_screens": [
+              "Right-to-work document picker (passport/visa/ID card/share code)",
+              "Selfie/liveness capture matched via Onfido"
+            ]
+          },
+          {
+            "name": "DoorDash Help Center — \"Dasher Ratings Explained\" / how customer feedback is collected",
+            "url": "https://help.doordash.com/en-us/dashers/article/dasher-ratings-explained",
+            "why": "Defines the ratings-tab pattern: category breakdown (Communication, Followed Instructions, Order Handling, Friendliness), green thumbs-up for praise vs red thumbs-down for critique, separate \"Customer Compliments\" quote section.",
+            "key_screens": [
+              "Ratings tab with category thumbs-up/down",
+              "Customer Compliments quote list"
+            ]
+          },
+          {
+            "name": "Uber Help — Earnings tab / trip history / weekly pay summaries",
+            "url": "https://help.uber.com/driving-and-delivering/article/viewing-trip-earnings?nodeId=9fbc207b-2837-4428-8133-2d2df7b3b17d",
+            "why": "Defines the three-tab earnings IA worth reusing: current total + tappable graph, per-trip history with gross/net breakdown, and weekly Pay Summaries that expand into daily rows.",
+            "key_screens": [
+              "Earnings total + week-over-week graph",
+              "Trip History (gross vs net per trip)",
+              "Pay Summaries (weekly → daily drill-down)"
+            ]
+          },
+          {
+            "name": "Mobbin — Uber iOS/Android Onboarding Flow collections",
+            "url": "https://mobbin.com/explore/flows/4ad908cc-ad45-4e29-b906-841b405495cf",
+            "why": "Full onboarding-flow screen sequences (account creation, permissions, payment/document setup) for direct visual reference; browse alongside the Android equivalent at https://mobbin.com/explore/flows/89fb3f4f-6ee6-479a-ac50-45f6663c00c0.",
+            "key_screens": [
+              "Permission requests",
+              "Account creation",
+              "Setup completion → home"
+            ]
+          },
+          {
+            "name": "Dribbble — \"Deliveroo Rider App Screenshots\" by Christine Røde (for Deliveroo)",
+            "url": "https://dribbble.com/shots/6257658-Deliveroo-Rider-App-Screenshots",
+            "why": "Official Deliveroo-commissioned App Store screenshot set for the rider app — useful as a visual style reference for how the brand markets/frames its rider-app screens (map, order, earnings) in a store listing.",
+            "key_screens": [
+              "App Store marketing screenshots covering order, map, earnings framing"
+            ]
+          },
+          {
+            "name": "Mapbox Navigation SDK — custom theming and dark mode",
+            "url": "https://docs.mapbox.com/android/navigation/examples/add-custom-theme/",
+            "why": "Since the client holds a Mapbox subscription, this is the concrete implementation path for a themed rider map: Day/Night NavigationSDK themes, automatic style switching at tunnel/time-of-day boundaries, and HD-roads styling hooks for a custom light/dark look matched to hg's palette.",
+            "key_screens": [
+              "Custom Day/Night navigation theme classes",
+              "Style-switch triggers (time of day, tunnel entry/exit)"
+            ]
+          }
+        ],
+        "flows": [
+          {
+            "flow": "Onboarding + document upload",
+            "steps": [
+              "Sign-up (phone/email) → basic profile → vehicle type selection",
+              "Per-document upload screen: driver's licence/ID, vehicle registration & insurance (if applicable), background-check consent, profile photo — each document uploaded individually with a camera-capture UI that frames all 4 corners (Uber pattern) and gives a specific rejection reason if it fails (blurry, dark, wrong document type, missing corner)",
+              "Right-to-work / eligibility check as a distinct step, separate from vehicle documents (Deliveroo pattern) — supports passport, visa, ID card + share code variants",
+              "Selfie/liveness capture matched biometrically against the submitted ID via a third-party vendor (Deliveroo uses Onfido) — this is the moment identity fraud is caught, keep it a hard gate, not skippable",
+              "Pending-review state: explicit \"under review, up to 48h\" screen rather than silence (Uber SLA) — this is the single most-complained-about gap in gig onboarding UX when absent",
+              "Approval → first-trip / \"accept your first delivery and earn\" tutorial moment (Careem pattern) before going fully live"
+            ],
+            "reference": "https://help.uber.com/en/driving-and-delivering/article/uploading-documents?nodeId=7e87abc7-c250-4c08-8ba9-f15308ca1425 ; https://rider.deliveroo.co.uk/support/new-riders/document-check ; https://drive.careem.com/",
+            "notes": "hg already treats KYC/certificates as private-bucket + presigned-URL only (repo invariant #7) — this maps cleanly onto rider onboarding documents too: never surface a public URL to a licence photo, and the pending/rejected states need their own explicit, non-optimistic UI states per the repo's empty/loading/error rule."
+          },
+          {
+            "flow": "Availability toggle + earnings goal",
+            "steps": [
+              "Home screen defaults to offline state with a single unmistakable control — Wolt's \"You are offline\" label + \"Slide to go online\" slide-toggle is the clearest pattern found (deliberate friction: a slide, not a tap, to prevent accidental online status)",
+              "Going online reveals a map-first home layout (DoorDash) — map is the dominant surface, with a non-scrollable bottom sheet carrying the one actionable module for the moment (start dash / view demand)",
+              "Earnings-goal / demand surfaced contextually: DoorDash shows a headline of zone status + recommended action rather than raw noise; Wolt shows an \"Expected demand today\" graph and, as of 2025, live City Heat Maps of demand hotspots",
+              "Weekly-earnings pill sits in the header at all times (offline = weekly total; online = live current-session total, DoorDash's Offer Mode vs Time Mode distinction) so the rider always has a running number without opening a separate screen",
+              "Going online transitions straight into a distinct \"looking for offers / waiting\" state (not just a spinner) so the rider knows the app is actively working on their behalf"
+            ],
+            "reference": "https://mwm.ai/apps/wolt-courier-partner/1477299281 ; https://medium.com/@a_kill_/doordash-visions-redesigning-the-dasher-apps-homescreen-f40d1b09ba8c ; https://press.wolt.com/en-WW/257465-10-questions-about-wolt-couriers/",
+            "notes": "The DoorDash team's stated rule — \"help Dashers decide whether it was a good time to dash without a dozen buttons, messages, and choices getting in the way\" — is the single most quotable design principle for hg's rider home screen."
+          },
+          {
+            "flow": "Offer stack — accept/decline with countdown",
+            "steps": [
+              "Offer card appears as a bottom-sheet/full-card overlay over the map (not a separate screen) showing: pay amount (prominent, large type, \"total may be higher\" disclosure), estimated distance, item count, delivery deadline, and a small map thumbnail with pickup/dropoff pins",
+              "Countdown timer (visually a shrinking ring or bar) — DoorDash uses roughly 45 seconds; timing out counts as an automatic decline",
+              "Accept button large, high-contrast, one-tap. Decline is deliberately smaller/lower-emphasis and gated behind a 3-step flow: tap Decline → confirmation screen showing impact on acceptance rate → pick a decline reason from a list — this friction asymmetry is intentional platform behavior worth studying (and worth deliberately choosing whether to copy, given rider trust)",
+              "On accept, immediate transition to the pickup-navigation state — no intermediate screen"
+            ],
+            "reference": "https://help.doordash.com/en-us/dashers/article/how-to-accept-an-order ; https://entrecourier.com/delivery/gig-delivery-platforms/doordash/doordash-strategies/accepting-and-declining-doordash-orders/",
+            "notes": "For hg, consider whether showing an acceptance-rate cost on decline fits the brand — DoorDash's drivers frequently criticize this as manipulative pressure (entrecourier.com covers driver sentiment); a cleaner, less punitive decline flow may better fit hg's 'trust' positioning while keeping the countdown and asymmetric button weight."
+          },
+          {
+            "flow": "Map-heavy navigation: pickup → dropoff",
+            "steps": [
+              "Governing principle: the \"3-Foot, 1-Second Rule\" — a rider glances at the phone from ~3 feet away for ~1 second, so the screen must answer 'what's next' at a glance; everything non-essential recedes",
+              "Single-tap toggle between overview map and first-person turn-by-turn navigation, minimizing interaction while moving",
+              "Visual differentiation of pickup vs dropoff via distinct pin styles/iconography, plus side-of-street indicators and route-line previews so the rider knows which side to stop on before arriving",
+              "Camera animations and maneuver-specific icons carry the 'what turn is next' information without requiring the rider to read text",
+              "On arrival at pickup: transitions automatically (geofence-triggered) into an arrival/confirmation state rather than requiring the rider to manually declare arrival",
+              "Immediately after one leg completes, the UI pivots straight into 'what's next' — e.g., pickup confirmed → dropoff navigation begins with zero dead-end screens",
+              "Dedicated night mode: tuned separately (tested in a darkened room, then validated on real night drives) so map style and guidance UI don't blind the rider after dark"
+            ],
+            "reference": "https://medium.com/uber-design/uber-navigation-f662e7611f3",
+            "notes": "This is the single richest primary source for the brief's map-UX + 'single glance' requirement — quote it directly when briefing designers. Pair implementation with Mapbox Navigation SDK's Day/Night theme classes (https://docs.mapbox.com/android/navigation/examples/add-custom-theme/) which already auto-switch on time-of-day/tunnel entry, so hg's custom light/dark Mapbox style can hook into the same trigger rather than reinventing it."
+          },
+          {
+            "flow": "Arrival / pickup confirmation",
+            "steps": [
+              "Geofence-triggered arrival state replaces manual 'I'm here' taps where possible",
+              "Pickup screen surfaces order-specific detail beyond the offer card: itemized contents, any pickup instructions, restaurant contact",
+              "Digital confirmation of collection (Deliveroo pattern) — an explicit 'confirm pickup' action gates the transition to dropoff navigation, so partial/wrong pickups are catchable",
+              "'No contact delivery' and similar dropoff-instruction flags are shown up front on the task card (Wolt pattern: 'Dropoff to' + 'NO CONTACT DELIVERY' badge) rather than buried in a details screen"
+            ],
+            "reference": "https://dxbapps.com/blog/deliveroo-rider-app ; https://mwm.ai/apps/wolt-courier-partner/1477299281",
+            "notes": "Given hg's halal-verification identity, the pickup screen is a natural place to reinforce trust signaling — e.g., surfacing the restaurant's halal-certified badge state to the rider too, using the same never-red/no-optimistic-badge rules as the customer app, so riders are never shown a false certification either."
+          },
+          {
+            "flow": "Proof of delivery (photo / OTP)",
+            "steps": [
+              "At dropoff, offer OTP entry as primary path (customer-provided code) with photo capture as fallback/alternative — especially for contactless or no-answer scenarios",
+              "OTP screen kept minimal: numeric keypad, large target size, auto-advance/auto-submit on full entry — standard OTP-verification UI conventions (large digit boxes, autofill from SMS where possible)",
+              "Photo capture step includes on-device guidance (frame the doorstep/package) and immediate upload confirmation state — TLS in transit, encrypted at rest per standard delivery-workflow security guidance",
+              "Successful proof-of-delivery transitions straight to a completion/earnings-updated state — never leaves the rider on a blank or ambiguous screen"
+            ],
+            "reference": "https://programmingappliedai.substack.com/p/design-a-delivery-workflow-system ; https://dribbble.com/shots/22472719-OTP-verification-UI-Design",
+            "notes": "hg's money-model invariant (capture on acceptance, no refund-to-fail) means proof-of-delivery is not a payment gate the way it might be elsewhere — frame it purely as a dispute-evidence and trust step, and keep the UI correspondingly lightweight rather than payment-critical-feeling."
+          },
+          {
+            "flow": "Earnings + payouts + history",
+            "steps": [
+              "Three-tab earnings IA (Uber pattern): (1) current total with a tappable, swipeable week-over-week graph, (2) Trip/Delivery History showing gross vs net per delivery, (3) Pay Summaries — weekly totals that expand into daily rows",
+              "Header-level earnings pill always visible on the home/map screen (weekly total offline, live session total online) so riders never have to leave the map to check progress",
+              "Early/instant payout option surfaced from the earnings screen (Wolt 2025 feature) — cash out immediately after a delivery rather than waiting for a weekly cycle",
+              "Demand forecasting integrated into the earnings context — 'Expected demand today' graph and heat maps — framed as a way to help riders plan when to go online, not just report the past"
+            ],
+            "reference": "https://help.uber.com/driving-and-delivering/article/viewing-trip-earnings?nodeId=9fbc207b-2837-4428-8133-2d2df7b3b17d ; https://press.wolt.com/en-WW/257465-10-questions-about-wolt-couriers/",
+            "notes": "hg's ledger invariant (append-only double-entry, every order zero-residual) makes an accurate gross-vs-net-per-delivery breakdown straightforward to source directly from the ledger — the Uber IA maps onto that data model with minimal translation."
+          },
+          {
+            "flow": "Ratings",
+            "steps": [
+              "Ratings tab breaks feedback into named categories (DoorDash: Communication, Followed Delivery Instructions, Order Handling, Friendliness)",
+              "Positive category feedback rendered as a green thumbs-up chip; constructive feedback (only surfaced on ≤4-star ratings) as a distinct chip — DoorDash uses red, which hg's palette rules forbid for anything read as a state judgment; use the tint/slate constructive-feedback treatment instead, never solid red",
+              "Free-text compliments surfaced separately as quoted 'Customer Compliments', decoupled from the numeric/category breakdown",
+              "Feedback is always optional from the customer side — the ratings screen must handle the empty/no-comment state gracefully, not imply a rider did something wrong when there's simply no data"
+            ],
+            "reference": "https://help.doordash.com/en-us/dashers/article/dasher-ratings-explained",
+            "notes": "Direct palette conflict to flag: DoorDash's red thumbs-down for critical feedback is exactly the kind of solid-red-as-judgment treatment hg's own design system forbids for halal states — for consistency, extend that same instinct here and use cool slate/neutral tint instead of red for constructive-feedback chips, keeping red-as-alarm reserved (if used at all) for true errors, not delivery quality feedback."
+          }
+        ],
+        "ui_patterns": [
+          {
+            "pattern": "Map-first home screen with a non-scrollable action bottom sheet",
+            "detail": "DoorDash's redesign made the map the dominant surface and reduced the home screen to one primary decision at a time (go online / view demand), moving everything secondary into a side menu. Directly answers the 'single glance, what do I do next' brief.",
+            "seen_in": "DoorDash Dasher — https://medium.com/@a_kill_/doordash-visions-redesigning-the-dasher-apps-homescreen-f40d1b09ba8c"
+          },
+          {
+            "pattern": "Slide-to-go-online toggle (not a tap)",
+            "detail": "Deliberate extra friction on the state that starts earning/receiving offers, preventing accidental online status; paired with a plain-language status label ('You are offline').",
+            "seen_in": "Wolt Courier Partner — https://mwm.ai/apps/wolt-courier-partner/1477299281"
+          },
+          {
+            "pattern": "Offer card with shrinking countdown + asymmetric accept/decline weight",
+            "detail": "Pay/distance/deadline/item-count on one card with a map thumbnail; Accept large and one-tap, Decline small and gated behind a multi-step confirm+reason flow. Auto-declines on timeout (~45s).",
+            "seen_in": "DoorDash Dasher — https://help.doordash.com/en-us/dashers/article/how-to-accept-an-order , https://entrecourier.com/delivery/gig-delivery-platforms/doordash/doordash-strategies/accepting-and-declining-doordash-orders/"
+          },
+          {
+            "pattern": "3-Foot, 1-Second glanceability rule for active-trip UI",
+            "detail": "Design constraint used to strip the navigation screen to only what's needed 'right now'; single-tap toggle between overview and first-person nav; distinct pins/side-of-street indicators to disambiguate pickup vs dropoff at a glance.",
+            "seen_in": "Uber Driver — https://medium.com/uber-design/uber-navigation-f662e7611f3"
+          },
+          {
+            "pattern": "Communication tiering (P0/P1/P2) to protect the primary action",
+            "detail": "P0 = full-screen blocking takeover (account/compliance issues only), P1 = bottom-sheet overlay for decision-relevant info (incentives, zone conditions), P2 = everything else routed to a persistent Notifications Hub, never interrupting the map/offer flow.",
+            "seen_in": "DoorDash Dasher — https://medium.com/@a_kill_/doordash-visions-redesigning-the-dasher-apps-homescreen-f40d1b09ba8c"
+          },
+          {
+            "pattern": "Tuned, separately-validated night mode for map + guidance UI",
+            "detail": "Palette tested in a darkened room in isolation, then re-validated on real night drives — a process worth copying even if hg's exact colors differ, since it directly targets rider eye-strain/safety.",
+            "seen_in": "Uber Driver — https://medium.com/uber-design/uber-navigation-f662e7611f3"
+          },
+          {
+            "pattern": "Three-tab earnings IA: total+graph, trip history (gross/net), weekly→daily pay summaries",
+            "detail": "Clean separation of 'where am I now' vs 'what happened per trip' vs 'what got paid out when' — maps cleanly onto an append-only ledger.",
+            "seen_in": "Uber Driver — https://help.uber.com/driving-and-delivering/article/viewing-trip-earnings?nodeId=9fbc207b-2837-4428-8133-2d2df7b3b17d"
+          },
+          {
+            "pattern": "Demand heat map + early/instant payout as earnings-screen features",
+            "detail": "2025 Wolt additions: City Heat Maps show live demand hotspots to help riders decide where/when to go online; Early Payouts let riders cash out immediately after each delivery instead of waiting for a weekly cycle.",
+            "seen_in": "Wolt — https://press.wolt.com/en-WW/257465-10-questions-about-wolt-couriers/"
+          },
+          {
+            "pattern": "Per-document capture with corner-framing guide and specific rejection reasons",
+            "detail": "Each onboarding document (licence, insurance, registration, background check, photo) uploaded individually via camera capture that frames all 4 corners; rejections state exactly why (blurry, dark, wrong doc type, missing corner) rather than a generic failure.",
+            "seen_in": "Uber Driver — https://help.uber.com/en/driving-and-delivering/article/uploading-documents?nodeId=7e87abc7-c250-4c08-8ba9-f15308ca1425"
+          },
+          {
+            "pattern": "Biometric selfie-to-ID liveness match as a distinct onboarding gate",
+            "detail": "Selfie/video captured and matched against the submitted ID via a third-party vendor (Onfido), separate step from document upload itself — a hard identity-fraud gate.",
+            "seen_in": "Deliveroo Rider — https://rider.deliveroo.co.uk/support/new-riders/document-check"
+          },
+          {
+            "pattern": "Category-broken ratings with tint chips, not blanket red for criticism",
+            "detail": "Feedback split into named categories (Communication, Order Handling, etc.) with a positive/negative chip per category, plus a separate free-text 'Compliments' quote section; DoorDash uses green/red — hg should substitute cool slate/tint for the negative chip per its own no-red-as-judgment rule.",
+            "seen_in": "DoorDash Dasher — https://help.doordash.com/en-us/dashers/article/dasher-ratings-explained"
+          },
+          {
+            "pattern": "Mapbox Navigation SDK Day/Night theme classes with automatic style switching",
+            "detail": "Built-in support for custom Day/Night navigation themes that switch automatically on time-of-day and tunnel entry/exit, with HD-roads styling hooks for custom road/emissive colors — the concrete implementation path for a Mapbox-based light/dark hg rider map.",
+            "seen_in": "Mapbox Navigation SDK docs — https://docs.mapbox.com/android/navigation/examples/add-custom-theme/"
+          }
+        ],
+        "pitfalls": [
+          "Do not copy DoorDash's red thumbs-down / negative-feedback chip verbatim — hg's design system reserves solid red for nothing halal-state-related and generally treats red as an alarm color; use a cool-slate or tint treatment for constructive rider feedback instead, consistent with the platform's 'never red for a judgment call' instinct.",
+          "Do not let the offer-card decline flow become purely punitive. DoorDash's 3-step decline-with-acceptance-rate-impact is well-documented driver friction that generates real resentment (see entrecourier.com's driver-side account) — if hg tracks an acceptance metric at all, disclose it plainly rather than using it as a soft penalty screen sprung on decline.",
+          "Don't build a plain spinner for the 'going online / looking for offers' transition — DoorDash explicitly redesigned around this because an undifferentiated wait state reads as broken; give it its own state (e.g., 'Looking for offers near you' with the map still live).",
+          "Avoid over-cluttering the home/map screen with simultaneous banners, promos, and comms — DoorDash's whole redesign thesis was fighting exactly this; route non-critical messages to a dedicated hub (P2 tier) instead of stacking cards over the map.",
+          "Do not skip a distinct 'documents under review' state after onboarding upload — Uber's explicit up-to-48h review messaging avoids the far worse failure mode of silence, which reads as the app being broken.",
+          "Never surface a rider-facing halal-certification badge optimistically on the pickup screen if the restaurant's field is missing/expired — apply the exact same 'missing field renders no badge, never optimistic' and 'never red for expired' rules used elsewhere in hg to any halal-status surfaced to riders at pickup.",
+          "Watch the reported Deliveroo cyclist-safety complaint: routing algorithms that treat 'fastest' as synonymous with 'safest' have sent cyclists onto motorways/dual carriageways with no cycle infrastructure — if hg supports bike couriers, the Mapbox route profile needs an explicit cycling-safe mode, not just fastest-by-default.",
+          "Keep proof-of-delivery (OTP/photo) framed as evidence/trust, not as a payment gate — hg's money model captures on restaurant acceptance and has no refund-to-fail path, so a proof-of-delivery failure should not read to the rider as risking their payout, only as a dispute-record gap.",
+          "Mobbin, Behance, and some Dribbble project pages are login-gated or thin on inline descriptive text for automated fetching — treat search-result summaries and app-store/help-center pages as more reliable primary sources than scraping gated design-portfolio pages directly."
+        ]
+      },
+      {
+        "app": "placeholder",
+        "primary_references": [],
+        "flows": [],
+        "ui_patterns": [],
+        "pitfalls": []
+      },
+      {
+        "app": "admin",
+        "primary_references": [
+          {
+            "name": "Stripe Identity — Review tools (list view / detailed view / blocklist / override)",
+            "url": "https://docs.stripe.com/identity/review-tools",
+            "why": "This is the closest real product to the halal-certificate seven-check instrument: a queue of verifications with an at-a-glance list view and a deep detailed view, human override of a machine decision, and a permanent blocklist for repeat bad actors. Map directly onto A-15's H1-H7 checklist and A-16's issuing-body registry.",
+            "key_screens": [
+              "Identity list view — status, document country, extracted name, per-check pass/fail chips in one row",
+              "Detailed view — collected document/selfie images side-by-side with Insights panel explaining each automated check",
+              "Override status action + 'Add to blocklist' action from the row's overflow menu",
+              "Biometric-duplicate warning banner when a selfie matches another verification"
+            ]
+          },
+          {
+            "name": "Stripe Dashboard — Disputes (evidence workflow)",
+            "url": "https://docs.stripe.com/disputes",
+            "why": "A refund/dispute case in Halal Goes (A-33, A-35) needs the same shape: a reason code, an evidence/notes trail, a staged-then-submitted two-step commit, and automation (Smart Disputes) that pre-fills but still requires a human to not-object before an SLA deadline. Good model for the refund_approval_request second-approver flow.",
+            "key_screens": [
+              "Dispute detail — reason, amount, respond-by countdown",
+              "Evidence form split into text fields vs file-upload fields",
+              "Stage evidence (draft, editable) vs Submit evidence (locked, sent to bank) as two distinct actions"
+            ]
+          },
+          {
+            "name": "Linear — design system & dense UI",
+            "url": "https://github.com/voltagent/awesome-design-md/blob/main/design-md/linear.app/DESIGN.md",
+            "why": "Direct model for the 'cleaner, more modern, sleeker' instruction applied to an ops console: no drop shadows, depth via a 4-step surface ladder instead, a single accent color reserved for actionable elements (mirrors 'green reserved for halal' constraint — admin's accent should NOT be halal-green), hairline-divided rows, pill-shaped status badges, mono type for IDs/shortcuts.",
+            "key_screens": [
+              "Issue list — 12px-padding rows, surface-2 hover, inline status pill",
+              "Filter bar — dismissable pill chips for active filters, secondary-button filter triggers",
+              "Command palette (Cmd+K) discoverability banner pattern for keyboard shortcuts"
+            ]
+          },
+          {
+            "name": "shadcn/ui Data Table + TanStack Table",
+            "url": "https://ui.shadcn.com/docs/components/base/data-table",
+            "why": "The reference implementation pattern for every dense table in the admin app (restaurant queue, rider queue, order lookup, case queue, audit log). Headless row-model composition (filtered → sorted → paginated) maps cleanly onto Go/Postgres keyset-paginated endpoints — the UI just needs a cursor-based pageInfo, not offset math.",
+            "key_screens": [
+              "Column header with sort toggle + dropdown for column visibility",
+              "Row-selection checkbox column with a floating bulk-action bar on selection",
+              "Text filter bound to a single column's setFilterValue"
+            ]
+          },
+          {
+            "name": "Vercel — Geist Badge spec + redesigned Deployments list",
+            "url": "https://vercel.com/geist/badge",
+            "why": "The exact color-to-meaning and copy rules an admin status-badge component should encode as tokens (map meaning→color, Title Case ≤2 words, canonical term, never rely on color alone). Vercel's deployments filter bar (branch/status/environment persisted in the URL) is the pattern for the restaurant/rider/case queue filter bars — shareable filtered views via query string.",
+            "key_screens": [
+              "Badge variants: success(green) / error(red) / warning(amber) / info(blue) / neutral(gray)",
+              "Deployments list — status + branch filters as URL-persisted chips, environment grouping"
+            ]
+          },
+          {
+            "name": "Retool — review-queue / approval-workflow template pattern",
+            "url": "https://blog.boldtech.dev/qa-and-compliance-retool-template/",
+            "why": "Generic internal-tool template for exactly the shape of A-13/A-15/A-23: single searchable queue → submission card (who/what/when) → detail with change history → action bar that fires the state transition and notifies. Confirms the 'queue list + detail-with-action-bar' skeleton is the standard internal-tool shape, not something to over-invent.",
+            "key_screens": [
+              "Submissions tab — queue of pending items with preview + metadata tags",
+              "Detail pane — request detail, change history, action bar (approve/reject/assign)"
+            ]
+          },
+          {
+            "name": "Trust & Safety review-queue platforms (Cinder / Hive Moderation Dashboard)",
+            "url": "https://cinder.ai/resources/blog/queues-agility-customization-and-automated-triage-for-trust-safety-teams",
+            "why": "The halal-certificate review and restaurant-compliance queues are trust-and-safety work, not generic CRUD. Cinder/Hive's queue model — priority-ordered by severity/recency/confidence, hotkey-configurable actions, reusable 'queue config' — validates A-13's FIFO SKIP LOCKED take-next design and suggests hotkeys for Approve/Reject/Request-changes in the halal review screen.",
+            "key_screens": [
+              "Priority-sorted queue with severity/confidence badges",
+              "Reviewer hotkey bar for approve/reject/escalate without leaving the keyboard"
+            ]
+          },
+          {
+            "name": "Untitled UI — Dashboard component library",
+            "url": "https://www.untitledui.com/components/dashboards",
+            "why": "Broad component inventory (sidebar nav variants, metric cards, table variants, activity gauges, progress steps) useful as a checklist of what an admin design system needs to ship: A-09 KPI dashboard, A-20/A-21 compliance/performance 'HEALTHY/WATCH/AT_RISK' band widgets map onto its activity-gauge and progress components.",
+            "key_screens": [
+              "Sidebar navigation variants (icon-only collapsed / expanded with section labels)",
+              "Metric card grid + activity gauge for banded health status (green/amber/slate, never red for halal-adjacent state)"
+            ]
+          }
+        ],
+        "flows": [
+          {
+            "flow": "Halal certification verification (the seven-check instrument) — A-15",
+            "steps": [
+              "Reviewer takes the next PENDING halal_certificate from a FIFO queue (mirrors A-13's take-next, SKIP LOCKED, 60-min lock) — Stripe Identity's list view equivalent: one row per certificate showing restaurant name, submitted_at, and a compact 7-dot progress indicator (checks completed/pending), no per-check detail yet.",
+              "Detail screen opens in a two-pane layout (Stripe Identity detailed-view pattern): left pane is the document image viewer (presigned URL, 5-min TTL, pinch-zoom/rotate, page navigator for multi-page scans); right pane is the transcription form — the six structured fields (certificate_number, issuing_body_id as a searchable select bound to the ACCEPTED registry only, certified_legal_name, certified_address, issued_on, expires_on, scope enum) typed directly against the document, never OCR-suggested per spec R-out-of-scope.",
+              "Below the transcription form, the seven checks render as a fixed, ordered checklist (H1-H7). H2, H5, H7 are system-computed: render them as a locked/disabled control showing the computed PASS/FAIL badge plus an info affordance (not a bare disabled toggle — wrap it so a tooltip/inline caption still explains why, since disabled elements swallow hover in most frameworks) and, on attempted override, surface the exact 409 CHECK_NOT_OVERRIDABLE message inline rather than a toast. H1, H6 are pure human judgment (radio PASS/FAIL + optional note). H3, H4 are system-suggested-admin-confirms: pre-fill a suggested PASS/FAIL with a diff view (e.g. registered legal name vs certified_legal_name side by side) and require the admin's explicit click to confirm or override; H4 override to PASS additionally hard-requires a ≥20-char note (validate client-side before enabling the confirm button, matching R5).",
+              "A sticky decision bar (Retool action-bar pattern) at the bottom: Approve is disabled until all seven checks are recorded and none is FAIL (client mirrors the 422 CHECKLIST_INCOMPLETE / CHECK_FAILED server rule so the button state itself communicates readiness — a live '5 of 7 recorded' counter). Reject requires selecting one of the closed rejection_reason_code values and is enabled once ≥1 check is FAIL.",
+              "On approve/reject, show the resulting state transition inline (PENDING → APPROVED/REJECTED) and route back to the queue automatically, decrementing the queue count — avoid a modal confirm on top of an already-deliberate multi-field form; the seven-check completion IS the confirmation."
+            ],
+            "notes": "This is the single highest-trust screen in the whole product per CLAUDE.md ('the seal, the certification panel and the seven-check verification instrument are wrong, nothing else matters'). Every check is server-locked in the sense that H2/H5/H7 cannot be gamed by the UI — the frontend's job is to make the computed/human/hybrid distinction visually unmistakable at a glance (e.g. a small lock glyph + gray fill on computed checks vs. an editable radio group on human ones) so a reviewer never wastes time trying to override a locked check. Reference the exact H1-H7 keys from docs/spec/05-admin.md:975-985 when building fixtures."
+          },
+          {
+            "flow": "Restaurant onboarding review queue — A-13 / A-14 / A-18",
+            "steps": [
+              "Queue list view: FIFO by submitted_at, filterable by onboarding_state and doc completeness; 'Take next' is a single primary button above the table, not a per-row action — this enforces the no-cherry-picking rule at the UI level.",
+              "On take-next, navigate straight to the one-page review screen (spec explicitly calls for everything on one page): business identity fields, address + a Mapbox pin (client has a Mapbox subscription — render a small static/light map matched to the theme, not a full interactive map, since this is a read-only confirmation of geocoded coordinates), the four required documents each with an inline viewer + independent PENDING/APPROVED/REJECTED status and rejection_reason_code select, the halal certificate panel embedded (A-15 flow above) as a distinct sub-section, and one decision control at the bottom: Approve / Request changes / Reject.",
+              "A visible countdown or badge showing review_lock_expires_at (60-minute lock) so the reviewer knows their exclusive window; on expiry mid-review, the save action should fail fast with the 409 REVIEW_LOCK_LOST message rather than silently discarding work.",
+              "Request-changes flow: multi-select which documents are rejected with reason codes; on submit, the restaurant re-enters DOCUMENTS_SUBMITTED and submission_count increments — surface that count in the queue row for repeat-offender visibility."
+            ],
+            "notes": "Ground truth is docs/spec/05-admin.md:827-899 (A-13) and :911-960 (A-14). The support-agent role must NEVER see document bytes or halal check notes (A-14 R, A-15 role table) — this has to be a hard component-level gate, not a CSS hide, matching CLAUDE.md's 'hiding is cosmetic, the server check is authoritative' and its own A-42 masking rule."
+          },
+          {
+            "flow": "Refund issuance with authority-cap escalation — A-33",
+            "steps": [
+              "From an order detail or a case, agent opens a refund drawer: order total, remaining refundable, and a live authority meter showing the caller's remaining daily cap (e.g. 'CAD 84.00 of 150.00 remaining today') sourced from staff_refund_ledger — this is the single most important piece of context to show before the agent even picks an amount.",
+              "Scope selector: FULL / PARTIAL_ITEMS (checkbox list of line items with computed proportional tax) / PARTIAL_AMOUNT (free amount field capped client-side at remaining refundable for non-super-admins).",
+              "reason_code select (closed enum) — selecting HALAL_INTEGRITY or FOOD_SAFETY should visibly flag the refund as restaurant-liability in a small liability-split preview chip (platform/restaurant/rider cents), computed from R4's mapping, before submit.",
+              "If the computed amount exceeds the caller's cap or daily rolling total, do not block submission — per spec this must never lose the request. Instead the submit button relabels itself to 'Submit for approval' and on success shows a distinct pending-approval state (not a success toast) explaining a refund_approval_request was created and the case escalated.",
+              "Idempotency: disable the submit button immediately on click and keep it disabled through the request/response cycle (client-side belt) since the server treats a duplicate Idempotency-Key as a no-op replay, not a second refund — the UI should not rely on that safety net to permit double-clicking."
+            ],
+            "notes": "Ground truth: docs/spec/05-admin.md:2064-2129. The four-eyes second-approver threshold (CAD 500 for Admin, CAD 2,000 for Super Admin) is a good candidate for Stripe's dispute-evidence 'staged vs submitted' two-step pattern — draft locally, then a distinct commit action once approved."
+          },
+          {
+            "flow": "Global entity search with PII masking and audited reveal — A-42",
+            "steps": [
+              "A single omnibox search (Stripe/Linear Cmd+K style) across order ref, customer name/email/phone, restaurant name, restaurant id, partial address — results list shows masked values by default: phone as last-4, email as first-char+domain, address as city+partial postal code, payment instrument as brand+last4.",
+              "Every masked field renders with a small eye icon inline (not a separate settings toggle) — clicking it opens a required micro-form: case_id (searchable select, or 'no case' only for Admin+) and justification_code, before the field unmasks.",
+              "On reveal, the field unmasks in place for the session only, with a persistent visual marker (e.g. a thin colored underline) distinguishing 'this value was revealed, not natively visible' — this both reminds the agent it's sensitive and gives a re-mask affordance.",
+              "A running per-agent counter ('14 of 20 reveals this hour') visible near the search bar, going amber near the 20-reveal cap and hard-blocking with the 429 message and a plain-language cooldown timer past it.",
+              "Card PAN/CVV/full bank numbers are never given a reveal control at all — not disabled-with-tooltip, simply absent from the UI, since spec states they are not stored in retrievable form."
+            ],
+            "notes": "Ground truth: docs/spec/05-admin.md:2616-2655 (A-42). This is materially the same UX problem as the 'click to reveal PII, audited' pattern used in enterprise logging tools (Squiz DXP PII-HIDDEN toggle, AWS CloudWatch log masking) — search result confirms the general shape: masked-by-default, individual (never bulk) reveal, auto-re-mask on refresh/new search, and every reveal writes its own audit row. Encode the reveal rate limit and remask-on-refresh behavior as testable acceptance criteria, matching spec ACs 2/3."
+          },
+          {
+            "flow": "Support case queue — pull-based assignment across SLA tiers — A-37",
+            "steps": [
+              "Tier-scoped queue tabs (Tier 1 / Tier 2 / Tier 3, gated by role) each showing a 'Take next' button plus a filterable/sortable table of unassigned + own-assigned cases with columns: priority, category, SLA due countdown (color-shifts amber then to the neutral-urgent treatment as it nears breach — never red per the halal-adjacent color constraint's broader house rule of avoiding alarm-red outside genuine payment failure states), requester, age.",
+              "Case detail: three-lane message thread (PUBLIC / INTERNAL / SYSTEM) rendered as visually distinct message bubbles or left-border colors — INTERNAL must be unmistakably staff-only (e.g. a shaded background + 'Internal note — not visible to requester' label) since a same-looking bubble is the classic bug that leaks internal notes externally.",
+              "Case-link chips (order/refund/dispute/restaurant/rider) at the top of the detail pane, clickable through to the linked entity — this is what makes A-38's order-intervention and A-33's refund flows reachable in one click from a case.",
+              "State actions surfaced as a compact dropdown (Resolve / Escalate / Reassign / Merge) rather than always-visible buttons, since availability depends on role and current state — Linear's pattern of collapsing rare actions into a menu while keeping 'Take next' and 'Reply' as the two persistent primary actions."
+            ],
+            "notes": "Ground truth: docs/spec/05-admin.md:2347-2401. The SKIP LOCKED pull-based take-next (also used in A-13, A-15, A-23) is a recurring interaction — worth building exactly one reusable 'QueueTakeNext' component/pattern rather than three bespoke ones."
+          }
+        ],
+        "ui_patterns": [
+          {
+            "pattern": "Locked/computed checklist item",
+            "detail": "For any check the server hard-computes (H2, H5, H7 in the halal instrument), render a visually distinct 'locked' state — dimmed fill, small lock glyph, no click target on the radio itself — with the computed result still legible as a badge, and put the explanation in a wrapper element (not the disabled control) so hover/focus still shows it. Never let the UI imply the check is editable when the server will reject the override with 409.",
+            "seen_in": "Stripe Identity insights panel (system-computed checks shown as context, not editable) + general disabled-tooltip accessibility guidance"
+          },
+          {
+            "pattern": "Two-tier detail: list row summary + full detail pane",
+            "detail": "Every review surface (halal cert, KYC docs, disputes) should have a fast-scan list view (status chips, no images) and a separate detail view (images, full transcription, checklist) — resist the temptation to expand documents inline in the list; it kills scan speed for the queue.",
+            "seen_in": "Stripe Identity list view vs detailed view"
+          },
+          {
+            "pattern": "Status badge token contract",
+            "detail": "One Badge component, five semantic variants (success/error/warning/info/neutral) mapped to color tokens, Title Case text ≤2 words matching the canonical API enum value verbatim (e.g. render 'Under Review' not 'Pending'), never icon-only without a `title` attribute for screen readers. In Halal Goes, 'success' variant must resolve to the tint-only semantic-success token — solid green stays reserved to color.halal.* per the house rule, so the admin app needs its own success color distinct from the halal seal's green.",
+            "seen_in": "Vercel Geist Badge spec"
+          },
+          {
+            "pattern": "URL-persisted filter/sort/pagination state",
+            "detail": "Every dense table's filters, sort column, and pagination cursor live in the query string so a reviewer can share or bookmark a filtered queue view (e.g. 'all P1 cases, sorted by SLA due'). Keyset/cursor pagination (not offset) for anything backed by a live queue (cases, orders, audit log) since rows are being inserted/updated concurrently by other reviewers; offset paging is acceptable only for genuinely static admin lists (e.g. issuing-body registry).",
+            "seen_in": "Vercel deployments filters persisted via URL; general cursor-vs-offset pagination guidance"
+          },
+          {
+            "pattern": "Composable headless table (filter → sort → paginate row models)",
+            "detail": "Build one DataTable primitive on top of a TanStack-Table-style headless row-model pipeline, then compose column sets per screen (restaurant queue columns vs rider queue columns vs audit log columns) rather than bespoke tables per screen. Bulk row-selection surfaces a floating action bar rather than per-row buttons once >1 row selected.",
+            "seen_in": "shadcn/ui Data Table + TanStack Table reference pattern"
+          },
+          {
+            "pattern": "Sticky decision/action bar on long review forms",
+            "detail": "For any multi-field, multi-check review (halal cert, KYC docs, refund approval), pin the terminal decision controls (Approve/Reject/Request changes) to the bottom of the viewport so the reviewer never has to scroll back up after filling the last field, and disable the primary action with a live readiness counter until preconditions are met.",
+            "seen_in": "Retool review-queue action-bar template"
+          },
+          {
+            "pattern": "Authority/cap meter shown before the action, not after rejection",
+            "detail": "Wherever a role has a capped authority (refund caps, reveal-rate limits), show the remaining headroom as a persistent small meter near the input before the agent commits, rather than only surfacing the cap as an error after submission — turns a hard stop into a soft, informative constraint.",
+            "seen_in": "A-33 refund authority table; A-42 reveal rate limit; general SaaS usage-meter pattern"
+          },
+          {
+            "pattern": "Masked-by-default, individually-revealed, auto-remask, fully audited",
+            "detail": "Sensitive fields render masked; each has its own reveal control requiring justification metadata; reveals never batch; a refresh or new query re-masks everything; every reveal is its own audit row distinguishable from routine reads.",
+            "seen_in": "A-42 spec itself, cross-validated against enterprise log-PII masking (Squiz DXP, AWS CloudWatch) 'Logs Auditor' reveal pattern"
+          },
+          {
+            "pattern": "Depth via surface ladder, not shadows; single reserved accent",
+            "detail": "For the cleaner/sleeker direction: build 3-4 flat surface tokens (canvas → surface-1 → surface-2 → surface-3) instead of box-shadows for panel/card elevation, hairline 1px dividers on tables, and reserve exactly one accent color for primary actionable elements. In Halal Goes this reserved accent should be the brand gold — leave green completely untouched by the admin app's generic UI (buttons, links, focus rings) so it stays a halal-only signal even inside the admin console.",
+            "seen_in": "Linear design system"
+          },
+          {
+            "pattern": "Command palette / omnibox as the primary navigation + search entry point",
+            "detail": "A single Cmd/Ctrl+K-triggered global search (entities + navigation + recent cases) reduces sidebar depth needed for an ops console with this many entity types (restaurants, riders, orders, cases, disputes, staff).",
+            "seen_in": "Linear, Stripe Dashboard, Vercel — near-universal in this category"
+          }
+        ],
+        "pitfalls": [
+          "Do not let the halal seven-check UI imply H2/H5/H7 are just 'pre-filled suggestions' — they are hard server computations the admin literally cannot override (409 CHECK_NOT_OVERRIDABLE). A disabled-but-editable-looking control here is a trust bug, not a cosmetic one, given the product's single load-bearing claim is halal verification.",
+          "Never reuse a green success/checkmark for a generic admin 'approved' or 'saved' toast inside the admin app — CLAUDE.md reserves solid green exclusively to color.halal.*; the admin console needs its own tint-only semantic-success color even for non-halal approvals (KYC docs, cases, refunds).",
+          "Do not render SLA countdowns, refund-cap-exceeded states, or dispute-losing outcomes in red. Per the house rule red is reserved for reading as a religious 'haram' signal and must not leak into generic urgent/error styling elsewhere in the product; use amber/slate for urgency and a distinct (non-halal-adjacent) error hue only for hard payment/system failures.",
+          "Do not build PII reveal as a bulk 'show all' toggle on a table — spec (A-42 R) and every reference (Stripe Identity, enterprise log masking) require field-level, individually audited reveals; a table-wide unmask defeats the entire access-justification model.",
+          "Do not let the Support Agent role's UI simply CSS-hide restricted fields (document bytes, halal check notes, full PII). The API won't return them at all for that role — build components that render an explicit 'not available for your role' state when a field is absent, not components that assume the field exists and hide it client-side.",
+          "Avoid offset-based pagination ('page 1 of 340') on any queue that's actively being worked by multiple concurrent reviewers (restaurant queue, halal queue, case queue) — concurrent SKIP LOCKED takes will shift row positions under offset paging, causing reviewers to skip or double-see rows; use cursor/keyset pagination there and reserve offset-with-page-numbers for genuinely static admin lists only.",
+          "Do not surface the refund/authority cap only as a post-submit error. Spec explicitly designs the over-cap path as a graceful escalation (refund_approval_request), not a rejection — a UI that treats it as a form-validation error rather than a distinct 'submitted for approval' success state misrepresents what actually happened.",
+          "Do not visually conflate PUBLIC and INTERNAL case messages in the thread view — an internal note that looks like a customer-visible reply is the single most damaging support-tool UI bug (leaked internal commentary), and the spec explicitly forbids INTERNAL messages ever appearing in customer-facing payloads.",
+          "Avoid drop-shadow-heavy, gradient-heavy 'consumer app' chrome bleeding into the admin console — the client's HungerStation-but-cleaner direction is for the customer-facing apps; an ops console for reviewers doing hundreds of checks a day should read closer to Linear/Stripe Dashboard density than to a marketing-forward consumer UI."
+        ]
+      }
+    ],
+    "palette": {
+      "hungerstation_palette": [
+        {
+          "role": "primary-yellow (VERIFIED — fill of the 2024 logo SVG, Wikimedia Commons)",
+          "hex": "#FBEF00"
+        },
+        {
+          "role": "maroon / wordmark-brown (VERIFIED — 2nd fill of the 2024 logo SVG, 14 occurrences)",
+          "hex": "#5E2D20"
+        },
+        {
+          "role": "alt brand yellow (documented web/app usage — colorswall/schemecolor 'Hungry ordering food' palette)",
+          "hex": "#FCC43C"
+        },
+        {
+          "role": "golden-yellow variant (commonly cited HS yellow, 'Tangerine/Philippine Yellow')",
+          "hex": "#FFC800"
+        },
+        {
+          "role": "pale yellow highlight (documented palette companion)",
+          "hex": "#F8D468"
+        },
+        {
+          "role": "promo/discount magenta-pink (OBSERVED from client videos — deals, 'Apply', promo pills)",
+          "hex": "#E5157E"
+        },
+        {
+          "role": "deep discount maroon (OBSERVED — deep 'save X%' container; aligns with logo maroon)",
+          "hex": "#7A1F3D"
+        },
+        {
+          "role": "free-delivery / link blue (OBSERVED — 'Free delivery' links, secondary links)",
+          "hex": "#1A73E8"
+        },
+        {
+          "role": "badge green (OBSERVED — 'Required', trending/Top-Choice badges)",
+          "hex": "#2FB344"
+        },
+        {
+          "role": "neutral text near-black (OBSERVED)",
+          "hex": "#232323"
+        },
+        {
+          "role": "surface white (OBSERVED)",
+          "hex": "#FFFFFF"
+        }
+      ],
+      "old_hg_brand": {
+        "repo": "Not public under github.com/shaiknoorullah (public API lists 20+ repos — Aether, opsbench, ts-monorepo-template, etc. — but NO halal-goes/hg-api/hg-docker; they are private or under another org). Live marketing site was archived: web.archive.org/web/20251010131707/https://www.halalgoes.com/",
+        "logo_url": "https://fcjoexxqhequdlazybxi.supabase.co/storage/v1/object/public/web-content/media/logo.svg (referenced as both <img src> and <link rel=icon href>; served from the old project's public Supabase 'web-content' bucket). Social card: https://www.halalgoes.com/og-image.png",
+        "colors": [
+          "#1B3B31 (dominant — deep forest/pine green, 17 uses)",
+          "#0F241C (near-black green)",
+          "#FFFAEA (warm cream background, 10 uses)",
+          "#232323 (body text)",
+          "#9CACA7 (muted sage)",
+          "#EDFDD5 (pale green tint)",
+          "#FD5000 (orange CTA accent)",
+          "#D0D0D1 (borders)"
+        ],
+        "notes": "The OLD brand was GREEN-forward (forest green + cream), the exact opposite of today's gold baseline. Critically, that green identity now COLLIDES with invariant #10 (solid green reserved to color.halal.*): reviving the old forest green as a generic brand/UI color would break the halal-verification signal. The pivot to gold/saffron in hg-mono is therefore not just aesthetic — it freed green to mean 'halal-verified' exclusively. Reuse the old logo only if re-colored to gold; do not reintroduce #1B3B31 as chrome. The one orange accent (#FD5000) is close to the new 'Ember' warning ramp and should not be revived as a brand color either (would clash with brand yellow)."
+      },
+      "directions": [
+        {
+          "name": "A — Saffron Sharpened (recommended: lowest-risk blend)",
+          "rationale": "Keep the existing, already-contrast-calibrated saffron ramp and warm neutrals verbatim (they pass every gate), and inject the ONE thing HungerStation has that hg lacks: a dedicated PROMO/DISCOUNT register (magenta-pink -> maroon) plus a formalized link-blue. This is what makes HS feel energetic — the yellow is the frame, but the deals are pink/maroon and the 'Free delivery' links are blue. Primary CTA stays brand.500 #FFC220 with dark onBrand text #1F1B17 at 10.58:1 (WCAG AAA); white on it is banned (1.62:1). The new promo family never touches semantic or halal roles: promo.600 #C31B6B carries a white label at ~5.4:1 (AA), the vivid promo.500 #E5157E (~4.0:1 white) is icon/large-badge-only, and the HS maroon #5E2D20 (white ~11:1) is the deep 'save' pill. Blue reuses the existing info ramp as the 'free delivery / link' role. This is the sleekest path: nothing recalibrates, HS energy arrives through an accent layer.",
+          "respects_invariants": "Green stays reserved to halal only (halal namespace unchanged). Success remains tint-only emerald (no filled green). Halal-expired stays cool slate #4E5862, never red. Promo pink/maroon are a separate namespace — forbidden from halal and from semantic success/danger, so red is never used for a halal state and pink is never mistaken for a state. Missing halal field still renders no badge.",
+          "tokens": [
+            {
+              "role": "brand.500 (primary CTA fill — unchanged; dark text 10.58:1 AAA)",
+              "hex": "#FFC220"
+            },
+            {
+              "role": "brand.600 (pressed / hairline)",
+              "hex": "#DFA400"
+            },
+            {
+              "role": "brand.800 (brand-as-text on light, 6.51:1)",
+              "hex": "#7A5800"
+            },
+            {
+              "role": "text.onBrand (label on brand fill)",
+              "hex": "#1F1B17"
+            },
+            {
+              "role": "neutral.0 / surface",
+              "hex": "#FFFFFF"
+            },
+            {
+              "role": "neutral.50 (warm app background)",
+              "hex": "#FAF9F7"
+            },
+            {
+              "role": "neutral.900 (primary text)",
+              "hex": "#1F1B17"
+            },
+            {
+              "role": "promo.500 (NEW — magenta icon / large-badge accent, ~4.0:1 white; not for body text)",
+              "hex": "#E5157E"
+            },
+            {
+              "role": "promo.600 (NEW — discount pill fill, white label ~5.4:1 AA)",
+              "hex": "#C31B6B"
+            },
+            {
+              "role": "promo.700 (NEW — promo text on promo.50 tint)",
+              "hex": "#9B1553"
+            },
+            {
+              "role": "promo.50 (NEW — promo tint background)",
+              "hex": "#FDE9F3"
+            },
+            {
+              "role": "promo.maroon (NEW — deep 'save %' container, HS-verified, white ~11:1)",
+              "hex": "#5E2D20"
+            },
+            {
+              "role": "link/info.600 (free-delivery & links — reuses info ramp, 6.70:1)",
+              "hex": "#0959B8"
+            },
+            {
+              "role": "warning.600 (Ember orange fill, 5.22:1)",
+              "hex": "#B84A08"
+            },
+            {
+              "role": "danger.500 (semantic only, never halal, 4.83:1)",
+              "hex": "#D92D20"
+            },
+            {
+              "role": "success.600 (TINT-ONLY emerald text/icon, no fill)",
+              "hex": "#067A55"
+            },
+            {
+              "role": "halal.certified.seal (the only solid green surface, 10.68:1)",
+              "hex": "#04482A"
+            },
+            {
+              "role": "halal.certified.ring (brass)",
+              "hex": "#D4A72C"
+            },
+            {
+              "role": "halal.expired.seal (cool slate — never red)",
+              "hex": "#4E5862"
+            }
+          ]
+        },
+        {
+          "name": "B — HungerStation Bright (bolder, higher-energy CTA)",
+          "rationale": "Push the primary toward HungerStation's real luminance without adopting its acid lemon. HS's true #FBEF00 is a chartreuse-leaning lemon (hue ~57) that reads cheap and, worse, drifts toward green — unusable next to a green halal seal. Instead lift the CTA to a brighter 'signal gold' brand.500 #FFD400 (hue ~50, more luminous, unmistakably HS-adjacent) while keeping the calibrated dark ramp. #FFD400 carries dark onBrand text #1F1B17 at ~11.8:1 (AAA) — actually higher contrast than today. Pair it with a hotter promo magenta and the maroon for a punchier deals shelf. Best when the client wants the app to feel visibly louder/younger than the conservative saffron.",
+          "respects_invariants": "Still gold, not green — the brighter yellow is nudged AWAY from the halal-green hue, preserving the green reservation. Success stays tint-only; danger stays semantic-only; halal-expired stays slate. Promo namespace is isolated. White-on-brand still banned (fails contrast); dark label enforced.",
+          "tokens": [
+            {
+              "role": "brand.500 (brighter signal-gold CTA; dark text ~11.8:1 AAA)",
+              "hex": "#FFD400"
+            },
+            {
+              "role": "brand.600 (pressed)",
+              "hex": "#E8B400"
+            },
+            {
+              "role": "brand.700 (deep gold / active nav underline)",
+              "hex": "#A87C00"
+            },
+            {
+              "role": "brand.800 (brand-as-text on light)",
+              "hex": "#7A5800"
+            },
+            {
+              "role": "text.onBrand",
+              "hex": "#1F1B17"
+            },
+            {
+              "role": "neutral.50 (warm background)",
+              "hex": "#FAF9F7"
+            },
+            {
+              "role": "neutral.900 (text)",
+              "hex": "#1F1B17"
+            },
+            {
+              "role": "promo.600 (hot discount fill, white ~5.4:1)",
+              "hex": "#C31B6B"
+            },
+            {
+              "role": "promo.500 (magenta accent)",
+              "hex": "#E5157E"
+            },
+            {
+              "role": "promo.maroon (deep save pill, HS-verified)",
+              "hex": "#5E2D20"
+            },
+            {
+              "role": "link/info.600 (free delivery / links)",
+              "hex": "#0959B8"
+            },
+            {
+              "role": "warning.600 (Ember, kept far from brighter yellow)",
+              "hex": "#B84A08"
+            },
+            {
+              "role": "danger.500 (semantic only)",
+              "hex": "#D92D20"
+            },
+            {
+              "role": "success.600 (tint-only)",
+              "hex": "#067A55"
+            },
+            {
+              "role": "halal.certified.seal",
+              "hex": "#04482A"
+            },
+            {
+              "role": "halal.expired.seal (slate)",
+              "hex": "#4E5862"
+            }
+          ]
+        },
+        {
+          "name": "C — Gold + Maroon Duotone (premium/editorial, warmest)",
+          "rationale": "The 'cleaner, more modern, sleeker' reading of HungerStation: keep gold for action, but swap the operational chrome from cool Midnight-blue toward the HS maroon #5E2D20 as a warm secondary brand color, over the old-brand cream #FFFAEA as the app canvas. Gold CTA + deep maroon chrome + cream surface is a warm, confident, premium duotone that also quietly honors the OLD Halal Goes cream — a brand-continuity nod — while abandoning its now-forbidden forest green. Deals use a softer coral-magenta so the maroon chrome and the pink promos share a warm family. Primary CTA #FFC220 dark text 10.58:1 (AAA). Maroon chrome #5E2D20 carries white nav labels at ~11:1. Use this if the brand should feel less 'delivery-app loud' and more 'trusted halal marketplace'.",
+          "respects_invariants": "Maroon is a warm brown-red at hue ~12 but is used ONLY as chrome/secondary brand, never as a state — so it cannot be read as danger, and danger stays the true red #D92D20 reserved to semantic use (never halal). Green still reserved to halal. Cream is a neutral surface, not a success signal. Halal-expired stays slate; halal seal green is the only solid green. Success tint-only.",
+          "tokens": [
+            {
+              "role": "brand.500 (gold CTA; dark text 10.58:1 AAA)",
+              "hex": "#FFC220"
+            },
+            {
+              "role": "brand.800 (gold-as-text on cream)",
+              "hex": "#7A5800"
+            },
+            {
+              "role": "text.onBrand",
+              "hex": "#1F1B17"
+            },
+            {
+              "role": "chrome.maroon (secondary brand / AppBar; white label ~11:1)",
+              "hex": "#5E2D20"
+            },
+            {
+              "role": "chrome.maroon.pressed",
+              "hex": "#412016"
+            },
+            {
+              "role": "surface.canvas (warm cream, echoes old HG)",
+              "hex": "#FFFAEA"
+            },
+            {
+              "role": "surface.card",
+              "hex": "#FFFFFF"
+            },
+            {
+              "role": "neutral.900 (text)",
+              "hex": "#1F1B17"
+            },
+            {
+              "role": "promo.600 (coral-magenta discount fill, white ~4.8:1)",
+              "hex": "#CB2A5E"
+            },
+            {
+              "role": "promo.50 (promo tint)",
+              "hex": "#FCE8ED"
+            },
+            {
+              "role": "link/info.600 (free delivery / links)",
+              "hex": "#0959B8"
+            },
+            {
+              "role": "warning.600 (Ember)",
+              "hex": "#B84A08"
+            },
+            {
+              "role": "danger.500 (semantic red only — distinct from maroon chrome)",
+              "hex": "#D92D20"
+            },
+            {
+              "role": "success.600 (tint-only emerald)",
+              "hex": "#067A55"
+            },
+            {
+              "role": "halal.certified.seal (only solid green)",
+              "hex": "#04482A"
+            },
+            {
+              "role": "halal.certified.ring (brass — sits beautifully on maroon)",
+              "hex": "#D4A72C"
+            },
+            {
+              "role": "halal.expired.seal (slate, never red)",
+              "hex": "#4E5862"
+            }
+          ]
+        }
+      ],
+      "icon_recommendation": {
+        "pick": "Phosphor Icons",
+        "why": "HungerStation's bottom nav (and most modern delivery apps) uses OUTLINE icons for inactive tabs and FILLED icons for the active tab. Phosphor ships every one of its ~9,000 icons in 6 matched weights — Thin/Light/Regular/Bold/Fill/Duotone — from a single family, so inactive=Regular and active=Fill come from the SAME source with identical geometry (no compositing hacks, no second library). Duotone is ideal for the category tiles and menu-modifier illustrations. It has first-class React + React Native packages (@phosphor-icons/react, phosphor-react-native) that work across the customer/rider Expo apps and the restaurant/admin web, MIT-licensed, tree-shakeable. It is geometric and clean enough to read as 'sleek/modern' while carrying more warmth than a pure engineering set. The active-fill capability is the deciding factor: it's exactly the HS energy the client asked for, solved within one consistent family.",
+        "alternatives": [
+          "Lucide — the cleanest, most tightly consistent OUTLINE set (1,500+), the safest 'sleek/minimal' default, superb lucide-react + lucide-react-native support, MIT. Downside for THIS brief: outline-only (single weight), so active-tab fills must be faked with a colored pill/background or a hand-forked filled variant. Pick Lucide if the client prefers maximum minimalism and is fine with background-fill active states.",
+          "Iconsax — very 'delivery-app modern' with Bold + Duotone variants and rounded forms that pair well with the gold; but the free tier's licensing is more restrictive than MIT, stroke consistency is looser than Phosphor/Lucide, and RN tooling is less first-class.",
+          "SF Symbols — EXCLUDED: Apple-platform only. It cannot render on Android or web, so it would break icon parity across the two Expo apps and the two web consoles. Non-starter for a cross-platform system."
+        ]
+      },
+      "map_style": {
+        "approach": "Use @rnmapbox/maps (requires an Expo dev build — NOT Expo Go) for the customer/rider apps and mapbox-gl-js for admin web, driven by ONE Mapbox account (the client's existing subscription). Ship TWO published Mapbox Studio styles — hg-light and hg-dark — and switch by the app's color-scheme. Keep the basemap deliberately DESATURATED so the brand tint on routes and pins is the only saturated thing on screen; that restraint is what makes it read 'cleaner/sleeker' than HungerStation's default Google-style map. Verified-halal restaurant markers are the one place the halal seal green appears on the map — this is the map-pin exception already registered in tokens.json (color.halal); no other green on the map.",
+        "base_style": "Fork Mapbox 'Monochrome' via the Studio Style Generator (blog.mapbox.com/custom-map-style-generator-and-monochrome-style). Seed hg-light from the warm off-white neutral.50 #FAF9F7 (start from the 'Golden' Monochrome preset, then pull saturation down so it's a warm greige, not a yellow map); seed hg-dark from the Midnight accent.950 #080F1C (near the 'Midnight' preset) so night mode matches the rider offer chrome. Alternatively fork Mapbox Standard and toggle its built-in lightPreset (day/dusk/night) via setConfigProperty for a 3D option — but Monochrome gives tighter brand control for a flat, sleek 2D map. Mute POI/road labels to neutral.500–600; let the destinations carry the color.",
+        "theming": "Route line = brand gold: brand.500 #FFC220 core with a brand.600 #DFA400 casing/underlay for legibility on light; in dark mode step up to brand.300 #FFDB69 so the route stays ≥3:1 on #080F1C. Customer 'your location' pin & the 'set delivery address' pin = brand gold #FFC220 (matches HS's yellow location pin). Rider live position marker = Midnight accent.600 #24406F (Direction A/B) or maroon chrome #5E2D20 (Direction C) — the operational/authority color, kept visually distinct from the gold route. Restaurant markers: verified-halal = halal seal green (#04482A light / #0F7A46 dark) with the brass ring, per the registered halal map-pin exception; non-verified restaurants render a neutral #4A443B pin with NO green (invariant #8 — no optimistic badge). Destination pin = neutral.900 #1F1B17 teardrop. Deals/promo map badges may use promo.600. Never use red for any halal or 'unavailable-restaurant' map state — use neutral/slate."
+      }
+    },
+    "galleries": {
+      "categories": [
+        {
+          "category": "Award-winning food-delivery & logistics apps (Mobbin / real competitor flows)",
+          "links": [
+            {
+              "title": "Mobbin — Food Delivery App Design Examples",
+              "url": "https://mobbin.com/explore/mobile/app-categories/food-delivery-app",
+              "why": "The single best source for exact HungerStation-adjacent Gulf-market UX (Talabat, Careem, Zomato, Uber Eats side by side) — filter to 'Food Delivery' to compare home, cart-sheet and checkout patterns screen-for-screen before designing hg's customer app."
+            },
+            {
+              "title": "Mobbin — Zomato iOS: Ordering a Food Delivery Flow",
+              "url": "https://mobbin.com/explore/flows/2f24d961-d028-4775-bef5-bf582edaa7cd",
+              "why": "Full ordering flow (item customization → instructions → payment → tracking → confirmation) captured as a sequential flow, not just screens — use it to storyboard hg's own checkout-to-tracking handoff."
+            },
+            {
+              "title": "Mobbin — Uber Eats iOS: Delivery App Homepage",
+              "url": "https://mobbin.com/explore/screens/0c758216-f623-4b62-9e81-e0496e07f38b",
+              "why": "Reference for category-tile + featured-restaurant-carousel home layout, directly comparable to the HungerStation home the client referenced."
+            },
+            {
+              "title": "Mobbin — talabat iOS Screen",
+              "url": "https://mobbin.com/explore/screens/f29e37b4-9b74-4c27-9700-494001dec50e",
+              "why": "Talabat is HungerStation's direct regional sibling (same Delivery Hero family) — closest publicly-captured visual/IA cousin to the client's reference video."
+            },
+            {
+              "title": "Mobbin — Mobile Adding to Cart & Bag User Flow",
+              "url": "https://mobbin.com/explore/mobile/flows/adding-to-cart-bag",
+              "why": "Cross-app pattern library specifically for the add-to-cart moment (quantity stepper + price CTA) the brief calls out as a HungerStation signature."
+            },
+            {
+              "title": "Dribbble — Food Delivery App UI: Onboarding, Home, Tracking & Checkout",
+              "url": "https://dribbble.com/shots/26497109-Food-Delivery-App-UI-Onboarding-Home-Tracking-Checkout",
+              "why": "A single, cohesive concept spanning the full funnel (not just a hero shot) — good end-to-end visual-language reference to critique against hg's gold/amber palette."
+            },
+            {
+              "title": "Dribbble — tag: food-delivery-app",
+              "url": "https://dribbble.com/tags/food-delivery-app",
+              "why": "Live-updating aggregation feed; use as a weekly-scan source for fresh restaurant-card, rating-badge and promo-banner treatments rather than a single fixed reference."
+            },
+            {
+              "title": "Behance — Food Delivery App Case Study (UI/UX)",
+              "url": "https://www.behance.net/gallery/110252055/Food-Delivery-App-Case-Study-UIUX-Case-Study",
+              "why": "Full case-study format (problem → wireframe → hi-fi → rationale) — useful for how to *present* hg's own design decisions to stakeholders, not just the visuals."
+            },
+            {
+              "title": "Behance — search: food delivery app",
+              "url": "https://www.behance.net/search/projects/food%20delivery%20app",
+              "why": "Broad curated feed of complete case studies (Food2Door, Food Ping, Munch, etc.) — mine for menu bottom-sheet and modifier-group (required/multi-select) treatments the brief specifically asks for."
+            }
+          ]
+        },
+        {
+          "category": "Modern data-dense dashboards (for admin ops console & restaurant/merchant app)",
+          "links": [
+            {
+              "title": "Dribbble — FoodMagic: Restaurant Order Management Dashboard",
+              "url": "https://dribbble.com/shots/22162296-FoodMagic-Restaurant-order-management-Dashboard",
+              "why": "Purpose-built for the exact restaurant-operator use case hg needs — live order queue, accept/reject actions, tablet-oriented layout."
+            },
+            {
+              "title": "Dribbble — tag: restaurant-management-dashboard",
+              "url": "https://dribbble.com/search/restaurant-management-dashboard",
+              "why": "Aggregation of restaurant-specific dashboard concepts (menu toggles, hours, order queue) — closest analog to hg's restaurant web/tablet operator app."
+            },
+            {
+              "title": "Dribbble — Food Delivery Dashboard UI: Analytics & Order Tracking",
+              "url": "https://dribbble.com/shots/27215945-Food-Delivery-Dashboard-UI-Analytics-Order-Tracking",
+              "why": "Combines KPI/analytics tiles with a live order-tracking table — the same split of concerns hg's admin ops console needs (verification queue + platform metrics)."
+            },
+            {
+              "title": "Dribbble — tag: order-management",
+              "url": "https://dribbble.com/tags/order-management",
+              "why": "Cross-vertical (not just food) order-management table/kanban patterns — useful for the admin console's order-state and dispute views beyond food-specific chrome."
+            },
+            {
+              "title": "IBM Carbon Design System",
+              "url": "https://carbondesignsystem.com/",
+              "why": "Best-in-class token architecture + accessibility + data-visualization guidance for genuinely data-dense enterprise UI — directly applicable to admin's verification queue and analytics screens."
+            },
+            {
+              "title": "Shopify Polaris",
+              "url": "https://polaris.shopify.com/",
+              "why": "The gold standard for a merchant-facing operator console (Shopify admin) — study its content/voice guidelines and table/empty-state patterns for hg's restaurant operator app."
+            },
+            {
+              "title": "Atlassian Design System",
+              "url": "https://atlassian.design/",
+              "why": "Strong precedent for dense, action-heavy productivity UI prioritizing usability over decoration — relevant to admin's certification-verification workflows."
+            },
+            {
+              "title": "Uber Base Design System",
+              "url": "https://base.uber.com/",
+              "why": "Uber's own public system spans consumer (Eats-adjacent) and dense operational surfaces from one token set — a structural model for hg maintaining one language across customer, rider, restaurant and admin apps."
+            }
+          ]
+        },
+        {
+          "category": "Micro-interaction & motion references",
+          "links": [
+            {
+              "title": "Dribbble — Add to Cart micro-interaction (Alberto Conti)",
+              "url": "https://dribbble.com/shots/3305459-Add-to-Cart-micro-interaction",
+              "why": "Quick, prototype-grade add-to-cart animation — a direct reference for the price-CTA-to-cart moment the brief highlights from HungerStation's bottom sheet."
+            },
+            {
+              "title": "Dribbble — Add To Cart Micro-Interaction (Blake Howard)",
+              "url": "https://dribbble.com/shots/6461974-Add-To-Cart-Micro-Interaction",
+              "why": "A sliding/morphing button-to-confirmation interaction — alternative motion language to compare against Conti's for hg's own CTA-press feedback."
+            },
+            {
+              "title": "Dribbble — tag: microinteraction-button",
+              "url": "https://dribbble.com/search/microinteraction-button",
+              "why": "Broader feed for toggle and button micro-interactions — relevant to the restaurant app's availability/open-closed toggle, which needs its own distinct, non-halal-colored motion language."
+            },
+            {
+              "title": "LottieFiles — Delivery Animation Pack",
+              "url": "https://lottiefiles.com/marketplace/delivery-547",
+              "why": "Ready-to-inspect JSON Lottie set (courier, route, package states) for order-tracking motion — usable directly as a starting rig for hg's live-tracking screen animation."
+            },
+            {
+              "title": "IconScout — Courier Tracking Lottie Animations",
+              "url": "https://iconscout.com/lotties/courier-tracking",
+              "why": "70 variations of the moving-pin/courier-on-map motion pattern specifically — the exact interaction class hg's order-tracking map needs, useful for range-of-motion comparison before committing to one style."
+            }
+          ]
+        },
+        {
+          "category": "Map UX in delivery apps (Mapbox-specific)",
+          "links": [
+            {
+              "title": "Mapbox — On-Demand Logistics solutions",
+              "url": "https://www.mapbox.com/use-cases/logistics",
+              "why": "Mapbox's own logistics/delivery use-case page — the direct starting point since the client already holds a Mapbox subscription; covers live ETA, route-line and courier-marker patterns natively."
+            },
+            {
+              "title": "Mapbox — Map design and styles (docs)",
+              "url": "https://docs.mapbox.com/help/dive-deeper/map-design/",
+              "why": "Official guidance on building a custom Mapbox Studio style matched to a brand theme — the concrete how-to for hg's light+dark map style requirement."
+            },
+            {
+              "title": "Mapbox agent-skills — delivery-logistics style patterns (GitHub)",
+              "url": "https://github.com/mapbox/mapbox-agent-skills/blob/main/skills/mapbox-style-patterns/references/delivery-logistics.md",
+              "why": "A maintained reference doc of concrete Mapbox Studio patterns for delivery/logistics styling (route color-coding by leg, building-type shading) — directly implementable, not just inspirational."
+            },
+            {
+              "title": "Mapbox blog — Add navigation to your on-demand delivery app",
+              "url": "https://blog.mapbox.com/add-nav-into-your-on-demand-delivery-app-be09db23641f",
+              "why": "Mapbox's own worked example of embedding turn-by-turn + live tracking into a delivery app UI — relevant to both hg's customer tracking screen and the rider navigation view."
+            },
+            {
+              "title": "Dribbble — tag: order_tracking",
+              "url": "https://dribbble.com/tags/order_tracking",
+              "why": "Visual-only (non-Mapbox-specific) feed of map-centric order-tracking screen compositions — bottom-sheet-over-map layouts, courier-ETA cards, progress-stepper overlays."
+            }
+          ]
+        },
+        {
+          "category": "Design systems worth borrowing structure from (token architecture, governance, docs)",
+          "links": [
+            {
+              "title": "IBM Carbon Design System",
+              "url": "https://carbondesignsystem.com/",
+              "why": "(cross-listed) Strongest public example of token-first architecture plus a dedicated 'Carbon for AI' pattern set — model for hg's own DTCG token discipline."
+            },
+            {
+              "title": "Shopify Polaris",
+              "url": "https://polaris.shopify.com/",
+              "why": "(cross-listed) Exceptional content-design guidelines (voice, tone, error-message writing) — a gap most component libraries never cover, worth stealing wholesale for hg's docs."
+            },
+            {
+              "title": "Atlassian Design System",
+              "url": "https://atlassian.design/",
+              "why": "(cross-listed) Documentation-quality benchmark: every pattern ships with explicit usage do/don't guidance — model for how hg's own `docs/design/` should read."
+            },
+            {
+              "title": "Uber Base Design System",
+              "url": "https://base.uber.com/",
+              "why": "(cross-listed) The single closest sibling to hg's own scope: one system spanning a consumer marketplace app, a driver/operator app, and internal ops tooling."
+            },
+            {
+              "title": "Radix / shadcn-adjacent primitives",
+              "url": "https://www.radix-ui.com/",
+              "why": "Unstyled, accessible interaction primitives (menus, dialogs, toggles) that most 2026-era systems (including shadcn/ui) build on — relevant to hg's ui-web component layer for correctness-first a11y behavior underneath its own visual skin."
+            }
+          ]
+        }
+      ]
+    },
+    "report": {
+      "executive_summary": "Halal Goes should read as \"HungerStation's energy, made cleaner.\" The client's reference app gets its life not from yellow alone but from a division of labor most delivery apps miss: gold is the frame (logo, active nav, \"Add\"/\"Apply\" CTAs, location pin), magenta/maroon is a dedicated PROMO register, and blue carries \"free delivery\" links. hg's existing gold baseline (#FFC220) already passes every contrast gate; the single missing ingredient is that promo/discount accent layer. Adding it — as an isolated namespace that never touches semantic or halal roles — is the lowest-risk way to import HungerStation's punch without recalibrating anything.\n\nThe product's one load-bearing claim is halal verification, and the research repeatedly surfaces the same structural lesson from competitors: dietary/allergen trust is almost always reduced to a generic free-text box (an independent audit found 80% of DoorDash/Uber Eats restaurants expose nothing better). hg wins by making halal a first-class, queryable field with its own filter row, its own card badge slot, and — on the restaurant page — a full certification PANEL (certifying body, expiry, seven-check summary), not a corner icon. Three invariants must be visible in every mock: a missing halal field renders NO badge (never optimistic, never a flash of green while data loads); expired/can't-vouch is cool slate, never red (red reads as a haram ruling the platform must not make); solid green is reserved to the halal seal, so generic success is tint-only.\n\nRecommended visual direction is \"Saffron Sharpened\" (Direction A): keep the calibrated gold ramp and warm neutrals verbatim, add a promo family (magenta #E5157E / discount #C31B6B / HS-verified maroon #5E2D20) and a formalized link-blue (#0959B8). Icons: Phosphor (one family, matched outline+fill weights — solving the HungerStation inactive-outline/active-fill nav pattern from a single source). Maps: two published Mapbox Studio styles (hg-light forked from warm Monochrome, hg-dark from Midnight), deliberately desaturated so gold routes and pins are the only saturated thing on screen; verified-halal pins are the sole place halal green appears on the map.\n\nResearch coverage note: Customer and Rider apps are fully sourced below. The Admin ops console has strong references (Stripe Identity, Linear, shadcn Data Table, Trust & Safety queues) centered on the seven-check verification instrument. The Restaurant/merchant operator app was not covered in the source research — flagged in \"apply to hg\" as the top open gap to close before the client walkthrough.",
+      "per_app": [
+        {
+          "app": "Customer (mobile / Expo)",
+          "top_references": [
+            "Revyl Atlas — DoorDash screen map (revyl.com/atlas/doordash): 98 real iOS screens organized by exactly our flow categories — use as a completeness checklist (Store Info sheet, Add-Tip sheet, Saved Stores empty state, Profile Badges modal)",
+            "talabat iOS on Mobbin — HungerStation's direct Delivery Hero sibling: login options (phone-first + social), live tracking map with driver-chat entry, feedback flow (mobbin.com/explore/screens/ac4ab7ef... and .../9cf34fd0...)",
+            "Mapbox × Wolt showcase (mapbox.com/showcase/wolt) — validates Matrix API for traffic-aware ETA + Static Maps for lightweight tracking; ETA accuracy, not map prettiness, is what Wolt optimized first",
+            "Luis Fernandez checkout teardown (luiselias.com) — Uber Eats 6-step vs DoorDash 4-step vs Glovo 5-step, with named pitfalls (hidden fees, vague allergy toggles, tip dark patterns)",
+            "Zomato personality-driven UX (blakecrosley.com/guides/design/zomato) — dietary/trust badges as a first-class visual system + humanizing the tracking wait",
+            "Baymard grocery/food-delivery research (baymard.com/blog/grocery-food-delivery-orders) — reorder belongs on the homepage first viewport, not buried in history",
+            "Uber Allergy-Friendly Program (help.uber.com) — the closest shipped analogue to a halal certified-badge + DIETARY TYPE filter"
+          ],
+          "must_have_flows": [
+            "OTP onboarding: phone-first (country default CA), no social fallback for MVP per O-03; auto-read OTP + resend + change-number escape; deferred name/email; location prompt with an explicit 'not now' (never gate browsing on permission); halal mission one-liner on splash",
+            "Home/discovery: pinned address bar, search entry, category tiles with a distinct 'Halal Certified' tile as a first-class category, promo carousel (gold+promo accents, never green here), 'Order Again' rail in the first viewport, photo-forward restaurant cards with rating+count, shield-icon delivery time, distance, free-delivery tag, halal badge in a fixed top-left slot",
+            "Search + filters/sort: typeahead (restaurant + dish), filter bottom sheet with 'Halal Certified' pinned at the TOP of the sheet (its own section, not alphabetized among vegan/gluten-free), removable applied-filter chips",
+            "Restaurant page: hero header, then a tappable halal CERTIFICATION PANEL directly below (certifying body, expiry, seven-check summary) — the trust centerpiece, with its own distinct loading skeleton so no optimistic/green flash; sticky menu category tabs; item rows with +add",
+            "Menu-item modifier bottom sheet: large photo, required single-select (radio) vs optional multi-select (checkbox) groups labeled 'Required'/'Select up to N', quantity stepper + full-width price-updating CTA ('Add to cart · $12.50'), always-visible special-instructions field",
+            "Cart: pinned restaurant header, inline quantity steppers, optional upsell rail that never blocks CTA, EXPANDED fee breakdown (subtotal/delivery/service/tax as separate lines), server-repriced on open, sticky 'Go to checkout · $X'",
+            "Checkout: address+time → cart review+instructions → tip (chips + custom, NONE pre-selected, 'No tip' equal weight) → payment+place-order in ONE step with a visible summary (no separate late-stage payment round-trip)",
+            "Live tracking: full-bleed themed map, route restaurant→rider→customer, status stepper tied to deadline_at, rider card with chat/call, prominent traffic-aware ETA countdown",
+            "Order history + reorder: newest-first, receipt detail, per-row Reorder that RE-PRICES server-side (never replays cached total), designed empty state",
+            "Ratings: SEPARATE stars for food vs rider, optional quick tags, optional text+photo, dismissible confirmation",
+            "Profile/addresses/wallet/notifications: labeled saved addresses, payment methods, split order-vs-promo notification toggles — every list ships empty/loading/error"
+          ],
+          "key_patterns": [
+            "Halal badge = a reserved slot that renders NOTHING when the field is null/loading (invariant #8), with a certification-panel loading state visually distinct from generic skeletons so 'not loaded' never reads as 'checked, failed'",
+            "Trust gets a PANEL not an icon: card view uses the badge, the restaurant page earns a tappable certification block near the decision point",
+            "Cool-slate expired state, deliberately diverging from Uber's orange allergy banner — never red/orange for any halal ambiguity",
+            "Reorder rail on the homepage first viewport (Baymard), plus shield glyph for delivery-time ETA (HungerStation signature)",
+            "Fee breakdown expanded by default; tip selector with no high default (counter to DoorDash's criticized nudge)",
+            "Certified filter as its own top-of-sheet section (platform guarantee), not one dietary checkbox among many",
+            "Traffic-aware ETA via Mapbox Matrix API, not a flat average; map re-themed via LUTs per light/dark",
+            "Server prices everything (invariant #1): cart and reorder treat all prices as server-returned, re-fetched, never client-computed"
+          ]
+        },
+        {
+          "app": "Rider / Courier (mobile / Expo)",
+          "top_references": [
+            "Uber Design — 'Uber Navigation: Designing for Drivers' (medium.com/uber-design/uber-navigation-f662e7611f3): the '3-foot, 1-second rule', separately-validated night mode, gesture minimalism — the richest primary source for the map + single-glance brief",
+            "DoorDash 'Redesigning the Dasher Homescreen' (medium.com/@a_kill_): map-first home, one decision at a time, P0/P1/P2 communication tiering, differentiated 'looking for offers' wait state",
+            "DoorDash Help + entrecourier: offer-card spec (pay/distance/items/deadline + map thumb), ~45s countdown = auto-decline, 3-step asymmetric decline (and its documented driver resentment)",
+            "Wolt Courier Partner (mwm.ai) + Wolt Newsroom: slide-to-go-online, weekly earnings + 'expected demand' graph, 2025 City Heat Maps + Early/instant Payouts",
+            "Uber & Deliveroo onboarding (help.uber.com documents, rider.deliveroo.co.uk/document-check): per-document corner-framed capture with specific rejection reasons, Onfido-style selfie/liveness gate, explicit 'up to 48h under review' state",
+            "Uber earnings IA (help.uber.com trip earnings) + DoorDash ratings: three-tab earnings, category-broken ratings",
+            "Mapbox Navigation SDK custom Day/Night theme (docs.mapbox.com/android/navigation/examples/add-custom-theme) — auto style-switch on time-of-day/tunnel, the concrete themed-rider-map path"
+          ],
+          "must_have_flows": [
+            "Onboarding + KYC: phone/email → vehicle type → per-document capture (licence, registration, insurance, background-check consent, photo) with 4-corner framing and specific rejection reasons; right-to-work as a distinct step; selfie/liveness biometric match as a HARD gate; explicit 'under review up to 48h' state; first-trip tutorial on approval. Maps onto invariant #7 (private-bucket + presigned only for every document)",
+            "Availability + earnings goal: offline-default with a slide-to-go-online control (friction is deliberate); going online reveals a map-first home with a non-scrollable bottom sheet carrying ONE action; always-visible earnings pill (weekly offline / live session online); distinct 'looking for offers near you' state with the map still live",
+            "Offer stack: bottom-sheet card over the map (prominent pay, distance, item count, deadline, map thumbnail); shrinking-ring countdown (~45s, timeout=decline); large one-tap Accept, lower-emphasis Decline; on accept, immediate transition to pickup navigation",
+            "Navigation pickup→dropoff under the 3-foot/1-second rule: single-tap overview↔first-person toggle, distinct pickup vs dropoff pins + side-of-street indicators, geofence-triggered arrival, zero dead-end screens between legs, tuned night mode",
+            "Arrival / pickup confirmation: geofenced arrival, itemized contents + pickup instructions + restaurant contact, explicit 'confirm pickup' gate, no-contact/dropoff flags surfaced up front on the task card",
+            "Proof of delivery: OTP primary (large auto-submit keypad) with photo fallback + framing guidance; framed as dispute EVIDENCE, not a payment gate (money captured on acceptance); straight to earnings-updated completion",
+            "Earnings + payouts: three-tab IA (total+graph / per-delivery gross-vs-net history / weekly→daily pay summaries), early/instant payout, demand heat map framed as forward planning",
+            "Ratings: category-broken (Communication, Instructions, Handling, Friendliness), separate 'compliments' quotes, graceful no-feedback empty state"
+          ],
+          "key_patterns": [
+            "Map-first home + non-scrollable single-action bottom sheet ('help the rider decide if it's a good time to dash without a dozen buttons in the way')",
+            "Slide-to-go-online (not tap); P0/P1/P2 comms tiering so promos/messages never stack over the map (route P2 to a notifications hub)",
+            "Offer card with shrinking countdown + asymmetric accept/decline weight — but flag DoorDash's punitive acceptance-rate-cost decline as a trust risk; disclose plainly rather than spring it",
+            "Separately-validated night mode (tested dark room, then real night drives) — copy the process even with hg's own colors",
+            "Per-document corner-framing + specific rejection reasons; biometric selfie-to-ID as a distinct hard gate; never a silent post-upload state",
+            "Category-broken ratings using TINT/slate chips — do NOT copy DoorDash's solid-red thumbs-down (violates hg's no-red-as-judgment rule)",
+            "Any rider-facing halal badge at pickup obeys the same rules: missing field = no badge, expired = slate not red",
+            "Mapbox Nav SDK Day/Night classes auto-switch — hook hg's custom styles into the same trigger; if bike couriers are supported, use a cycling-SAFE route profile, not fastest-by-default (Deliveroo motorway-safety complaint)"
+          ]
+        },
+        {
+          "app": "Admin ops console (web)",
+          "top_references": [
+            "Stripe Identity Review tools (docs.stripe.com/identity/review-tools) — the closest real product to the seven-check instrument: verification queue, at-a-glance list view + deep two-pane detail, human override of a machine decision, permanent blocklist, biometric-duplicate warning",
+            "Stripe Disputes (docs.stripe.com/disputes) — reason code + evidence trail + STAGE-then-SUBMIT two-step commit + SLA countdown; the model for refund-approval second-approver flows",
+            "Linear DESIGN.md — the 'cleaner/sleeker' ops-console model: no drop shadows, depth via a 4-step surface ladder, a single accent reserved for actionable elements (and that accent must NOT be halal-green), hairline rows, pill status badges, mono type for IDs",
+            "shadcn/ui Data Table + TanStack Table — headless filtered→sorted→paginated row model mapping cleanly onto Go/Postgres keyset (cursor) pagination; row-selection + floating bulk-action bar",
+            "Vercel Geist Badge + Deployments filter bar — color-to-meaning token rules (never color alone) and URL-persisted filter chips for shareable queue views",
+            "Trust & Safety queues (Cinder / Hive) — priority-ordered take-next, reviewer hotkeys for approve/reject/escalate, reusable queue configs — validates the FIFO SKIP LOCKED design",
+            "Retool review-queue template + Untitled UI dashboards — the standard 'queue list → detail with action bar' skeleton, plus KPI cards and banded HEALTHY/WATCH/AT_RISK gauges"
+          ],
+          "must_have_flows": [
+            "Seven-check halal verification (A-15) — the single highest-trust screen: FIFO take-next (SKIP LOCKED, 60-min lock); two-pane detail (presigned 5-min document viewer with zoom/rotate/multi-page | transcription form of the six structured fields, issuing_body bound to the ACCEPTED registry only, never OCR-suggested); H1-H7 checklist where H2/H5/H7 are system-computed locked badges (surface the 409 CHECK_NOT_OVERRIDABLE inline, wrap disabled controls so tooltips still fire), H1/H6 are human PASS/FAIL, H3/H4 are system-suggested-admin-confirms with a side-by-side diff (H4→PASS override requires a ≥20-char note, validated client-side); sticky decision bar with a live 'N of 7 recorded' counter, Approve disabled until all recorded and none FAIL, Reject requires a closed reason code; inline state transition then auto-return to queue",
+            "Refund / dispute case (A-33/A-35): reason code + evidence/notes trail + stage-then-submit two-step, second-approver request, SLA countdown",
+            "Restaurant / rider / order / case queues: dense keyset-paginated data tables, URL-persisted filter chips, row-selection bulk actions, per-row status pills",
+            "KPI dashboard (A-09) + compliance/performance banded widgets (A-20/A-21): HEALTHY/WATCH/AT_RISK using green/amber/SLATE — never red for any halal-adjacent state",
+            "Audit log + issuing-body registry (A-16): searchable, immutable, mono IDs",
+            "Every queue and detail ships explicit empty/loading/error states"
+          ],
+          "key_patterns": [
+            "Queue list + detail-with-action-bar is the standard internal-tool shape — don't over-invent it",
+            "Machine decision + human override, with computed checks server-LOCKED so the UI cannot game them; the frontend's job is to make computed-vs-human-vs-confirm states legible, not overridable",
+            "Admin accent color is a single non-halal-green accent reserved for actionable elements (Linear discipline); status badges are tokenized meaning→color and never rely on color alone (Geist)",
+            "Reviewer hotkeys for approve/reject/escalate; priority-ordered take-next; two-step stage/submit for anything irreversible",
+            "Keyset (cursor) pagination surfaced as pageInfo, not offset math — matches the Go backend"
+          ]
+        },
+        {
+          "app": "Restaurant / merchant operator (web / tablet) — RESEARCH GAP",
+          "top_references": [
+            "NOT COVERED in source research — the per-app slot was a placeholder. Closest adjacent references surfaced in the inspiration galleries, to be validated before the walkthrough:",
+            "Dribbble 'FoodMagic — Restaurant Order Management Dashboard' (dribbble.com/shots/22162296) — live order queue, accept/reject, tablet-oriented layout",
+            "Dribbble tag restaurant-management-dashboard + Food Delivery Dashboard UI (analytics + live order tracking)",
+            "Shopify Polaris — the gold standard for a merchant operator console: table patterns, empty states, and especially content/voice + error-message writing",
+            "Uber Base Design System (base.uber.com) — one token set spanning consumer, driver, and operator surfaces; structural model for hg's cross-app language"
+          ],
+          "must_have_flows": [
+            "TO BE RESEARCHED: incoming-order queue with accept/reject (ties to invariant #5 authorise-then-capture-on-acceptance and every order carrying deadline_at)",
+            "TO BE RESEARCHED: menu/item availability toggles (needs a distinct non-halal-colored motion language), open/closed + hours toggle, prep-time management",
+            "TO BE RESEARCHED: how the restaurant's own halal certification status and expiry are surfaced back to the operator (submission, pending, expiring-soon warnings in slate not red)"
+          ],
+          "key_patterns": [
+            "Availability/open-closed toggles need their own non-green motion language (green stays halal-reserved)",
+            "Order-accept action is the capture trigger in the money model — the operator UI is where authorise→capture happens, so its confirmation and timeout states are load-bearing, not cosmetic"
+          ]
+        }
+      ],
+      "palette_recommendation": "RECOMMENDED: Direction A — 'Saffron Sharpened' (lowest-risk blend). Keep hg's already-contrast-calibrated gold ramp and warm neutrals verbatim (they pass every gate) and add the one thing HungerStation has that hg lacks: a dedicated PROMO register plus a formalized link-blue. Primary CTA stays brand.500 #FFC220 with dark onBrand text #1F1B17 at 10.58:1 (AAA); white-on-gold stays banned (1.62:1). New promo namespace: promo.500 #E5157E (icon/large-badge only, ~4.0:1 white), promo.600 #C31B6B (discount pill, white ~5.4:1 AA), HS-verified maroon #5E2D20 (deep 'save %' pill, white ~11:1), promo.50 #FDE9F3 tint; link/info.600 #0959B8 for 'free delivery' + links. Nothing recalibrates — HungerStation's energy arrives as an accent layer. Respects every invariant: green stays halal-only, success is tint-only emerald (#067A55, no fill), halal-expired is cool slate #4E5862 (never red), promo pink/maroon are forbidden from halal and semantic roles so pink is never mistaken for a state, missing halal field still renders no badge.\n\nTwo alternatives for the walkthrough:\nDirection B — 'HungerStation Bright': lift the CTA to a brighter signal-gold brand.500 #FFD400 (hue ~50, nudged AWAY from the halal-green hue; dark text ~11.8:1, actually higher contrast than today) with a hotter promo shelf. Choose if the client wants the app visibly louder/younger. Deliberately avoids HS's true #FBEF00 acid lemon, which leans chartreuse toward green and is unusable next to a green seal.\n\nDirection C — 'Gold + Maroon Duotone' (premium/editorial): gold for action, HS maroon #5E2D20 as warm secondary chrome/AppBar (white labels ~11:1) over old-HG cream #FFFAEA canvas — a warm 'trusted marketplace' feel that quietly honors the old brand's cream while abandoning its now-forbidden forest green. Maroon is used ONLY as chrome, never as a state, so danger stays true red #D92D20 (semantic only, never halal). Choose if the brand should feel less 'delivery-app loud.'\n\nNote for the client: the OLD Halal Goes was forest-green-forward (#1B3B31 + cream). That green now COLLIDES with invariant #10 — reviving it as chrome would break the halal signal. The pivot to gold isn't just aesthetic; it freed green to mean 'halal-verified' exclusively. Reuse the old logo only if re-colored to gold; do not reintroduce #1B3B31 or the old orange #FD5000.",
+      "icon_and_map": "ICONS — Phosphor Icons. HungerStation (and most modern delivery apps) uses outline icons for inactive tabs and FILLED icons for the active tab. Phosphor ships all ~9,000 icons in 6 matched weights (Thin/Light/Regular/Bold/Fill/Duotone) from ONE family, so inactive=Regular and active=Fill share identical geometry — no second library, no compositing hacks. Duotone suits the category tiles and menu-modifier illustrations. First-class React + React Native packages (@phosphor-icons/react, phosphor-react-native) cover both Expo apps and both web consoles; MIT, tree-shakeable. The active-fill capability is the deciding factor — it's exactly the HS nav energy, solved in one consistent family. Alternatives: Lucide (cleanest outline-only set — pick if the client wants maximum minimalism and accepts background-fill active states); Iconsax (very delivery-app-modern but looser stroke consistency and non-MIT free tier); SF Symbols EXCLUDED (Apple-only, breaks cross-platform parity).\n\nMAPS — Mapbox on the client's existing single account. Use @rnmapbox/maps for the Expo apps (requires an Expo DEV BUILD, not Expo Go) and mapbox-gl-js for admin web. Ship TWO published Mapbox Studio styles, hg-light and hg-dark, switched by color-scheme. Fork Mapbox 'Monochrome' via the Studio Style Generator: seed hg-light from warm neutral #FAF9F7 (start from the 'Golden' preset, pull saturation down to a warm greige), seed hg-dark from Midnight #080F1C so night matches the rider offer chrome. Keep the basemap deliberately DESATURATED and mute POI/road labels to neutral 500-600 — that restraint is what reads 'cleaner than HungerStation.' Route line = gold #FFC220 core with a #DFA400 casing on light (step up to #FFDB69 on dark for ≥3:1). Customer location + delivery pins = gold; rider live marker = the operational Midnight #24406F (Dir A/B) or maroon #5E2D20 (Dir C), kept distinct from the gold route; destination pin = neutral #1F1B17 teardrop. Verified-halal restaurant markers are the ONE place halal seal green (#04482A light / #0F7A46 dark, brass ring) appears on the map — the registered map-pin exception; non-verified restaurants get a neutral #4A443B pin with NO green (invariant #8). Never red for any halal or unavailable-restaurant map state — use neutral/slate. For ETA, use the Mapbox Matrix API (traffic- and courier-mode-aware, validated by Wolt's switchback experiments) plus Static Maps for lightweight tracking images — not a flat average. On the rider side, hook Mapbox Navigation SDK's built-in Day/Night theme classes (auto-switch on time-of-day/tunnel) into the same custom styles.",
+      "apply_to_hg": [
+        "1. Close the Restaurant/merchant operator research gap BEFORE the client walkthrough — it is the one app with zero source coverage. Mine FoodMagic (dribbble 22162296), Shopify Polaris (table/empty-state/voice), and Uber Base; storyboard the order-accept queue (it is the authorise→capture trigger, invariant #5) and a non-green availability toggle. This is the top open blocker.",
+        "2. Add the promo/link accent layer to tokens.json now (Direction A): promo.500 #E5157E, promo.600 #C31B6B, promo.maroon #5E2D20, promo.50 #FDE9F3, link/info.600 #0959B8. Wire lint so promo.* is forbidden from halal.* and from semantic success/danger roles — this is what safely imports HungerStation's energy without recalibration.",
+        "3. Build the halal certification PANEL component (restaurant page) with its OWN loading skeleton distinct from generic content skeletons, plus the card-level badge SLOT that renders nothing on null/loading. Prove invariant #8 (no optimistic badge, no green flash) and invariant #9 (expired = slate #4E5862) in a real mock, both themes. Highest-trust surface in the product.",
+        "4. Make 'Halal Certified' a first-class filter section pinned at the top of the filter bottom sheet (not alphabetized among vegan/gluten-free) and a distinct home-screen category tile — signals platform guarantee vs per-user preference.",
+        "5. Ship the two Mapbox Studio styles (hg-light from warm Monochrome, hg-dark from Midnight), desaturated, with the gold route + halal-green verified pin exception. Confirm the Expo apps move to a DEV BUILD (rnmapbox needs it — not Expo Go); note this against the known gallery-native Expo Go constraint. Adopt Matrix API for ETA, not a static average.",
+        "6. Adopt Phosphor across all four apps; standardize the nav pattern as Regular (inactive) + Fill (active) from the single family, and the delivery-time shield glyph on restaurant cards.",
+        "7. Bake the anti-dark-pattern stances into the design spec as hard rules: tip defaults UNSELECTED with 'No tip' at equal weight (counter DoorDash); fee breakdown EXPANDED by default (no fees hidden in tax); payment + place-order in ONE step (no Glovo-style late round-trip); reorder RE-PRICES server-side (invariant #1); 'Order Again' rail in the homepage first viewport (Baymard).",
+        "8. Rider: implement P0/P1/P2 comms tiering and a differentiated 'looking for offers' state (not a spinner) around a map-first home; use the 3-foot/1-second rule as the active-trip design constraint; keep the offer countdown but make the decline flow non-punitive (disclose any acceptance metric plainly). Enforce the KYC document flow as private-bucket + presigned (invariant #7) with an explicit 'under review up to 48h' state.",
+        "9. Enforce hg's palette discipline everywhere feedback/ratings appear: separate food-vs-rider ratings (customer) and category-broken ratings with TINT/slate chips, never DoorDash's solid-red thumbs-down. Extend 'never red for a judgment call' from halal state to all quality feedback.",
+        "10. Admin seven-check instrument (A-15): build the two-pane list+detail with the H1-H7 typology explicit in the UI — computed checks (H2/H5/H7) as locked badges surfacing 409 inline, human checks (H1/H6), and confirm-with-diff checks (H3/H4, H4→PASS gated on a ≥20-char note). Live 'N of 7 recorded' counter drives the Approve button state. Give the admin a single non-halal-green accent (Linear discipline).",
+        "11. Every screen in every app ships empty/loading/error — repo-level hard requirement; specifically design Saved Stores empty, Orders empty, Notifications empty, all admin queues empty, and the halal 'not yet loaded' vs 'no badge' distinction."
+      ]
+    }
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Research"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Synthesize"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "palette+icons+maps",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "adf15b8d7a22f6e1e",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786741397718,
+      "queuedAt": 1786741397446,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "lastProgressAt": 1786741748954,
+      "tokens": 58044,
+      "toolCalls": 22,
+      "durationMs": 351114,
+      "resultPreview": "{\"hungerstation_palette\":[{\"role\":\"primary-yellow (VERIFIED — fill of the 2024 logo SVG, Wikimedia Commons)\",\"hex\":\"#FBEF00\"},{\"role\":\"maroon / wordmark-brown (VERIFIED — 2nd fill of the 2024 logo SVG, 14 occurrences)\",\"hex\":\"#5E2D20\"},{\"role\":\"alt brand yellow (documented web/app usage — colorswall/schemecolor 'Hungry ordering food' palette)\",\"hex\":\"#FCC43C\"},{\"role\":\"golden-yellow variant (commo…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "inspiration-galleries",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "afb3a7b44dc870a05",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1786741397792,
+      "queuedAt": 1786741397447,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "lastProgressAt": 1786741489125,
+      "tokens": 48367,
+      "toolCalls": 13,
+      "durationMs": 91283,
+      "resultPreview": "{\"categories\":[{\"category\":\"Award-winning food-delivery & logistics apps (Mobbin / real competitor flows)\",\"links\":[{\"title\":\"Mobbin — Food Delivery App Design Examples\",\"url\":\"https://mobbin.com/explore/mobile/app-categories/food-delivery-app\",\"why\":\"The single best source for exact HungerStation-adjacent Gulf-market UX (Talabat, Careem, Zomato, Uber Eats side by side) — filter to 'Food Delivery'…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "research:customer",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "aaaea2ea4623f2343",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1786741398314,
+      "queuedAt": 1786741398190,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Halal Goes — Customer App",
+      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "lastProgressAt": 1786741639115,
+      "tokens": 65152,
+      "toolCalls": 30,
+      "durationMs": 240784,
+      "resultPreview": "{\"app\":\"Halal Goes — Customer App\",\"primary_references\":[{\"name\":\"Revyl Atlas — DoorDash Screen Map\",\"url\":\"https://revyl.com/atlas/doordash/\",\"why\":\"The single most useful reference found: an exhaustive, structured map of 98 real DoorDash iOS screens, 112 transitions, 37 named user paths and a 651-element UI inventory, organized exactly by the flow categories this task needs (home/discovery, stor…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "research:rider",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "af957395dd638448a",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1786741398321,
+      "queuedAt": 1786741398191,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Halal Goes — Rider (Courier) App",
+      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "lastProgressAt": 1786741635992,
+      "tokens": 63781,
+      "toolCalls": 31,
+      "durationMs": 235751,
+      "resultPreview": "{\"app\":\"Halal Goes — Rider (Courier) App\",\"primary_references\":[{\"name\":\"Uber Design — \\\"Uber Navigation: Designing for Drivers\\\" (Cady Wachsman)\",\"url\":\"https://medium.com/uber-design/uber-navigation-f662e7611f3\",\"why\":\"The single best primary source on map-heavy driver UX. Defines the \\\"3-foot, 1-second rule\\\" that should govern every active-delivery screen decision, plus night-mode methodology …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "research:restaurant",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a6b183ad27a6736d3",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1786741398325,
+      "queuedAt": 1786741398191,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "placeholder",
+      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "lastProgressAt": 1786741511905,
+      "tokens": 64212,
+      "toolCalls": 32,
+      "durationMs": 111666,
+      "resultPreview": "{\"app\":\"placeholder\",\"primary_references\":[],\"flows\":[],\"ui_patterns\":[],\"pitfalls\":[]}"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "research:admin",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a48ed61fe1630c6f2",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1786741398331,
+      "queuedAt": 1786741398192,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "admin",
+      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "lastProgressAt": 1786741665955,
+      "tokens": 86274,
+      "toolCalls": 37,
+      "durationMs": 265715,
+      "resultPreview": "{\"app\":\"admin\",\"primary_references\":[{\"name\":\"Stripe Identity — Review tools (list view / detailed view / blocklist / override)\",\"url\":\"https://docs.stripe.com/identity/review-tools\",\"why\":\"This is the closest real product to the halal-certificate seven-check instrument: a queue of verifications with an at-a-glance list view and a deep detailed view, human override of a machine decision, and a per…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "synthesize",
+      "phaseIndex": 2,
+      "phaseTitle": "Synthesize",
+      "agentId": "a000de876f1c9d2c8",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786741750090,
+      "queuedAt": 1786741749201,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Halal Goes should read as \"HungerStation's energy, made cle…",
+      "promptPreview": "Synthesize a single design-research report for Halal Goes from the research below. Keep it concrete and client-facing.\n\nPER-APP RESEARCH:\n[{\"app\":\"Halal Goes — Customer App\",\"primary_references\":[{\"name\":\"Revyl Atlas — DoorDash Screen Map\",\"url\":\"https://revyl.com/atlas/doordash/\",\"why\":\"The single most useful reference found: an exhaustive, structured map of 98 real DoorDash iOS screens, 112 tran…",
+      "lastProgressAt": 1786741899884,
+      "tokens": 59420,
+      "toolCalls": 1,
+      "durationMs": 149776,
+      "resultPreview": "{\"executive_summary\":\"Halal Goes should read as \\\"HungerStation's energy, made cleaner.\\\" The client's reference app gets its life not from yellow alone but from a division of labor most delivery apps miss: gold is the frame (logo, active nav, \\\"Add\\\"/\\\"Apply\\\" CTAs, location pin), magenta/maroon is a dedicated PROMO register, and blue carries \\\"free delivery\\\" links. hg's existing gold baseline (…"
+    }
+  ],
+  "totalTokens": 445250,
+  "totalToolCalls": 166
+}
