@@ -32,7 +32,7 @@ import {
 import type { Schema } from '@hg/api-client';
 import { cents, idempotencyKey, isApiError, unwrap } from '@hg/api-client';
 
-import { clientFor } from '../api';
+import { clientFor, IS_MOCK } from '../api';
 import type { DispatchOffer } from '../apiTypes';
 import { Screen, LoadingView, ErrorView, EmptyView } from './Screen';
 import { useNav } from '../nav';
@@ -202,7 +202,7 @@ export function OfferScreen(): React.ReactElement {
 
   return (
     <Screen title="Current offer" subtitle="Accept before it expires" loading={accepting || rejecting}>
-      <ScenarioPicker value={scenario} onChange={setScenario} />
+      {IS_MOCK ? <ScenarioPicker value={scenario} onChange={setScenario} /> : null}
 
       {state.status === 'loading' ? <LoadingView label="Checking for an offer…" /> : null}
       {state.status === 'error' ? (
@@ -278,15 +278,17 @@ export function OfferScreen(): React.ReactElement {
             </View>
           </Card>
 
-          <Card variant="filled">
-            <Switch
-              label="Simulate accept race"
-              description="Accept returns 409 OFFER_ALREADY_TAKEN — see the error state."
-              checked={raceMode}
-              onChange={setRaceMode}
-              stateLabels={{ on: 'On', off: 'Off' }}
-            />
-          </Card>
+          {IS_MOCK ? (
+            <Card variant="filled">
+              <Switch
+                label="Simulate accept race"
+                description="Accept returns 409 OFFER_ALREADY_TAKEN — see the error state."
+                checked={raceMode}
+                onChange={setRaceMode}
+                stateLabels={{ on: 'On', off: 'Off' }}
+              />
+            </Card>
+          ) : null}
 
           <Button
             variant="primary"

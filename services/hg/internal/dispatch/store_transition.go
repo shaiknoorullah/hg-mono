@@ -212,6 +212,7 @@ func (s *Store) restoreAvailabilityTx(ctx context.Context, tx pgx.Tx, riderAccou
 	err := tx.QueryRow(ctx, `
 UPDATE rider_profile
    SET availability_state = (CASE WHEN go_offline_after_delivery THEN 'OFFLINE' ELSE 'ONLINE_IDLE' END)::rider_availability_state,
+       is_online = NOT go_offline_after_delivery,
        availability_changed_at = now()
  WHERE account_id = $1 AND availability_state = 'ON_DELIVERY'
 RETURNING 'ON_DELIVERY', availability_state::text`, riderAccountID).Scan(&from, &to)
@@ -381,6 +382,7 @@ func (s *Store) ReconcileAvailability(ctx context.Context) (int64, error) {
 	tag, err := s.db.Exec(ctx, `
 UPDATE rider_profile rp
    SET availability_state = (CASE WHEN rp.go_offline_after_delivery THEN 'OFFLINE' ELSE 'ONLINE_IDLE' END)::rider_availability_state,
+       is_online = NOT rp.go_offline_after_delivery,
        availability_changed_at = now()
  WHERE rp.availability_state = 'ON_DELIVERY'
    AND NOT EXISTS (

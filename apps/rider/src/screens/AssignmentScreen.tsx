@@ -1,20 +1,23 @@
 /**
- * Active delivery — the working view of an assignment, plus proof of delivery.
+ * Active delivery — the working view of an assignment: drive the delivery forward and record POD.
  *
- * D-19 / D-21: the post-accept projection carries the full address, unit and proxied phone alias,
- * but never item prices or the order total — the basket value is none of the rider's business.
- * The required proof method comes from the server as `required_pod_method`: OTP handovers show a
- * 4-digit code entry; unattended drops require a photo. `DELIVERED` cannot commit without the
- * artefact, so this screen submits POD and renders the delivered assignment the server returns.
+ * D-19 / D-20 / D-21. The post-accept projection carries the full address, unit and proxied phone
+ * alias, but never item prices or the order total. This screen advances the assignment through its
+ * ladder — EN_ROUTE_TO_PICKUP → ARRIVED_AT_PICKUP → PICKED_UP → EN_ROUTE_TO_DROPOFF →
+ * ARRIVED_AT_DROPOFF — with one `createAssignmentTransition` per step (no timer in the app advances
+ * a state; the server validates the geofence and the ordering). The ARRIVED steps are proximity-
+ * checked, so each transition is stamped with the assignment's own pickup / drop-off coordinates.
+ *
+ * At the drop-off the required proof method comes from the server as `required_pod_method`: OTP
+ * handovers show a 4-digit code entry; unattended drops require a photo. Once proof is recorded the
+ * final DELIVERED transition commits and the delivered assignment is rendered.
  *
  * Money — the earnings estimate — renders through `Price`, never hand-formatted.
  *
  * States:
  *   loading — the getAssignment read.
- *   error   — the read failed, or POD was rejected (wrong OTP, method mismatch).
- *   ready   — the assignment with pickup, drop-off, items and the POD action.
- * (An assignment id always resolves to a fixture, so there is no natural "empty" here; the empty
- *  state is the offer screen's "no offer".)
+ *   error   — the read failed, a transition was rejected, or POD was rejected.
+ *   ready   — the assignment with pickup, drop-off, items and the next action.
  */
 import * as React from 'react';
 import { View } from 'react-native';
@@ -35,7 +38,7 @@ import type { BadgeVariant } from '@hg/ui-native';
 import type { Schema } from '@hg/api-client';
 import { cents, idempotencyKey, isApiError, unwrap } from '@hg/api-client';
 
-import { clientFor } from '../api';
+import { clientFor, IS_MOCK, POD_OBJECT_ID } from '../api';
 import type { Assignment } from '../apiTypes';
 import { Screen, LoadingView, ErrorView } from './Screen';
 import { useNav } from '../nav';
@@ -51,6 +54,30 @@ const STATE_META: Partial<Record<AssignmentState, { label: string; variant: Badg
   ARRIVED_AT_DROPOFF: { label: 'At drop-off', variant: 'brand' },
   DELIVERED: { label: 'Delivered', variant: 'brand' },
   UNDELIVERABLE: { label: 'Undeliverable', variant: 'warning' },
+};
+
+/**
+ * The forward ladder. Each entry is the next state to request from the current one, the button
+ * copy, and which end's coordinates to stamp the transition with (the ARRIVED_* steps are
+ * proximity-checked). ARRIVED_AT_DROPOFF has no entry — from there the rider records proof of
+ * delivery, and the DELIVERED transition commits in `submitPod`.
+ */
+const FORWARD: Partial<
+  Record<AssignmentState, { next: AssignmentState; label: string; at: 'pickup' | 'dropoff' }>
+> = {
+  ASSIGNED: { next: 'EN_ROUTE_TO_PICKUP', label: 'Start heading to pickup', at: 'pickup' },
+  EN_ROUTE_TO_PICKUP: {
+    next: 'ARRIVED_AT_PICKUP',
+    label: "I've arrived at the restaurant",
+    at: 'pickup',
+  },
+  ARRIVED_AT_PICKUP: { next: 'PICKED_UP', label: "I've picked up the order", at: 'pickup' },
+  PICKED_UP: { next: 'EN_ROUTE_TO_DROPOFF', label: 'Start heading to drop-off', at: 'dropoff' },
+  EN_ROUTE_TO_DROPOFF: {
+    next: 'ARRIVED_AT_DROPOFF',
+    label: "I've arrived at the customer",
+    at: 'dropoff',
+  },
 };
 
 /** Demo-only: the assignment fixtures the mock serves, exposed as a picker. */
@@ -84,11 +111,14 @@ export function AssignmentScreen({
   const [state, setState] = React.useState<Load>({ status: 'loading' });
   const [otp, setOtp] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
+  const [advancing, setAdvancing] = React.useState(false);
   const [podError, setPodError] = React.useState<string | null>(null);
+  const [stepError, setStepError] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
     setState({ status: 'loading' });
     setPodError(null);
+    setStepError(null);
     setOtp('');
     try {
       const data = await unwrap(
@@ -110,16 +140,48 @@ export function AssignmentScreen({
     void load();
   }, [load]);
 
+  /** Advance one rung of the ladder, stamping the transition with the relevant end's coordinates. */
+  const advance = React.useCallback(async () => {
+    if (state.status !== 'ready') return;
+    const step = FORWARD[state.assignment.state];
+    if (!step) return;
+    const loc = step.at === 'pickup' ? state.assignment.pickup : state.assignment.dropoff;
+    setAdvancing(true);
+    setStepError(null);
+    try {
+      const data = await unwrap(
+        clientFor(scenario).POST('/v1/riders/me/assignments/{assignmentId}/transitions', {
+          params: {
+            path: { assignmentId },
+            header: { 'Idempotency-Key': idempotencyKey() },
+          },
+          body: {
+            to_state: step.next,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            accuracy_m: 5,
+            occurred_at: new Date().toISOString(),
+          },
+        }),
+      );
+      setState({ status: 'ready', assignment: data.data });
+    } catch (e) {
+      setStepError(e instanceof Error ? e.message : 'Could not advance the delivery.');
+    } finally {
+      setAdvancing(false);
+    }
+  }, [state, scenario, assignmentId]);
+
   const submitPod = React.useCallback(async () => {
     if (state.status !== 'ready') return;
     const method = state.assignment.required_pod_method;
     setSubmitting(true);
     setPodError(null);
-    // Demo the POD error state honestly: the code `0000` is routed to the real
+    // Demo the POD error state honestly against the mock: the code `0000` is routed to the real
     // `error_otp_incorrect` ErrorEnvelope fixture; any other code takes the happy path.
-    const podScenario = method === 'OTP' && otp === '0000' ? 'error_otp_incorrect' : scenario;
+    const podScenario = IS_MOCK && method === 'OTP' && otp === '0000' ? 'error_otp_incorrect' : scenario;
     try {
-      const data = await unwrap(
+      let data = await unwrap(
         clientFor(podScenario).POST('/v1/riders/me/assignments/{assignmentId}/proof-of-delivery', {
           params: {
             path: { assignmentId },
@@ -130,12 +192,32 @@ export function AssignmentScreen({
               ? { method: 'OTP', otp_code: otp }
               : {
                   method: 'PHOTO',
-                  // In a real build this id comes from an upload to the private hg-pod bucket.
-                  photo_object_id: idempotencyKey(),
+                  // In a real build this id comes from an upload to the private hg-pod bucket; here
+                  // it is provisioned out of band (POD_OBJECT_ID) or minted for the mock.
+                  photo_object_id: POD_OBJECT_ID ?? idempotencyKey(),
                   handover_method: 'LEFT_AT_DOOR',
                 },
         }),
       );
+      // Proof is recorded; the DELIVERED transition commits in the same working view.
+      if (data.data.state !== 'DELIVERED') {
+        const drop = data.data.dropoff;
+        data = await unwrap(
+          clientFor(scenario).POST('/v1/riders/me/assignments/{assignmentId}/transitions', {
+            params: {
+              path: { assignmentId },
+              header: { 'Idempotency-Key': idempotencyKey() },
+            },
+            body: {
+              to_state: 'DELIVERED',
+              latitude: drop.latitude,
+              longitude: drop.longitude,
+              accuracy_m: 5,
+              occurred_at: new Date().toISOString(),
+            },
+          }),
+        );
+      }
       setState({ status: 'ready', assignment: data.data });
     } catch (e) {
       if (isApiError(e)) {
@@ -152,16 +234,24 @@ export function AssignmentScreen({
     }
   }, [state, scenario, assignmentId, otp]);
 
+  const step = state.status === 'ready' ? FORWARD[state.assignment.state] : undefined;
+  const atDropoff = state.status === 'ready' && state.assignment.state === 'ARRIVED_AT_DROPOFF';
+  const delivered =
+    state.status === 'ready' &&
+    (state.assignment.pod_recorded || state.assignment.state === 'DELIVERED');
+
   return (
-    <Screen title="Active delivery" subtitle="Deliver and record proof" loading={submitting}>
-      <Card variant="filled">
-        <Select
-          label="Demo scenario (mock fixture)"
-          value={scenario}
-          onChange={setScenario}
-          options={SCENARIOS}
-        />
-      </Card>
+    <Screen title="Active delivery" subtitle="Deliver and record proof" loading={submitting || advancing}>
+      {IS_MOCK ? (
+        <Card variant="filled">
+          <Select
+            label="Demo scenario (mock fixture)"
+            value={scenario}
+            onChange={setScenario}
+            options={SCENARIOS}
+          />
+        </Card>
+      ) : null}
 
       {state.status === 'loading' ? <LoadingView label="Loading the delivery…" /> : null}
       {state.status === 'error' ? (
@@ -233,14 +323,14 @@ export function AssignmentScreen({
 
           <ItemsCard items={state.assignment.items} />
 
-          {state.assignment.pod_recorded || state.assignment.state === 'DELIVERED' ? (
+          {delivered ? (
             <Banner
               variant="info"
               title="Delivered"
               description="Proof of delivery is recorded. Nice work."
               action={{ label: 'Back to shift', onPress: nav.resetHome }}
             />
-          ) : (
+          ) : atDropoff ? (
             <PodCard
               method={state.assignment.required_pod_method}
               otp={otp}
@@ -248,6 +338,30 @@ export function AssignmentScreen({
               error={podError}
               submitting={submitting}
               onSubmit={() => void submitPod()}
+            />
+          ) : step ? (
+            <Card variant="outlined">
+              <View style={{ gap: theme.target.spacing }}>
+                <Text style={{ ...body, color: theme.color.text.primary }}>Next step</Text>
+                {stepError ? (
+                  <Banner variant="warning" title="Couldn't advance" description={stepError} />
+                ) : null}
+                <Button
+                  variant="primary"
+                  size="xl"
+                  fullWidth
+                  loading={advancing}
+                  onPress={() => void advance()}
+                >
+                  {step.label}
+                </Button>
+              </View>
+            </Card>
+          ) : (
+            <Banner
+              variant="neutral"
+              title={STATE_META[state.assignment.state]?.label ?? state.assignment.state}
+              description="No further rider action from here."
             />
           )}
         </>
@@ -301,8 +415,7 @@ function PodCard({
         {method === 'OTP' ? (
           <>
             <Text style={{ ...caption, color: theme.color.text.secondary }}>
-              Ask the customer to read out their 4-digit code. (Demo: enter 0000 to see the error
-              state.)
+              Ask the customer to read out their 4-digit code.
             </Text>
             <Input
               label="Delivery code"

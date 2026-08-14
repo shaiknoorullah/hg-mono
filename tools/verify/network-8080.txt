@@ -1,0 +1,15 @@
+200 POST /v1/auth/otp/request
+200 POST /v1/auth/otp/verify
+200 GET /v1/riders/me
+200 GET /v1/riders/me/dashboard
+200 GET /v1/riders/me
+200 GET /v1/riders/me/offers/current
+200 POST /v1/riders/me/offers/019fffaf-9a02-78eb-8e53-ff7b0509526b/accept
+200 GET /v1/riders/me/assignments/019fffb1-5ea4-77e9-81fa-58b552d615d8
+200 POST /v1/riders/me/assignments/019fffb1-5ea4-77e9-81fa-58b552d615d8/transitions
+200 POST /v1/riders/me/assignments/019fffb1-5ea4-77e9-81fa-58b552d615d8/transitions
+200 POST /v1/riders/me/assignments/019fffb1-5ea4-77e9-81fa-58b552d615d8/transitions
+200 POST /v1/riders/me/assignments/019fffb1-5ea4-77e9-81fa-58b552d615d8/transitions
+200 POST /v1/riders/me/assignments/019fffb1-5ea4-77e9-81fa-58b552d615d8/transitions
+200 POST /v1/riders/me/assignments/019fffb1-5ea4-77e9-81fa-58b552d615d8/proof-of-delivery
+200 POST /v1/riders/me/assignments/019fffb1-5ea4-77e9-81fa-58b552d615d8/transitions

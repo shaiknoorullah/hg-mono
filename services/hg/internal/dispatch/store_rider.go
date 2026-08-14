@@ -107,20 +107,25 @@ ON CONFLICT (account_id) DO UPDATE
 		}
 	}
 
+	// is_online must agree with the target state (CHECK rider_online_agrees):
+	// only OFFLINE is not-online; ONLINE_IDLE and ON_DELIVERY are online. Omitting
+	// it left the boolean stale on every state change → the UPDATE violated the
+	// CHECK and every go-online/go-offline write 500'd.
+	onlineTarget := target != "OFFLINE"
 	var changedAt time.Time
 	if goOfflineAfter != nil {
 		err = tx.QueryRow(ctx, `
 UPDATE rider_profile
-   SET availability_state = $2, availability_changed_at = now(),
+   SET availability_state = $2, is_online = $4, availability_changed_at = now(),
        go_offline_after_delivery = $3
  WHERE account_id = $1
-RETURNING availability_changed_at`, riderAccountID, target, *goOfflineAfter).Scan(&changedAt)
+RETURNING availability_changed_at`, riderAccountID, target, *goOfflineAfter, onlineTarget).Scan(&changedAt)
 	} else {
 		err = tx.QueryRow(ctx, `
 UPDATE rider_profile
-   SET availability_state = $2, availability_changed_at = now()
+   SET availability_state = $2, is_online = $3, availability_changed_at = now()
  WHERE account_id = $1
-RETURNING availability_changed_at`, riderAccountID, target).Scan(&changedAt)
+RETURNING availability_changed_at`, riderAccountID, target, onlineTarget).Scan(&changedAt)
 	}
 	if err != nil {
 		return "", time.Time{}, err

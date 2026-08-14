@@ -13,13 +13,35 @@
  */
 import { createHgClient, type HgClient } from '@hg/api-client';
 
+import { getToken } from './token';
+
 const DEFAULT_BASE_URL = 'http://localhost:4010';
 
 export const API_BASE_URL =
   (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_BASE_URL) || DEFAULT_BASE_URL;
 
+/**
+ * Are we pointed at the local Prism mock, or a real backend? The demo scenario switchers and the
+ * `X-Mock-Scenario` header only make sense against the mock — a real backend's CORS policy rejects
+ * that header, and its dispatcher is what actually drives the offer/assignment. When this is false
+ * every request goes through the single authenticated `api` client and no mockScenario is ever
+ * sent.
+ */
+export const IS_MOCK = API_BASE_URL === DEFAULT_BASE_URL;
+
+/**
+ * Proof-of-delivery photo upload is not built into this V0 scaffold. Against the mock any id is
+ * accepted; against a real backend the `PHOTO` method needs a `READY` `stored_object` of purpose
+ * `POD`. When one has been provisioned out of band it can be supplied here so the delivery loop can
+ * complete end-to-end; otherwise a fresh id is minted (which the mock accepts and a real backend
+ * rejects with `POD_REQUIRED`, surfacing the POD error state).
+ */
+export const POD_OBJECT_ID: string | undefined =
+  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_POD_OBJECT_ID) || undefined;
+
 export const api = createHgClient({
   baseUrl: API_BASE_URL,
+  getToken,
   clientSurface: 'rider-app',
   clientVersion: '0.0.0',
 });
@@ -28,14 +50,16 @@ const scenarioClients = new Map<string, HgClient>();
 
 /**
  * A client pinned to a named mock scenario. Memoised so the same scenario reuses one client.
- * Passing `undefined` returns the default, un-pinned client.
+ * Passing `undefined` — or running against a real backend (`!IS_MOCK`) — returns the default,
+ * authenticated client, so no `X-Mock-Scenario` header ever reaches a real API.
  */
 export function clientFor(scenario?: string): HgClient {
-  if (!scenario) return api;
+  if (!scenario || !IS_MOCK) return api;
   const existing = scenarioClients.get(scenario);
   if (existing) return existing;
   const client = createHgClient({
     baseUrl: API_BASE_URL,
+    getToken,
     clientSurface: 'rider-app',
     clientVersion: '0.0.0',
     mockScenario: scenario,
