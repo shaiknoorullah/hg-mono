@@ -48,6 +48,7 @@ const (
 	waveSize          = 3
 	offerTTL          = 30 * time.Second
 	maxWaves          = 5
+	maxTotalSearch    = 300 * time.Second // D-15 hard stop: whichever of this or maxWaves first
 	interWaveGap      = 2 * time.Second
 	locationFreshness = 90 * time.Second
 	geoArrivalRadiusM = 150

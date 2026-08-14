@@ -54,6 +54,9 @@ func (r *DispatchRunner) Run(ctx context.Context) {
 			} else if n > 0 {
 				r.log.Info("dispatch sweep: launched first waves", slog.Int("orders", n))
 			}
+			if err := r.EscalateAndExpire(ctx); err != nil {
+				r.log.Warn("dispatch escalation failed", slog.String("error", err.Error()))
+			}
 		}
 	}
 }
@@ -77,4 +80,70 @@ func (r *DispatchRunner) Sweep(ctx context.Context) (int, error) {
 		count++
 	}
 	return count, nil
+}
+
+// EscalateAndExpire is the wave-sequencing half of the runner (D-15): it expires
+// offers whose TTL has passed, advances every order whose wave has lapsed to the
+// next wave (widening the radius ladder, giving up at the wave/time budget with
+// NO_RIDER_FOUND), and forces unresponsive riders offline. Called every tick.
+func (r *DispatchRunner) EscalateAndExpire(ctx context.Context) error {
+	now := r.svc.now()
+
+	// 1. Expire lapsed PENDING offers so they are excluded from the next wave and
+	//    counted toward the unresponsive streak.
+	if _, err := r.svc.store.ExpireDueOffers(ctx, now); err != nil {
+		return err
+	}
+
+	// 2. Advance every order whose wave has lapsed (offer TTL + inter-wave gap).
+	due, err := r.svc.store.FindWavesToEscalate(ctx, now, interWaveGap)
+	if err != nil {
+		return err
+	}
+	for _, d := range due {
+		if d.Wave >= maxWaves || time.Duration(d.ElapsedS)*time.Second >= maxTotalSearch {
+			if err := r.svc.store.MarkNoRiderFound(ctx, d.OrderID); err != nil {
+				r.log.Warn("dispatch: mark no-rider-found failed",
+					slog.String("order_id", d.OrderID), slog.String("error", err.Error()))
+			}
+			continue
+		}
+		r.escalateOne(ctx, d)
+	}
+
+	// 3. Force riders with three consecutive expired offers offline (UNRESPONSIVE).
+	if n, err := r.svc.store.SweepUnresponsiveRiders(ctx); err != nil {
+		return err
+	} else if n > 0 {
+		r.log.Info("dispatch: riders auto-offlined for unresponsiveness", slog.Int64("riders", n))
+	}
+	return nil
+}
+
+// escalateOne offers the next wave for a single lapsed order, widening the radius
+// ladder when a radius is exhausted, and ending with NO_RIDER_FOUND if the ladder
+// runs out. The wave number is the escalation round; the radius widens within it.
+func (r *DispatchRunner) escalateOne(ctx context.Context, d waveToEscalate) {
+	radius := d.RadiusM
+	for {
+		res, err := r.svc.RunWave(ctx, d.OrderID, d.Wave+1, radius)
+		if err != nil {
+			r.log.Warn("dispatch: escalation RunWave failed",
+				slog.String("order_id", d.OrderID), slog.String("error", err.Error()))
+			return
+		}
+		if res.Offered > 0 {
+			return // next wave went out
+		}
+		// No offers at this radius (candidates exhausted): widen, or give up.
+		ni := nextRadiusIndex(radius)
+		if ni < 0 {
+			if err := r.svc.store.MarkNoRiderFound(ctx, d.OrderID); err != nil {
+				r.log.Warn("dispatch: mark no-rider-found failed",
+					slog.String("order_id", d.OrderID), slog.String("error", err.Error()))
+			}
+			return
+		}
+		radius = radiusLadderM[ni]
+	}
 }
