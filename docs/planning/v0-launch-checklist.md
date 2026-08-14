@@ -4,7 +4,9 @@
 
 Owner tags: **[YOU]** = your decision / vendor / legal (I can't unblock). **[ME]** = engineering, no external dependency. **[BOTH]** = engineering that needs an input from you (a key, an account, a decision).
 
-Status as of this session: the **v0 spine is built and integration-proven** — contract-faithful backend (71 drifts fixed + conformance gate), the order lifecycle end-to-end, and 3 of 4 apps UI-verified against the real backend. Below is what stands between that and a launchable v0.
+Status as of this session: the **v0 spine is built and integration-proven** — contract-faithful backend (71 drifts fixed + a conformance gate now covering 70/144 ops, `make check` green end-to-end), the order lifecycle end-to-end, **all 4 apps** UI-verified against the real backend, the **onboarding/halal pipeline proven end-to-end**, and the **first `make up` working**. Bugs the deeper passes surfaced and fixed: an envelope `omitempty` corrupting every `data:null` response platform-wide; the rider go-online 500; a discovery-distance 500; the halal_certificate never being created; the take-next summary/full shape drift; the dispatch race-test flake. Below is what still stands between this and a launchable v0.
+
+**Done this pass (were [ME] items):** onboarding flow end-to-end · conformance coverage 23→70 · dispatch flake fixed · rider app UI re-verified · first `make up`. **Still [ME]:** coverage 70→more · oapi-codegen floor · the contract-valid `null` fields · **go-live state transitions** (`DOCUMENTS_APPROVED → … → LIVE/ACTIVE`) are unimplemented by design — they belong to the payments payouts-enabled + menu approved-version modules, not yet built · `EXPIRE_OFFER` deadline action unimplemented (offers not auto-expired).
 
 ---
 
