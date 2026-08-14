@@ -45,12 +45,24 @@ Goal: attribute users and revenue across paid channels (Google, Meta, TikTok, et
 - **Attribution model:** UTM + click-ID capture at entry → RudderStack identity stitch → warehouse → BI reports ROAS per channel/campaign. The MMP handles mobile-install; the warehouse handles full-funnel ROI.
 - **Promo-abuse guard (adjacent, important):** paid growth + promo codes attract fraud (fake accounts, referral farming, code sharing). Velocity rules + one-promo-per-identity + device/deep-link signals. Ties to existing idempotency/`deadline_at` discipline. Not a martech tool — a rules service.
 
-## Resolved: notification infrastructure (no Novu)
+## Notifications: this plane owns MARKETING only
 
-You found Novu paywalls essentials. Resolution that also removes overlap:
-- **Marketing notifications** (campaigns, journeys, event-triggered) → **Dittofeed** owns delivery across all channels. No separate notification infra.
-- **Transactional notifications** (order accepted, rider assigned, delivered — must-send, OLTP-driven) → stay in the **app's own notification service** behind provider seams (SES / Twilio / FCM), *with* the source of truth. These are not marketing and must not depend on the marketing plane or consent state.
-- Net: transactional = app; marketing = Dittofeed. Novu is not needed and would overlap Dittofeed.
+Two notification classes with **opposite reliability requirements** — do not conflate:
+
+| | **Transactional** (order accepted, rider assigned, delivered, sign-in OTP) | **Marketing** (offers, journeys, re-engagement) |
+|---|---|---|
+| Plane | **OLTP / core system** | OLAP / this plane |
+| Delivery | **Guaranteed, atomic with the business event, at-least-once + idempotent, provider-failover** | Best-effort, droppable, rate-limited |
+| Consent | **Independent** (contractual/security — always sends) | **Consent-gated + suppressible** |
+| Owner | **NOT this plane** → see `transactional-notifications.md` (River outbox in Postgres) | **Dittofeed** |
+
+- **Marketing** → **Dittofeed** owns campaign/journey delivery across channels. That's this plane.
+- **Transactional** → handled by the **core system's own notification service** (transactional
+  outbox via **River**, atomic with the OLTP write; Postgres-backed so a Redis flush never loses
+  one). It has **no dependency** on Dittofeed, the CDP, or marketing consent. Spec: `transactional-notifications.md`.
+- This is exactly why **Novu is out**: it would sit in the transactional path as an external
+  failure domain with weaker guarantees than an in-transaction outbox — a reliability downgrade,
+  not just an overlap with Dittofeed.
 
 ## v2 decisions still open
 
