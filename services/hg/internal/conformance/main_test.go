@@ -96,4 +96,10 @@ var expectedCovered = []string{
 	"listAddresses", "listNotifications",
 	// admin (replaces handler_orders_conformance_test.go / handler_menu_conformance_test.go)
 	"listOrdersAdmin", "getOrderAdmin", "listMenuReviewQueue",
+	// gap-closers (conformance_gaps_test.go): the full checkout money path against
+	// the local fake payment gateway, the dispatch accept/assignment pair, the
+	// realtime ticket (seeded session), and the signed Stripe webhook.
+	"createQuote", "createOrder", "cancelOrder",
+	"acceptOffer", "getAssignment",
+	"createRealtimeTicket", "receiveStripeWebhook",
 }
