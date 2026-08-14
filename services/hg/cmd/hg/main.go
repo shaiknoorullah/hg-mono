@@ -39,6 +39,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
@@ -50,7 +51,16 @@ import (
 // orderPaymentGateway bridges the orders module to the payments sibling: it
 // implements orders.PaymentGateway by asking the payments service to authorise
 // a manual-capture PaymentIntent for the order (P-16 step 3/4).
-type orderPaymentGateway struct{ svc *payments.Service }
+//
+// advanceLocal is set only in local/fake-Stripe mode: production advances the
+// order past authorisation via the Stripe webhook (amount_capturable_updated),
+// which the fake client cannot send, so we advance CREATED→AUTHORIZED→
+// RESTAURANT_PENDING synchronously here instead. It is never set with a real key.
+type orderPaymentGateway struct {
+	svc          *payments.Service
+	store        *orders.Store
+	advanceLocal bool
+}
 
 func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.CreateIntentInput) (orders.CreateIntentResult, error) {
 	method := ""
@@ -66,6 +76,16 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 	})
 	if err != nil {
 		return orders.CreateIntentResult{}, err
+	}
+	if g.advanceLocal {
+		_ = g.store.Transition(ctx, orders.TransitionRequest{
+			OrderID: in.OrderID, To: machine.StateAuthorized, Actor: machine.ActorSystem,
+			Reason: "payment authorised (local fake)",
+		})
+		_ = g.store.Transition(ctx, orders.TransitionRequest{
+			OrderID: in.OrderID, To: machine.StateRestaurantPending, Actor: machine.ActorSystem,
+			Reason: "presented to restaurant",
+		})
 	}
 	return orders.CreateIntentResult{ClientSecret: row.StripePaymentIntentID + "_secret"}, nil
 }
@@ -228,7 +248,7 @@ func run() error {
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
-	orderGateway := orderPaymentGateway{svc: paymentsSvc}
+	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
 	deadlineRunner := orders.NewDeadlineRunner(ordersStore, nil, log, cfg.HTTPAddr)
 	go deadlineRunner.Run(ctx)
