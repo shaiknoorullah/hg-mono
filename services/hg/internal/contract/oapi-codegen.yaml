@@ -1,0 +1,11 @@
+# Config for github.com/oapi-codegen/oapi-codegen — generates Go types for every
+# contract component schema, so a handler that returns one of these types cannot
+# emit a shape that drifts from contracts/openapi.yaml without a compile error.
+# Regenerate with `make generate-contract`; the gate `make generate-check` fails if
+# the checked-in output is stale or hand-edited (DO NOT EDIT types.gen.go).
+package: contract
+output: types.gen.go
+generate:
+  models: true
+output-options:
+  skip-prune: true

@@ -101,8 +101,18 @@ tidy: ## go mod tidy
 conformance: ## Validate every reachable 2xx server response against contracts/openapi.yaml
 	$(GO) test -race -run Conformance ./internal/conformance/...
 
+.PHONY: generate-contract
+generate-contract: ## Regenerate the Go contract types from contracts/openapi.yaml
+	cd internal/contract && $(GO) tool oapi-codegen -config oapi-codegen.yaml ../../../../contracts/openapi.yaml
+
+.PHONY: generate-check
+generate-check: ## Fail when the checked-in contract types are stale or hand-edited
+	@$(MAKE) generate-contract
+	@git diff --exit-code -- internal/contract/types.gen.go \
+		|| { echo "internal/contract/types.gen.go is out of date — run 'make generate-contract' and commit"; exit 1; }
+
 .PHONY: check
-check: fmt-check vet test conformance ## Everything CI runs
+check: fmt-check vet generate-check test conformance ## Everything CI runs
 
 # ---------------------------------------------------------------------------
 # Stack
