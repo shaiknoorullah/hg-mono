@@ -99,15 +99,15 @@ func validateTags(dietary, allergen []string) []httpx.FieldError {
 // ::time casts, which would otherwise 23514 / 22007 into a 500.
 func validateHours(in hoursInputDTO) []httpx.FieldError {
 	var fe []httpx.FieldError
-	for i, s := range in.Hours {
+	for i, s := range in.Intervals {
 		if s.DayOfWeek < 0 || s.DayOfWeek > 6 {
-			fe = append(fe, httpx.FieldError{Field: fieldIdx("hours", i, "day_of_week"), Code: "invalid", Message: "day_of_week must be 0..6"})
+			fe = append(fe, httpx.FieldError{Field: fieldIdx("intervals", i, "day_of_week"), Code: "invalid", Message: "day_of_week must be 0..6"})
 		}
 		if !isValidTimeOfDay(s.OpensAt) {
-			fe = append(fe, httpx.FieldError{Field: fieldIdx("hours", i, "opens_at"), Code: "invalid", Message: "opens_at must be HH:MM"})
+			fe = append(fe, httpx.FieldError{Field: fieldIdx("intervals", i, "opens_at"), Code: "invalid", Message: "opens_at must be HH:MM"})
 		}
 		if !isValidTimeOfDay(s.ClosesAt) {
-			fe = append(fe, httpx.FieldError{Field: fieldIdx("hours", i, "closes_at"), Code: "invalid", Message: "closes_at must be HH:MM"})
+			fe = append(fe, httpx.FieldError{Field: fieldIdx("intervals", i, "closes_at"), Code: "invalid", Message: "closes_at must be HH:MM"})
 		}
 	}
 	for i, o := range in.Overrides {

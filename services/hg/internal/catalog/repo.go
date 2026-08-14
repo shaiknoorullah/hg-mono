@@ -46,6 +46,11 @@ type restaurantRow struct {
 	minimumOrderCents int64
 	avgPrepMinutes    int32
 	deliveryRadiusM   int32
+	// media object ids, resolved to public URLs by the MediaResolver.
+	logoObjectID  *string
+	coverObjectID *string
+	// cuisines associated with the restaurant, projected for the card subtitle.
+	cuisines []string
 	// halal certificate fields, joined for the badge/panel.
 	certifyingBody *string
 	certExpiresOn  *time.Time
@@ -64,6 +69,13 @@ const cardColumns = `
 	r.public_phone_e164,
 	r.rating_avg, r.rating_count, r.price_band::text, r.halal_status::text,
 	r.minimum_order_cents, r.avg_prep_minutes, r.delivery_radius_m,
+	r.logo_object_id::text, r.cover_object_id::text,
+	COALESCE((
+		SELECT array_agg(cu.name ORDER BY cu.sort_order, cu.name)
+		  FROM restaurant_cuisine rc
+		  JOIN cuisine cu ON cu.id = rc.cuisine_id
+		 WHERE rc.restaurant_id = r.id AND cu.is_active
+	), '{}') AS cuisines,
 	b.name AS certifying_body,
 	c.expires_on AS cert_expires_on`
 
@@ -86,6 +98,7 @@ func scanCard(row pgx.Row, withDistance, withGeo bool) (restaurantRow, error) {
 		&rr.publicPhone,
 		&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
 		&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
+		&rr.logoObjectID, &rr.coverObjectID, &rr.cuisines,
 		&rr.certifyingBody, &rr.certExpiresOn,
 	}
 	if withGeo {
@@ -224,7 +237,11 @@ func (rp *Repo) getVisible(ctx context.Context, id string, lat, lng *float64) (r
 	geoExpr := ", ST_Y(r.location::geometry) AS latitude, ST_X(r.location::geometry) AS longitude"
 	q := "SELECT " + cardColumns + geoExpr + distanceExpr + cardJoins +
 		" WHERE r.id = $1::uuid AND " + visiblePredicate
-	rr, err := scanCard(rp.db.QueryRow(ctx, q, args...), lat != nil && lng != nil, true)
+	// distanceExpr always projects a distance_m column (ST_Distance or NULL::int),
+	// so the scan must always consume it — otherwise the field count mismatches the
+	// destinations and pgx errors, which surfaced as a 500 on the point-less detail
+	// read. withDistance is therefore true regardless of whether a point was given.
+	rr, err := scanCard(rp.db.QueryRow(ctx, q, args...), true, true)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return restaurantRow{}, errNotFound
 	}

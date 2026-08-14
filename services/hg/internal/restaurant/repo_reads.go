@@ -36,15 +36,15 @@ var ErrDelayLimitReached = errors.New("delay limit reached")
 // GetOnboardingStatus returns the onboarding state and a coarse progress
 // percentage for the restaurant the account is scoped to.
 func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*OnboardingStatus, error) {
-	var state string
+	var state, accountState string
 	var halalStatus string
 	var profileOK bool // has the restaurant filled in the key profile fields?
 	err := r.db.QueryRow(ctx, `
-		SELECT onboarding_state::text, halal_status::text,
+		SELECT onboarding_state::text, account_state::text, halal_status::text,
 		       (line1 IS NOT NULL AND province IS NOT NULL AND postal_code IS NOT NULL
 		        AND location IS NOT NULL AND avg_prep_minutes > 0)
 		  FROM restaurant WHERE id = $1 AND deleted_at IS NULL`,
-		restaurantID).Scan(&state, &halalStatus, &profileOK)
+		restaurantID).Scan(&state, &accountState, &halalStatus, &profileOK)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -52,14 +52,7 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 		return nil, fmt.Errorf("get onboarding state: %w", err)
 	}
 
-	// Count approved hours.
-	var hoursCount int
-	_ = r.db.QueryRow(ctx, `SELECT count(*) FROM restaurant_hours WHERE restaurant_id = $1`, restaurantID).Scan(&hoursCount)
-
-	// Count DISTINCT required document types present in a reviewable state.
-	// Counting distinct types (not raw rows) prevents four copies of one type
-	// from falsely reporting a complete pack. The required set mirrors
-	// CheckDocumentPack / the contract's RestaurantDocType.
+	// Documents uploaded: any required doc type present (not rejected).
 	var distinctRequiredDocs int
 	_ = r.db.QueryRow(ctx, `
 		SELECT count(DISTINCT restaurant_doc_type) FROM kyc_document
@@ -68,67 +61,152 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 		   AND state NOT IN ('REJECTED') AND deleted_at IS NULL`,
 		restaurantID, requiredRestaurantDocTypes).Scan(&distinctRequiredDocs)
 
-	hoursOK := hoursCount > 0
-	docsReady := distinctRequiredDocs >= len(requiredRestaurantDocTypes)
-	halalVerified := halalStatus == "CERTIFIED"
+	// Documents submitted / approved: distinct required types in SUBMITTED+ / APPROVED.
+	var submittedDocs, approvedDocs int
+	_ = r.db.QueryRow(ctx, `
+		SELECT count(DISTINCT restaurant_doc_type) FROM kyc_document
+		 WHERE subject_id = $1 AND subject_type = 'RESTAURANT'
+		   AND restaurant_doc_type = ANY($2::restaurant_doc_type[])
+		   AND state IN ('SUBMITTED','IN_REVIEW','APPROVED') AND deleted_at IS NULL`,
+		restaurantID, requiredRestaurantDocTypes).Scan(&submittedDocs)
+	_ = r.db.QueryRow(ctx, `
+		SELECT count(DISTINCT restaurant_doc_type) FROM kyc_document
+		 WHERE subject_id = $1 AND subject_type = 'RESTAURANT'
+		   AND restaurant_doc_type = ANY($2::restaurant_doc_type[])
+		   AND state = 'APPROVED' AND deleted_at IS NULL`,
+		restaurantID, requiredRestaurantDocTypes).Scan(&approvedDocs)
 
-	pct := 0
+	// Menu published: at least one approved menu item version.
+	var menuPublished bool
+	_ = r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM menu_item_version
+			 WHERE restaurant_id = $1 AND review_status = 'APPROVED')`,
+		restaurantID).Scan(&menuPublished)
+
+	required := len(requiredRestaurantDocTypes)
+	steps := OnboardingSteps{
+		Profile:            profileOK,
+		DocumentsUploaded:  distinctRequiredDocs > 0,
+		DocumentsSubmitted: submittedDocs >= required,
+		DocumentsApproved:  approvedDocs >= required,
+		PayoutAccount:      false,
+		MenuPublished:      menuPublished,
+	}
+
+	// Progress: six weighted checks (one per step).
 	checks := 0
-	if profileOK {
-		checks++
+	for _, ok := range []bool{steps.Profile, steps.DocumentsUploaded, steps.DocumentsSubmitted,
+		steps.DocumentsApproved, steps.PayoutAccount, steps.MenuPublished} {
+		if ok {
+			checks++
+		}
 	}
-	if hoursOK {
-		checks++
-	}
-	if docsReady {
-		checks++
-	}
-	if halalVerified {
-		checks++
-	}
-	pct = (checks * 100) / 4
+	pct := (checks * 100) / 6
 
 	return &OnboardingStatus{
 		OnboardingState: state,
+		AccountState:    accountState,
+		CurrentStep:     onboardingCurrentStep(state, steps),
 		ProgressPercent: pct,
-		ProfileComplete: profileOK,
-		HoursComplete:   hoursOK,
-		DocumentsReady:  docsReady,
-		HalalVerified:   halalVerified,
+		StepsCompleted:  steps,
 	}, nil
+}
+
+// onboardingCurrentStep derives the current_step enum (contract:
+// [PROFILE, DOCUMENTS, AWAITING_REVIEW, FIX_DOCUMENTS, PAYOUT, MENU, DONE])
+// from the onboarding_state and the completed steps.
+func onboardingCurrentStep(state string, steps OnboardingSteps) string {
+	switch state {
+	case "REGISTERED", "EMAIL_VERIFIED", "PROFILE_PENDING":
+		return "PROFILE"
+	case "DOCUMENTS_PENDING":
+		return "DOCUMENTS"
+	case "DOCUMENTS_REVIEW":
+		return "AWAITING_REVIEW"
+	case "DOCUMENTS_REJECTED":
+		return "FIX_DOCUMENTS"
+	case "DOCUMENTS_APPROVED", "PAYOUT_PENDING":
+		return "PAYOUT"
+	case "MENU_PENDING":
+		return "MENU"
+	case "ACTIVE":
+		return "DONE"
+	}
+	if !steps.Profile {
+		return "PROFILE"
+	}
+	if !steps.DocumentsUploaded {
+		return "DOCUMENTS"
+	}
+	if !steps.MenuPublished {
+		return "MENU"
+	}
+	return "DONE"
 }
 
 // GetProfile returns the restaurant's profile for its own editing view.
 func (r *Repo) GetProfile(ctx context.Context, restaurantID string) (*RestaurantProfile, error) {
 	var p RestaurantProfile
+	var province, postalCode, city, line1 *string
+	var line2 *string
 	var lat, lon *float64
-	var createdAt, updatedAt time.Time
+	var halalStatus, accountState string
+	var certifyingBody *string
+	var certExpiresOn *time.Time
 	err := r.db.QueryRow(ctx, `
-		SELECT id::text, legal_name, display_name, description,
-		       phone_e164, public_phone_e164, gst_hst_number,
-		       province::text, postal_code, city, line1, line2,
-		       ST_Y(location::geometry), ST_X(location::geometry),
-		       timezone, avg_prep_minutes, delivery_radius_m,
-		       halal_status::text, onboarding_state::text,
-		       created_at, updated_at
-		  FROM restaurant WHERE id = $1 AND deleted_at IS NULL`, restaurantID).Scan(
+		SELECT r.id::text, r.legal_name, r.display_name, r.description,
+		       r.phone_e164, r.public_phone_e164, r.gst_hst_number,
+		       r.province::text, r.postal_code, r.city, r.line1, r.line2,
+		       ST_Y(r.location::geometry), ST_X(r.location::geometry),
+		       r.timezone, r.avg_prep_minutes, r.delivery_radius_m,
+		       r.halal_status::text, r.onboarding_state::text, r.account_state::text,
+		       hcb.name, hc.expires_on
+		  FROM restaurant r
+		  LEFT JOIN halal_certificate hc ON hc.id = r.halal_certificate_id
+		  LEFT JOIN halal_issuing_body hcb ON hcb.id = hc.issuing_body_id
+		 WHERE r.id = $1 AND r.deleted_at IS NULL`, restaurantID).Scan(
 		&p.ID, &p.LegalName, &p.DisplayName, &p.Description,
 		&p.PhoneE164, &p.PublicPhoneE164, &p.GstHstNumber,
-		&p.Province, &p.PostalCode, &p.City, &p.Line1, &p.Line2,
+		&province, &postalCode, &city, &line1, &line2,
 		&lat, &lon,
 		&p.Timezone, &p.AvgPrepMinutes, &p.DeliveryRadiusM,
-		&p.HalalStatus, &p.OnboardingState,
-		&createdAt, &updatedAt)
+		&halalStatus, &p.OnboardingState, &accountState,
+		&certifyingBody, &certExpiresOn)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get profile: %w", err)
 	}
-	p.Latitude = lat
-	p.Longitude = lon
-	p.CreatedAt = tsStr(createdAt)
-	p.UpdatedAt = tsStr(updatedAt)
+	p.AccountState = accountState
+	// Nested PublicAddress. Fields are non-null for a LIVE restaurant; use zero
+	// values for a partially-onboarded one rather than emitting a bare object.
+	p.Address = PublicAddress{Line2: line2}
+	if line1 != nil {
+		p.Address.Line1 = *line1
+	}
+	if city != nil {
+		p.Address.City = *city
+	}
+	if province != nil {
+		p.Address.Province = *province
+	}
+	if postalCode != nil {
+		p.Address.PostalCode = *postalCode
+	}
+	if lat != nil {
+		p.Address.Latitude = *lat
+	}
+	if lon != nil {
+		p.Address.Longitude = *lon
+	}
+	// Halal badge (C-12): a nested HalalBadge, never a flat string, never omitted.
+	p.Halal = &HalalBadge{DisplayState: halalStatus, CertifyingBodyName: certifyingBody}
+	if certExpiresOn != nil {
+		s := certExpiresOn.Format("2006-01-02")
+		p.Halal.ExpiresOn = &s
+	}
 
 	// Cuisine IDs.
 	rows, err := r.db.Query(ctx, `SELECT cuisine_id::text FROM restaurant_cuisine WHERE restaurant_id = $1`, restaurantID)
@@ -167,7 +245,6 @@ func (r *Repo) UpsertProfile(ctx context.Context, restaurantID string, in profil
 		in.Line2,
 		in.Timezone,
 		in.AvgPrepMinutes,
-		in.DeliveryRadiusM,
 	}
 	if in.Latitude != 0 && in.Longitude != 0 {
 		args = append(args, in.Longitude, in.Latitude)
@@ -183,7 +260,6 @@ func (r *Repo) UpsertProfile(ctx context.Context, restaurantID string, in profil
 			province=$8::province, postal_code=$9, city=$10, line1=$11, line2=$12,
 			timezone=COALESCE($13,timezone),
 			avg_prep_minutes=COALESCE($14,avg_prep_minutes),
-			delivery_radius_m=COALESCE($15,delivery_radius_m),
 			location=%s,
 			updated_at=now()
 		WHERE id=$1 AND deleted_at IS NULL`, locExpr)
@@ -198,9 +274,19 @@ func (r *Repo) UpsertProfile(ctx context.Context, restaurantID string, in profil
 // GetHours returns the restaurant's weekly trading hours and date overrides.
 func (r *Repo) GetHours(ctx context.Context, restaurantID string) (*HoursView, error) {
 	out := &HoursView{
-		Hours:     []HoursSlotRow{},
+		Intervals: []HoursSlotRow{},
 		Overrides: []HoursOverrideRow{},
 	}
+	// Timezone is a required field on RestaurantHours; read it from the restaurant.
+	if err := r.db.QueryRow(ctx,
+		`SELECT timezone FROM restaurant WHERE id = $1 AND deleted_at IS NULL`,
+		restaurantID).Scan(&out.Timezone); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("get hours timezone: %w", err)
+	}
+
 	rows, err := r.db.Query(ctx, `
 		SELECT day_of_week, opens_at::text, closes_at::text, crosses_midnight
 		  FROM restaurant_hours WHERE restaurant_id = $1 ORDER BY day_of_week`, restaurantID)
@@ -213,7 +299,7 @@ func (r *Repo) GetHours(ctx context.Context, restaurantID string) (*HoursView, e
 		if err := rows.Scan(&s.DayOfWeek, &s.OpensAt, &s.ClosesAt, &s.CrossesMidnight); err != nil {
 			return nil, err
 		}
-		out.Hours = append(out.Hours, s)
+		out.Intervals = append(out.Intervals, s)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -229,7 +315,7 @@ func (r *Repo) GetHours(ctx context.Context, restaurantID string) (*HoursView, e
 	defer orows.Close()
 	for orows.Next() {
 		var o HoursOverrideRow
-		if err := orows.Scan(&o.OnDate, &o.IsClosed, &o.OpensAt, &o.ClosesAt, &o.Reason); err != nil {
+		if err := orows.Scan(&o.Date, &o.IsClosed, &o.OpensAt, &o.ClosesAt, &o.Reason); err != nil {
 			return nil, err
 		}
 		out.Overrides = append(out.Overrides, o)
@@ -249,7 +335,7 @@ func (r *Repo) SetHours(ctx context.Context, restaurantID string, in hoursInputD
 	if _, err := tx.Exec(ctx, `DELETE FROM restaurant_hours WHERE restaurant_id = $1`, restaurantID); err != nil {
 		return nil, fmt.Errorf("delete hours: %w", err)
 	}
-	for _, s := range in.Hours {
+	for _, s := range in.Intervals {
 		cm := false
 		if s.CrossesMidnight != nil {
 			cm = *s.CrossesMidnight
@@ -271,7 +357,7 @@ func (r *Repo) SetHours(ctx context.Context, restaurantID string, in hoursInputD
 		_, err := tx.Exec(ctx, `
 			INSERT INTO restaurant_hours_override (restaurant_id, on_date, is_closed, opens_at, closes_at, reason)
 			VALUES ($1,$2::date,$3,$4::time,$5::time,$6)`,
-			restaurantID, o.OnDate, o.IsClosed, o.OpensAt, o.ClosesAt, o.Reason)
+			restaurantID, o.Date, o.IsClosed, o.OpensAt, o.ClosesAt, o.Reason)
 		if err != nil {
 			return nil, fmt.Errorf("insert override: %w", err)
 		}
@@ -286,9 +372,11 @@ func (r *Repo) SetHours(ctx context.Context, restaurantID string, in hoursInputD
 // ListDocuments returns all KYC documents for the restaurant.
 func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]DocumentRow, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT d.id::text, d.subject_id::text, d.restaurant_doc_type::text,
-		       d.state::text, d.stored_object_id::text,
-		       d.valid_until::text, d.issuer,
+		SELECT d.id::text, d.subject_type::text, d.subject_id::text,
+		       d.restaurant_doc_type::text, d.state::text,
+		       d.issuer, d.certificate_number,
+		       d.issued_on::text, d.valid_until::text, d.version,
+		       d.rejection_reason_code::text, d.review_note, d.reviewed_at,
 		       d.created_at
 		  FROM kyc_document d
 		 WHERE d.subject_id = $1 AND d.subject_type = 'RESTAURANT'
@@ -301,11 +389,14 @@ func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]Docume
 	var out []DocumentRow
 	for rows.Next() {
 		var d DocumentRow
+		var reviewedAt *time.Time
 		var createdAt time.Time
-		if err := rows.Scan(&d.ID, &d.SubjectID, &d.DocType, &d.State, &d.StoredObjID,
-			&d.ExpiresOn, &d.IssuerName, &createdAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State,
+			&d.Issuer, &d.CertificateNumber, &d.IssuedOn, &d.ValidUntil, &d.Version,
+			&d.RejectionReasonCode, &d.ReviewNote, &reviewedAt, &createdAt); err != nil {
 			return nil, err
 		}
+		d.ReviewedAt = tsStrPtr(reviewedAt)
 		d.CreatedAt = tsStr(createdAt)
 		out = append(out, d)
 	}
@@ -318,24 +409,33 @@ func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]Docume
 // AttachDocument attaches one kyc_document to the restaurant.
 func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in documentInputDTO) (*DocumentRow, error) {
 	var id string
+	var version int
 	var createdAt time.Time
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state, deadline_at, deadline_action)
-		VALUES ('RESTAURANT', $1, $2::restaurant_doc_type, $3, 'SUBMITTED', now()+interval '72h', 'ESCALATE')
-		RETURNING id::text, created_at`,
-		restaurantID, in.DocType, in.StoredObjectID).Scan(&id, &createdAt)
+		INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id,
+			issuer, halal_issuing_body_id, certificate_number, issued_on, valid_until,
+			state, deadline_at, deadline_action)
+		VALUES ('RESTAURANT', $1, $2::restaurant_doc_type, $3,
+			$4, $5::uuid, $6, $7::date, $8::date,
+			'SUBMITTED', now()+interval '72h', 'ESCALATE')
+		RETURNING id::text, version, created_at`,
+		restaurantID, in.DocType, in.StoredObjectID,
+		in.Issuer, in.IssuerBodyID, in.CertificateNumber, in.IssuedOn, in.ValidUntil).Scan(&id, &version, &createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("attach document: %w", err)
 	}
 	return &DocumentRow{
-		ID:          id,
-		SubjectID:   restaurantID,
-		DocType:     in.DocType,
-		State:       "SUBMITTED",
-		StoredObjID: in.StoredObjectID,
-		ExpiresOn:   in.ExpiresOn,
-		IssuerName:  in.IssuerName,
-		CreatedAt:   tsStr(createdAt),
+		ID:                id,
+		SubjectType:       "RESTAURANT",
+		SubjectID:         restaurantID,
+		DocType:           in.DocType,
+		State:             "SUBMITTED",
+		Issuer:            in.Issuer,
+		CertificateNumber: in.CertificateNumber,
+		IssuedOn:          in.IssuedOn,
+		ValidUntil:        in.ValidUntil,
+		Version:           version,
+		CreatedAt:         tsStr(createdAt),
 	}, nil
 }
 
@@ -357,6 +457,22 @@ func (r *Repo) CheckDocumentPack(ctx context.Context, restaurantID string) error
 		if count == 0 {
 			return ErrIncompleteDocumentPack
 		}
+	}
+	return nil
+}
+
+// SubmitDocumentPack advances the restaurant's onboarding to DOCUMENTS_REVIEW
+// once the required pack is present (CheckDocumentPack passed). Idempotent: a
+// restaurant already past DOCUMENTS_PENDING is left where it is.
+func (r *Repo) SubmitDocumentPack(ctx context.Context, restaurantID string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE restaurant
+		   SET onboarding_state = 'DOCUMENTS_REVIEW', updated_at = now()
+		 WHERE id = $1 AND deleted_at IS NULL
+		   AND onboarding_state IN ('DOCUMENTS_PENDING','DOCUMENTS_REJECTED','PROFILE_PENDING','REGISTERED','EMAIL_VERIFIED')`,
+		restaurantID)
+	if err != nil {
+		return fmt.Errorf("submit document pack: %w", err)
 	}
 	return nil
 }
@@ -404,8 +520,8 @@ func (r *Repo) loadCategoryItems(ctx context.Context, restaurantID, categoryID s
 	rows, err := r.db.Query(ctx, `
 		SELECT mi.id::text, mi.category_id::text, mi.price_cents, mi.currency::text,
 		       mi.availability_state::text, mi.out_of_stock_until,
-		       mi.sort_order, mi.live_version_id, mi.pending_version_id,
-		       mi.created_at, mi.updated_at
+		       mi.tax_category::text, mi.prep_minutes,
+		       mi.sort_order, mi.live_version_id, mi.pending_version_id
 		  FROM menu_item mi
 		 WHERE mi.restaurant_id = $1 AND mi.category_id = $2 AND mi.deleted_at IS NULL
 		 ORDER BY mi.sort_order, mi.created_at`, restaurantID, categoryID)
@@ -414,58 +530,87 @@ func (r *Repo) loadCategoryItems(ctx context.Context, restaurantID, categoryID s
 	}
 	defer rows.Close()
 	var out []MenuItemView
+	var pending []menuItemScan
 	for rows.Next() {
 		var item MenuItemView
 		var outOfStock *time.Time
-		var createdAt, updatedAt time.Time
 		var liveVid, pendingVid *string
 		if err := rows.Scan(&item.ID, &item.CategoryID, &item.PriceCents, &item.Currency,
 			&item.AvailabilityState, &outOfStock,
-			&item.SortOrder, &liveVid, &pendingVid,
-			&createdAt, &updatedAt); err != nil {
+			&item.TaxCategory, &item.PrepMinutes,
+			&item.SortOrder, &liveVid, &pendingVid); err != nil {
 			return nil, err
 		}
 		if outOfStock != nil {
 			s := tsStr(*outOfStock)
 			item.OutOfStockUntil = &s
 		}
-		item.CreatedAt = tsStr(createdAt)
-		item.UpdatedAt = tsStr(updatedAt)
+		pending = append(pending, menuItemScan{item: item, liveVid: liveVid, pendingVid: pendingVid})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
 
-		if liveVid != nil {
-			v, err := r.loadItemVersion(ctx, *liveVid)
-			if err == nil {
-				item.LiveVersion = v
-			}
-		}
-		if pendingVid != nil {
-			v, err := r.loadItemVersion(ctx, *pendingVid)
-			if err == nil {
-				item.PendingVersion = v
-			}
-		}
+	for _, ps := range pending {
+		item := ps.item
+		r.hydrateMenuItem(ctx, &item, ps.liveVid, ps.pendingVid)
 		out = append(out, item)
 	}
 	if out == nil {
 		out = []MenuItemView{}
 	}
-	return out, rows.Err()
+	return out, nil
+}
+
+// menuItemScan holds a partially-read item plus its version ids so versions can
+// be loaded after the parent rows cursor is closed.
+type menuItemScan struct {
+	item       MenuItemView
+	liveVid    *string
+	pendingVid *string
+}
+
+// hydrateMenuItem loads live/pending versions and copies the claim-bearing
+// display fields (name, description, tags, image) from the live version to the
+// item so the contract's MenuItem base fields (name, tax_category, …) are populated.
+func (r *Repo) hydrateMenuItem(ctx context.Context, item *MenuItemView, liveVid, pendingVid *string) {
+	item.DietaryTags = []string{}
+	item.AllergenTags = []string{}
+	if liveVid != nil {
+		if v, err := r.loadItemVersion(ctx, *liveVid); err == nil {
+			item.LiveVersion = v
+			item.Name = v.Name
+			item.Description = v.Description
+			item.IngredientsText = v.IngredientsText
+			item.DietaryTags = v.DietaryTags
+			item.AllergenTags = v.AllergenTags
+		}
+	}
+	if pendingVid != nil {
+		if v, err := r.loadItemVersion(ctx, *pendingVid); err == nil {
+			item.PendingVersion = v
+		}
+	}
 }
 
 func (r *Repo) loadItemVersion(ctx context.Context, versionID string) (*MenuItemVersion, error) {
 	var v MenuItemVersion
+	var restaurantID string
 	var createdAt time.Time
 	err := r.db.QueryRow(ctx, `
-		SELECT id::text, version, name, description, ingredients_text,
+		SELECT id::text, menu_item_id::text, restaurant_id::text, version, name,
+		       description, ingredients_text,
 		       dietary_tags::text[], allergen_tags::text[],
 		       review_status::text, created_at
 		  FROM menu_item_version WHERE id = $1`, versionID).Scan(
-		&v.ID, &v.Version, &v.Name, &v.Description, &v.IngredientsText,
+		&v.ID, &v.MenuItemID, &restaurantID, &v.Version, &v.Name, &v.Description, &v.IngredientsText,
 		&v.DietaryTags, &v.AllergenTags,
 		&v.ReviewStatus, &createdAt)
 	if err != nil {
 		return nil, err
 	}
+	v.RestaurantID = &restaurantID
 	if v.DietaryTags == nil {
 		v.DietaryTags = []string{}
 	}
@@ -535,10 +680,10 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 		sortOrder = *in.SortOrder
 	}
 	err = tx.QueryRow(ctx, `
-		INSERT INTO menu_item (restaurant_id, category_id, price_cents, sort_order, tax_category)
-		VALUES ($1, $2::uuid, $3, $4, 'PREPARED_FOOD')
+		INSERT INTO menu_item (restaurant_id, category_id, price_cents, sort_order, tax_category, prep_minutes)
+		VALUES ($1, $2::uuid, $3, $4, 'PREPARED_FOOD', $5)
 		RETURNING id::text`,
-		restaurantID, in.CategoryID, in.PriceCents, sortOrder).Scan(&itemID)
+		restaurantID, in.CategoryID, in.PriceCents, sortOrder, in.PrepMinutes).Scan(&itemID)
 	if err != nil {
 		return nil, fmt.Errorf("create menu_item: %w", err)
 	}
@@ -552,16 +697,21 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 		allergenTags = []string{}
 	}
 
+	allergensDeclared := false
+	if in.AllergensDeclared != nil {
+		allergensDeclared = *in.AllergensDeclared
+	}
+
 	var versionID string
 	err = tx.QueryRow(ctx, `
 		INSERT INTO menu_item_version
 			(menu_item_id, restaurant_id, version, name, description, ingredients_text,
-			 dietary_tags, allergen_tags, review_status)
+			 dietary_tags, allergen_tags, allergens_declared, image_object_id, review_status)
 		VALUES ($1, $2, 1, $3, $4, $5,
-		        $6::dietary_tag[], $7::allergen_tag[], 'DRAFT')
+		        $6::dietary_tag[], $7::allergen_tag[], $8, $9::uuid, 'DRAFT')
 		RETURNING id::text`,
 		itemID, restaurantID, in.Name, in.Description, in.IngredientsText,
-		dietaryTags, allergenTags).Scan(&versionID)
+		dietaryTags, allergenTags, allergensDeclared, in.ImageObjectID).Scan(&versionID)
 	if err != nil {
 		return nil, fmt.Errorf("create menu_item_version: %w", err)
 	}
@@ -633,6 +783,12 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 			return nil, fmt.Errorf("update category: %w", err)
 		}
 	}
+	if in.PrepMinutes != nil {
+		if _, err := tx.Exec(ctx, `UPDATE menu_item SET prep_minutes=$1, updated_at=now() WHERE id=$2`,
+			*in.PrepMinutes, itemID); err != nil {
+			return nil, fmt.Errorf("update prep_minutes: %w", err)
+		}
+	}
 
 	// Create a new version for the claim-bearing descriptive fields.
 	newVersion := currentVersionNo + 1
@@ -657,16 +813,21 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 		allergenTags = []string{}
 	}
 
+	allergensDeclared := false
+	if in.AllergensDeclared != nil {
+		allergensDeclared = *in.AllergensDeclared
+	}
+
 	var newVersionID string
 	err = tx.QueryRow(ctx, `
 		INSERT INTO menu_item_version
 			(menu_item_id, restaurant_id, version, name, description, ingredients_text,
-			 dietary_tags, allergen_tags, review_status)
+			 dietary_tags, allergen_tags, allergens_declared, image_object_id, review_status)
 		VALUES ($1, $2, $3, $4, $5, $6,
-		        $7::dietary_tag[], $8::allergen_tag[], 'DRAFT')
+		        $7::dietary_tag[], $8::allergen_tag[], $9, $10::uuid, 'DRAFT')
 		RETURNING id::text`,
 		itemID, restaurantID, newVersion, name, in.Description, in.IngredientsText,
-		dietaryTags, allergenTags).Scan(&newVersionID)
+		dietaryTags, allergenTags, allergensDeclared, in.ImageObjectID).Scan(&newVersionID)
 	if err != nil {
 		return nil, fmt.Errorf("create updated version: %w", err)
 	}
@@ -685,10 +846,9 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 
 // SetMenuItemAvailability sets a menu item's availability state. Validates ownership.
 func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID string, in availabilityInputDTO) (*MenuItemView, error) {
-	state := "AVAILABLE"
-	if !in.IsAvailable {
-		state = "OUT_OF_STOCK"
-	}
+	// availability_state is the contract enum [AVAILABLE, OUT_OF_STOCK]; the
+	// handler validates it before we reach the ::menu_item_availability_state cast.
+	state := in.AvailabilityState
 
 	var outUntil *time.Time
 	if in.OutOfStockUntil != nil {
@@ -716,20 +876,19 @@ func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID
 func (r *Repo) getMenuItemByID(ctx context.Context, restaurantID, itemID string) (*MenuItemView, error) {
 	var item MenuItemView
 	var outOfStock *time.Time
-	var createdAt, updatedAt time.Time
 	var liveVid, pendingVid *string
 	err := r.db.QueryRow(ctx, `
 		SELECT mi.id::text, mi.category_id::text, mi.price_cents, mi.currency::text,
 		       mi.availability_state::text, mi.out_of_stock_until,
-		       mi.sort_order, mi.live_version_id::text, mi.pending_version_id::text,
-		       mi.created_at, mi.updated_at
+		       mi.tax_category::text, mi.prep_minutes,
+		       mi.sort_order, mi.live_version_id::text, mi.pending_version_id::text
 		  FROM menu_item mi
 		 WHERE mi.id = $1 AND mi.restaurant_id = $2 AND mi.deleted_at IS NULL`,
 		itemID, restaurantID).Scan(
 		&item.ID, &item.CategoryID, &item.PriceCents, &item.Currency,
 		&item.AvailabilityState, &outOfStock,
-		&item.SortOrder, &liveVid, &pendingVid,
-		&createdAt, &updatedAt)
+		&item.TaxCategory, &item.PrepMinutes,
+		&item.SortOrder, &liveVid, &pendingVid)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -740,25 +899,13 @@ func (r *Repo) getMenuItemByID(ctx context.Context, restaurantID, itemID string)
 		s := tsStr(*outOfStock)
 		item.OutOfStockUntil = &s
 	}
-	item.CreatedAt = tsStr(createdAt)
-	item.UpdatedAt = tsStr(updatedAt)
-	if liveVid != nil {
-		v, err := r.loadItemVersion(ctx, *liveVid)
-		if err == nil {
-			item.LiveVersion = v
-		}
-	}
-	if pendingVid != nil {
-		v, err := r.loadItemVersion(ctx, *pendingVid)
-		if err == nil {
-			item.PendingVersion = v
-		}
-	}
+	r.hydrateMenuItem(ctx, &item, liveVid, pendingVid)
 	return &item, nil
 }
 
 // ListOrders returns the restaurant's orders, paginated (newest first).
-func (r *Repo) ListOrders(ctx context.Context, restaurantID string, limit int, afterID *string) ([]OrderSummaryView, bool, error) {
+// Each item is the full OrderRestaurantView (the same shape as GetOrder).
+func (r *Repo) ListOrders(ctx context.Context, restaurantID string, limit int, afterID *string) ([]OrderRestaurantView, bool, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
@@ -770,8 +917,7 @@ func (r *Repo) ListOrders(ctx context.Context, restaurantID string, limit int, a
 	}
 	args = append(args, limit+1)
 	q := fmt.Sprintf(`
-		SELECT id::text, code, state::text, total_cents, currency::text,
-		       placed_at, deadline_at
+		SELECT id::text
 		  FROM "order"
 		 WHERE %s
 		 ORDER BY placed_at DESC LIMIT $%d`, where, len(args))
@@ -781,67 +927,106 @@ func (r *Repo) ListOrders(ctx context.Context, restaurantID string, limit int, a
 		return nil, false, err
 	}
 	defer rows.Close()
-	var out []OrderSummaryView
+	var ids []string
 	for rows.Next() {
-		var o OrderSummaryView
-		var placedAt time.Time
-		var deadlineAt *time.Time
-		if err := rows.Scan(&o.ID, &o.Code, &o.State, &o.TotalCents, &o.Currency,
-			&placedAt, &deadlineAt); err != nil {
+		var id string
+		if err := rows.Scan(&id); err != nil {
 			return nil, false, err
 		}
-		o.PlacedAt = tsStr(placedAt)
-		o.DeadlineAt = tsStrPtr(deadlineAt)
-		// Item count.
-		_ = r.db.QueryRow(ctx, `SELECT coalesce(sum(quantity),0) FROM order_line WHERE order_id=$1`, o.ID).Scan(&o.ItemCount)
-		out = append(out, o)
+		ids = append(ids, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, false, err
 	}
-	hasMore := len(out) > limit
+	rows.Close()
+
+	hasMore := len(ids) > limit
 	if hasMore {
-		out = out[:limit]
+		ids = ids[:limit]
 	}
-	if out == nil {
-		out = []OrderSummaryView{}
+
+	out := make([]OrderRestaurantView, 0, len(ids))
+	for _, id := range ids {
+		v, err := r.GetOrder(ctx, restaurantID, id)
+		if err != nil {
+			return nil, false, err
+		}
+		out = append(out, *v)
 	}
 	return out, hasMore, nil
 }
 
 // GetOrder returns a restaurant's order by ID (ownership enforced in SQL).
-func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*OrderDetailView, error) {
-	var o OrderDetailView
-	var placedAt, stateSince time.Time
-	var deadlineAt *time.Time
-	var acceptedAt, readyAt *time.Time
+// It is the ONE mapper to the contract OrderRestaurantView: nested money
+// (RestaurantOrderMoney), nested customer (OrderCustomerRef), lines[] (OrderLine).
+func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*OrderRestaurantView, error) {
+	var o OrderRestaurantView
+	var money RestaurantOrderMoney
+	var discountCents int64
+	var placedAt time.Time
+	var deadlineAt, promisedReadyAt, acceptedAt, readyAt *time.Time
+	// Customer (P-07 minimised): first name + last initial, masked phone.
+	var custFirst *string
+	var custLast *string
+	var custPhone *string
+	// Delivery area: city + distance band. City is available on the address.
+	var city *string
 	err := r.db.QueryRow(ctx, `
-		SELECT id::text, code, state::text, state_since, deadline_at,
-		       total_cents, subtotal_cents, currency::text,
-		       placed_at, accepted_at, ready_at,
-		       reject_reason::text, special_instructions
-		  FROM "order"
-		 WHERE id = $1 AND restaurant_id = $2`,
+		SELECT o.id::text, o.code, o.state::text, o.state_since, o.deadline_at,
+		       o.promised_ready_at,
+		       o.subtotal_cents, o.discount_cents, o.commission_cents,
+		       o.restaurant_net_cents, o.total_cents, o.currency::text,
+		       o.placed_at, o.accepted_at, o.ready_at, o.special_instructions,
+		       cp.first_name, cp.last_name, acc.phone_e164,
+		       addr.city
+		  FROM "order" o
+		  LEFT JOIN account acc ON acc.id = o.account_id
+		  LEFT JOIN customer_profile cp ON cp.account_id = o.account_id
+		  LEFT JOIN address addr ON addr.id = o.delivery_address_id
+		 WHERE o.id = $1 AND o.restaurant_id = $2`,
 		orderID, restaurantID).Scan(
-		&o.ID, &o.Code, &o.State, &stateSince, &deadlineAt,
-		&o.TotalCents, &o.SubtotalCents, &o.Currency,
-		&placedAt, &acceptedAt, &readyAt,
-		&o.RejectReason, &o.SpecialInstructions)
+		&o.ID, &o.Code, &o.State, new(time.Time), &deadlineAt,
+		&promisedReadyAt,
+		&money.SubtotalCents, &discountCents, &money.CommissionCents,
+		&money.RestaurantNetCents, &money.TotalCents, &money.Currency,
+		&placedAt, &acceptedAt, &readyAt, &o.SpecialInstructions,
+		&custFirst, &custLast, &custPhone,
+		&city)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get order: %w", err)
 	}
+	if discountCents != 0 {
+		o.Money = money
+		o.Money.DiscountCents = &discountCents
+	} else {
+		o.Money = money
+	}
 	o.PlacedAt = tsStr(placedAt)
-	o.StateSince = tsStr(stateSince)
 	o.DeadlineAt = tsStrPtr(deadlineAt)
+	o.PromisedReadyAt = tsStrPtr(promisedReadyAt)
 	o.AcceptedAt = tsStrPtr(acceptedAt)
 	o.ReadyAt = tsStrPtr(readyAt)
+	o.Customer = OrderCustomerRef{
+		DisplayName: customerDisplayName(custFirst, custLast),
+		PhoneMasked: maskPhone(custPhone),
+	}
+	if city != nil && *city != "" {
+		da := *city
+		o.DeliveryArea = &da
+	}
+	// is_late: past deadline while still non-terminal.
+	if deadlineAt != nil {
+		late := time.Now().After(*deadlineAt)
+		o.IsLate = &late
+	}
 
 	// Lines.
 	lRows, err := r.db.Query(ctx, `
-		SELECT line_no, name_snapshot, quantity, line_unit_cents, line_total_cents
+		SELECT line_no, menu_item_id::text, name_snapshot, variant_name, quantity,
+		       line_unit_cents, line_total_cents, special_request
 		  FROM order_line WHERE order_id = $1 ORDER BY line_no`, orderID)
 	if err != nil {
 		return nil, err
@@ -849,9 +1034,12 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 	defer lRows.Close()
 	for lRows.Next() {
 		var l OrderLineView
-		if err := lRows.Scan(&l.LineNo, &l.Name, &l.Quantity, &l.UnitPriceCents, &l.LineTotalCents); err != nil {
+		if err := lRows.Scan(&l.LineNo, &l.MenuItemID, &l.Name, &l.VariantName, &l.Quantity,
+			&l.UnitPriceCents, &l.LineTotalCents, &l.SpecialRequest); err != nil {
 			return nil, err
 		}
+		// OrderLine.currency is the order's currency (contract Currency, required).
+		l.Currency = o.Money.Currency
 		o.Lines = append(o.Lines, l)
 	}
 	if o.Lines == nil {
@@ -860,10 +1048,36 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 	return &o, lRows.Err()
 }
 
+// customerDisplayName renders "Aisha K." — first name plus last initial (P-07).
+func customerDisplayName(first, last *string) string {
+	name := ""
+	if first != nil {
+		name = *first
+	}
+	if last != nil && *last != "" {
+		r := []rune(*last)
+		name = name + " " + string(r[0]) + "."
+	}
+	if name == "" {
+		return "Customer"
+	}
+	return name
+}
+
+// maskPhone renders "+1 416 ••• 0123" — full phone is never exposed (P-07).
+func maskPhone(p *string) string {
+	if p == nil || len(*p) < 4 {
+		return "•••"
+	}
+	digits := []rune(*p)
+	last4 := string(digits[len(digits)-4:])
+	return "••• " + last4
+}
+
 // AcceptOrder transitions RESTAURANT_PENDING → PREPARING.
 // Returns ErrOfferExpired if the deadline has passed; ErrIllegalTransition if
 // the order is not in RESTAURANT_PENDING.
-func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAccountID string, promisedReadyMinutes *int) (*OrderDetailView, error) {
+func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAccountID string, promisedReadyMinutes *int) (*OrderRestaurantView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -930,7 +1144,7 @@ func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAcco
 }
 
 // RejectOrder transitions RESTAURANT_PENDING → REJECTED.
-func (r *Repo) RejectOrder(ctx context.Context, restaurantID, orderID, actorAccountID, reason string, note *string) (*OrderDetailView, error) {
+func (r *Repo) RejectOrder(ctx context.Context, restaurantID, orderID, actorAccountID, reason string, note *string) (*OrderRestaurantView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -981,7 +1195,7 @@ func (r *Repo) RejectOrder(ctx context.Context, restaurantID, orderID, actorAcco
 }
 
 // MarkOrderReady transitions PREPARING → READY_FOR_PICKUP.
-func (r *Repo) MarkOrderReady(ctx context.Context, restaurantID, orderID, actorAccountID string) (*OrderDetailView, error) {
+func (r *Repo) MarkOrderReady(ctx context.Context, restaurantID, orderID, actorAccountID string) (*OrderRestaurantView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -1032,7 +1246,7 @@ func (r *Repo) MarkOrderReady(ctx context.Context, restaurantID, orderID, actorA
 // The order must have been accepted via AcceptOrder (accepted_at IS NOT NULL)
 // to be delayable; directly-seeded PREPARING orders without accepted_at will
 // also fail with ErrDelayLimitReached since they represent an inconsistent state.
-func (r *Repo) DelayOrder(ctx context.Context, restaurantID, orderID, actorAccountID string, delayMinutes int, reason string) (*OrderDetailView, error) {
+func (r *Repo) DelayOrder(ctx context.Context, restaurantID, orderID, actorAccountID string, delayMinutes int, reason string) (*OrderRestaurantView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err

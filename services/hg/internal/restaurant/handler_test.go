@@ -145,7 +145,7 @@ func TestSubmitProfileRejectsIsApprovedField(t *testing.T) {
 func TestSubmitProfileStaffDenied(t *testing.T) {
 	h := restaurant.NewHandler(nil, nil, nil)
 	// Provide a valid-looking body to ensure the denial is authz, not parse.
-	body := `{"legal_name":"X","display_name":"Y","latitude":43.7,"longitude":-79.4,"province":"ON","postal_code":"M1H 2Y2","phone_e164":"+14165550123","avg_prep_minutes":20,"delivery_radius_m":5000}`
+	body := `{"legal_name":"X","display_name":"Y","latitude":43.7,"longitude":-79.4,"province":"ON","postal_code":"M1H 2Y2","phone_e164":"+14165550123","avg_prep_minutes":20}`
 	req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/profile", strings.NewReader(body))
 	req = withPrincipal(req, staffPrincipal("acct-staff"))
 	rec := httptest.NewRecorder()
@@ -240,7 +240,7 @@ func TestCreateMenuItemStaffDenied(t *testing.T) {
 // struct; unknown fields are 422.
 func TestSetAvailabilityRejectsUnknownField(t *testing.T) {
 	h := restaurant.NewHandler(nil, nil, nil)
-	body := `{"is_available":true,"price_cents":999}`
+	body := `{"availability_state":"AVAILABLE","price_cents":999}`
 	req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/menu/items/item-1/availability",
 		strings.NewReader(body))
 	req = withPrincipal(req, ownerPrincipal("acct-1"))
@@ -257,7 +257,7 @@ func TestSetAvailabilityRejectsUnknownField(t *testing.T) {
 // one is 422 UNKNOWN_FIELD (G-3, invariant #1).
 func TestAcceptOrderRejectsPriceField(t *testing.T) {
 	h := restaurant.NewHandler(nil, nil, nil)
-	body := `{"promised_ready_minutes":15,"amount_cents":5000}`
+	body := `{"prep_eta_minutes":15,"amount_cents":5000}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/restaurant/orders/ord-1/accept",
 		strings.NewReader(body))
 	req = withPrincipal(req, ownerPrincipal("acct-1"))
@@ -271,7 +271,7 @@ func TestAcceptOrderRejectsPriceField(t *testing.T) {
 // TestRejectOrderRejectsPriceField: same invariant for reject.
 func TestRejectOrderRejectsPriceField(t *testing.T) {
 	h := restaurant.NewHandler(nil, nil, nil)
-	body := `{"reason":"OUT_OF_STOCK","amount_cents":100}`
+	body := `{"reason_code":"KITCHEN_AT_CAPACITY","amount_cents":100}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/restaurant/orders/ord-1/reject",
 		strings.NewReader(body))
 	req = withPrincipal(req, ownerPrincipal("acct-1"))
@@ -286,7 +286,7 @@ func TestRejectOrderRejectsPriceField(t *testing.T) {
 
 func TestSetHoursRejectsUnknownField(t *testing.T) {
 	h := restaurant.NewHandler(nil, nil, nil)
-	body := `{"hours":[{"day_of_week":1,"opens_at":"09:00","closes_at":"22:00"}],"price_cents":0}`
+	body := `{"intervals":[{"day_of_week":1,"opens_at":"09:00","closes_at":"22:00"}],"price_cents":0}`
 	req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/hours", strings.NewReader(body))
 	req = withPrincipal(req, ownerPrincipal("acct-1"))
 	rec := httptest.NewRecorder()
@@ -299,7 +299,7 @@ func TestSetHoursRejectsUnknownField(t *testing.T) {
 // TestSetHoursStaffDenied: STAFF cannot write hours.
 func TestSetHoursStaffDenied(t *testing.T) {
 	h := restaurant.NewHandler(nil, nil, nil)
-	body := `{"hours":[]}`
+	body := `{"intervals":[]}`
 	req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/hours", strings.NewReader(body))
 	req = withPrincipal(req, staffPrincipal("acct-staff"))
 	rec := httptest.NewRecorder()
@@ -436,7 +436,7 @@ func TestAcceptOrderUnauthenticated(t *testing.T) {
 // TestDelayOrderRejectsPriceField: the delay body carries no amount.
 func TestDelayOrderRejectsPriceField(t *testing.T) {
 	h := restaurant.NewHandler(nil, nil, nil)
-	body := `{"delay_minutes":15,"reason":"PREP_OVERRUN","amount_cents":0}`
+	body := `{"added_minutes":15,"reason_code":"PREP_OVERRUN","amount_cents":0}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/restaurant/orders/ord-1/delay",
 		strings.NewReader(body))
 	req = withPrincipal(req, ownerPrincipal("acct-1"))

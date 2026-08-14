@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -533,12 +534,42 @@ func (h *Handler) ListSessions(w http.ResponseWriter, r *http.Request) {
 			"Authentication is required.", nil)
 		return
 	}
-	rows, err := h.store.ListLiveSessions(r.Context(), p.AccountID, 50)
+
+	// Parse limit query param. Contract: 1–100, default 20.
+	limit := 20
+	if v := r.URL.Query().Get("limit"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 100 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"limit must be an integer between 1 and 100.", nil)
+			return
+		}
+		limit = n
+	}
+
+	// Parse cursor query param — opaque keyset cursor (session id of the last row
+	// on the previous page).
+	cursorID := r.URL.Query().Get("cursor")
+
+	// Fetch one extra row so we can detect whether another page exists.
+	rows, err := h.store.ListLiveSessions(r.Context(), p.AccountID, limit+1, cursorID)
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
 		return
 	}
+
+	// Determine pagination state from the sentinel row.
+	hasMore := len(rows) > limit
+	if hasMore {
+		rows = rows[:limit]
+	}
+	var nextCursor *string
+	if hasMore && len(rows) > 0 {
+		last := rows[len(rows)-1].ID
+		nextCursor = &last
+	}
+
 	out := make([]wireSessionSummary, 0, len(rows))
 	for _, s := range rows {
 		out = append(out, wireSessionSummary{
@@ -551,7 +582,7 @@ func (h *Handler) ListSessions(w http.ResponseWriter, r *http.Request) {
 			IsCurrent:  s.ID == p.SessionID,
 		})
 	}
-	httpx.RespondList(w, r, http.StatusOK, out, httpx.Meta{NextCursor: nil, HasMore: false})
+	httpx.RespondList(w, r, http.StatusOK, out, httpx.Meta{NextCursor: nextCursor, HasMore: hasMore})
 }
 
 // Me implements getCurrentPrincipal.

@@ -2,6 +2,7 @@ package files
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/url"
 	"time"
@@ -104,9 +105,13 @@ RETURNING id`
 	}
 	out.URL = u.String()
 	out.ExpiresAt = time.Now().UTC().Add(300 * time.Second)
+	// x-amz-checksum-sha256 binds the content checksum into the presigned
+	// signature: a signature minted for a 1 MiB JPEG cannot be reused to
+	// push a 9 MiB PDF (contract openapi.yaml PresignedUpload.required_headers).
 	out.RequiredHeaders = map[string]string{
-		"Content-Type":   contentType,
-		"Content-Length": itoa(byteSize),
+		"Content-Type":          contentType,
+		"Content-Length":        itoa(byteSize),
+		"x-amz-checksum-sha256": base64.StdEncoding.EncodeToString(sha),
 	}
 	return out, nil
 }

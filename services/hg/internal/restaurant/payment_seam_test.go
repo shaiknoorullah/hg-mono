@@ -120,7 +120,7 @@ func TestPaymentSeam_RejectOrder_CallsVoid(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost,
 		"/v1/restaurant/orders/"+orderID+"/reject",
-		strings.NewReader(`{"reason":"ITEM_UNAVAILABLE"}`))
+		strings.NewReader(`{"reason_code":"ITEM_UNAVAILABLE"}`))
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
 	req = withChiParam(req, "orderId", orderID)
 	rec := httptest.NewRecorder()
@@ -253,7 +253,7 @@ func TestPaymentSeam_RejectOrder_IllegalTransition_DoesNotVoid(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost,
 		"/v1/restaurant/orders/"+orderID+"/reject",
-		strings.NewReader(`{"reason":"ITEM_UNAVAILABLE"}`))
+		strings.NewReader(`{"reason_code":"ITEM_UNAVAILABLE"}`))
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
 	req = withChiParam(req, "orderId", orderID)
 	rec := httptest.NewRecorder()
@@ -286,7 +286,7 @@ func TestPaymentSeam_RejectOrder_VoidError_StillReturns200(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost,
 		"/v1/restaurant/orders/"+orderID+"/reject",
-		strings.NewReader(`{"reason":"ITEM_UNAVAILABLE"}`))
+		strings.NewReader(`{"reason_code":"ITEM_UNAVAILABLE"}`))
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
 	req = withChiParam(req, "orderId", orderID)
 	rec := httptest.NewRecorder()
@@ -317,7 +317,7 @@ func TestPaymentSeam_NilPay_RejectOrder_StillReturns200(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost,
 		"/v1/restaurant/orders/"+orderID+"/reject",
-		strings.NewReader(`{"reason":"ITEM_UNAVAILABLE"}`))
+		strings.NewReader(`{"reason_code":"ITEM_UNAVAILABLE"}`))
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
 	req = withChiParam(req, "orderId", orderID)
 	rec := httptest.NewRecorder()

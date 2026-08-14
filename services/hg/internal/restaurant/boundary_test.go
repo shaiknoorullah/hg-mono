@@ -85,7 +85,7 @@ func restaurantOps() []op {
 		{http.MethodGet, "/v1/restaurant/profile", "", false, ownerManagerStaff},
 		{http.MethodPut, "/v1/restaurant/profile", `{"legal_name":"X"}`, false, ownerManager},
 		{http.MethodGet, "/v1/restaurant/hours", "", false, ownerManagerStaff},
-		{http.MethodPut, "/v1/restaurant/hours", `{"hours":[],"overrides":[]}`, false, ownerManager},
+		{http.MethodPut, "/v1/restaurant/hours", `{"intervals":[],"overrides":[]}`, false, ownerManager},
 		{http.MethodGet, "/v1/restaurant/documents", "", false, ownerManager},
 		{http.MethodPost, "/v1/restaurant/documents", `{"stored_object_id":"o","doc_type":"BUSINESS_LICENCE"}`, true, ownerManager},
 		{http.MethodPost, "/v1/restaurant/documents/submit", "", true, ownerManager},
@@ -93,13 +93,13 @@ func restaurantOps() []op {
 		{http.MethodPost, "/v1/restaurant/menu/categories", `{"name":"Desserts"}`, true, ownerManager},
 		{http.MethodPost, "/v1/restaurant/menu/items", `{"name":"AB","category_id":"c","price_cents":1500}`, true, ownerManager},
 		{http.MethodPatch, "/v1/restaurant/menu/items/00000000-0000-0000-0000-000000000000", `{"name":"AB"}`, false, ownerManager},
-		{http.MethodPut, "/v1/restaurant/menu/items/00000000-0000-0000-0000-000000000000/availability", `{"is_available":true}`, false, ownerManagerStaff},
+		{http.MethodPut, "/v1/restaurant/menu/items/00000000-0000-0000-0000-000000000000/availability", `{"availability_state":"AVAILABLE"}`, false, ownerManagerStaff},
 		{http.MethodGet, "/v1/restaurant/orders", "", false, ownerManagerStaff},
 		{http.MethodGet, "/v1/restaurant/orders/00000000-0000-0000-0000-000000000000", "", false, ownerManagerStaff},
 		{http.MethodPost, "/v1/restaurant/orders/00000000-0000-0000-0000-000000000000/accept", `{}`, true, ownerManagerStaff},
 		{http.MethodPost, "/v1/restaurant/orders/00000000-0000-0000-0000-000000000000/reject", `{"reason":"OUT_OF_STOCK"}`, true, ownerManagerStaff},
 		{http.MethodPost, "/v1/restaurant/orders/00000000-0000-0000-0000-000000000000/ready", "", true, ownerManagerStaff},
-		{http.MethodPost, "/v1/restaurant/orders/00000000-0000-0000-0000-000000000000/delay", `{"delay_minutes":15,"reason":"PREP_OVERRUN"}`, true, ownerManagerStaff},
+		{http.MethodPost, "/v1/restaurant/orders/00000000-0000-0000-0000-000000000000/delay", `{"added_minutes":15,"reason_code":"PREP_OVERRUN"}`, true, ownerManagerStaff},
 	}
 }
 
@@ -240,12 +240,12 @@ func TestWriteBodies_RejectUnknownFields(t *testing.T) {
 	// field the contract's schema does not define.
 	cases := []op{
 		{http.MethodPut, "/v1/restaurant/profile", `{"legal_name":"X","not_a_field":1}`, false, ownerManager},
-		{http.MethodPut, "/v1/restaurant/hours", `{"hours":[],"overrides":[],"not_a_field":1}`, false, ownerManager},
+		{http.MethodPut, "/v1/restaurant/hours", `{"intervals":[],"overrides":[],"not_a_field":1}`, false, ownerManager},
 		{http.MethodPost, "/v1/restaurant/documents", `{"stored_object_id":"o","doc_type":"BUSINESS_LICENCE","not_a_field":1}`, true, ownerManager},
 		{http.MethodPost, "/v1/restaurant/menu/categories", `{"name":"D","not_a_field":1}`, true, ownerManager},
 		{http.MethodPost, "/v1/restaurant/menu/items", `{"name":"AB","category_id":"c","price_cents":1500,"not_a_field":1}`, true, ownerManager},
 		{http.MethodPatch, "/v1/restaurant/menu/items/00000000-0000-0000-0000-000000000000", `{"name":"AB","not_a_field":1}`, false, ownerManager},
-		{http.MethodPut, "/v1/restaurant/menu/items/00000000-0000-0000-0000-000000000000/availability", `{"is_available":true,"not_a_field":1}`, false, ownerManager},
+		{http.MethodPut, "/v1/restaurant/menu/items/00000000-0000-0000-0000-000000000000/availability", `{"availability_state":"AVAILABLE","not_a_field":1}`, false, ownerManager},
 	}
 	p := httpx.Principal{AccountID: "acct-owner", SessionID: "s", Roles: []httpx.Role{owner}}
 	for _, o := range cases {

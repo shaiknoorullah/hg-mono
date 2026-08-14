@@ -3,9 +3,11 @@
 //
 // Operations (contracts/openapi.yaml, tag: system):
 //
-//   - getHealth            GET /health        PUBLIC  — liveness; touches nothing.
-//   - getReadiness         GET /health/ready  PUBLIC  — real dependency probes.
-//   - getDependencyStatus  GET /internal/deps ADMIN   — resolved addresses + boot probes.
+//   - getHealth            GET /health           PUBLIC — liveness; touches nothing.
+//   - getReadiness         GET /health/ready      PUBLIC — real dependency probes.
+//   - getDependencyStatus  GET /internal/deps     ADMIN  — resolved addresses + boot probes.
+//   - getOpenApiDocument   GET /v1/openapi.json   PUBLIC — contracts/openapi.yaml as JSON.
+//   - getPublicConfig      GET /v1/config/public  PUBLIC — runtime constants for clients.
 //
 // Two aliases exist beyond the contract and are labelled as such in the route
 // table: /healthz and /readyz, because Kubernetes-shaped tooling and several
@@ -20,15 +22,15 @@
 // not this task's to make, so the contract operation returns exactly what the
 // contract says and the debug alias carries the extra field. See the report.
 //
-// Not implemented here yet: getOpenApiDocument and getPublicConfig, the other
-// two `system` operations. The first must be generated from the route registry
-// rather than hand-written (P-36 / the contracts README drift gate), and the
-// second needs pricing_config, served provinces and support settings that do not
-// exist yet.
+// getOpenApiDocument serves the committed contracts/openapi.yaml re-encoded as
+// JSON. The handler loads the file at boot by walking up from the working
+// directory, so no embedded file or build-time code generation is required. If
+// the file is absent at boot the route returns 501 and all other routes remain
+// operational. A future P-36 CI drift gate should compare the 200 body against
+// the committed YAML to prove the running server and the source of truth agree.
 //
-// TODO(siblings): getPublicConfig (PublicConfig schema: currency, served
-// provinces, quote_ttl_seconds=600, restaurant_response_window_seconds=180,
-// max_tip_cents, support contact, default map centre) once config lands.
-// TODO: getOpenApiDocument, served from the generated document, with the CI
-// drift check against contracts/openapi.yaml.
+// getPublicConfig serves hardcoded runtime constants (currency, served provinces,
+// quote TTL, restaurant response window, tip ceiling, support state, default map
+// centre) that clients must never hardcode. No fee parameter that would let a
+// client compute a price is ever present (invariant #1).
 package system

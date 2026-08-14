@@ -202,19 +202,34 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 		SortOrder:         row.SortOrder,
 		Name:              in.Name,
 		Description:       in.Description,
+		IngredientsText:   in.IngredientsText,
+		DietaryTags:       dietaryTags,
+		AllergenTags:      allergenTags,
+		// PrepMinutes and ImageURL come from the item row (not yet in the SELECT).
+		// They are optional and null is contract-valid.
+		PrepMinutes: in.PrepMinutes,
+		ImageURL:    nil, // MediaResolver not wired in admin; null is contract-valid
+	}
+	if out.DietaryTags == nil {
+		out.DietaryTags = []string{}
+	}
+	if out.AllergenTags == nil {
+		out.AllergenTags = []string{}
 	}
 	if row.LiveVersionID != nil {
 		lv := &menuItemVersion{
-			ID:           *row.LiveVersionID,
-			MenuItemID:   row.ID,
-			RestaurantID: row.RestaurantID,
-			Version:      1,
-			Name:         in.Name,
-			ReviewStatus: "APPROVED",
-			DietaryTags:  dietaryTags,
-			AllergenTags: allergenTags,
-			Description:  row.LiveVersionDescription,
-			CreatedAt:    httpx.Timestamp(row.CreatedAt),
+			ID:              *row.LiveVersionID,
+			MenuItemID:      row.ID,
+			RestaurantID:    row.RestaurantID,
+			Version:         1,
+			Name:            in.Name,
+			ReviewStatus:    "APPROVED",
+			DietaryTags:     dietaryTags,
+			AllergenTags:    allergenTags,
+			Description:     row.LiveVersionDescription,
+			IngredientsText: in.IngredientsText,
+			ImageURL:        nil, // MediaResolver not wired in admin; null is contract-valid
+			CreatedAt:       httpx.Timestamp(row.CreatedAt),
 		}
 		if row.LiveVersionName != nil {
 			lv.Name = *row.LiveVersionName
@@ -363,8 +378,10 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 		Version:             result.Version,
 		Name:                result.Name,
 		Description:         result.Description,
+		IngredientsText:     result.IngredientsText,
 		DietaryTags:         result.DietaryTags,
 		AllergenTags:        result.AllergenTags,
+		ImageURL:            nil, // MediaResolver not wired in admin; null is contract-valid
 		ReviewStatus:        result.ReviewStatus,
 		RejectionReasonCode: result.RejectionReasonCode,
 		ReviewNote:          result.ReviewNote,
@@ -382,6 +399,8 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 // renderMenuItemVersion converts a menuItemVersionRow to a menuItemVersion DTO.
+// ingredients_text is emitted directly; image_url is null because this package
+// has no MediaResolver — the object id is stored but not yet turned into a URL.
 func renderMenuItemVersion(v menuItemVersionRow) menuItemVersion {
 	out := menuItemVersion{
 		ID:                  v.ID,
@@ -390,8 +409,10 @@ func renderMenuItemVersion(v menuItemVersionRow) menuItemVersion {
 		Version:             v.Version,
 		Name:                v.Name,
 		Description:         v.Description,
+		IngredientsText:     v.IngredientsText,
 		DietaryTags:         v.DietaryTags,
 		AllergenTags:        v.AllergenTags,
+		ImageURL:            nil, // MediaResolver not wired in admin; null is contract-valid
 		ReviewStatus:        v.ReviewStatus,
 		RejectionReasonCode: v.RejectionReasonCode,
 		ReviewNote:          v.ReviewNote,

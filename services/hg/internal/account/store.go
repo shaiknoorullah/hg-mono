@@ -174,6 +174,79 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 	}, nil
 }
 
+// GetCustomerProfile reads the caller's customer_profile joined to the account
+// row (for phone_e164, email, email_verified). Returns errNotFound (→ 404) when
+// no live row exists — the profile is scoped to account_id = callerID (P-07).
+func (r *Repo) GetCustomerProfile(ctx context.Context, callerID string) (customerProfileResponse, error) {
+	var (
+		accountID          string
+		firstName          string
+		lastName           *string
+		defaultAddressID   *string
+		marketingConsentAt *time.Time
+		createdAt          time.Time
+		phoneE164          *string
+		email              *string
+		emailVerifiedAt    *time.Time
+	)
+	err := r.pool.QueryRow(ctx, `
+		SELECT cp.account_id,
+		       cp.first_name,
+		       cp.last_name,
+		       cp.default_address_id,
+		       cp.marketing_consent_at,
+		       cp.created_at,
+		       a.phone_e164,
+		       a.email::text,
+		       a.email_verified_at
+		FROM   customer_profile cp
+		JOIN   account a ON a.id = cp.account_id
+		WHERE  cp.account_id = $1
+		  AND  cp.deleted_at IS NULL
+		  AND  a.deleted_at  IS NULL
+	`, callerID).Scan(
+		&accountID,
+		&firstName,
+		&lastName,
+		&defaultAddressID,
+		&marketingConsentAt,
+		&createdAt,
+		&phoneE164,
+		&email,
+		&emailVerifiedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return customerProfileResponse{}, errNotFound
+	}
+	if err != nil {
+		return customerProfileResponse{}, err
+	}
+
+	phone := ""
+	if phoneE164 != nil {
+		phone = *phoneE164
+	}
+
+	var consentAt *string
+	if marketingConsentAt != nil {
+		s := httpx.Timestamp(*marketingConsentAt)
+		consentAt = &s
+	}
+
+	return customerProfileResponse{
+		AccountID:          accountID,
+		FirstName:          firstName,
+		LastName:           lastName,
+		Email:              email,
+		EmailVerified:      emailVerifiedAt != nil,
+		PhoneE164:          phone,
+		AvatarURL:          nil, // presigned URL generation not wired yet
+		DefaultAddressID:   defaultAddressID,
+		MarketingConsentAt: consentAt,
+		CreatedAt:          httpx.Timestamp(createdAt),
+	}, nil
+}
+
 // UpsertDevice registers or refreshes a push-notification device binding.
 //
 // Idempotency (P-25): (account_id, device_id) is the natural key; a second
@@ -326,9 +399,20 @@ func (r *Repo) ListNotifications(
 	var rows pgx.Rows
 	var err error
 
+	// channels_attempted is the DISTINCT set of channels recorded against the
+	// notification in notification_delivery, aggregated as a text[]. It is always
+	// an array (empty, never null) so the contract's required field is present.
+	const channelsSubquery = `
+		COALESCE(
+		  (SELECT array_agg(DISTINCT nd.channel::text)
+		   FROM notification_delivery nd
+		   WHERE nd.notification_id = notification.id),
+		  '{}'::text[]
+		) AS channels_attempted`
+
 	if cursor == "" && !unreadOnly {
 		rows, err = r.pool.Query(ctx, `
-			SELECT id, kind, title, body, priority, deep_link, read_at, created_at
+			SELECT id, kind, title, body, priority, deep_link, read_at, created_at, order_id,`+channelsSubquery+`
 			FROM   notification
 			WHERE  account_id    = $1
 			  AND  dismissed_at IS NULL
@@ -337,7 +421,7 @@ func (r *Repo) ListNotifications(
 		`, callerID, limit+1)
 	} else if cursor == "" && unreadOnly {
 		rows, err = r.pool.Query(ctx, `
-			SELECT id, kind, title, body, priority, deep_link, read_at, created_at
+			SELECT id, kind, title, body, priority, deep_link, read_at, created_at, order_id,`+channelsSubquery+`
 			FROM   notification
 			WHERE  account_id    = $1
 			  AND  dismissed_at IS NULL
@@ -348,7 +432,7 @@ func (r *Repo) ListNotifications(
 	} else if cursor != "" && !unreadOnly {
 		// cursor is the UUID of the last-seen notification.
 		rows, err = r.pool.Query(ctx, `
-			SELECT id, kind, title, body, priority, deep_link, read_at, created_at
+			SELECT id, kind, title, body, priority, deep_link, read_at, created_at, order_id,`+channelsSubquery+`
 			FROM   notification
 			WHERE  account_id    = $1
 			  AND  dismissed_at IS NULL
@@ -361,7 +445,7 @@ func (r *Repo) ListNotifications(
 	} else {
 		// cursor + unreadOnly
 		rows, err = r.pool.Query(ctx, `
-			SELECT id, kind, title, body, priority, deep_link, read_at, created_at
+			SELECT id, kind, title, body, priority, deep_link, read_at, created_at, order_id,`+channelsSubquery+`
 			FROM   notification
 			WHERE  account_id    = $1
 			  AND  dismissed_at IS NULL
@@ -384,10 +468,17 @@ func (r *Repo) ListNotifications(
 		var readAt *time.Time
 		var createdAt time.Time
 		var deepLink *string
-		if err := rows.Scan(&n.ID, &n.Kind, &n.Title, &n.Body, &n.Priority, &deepLink, &readAt, &createdAt); err != nil {
+		var orderID *string
+		var channels []string
+		if err := rows.Scan(&n.ID, &n.Kind, &n.Title, &n.Body, &n.Priority, &deepLink, &readAt, &createdAt, &orderID, &channels); err != nil {
 			return nil, "", err
 		}
 		n.DeepLink = deepLink
+		n.OrderID = orderID
+		if channels == nil {
+			channels = []string{}
+		}
+		n.ChannelsAttempted = channels
 		n.CreatedAt = httpx.Timestamp(createdAt)
 		if readAt != nil {
 			s := httpx.Timestamp(*readAt)

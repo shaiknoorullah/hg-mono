@@ -159,11 +159,7 @@ func capAt(st PaymentState, captured int64) any {
 
 // InsertConnectAccount stores a newly created Express connected account.
 func (r *Repo) InsertConnectAccount(ctx context.Context, ownerType, ownerID string, acct *StripeAccount) error {
-	reqs, _ := json.Marshal(map[string]any{
-		"currently_due":  acct.CurrentlyDue,
-		"eventually_due": acct.EventuallyDue,
-		"past_due":       acct.PastDue,
-	})
+	reqs, _ := json.Marshal(connectReqsMap(acct))
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO connect_account (owner_type, owner_id, stripe_account_id, country, default_currency,
 		                             charges_enabled, payouts_enabled, details_submitted, requirements,
@@ -178,11 +174,7 @@ func (r *Repo) InsertConnectAccount(ctx context.Context, ownerType, ownerID stri
 // UpdateConnectFromStripe applies an account.updated / capability.updated
 // webhook to connect_account (P-19 §account.updated keeps it current).
 func (r *Repo) UpdateConnectFromStripe(ctx context.Context, acct *StripeAccount) error {
-	reqs, _ := json.Marshal(map[string]any{
-		"currently_due":  acct.CurrentlyDue,
-		"eventually_due": acct.EventuallyDue,
-		"past_due":       acct.PastDue,
-	})
+	reqs, _ := json.Marshal(connectReqsMap(acct))
 	_, err := r.pool.Exec(ctx, `
 		UPDATE connect_account
 		   SET charges_enabled = $2, payouts_enabled = $3, details_submitted = $4,
@@ -191,4 +183,19 @@ func (r *Repo) UpdateConnectFromStripe(ctx context.Context, acct *StripeAccount)
 		acct.ID, acct.ChargesEnabled, acct.PayoutsEnabled, acct.DetailsSubmitted,
 		reqs, nullStr(acct.DisabledReason))
 	return err
+}
+
+// connectReqsMap builds the requirements JSONB map to store. The
+// requirements_deadline unix timestamp is embedded so GetConnectAccount can
+// surface it as the contract ConnectRequirements.deadline date-time string.
+func connectReqsMap(acct *StripeAccount) map[string]any {
+	m := map[string]any{
+		"currently_due":  acct.CurrentlyDue,
+		"eventually_due": acct.EventuallyDue,
+		"past_due":       acct.PastDue,
+	}
+	if acct.Deadline != nil && *acct.Deadline != 0 {
+		m["requirements_deadline"] = *acct.Deadline
+	}
+	return m
 }

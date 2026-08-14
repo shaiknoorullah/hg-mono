@@ -94,7 +94,7 @@ func (r *Repo) RunPayout(ctx context.Context, ownerType, ownerID string, periodS
 		if err != nil {
 			return err
 		}
-		c.CurrentlyDue, c.EventuallyDue, c.PastDue = parseRequirements(reqs)
+		c.CurrentlyDue, c.EventuallyDue, c.PastDue, _ = parseRequirements(reqs)
 
 		p, err := r.previewPayout(ctx, tx, c, ownerType, ownerID, cutoff)
 		if err != nil {

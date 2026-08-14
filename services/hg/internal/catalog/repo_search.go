@@ -51,7 +51,9 @@ func (rp *Repo) searchRestaurants(ctx context.Context, q string, lat, lng *float
 	defer rows.Close()
 	var out []restaurantRow
 	for rows.Next() {
-		rr, err := scanCard(rows, lat != nil && lng != nil, true)
+		// distanceExpr always projects a distance_m column, so the scan must always
+		// consume it (see getVisible): withDistance is true regardless of point.
+		rr, err := scanCard(rows, true, true)
 		if err != nil {
 			return nil, err
 		}
@@ -119,21 +121,22 @@ func (rp *Repo) searchDishes(ctx context.Context, q string, lat, lng *float64, c
 	}
 	defer rows.Close()
 	var out []dishSearchRow
-	withDistance := lat != nil && lng != nil
 	for rows.Next() {
 		var d dishSearchRow
 		var rr restaurantRow
+		// The tail of the SELECT is cardColumns + geoExpr + distanceExpr, so the
+		// scan targets must mirror cardColumns exactly (including logo/cover/cuisines)
+		// and then the two geo columns and the always-present distance_m column.
 		dest := []any{&d.menuItemID, &d.name, &d.description, &d.priceCents, &d.currency,
 			&rr.id, &rr.slug, &rr.displayName, &rr.description,
 			&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
 			&rr.publicPhone,
 			&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
 			&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
+			&rr.logoObjectID, &rr.coverObjectID, &rr.cuisines,
 			&rr.certifyingBody, &rr.certExpiresOn,
 			&rr.latitude, &rr.longitude,
-		}
-		if withDistance {
-			dest = append(dest, &rr.distanceM)
+			&rr.distanceM,
 		}
 		if err := rows.Scan(dest...); err != nil {
 			return nil, err

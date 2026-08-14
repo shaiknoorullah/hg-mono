@@ -29,7 +29,9 @@ func toCard(rr restaurantRow, avail RestaurantAvailabilityInfo, media MediaResol
 		ID:           rr.id,
 		Name:         rr.displayName,
 		Slug:         rr.slug,
-		Cuisines:     []string{},
+		HeroImageURL: resolveMedia(media, rr.coverObjectID),
+		LogoImageURL: resolveMedia(media, rr.logoObjectID),
+		Cuisines:     nonNilStrings(rr.cuisines),
 		RatingCount:  rr.ratingCount,
 		PriceBand:    rr.priceBand,
 		Halal:        toHalalBadge(rr),
@@ -47,6 +49,16 @@ func toCard(rr restaurantRow, avail RestaurantAvailabilityInfo, media MediaResol
 // which the contract renders as a neutral placeholder — never a bundled photo.
 type MediaResolver interface {
 	PublicURL(objectID string) *string
+}
+
+// resolveMedia turns an optional stored-object id into a public media URL, or nil
+// when the restaurant has no such image. A nil object id never reaches the
+// resolver, so an empty string is never presented as a key.
+func resolveMedia(media MediaResolver, objectID *string) *string {
+	if objectID == nil || *objectID == "" {
+		return nil
+	}
+	return media.PublicURL(*objectID)
 }
 
 // nilMedia renders every image as null. A missing image is a neutral placeholder

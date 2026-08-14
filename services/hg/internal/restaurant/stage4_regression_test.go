@@ -96,7 +96,7 @@ func TestStage4_RejectOrder_UnknownReason_422NotCrash(t *testing.T) {
 	h := newHandler(pool)
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID, "RESTAURANT_PENDING", "now() + interval '3 minutes'")
 
-	for _, bad := range []string{`{"reason":"TOTALLY_BOGUS"}`, `{"reason":""}`, `{"reason":"item_unavailable"}`, `{"reason":"DROP TABLE order"}`, `{"reason":"OTHER; --"}`} {
+	for _, bad := range []string{`{"reason_code":"TOTALLY_BOGUS"}`, `{"reason_code":""}`, `{"reason_code":"item_unavailable"}`, `{"reason_code":"DROP TABLE order"}`, `{"reason_code":"OTHER; --"}`} {
 		req := httptest.NewRequest(http.MethodPost,
 			fmt.Sprintf("/v1/restaurant/orders/%s/reject", orderID), strings.NewReader(bad))
 		req = withChiParam(req, "orderId", orderID)
@@ -125,7 +125,7 @@ func TestStage4_RejectOrder_ValidReason_Succeeds(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost,
 		fmt.Sprintf("/v1/restaurant/orders/%s/reject", orderID),
-		strings.NewReader(`{"reason":"KITCHEN_AT_CAPACITY"}`))
+		strings.NewReader(`{"reason_code":"KITCHEN_AT_CAPACITY"}`))
 	req = withChiParam(req, "orderId", orderID)
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
 	rec := httptest.NewRecorder()
@@ -150,7 +150,7 @@ func TestStage4_DelayOrder_CumulativeCap45(t *testing.T) {
 	delay := func(mins int) int {
 		req := httptest.NewRequest(http.MethodPost,
 			fmt.Sprintf("/v1/restaurant/orders/%s/delay", orderID),
-			strings.NewReader(fmt.Sprintf(`{"delay_minutes":%d,"reason":"HIGH_VOLUME"}`, mins)))
+			strings.NewReader(fmt.Sprintf(`{"added_minutes":%d,"reason_code":"HIGH_VOLUME"}`, mins)))
 		req = withChiParam(req, "orderId", orderID)
 		req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
 		rec := httptest.NewRecorder()
@@ -182,11 +182,11 @@ func TestStage4_DelayOrder_BadIncrementOrReason_422(t *testing.T) {
 	_, _ = pool.Exec(context.Background(), `UPDATE "order" SET accepted_at=now() WHERE id=$1`, orderID)
 
 	for _, bad := range []string{
-		`{"delay_minutes":7,"reason":"HIGH_VOLUME"}`,     // 7 not in {5,10,15,20}
-		`{"delay_minutes":0,"reason":"HIGH_VOLUME"}`,     // zero
-		`{"delay_minutes":-5,"reason":"HIGH_VOLUME"}`,    // negative
-		`{"delay_minutes":10000,"reason":"HIGH_VOLUME"}`, // absurd
-		`{"delay_minutes":15,"reason":"NONSENSE"}`,       // bad reason enum
+		`{"added_minutes":7,"reason_code":"HIGH_VOLUME"}`,     // 7 not in {5,10,15,20}
+		`{"added_minutes":0,"reason_code":"HIGH_VOLUME"}`,     // zero
+		`{"added_minutes":-5,"reason_code":"HIGH_VOLUME"}`,    // negative
+		`{"added_minutes":10000,"reason_code":"HIGH_VOLUME"}`, // absurd
+		`{"added_minutes":15,"reason_code":"NONSENSE"}`,       // bad reason enum
 	} {
 		req := httptest.NewRequest(http.MethodPost,
 			fmt.Sprintf("/v1/restaurant/orders/%s/delay", orderID), strings.NewReader(bad))
@@ -313,10 +313,10 @@ func TestStage4_WriteOps_HostileInputs_422NotCrash(t *testing.T) {
 
 	probes := []probe{
 		{"hours", hours, []string{
-			`{"hours":[{"day_of_week":1,"opens_at":"not-a-time","closes_at":"25:99"}],"overrides":[]}`,
-			`{"hours":[{"day_of_week":99,"opens_at":"09:00","closes_at":"17:00"}],"overrides":[]}`,
-			`{"hours":[{"day_of_week":-1,"opens_at":"09:00","closes_at":"17:00"}],"overrides":[]}`,
-			`{"hours":[],"overrides":[{"on_date":"2026-01-01","is_closed":false,"opens_at":"99:99","closes_at":"17:00"}]}`,
+			`{"intervals":[{"day_of_week":1,"opens_at":"not-a-time","closes_at":"25:99"}],"overrides":[]}`,
+			`{"intervals":[{"day_of_week":99,"opens_at":"09:00","closes_at":"17:00"}],"overrides":[]}`,
+			`{"intervals":[{"day_of_week":-1,"opens_at":"09:00","closes_at":"17:00"}],"overrides":[]}`,
+			`{"intervals":[],"overrides":[{"date":"2026-01-01","is_closed":false,"opens_at":"99:99","closes_at":"17:00"}]}`,
 		}},
 		{"menuItem", menuItem, []string{
 			fmt.Sprintf(`{"name":"X","category_id":"%s","price_cents":1500,"dietary_tags":["NOT_A_REAL_TAG"]}`, f.categoryID),

@@ -222,19 +222,7 @@ func (s *Service) GetConnectStatus(ctx context.Context, ownerType, ownerID strin
 	if err != nil {
 		return ConnectStatusDTO{}, err
 	}
-	return ConnectStatusDTO{
-		StripeAccountID:  strPtr(c.StripeAccountID),
-		ChargesEnabled:   c.ChargesEnabled,
-		PayoutsEnabled:   c.PayoutsEnabled,
-		DetailsSubmitted: c.DetailsSubmitted,
-		Requirements: ConnectRequirementsDTO{
-			CurrentlyDue:   nonNil(c.CurrentlyDue),
-			EventuallyDue:  nonNil(c.EventuallyDue),
-			PastDue:        nonNil(c.PastDue),
-			DisabledReason: c.DisabledReason,
-		},
-		PayoutInterval: c.PayoutInterval,
-	}, nil
+	return s.connectStatusFrom(c), nil
 }
 
 func nonNil(s []string) []string {
@@ -244,19 +232,22 @@ func nonNil(s []string) []string {
 	return s
 }
 
-// parseRequirements pulls the three Stripe requirement lists out of the stored
-// requirements JSONB, tolerating an empty or absent object.
-func parseRequirements(raw []byte) (currentlyDue, eventuallyDue, pastDue []string) {
+// parseRequirements pulls the three Stripe requirement lists and the optional
+// deadline out of the stored requirements JSONB, tolerating an empty or absent
+// object. The deadline is a Unix timestamp stored under "requirements_deadline"
+// (embedded when a Stripe account has a current_deadline set).
+func parseRequirements(raw []byte) (currentlyDue, eventuallyDue, pastDue []string, deadline *int64) {
 	if len(raw) == 0 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	var r struct {
-		CurrentlyDue  []string `json:"currently_due"`
-		EventuallyDue []string `json:"eventually_due"`
-		PastDue       []string `json:"past_due"`
+		CurrentlyDue         []string `json:"currently_due"`
+		EventuallyDue        []string `json:"eventually_due"`
+		PastDue              []string `json:"past_due"`
+		RequirementsDeadline *int64   `json:"requirements_deadline"`
 	}
 	if err := json.Unmarshal(raw, &r); err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
-	return r.CurrentlyDue, r.EventuallyDue, r.PastDue
+	return r.CurrentlyDue, r.EventuallyDue, r.PastDue, r.RequirementsDeadline
 }

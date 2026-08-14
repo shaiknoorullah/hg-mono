@@ -11,18 +11,61 @@ import (
 // by the unknown-field decoder plus the absence of any price field on the input
 // structs.
 
+// ---- Halal ----
+
+// halalBadgeDTO is the contract's HalalBadge schema (C-12). It is the product's
+// single claim: a HalalBadge object with display_state, never a flat string. When
+// the object is absent from a payload the client renders no badge — there is no
+// "assume certified" path (invariant #8).
+type halalBadgeDTO struct {
+	DisplayState       string  `json:"display_state"`
+	CertifyingBodyName *string `json:"certifying_body_name,omitempty"`
+	ExpiresOn          *string `json:"expires_on,omitempty"`
+}
+
+// halalAvailabilityDTO is the contract's RestaurantAvailabilityInfo (C-14): the
+// server-computed serviceability verdict surfaced on a RestaurantCard.
+type restaurantAvailabilityInfoDTO struct {
+	State                      string  `json:"state"`
+	OpensAt                    *string `json:"opens_at"`
+	ClosesAt                   *string `json:"closes_at"`
+	ETAMinMinutes              *int32  `json:"eta_min_minutes"`
+	ETAMaxMinutes              *int32  `json:"eta_max_minutes"`
+	IndicativeDeliveryFeeCents *int64  `json:"indicative_delivery_fee_cents"`
+	MinimumOrderCents          *int64  `json:"minimum_order_cents"`
+	DistanceM                  *int32  `json:"distance_m"`
+	OutOfRangeReason           *string `json:"out_of_range_reason"`
+}
+
+// restaurantCardDTO is the contract's RestaurantCard: the browse/search card,
+// reused on the cart to re-assert the chosen restaurant's halal seal before
+// checkout. required: [id, name, halal, availability].
+type restaurantCardDTO struct {
+	ID           string                        `json:"id"`
+	Name         string                        `json:"name"`
+	Slug         string                        `json:"slug,omitempty"`
+	HeroImageURL *string                       `json:"hero_image_url"`
+	LogoImageURL *string                       `json:"logo_image_url"`
+	Cuisines     []string                      `json:"cuisines"`
+	RatingAvg    *float64                      `json:"rating_avg"`
+	RatingCount  int32                         `json:"rating_count"`
+	PriceBand    *string                       `json:"price_band"`
+	Halal        halalBadgeDTO                 `json:"halal"`
+	Availability restaurantAvailabilityInfoDTO `json:"availability"`
+}
+
 // ---- Cart ----
 
 type cartDTO struct {
-	ID                      string        `json:"id"`
-	Restaurant              any           `json:"restaurant"`
-	DeliveryAddressID       *string       `json:"delivery_address_id"`
-	Lines                   []cartLineDTO `json:"lines"`
-	ItemCount               int           `json:"item_count"`
-	IndicativeSubtotalCents int64         `json:"indicative_subtotal_cents"`
-	Currency                string        `json:"currency"`
-	IsQuotable              bool          `json:"is_quotable"`
-	BlockingReasons         []string      `json:"blocking_reasons,omitempty"`
+	ID                      string             `json:"id"`
+	Restaurant              *restaurantCardDTO `json:"restaurant"`
+	DeliveryAddressID       *string            `json:"delivery_address_id"`
+	Lines                   []cartLineDTO      `json:"lines"`
+	ItemCount               int                `json:"item_count"`
+	IndicativeSubtotalCents int64              `json:"indicative_subtotal_cents"`
+	Currency                string             `json:"currency"`
+	IsQuotable              bool               `json:"is_quotable"`
+	BlockingReasons         []string           `json:"blocking_reasons,omitempty"`
 }
 
 type cartLineDTO struct {
@@ -176,33 +219,60 @@ type orderCreatedDTO struct {
 }
 
 type orderCustomerViewDTO struct {
-	ID                   string                `json:"id"`
-	Code                 string                `json:"code"`
-	State                string                `json:"state"`
-	StateSince           string                `json:"state_since"`
-	DeadlineAt           *string               `json:"deadline_at"`
-	QuoteID              string                `json:"quote_id"`
-	Restaurant           orderRestaurantRefDTO `json:"restaurant"`
-	Lines                []orderLineDTO        `json:"lines"`
-	Money                orderMoneyDTO         `json:"money"`
-	DeliveryInstructions []string              `json:"delivery_instructions"`
-	SpecialInstructions  *string               `json:"special_instructions"`
-	CancelReason         *string               `json:"cancel_reason"`
-	RejectReason         *string               `json:"reject_reason"`
-	CanCancel            bool                  `json:"can_cancel"`
-	PlacedAt             string                `json:"placed_at"`
-	AcceptedAt           *string               `json:"accepted_at"`
-	ReadyAt              *string               `json:"ready_at"`
-	PickedUpAt           *string               `json:"picked_up_at"`
-	DeliveredAt          *string               `json:"delivered_at"`
-	CompletedAt          *string               `json:"completed_at"`
+	ID                   string                 `json:"id"`
+	Code                 string                 `json:"code"`
+	State                string                 `json:"state"`
+	StateSince           string                 `json:"state_since"`
+	DeadlineAt           *string                `json:"deadline_at"`
+	QuoteID              string                 `json:"quote_id"`
+	Restaurant           orderRestaurantRefDTO  `json:"restaurant"`
+	Lines                []orderLineDTO         `json:"lines"`
+	Money                orderMoneyDTO          `json:"money"`
+	DeliveryAddress      *addressDTO            `json:"delivery_address"`
+	DeliveryInstructions []string               `json:"delivery_instructions"`
+	SpecialInstructions  *string                `json:"special_instructions"`
+	Rider                *riderPublicProfileDTO `json:"rider"`
+	DispatchState        *string                `json:"dispatch_state"`
+	CancelReason         *string                `json:"cancel_reason"`
+	RejectReason         *string                `json:"reject_reason"`
+	CanCancel            bool                   `json:"can_cancel"`
+	PlacedAt             string                 `json:"placed_at"`
+	AcceptedAt           *string                `json:"accepted_at"`
+	ReadyAt              *string                `json:"ready_at"`
+	PickedUpAt           *string                `json:"picked_up_at"`
+	DeliveredAt          *string                `json:"delivered_at"`
+	CompletedAt          *string                `json:"completed_at"`
 }
 
 type orderRestaurantRefDTO struct {
-	ID           string  `json:"id"`
-	Name         string  `json:"name"`
-	LogoImageURL *string `json:"logo_image_url"`
+	ID           string         `json:"id"`
+	Name         string         `json:"name"`
+	LogoImageURL *string        `json:"logo_image_url"`
+	Halal        *halalBadgeDTO `json:"halal,omitempty"`
 }
+
+// addressDTO is the contract's Address schema — the customer's delivery address
+// on the order projection.
+type addressDTO struct {
+	ID            string  `json:"id"`
+	Label         *string `json:"label"`
+	Line1         string  `json:"line1"`
+	Line2         *string `json:"line2"`
+	Unit          *string `json:"unit"`
+	Buzzer        *string `json:"buzzer"`
+	City          string  `json:"city"`
+	Province      string  `json:"province"`
+	PostalCode    string  `json:"postal_code"`
+	Country       string  `json:"country"`
+	Latitude      float64 `json:"latitude"`
+	Longitude     float64 `json:"longitude"`
+	Timezone      string  `json:"timezone"`
+	DeliveryNotes *string `json:"delivery_notes"`
+	IsDefault     bool    `json:"is_default"`
+}
+
+// The rider's public profile on the customer order view reuses the contract's
+// RiderPublicProfile DTO defined in ordersread_dto.go (riderPublicProfileDTO).
 
 type orderLineDTO struct {
 	LineNo         int                 `json:"line_no"`

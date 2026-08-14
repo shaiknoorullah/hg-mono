@@ -65,6 +65,7 @@ func TestRestaurantCardMarshalShape(t *testing.T) {
 		priceBand: strptr("$$"), halalStatus: HalalCertified,
 		certifyingBody: strptr("HMA Canada"), deliveryRadiusM: 8000, distanceM: ptrI32(1200),
 		avgPrepMinutes: 20,
+		cuisines:       []string{"Pakistani", "Biryani"},
 	}
 	info := buildAvailabilityInfo(rr, openStateVerdict{state: OpenStateOpen}, true)
 	card := toCard(rr, info, nilMedia{})
@@ -89,6 +90,12 @@ func TestRestaurantCardMarshalShape(t *testing.T) {
 	avail, _ := m["availability"].(map[string]any)
 	if avail["state"] != "OPEN" {
 		t.Errorf("availability.state = %v, want OPEN", avail["state"])
+	}
+	// cuisines must be projected from the restaurant's associations, not a constant
+	// empty slice — the card subtitle depends on it across browse/feed/search/detail.
+	cuisines, ok := m["cuisines"].([]any)
+	if !ok || len(cuisines) != 2 || cuisines[0] != "Pakistani" || cuisines[1] != "Biryani" {
+		t.Errorf("cuisines = %v, want [Pakistani Biryani]", m["cuisines"])
 	}
 }
 

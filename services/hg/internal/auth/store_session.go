@@ -201,17 +201,43 @@ func (s *Store) RevokeSessionForAccount(ctx context.Context, accountID, sessionI
 }
 
 // ListLiveSessions returns the account's live sessions newest-first, capped at
-// limit. Ownership is the account_id predicate.
-func (s *Store) ListLiveSessions(ctx context.Context, accountID string, limit int) ([]SessionRow, error) {
-	rows, err := s.pool.Query(ctx, `
-		SELECT id, family_id, account_id, amr, client, device_id, ip_city,
-		       issued_at, last_used_at, idle_expires_at, absolute_expires_at,
-		       revoked_at, rotated_at
-		FROM session
-		WHERE account_id = $1 AND revoked_at IS NULL AND rotated_at IS NULL
-		  AND idle_expires_at > now() AND absolute_expires_at > now()
-		ORDER BY issued_at DESC
-		LIMIT $2`, accountID, limit)
+// limit. Ownership is the account_id predicate. cursorID is the opaque keyset
+// cursor returned in meta.next_cursor: when non-empty the query continues from
+// the page boundary after the session whose id matches the cursor.
+func (s *Store) ListLiveSessions(ctx context.Context, accountID string, limit int, cursorID string) ([]SessionRow, error) {
+	var (
+		rows pgx.Rows
+		err  error
+	)
+	if cursorID == "" {
+		rows, err = s.pool.Query(ctx, `
+			SELECT id, family_id, account_id, amr, client, device_id, ip_city,
+			       issued_at, last_used_at, idle_expires_at, absolute_expires_at,
+			       revoked_at, rotated_at
+			FROM session
+			WHERE account_id = $1 AND revoked_at IS NULL AND rotated_at IS NULL
+			  AND idle_expires_at > now() AND absolute_expires_at > now()
+			ORDER BY issued_at DESC, id DESC
+			LIMIT $2`, accountID, limit)
+	} else {
+		// Keyset: (issued_at, id) < (cursor_issued_at, cursor_id) with DESC ordering.
+		// Sessions are ordered newest-first; the cursor points to the last row on the
+		// previous page, so continue where issued_at is strictly earlier, or where
+		// issued_at is equal but id is lexicographically smaller (arbitrary tiebreak,
+		// consistent between pages because we order by both columns).
+		rows, err = s.pool.Query(ctx, `
+			SELECT id, family_id, account_id, amr, client, device_id, ip_city,
+			       issued_at, last_used_at, idle_expires_at, absolute_expires_at,
+			       revoked_at, rotated_at
+			FROM session
+			WHERE account_id = $1 AND revoked_at IS NULL AND rotated_at IS NULL
+			  AND idle_expires_at > now() AND absolute_expires_at > now()
+			  AND (issued_at, id) < (
+			        SELECT issued_at, id FROM session WHERE id = $3::uuid
+			      )
+			ORDER BY issued_at DESC, id DESC
+			LIMIT $2`, accountID, limit, cursorID)
+	}
 	if err != nil {
 		return nil, err
 	}

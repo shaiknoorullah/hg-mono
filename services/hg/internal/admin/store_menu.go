@@ -55,6 +55,7 @@ type menuItemVersionRow struct {
 	Version             int
 	Name                string
 	Description         *string
+	IngredientsText     *string
 	DietaryTags         []string
 	AllergenTags        []string
 	ReviewStatus        string
@@ -65,6 +66,11 @@ type menuItemVersionRow struct {
 	ReviewedAt          *time.Time
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
+	// ImageObjectID is the stored-object UUID for the item image (if set).
+	// The wire field is image_url; this package does not have a MediaResolver, so
+	// image_url is always null. The field is included so the DB column is read and
+	// available for future resolver injection.
+	ImageObjectID *string
 }
 
 // ErrCategoryNameTaken is returned when a duplicate category name is detected.
@@ -276,10 +282,12 @@ func (r *Repo) ListMenuReviewQueue(
 ) ([]menuItemVersionRow, error) {
 	const q = `
 SELECT miv.id, miv.menu_item_id, miv.restaurant_id, miv.version, miv.name, miv.description,
+       miv.ingredients_text,
        miv.dietary_tags::text[], miv.allergen_tags::text[],
        miv.review_status::text, miv.rejection_reason_code::text,
        miv.review_note, miv.submitted_at, miv.reviewed_by::text, miv.reviewed_at,
-       miv.created_at, miv.updated_at
+       miv.created_at, miv.updated_at,
+       miv.image_object_id::text
   FROM menu_item_version miv
  WHERE miv.review_status = 'PENDING_REVIEW'
    AND ($1::uuid IS NULL OR miv.restaurant_id = $1)
@@ -296,10 +304,12 @@ SELECT miv.id, miv.menu_item_id, miv.restaurant_id, miv.version, miv.name, miv.d
 		var v menuItemVersionRow
 		if err := rows.Scan(
 			&v.ID, &v.MenuItemID, &v.RestaurantID, &v.Version, &v.Name, &v.Description,
+			&v.IngredientsText,
 			&v.DietaryTags, &v.AllergenTags,
 			&v.ReviewStatus, &v.RejectionReasonCode,
 			&v.ReviewNote, &v.SubmittedAt, &v.ReviewedBy, &v.ReviewedAt,
 			&v.CreatedAt, &v.UpdatedAt,
+			&v.ImageObjectID,
 		); err != nil {
 			return nil, err
 		}
@@ -316,6 +326,7 @@ type decideMenuVersionResult struct {
 	Version             int
 	Name                string
 	Description         *string
+	IngredientsText     *string
 	DietaryTags         []string
 	AllergenTags        []string
 	ReviewStatus        string
@@ -326,6 +337,8 @@ type decideMenuVersionResult struct {
 	ReviewedAt          *time.Time
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
+	// ImageObjectID is stored for future resolver use; image_url on the wire is null.
+	ImageObjectID *string
 }
 
 // DecideMenuVersion approves or rejects a PENDING_REVIEW menu_item_version.
@@ -395,18 +408,22 @@ UPDATE menu_item_version
        reviewed_at=now()
  WHERE id=$1
 RETURNING id, menu_item_id, restaurant_id, version, name, description,
+          ingredients_text,
           dietary_tags::text[], allergen_tags::text[],
           review_status::text, rejection_reason_code::text,
           review_note, submitted_at, reviewed_by::text, reviewed_at,
-          created_at, updated_at`
+          created_at, updated_at,
+          image_object_id::text`
 		if err := tx.QueryRow(ctx, updVer,
 			versionID, newStatus, reasonCode, reviewNote, reviewedBy,
 		).Scan(
 			&out.ID, &out.MenuItemID, &out.RestaurantID, &out.Version, &out.Name, &out.Description,
+			&out.IngredientsText,
 			&out.DietaryTags, &out.AllergenTags,
 			&out.ReviewStatus, &out.RejectionReasonCode,
 			&out.ReviewNote, &out.SubmittedAt, &out.ReviewedBy, &out.ReviewedAt,
 			&out.CreatedAt, &out.UpdatedAt,
+			&out.ImageObjectID,
 		); err != nil {
 			return err
 		}

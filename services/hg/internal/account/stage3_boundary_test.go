@@ -297,6 +297,7 @@ func TestGolden_Notification_ClosedShape(t *testing.T) {
 		// optional deep_link (this impl always includes it, which is permitted).
 		assertKeysExactly(t, fmt.Sprintf("Notification[%d]", i), item, []string{
 			"id", "kind", "title", "body", "priority", "deep_link", "created_at", "read_at",
+			"order_id", "channels_attempted",
 		})
 		var n struct {
 			Priority  string          `json:"priority"`

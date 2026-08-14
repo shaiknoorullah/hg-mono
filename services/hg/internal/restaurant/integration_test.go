@@ -341,8 +341,7 @@ func TestIntegration_SubmitProfile_HappyPath(t *testing.T) {
 		"line1":          "100 King St W",
 		"latitude":       43.7699,
 		"longitude":      -79.4402,
-		"avg_prep_minutes": 20,
-		"delivery_radius_m": 5000
+		"avg_prep_minutes": 20
 	}`
 	req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/profile", strings.NewReader(body))
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
@@ -370,7 +369,7 @@ func TestIntegration_SubmitProfile_Manager_Allowed(t *testing.T) {
 	f := seedFixtures(t, pool)
 	h := newHandler(pool)
 
-	body := `{"legal_name":"Manager Test Inc.","display_name":"Manager Test","province":"ON","postal_code":"M1H 2Y2","city":"Toronto","line1":"1 Queen St","latitude":43.65,"longitude":-79.38,"avg_prep_minutes":15,"delivery_radius_m":3000}`
+	body := `{"legal_name":"Manager Test Inc.","display_name":"Manager Test","province":"ON","postal_code":"M1H 2Y2","city":"Toronto","line1":"1 Queen St","latitude":43.65,"longitude":-79.38,"avg_prep_minutes":15}`
 	req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/profile", strings.NewReader(body))
 	req = withPrincipal(req, principalWith(f.managerAccountID, httpx.RoleRestaurantManager))
 	rec := httptest.NewRecorder()
@@ -388,7 +387,7 @@ func TestIntegration_SubmitProfile_Idempotent(t *testing.T) {
 	f := seedFixtures(t, pool)
 	h := newHandler(pool)
 
-	body := `{"legal_name":"Idem Inc.","display_name":"Idem","province":"ON","postal_code":"M1H 2Y2","city":"Toronto","line1":"2 Bay St","latitude":43.65,"longitude":-79.38,"avg_prep_minutes":15,"delivery_radius_m":3000}`
+	body := `{"legal_name":"Idem Inc.","display_name":"Idem","province":"ON","postal_code":"M1H 2Y2","city":"Toronto","line1":"2 Bay St","latitude":43.65,"longitude":-79.38,"avg_prep_minutes":15}`
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/profile", strings.NewReader(body))
 		req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
@@ -417,7 +416,7 @@ func TestIntegration_GetHours_HappyPath(t *testing.T) {
 	}
 	var env struct {
 		Data struct {
-			Hours any `json:"hours"`
+			Intervals any `json:"intervals"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
@@ -430,7 +429,7 @@ func TestIntegration_SetHours_HappyPath(t *testing.T) {
 	f := seedFixtures(t, pool)
 	h := newHandler(pool)
 
-	body := `{"hours":[{"day_of_week":1,"opens_at":"09:00","closes_at":"22:00"}],"overrides":[]}`
+	body := `{"intervals":[{"day_of_week":1,"opens_at":"09:00","closes_at":"22:00"}],"overrides":[]}`
 	req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/hours", strings.NewReader(body))
 	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
 	rec := httptest.NewRecorder()
@@ -446,7 +445,7 @@ func TestIntegration_SetHours_Idempotent(t *testing.T) {
 	f := seedFixtures(t, pool)
 	h := newHandler(pool)
 
-	body := `{"hours":[{"day_of_week":2,"opens_at":"11:00","closes_at":"21:00"}],"overrides":[]}`
+	body := `{"intervals":[{"day_of_week":2,"opens_at":"11:00","closes_at":"21:00"}],"overrides":[]}`
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest(http.MethodPut, "/v1/restaurant/hours", strings.NewReader(body))
 		req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
@@ -777,7 +776,7 @@ func TestIntegration_SetMenuItemAvailability_HappyPath(t *testing.T) {
 	f := seedFixtures(t, pool)
 	h := newHandler(pool)
 
-	body := `{"is_available":false}`
+	body := `{"availability_state":"OUT_OF_STOCK"}`
 	req := httptest.NewRequest(http.MethodPut,
 		fmt.Sprintf("/v1/restaurant/menu/items/%s/availability", f.menuItemID),
 		strings.NewReader(body))
@@ -796,7 +795,7 @@ func TestIntegration_SetMenuItemAvailability_IDOR_Returns404(t *testing.T) {
 	f := seedFixtures(t, pool)
 	h := newHandler(pool)
 
-	body := `{"is_available":false}`
+	body := `{"availability_state":"OUT_OF_STOCK"}`
 	req := httptest.NewRequest(http.MethodPut,
 		fmt.Sprintf("/v1/restaurant/menu/items/%s/availability", f.menuItemID),
 		strings.NewReader(body))
@@ -1079,7 +1078,7 @@ func TestIntegration_DelayOrder_LimitReached(t *testing.T) {
 	// by using a Repo-level counter. Since the Repo is not yet implemented,
 	// this test fails at 501 NOT_IMPLEMENTED — which is the correct RED state.
 	h := newHandler(pool)
-	body := `{"delay_minutes":15,"reason":"HIGH_VOLUME"}`
+	body := `{"added_minutes":15,"reason_code":"HIGH_VOLUME"}`
 	req := httptest.NewRequest(http.MethodPost,
 		fmt.Sprintf("/v1/restaurant/orders/%s/delay", orderID), strings.NewReader(body))
 	req.Header.Set("Idempotency-Key", "test-delay-limit-idem-123456")

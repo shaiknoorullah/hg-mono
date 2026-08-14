@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -24,6 +25,22 @@ type Cart struct {
 	IsQuotable              bool
 	BlockingReasons         []string
 
+	// Halal seal + card fields for the restaurant the cart is bound to (C-12).
+	// Populated for a non-empty cart so the cart surface re-asserts the chosen
+	// restaurant's halal claim before checkout.
+	RestaurantSlug         string
+	RestaurantLogoURL      *string
+	RestaurantHeroURL      *string
+	RestaurantRatingAvg    *float64
+	RestaurantRatingCount  int32
+	RestaurantPriceBand    *string
+	HalalStatus            string
+	HalalCertifyingBody    *string
+	HalalExpiresOn         *string
+	RestaurantIsAccepting  bool
+	RestaurantAccountState string
+	RestaurantMinOrder     *int64
+
 	// tmpUnit carries per-line pre-addon unit prices between the line scan and
 	// the addon pass; it is never serialised.
 	tmpUnit []int64
@@ -31,18 +48,20 @@ type Cart struct {
 
 // CartLine is one line with its current availability and price (C-19).
 type CartLine struct {
-	ID             string
-	MenuItemID     string
-	Name           string
-	Variant        *SelectedVariant
-	Addons         []SelectedAddon
-	Quantity       int
-	SpecialRequest *string
-	UnitPriceCents int64
-	LineTotalCents int64
-	Currency       string
-	IsAvailable    bool
-	UnavailReason  *string
+	ID                string
+	MenuItemID        string
+	Name              string
+	ImageURL          *string
+	Variant           *SelectedVariant
+	Addons            []SelectedAddon
+	Quantity          int
+	SpecialRequest    *string
+	UnitPriceCents    int64
+	LineTotalCents    int64
+	Currency          string
+	IsAvailable       bool
+	UnavailReason     *string
+	CurrentPriceCents *int64
 }
 
 // SelectedVariant is the chosen variant on a cart line.
@@ -90,11 +109,31 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	var c Cart
 	var cartID, restaurantID, restaurantName string
 	var addressID *string
+	var slug, halalStatus, accountState string
+	var priceBand *string
+	var ratingAvg *float64
+	var ratingCount int32
+	var certExpiresOn *time.Time
+	var minOrder *int64
+	var accepting bool
+	// The RestaurantCard on the cart re-asserts the chosen restaurant's halal seal
+	// before checkout (C-12): join the active certificate + issuing body so the
+	// badge carries the certifying body name and expiry, exactly as the catalog
+	// card does. LEFT JOIN because the certificate row is optional in principle.
 	err := tx.QueryRow(ctx, `
-		SELECT c.id, c.restaurant_id, r.display_name, c.delivery_address_id
-		  FROM cart c JOIN restaurant r ON r.id = c.restaurant_id
+		SELECT c.id, c.restaurant_id, r.display_name, c.delivery_address_id,
+		       r.slug, r.rating_avg, r.rating_count, r.price_band::text,
+		       r.halal_status::text, b.name AS certifying_body, cert.expires_on AS cert_expires_on,
+		       r.is_accepting_orders, r.account_state::text, r.minimum_order_cents
+		  FROM cart c
+		  JOIN restaurant r ON r.id = c.restaurant_id
+		  LEFT JOIN halal_certificate cert ON cert.id = r.halal_certificate_id
+		  LEFT JOIN halal_issuing_body b ON b.id = cert.issuing_body_id
 		 WHERE c.account_id = $1 AND c.deleted_at IS NULL`, accountID).
-		Scan(&cartID, &restaurantID, &restaurantName, &addressID)
+		Scan(&cartID, &restaurantID, &restaurantName, &addressID,
+			&slug, &ratingAvg, &ratingCount, &priceBand,
+			&halalStatus, &c.HalalCertifyingBody, &certExpiresOn,
+			&accepting, &accountState, &minOrder)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// No cart: return an empty one (id blank until first add).
 		return &Cart{Currency: "CAD", IsQuotable: false}, nil
@@ -107,6 +146,22 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	c.RestaurantName = &restaurantName
 	c.DeliveryAddressID = addressID
 	c.Currency = "CAD"
+	c.RestaurantSlug = slug
+	c.RestaurantRatingCount = ratingCount
+	c.RestaurantPriceBand = priceBand
+	// rating_avg is null until there are at least 5 ratings (C-12); the client
+	// renders "New" rather than a number invented from a single review.
+	if ratingAvg != nil && ratingCount >= 5 {
+		c.RestaurantRatingAvg = ratingAvg
+	}
+	c.HalalStatus = halalStatus
+	if certExpiresOn != nil {
+		s := certExpiresOn.Format("2006-01-02")
+		c.HalalExpiresOn = &s
+	}
+	c.RestaurantIsAccepting = accepting
+	c.RestaurantAccountState = accountState
+	c.RestaurantMinOrder = minOrder
 
 	rows, err := tx.Query(ctx, `
 		SELECT cl.id, cl.menu_item_id, COALESCE(miv.name, ''), mi.price_cents, mi.availability_state::text,
@@ -206,23 +261,23 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	}
 	c.tmpUnit = nil
 
-	// Quotability + blocking reasons. Minimum-order is read from the restaurant.
-	var minOrder int64
-	var accepting bool
-	var accountState string
-	_ = tx.QueryRow(ctx, `SELECT minimum_order_cents, is_accepting_orders, account_state::text FROM restaurant WHERE id = $1`,
-		restaurantID).Scan(&minOrder, &accepting, &accountState)
+	// Quotability + blocking reasons. Minimum-order, accepting-orders and
+	// account-state were read alongside the restaurant card fields above.
+	var minOrderCents int64
+	if c.RestaurantMinOrder != nil {
+		minOrderCents = *c.RestaurantMinOrder
+	}
 
 	c.IsQuotable = true
 	if anyUnavailable {
 		c.IsQuotable = false
 		c.BlockingReasons = appendReason(c.BlockingReasons, "CART_HAS_UNAVAILABLE_ITEMS")
 	}
-	if accountState != "LIVE" || !accepting {
+	if c.RestaurantAccountState != "LIVE" || !c.RestaurantIsAccepting {
 		c.IsQuotable = false
 		c.BlockingReasons = appendReason(c.BlockingReasons, "RESTAURANT_CLOSED")
 	}
-	if c.IndicativeSubtotalCents < minOrder {
+	if c.IndicativeSubtotalCents < minOrderCents {
 		c.IsQuotable = false
 		c.BlockingReasons = appendReason(c.BlockingReasons, "BELOW_MINIMUM_ORDER")
 	}

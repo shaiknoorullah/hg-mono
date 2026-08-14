@@ -5,6 +5,7 @@ import "github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 // Actions owned by this module. Typed constants, never string literals at
 // the call site (I-05.2). The auth matrix must be updated to include these.
 const (
+	ActionProfileRead      httpx.Action = "account.profile_read"
 	ActionProfileWrite     httpx.Action = "account.profile_write"
 	ActionDeviceWrite      httpx.Action = "account.device_write"
 	ActionNotificationRead httpx.Action = "account.notification_read"
@@ -14,6 +15,10 @@ const (
 // Routes registers the account self-service routes. Every route carries an
 // explicit Policy — no route is Public (deny by default, G-4 / I-06.2).
 func Routes(r *httpx.Router, h *Handler) {
+	r.Get("/v1/me/profile",
+		httpx.Policy{Action: ActionProfileRead, Class: httpx.ClassRead, OperationID: "getCustomerProfile"},
+		h.GetCustomerProfile)
+
 	r.Patch("/v1/me/profile",
 		httpx.Policy{Action: ActionProfileWrite, Class: httpx.ClassWrite, OperationID: "updateCustomerProfile"},
 		h.UpdateCustomerProfile)

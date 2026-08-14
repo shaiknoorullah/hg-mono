@@ -146,7 +146,7 @@ func TestIntegration_RejectOrder_IDOR_Returns404(t *testing.T) {
 	// otherAccountID is scoped to otherRestID; rejecting the primary's order → 404.
 	req := httptest.NewRequest(http.MethodPost,
 		fmt.Sprintf("/v1/restaurant/orders/%s/reject", orderID),
-		strings.NewReader(`{"reason":"ITEM_UNAVAILABLE"}`))
+		strings.NewReader(`{"reason_code":"ITEM_UNAVAILABLE"}`))
 	req = withPrincipal(req, principalWith(f.otherAccountID, httpx.RoleRestaurantOwner))
 	req = withChiParam(req, "orderId", orderID)
 	rec := httptest.NewRecorder()

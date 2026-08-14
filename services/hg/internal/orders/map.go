@@ -64,12 +64,18 @@ func cartToDTO(c *Cart) cartDTO {
 	if c.Currency == "" {
 		d.Currency = "CAD"
 	}
+	// A non-empty cart is bound to exactly one restaurant, so re-assert that
+	// restaurant's halal seal on the cart surface (C-12/C-19). An empty cart (no
+	// RestaurantID) leaves restaurant null, which the contract permits.
+	if c.RestaurantID != nil {
+		d.Restaurant = cartRestaurantCard(c)
+	}
 	for _, l := range c.Lines {
 		ld := cartLineDTO{
-			ID: l.ID, MenuItemID: l.MenuItemID, Name: l.Name, Quantity: l.Quantity,
+			ID: l.ID, MenuItemID: l.MenuItemID, Name: l.Name, ImageURL: l.ImageURL, Quantity: l.Quantity,
 			SpecialRequest: l.SpecialRequest, UnitPriceCents: l.UnitPriceCents,
 			LineTotalCents: l.LineTotalCents, Currency: l.Currency, Addons: []selectedAddonDTO{},
-			Availability: cartAvailabilityDTO{IsAvailable: l.IsAvailable, Reason: l.UnavailReason},
+			Availability: cartAvailabilityDTO{IsAvailable: l.IsAvailable, Reason: l.UnavailReason, CurrentPriceCents: l.CurrentPriceCents},
 		}
 		if l.Variant != nil {
 			ld.Variant = &selectedVariantDTO{VariantID: l.Variant.VariantID, Name: l.Variant.Name, PricingMode: l.Variant.PricingMode}
@@ -82,16 +88,93 @@ func cartToDTO(c *Cart) cartDTO {
 	return d
 }
 
+// halalBadge builds the contract HalalBadge (C-12) from the parts loaded on the
+// cart/order — display_state is always present, the certifying body name and
+// expiry are free text/date when known. It never emits a flat string; the object
+// is the product's single claim (invariant #8).
+func halalBadge(displayState string, certifyingBody, expiresOn *string) halalBadgeDTO {
+	b := halalBadgeDTO{DisplayState: displayState}
+	if certifyingBody != nil {
+		b.CertifyingBodyName = certifyingBody
+	}
+	if expiresOn != nil {
+		b.ExpiresOn = expiresOn
+	}
+	return b
+}
+
+// cartRestaurantCard renders the RestaurantCard for a bound cart, including the
+// halal seal. logo/hero are null until a media resolver lands (same convention
+// as the catalog card); the halal badge is the load-bearing field here.
+func cartRestaurantCard(c *Cart) *restaurantCardDTO {
+	card := &restaurantCardDTO{
+		ID:           derefStr(c.RestaurantID),
+		Name:         derefStr(c.RestaurantName),
+		Slug:         c.RestaurantSlug,
+		Cuisines:     []string{},
+		RatingAvg:    c.RestaurantRatingAvg,
+		RatingCount:  c.RestaurantRatingCount,
+		PriceBand:    c.RestaurantPriceBand,
+		Halal:        halalBadge(c.HalalStatus, c.HalalCertifyingBody, c.HalalExpiresOn),
+		Availability: cartRestaurantAvailability(c),
+	}
+	return card
+}
+
+// cartRestaurantAvailability derives the minimal C-14 serviceability verdict the
+// cart can compute from what it loaded: OPEN when the restaurant is LIVE and
+// accepting, otherwise PAUSED/CLOSED. distance_m is null (the cart holds no
+// address-relative geodesic distance; the full verdict is the catalog engine's).
+func cartRestaurantAvailability(c *Cart) restaurantAvailabilityInfoDTO {
+	state := "OPEN"
+	if c.RestaurantAccountState != "LIVE" {
+		state = "CLOSED_HOURS"
+	} else if !c.RestaurantIsAccepting {
+		state = "PAUSED"
+	}
+	return restaurantAvailabilityInfoDTO{
+		State:             state,
+		MinimumOrderCents: c.RestaurantMinOrder,
+	}
+}
+
+// addressToDTO renders the customer's delivery address (contract Address).
+func addressToDTO(a *OrderAddress) *addressDTO {
+	return &addressDTO{
+		ID: a.ID, Label: a.Label, Line1: a.Line1, Line2: a.Line2, Unit: a.Unit,
+		Buzzer: a.Buzzer, City: a.City, Province: a.Province, PostalCode: a.PostalCode,
+		Country: a.Country, Latitude: a.Latitude, Longitude: a.Longitude,
+		Timezone: a.Timezone, DeliveryNotes: a.DeliveryNotes, IsDefault: a.IsDefault,
+	}
+}
+
 func orderViewToDTO(v *OrderView) orderCustomerViewDTO {
+	ref := orderRestaurantRefDTO{ID: v.RestaurantID, Name: v.RestaurantName, LogoImageURL: v.RestaurantLogoURL}
+	// The customer order view surfaces the restaurant's halal state (C-12): when
+	// the display_state is known, carry the HalalBadge object; never a flat string.
+	if v.HalalStatus != "" {
+		b := halalBadge(v.HalalStatus, v.HalalCertifyingBody, v.HalalExpiresOn)
+		ref.Halal = &b
+	}
 	d := orderCustomerViewDTO{
 		ID: v.ID, Code: v.Code, State: v.State, StateSince: httpx.Timestamp(v.StateSince),
 		DeadlineAt: tsPtr(v.DeadlineAt), QuoteID: v.QuoteID,
-		Restaurant:           orderRestaurantRefDTO{ID: v.RestaurantID, Name: v.RestaurantName, LogoImageURL: v.RestaurantLogoURL},
+		Restaurant:           ref,
 		DeliveryInstructions: v.DeliveryInstructions, SpecialInstructions: v.SpecialInstructions,
-		CancelReason: v.CancelReason, RejectReason: v.RejectReason, CanCancel: v.CanCancel,
+		DispatchState: v.DispatchState,
+		CancelReason:  v.CancelReason, RejectReason: v.RejectReason, CanCancel: v.CanCancel,
 		PlacedAt: httpx.Timestamp(v.PlacedAt), AcceptedAt: tsPtr(v.AcceptedAt), ReadyAt: tsPtr(v.ReadyAt),
 		PickedUpAt: tsPtr(v.PickedUpAt), DeliveredAt: tsPtr(v.DeliveredAt), CompletedAt: tsPtr(v.CompletedAt),
 		Lines: []orderLineDTO{},
+	}
+	if v.DeliveryAddress != nil {
+		d.DeliveryAddress = addressToDTO(v.DeliveryAddress)
+	}
+	if v.Rider != nil {
+		d.Rider = &riderPublicProfileDTO{
+			FirstName: v.Rider.FirstName, LastInitial: v.Rider.LastInitial,
+			PhotoURL: v.Rider.PhotoURL, VehicleType: v.Rider.VehicleType, RatingAvg: v.Rider.RatingAvg,
+		}
 	}
 	if d.DeliveryInstructions == nil {
 		d.DeliveryInstructions = []string{}

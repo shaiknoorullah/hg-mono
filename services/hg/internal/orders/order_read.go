@@ -24,6 +24,12 @@ type OrderView struct {
 	RestaurantID         string
 	RestaurantName       string
 	RestaurantLogoURL    *string
+	HalalStatus          string
+	HalalCertifyingBody  *string
+	HalalExpiresOn       *string
+	DeliveryAddress      *OrderAddress
+	Rider                *RiderPublicProfile
+	DispatchState        *string
 	Lines                []OrderViewLine
 	SubtotalCents        int64
 	DiscountCents        int64
@@ -62,6 +68,26 @@ type OrderViewLine struct {
 	Addons         []QuoteLineAddon
 }
 
+// OrderAddress is the customer's delivery address on the order projection
+// (contract Address).
+type OrderAddress struct {
+	ID            string
+	Label         *string
+	Line1         string
+	Line2         *string
+	Unit          *string
+	Buzzer        *string
+	City          string
+	Province      string
+	PostalCode    string
+	Country       string
+	Latitude      float64
+	Longitude     float64
+	Timezone      string
+	DeliveryNotes *string
+	IsDefault     bool
+}
+
 // OrderSummary is one row of the customer's order history (OrderSummary schema).
 type OrderSummary struct {
 	ID             string
@@ -93,9 +119,17 @@ func (s *Store) GetOrderForCustomer(ctx context.Context, accountID, orderID stri
 
 func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID string) (*OrderView, error) {
 	var v OrderView
+	var halalCertExpiresOn *time.Time
+	// logo_image_url stays null on the wire until a media resolver lands (same
+	// convention as the catalog card's nilMedia): logo_object_id is a stored_object
+	// UUID, not a URI, so emitting it raw would violate the contract's `format: uri`.
+	// The halal seal (C-12) is joined here from the active certificate + issuing
+	// body so the customer order view can carry the restaurant's HalalBadge.
 	err := tx.QueryRow(ctx, `
 		SELECT o.id, o.code, o.state::text, o.state_since, o.deadline_at, o.quote_id,
 		       o.restaurant_id, r.display_name, NULL::text,
+		       r.halal_status::text, b.name AS certifying_body, cert.expires_on AS cert_expires_on,
+		       d.state::text AS dispatch_state,
 		       o.subtotal_cents, o.discount_cents, o.delivery_fee_cents, o.service_fee_cents,
 		       o.tax_total_cents, o.tip_cents, o.total_cents, o.currency::text,
 		       o.delivery_instructions, o.special_instructions,
@@ -104,9 +138,14 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 		  FROM "order" o
 		  JOIN order_visibility ov ON ov.order_id = o.id AND ov.account_id = $1 AND ov.via = 'CUSTOMER'
 		  JOIN restaurant r ON r.id = o.restaurant_id
+		  LEFT JOIN halal_certificate cert ON cert.id = r.halal_certificate_id
+		  LEFT JOIN halal_issuing_body b ON b.id = cert.issuing_body_id
+		  LEFT JOIN dispatch d ON d.order_id = o.id
 		 WHERE o.id = $2`, accountID, orderID).Scan(
 		&v.ID, &v.Code, &v.State, &v.StateSince, &v.DeadlineAt, &v.QuoteID,
 		&v.RestaurantID, &v.RestaurantName, &v.RestaurantLogoURL,
+		&v.HalalStatus, &v.HalalCertifyingBody, &halalCertExpiresOn,
+		&v.DispatchState,
 		&v.SubtotalCents, &v.DiscountCents, &v.DeliveryFeeCents, &v.ServiceFeeCents,
 		&v.TaxTotalCents, &v.TipCents, &v.TotalCents, &v.Currency,
 		&v.DeliveryInstructions, &v.SpecialInstructions,
@@ -117,6 +156,10 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 	}
 	if err != nil {
 		return nil, fmt.Errorf("load order: %w", err)
+	}
+	if halalCertExpiresOn != nil {
+		s := halalCertExpiresOn.Format("2006-01-02")
+		v.HalalExpiresOn = &s
 	}
 
 	// can_cancel: free only while cancellation is free (before restaurant accepts).
@@ -188,6 +231,40 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 	}
 	if err := taxRows.Err(); err != nil {
 		return nil, err
+	}
+
+	// Delivery address (contract Address). Null for PICKUP orders. Latitude and
+	// longitude are decomposed from the geography point (never a stored lat/lng).
+	var a OrderAddress
+	addrErr := tx.QueryRow(ctx, `
+		SELECT a.id, a.label, a.line1, a.line2, a.unit, a.buzzer, a.city, a.province::text,
+		       a.postal_code, a.country, ST_Y(a.location::geometry), ST_X(a.location::geometry),
+		       a.timezone, a.delivery_notes, a.is_default
+		  FROM "order" o JOIN address a ON a.id = o.delivery_address_id
+		 WHERE o.id = $1 AND o.delivery_address_id IS NOT NULL`, orderID).Scan(
+		&a.ID, &a.Label, &a.Line1, &a.Line2, &a.Unit, &a.Buzzer, &a.City, &a.Province,
+		&a.PostalCode, &a.Country, &a.Latitude, &a.Longitude,
+		&a.Timezone, &a.DeliveryNotes, &a.IsDefault)
+	if addrErr == nil {
+		v.DeliveryAddress = &a
+	} else if !errors.Is(addrErr, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("load delivery address: %w", addrErr)
+	}
+
+	// Assigned rider's public profile (C-32). Absent until a rider is on the
+	// order; the customer never sees earnings, phone or record (P-07).
+	var rp RiderPublicProfile
+	riderErr := tx.QueryRow(ctx, `
+		SELECT rp.first_name, left(rp.last_name, 1), NULL::text, rv.vehicle_type::text, rp.rating_avg
+		  FROM dispatch d
+		  JOIN rider_profile rp ON rp.account_id = d.rider_account_id
+		  JOIN rider_vehicle rv ON rv.account_id = d.rider_account_id AND rv.is_active AND rv.deleted_at IS NULL
+		 WHERE d.order_id = $1 AND d.rider_account_id IS NOT NULL`, orderID).Scan(
+		&rp.FirstName, &rp.LastInitial, &rp.PhotoURL, &rp.VehicleType, &rp.RatingAvg)
+	if riderErr == nil {
+		v.Rider = &rp
+	} else if !errors.Is(riderErr, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("load rider: %w", riderErr)
 	}
 
 	return &v, nil

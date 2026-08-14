@@ -272,7 +272,10 @@ type ConnectRow struct {
 	CurrentlyDue     []string
 	EventuallyDue    []string
 	PastDue          []string
-	PayoutInterval   string
+	// Deadline is the requirements_deadline surfaced verbatim from Stripe (unix
+	// timestamp stored in the requirements JSONB; nil when Stripe reports none).
+	Deadline       *int64
+	PayoutInterval string
 }
 
 // GetConnectAccount returns a partner's connect_account or ErrNotFound.
@@ -291,7 +294,7 @@ func (r *Repo) GetConnectAccount(ctx context.Context, ownerType, ownerID string)
 	if err != nil {
 		return ConnectRow{}, err
 	}
-	c.CurrentlyDue, c.EventuallyDue, c.PastDue = parseRequirements(reqs)
+	c.CurrentlyDue, c.EventuallyDue, c.PastDue, c.Deadline = parseRequirements(reqs)
 	return c, nil
 }
 

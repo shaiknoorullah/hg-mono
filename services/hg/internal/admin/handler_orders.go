@@ -325,6 +325,20 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 		})
 	}
 
+	// can_cancel: true only for pre-acceptance states (before restaurant accepts).
+	preAcceptanceStates := map[string]bool{
+		"CREATED": true, "AUTHORIZED": true, "RESTAURANT_PENDING": true,
+	}
+	canCancel := preAcceptanceStates[row.State]
+
+	// delivery_instructions and dispatch_history are empty slices when no data
+	// is loaded — the contract allows these to be absent/null but we emit empty
+	// arrays to match the array type declared in the schema.
+	deliveryInstructions := []any{}
+	dispatchHistory := []adminDispatchHistoryEntry{}
+
+	stateSince := ptr(httpx.Timestamp(row.StateSince))
+
 	return adminOrderView{
 		ID:    row.ID,
 		Code:  row.Code,
@@ -344,6 +358,23 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 			TotalCents:       row.TotalCents,
 			Currency:         row.Currency,
 		},
+		PlacedAt:             httpx.Timestamp(row.PlacedAt),
+		StateSince:           stateSince,
+		DeadlineAt:           tsPtr(row.DeadlineAt),
+		CancelReason:         row.CancelReason,
+		RejectReason:         row.RejectReason,
+		CanCancel:            canCancel,
+		AcceptedAt:           tsPtr(row.AcceptedAt),
+		ReadyAt:              nil,
+		PickedUpAt:           nil,
+		DeliveredAt:          nil,
+		CompletedAt:          tsPtr(row.CompletedAt),
+		DeliveryAddress:      nil,
+		DeliveryInstructions: deliveryInstructions,
+		SpecialInstructions:  nil,
+		Rider:                nil,
+		DispatchState:        nil,
+		DispatchHistory:      dispatchHistory,
 		InternalMoney: adminOrderInternalMoney{
 			CommissionCents:    row.CommissionCents,
 			RestaurantNetCents: row.RestaurantNetCents,
@@ -351,13 +382,9 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 			PlatformGrossCents: row.PlatformGrossCents,
 			Currency:           row.Currency,
 		},
-		Timeline:     timeline,
-		Payment:      payment,
-		Refunds:      refunds,
-		CancelReason: row.CancelReason,
-		RejectReason: row.RejectReason,
-		PlacedAt:     httpx.Timestamp(row.PlacedAt),
-		AcceptedAt:   tsPtr(row.AcceptedAt),
-		PiiRevealed:  piiRevealed,
+		Timeline:    timeline,
+		Payment:     payment,
+		Refunds:     refunds,
+		PiiRevealed: piiRevealed,
 	}
 }

@@ -144,16 +144,21 @@ type deviceResponse struct {
 	LastSeenAt  string `json:"last_seen_at"`
 }
 
-// notificationResponse mirrors the Notification schema in the contract.
+// notificationResponse mirrors the Notification schema in the contract
+// (additionalProperties:false). channels_attempted is always present (at least
+// the INAPP row — the inbox is the system of record, per the contract); order_id
+// is a nullable uuid linking a notification to its order.
 type notificationResponse struct {
-	ID        string  `json:"id"`
-	Kind      string  `json:"kind"`
-	Title     string  `json:"title"`
-	Body      string  `json:"body"`
-	Priority  string  `json:"priority"`
-	DeepLink  *string `json:"deep_link"`
-	ReadAt    *string `json:"read_at"`
-	CreatedAt string  `json:"created_at"`
+	ID                string   `json:"id"`
+	Kind              string   `json:"kind"`
+	Title             string   `json:"title"`
+	Body              string   `json:"body"`
+	DeepLink          *string  `json:"deep_link"`
+	Priority          string   `json:"priority"`
+	ChannelsAttempted []string `json:"channels_attempted"`
+	OrderID           *string  `json:"order_id"`
+	CreatedAt         string   `json:"created_at"`
+	ReadAt            *string  `json:"read_at"`
 }
 
 // valid platform values (device_platform enum from migrations/00002_enums.sql)
@@ -169,6 +174,36 @@ var validRoleContexts = map[string]bool{
 	"CUSTOMER": true, "RIDER": true,
 	"RESTAURANT_OWNER": true, "RESTAURANT_MANAGER": true, "RESTAURANT_STAFF": true,
 	"SUPPORT_AGENT": true, "ADMIN": true, "SUPER_ADMIN": true,
+}
+
+// GetCustomerProfile implements GET /v1/me/profile.
+// x-roles: CUSTOMER only. Returns the CustomerProfile for the calling account.
+func (h *Handler) GetCustomerProfile(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleCustomer) {
+		return
+	}
+
+	if h.repo == nil {
+		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
+			"getCustomerProfile is not yet connected to a store.", nil)
+		return
+	}
+
+	profile, err := h.repo.GetCustomerProfile(r.Context(), p.AccountID)
+	if err != nil {
+		if isNotFound(err) {
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
+			return
+		}
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+
+	httpx.Respond(w, r, http.StatusOK, profile)
 }
 
 // UpdateCustomerProfile implements PATCH /v1/me/profile (C-03).

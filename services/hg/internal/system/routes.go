@@ -22,6 +22,8 @@ func Routes(r *httpx.Router, h *Handler, cfg *config.Config) {
 	// Contract operations.
 	r.Get("/health", public("getHealth"), h.Health)
 	r.Get("/health/ready", public("getReadiness"), h.Readiness)
+	r.Get("/v1/openapi.json", public("getOpenApiDocument"), h.OpenAPIDocument)
+	r.Get("/v1/config/public", public("getPublicConfig"), h.PublicConfig)
 	r.Get("/internal/deps", httpx.Policy{
 		Action:      ActionDepsRead,
 		Class:       httpx.ClassRead,
@@ -57,16 +59,18 @@ func Routes(r *httpx.Router, h *Handler, cfg *config.Config) {
 // public routes must equal this exactly, so making a route public is a visible
 // diff in a reviewed list rather than a one-word change buried in a call.
 //
-// TODO(siblings): as auth lands, add exactly the contract's PUBLIC operations —
-// getOpenApiDocument, getPublicConfig, requestOtp, verifyOtp, registerRestaurant,
-// verifyEmail, resendEmailVerification, login, requestPasswordReset,
-// resetPassword, refreshSession, receiveStripeWebhook — and nothing else.
+// TODO(siblings): as auth lands, add exactly the remaining contract PUBLIC
+// operations — requestOtp, verifyOtp, registerRestaurant, verifyEmail,
+// resendEmailVerification, login, requestPasswordReset, resetPassword,
+// refreshSession, receiveStripeWebhook — and nothing else.
 func PublicRouteAllowlist(local bool) []string {
 	routes := []string{
 		"GET /health",
 		"GET /health/ready",
 		"GET /healthz",
 		"GET /readyz",
+		"GET /v1/config/public",
+		"GET /v1/openapi.json",
 	}
 	if local {
 		routes = append(routes, "GET /debug/deps")

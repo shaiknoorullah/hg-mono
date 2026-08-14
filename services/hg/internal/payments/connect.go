@@ -6,6 +6,16 @@ import (
 	"time"
 )
 
+// deadlineStr converts a Unix timestamp stored by Stripe's current_deadline
+// into the RFC 3339 date-time string the contract requires, or nil when absent.
+func deadlineStr(ts *int64) *string {
+	if ts == nil || *ts == 0 {
+		return nil
+	}
+	s := time.Unix(*ts, 0).UTC().Format(time.RFC3339)
+	return &s
+}
+
 // Stripe Connect onboarding (P-19). Express connected accounts, country CA,
 // transfers-only capability, manual payout schedule so the platform controls
 // timing. The partner must be admin-approved first; that check is the caller's
@@ -58,6 +68,7 @@ func (s *Service) connectStatusFrom(c ConnectRow) ConnectStatusDTO {
 			EventuallyDue:  nonNil(c.EventuallyDue),
 			PastDue:        nonNil(c.PastDue),
 			DisabledReason: c.DisabledReason,
+			Deadline:       deadlineStr(c.Deadline),
 		},
 		PayoutInterval: c.PayoutInterval,
 	}

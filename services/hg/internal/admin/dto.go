@@ -388,24 +388,61 @@ type adminRefund struct {
 }
 
 // adminOrderView is the contract's OrderAdminView (OrderCustomerView + admin fields).
-// Only fields named by the contract are emitted (additionalProperties:false is
-// honoured by never adding a field the schema does not name).
+// OrderCustomerView has no additionalProperties:false (it is an allOf base), so
+// its optional fields are all nullable and may be absent. We emit them as null
+// when we do not yet fetch that data, satisfying the wire shape.
+// The required fields from OrderCustomerView: id, code, state, restaurant,
+// lines, money, placed_at. Admin-only required: timeline, payment, refunds,
+// internal_money.
 type adminOrderView struct {
-	ID            string                  `json:"id"`
-	Code          string                  `json:"code"`
-	State         string                  `json:"state"`
-	Restaurant    adminOrderRestaurant    `json:"restaurant"`
-	Lines         []adminOrderLine        `json:"lines"`
-	Money         adminOrderMoney         `json:"money"`
+	// OrderCustomerView required fields.
+	ID         string               `json:"id"`
+	Code       string               `json:"code"`
+	State      string               `json:"state"`
+	Restaurant adminOrderRestaurant `json:"restaurant"`
+	Lines      []adminOrderLine     `json:"lines"`
+	Money      adminOrderMoney      `json:"money"`
+	PlacedAt   string               `json:"placed_at"`
+
+	// OrderCustomerView optional fields (nullable; populated where data is available).
+	// delivery_address is oneOf[Address,null]; rider is oneOf[RiderPublicProfile,null].
+	// Both are emitted as null until the store joins those tables.
+	StateSince           *string `json:"state_since"`
+	DeadlineAt           *string `json:"deadline_at"`
+	CancelReason         *string `json:"cancel_reason"`
+	RejectReason         *string `json:"reject_reason"`
+	CanCancel            bool    `json:"can_cancel"`
+	AcceptedAt           *string `json:"accepted_at"`
+	ReadyAt              *string `json:"ready_at"`
+	PickedUpAt           *string `json:"picked_up_at"`
+	DeliveredAt          *string `json:"delivered_at"`
+	CompletedAt          *string `json:"completed_at"`
+	DeliveryAddress      any     `json:"delivery_address"`
+	DeliveryInstructions []any   `json:"delivery_instructions"`
+	SpecialInstructions  *string `json:"special_instructions"`
+	Rider                any     `json:"rider"`
+	DispatchState        *string `json:"dispatch_state"`
+
+	// OrderAdminView additional optional fields.
+	DispatchHistory []adminDispatchHistoryEntry `json:"dispatch_history"`
+
+	// OrderAdminView required fields.
 	InternalMoney adminOrderInternalMoney `json:"internal_money"`
 	Timeline      []adminTransitionEntry  `json:"timeline"`
 	Payment       adminOrderPayment       `json:"payment"`
 	Refunds       []adminRefund           `json:"refunds"`
-	CancelReason  *string                 `json:"cancel_reason,omitempty"`
-	RejectReason  *string                 `json:"reject_reason,omitempty"`
-	PlacedAt      string                  `json:"placed_at"`
-	AcceptedAt    *string                 `json:"accepted_at"`
 	PiiRevealed   bool                    `json:"pii_revealed"`
+}
+
+// adminDispatchHistoryEntry is one entry in the OrderAdminView.dispatch_history
+// array (openapi.yaml:10725-10748). All fields are nullable except state and at.
+type adminDispatchHistoryEntry struct {
+	State          string  `json:"state"`
+	Wave           *int    `json:"wave"`
+	RadiusM        *int    `json:"radius_m"`
+	RiderAccountID *string `json:"rider_account_id"`
+	OfferOutcome   *string `json:"offer_outcome"`
+	At             string  `json:"at"`
 }
 
 // --- Menu (A-19) ---
@@ -433,8 +470,12 @@ type menuCategoryInput struct {
 // pending_version are full MenuItemVersion objects (oneOf MenuItemVersion | null),
 // not a subset — the contract references MenuItemVersion directly.
 //
-// The base MenuItem schema names neither created_at nor updated_at, so neither
-// is emitted (additionalProperties:false on MenuItemOwnerView).
+// MenuItemOwnerView is allOf(MenuItem + {category_id, live_version,
+// pending_version, sort_order}). MenuItem has no additionalProperties:false, so
+// extra fields are schema-permitted; restaurant_id is retained for filter use.
+// The optional base MenuItem fields (image_url, ingredients_text, dietary_tags,
+// allergen_tags, out_of_stock_until, prep_minutes) are included so they are
+// present on the wire when populated.
 type menuItemOwnerView struct {
 	ID                string           `json:"id"`
 	RestaurantID      string           `json:"restaurant_id"`
@@ -446,6 +487,12 @@ type menuItemOwnerView struct {
 	SortOrder         int              `json:"sort_order"`
 	Name              string           `json:"name"`
 	Description       *string          `json:"description"`
+	ImageURL          *string          `json:"image_url"`
+	IngredientsText   *string          `json:"ingredients_text"`
+	DietaryTags       []string         `json:"dietary_tags"`
+	AllergenTags      []string         `json:"allergen_tags"`
+	OutOfStockUntil   *string          `json:"out_of_stock_until"`
+	PrepMinutes       *int             `json:"prep_minutes"`
 	LiveVersion       *menuItemVersion `json:"live_version"`
 	PendingVersion    *menuItemVersion `json:"pending_version"`
 }
@@ -474,6 +521,8 @@ type menuItemInput struct {
 // menuItemVersion is the contract's MenuItemVersion. The schema is
 // additionalProperties:false and names neither reviewed_by nor updated_at, so
 // neither is emitted; reviewed_by remains internal to the audit log only.
+// ingredients_text and image_url are the claim-bearing fields required by
+// the review queue (openapi.yaml:9457,9467).
 type menuItemVersion struct {
 	ID                  string   `json:"id"`
 	MenuItemID          string   `json:"menu_item_id"`
@@ -481,8 +530,10 @@ type menuItemVersion struct {
 	Version             int      `json:"version"`
 	Name                string   `json:"name"`
 	Description         *string  `json:"description"`
+	IngredientsText     *string  `json:"ingredients_text"`
 	DietaryTags         []string `json:"dietary_tags"`
 	AllergenTags        []string `json:"allergen_tags"`
+	ImageURL            *string  `json:"image_url"`
 	ReviewStatus        string   `json:"review_status"`
 	RejectionReasonCode *string  `json:"rejection_reason_code"`
 	ReviewNote          *string  `json:"review_note"`

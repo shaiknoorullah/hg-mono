@@ -67,6 +67,65 @@ type riderProfileRow struct {
 	UpdatedAt         time.Time
 }
 
+// riderMeRow holds the full set of columns required by GET /v1/riders/me,
+// widened beyond riderProfileRow to include account.phone_e164,
+// account.timezone, rider_profile.rating_avg, and the active vehicle.
+type riderMeRow struct {
+	riderProfileRow
+	// From account:
+	PhoneE164 *string
+	Timezone  *string
+	// From rider_profile:
+	RatingAvg *float64
+	// Active vehicle (LEFT JOIN rider_vehicle; nil when no active vehicle):
+	VehicleID           *string
+	VehicleType         *string
+	VehicleMake         *string
+	VehicleModel        *string
+	VehicleYear         *int
+	VehicleColour       *string
+	VehicleLicencePlate *string
+	VehicleIsActive     *bool
+	// Active assignment (LEFT JOIN assignment; nil when no active assignment):
+	ActiveAssignmentID *string
+}
+
+// GetRiderMe returns the full RiderMe projection for the given account_id,
+// joining account (for phone_e164, timezone) and rider_vehicle (for the active
+// vehicle). Returns ErrNotFound when no rider_profile row exists.
+func (r *Repo) GetRiderMe(ctx context.Context, accountID string) (riderMeRow, error) {
+	const q = `
+SELECT rp.account_id, rp.first_name, rp.last_name, rp.date_of_birth,
+       rp.onboarding_state, rp.account_status, rp.availability_state,
+       rp.approved_at, rp.created_at, rp.updated_at,
+       a.phone_e164, a.timezone,
+       rp.rating_avg,
+       rv.id, rv.vehicle_type::text, rv.make, rv.model, rv.year, rv.colour, rv.licence_plate, rv.is_active,
+       (SELECT id::text FROM assignment
+         WHERE rider_account_id = $1
+           AND state NOT IN ('DELIVERED','UNDELIVERABLE','RETURNED','CANCELLED_BY_PLATFORM','REASSIGNED')
+         ORDER BY assigned_at DESC LIMIT 1)
+  FROM rider_profile rp
+  JOIN account a ON a.id = rp.account_id
+  LEFT JOIN rider_vehicle rv ON rv.account_id = rp.account_id AND rv.is_active AND rv.deleted_at IS NULL
+ WHERE rp.account_id = $1 AND rp.deleted_at IS NULL`
+	var row riderMeRow
+	err := r.pool.QueryRow(ctx, q, accountID).Scan(
+		&row.AccountID, &row.FirstName, &row.LastName, &row.DateOfBirth,
+		&row.OnboardingState, &row.AccountStatus, &row.AvailabilityState,
+		&row.ApprovedAt, &row.CreatedAt, &row.UpdatedAt,
+		&row.PhoneE164, &row.Timezone,
+		&row.RatingAvg,
+		&row.VehicleID, &row.VehicleType, &row.VehicleMake, &row.VehicleModel,
+		&row.VehicleYear, &row.VehicleColour, &row.VehicleLicencePlate, &row.VehicleIsActive,
+		&row.ActiveAssignmentID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return riderMeRow{}, ErrNotFound
+	}
+	return row, err
+}
+
 // GetRiderProfile returns the rider_profile row for the given account_id, or
 // ErrNotFound when none exists.
 func (r *Repo) GetRiderProfile(ctx context.Context, accountID string) (riderProfileRow, error) {
@@ -496,18 +555,23 @@ func Routes(r *httpx.Router, h *Handler) {
 
 // ─── Wire structs ────────────────────────────────────────────────────────────
 
-// riderMeResponse mirrors the RiderMe schema. Fields are limited to those the
-// contract declares (additionalProperties:false); optional fields the server
-// does not populate are elided with omitempty so the payload stays a strict
-// subset of RiderMe.
+// riderMeResponse mirrors the RiderMe schema (additionalProperties:false).
+// Required fields are always present. Optional fields use omitempty so the
+// payload is a strict subset when a value is unavailable (e.g. no vehicle).
 type riderMeResponse struct {
-	AccountID         string  `json:"account_id"`
-	FirstName         *string `json:"first_name"`
-	LastName          *string `json:"last_name"`
-	OnboardingState   string  `json:"onboarding_state"`
-	AccountStatus     string  `json:"account_status"`
-	AvailabilityState string  `json:"availability_state"`
-	NextRoute         string  `json:"next_route"`
+	AccountID          string           `json:"account_id"`
+	FirstName          *string          `json:"first_name"`
+	LastName           *string          `json:"last_name"`
+	PhoneE164          *string          `json:"phone_e164,omitempty"`
+	PhotoURL           *string          `json:"photo_url,omitempty"`
+	OnboardingState    string           `json:"onboarding_state"`
+	AccountStatus      string           `json:"account_status"`
+	AvailabilityState  string           `json:"availability_state"`
+	Vehicle            *vehicleResponse `json:"vehicle,omitempty"`
+	ActiveAssignmentID *string          `json:"active_assignment_id,omitempty"`
+	RatingAvg          *float64         `json:"rating_avg,omitempty"`
+	Timezone           *string          `json:"timezone,omitempty"`
+	NextRoute          string           `json:"next_route"`
 }
 
 // riderProfileResponse mirrors the RiderProfile schema returned by
@@ -599,12 +663,17 @@ type dashboardTodayResponse struct {
 	OnlineSeconds int64  `json:"online_seconds"`
 }
 
-// dashboardResponse mirrors RiderDashboard.
+// dashboardResponse mirrors RiderDashboard (additionalProperties:false).
+// required: [mode, today, active_assignment, current_offer].
+// tracking_health and blocking_reasons are optional; emitted as null/absent
+// until the dispatch service populates them.
 type dashboardResponse struct {
 	Mode             string                 `json:"mode"`
 	Today            dashboardTodayResponse `json:"today"`
 	ActiveAssignment any                    `json:"active_assignment"`
 	CurrentOffer     any                    `json:"current_offer"`
+	TrackingHealth   any                    `json:"tracking_health,omitempty"`
+	BlockingReasons  []string               `json:"blocking_reasons,omitempty"`
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -805,7 +874,7 @@ func looksLikeEmail(s string) bool {
 // getRiderMe implements GET /v1/riders/me.
 func (h *Handler) getRiderMe(w http.ResponseWriter, r *http.Request) {
 	p := httpx.PrincipalFrom(r.Context())
-	row, err := h.svc.repo.GetRiderProfile(r.Context(), p.AccountID)
+	row, err := h.svc.repo.GetRiderMe(r.Context(), p.AccountID)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, codeNotFound, "Rider profile not found.", nil)
 		return
@@ -814,14 +883,39 @@ func (h *Handler) getRiderMe(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
 	}
+
+	// Build optional vehicle sub-object when the rider has an active vehicle.
+	var vehicle *vehicleResponse
+	if row.VehicleID != nil {
+		v := &vehicleResponse{
+			ID:           *row.VehicleID,
+			IsActive:     row.VehicleIsActive != nil && *row.VehicleIsActive,
+			Make:         row.VehicleMake,
+			Model:        row.VehicleModel,
+			Year:         row.VehicleYear,
+			Colour:       row.VehicleColour,
+			LicencePlate: row.VehicleLicencePlate,
+		}
+		if row.VehicleType != nil {
+			v.VehicleType = *row.VehicleType
+		}
+		vehicle = v
+	}
+
 	httpx.Respond(w, r, http.StatusOK, riderMeResponse{
-		AccountID:         row.AccountID,
-		FirstName:         strPtr(row.FirstName),
-		LastName:          strPtr(row.LastName),
-		OnboardingState:   row.OnboardingState,
-		AccountStatus:     row.AccountStatus,
-		AvailabilityState: row.AvailabilityState,
-		NextRoute:         nextRoute(row.OnboardingState),
+		AccountID:          row.AccountID,
+		FirstName:          strPtr(row.FirstName),
+		LastName:           strPtr(row.LastName),
+		PhoneE164:          row.PhoneE164,
+		PhotoURL:           nil, // populated via presigned URL when photo_object_id is non-nil; presigner not yet wired into rider package
+		OnboardingState:    row.OnboardingState,
+		AccountStatus:      row.AccountStatus,
+		AvailabilityState:  row.AvailabilityState,
+		Vehicle:            vehicle,
+		ActiveAssignmentID: row.ActiveAssignmentID,
+		RatingAvg:          row.RatingAvg,
+		Timezone:           row.Timezone,
+		NextRoute:          nextRoute(row.OnboardingState),
 	})
 }
 

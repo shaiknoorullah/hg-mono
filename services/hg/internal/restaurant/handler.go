@@ -316,7 +316,17 @@ func (h *Handler) SubmitRestaurantDocuments(w http.ResponseWriter, r *http.Reque
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
 	}
-	httpx.Respond(w, r, http.StatusOK, map[string]string{"status": "SUBMITTED"})
+	// Advance onboarding to DOCUMENTS_REVIEW, then return the RestaurantOnboardingStatus.
+	if err := h.repo.SubmitDocumentPack(r.Context(), restaurantID); err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	status, err := h.repo.GetOnboardingStatus(r.Context(), restaurantID)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, status)
 }
 
 // ─── Menu ─────────────────────────────────────────────────────────────────────
@@ -521,6 +531,15 @@ func (h *Handler) SetMenuItemAvailability(w http.ResponseWriter, r *http.Request
 	if !decodeStrict(w, r, &body) {
 		return
 	}
+	// availability_state is a closed enum [AVAILABLE, OUT_OF_STOCK]; HIDDEN and
+	// BLOCKED are system/admin-set and not requestable here. Validate before the
+	// ::menu_item_availability_state cast so an unknown value is a clean 422.
+	if body.AvailabilityState != "AVAILABLE" && body.AvailabilityState != "OUT_OF_STOCK" {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"availability_state must be AVAILABLE or OUT_OF_STOCK.",
+			[]httpx.FieldError{{Field: "availability_state", Code: "invalid", Message: "must be AVAILABLE or OUT_OF_STOCK"}})
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
@@ -615,7 +634,7 @@ func (h *Handler) AcceptOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	orderID := chi.URLParam(r, "orderId")
-	order, err := h.repo.AcceptOrder(r.Context(), restaurantID, orderID, p.AccountID, body.PromisedReadyMinutes)
+	order, err := h.repo.AcceptOrder(r.Context(), restaurantID, orderID, p.AccountID, body.PrepEtaMinutes)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
 		return
@@ -640,7 +659,7 @@ func (h *Handler) AcceptOrder(w http.ResponseWriter, r *http.Request) {
 	// process): the order is already PREPARING in the database. On failure we log
 	// and return the accepted order anyway — a reconciler/webhook will retry.
 	if h.pay != nil {
-		if captureErr := h.pay.Capture(r.Context(), orderID, order.TotalCents); captureErr != nil {
+		if captureErr := h.pay.Capture(r.Context(), orderID, order.Money.TotalCents); captureErr != nil {
 			slog.Error("payment capture failed after accept — reconciler will retry",
 				slog.String("order_id", orderID),
 				slog.String("error", captureErr.Error()))
@@ -668,13 +687,13 @@ func (h *Handler) RejectOrder(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	// R-24: a structured reason is required and must be a known enum member.
+	// R-24: a structured reason_code is required and must be a known enum member.
 	// Validating here keeps a hostile value out of the ::restaurant_reject_reason_code
 	// cast, which would otherwise 22P02 into a bare 500.
-	if !restaurantRejectReasonSet[body.Reason] {
+	if !restaurantRejectReasonSet[body.ReasonCode] {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"reason must be a valid restaurant rejection reason code.",
-			[]httpx.FieldError{{Field: "reason", Code: "invalid", Message: "unknown rejection reason code"}})
+			"reason_code must be a valid restaurant rejection reason code.",
+			[]httpx.FieldError{{Field: "reason_code", Code: "invalid", Message: "unknown rejection reason code"}})
 		return
 	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
@@ -682,7 +701,7 @@ func (h *Handler) RejectOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	orderID := chi.URLParam(r, "orderId")
-	order, err := h.repo.RejectOrder(r.Context(), restaurantID, orderID, p.AccountID, body.Reason, body.Note)
+	order, err := h.repo.RejectOrder(r.Context(), restaurantID, orderID, p.AccountID, body.ReasonCode, body.Note)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
 		return
@@ -763,19 +782,19 @@ func (h *Handler) DelayOrder(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &body) {
 		return
 	}
-	// R-26: delays are canned increments (5/10/15/20) with a structured reason.
-	switch body.DelayMinutes {
+	// R-26: delays are canned increments (5/10/15/20) with a structured reason_code.
+	switch body.AddedMinutes {
 	case 5, 10, 15, 20:
 	default:
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"delay_minutes must be one of 5, 10, 15, 20.",
-			[]httpx.FieldError{{Field: "delay_minutes", Code: "invalid", Message: "must be 5, 10, 15 or 20"}})
+			"added_minutes must be one of 5, 10, 15, 20.",
+			[]httpx.FieldError{{Field: "added_minutes", Code: "invalid", Message: "must be 5, 10, 15 or 20"}})
 		return
 	}
-	if !delayReasonSet[body.Reason] {
+	if !delayReasonSet[body.ReasonCode] {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"reason must be a valid delay reason code.",
-			[]httpx.FieldError{{Field: "reason", Code: "invalid", Message: "unknown delay reason code"}})
+			"reason_code must be a valid delay reason code.",
+			[]httpx.FieldError{{Field: "reason_code", Code: "invalid", Message: "unknown delay reason code"}})
 		return
 	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
@@ -783,7 +802,7 @@ func (h *Handler) DelayOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	orderID := chi.URLParam(r, "orderId")
-	order, err := h.repo.DelayOrder(r.Context(), restaurantID, orderID, p.AccountID, body.DelayMinutes, body.Reason)
+	order, err := h.repo.DelayOrder(r.Context(), restaurantID, orderID, p.AccountID, body.AddedMinutes, body.ReasonCode)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
 		return

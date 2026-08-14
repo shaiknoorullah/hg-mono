@@ -10,6 +10,8 @@ package restaurant
 type profileInputDTO struct {
 	LegalName       string   `json:"legal_name"`
 	DisplayName     string   `json:"display_name"`
+	OwnerFirstName  *string  `json:"owner_first_name"`
+	OwnerLastName   *string  `json:"owner_last_name"`
 	Description     *string  `json:"description"`
 	PhoneE164       *string  `json:"phone_e164"`
 	PublicPhoneE164 *string  `json:"public_phone_e164"`
@@ -24,7 +26,6 @@ type profileInputDTO struct {
 	Timezone        *string  `json:"timezone"`
 	CuisineIDs      []string `json:"cuisine_ids"`
 	AvgPrepMinutes  *int     `json:"avg_prep_minutes"`
-	DeliveryRadiusM *int     `json:"delivery_radius_m"`
 }
 
 // hoursSlot is one weekly trading slot.
@@ -35,9 +36,9 @@ type hoursSlot struct {
 	CrossesMidnight *bool  `json:"crosses_midnight"`
 }
 
-// hoursOverride is one date override.
+// hoursOverride is one date override (contract HoursOverride).
 type hoursOverride struct {
-	OnDate   string  `json:"on_date"`
+	Date     string  `json:"date"`
 	IsClosed bool    `json:"is_closed"`
 	OpensAt  *string `json:"opens_at"`
 	ClosesAt *string `json:"closes_at"`
@@ -46,16 +47,20 @@ type hoursOverride struct {
 
 // hoursInputDTO is the RestaurantHoursInput schema.
 type hoursInputDTO struct {
-	Hours     []hoursSlot     `json:"hours"`
+	Intervals []hoursSlot     `json:"intervals"`
 	Overrides []hoursOverride `json:"overrides"`
 }
 
 // documentInputDTO is the RestaurantDocumentInput schema.
+// required: [doc_type, stored_object_id].
 type documentInputDTO struct {
-	StoredObjectID string  `json:"stored_object_id"`
-	DocType        string  `json:"doc_type"`
-	ExpiresOn      *string `json:"expires_on"`
-	IssuerName     *string `json:"issuer_name"`
+	DocType           string  `json:"doc_type"`
+	StoredObjectID    string  `json:"stored_object_id"`
+	Issuer            *string `json:"issuer"`
+	IssuerBodyID      *string `json:"issuer_body_id"`
+	CertificateNumber *string `json:"certificate_number"`
+	IssuedOn          *string `json:"issued_on"`
+	ValidUntil        *string `json:"valid_until"`
 }
 
 // categoryInputDTO is the MenuCategoryInput schema.
@@ -69,50 +74,60 @@ type categoryInputDTO struct {
 // price_cents is the ONLY monetary field allowed on an inbound item body (G-3).
 // HALAL_CERTIFIED may not appear in dietary_tags — the halal gate checks and 403s.
 type menuItemInputDTO struct {
-	Name            string   `json:"name"`
-	CategoryID      string   `json:"category_id"`
-	PriceCents      int64    `json:"price_cents"`
-	Description     *string  `json:"description"`
-	IngredientsText *string  `json:"ingredients_text"`
-	DietaryTags     []string `json:"dietary_tags"`
-	AllergenTags    []string `json:"allergen_tags"`
-	SortOrder       *int     `json:"sort_order"`
+	Name              string   `json:"name"`
+	CategoryID        string   `json:"category_id"`
+	PriceCents        int64    `json:"price_cents"`
+	Description       *string  `json:"description"`
+	IngredientsText   *string  `json:"ingredients_text"`
+	DietaryTags       []string `json:"dietary_tags"`
+	AllergenTags      []string `json:"allergen_tags"`
+	AllergensDeclared *bool    `json:"allergens_declared"`
+	ImageObjectID     *string  `json:"image_object_id"`
+	PrepMinutes       *int     `json:"prep_minutes"`
+	SortOrder         *int     `json:"sort_order"`
 }
 
 // menuItemUpdateDTO is the MenuItemUpdateInput schema (PATCH — all fields optional).
 type menuItemUpdateDTO struct {
-	Name            *string  `json:"name"`
-	CategoryID      *string  `json:"category_id"`
-	PriceCents      *int64   `json:"price_cents"`
-	Description     *string  `json:"description"`
-	IngredientsText *string  `json:"ingredients_text"`
-	DietaryTags     []string `json:"dietary_tags"`
-	AllergenTags    []string `json:"allergen_tags"`
-	SortOrder       *int     `json:"sort_order"`
+	Name              *string  `json:"name"`
+	CategoryID        *string  `json:"category_id"`
+	PriceCents        *int64   `json:"price_cents"`
+	Description       *string  `json:"description"`
+	IngredientsText   *string  `json:"ingredients_text"`
+	DietaryTags       []string `json:"dietary_tags"`
+	AllergenTags      []string `json:"allergen_tags"`
+	AllergensDeclared *bool    `json:"allergens_declared"`
+	ImageObjectID     *string  `json:"image_object_id"`
+	PrepMinutes       *int     `json:"prep_minutes"`
+	SortOrder         *int     `json:"sort_order"`
 }
 
 // availabilityInputDTO is the MenuItemAvailabilityInput schema.
 // No price field is present (R-18: binary state, not stock count).
+// required: [availability_state] (enum AVAILABLE|OUT_OF_STOCK).
 type availabilityInputDTO struct {
-	IsAvailable     bool    `json:"is_available"`
-	OutOfStockUntil *string `json:"out_of_stock_until"`
+	AvailabilityState string  `json:"availability_state"`
+	OutOfStockUntil   *string `json:"out_of_stock_until"`
 }
 
 // acceptInputDTO is the OrderAcceptInput schema.
 // No amount field — the server computes prices (invariant #1).
 type acceptInputDTO struct {
-	PromisedReadyMinutes *int `json:"promised_ready_minutes"`
+	PrepEtaMinutes *int    `json:"prep_eta_minutes"`
+	AcceptedNote   *string `json:"accepted_note"`
 }
 
 // rejectInputDTO is the OrderRejectInput schema.
+// required: [reason_code].
 type rejectInputDTO struct {
-	Reason string  `json:"reason"`
-	Note   *string `json:"note"`
+	ReasonCode             string   `json:"reason_code"`
+	Note                   *string  `json:"note"`
+	UnavailableMenuItemIDs []string `json:"unavailable_menu_item_ids"`
 }
 
 // delayInputDTO is the OrderDelayInput schema.
-// No amount field.
+// No amount field. required: [added_minutes, reason_code].
 type delayInputDTO struct {
-	DelayMinutes int    `json:"delay_minutes"`
-	Reason       string `json:"reason"`
+	AddedMinutes int    `json:"added_minutes"`
+	ReasonCode   string `json:"reason_code"`
 }
