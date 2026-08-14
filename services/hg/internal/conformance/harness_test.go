@@ -76,7 +76,12 @@ func (testAuthenticator) Authenticate(_ context.Context, r *http.Request) (httpx
 	}
 	return httpx.Principal{
 		AccountID: acct,
-		SessionID: "conformance-session",
+		// A valid UUID: the audit trail persists session_id into a `uuid` column,
+		// and admin write handlers append an audit row synchronously. A non-UUID
+		// placeholder here would make every audited admin write 500 on the cast —
+		// an artefact of the harness, not contract drift. Production always mints a
+		// real UUID session, so a fixed valid UUID here mirrors that.
+		SessionID: "00000000-0000-4000-8000-0000c0f0face",
 		Roles:     roles,
 		AMR:       []string{"pwd+totp"},
 	}, nil

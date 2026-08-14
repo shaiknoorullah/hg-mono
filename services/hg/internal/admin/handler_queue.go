@@ -37,7 +37,9 @@ func (h *Handler) ListRestaurantApplications(w http.ResponseWriter, r *http.Requ
 }
 
 // TakeNextRestaurantApplication implements takeNextRestaurantApplication (A-13).
-// Returns data:null when the queue is empty.
+// Returns data:null when the queue is empty, otherwise the FULL claimed
+// application (RestaurantApplication: profile, documents, blockers) — the same
+// shape getRestaurantApplication returns, per the contract's take-next 200 body.
 func (h *Handler) TakeNextRestaurantApplication(w http.ResponseWriter, r *http.Request) {
 	row, err := h.repo.TakeNextRestaurantApplication(r.Context(), actorFrom(r))
 	if err != nil {
@@ -48,7 +50,13 @@ func (h *Handler) TakeNextRestaurantApplication(w http.ResponseWriter, r *http.R
 		h.failInternal(w, r, err)
 		return
 	}
-	httpx.Respond(w, r, http.StatusOK, renderRestaurantSummary(row))
+	detail, err := h.repo.GetRestaurantApplication(r.Context(), row.RestaurantID,
+		h.cfg.HalalCertMinRemainingDays, h.today())
+	if err != nil {
+		h.failInternal(w, r, err)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, h.renderRestaurantApplication(r, detail))
 }
 
 // ListRiderApplications implements listRiderApplications (A-23).
@@ -81,7 +89,10 @@ func (h *Handler) ListRiderApplications(w http.ResponseWriter, r *http.Request) 
 	httpx.RespondList(w, r, http.StatusOK, out, meta)
 }
 
-// TakeNextRiderApplication implements takeNextRiderApplication (A-23).
+// TakeNextRiderApplication implements takeNextRiderApplication (A-23). Returns
+// data:null when the queue is empty, otherwise the FULL claimed application
+// (RiderApplication: profile, documents, blockers) — the same shape
+// getRiderApplication returns, per the contract's take-next 200 body.
 func (h *Handler) TakeNextRiderApplication(w http.ResponseWriter, r *http.Request) {
 	row, err := h.repo.TakeNextRiderApplication(r.Context(), actorFrom(r))
 	if err != nil {
@@ -92,7 +103,12 @@ func (h *Handler) TakeNextRiderApplication(w http.ResponseWriter, r *http.Reques
 		h.failInternal(w, r, err)
 		return
 	}
-	httpx.Respond(w, r, http.StatusOK, renderRiderSummary(row))
+	detail, err := h.repo.GetRiderApplication(r.Context(), row.AccountID, h.today())
+	if err != nil {
+		h.failInternal(w, r, err)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, h.renderRiderApplication(r, detail))
 }
 
 func renderRestaurantSummary(a restaurantAppRow) restaurantApplicationSummary {

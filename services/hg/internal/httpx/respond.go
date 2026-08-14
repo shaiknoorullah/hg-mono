@@ -11,8 +11,14 @@ import (
 // envelope is G-6 made into a type. There is exactly one 2xx shape and exactly
 // one non-2xx shape, and they are disjoint: a body carrying "error" can never
 // ship with a 2xx status because Fail sets both together.
+//
+// Data has NO omitempty: the 2xx response schemas declare `required: [data]`
+// even where the payload is nullable (e.g. getActiveOrder, getCurrentOffer,
+// takeNext*), so a `data:null` result must serialise as `{"data":null}`, never
+// as `{}`. omitempty would drop the required field and produce a body the
+// contract rejects.
 type envelope struct {
-	Data any   `json:"data,omitempty"`
+	Data any   `json:"data"`
 	Meta *Meta `json:"meta,omitempty"`
 }
 

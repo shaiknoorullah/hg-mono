@@ -99,7 +99,7 @@ SELECT id, name, aliases, country, region, website, accreditation_ref,
        requires_issuer_confirmation, status, notes
   FROM halal_issuing_body
  WHERE deleted_at IS NULL
-   AND (cardinality($1::text[]) = 0 OR status = ANY($1))
+   AND (cardinality($1::text[]) = 0 OR status::text = ANY($1))
    AND ($2::text IS NULL OR (lower(name), id) > (lower($2), $3::uuid))
  ORDER BY lower(name) ASC, id ASC
  LIMIT $4`
