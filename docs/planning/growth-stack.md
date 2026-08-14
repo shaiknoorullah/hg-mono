@@ -1,64 +1,80 @@
-# Growth & marketing backend stack (self-hosted-first)
+# Marketing-intelligence plane (v2) — self-hosted, best-of-breed
 
-_Halal Goes. Bias: self-hostable, privacy-respecting (on-brand for a trust product, and
-required under Canada PIPEDA), separate data plane from the transactional source of truth.
-Researched Aug 2026._
+_Halal Goes. **Scope: v2, plan-and-document now, build later.** This plane is **user + platform
+data for marketing intelligence** — Martech, Adtech, CDP, engagement, flags/experiments. It is
+**not** the transactional OLTP plane (orders/ledger) and **not** the technical telemetry plane
+(see `telemetry-stack.md`). Researched Aug 2026._
 
-## Architectural rule (hg-specific)
+## Load-bearing principles
 
-The growth stack is a **separate data plane**. Events flow **out** of the app into a CDP /
-warehouse (ClickHouse-class store); they never flow back into the transactional Postgres
-that prices orders and holds the ledger. Postgres stays the source of truth; analytics is
-downstream and disposable-if-needed, same spirit as the Redis rule. **PII discipline:** never
-pipe KYC docs, raw phone, or certificate data into analytics — hash/omit at the SDK, gate on
-consent.
+1. **Separate data plane.** Events flow *out* of the apps into the CDP → warehouse; they never
+   flow back into the Postgres that prices orders and holds the ledger. Postgres stays the
+   source of truth. No marketing tool reads or writes OLTP tables directly.
+2. **Best-of-breed, zero feature overlap.** Each capability is owned by exactly one tool. We do
+   **not** adopt all-in-one suites (PostHog, Novu-as-everything) because they duplicate what a
+   dedicated tool already owns. If two tools claim the same job, one is wrong for the stack.
+3. **Consent-first.** No SDK fires before consent is captured (Klaro). PIPEDA/GDPR, and on-brand
+   for a trust product.
+4. **PII discipline.** KYC docs, raw phone, certificate data never enter analytics. Hash or omit
+   at the SDK. The marketing plane sees pseudonymous IDs + behavioural events, not identity docs.
+5. **Event contract governance.** Events are a typed contract (like `openapi.yaml`). A tracking
+   plan is version-controlled and enforced at ingestion; no ad-hoc `btn_click_final2`.
 
-## The layers, and the self-hosted pick per layer
+## The stack — one owner per capability
 
-| # | Layer | What it does | Self-hosted pick | Notes |
-|---|---|---|---|---|
-| 1 | **Event collection / SDKs** | Capture user + server events | **PostHog** (or Snowplow for raw pipeline) | client + server SDKs; the spine everything else reads |
-| 2 | **CDP / identity resolution** | Unify identities, route events to tools | **RudderStack** (robust) or **Jitsu** (lighter) | Segment alternative; warehouse-first |
-| 3 | **Data warehouse** | Store/model behavioural data | **ClickHouse** (+ **dbt** for models) | PostHog & RudderStack use ClickHouse |
-| 4 | **Product analytics** | Funnels, retention, paths | **PostHog** | one tool covers 1,4,5,11,12 |
-| 5 | **Feature flags + experiments (A/B)** | Gated rollout, targeting, stats | **GrowthBook** (experiments) / **Unleash** (pure flags) / PostHog | GrowthBook has a real stats engine, no per-seat |
-| 6 | **Engagement / journeys / messaging** | Event-triggered email/SMS/push/in-app, segments, broadcasts | **Laudspeaker** or **Dittofeed** | the Customer.io/Braze self-hosted core |
-| 7 | **Notification infrastructure** | Multi-channel transactional delivery, provider fan-out, digests | **Novu** | the *delivery* layer beneath 6 (or let 6 handle it) |
-| 8 | **In-app tours / coach-marks / checklists** | First-run walkthrough, onboarding | **Usertour** (web) · **Laudspeaker** (mobile onboarding) · RN libs (react-native-copilot / rn-tourguide) driven by flags | mobile platform options are thin — build the component, target via flags/CDP |
-| 9 | **Email delivery** | SMTP relay + marketing sends | provider (**SES/Postmark/Resend**) + **Listmonk** (campaigns) | self-hosting an MTA isn't worth it; relay through a provider |
-| 10 | **Mobile attribution (MMP) + deep linking** | Install attribution, deferred deep links, SKAdNetwork | **OpenAttribution** (OSS, immature) or **Branch** (free tier) | **weakest OSS category — see gaps** |
-| 11 | **Session replay / heatmaps** | See real sessions | **PostHog** replay or **OpenReplay** | debugging + funnel diagnosis |
-| 12 | **Surveys / NPS / feedback** | In-app microsurveys | **PostHog** surveys or **Formbricks** | close the qualitative loop |
-| 13 | **Reverse ETL / activation** | Push warehouse audiences back into tools | **Castled** or RudderStack reverse ETL | "users who abandoned cart 2×" → messaging |
-| 14 | **Consent management (CMP)** | Lawful-basis capture before tracking | **Klaro** (OSS) | **required** — PIPEDA/GDPR; must exist *before* SDK fires |
-| 15 | **Tracking-plan / schema governance** | Enforce a typed event schema | Snowplow schemas / RudderStack Tracking Plans / Avo | the analytics "contract" — fits our contract-first ethos |
-| 16 | **Data enrichment** | Firmographic/demographic append | mostly SaaS (Clearbit, PDL) | **OSS gap** — enrich via API when needed |
-| 17 | **Support / live chat inbox** | Omnichannel support + proactive chat | **Chatwoot** (OSS) | an engagement channel, not just support |
+| Capability | Tool | Owner boundary (no overlap) |
+|---|---|---|
+| **Event collection + CDP + routing** | **RudderStack** (chosen) | Collects/identifies/routes events. Does *not* do dashboards, messaging, or flags. |
+| **Warehouse** | *v2 decision — see below* | Stores modelled behavioural data. Separate instance from telemetry's ClickHouse. |
+| **Transform / modelling** | **dbt** | SQL models + tests on the warehouse. The "metrics contract." |
+| **Pipeline orchestration** | **Kestra** (recommended) | Schedules/observes pipelines (the lightweight Airflow). Declarative YAML, polyglot, single-binary. |
+| **Reverse ETL / activation** | **Castled** (chosen) | Pushes warehouse audiences → engagement/ad tools. The only tool that writes *back out*. |
+| **Engagement / journeys / messaging** | **Dittofeed** (chosen) | Owns *all* marketing channel delivery (email/SMS/push/in-app). This is why we drop Novu. |
+| **Feature flags + experiments (A/B)** | **OpenFeature** + **GrowthBook** | OpenFeature = vendor-neutral SDK contract; GrowthBook = provider (flags + experiment stats). |
+| **Adtech / attribution / MMP** | **OpenAttribution** (self-host) or **Branch** (free tier) + server-side CAPI | Cross-channel ad ROI + install/deep-link attribution. |
+| **BI / dashboards** | *v2 decision — see below* | Human-facing analysis on the warehouse. The *only* dashboarding tool. |
+| **Consent (CMP)** | **Klaro** | Lawful-basis capture gate before any tracking. |
+| **Support / live chat** | **Chatwoot** | Omnichannel support inbox + proactive chat. |
+| **In-app tours / coach-marks** | *build in-app* (RN libs) driven by **GrowthBook** targeting + **Dittofeed** onboarding | No separate tour platform — avoids overlap with flags + engagement. |
 
-## Tools you didn't name but need (the gap answer)
+## Adtech (the ad-ROI layer you called out)
 
-You listed engagement, flags, CDP, events/tracking, enrichment, journeys, attribution. Missing:
+Goal: attribute users and revenue across paid channels (Google, Meta, TikTok, etc.) and measure ROAS.
+- **Install / deep-link attribution:** OpenAttribution (OSS, young — watch-item) or Branch (free tier) for deferred deep links + SKAdNetwork/Privacy-Sandbox handling. Deep links also power referrals + shared restaurant links.
+- **Server-side conversion tracking:** send conversions to ad platforms via their **Conversions APIs** (Google Enhanced Conversions, Meta CAPI) using **RudderStack destinations** / **Castled**, not client pixels — more accurate post-ATT/cookie-loss, and consent-gated.
+- **Attribution model:** UTM + click-ID capture at entry → RudderStack identity stitch → warehouse → BI reports ROAS per channel/campaign. The MMP handles mobile-install; the warehouse handles full-funnel ROI.
+- **Promo-abuse guard (adjacent, important):** paid growth + promo codes attract fraud (fake accounts, referral farming, code sharing). Velocity rules + one-promo-per-identity + device/deep-link signals. Ties to existing idempotency/`deadline_at` discipline. Not a martech tool — a rules service.
 
-1. **Consent Management (Klaro)** — legally load-bearing. Nothing else may fire until consent is captured. For a *trust* brand this is also a positioning asset.
-2. **Notification infrastructure (Novu)** — the delivery layer beneath "journeys"; separates *transactional* (order updates — must always send) from *marketing* (consent-gated). Conflating them gets you compliance and deliverability problems.
-3. **Tracking-plan / schema governance** — without a typed event contract, the CDP fills with `btn_click2_final` garbage in a month. This is the analytics analogue of your OpenAPI contract; enforce it the same way.
-4. **Reverse ETL / activation (Castled)** — otherwise the warehouse is a graveyard; this is how a segment becomes a campaign.
-5. **Session replay + surveys (PostHog / OpenReplay / Formbricks)** — the qualitative half; funnels tell you *what*, replay/surveys tell you *why*.
-6. **Deep linking** (inside attribution) — needed for referrals, shared restaurant links, and deferred deep links after install; don't treat it as free.
-7. **dbt + a warehouse** — the modelling layer; "revenue per cohort" lives here, not in a tool.
-8. **Fraud / promo-abuse detection** — not classic martech, but a delivery marketplace with promo codes + referrals *will* be abused (fake accounts, referral farming, code sharing). Protect the growth spend: velocity rules, device/deep-link signals, one-promo-per-identity. Ties to your existing `deadline_at`/idempotency discipline.
-9. **Referral/loyalty engine** — usually custom; plan for it rather than discover it.
+## Resolved: notification infrastructure (no Novu)
 
-## Recommended lean anchor (don't sprawl at v0)
+You found Novu paywalls essentials. Resolution that also removes overlap:
+- **Marketing notifications** (campaigns, journeys, event-triggered) → **Dittofeed** owns delivery across all channels. No separate notification infra.
+- **Transactional notifications** (order accepted, rider assigned, delivered — must-send, OLTP-driven) → stay in the **app's own notification service** behind provider seams (SES / Twilio / FCM), *with* the source of truth. These are not marketing and must not depend on the marketing plane or consent state.
+- Net: transactional = app; marketing = Dittofeed. Novu is not needed and would overlap Dittofeed.
 
-Start with **two tools that each cover many layers**, add the rest as you scale:
+## v2 decisions still open
 
-- **PostHog** (self-hosted) → events, product analytics, feature flags, experiments, session replay, surveys, CDP-lite. Covers layers 1, 4, 5, 11, 12 and part of 2.
-- **Laudspeaker** *or* **Dittofeed** → engagement journeys + multi-channel messaging + (Laudspeaker) mobile onboarding. Covers 6, part of 8.
-- **Klaro** (consent) and **Novu** (notification infra) as the compliance + delivery spine.
-- **Branch** (free tier) for attribution + deep links until OSS MMP matures (**OpenAttribution** is the OSS watch-item).
-- **Chatwoot** for support/chat.
+- **Warehouse** — you're against *bare* ClickHouse for this plane. Options, lightest-first:
+  **Postgres** (fine at early v2 scale; zero new ops) → **Apache Doris** or **StarRocks**
+  (MySQL-protocol columnar, friendlier ops than CH) → ClickHouse only if volume forces it.
+  Keep it a *separate* instance from telemetry's ClickHouse. **Recommend: start Postgres, revisit at real volume.**
+- **BI tool** — the OSS options: **Metabase** (easiest, non-technical self-serve), **Superset**
+  (largest scale), **Lightdash** (dbt-native — KPIs defined in version-controlled YAML, reviewed
+  as PRs — fits our contract-first ethos), **Evidence** (code-first, Git-reviewed reports),
+  **Redash** (simple SQL). _Which was the one you had in mind?_ For our ethos I'd lean **Lightdash**
+  or **Evidence**; for ease, **Metabase**.
+- **Flag provider under OpenFeature** — **GrowthBook** (flags + experiments in one, recommended) vs
+  **flagd** (CNCF reference, ultra-light, flags-only) vs **Unleash**. GrowthBook unless we want to
+  split flags from experimentation.
+- **MMP** — OpenAttribution (self-host, immature) vs Branch (free tier, mature). Lean Branch to start.
 
-Then, at scale: dedicated CDP (**RudderStack/Snowplow**), **ClickHouse + dbt** warehouse, **Castled** reverse ETL, **Formbricks/OpenReplay** if you outgrow PostHog's built-ins, **GrowthBook** if you want a heavier experimentation stats engine than PostHog's.
+## Phasing (all v2)
 
-**Pick between Laudspeaker vs Dittofeed:** Laudspeaker if mobile onboarding + journeys in one matters most; Dittofeed if you want the most dev-friendly, transactional-and-marketing, broadcast-capable engine. Both self-host, both multi-channel.
+1. **Instrument + consent first** — Klaro + RudderStack SDKs + the tracking-plan contract. Nothing else works without clean, consented events.
+2. **Warehouse + dbt + Kestra** — land events, model them, schedule.
+3. **Activation** — Dittofeed (engagement) + Castled (reverse ETL) + GrowthBook (flags/experiments).
+4. **Adtech** — attribution + server-side CAPI + ROAS reporting in BI.
+5. **Support + polish** — Chatwoot, referral/loyalty engine (custom).
+
+_Dropped on purpose: Snowplow (OSS-in-name, heavy), Novu (paywalled + overlaps Dittofeed),
+all-in-one suites (PostHog) — they overlap dedicated tools we've chosen._
