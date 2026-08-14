@@ -1,0 +1,205 @@
+/**
+ * Order tracking (C-26 / C-32).
+ *
+ * Reads `GET /v1/orders/{id}` and renders the order's position through `StatusTimeline`, the
+ * shared state→step mapping the design system owns so the customer and restaurant apps can never
+ * disagree about what a state is called. The order's fourteen possible `OrderState` values all
+ * flow through that one component, including the terminal ones, so a cancelled or failed order
+ * renders correctly rather than as a stuck spinner.
+ *
+ * The receipt block re-uses the order's own `money` decomposition, every figure through `Price`.
+ * Loading, empty (no active order) and error are all present.
+ */
+import * as React from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { cents } from '@hg/api-client';
+import type { Schema } from '@hg/api-client';
+import {
+  AppBar,
+  Button,
+  Divider,
+  EmptyState,
+  ErrorState,
+  ORDER_STATE_LABELS,
+  Price,
+  Spinner,
+  StatusTimeline,
+  useTheme,
+  useTypeStyle,
+} from '@hg/ui-native';
+
+import { getOrder } from '../api/orders';
+import { errorCodeOf } from '../api/async';
+import { useNavigation } from '../navigation/stack';
+
+type Order = Schema['OrderCustomerView'];
+
+type State =
+  | { kind: 'loading' }
+  | { kind: 'error'; code: string | null }
+  | { kind: 'empty' }
+  | { kind: 'ready'; order: Order };
+
+export function TrackingScreen({ orderId }: { orderId: string }): React.ReactElement {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const nav = useNavigation();
+
+  const [state, setState] = React.useState<State>({ kind: 'loading' });
+
+  const load = React.useCallback(() => {
+    setState({ kind: 'loading' });
+    getOrder(orderId)
+      .then((order) => setState(order ? { kind: 'ready', order } : { kind: 'empty' }))
+      .catch((e) => setState({ kind: 'error', code: errorCodeOf(e) }));
+  }, [orderId]);
+
+  React.useEffect(() => load(), [load]);
+
+  const title =
+    state.kind === 'ready' ? `Order ${state.order.code}` : 'Your order';
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
+      <AppBar
+        title={title}
+        back={{ onPress: () => nav.popTo('discovery') }}
+        loading={state.kind === 'loading'}
+      />
+
+      {state.kind === 'loading' ? (
+        <View style={{ flex: 1, padding: 16 }}>
+          <Spinner label="Loading your order" />
+        </View>
+      ) : state.kind === 'error' ? (
+        <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
+          <ErrorState errorCode={state.code} onRetry={load} />
+        </View>
+      ) : state.kind === 'empty' ? (
+        <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
+          <EmptyState
+            title="No active order"
+            description="When you place an order it will show up here so you can follow it."
+            primaryAction={{
+              label: 'Browse restaurants',
+              onPress: () => nav.popTo('discovery'),
+            }}
+          />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 24 + insets.bottom, gap: 16 }}
+        >
+          <StateHeader order={state.order} />
+
+          <View
+            style={{
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: theme.color.surface.raised,
+              borderWidth: 1,
+              borderColor: theme.color.border.decorative,
+            }}
+          >
+            <StatusTimeline
+              audience="customer"
+              state={state.order.state}
+              estimatedAt={state.order.eta_at}
+              deadlineAt={state.order.deadline_at}
+              showTimes
+            />
+          </View>
+
+          <Receipt order={state.order} />
+
+          <Button variant="secondary" onPress={load}>
+            Refresh
+          </Button>
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+function StateHeader({ order }: { order: Order }): React.ReactElement {
+  const theme = useTheme();
+  const heading = useTypeStyle('heading.md');
+  const body = useTypeStyle('body.md');
+  const stateLabel =
+    ORDER_STATE_LABELS[order.state as keyof typeof ORDER_STATE_LABELS] ?? order.state;
+
+  return (
+    <View style={{ gap: 4 }}>
+      <Text style={[heading, { color: theme.color.text.primary }]}>{stateLabel}</Text>
+      <Text style={[body, { color: theme.color.text.secondary }]}>
+        {order.restaurant.name}
+      </Text>
+    </View>
+  );
+}
+
+function Receipt({ order }: { order: Order }): React.ReactElement {
+  const theme = useTheme();
+  const heading = useTypeStyle('heading.sm');
+  const { money } = order;
+
+  return (
+    <View
+      style={{
+        gap: 10,
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: theme.color.surface.raised,
+        borderWidth: 1,
+        borderColor: theme.color.border.decorative,
+      }}
+    >
+      <Text style={[heading, { color: theme.color.text.primary }]}>Receipt</Text>
+
+      <Row label="Subtotal" value={money.subtotal_cents} />
+      {(money.tax_lines ?? []).map((tax) => (
+        <Row
+          key={tax.jurisdiction_code + tax.statutory_label}
+          label={tax.statutory_label}
+          value={tax.amount_cents}
+        />
+      ))}
+      <Row label="Delivery fee" value={money.delivery_fee_cents} free="Free delivery" />
+      <Row label="Service fee" value={money.service_fee_cents} free="No service fee" />
+      {money.tip_cents !== 0 ? <Row label="Tip" value={money.tip_cents} /> : null}
+
+      <Divider />
+
+      <Row label="Total" value={money.total_cents} emphasise />
+    </View>
+  );
+}
+
+function Row({
+  label,
+  value,
+  emphasise = false,
+  free,
+}: {
+  label: string;
+  value: number;
+  emphasise?: boolean;
+  free?: string;
+}): React.ReactElement {
+  const theme = useTheme();
+  const labelStyle = useTypeStyle(emphasise ? 'label.lg' : 'body.md');
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Text
+        style={[
+          labelStyle,
+          { color: emphasise ? theme.color.text.primary : theme.color.text.secondary },
+        ]}
+      >
+        {label}
+      </Text>
+      <Price cents={cents(value)} size={emphasise ? 'lg' : 'md'} free={free} />
+    </View>
+  );
+}
