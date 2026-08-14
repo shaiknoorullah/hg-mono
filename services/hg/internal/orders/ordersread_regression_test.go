@@ -271,7 +271,7 @@ func TestRegressionMalformedOrderIDIs404(t *testing.T) {
 	malformed := []string{
 		"not-a-uuid",
 		"123",
-		"00000000-0000-0000-0000-00000000000",  // 35 chars (one short)
+		"00000000-0000-0000-0000-00000000000",   // 35 chars (one short)
 		"00000000-0000-0000-0000-0000000000000", // 37 chars (one long)
 		"gggggggg-0000-0000-0000-000000000000",  // non-hex
 		"00000000_0000_0000_0000_000000000000",  // wrong separators

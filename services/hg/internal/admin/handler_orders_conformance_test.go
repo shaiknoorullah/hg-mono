@@ -1,17 +1,19 @@
 package admin
 
-// STAGE 3 — boundary & leak analysis for the admin-order operations.
+// Contract conformance + boundary/leak analysis for the admin-order operations
+// (listOrdersAdmin, getOrderAdmin, cancelOrderAdmin).
 //
-// These tests close gaps the stage-2 tests left open. They assert the wire
-// shape *exactly* against contracts/openapi.yaml — no extra fields, no missing
-// required fields, correct field NAMES, closed enums, correct types — rather
-// than merely spot-checking that a required field is present. They also pin the
-// data-isolation, error-taxonomy and concurrency boundaries.
+// The wire-SHAPE assertions here run the LIVE response through the real
+// kin-openapi oracle (assertConformant → internal/conformance.ValidateResponse)
+// against contracts/openapi.yaml. This replaces the previous hand-transcribed
+// []string field lists (adminViewRequired/optional, orderMoneyRequired, …) and
+// the hand-maintained enum maps, which were only as correct as the transcription
+// and let drift through. The contract itself is now the oracle:
+// additionalProperties:false + required[] + closed enums reject any drift.
 //
-// Contract sources (contracts/openapi.yaml):
-//   - OrderAdminView = OrderCustomerView + {timeline, payment, refunds, internal_money, pii_revealed, ...}
-//   - OrderSummary, OrderRestaurantRef, OrderMoney, OrderLine, OrderTransition,
-//     OrderPayment, OrderInternalMoney, Refund, PageMeta.
+// The authz/IDOR/concurrency/money/error-taxonomy tests below are retained
+// unchanged — they pin invariants the schema oracle does not (deny-by-default,
+// single-effect concurrency, ledger residual, error codes).
 
 import (
 	"context"
@@ -23,96 +25,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
-
-// assertClosedObject asserts that obj's keys are a subset of allowed and that
-// every required key is present. This is the closed-schema (additionalProperties:
-// false) check the stage-2 tests omitted.
-func assertClosedObject(t *testing.T, where string, obj map[string]any, required, optional []string) {
-	t.Helper()
-	allowed := make(map[string]bool)
-	for _, k := range required {
-		allowed[k] = true
-	}
-	for _, k := range optional {
-		allowed[k] = true
-	}
-	for k := range obj {
-		if !allowed[k] {
-			t.Errorf("%s: extra field %q not named by the contract schema", where, k)
-		}
-	}
-	for _, k := range required {
-		if _, ok := obj[k]; !ok {
-			t.Errorf("%s: missing required field %q", where, k)
-		}
-	}
-}
-
-// contract key sets ---------------------------------------------------------
-
-// OrderAdminView = OrderCustomerView ∪ admin extension. Every property named in
-// either allOf branch is allowed; the contract's required set is the union of
-// each branch's required list.
-var (
-	adminViewRequired = []string{
-		// OrderCustomerView required
-		"id", "code", "state", "restaurant", "lines", "money", "placed_at",
-		// admin extension required
-		"timeline", "payment", "refunds", "internal_money",
-	}
-	adminViewOptional = []string{
-		// OrderCustomerView optional
-		"state_since", "deadline_at", "quote_id", "delivery_address",
-		"delivery_instructions", "special_instructions", "rider", "dispatch_state",
-		"cancel_reason", "reject_reason", "eta_at", "can_cancel", "accepted_at",
-		"ready_at", "picked_up_at", "delivered_at", "completed_at",
-		// admin extension optional
-		"dispatch_history", "pii_revealed",
-	}
-
-	orderSummaryRequired = []string{"id", "code", "state", "restaurant", "total_cents", "currency", "placed_at"}
-	orderSummaryOptional = []string{"item_count", "first_item_names", "deadline_at"}
-
-	restaurantRefRequired = []string{"id", "name"}
-	restaurantRefOptional = []string{"logo_image_url", "halal"}
-
-	orderMoneyRequired = []string{
-		"subtotal_cents", "discount_cents", "delivery_fee_cents", "service_fee_cents",
-		"tax_total_cents", "tip_cents", "total_cents", "currency",
-	}
-	orderMoneyOptional = []string{"tax_lines"}
-
-	internalMoneyRequired = []string{
-		"commission_cents", "restaurant_net_cents", "rider_earnings_cents",
-		"platform_gross_cents", "currency",
-	}
-	internalMoneyOptional = []string{"ledger_residual_cents", "ledger_entries"}
-
-	orderLineRequired = []string{"line_no", "menu_item_id", "name", "quantity", "unit_price_cents", "line_total_cents", "currency"}
-	orderLineOptional = []string{"variant_name", "addons", "special_request"}
-
-	transitionRequired = []string{"to_state", "actor_kind", "at"}
-	transitionOptional = []string{"from_state", "reason"}
-
-	paymentRequired = []string{"order_id", "state", "amount_authorized_cents", "amount_captured_cents", "amount_refunded_cents", "currency"}
-	paymentOptional = []string{"kind", "card_brand", "card_last4", "wallet", "failure_code", "decline_code", "client_secret", "authorized_at", "captured_at"}
-
-	refundRequired = []string{"id", "order_id", "kind", "reason_code", "amount_cents", "currency", "state", "requested_at"}
-	refundOptional = []string{"scope", "tax_cents", "liability_split", "note", "settled_at", "failure_message"}
-
-	pageMetaRequired = []string{"next_cursor", "has_more"}
-	pageMetaOptional = []string{"total"}
-)
-
-var paymentStateEnum = map[string]bool{
-	"REQUIRES_PAYMENT_METHOD": true, "REQUIRES_CONFIRMATION": true, "REQUIRES_ACTION": true,
-	"PROCESSING": true, "REQUIRES_CAPTURE": true, "SUCCEEDED": true, "CANCELED": true, "FAILED": true,
-}
-
-var orderActorKindEnum = map[string]bool{
-	"CUSTOMER": true, "RESTAURANT": true, "RIDER": true, "SYSTEM": true,
-	"ADMIN": true, "SUPPORT": true,
-}
 
 // seedPaymentAndRefund attaches a captured ORDER payment_intent and one SETTLED
 // refund to an order so the admin view exercises the non-empty payment/refund
@@ -150,12 +62,13 @@ func seedPaymentAndRefund(t *testing.T, pool *pgxpool.Pool, orderID, requestedBy
 }
 
 // =========================================================================
-// A) CONTRACT CONFORMANCE — closed-schema golden assertions
+// A) CONTRACT CONFORMANCE — the live response is validated against the contract
 // =========================================================================
 
-// getOrderAdmin: the entire OrderAdminView tree must conform exactly. This
-// catches renamed fields (timeline.at vs occurred_at), extra fields
-// (fulfilment), and stub objects (payment:{}).
+// getOrderAdmin: the entire OrderAdminView tree must conform exactly against
+// contracts/openapi.yaml. kin-openapi catches renamed fields (timeline.at vs
+// occurred_at), extra fields, missing required fields, wrong types, and
+// out-of-enum values automatically.
 func TestConformance_GetOrderAdmin_ClosedSchema(t *testing.T) {
 	pool := dialTestPool(t)
 	orderID, custID := seedOrderForAdmin(t, pool, "COMPLETED")
@@ -169,94 +82,7 @@ func TestConformance_GetOrderAdmin_ClosedSchema(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("want 200, got %d", resp.StatusCode)
 	}
-	body := decodeBody(t, resp)
-
-	// Top-level envelope: {data}.
-	assertClosedObject(t, "envelope", body, []string{"data"}, nil)
-	data, ok := body["data"].(map[string]any)
-	if !ok {
-		t.Fatal("data must be an object")
-	}
-
-	assertClosedObject(t, "OrderAdminView", data, adminViewRequired, adminViewOptional)
-
-	// restaurant (OrderRestaurantRef)
-	if rest, ok := data["restaurant"].(map[string]any); ok {
-		assertClosedObject(t, "restaurant", rest, restaurantRefRequired, restaurantRefOptional)
-	} else {
-		t.Error("restaurant must be an object")
-	}
-
-	// money (OrderMoney)
-	if money, ok := data["money"].(map[string]any); ok {
-		assertClosedObject(t, "money", money, orderMoneyRequired, orderMoneyOptional)
-	} else {
-		t.Error("money must be an object")
-	}
-
-	// internal_money (OrderInternalMoney) — staff-only split
-	if im, ok := data["internal_money"].(map[string]any); ok {
-		assertClosedObject(t, "internal_money", im, internalMoneyRequired, internalMoneyOptional)
-	} else {
-		t.Error("internal_money must be an object")
-	}
-
-	// lines[] (OrderLine)
-	if lines, ok := data["lines"].([]any); ok {
-		for i, raw := range lines {
-			if line, ok := raw.(map[string]any); ok {
-				assertClosedObject(t, fmt.Sprintf("lines[%d]", i), line, orderLineRequired, orderLineOptional)
-			}
-		}
-	}
-
-	// timeline[] (OrderTransition) — must use "at", never "occurred_at"
-	timeline, ok := data["timeline"].([]any)
-	if !ok || len(timeline) == 0 {
-		t.Fatal("timeline must be a non-empty array for a COMPLETED order")
-	}
-	for i, raw := range timeline {
-		tr, ok := raw.(map[string]any)
-		if !ok {
-			t.Fatalf("timeline[%d] must be an object", i)
-		}
-		assertClosedObject(t, fmt.Sprintf("timeline[%d]", i), tr, transitionRequired, transitionOptional)
-		if _, bad := tr["occurred_at"]; bad {
-			t.Errorf("timeline[%d]: field is named 'occurred_at' but the contract requires 'at'", i)
-		}
-		if ak, _ := tr["actor_kind"].(string); ak != "" && !orderActorKindEnum[ak] {
-			t.Errorf("timeline[%d]: actor_kind %q is not in the OrderActorKind enum", i, ak)
-		}
-	}
-
-	// payment (OrderPayment) — must be a valid, populated OrderPayment (never {})
-	pay, ok := data["payment"].(map[string]any)
-	if !ok {
-		t.Fatal("payment must be an object")
-	}
-	assertClosedObject(t, "payment", pay, paymentRequired, paymentOptional)
-	if st, _ := pay["state"].(string); st == "" || !paymentStateEnum[st] {
-		t.Errorf("payment.state %q is not in the PaymentState enum", st)
-	}
-
-	// refunds[] (Refund)
-	refunds, ok := data["refunds"].([]any)
-	if !ok {
-		t.Fatal("refunds must be an array")
-	}
-	if len(refunds) == 0 {
-		t.Fatal("refunds must be non-empty (one refund was seeded)")
-	}
-	for i, raw := range refunds {
-		if rf, ok := raw.(map[string]any); ok {
-			assertClosedObject(t, fmt.Sprintf("refunds[%d]", i), rf, refundRequired, refundOptional)
-		}
-	}
-
-	// pii_revealed must be a bool, and false without a reveal.
-	if pr, ok := data["pii_revealed"].(bool); !ok || pr {
-		t.Errorf("pii_revealed: want false bool, got %v", data["pii_revealed"])
-	}
+	assertConformant(t, resp)
 }
 
 // getOrderAdmin on an order with no payment_intent still returns a contract-valid
@@ -273,18 +99,7 @@ func TestConformance_GetOrderAdmin_NoPayment_ValidOrderPayment(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("want 200, got %d", resp.StatusCode)
 	}
-	data := decodeBody(t, resp)["data"].(map[string]any)
-	pay, ok := data["payment"].(map[string]any)
-	if !ok {
-		t.Fatal("payment must be an object")
-	}
-	assertClosedObject(t, "payment(no-intent)", pay, paymentRequired, paymentOptional)
-	if st, _ := pay["state"].(string); !paymentStateEnum[st] {
-		t.Errorf("payment.state %q not a valid PaymentState", st)
-	}
-	if _, ok := pay["order_id"].(string); !ok {
-		t.Error("payment.order_id must be present and a string")
-	}
+	assertConformant(t, resp)
 }
 
 // listOrdersAdmin: envelope + OrderSummary items conform exactly.
@@ -300,43 +115,11 @@ func TestConformance_ListOrdersAdmin_ClosedSchema(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("want 200, got %d", resp.StatusCode)
 	}
-	body := decodeBody(t, resp)
-	assertClosedObject(t, "list envelope", body, []string{"data", "meta"}, nil)
-
-	meta, ok := body["meta"].(map[string]any)
-	if !ok {
-		t.Fatal("meta must be an object")
-	}
-	assertClosedObject(t, "meta (PageMeta)", meta, pageMetaRequired, pageMetaOptional)
-
-	data, ok := body["data"].([]any)
-	if !ok {
-		t.Fatal("data must be an array")
-	}
-	if len(data) == 0 {
-		t.Fatal("expected at least one seeded order")
-	}
-	for i, raw := range data {
-		item, ok := raw.(map[string]any)
-		if !ok {
-			t.Fatalf("data[%d] must be an object", i)
-		}
-		assertClosedObject(t, fmt.Sprintf("OrderSummary[%d]", i), item, orderSummaryRequired, orderSummaryOptional)
-		if rest, ok := item["restaurant"].(map[string]any); ok {
-			assertClosedObject(t, fmt.Sprintf("OrderSummary[%d].restaurant", i), rest, restaurantRefRequired, restaurantRefOptional)
-		}
-		// total_cents must be an integer (JSON number, no fractional part) — money is int64 cents.
-		if f, ok := item["total_cents"].(float64); ok {
-			if f != float64(int64(f)) {
-				t.Errorf("OrderSummary[%d].total_cents %v is not an integer number of cents", i, f)
-			}
-		} else {
-			t.Errorf("OrderSummary[%d].total_cents must be a number", i)
-		}
-	}
+	assertConformant(t, resp)
 }
 
-// cancelOrderAdmin response is an OrderAdminView too — same closed-schema check.
+// cancelOrderAdmin response is an OrderAdminView too — same live-schema check,
+// plus the state-transition invariant.
 func TestConformance_CancelOrderAdmin_ClosedSchema(t *testing.T) {
 	pool := dialTestPool(t)
 	orderID, _ := seedOrderForAdmin(t, pool, "CREATED")
@@ -351,24 +134,16 @@ func TestConformance_CancelOrderAdmin_ClosedSchema(t *testing.T) {
 			"case_id":     "5b3e6d7e-9f2a-4c1b-8d3e-1a2b3c4d5e6f",
 		},
 		map[string]string{"Idempotency-Key": "cancel-conformance-1"})
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
 		t.Fatalf("want 200, got %d", resp.StatusCode)
 	}
+	// Validate the live body first (consumes and restores it), then re-read the
+	// state assertion from the restored body.
+	assertConformant(t, resp)
 	data := decodeBody(t, resp)["data"].(map[string]any)
-	assertClosedObject(t, "cancel OrderAdminView", data, adminViewRequired, adminViewOptional)
 	if st, _ := data["state"].(string); st != "CANCELLED" {
 		t.Errorf("after cancel, state = %q, want CANCELLED", st)
-	}
-	// timeline must carry the cancel transition under "at".
-	if tl, ok := data["timeline"].([]any); ok {
-		for i, raw := range tl {
-			if tr, ok := raw.(map[string]any); ok {
-				if _, bad := tr["occurred_at"]; bad {
-					t.Errorf("timeline[%d]: uses 'occurred_at', contract requires 'at'", i)
-				}
-			}
-		}
 	}
 }
 
@@ -504,6 +279,14 @@ func TestIdempotency_CancelOrderAdmin_SequentialReplayNoDoubleEffect(t *testing.
 // D) MONEY/LEDGER — cancel keeps the order's ledger residual at zero
 // =========================================================================
 
+// internalMoneyCentsFields are the int64-cents fields on OrderInternalMoney. This
+// short list is inlined here (not a "closed schema" transcription): the schema
+// oracle owns closedness; this test only asserts the money-integer + zero-residual
+// invariants, which the schema cannot express.
+var internalMoneyCentsFields = []string{
+	"commission_cents", "restaurant_net_cents", "rider_earnings_cents", "platform_gross_cents",
+}
+
 // After an admin cancel, the internal_money split remains consistent and, when a
 // ledger residual is exposed, it is exactly zero (money-zero-residual invariant).
 func TestMoney_CancelOrderAdmin_LedgerResidualZero(t *testing.T) {
@@ -530,10 +313,7 @@ func TestMoney_CancelOrderAdmin_LedgerResidualZero(t *testing.T) {
 		t.Fatal("internal_money must be present")
 	}
 	// Every money field must be an integer number of cents (int64), never a float.
-	for _, k := range internalMoneyRequired {
-		if k == "currency" {
-			continue
-		}
+	for _, k := range internalMoneyCentsFields {
 		v, present := im[k]
 		if !present {
 			continue

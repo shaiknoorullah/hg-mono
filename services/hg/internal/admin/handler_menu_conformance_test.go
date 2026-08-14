@@ -1,29 +1,24 @@
 package admin
 
-// STAGE 3 — boundary & leak analysis for the four admin-menu operations (A-19):
+// Contract conformance + boundary/leak analysis for the four admin-menu
+// operations (A-19):
 //   - createMenuCategoryOnBehalf  POST /v1/admin/restaurants/{restaurantId}/menu/categories
 //   - createMenuItemOnBehalf      POST /v1/admin/restaurants/{restaurantId}/menu/items
 //   - listMenuReviewQueue         GET  /v1/admin/menu-reviews
 //   - decideMenuVersion           POST /v1/admin/menu-reviews/{versionId}/decision
 //
-// The stage-2 tests only checked that *required* fields are present. These tests
-// close the gaps they left open:
-//   A) CONTRACT CONFORMANCE — the response is a CLOSED object: no field the
-//      contract schema does not name (additionalProperties:false), correct
-//      nullability, closed enums. This is what caught the extra reviewed_by /
-//      updated_at fields the impl was emitting on MenuItemVersion, and the
-//      wrong-shaped live_version summary on MenuItemOwnerView.
-//   B) AUTHZ LEAK — every non-x-role (CUSTOMER, RIDER, RESTAURANT_OWNER,
-//      RESTAURANT_MANAGER, RESTAURANT_STAFF, SUPPORT_AGENT) gets 403; both
-//      x-roles pass; the route is never public (anon → 401).
-//   C) DATA ISOLATION — the queue restaurant_id filter never returns another
-//      restaurant's versions.
-//   D) MONEY — price_cents is server-echoed; an out-of-band price is 422, and no
-//      float ever appears in the money path.
-//   F) CONCURRENCY / IDEMPOTENCY — deciding the same version twice concurrently
-//      yields exactly one APPROVED effect; the loser is a contract 409.
-//   G) ERROR TAXONOMY — every failure carries a contract ErrorCode, never a bare
-//      500 or an empty code.
+// The wire-SHAPE assertions here run the LIVE response through the real
+// kin-openapi oracle (assertConformant → internal/conformance.ValidateResponse)
+// against contracts/openapi.yaml. This replaces the previous hand-transcribed
+// []string field lists (menuCategoryRequired/optional, menuVersionRequired, …)
+// and the hand-maintained MenuReviewStatus enum map — whose own header comment
+// admitted it whitelisted non-contract fields (restaurant_id/created_at/
+// updated_at) into the "closed" allow-list, which is exactly how drift passed.
+// The contract's additionalProperties:false + required[] + closed enums are now
+// the sole oracle.
+//
+// The authz/isolation/concurrency/money/error-taxonomy tests below are retained
+// unchanged — they pin invariants the schema oracle does not.
 
 import (
 	"bytes"
@@ -37,74 +32,10 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
-// ---- contract key sets (contracts/openapi.yaml) --------------------------
-
-// MenuCategory: required [id, name, sort_order, is_active]; optional
-// description, item_count. The impl also serves restaurant_id, created_at,
-// updated_at — those ARE named by the impl's DTO but NOT by the MenuCategory
-// schema. We treat restaurant_id/created_at/updated_at as impl extensions the
-// partner MenuCategory response also carries; the contract's own fixture is the
-// authority. Assert against exactly the schema's property set.
-var (
-	menuCategoryRequired = []string{"id", "name", "sort_order", "is_active"}
-	menuCategoryOptional = []string{"description", "item_count", "restaurant_id", "created_at", "updated_at"}
-
-	// MenuItemVersion: additionalProperties:false. required [id, menu_item_id,
-	// version, review_status, created_at]. NO reviewed_by, NO updated_at.
-	menuVersionRequired = []string{"id", "menu_item_id", "version", "review_status", "created_at"}
-	menuVersionOptional = []string{
-		"restaurant_id", "name", "description", "ingredients_text",
-		"dietary_tags", "allergen_tags", "image_url",
-		"rejection_reason_code", "review_note", "submitted_at", "reviewed_at",
-	}
-
-	// MenuItemOwnerView = MenuItem + {category_id, live_version, pending_version,
-	// sort_order}. required [id, name, price_cents, currency, availability_state,
-	// tax_category, category_id]. NO created_at, NO updated_at.
-	menuItemViewRequired = []string{
-		"id", "name", "price_cents", "currency", "availability_state",
-		"tax_category", "category_id",
-	}
-	menuItemViewOptional = []string{
-		"description", "image_url", "out_of_stock_until", "dietary_tags",
-		"allergen_tags", "ingredients_text", "prep_minutes", "variant_groups",
-		"addon_groups", "live_version", "pending_version", "sort_order",
-		"restaurant_id",
-	}
-
-	// The MenuReviewStatus enum, closed.
-	menuReviewStatusEnum = map[string]bool{
-		"DRAFT": true, "PENDING_REVIEW": true, "APPROVED": true,
-		"REJECTED": true, "WITHDRAWN": true, "SUPERSEDED": true,
-	}
-)
-
-// assertMenuClosedObject asserts obj is a closed object: every key is named by
-// required∪optional, and every required key is present.
-func assertMenuClosedObject(t *testing.T, where string, obj map[string]any, required, optional []string) {
-	t.Helper()
-	allowed := make(map[string]bool, len(required)+len(optional))
-	for _, k := range required {
-		allowed[k] = true
-	}
-	for _, k := range optional {
-		allowed[k] = true
-	}
-	for k := range obj {
-		if !allowed[k] {
-			t.Errorf("%s: extra field %q not named by the contract schema (additionalProperties:false)", where, k)
-		}
-	}
-	for _, k := range required {
-		if _, ok := obj[k]; !ok {
-			t.Errorf("%s: missing required field %q", where, k)
-		}
-	}
-}
-
-// doMenuJSON is a small helper that issues a request with a JSON body and returns
-// the decoded envelope (data / error / meta) plus the status code.
-func doMenuJSON(t *testing.T, method, url, idemKey string, body any) (int, map[string]any) {
+// doMenuResp issues a request with a JSON body and returns the raw
+// *http.Response (with resp.Request set) so the live body can be validated
+// against the contract via assertConformant.
+func doMenuResp(t *testing.T, method, url, idemKey string, body any) *http.Response {
 	t.Helper()
 	var rdr *bytes.Reader
 	if body != nil {
@@ -122,6 +53,14 @@ func doMenuJSON(t *testing.T, method, url, idemKey string, body any) (int, map[s
 	if err != nil {
 		t.Fatalf("request: %v", err)
 	}
+	return resp
+}
+
+// doMenuJSON is a small helper that issues a request with a JSON body and returns
+// the decoded envelope (data / error / meta) plus the status code.
+func doMenuJSON(t *testing.T, method, url, idemKey string, body any) (int, map[string]any) {
+	t.Helper()
+	resp := doMenuResp(t, method, url, idemKey, body)
 	defer resp.Body.Close()
 	var env map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&env)
@@ -139,12 +78,12 @@ func menuErrCode(env map[string]any) string {
 }
 
 // ==========================================================================
-// A) CONTRACT CONFORMANCE — closed-object golden shape
+// A) CONTRACT CONFORMANCE — the live response is validated against the contract
 // ==========================================================================
 
-// TestMenu_Conformance_MenuItemVersion_ClosedShape drives an APPROVE decision and
-// asserts the MenuItemVersion payload carries no field the schema does not name.
-// This is the assertion that fails if reviewed_by / updated_at leak back in.
+// decideMenuVersion returns a MenuItemVersion; the live APPROVE response must
+// conform exactly. kin-openapi fails if reviewed_by / updated_at leak back in
+// (additionalProperties:false) or review_status leaves the closed enum.
 func TestMenu_Conformance_MenuItemVersion_ClosedShape(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
@@ -155,41 +94,22 @@ func TestMenu_Conformance_MenuItemVersion_ClosedShape(t *testing.T) {
 	srv := buildAdminTestServer(t, pool, p)
 	defer srv.Close()
 
-	status, env := doMenuJSON(t, http.MethodPost,
+	resp := doMenuResp(t, http.MethodPost,
 		fmt.Sprintf("%s/v1/admin/menu-reviews/%s/decision", srv.URL, data.versionID),
 		"conformance-approve-0001", map[string]any{"decision": "APPROVE"})
-	if status != http.StatusOK {
-		t.Fatalf("want 200, got %d (%v)", status, env)
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		t.Fatalf("want 200, got %d", resp.StatusCode)
 	}
-	d, ok := env["data"].(map[string]any)
-	if !ok {
-		t.Fatalf("response missing data object: %v", env)
-	}
-	assertMenuClosedObject(t, "MenuItemVersion(decide)", d, menuVersionRequired, menuVersionOptional)
-
-	// closed enum
-	if s, _ := d["review_status"].(string); !menuReviewStatusEnum[s] {
-		t.Errorf("review_status %q is not in the MenuReviewStatus enum", s)
-	}
+	assertConformant(t, resp)
+	d := decodeBody(t, resp)["data"].(map[string]any)
 	if d["review_status"] != "APPROVED" {
 		t.Errorf("review_status = %v, want APPROVED", d["review_status"])
 	}
-	// nullability: on APPROVE, rejection_reason_code must be null.
-	if v, ok := d["rejection_reason_code"]; ok && v != nil {
-		t.Errorf("rejection_reason_code must be null on APPROVE, got %v", v)
-	}
-	// dietary_tags / allergen_tags, if present, must be arrays not null.
-	for _, k := range []string{"dietary_tags", "allergen_tags"} {
-		if v, ok := d[k]; ok {
-			if _, isArr := v.([]any); !isArr {
-				t.Errorf("%s must be a JSON array (never null), got %T", k, v)
-			}
-		}
-	}
 }
 
-// TestMenu_Conformance_QueueItem_ClosedShape asserts every item the queue returns
-// is a closed MenuItemVersion.
+// listMenuReviewQueue returns a paged list of MenuItemVersion; the live response
+// (data[] + PageMeta) must conform exactly.
 func TestMenu_Conformance_QueueItem_ClosedShape(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
@@ -200,40 +120,29 @@ func TestMenu_Conformance_QueueItem_ClosedShape(t *testing.T) {
 	srv := buildAdminTestServer(t, pool, p)
 	defer srv.Close()
 
-	status, env := doMenuJSON(t, http.MethodGet,
+	resp := doMenuResp(t, http.MethodGet,
 		fmt.Sprintf("%s/v1/admin/menu-reviews?restaurant_id=%s", srv.URL, data.restaurantID),
 		"", nil)
-	if status != http.StatusOK {
-		t.Fatalf("want 200, got %d", status)
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		t.Fatalf("want 200, got %d", resp.StatusCode)
 	}
-	arr, ok := env["data"].([]any)
-	if !ok {
-		t.Fatalf("data is not an array: %v", env["data"])
-	}
+	assertConformant(t, resp)
+	arr, _ := decodeBody(t, resp)["data"].([]any)
 	if len(arr) == 0 {
 		t.Fatal("expected the seeded PENDING_REVIEW version in the queue")
 	}
 	for i, raw := range arr {
-		item, ok := raw.(map[string]any)
-		if !ok {
-			t.Fatalf("item[%d] is not an object", i)
-		}
-		assertMenuClosedObject(t, fmt.Sprintf("queue[%d]", i), item, menuVersionRequired, menuVersionOptional)
+		item, _ := raw.(map[string]any)
 		if s, _ := item["review_status"].(string); s != "PENDING_REVIEW" {
 			t.Errorf("queue[%d] review_status = %q, want PENDING_REVIEW", i, s)
 		}
 	}
-	// meta must be a closed {has_more, next_cursor} PageMeta.
-	meta, ok := env["meta"].(map[string]any)
-	if !ok {
-		t.Fatal("response missing meta")
-	}
-	assertMenuClosedObject(t, "PageMeta", meta, []string{"has_more"}, []string{"next_cursor"})
 }
 
-// TestMenu_Conformance_MenuItemOwnerView_ClosedShape asserts the create-item
-// response is a closed MenuItemOwnerView and that its nested live_version is a
-// full closed MenuItemVersion (not a bespoke summary).
+// createMenuItemOnBehalf returns a MenuItemOwnerView with a nested live_version
+// MenuItemVersion; the live 201 body must conform exactly (this is where the
+// wrong-shaped live_version summary and the missing name/tax_category surfaced).
 func TestMenu_Conformance_MenuItemOwnerView_ClosedShape(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
@@ -244,7 +153,7 @@ func TestMenu_Conformance_MenuItemOwnerView_ClosedShape(t *testing.T) {
 	srv := buildAdminTestServer(t, pool, p)
 	defer srv.Close()
 
-	status, env := doMenuJSON(t, http.MethodPost,
+	resp := doMenuResp(t, http.MethodPost,
 		fmt.Sprintf("%s/v1/admin/restaurants/%s/menu/items", srv.URL, data.restaurantID),
 		"conformance-item-00001", map[string]any{
 			"category_id": data.categoryID,
@@ -252,44 +161,20 @@ func TestMenu_Conformance_MenuItemOwnerView_ClosedShape(t *testing.T) {
 			"price_cents": 1499,
 			"description": "A closed-shape burger",
 		})
-	if status != http.StatusCreated {
-		t.Fatalf("want 201, got %d (%v)", status, env)
+	if resp.StatusCode != http.StatusCreated {
+		resp.Body.Close()
+		t.Fatalf("want 201, got %d", resp.StatusCode)
 	}
-	d, ok := env["data"].(map[string]any)
-	if !ok {
-		t.Fatalf("missing data: %v", env)
-	}
-	assertMenuClosedObject(t, "MenuItemOwnerView", d, menuItemViewRequired, menuItemViewOptional)
-
-	// price_cents must be an integer-valued number, never a float with fraction.
-	if pc, ok := d["price_cents"].(float64); ok {
-		if pc != float64(int64(pc)) {
-			t.Errorf("price_cents %v is not integral (money must be int64 cents)", pc)
-		}
-		if int64(pc) != 1499 {
-			t.Errorf("price_cents = %v, want the server-stored 1499", pc)
-		}
-	} else {
-		t.Errorf("price_cents missing or not numeric: %T", d["price_cents"])
-	}
-
-	// live_version, if present, is a full closed MenuItemVersion.
-	if lv, ok := d["live_version"].(map[string]any); ok {
-		assertMenuClosedObject(t, "MenuItemOwnerView.live_version", lv, menuVersionRequired, menuVersionOptional)
-		if lv["review_status"] != "APPROVED" {
-			t.Errorf("live_version.review_status = %v, want APPROVED (admin-created auto-approve)", lv["review_status"])
-		}
-	} else if d["live_version"] == nil {
-		t.Error("admin-created item must carry a non-null live_version")
-	}
-	// pending_version must be null for an admin-created item.
-	if pv, ok := d["pending_version"]; ok && pv != nil {
-		t.Errorf("pending_version must be null for an admin-created item, got %v", pv)
+	assertConformant(t, resp)
+	d := decodeBody(t, resp)["data"].(map[string]any)
+	// The server prices the item — the echoed price must be the merchant's int cents.
+	if pc, ok := d["price_cents"].(float64); !ok || int64(pc) != 1499 {
+		t.Errorf("price_cents = %v, want the server-stored 1499", d["price_cents"])
 	}
 }
 
-// TestMenu_Conformance_MenuCategory_ClosedShape asserts the create-category
-// response is a closed MenuCategory.
+// createMenuCategoryOnBehalf returns a MenuCategory; the live 201 body must
+// conform exactly.
 func TestMenu_Conformance_MenuCategory_ClosedShape(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
@@ -300,17 +185,15 @@ func TestMenu_Conformance_MenuCategory_ClosedShape(t *testing.T) {
 	srv := buildAdminTestServer(t, pool, p)
 	defer srv.Close()
 
-	status, env := doMenuJSON(t, http.MethodPost,
+	resp := doMenuResp(t, http.MethodPost,
 		fmt.Sprintf("%s/v1/admin/restaurants/%s/menu/categories", srv.URL, data.restaurantID),
 		"conformance-cat-000001", map[string]any{"name": "Conformance Sides", "sort_order": 3})
-	if status != http.StatusCreated {
-		t.Fatalf("want 201, got %d (%v)", status, env)
+	if resp.StatusCode != http.StatusCreated {
+		resp.Body.Close()
+		t.Fatalf("want 201, got %d", resp.StatusCode)
 	}
-	d, ok := env["data"].(map[string]any)
-	if !ok {
-		t.Fatalf("missing data: %v", env)
-	}
-	assertMenuClosedObject(t, "MenuCategory", d, menuCategoryRequired, menuCategoryOptional)
+	assertConformant(t, resp)
+	d := decodeBody(t, resp)["data"].(map[string]any)
 	if b, ok := d["is_active"].(bool); !ok || !b {
 		t.Errorf("is_active = %v, want true", d["is_active"])
 	}

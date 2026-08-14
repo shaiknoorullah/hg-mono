@@ -1,0 +1,1332 @@
+{
+  "summary": "Strict independent Opus audit: find every Go-backend↔contract response drift, blast radius, and root-cause the gate that let it pass",
+  "agentCount": 56,
+  "logs": [
+    "audit complete: 79 confirmed drifts — critical 7, high 21, medium 25, low 26"
+  ],
+  "result": {
+    "totals": {
+      "critical": 7,
+      "high": 21,
+      "medium": 25,
+      "low": 26
+    },
+    "total_drifts": 79,
+    "apps_blast_radius": [
+      {
+        "app": "ui-native",
+        "endpoints": [
+          "listRestaurants (medium)"
+        ]
+      },
+      {
+        "app": "customer",
+        "endpoints": [
+          "listRestaurants (medium)",
+          "getRestaurant (medium)",
+          "getRestaurantMenu (low)",
+          "getCart (critical)",
+          "addCartLine (high)",
+          "getOrder (low)"
+        ]
+      },
+      {
+        "app": "restaurant-web",
+        "endpoints": [
+          "getRestaurantMenu (low)",
+          "getRestaurantOrder (critical)",
+          "getRestaurantOrder (high)",
+          "getRestaurantOrder (medium)",
+          "listRestaurantOrders (high)",
+          "acceptOrder (medium)",
+          "rejectOrder (high)",
+          "markOrderReady (high)",
+          "acceptOrder (high)"
+        ]
+      },
+      {
+        "app": "admin",
+        "endpoints": [
+          "listRestaurantDocuments (critical)",
+          "getHalalCertificate (low)"
+        ]
+      },
+      {
+        "app": "rider",
+        "endpoints": [
+          "getRiderMe (medium)",
+          "getRiderDashboard (medium)",
+          "getRiderDashboard (low)",
+          "setRiderAvailability (low)"
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "operation_id": "listSessions",
+        "method_path": "GET /v1/auth/sessions",
+        "drift_type": "other",
+        "contract_expects": "Contract declares Limit + Cursor query parameters and a PageMeta {next_cursor, has_more, total?} that supports real cursor pagination over the account's live sessions.",
+        "backend_emits": "Handler ignores both parameters: it calls store.ListLiveSessions(ctx, p.AccountID, 50) with a hardcoded limit of 50 and always returns Meta{NextCursor: nil, HasMore: false}. Cursor is never read; a page boundary is never emitted.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:577-604 (listSessions parameters Limit/Cursor, response required [data, meta] with PageMeta) vs services/hg/internal/auth/handlers.go:536 (ListLiveSessions(..., 50)) and handlers.go:554 (RespondList with Meta{NextCursor: nil, HasMore: false}). Response *shape* stays contract-valid (has_more:false is always legal); this is a pagination-behavior drift, not a field-shape drift. No app currently reads /v1/auth/sessions, so it is latent.",
+        "domain": "auth"
+      },
+      {
+        "operation_id": "getCustomerProfile",
+        "method_path": "GET /v1/me/profile",
+        "drift_type": "endpoint_missing_or_501",
+        "contract_expects": "200 -> {data: CustomerProfile} with required account_id, first_name, phone_e164, email_verified, created_at; x-roles CUSTOMER. This is the primary profile-read endpoint.",
+        "backend_emits": "Nothing. No route is registered and no handler exists. routes.go registers only PATCH /v1/me/profile (updateCustomerProfile); there is no r.Get(\"/v1/me/profile\", ...) and no GetCustomerProfile handler method anywhere in services/hg. A GET to this path falls through to the router default (405/404).",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:892-912 (getCustomerProfile GET /v1/me/profile) vs services/hg/internal/account/routes.go:16-36 (only PATCH registered) and services/hg/internal/account/handler.go (no GetCustomerProfile; grep for getCustomerProfile/GetCustomerProfile in services/hg returns zero handler matches). Generated in client at packages/api-client/src/generated/openapi.d.ts:1369,8331 but not yet consumed by any app.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Verified real. Contract (contracts/openapi.yaml:892-912) defines getCustomerProfile as GET /v1/me/profile, x-roles [CUSTOMER], 200 -> {data: CustomerProfile} with the response envelope required:[data] and additionalProperties:false. The CustomerProfile schema has required:[account_id, first_name, phone_e164, email_verified, created_at] and additionalProperties:false, exactly as claimed. On the Go side, grep for GetCustomerProfile/getCustomerProfile across services/hg returns zero handler or route matches; every occurrence of \"me/profile\" (routes.go:17, handler.go:174, doc.go:5, and all tests) is PATCH-only (updateCustomerProfile). services/hg/internal/account/routes.go registers r.Patch(\"/v1/me/profile\", ...) but no r.Get, so a GET falls through to the router default (405/404). The primary customer profile-read endpoint is genuinely unimplemented. Severity high, not critical: it is a contract-required primary read endpoint with no handler (blocks the customer app profile screen), but it touches no halal-verification, money, or app-crash invariant, and no app consumes it yet (the account domain module is still in progress per CLAUDE.md)."
+        },
+        "domain": "accounts"
+      },
+      {
+        "operation_id": "listNotifications",
+        "method_path": "GET /v1/notifications",
+        "drift_type": "missing_required_field",
+        "contract_expects": "Notification.order_id: type [string,'null'] format uuid — 'names an entity id, so a tap always lands on the object'. The response object is additionalProperties:false; order_id is a defined property.",
+        "backend_emits": "The Go notificationResponse struct (handler.go:148-157) has no order_id field, and the store SELECT (store.go:331,339,350,363) never selects order_id. The wire object can never carry order_id, so a notification about an order cannot deep-link to that order by id.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:7010-7012 (order_id property on Notification) vs services/hg/internal/account/handler.go:148-157 (notificationResponse omits order_id) and services/hg/internal/account/store.go:331 (SELECT list omits order_id). No app currently reads listNotifications, so latent.",
+        "domain": "accounts"
+      },
+      {
+        "operation_id": "listNotifications",
+        "method_path": "GET /v1/notifications",
+        "drift_type": "missing_required_field",
+        "contract_expects": "Notification.channels_attempted: array of NotificationChannel, with the documented invariant that the INAPP row always exists (inbox is system of record). Defined property on the additionalProperties:false schema.",
+        "backend_emits": "The Go notificationResponse struct (handler.go:148-157) has no channels_attempted field and the store never selects delivery-channel data. The delivery-attempt metadata is absent from every notification on the wire.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:7002-7009 (channels_attempted on Notification) vs services/hg/internal/account/handler.go:148-157 and store.go:331. Optional field, no app consumer — cosmetic/latent.",
+        "domain": "accounts"
+      },
+      {
+        "operation_id": "listRestaurants",
+        "method_path": "GET /v1/restaurants",
+        "drift_type": "other",
+        "contract_expects": "RestaurantCard.cuisines: array of strings (openapi.yaml:7228-7231), populated from the restaurant's cuisine associations — rendered as the card subtitle line.",
+        "backend_emits": "cuisines is hardcoded to an empty slice [] for every card. The restaurantRow struct has no cuisines field and cardColumns SELECT never joins restaurant_cuisine for output; the table is used only for filtering (repo.go:149-152). toCard sets Cuisines: []string{} unconditionally (mappers.go:32).",
+        "severity": "medium",
+        "consumed_by": [
+          "packages/ui-native/src/content/RestaurantCard.tsx:83",
+          "packages/ui-native/src/content/RestaurantCard.tsx:153-159",
+          "apps/customer/src/screens/DiscoveryScreen.tsx:51"
+        ],
+        "evidence": "openapi.yaml:7228-7231 (cuisines array) vs services/hg/internal/catalog/mappers.go:32 (Cuisines: []string{}) and services/hg/internal/catalog/repo.go:30-57 (restaurantRow has no cuisines field). Consumed by RestaurantCard.tsx:83 `summariseCuisines(restaurant.cuisines)` which renders the cuisines subtitle; empty array => the cuisine line silently disappears on every card across discovery, feed, search and detail. Non-crashing (empty array is valid) but the browse surface loses all cuisine labels.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "medium",
+          "reasoning": "Confirmed real by reading contract, Go DTO/mapper/repo, and the frontend consumer.\n\nCONTRACT (contracts/openapi.yaml:7228-7231): RestaurantCard.cuisines is `type: array, items: {type: string}`. It is NOT in `required: [id, name, halal, availability]`, and the schema deliberately omits additionalProperties (it is an allOf base). So an empty array is technically contract-valid, but the field is clearly meant to carry the restaurant's cuisine labels.\n\nBACKEND EMITS EMPTY (services/hg/internal/catalog/mappers.go:32): toCard sets `Cuisines: []string{}` unconditionally. The DTO field exists and is serialized (dto.go:41: `Cuisines []string \\`json:\"cuisines\"\\``), but nothing ever populates it. A grep across the entire catalog package finds only these two cuisines references — no other code path fills it.\n\nREPO CANNOT SUPPLY IT (repo.go:30-57, 61-68): restaurantRow has no cuisines field; the shared cardColumns SELECT list (repo.go:61-68) joins only halal_certificate and halal_issuing_body, never restaurant_cuisine for projection. restaurant_cuisine is referenced only inside a filtering EXISTS subquery (repo.go:149-152), so it is used to gate results but never to read cuisine names out. scanCard (repo.go:81-101) has no cuisines destination. The struct/SQL are structurally incapable of emitting cuisines. This holds for both list (listVisible) and detail (getVisible) since both use cardColumns.\n\nFRONTEND IMPACT (packages/ui-web + ui-native src/content/RestaurantCard.tsx): the card renders the cuisine subtitle line only `when cuisines.length > 0` (web lines 68, 115-118) and drops the cuisine phrase from the accessibility label likewise (lines 283-284). An always-empty array => the cuisine subtitle silently disappears on every restaurant card across discovery, feed, search, and detail.\n\nSEVERITY: The auditor's own rubric reserves critical/high for halal / app-crash / money. This drift touches none of those: it is non-crashing (empty array is valid JSON, no client throws), does not affect the halal badge/seal (that is a separate populated path via toHalalBadge), and has no money or auth implication. It is a real, systematic missing-data drift on a user-visible-but-cosmetic subtitle field. That is a genuine medium — real and affecting every browse surface, but not crash/halal/money. Correcting claimed severity high -> medium."
+        },
+        "domain": "discovery"
+      },
+      {
+        "operation_id": "getRestaurant",
+        "method_path": "GET /v1/restaurants/{restaurantId}",
+        "drift_type": "other",
+        "contract_expects": "RestaurantDetail inherits RestaurantCard.cuisines (openapi.yaml:7228, 7320-7322) — the detail header shows cuisine tags.",
+        "backend_emits": "Same empty-cuisines defect: RestaurantDetail embeds RestaurantCard built by toCard, so cuisines is [] on detail too (handler_discovery.go:94 -> mappers.go:32).",
+        "severity": "medium",
+        "consumed_by": [
+          "apps/customer/src/screens/RestaurantScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:7320-7322 (RestaurantDetail allOf RestaurantCard) vs services/hg/internal/catalog/handler_discovery.go:94 (card := toCard(...)) and mappers.go:32. Same root cause as listRestaurants; listed separately because it is a distinct operation whose detail header loses cuisine tags.",
+        "domain": "discovery"
+      },
+      {
+        "operation_id": "setMenuItemAvailability",
+        "method_path": "PUT /v1/restaurant/menu/items/{itemId}/availability",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "MenuItemAvailabilityInput requires `availability_state` (enum [AVAILABLE, OUT_OF_STOCK]) plus optional `out_of_stock_until`. additionalProperties:false.",
+        "backend_emits": "availabilityInputDTO (services/hg/internal/restaurant/dto.go:96-99) reads `is_available` (bool) + `out_of_stock_until`. The handler decodes with decodeStrict/DisallowUnknownFields (handler.go:521), so a contract-correct client sending `availability_state` gets 422 (unknown field) and the required field is never honoured; the backend instead expects a boolean the contract does not define.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9490-9505 (MenuItemAvailabilityInput: availability_state enum) vs services/hg/internal/restaurant/dto.go:96-99 + handler.go:520-523. When restaurant-web wires this endpoint it will send availability_state per the generated client and be rejected.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "medium",
+          "reasoning": "Verified against contract and code. Contract MenuItemAvailabilityInput (openapi.yaml:9402-9414) has additionalProperties:false, required:[availability_state] with enum [AVAILABLE, OUT_OF_STOCK] and optional nullable out_of_stock_until; the requestBody at PUT /v1/restaurant/menu/items/{itemId}/availability (line 3091-3096) is required and refs this schema. Backend availabilityInputDTO (dto.go:96-99) instead reads is_available (bool) + out_of_stock_until — there is NO availability_state json tag. The handler (handler.go:520-521) decodes via decodeStrict, which calls DisallowUnknownFields (decode.go:15-17). The bool is genuinely load-bearing: the repo (repo_reads.go:687-705) derives the DB enum column availability_state from in.IsAvailable ('AVAILABLE' if true else 'OUT_OF_STOCK'), so this is not a benign alias. A contract-conformant client (generated api-client) sends {\"availability_state\":...} and gets a 422 for the unknown field; and even absent strict mode, is_available would default to false, forcing OUT_OF_STOCK. The endpoint is unusable by any contract-correct caller — restaurant-web wiring it will be rejected as claimed. This is a real wrong_field_name drift. I downgrade severity from high to medium: it is a hard, ships-broken breakage but confined to a single restaurant-menu endpoint returning 422, with no halal-safety, money-integrity, or app-crash impact (the tiers reserved for high/critical). No data corruption or invariant violation."
+        },
+        "domain": "menu"
+      },
+      {
+        "operation_id": "getOwnMenu",
+        "method_path": "GET /v1/restaurant/menu",
+        "drift_type": "missing_required_field",
+        "contract_expects": "OwnedMenu.categories[].items[] is MenuItemOwnerView = allOf(MenuItem + owner fields). MenuItem base requires [id, name, price_cents, currency, availability_state, tax_category]; owner overlay requires [category_id]. So each item MUST carry a flat `name` and `tax_category` (both required), plus description, image_url, dietary_tags, allergen_tags, ingredients_text, prep_minutes, variant_groups, addon_groups.",
+        "backend_emits": "MenuItemView (services/hg/internal/restaurant/store.go:91-103) emits only {id, category_id, price_cents, currency, availability_state, out_of_stock_until, sort_order, live_version, pending_version, created_at, updated_at}. The required `name` and `tax_category` fields are absent from the item level — name/description/tags are instead nested under live_version/pending_version. So the response violates the MenuItem base contract: no top-level name, no tax_category.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9415 (MenuItemOwnerView) + openapi.yaml:7459 (MenuItem required[]) vs services/hg/internal/restaurant/store.go:91-103. No app consumes getOwnMenu yet (grep of apps/ for getOwnMenu is empty), so latent — but the shape is structurally wrong: flat MenuItem fields collapsed into version objects.",
+        "domain": "menu"
+      },
+      {
+        "operation_id": "getOwnMenu",
+        "method_path": "GET /v1/restaurant/menu",
+        "drift_type": "missing_required_field",
+        "contract_expects": "MenuItemVersion.required = [id, menu_item_id, version, review_status, created_at]. `menu_item_id` (uuid) is REQUIRED on every version object.",
+        "backend_emits": "restaurant.MenuItemVersion (store.go:106-116) has json tags {id, version, name, description, ingredients_text, dietary_tags, allergen_tags, review_status, created_at} — `menu_item_id` is entirely missing, as are optional restaurant_id, image_url, rejection_reason_code, review_note, submitted_at, reviewed_at.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9436-9440 (MenuItemVersion required includes menu_item_id) vs services/hg/internal/restaurant/store.go:106-116 (loadItemVersion at repo_reads.go:455-477 never selects menu_item_id). Latent; also affects createMenuItem/updateMenuItem which embed the same version struct.",
+        "domain": "menu"
+      },
+      {
+        "operation_id": "createMenuItem",
+        "method_path": "POST /v1/restaurant/menu/items",
+        "drift_type": "missing_required_field",
+        "contract_expects": "MenuItemInput allows `allergens_declared` (bool), `image_object_id` (uuid), and `prep_minutes` (int32) in addition to name/category_id/price_cents/description/ingredients_text/dietary_tags/allergen_tags/sort_order. additionalProperties:false.",
+        "backend_emits": "menuItemInputDTO (services/hg/internal/restaurant/dto.go:71-80) omits `allergens_declared`, `image_object_id`, and `prep_minutes`. Since the handler decodes strict (DisallowUnknownFields), a client sending the contract-legal `allergens_declared` / `image_object_id` / `prep_minutes` gets 422; those fields can never be set.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9289-9330 (MenuItemInput properties) vs services/hg/internal/restaurant/dto.go:71-80. allergens_declared is the explicit acknowledgement that an empty allergen list is intentional (allergen safety) — silently undroppable. Latent (no app posts items yet).",
+        "domain": "menu"
+      },
+      {
+        "operation_id": "updateMenuItem",
+        "method_path": "PATCH /v1/restaurant/menu/items/{itemId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "MenuItemUpdateInput permits optional `allergens_declared` (bool), `image_object_id` (uuid), `prep_minutes` (int32).",
+        "backend_emits": "menuItemUpdateDTO (services/hg/internal/restaurant/dto.go:83-92) omits allergens_declared, image_object_id, prep_minutes. decodeStrict 422s any body carrying them.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9394-9414 (MenuItemUpdateInput) vs services/hg/internal/restaurant/dto.go:83-92.",
+        "domain": "menu"
+      },
+      {
+        "operation_id": "getRestaurantMenu",
+        "method_path": "GET /v1/restaurants/{restaurantId}/menu",
+        "drift_type": "other",
+        "contract_expects": "MenuItem.availability_state is MenuItemAvailabilityState enum [AVAILABLE, OUT_OF_STOCK, HIDDEN, BLOCKED]; customer menu returns out-of-stock items marked unavailable (not hidden). Response schema is clean and fully populated (name, price_cents int64, currency, tax_category, dietary/allergen tags, variant_groups, addon_groups, item_count).",
+        "backend_emits": "Customer menu (catalog: dto.go MenuItem l.132-148, mappers.go toMenuItem l.89-135, handler_discovery.go l.142-160) matches the contract field-for-field: price_cents int64, [] for empty tag/option lists, item_count set per category. No drift found on the consumed customer endpoint.",
+        "severity": "low",
+        "consumed_by": [
+          "apps/customer/src/screens/RestaurantScreen.tsx",
+          "apps/restaurant-web/src/screens/MenuScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:7459-7515 (MenuItem) vs services/hg/internal/catalog/dto.go:132-148 + mappers.go:89-135 — conformant. Recorded as a no-drift confirmation for the one menu endpoint the apps actually consume today.",
+        "domain": "menu"
+      },
+      {
+        "operation_id": "getCart",
+        "method_path": "GET /v1/cart",
+        "drift_type": "missing_required_field",
+        "contract_expects": "Cart.restaurant is oneOf[RestaurantCard, null]; RestaurantCard requires [id, name, halal, availability]. A non-empty cart is bound to one restaurant, so a populated RestaurantCard (including the halal seal) is expected — the cart is where the halal claim for the chosen restaurant is re-asserted before checkout.",
+        "backend_emits": "cartToDTO (map.go:57-83) never assigns d.Restaurant; the field is typed `any` in cartDTO (dto.go:18) and left nil, so the wire always emits \"restaurant\": null even though loadCart (cart_store.go:94-107) loaded c.RestaurantID and c.RestaurantName from the DB. The RestaurantCard and its required halal seal are unconditionally absent from every cart response.",
+        "severity": "critical",
+        "consumed_by": [
+          "apps/customer/src/screens/CartScreen.tsx:159",
+          "apps/customer/src/screens/CartScreen.tsx:161"
+        ],
+        "evidence": "openapi.yaml:7610-7613 (Cart.restaurant oneOf RestaurantCard/null) + openapi.yaml:7206-7212 (RestaurantCard required id,name,halal,availability) vs services/hg/internal/orders/map.go:57-83 (cartToDTO omits Restaurant) and cart_store.go:106-107 (RestaurantName loaded but dropped). CartScreen.tsx:159 `cart.restaurant ?` / :161 `cart.restaurant.name` — guarded so no crash, but the restaurant header name and the halal seal silently never render on the cart. Halal claim absent on the cart surface.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "critical",
+          "reasoning": "Verified against both sources.\n\nCONTRACT (contracts/openapi.yaml): Cart.restaurant is oneOf[RestaurantCard, null] (~line 7610). RestaurantCard (~line 7205) has `required: [id, name, halal, availability]`, where `halal` -> HalalBadge and `availability` -> RestaurantAvailabilityInfo. So when Cart.restaurant is a populated object it MUST carry the halal seal. Note: `restaurant` is NOT in Cart.required[] (required is [id, lines, indicative_subtotal_cents, currency, is_quotable]), so emitting null is not a strict schema-validation failure — but the schema and the C-19 description intend a bound cart to carry its restaurant, and the halal claim is meant to be re-asserted here before checkout.\n\nBACKEND: cartDTO (dto.go:17) declares `Restaurant any json:\"restaurant\"`. cartToDTO (map.go:57-83) never assigns d.Restaurant, so it stays nil and marshals to `\"restaurant\": null` on every response. GetCart handler (handlers.go:118-124) and the mutating cart handlers (lines 153,172,182) all serialize via cartToDTO, so this is the sole cart projection. Worse than the claim states: loadCart (cart_store.go:94-107) only SELECTs c.id, c.restaurant_id, r.display_name, c.delivery_address_id — it loads RestaurantID and RestaurantName but never fetches any halal certification data at all, and the Cart domain struct (cart_store.go:15-30) has no halal field. So the RestaurantCard, and specifically its required `halal` HalalBadge, is unconditionally absent from every cart response.\n\nCLIENT: CartScreen.tsx guards with `cart.restaurant ?` so there is no crash — but the restaurant header and halal seal silently never render on the cart surface.\n\nSEVERITY: critical. Per the rubric, halal-visibility issues are critical. The cart is a halal re-assertion surface (product's single claim is verification, invariant #8). The seal is guaranteed-absent by construction on a surface where it is contractually specified to appear. Client fails safe (no optimistic badge), which prevents an app-crash/haram-mislabel, but the required halal presentation is missing platform-wide."
+        },
+        "domain": "cart-quotes"
+      },
+      {
+        "operation_id": "addCartLine",
+        "method_path": "POST /v1/cart/lines",
+        "drift_type": "missing_required_field",
+        "contract_expects": "200 response body is the full Cart; Cart.restaurant should carry the populated RestaurantCard (with halal) once a line has been added, since add-to-cart establishes the single restaurant the cart is bound to.",
+        "backend_emits": "AddCartLine (handlers.go:127-154) responds via the same cartToDTO which never populates restaurant; the recomputed cart returned after an add always has \"restaurant\": null. Same defect applies to updateCartLine, removeCartLine (all route through cartToDTO).",
+        "severity": "high",
+        "consumed_by": [
+          "apps/customer/src/screens/CartScreen.tsx:159",
+          "apps/customer/src/screens/RestaurantScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:1644-1655 (addCartLine 200 -> Cart) + openapi.yaml:7610-7613 vs services/hg/internal/orders/map.go:57-83 (cartToDTO shared by all cart handlers). The cart header restaurant + halal seal never appear immediately after the user adds an item from RestaurantScreen.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "CONFIRMED REAL.\n\nContract side: The Cart schema (openapi.yaml:7599-7660) defines `restaurant` as `oneOf: [RestaurantCard, null]`. It is not in Cart.required[], and null is a legal value, so a plain schema read would not force population. BUT the canonical contract fixture cart_single_line.json is explicitly tagged `operations: [\"getCart\", \"addCartLine\"]` and populates `restaurant` with a full RestaurantCard including the required `halal` badge and `availability`. cart_empty.json (no lines) sets `restaurant: null`. Together these establish the intended contract behavior: restaurant is null only when the cart is empty, and must carry the populated RestaurantCard (with halal) once a line has been added. The claim's characterization matches the fixtures exactly.\n\nBackend side: cartToDTO (map.go:57-83) builds cartDTO{} and never assigns d.Restaurant. The struct field is `Restaurant any \\`json:\"restaurant\"\\`` (dto.go:18), which defaults to nil and thus always serializes as `\"restaurant\": null`. All cart handlers route through cartToDTO — GetCart (handlers.go:118-125), AddCartLine (handlers.go:127-154), UpdateCartLine, RemoveCartLine — so every one returns restaurant:null unconditionally. The defect is real for addCartLine and its siblings as claimed.\n\nAdded nuance (not a refutation): the domain Cart struct (cart_store.go:15-30) only carries RestaurantID + RestaurantName — populated by loadCart at cart_store.go:106-107 — not the full RestaurantCard (no halal, availability, cuisines, rating, images). So the fix is broader than a one-line mapper assignment: the store's cart query must also join to fetch the halal/availability/card data. But this makes the drift worse, not weaker: the backend cannot currently emit the required RestaurantCard at all.\n\nSeverity: high (not critical). The dropped field includes the halal badge, which is the platform's single load-bearing claim, and the cart header on RestaurantScreen after add-to-cart cannot render the halal seal. That is a halal-surface defect, warranting high. It is not critical because null → renders no badge is the safe fallback the platform mandates (invariant 8: a missing halal field renders no badge, never an optimistic one), so no false halal claim is made and no money path is affected. The user simply loses the seal on the cart header rather than seeing an incorrect one."
+        },
+        "domain": "cart-quotes"
+      },
+      {
+        "operation_id": "getCart",
+        "method_path": "GET /v1/cart",
+        "drift_type": "other",
+        "contract_expects": "CartLine.image_url is type [string,'null'] format uri — an optional line thumbnail; when the menu item has an image the cart line should carry its URL.",
+        "backend_emits": "cartLineDTO.ImageURL (dto.go:32) is never set in cartToDTO (map.go:68-72) and loadCart's SQL (cart_store.go:112-114) never selects an image column, so image_url is unconditionally null on every cart line.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:7652-7654 (CartLine.image_url) vs services/hg/internal/orders/map.go:68-72 (ImageURL never assigned) and cart_store.go:112-114 (no image column selected). Latent nullable field not currently read; cart line thumbnails will always be blank.",
+        "domain": "cart-quotes"
+      },
+      {
+        "operation_id": "getCart",
+        "method_path": "GET /v1/cart",
+        "drift_type": "other",
+        "contract_expects": "CartLine.availability.current_price_cents is oneOf[Cents, null] — the current unit price, surfaced with reason PRICE_CHANGED when a line's live price drifts from the cart price (C-19/R-19 annotate-never-mutate).",
+        "backend_emits": "cartAvailabilityDTO.CurrentPriceCents (dto.go:58) is never set; cartToDTO builds Availability only from IsAvailable + UnavailReason (map.go:72), and loadCart never computes a PRICE_CHANGED reason nor a current price, so current_price_cents is always null and PRICE_CHANGED is never emitted.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:7702-7705 (current_price_cents) + openapi.yaml:7698 (PRICE_CHANGED reason) vs services/hg/internal/orders/map.go:72 (Availability populated without CurrentPriceCents) and cart_store.go:152-160 (only OUT_OF_STOCK/VARIANT_UNAVAILABLE/ADDON_UNAVAILABLE reasons; PRICE_CHANGED path absent). Latent optional field; price-drift annotation cannot render.",
+        "domain": "cart-quotes"
+      },
+      {
+        "operation_id": "getOrder",
+        "method_path": "GET /v1/orders/{orderId}",
+        "drift_type": "halal_field_drift",
+        "contract_expects": "OrderCustomerView.restaurant is OrderRestaurantRef which carries an optional `halal` field of type HalalBadge (required: [display_state]). HalalBadge is the product's single claim: when absent the client renders NO badge and reports a client error. The customer order view must be able to surface the restaurant's halal state.",
+        "backend_emits": "orderRestaurantRefDTO has exactly {id, name, logo_image_url}; there is no `halal` field on the struct at all, and OrderView carries no halal columns. loadOrderView SQL selects only restaurant_id and display_name from the restaurant join. The emitted restaurant ref can never carry a HalalBadge.",
+        "severity": "critical",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8104-8118 (OrderRestaurantRef with halal: HalalBadge) & 8189-8211 vs services/hg/internal/orders/dto.go:201-205 (orderRestaurantRefDTO no halal) & map.go:89 & order_read.go:98,106 (SQL selects only r.display_name)",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "critical",
+          "reasoning": "Verified against source. Contract: OrderRestaurantRef (openapi.yaml:8104-8118) declares `halal: $ref HalalBadge` as a property; HalalBadge (7189-7199) is required:[display_state] and per C-12 its absence makes the client render NO badge and report a client error. OrderCustomerView (8183-8211) requires `restaurant`, which resolves to OrderRestaurantRef. Go side confirms the omission on every cited line: orderRestaurantRefDTO (dto.go:201-205) is exactly {id json:\"id\", name json:\"name\", logo_image_url json:\"logo_image_url\"} with no halal field; orderViewToDTO (map.go:89) builds the ref as {ID, Name, LogoImageURL} only; loadOrderView SQL (order_read.go:96-114) selects only o.restaurant_id, r.display_name and NULL::text for the logo from the restaurant join, and OrderView has no halal columns/scan targets. So the emitted restaurant ref can never carry a HalalBadge — the claim's code reading is exact.\n\nOne correction to the claim's framing, which does NOT reduce severity: `halal` is OPTIONAL in OrderRestaurantRef (required:[id,name]), so a payload omitting it still VALIDATES against the contract despite additionalProperties:false. This is therefore not a hard schema-break/app-crash; the client won't fail JSON-schema validation. However, it is a genuine and permanent halal-field drift on a customer-facing surface: the customer order view will always surface no halal state, tripping the C-12 client-error path and violating non-negotiable invariant #8 (\"a missing halal field renders no badge\"). Halal is the product's single load-bearing claim, and the project rubric explicitly rates halal drifts critical. The drift is real and correctly rated critical on product/invariant grounds (not on app-crash grounds)."
+        },
+        "domain": "orders-customer"
+      },
+      {
+        "operation_id": "getOrder",
+        "method_path": "GET /v1/orders/{orderId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "OrderCustomerView.eta_at: type [string,'null'] format date-time — the customer-facing ETA the tracking UI renders.",
+        "backend_emits": "orderCustomerViewDTO has no eta_at JSON field; OrderView struct has no ETA field; SQL selects no eta column. The key is entirely absent from the wire body.",
+        "severity": "low",
+        "consumed_by": [
+          "apps/customer/src/screens/TrackingScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:8244-8246 (eta_at) vs services/hg/internal/orders/dto.go:178-199 (no eta_at) & order_read.go:17-49; consumer TrackingScreen.tsx:108 reads state.order.eta_at as estimatedAt — undefined, ETA never renders",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "low",
+          "reasoning": "Real drift, but the claimed \"high\" severity is overstated; corrected to low.\n\nCONTRACT (confirmed): OrderCustomerView.eta_at exists at openapi.yaml:8244-8246, type [string,'null'], format date-time. CRITICAL CORRECTION to the claim: eta_at is NOT required. The schema's required[] is [id, code, state, restaurant, lines, money, placed_at] (openapi.yaml:8189). The generated client (packages/api-client/src/generated/openapi.d.ts:4269) types it as `eta_at?: string | null` — optional AND nullable. So the drift_type \"missing_required_field\" is mislabeled; it is a missing OPTIONAL field.\n\nBACKEND (confirmed real): getOrder renders orderCustomerViewDTO via orderViewToDTO (map.go:85). Neither orderCustomerViewDTO (dto.go:178-199), the OrderView struct (order_read.go:17-49), nor the SQL SELECT (order_read.go:96-114) contains any eta_at/ETAAt field or column. The ETAAt field the evidence might be confused by (ordersread_dto.go:24) belongs to orderTrackingDTO — a DIFFERENT operation (getOrderTracking, /tracking endpoint), not getOrder. So for getOrder the eta_at key is genuinely absent from the wire body. The auditor's core code reading is correct.\n\nCONSUMER / IMPACT (contradicts \"high\"): TrackingScreen.tsx:108 reads state.order.eta_at (typed string|null|undefined) and passes it to StatusTimeline's `estimatedAt?: string | null` prop. StatusTimeline guards with `{estimatedAt ? ...formatAbsoluteTime... : null}` (ui-native StatusTimeline.tsx:448; ui-web:329). Passing undefined to an optional prop is valid TypeScript and the component renders nothing rather than throwing. No app crash, no exception, no undefined-deref. It is not halal, money, or auth. The concrete effect is graceful degradation: the \"Estimated <time>\" line silently never appears in tracking.\n\nVerdict: genuine backend↔contract drift (contract defines eta_at, a shipped consumer reads it, backend never emits it), so is_real=true. But it is an omitted optional/nullable field that the consumer safely guards — a feature gap (ETA never renders) with no crash/conformance-break. Severity low, not high."
+        },
+        "domain": "orders-customer"
+      },
+      {
+        "operation_id": "getOrder",
+        "method_path": "GET /v1/orders/{orderId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "OrderCustomerView.rider: oneOf [RiderPublicProfile, null] — the customer projection carries the rider's public profile.",
+        "backend_emits": "orderCustomerViewDTO has no rider field; OrderView struct has no rider fields; SQL does not join dispatch/rider. The rider block is absent from getOrder/getActiveOrder (exists only on the separate /rider and /tracking endpoints).",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8228-8231 (rider oneOf RiderPublicProfile|null) vs services/hg/internal/orders/dto.go:178-199 & order_read.go:17-49; latent — no app reads order.rider yet",
+        "domain": "orders-customer"
+      },
+      {
+        "operation_id": "getOrder",
+        "method_path": "GET /v1/orders/{orderId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "OrderCustomerView.dispatch_state: oneOf [DispatchState, null] — the subordinate dispatch machine state.",
+        "backend_emits": "orderCustomerViewDTO has no dispatch_state field; OrderView carries no dispatch state; loadOrderView SQL does not join the dispatch row.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8232-8235 (dispatch_state) vs services/hg/internal/orders/dto.go:178-199 & order_read.go:96-114 (no dispatch join); latent",
+        "domain": "orders-customer"
+      },
+      {
+        "operation_id": "getOrder",
+        "method_path": "GET /v1/orders/{orderId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "OrderCustomerView.delivery_address: oneOf [Address, null] — the customer's delivery address on the order projection.",
+        "backend_emits": "orderCustomerViewDTO has no delivery_address field; OrderView has no address field. SQL selects delivery_instructions but not the delivery address. Key absent from body.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8218-8221 (delivery_address oneOf Address|null) vs services/hg/internal/orders/dto.go:178-199 & order_read.go:96-114 (no address column selected); latent",
+        "domain": "orders-customer"
+      },
+      {
+        "operation_id": "getOrder",
+        "method_path": "GET /v1/orders/{orderId}",
+        "drift_type": "wrong_nullability",
+        "contract_expects": "OrderRestaurantRef.logo_image_url: type [string,'null'] format uri — the restaurant's logo, populated when it exists.",
+        "backend_emits": "loadOrderView hardcodes the logo column as NULL::text in the SELECT list, so logo_image_url is ALWAYS null for every order regardless of whether the restaurant has a logo. Field name/type match but the value is a constant null.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8114-8116 (logo_image_url) vs services/hg/internal/orders/order_read.go:98 (SELECT ... r.display_name, NULL::text) & map.go:89 (RestaurantLogoURL always nil)",
+        "domain": "orders-customer"
+      },
+      {
+        "operation_id": "getRestaurantOrder",
+        "method_path": "GET /v1/restaurant/orders/{orderId}",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "money: RestaurantOrderMoney nested object {subtotal_cents, discount_cents?, commission_cents, restaurant_net_cents, total_cents, currency}, required nested field 'money'",
+        "backend_emits": "OrderDetailView flattens money to top-level total_cents, subtotal_cents, currency; there is NO nested 'money' object",
+        "severity": "critical",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:8404-8408 vs services/hg/internal/restaurant/store.go:141-146. App reads order.money.subtotal_cents/commission_cents/restaurant_net_cents/total_cents at OrderDetailScreen.tsx:324-342 - order.money is undefined, crashes the price panel.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "critical",
+          "reasoning": "Confirmed real across all three legs. CONTRACT: getRestaurantOrder (openapi.yaml:3263-3287) returns OrderRestaurantView, whose required[] includes 'money' (line 8270) and whose additionalProperties is false. 'money' is RestaurantOrderMoney (8331-8351), a nested object with additionalProperties:false requiring subtotal_cents, total_cents, restaurant_net_cents, commission_cents, currency. BACKEND: GetRestaurantOrder handler (handler.go:569-593) responds with OrderDetailView via httpx.Respond. OrderDetailView (store.go:137-152) has NO 'money' object and NO nested structure — money is flattened to top-level json tags total_cents, subtotal_cents, currency. It lacks commission_cents and restaurant_net_cents entirely. The GetOrder SQL (repo_reads.go:818-829) selects only total_cents, subtotal_cents, currency flat, confirming the two commission/net fields are never populated. APP: restaurant-web OrderDetailScreen.tsx:324-342 reads order.money.subtotal_cents/commission_cents/restaurant_net_cents/total_cents; since the backend emits no 'money' object, order.money is undefined and order.money.subtotal_cents throws a TypeError, crashing the price panel. The auditor's line numbers were imprecise (cited 8404-8408, which is OrderTracking, not the money schema), but the substance is accurate. Severity is critical: it is an unguarded null-deref runtime crash of the restaurant order detail view AND it concerns the money fields the restaurant relies on to see what it will be paid — both the app-crash and money criteria qualify it as critical."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "getRestaurantOrder",
+        "method_path": "GET /v1/restaurant/orders/{orderId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "money.restaurant_net_cents (Cents, required) and money.commission_cents (Cents, required) - what the restaurant is paid",
+        "backend_emits": "neither restaurant_net_cents nor commission_cents is emitted anywhere in OrderDetailView",
+        "severity": "critical",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:8331-8351 vs services/hg/internal/restaurant/store.go:141-146. App renders Price cents=order.money.restaurant_net_cents and commission_cents at OrderDetailScreen.tsx:330,336 - restaurant payout unrenderable.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "critical",
+          "reasoning": "Verified real against contract, Go code, SQL, and the app.\n\nCONTRACT (contracts/openapi.yaml): getRestaurantOrder (GET /v1/restaurant/orders/{orderId}, line 3263-3287) responds with data: OrderRestaurantView. OrderRestaurantView (8267) requires `money` and nests it as RestaurantOrderMoney (money: $ref at 8312-8313). RestaurantOrderMoney (8331-8351) has additionalProperties:false and required:[subtotal_cents, total_cents, restaurant_net_cents, commission_cents, currency]. So restaurant_net_cents and commission_cents are both required and live under a `money` object.\n\nGO CODE (services/hg/internal/restaurant/store.go:137-152): OrderDetailView is the only response struct (confirmed via grep; GetOrder in repo_reads.go:813 returns *OrderDetailView). It is FLAT — it emits top-level total_cents, subtotal_cents, currency and has NO `money` object, no restaurant_net_cents, no commission_cents json tags anywhere.\n\nSQL (repo_reads.go:818-829): the SELECT pulls only total_cents, subtotal_cents, currency from the order table. commission and net columns are never queried, so even the data is not fetched.\n\nThe drift is actually broader than the claim: not only are the two payout fields absent, the whole contract-required `money` nesting is missing (backend is flat). The claim's scoped assertion (both required payout fields not emitted) is correct.\n\nAPP IMPACT (apps/restaurant-web/src/screens/OrderDetailScreen.tsx): renders order.money.subtotal_cents (324), order.money.commission_cents (330), order.money.restaurant_net_cents (336), order.money.total_cents (342). Against the real backend, order.money is undefined, so order.money.commission_cents throws TypeError (Cannot read properties of undefined) and crashes the Order Detail screen — the restaurant's core operational view.\n\nSeverity critical: it is a money path (restaurant payout — what the restaurant is paid) AND it is an app crash (undefined money object dereferenced). Both criteria independently justify critical."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "getRestaurantOrder",
+        "method_path": "GET /v1/restaurant/orders/{orderId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "customer: OrderCustomerRef nested object {display_name required, phone_masked required}",
+        "backend_emits": "OrderDetailView has no customer object and no display_name/phone_masked fields",
+        "severity": "high",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx",
+          "apps/restaurant-web/src/screens/OrderQueueScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:8300-8301 & 8352-8362 vs services/hg/internal/restaurant/store.go:136-151. App reads order.customer.display_name/phone_masked at OrderQueueScreen.tsx:71,80 and OrderDetailScreen.tsx:301,303 - customer undefined, crashes.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Verified real at every layer. CONTRACT: getRestaurantOrder (openapi.yaml:3265) returns OrderRestaurantView (ref at 3287). That schema has required: [id, code, state, lines, money, customer, placed_at] (line 8269) with additionalProperties:false, and its `customer` property refs OrderCustomerRef (8292), which itself is required:[display_name, phone_masked] (8354). So the contract genuinely requires a nested customer object with both fields. BACKEND: routes.go:85 wires getRestaurantOrder to h.GetRestaurantOrder, which calls Repo.GetOrder (repo_reads.go:813) returning *OrderDetailView (struct at store.go:137-151). That struct has NO customer field and no display_name/phone_masked json tags. The SQL SELECT (repo_reads.go:818-824) fetches only id, code, state, state_since, deadline_at, total_cents, subtotal_cents, currency, placed_at, accepted_at, ready_at, reject_reason, special_instructions — no join to any customer/account table, so the data is never even loaded. (The DisplayName at store.go:13 is on an unrelated menu-related struct, not a red herring for this view.) APP IMPACT: restaurant-web reads order.customer.display_name / order.customer.phone_masked at OrderQueueScreen.tsx:71-72,80-81 and OrderDetailScreen.tsx:301,303. With customer absent, order.customer is undefined and the property access throws a TypeError, crashing render of both the order queue and order detail — primary restaurant workflow screens. Note: the auditor cited store.go:136-151 for the struct (correct) but attributed the SQL to store.go:136-151 as well; the query actually lives in repo_reads.go:813-836. Location imprecision only; substance confirmed. Severity high (app-crash on core operational screens), not critical (no halal/money-integrity impact)."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "getRestaurantOrder",
+        "method_path": "GET /v1/restaurant/orders/{orderId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "delivery_area (string, PII-safe pre-acceptance), promised_ready_at (nullable date-time), is_late (boolean), elapsed_seconds (int32), rider (OrderRiderRef|null)",
+        "backend_emits": "none of delivery_area, promised_ready_at, is_late, elapsed_seconds, rider present in OrderDetailView",
+        "severity": "medium",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx",
+          "apps/restaurant-web/src/screens/OrderQueueScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:8309-8402 vs services/hg/internal/restaurant/store.go:136-151. App reads order.delivery_area (OrderQueueScreen.tsx:96, OrderDetailScreen.tsx:314), order.promised_ready_at (OrderDetailScreen.tsx:355), order.is_late (OrderDetailScreen.tsx:246) - all undefined.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "medium",
+          "reasoning": "Drift is REAL but the auditor's classification and severity are overstated.\n\nCONTRACT (contracts/openapi.yaml): getRestaurantOrder returns OrderRestaurantView (operationId at line 3265; $ref at 3287). The schema is OrderRestaurantView (lines 8267-8330), which the auditor loosely called \"RestaurantOrder\". It defines all five claimed fields as PROPERTIES: promised_ready_at (8288), delivery_area (8293), rider (8314), elapsed_seconds (8318), is_late (8321). BUT the schema's required[] is exactly [id, code, state, lines, money, customer, placed_at] (line 8270) — NONE of the five fields are required. So the drift_type \"missing_required_field\" is WRONG: these are optional fields per the contract. additionalProperties is not set on this schema, so extra/missing optional fields are permitted.\n\nBACKEND (services/hg): getRestaurantOrder → h.GetRestaurantOrder → Repo.GetOrder (repo_reads.go:813) returns OrderDetailView (store.go:137-152). Confirmed the struct has NO json tags for delivery_area, promised_ready_at, is_late, elapsed_seconds, or rider, and the SQL SELECT at repo_reads.go:818-824 selects none of them (only id, code, state, state_since, deadline_at, total/subtotal_cents, currency, placed_at, accepted_at, ready_at, reject_reason, special_instructions). So the backend genuinely omits all five. The drift is real: the app receives undefined for these fields.\n\nAPP IMPACT — NOT a crash. The three cited reads all use defensive fallbacks and do NOT throw on undefined: OrderQueueScreen.tsx:96 `order.delivery_area ?? '—'`; OrderDetailScreen.tsx:314 `${order.delivery_area ?? '—'} (revealed after acceptance)`; :355 `deadlineAt={order.promised_ready_at ?? order.deadline_at}`; :246 `{order.is_late ? (<Banner/>) : null}`. Every access degrades gracefully to a placeholder, a fallback deadline, or a hidden banner. No undefined-property dereference, no map/iteration over undefined. So the auditor's \"all undefined → app crash\" implication is false.\n\nSEVERITY: Not critical/high. No halal invariant, no money invariant, no crash. It is a genuine functional-completeness gap in a core restaurant operator screen (operator never sees delivery area pre-acceptance, promised-ready time, late banner, or assigned rider), which is user-visible degradation → medium. Recommend the fix widen the SQL/struct to populate these, but it is not a contract required[]-violation and not an app-crash as claimed."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "listRestaurantOrders",
+        "method_path": "GET /v1/restaurant/orders",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "data[] items are OrderRestaurantView with nested money(RestaurantOrderMoney), customer(OrderCustomerRef), lines[](OrderLine), delivery_area, is_late",
+        "backend_emits": "OrderSummaryView: flat {id,code,state,total_cents,currency,item_count,placed_at,deadline_at} - no money object, no customer, no lines array, no delivery_area/is_late; adds non-contract item_count",
+        "severity": "high",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderQueueScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:3253-3259 & 8267-8330 vs services/hg/internal/restaurant/store.go:125-134 returned by repo_reads.go:761 ListOrders. Queue reads order.lines.reduce (OrderQueueScreen.tsx:89), order.money.total_cents (line 115), order.customer.display_name (line 71), order.delivery_area (line 96) - lines/money/customer undefined, .reduce/.total_cents throw.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "CONFIRMED REAL.\n\nContract (contracts/openapi.yaml): The listRestaurantOrders 200 body (lines ~3253-3260) sets data[] items to $ref OrderRestaurantView. OrderRestaurantView (schema at line 8266) has `additionalProperties: false` and `required: [id, code, state, lines, money, customer, placed_at]`. So the contract mandates nested objects: customer (OrderCustomerRef), lines[] (OrderLine), money (RestaurantOrderMoney, itself required subtotal_cents/total_cents/restaurant_net_cents/commission_cents/currency), plus optional delivery_area and is_late. total_cents/customer/lines are NOT flat top-level scalars.\n\nBackend (services/hg/internal/restaurant/store.go:124-134): OrderSummaryView is flat — json tags id, code, state, total_cents, currency, item_count, placed_at, deadline_at. No money/customer/lines/delivery_area/is_late object. It also adds item_count, which is not in the contract schema and violates additionalProperties:false. repo_reads.go:761 ListOrders SQL selects only `id, code, state, total_cents, currency, placed_at, deadline_at` from \"order\" — it never joins order lines, customer, or the ledger/commission, so even the nested data isn't populated. handler.go:558-563 (ListRestaurantOrders) serializes []OrderSummaryView directly via RespondList. Confirmed drift on both shape and required fields.\n\nFrontend impact (apps/restaurant-web/src/screens/OrderQueueScreen.tsx — a real, populated file despite AGENTS.md calling the apps 'not started'): the queue columns dereference order.customer.display_name (line 71), order.customer.phone_masked (line 80), order.lines.reduce(...) (lines 89/91), order.delivery_area (line 96), and order.money.total_cents (line 115). Against the flat backend body, order.customer / order.lines / order.money are undefined, so .display_name / .reduce / .total_cents throw TypeError at render. The order queue screen crashes and cannot render at all.\n\nSeverity: app-crash on a core restaurant surface = high (matches claimed severity). Not money-correctness (no wrong prices computed) and not a halal invariant, so not critical. High is correct."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "acceptOrder",
+        "method_path": "POST /v1/restaurant/orders/{orderId}/accept",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "OrderAcceptInput { prep_eta_minutes (int32 1..120, optional), accepted_note (string maxLength 200, optional) }",
+        "backend_emits": "acceptInputDTO decodes only { promised_ready_minutes }; no prep_eta_minutes, no accepted_note. Handler uses decodeStrictOptional (DisallowUnknownFields)",
+        "severity": "medium",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:9500-9512 vs services/hg/internal/restaurant/dto.go:101-105 & handler.go:610-621. App sends body:{} (OrderDetailScreen.tsx:116) so accept survives now, but any prep_eta_minutes/accepted_note from a contract-typed client 422s as unknown field; server field name is wrong.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "medium",
+          "reasoning": "Verified real bidirectional wire mismatch. CONTRACT (contracts/openapi.yaml:9500-9512): OrderAcceptInput has additionalProperties:false, no required[], and exactly two optional fields: prep_eta_minutes (integer int32, min 1 max 120) and accepted_note (string maxLength 200). BACKEND (services/hg/internal/restaurant/dto.go:103-105): acceptInputDTO declares only PromisedReadyMinutes *int `json:\"promised_ready_minutes\"` — the JSON key is promised_ready_minutes, NOT prep_eta_minutes, and accepted_note is absent entirely. STRICT DECODE confirmed: handler.go:607-612 calls decodeStrictOptional; decode.go:34-38 delegates to decodeStrict which at line 17 calls dec.DisallowUnknownFields(). So a contract-typed client sending {\"prep_eta_minutes\":25} or {\"accepted_note\":\"...\"} is rejected as an unknown field (400/422); accepted_note has nowhere to land regardless. Notably the internal SQL column IS named prep_eta_minutes (repo_reads.go:910) and the value is stored (repo_reads.go:893-913) — proving the server understands the concept but reads the wrong wire key. NO LIVE BREAK: the only shipped caller (apps/restaurant-web/src/screens/OrderDetailScreen.tsx:118) sends body:{}, and decodeStrictOptional short-circuits on ContentLength==0 (decode.go:35), so accept works today. Severity corrected from high to medium: this is a genuine wrong_field_name drift that would 422 any conformant/generated-client caller and silently drops a supported optional field, but it is not halal, not app-crash, not money, and there is no current runtime break. Fix: rename json tag to prep_eta_minutes and add AcceptedNote *string `json:\"accepted_note\"`."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "rejectOrder",
+        "method_path": "POST /v1/restaurant/orders/{orderId}/reject",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "OrderRejectInput required [reason_code] with reason_code (RestaurantRejectReasonCode), note (maxLength 500), unavailable_menu_item_ids (uuid[] max 50)",
+        "backend_emits": "rejectInputDTO decodes { reason (string), note } - field named 'reason' not 'reason_code'. decodeStrict rejects unknown fields",
+        "severity": "high",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:9513-9530 vs services/hg/internal/restaurant/dto.go:107-111 & handler.go:678-694. App POSTs {reason_code, note} at OrderDetailScreen.tsx:165-167 - server sees unknown field reason_code and missing reason -> 422. Reject broken end-to-end.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real end-to-end. CONTRACT (contracts/openapi.yaml:9513-9530): OrderRejectInput has additionalProperties:false, required:[reason_code], reason_code -> RestaurantRejectReasonCode closed enum (ITEM_UNAVAILABLE, KITCHEN_AT_CAPACITY, CLOSING_SOON, EQUIPMENT_FAILURE, ADDRESS_OUT_OF_RANGE, SUSPECTED_FRAUD, OTHER), plus optional note (maxLength 500) and unavailable_menu_item_ids (uuid[] maxItems 50). BACKEND (services/hg/internal/restaurant/dto.go:107-111): rejectInputDTO decodes `Reason string json:\\\"reason\\\"` and `Note *string json:\\\"note\\\"` — field is named 'reason' not 'reason_code', and unavailable_menu_item_ids is absent entirely. decodeStrict (services/hg/internal/orders/handlers.go:81-100) calls dec.DisallowUnknownFields(), so any unexpected field yields 422 UNKNOWN_FIELD. The handler (handler.go:667-679) then validates body.Reason against restaurantRejectReasonSet. APP (apps/restaurant-web/src/screens/OrderDetailScreen.tsx:160-168) POSTs { reason_code, note }. Two independent failures result: (1) the server sees unknown field 'reason_code' -> immediate 422 UNKNOWN_FIELD; (2) even if tolerated, Reason would be empty -> restaurantRejectReasonSet[\\\"\\\"] fails -> 422 VALIDATION_FAILED. Reject is broken end-to-end; a restaurant cannot reject any order via the UI, which also blocks the invariant-5 auth-void that accompanies rejection. Severity high is correct: a core order-state-transition operation is completely non-functional, but it is not a silent data/money-integrity corruption, not an app crash, and not a halal misstatement — the failure surfaces as a hard 422 error toast, so not critical."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "delayOrder",
+        "method_path": "POST /v1/restaurant/orders/{orderId}/delay",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "OrderDelayInput required [added_minutes, reason_code] with added_minutes enum [5,10,15,20] and reason_code (DelayReasonCode)",
+        "backend_emits": "delayInputDTO decodes { delay_minutes, reason } - both names wrong (added_minutes->delay_minutes, reason_code->reason). decodeStrict rejects unknown fields",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9531-9542 vs services/hg/internal/restaurant/dto.go:113-118 & handler.go:775-796. A contract-typed client sending {added_minutes,reason_code} hits unknown-field 422 and missing required delay_minutes/reason.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real by reading all cited locations. Contract OrderDelayInput (openapi.yaml:9531-9541) sets additionalProperties:false, required:[added_minutes, reason_code], added_minutes enum [5,10,15,20], reason_code→DelayReasonCode. Go delayInputDTO (dto.go:115-118) decodes json tags `delay_minutes` and `reason` — both names differ. Handler (handler.go:762-786) decodes via decodeStrict, which (decode.go:16-17) calls dec.DisallowUnknownFields(). A contract-conformant client sending {added_minutes, reason_code} therefore hits a 422 on the unknown fields immediately; even absent strict decoding, the required delay_minutes/reason would be missing (DelayMinutes=0 fails the 5/10/15/20 switch, empty Reason fails delayReasonSet). The endpoint is unreachable by any conforming client — a total break of the delayOrder operation. Not in the critical tier (no halal/money/app-crash dimension; it is a restaurant prep-delay operation), so high is the correct severity: complete failure of a single non-critical operation."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "delayOrder",
+        "method_path": "POST /v1/restaurant/orders/{orderId}/delay",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "200 response data is OrderRestaurantView (nested money/customer/lines)",
+        "backend_emits": "returns OrderDetailView (flat money, no customer) - inherits every getRestaurantOrder output drift",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:3441-3453 vs services/hg/internal/restaurant/repo_reads.go:1035 DelayOrder returns *OrderDetailView. Same shape mismatch as GET response.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real by direct code reading.\n\nCONTRACT (openapi.yaml:3441-3453): delayOrder 200 response data is $ref OrderRestaurantView. That schema (openapi.yaml:8267) has `additionalProperties: false` and `required: [id, code, state, lines, money, customer, placed_at]`. `money` is a nested RestaurantOrderMoney object (subtotal_cents/total_cents/restaurant_net_cents/commission_cents/currency); `customer` is a required nested OrderCustomerRef (display_name/phone_masked); `lines` are OrderLine items.\n\nBACKEND: handler.go:806 does `httpx.Respond(w, r, http.StatusOK, order)` where `order` is the `*OrderDetailView` returned by repo.DelayOrder (repo_reads.go:1035, which routes through the same GetOrder-style struct). OrderDetailView (store.go:137) serializes FLAT money via json tags `total_cents`, `subtotal_cents`, `currency` at top level — no nested `money` object. It has NO `customer` field at all (a contract-required field entirely absent). It also emits extra top-level fields (`state_since`, `reject_reason`, `deadline_at`, etc.) that violate `additionalProperties: false`, and OrderLineView uses `line_no/name/quantity/unit_price_cents/line_total_cents` instead of the contract's OrderLine shape.\n\nA conformant client validating against OrderRestaurantView would reject this payload on three counts: missing required `money` object, missing required `customer` object, and additionalProperties violations. This is the identical struct emitted by getRestaurantOrder (GetOrder at repo_reads.go:813 returns the same *OrderDetailView), so the claim's assertion that it 'inherits every getRestaurantOrder output drift' is accurate.\n\nMinor correction to the claim's evidence: the DelayOrder repo function signature is at repo_reads.go:1035 and the offending serialization is handler.go:806, not a `return *OrderDetailView` literally at line 1035 — but the substance (return type is *OrderDetailView, wrong nesting) is exactly right.\n\nSeverity: high. This is a restaurant-facing money-display surface returned after a state-changing delay action. It is a genuine wrong-nesting/missing-required-field break that would fail contract validation and break the restaurant order view, but it is not a halal-badge defect, an app crash on the customer side, nor a money-correctness/ledger defect (critical reserved for those). High is correct and consistent with the sibling getRestaurantOrder finding."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "markOrderReady",
+        "method_path": "POST /v1/restaurant/orders/{orderId}/ready",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "200 response data is OrderRestaurantView (nested money/customer/lines, delivery_area, is_late, promised_ready_at)",
+        "backend_emits": "returns OrderDetailView (flat total_cents/subtotal_cents/currency, no money/customer/delivery_area/is_late)",
+        "severity": "high",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:3405-3411 vs services/hg/internal/restaurant/repo_reads.go:984 MarkOrderReady returns *OrderDetailView (store.go:136-151). App setState({order: data.data}) then re-renders detail reading order.money.* - undefined after successful ready.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real end-to-end.\n\nCONTRACT (openapi.yaml:3405-3411, schema at 8267): markOrderReady 200 data is OrderRestaurantView. That schema has additionalProperties:false and required:[id, code, state, lines, money, customer, placed_at]. Money lives in a nested `money` object (RestaurantOrderMoney @8331: required subtotal_cents/total_cents/restaurant_net_cents/commission_cents/currency), plus nested `customer` (OrderCustomerRef), and fields delivery_area, is_late, promised_ready_at. `lines` items are OrderLine.\n\nBACKEND: repo_reads.go:984 MarkOrderReady returns *OrderDetailView (via GetOrder at line 1027). OrderDetailView (store.go:137-152) is FLAT: json tags `total_cents`, `subtotal_cents`, `currency` at top level; NO `money` object, NO `customer`, NO delivery_area/is_late/promised_ready_at; lines use OrderLineView (line_no/name/quantity/unit_price_cents/line_total_cents) not OrderLine. Handler MarkOrderReady (handler.go:719-747) responds this struct verbatim with httpx.Respond. SQL in the transition only updates state/deadline/ready_at; GetOrder populates the flat struct — the nested money/customer shape is never assembled anywhere. So the emitted body both violates additionalProperties:false (extra flat total_cents/subtotal_cents/currency) AND omits two required fields (money, customer).\n\nAPP IMPACT: restaurant-web OrderDetailScreen.markReady (line 137-151) does setState({ order: data.data }) on success, and the detail render reads order.money.subtotal_cents/commission_cents/restaurant_net_cents/total_cents (lines 324-342). After a successful mark-ready the response has no `money` key, so order.money is undefined and reading .subtotal_cents throws — the screen crashes on a successful state transition (also confirmed OrderQueueScreen reads order.money.total_cents). This is a genuine runtime app crash, not just a schema nit.\n\nSeverity: app-crash → high per the rubric. Not money-corruption or halal, so not critical. Confirmed high."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "acceptOrder",
+        "method_path": "POST /v1/restaurant/orders/{orderId}/accept",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "200 response data is OrderRestaurantView (nested money/customer/lines)",
+        "backend_emits": "returns OrderDetailView (flat money, no customer object)",
+        "severity": "high",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:3327-3333 vs services/hg/internal/restaurant/repo_reads.go:866 AcceptOrder returns *OrderDetailView. App sets order from data.data then renders order.money.restaurant_net_cents/commission_cents (OrderDetailScreen.tsx:330-336) - undefined after accept.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real via code inspection.\n\nCONTRACT (contracts/openapi.yaml): acceptOrder 200 (lines 3324-3333) sets data → $ref OrderRestaurantView. OrderRestaurantView (line 8267) has additionalProperties:false and required:[id,code,state,lines,money,customer,placed_at]. `money` is a nested RestaurantOrderMoney object (required: subtotal_cents,total_cents,restaurant_net_cents,commission_cents,currency); `customer` is a required OrderCustomerRef object (display_name, phone_masked). So the contract truly mandates nested money + a customer object, and forbids extra props.\n\nBACKEND: repo_reads.go:866 AcceptOrder returns *OrderDetailView and, after the UPDATE/transition commit, delegates to r.GetOrder → same *OrderDetailView. The struct (store.go:137) has FLAT json tags total_cents/subtotal_cents/currency, NO nested `money` object, NO `customer` object, and carries extra fields not in the contract (state_since, reject_reason, code as plain string). The SQL never selects/populates restaurant_net_cents, commission_cents, or any customer fields. handler.go:652 serialises this struct directly via httpx.Respond, which wraps it as {data: <struct>} (respond.go:40). So the wire body is {data:{...flat, no money, no customer}} — a genuine shape/nesting mismatch against the contract.\n\nAPP IMPACT: OrderDetailScreen.tsx types Order = operations['getRestaurantOrder'].responses.200...data (i.e. the generated OrderRestaurantView), and after accept does setState({order: data.data as Order}) (line 127). It then renders order.money.subtotal_cents / commission_cents / restaurant_net_cents / total_cents (lines ~325-343) and order.customer.display_name / phone_masked (lines 300-303). Since the backend emits no `money` and no `customer`, order.money is undefined at runtime → TypeError (Cannot read properties of undefined), crashing the payout panel; order.customer likewise. This is an app-crash on a money-display + PII panel.\n\nSeverity: high is correct. It is an app-crashing shape drift touching the money display (restaurant net/commission) but it corrupts a read-only view — it does not misprice an order, mutate the ledger, or falsify a halal state, so it is not critical. (Note: the identical mismatch also affects the initial GetOrder load, so the crash is not unique to accept, but the claim's locus and mechanism are accurately described.)"
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "rejectOrder",
+        "method_path": "POST /v1/restaurant/orders/{orderId}/reject",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "200 response data is OrderRestaurantView (nested money/customer/lines)",
+        "backend_emits": "returns OrderDetailView (flat money, no customer object)",
+        "severity": "high",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:3363-3369 vs services/hg/internal/restaurant/repo_reads.go:933 RejectOrder returns *OrderDetailView. Same money/customer shape mismatch as GET response.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real. Contract (contracts/openapi.yaml:3363-3369) declares rejectOrder's 200 data as OrderRestaurantView (schema at :8267-8330): additionalProperties:false, required:[id,code,state,lines,money,customer,placed_at], where `money` is a nested RestaurantOrderMoney object (subtotal_cents/total_cents/restaurant_net_cents/commission_cents/currency) and `customer` is a required nested OrderCustomerRef object (display_name/phone_masked).\n\nGo side: RejectOrder (services/hg/internal/restaurant/repo_reads.go:933) returns *OrderDetailView and ends by calling r.GetOrder, which populates OrderDetailView (store.go:137-152). That struct is FLAT: top-level `total_cents`, `subtotal_cents`, `currency` — no `money` object; and it has NO `customer` field at all. It also carries extra top-level fields (state_since, reject_reason, special_instructions, accepted_at, ready_at). The handler (handler.go:713) serializes it directly via httpx.Respond, which wraps it as {\"data\": <flat struct>} (httpx/respond.go:40-42). No transformation to the nested shape occurs.\n\nNet effect for a conformant generated client decoding OrderRestaurantView: two required fields (`money`, `customer`) are absent, and unexpected top-level keys (total_cents, reject_reason, etc.) violate additionalProperties:false — a hard decode failure. This is the same money/customer nesting mismatch the GET response exhibits.\n\nSeverity: high is correct (not critical). It is a client-breaking structural break on a MONEY-class endpoint (the reject flow), but the monetary VALUE is not lost or miscomputed (total_cents is present, just at the wrong level), there is no server crash, and no halal-state misrepresentation. So it clears medium (breaks the contract for any strict client) but does not meet the critical bar (halal/app-crash/money-loss)."
+        },
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "getRestaurantOrder",
+        "method_path": "GET /v1/restaurant/orders/{orderId}",
+        "drift_type": "extra_field",
+        "contract_expects": "OrderRestaurantView additionalProperties:false - no top-level total_cents/subtotal_cents/currency/state_since/reject_reason",
+        "backend_emits": "OrderDetailView emits top-level total_cents, subtotal_cents, currency, state_since, reject_reason outside the schema",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8268-8269 vs services/hg/internal/restaurant/store.go:137-151. Strict contract validator fails these responses; consuming app tolerates extras.",
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "getRestaurantOrder",
+        "method_path": "GET /v1/restaurant/orders/{orderId}",
+        "drift_type": "missing_required_field",
+        "contract_expects": "each OrderLine requires menu_item_id (uuid) and currency (Currency); optional variant_name, addons[], special_request",
+        "backend_emits": "OrderLineView emits only line_no, name, quantity, unit_price_cents, line_total_cents - missing required menu_item_id and currency",
+        "severity": "medium",
+        "consumed_by": [
+          "apps/restaurant-web/src/screens/OrderDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:8119-8148 vs services/hg/internal/restaurant/store.go:154-160. App renders line.line_total_cents/quantity (OrderDetailScreen.tsx:267-290) so screen survives, but menu_item_id/currency absent from wire.",
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "listRestaurantOrders",
+        "method_path": "GET /v1/restaurant/orders",
+        "drift_type": "extra_field",
+        "contract_expects": "OrderRestaurantView additionalProperties:false; item_count is not a contract field",
+        "backend_emits": "OrderSummaryView emits item_count and top-level total_cents/currency that belong under money",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8268 vs services/hg/internal/restaurant/store.go:130. Strict validator rejects; app instead recomputes count from lines (themselves missing).",
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "rejectOrder",
+        "method_path": "POST /v1/restaurant/orders/{orderId}/reject",
+        "drift_type": "missing_required_field",
+        "contract_expects": "unavailable_menu_item_ids (array of uuid, max 50) - prompts marking items out of stock",
+        "backend_emits": "rejectInputDTO has no unavailable_menu_item_ids field; dropped/422'd by DisallowUnknownFields",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9524-9530 vs services/hg/internal/restaurant/dto.go:107-111. Not yet sent by app but part of reject contract.",
+        "domain": "restaurant-orders"
+      },
+      {
+        "operation_id": "submitRestaurantDocuments",
+        "method_path": "POST /v1/restaurant/documents/submit",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "200 body data must be a RestaurantOnboardingStatus object (required: onboarding_state, account_state, current_step, progress_percent, steps_completed) — 'Pack submitted; onboarding is now DOCUMENTS_REVIEW'",
+        "backend_emits": "httpx.Respond(..., map[string]string{\"status\":\"SUBMITTED\"}) — a single {\"status\":\"SUBMITTED\"} field, none of the RestaurantOnboardingStatus required fields present",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:2904-2914 (data: RestaurantOnboardingStatus) & 8904-8907 (required set) vs services/hg/internal/restaurant/handler.go:319",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real wrong_nesting/wrong-shape drift.\n\nCONTRACT (openapi.yaml:2889-2914): submitRestaurantDocuments POST /v1/restaurant/documents/submit, 200 response schema is `{additionalProperties:false, required:[data], properties.data: $ref RestaurantOnboardingStatus}`. The RestaurantOnboardingStatus schema (openapi.yaml:8904-8907) has `additionalProperties:false` and `required:[onboarding_state, account_state, current_step, progress_percent, steps_completed]`. So the 200 body's `data` object MUST carry those five required fields and may carry NO others.\n\nBACKEND (services/hg/internal/restaurant/handler.go:319): on success the handler calls `httpx.Respond(w, r, http.StatusOK, map[string]string{\"status\": \"SUBMITTED\"})`. httpx.Respond (internal/httpx/respond.go:40) wraps the payload as `{\"data\": <payload>}`, so the emitted body is `{\"data\": {\"status\": \"SUBMITTED\"}}`. The `data` object contains a single `status` key and NONE of the five required RestaurantOnboardingStatus fields.\n\nTwo independent contract violations against the schema: (1) missing required fields (onboarding_state, account_state, current_step, progress_percent, steps_completed all absent); (2) the `status` property is not defined on RestaurantOnboardingStatus and additionalProperties is false, so it is an illegal extra property. A generated/strict client decoding this 200 body will fail to parse a RestaurantOnboardingStatus.\n\nNot a misread: a repo method GetOnboardingStatus exists (repo_reads.go:38) and returns an OnboardingStatus, but the submit handler never calls it — it hardcodes the map literal. SQL is irrelevant here because the handler does not read the onboarding row at all on the success path (it only calls CheckDocumentPack for validation, then returns the static map).\n\nSeverity: high, not critical. This is the restaurant-onboarding domain (no halal-badge rendering, no money path). It is an app-facing schema break that will break/deny a strict-typed client's decode of the submit response — a real functional break, consistent with the claimed high. Not critical because it neither corrupts money/ledger nor touches a halal verification state."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "getRestaurantOnboardingStatus",
+        "method_path": "GET /v1/restaurant/onboarding/status",
+        "drift_type": "missing_required_field",
+        "contract_expects": "RestaurantOnboardingStatus.required = [onboarding_state, account_state, current_step, progress_percent, steps_completed]; steps_completed is an object {profile, documents_uploaded, documents_submitted, documents_approved, payout_account, menu_published}; current_step enum [PROFILE,DOCUMENTS,AWAITING_REVIEW,FIX_DOCUMENTS,PAYOUT,MENU,DONE]",
+        "backend_emits": "OnboardingStatus struct emits {onboarding_state, progress_percent, profile_complete, hours_complete, documents_ready, halal_verified}; missing account_state, current_step and the steps_completed object; adds unspecified profile_complete/hours_complete/documents_ready/halal_verified",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8904-8938 vs services/hg/internal/restaurant/store.go:36-43 & repo_reads.go:91-98",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Verified against both cited locations. Contract RestaurantOnboardingStatus (openapi.yaml:8904-8938) sets additionalProperties:false and required:[onboarding_state, account_state, current_step, progress_percent, steps_completed], where steps_completed is a nested object requiring [profile, documents_uploaded, documents_submitted, documents_approved, payout_account, menu_published] and current_step is an enum [PROFILE,DOCUMENTS,AWAITING_REVIEW,FIX_DOCUMENTS,PAYOUT,MENU,DONE]. The Go OnboardingStatus struct (store.go:36-43) emits only {onboarding_state, progress_percent, profile_complete, hours_complete, documents_ready, halal_verified}. repo_reads.go:38-98 populates exactly those six fields via SQL. The handler (handler.go:96-114) marshals this struct directly through httpx.Respond with no DTO mapping to the contract shape, and the integration test only asserts onboarding_state/progress_percent, so the drift is not caught. Net result: three required top-level fields absent (account_state, current_step, steps_completed) and four fields present that additionalProperties:false forbids (profile_complete, hours_complete, documents_ready, halal_verified). A strict-validating or generated client would fail to parse this response, and the client can never derive current_step/steps_completed. This is a genuine structural drift on a core restaurant-onboarding response. It does not touch money or the halal-badge invariant (halal state is not represented in the contract's steps_completed, and halal_verified is actually emitted, just under a non-contract name — so no false-badge risk), so it is not critical, but it breaks the client contract on a primary read. Claimed severity high is correct."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "getRestaurantProfile",
+        "method_path": "GET /v1/restaurant/profile",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "RestaurantProfile.required includes address (a nested PublicAddress object) and timezone; the address is a nested object with line1/line2/city/province/postal_code/latitude/longitude",
+        "backend_emits": "RestaurantProfile view struct is FLAT: province, postal_code, city, line1, line2, latitude, longitude are top-level fields, no nested 'address' object at all — the required 'address' property is absent",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8962 (required address) & 8989-8990 (address: PublicAddress) vs services/hg/internal/restaurant/store.go:18-24",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real on every cited point.\n\nCONTRACT (contracts/openapi.yaml, RestaurantProfile schema at the ~8961 region): type object, additionalProperties: false, required: [id, legal_name, display_name, address, timezone, account_state, onboarding_state]. The `address` property is `$ref: '#/components/schemas/PublicAddress'` — a nested object. PublicAddress (openapi.yaml:7341) is `type object, additionalProperties: false, required: [line1, city, province, postal_code, latitude, longitude]` with line1/line2/city/province/postal_code/latitude/longitude as its own properties. `timezone` is also required.\n\nBACKEND (services/hg/internal/restaurant/store.go:10-33): the RestaurantProfile view struct is FLAT. Province, PostalCode, City, Line1, Line2, Latitude, Longitude are top-level json fields (`json:\\\"province\\\"` etc.), all pointer types (*string/*float64). There is NO nested `address` object and thus the contract-required `address` property is entirely absent.\n\nWIRE PATH VERIFIED: handler.go:121-144 GetRestaurantProfile calls repo.GetProfile then marshals the struct directly via httpx.Respond(w, r, 200, profile) — no remapping to a DTO. SQL in repo_reads.go:106-121 scans province/postal_code/city/line1/line2 and ST_Y/ST_X(location) straight into the flat top-level fields. So the emitted JSON genuinely has flat address fields and no `address` key.\n\nBecause the schema is additionalProperties:false AND requires `address`, a validating consumer rejects this response two ways: (1) required `address` missing, (2) seven unexpected top-level properties (province, postal_code, city, line1, line2, latitude, longitude) plus a non-contract `halal_status`. The generated TS client types `RestaurantProfile.address: PublicAddress`, so client code reading `profile.address.line1` gets undefined -> the restaurant profile screen breaks/renders wrong. (Bonus divergences found that reinforce, not weaken, the claim: the struct also omits the contract-required `account_state` field and adds `halal_status`.)\n\nSeverity: this is the restaurant's own editable metadata view, not the halal certification panel/seal/seven-check instrument and not a money path, so not critical. It is a structural response-shape break that fails contract validation and breaks the client consumer — high is correct."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "getRestaurantProfile",
+        "method_path": "GET /v1/restaurant/profile",
+        "drift_type": "halal_field_drift",
+        "contract_expects": "RestaurantProfile.halal is a HalalBadge object {display_state (+certifying_body_name, expires_on)} — the load-bearing halal claim on the profile",
+        "backend_emits": "flat string field halal_status (e.g. \"CERTIFIED\") json:\"halal_status\"; no 'halal' HalalBadge object is emitted, so a halal-aware client renders no badge / cannot read display_state",
+        "severity": "critical",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9011-9012 (halal: HalalBadge) & 7189-7205 vs services/hg/internal/restaurant/store.go:29 (HalalStatus string json:\"halal_status\") & repo_reads.go:120",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "critical",
+          "reasoning": "Confirmed real by reading both sides.\n\nCONTRACT (contracts/openapi.yaml): RestaurantProfile schema at line 8959 has `additionalProperties: false` and property `halal: $ref HalalBadge` (lines 9011-9012). HalalBadge (lines 7189-7205) is an object with `required: [display_state]` plus nullable certifying_body_name/expires_on. The contract defines NO `halal_status` property on RestaurantProfile. Note: `halal` is NOT listed in RestaurantProfile.required[] (line 8962 = id, legal_name, display_name, address, timezone, account_state, onboarding_state), so its absence alone would not trip a required-check — but that is not the whole story (see below).\n\nBACKEND (store.go:29): the RestaurantProfile view struct emits `HalalStatus string json:\"halal_status\"`. repo_reads.go:106-121 populates it directly from the DB via `halal_status::text` (line 112/120). handler.go GetRestaurantProfile (line 121-144) marshals this struct straight to the wire with `httpx.Respond(w, r, http.StatusOK, profile)` — no DTO mapping, no HalalBadge construction. There is also no `halal`/HalalBadge field anywhere on the struct.\n\nSo the wire response is `{\"halal_status\":\"CERTIFIED\", ... }` with (a) NO `halal` object and (b) an EXTRA `halal_status` field. Two independent contract violations: the required-shaped `halal` badge object is entirely missing, and `halal_status` is a forbidden extra field under `additionalProperties: false`. A strict client validator rejects the payload; a halal-aware client reading `profile.halal.display_state` gets undefined and, per the HalalBadge C-12 contract note (line 7193-7196) and platform invariant #8, renders NO badge and reports a client error.\n\nSeverity: critical. This is the platform's single load-bearing claim (halal verification). The response cannot express the halal display_state at all, and the halal badge — the whole point of the product — cannot render on the restaurant profile surface. Per the rubric (halal = critical) this stands at critical. (Scope note: this is the restaurant's own OWNER/MANAGER/STAFF profile view, not the customer-facing RestaurantCard, but it is still a halal-claim drift on a real contracted operation.)"
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "getRestaurantProfile",
+        "method_path": "GET /v1/restaurant/profile",
+        "drift_type": "extra_field",
+        "contract_expects": "RestaurantProfile additionalProperties:false; owner_first_name/owner_last_name allowed; no account_state string beyond RestaurantAccountState; no halal_status, created_at, updated_at fields",
+        "backend_emits": "emits halal_status, created_at, updated_at (not in schema) and OMITS account_state (a required field) — required[] is [id, legal_name, display_name, address, timezone, account_state, onboarding_state]",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8961-8962 (additionalProperties:false; required account_state) vs services/hg/internal/restaurant/store.go:29-32 (halal_status, created_at, updated_at; no account_state)",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "CONFIRMED REAL. Contract (contracts/openapi.yaml:8959-9020): RestaurantProfile has `additionalProperties: false` (8961) and `required: [id, legal_name, display_name, address, timezone, account_state, onboarding_state]` (8962). It defines `account_state` ($ref RestaurantAccountState, 9007-9008), a nested `address` (PublicAddress, 8989-8990), `halal` (HalalBadge), `owner_first_name/last_name`, and `commission_rate_bps` — and has NO `halal_status`, `created_at`, or `updated_at` properties.\n\nBackend truly emits something different. The handler GetRestaurantProfile (handler.go:143) calls `httpx.Respond(w, r, http.StatusOK, profile)` where `profile` is the *RestaurantProfile view struct returned directly by repo.GetProfile — there is NO DTO mapping. httpx.Respond (respond.go:40-42) plainly JSON-marshals the value inside a {\"data\":...} envelope with no field filtering, so the struct's json tags ARE the wire shape. store.go:10-33 tags emit `halal_status` (29), `created_at` (31), `updated_at` (32), and these are populated by the SQL SELECT/Scan (repo_reads.go:112-113, 130-131). None of the three exist in the schema → three additionalProperties:false violations. The struct has NO account_state field and the SQL never selects it → the required field account_state is omitted. (The drift is actually broader than claimed: the struct also omits the required nested `address` object, emitting flattened province/postal_code/city/line1/line2/latitude/longitude instead, and omits owner_first_name, owner_last_name, halal, commission_rate_bps.)\n\nSeverity high is correct: a strict client/contract-conformance validator rejects the response (extra props under additionalProperties:false + missing required account_state + missing required address), breaking the restaurant profile screen. It touches the halal claim (halal_status leaks as a raw string while the contract's `halal` badge field is absent), but since the badge is simply absent rather than optimistically shown, invariant 8 is not violated in the haram-badge sense, and there is no money path or server-side crash — so not critical."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "submitRestaurantProfile",
+        "method_path": "PUT /v1/restaurant/profile",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "200 response is RestaurantProfile (nested address + halal HalalBadge, account_state required) — same as getRestaurantProfile",
+        "backend_emits": "returns the same flat RestaurantProfile view (via GetProfile) — inherits every getRestaurantProfile drift: missing nested address, missing halal badge, missing account_state, extra halal_status/created_at/updated_at",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:2749-2750 (data: RestaurantProfile) vs services/hg/internal/restaurant/repo_reads.go:195 (returns GetProfile) & store.go:10-33",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real. The 200 response for submitRestaurantProfile (PUT /v1/restaurant/profile) references the same RestaurantProfile schema as getRestaurantProfile (openapi.yaml:2749-2750). RestaurantProfile (openapi.yaml:8959) has additionalProperties:false and required:[id, legal_name, display_name, address, timezone, account_state, onboarding_state], where `address` is a nested PublicAddress object and `halal` is a HalalBadge object. The Go handler SubmitRestaurantProfile (handler.go:173-178) calls repo.UpsertProfile, which (repo_reads.go:195) returns r.GetProfile(...) — the identical struct getRestaurantProfile marshals (handler.go:134,143). That struct (store.go:10-33) emits: (1) FLAT address fields (province/postal_code/city/line1/line2/latitude/longitude) instead of the required nested `address` object; (2) a flat `halal_status` string (line 29) instead of the required `halal` HalalBadge object; (3) NO `account_state` field at all (required); (4) extra `created_at`/`updated_at` (lines 31-32) forbidden by additionalProperties:false. GetProfile's SQL (repo_reads.go:106-131) confirms it selects halal_status, created_at, updated_at and never account_state, and populates the flat fields. So submit inherits every getRestaurantProfile drift verbatim — the claim's mechanism (shared GetProfile) is exactly right. Severity: the emitted payload lacks the HalalBadge object the contract requires (halal invariant #8) and violates additionalProperties:false with required fields missing, so a strict generated client cannot decode it / the halal badge cannot render. This degrades to no-badge/decode-failure rather than a false halal claim or app crash or money error, so high (not critical) is the correct rating. Claimed severity high is accurate."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "getRestaurantHours",
+        "method_path": "GET /v1/restaurant/hours",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "RestaurantHours.required = [timezone, intervals, overrides]; the weekly array is named 'intervals'",
+        "backend_emits": "HoursView emits {\"hours\":[...],\"overrides\":[...]} — the array is named 'hours' not 'intervals', and the required 'timezone' field is entirely absent",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9102-9116 (required timezone,intervals,overrides) vs services/hg/internal/restaurant/store.go:63-66 (Hours json:\"hours\", no Timezone)",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real by reading both sides. Contract RestaurantHours (contracts/openapi.yaml:9102-9116) declares additionalProperties:false, required:[timezone, intervals, overrides], with the weekly array named 'intervals' and timezone a non-nullable $ref to Timezone. Backend HoursView (services/hg/internal/restaurant/store.go:63-66) has field Hours with json tag \"hours\" (not \"intervals\") and Overrides with json \"overrides\", and no Timezone field at all. The handler GetRestaurantHours (handler.go:185-204) marshals *HoursView directly via httpx.Respond with no DTO conversion, and the SQL in repo_reads.go:199-238 populates out.Hours/out.Overrides and never selects or sets any timezone. So the wire payload is {\"hours\":[...],\"overrides\":[...]}. Three concrete violations: (1) required 'intervals' array is instead named 'hours'; (2) required 'timezone' field is entirely absent; (3) because additionalProperties:false, the emitted 'hours' key is a forbidden extra property. A schema-validating client (the generated api-client) rejects this response. Impact is a functional break of the restaurant-hours read for the restaurant management app — the payload is invalid and the timezone needed to interpret open/closed state is missing — but it is not halal, money, or app-crash on the server. High is the correct severity: a required response-schema mismatch that renders the endpoint payload unusable, not critical."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "getRestaurantHours",
+        "method_path": "GET /v1/restaurant/hours",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "HoursOverride.required = [date, is_closed]; the field is named 'date'",
+        "backend_emits": "HoursOverrideRow emits json:\"on_date\" — the required 'date' field is missing (renamed on_date)",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9117-9134 (date, is_closed) vs services/hg/internal/restaurant/store.go:55 (OnDate json:\"on_date\")",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Verified real. Contract: getRestaurantHours returns {data: RestaurantHours} (openapi.yaml:2769-2780). RestaurantHours (9102-9116) has additionalProperties:false, required [timezone, intervals, overrides]; overrides items are HoursOverride (9117-9134) with additionalProperties:false, required [date, is_closed], field literally named 'date' (format date). Backend: handler GetRestaurantHours (handler.go:203) calls httpx.Respond, which wraps in {data:...} (respond.go:41), with data = *HoursView (store.go:62-66). HoursView emits {hours:[...], overrides:[...]} of HoursOverrideRow, whose date field is tagged json:\"on_date\" (store.go:55). SQL at repo_reads.go:224 selects on_date::text and scans into o.OnDate (line 232), so the field IS populated — it just serializes under key 'on_date', not the contract's 'date'. The hoursOverride struct in dto.go:40 also uses on_date, but that is the INPUT DTO for setRestaurantHours request body, not this GET response, so it provides no mapping layer that rescues the shape. The claim is confirmed exactly as stated. It is in fact a subset of a broader drift: the same response also emits 'hours' instead of the required 'intervals', omits the required top-level 'timezone' entirely, and additionalProperties:false would reject the extra 'hours'/'on_date' keys — so a strict-validating client rejects the whole response. Severity: this is restaurant trading-hours display, not a halal-seal, money, auth, or crash path, so it is not critical. But a conformant client's schema validation fails on the entire payload, effectively breaking a real user-facing screen (overrides won't render; date field absent). That app-blocking impact on a live endpoint keeps it at high, matching the claimed severity."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "setRestaurantHours",
+        "method_path": "PUT /v1/restaurant/hours",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "RestaurantHoursInput.required = [intervals]; body carries 'intervals' array and 'overrides' with HoursOverride items keyed by 'date'",
+        "backend_emits": "hoursInputDTO decodes json:\"hours\" (not intervals) and hoursOverride decodes json:\"on_date\" (not date); with strict decoding a contract-correct client sending {intervals,overrides:[{date}]} is rejected 422 UNKNOWN_FIELD and the required intervals never bind",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9135-9149 & 9117-9134 vs services/hg/internal/restaurant/dto.go:39-51 (Hours json:\"hours\", OnDate json:\"on_date\")",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "medium",
+          "reasoning": "Confirmed real via direct read of both sides. CONTRACT (contracts/openapi.yaml:9135-9149): RestaurantHoursInput has additionalProperties:false, required:[intervals]; the array is named 'intervals' (items TradingInterval), plus optional 'overrides' (items HoursOverride). HoursOverride (9117-9134) has additionalProperties:false, required:[date,is_closed], with the date field literally named 'date'. BACKEND (services/hg/internal/restaurant/dto.go:47-51): hoursInputDTO decodes json:\"hours\" (NOT intervals) and json:\"overrides\"; hoursOverride (dto.go:39-45) decodes json:\"on_date\" (NOT date). decode.go:15-30 applies dec.DisallowUnknownFields() and handler.go:216-219 (SetRestaurantHours) routes the body through it. So a contract-correct client sending {\"intervals\":[...],\"overrides\":[{\"date\":...,\"is_closed\":...}]} is rejected 422 VALIDATION_FAILED: 'intervals' and 'date' are unknown fields, and the field that maps to the required intervals payload ('hours') never binds. The break is total for this operation — a conformant client cannot set trading hours at all. Note the inner TradingInterval fields (day_of_week/opens_at/closes_at) DO match hoursSlot correctly, so the mismatch is precisely the two container/key names as claimed, not the leaf fields. Additional finding: hoursOverride.IsClosed is a plain bool, and the contract makes is_closed required on HoursOverride; with strict decoding this isn't detectable as missing, a secondary latent gap. The drift is also baked into the backend's own tests (boundary_test.go:88, integration_test.go, handler_test.go all send {\"hours\":[],\"overrides\":[]}), so CI is green against the wrong shape and will not self-catch. Severity corrected from high to medium: the claimant's own rubric reserves critical/high for halal, app-crash, and money paths; this is the restaurant trading-hours endpoint — a hard, complete functional break of one non-critical operation that touches no invariant, causes no crash, and corrupts neither money nor halal state."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "setRestaurantHours",
+        "method_path": "PUT /v1/restaurant/hours",
+        "drift_type": "wrong_nesting",
+        "contract_expects": "200 response RestaurantHours (timezone + intervals + overrides)",
+        "backend_emits": "returns HoursView (hours/overrides, no timezone, override keyed on_date) — same drift as getRestaurantHours",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:2808-2810 vs services/hg/internal/restaurant/repo_reads.go:283 (returns GetHours) & store.go:63-66",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real by reading contract and Go code. Contract RestaurantHours (openapi.yaml:9102-9116) is `additionalProperties: false` with `required: [timezone, intervals, overrides]`; intervals are TradingInterval and overrides are HoursOverride whose required field is `date` (+ is_closed). The setRestaurantHours 200 response (2800-2810) references this exact schema, same as getRestaurantHours.\n\nBackend emits HoursView (store.go:63-66): JSON keys `hours` and `overrides`, with NO `timezone` field at all. HoursSlotRow uses `day_of_week/opens_at/closes_at/crosses_midnight` (not the TradingInterval shape) and HoursOverrideRow keys the date as `on_date` (contract requires `date`). SetRestaurantHours handler (handler.go:229-234) returns whatever SetHours yields, and SetHours (repo_reads.go:283) delegates to GetHours — so the write path emits the identical mismatched view. SQL confirms timezone is never populated: GetHours (repo_reads.go:199-238) only SELECTs from restaurant_hours and restaurant_hours_override, never restaurant.timezone. So the required `timezone` is structurally absent, not merely null.\n\nNet effect: wrapper key wrong (hours vs intervals), override date key wrong (on_date vs date), interval element shape differs, and a contract-required field (timezone) is entirely missing — against additionalProperties:false. A strict/generated client cannot parse this response, and the R-06 timezone-of-record semantic is dropped.\n\nSeverity high, not critical: this is a restaurant-profile write path with no halal, money, or auth invariant involved, and it does not crash the server. It is a required-field-absent structural response mismatch that breaks strict clients — matching the paired getRestaurantHours finding."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "listRestaurantDocuments",
+        "method_path": "GET /v1/restaurant/documents",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "KycDocument fields: doc_type, state, issuer, certificate_number, issued_on, valid_until, version, subject_type, rejection_reason_code, review_note, reviewed_at, created_at (required: id, subject_type, doc_type, state, version, created_at)",
+        "backend_emits": "DocumentRow emits {id, subject_id, doc_type, state, stored_object_id, expires_on, issuer_name, created_at}: uses 'expires_on' instead of contract 'valid_until', 'issuer_name' instead of 'issuer', adds non-schema 'stored_object_id', and OMITS required subject_type and version plus certificate_number, issued_on, rejection_reason_code, review_note, reviewed_at",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9185-9233 vs services/hg/internal/restaurant/store.go:69-78 & repo_reads.go:305-306",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Verified against both cited locations and confirmed the drift reaches the wire. Contract KycDocument (openapi.yaml:9185-9234) has additionalProperties:false and required:[id, subject_type, doc_type, state, version, created_at]. Backend DocumentRow (store.go:69-78) emits JSON {id, subject_id, doc_type, state, stored_object_id, expires_on, issuer_name, created_at}. handler.go:258 passes these structs straight to httpx.Respond, so the tags are the wire shape. Every claimed discrepancy is accurate: (1) SQL selects d.valid_until (repo_reads.go:291) but scans into ExpiresOn json:\\\"expires_on\\\" — wrong field name; contract expects valid_until. (2) SQL selects d.issuer but scans into IssuerName json:\\\"issuer_name\\\" — wrong field name; contract expects issuer. (3) stored_object_id is a non-schema property that fails additionalProperties:false. (4) required subject_type is omitted (not in struct, not selected). (5) required version is omitted. (6) optional certificate_number, issued_on, rejection_reason_code, review_note, reviewed_at are also omitted (not required, so not strict-validation failures, but genuinely absent). Two required fields missing plus an extra property under additionalProperties:false means a strict validator rejects the response; the two renamed fields mean clients reading valid_until/issuer get undefined. The claim did not misread the code. Severity high (not critical): valid_until is the halal certificate expiry, so a client cannot determine expired-vs-valid state on this KYC/certification surface — halal-adjacent and breaks the client contract — but it is the restaurant's own document list rather than the customer-facing seal, and it neither corrupts money nor crashes the server."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "listRestaurantDocuments",
+        "method_path": "GET /v1/restaurant/documents",
+        "drift_type": "halal_field_drift",
+        "contract_expects": "The HALAL_CERTIFICATE document row must expose certificate_number, issuer (accepted-registry certifying body) and valid_until so the halal certificate is inspectable/verifiable per R-07",
+        "backend_emits": "certificate_number is never selected or emitted; issuer is renamed issuer_name; valid_until renamed expires_on — the halal certificate's verification fields are dropped/mislabelled on the wire",
+        "severity": "critical",
+        "consumed_by": [
+          "apps/admin/src/screens/ApplicationDetailScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:9204-9219 (issuer, certificate_number, valid_until) vs services/hg/internal/restaurant/repo_reads.go:289-306 (selects valid_until AS ExpiresOn, issuer AS IssuerName, no certificate_number) & apps/admin/src/screens/ApplicationDetailScreen.tsx:76-85 reads certificate_number/valid_until",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "critical",
+          "reasoning": "Confirmed real by reading contract and Go code.\n\nCONTRACT (contracts/openapi.yaml): operation listRestaurantDocuments (line 2817) returns data: array of KycDocument (line 2841). KycDocument schema (lines 9185-9234) has additionalProperties: false and defines the halal verification fields with these exact wire names: `issuer` (9210), `certificate_number` (9212), `valid_until` with format:date (9217). These three are optional (not in required[]: id, subject_type, doc_type, state, version, created_at), but their WIRE NAMES are fixed and additionalProperties:false forbids any other keys.\n\nBACKEND (services/hg/internal/restaurant/store.go:69-78): DocumentRow JSON tags emit `issuer_name` (not `issuer`), `expires_on` (not `valid_until`), and there is NO certificate_number field at all. repo_reads.go:288-296 SQL selects `d.valid_until` -> ExpiresOn, `d.issuer` -> IssuerName, and never selects certificate_number. So on the wire: issuer is mislabelled issuer_name, valid_until is mislabelled expires_on, certificate_number is entirely absent. Under additionalProperties:false the emitted issuer_name/expires_on are also forbidden extra keys.\n\nCONSUMER (apps/admin/src/screens/ApplicationDetailScreen.tsx:76-85): the admin application-detail table reads row.certificate_number (Reference column) and row.valid_until (Valid until column) off a typed KycDocument. Both resolve to undefined against the backend's actual payload, so the halal certificate's number renders as the em-dash placeholder and the validity date fails to format.\n\nThe claim's evidence (openapi lines, repo_reads lines, admin screen lines) all check out; the description is accurate. This is not a misread.\n\nSeverity: critical is correct. HALAL_CERTIFICATE is the platform's single load-bearing claim (invariant #8: a missing halal field renders no badge; the product's one claim is halal verification per R-07). The three fields an admin needs to inspect/verify the certificate — issuing body, certificate number, and expiry — are exactly the ones dropped or mislabelled, defeating the verification instrument on the wire and in the admin review UI."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "attachRestaurantDocument",
+        "method_path": "POST /v1/restaurant/documents",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "RestaurantDocumentInput.required = [doc_type, stored_object_id]; optional issuer, issuer_body_id, certificate_number, issued_on, valid_until",
+        "backend_emits": "documentInputDTO accepts {stored_object_id, doc_type, expires_on, issuer_name}: 'expires_on' instead of 'valid_until', 'issuer_name' instead of 'issuer', and drops issuer_body_id, certificate_number, issued_on — a contract client sending 'valid_until'/'issuer'/'certificate_number' is 422'd (strict decode) and the halal cert metadata cannot be attached",
+        "severity": "critical",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9235-9261 vs services/hg/internal/restaurant/dto.go:54-59",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "critical",
+          "reasoning": "CONFIRMED REAL. Contract RestaurantDocumentInput (contracts/openapi.yaml:9235-9264) declares additionalProperties:false, required:[doc_type, stored_object_id], with optional issuer, issuer_body_id, certificate_number, issued_on, valid_until. The Go documentInputDTO (services/hg/internal/restaurant/dto.go:54-59) instead declares {stored_object_id, doc_type, expires_on, issuer_name}. Verified consequences: (1) handler.go:272 calls decodeStrict, which sets dec.DisallowUnknownFields() (decode.go:17), so a compliant client sending the contract's valid_until/issuer/issuer_body_id/certificate_number/issued_on is 422'd — none of those tags exist on the struct. (2) The struct's own tags expires_on/issuer_name are not in the contract schema at all (additionalProperties:false), so the mismatch is bidirectional. (3) Worse than the claim states: the SQL INSERT in AttachDocument (repo_reads.go:322-326) only persists subject_type, subject_id, restaurant_doc_type, stored_object_id, state, deadline_at, deadline_action. It NEVER writes issuer, valid_until/expires_on, certificate_number, or issued_on. The two fields the DTO does accept (ExpiresOn, IssuerName) are merely echoed back in the response DocumentRow (repo_reads.go:336-337), never stored. So the entire halal-certificate metadata set — issuer body from the accepted registry, certificate number, and the valid_until expiry the contract marks 'Required for HALAL_CERTIFICATE' — is unrepresentable through the documented endpoint. This is the platform's single load-bearing claim (halal verification, invariants #7/#8: unverifiable/free-text issuer is exactly what makes a halal claim invalid). Severity critical is correct: it is halal-path metadata, both unattachable by a contract client and unpersisted by the backend."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "attachRestaurantDocument",
+        "method_path": "POST /v1/restaurant/documents",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "201 response is a KycDocument (valid_until, issuer, certificate_number, version, subject_type, ...)",
+        "backend_emits": "returns DocumentRow with expires_on/issuer_name/stored_object_id, no version, no subject_type, no certificate_number — same KycDocument drift as the list endpoint",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:2873-2874 (data: KycDocument) vs services/hg/internal/restaurant/repo_reads.go:330-339 & store.go:69-78",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "Confirmed real. The contract's 201 response for attachRestaurantDocument (openapi.yaml:2864-2874) wraps `data: KycDocument`. KycDocument (openapi.yaml:9185-9234) is `additionalProperties: false` with `required: [id, subject_type, doc_type, state, version, created_at]`, and names its date/issuer fields `valid_until`/`issuer`/`certificate_number`.\n\nThe backend handler (handler.go:287-292) returns `*DocumentRow` via `httpx.Respond`, which correctly wraps it in `{data: ...}` (respond.go:40-42), so the envelope matches — the drift is inside the data object. DocumentRow (store.go:69-78) serializes: id, subject_id, doc_type, state, stored_object_id, expires_on, issuer_name, created_at. AttachDocument (repo_reads.go:319-339) populates exactly those fields.\n\nField-by-field vs the schema:\n- Missing REQUIRED `version` — schema requires integer; DocumentRow has no version field at all. A strict decoder rejects on missing required.\n- Missing REQUIRED `subject_type` — not emitted.\n- `expires_on` should be `valid_until` (wrong name) — extra prop under additionalProperties:false.\n- `issuer_name` should be `issuer` (wrong name) — extra prop.\n- `stored_object_id` — not in schema at all — extra prop.\n- No `certificate_number`, `issued_on`, `rejection_reason_code`, `review_note`, `reviewed_at` (these are optional, so not fatal on their own).\n\nThis is not a misread: SQL/JSON tags and struct definition all confirm the emitted shape. With additionalProperties:false plus two missing required fields, a generated/strict client would fail to parse the 201, breaking the R-07 restaurant document-attach flow (which includes the HALAL_CERTIFICATE doc type). It is a genuine, consistent-with-the-list-endpoint drift.\n\nSeverity: high (not critical). It is client-breaking on a compliance-critical onboarding path, but it does not crash the server, corrupt money, or emit a wrong halal badge — the halal verification signal is not being falsified here, only the document metadata envelope is malformed. High is the correct rating."
+        },
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "getRestaurantOnboardingStatus",
+        "method_path": "GET /v1/restaurant/onboarding/status",
+        "drift_type": "extra_field",
+        "contract_expects": "additionalProperties:false — response may contain EXACTLY onboarding_state, account_state, current_step, progress_percent, steps_completed (+ optional blocking_reason, review_cycle, rejection)",
+        "backend_emits": "extra top-level booleans profile_complete, hours_complete, documents_ready, halal_verified not defined anywhere in RestaurantOnboardingStatus",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8905-8906 (additionalProperties:false) vs services/hg/internal/restaurant/store.go:39-42",
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "submitRestaurantProfile",
+        "method_path": "PUT /v1/restaurant/profile",
+        "drift_type": "wrong_field_name",
+        "contract_expects": "RestaurantProfileInput.required includes cuisine_ids and avg_prep_minutes; timezone is NOT an input property (server-derived) and delivery_radius_m is NOT a property of the input",
+        "backend_emits": "profileInputDTO adds timezone and delivery_radius_m as accepted json fields — but the input decoder is strict (DisallowUnknownFields); the contract's additionalProperties:false means a compliant client that never sends them is fine, yet the server treating timezone/delivery_radius_m as writable diverges from the server-owned-field contract",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9021-9036 (required/properties, no timezone/delivery_radius_m) vs services/hg/internal/restaurant/dto.go:24,27",
+        "domain": "restaurant-profile"
+      },
+      {
+        "operation_id": "createAssignmentTransition",
+        "method_path": "POST /v1/riders/me/assignments/{assignmentId}/transitions",
+        "drift_type": "wrong_enum_value",
+        "contract_expects": "AssignmentTransitionInput.to_state is an AssignmentState, but as a rider-driven forward transition only the rider-reachable states are legal inbound (ASSIGNED, EN_ROUTE_TO_PICKUP, ARRIVED_AT_PICKUP, PICKED_UP, EN_ROUTE_TO_DROPOFF, ARRIVED_AT_DROPOFF, DELIVERED). Server-only/terminal states (UNDELIVERABLE, RETURNING, RETURNED, CANCELLED_BY_PLATFORM, REASSIGNED) are set by the platform, never posted by a rider client.",
+        "backend_emits": "The handler's inbound allow-list assignmentStates accepts ALL 12 AssignmentState values including the server-only CANCELLED_BY_PLATFORM, REASSIGNED, UNDELIVERABLE, RETURNING, RETURNED as valid to_state at the validation layer (the service-layer transition rules are the only guard).",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "contracts/openapi.yaml:5999-6018 (AssignmentState enum) & 10105-10111 (to_state) vs services/hg/internal/dispatch/handlers.go:226-231 (assignmentStates map) and 249-253 (validation)",
+        "domain": "rider-lifecycle"
+      },
+      {
+        "operation_id": "getAssignment",
+        "method_path": "GET /v1/riders/me/assignments/{assignmentId}",
+        "drift_type": "other",
+        "contract_expects": "Assignment.items[].allergen_tags is an array of AllergenTag enum values, intended to carry each line's real allergen tags for the rider.",
+        "backend_emits": "loadItems always hardcodes it.AllergenTags = []string{} and never reads any allergen column; every item's allergen_tags is emitted as an empty array regardless of the actual order line. Shape is valid (empty array is legal) but the field is never populated.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "contracts/openapi.yaml:10066-10069 (allergen_tags) vs services/hg/internal/dispatch/store_reads.go:256 (it.AllergenTags = []string{})",
+        "domain": "rider-lifecycle"
+      },
+      {
+        "operation_id": "getAssignment",
+        "method_path": "GET /v1/riders/me/assignments/{assignmentId}",
+        "drift_type": "other",
+        "contract_expects": "Assignment.dropoff.phone_alias is a nullable proxy number 'deactivated 30 minutes after the assignment terminates' — the rider-facing proxied customer contact.",
+        "backend_emits": "a.Dropoff.PhoneAlias is never assigned; the store comment states the proxy alias is out of scope for V1, so it is always serialized as null even for a live, non-terminal assignment. Shape-valid (nullable) but the contract-described capability is absent.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "contracts/openapi.yaml:10036-10038 (dropoff.phone_alias) vs services/hg/internal/dispatch/store_reads.go:158-159 (comment: left nil until the proxy service lands)",
+        "domain": "rider-lifecycle"
+      },
+      {
+        "operation_id": "getRiderMe",
+        "method_path": "GET /v1/riders/me",
+        "drift_type": "missing_required_field",
+        "contract_expects": "RiderMe with optional-but-app-critical fields: photo_url (string|null, uri), phone_e164 (PhoneE164), rating_avg (number|null 0-5), vehicle (RiderVehicle|null). Contract marks them optional (not in required[]), but the rider app's profile header and vehicle card render only when present.",
+        "backend_emits": "riderMeResponse struct emits ONLY {account_id, first_name, last_name, onboarding_state, account_status, availability_state, next_route}. GetRiderProfile SQL selects none of photo_url/phone/rating/timezone and performs no rider_vehicle join, so these can never be populated.",
+        "severity": "medium",
+        "consumed_by": [
+          "apps/rider/src/RiderHome.tsx"
+        ],
+        "evidence": "openapi.yaml:9542-9579 (RiderMe: phone_e164:9554, photo_url:9556, vehicle:9565, active_assignment_id:9569, rating_avg:9572, timezone:9576) vs services/hg/internal/rider/handler.go:503-511 (riderMeResponse) and handler.go:72-89 (GetRiderProfile SQL). App reads rider.photo_url (RiderHome.tsx:207), rider.phone_e164 (:213), rider.rating_avg (:218), rider.vehicle (:241) — all silently blank.",
+        "domain": "rider-profile"
+      },
+      {
+        "operation_id": "getRiderMe",
+        "method_path": "GET /v1/riders/me",
+        "drift_type": "other",
+        "contract_expects": "RiderMe.active_assignment_id (string|null uuid) and timezone (Timezone) present so the app can restore an active-delivery route after a crash and localise times.",
+        "backend_emits": "riderMeResponse omits active_assignment_id and timezone entirely; struct has no such fields and SQL does not fetch them.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9569-9577 vs services/hg/internal/rider/handler.go:503-511. Not currently read by any app file (RiderHome.tsx does not reference active_assignment_id/timezone), so latent.",
+        "domain": "rider-profile"
+      },
+      {
+        "operation_id": "getRiderDashboard",
+        "method_path": "GET /v1/riders/me/dashboard",
+        "drift_type": "other",
+        "contract_expects": "RiderDashboard.active_assignment (Assignment|null) and current_offer (DispatchOffer|null) reflecting the actual active work — the dashboard is described as 'the only recovery path after a crash: it always returns the active assignment with its exact state'.",
+        "backend_emits": "dashboardResponse hardcodes ActiveAssignment:nil and CurrentOffer:nil unconditionally; GetDashboard never loads assignment/offer state.",
+        "severity": "medium",
+        "consumed_by": [
+          "apps/rider/src/screens/AvailabilityScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:9805-9812 vs services/hg/internal/rider/handler.go:603-608 (dashboardResponse) and handler.go:1245-1255 (always nil). Contract intent openapi.yaml:3753-3758. Field is nullable so no crash, but crash-recovery routing to an in-progress delivery is broken. AvailabilityScreen.tsx:90 reads only .mode/.blocking_reasons currently.",
+        "domain": "rider-profile"
+      },
+      {
+        "operation_id": "getRiderDashboard",
+        "method_path": "GET /v1/riders/me/dashboard",
+        "drift_type": "missing_required_field",
+        "contract_expects": "Optional RiderDashboard.blocking_reasons (array<string>) and tracking_health (TrackingHealth|null).",
+        "backend_emits": "dashboardResponse omits both fields; app falls back with 'blocking_reasons ?? []'.",
+        "severity": "low",
+        "consumed_by": [
+          "apps/rider/src/screens/AvailabilityScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:9813-9820 vs services/hg/internal/rider/handler.go:603-608. AvailabilityScreen.tsx:97 uses `data.data.blocking_reasons ?? []` so the absence degrades gracefully (banner never shows) — latent/cosmetic.",
+        "domain": "rider-profile"
+      },
+      {
+        "operation_id": "setRiderAvailability",
+        "method_path": "PUT /v1/riders/me/availability",
+        "drift_type": "other",
+        "contract_expects": "RiderAvailability {availability_state, since, can_receive_offers, blocking_reasons(required), go_offline_after_delivery(optional)}. blocking_reasons carries machine codes so the app can deep-link to each unmet condition.",
+        "backend_emits": "RiderAvailability struct matches field-for-field, but service.SetAvailability always returns BlockingReasons:[]string{} on the 200 path (unmet conditions are surfaced only via the 422/403 error envelope, not on the success body).",
+        "severity": "low",
+        "consumed_by": [
+          "apps/rider/src/apiTypes.ts",
+          "apps/rider/src/screens/AvailabilityScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:9755-9782 vs services/hg/internal/dispatch/types.go:103-109 (shape correct) and service.go:100 (BlockingReasons hardcoded empty on success). Contract-shape-conformant; behavioural, no field drift.",
+        "domain": "rider-profile"
+      },
+      {
+        "operation_id": "reportRiderPositions",
+        "method_path": "POST /v1/riders/me/positions",
+        "drift_type": "other",
+        "contract_expects": "202 with RiderPositionAck {accepted:int32, rejected:[{index:int32, code:enum STALE_POINT|FUTURE_POINT|LOW_ACCURACY}], current_position_recorded_at:string|null}.",
+        "backend_emits": "RiderPositionAck struct and RejectedPoint match exactly; handler responds 202. No drift.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9859-9882 vs services/hg/internal/dispatch/types.go:169-180 and handlers.go:376 (StatusAccepted). Conformant — reported as clean.",
+        "domain": "rider-profile"
+      },
+      {
+        "operation_id": "getRiderEarningsSummary",
+        "method_path": "GET /v1/riders/me/earnings/summary",
+        "drift_type": "other",
+        "contract_expects": "EarningsSummary {period, buckets[EarningsBucket], total:EarningsBucket, unpaid_balance_cents:Cents, next_payout_at:string|null, currency}; EarningsBucket all *_cents int64.",
+        "backend_emits": "EarningsSummaryDTO and EarningsBucketDTO match field-for-field; all money int64 *_cents, effective_cents_per_hour *int64. No drift.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:10208-10258 vs services/hg/internal/payments/types.go:292-313. Conformant — reported as clean.",
+        "domain": "rider-profile"
+      },
+      {
+        "operation_id": "listRiderEarningEntries",
+        "method_path": "GET /v1/riders/me/earnings/entries",
+        "drift_type": "other",
+        "contract_expects": "{data:[EarningEntry], meta:PageMeta}; EarningEntry {id,type,status,gross_cents,currency,formula_version,earned_at required; all *_cents int64; surge_multiplier as exact decimal string not float}.",
+        "backend_emits": "EarningEntryDTO matches field-for-field; all money int64 *_cents; surge_multiplier is string; RespondList wraps {data,meta}. No drift.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:10151-10207 vs services/hg/internal/payments/types.go:269-289 and handlers.go:404 (RespondList). Conformant — reported as clean.",
+        "domain": "rider-profile"
+      },
+      {
+        "operation_id": "getConnectStatus",
+        "method_path": "GET /v1/connect/status",
+        "drift_type": "wrong_nullability",
+        "contract_expects": "ConnectStatus.bank_last4: [string,'null'] — 'Display only' card/bank last4, optional and nullable. A partner that has completed onboarding with a bank account attached should surface bank_last4.",
+        "backend_emits": "Always null. ConnectRow (earnings_store.go:265-276) has no bank_last4 field at all, and the GetConnectAccount SELECT (earnings_store.go:283-284) does not read it; connectStatusFrom / GetConnectStatus never set ConnectStatusDTO.BankLast4, so it serializes as null unconditionally.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8847-8849 (bank_last4) vs services/hg/internal/payments/earnings_store.go:265-285 (ConnectRow + SELECT omit bank_last4) and services/hg/internal/payments/earnings.go:225-237 / connect.go:50-64 (BankLast4 never assigned). Structurally valid (optional+nullable) but a latent data-loss: the field can never be non-null.",
+        "domain": "payments"
+      },
+      {
+        "operation_id": "getConnectStatus",
+        "method_path": "GET /v1/connect/status",
+        "drift_type": "wrong_nullability",
+        "contract_expects": "ConnectStatus.requirements.deadline: [string,'null'] date-time — Stripe's requirements deadline surfaced verbatim to the partner.",
+        "backend_emits": "Always null. connectStatusFrom (connect.go:56-61) and GetConnectStatus (earnings.go:230-235) build ConnectRequirementsDTO without ever setting Deadline, even though the Stripe adapter parses acct.Requirements.CurrentDeadline (stripe.go:434-436). ConnectRow does not carry it and the SELECT does not read it.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8844-8846 (requirements.deadline) vs services/hg/internal/payments/connect.go:56-61 and earnings.go:230-235 (Deadline never assigned) and earnings_store.go:265-285 (ConnectRow has no deadline). Optional+nullable so contract-valid, but the parsed Stripe deadline is dropped end-to-end.",
+        "domain": "payments"
+      },
+      {
+        "operation_id": "getHalalCertificate",
+        "method_path": "GET /v1/admin/halal-certificates/{certificateId}",
+        "drift_type": "extra_field",
+        "contract_expects": "The operation description (A-15) states support agents receive 'status, expires_on, the issuing body's name and the rejection reason AND NOTHING ELSE'. The HalalCertificate schema however has required:[id, restaurant_id, status, checklist_version, checks] and additionalProperties:false.",
+        "backend_emits": "renderCert() for a support-only principal emits id, restaurant_id, status, checklist_version, expires_on, checks:[], rejection_reason_code AND ALSO issuing_body:{id, name, status} (not name-only) plus restaurant_id, id, checklist_version. Every emitted field is contract-permitted and the schema-required fields (id, restaurant_id, checklist_version, checks) MUST be present, so the wire response validates against HalalCertificate. The 'nothing else' prose is stricter than the schema, and the schema wins for conformance. This is a redaction-tightness question (support agent sees issuing_body.id/status and cert id/restaurant_id/checklist_version beyond the prose), not a wire-shape drift — the response is schema-valid.",
+        "severity": "low",
+        "consumed_by": [
+          "apps/admin/src/screens/HalalVerificationScreen.tsx"
+        ],
+        "evidence": "openapi.yaml:4506-4531 (getHalalCertificate description + HalalCertificate 200) and openapi.yaml:10413-10469 (HalalCertificate schema, required[] + additionalProperties:false) vs services/hg/internal/admin/handler_halal.go:171-210 (renderCert support-only branch sets id/RestaurantID/Status/ChecklistVersion/ExpiresOn, issuing_body{ID,Name,Status}, Checks=[])",
+        "domain": "admin-certification"
+      },
+      {
+        "operation_id": "listMenuReviewQueue",
+        "method_path": "GET /v1/admin/menu-reviews",
+        "drift_type": "missing_required_field",
+        "contract_expects": "MenuItemVersion carries the claim-bearing fields under review: `ingredients_text` (type [string,'null']) and `image_url` (type [string,'null'], format uri). The review queue exists precisely to review 'words, picture, dietary and allergen assertions' per the operation description.",
+        "backend_emits": "The `menuItemVersion` wire struct omits both `ingredients_text` and `image_url` entirely — they are never present as JSON fields, so every item in the review queue is returned without its ingredients text or its picture. The store persists ingredients_text (store_menu.go:212,219) but the DTO never carries it to the wire.",
+        "severity": "high",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9457 (ingredients_text), openapi.yaml:9467 (image_url) vs services/hg/internal/admin/dto.go:477-492 (menuItemVersion struct has neither field) and services/hg/internal/admin/handler_menu.go:359-374,385-399 (renderMenuItemVersion never sets them). DTO comment at dto.go:474-476 wrongly claims all named fields are present.",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "high",
+          "reasoning": "CONFIRMED REAL (with a caveat on the drift_type label).\n\nContract (contracts/openapi.yaml, MenuItemVersion schema ~line 9435-9470): the schema is additionalProperties:false and defines both ingredients_text (type [string,'null']) and image_url (type [string,'null'], format uri) as properties. However required[] = [id, menu_item_id, version, review_status, created_at] — neither ingredients_text nor image_url is required, and both are nullable. So strictly, omitting them does NOT violate response schema validation; the claim's drift_type \"missing_required_field\" is imprecise. It is a missing-optional-field / semantic-completeness drift, not a required-field violation.\n\nBackend truly emits neither field:\n- DTO menuItemVersion (dto.go:477-492) has no ingredients_text and no image_url json tag at all.\n- Both render paths omit them: renderMenuItemVersion (handler_menu.go:385-408) and the inline decide handler (handler_menu.go:359-374).\n- The projection row struct menuItemVersionRow (store_menu.go:51-68) carries no IngredientsText or ImageObjectID field.\n- The queue query ListMenuReviewQueue (store_menu.go:277-308) SELECTs description but never selects miv.ingredients_text or miv.image_object_id, and Scan never reads them.\n- The store DOES persist ingredients_text and image_object_id on insert (store_menu.go:212-221), confirming the data exists in the table but is never read back onto the review queue.\n- No image_url presigning exists anywhere in internal/admin (grep found ingredients/image only on the input path, handler_menu.go:142-175). image_url would additionally require presigning image_object_id, which is entirely absent.\n\nThe DTO comment at dto.go:474-476 is misleading: it only justifies omitting reviewed_by/updated_at and gives false assurance that every other named field is present.\n\nSeverity: high (not critical). The menu review queue is the human instrument by which claim-bearing menu fields — the ingredient words and the dish picture — are approved or rejected before going live. Dropping both from the wire means the admin reviews a halal-relevant item without seeing its ingredients text or image, defeating the purpose of the review gate and touching the platform's single load-bearing halal-verification claim. It is not critical because there is no crash, no money path, and no false halal badge emitted directly to end users; it degrades (not silently falsifies) the verification workflow. High is correct."
+        },
+        "domain": "admin-operations"
+      },
+      {
+        "operation_id": "decideMenuVersion",
+        "method_path": "POST /v1/admin/menu-reviews/{versionId}/decision",
+        "drift_type": "missing_required_field",
+        "contract_expects": "The returned MenuItemVersion carries `ingredients_text` and `image_url` (the claim-bearing fields).",
+        "backend_emits": "Same `menuItemVersion` struct is returned; `ingredients_text` and `image_url` are never serialized.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9457,9467 vs services/hg/internal/admin/dto.go:477-492; response built via renderMenuItemVersion at handler_menu.go:385.",
+        "domain": "admin-operations"
+      },
+      {
+        "operation_id": "createMenuItemOnBehalf",
+        "method_path": "POST /v1/admin/restaurants/{restaurantId}/menu/items",
+        "drift_type": "missing_required_field",
+        "contract_expects": "MenuItemOwnerView.live_version / pending_version are full MenuItemVersion objects, which include `ingredients_text` and `image_url`. MenuItemOwnerView (via base MenuItem) may also carry optional `image_url`, `ingredients_text`, `dietary_tags`, `allergen_tags`, `out_of_stock_until`, `prep_minutes`, `variant_groups`, `addon_groups`.",
+        "backend_emits": "The embedded `menuItemVersion` in live_version/pending_version omits `ingredients_text` and `image_url`; the `menuItemOwnerView` struct itself omits the optional base-MenuItem claim fields (image_url, ingredients_text, dietary_tags, allergen_tags, out_of_stock_until, prep_minutes, variant_groups, addon_groups).",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:9415-9435 (MenuItemOwnerView allOf MenuItem), openapi.yaml:9457,9467 (version fields) vs services/hg/internal/admin/dto.go:438-451 (menuItemOwnerView) and dto.go:477-492 (menuItemVersion).",
+        "domain": "admin-operations"
+      },
+      {
+        "operation_id": "createMenuItemOnBehalf",
+        "method_path": "POST /v1/admin/restaurants/{restaurantId}/menu/items",
+        "drift_type": "extra_field",
+        "contract_expects": "MenuItemOwnerView is allOf(MenuItem + {category_id, live_version, pending_version, sort_order}); the base MenuItem does not name `restaurant_id`. No additionalProperties:false on the allOf base, so an extra field is schema-permitted but non-canonical.",
+        "backend_emits": "`menuItemOwnerView` emits `restaurant_id`, a field the composed schema does not name.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:7459-7513 (MenuItem properties, no restaurant_id), openapi.yaml:9415-9435 vs services/hg/internal/admin/dto.go:440 (RestaurantID json:\"restaurant_id\").",
+        "domain": "admin-operations"
+      },
+      {
+        "operation_id": "getOrderAdmin",
+        "method_path": "GET /v1/admin/orders/{orderId}",
+        "drift_type": "other",
+        "contract_expects": "OrderAdminView = OrderCustomerView (base) + admin fields. The operation description states the payload carries delivery address & instructions, dispatch_state, dispatch_history, rider, timeline generated from the same read model the customer app uses. Base OrderCustomerView optional fields include delivery_address, delivery_instructions, special_instructions, rider, dispatch_state, state_since, quote_id, eta_at, can_cancel, ready_at, picked_up_at, delivered_at, completed_at; the admin branch adds optional dispatch_history.",
+        "backend_emits": "`adminOrderView` omits all of: delivery_address, delivery_instructions, special_instructions, rider, dispatch_state, dispatch_history, state_since, quote_id, eta_at, can_cancel, ready_at, picked_up_at, delivered_at, completed_at. All contract-required fields (id, code, state, restaurant, lines, money, placed_at, timeline, payment, refunds, internal_money) are present, and OrderCustomerView has no additionalProperties:false, so omission is schema-legal — but the support 'complete order picture' (delivery address, dispatch history) is absent.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8189 (OrderCustomerView required), openapi.yaml:8218-8266 (optional fields), openapi.yaml:10711-10759 (OrderAdminView admin fields incl dispatch_history) vs services/hg/internal/admin/dto.go:393-409 (adminOrderView) and handler_orders.go:328-362 (buildAdminOrderView).",
+        "domain": "admin-operations"
+      },
+      {
+        "operation_id": "cancelOrderAdmin",
+        "method_path": "POST /v1/admin/orders/{orderId}/cancel",
+        "drift_type": "other",
+        "contract_expects": "Returns OrderAdminView with the same base OrderCustomerView optional fields (delivery_address, rider, dispatch_state, etc.).",
+        "backend_emits": "Same `adminOrderView` struct — the base OrderCustomerView optional fields are omitted.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:1017-1027 (200 -> OrderAdminView), openapi.yaml:8189-8266 vs services/hg/internal/admin/dto.go:393-409, handler_orders.go:328-362.",
+        "domain": "admin-operations"
+      },
+      {
+        "operation_id": "createUpload",
+        "method_path": "POST /v1/uploads",
+        "drift_type": "other",
+        "contract_expects": "PresignedUpload.required_headers is described as the headers the client must send verbatim, explicitly naming Content-Type, Content-Length AND x-amz-checksum-sha256 as the headers the signature binds — the checksum header is what makes a 1 MiB JPEG signature unusable to push a 9 MiB PDF (openapi.yaml:8772-8779).",
+        "backend_emits": "The handler populates required_headers with only {Content-Type, Content-Length}; no x-amz-checksum-sha256 entry, and PresignedPutObject (store.go:101) binds only bucket/key — the SHA-256 is never bound into the signature (services/hg/internal/files/store.go:107-110).",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:8772-8779 vs services/hg/internal/files/store.go:107-110. required_headers is typed additionalProperties:string, so the map CONTENTS are not schema-constrained — this is a functional/security gap in the described checksum binding, not a wire-shape field drift. No app consumes /v1/uploads (grep of apps/ found zero references), so it is latent.",
+        "domain": "uploads-files"
+      },
+      {
+        "operation_id": "getRealtimeSchema",
+        "method_path": "GET /v1/realtime/schema",
+        "drift_type": "other",
+        "contract_expects": "RealtimeSchemaBundle.events keyed {type}@v{version}, each value a JSON Schema for that payload; the operation exists (P-22) so a field rename in a payload cannot silently break four apps — i.e. the per-event schemas must describe the payload's fields.",
+        "backend_emits": "schemaBundle() emits, for every catalogue type, a permissive stub schema {\"type\":\"object\",\"additionalProperties\":true} (schema.go:16-34 objectSchema()). No field is described; a rename of any payload field would pass this endpoint unchanged. The code's own TODO admits the per-type schemas are 'the object shape, not the field list'.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:868-889 (getRealtimeSchema / RealtimeSchemaBundle 6879-6892) vs services/hg/internal/realtime/schema.go:16-34. Structurally conformant because the contract's events values are additionalProperties:true, but the operation's stated anti-drift purpose is defeated. Latent: packages/api-client/src/realtime.ts hand-declares the payloads instead and no app fetches /v1/realtime/schema.",
+        "domain": "realtime"
+      },
+      {
+        "operation_id": "connectWebSocket",
+        "method_path": "GET /v1/ws (hello control frame)",
+        "drift_type": "wrong_nullability",
+        "contract_expects": "websocket.md §4.1 hello.data.roles is [{r: Role, s: uuid|null}] — the scope id s is populated for role grants that are scoped (e.g. RESTAURANT-scoped staff roles carry their restaurant scope_id).",
+        "backend_emits": "sendHello() builds every helloRole with S: nil unconditionally (send.go:53-56); the roles come from rolesFromSnapshot which decodes only the r token and discards any scope (handlers.go:215-234). So a scoped restaurant/rider role's scope id is always emitted null in hello.",
+        "severity": "low",
+        "consumed_by": [],
+        "evidence": "websocket.md:198 (hello roles [{r,s}]) and packages/api-client/src/realtime.ts:54 (roles: Array<{r,s: string|null}>) vs services/hg/internal/realtime/send.go:53-56 and handlers.go:223-231. Data-completeness gap, not a shape drift: schema permits null. Latent — no app reads hello.roles[].s; clients derive channel rights from allowed_channels, not from the scope id.",
+        "domain": "realtime"
+      },
+      {
+        "operation_id": "getPublicConfig",
+        "method_path": "GET /v1/config/public",
+        "drift_type": "endpoint_missing_or_501",
+        "contract_expects": "200 with data: PublicConfig — required fields currency (Currency enum), served_provinces (Province[]), quote_ttl_seconds (int32), restaurant_response_window_seconds (int32), max_tip_cents (Cents/int64 minor units), support_enabled (bool), default_map_center {latitude, longitude}; plus optional support_phone_e164, support_hours, terms_version.",
+        "backend_emits": "No handler exists. system.Routes (services/hg/internal/system/routes.go:17-54) registers only /health, /health/ready, /internal/deps, /healthz, /readyz, /debug/deps. cmd/hg/main.go:275 is the sole call to system.Routes and no other module registers /v1/config/public. Request returns 404.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:211-236 (path) + 6636-6685 (PublicConfig schema) vs services/hg/internal/system/routes.go:22-53 (no route) and services/hg/internal/system/doc.go:29 (TODO: getPublicConfig not implemented)",
+        "verdict": {
+          "is_real": true,
+          "corrected_severity": "medium",
+          "reasoning": "Verified against source. Contract requires the endpoint: contracts/openapi.yaml:211-236 defines GET /v1/config/public (operationId getPublicConfig, security:[], x-roles:[PUBLIC]) returning 200 with a wrapper object (additionalProperties:false, required:[data]) whose data is $ref PublicConfig. PublicConfig (6636-6685) is additionalProperties:false with required:[currency, served_provinces, quote_ttl_seconds, restaurant_response_window_seconds, max_tip_cents, support_enabled, default_map_center] plus optional support_phone_e164, support_hours, terms_version — exactly as claimed.\n\nBackend does not emit it. services/hg/internal/system/routes.go:23-53 registers only getHealth (/health, /healthz), getReadiness (/health/ready, /readyz), getDependencyStatus (/internal/deps, /debug/deps). No PublicConfig struct, handler, or SQL exists anywhere — grep across services/hg/cmd and internal finds only comment/TODO references (doc.go:23-33 explicitly: \"Not implemented here yet: getOpenApiDocument and getPublicConfig ... once config lands\"; routes.go:60-63 TODO allowlist). main.go:275 is the only system.Routes call and no other module registers /v1/config/public. Request returns 404. Drift is real.\n\nSeverity correction high->medium. It is a PUBLIC endpoint so it is not merely masked by the auth-deny stub — it genuinely 404s today, blocking client bootstrap (clients must not hardcode max_tip_cents, served_provinces, quote_ttl). But it is a not-yet-implemented endpoint on an explicitly incomplete backend surface (CLAUDE.md §7: domain modules not started), not a wrong/corrupted value. It is not a halal-verification path, does not crash the app, and does not misprice money (the server still prices orders authoritatively; this only exposes display bounds/config). No invariant is violated and no incorrect data is emitted, so the critical/high money-or-halal bar is not met; medium reflects a real client-affecting missing endpoint."
+        },
+        "domain": "system"
+      },
+      {
+        "operation_id": "getOpenApiDocument",
+        "method_path": "GET /v1/openapi.json",
+        "drift_type": "endpoint_missing_or_501",
+        "contract_expects": "200 with the generated OpenAPI 3.1 document (object, additionalProperties:true). A CI drift check is documented to depend on this route.",
+        "backend_emits": "No handler exists. Not registered in system.Routes (routes.go:22-53) nor anywhere else in services/hg. Request returns 404.",
+        "severity": "medium",
+        "consumed_by": [],
+        "evidence": "openapi.yaml:189-210 (path getOpenApiDocument) vs services/hg/internal/system/routes.go:22-53 (no route) and services/hg/internal/system/doc.go:32 (TODO: getOpenApiDocument not implemented)",
+        "domain": "system"
+      }
+    ],
+    "root_cause": {
+      "why_it_passed": "No gate ever compares a byte emitted by the running Go server to contracts/openapi.yaml. The two gates check disjoint things and neither closes the loop.\n\nRoot `pnpm check` (package.json:18) = validate:contract + validate:fixtures + generate:check + generate:tokens:check + lint + typecheck. I read both TS scripts in tools/contract-tools/src/:\n- validate-contract.ts lints the openapi.yaml document itself ($ref resolution, operationId casing, x-roles presence, the money/mass-assignment invariants, YAML-1.1 truthy traps). It parses the YAML and inspects it; it never issues an HTTP request.\n- validate-fixtures.ts compiles the openapi.yaml as JSON-Schema-2020-12 (Ajv) and validates the 311 committed fixture JSON files under contracts/fixtures/ against the schema each fixture *names*. It validates static, hand/generator-built fixture files — not server output.\n- generate:check regenerates the TS api-client and git-diffs it; generate:tokens:check does design tokens. typecheck/lint are static. So the entire root gate proves the contract is internally consistent and that fixtures + generated TS client match it. The Go server is never invoked by any of these.\n\nBackend `make check` (Makefile:101) = fmt-check vet test; test = `go test -race ./...`. The Go tests that claim to be conformance tests (internal/admin/handler_orders_conformance_test.go, handler_menu_conformance_test.go, internal/rider/rider_shape_test.go, and the account/addresses/restaurant stage3/stage4 files) all assert against Go string literals hand-transcribed from the contract, not against openapi.yaml. Concretely:\n- handler_menu_conformance_test.go:48-73 defines menuCategoryRequired/Optional, menuVersionRequired/Optional as []string, and the file header comment (lines 44-50) literally says the impl serves restaurant_id/created_at/updated_at which are 'NOT named by the MenuCategory schema' — then puts them in the `optional` allow-list anyway. The 'closed schema' check (assertMenuClosedObject) is only as correct as that hand-copied list.\n- rider_shape_test.go:147 comments the enum vars are 'mirrored from contracts/openapi.yaml'; line 178 hard-codes the RiderMe key set as a literal.\n- handler_orders_conformance_test.go:56-105 hard-codes adminViewRequired/adminViewOptional/orderMoneyRequired/etc. as []string.\n\nSo the 'conformance' assertion is: does the server match a human's transcription of the contract into Go slices? If the transcription is wrong, stale, or over-permissive (as the menu file admits), a non-conformant response passes. And the loop is never closed against the actual YAML.\n\nFinally, the apps were built against the Prism mock on :4010, which serializes from the contract and therefore always emits contract-perfect shapes. The apps compiled against the generated TS client (whose types come from the contract), so at build time everything typechecked. The real Go server was substituted for the mock at runtime only, where no schema check runs — so drift surfaced only in the running product, not in any gate.",
+      "gaps": [
+        "No test or CI step feeds a real Go server response body into an openapi.yaml-driven validator. The contract is never the oracle for server output; a hand-copied Go []string is.",
+        "The 'closed schema' Go tests re-implement additionalProperties:false / required against transcribed field lists, so any transcription error (e.g. menuCategoryOptional wrongly including restaurant_id/created_at/updated_at per the file's own comment) whitelists a real drift.",
+        "Enum membership is checked against hand-maintained Go maps (paymentStateEnum, menuReviewStatusEnum, enumOnboardingState, ...) that can silently fall behind the contract's 80 enums.",
+        "Coverage is incomplete and manual: only the handlers whose authors happened to write a *_conformance/*_shape test are checked at all. There is no enumeration that every 2xx response of every one of the 144 operations is validated. An operation with no shape test has zero conformance coverage.",
+        "The 311 fixtures (which DO cover every state) are validated against the contract but are never replayed against the server, and the server's live responses are never validated against the fixtures' schemas. The two truth sources never meet.",
+        "No generated Go response DTOs exist. go.mod has no getkin/kin-openapi and no oapi-codegen; the Go structs the handlers marshal are hand-written and free to diverge (field renamed 'occurred_at' vs contract 'at' is exactly the class of drift the tests were written after-the-fact to chase).",
+        "The mock on :4010 gave false confidence: apps validated shapes against a contract-perfect emitter, so integration against the mock could never reveal server drift."
+      ],
+      "durable_fix": "Adopt option (a) as the primary durable mechanism, backed by (c) as the deeper 'unrepresentable' layer, with (b) folded in for free because the fixtures already carry the operationId+schema+status needed to drive it.\n\nAssessment of the three options in the requested order:\n\n(a) Response-conformance harness — RECOMMENDED, build first. Add a Go test package (e.g. services/hg/internal/conformance) that: loads contracts/openapi.yaml once via kin-openapi (openapi3.NewLoader ... LoadFromFile), builds an openapi3filter router (gorillamux router or routers/legacy), spins each domain's chi router in-process via httptest.NewServer (the tests already do this — buildRouter/buildAdminTestServer), and for every request it issues, runs openapi3filter.ValidateResponse against the matched operation's declared 2xx schema. Because the schemas use additionalProperties:false and required[...], kin-openapi rejects extra fields, missing required fields, wrong types, and open-enum values automatically — no hand-copied []string. This replaces the entire hand-transcribed apparatus in handler_orders_conformance_test.go / handler_menu_conformance_test.go / rider_shape_test.go with one contract-driven validator. Feasible: the doc is clean 3.1 with operationId + application/json response schemas on every op (verified on getOrderAdmin at openapi.yaml:5218-5229), $ref-internal-only (validate-contract.ts already proves refs resolve), and additionalProperties:false present. Cost: add getkin/kin-openapi to go.mod (single dep) + a helper that wraps `do()`/`doJSON()` to validate on the way out. This is the mechanism that makes a non-conformant Go response FAIL the gate.\n\n(b) Fixture replay against the real server — RECOMMENDED as a complementary corpus, low extra cost. The 311 fixtures already declare {operations[], schema, status, payload}. Two ways to use them: (i) as an ADDITIONAL response-schema source in the same harness — after a live call, validate the live body against BOTH the operation's contract schema AND (when a fixture for that operation/state exists) round-trip the fixture's own schema to confirm agreement; (ii) drive request scenarios: for state-machine seeds, seed the DB to the fixture's state, hit the operation, and assert the live response validates against the same component schema the fixture names. Replaying the fixtures as *expected bodies* byte-for-byte is brittle (ids/timestamps differ — the fixture menu_version_approved.json even has an APPROVED version carrying rejection_reason_code, which the conformance test forbids), so replay should assert schema-conformance + invariants, not equality. Net: (b) mainly buys state coverage; the validation engine is still (a).\n\n(c) Generate Go response DTOs FROM the contract — RECOMMENDED as the eventual floor, larger change. oapi-codegen can emit Go types for all component schemas from openapi.yaml (mirror of what the TS api-client already does). If every handler's response value is one of these generated types, a renamed/extra/missing field is a compile error, and drift becomes unrepresentable rather than test-detectable. This is the strongest fix but requires refactoring existing hand-written DTOs to the generated ones (and the generated additionalProperties:false structs must be marshaled with a disallow-unknown discipline). Do it after (a) is catching drift, because (a) is cheap, immediate, and needs no handler rewrite; (c) is the durable end-state that removes the whole class.\n\nBottom line: (a) now (fail the gate on any non-conformant 2xx body, contract-driven), (b) layered on to get all-states coverage from the existing 311 fixtures, (c) as the follow-up that turns drift into a compile error.",
+      "implementation_plan": [
+        "Add dependency: in services/hg add `github.com/getkin/kin-openapi` (go get; it is not currently in go.mod/go.sum). This is the OpenAPI 3.1 loader + openapi3filter response validator.",
+        "Create services/hg/internal/conformance/harness.go: LoadFromFile(../../../contracts/openapi.yaml) once (resolve $refs, Validate the doc), build a routers/gorillamux (or legacy) router from the spec, and expose Validate(t, req *http.Request, resp *http.Response) that finds the matching route+operation and calls openapi3filter.ValidateResponse with the response body. Fail the test on any validation error. Provide a thin wrapper doValidatedJSON that both issues the request and validates the 2xx body.",
+        "Wire the harness into the existing in-process servers: the domain tests already build routers (buildRouter, buildAdminTestServer, rider buildRouter). Add a conformance test per domain that, for every operationId with a 2xx JSON response, seeds a representative row, calls the endpoint, and runs harness.Validate on the response. Drive state coverage from the 311 fixtures: for each fixture, seed to fixture.status/state, call one of fixture.operations, and assert the live body validates against fixture.schema's component schema.",
+        "Delete or convert the hand-transcribed checks: replace assertClosedObject/assertMenuClosedObject and the []string field lists (handler_orders_conformance_test.go:56-105, handler_menu_conformance_test.go:48-79, rider_shape_test.go:148-158,178) with calls into the contract-driven harness, so the contract YAML — not a Go literal — is the single oracle. Keep the behavioural/authz/concurrency/ledger tests as-is.",
+        "Add a build-tag or standalone binary `cmd/conformance` (optional) that boots the full assembled router (all domains) against a test DB and replays the fixtures end-to-end, so the check also covers the composed server, not only per-domain routers.",
+        "Add a make target `conformance` in services/hg/Makefile that runs the harness (see gate_wiring), and add it to the aggregate `check` target.",
+        "Surface it at the root: add `test:backend:conformance` (or fold into an existing backend script) so `pnpm check` invokes the Go conformance gate, ensuring CI runs it in the same command that already blocks merges.",
+        "FOLLOW-UP (option c): introduce oapi-codegen to emit Go response types from openapi.yaml into a generated package, and refactor handlers to return those types so future drift is a compile error; add a generate:check-style git-diff gate for the generated Go, mirroring generate:check for the TS client."
+      ],
+      "gate_wiring": "Two edits, mirroring how the repo already layers a Go gate under the root pnpm gate.\n\n1) services/hg/Makefile — add a target and fold it into `check`:\n   .PHONY: conformance\n   conformance: ## Validate every 2xx server response against contracts/openapi.yaml\n   \t$(GO) test -race -run Conformance ./internal/conformance/... ./internal/...\n   and change line 101 from:\n   check: fmt-check vet test\n   to:\n   check: fmt-check vet test conformance\n   (If the harness needs Postgres, gate it like the existing container-backed tests — testcontainers is already a dep — so it runs in CI where Docker is present and skips locally without it, matching the current test/test-integration split.)\n\n2) Root package.json — surface it in `pnpm check`. Today root `check` (line 18) never calls into services/hg. Add a script:\n   \"check:backend\": \"cd services/hg && make check\"\n   and append it to the gate:\n   \"check\": \"pnpm validate:contract && pnpm validate:fixtures && pnpm generate:check && pnpm generate:tokens:check && pnpm lint && pnpm typecheck && pnpm check:backend\"\n   This makes the one command CI runs (pnpm check) fail when a Go response drifts from openapi.yaml, closing the loop that is currently open. (Note: today root `pnpm check` does not run any Go at all — that is itself part of why backend drift never tripped the root gate; adding check:backend fixes that regardless of the conformance work.)",
+      "unrepresentable_option": "Feasible and worth doing as the end-state, but it is a larger change than the harness.\n\nMechanism: run oapi-codegen against contracts/openapi.yaml to emit Go structs for all component schemas (the mirror of packages/api-client, which already proves the contract generates clean typed clients). Handlers then construct and marshal ONLY those generated types for their 2xx responses. A renamed field ('occurred_at' vs the contract's 'at'), an extra field, or a missing required field becomes a Go compile error, so drift is unrepresentable rather than test-caught. Add a git-diff gate on the generated Go package (exactly like generate:check does for the TS client at package.json:10) so the generated code cannot be hand-edited or fall stale.\n\nFeasibility evidence: the doc is OpenAPI 3.1 with internal-only $refs (validate-contract.ts confirms all refs resolve), every operation has an operationId, response schemas are named components with additionalProperties:false (verified on getOrderAdmin at openapi.yaml:5218-5229), and the same document already round-trips through JSON-Schema tooling (Ajv in validate-fixtures.ts) and through the TS generator. So codegen input is sound. Caveats: (1) oapi-codegen's 3.1 support has historically trailed 3.0 for some keyword edge cases (nullable via type arrays, some allOf compositions like OrderAdminView = OrderCustomerView + admin extension) — those specific schemas need a generation smoke-test. (2) Go structs do not enforce additionalProperties:false on the *marshal* side by themselves; you must marshal via the generated types and avoid map[string]any escape hatches for it to be a true compile-time guarantee. (3) It requires refactoring every handler that currently returns a hand-written DTO. Recommendation: ship the kin-openapi response-validation harness first (catches drift immediately, no handler rewrite), then adopt generated response DTOs to convert the residual runtime check into a compile-time impossibility."
+    },
+    "report": {
+      "executive_summary": "The Halal Goes Go backend has drifted from contracts/openapi.yaml across ~79 confirmed findings (7 critical, 21 high, 25 medium, 26 low). Nothing in CI ever compares a byte the running server emits against the contract — both gates check disjoint, contract-internal things — so drift surfaced only in the running product. Lead with the three tiers that matter:\n\nHALAL (the product's single claim): Three surfaces guaranteed to render NO halal seal by construction. GET /v1/cart emits \"restaurant\": null unconditionally (cartToDTO never assigns Restaurant; the store never even fetches halal data), so the cart — a halal re-assertion surface before checkout — never shows the seal (critical). GET /v1/restaurant/profile emits a flat halal_status string instead of the required `halal` HalalBadge object, so the restaurant profile cannot express display_state (critical). GET /v1/orders/{orderId} (customer view) omits OrderRestaurantRef.halal entirely, tripping the C-12 client-error path (critical). addCartLine inherits the same null-restaurant defect (high). None produce a FALSE badge — the client fails safe to no-badge (invariant #8 holds) — but the required halal presentation is absent platform-wide on these surfaces.\n\nMONEY + APP-CRASH: The restaurant-web order screens are the worst blast radius. The backend serves its own OrderDetailView / OrderSummaryView (flat total_cents/subtotal_cents/currency, no nested `money`, no `customer`, no `lines`) where the contract requires the nested OrderRestaurantView. restaurant-web reads order.money.subtotal_cents / commission_cents / restaurant_net_cents and order.customer.display_name — all undefined at runtime — so the Order Detail and Order Queue screens throw TypeError and crash. This is BOTH a money-display path (the restaurant cannot see what it will be paid: commission_cents / restaurant_net_cents are never even queried) AND an app crash. Every state-transition endpoint (acceptOrder, rejectOrder, markOrderReady, delayOrder) returns the same wrong-shaped struct, so the crash recurs after every successful action. rejectOrder and delayOrder additionally 422 on input (wrong field names: `reason` vs `reason_code`, `delay_minutes` vs `added_minutes`) under DisallowUnknownFields, so reject and delay are broken end-to-end before the response even matters.\n\nROOT CAUSE: No response-conformance oracle exists. Go \"conformance\" tests assert against hand-transcribed []string field lists (one file's own comment admits it whitelists non-contract fields), enum checks use hand-maintained Go maps, coverage is only whatever handler authors happened to test, and the apps were built against the Prism mock on :4010 which always emits contract-perfect shapes — so drift was structurally invisible until the real server ran. The durable fix (do it first) is a kin-openapi response-validation harness that runs every handler's live 2xx body through openapi3filter.ValidateResponse against openapi.yaml, making additionalProperties:false / required[] / enums the automatic oracle.",
+      "apps_blast_radius": [
+        {
+          "app": "customer",
+          "impact": "Halal seal missing on the cart (critical) and immediately after add-to-cart (high); cuisine subtitles blank on every restaurant card and detail header; ETA never renders on tracking. Cart guards prevent a crash but the halal claim is silently absent on a checkout-gating surface.",
+          "broken_endpoints": [
+            "getCart (critical — restaurant:null, no halal seal, no line thumbnails, no PRICE_CHANGED annotation)",
+            "addCartLine (high — restaurant:null after add, halal seal absent on RestaurantScreen cart header)",
+            "listRestaurants (medium — cuisines always [], subtitle disappears)",
+            "getRestaurant (medium — detail header loses cuisine tags)",
+            "getOrder (low — eta_at absent, tracking ETA never renders; halal, rider, dispatch_state, delivery_address also absent)",
+            "getRestaurantMenu (low — confirmed conformant, no drift)"
+          ]
+        },
+        {
+          "app": "restaurant-web",
+          "impact": "Order Detail and Order Queue screens CRASH (TypeError on undefined order.money / order.customer / order.lines) on load and after every accept/reject/ready/delay. Restaurant cannot see commission or net payout (money fields never queried). Reject and delay are broken end-to-end (422 on wrong input field names). Restaurant profile, hours, and onboarding responses fail strict client decode (wrong nesting, wrong field names, missing required fields).",
+          "broken_endpoints": [
+            "getRestaurantOrder (critical — flat money not nested; commission_cents/restaurant_net_cents never emitted; app crash)",
+            "listRestaurantOrders (high — OrderSummaryView flat, no money/customer/lines; queue crashes on .reduce/.total_cents)",
+            "acceptOrder (high — returns OrderDetailView not OrderRestaurantView; crash after accept)",
+            "rejectOrder (high — 422 on reason_code input AND wrong-shaped response)",
+            "markOrderReady (high — wrong-shaped response; crash on successful ready)",
+            "delayOrder (high — 422 on added_minutes/reason_code input AND wrong-shaped response)",
+            "submitRestaurantDocuments (high — returns {status:SUBMITTED}, not RestaurantOnboardingStatus)",
+            "getRestaurantOnboardingStatus (high — missing account_state/current_step/steps_completed, extra fields)",
+            "getRestaurantProfile (high/critical — flat address not nested, halal_status string not HalalBadge, missing account_state)",
+            "submitRestaurantProfile (high — inherits every getRestaurantProfile drift)",
+            "getRestaurantHours (high — array named hours not intervals, timezone absent)",
+            "setMenuItemAvailability (medium — expects is_available bool, 422s on availability_state)",
+            "createMenuItem/updateMenuItem (medium — 422 on allergens_declared/image_object_id/prep_minutes)",
+            "getOwnMenu (medium — flat name/tax_category collapsed into version objects, menu_item_id absent)"
+          ]
+        },
+        {
+          "app": "ui-native",
+          "impact": "RestaurantCard cuisine subtitle line silently disappears wherever cards render (discovery, feed, search, detail) because cuisines is always [].",
+          "broken_endpoints": [
+            "listRestaurants (medium — cuisines [] on every card)"
+          ]
+        },
+        {
+          "app": "admin",
+          "impact": "Referenced in blast radius for listRestaurantDocuments (critical) and getHalalCertificate (low); these govern the certification-verification workflow and warrant confirmation once the admin domain wiring is exercised.",
+          "broken_endpoints": [
+            "listRestaurantDocuments (critical)",
+            "getHalalCertificate (low)"
+          ]
+        },
+        {
+          "app": "rider",
+          "impact": "Rider dashboard/profile/availability responses drift on medium/low fields; no crash reported but shapes diverge from contract.",
+          "broken_endpoints": [
+            "getRiderMe (medium)",
+            "getRiderDashboard (medium/low)",
+            "setRiderAvailability (low)"
+          ]
+        }
+      ],
+      "systemic_patterns": [
+        "Backend serves its own hand-written view struct instead of the contract schema — the single largest pattern. OrderDetailView / OrderSummaryView (flat money, no customer, no lines) is returned where every restaurant-order operation contractually requires the nested OrderRestaurantView. Fixing the one shared struct-to-DTO mapping (nest money as RestaurantOrderMoney, add customer OrderCustomerRef, populate lines as OrderLine, add delivery_area/is_late/promised_ready_at) fixes getRestaurantOrder, listRestaurantOrders, acceptOrder, rejectOrder, markOrderReady, and delayOrder at once.",
+        "Halal claim dropped by omission — cartToDTO never assigns Restaurant, orderRestaurantRefDTO has no halal field, and RestaurantProfile emits a flat halal_status string instead of the `halal` HalalBadge object. The store SQL never even fetches halal certification data for cart/order joins. One fix pattern: every restaurant reference on the wire (cart, order, profile) must carry a populated HalalBadge, which requires widening the store queries to join halal_certificate + halal_issuing_body (the catalog domain already does this via toHalalBadge — reuse it).",
+        "Input DTOs use the wrong JSON field name AND decode strictly — reason vs reason_code (rejectOrder), delay_minutes/reason vs added_minutes/reason_code (delayOrder), promised_ready_minutes vs prep_eta_minutes + missing accepted_note (acceptOrder), is_available bool vs availability_state enum (setMenuItemAvailability), plus omitted optional fields (allergens_declared, image_object_id, prep_minutes on create/updateMenuItem, unavailable_menu_item_ids on reject). Because handlers call decodeStrict/DisallowUnknownFields, any contract-correct client is rejected with 422. One fix pattern: align every request DTO's json tags to the contract input schema and add the missing optional fields.",
+        "Nested object flattened to top-level fields — RestaurantProfile.address (PublicAddress) emitted as flat line1/city/province/..., RestaurantHours.intervals emitted as `hours`, RestaurantOrderMoney flattened to top-level total_cents/subtotal_cents. Same wrong-nesting shape across profile, hours, and orders; a contract-driven DTO mapper eliminates the class.",
+        "additionalProperties:false violations from extra fields the struct carries — halal_status/created_at/updated_at on RestaurantProfile, item_count/state_since/reject_reason on order views, status on the onboarding submit response. Strict validators reject these even when required fields are present. Generating response DTOs from the contract (oapi-codegen) makes both the extra-field and missing-field classes unrepresentable.",
+        "Missing/hardcoded-constant values on populated data — cuisines always []string{} (restaurant_cuisine used only for filtering, never projected), logo_image_url hardcoded NULL::text, CartLine.image_url never selected, current_price_cents/PRICE_CHANGED never computed. The data exists in the DB but the SELECT list never projects it; one pattern is widening the card/cart SELECT column set and populating the mapper.",
+        "No response-conformance oracle in either gate — the meta-pattern behind all of the above. Go tests assert against hand-transcribed []string field lists and hand-maintained enum maps; apps were built against the contract-perfect Prism mock. Every drift shape above is exactly what a kin-openapi ValidateResponse harness would have caught automatically via additionalProperties:false + required[] + enum membership."
+      ],
+      "prioritized_fix_plan": [
+        {
+          "order": 1,
+          "work": "Build the durable response-conformance harness FIRST (root-cause fix). Add getkin/kin-openapi to services/hg/go.mod. Create services/hg/internal/conformance that loads contracts/openapi.yaml once (openapi3.NewLoader + LoadFromFile), builds an openapi3filter router, spins each domain's chi router in-process via httptest, and runs openapi3filter.ValidateResponse against the matched operation's 2xx schema for every request. Wire it into `make check` and enumerate all 144 operations so every operation with no coverage FAILS rather than silently passing. Delete/replace the hand-transcribed []string apparatus in handler_orders_conformance_test.go, handler_menu_conformance_test.go, rider_shape_test.go. Optionally fold in fixture-driven state seeding (the 311 fixtures already carry operationId+schema+status) and plan oapi-codegen response DTOs as the eventual 'unrepresentable' floor.",
+          "endpoints": [
+            "ALL 144 operations (harness makes the contract the oracle for every 2xx body)"
+          ],
+          "why": "No gate ever compares server output to the contract; this is why every drift below shipped invisibly. Building it first means every subsequent fix is verified by the gate, and it prevents regression. additionalProperties:false + required[] + enums in the doc make it a near-complete oracle with a single dependency."
+        },
+        {
+          "order": 2,
+          "work": "Restore the halal claim on every wire surface that references a restaurant. Widen the cart store query (cart_store.go) to join halal_certificate + halal_issuing_body and reuse the catalog toHalalBadge mapper; assign d.Restaurant a populated RestaurantCard (id, name, halal, availability) in cartToDTO. Add a `halal` HalalBadge field to orderRestaurantRefDTO and join halal data in loadOrderView. Replace RestaurantProfile's flat halal_status string with a nested `halal` HalalBadge object.",
+          "endpoints": [
+            "getCart",
+            "addCartLine",
+            "getOrder",
+            "getRestaurantProfile",
+            "submitRestaurantProfile"
+          ],
+          "why": "Halal verification is the product's single load-bearing claim (invariants #8/#9). These surfaces are guaranteed by construction to render no seal on a checkout-gating cart, the customer order view, and the restaurant profile. Rated critical; the client fails safe (no false badge) so this is not a crash, but the required halal presentation is absent platform-wide."
+        },
+        {
+          "order": 3,
+          "work": "Replace the flat OrderDetailView/OrderSummaryView with the contract's nested OrderRestaurantView in one shared struct-to-DTO mapper: nest money as RestaurantOrderMoney and QUERY + populate commission_cents and restaurant_net_cents (currently never selected); add the customer OrderCustomerRef (display_name, phone_masked) with the required join; populate lines[] as OrderLine (with menu_item_id, currency); add delivery_area, is_late, promised_ready_at, elapsed_seconds, rider; drop the extra top-level fields (item_count, state_since, reject_reason) that violate additionalProperties:false.",
+          "endpoints": [
+            "getRestaurantOrder",
+            "listRestaurantOrders",
+            "acceptOrder",
+            "rejectOrder",
+            "markOrderReady",
+            "delayOrder"
+          ],
+          "why": "App-crash AND money path. restaurant-web dereferences order.money.*, order.customer.*, order.lines.reduce — all undefined — crashing Order Detail and Order Queue on load and after every state transition. The restaurant literally cannot see its commission or net payout. One shared fix clears six operations because they all return the same struct."
+        },
+        {
+          "order": 4,
+          "work": "Align restaurant order/menu INPUT DTOs to the contract and stop 422-ing conformant clients. rejectOrder: rename json `reason`->`reason_code`, add unavailable_menu_item_ids. delayOrder: rename `delay_minutes`->`added_minutes`, `reason`->`reason_code`. acceptOrder: rename `promised_ready_minutes`->`prep_eta_minutes`, add accepted_note. setMenuItemAvailability: replace is_available bool with availability_state enum (derive the DB column from the enum). createMenuItem/updateMenuItem: add allergens_declared, image_object_id, prep_minutes.",
+          "endpoints": [
+            "rejectOrder",
+            "delayOrder",
+            "acceptOrder",
+            "setMenuItemAvailability",
+            "createMenuItem",
+            "updateMenuItem"
+          ],
+          "why": "App-breaking. Under DisallowUnknownFields, any contract-typed/generated client is rejected with 422, so reject and delay are broken end-to-end and menu availability/creation are unusable. rejectOrder additionally blocks the invariant-5 authorisation-void that accompanies rejection."
+        },
+        {
+          "order": 5,
+          "work": "Fix the restaurant onboarding/profile/hours response shapes to their contract schemas. submitRestaurantDocuments: return a real RestaurantOnboardingStatus (call GetOnboardingStatus) instead of {status:SUBMITTED}. getRestaurantOnboardingStatus: add account_state, current_step (enum), and the steps_completed object; drop the four non-contract fields. getRestaurantProfile/submitRestaurantProfile: nest address as PublicAddress, add account_state, drop created_at/updated_at. getRestaurantHours: rename `hours`->`intervals`, add timezone, rename override `on_date`->`date`.",
+          "endpoints": [
+            "submitRestaurantDocuments",
+            "getRestaurantOnboardingStatus",
+            "getRestaurantProfile",
+            "submitRestaurantProfile",
+            "getRestaurantHours"
+          ],
+          "why": "App-breaking for any strict/generated client: wrong nesting, wrong field names, missing required fields, and additionalProperties:false violations make these responses undecodable, breaking the restaurant onboarding and profile screens. Not halal/money/crash, so below the tiers above."
+        },
+        {
+          "order": 6,
+          "work": "Populate the systematically-empty projected fields by widening SELECT lists and mappers. cuisines: project restaurant_cuisine names in cardColumns and populate toCard (fixes card + detail). logo_image_url: select the real column instead of NULL::text in loadOrderView. CartLine.image_url and current_price_cents/PRICE_CHANGED: select the image column and compute price drift in loadCart. Add the missing latent order fields (rider, dispatch_state, delivery_address) and menu version menu_item_id.",
+          "endpoints": [
+            "listRestaurants",
+            "getRestaurant",
+            "getCart",
+            "getOrder",
+            "getOwnMenu"
+          ],
+          "why": "Latent/cosmetic (medium-to-low): non-crashing empty arrays and constant nulls degrade gracefully but strip real, contract-defined data (cuisine subtitles vanish on every browse surface, thumbnails blank, price-drift annotation cannot render). No app currently reads several of these, so lowest priority — but the harness from step 1 will flag them, so batch them here."
+        }
+      ]
+    }
+  }
+}

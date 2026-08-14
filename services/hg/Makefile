@@ -97,8 +97,12 @@ fmt-check: ## Fail when anything is unformatted
 tidy: ## go mod tidy
 	$(GO) mod tidy
 
+.PHONY: conformance
+conformance: ## Validate every reachable 2xx server response against contracts/openapi.yaml
+	$(GO) test -race -run Conformance ./internal/conformance/...
+
 .PHONY: check
-check: fmt-check vet test ## Everything CI runs
+check: fmt-check vet test conformance ## Everything CI runs
 
 # ---------------------------------------------------------------------------
 # Stack

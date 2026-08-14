@@ -298,7 +298,7 @@ func testPoolForRead(t *testing.T) *pgxpool.Pool {
 // account with a profile and vehicle, and a dispatch row. It returns the order
 // ID and the rider account ID. Everything is cleaned up by t.Cleanup.
 type orderSeedResult struct {
-	orderID       string
+	orderID        string
 	ownerAccountID string
 	riderAccountID string
 }
@@ -458,27 +458,27 @@ func seedOrderInState(t *testing.T, pool *pgxpool.Pool, state string) orderSeedR
 // a COMPLETED order seed.
 func buildTestReceiptSnapshot(q *Quote, b basics) json.RawMessage {
 	snap := map[string]any{
-		"order_id":                          "placeholder",
-		"order_code":                        "HG-TEST-01",
-		"receipt_number":                    "HG-2026-000000001",
-		"issued_at":                         time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
-		"platform_legal_name":               "Halal Goes Technologies Inc.",
-		"platform_tax_registration_number":  nil,
-		"restaurant_legal_name":             "Test Co",
+		"order_id":                           "placeholder",
+		"order_code":                         "HG-TEST-01",
+		"receipt_number":                     "HG-2026-000000001",
+		"issued_at":                          time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
+		"platform_legal_name":                "Halal Goes Technologies Inc.",
+		"platform_tax_registration_number":   nil,
+		"restaurant_legal_name":              "Test Co",
 		"restaurant_tax_registration_number": nil,
-		"delivery_address":                  nil,
+		"delivery_address":                   nil,
 		"lines": []map[string]any{
 			{
-				"line_no":        1,
-				"menu_item_id":   b.menuItemID,
-				"name":           "Test Item",
-				"variant_name":   nil,
-				"addons":         []any{},
-				"quantity":       1,
-				"special_request": nil,
+				"line_no":          1,
+				"menu_item_id":     b.menuItemID,
+				"name":             "Test Item",
+				"variant_name":     nil,
+				"addons":           []any{},
+				"quantity":         1,
+				"special_request":  nil,
 				"unit_price_cents": 1500,
 				"line_total_cents": 1500,
-				"currency":        "CAD",
+				"currency":         "CAD",
 			},
 		},
 		"money": map[string]any{
@@ -560,9 +560,9 @@ func TestIntegrationGetOrderTrackingHappyPath(t *testing.T) {
 				Latitude  float64 `json:"latitude"`
 				Longitude float64 `json:"longitude"`
 			} `json:"restaurant_location"`
-			RiderLocation *any   `json:"rider_location"`
-			Rider         *any   `json:"rider"`
-			Timeline      []any  `json:"timeline"`
+			RiderLocation *any  `json:"rider_location"`
+			Rider         *any  `json:"rider"`
+			Timeline      []any `json:"timeline"`
 		} `json:"data"`
 	}
 	decodeJSON(t, rec.Body.Bytes(), &env)
@@ -614,9 +614,9 @@ func TestIntegrationGetOrderTrackingPickedUpShowsRiderLocation(t *testing.T) {
 				RecordedAt string  `json:"recorded_at"`
 			} `json:"rider_location"`
 			Rider *struct {
-				FirstName   string  `json:"first_name"`
-				LastInitial string  `json:"last_initial"`
-				VehicleType string  `json:"vehicle_type"`
+				FirstName   string   `json:"first_name"`
+				LastInitial string   `json:"last_initial"`
+				VehicleType string   `json:"vehicle_type"`
 				RatingAvg   *float64 `json:"rating_avg"`
 			} `json:"rider"`
 		} `json:"data"`
@@ -772,10 +772,10 @@ func TestIntegrationGetOrderReceiptHappyPath(t *testing.T) {
 
 	var env struct {
 		Data struct {
-			OrderID                  string `json:"order_id"`
-			ReceiptNumber            string `json:"receipt_number"`
-			IssuedAt                 string `json:"issued_at"`
-			Money                    struct {
+			OrderID       string `json:"order_id"`
+			ReceiptNumber string `json:"receipt_number"`
+			IssuedAt      string `json:"issued_at"`
+			Money         struct {
 				SubtotalCents    int64  `json:"subtotal_cents"`
 				DiscountCents    int64  `json:"discount_cents"`
 				DeliveryFeeCents int64  `json:"delivery_fee_cents"`
@@ -785,8 +785,8 @@ func TestIntegrationGetOrderReceiptHappyPath(t *testing.T) {
 				TotalCents       int64  `json:"total_cents"`
 				Currency         string `json:"currency"`
 			} `json:"money"`
-			Lines    []any `json:"lines"`
-			Payment  struct {
+			Lines   []any `json:"lines"`
+			Payment struct {
 				AmountChargedCents int64  `json:"amount_charged_cents"`
 				Currency           string `json:"currency"`
 			} `json:"payment"`

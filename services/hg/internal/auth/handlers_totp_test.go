@@ -266,7 +266,9 @@ func TestChangePassword_WrongCurrentPassword(t *testing.T) {
 		t.Fatalf("changePassword wrong current: got %d, want 401", resp.StatusCode)
 	}
 	var out struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	mustDecodeJSON(t, resp, &out)
 	if out.Error.Code != string(CodeInvalidCredentials) {
@@ -659,14 +661,18 @@ func TestEnrollTotp_IdempotentReEnrol(t *testing.T) {
 	resp1, _ := http.Post(srv.URL+"/v1/auth/totp/enroll", "application/json",
 		strings.NewReader("{}"))
 	var out1 struct {
-		Data struct{ ProvisioningURI string `json:"provisioning_uri"` } `json:"data"`
+		Data struct {
+			ProvisioningURI string `json:"provisioning_uri"`
+		} `json:"data"`
 	}
 	mustDecodeJSON(t, resp1, &out1)
 
 	resp2, _ := http.Post(srv.URL+"/v1/auth/totp/enroll", "application/json",
 		strings.NewReader("{}"))
 	var out2 struct {
-		Data struct{ ProvisioningURI string `json:"provisioning_uri"` } `json:"data"`
+		Data struct {
+			ProvisioningURI string `json:"provisioning_uri"`
+		} `json:"data"`
 	}
 	mustDecodeJSON(t, resp2, &out2)
 
@@ -1299,7 +1305,9 @@ func TestLoginWithTOTP_MFARequiredWhenEnrolled(t *testing.T) {
 		t.Fatalf("login with enrolled TOTP but no totp_code: got %d, want 403", resp.StatusCode)
 	}
 	var out struct {
-		Error struct{ Code string `json:"code"` } `json:"error"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
 	}
 	mustDecodeJSON(t, resp, &out)
 	if out.Error.Code != string(CodeMFARequired) {
@@ -1323,7 +1331,9 @@ func TestLoginWithTOTP_CorrectCodeSucceeds(t *testing.T) {
 	enrollResp, _ := http.Post(srv.URL+"/v1/auth/totp/enroll", "application/json",
 		strings.NewReader("{}"))
 	var enrollOut struct {
-		Data struct{ ProvisioningURI string `json:"provisioning_uri"` } `json:"data"`
+		Data struct {
+			ProvisioningURI string `json:"provisioning_uri"`
+		} `json:"data"`
 	}
 	mustDecodeJSON(t, enrollResp, &enrollOut)
 	if enrollResp.StatusCode != http.StatusOK {
@@ -1357,7 +1367,9 @@ func TestLoginWithTOTP_CorrectCodeSucceeds(t *testing.T) {
 	}
 	var loginOut struct {
 		Data struct {
-			Principal struct{ AMR string `json:"amr"` } `json:"principal"`
+			Principal struct {
+				AMR string `json:"amr"`
+			} `json:"principal"`
 		} `json:"data"`
 	}
 	mustDecodeJSON(t, loginResp, &loginOut)

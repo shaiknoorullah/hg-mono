@@ -15,7 +15,8 @@
     "fixtures:build": "pnpm --filter @hg/contract-tools fixtures:build",
     "mock": "pnpm --filter @hg/mock-server start",
     "typecheck": "pnpm -r typecheck",
-    "check": "pnpm validate:contract && pnpm validate:fixtures && pnpm generate:check && pnpm generate:tokens:check && pnpm lint && pnpm typecheck",
+    "check": "pnpm validate:contract && pnpm validate:fixtures && pnpm generate:check && pnpm generate:tokens:check && pnpm lint && pnpm typecheck && pnpm check:backend",
+    "check:backend": "cd services/hg && make check",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test"
   },

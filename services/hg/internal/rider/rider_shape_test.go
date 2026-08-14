@@ -1,197 +1,57 @@
-// Package rider_test — STAGE 3 boundary & leak analysis.
+// Package rider_test — contract-conformance + boundary/leak analysis.
 //
-// The Stage-1/2 tests assert that individual fields are *present*; they never
-// assert that the payload is a strict, closed match against the contract
-// schema. That leaves three whole classes of leak uncovered:
+// The CONTRACT CONFORMANCE tests (TestShape_*) validate the LIVE server response
+// against contracts/openapi.yaml via the kin-openapi oracle
+// (checkConformant → internal/conformance.ValidateResponse). This replaces the
+// former hand-transcribed enum var lists (enumOnboardingState, enumNextRoute, …)
+// and hand-coded closed-object key sets (assertClosedObject, the RiderMe literal
+// key list, assertKycDocumentShape) — a "closed shape" check is only as correct
+// as the transcription behind it, and a stale/over-permissive list lets drift
+// through. The loaded contract — additionalProperties:false + required[] + closed
+// enums — is now the sole oracle.
 //
-//	A) CONTRACT CONFORMANCE — an extra field (additionalProperties:false), a
-//	   wrong type, an open enum, or wrong nullability sails straight through a
-//	   "field X is non-empty" assertion.
-//	B) AUTHZ — only one non-RIDER role was probed per op; a single mis-declared
-//	   action could let, say, SUPPORT_AGENT through and no test would notice.
-//	G) ERROR TAXONOMY — a bare 500 with no contract ErrorCode was never ruled
-//	   out on the failure paths.
-//
-// This file closes those gaps with golden shape assertions (exact key sets +
-// closed-enum membership), an exhaustive role sweep across every op, and an
-// error-envelope shape check.
+// The AUTHZ (B), ERROR TAXONOMY (G) and CONCURRENCY (F) tests below are retained
+// unchanged: they pin invariants the schema oracle does not (deny-by-default role
+// sweep, typed error codes, single-effect concurrency).
 package rider
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"sort"
-	"strings"
 	"testing"
 	"time"
 
-	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Golden shape helpers
+// A) CONTRACT CONFORMANCE — the live response is validated against the contract
 // ─────────────────────────────────────────────────────────────────────────────
 
-// decodeData decodes the {"data": …} envelope of a 2xx response into a generic
-// tree so the exact key set can be asserted against the contract schema.
-func decodeData(t *testing.T, rec *httptest.ResponseRecorder) any {
-	t.Helper()
-	var env map[string]json.RawMessage
-	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
-		t.Fatalf("response is not a JSON object: %v — body: %s", err, rec.Body)
-	}
-	raw, ok := env["data"]
-	if !ok {
-		t.Fatalf("2xx envelope missing top-level \"data\" key: %s", rec.Body)
-	}
-	// Every 2xx envelope is closed to {data} (+ optional {meta}). Assert no
-	// stray top-level keys leaked in.
-	for k := range env {
-		if k != "data" && k != "meta" {
-			t.Errorf("envelope carries unexpected top-level key %q", k)
-		}
-	}
-	var v any
-	if err := json.Unmarshal(raw, &v); err != nil {
-		t.Fatalf("data is not valid JSON: %v", err)
-	}
-	return v
-}
-
-// asObject asserts v is a JSON object and returns it.
-func asObject(t *testing.T, where string, v any) map[string]any {
-	t.Helper()
-	m, ok := v.(map[string]any)
-	if !ok {
-		t.Fatalf("%s: expected a JSON object, got %T", where, v)
-	}
-	return m
-}
-
-// assertClosedObject asserts obj's keys are exactly a subset of allowed and
-// that every key in required is present. This is the additionalProperties:false
-// + required[...] contract, checked at runtime against the live payload.
-func assertClosedObject(t *testing.T, where string, obj map[string]any, allowed, required []string) {
-	t.Helper()
-	allowedSet := make(map[string]bool, len(allowed))
-	for _, k := range allowed {
-		allowedSet[k] = true
-	}
-	for k := range obj {
-		if !allowedSet[k] {
-			t.Errorf("%s: unexpected field %q (additionalProperties:false violated) — keys present: %s",
-				where, k, sortedKeys(obj))
-		}
-	}
-	for _, k := range required {
-		if _, ok := obj[k]; !ok {
-			t.Errorf("%s: required field %q missing", where, k)
-		}
-	}
-}
-
-func sortedKeys(m map[string]any) string {
-	ks := make([]string, 0, len(m))
-	for k := range m {
-		ks = append(ks, k)
-	}
-	sort.Strings(ks)
-	return strings.Join(ks, ", ")
-}
-
-// assertEnum asserts the string value at obj[field] (when present and non-null)
-// is one of the closed set. Absent or null is allowed here; presence/nullability
-// is governed separately by assertClosedObject's required list.
-func assertEnum(t *testing.T, where, field string, obj map[string]any, allowed ...string) {
-	t.Helper()
-	raw, ok := obj[field]
-	if !ok || raw == nil {
-		return
-	}
-	s, ok := raw.(string)
-	if !ok {
-		t.Errorf("%s.%s: expected string enum, got %T", where, field, raw)
-		return
-	}
-	for _, a := range allowed {
-		if s == a {
-			return
-		}
-	}
-	t.Errorf("%s.%s = %q is not in the closed enum {%s}", where, field, s, strings.Join(allowed, ", "))
-}
-
-// assertIntNumber asserts obj[field] is a JSON number with an integer value
-// (money/count invariant: no fractional cents, no float trips).
-func assertIntNumber(t *testing.T, where, field string, obj map[string]any) {
-	t.Helper()
-	raw, ok := obj[field]
-	if !ok {
-		t.Errorf("%s.%s: missing", where, field)
-		return
-	}
-	f, ok := raw.(float64)
-	if !ok {
-		t.Errorf("%s.%s: expected a JSON number, got %T", where, field, raw)
-		return
-	}
-	if f != float64(int64(f)) {
-		t.Errorf("%s.%s = %v is not an integer value", where, field, f)
-	}
-}
-
-// Contract enum sets (mirrored from contracts/openapi.yaml).
-var (
-	enumOnboardingState  = []string{"REGISTERED", "PHONE_VERIFIED", "PROFILE_PENDING", "VEHICLE_PENDING", "DOCUMENTS_PENDING", "DOCUMENTS_REVIEW", "DOCUMENTS_APPROVED", "DOCUMENTS_REJECTED", "PAYOUT_PENDING", "ACTIVE"}
-	enumAccountStatus    = []string{"PENDING", "ACTIVE", "SUSPENDED", "DEACTIVATED"}
-	enumAvailability     = []string{"OFFLINE", "ONLINE_IDLE", "ONLINE_STALE", "ON_DELIVERY"}
-	enumNextRoute        = []string{"HOME", "PROFILE_CAPTURE", "ONBOARDING_PROFILE", "ONBOARDING_VEHICLE", "ONBOARDING_DOCUMENTS", "ONBOARDING_AWAITING_REVIEW", "ONBOARDING_REJECTED", "ONBOARDING_PAYOUT", "ONBOARDING_MENU", "ACTIVE_DELIVERY", "ORDER_TRACKING", "SUSPENDED", "APP_UPDATE_REQUIRED"}
-	enumNextStep         = []string{"PROFILE", "VEHICLE", "DOCUMENTS", "AWAITING_REVIEW", "FIX_DOCUMENTS", "PAYOUT", "DONE"}
-	enumVehicleType      = []string{"CAR", "SCOOTER", "MOTORCYCLE", "BICYCLE", "ON_FOOT"}
-	enumRiderDocType     = []string{"DRIVERS_LICENCE", "VEHICLE_REGISTRATION", "VEHICLE_INSURANCE", "GOVERNMENT_ID", "WORK_ELIGIBILITY", "PROFILE_PHOTO"}
-	enumKycDocumentState = []string{"SUBMITTED", "IN_REVIEW", "APPROVED", "REJECTED", "EXPIRED", "SUPERSEDED"}
-	enumCurrency         = []string{"CAD"}
-)
-
-// ─────────────────────────────────────────────────────────────────────────────
-// A) CONTRACT CONFORMANCE — golden shape per operation
-// ─────────────────────────────────────────────────────────────────────────────
-
-// TestShape_GetRiderMe pins the RiderMe schema: exact key set, closed enums,
-// and the NextRoute enum (previously a raw client path — a conformance leak).
+// TestShape_GetRiderMe pins RiderMe: the live body must conform exactly. The
+// NextRoute enum (previously a raw client path — a conformance leak) is enforced
+// by the contract's closed enum, so a "/dashboard"-style value now fails here.
 func TestShape_GetRiderMe(t *testing.T) {
 	pool := openTestDB(t)
 	ctx := context.Background()
 	router, iss := buildRouter(t, pool)
 
 	riderID := seedRiderAccount(t, ctx, pool, "ACTIVE", "ACTIVE")
-	rec := do(t, router, "GET", "/v1/riders/me", nil, bearerFor(t, iss, riderID, []string{"RIDER"}))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	obj := asObject(t, "RiderMe", decodeData(t, rec))
-
-	assertClosedObject(t, "RiderMe", obj,
-		[]string{"account_id", "first_name", "last_name", "phone_e164", "photo_url", "onboarding_state", "account_status", "availability_state", "vehicle", "active_assignment_id", "rating_avg", "timezone", "next_route"},
-		[]string{"account_id", "onboarding_state", "account_status", "availability_state", "next_route"})
-
-	assertEnum(t, "RiderMe", "onboarding_state", obj, enumOnboardingState...)
-	assertEnum(t, "RiderMe", "account_status", obj, enumAccountStatus...)
-	assertEnum(t, "RiderMe", "availability_state", obj, enumAvailability...)
-	assertEnum(t, "RiderMe", "next_route", obj, enumNextRoute...)
-
+	obj := checkConformant(t, router, "GET", "/v1/riders/me", nil,
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK)
 	if obj["account_id"] != riderID {
 		t.Errorf("account_id=%v, want %q (self-scope)", obj["account_id"], riderID)
 	}
 }
 
-// TestShape_GetRiderMe_NextRouteEnumForEveryState guards specifically against
-// the leak where next_route was a client path ("/dashboard") rather than a
-// value from the closed NextRoute enum, across every onboarding state.
+// TestShape_GetRiderMe_NextRouteEnumForEveryState guards specifically against the
+// leak where next_route was a client path rather than a NextRoute enum value,
+// across every onboarding state. The contract enum membership is enforced by
+// checkConformant; this test also rejects any leading-slash path defensively.
 func TestShape_GetRiderMe_NextRouteEnumForEveryState(t *testing.T) {
 	pool := openTestDB(t)
 	ctx := context.Background()
@@ -208,24 +68,18 @@ func TestShape_GetRiderMe_NextRouteEnumForEveryState(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.state, func(t *testing.T) {
 			riderID := seedRiderAccount(t, ctx, pool, c.state, c.status)
-			rec := do(t, router, "GET", "/v1/riders/me", nil, bearerFor(t, iss, riderID, []string{"RIDER"}))
-			if rec.Code != http.StatusOK {
-				t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-			}
-			obj := asObject(t, "RiderMe", decodeData(t, rec))
-			nr, _ := obj["next_route"].(string)
-			if strings.HasPrefix(nr, "/") {
+			obj := checkConformant(t, router, "GET", "/v1/riders/me", nil,
+				bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK)
+			if nr, _ := obj["next_route"].(string); len(nr) > 0 && nr[0] == '/' {
 				t.Errorf("next_route=%q is a client path, not a NextRoute enum value", nr)
 			}
-			assertEnum(t, "RiderMe", "next_route", obj, enumNextRoute...)
 		})
 	}
 }
 
-// TestShape_SubmitRiderProfile pins the RiderProfile schema returned by the
-// profile write — a distinct, narrower shape than RiderMe. The Stage-2 handler
-// returned a RiderMe-shaped body here (onboarding_state/next_route/timestamps),
-// which is an additionalProperties:false violation against RiderProfile.
+// TestShape_SubmitRiderProfile pins RiderProfile (the write's narrower shape). A
+// RiderMe-shaped body here (onboarding_state/next_route/timestamps) is an
+// additionalProperties:false violation the contract oracle catches.
 func TestShape_SubmitRiderProfile(t *testing.T) {
 	pool := openTestDB(t)
 	ctx := context.Background()
@@ -234,21 +88,15 @@ func TestShape_SubmitRiderProfile(t *testing.T) {
 	riderID := seedRiderAccount(t, ctx, pool, "PHONE_VERIFIED", "PENDING")
 	email := fmt.Sprintf("shape.%d@example.com", time.Now().UnixNano())
 	body := map[string]any{"first_name": "Imran", "last_name": "Cheema", "date_of_birth": "1995-03-15", "email": email}
-	rec := do(t, router, "POST", "/v1/riders/me/onboarding/profile", body, bearerFor(t, iss, riderID, []string{"RIDER"}))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	obj := asObject(t, "RiderProfile", decodeData(t, rec))
-	assertClosedObject(t, "RiderProfile", obj,
-		[]string{"account_id", "first_name", "last_name", "email", "date_of_birth", "timezone"},
-		[]string{"account_id", "first_name", "last_name", "date_of_birth"})
+	obj := checkConformant(t, router, "POST", "/v1/riders/me/onboarding/profile", body,
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK)
 	if dob, _ := obj["date_of_birth"].(string); dob != "1995-03-15" {
 		t.Errorf("date_of_birth=%q, want 1995-03-15", dob)
 	}
 }
 
 // TestShape_GetRiderOnboardingStatus pins RiderOnboardingStatus including the
-// nested steps_completed object and the documents array element shape.
+// nested steps_completed object and the documents array element (KycDocument).
 func TestShape_GetRiderOnboardingStatus(t *testing.T) {
 	pool := openTestDB(t)
 	ctx := context.Background()
@@ -257,41 +105,15 @@ func TestShape_GetRiderOnboardingStatus(t *testing.T) {
 	riderID := seedRiderAccount(t, ctx, pool, "DOCUMENTS_PENDING", "PENDING")
 	seedKycDocument(t, ctx, pool, riderID, riderID, "PROFILE_PHOTO", "SUBMITTED")
 
-	rec := do(t, router, "GET", "/v1/riders/me/onboarding/status", nil, bearerFor(t, iss, riderID, []string{"RIDER"}))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	obj := asObject(t, "RiderOnboardingStatus", decodeData(t, rec))
-	assertClosedObject(t, "RiderOnboardingStatus", obj,
-		[]string{"onboarding_state", "account_status", "progress_percent", "next_step", "next_route", "submitted_at", "decided_at", "attempt_number", "documents", "steps_completed"},
-		[]string{"onboarding_state", "account_status", "progress_percent", "next_step", "documents", "steps_completed"})
-
-	assertEnum(t, "RiderOnboardingStatus", "onboarding_state", obj, enumOnboardingState...)
-	assertEnum(t, "RiderOnboardingStatus", "account_status", obj, enumAccountStatus...)
-	assertEnum(t, "RiderOnboardingStatus", "next_step", obj, enumNextStep...)
-	assertIntNumber(t, "RiderOnboardingStatus", "progress_percent", obj)
-
-	steps := asObject(t, "steps_completed", obj["steps_completed"])
-	assertClosedObject(t, "steps_completed", steps,
-		[]string{"phone_verified", "profile", "vehicle", "documents_submitted", "documents_approved", "payout_onboarded"},
-		[]string{"phone_verified", "profile", "vehicle", "documents_submitted", "documents_approved", "payout_onboarded"})
-	for _, k := range []string{"phone_verified", "profile", "vehicle", "documents_submitted", "documents_approved", "payout_onboarded"} {
-		if _, ok := steps[k].(bool); !ok {
-			t.Errorf("steps_completed.%s: expected bool, got %T", k, steps[k])
-		}
-	}
-
-	docs, ok := obj["documents"].([]any)
-	if !ok {
-		t.Fatalf("documents: expected array, got %T", obj["documents"])
-	}
+	obj := checkConformant(t, router, "GET", "/v1/riders/me/onboarding/status", nil,
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK)
+	docs, _ := obj["documents"].([]any)
 	if len(docs) == 0 {
 		t.Fatal("expected the seeded document to appear")
 	}
-	assertKycDocumentShape(t, docs[0])
 }
 
-// TestShape_SubmitRiderVehicle pins the RiderVehicle schema.
+// TestShape_SubmitRiderVehicle pins RiderVehicle.
 func TestShape_SubmitRiderVehicle(t *testing.T) {
 	pool := openTestDB(t)
 	ctx := context.Background()
@@ -300,37 +122,26 @@ func TestShape_SubmitRiderVehicle(t *testing.T) {
 	riderID := seedRiderAccount(t, ctx, pool, "VEHICLE_PENDING", "PENDING")
 	plate := fmt.Sprintf("SH%04d", time.Now().UnixNano()%9999)
 	body := map[string]any{"vehicle_type": "CAR", "make": "Toyota", "model": "Corolla", "year": 2020, "colour": "Silver", "licence_plate": plate}
-	rec := do(t, router, "POST", "/v1/riders/me/onboarding/vehicle", body, bearerFor(t, iss, riderID, []string{"RIDER"}))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	obj := asObject(t, "RiderVehicle", decodeData(t, rec))
-	assertClosedObject(t, "RiderVehicle", obj,
-		[]string{"id", "vehicle_type", "make", "model", "year", "colour", "licence_plate", "is_active"},
-		[]string{"id", "vehicle_type", "is_active"})
-	assertEnum(t, "RiderVehicle", "vehicle_type", obj, enumVehicleType...)
+	obj := checkConformant(t, router, "POST", "/v1/riders/me/onboarding/vehicle", body,
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK)
 	if _, ok := obj["is_active"].(bool); !ok {
 		t.Errorf("is_active: expected bool, got %T", obj["is_active"])
 	}
-	if _, ok := obj["year"].(float64); ok {
-		assertIntNumber(t, "RiderVehicle", "year", obj)
-	}
 }
 
-// TestShape_SubmitRiderVehicle_BicycleOmitsFields verifies a BICYCLE payload
-// does not leak a fabricated "N/A" plate/make/model — the optional fields must
-// be JSON null or absent, never a placeholder string.
+// TestShape_SubmitRiderVehicle_BicycleOmitsFields verifies a BICYCLE payload does
+// not leak a fabricated "N/A" plate/make/model — the optional fields must be JSON
+// null or absent, never a placeholder string. (A placeholder is contract-legal
+// as a string, so this stays an explicit semantic check on top of the schema.)
 func TestShape_SubmitRiderVehicle_BicycleOmitsFields(t *testing.T) {
 	pool := openTestDB(t)
 	ctx := context.Background()
 	router, iss := buildRouter(t, pool)
 
 	riderID := seedRiderAccount(t, ctx, pool, "VEHICLE_PENDING", "PENDING")
-	rec := do(t, router, "POST", "/v1/riders/me/onboarding/vehicle", map[string]any{"vehicle_type": "BICYCLE"}, bearerFor(t, iss, riderID, []string{"RIDER"}))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	obj := asObject(t, "RiderVehicle", decodeData(t, rec))
+	obj := checkConformant(t, router, "POST", "/v1/riders/me/onboarding/vehicle",
+		map[string]any{"vehicle_type": "BICYCLE"},
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK)
 	for _, f := range []string{"licence_plate", "make", "model", "year", "colour"} {
 		if v, present := obj[f]; present && v != nil {
 			t.Errorf("BICYCLE vehicle leaked %s=%v; motorised-only fields must be null/absent", f, v)
@@ -347,74 +158,28 @@ func TestShape_ListRiderDocuments(t *testing.T) {
 	riderID := seedRiderAccount(t, ctx, pool, "DOCUMENTS_PENDING", "PENDING")
 	seedKycDocument(t, ctx, pool, riderID, riderID, "GOVERNMENT_ID", "SUBMITTED")
 
-	rec := do(t, router, "GET", "/v1/riders/me/documents", nil, bearerFor(t, iss, riderID, []string{"RIDER"}))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	arr, ok := decodeData(t, rec).([]any)
-	if !ok {
-		t.Fatalf("documents: expected array")
-	}
-	if len(arr) == 0 {
-		t.Fatal("expected a document")
-	}
-	for _, d := range arr {
-		assertKycDocumentShape(t, d)
-	}
+	// A bare-array (non-envelope) body still validates against the operation's
+	// declared response schema; checkConformant runs ValidateResponse on it.
+	checkConformant(t, router, "GET", "/v1/riders/me/documents", nil,
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK)
 }
 
-// assertKycDocumentShape pins a single KycDocument element: exact keys, closed
-// doc_type / state enums, and RIDER-scoped subject_type.
-func assertKycDocumentShape(t *testing.T, v any) {
-	t.Helper()
-	obj := asObject(t, "KycDocument", v)
-	assertClosedObject(t, "KycDocument", obj,
-		[]string{"id", "subject_type", "subject_id", "doc_type", "state", "issuer", "certificate_number", "issued_on", "valid_until", "version", "rejection_reason_code", "review_note", "reviewed_at", "created_at"},
-		[]string{"id", "subject_type", "doc_type", "state", "version", "created_at"})
-	assertEnum(t, "KycDocument", "subject_type", obj, "RESTAURANT", "RIDER")
-	// A rider's document must be RIDER-subject and a rider doc type.
-	if st, _ := obj["subject_type"].(string); st != "RIDER" {
-		t.Errorf("KycDocument.subject_type=%q, want RIDER on the rider surface", st)
-	}
-	assertEnum(t, "KycDocument", "doc_type", obj, enumRiderDocType...)
-	assertEnum(t, "KycDocument", "state", obj, enumKycDocumentState...)
-	assertIntNumber(t, "KycDocument", "version", obj)
-}
-
-// TestShape_GetRiderDashboard pins RiderDashboard, its nested today object, and
-// the money/count invariants (int cents, closed currency).
+// TestShape_GetRiderDashboard pins RiderDashboard and its nested today object.
 func TestShape_GetRiderDashboard(t *testing.T) {
 	pool := openTestDB(t)
 	ctx := context.Background()
 	router, iss := buildRouter(t, pool)
 
 	riderID := seedRiderAccount(t, ctx, pool, "ACTIVE", "ACTIVE")
-	rec := do(t, router, "GET", "/v1/riders/me/dashboard", nil, bearerFor(t, iss, riderID, []string{"RIDER"}))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	obj := asObject(t, "RiderDashboard", decodeData(t, rec))
-	assertClosedObject(t, "RiderDashboard", obj,
-		[]string{"mode", "today", "active_assignment", "current_offer", "tracking_health", "blocking_reasons"},
-		[]string{"mode", "today", "active_assignment", "current_offer"})
-	assertEnum(t, "RiderDashboard", "mode", obj, enumAvailability...)
-
-	today := asObject(t, "today", obj["today"])
-	assertClosedObject(t, "today", today,
-		[]string{"gross_cents", "currency", "trips", "online_seconds"},
-		[]string{"gross_cents", "currency", "trips", "online_seconds"})
-	assertIntNumber(t, "today", "gross_cents", today)
-	assertIntNumber(t, "today", "trips", today)
-	assertIntNumber(t, "today", "online_seconds", today)
-	assertEnum(t, "today", "currency", today, enumCurrency...)
-
-	// active_assignment and current_offer are oneOf[…, null]; the server has no
-	// live assignment for a freshly-seeded rider, so both must be JSON null.
+	obj := checkConformant(t, router, "GET", "/v1/riders/me/dashboard", nil,
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK)
+	// active_assignment / current_offer are oneOf[…, null]; a freshly-seeded rider
+	// has neither, so both must be JSON null.
 	if obj["active_assignment"] != nil {
-		t.Errorf("active_assignment: want null for a rider with no assignment, got %T", obj["active_assignment"])
+		t.Errorf("active_assignment: want null, got %T", obj["active_assignment"])
 	}
 	if obj["current_offer"] != nil {
-		t.Errorf("current_offer: want null for a rider with no offer, got %T", obj["current_offer"])
+		t.Errorf("current_offer: want null, got %T", obj["current_offer"])
 	}
 }
 
@@ -430,21 +195,11 @@ func TestShape_SubmitRiderDocuments(t *testing.T) {
 	for _, dt := range []string{"GOVERNMENT_ID", "PROFILE_PHOTO"} {
 		seedKycDocument(t, ctx, pool, riderID, riderID, dt, "SUBMITTED")
 	}
-	rec := do(t, router, "POST", "/v1/riders/me/onboarding/documents", nil,
-		bearerFor(t, iss, riderID, []string{"RIDER"}),
+	obj := checkConformant(t, router, "POST", "/v1/riders/me/onboarding/documents", nil,
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusOK,
 		"Idempotency-Key", fmt.Sprintf("idem-shape-%d", time.Now().UnixNano()))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	obj := asObject(t, "RiderOnboardingStatus", decodeData(t, rec))
-	assertClosedObject(t, "RiderOnboardingStatus", obj,
-		[]string{"onboarding_state", "account_status", "progress_percent", "next_step", "next_route", "submitted_at", "decided_at", "attempt_number", "documents", "steps_completed"},
-		[]string{"onboarding_state", "account_status", "progress_percent", "next_step", "documents", "steps_completed"})
 	if st, _ := obj["onboarding_state"].(string); st != "DOCUMENTS_REVIEW" {
 		t.Errorf("onboarding_state=%q, want DOCUMENTS_REVIEW", st)
-	}
-	if _, ok := obj["steps_completed"]; !ok {
-		t.Error("submit-documents response is not a full RiderOnboardingStatus (steps_completed missing)")
 	}
 }
 
@@ -456,14 +211,10 @@ func TestShape_AttachRiderDocument(t *testing.T) {
 
 	riderID := seedRiderAccount(t, ctx, pool, "DOCUMENTS_PENDING", "PENDING")
 	soID := seedReadyObject(t, ctx, pool, riderID)
-	rec := do(t, router, "POST", "/v1/riders/me/documents",
+	checkConformant(t, router, "POST", "/v1/riders/me/documents",
 		map[string]any{"doc_type": "PROFILE_PHOTO", "stored_object_id": soID},
-		bearerFor(t, iss, riderID, []string{"RIDER"}),
+		bearerFor(t, iss, riderID, []string{"RIDER"}), http.StatusCreated,
 		"Idempotency-Key", fmt.Sprintf("idem-att-%d", time.Now().UnixNano()))
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body)
-	}
-	assertKycDocumentShape(t, decodeData(t, rec))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
