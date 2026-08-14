@@ -2,6 +2,7 @@ package dispatch
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -24,13 +25,15 @@ type OrderLifecycle interface {
 type Service struct {
 	store     *Store
 	lifecycle OrderLifecycle // nil is safe — calls are no-ops when nil
+	log       *slog.Logger
 	now       func() time.Time
 }
 
 // NewService builds a Service over a Store. lifecycle may be nil (safe no-op)
-// and should be set to the orders adapter in production.
+// and should be set to the orders adapter in production. The logger defaults to
+// slog.Default() so a swallowed OrderLifecycle failure is never silent.
 func NewService(store *Store, lifecycle OrderLifecycle) *Service {
-	return &Service{store: store, lifecycle: lifecycle, now: func() time.Time { return time.Now().UTC() }}
+	return &Service{store: store, lifecycle: lifecycle, log: slog.Default(), now: func() time.Time { return time.Now().UTC() }}
 }
 
 // ---------------------------------------------------------------------------
@@ -135,29 +138,50 @@ func (s *Service) GetAssignment(ctx context.Context, riderAccountID, assignmentI
 // keep the order state machine in sync (P-14: only the orders module writes
 // order.state; dispatch calls it via the interface, never directly).
 func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput) (*Assignment, error) {
-	asn, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now())
+	asn, transitioned, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now())
 	if err != nil {
 		return nil, err
 	}
 	// Bridge calls happen after the dispatch tx commits so a failure in the
-	// orders module never rolls back a committed dispatch transition. The
-	// orders.Transition is idempotent (FOR UPDATE + state guard), so a retry
-	// on the next position report or reconcile is safe.
-	if s.lifecycle != nil {
+	// orders module never rolls back a committed dispatch transition. Skip the
+	// bridge on an idempotent no-op (a duplicate request that did not actually
+	// advance the assignment): re-firing it would attempt an already-applied
+	// order transition, which the orders machine rejects as illegal and which
+	// would otherwise log a spurious bridge failure on a normal retry.
+	if s.lifecycle != nil && transitioned {
 		switch in.ToState {
 		case "PICKED_UP":
 			if lcErr := s.lifecycle.ConfirmPickup(ctx, asn.OrderID, riderAccountID); lcErr != nil {
-				// Log-only: the dispatch assignment is committed; the orders state
-				// will catch up via the reconcile sweep or a retry.
-				_ = lcErr
+				// Log-and-swallow: the dispatch assignment is committed and must not
+				// roll back on an orders-module failure. But the order is now stranded
+				// (assignment PICKED_UP, order.state not advanced) and there is no
+				// automatic retry for an already-dispatched order, so this is an
+				// operational incident that must be visible, never silent.
+				s.logBridgeFailure(asn.OrderID, riderAccountID, "confirm_pickup", lcErr)
 			}
 		case "DELIVERED":
 			if lcErr := s.lifecycle.CompleteDelivery(ctx, asn.OrderID, riderAccountID); lcErr != nil {
-				_ = lcErr
+				s.logBridgeFailure(asn.OrderID, riderAccountID, "complete_delivery", lcErr)
 			}
 		}
 	}
 	return asn, nil
+}
+
+// logBridgeFailure records a swallowed OrderLifecycle error. The dispatch side
+// is committed; the order state did not advance and will not be retried
+// automatically for an already-dispatched order, so this surfaces at WARN with
+// the identifiers ops needs to reconcile it by hand.
+func (s *Service) logBridgeFailure(orderID, riderAccountID, step string, err error) {
+	log := s.log
+	if log == nil {
+		log = slog.Default()
+	}
+	log.Warn("dispatch->orders lifecycle bridge failed; order state not advanced",
+		slog.String("step", step),
+		slog.String("order_id", orderID),
+		slog.String("rider_account_id", riderAccountID),
+		slog.String("error", err.Error()))
 }
 
 // SubmitPod records proof of delivery.

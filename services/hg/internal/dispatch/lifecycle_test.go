@@ -400,13 +400,47 @@ VALUES ('RIDER', $1, 'acct_test_'||substr(md5(random()::text),1,12), true)`, rid
 	}
 
 	// The rider must have a PENDING offer.
-	var offerState string
-	mustQuery(t, pool, `
-SELECT state::text FROM dispatch_offer
-WHERE order_id=$1 AND rider_account_id=$2`, &offerState, orderID, riderAcct)
+	var offerState, offerID string
+	if err := pool.QueryRow(ctx, `
+SELECT id, state::text FROM dispatch_offer
+WHERE order_id=$1 AND rider_account_id=$2`, orderID, riderAcct).Scan(&offerID, &offerState); err != nil {
+		t.Fatalf("read rider offer: %v", err)
+	}
 	if offerState != "PENDING" {
 		t.Errorf("rider offer state = %q, want PENDING", offerState)
 	}
+
+	// RunWave must have created the dispatch row itself (in SEARCHING). Without it
+	// the order is re-swept every tick AND AcceptOffer's arbiter (which locks and
+	// guards on the dispatch row) cannot succeed — the whole backstop-dispatched
+	// demo path would be un-acceptable. This is the regression that guards it.
+	var dispState string
+	mustQuery(t, pool, `SELECT state::text FROM dispatch WHERE order_id=$1`, &dispState, orderID)
+	if dispState != "SEARCHING" {
+		t.Fatalf("after RunWave, dispatch row state = %q, want SEARCHING (dispatch row not created by CreateWave)", dispState)
+	}
+
+	// End-to-end proof: the nearby rider can actually ACCEPT the offer created by
+	// the backstop wave — the arbiter finds the dispatch row and assigns it.
+	assignmentID, err := svc.store.AcceptOffer(ctx, riderAcct, offerID, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AcceptOffer on backstop-dispatched order must succeed, got: %v", err)
+	}
+	if assignmentID == "" {
+		t.Fatal("AcceptOffer returned an empty assignment id")
+	}
+	var afterAccept string
+	mustQuery(t, pool, `SELECT state::text FROM dispatch WHERE order_id=$1`, &afterAccept, orderID)
+	if afterAccept != "ASSIGNED" {
+		t.Errorf("after AcceptOffer, dispatch state = %q, want ASSIGNED", afterAccept)
+	}
+	// Clean up the assignment created above (seedFixture-style tests own their rows,
+	// but this order was hand-seeded so its cleanup does not cover the assignment).
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM assignment_transition WHERE assignment_id IN (SELECT id FROM assignment WHERE order_id=$1)`, orderID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM assignment WHERE order_id=$1`, orderID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM rider_availability_event WHERE account_id=$1`, riderAcct)
+	})
 }
 
 // ---------------------------------------------------------------------------
