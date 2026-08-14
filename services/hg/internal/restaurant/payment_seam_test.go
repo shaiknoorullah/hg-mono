@@ -197,3 +197,134 @@ func TestPaymentSeam_NilPay_AcceptOrder_StillReturns200(t *testing.T) {
 		t.Fatalf("nil pay AcceptOrder: status=%d, want 200 (body: %s)", rec.Code, rec.Body.String())
 	}
 }
+
+// ─── Hardening regression tests (adversarial verification) ────────────────────
+
+// TestPaymentSeam_AcceptOrder_IllegalTransition_DoesNotCapture is the money-safety
+// invariant: when repo.AcceptOrder fails (the order is not RESTAURANT_PENDING),
+// the handler must NOT capture. Capturing on a failed accept would move money for
+// an order that was never accepted. The order is seeded in PREPARING so accept is
+// an ILLEGAL_TRANSITION (409); Capture must be called zero times.
+func TestPaymentSeam_AcceptOrder_IllegalTransition_DoesNotCapture(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	// PREPARING → accept is illegal (accept requires RESTAURANT_PENDING).
+	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID,
+		"PREPARING", "now() + interval '30 minutes'")
+
+	pay := &fakePayActions{}
+	repo := restaurant.NewRepo(pool)
+	h := restaurant.NewHandler(repo, nil, pay)
+
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/restaurant/orders/"+orderID+"/accept",
+		strings.NewReader(`{}`))
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	req = withChiParam(req, "orderId", orderID)
+	rec := httptest.NewRecorder()
+
+	h.AcceptOrder(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("AcceptOrder on PREPARING: status=%d, want 409 (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	pay.mu.Lock()
+	defer pay.mu.Unlock()
+	if len(pay.captureCalls) != 0 {
+		t.Errorf("Capture called %d times on a failed accept, want 0 (money moved for an unaccepted order)", len(pay.captureCalls))
+	}
+}
+
+// TestPaymentSeam_RejectOrder_IllegalTransition_DoesNotVoid is the symmetric
+// guard for reject: when repo.RejectOrder fails, Void must not be called. The
+// order is seeded REJECTED (terminal) so a second reject is ILLEGAL_TRANSITION
+// (409); Void must be called zero times.
+func TestPaymentSeam_RejectOrder_IllegalTransition_DoesNotVoid(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	// REJECTED → reject again is illegal.
+	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID,
+		"REJECTED", "")
+
+	pay := &fakePayActions{}
+	repo := restaurant.NewRepo(pool)
+	h := restaurant.NewHandler(repo, nil, pay)
+
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/restaurant/orders/"+orderID+"/reject",
+		strings.NewReader(`{"reason":"ITEM_UNAVAILABLE"}`))
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	req = withChiParam(req, "orderId", orderID)
+	rec := httptest.NewRecorder()
+
+	h.RejectOrder(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("RejectOrder on REJECTED: status=%d, want 409 (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	pay.mu.Lock()
+	defer pay.mu.Unlock()
+	if len(pay.voidCalls) != 0 {
+		t.Errorf("Void called %d times on a failed reject, want 0", len(pay.voidCalls))
+	}
+}
+
+// TestPaymentSeam_RejectOrder_VoidError_StillReturns200 mirrors the capture-error
+// case for the void path: a Void failure must not 500 the reject. The order is
+// already REJECTED in the database; the reconciler retries the void.
+func TestPaymentSeam_RejectOrder_VoidError_StillReturns200(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID,
+		"RESTAURANT_PENDING", "now() + interval '3 minutes'")
+
+	pay := &fakePayActions{voidErr: fmt.Errorf("stripe: timeout")}
+	repo := restaurant.NewRepo(pool)
+	h := restaurant.NewHandler(repo, nil, pay)
+
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/restaurant/orders/"+orderID+"/reject",
+		strings.NewReader(`{"reason":"ITEM_UNAVAILABLE"}`))
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	req = withChiParam(req, "orderId", orderID)
+	rec := httptest.NewRecorder()
+
+	h.RejectOrder(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("RejectOrder with void error: status=%d, want 200 (body: %s)", rec.Code, rec.Body.String())
+	}
+	pay.mu.Lock()
+	defer pay.mu.Unlock()
+	if len(pay.voidCalls) != 1 {
+		t.Errorf("Void called %d times, want exactly 1 (attempted despite the error)", len(pay.voidCalls))
+	}
+}
+
+// TestPaymentSeam_NilPay_RejectOrder_StillReturns200 is the reject-side twin of
+// the nil-pay accept test: a nil PaymentActions (boot without payments wired)
+// must not panic or 500 the reject.
+func TestPaymentSeam_NilPay_RejectOrder_StillReturns200(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID,
+		"RESTAURANT_PENDING", "now() + interval '3 minutes'")
+
+	repo := restaurant.NewRepo(pool)
+	h := restaurant.NewHandler(repo, nil, nil) // nil pay — boot without payments
+
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/restaurant/orders/"+orderID+"/reject",
+		strings.NewReader(`{"reason":"ITEM_UNAVAILABLE"}`))
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	req = withChiParam(req, "orderId", orderID)
+	rec := httptest.NewRecorder()
+
+	h.RejectOrder(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("nil pay RejectOrder: status=%d, want 200 (body: %s)", rec.Code, rec.Body.String())
+	}
+}
