@@ -339,7 +339,7 @@ func (r *Repo) GetHours(ctx context.Context, restaurantID string) (*HoursView, e
 	}
 
 	rows, err := r.db.Query(ctx, `
-		SELECT day_of_week, opens_at::text, closes_at::text, crosses_midnight
+		SELECT day_of_week, to_char(opens_at, 'HH24:MI'), to_char(closes_at, 'HH24:MI'), crosses_midnight
 		  FROM restaurant_hours WHERE restaurant_id = $1 ORDER BY day_of_week`, restaurantID)
 	if err != nil {
 		return nil, err
@@ -358,7 +358,7 @@ func (r *Repo) GetHours(ctx context.Context, restaurantID string) (*HoursView, e
 	rows.Close()
 
 	orows, err := r.db.Query(ctx, `
-		SELECT on_date::text, is_closed, opens_at::text, closes_at::text, reason
+		SELECT on_date::text, is_closed, to_char(opens_at, 'HH24:MI'), to_char(closes_at, 'HH24:MI'), reason
 		  FROM restaurant_hours_override WHERE restaurant_id = $1 ORDER BY on_date`, restaurantID)
 	if err != nil {
 		return nil, err
