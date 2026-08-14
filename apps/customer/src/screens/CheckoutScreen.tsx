@@ -29,6 +29,7 @@ import {
 } from '@hg/ui-native';
 
 import { getCart } from '../api/cart';
+import { ensureDeliveryAddress } from '../api/addresses';
 import { createQuote, getActiveOrder, placeOrder } from '../api/orders';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
@@ -52,8 +53,12 @@ export function CheckoutScreen(): React.ReactElement {
   const load = React.useCallback(() => {
     setState({ kind: 'loading' });
     setPlaceError(null);
-    getCart()
-      .then((cart) => createQuote({ cartId: cart.id, fulfilment: 'DELIVERY' }))
+    // A delivery quote is priced against a concrete address (the server derives the tax
+    // province from it, P-11), so resolve one before quoting.
+    Promise.all([getCart(), ensureDeliveryAddress()])
+      .then(([cart, address]) =>
+        createQuote({ cartId: cart.id, fulfilment: 'DELIVERY', deliveryAddressId: address.id }),
+      )
       .then((quote) => setState({ kind: 'ready', quote }))
       .catch((e) => setState({ kind: 'error', code: errorCodeOf(e) }));
   }, []);
