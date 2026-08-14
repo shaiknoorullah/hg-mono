@@ -60,10 +60,13 @@ type TransitionInput struct {
 // then persists the timestamp, the transition row, and — for terminal states —
 // restores the rider's availability in the same transaction (D-10 restoration is
 // server-owned). Repeating the current state is a no-op returning the assignment.
-func (s *Store) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput, now time.Time) (*Assignment, error) {
+// The returned bool reports whether a real forward transition was persisted;
+// it is false for the idempotent no-op (repeating the current state) so the
+// caller can skip firing the OrderLifecycle bridge on a duplicate request.
+func (s *Store) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput, now time.Time) (*Assignment, bool, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -86,21 +89,23 @@ FOR UPDATE OF asn`, assignmentID, riderAccountID).Scan(
 		&cur, &orderID, &requiredPod, &podRecorded,
 		&pickupLat, &pickupLng, &dropLat, &dropLng, &arrivedPickupAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, errAssignmentNotFound
+		return nil, false, errAssignmentNotFound
 	}
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	// Idempotent no-op: repeating the current state.
+	// Idempotent no-op: repeating the current state. No forward transition is
+	// persisted, so the bridge must not fire again (transitioned=false).
 	if in.ToState == cur {
 		if err := tx.Commit(ctx); err != nil {
-			return nil, err
+			return nil, false, err
 		}
-		return s.LoadAssignment(ctx, riderAccountID, assignmentID)
+		asn, err := s.LoadAssignment(ctx, riderAccountID, assignmentID)
+		return asn, false, err
 	}
 	if !isForward(cur, in.ToState) {
-		return nil, newError(409, CodeInvalidTransition, "That transition is not allowed.",
+		return nil, false, newError(409, CodeInvalidTransition, "That transition is not allowed.",
 			map[string]any{"current_state": cur})
 	}
 
@@ -111,14 +116,14 @@ FOR UPDATE OF asn`, assignmentID, riderAccountID).Scan(
 		if in.OverrideReason != nil && *in.OverrideReason != "" {
 			geofenceOK = false // allowed, but flagged
 		} else if in.Lat == nil || in.Lng == nil || !withinRadius(tx, ctx, in.ToState, *in.Lat, *in.Lng, pickupLat, pickupLng, dropLat, dropLng) {
-			return nil, newError(422, CodeGeofenceRequired,
+			return nil, false, newError(422, CodeGeofenceRequired,
 				"You must be near the location, or supply an override reason.", nil)
 		}
 	}
 
 	// DELIVERED requires the POD artefact recorded in the same lifecycle (D-21).
 	if in.ToState == "DELIVERED" && requiredPod != "" && !podRecorded {
-		return nil, newError(422, CodePodRequired, "Proof of delivery is required before delivering.",
+		return nil, false, newError(422, CodePodRequired, "Proof of delivery is required before delivering.",
 			map[string]any{"required_pod_method": requiredPod})
 	}
 
@@ -156,12 +161,12 @@ FOR UPDATE OF asn`, assignmentID, riderAccountID).Scan(
 		q += ", pickup_wait_seconds = $3"
 		q += " WHERE id = $1"
 		if _, err := tx.Exec(ctx, q, assignmentID, in.ToState, *pickupWait); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	} else {
 		q += " WHERE id = $1"
 		if _, err := tx.Exec(ctx, q, assignmentID, in.ToState); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
@@ -170,7 +175,7 @@ FOR UPDATE OF asn`, assignmentID, riderAccountID).Scan(
 INSERT INTO assignment_transition (assignment_id, from_state, to_state, actor_kind, actor_account_id, reason, at)
 VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 		assignmentID, cur, in.ToState, riderAccountID, in.OverrideReason, occurred); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	_ = geofenceOK // flagged-for-ops signalling is emitted via the outbox in a later slice.
 
@@ -178,7 +183,7 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 	// returns to ONLINE_IDLE, or OFFLINE if they asked to end the shift.
 	if terminalAssignment(in.ToState) {
 		if err := s.restoreAvailabilityTx(ctx, tx, riderAccountID); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		// Advance the dispatch row to COMPLETED on DELIVERED so the rider is no
 		// longer counted as holding a live dispatch. Other terminal reasons leave
@@ -188,15 +193,16 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 UPDATE dispatch SET state = 'COMPLETED', state_since = now(),
                     deadline_at = NULL, deadline_action = NULL
  WHERE order_id = $1 AND rider_account_id = $2`, orderID, riderAccountID); err != nil {
-				return nil, err
+				return nil, false, err
 			}
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return s.LoadAssignment(ctx, riderAccountID, assignmentID)
+	asn, err := s.LoadAssignment(ctx, riderAccountID, assignmentID)
+	return asn, true, err
 }
 
 // restoreAvailabilityTx returns a rider from ON_DELIVERY to ONLINE_IDLE (or

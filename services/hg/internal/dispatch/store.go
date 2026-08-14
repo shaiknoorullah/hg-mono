@@ -146,6 +146,28 @@ func (s *Store) CreateWave(ctx context.Context, o *OrderDispatchInfo, waveNo, ra
 	}
 	defer tx.Rollback(ctx)
 
+	// The dispatch row is the single source of truth for a live delivery and the
+	// load-bearing arbiter of the race-free accept (AcceptOffer locks and guards
+	// on it). A wave cannot exist without it, so upsert it here in SEARCHING —
+	// idempotently, inside the same transaction as the wave — otherwise an order
+	// dispatched only by the backstop sweep (which never creates a dispatch row
+	// otherwise) can never be accepted, and the sweep re-fires wave 1 every tick.
+	//
+	// ON CONFLICT bumps wave/radius on a re-run while the order is still being
+	// searched, but never disturbs a row that has already been ASSIGNED (or is
+	// otherwise past SEARCHING/OFFERED/PENDING): the WHERE guard leaves it intact.
+	if _, err := tx.Exec(ctx, `
+INSERT INTO dispatch (order_id, state, state_since, wave, radius_m, deadline_at, deadline_action)
+VALUES ($1, 'SEARCHING', now(), $2, $3, $4, 'NEXT_WAVE')
+ON CONFLICT (order_id) DO UPDATE
+   SET wave = EXCLUDED.wave, radius_m = EXCLUDED.radius_m,
+       state_since = now(), deadline_at = EXCLUDED.deadline_at, deadline_action = 'NEXT_WAVE'
+ WHERE dispatch.state IN ('PENDING', 'SEARCHING', 'OFFERED')
+   AND dispatch.rider_account_id IS NULL`,
+		o.OrderID, waveNo, radiusM, expiresAt); err != nil {
+		return nil, err
+	}
+
 	var waveID string
 	err = tx.QueryRow(ctx, `
 INSERT INTO dispatch_wave (order_id, wave_no, radius_m, candidates, offers_sent, expires_at)
