@@ -28,12 +28,17 @@ Sans) feeds all four apps; every component is owned code, not an opaque dependen
 - Park UI (Ark), Radix Themes — viable, similar philosophy; smaller ecosystems.
 - MUI / Mantine — batteries-included but opinionated and heavier to re-skin to the brand.
 
-## Data tables
+## Data tables — DECIDED: LyteNyte Grid
 
-**Use the table repo the client specified** (not TanStack Table) for the dense admin queues
-(A-15 halal, refunds, restaurant/rider management). _Pending: the client to re-share the repo
-link — it was referenced but never captured._ Whatever it is, it slots under shadcn's table
-shell on web; the column model + theming map to our tokens the same way.
+**[LyteNyte Grid](https://github.com/1771-Technologies/lytenyte)** by 1771 Technologies — a
+high-performance React data grid — for the dense web consoles (admin A-15 halal queue, refunds,
+restaurant/rider management, order oversight). Native tables aren't needed on the Expo apps
+(those use lists/cards).
+
+- **Packages:** `@1771technologies/lytenyte-core` (Apache-2.0, free) · `@1771technologies/lytenyte-pro` (commercial — adds pivoting, tree views, master-detail, 150+ features).
+- **Styling:** headless _or_ pre-styled with Tailwind / CSS Modules / CSS-in-JS → composes with shadcn and consumes our crimson DTCG tokens directly.
+- **Fit:** virtualization (millions of rows, ~40 KB gz), server-side data + infinite scroll, sorting/filtering/pagination, column pinning/resize/reorder, row selection, cell editing.
+- **Plan:** start on **Core (free)**; revisit **Pro** only if a console needs grouping/pivot/master-detail. Ships **AI Skills for Claude Code** — use them so grid code is statically verified.
 
 ## Icons — DECIDED: Solar
 
