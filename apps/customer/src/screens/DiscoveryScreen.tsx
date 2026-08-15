@@ -28,6 +28,7 @@ import type { Restaurant } from '@hg/ui-native';
 
 import { api } from '../api/client';
 import { useNavigation } from '../navigation/stack';
+import { CustomerTabBar } from '../navigation/TabBar';
 
 type Status =
   | { kind: 'loading' }
@@ -61,12 +62,15 @@ export function DiscoveryScreen(): React.ReactElement {
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
       <AppBar title="Discover" subtitle="Halal-certified, near you" />
-      <Body
-        status={status}
-        onRetry={load}
-        onOpen={(id) => nav.push({ name: 'restaurant', restaurantId: id })}
-        bottomInset={insets.bottom}
-      />
+      <View style={{ flex: 1 }}>
+        <Body
+          status={status}
+          onRetry={load}
+          onOpen={(id) => nav.push({ name: 'restaurant', restaurantId: id })}
+          bottomInset={insets.bottom}
+        />
+      </View>
+      <CustomerTabBar active="discovery" />
     </View>
   );
 }

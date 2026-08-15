@@ -14,12 +14,18 @@ importers:
 
   apps/admin:
     dependencies:
+      '@1771technologies/lytenyte-core':
+        specifier: ^2.2.1
+        version: 2.2.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@hg/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
       '@hg/ui-web':
         specifier: workspace:*
         version: link:../../packages/ui-web
+      mapbox-gl:
+        specifier: ^3.9.0
+        version: 3.28.1
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -39,6 +45,9 @@ importers:
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@types/mapbox-gl':
+        specifier: ^3.4.1
+        version: 3.5.0
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
@@ -198,6 +207,58 @@ importers:
       vitest:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.33.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
+
+  apps/restaurant:
+    dependencies:
+      '@hg/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@radix-ui/react-dialog':
+        specifier: ^1.1.4
+        version: 1.1.23(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@radix-ui/react-switch':
+        specifier: ^1.1.2
+        version: 1.3.7(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@radix-ui/react-tabs':
+        specifier: ^1.1.2
+        version: 1.1.21(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@radix-ui/react-toast':
+        specifier: ^1.2.4
+        version: 1.2.23(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react:
+        specifier: 19.1.0
+        version: 19.1.0
+      react-dom:
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
+      react-router-dom:
+        specifier: ^7.1.1
+        version: 7.18.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.3.3
+        version: 4.3.3(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0))
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.4
+        version: 19.2.4(@types/react@19.2.18)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.4
+        version: 4.7.0(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0))
+      openapi-fetch:
+        specifier: ^0.17.0
+        version: 0.17.0
+      tailwindcss:
+        specifier: ^4.1.14
+        version: 4.3.3
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vite:
+        specifier: ^7.0.0
+        version: 7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
 
   apps/restaurant-web:
     dependencies:
@@ -555,6 +616,24 @@ packages:
     peerDependenciesMeta:
       graphql:
         optional: true
+
+  '@1771technologies/dom-utils@2.2.1':
+    resolution: {integrity: sha512-ldyAc5bWIKSp4OdCf2JSgL56G7cqAWPHoYT15dLReTsT9XySVLr8sZPVufOIunBImQuYPFfcqWMUm/VTpUYsgQ==}
+
+  '@1771technologies/js-utils@2.2.1':
+    resolution: {integrity: sha512-JYZGnRF6WjI+Y1eW0Xp3KRFR+TzDla5fJNHCJ7fCD30K+4zy+UygAaynsONHiK7+vp18qE5wrx7zN7QNTy2cOw==}
+
+  '@1771technologies/lytenyte-core@2.2.1':
+    resolution: {integrity: sha512-hT4Y12n0J3GXQNjGn2M1IOG7fb8p+QFfDFhMCUocEFaPlZ/ZbjGk0v6cdNGneVziTTMcHf7YnYy1Z2POUwHxvg==}
+    peerDependencies:
+      react: 18.0.0 || ^19.0.0
+      react-dom: 18.0.0 || ^19.0.0
+
+  '@1771technologies/lytenyte-design@2.2.1':
+    resolution: {integrity: sha512-aeTn6Yy2aV5GTRh03s0nd5V3/NoXtCfeCDRb8X1Zc4dwvobD6a43g/mdmzYVOUrdEXMUtHGMhO9F0zD3ukYgjg==}
+
+  '@1771technologies/lytenyte-shared@2.2.1':
+    resolution: {integrity: sha512-egnfV1IHXBnAuGK5FzjwiDddbe1mkh1SoPXnJM5vy7U/P+vKhXb9VS8Xp8qosVafGR3zq4Q1mK90mjM/Z8nJzA==}
 
   '@adobe/css-tools@4.5.0':
     resolution: {integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==}
@@ -2518,6 +2597,10 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
+  '@types/mapbox-gl@3.5.0':
+    resolution: {integrity: sha512-3wVAUTC6q1UKatLP9YxFBnGJWi3neJUF9OKeyRdUf/BsYjZAP35xmZkL4zogVJbO3vdExuSVYCAkzUXjpjdhOg==}
+    deprecated: This is a stub types definition. mapbox-gl provides its own type definitions, so you do not need this installed.
+
   '@types/mime@1.3.5':
     resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
 
@@ -4413,6 +4496,9 @@ packages:
   makeerror@1.0.12:
     resolution: {integrity: sha512-JmqCvUhmt43madlpFzG4BQzG2Z3m6tvQDNKdClZnO3VbIudJYmxsT0FNJMeiB2+JTSlTQTSbU8QdesVmwJcmLg==}
 
+  mapbox-gl@3.28.1:
+    resolution: {integrity: sha512-f8bCHFzZ51bKig7rnD7e08aoFLOV3MNFZduspZ4lgOgiaNVp9sw4NSWcgo3IWTyekYKKXjiICD2BP2o4DiYfxw==}
+
   marky@1.3.0:
     resolution: {integrity: sha512-ocnPZQLNpvbedwTy9kNrQEsknEfgvcLMvOtz3sFeWApDq1MXH1TqkCIx58xlpESsfwQOnuBO9beyQuNGzVvuhQ==}
 
@@ -6031,6 +6117,28 @@ snapshots:
 
   '@0no-co/graphql.web@1.3.3': {}
 
+  '@1771technologies/dom-utils@2.2.1':
+    dependencies:
+      '@1771technologies/js-utils': 2.2.1
+
+  '@1771technologies/js-utils@2.2.1': {}
+
+  '@1771technologies/lytenyte-core@2.2.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@1771technologies/dom-utils': 2.2.1
+      '@1771technologies/js-utils': 2.2.1
+      '@1771technologies/lytenyte-design': 2.2.1
+      '@1771technologies/lytenyte-shared': 2.2.1
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
+  '@1771technologies/lytenyte-design@2.2.1': {}
+
+  '@1771technologies/lytenyte-shared@2.2.1':
+    dependencies:
+      '@1771technologies/dom-utils': 2.2.1
+      '@1771technologies/js-utils': 2.2.1
+
   '@adobe/css-tools@4.5.0': {}
 
   '@alloc/quick-lru@5.2.0': {}
@@ -7091,7 +7199,7 @@ snapshots:
       postcss: 8.4.49
       resolve-from: 5.0.0
     optionalDependencies:
-      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -7171,7 +7279,7 @@ snapshots:
       '@expo/json-file': 10.2.0
       '@react-native/normalize-colors': 0.81.5
       debug: 4.4.3(supports-color@10.2.2)
-      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       resolve-from: 5.0.0
       semver: 7.8.5
       xml2js: 0.6.0
@@ -8508,6 +8616,10 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/mapbox-gl@3.5.0':
+    dependencies:
+      mapbox-gl: 3.28.1
+
   '@types/mime@1.3.5': {}
 
   '@types/node@22.20.1':
@@ -8937,7 +9049,7 @@ snapshots:
       resolve-from: 5.0.0
     optionalDependencies:
       '@babel/runtime': 7.29.7
-      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
@@ -9625,7 +9737,7 @@ snapshots:
 
   expo-keep-awake@15.0.8(expo@54.0.36)(react@19.1.0):
     dependencies:
-      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       react: 19.1.0
 
   expo-modules-autolinking@3.0.26:
@@ -10738,6 +10850,8 @@ snapshots:
   makeerror@1.0.12:
     dependencies:
       tmpl: 1.0.5
+
+  mapbox-gl@3.28.1: {}
 
   marky@1.3.0: {}
 

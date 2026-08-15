@@ -23,7 +23,36 @@ const _assignment = () =>
   );
 const _availability = () =>
   unwrap(clientFor().PUT('/v1/riders/me/availability', { body: { is_online: true } }));
+const _onboardingStatus = () => unwrap(clientFor().GET('/v1/riders/me/onboarding/status'));
+const _documents = () => unwrap(clientFor().GET('/v1/riders/me/documents'));
+const _profile = () =>
+  unwrap(
+    clientFor().POST('/v1/riders/me/onboarding/profile', {
+      body: { first_name: '', last_name: '', date_of_birth: '2000-01-01' },
+    }),
+  );
+const _vehicle = () =>
+  unwrap(
+    clientFor().POST('/v1/riders/me/onboarding/vehicle', { body: { vehicle_type: 'BICYCLE' } }),
+  );
+const _earningsSummary = () =>
+  unwrap(clientFor().GET('/v1/riders/me/earnings/summary', { params: { query: { period: 'WEEK' } } }));
+const _earningEntries = () => unwrap(clientFor().GET('/v1/riders/me/earnings/entries'));
+const _payouts = () => unwrap(clientFor().GET('/v1/riders/me/payouts'));
+const _payoutDetail = () =>
+  unwrap(
+    clientFor().GET('/v1/riders/me/payouts/{payoutId}', { params: { path: { payoutId: '' } } }),
+  );
 
 export type DispatchOffer = NonNullable<Awaited<ReturnType<typeof _offer>>['data']>;
 export type Assignment = NonNullable<Awaited<ReturnType<typeof _assignment>>['data']>;
 export type RiderAvailability = NonNullable<Awaited<ReturnType<typeof _availability>>['data']>;
+export type RiderOnboardingStatus = Awaited<ReturnType<typeof _onboardingStatus>>['data'];
+export type KycDocument = RiderOnboardingStatus['documents'][number];
+export type RiderDocumentList = Awaited<ReturnType<typeof _documents>>['data'];
+export type RiderProfile = Awaited<ReturnType<typeof _profile>>['data'];
+export type RiderVehicle = Awaited<ReturnType<typeof _vehicle>>['data'];
+export type EarningsSummary = Awaited<ReturnType<typeof _earningsSummary>>['data'];
+export type EarningEntry = Awaited<ReturnType<typeof _earningEntries>>['data'][number];
+export type Payout = Awaited<ReturnType<typeof _payouts>>['data'][number];
+export type PayoutDetail = Awaited<ReturnType<typeof _payoutDetail>>['data'];

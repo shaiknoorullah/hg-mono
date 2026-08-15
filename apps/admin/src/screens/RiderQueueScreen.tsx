@@ -1,11 +1,7 @@
 /**
- * The restaurant onboarding review queue — `GET /v1/admin/restaurant-applications`
- * (`operationId: listRestaurantApplications`, A-13). FIFO by `submitted_at`.
- *
- * Rendered with the LyteNyte-backed `KeysetGrid`: `contracts/openapi.yaml` documents keyset
- * — not offset — as "one scheme everywhere", so paging is a cursor stack
- * (`useCursorPagination`) and each page is handed to LyteNyte as its own client data source.
- * Loading, error and empty are the grid's own states.
+ * The rider onboarding review queue — `GET /v1/admin/rider-applications`
+ * (`operationId: listRiderApplications`, A-23). "Structurally identical to the restaurant
+ * queue, with the rider document set" (contract description) — same LyteNyte keyset grid.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,29 +10,24 @@ import { HgApiError, isApiError } from '@hg/api-client';
 import { Chip, useCursorPagination, type PageMeta } from '@hg/ui-web';
 
 import { api } from '../lib/api.js';
-import { formatTimestamp } from '../lib/format.js';
+import { formatTimestamp, enumLabel } from '../lib/format.js';
 import { KeysetGrid, type GridColumn } from '../components/KeysetGrid.js';
 
-type ApplicationRow = Schema['RestaurantApplicationSummary'];
+type RiderApplicationRow = Schema['RiderApplicationSummary'];
 
 interface QueueState {
   status: 'loading' | 'ready' | 'error';
-  rows: readonly ApplicationRow[];
+  rows: readonly RiderApplicationRow[];
   meta: PageMeta | null;
   error: { code: string; message: string } | null;
 }
 
-const SLA_TONE: Record<'on-track' | 'breached', 'neutral' | 'warning'> = {
-  'on-track': 'neutral',
-  breached: 'warning',
-};
-
-function slaChip(row: ApplicationRow) {
+function slaChip(row: RiderApplicationRow) {
   const breached = row.sla_due_at ? new Date(row.sla_due_at).getTime() < Date.now() : false;
-  return <Chip label={breached ? 'SLA breached' : 'On track'} tone={SLA_TONE[breached ? 'breached' : 'on-track']} />;
+  return <Chip label={breached ? 'SLA breached' : 'On track'} tone={breached ? 'warning' : 'neutral'} />;
 }
 
-export function OnboardingQueueScreen() {
+export function RiderQueueScreen() {
   const navigate = useNavigate();
   const pagination = useCursorPagination();
   const [state, setState] = useState<QueueState>({ status: 'loading', rows: [], meta: null, error: null });
@@ -44,7 +35,7 @@ export function OnboardingQueueScreen() {
   const load = useCallback(async () => {
     setState((prev) => ({ ...prev, status: 'loading', error: null }));
     try {
-      const { data, error, response } = await api.GET('/v1/admin/restaurant-applications', {
+      const { data, error, response } = await api.GET('/v1/admin/rider-applications', {
         params: { query: { limit: pagination.limit, cursor: pagination.cursor ?? undefined } },
       });
       if (error || !data) throw new HgApiError(response.status, error as never);
@@ -60,30 +51,25 @@ export function OnboardingQueueScreen() {
     void load();
   }, [load]);
 
-  const columns: readonly GridColumn<ApplicationRow>[] = [
-    { id: 'display_name', name: 'Restaurant', width: 220, render: (row) => row.display_name },
-    {
-      id: 'city',
-      name: 'City',
-      width: 160,
-      render: (row) => [row.city, row.province].filter(Boolean).join(', ') || '—',
-    },
+  const columns: readonly GridColumn<RiderApplicationRow>[] = [
+    { id: 'display_name', name: 'Rider', width: 220, render: (row) => row.display_name },
+    { id: 'vehicle_type', name: 'Vehicle', width: 140, render: (row) => enumLabel(row.vehicle_type) },
     { id: 'onboarding_state', name: 'State', width: 160, render: (row) => row.onboarding_state },
-    { id: 'submission_count', name: 'Submissions', width: 110, render: (row) => String(row.submission_count ?? 0) },
+    { id: 'attempt_number', name: 'Attempt', width: 100, render: (row) => String(row.attempt_number ?? 1) },
     { id: 'submitted_at', name: 'Submitted', width: 180, render: (row) => formatTimestamp(row.submitted_at) },
     { id: 'sla_due_at', name: 'SLA', width: 150, render: (row) => slaChip(row) },
   ];
 
   return (
-    <section aria-labelledby="queue-heading" className="adm-stack">
-      <h1 id="queue-heading" className="text-title-md text-fg-primary mb-1">
-        Restaurant onboarding queue
+    <section aria-labelledby="rider-queue-heading" className="adm-stack">
+      <h1 id="rider-queue-heading" className="text-title-md text-fg-primary mb-1">
+        Rider onboarding queue
       </h1>
       <p className="text-body-md text-fg-secondary mb-4">
-        Applications awaiting review, oldest first. Click a row to open the full review.
+        Rider applications awaiting review, oldest first. Click a row to open the full review.
       </p>
 
-      <KeysetGrid<ApplicationRow>
+      <KeysetGrid<RiderApplicationRow>
         columns={columns}
         rows={state.rows}
         meta={state.meta}
@@ -91,11 +77,11 @@ export function OnboardingQueueScreen() {
         loading={state.status === 'loading'}
         error={state.status === 'error' ? state.error : null}
         onRetry={() => void load()}
-        getRowId={(row) => row.restaurant_id}
-        onRowActivate={(row) => navigate(`/applications/${row.restaurant_id}`)}
+        getRowId={(row) => row.rider_account_id}
+        onRowActivate={(row) => navigate(`/riders/${row.rider_account_id}`)}
         unit="applications"
         emptyTitle="Queue is empty"
-        emptyDescription="No restaurant applications are waiting on review right now."
+        emptyDescription="No rider applications are waiting on review right now."
       />
     </section>
   );

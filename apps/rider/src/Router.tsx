@@ -13,6 +13,11 @@ import { RiderHome } from './RiderHome';
 import { AvailabilityScreen } from './screens/AvailabilityScreen';
 import { OfferScreen } from './screens/OfferScreen';
 import { AssignmentScreen } from './screens/AssignmentScreen';
+import { OnboardingScreen } from './screens/OnboardingScreen';
+import { EarningsScreen } from './screens/EarningsScreen';
+import { PayoutDetailScreen } from './screens/PayoutDetailScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
+import { DeliveryHistoryScreen } from './screens/DeliveryHistoryScreen';
 
 export function Router(): React.ReactElement {
   const { current } = useNav();
@@ -30,6 +35,16 @@ export function Router(): React.ReactElement {
           scenario={current.params.scenario}
         />
       );
+    case 'onboarding':
+      return <OnboardingScreen />;
+    case 'earnings':
+      return <EarningsScreen initialTab={current.params.tab} />;
+    case 'payoutDetail':
+      return <PayoutDetailScreen payoutId={current.params.payoutId} />;
+    case 'profile':
+      return <ProfileScreen />;
+    case 'deliveries':
+      return <DeliveryHistoryScreen />;
     default:
       return <RiderHome />;
   }

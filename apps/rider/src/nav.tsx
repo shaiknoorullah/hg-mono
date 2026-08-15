@@ -17,6 +17,11 @@ export type RiderRoutes = {
   availability: undefined;
   offer: undefined;
   assignment: { assignmentId: string; scenario?: string };
+  onboarding: undefined;
+  earnings: { tab?: 'summary' | 'entries' | 'payouts' };
+  payoutDetail: { payoutId: string };
+  profile: undefined;
+  deliveries: undefined;
 };
 
 export type ScreenName = keyof RiderRoutes;

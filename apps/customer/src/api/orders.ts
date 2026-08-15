@@ -19,11 +19,15 @@ import { idempotencyKey, unwrap } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 
 import { api } from './client';
+import { addToCart } from './cart';
 
 export type Quote = Schema['Quote'];
 export type Fulfilment = Schema['Fulfilment'];
 export type OrderCreated = Schema['OrderCreated'];
 export type OrderCustomerView = Schema['OrderCustomerView'];
+export type OrderSummary = Schema['OrderSummary'];
+export type OrderStatusGroup = Schema['OrderStatusGroup'];
+export type PageMeta = Schema['PageMeta'];
 
 export async function createQuote(input: {
   cartId: string;
@@ -64,4 +68,50 @@ export async function getOrder(orderId: string): Promise<OrderCustomerView> {
     api.GET('/v1/orders/{orderId}', { params: { path: { orderId } } }),
   );
   return body.data as unknown as OrderCustomerView;
+}
+
+/**
+ * The customer's order history (C-26 adjacent). `status_group` narrows to `ACTIVE` or `PAST`;
+ * omitted, the mock's default fixture serves a mixed page. Keyset-paged via `meta.next_cursor` —
+ * never an offset — per `Cursor` in the contract.
+ */
+export async function listOrders(input?: {
+  statusGroup?: OrderStatusGroup;
+  cursor?: string | null;
+}): Promise<{ orders: OrderSummary[]; meta: PageMeta }> {
+  const body = await unwrap(
+    api.GET('/v1/orders', {
+      params: {
+        query: {
+          limit: 20,
+          ...(input?.cursor ? { cursor: input.cursor } : {}),
+          ...(input?.statusGroup ? { status_group: input.statusGroup } : {}),
+        },
+      },
+    }),
+  );
+  return {
+    orders: body.data as unknown as OrderSummary[],
+    meta: body.meta as unknown as PageMeta,
+  };
+}
+
+/**
+ * One-tap reorder (no dedicated endpoint in the contract): re-adds every line of a past order
+ * to the cart via the same `POST /v1/cart/lines` the restaurant screen uses, one call per line
+ * so a since-removed item fails independently rather than aborting the whole reorder. Add-ons
+ * and special requests are not replayed — the contract's `addCartLine` takes a bare
+ * `menu_item_id` + `quantity`, so a reorder restores the base items only.
+ */
+export async function reorder(orderId: string): Promise<{ failedLines: string[] }> {
+  const order = await getOrder(orderId);
+  const failedLines: string[] = [];
+  for (const line of order.lines) {
+    try {
+      await addToCart(line.menu_item_id, line.quantity);
+    } catch {
+      failedLines.push(line.name);
+    }
+  }
+  return { failedLines };
 }

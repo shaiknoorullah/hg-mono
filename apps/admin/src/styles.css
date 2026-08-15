@@ -93,4 +93,131 @@
     flex-direction: column;
     gap: var(--hg-space-1);
   }
+
+  /* Health pill: HEALTHY / WATCH / AT_RISK — outline + tint, never a solid fill. */
+  .adm-health-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--hg-space-2);
+    padding: var(--hg-space-1) var(--hg-space-3);
+    border-radius: 999px;
+    border: 1px solid var(--hg-border-decorative);
+    color: var(--hg-text-secondary);
+    background-color: var(--hg-surface-base);
+  }
+
+  .adm-health-dot {
+    inline-size: 8px;
+    block-size: 8px;
+    border-radius: 999px;
+    background-color: currentColor;
+  }
+
+  .adm-health-pill[data-level='HEALTHY'] {
+    border-color: var(--hg-feedback-success-border);
+    color: var(--hg-feedback-success-text);
+    background-color: var(--hg-feedback-success-tint);
+  }
+
+  .adm-health-pill[data-level='WATCH'] {
+    border-color: var(--hg-feedback-warning-border);
+    color: var(--hg-feedback-warning-text);
+    background-color: var(--hg-feedback-warning-tint);
+  }
+
+  .adm-health-pill[data-level='AT_RISK'] {
+    border-color: var(--hg-feedback-danger-border);
+    color: var(--hg-feedback-danger-text);
+    background-color: var(--hg-feedback-danger-tint);
+  }
+
+  /* Two-column order-detail layout — left: live map + parties, right: timeline/money/actions. */
+  .adm-order-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--hg-space-6);
+    align-items: start;
+  }
+
+  @media (min-width: 960px) {
+    .adm-order-layout {
+      grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    }
+  }
+
+  .adm-map-box {
+    position: relative;
+    inline-size: 100%;
+    block-size: 16rem;
+    border-radius: var(--hg-radius-md, var(--hg-radius-sm));
+    border: 1px solid var(--hg-border-decorative);
+    overflow: hidden;
+    background-color: var(--hg-surface-sunken);
+  }
+
+  .adm-map-box[data-expanded='true'] {
+    block-size: 28rem;
+  }
+
+  .adm-map-canvas {
+    position: absolute;
+    inset: 0;
+  }
+
+  .adm-map-eta {
+    position: absolute;
+    inset-block-start: var(--hg-space-3);
+    inset-inline-start: var(--hg-space-3);
+    padding: var(--hg-space-1) var(--hg-space-3);
+    border-radius: var(--hg-radius-sm);
+    background-color: var(--hg-surface-base);
+    border: 1px solid var(--hg-border-decorative);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  }
+
+  .adm-map-expand {
+    position: absolute;
+    inset-block-start: var(--hg-space-3);
+    inset-inline-end: var(--hg-space-3);
+  }
+
+  .adm-party-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--hg-space-2);
+    padding: var(--hg-space-3);
+    border-radius: var(--hg-radius-sm);
+    border: 1px solid var(--hg-border-decorative);
+  }
+
+  .adm-party-actions {
+    display: flex;
+    gap: var(--hg-space-2);
+  }
+
+  .adm-grid-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: var(--hg-space-3);
+  }
+
+  .adm-grid-box {
+    border: 1px solid var(--hg-border-decorative);
+    border-radius: var(--hg-radius-sm);
+    overflow: hidden;
+  }
+
+  .adm-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: var(--hg-space-3);
+    align-items: start;
+  }
+
+  .adm-form-actions {
+    display: flex;
+    gap: var(--hg-space-3);
+    align-items: center;
+  }
 }

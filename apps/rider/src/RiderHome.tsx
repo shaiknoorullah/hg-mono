@@ -275,6 +275,32 @@ function RiderPanel({
         </View>
       </Card>
 
+      {!onboardingActive ? (
+        <Card variant="outlined">
+          <View style={{ gap: theme.target.spacing }}>
+            <Badge label="Verification incomplete" variant="warning" size="md" />
+            <Button variant="primary" size="lg" fullWidth onPress={() => nav.push('onboarding', undefined)}>
+              Continue onboarding
+            </Button>
+          </View>
+        </Card>
+      ) : null}
+
+      <Card>
+        <View style={{ gap: theme.target.spacing }}>
+          <Text style={{ ...caption, color: theme.color.text.secondary }}>ACCOUNT</Text>
+          <Button variant="secondary" size="lg" fullWidth onPress={() => nav.push('earnings', { tab: 'summary' })}>
+            Earnings & payouts
+          </Button>
+          <Button variant="secondary" size="lg" fullWidth onPress={() => nav.push('deliveries', undefined)}>
+            Delivery history
+          </Button>
+          <Button variant="secondary" size="lg" fullWidth onPress={() => nav.push('profile', undefined)}>
+            Profile & documents
+          </Button>
+        </View>
+      </Card>
+
       <Button variant="secondary" size="lg" fullWidth onPress={onRefresh}>
         Refresh
       </Button>

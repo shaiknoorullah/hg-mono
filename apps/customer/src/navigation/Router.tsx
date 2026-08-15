@@ -12,6 +12,12 @@ import { RestaurantScreen } from '../screens/RestaurantScreen';
 import { CartScreen } from '../screens/CartScreen';
 import { CheckoutScreen } from '../screens/CheckoutScreen';
 import { TrackingScreen } from '../screens/TrackingScreen';
+import { OrdersScreen } from '../screens/OrdersScreen';
+import { RateOrderScreen } from '../screens/RateOrderScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+import { AddressesScreen } from '../screens/AddressesScreen';
+import { AddressFormScreen } from '../screens/AddressFormScreen';
 import { NavigationProvider } from './stack';
 import type { Route } from './stack';
 
@@ -27,6 +33,18 @@ function screenFor(route: Route): React.ReactElement {
       return <CheckoutScreen />;
     case 'tracking':
       return <TrackingScreen orderId={route.orderId} />;
+    case 'orders':
+      return <OrdersScreen />;
+    case 'rateOrder':
+      return <RateOrderScreen orderId={route.orderId} />;
+    case 'notifications':
+      return <NotificationsScreen />;
+    case 'profile':
+      return <ProfileScreen />;
+    case 'addresses':
+      return <AddressesScreen />;
+    case 'addressForm':
+      return <AddressFormScreen addressId={route.addressId} />;
     default: {
       // Exhaustiveness: a new route with no case is a compile error here.
       const _never: never = route;
@@ -53,6 +71,10 @@ function routeKey(route: Route): string {
       return `restaurant:${route.restaurantId}`;
     case 'tracking':
       return `tracking:${route.orderId}`;
+    case 'rateOrder':
+      return `rateOrder:${route.orderId}`;
+    case 'addressForm':
+      return `addressForm:${route.addressId ?? 'new'}`;
     default:
       return route.name;
   }

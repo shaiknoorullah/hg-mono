@@ -17,10 +17,56 @@ import type { Schema } from '@hg/api-client';
 import { api } from './client';
 
 export type Address = Schema['Address'];
+export type AddressInput = Schema['AddressInput'];
+export type AddressUpdateInput = Schema['AddressUpdateInput'];
 
 export async function listAddresses(): Promise<Address[]> {
   const body = await unwrap(api.GET('/v1/addresses'));
   return body.data as unknown as Address[];
+}
+
+export async function getAddress(addressId: string): Promise<Address> {
+  const body = await unwrap(api.GET('/v1/addresses/{addressId}', { params: { path: { addressId } } }));
+  return body.data as unknown as Address;
+}
+
+/**
+ * C-30. `latitude`/`longitude` are required by the contract and normally come from the map
+ * picker; this app has no map-picker UI yet (the checkout seed carries the same note), so the
+ * address form geocodes nothing and pins every new address to the same served (Ontario) point
+ * the seed uses. The form itself still collects and sends every other field for real.
+ */
+const UNPICKED_POINT = { latitude: 43.6534, longitude: -79.3841 };
+
+export async function createAddress(input: Omit<AddressInput, 'latitude' | 'longitude'>): Promise<Address> {
+  const body = await unwrap(
+    api.POST('/v1/addresses', {
+      params: { header: { 'Idempotency-Key': idempotencyKey() } },
+      body: { ...input, ...UNPICKED_POINT },
+    }),
+  );
+  return body.data as unknown as Address;
+}
+
+export async function updateAddress(
+  addressId: string,
+  input: Omit<AddressUpdateInput, 'latitude' | 'longitude'>,
+): Promise<Address> {
+  const body = await unwrap(
+    api.PATCH('/v1/addresses/{addressId}', { params: { path: { addressId } }, body: input }),
+  );
+  return body.data as unknown as Address;
+}
+
+export async function deleteAddress(addressId: string): Promise<void> {
+  await unwrap(api.DELETE('/v1/addresses/{addressId}', { params: { path: { addressId } } }));
+}
+
+export async function setDefaultAddress(addressId: string): Promise<Address> {
+  const body = await unwrap(
+    api.POST('/v1/addresses/{addressId}/default', { params: { path: { addressId } } }),
+  );
+  return body.data as unknown as Address;
 }
 
 async function createDefaultAddress(): Promise<Address> {

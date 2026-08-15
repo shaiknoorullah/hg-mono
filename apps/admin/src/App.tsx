@@ -6,6 +6,12 @@ import { OnboardingQueueScreen } from './screens/OnboardingQueueScreen';
 import { ApplicationDetailScreen } from './screens/ApplicationDetailScreen';
 import { HalalVerificationScreen } from './screens/HalalVerificationScreen';
 import { StaffListScreen } from './screens/StaffListScreen';
+import { RiderQueueScreen } from './screens/RiderQueueScreen';
+import { RiderApplicationDetailScreen } from './screens/RiderApplicationDetailScreen';
+import { OrdersAdminScreen } from './screens/OrdersAdminScreen';
+import { OrderDetailScreen } from './screens/OrderDetailScreen';
+import { RefundCasesScreen } from './screens/RefundCasesScreen';
+import { DependencyDashboardScreen } from './screens/DependencyDashboardScreen';
 import { login, logout } from './lib/auth';
 import { isAuthed, subscribe } from './lib/token';
 
@@ -22,7 +28,11 @@ import { isAuthed, subscribe } from './lib/token';
  * (`POST /v1/auth/login` returns 401 MFA_REQUIRED without a `totp_code`).
  */
 const NAV = [
-  { to: '/', label: 'Onboarding queue' },
+  { to: '/', label: 'Restaurants' },
+  { to: '/riders', label: 'Riders' },
+  { to: '/orders', label: 'Orders' },
+  { to: '/refunds', label: 'Refunds & disputes' },
+  { to: '/system', label: 'System' },
   { to: '/staff', label: 'Staff' },
 ] as const;
 
@@ -146,6 +156,12 @@ function AppShell() {
             path="/certificates/:certificateId"
             element={<HalalVerificationScreen />}
           />
+          <Route path="/riders" element={<RiderQueueScreen />} />
+          <Route path="/riders/:riderAccountId" element={<RiderApplicationDetailScreen />} />
+          <Route path="/orders" element={<OrdersAdminScreen />} />
+          <Route path="/orders/:orderId" element={<OrderDetailScreen />} />
+          <Route path="/refunds" element={<RefundCasesScreen />} />
+          <Route path="/system" element={<DependencyDashboardScreen />} />
           <Route path="/staff" element={<StaffListScreen />} />
         </Routes>
       </main>

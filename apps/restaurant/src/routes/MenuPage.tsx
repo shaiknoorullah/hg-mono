@@ -4,8 +4,9 @@ import { isApiError, type Schema } from '@hg/api-client';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
 import { useAsync } from '../lib/useAsync';
 import { Button, Card, Chip, EmptyState, ErrorState, PageLoading } from '../components/primitives';
-import { IconMenuBook, IconPlus } from '../lib/icons';
+import { IconEdit, IconMenuBook, IconPlus } from '../lib/icons';
 import { AddItemDialog } from '../components/AddItemDialog';
+import { EditItemDialog, type EditableMenuItem } from '../components/EditItemDialog';
 
 /**
  * See the note in `OrdersPage.tsx`: values read back through `unwrapOrThrow` lose the
@@ -21,6 +22,7 @@ export function MenuPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editItem, setEditItem] = useState<EditableMenuItem | null>(null);
 
   const categories = data?.categories ?? [];
   const selected = useMemo(
@@ -114,6 +116,12 @@ export function MenuPage() {
                     {item.availability_state === 'BLOCKED' && <Chip tone="danger">Blocked by admin</Chip>}
                     {item.availability_state === 'HIDDEN' && <Chip tone="neutral">Hidden</Chip>}
                     {item.dietary_tags?.includes('HALAL_CERTIFIED') && <Chip tone="halal">Halal certified</Chip>}
+                    {item.pending_version && <Chip tone="warning">Edit pending review</Chip>}
+                    {(item.variant_groups?.length ?? 0) > 0 && (
+                      <Chip tone="neutral">
+                        {item.variant_groups!.length} variant group{item.variant_groups!.length === 1 ? '' : 's'}
+                      </Chip>
+                    )}
                   </div>
                   <p className="truncate text-[12.5px] text-[var(--ink2)]">{item.description}</p>
                   <p className="mt-1 text-[13px] font-extrabold text-[var(--ink)]">{money(item.price_cents)}</p>
@@ -130,6 +138,13 @@ export function MenuPage() {
                   >
                     <Switch.Thumb className="block h-5 w-5 translate-x-0.5 rounded-full bg-white shadow-[var(--shadow-1)] transition-transform duration-200 data-[state=checked]:translate-x-[22px]" />
                   </Switch.Root>
+                  <button
+                    onClick={() => setEditItem(item)}
+                    className="rounded-[var(--r-sm)] p-2 text-[var(--ink3)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-[var(--ink)]"
+                    aria-label={`Edit ${item.name}`}
+                  >
+                    <IconEdit size={16} />
+                  </button>
                 </div>
               </Card>
             ))}
@@ -143,6 +158,17 @@ export function MenuPage() {
           onClose={() => setAddOpen(false)}
           onCreated={() => {
             setAddOpen(false);
+            reload();
+          }}
+        />
+      )}
+
+      {editItem && (
+        <EditItemDialog
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onSaved={() => {
+            setEditItem(null);
             reload();
           }}
         />

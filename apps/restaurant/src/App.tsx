@@ -6,6 +6,9 @@ import { OnboardingPage } from './routes/onboarding/OnboardingPage';
 import { OrdersPage } from './routes/OrdersPage';
 import { MenuPage } from './routes/MenuPage';
 import { HoursPage } from './routes/HoursPage';
+import { PayoutsPage } from './routes/PayoutsPage';
+import { StaffPage } from './routes/StaffPage';
+import { SettingsPage } from './routes/SettingsPage';
 import { Shell } from './components/Shell';
 import type { ReactNode } from 'react';
 
@@ -38,6 +41,9 @@ export function App() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/hours" element={<HoursPage />} />
+          <Route path="/payouts" element={<PayoutsPage />} />
+          <Route path="/staff" element={<StaffPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to={isSignedIn() ? '/orders' : '/login'} replace />} />
       </Routes>

@@ -224,6 +224,55 @@ export function IconEmpty(props: IconProps) {
   );
 }
 
+export function IconWallet(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M4 8.2A2.2 2.2 0 0 1 6.2 6h11.6A2.2 2.2 0 0 1 20 8.2v8.6a2.2 2.2 0 0 1-2.2 2.2H6.2A2.2 2.2 0 0 1 4 16.8V8.2Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path d="M14.5 13.1a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3Z" fill="currentColor" />
+      <path d="M4 9.6h16" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+export function IconUsers(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="9" cy="8.2" r="3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3.8 19c.4-3 2.6-5 5.2-5s4.8 2 5.2 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M15.2 5.6a3 3 0 0 1 0 5.9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M15.6 14.2c2.2.4 3.9 2.2 4.2 4.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconSettings(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="3.1" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M12 4.2v1.9M12 17.9v1.9M19.8 12h-1.9M6.1 12H4.2M17.4 6.6l-1.35 1.35M7.95 16.05 6.6 17.4M17.4 17.4l-1.35-1.35M7.95 7.95 6.6 6.6"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function IconTrash(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 7h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M9.5 7V5.3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V7" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M7 7l.8 11.2a1.6 1.6 0 0 0 1.6 1.5h5.2a1.6 1.6 0 0 0 1.6-1.5L17 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function IconLogout(props: IconProps) {
   return (
     <svg {...base(props)}>

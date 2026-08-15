@@ -19,7 +19,13 @@ export type Route =
   | { name: 'restaurant'; restaurantId: string }
   | { name: 'cart' }
   | { name: 'checkout' }
-  | { name: 'tracking'; orderId: string };
+  | { name: 'tracking'; orderId: string }
+  | { name: 'orders' }
+  | { name: 'rateOrder'; orderId: string }
+  | { name: 'notifications' }
+  | { name: 'profile' }
+  | { name: 'addresses' }
+  | { name: 'addressForm'; addressId: string | null };
 
 export type RouteName = Route['name'];
 

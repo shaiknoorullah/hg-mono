@@ -1,13 +1,20 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { IconQueue, IconMenuBook, IconStore, IconLogout } from '../lib/icons';
+import { IconQueue, IconMenuBook, IconStore, IconWallet, IconUsers, IconSettings, IconLogout } from '../lib/icons';
 import { cx } from './primitives';
 
 const NAV = [
   { to: '/orders', label: 'Orders', icon: IconQueue },
   { to: '/menu', label: 'Menu', icon: IconMenuBook },
   { to: '/hours', label: 'Hours', icon: IconStore },
+  { to: '/payouts', label: 'Payouts', icon: IconWallet },
+  { to: '/staff', label: 'Staff', icon: IconUsers },
+  { to: '/settings', label: 'Settings', icon: IconSettings },
 ];
+
+// The mobile bottom pill keeps only the highest-frequency destinations — six items in a
+// thumb-reach bar reads as clutter, and Settings/Staff are desk tasks, not floor tasks.
+const MOBILE_NAV = NAV.slice(0, 4);
 
 /**
  * The detached glass-pill nav from docs/design/reference/customer-home.html, ported to
@@ -68,7 +75,7 @@ export function Shell() {
 
       {/* Mobile bottom glass-pill nav — the actual reference pattern, for narrow viewports. */}
       <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[var(--r-pill)] border border-[color-mix(in_srgb,var(--ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-2 py-2 shadow-[0_12px_30px_-10px_rgba(30,10,14,.35)] backdrop-blur-md md:hidden">
-        {NAV.map(({ to, label, icon: Icon }) => (
+        {MOBILE_NAV.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
