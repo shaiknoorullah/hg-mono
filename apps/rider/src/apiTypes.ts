@@ -43,6 +43,8 @@ const _payoutDetail = () =>
   unwrap(
     clientFor().GET('/v1/riders/me/payouts/{payoutId}', { params: { path: { payoutId: '' } } }),
   );
+const _connectStatus = () => unwrap(clientFor().GET('/v1/connect/status'));
+const _connectOnboardingLink = () => unwrap(clientFor().POST('/v1/connect/onboarding-link'));
 
 export type DispatchOffer = NonNullable<Awaited<ReturnType<typeof _offer>>['data']>;
 export type Assignment = NonNullable<Awaited<ReturnType<typeof _assignment>>['data']>;
@@ -56,3 +58,5 @@ export type EarningsSummary = Awaited<ReturnType<typeof _earningsSummary>>['data
 export type EarningEntry = Awaited<ReturnType<typeof _earningEntries>>['data'][number];
 export type Payout = Awaited<ReturnType<typeof _payouts>>['data'][number];
 export type PayoutDetail = Awaited<ReturnType<typeof _payoutDetail>>['data'];
+export type ConnectStatus = Awaited<ReturnType<typeof _connectStatus>>['data'];
+export type ConnectOnboardingLink = Awaited<ReturnType<typeof _connectOnboardingLink>>['data'];

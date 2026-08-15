@@ -18,7 +18,7 @@
  * the empty-ish AWAITING_REVIEW "nothing to do but wait" state and the terminal DONE state).
  */
 import * as React from 'react';
-import { Text, View } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import {
   Badge,
   Banner,
@@ -36,7 +36,7 @@ import type { Schema } from '@hg/api-client';
 import { idempotencyKey, isApiError, unwrap } from '@hg/api-client';
 
 import { api, IS_MOCK } from '../api';
-import type { RiderOnboardingStatus, KycDocument } from '../apiTypes';
+import type { RiderOnboardingStatus, KycDocument, ConnectStatus } from '../apiTypes';
 import { Screen, LoadingView, ErrorView } from './Screen';
 import { sha256Hex } from '../sha256';
 import { useNav } from '../nav';
@@ -196,13 +196,7 @@ function OnboardingBody({
           description="Review has a 72-hour SLA. We'll notify you the moment a decision is made — no document is ever auto-approved."
         />
       ) : null}
-      {onboarding.next_step === 'PAYOUT' ? (
-        <Banner
-          variant="info"
-          title="One step left: get paid"
-          description="Complete your payout account from the Profile tab to finish onboarding and start receiving offers."
-        />
-      ) : null}
+      {onboarding.next_step === 'PAYOUT' ? <PayoutStep onDone={onReload} /> : null}
       {onboarding.next_step === 'DONE' ? (
         <Banner
           variant="info"
@@ -357,6 +351,164 @@ function VehicleStep({ onDone }: { onDone: () => void }): React.ReactElement {
         {error ? <Banner variant="warning" title="Couldn't save" description={error} /> : null}
         <Button variant="primary" size="lg" fullWidth disabled={!valid} loading={busy} onPress={() => void submit()}>
           Continue
+        </Button>
+      </View>
+    </Card>
+  );
+}
+
+/* ---------------------------------------------------------------------------------- PAYOUT */
+
+/**
+ * Stripe Connect Express onboarding (P-19). The client never invents an account, a URL or a
+ * "done" state: it creates the connect account (idempotent server-side on
+ * (owner_type, owner_id)), mints a fresh short-lived AccountLink and opens it. The return and
+ * refresh URLs the link redirects to are server-generated from configuration — this screen
+ * cannot supply its own. Because "the redirect is not trusted" (P-19 — readiness comes only
+ * from Stripe's `account.updated` webhook), coming back from the browser never flips the step
+ * itself; the rider taps "I'm done — check status" and the screen re-reads both
+ * `/v1/connect/status` and the onboarding status from the server.
+ */
+type PayoutLoad =
+  | { status: 'loading' }
+  | { status: 'error'; message: string; code?: string }
+  | { status: 'ready'; connect: ConnectStatus | null };
+
+function PayoutStep({ onDone }: { onDone: () => void }): React.ReactElement {
+  const theme = useTheme();
+  const caption = useTypeStyle('caption');
+  const [state, setState] = React.useState<PayoutLoad>({ status: 'loading' });
+  const [linking, setLinking] = React.useState(false);
+  const [linkError, setLinkError] = React.useState<string | null>(null);
+  const [returned, setReturned] = React.useState(false);
+
+  const loadStatus = React.useCallback(async () => {
+    setState({ status: 'loading' });
+    try {
+      const data = await unwrap(api.GET('/v1/connect/status'));
+      setState({ status: 'ready', connect: data.data ?? null });
+    } catch (e) {
+      // A rider with no Connect account yet gets 404 from this read — that is not an error
+      // state, it is simply "not started".
+      if (isApiError(e) && e.status === 404) {
+        setState({ status: 'ready', connect: null });
+        return;
+      }
+      setState({
+        status: 'error',
+        message: e instanceof Error ? e.message : 'Could not reach the payout service.',
+        code: isApiError(e) ? String(e.code) : undefined,
+      });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadStatus();
+  }, [loadStatus]);
+
+  const startOrContinue = React.useCallback(async () => {
+    setLinking(true);
+    setLinkError(null);
+    try {
+      if (!(state.status === 'ready' && state.connect)) {
+        await unwrap(
+          api.POST('/v1/connect/account', {
+            params: { header: { 'Idempotency-Key': idempotencyKey() } },
+          }),
+        );
+      }
+      const link = await unwrap(api.POST('/v1/connect/onboarding-link'));
+      await Linking.openURL(link.data.url);
+      setReturned(true);
+    } catch (e) {
+      if (isApiError(e) && e.code === 'STEP_NOT_AVAILABLE') {
+        setLinkError('Your payout account is not ready for onboarding yet — try again shortly.');
+      } else {
+        setLinkError(e instanceof Error ? e.message : 'Could not open Stripe onboarding.');
+      }
+    } finally {
+      setLinking(false);
+    }
+  }, [state]);
+
+  const checkStatus = React.useCallback(async () => {
+    await loadStatus();
+    onDone();
+  }, [loadStatus, onDone]);
+
+  if (state.status === 'loading') return <LoadingView label="Checking your payout account…" />;
+  if (state.status === 'error') {
+    return <ErrorView message={state.message} errorCode={state.code} onRetry={() => void loadStatus()} />;
+  }
+
+  const connect = state.connect;
+  const requirements = connect?.requirements;
+  const outstanding = [...(requirements?.past_due ?? []), ...(requirements?.currently_due ?? [])];
+
+  return (
+    <Card variant="outlined">
+      <View style={{ gap: theme.density.gutter }}>
+        <Badge label="Step 4 · Get paid" variant="outline" size="md" />
+        <Text style={{ color: theme.color.text.secondary }}>
+          Payouts run through Stripe. You'll finish a short identity and bank-details flow on
+          Stripe's site, then come back here.
+        </Text>
+
+        {connect ? (
+          <View style={{ gap: 4 }}>
+            <View style={{ flexDirection: 'row', gap: theme.target.spacing, flexWrap: 'wrap' }}>
+              <Badge
+                label={connect.payouts_enabled ? 'Payouts enabled' : 'Payouts not yet enabled'}
+                variant={connect.payouts_enabled ? 'brand' : 'outline'}
+                size="sm"
+              />
+              <Badge
+                label={connect.details_submitted ? 'Details submitted' : 'Details incomplete'}
+                variant={connect.details_submitted ? 'brand' : 'outline'}
+                size="sm"
+              />
+            </View>
+            {connect.bank_last4 ? (
+              <Text style={{ ...caption, color: theme.color.text.tertiary }}>
+                Bank account ending {connect.bank_last4}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {outstanding.length > 0 ? (
+          <Card variant="filled">
+            <View style={{ gap: theme.target.spacing }}>
+              <Badge label="Stripe needs a bit more" variant="warning" size="md" />
+              {outstanding.map((r) => (
+                <Text key={r} style={{ color: theme.color.text.secondary }}>
+                  • {r}
+                </Text>
+              ))}
+              {requirements?.deadline ? (
+                <Text style={{ ...caption, color: theme.color.text.tertiary }}>
+                  Due by {new Date(requirements.deadline).toLocaleDateString()}
+                </Text>
+              ) : null}
+            </View>
+          </Card>
+        ) : null}
+
+        {returned ? (
+          <Banner
+            variant="info"
+            title="Back from Stripe?"
+            description="Onboarding isn't confirmed by the redirect — it's confirmed by Stripe telling us directly. Check status to pick up the latest."
+          />
+        ) : null}
+
+        {linkError ? <Banner variant="warning" title="Couldn't continue" description={linkError} /> : null}
+
+        <Button variant="primary" size="lg" fullWidth loading={linking} onPress={() => void startOrContinue()}>
+          {connect ? 'Continue payout setup on Stripe' : 'Start payout setup on Stripe'}
+        </Button>
+        <Button variant="secondary" size="lg" fullWidth onPress={() => void checkStatus()}>
+          I'm done — check status
         </Button>
       </View>
     </Card>
