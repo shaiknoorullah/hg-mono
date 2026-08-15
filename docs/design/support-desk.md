@@ -63,8 +63,11 @@ A full native agent inbox is a real build — phase it:
 - **Timing:** v1.x/v2 — support tooling scales with the team; at launch a small team can use
   Phase 1 in-context + Chatwoot's UI for the queue.
 
-## Open question
+## Incidents — decided
 
-**What is an "incident" to you?** (a) a **support escalation** → high-priority ticket linked to a
-dispute/safety **case** (recommended, no duplication); or (b) an **operational/system incident**
-(outage, on-call) → that's a different tool (status page / on-call), out of the support desk.
+An **"incident" = a support escalation**: a high-priority Chatwoot conversation **linked to** an
+operational **case** (dispute/refund A-33/A-35, or a safety case), surfaced with escalation
+status/priority in the admin. It is **not** a new duplicate object, and it is **not** an
+operational/system incident (outage/on-call — that's a separate status-page/on-call tool, out of
+scope here). Escalating a ticket creates/links the case via the platform API and bumps priority +
+routing; the case remains the platform's system of record.
