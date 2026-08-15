@@ -40,6 +40,51 @@ type Config struct {
 	Redis    Redis
 	MinIO    MinIO
 	Stripe   Stripe
+	SMS      SMS
+	Tax      Tax
+}
+
+// SMS holds the O-03 SMS-provider settings. The default provider is "log"
+// (LogSMSSender: records the send, delivers nothing) so the OTP flow is fully
+// functional end to end without a provider. Setting HG_SMS_PROVIDER=twilio
+// plus the three Twilio variables is the one-line flip that activates
+// internal/auth's TwilioSMSSender at boot — no code change, no rebuild.
+type SMS struct {
+	// Provider selects the SMSSender implementation. "log" (default) or
+	// "twilio". Any other value is a boot-time config error.
+	Provider string
+	Twilio   TwilioSMS
+}
+
+// TwilioSMS holds the Twilio Messages API credentials. Required only when
+// SMS.Provider == "twilio".
+type TwilioSMS struct {
+	AccountSID          string
+	AuthToken           string
+	FromNumber          string
+	MessagingServiceSID string
+}
+
+// Configured reports whether enough Twilio credentials were supplied to place
+// a call (account sid + auth token, and either a from number or a messaging
+// service sid).
+func (t TwilioSMS) Configured() bool {
+	return t.AccountSID != "" && t.AuthToken != "" && (t.FromNumber != "" || t.MessagingServiceSID != "")
+}
+
+// Tax holds the O-01 tax-registration settings that flow into every
+// customer-facing receipt (contract: Receipt.platform_tax_registration_number).
+// The field is rendered only when configured — a placeholder token is never
+// printed (I-08 in spirit: silence, not an optimistic guess, when a
+// compliance-critical field is unset).
+type Tax struct {
+	// HSTRegistrationNumber is the platform's own CRA HST/GST registration
+	// number. Empty until O-01 (accountant sign-off on supplier position) is
+	// resolved; setting HG_TAX_HST_REGISTRATION_NUMBER is the one-line flip.
+	HSTRegistrationNumber string
+	// PlatformLegalName is the legal entity name printed on the receipt
+	// alongside the registration number.
+	PlatformLegalName string
 }
 
 // Stripe holds the P-16..P-21 payment-provider settings. The secret key is
@@ -195,6 +240,30 @@ func Load(getenv func(string) string) (*Config, error) {
 		WebhookSecret:     l.optional("HG_STRIPE_WEBHOOK_SECRET", ""),
 		ConnectReturnURL:  l.optional("HG_STRIPE_CONNECT_RETURN_URL", ""),
 		ConnectRefreshURL: l.optional("HG_STRIPE_CONNECT_REFRESH_URL", ""),
+	}
+
+	cfg.SMS = SMS{
+		Provider: l.optional("HG_SMS_PROVIDER", "log"),
+		Twilio: TwilioSMS{
+			AccountSID:          l.optional("HG_TWILIO_ACCOUNT_SID", ""),
+			AuthToken:           l.optional("HG_TWILIO_AUTH_TOKEN", ""),
+			FromNumber:          l.optional("HG_TWILIO_FROM_NUMBER", ""),
+			MessagingServiceSID: l.optional("HG_TWILIO_MESSAGING_SERVICE_SID", ""),
+		},
+	}
+	switch cfg.SMS.Provider {
+	case "log", "twilio":
+	default:
+		l.errf("HG_SMS_PROVIDER: %q is not one of log, twilio", cfg.SMS.Provider)
+	}
+	if cfg.SMS.Provider == "twilio" && !cfg.SMS.Twilio.Configured() {
+		l.errf("HG_SMS_PROVIDER=twilio requires HG_TWILIO_ACCOUNT_SID, HG_TWILIO_AUTH_TOKEN, and either " +
+			"HG_TWILIO_FROM_NUMBER or HG_TWILIO_MESSAGING_SERVICE_SID")
+	}
+
+	cfg.Tax = Tax{
+		HSTRegistrationNumber: l.optional("HG_TAX_HST_REGISTRATION_NUMBER", ""),
+		PlatformLegalName:     l.optional("HG_TAX_PLATFORM_LEGAL_NAME", ""),
 	}
 
 	// G-7: outside local, no dependency may point at loopback. This is the

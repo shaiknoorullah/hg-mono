@@ -469,9 +469,24 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	// O-03 (SMS provider): HG_SMS_PROVIDER=twilio + credentials is the one-line
+	// flip from LogSMSSender (records the send, delivers nothing) to a real
+	// Twilio send. Config already refuses to boot with provider=twilio and
+	// incomplete credentials (internal/config), so reaching here with
+	// provider=="twilio" means Configured() is true.
+	var smsSender auth.SMSSender
+	if cfg.SMS.Provider == "twilio" {
+		t := cfg.SMS.Twilio
+		twilio := auth.NewTwilioSMSSender(nil, t.AccountSID, t.AuthToken, t.FromNumber)
+		twilio.MessagingServiceSID = t.MessagingServiceSID
+		smsSender = twilio
+		log.Info("sms provider: twilio")
+	} else {
+		log.Warn("sms provider: log (O-03 not resolved) — OTP codes are not delivered outside local echo")
+	}
 	authModule := auth.NewModule(
 		st.DB().Pool, st.Cache().Client, authSecrets,
-		nil, cfg.Env.IsLocal(), log)
+		smsSender, cfg.Env.IsLocal(), log)
 
 	router := httpx.NewRouter(httpx.Options{
 		Logger:        log,
@@ -522,7 +537,13 @@ func run() error {
 	// wiring completes, so emitter.store is always non-nil before any Transition
 	// can be called.
 	rtEmitter := &orderRealtimeEmitter{notify: notifyClient.Enqueue}
-	ordersStore := orders.NewStore(st.DB().Pool, rtEmitter).WithMedia(mediaResolver)
+	// O-01 (HST registration): HG_TAX_HST_REGISTRATION_NUMBER is the one-line
+	// flip that stamps the platform's registration number onto every receipt
+	// once the accountant confirms the supplier position; empty until then, and
+	// the contract renders the field only when configured (never a placeholder).
+	ordersStore := orders.NewStore(st.DB().Pool, rtEmitter).
+		WithMedia(mediaResolver).
+		WithPlatformTaxInfo(cfg.Tax.HSTRegistrationNumber, cfg.Tax.PlatformLegalName)
 	// The orders handler + P-15 deadline runner are wired just below, AFTER the
 	// payments service, so createOrder can ask the payments gateway for a real
 	// PaymentIntent (P-16 3/4) rather than the unwired nil gateway.

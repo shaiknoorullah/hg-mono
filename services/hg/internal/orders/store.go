@@ -40,6 +40,14 @@ type Store struct {
 	pool    *pgxpool.Pool
 	emitter EventEmitter    // optional; nil means no realtime events
 	media   MediaURLBuilder // optional; nil renders every image URL as null
+
+	// platformTaxRegistrationNumber and platformLegalName are the O-01 values
+	// (HG_TAX_HST_REGISTRATION_NUMBER / HG_TAX_PLATFORM_LEGAL_NAME) that the
+	// receipt-snapshot writer stamps onto Receipt.platform_tax_registration_number
+	// and .platform_legal_name at COMPLETED. Both empty until O-01 is resolved —
+	// the contract renders the field only when configured, never a placeholder.
+	platformTaxRegistrationNumber string
+	platformLegalName             string
 }
 
 // MediaURLBuilder turns an already-fetched (bucket, object_key) into the public
@@ -72,6 +80,26 @@ func (s *Store) WithMedia(m MediaURLBuilder) *Store {
 	s.media = m
 	return s
 }
+
+// WithPlatformTaxInfo attaches the O-01 platform tax-registration number and
+// legal name (from config.Tax) and returns the store, so wiring reads as
+// orders.NewStore(pool, emitter).WithPlatformTaxInfo(cfg.Tax.HSTRegistrationNumber, cfg.Tax.PlatformLegalName).
+// Both empty is the honest default while O-01 is unresolved: the receipt
+// writer renders the field only when configured.
+func (s *Store) WithPlatformTaxInfo(registrationNumber, legalName string) *Store {
+	s.platformTaxRegistrationNumber = registrationNumber
+	s.platformLegalName = legalName
+	return s
+}
+
+// PlatformTaxRegistrationNumber returns the configured HST/GST registration
+// number, or "" when O-01 is unresolved. The receipt-snapshot writer must
+// never substitute a placeholder for an empty value (I-08 in spirit).
+func (s *Store) PlatformTaxRegistrationNumber() string { return s.platformTaxRegistrationNumber }
+
+// PlatformLegalName returns the configured platform legal name, or "" when
+// unset.
+func (s *Store) PlatformLegalName() string { return s.platformLegalName }
 
 // mediaURL builds the public URL for an optional (bucket, object_key) pair, or
 // nil when no media resolver is wired or the object is absent. Centralised so

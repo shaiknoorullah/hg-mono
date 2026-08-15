@@ -28,9 +28,9 @@ each is a config flip when the answer lands (see the runbook below):
 
 | Item | Waiting on | Eng state |
 |---|---|---|
-| **SMS / A2P sign-in** (O-03) | provider + A2P 10DLC approval | `SMSSender` seam ready; dev uses a logger. Adapter is buildable now. |
-| **Stripe live payments** | a real Stripe account + keys | live/fake is a config gate (`Stripe.Configured()`). Flip = env vars. |
-| **HST registration + supplier position** (O-01) | accountant | tax is *computed* already; only the registration number + a possible supplier-position branch are pending. |
+| **SMS / A2P sign-in** (O-03) | Twilio A2P 10DLC campaign approval | done — `TwilioSMSSender` built + unit-tested; `HG_SMS_PROVIDER=twilio` + creds flips it on. |
+| **Stripe live payments** | a real Stripe account + keys | done — live/fake was already a config gate (`Stripe.Configured()`); confirmed, no code change needed. |
+| **HST registration** (O-01) | accountant (registration number + supplier position) | config flip built (`HG_TAX_HST_REGISTRATION_NUMBER`); the receipt-snapshot *writer* that would render it is a separate, not-yet-built module — see runbook. |
 | Launch province (O-05), self-declared halal (O-06), refund liability (O-04) | product decisions | defaults coded (Ontario / hide / …); flip = config. |
 
 ## The plan — three lanes
@@ -63,17 +63,93 @@ empty/loading/error, verified through the UI against the conformant backend.
 
 ## Go-live runbook (what each client answer flips on)
 
-_To be filled in as part of Lane 1 — the exact env vars, migrations, and decision
-branches that turn each blocked item live, so the flip is mechanical and reviewed._
+Lane 1 is done: every blocked item below is now a config flip, not an eng sprint.
+Each is env-gated in `internal/config` and wired in `cmd/hg/main.go`; boot itself
+validates the flip (a half-set provider fails loud, never half-works silently).
 
-- **SMS:** `HG_SMS_PROVIDER=twilio` + `HG_TWILIO_*` creds → real OTP delivery (swap
-  the logger seam). A2P sender ID must be registered first.
-- **Stripe:** `HG_STRIPE_SECRET_KEY` + `HG_STRIPE_WEBHOOK_SECRET` → `Configured()`
-  true → live gateway (auth/capture/void/payout + the signed webhook path).
-- **HST:** set the platform registration number; if O-01 = "platform is deemed
-  supplier for non-registrants", enable the supplier-of-record invoicing branch.
-- **Province / halal listing:** `HG_LAUNCH_PROVINCES`, the self-declared-halal filter
-  flag.
+### SMS (O-03) — `internal/auth`
+
+Default is `LogSMSSender`: the send is recorded, nothing is delivered (local dev
+uses `echoOTP` to print the code so the flow completes without a provider). The
+real adapter — `auth.TwilioSMSSender` (`internal/auth/sms_twilio.go`) — is built
+and unit-tested today (`internal/auth/sms_twilio_test.go`, mocked `httpDoer`, no
+live A2P needed to test it) against the Twilio Messages API
+(`POST /2010-04-01/Accounts/{Sid}/Messages.json`).
+
+Flip it on:
+
+| Variable | Required | Notes |
+|---|---|---|
+| `HG_SMS_PROVIDER` | yes | `log` (default) or `twilio`. Any other value fails boot. |
+| `HG_TWILIO_ACCOUNT_SID` | when `twilio` | `AC…` |
+| `HG_TWILIO_AUTH_TOKEN` | when `twilio` | Basic-auth secret |
+| `HG_TWILIO_FROM_NUMBER` | one of these two | E.164 sender number |
+| `HG_TWILIO_MESSAGING_SERVICE_SID` | one of these two | `MG…`; preferred for A2P 10DLC traffic |
+
+`HG_SMS_PROVIDER=twilio` with incomplete credentials refuses to boot
+(`internal/config/config.go`) — there is no half-configured state that silently
+falls back to the logger. Still waiting on the client: **A2P 10DLC campaign
+registration** with Twilio (the longest lead time in the project) — that is a
+Twilio-side approval, not an engineering task, and nothing above can be tested
+end-to-end against real carriers until it clears. The adapter, its config gate,
+and its unit tests do not depend on it.
+
+### Stripe live payments (P-16..P-21) — `internal/payments`
+
+Already gated, verified as-is, no code change needed. `cmd/hg/main.go` selects the
+client at boot:
+
+| Variable | Required | Notes |
+|---|---|---|
+| `HG_STRIPE_SECRET_KEY` | to go live | `sk_test_…` or `sk_live_…`; presence flips `Stripe.Configured()` true |
+| `HG_STRIPE_WEBHOOK_SECRET` | to go live | `whsec_…`, for `Stripe-Signature` verification |
+| `HG_STRIPE_CONNECT_RETURN_URL` / `HG_STRIPE_CONNECT_REFRESH_URL` | for restaurant onboarding | server-generated AccountLink bases |
+
+Selection logic (`cmd/hg/main.go`): `Configured()` → `payments.NewLiveStripe(...)`
+(real SDK). Unconfigured + `HG_ENV=local` → `payments.NewFakeStripe()` (dev-only,
+fabricates successful authorisations so orders can be placed without credentials —
+never reachable outside local). Unconfigured + non-local → payment mutation routes
+answer 503, read paths still work. `Stripe.LiveMode()` (`sk_live_` prefix) is
+cross-checked against every inbound webhook's own `livemode` flag
+(`internal/payments/webhooks.go`, I-17.3) — a live-mode event can never land on a
+test-mode boot or vice versa. No branch here needs to change for go-live: set the
+two required variables to the real live-mode values.
+
+### HST registration (O-01) — `internal/orders`, `internal/config`
+
+Tax computation is already correct and provider-independent
+(`internal/orders/pricing/tax.go`, P-11): HST/GST/PST rates, the Ontario POS
+rebate, and the "one HST line, never GST + PST" receipt shape do not change with
+this flip. What was missing was *whose* registration number prints on the
+receipt. `contracts/openapi.yaml`'s `Receipt.platform_tax_registration_number` was
+already contract-shaped to render "only when configured; a placeholder token is
+never printed" — that contract intent is now backed by config:
+
+| Variable | Required | Notes |
+|---|---|---|
+| `HG_TAX_HST_REGISTRATION_NUMBER` | to print on receipts | the platform's own CRA HST/GST number |
+| `HG_TAX_PLATFORM_LEGAL_NAME` | optional | legal entity name printed alongside it |
+
+Both default to `""` (rendered as absent, never a placeholder — I-08 in spirit).
+`orders.NewStore(...).WithPlatformTaxInfo(cfg.Tax.HSTRegistrationNumber,
+cfg.Tax.PlatformLegalName)` threads the value into the orders module, which owns
+`GetOrderReceipt`; `Store.PlatformTaxRegistrationNumber()` /
+`.PlatformLegalName()` are the read seam for the receipt-snapshot writer to
+consume. **Known gap, not part of this flip:** no code path currently writes the
+`order.receipt_snapshot` JSONB column at `COMPLETED` — the receipt-read side
+(`GetOrderReceipt`, the DTO with `PlatformTaxRegistrationNumber *string`) is
+built and tested, but the writer that assembles and freezes the snapshot at
+completion has not been built by any module yet. Setting the env var above is
+correct and ready; it has no visible effect until that writer lands. If O-01
+resolves "platform is deemed supplier for non-registrant restaurants" rather
+than "restaurant remains supplier of record," that changes which party's number
+prints on some receipts — a decision, not a config value; note it before the
+writer is built.
+
+### Province / self-declared halal / refund liability (O-04, O-05, O-06)
+
+Unchanged from the existing defaults (Ontario-only; self-declared halal hidden);
+not part of this pass. Still open — see `docs/decisions/README.md`.
 
 ---
 
