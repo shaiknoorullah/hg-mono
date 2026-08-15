@@ -2,6 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 
 import queueBusy from '../../../contracts/fixtures/orders/restaurant_order_queue_busy.json';
+import { setToken } from '../src/lib/token';
 
 /**
  * One smoke test. The dashboard mounts, calls the one real GET the mock serves for this
@@ -43,9 +44,12 @@ describe('restaurant dashboard smoke', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.resetModules();
+    setToken(null);
   });
 
   it('fetches the order queue and renders it', async () => {
+    // Behind the login gate: every protected fetch requires a session.
+    setToken('test-access-token');
     // The listRestaurantOrders 200 body is `{ data: OrderRestaurantView[], meta }`.
     vi.stubGlobal('fetch', stubOk({ data: fixture.payload, meta: fixture.meta }));
 

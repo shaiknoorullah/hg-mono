@@ -12,5 +12,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: false,
     include: ['smoke/**/*.test.tsx'],
+    testTimeout: 15000,
   },
 });

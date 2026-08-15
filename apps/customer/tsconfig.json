@@ -8,7 +8,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "types": [
-      "react"
+      "react",
+      "jest"
     ]
   },
   "include": [

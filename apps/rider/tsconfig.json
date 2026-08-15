@@ -7,7 +7,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["react"]
+    "types": ["react", "jest"]
   },
   "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx", "shims/**/*.ts"]
 }

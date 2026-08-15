@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { setToken } from '../src/lib/token';
 
 /**
  * One smoke test: the queue screen mounts, calls the one real GET operation
@@ -59,9 +60,12 @@ describe('admin smoke', () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+    setToken(null);
   });
 
   it('fetches the onboarding queue and renders the applications', async () => {
+    // Behind the login gate: every protected fetch requires a session.
+    setToken('test-access-token');
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify(QUEUE_BODY), {
         status: 200,
