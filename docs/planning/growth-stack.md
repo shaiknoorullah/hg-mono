@@ -34,7 +34,7 @@ data for marketing intelligence** — Martech, Adtech, CDP, engagement, flags/ex
 | **Adtech / attribution / MMP** | **OpenAttribution** (self-host) or **Branch** (free tier) + server-side CAPI | Cross-channel ad ROI + install/deep-link attribution. |
 | **BI / dashboards** | **Metabase** (chosen) | Human-facing analysis on ClickHouse (native driver). The *only* dashboarding tool. |
 | **Consent (CMP)** | **Klaro** | Lawful-basis capture gate before any tracking. |
-| **Support / live chat** | **Chatwoot** | Omnichannel support inbox + proactive chat. |
+| **Support / live chat** | **Chatwoot (headless)** | Engine only — omnichannel + agent model + reports. UI is built **native in the admin** (Application API + ActionCable); voice via Twilio Voice/WebRTC in-admin. See `../design/support-desk.md`. |
 | **In-app tours / coach-marks** | *build in-app* (RN libs) driven by **GrowthBook** targeting + **Dittofeed** onboarding | No separate tour platform — avoids overlap with flags + engagement. |
 
 ## Adtech (the ad-ROI layer you called out)
