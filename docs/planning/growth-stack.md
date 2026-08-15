@@ -73,11 +73,10 @@ Two notification classes with **opposite reliability requirements** — do not c
   read experiment exposure straight from ClickHouse (nice synergy with the warehouse choice).
 - **Orchestration → Kestra** · **Transform → dbt** · **Reverse ETL → Castled** · **CDP → RudderStack**
   · **Engagement → Dittofeed** · **Consent → Klaro** · **Support → Chatwoot**.
+- **MMP / attribution → Branch** (free tier, mature deep-linking) for now; **OpenAttribution** a
+  self-host watch-item for later.
 
-### Still open (one)
-
-- **MMP / attribution** — **Branch** (free tier, mature, best deep-linking) to start, vs
-  **OpenAttribution** (self-host, immature). Recommend Branch now, OpenAttribution as a watch-item.
+_All v2 data-plane decisions closed._
 
 ## Phasing (all v2)
 
