@@ -16,8 +16,10 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// 144 + listRestaurantStaff/createRestaurantStaffUser (restaurant-scoped
 	// staff roster, closing the platform-role-only gap on /v1/admin/staff) +
 	// getOrderRating/submitOrderRating (durable food+rider ratings, replacing
-	// the previously in-memory customer rating state).
-	const wantOps = 148
+	// the previously in-memory customer rating state) + bindPackageSeal/
+	// scanPickup/scanDelivery/reportTamper (internal/handoff, migration 00027:
+	// the tamper-evident seal chain of custody that gates PICKED_UP/DELIVERED).
+	const wantOps = 152
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

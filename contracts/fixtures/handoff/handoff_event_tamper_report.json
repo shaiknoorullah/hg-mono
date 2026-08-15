@@ -1,0 +1,26 @@
+{
+  "scenario": "handoff_event_tamper_report",
+  "domain": "handoff",
+  "schema": "HandoffEvent",
+  "describes": "Filed by the customer after delivery. No nonce (not a QR proof) — opens the dispute flow (A-33/A-35).",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "handoff-event-matrix"
+  ],
+  "payload": {
+    "id": "cca6bd78-fd6a-4474-af30-0f39ab83b30c",
+    "order_id": "ecc880e3-3740-40c4-a75c-e171cef366d8",
+    "seal_id": "7c1e3f61-bef0-4033-a7bd-2cd46749bdcd",
+    "type": "TAMPER_REPORT",
+    "actor": "CUSTOMER",
+    "actor_account_id": "9be08318-ace0-4864-ae77-71063c1e200e",
+    "method": "PHOTO",
+    "seal_intact": null,
+    "latitude": null,
+    "longitude": null,
+    "photo_object_id": "ee210850-9419-4160-aeaa-5f8f58350f1f",
+    "note": "The seal was broken when the package arrived; nothing inside matched the receipt.",
+    "at": "2026-08-10T18:42:11.412Z"
+  }
+}

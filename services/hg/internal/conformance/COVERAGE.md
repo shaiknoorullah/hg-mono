@@ -6,17 +6,18 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 148
-- **Validated (covered):** 148
+- **Total contract operations:** 152
+- **Validated (covered):** 152
 - **Not yet validated (uncovered):** 0
 
-## Covered (148)
+## Covered (152)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
 - `addCartLine` — POST /v1/cart/lines
 - `attachRestaurantDocument` — POST /v1/restaurant/documents
 - `attachRiderDocument` — POST /v1/riders/me/documents
+- `bindPackageSeal` — POST /v1/orders/{orderId}/handoff/seal
 - `cancelOrder` — POST /v1/orders/{orderId}/cancel
 - `cancelOrderAdmin` — POST /v1/admin/orders/{orderId}/cancel
 - `changePassword` — POST /v1/auth/password/change
@@ -126,6 +127,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `rejectOrder` — POST /v1/restaurant/orders/{orderId}/reject
 - `removeCartLine` — DELETE /v1/cart/lines/{lineId}
 - `reportRiderPositions` — POST /v1/riders/me/positions
+- `reportTamper` — POST /v1/orders/{orderId}/handoff/tamper-report
 - `requestOtp` — POST /v1/auth/otp/request
 - `requestPasswordReset` — POST /v1/auth/password/forgot
 - `resendEmailVerification` — POST /v1/auth/email/resend
@@ -133,6 +135,8 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `reviewRestaurantDocument` — POST /v1/admin/restaurant-documents/{documentId}/review
 - `reviewRiderDocument` — POST /v1/admin/rider-documents/{documentId}/review
 - `revokeSession` — DELETE /v1/auth/sessions/{sessionId}
+- `scanDelivery` — POST /v1/orders/{orderId}/handoff/delivery-scan
+- `scanPickup` — POST /v1/orders/{orderId}/handoff/pickup-scan
 - `search` — GET /v1/search
 - `sendRestaurantHeartbeat` — POST /v1/restaurant/heartbeat
 - `setDefaultAddress` — POST /v1/addresses/{addressId}/default

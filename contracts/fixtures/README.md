@@ -68,7 +68,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**317 scenarios** across 14 domains.
+**330 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -79,6 +79,7 @@ falling through, so a typo is visible immediately.
 | [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
 | [`errors`](#errors) | 23 | `{error}` envelopes for the codes an app actually branches on. |
 | [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
+| [`handoff`](#handoff) | 13 | The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
 | [`onboarding`](#onboarding) | 35 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
 | [`orders`](#orders) | 44 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
@@ -296,6 +297,26 @@ Badges, certificates, checks and issuing bodies — the platform's core promise.
 | `halal_issuing_body_retired` | `HalalIssuingBody` | 200 | `status = RETIRED`. No longer issuing; existing certificates stand until expiry. |
 | `halal_issuing_body_suspended` | `HalalIssuingBody` | 200 | `status = SUSPENDED`. Temporarily not accepted, pending an investigation. |
 
+### handoff
+
+The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. — 13 scenarios.
+
+| Scenario | Schema | Status | Represents |
+|---|---|---:|---|
+| `handoff_event_delivery` | `HandoffEvent` | 200 | The rider's delivery scan, with an optional POD photo attached. |
+| `handoff_event_delivery_tamper_flagged` | `HandoffEvent` | 200 | `seal_intact:false` at the rider's own scan — identity still held (this really is the assigned rider, at the door), so the delivery is still recorded; the integrity flag is evidence, not a block. |
+| `handoff_event_pickup` | `HandoffEvent` | 200 | The rider's pickup scan — identity and integrity both held. |
+| `handoff_event_seal` | `HandoffEvent` | 200 | The bind: restaurant staff scanned the physical label and the token was minted. |
+| `handoff_event_tamper_report` | `HandoffEvent` | 200 | Filed by the customer after delivery. No nonce (not a QR proof) — opens the dispute flow (A-33/A-35). |
+| `handoff_scan_delivery` | `HandoffScanResult` | 200 | scanDelivery's 200: PICKED_UP → DELIVERED, gated on the same physical token scoped to the DELIVERY proof. |
+| `handoff_scan_pickup` | `HandoffScanResult` | 200 | scanPickup's 200: the proof and its effect together — the order has already advanced to PICKED_UP. |
+| `handoff_tamper_report` | `HandoffScanResult` | 200 | reportTamper's 200: DELIVERED → DISPUTED. Never a money decision by itself — it hands the scan-and-photo trail to the dispute flow (A-33/A-35). |
+| `seal_bound` | `PackageSeal` | 200 | Bound at packing; `qr_token` is what the restaurant renders as the QR affixed to the package. |
+| `seal_delivery_verified` | `PackageSeal` | 200 | Both proofs cleared: identity held at pickup and at the door. |
+| `seal_issued` | `PackageSeal` | 200 | Platform-known stock, not yet bound to an order. The only status where `order_id` and `qr_token` are null. |
+| `seal_pickup_verified` | `PackageSeal` | 200 | The rider's pickup scan verified the signature, order binding and single-use nonce. |
+| `seal_tamper_reported` | `PackageSeal` | 200 | A scan (`seal_intact:false`) or the customer's own tamper report flagged this seal. The identity checks still passed — this is an integrity signal, not an identity failure — and never auto-fails the order. |
+
 ### onboarding
 
 Restaurant and rider onboarding, profiles, vehicles and trading state. — 35 scenarios.
@@ -509,7 +530,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | Tag | Count | Meaning |
 |---|---:|---|
 | `state-matrix` | 61 | One fixture per member of a closed enum. |
-| `edge` | 50 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `edge` | 51 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `rider` | 49 | Rider-facing surface. |
 | `restaurant` | 31 | Restaurant-facing surface. |
 | `halal` | 29 | Touches the halal claim surface. |
@@ -535,7 +556,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `payout-state-matrix` | 7 | One per `PayoutState` (all 7). |
 | `certificate-status-matrix` | 6 | One per `HalalCertificateStatus` (all 6). |
 | `tracking` | 6 | The live order-tracking screen. |
+| `handoff-event-matrix` | 5 |  |
 | `offer-state-matrix` | 5 | One per `OfferState` (all 5). |
+| `seal-state-matrix` | 5 |  |
 | `certificate` | 4 | A `HalalCertificate` at a specific point in its life. |
 | `dense` | 3 | Deliberately busy — the worst case for a list or a card. |
 | `ratings` | 3 |  |
@@ -549,7 +572,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 ## Operation coverage
 
-118 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
+122 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
 
 | Operation | Default scenario | Also available |
 |---|---|---|
@@ -557,6 +580,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `acceptOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `addCartLine` | `cart_single_line` | — |
 | `attachRestaurantDocument` | `document_submitted` | `document_approved`, `document_expired`, `document_in_review`, `document_rejected`, `document_superseded` |
+| `bindPackageSeal` | `seal_bound` | — |
 | `cancelOrder` | `order_cancelled` | `order_arrived`, `order_authorized`, `order_completed`, `order_created`, `order_delivered`, `order_disputed`, `order_failed`, `order_picked_up`, `order_preparing`, `order_ready_for_pickup`, `order_rejected`, `order_resolved`, `order_restaurant_pending` |
 | `cancelOrderAdmin` | `order_admin_view_completed` | — |
 | `changePassword` | `session_grant_customer` | — |
@@ -645,9 +669,12 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `registerRestaurant` | `restaurant_registration` | — |
 | `rejectOrder` | `restaurant_order_rejected` | `restaurant_order_picked_up`, `restaurant_order_preparing`, `restaurant_order_ready_for_pickup`, `restaurant_order_restaurant_pending` |
 | `reportRiderPositions` | `rider_position_ack` | — |
+| `reportTamper` | `handoff_tamper_report` | — |
 | `requestOtp` | `otp_challenge` | — |
 | `reviewRestaurantDocument` | `document_approved` | `document_expired`, `document_in_review`, `document_rejected`, `document_rejected_expired`, `document_rejected_illegible`, `document_rejected_name_mismatch`, `document_rejected_plate_mismatch`, `document_rejected_suspected_forgery`, `document_rejected_wrong_document_type`, `document_submitted`, `document_superseded` |
 | `reviewRiderDocument` | `document_approved` | `document_expired`, `document_in_review`, `document_rejected`, `document_submitted`, `document_superseded` |
+| `scanDelivery` | `handoff_scan_delivery` | — |
+| `scanPickup` | `handoff_scan_pickup` | — |
 | `search` | `search_results_populated` | `search_results_empty` |
 | `sendRestaurantHeartbeat` | `restaurant_heartbeat` | — |
 | `setDefaultAddress` | `addresses_list` | — |

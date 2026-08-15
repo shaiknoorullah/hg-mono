@@ -1,0 +1,24 @@
+{
+  "scenario": "seal_pickup_verified",
+  "domain": "handoff",
+  "schema": "PackageSeal",
+  "describes": "The rider's pickup scan verified the signature, order binding and single-use nonce.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "seal-state-matrix"
+  ],
+  "payload": {
+    "id": "7b028ce0-ae7e-4ee5-a81f-e4258df95fdc",
+    "seal_code": "HGSEAL-PICKUP_VERIFIED",
+    "order_id": "ecc880e3-3740-40c4-a75c-e171cef366d8",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "status": "PICKUP_VERIFIED",
+    "qr_token": "hgseal.9b5f3135-3507-4f50-a8e.52e56794-6591-487a-adc",
+    "bound_at": "2026-08-10T18:02:11.412Z",
+    "pickup_verified_at": "2026-08-10T18:17:11.412Z",
+    "delivery_verified_at": null,
+    "created_at": "2026-08-09T18:42:11.412Z",
+    "updated_at": "2026-08-10T18:42:11.412Z"
+  }
+}

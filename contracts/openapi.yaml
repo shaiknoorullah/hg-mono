@@ -107,6 +107,14 @@ tags:
     description: |
       Staff surface — onboarding queues, the seven-check halal verification, restaurant and
       rider approval, menu creation on behalf, order lookup and refund issuance.
+  - name: handoff
+    description: |
+      Package-seal chain of custody (P-14 layered guarantee). An EdDSA-signed QR token
+      `{order_id, seal_id, nonce}` binds one tamper-evident seal to one order at the kitchen;
+      the rider's scan at pickup and at delivery are the only proofs that gate the order's
+      `PICKED_UP`/`DELIVERED` transitions — `orders` remains the sole writer of `order.state`.
+      A tamper report never auto-fails the order; it hands the scan-and-photo trail to the
+      dispute flow (A-33/A-35).
 security:
   - otpSession: []
   - passwordSession: []
@@ -5503,6 +5511,215 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         default:
           $ref: '#/components/responses/Error'
+  /v1/orders/{orderId}/handoff/seal:
+    post:
+      operationId: bindPackageSeal
+      tags: [handoff]
+      summary: Bind a physical seal to this order at packing
+      description: |
+        Restaurant staff scan or key in the pre-coded `seal_code` printed on the physical
+        tamper-evident label as they finish packing. The seal must be `ISSUED` (platform-known
+        stock, not yet bound) and is bound to exactly this order for its lifetime — a seal
+        never moves between orders. Binding mints the EdDSA-signed `{order_id, seal_id, nonce}`
+        token (P-04 signing keys) that the client renders as the QR code affixed to the
+        package; that same code is what the rider scans at pickup and at delivery.
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/OrderIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SealBindInput'
+      responses:
+        '201':
+          description: Seal bound; `qr_token` is the QR payload to render on the label.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PackageSeal'
+        '404':
+          description: '`SEAL_NOT_FOUND` — no such seal code for this restaurant.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: '`SEAL_ALREADY_BOUND` — this seal is already bound to another order.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/orders/{orderId}/handoff/pickup-scan:
+    post:
+      operationId: scanPickup
+      tags: [handoff]
+      summary: Rider scans the seal at pickup
+      description: |
+        The one proof that gates `READY_FOR_PICKUP` → `PICKED_UP` (T12). The rider scans the
+        QR on the package; the server verifies the EdDSA signature, that the token's
+        `order_id` matches this order, and that its `nonce` has never been consumed for a
+        `PICKUP` proof on this seal (single-use — `UNIQUE(seal_id, nonce)` makes a replay a
+        constraint violation, not a check that might be skipped). A failed `seal_intact` check
+        does **not** block the pickup — the physical handoff still happened — but it is
+        recorded on the seal and the event trail as tamper evidence.
+      x-roles: [RIDER]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/OrderIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PickupScanInput'
+      responses:
+        '200':
+          description: Pickup verified; the order has advanced to `PICKED_UP`.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/HandoffScanResult'
+        '404':
+          description: '`SEAL_NOT_FOUND` — no seal is bound to this order.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: '`SEAL_NOT_BOUND`, `ILLEGAL_TRANSITION`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: '`SEAL_TOKEN_INVALID`, `SEAL_ORDER_MISMATCH`, `SEAL_NONCE_REPLAYED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/orders/{orderId}/handoff/delivery-scan:
+    post:
+      operationId: scanDelivery
+      tags: [handoff]
+      summary: Rider scans the seal at delivery
+      description: |
+        The one proof that gates `PICKED_UP`/`ARRIVED` → `DELIVERED` (T15/T16) on the handoff
+        side — the customer's own proof of delivery (OTP or photo, D-21) is a separate,
+        unrelated requirement and both must clear. Same signature, order-binding and
+        single-use-nonce checks as `scanPickup`, scoped to the `DELIVERY` proof so the same
+        physical QR can legally be scanned once at pickup and once at delivery without either
+        scan being treated as a replay of the other. `seal_intact: false` never blocks
+        delivery; it is recorded as tamper evidence for support to act on.
+      x-roles: [RIDER]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/OrderIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryScanInput'
+      responses:
+        '200':
+          description: Delivery verified; the order has advanced to `DELIVERED`.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/HandoffScanResult'
+        '404':
+          description: '`SEAL_NOT_FOUND` — no seal is bound to this order.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: '`SEAL_NOT_BOUND`, `ILLEGAL_TRANSITION`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: '`SEAL_TOKEN_INVALID`, `SEAL_ORDER_MISMATCH`, `SEAL_NONCE_REPLAYED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/orders/{orderId}/handoff/tamper-report:
+    post:
+      operationId: reportTamper
+      tags: [handoff]
+      summary: Customer reports the seal was tampered with
+      description: |
+        Filed by the customer after delivery — the rider never files this; their only
+        tamper-adjacent signal is `seal_intact` on their own scan. This never auto-fails the
+        order or the payment: it appends a `TAMPER_REPORT` event carrying the photo trail and
+        opens the existing dispute flow (A-33/A-35, `DELIVERED`/`COMPLETED` → `DISPUTED`),
+        which decides the money outcome from the full scan-and-photo chain of custody.
+      x-roles: [CUSTOMER]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/OrderIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TamperReportInput'
+      responses:
+        '200':
+          description: Tamper report recorded; the order has moved to `DISPUTED`.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/HandoffScanResult'
+        '404':
+          description: '`SEAL_NOT_FOUND` — no seal is bound to this order.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: '`ILLEGAL_TRANSITION` — the order is not in a state that can be disputed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
 components:
   securitySchemes:
     otpSession:
@@ -5960,6 +6177,13 @@ components:
         - POD_METHOD_MISMATCH
         - OTP_LOCKED
         - CONTACT_WINDOW_CLOSED
+        # --- handoff ----------------------------------------------------------
+        - SEAL_NOT_FOUND
+        - SEAL_ALREADY_BOUND
+        - SEAL_NOT_BOUND
+        - SEAL_TOKEN_INVALID
+        - SEAL_ORDER_MISMATCH
+        - SEAL_NONCE_REPLAYED
         # --- onboarding / documents ----------------------------------------------
         - STEP_NOT_AVAILABLE
         - ILLEGAL_STATE_TRANSITION
@@ -10428,6 +10652,182 @@ components:
           type: string
           maxLength: 500
           description: 'Required for `PHOTO_WITH_ATTESTATION`, after the mandatory wait.'
+    PackageSealStatus:
+      type: string
+      description: |
+        The seal's lifecycle. `ISSUED` is platform-known stock not yet bound to an order;
+        every other member requires `order_id` and `qr_token` to be set.
+      enum: [ISSUED, BOUND, PICKUP_VERIFIED, DELIVERY_VERIFIED, TAMPER_REPORTED]
+    HandoffEventType:
+      type: string
+      enum: [SEAL, PICKUP, DELIVERY, TAMPER_REPORT]
+    HandoffActor:
+      type: string
+      description: 'Only the rider ever scans; the customer''s only handoff event is a tamper report.'
+      enum: [RESTAURANT, RIDER, CUSTOMER]
+    HandoffMethod:
+      type: string
+      enum: [QR, OTP, PHOTO]
+    SealBindInput:
+      type: object
+      additionalProperties: false
+      required: [seal_code]
+      properties:
+        seal_code:
+          type: string
+          minLength: 4
+          maxLength: 64
+          description: 'The pre-coded label printed on the physical tamper-evident seal.'
+    PickupScanInput:
+      type: object
+      additionalProperties: false
+      required: [qr_token, seal_intact]
+      properties:
+        qr_token:
+          type: string
+          minLength: 16
+          description: 'The signed QR payload scanned off the package.'
+        seal_intact:
+          type: boolean
+          description: 'Visual check at the point of scan. `false` is recorded as tamper evidence; it never blocks the transition.'
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        longitude:
+          $ref: '#/components/schemas/Longitude'
+        photo_object_id:
+          type: string
+          format: uuid
+          description: 'Optional. A `READY` object with purpose `POD`, uploaded by the scanning rider.'
+    DeliveryScanInput:
+      type: object
+      additionalProperties: false
+      required: [qr_token, seal_intact]
+      properties:
+        qr_token:
+          type: string
+          minLength: 16
+          description: 'The same signed QR payload scanned at pickup, scanned again at the door.'
+        seal_intact:
+          type: boolean
+          description: 'Visual check at the point of scan. `false` is recorded as tamper evidence; it never blocks the transition.'
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        longitude:
+          $ref: '#/components/schemas/Longitude'
+        photo_object_id:
+          type: string
+          format: uuid
+          description: 'Optional. A `READY` object with purpose `POD`, uploaded by the scanning rider.'
+    TamperReportInput:
+      type: object
+      additionalProperties: false
+      required: [photo_object_id, note]
+      properties:
+        photo_object_id:
+          type: string
+          format: uuid
+          description: 'A `READY` object with purpose `POD`, uploaded by the reporting customer.'
+        note:
+          type: string
+          minLength: 5
+          maxLength: 500
+    PackageSeal:
+      type: object
+      additionalProperties: false
+      required: [id, seal_code, restaurant_id, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        seal_code:
+          type: string
+        order_id:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        restaurant_id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/PackageSealStatus'
+        qr_token:
+          type: [string, 'null']
+          description: 'The signed QR payload, present once `status` is no longer `ISSUED`. No price, no PII — only `{order_id, seal_id, nonce}`.'
+        bound_at:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        pickup_verified_at:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        delivery_verified_at:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    HandoffEvent:
+      type: object
+      additionalProperties: false
+      required: [id, order_id, type, actor, method, at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        seal_id:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        type:
+          $ref: '#/components/schemas/HandoffEventType'
+        actor:
+          $ref: '#/components/schemas/HandoffActor'
+        actor_account_id:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        method:
+          $ref: '#/components/schemas/HandoffMethod'
+        seal_intact:
+          type: [boolean, 'null']
+        latitude:
+          oneOf:
+            - $ref: '#/components/schemas/Latitude'
+            - type: 'null'
+        longitude:
+          oneOf:
+            - $ref: '#/components/schemas/Longitude'
+            - type: 'null'
+        photo_object_id:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        note:
+          type: [string, 'null']
+        at:
+          $ref: '#/components/schemas/Timestamp'
+    HandoffScanResult:
+      type: object
+      additionalProperties: false
+      required: [seal, event, order_state]
+      description: 'The proof and its effect: the seal''s new state, the event just appended, and the order state it gated.'
+      properties:
+        seal:
+          $ref: '#/components/schemas/PackageSeal'
+        event:
+          $ref: '#/components/schemas/HandoffEvent'
+        order_state:
+          $ref: '#/components/schemas/OrderState'
     EarningEntry:
       type: object
       additionalProperties: false

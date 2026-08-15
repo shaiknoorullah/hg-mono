@@ -22,6 +22,7 @@ import yaml  # noqa: E402
 
 import dom_catalogue  # noqa: E402
 import dom_errors  # noqa: E402
+import dom_handoff  # noqa: E402
 import dom_onboarding  # noqa: E402
 import dom_orders  # noqa: E402
 import dom_rider  # noqa: E402
@@ -45,6 +46,7 @@ def main() -> int:
     dom_rider.build(reg, synth)
     dom_onboarding.build(reg, synth)
     dom_errors.build(reg, synth)
+    dom_handoff.build(reg, synth)
 
     manifest = reg.write()
     write_readme(manifest)
