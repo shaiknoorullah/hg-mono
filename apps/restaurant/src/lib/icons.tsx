@@ -1,0 +1,234 @@
+/**
+ * A small hand-picked set of Solar-style icons (linear + bold variants), inlined as
+ * `currentColor` SVGs — same technique as docs/design/reference/customer-home.html.
+ * `react-native-svg`-style prop surface so these read the same as the RN app's shield
+ * glyph approach (see AGENTS.md §8 known gap): a `size` + `className` component, no
+ * external icon font, no network fetch.
+ */
+import type { SVGProps } from 'react';
+
+export interface IconProps extends SVGProps<SVGSVGElement> {
+  size?: number;
+}
+
+function base(props: IconProps) {
+  const { size = 20, ...rest } = props;
+  return {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    xmlns: 'http://www.w3.org/2000/svg',
+    ...rest,
+  };
+}
+
+export function IconQueue(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path d="M8 9h8M8 12.5h8M8 16h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconMenuBook(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M12 6.5c-1.6-1.2-4-1.8-6.5-1.5-.6.07-1 .58-1 1.18v10.9c0 .7.62 1.24 1.32 1.13 2.2-.35 4.4.2 6.18 1.29 1.78-1.1 3.98-1.64 6.18-1.3.7.11 1.32-.43 1.32-1.13V6.18c0-.6-.4-1.11-1-1.18-2.5-.3-4.9.3-6.5 1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M12 6.5V19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconClock(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 8v4.4l3 1.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconCheck(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 12.5 9.5 17 19 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconClose(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconShieldCheck(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M12 2C7.58172 2 4 6.00258 4 10.5C4 14.9622 6.55332 19.8124 10.5371 21.6744C11.4657 22.1085 12.5343 22.1085 13.4629 21.6744C17.4467 19.8124 20 14.9622 20 10.5C20 6.00258 16.4183 2 12 2Z"
+        clipRule="evenodd"
+      />
+      <path d="M8.7 10.9l2 2 4.6-4.9" stroke="var(--halal-on-seal, #fff)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconShieldDashed(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M12 2.6c-3.7 0-6.8 3.36-6.8 7.5 0 4.02 2.3 8.42 5.86 10.1a2 2 0 0 0 1.88 0c3.57-1.68 5.86-6.08 5.86-10.1 0-4.14-3.1-7.5-6.8-7.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeDasharray="3 3"
+      />
+    </svg>
+  );
+}
+
+export function IconUpload(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 15.5V4.5M12 4.5 8 8.7M12 4.5l4 4.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 15.5v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconStore(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M4.5 9.5 5.6 4.9A1.5 1.5 0 0 1 7.05 3.8h9.9a1.5 1.5 0 0 1 1.46 1.15l1.09 4.55"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.5 9.5a2.25 2.25 0 0 0 4.4.75 2.25 2.25 0 0 0 4.35 0 2.25 2.25 0 0 0 4.35 0 2.25 2.25 0 0 0 4.4-.75"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path d="M5.5 11.2V19a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-7.8" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M9.5 20v-4.5a1.2 1.2 0 0 1 1.2-1.2h2.6a1.2 1.2 0 0 1 1.2 1.2V20" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+export function IconPower(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3.5v7.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M7.2 6.1a7.5 7.5 0 1 0 9.6 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconPlus(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 5.5v13M5.5 12h13" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconEdit(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M14.6 4.9 19.1 9.4M3.5 20.5l1-3.9 10.7-10.7a1.6 1.6 0 0 1 2.26 0l1.34 1.34a1.6 1.6 0 0 1 0 2.26L7.6 19.4l-4.1 1.1Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function IconChevronRight(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 5.5 15.5 12 9 18.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconAlert(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3.5 21 19.5H3L12 3.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M12 9.5v4.4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+      <circle cx="12" cy="16.7" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconLock(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="5" y="10.5" width="14" height="9" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+export function IconMail(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m4.5 7 7 5.4L18.5 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconLoader(props: IconProps) {
+  return (
+    <svg {...base(props)} style={{ animation: 'spin 0.9s linear infinite' }}>
+      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+      <path
+        d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5"
+        stroke="currentColor"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function IconEmpty(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="7" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 11h16" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9 15h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconLogout(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 4.5H6.8A2.3 2.3 0 0 0 4.5 6.8v10.4a2.3 2.3 0 0 0 2.3 2.3H9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M14 8l4.5 4-4.5 4M18.3 12H9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

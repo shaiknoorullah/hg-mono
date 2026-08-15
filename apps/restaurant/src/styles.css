@@ -1,0 +1,214 @@
+@import 'tailwindcss';
+
+/*
+ * Token / theme layer for the restaurant operator app.
+ *
+ * Derived from docs/design/reference/customer-home.html (Crimson brand, radius scale,
+ * glass-pill motion language) plus docs/design/tokens.json (the operational-surface
+ * accent — Midnight — and the reserved `halal.*` namespace, which this file only
+ * ever assigns to certification chrome, never to generic "success").
+ *
+ * RULE H-3 / L-4 (see AGENTS.md #3): red is never a halal state, and solid green is
+ * reserved to --halal-*. The open/paused/closed availability toggle below uses the
+ * accent (blue) + ember (amber) + slate ramp instead of red/green, on purpose.
+ */
+
+:root {
+  /* Crimson brand — CTAs, links, focus rings. Matches customer-home.html exactly. */
+  --primary: #c1272d;
+  --primary-2: #9e1e23;
+  --tint: #fbe7e4;
+  --on-primary: #ffffff;
+
+  /* Midnight — operator chrome (AppBar, nav), per tokens.json accent ramp. */
+  --accent-50: #eef2f9;
+  --accent-100: #d6dfee;
+  --accent-300: #8098c4;
+  --accent-500: #34528c;
+  --accent-600: #24406f;
+  --accent-700: #1b3157;
+  --accent-900: #0e1a2f;
+  --accent-950: #080f1c;
+
+  --canvas: #f5f0ec;
+  --card: #ffffff;
+  --ink: #231a17;
+  --ink2: #877a74;
+  --ink3: #b7aba4;
+  --hair: #ece3dd;
+  --page: #e7ded7;
+
+  /* halal.certified — RESERVED. Only HalalBadge/CertificationPanel may use these. */
+  --halal-seal: #04482a;
+  --halal-seal-pressed: #033520;
+  --halal-ring: #d4a72c;
+  --halal-on-seal: #ffffff;
+  --halal-tint: #e4f0e9;
+  --halal-tint-text: #04482a;
+  --halal-tint-border: #9dc4ae;
+
+  --halal-expiring-text: #7a5600;
+  --halal-expiring-tint: #fbf1d8;
+  --halal-expiring-border: #d9be7a;
+
+  --halal-expired-seal: #4e5862;
+  --halal-expired-tint: #edeff1;
+  --halal-expired-text: #39424b;
+  --halal-expired-border: #b9c0c7;
+
+  /* Ember — warning tint only, never a halal state. */
+  --warning-50: #fef1e7;
+  --warning-600: #b84a08;
+  --warning-700: #8f3a06;
+
+  /* Danger — auth/validation errors only. Never a halal state (RULE H-3). */
+  --danger-50: #fdecea;
+  --danger-600: #c1272d;
+  --danger-700: #9e1e23;
+
+  --success-50: #e7f7f0;
+  --success-500: #0e9f6e;
+  --success-700: #05684a;
+
+  --r: 16px;
+  --r-sm: 11px;
+  --r-pill: 999px;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-3: 0 4px 8px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.1);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 140ms;
+  --dur-med: 240ms;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --canvas: #151210;
+    --card: #1f1b17;
+    --ink: #f2ece7;
+    --ink2: #9c9089;
+    --ink3: #6b625b;
+    --hair: #2e2823;
+    --page: #0c0a09;
+    --tint: #3a1614;
+
+    --accent-50: #0e1a2f;
+    --accent-100: #142542;
+    --accent-900: #d6dfee;
+
+    --halal-tint: #08261a;
+    --halal-tint-text: #7be0a8;
+    --halal-seal: #0f7a46;
+
+    --halal-expired-seal: #7c8794;
+    --halal-expired-tint: #1b1f24;
+    --halal-expired-text: #aeb6bf;
+
+    --warning-50: #2a2008;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --canvas: #151210;
+  --card: #1f1b17;
+  --ink: #f2ece7;
+  --ink2: #9c9089;
+  --ink3: #6b625b;
+  --hair: #2e2823;
+  --page: #0c0a09;
+  --tint: #3a1614;
+  --accent-50: #0e1a2f;
+  --accent-100: #142542;
+  --accent-900: #d6dfee;
+  --halal-tint: #08261a;
+  --halal-tint-text: #7be0a8;
+  --halal-seal: #0f7a46;
+  --halal-expired-seal: #7c8794;
+  --halal-expired-tint: #1b1f24;
+  --halal-expired-text: #aeb6bf;
+  --warning-50: #2a2008;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family:
+    'Plus Jakarta Sans',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01' 1;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--tint);
+  color: var(--primary-2);
+}
+
+@keyframes hg-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hg-fade-up {
+  animation: hg-fade-up var(--dur-med) var(--ease-out) both;
+}
+
+@keyframes hg-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-500) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-500) 0%, transparent);
+  }
+}
+
+.hg-pulse {
+  animation: hg-pulse-ring 1.8s var(--ease-out) infinite;
+}
+
+@keyframes hg-toggle-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
+.hg-toggle-live {
+  animation: hg-toggle-glow 2.4s ease-in-out infinite;
+}
