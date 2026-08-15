@@ -39,14 +39,18 @@ This proof accompanies the `PICKED_UP` transition. (Optional mutual step: restau
 rider code — confirms correct rider.)
 
 **3 · Delivery (rider ↔ customer)**
-**Customer scans the seal QR** in their app (proves *right customer* — their app knows their
-order) **and confirms the seal is intact** before accepting. Proof accompanies `DELIVERED`.
-- Relationship to existing **proof-of-delivery OTP**: QR is primary for *identity + integrity*;
-  the **OTP remains the recipient-proof fallback** (customer without a working scanner, or
-  no-contact drop). Photo fallback stays as dispute evidence.
-- **Broken seal** → customer taps "seal tampered" → order is **not** auto-failed; it opens the
-  **dispute/refund flow (A-33/A-35)** with the scan history + photo as evidence. Money was
-  captured on acceptance, so this is a dispute, not a failed payment.
+**The rider scans the seal QR** again — server confirms it's the assigned order and logs the
+delivery; the **customer provides the OTP** (recipient identity) and can **visually confirm the
+seal is intact** before accepting. Both proofs accompany `DELIVERED`.
+- **Only the rider scans** — at both pickup and delivery. **The customer never scans** (no
+  scanner dependency on the customer side). The customer's proof is the **OTP** they already
+  have in the flow (the recipient-identity proof), plus a visual seal check. Photo fallback stays
+  as dispute evidence.
+- So the two proofs are split by side: **rider's scan** = package identity + integrity;
+  **customer's OTP** = correct recipient. Together they close the handoff.
+- **Broken seal** → the customer taps "seal looks tampered" → order is **not** auto-failed; it
+  opens the **dispute/refund flow (A-33/A-35)** with the scan history + photo as evidence. Money
+  was captured on acceptance, so this is a dispute, not a failed payment.
 
 ## Data model
 
@@ -58,8 +62,9 @@ order) **and confirms the seal is intact** before accepting. Proof accompanies `
 
 ## Security & invariants
 
-- **Server verifies, client scans.** The scan sends the token to the server; server checks the
-  EdDSA signature + order/rider/customer match + single-use nonce. Deny-by-default.
+- **Server verifies, the rider scans.** The scan sends the token to the server; server checks the
+  EdDSA signature + that the token's order == the **rider's** assigned order + single-use nonce.
+  The **customer** side is verified by **OTP**, not a scan. Deny-by-default.
 - **Bound + single-use + signed** makes forgery, reuse, and swapping-to-another-order
   unrepresentable — same "make the bug impossible" discipline as the CHECK/ledger constraints.
 - Scans are **proofs**, not state writes — they call the orders API which owns the transition
