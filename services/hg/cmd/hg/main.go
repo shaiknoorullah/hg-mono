@@ -95,15 +95,23 @@ func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.T
 	return e.enqueueLifecycleNotification(ctx, tx, orderID, newState)
 }
 
-// enqueueLifecycleNotification maps a customer-facing order state to its
-// notify builder and enqueues it inside the transition tx. Order details
-// (code, customer account, restaurant name, deadline_at) are read from the
-// SAME tx so they reflect exactly the committing state. States with no
-// customer notification (or non-customer recipients whose target account is
-// not the order's own account_id) are a deliberate no-op here — the restaurant
-// "new order" and rider "ready for pickup" alerts are enqueued by their own
-// modules against their own recipient accounts, not from this customer-scoped
-// seam.
+// enqueueLifecycleNotification maps an order state transition to its notify
+// builder(s) and enqueues them inside the transition tx. Order details (code,
+// customer account, restaurant id/name, deadline_at) are read from the SAME
+// tx so they reflect exactly the committing state.
+//
+// Most transitions notify the customer (the order's own account_id). Two
+// transitions notify a different party entirely, against their own recipient
+// account(s), still inside this same seam and the same tx so the alert is
+// atomic with the state change (CLAUDE.md invariant 4 — no "waits forever"
+// state where the transition committed but nobody was ever told):
+//
+//   - RESTAURANT_PENDING: the restaurant needs to respond (NotifyOrderPlaced),
+//     recipient = every live RESTAURANT-scoped staff account for the order's
+//     restaurant_id (account_role, not the order's own account_id).
+//   - READY_FOR_PICKUP: the assigned rider needs to know the order is ready
+//     (NotifyOrderReady), recipient = the order's live assignment's
+//     rider_account_id.
 func (e *orderRealtimeEmitter) enqueueLifecycleNotification(ctx context.Context, tx pgx.Tx, orderID, newState string) error {
 	oid, err := uuid.Parse(orderID)
 	if err != nil {
@@ -113,18 +121,19 @@ func (e *orderRealtimeEmitter) enqueueLifecycleNotification(ctx context.Context,
 	var (
 		code           string
 		accountID      uuid.UUID
+		restaurantID   uuid.UUID
 		restaurantName string
 		deadlineAt     *time.Time
 		rejectReason   *string
 		cancelReason   *string
 	)
 	if err := tx.QueryRow(ctx, `
-		SELECT o.code, o.account_id, o.deadline_at, r.display_name,
+		SELECT o.code, o.account_id, o.restaurant_id, o.deadline_at, r.display_name,
 		       o.reject_reason::text, o.cancel_reason::text
 		  FROM "order" o
 		  JOIN restaurant r ON r.id = o.restaurant_id
 		 WHERE o.id = $1`, oid).
-		Scan(&code, &accountID, &deadlineAt, &restaurantName, &rejectReason, &cancelReason); err != nil {
+		Scan(&code, &accountID, &restaurantID, &deadlineAt, &restaurantName, &rejectReason, &cancelReason); err != nil {
 		return fmt.Errorf("notify: load order %s for lifecycle notification: %w", orderID, err)
 	}
 
@@ -138,25 +147,102 @@ func (e *orderRealtimeEmitter) enqueueLifecycleNotification(ctx context.Context,
 		ev.DeadlineAt = *deadlineAt
 	}
 
-	var n notify.New
 	switch machine.State(newState) {
+	case machine.StateRestaurantPending:
+		// T5: the order was just offered to the restaurant. Fan out to every
+		// live RESTAURANT-scoped staff account so someone at the restaurant
+		// sees it — a missing recipient here is the "waits forever" state
+		// deadline_at exists to make unrepresentable.
+		return e.notifyRestaurantStaff(ctx, tx, restaurantID, ev)
 	case machine.StatePreparing:
 		// T6: RESTAURANT_PENDING -> PREPARING is the restaurant accepting and
 		// the capture point (invariant 5). This is the customer's "accepted".
-		n = notify.NotifyOrderAccepted(ev)
+		_, err = e.notify.Enqueue(ctx, tx, notify.NotifyOrderAccepted(ev))
+		return err
 	case machine.StateRejected:
-		n = notify.NotifyOrderRejected(ev, deref(rejectReason))
+		_, err = e.notify.Enqueue(ctx, tx, notify.NotifyOrderRejected(ev, deref(rejectReason)))
+		return err
+	case machine.StateReadyForPickup:
+		return e.notifyAssignedRider(ctx, tx, oid, ev)
 	case machine.StatePickedUp:
-		n = notify.NotifyOrderPickedUp(ev)
+		_, err = e.notify.Enqueue(ctx, tx, notify.NotifyOrderPickedUp(ev))
+		return err
 	case machine.StateDelivered:
-		n = notify.NotifyOrderDelivered(ev)
+		_, err = e.notify.Enqueue(ctx, tx, notify.NotifyOrderDelivered(ev))
+		return err
 	case machine.StateCancelled:
-		n = notify.NotifyOrderCancelled(ev, deref(cancelReason))
+		_, err = e.notify.Enqueue(ctx, tx, notify.NotifyOrderCancelled(ev, deref(cancelReason)))
+		return err
 	default:
-		return nil // no customer notification for this transition
+		return nil // no notification for this transition
+	}
+}
+
+// notifyRestaurantStaff enqueues NotifyOrderPlaced against every account with
+// a live RESTAURANT_OWNER/RESTAURANT_MANAGER/RESTAURANT_STAFF account_role
+// grant scoped to restaurantID (mirrors internal/restaurant.Repo's own
+// resolution of "who may act for this restaurant" — P-07 ownership, never a
+// restaurant-id lifted from the request body). ev.AccountID is overwritten
+// per staff account; the DedupeKey ("order_placed:<order_id>") is scoped per
+// (account_id, dedupe_key) so each staff member gets exactly one row even if
+// this fires more than once.
+func (e *orderRealtimeEmitter) notifyRestaurantStaff(ctx context.Context, tx pgx.Tx, restaurantID uuid.UUID, ev notify.OrderEvent) error {
+	rows, err := tx.Query(ctx, `
+		SELECT DISTINCT account_id
+		  FROM account_role
+		 WHERE scope_type = 'RESTAURANT'
+		   AND scope_id = $1
+		   AND role::text = ANY($2)
+		   AND revoked_at IS NULL`,
+		restaurantID, []string{"RESTAURANT_OWNER", "RESTAURANT_MANAGER", "RESTAURANT_STAFF"})
+	if err != nil {
+		return fmt.Errorf("notify: load restaurant staff for %s: %w", restaurantID, err)
+	}
+	defer rows.Close()
+
+	var staffIDs []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return fmt.Errorf("notify: scan restaurant staff account: %w", err)
+		}
+		staffIDs = append(staffIDs, id)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("notify: iterate restaurant staff: %w", err)
 	}
 
-	_, err = e.notify.Enqueue(ctx, tx, n)
+	for _, id := range staffIDs {
+		staffEv := ev
+		staffEv.AccountID = id
+		if _, err := e.notify.Enqueue(ctx, tx, notify.NotifyOrderPlaced(staffEv)); err != nil {
+			return fmt.Errorf("notify: enqueue order_placed for staff %s: %w", id, err)
+		}
+	}
+	return nil
+}
+
+// notifyAssignedRider enqueues NotifyOrderReady against the order's live
+// (terminated_at IS NULL) assignment's rider_account_id. No live assignment
+// (e.g. dispatch has not yet matched a rider by the time the restaurant marks
+// ready) is a deliberate no-op: there is no recipient to tell yet, and the
+// dispatch module's own ready-check drives the rider once one is assigned.
+func (e *orderRealtimeEmitter) notifyAssignedRider(ctx context.Context, tx pgx.Tx, orderID uuid.UUID, ev notify.OrderEvent) error {
+	var riderAccountID uuid.UUID
+	err := tx.QueryRow(ctx, `
+		SELECT rider_account_id
+		  FROM assignment
+		 WHERE order_id = $1 AND terminated_at IS NULL`, orderID).
+		Scan(&riderAccountID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("notify: load live assignment for order %s: %w", orderID, err)
+	}
+
+	ev.AccountID = riderAccountID
+	_, err = e.notify.Enqueue(ctx, tx, notify.NotifyOrderReady(ev))
 	return err
 }
 
