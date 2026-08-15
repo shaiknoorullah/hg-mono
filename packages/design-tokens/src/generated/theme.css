@@ -1,0 +1,52 @@
+/* GENERATED — do not hand-edit. Run `node scripts/generate.mjs` in @hg/design-tokens. */
+@theme inline {
+  --font-sans: var(--hg-font-sans);
+
+  --color-hg-primary: var(--hg-color-primary);
+  --color-hg-primary2: var(--hg-color-primary2);
+  --color-hg-tint: var(--hg-color-tint);
+  --color-hg-on: var(--hg-color-on);
+  --color-hg-canvas: var(--hg-color-canvas);
+  --color-hg-card: var(--hg-color-card);
+  --color-hg-ink: var(--hg-color-ink);
+  --color-hg-ink2: var(--hg-color-ink2);
+  --color-hg-ink3: var(--hg-color-ink3);
+  --color-hg-hair: var(--hg-color-hair);
+  --color-hg-promo: var(--hg-color-promo);
+  --color-hg-seal: var(--hg-color-seal);
+  --color-hg-seal2: var(--hg-color-seal2);
+  --color-hg-sealtint: var(--hg-color-seal-tint);
+  --color-hg-sealline: var(--hg-color-seal-line);
+  --color-hg-ring: var(--hg-color-ring);
+  --color-hg-link: var(--hg-color-link);
+  --color-hg-rate: var(--hg-color-rate);
+  --color-hg-amber: var(--hg-color-amber);
+  --color-hg-page: var(--hg-color-page);
+
+  --radius-hg-md: var(--hg-radius-md);
+  --radius-hg-sm: var(--hg-radius-sm);
+  --radius-hg-pill: var(--hg-radius-pill);
+
+  --text-hg-2xs: var(--hg-text-2xs);
+  --text-hg-xs: var(--hg-text-xs);
+  --text-hg-sm: var(--hg-text-sm);
+  --text-hg-base: var(--hg-text-base);
+  --text-hg-md: var(--hg-text-md);
+  --text-hg-lg: var(--hg-text-lg);
+  --text-hg-xl: var(--hg-text-xl);
+  --text-hg-2xl: var(--hg-text-2xl);
+  --text-hg-3xl: var(--hg-text-3xl);
+
+  --duration-hg-instant: var(--hg-duration-instant);
+  --duration-hg-fast: var(--hg-duration-fast);
+  --duration-hg-base: var(--hg-duration-base);
+  --duration-hg-moderate: var(--hg-duration-moderate);
+  --duration-hg-slow: var(--hg-duration-slow);
+  --duration-hg-deliberate: var(--hg-duration-deliberate);
+
+  --ease-hg-standard: var(--hg-easing-standard);
+  --ease-hg-decelerate: var(--hg-easing-decelerate);
+  --ease-hg-accelerate: var(--hg-easing-accelerate);
+  --ease-hg-emphasized: var(--hg-easing-emphasized);
+  --ease-hg-linear: var(--hg-easing-linear);
+}

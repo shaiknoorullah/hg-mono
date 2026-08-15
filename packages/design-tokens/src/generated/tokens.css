@@ -1,0 +1,114 @@
+/* GENERATED — do not hand-edit. Run `node scripts/generate.mjs` in @hg/design-tokens. */
+:root {
+  --hg-font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --hg-color-primary: #C1272D;
+  --hg-color-primary2: #9E1E23;
+  --hg-color-tint: #FBE7E4;
+  --hg-color-on: #FFFFFF;
+  --hg-color-canvas: #F5F0EC;
+  --hg-color-card: #FFFFFF;
+  --hg-color-ink: #231A17;
+  --hg-color-ink2: #877A74;
+  --hg-color-ink3: #B7ABA4;
+  --hg-color-hair: #ECE3DD;
+  --hg-color-promo: #D81E6A;
+  --hg-color-seal: #0A5233;
+  --hg-color-seal2: #12784A;
+  --hg-color-seal-tint: #E6F1EB;
+  --hg-color-seal-line: #C8E4D6;
+  --hg-color-ring: #F3ECDE;
+  --hg-color-link: #1F6FEB;
+  --hg-color-rate: #1E2A22;
+  --hg-color-amber: #8A5A00;
+  --hg-color-page: #E7DED7;
+
+  --hg-radius-md: 16px;
+  --hg-radius-sm: 11px;
+  --hg-radius-pill: 999px;
+
+  --hg-text-2xs: 10px;
+  --hg-text-xs: 11px;
+  --hg-text-sm: 12.5px;
+  --hg-text-base: 13px;
+  --hg-text-md: 14.5px;
+  --hg-text-lg: 16px;
+  --hg-text-xl: 16.5px;
+  --hg-text-2xl: 21px;
+  --hg-text-3xl: 28px;
+
+  --hg-weight-medium: 500;
+  --hg-weight-semibold: 600;
+  --hg-weight-bold: 700;
+  --hg-weight-extrabold: 800;
+
+  --hg-tracking-tight: -0.02em;
+  --hg-tracking-tighter: -0.03em;
+
+  --hg-duration-instant: 75ms;
+  --hg-duration-fast: 120ms;
+  --hg-duration-base: 180ms;
+  --hg-duration-moderate: 240ms;
+  --hg-duration-slow: 320ms;
+  --hg-duration-deliberate: 480ms;
+
+  --hg-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --hg-easing-decelerate: cubic-bezier(0, 0, 0, 1);
+  --hg-easing-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --hg-easing-emphasized: cubic-bezier(0.2, 0, 0, 1.05);
+  --hg-easing-linear: cubic-bezier(0, 0, 1, 1);
+
+  --hg-icon-sm: 16px;
+  --hg-icon-md: 20px;
+  --hg-icon-lg: 24px;
+  --hg-icon-xl: 32px;
+  --hg-icon-2xl: 48px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --hg-color-primary: #C1272D;
+  --hg-color-primary2: #9E1E23;
+  --hg-color-tint: #3A1614;
+  --hg-color-on: #FFFFFF;
+  --hg-color-canvas: #151210;
+  --hg-color-card: #1F1B17;
+  --hg-color-ink: #F2ECE7;
+  --hg-color-ink2: #9C9089;
+  --hg-color-ink3: #6B625B;
+  --hg-color-hair: #2E2823;
+  --hg-color-promo: #D81E6A;
+  --hg-color-seal: #0A5233;
+  --hg-color-seal2: #12784A;
+  --hg-color-seal-tint: #12261D;
+  --hg-color-seal-line: #1E4635;
+  --hg-color-ring: #F3ECDE;
+  --hg-color-link: #1F6FEB;
+  --hg-color-rate: #0F1712;
+  --hg-color-amber: #8A5A00;
+  --hg-color-page: #0C0A09;
+  }
+}
+
+:root[data-theme="dark"] {
+  --hg-color-primary: #C1272D;
+  --hg-color-primary2: #9E1E23;
+  --hg-color-tint: #3A1614;
+  --hg-color-on: #FFFFFF;
+  --hg-color-canvas: #151210;
+  --hg-color-card: #1F1B17;
+  --hg-color-ink: #F2ECE7;
+  --hg-color-ink2: #9C9089;
+  --hg-color-ink3: #6B625B;
+  --hg-color-hair: #2E2823;
+  --hg-color-promo: #D81E6A;
+  --hg-color-seal: #0A5233;
+  --hg-color-seal2: #12784A;
+  --hg-color-seal-tint: #12261D;
+  --hg-color-seal-line: #1E4635;
+  --hg-color-ring: #F3ECDE;
+  --hg-color-link: #1F6FEB;
+  --hg-color-rate: #0F1712;
+  --hg-color-amber: #8A5A00;
+  --hg-color-page: #0C0A09;
+}
