@@ -1,8 +1,40 @@
-# v1 status — after the 4-wave ultracode push
+# v1 status — after the 5-wave ultracode push
 
 _Halal Goes. Consolidated, **personally verified** status (not agent self-report). Aug 2026.
 The rule this whole push was held to: report the real state, never a green light I didn't
 run myself._
+
+## Wave 5 (this push) — landed & verified GREEN
+
+Four increments merged into `integration` in dependency order, each committed, the whole
+tree re-gated after merge:
+
+- **Rider payout onboarding (Stripe Connect)** — `OnboardingScreen` now drives
+  `GET /v1/connect/status` + `POST /v1/connect/onboarding-link`; `apiTypes.ts` derives the
+  `ConnectStatus` / `ConnectOnboardingLink` types from the generated client (no hand-edit of
+  generated files). The banner stub is gone.
+- **App test net** — `jest` + `@testing-library/react-native` unit tests for the native
+  rider/customer screens (Offer, Availability, LoginGate, Discovery, Restaurant) and `vitest`
+  smoke tests for admin (halal-decision-bar, login-gate) and restaurant-web (accept-order,
+  login-gate, queue-states). Thin no longer.
+- **Backend test hermeticity** — `notify`'s `insertAccount` now seeds random phone digits (not
+  a process-local counter that restarts at 1 each run) and registers a children-first
+  `t.Cleanup`, so the suite re-runs cleanly against a **long-lived** `HG_TEST_POSTGRES_DSN`
+  without collisions or row accumulation. Verified by two back-to-back full runs against the
+  live 4-hour-old Postgres.
+- **Blocker de-risking to a one-line flip** — **O-03**: a real `TwilioSMSSender` now sits
+  behind the `SMSSender` seam; `HG_SMS_PROVIDER=twilio` + credentials flips it on at boot and
+  config **refuses to boot** with `provider=twilio` and incomplete credentials (default stays
+  `log`, so OTP is functional end-to-end without a provider). **O-01**: HST registration number
+  + platform legal name wire through `config.Tax` → `orders.Store.WithPlatformTaxInfo` onto the
+  receipt; **rendered only when configured, never a placeholder** (I-08 in spirit).
+
+**Re-gate after merge (REAL, run against live Postgres):** `go build`=0, `go vet`=0,
+`make generate-contract` then `git diff`=empty (**no generated-file drift**),
+`go test -count=1 ./...` = every package `ok`, `go test -race -run Conformance` =
+**152/152 operations validated**, and root **`pnpm check` exit 0** (contract/fixtures/drift →
+all app typechecks Done → backend `make check` incl. `go test -race ./...`). Stack still up:
+`hg-postgres-1` healthy, both `hg-api` replicas up, `curl :8080/health` → `{"status":"ok"}`.
 
 ## Verified DONE — backend (the engine runs and is provably correct)
 
@@ -36,26 +68,31 @@ empty/loading/error, in the Crimson/Solar/glass-adaptive-nav system:
 - **admin** (Vite + LyteNyte): auth, the A-15 seven-check instrument, orders grid → order-detail
   (live-map box), cases, queues, dashboards.
 
-All **typecheck/build clean**; booted against the live stack (health-verified). **Not** yet
-device-verified for native-only paths (camera/QR, Mapbox needs a dev build + token).
+All **typecheck/build clean**; booted against the live stack (health-verified); now carry a
+**unit/smoke test net** (wave 5). **Not** yet device-verified for native-only paths (camera/QR,
+Mapbox needs a dev build + token).
 
 ## Buildable tail (small — no external dependency)
 
-- **notify test isolation** — `insertAccount` collides on a reused DB (leftover phone rows);
-  give each run unique phones or a fresh DB. Module is correct (passed on the clean boot);
-  the test is not hermetic.
-- Deeper **app runtime/device verification** + an app-level test net (currently thin).
-- Rider **Stripe-Connect payout onboarding** flow (currently a banner stub).
-- **Admin live-map** visual verification (needs a Mapbox token).
+- Deeper **app runtime/device verification** — the wave-5 test net is unit/smoke (renderer-level,
+  no device); native-only paths (camera/QR, real navigation) still need a dev build.
+- **Admin live-map** visual verification — the order-detail live-map box is wired but needs a
+  **real Mapbox token** to render; verification is blocked on that token, not on code.
 - Per-handler adoption of the generated contract types (incremental).
+- Receipt-writer consumption of the O-01 tax fields end-to-end (values now flow to the store;
+  the snapshot writer stamping them onto the persisted receipt is the remaining wire).
 
 ## HUMAN-BLOCKED — these gate LAUNCH, not code (only you/the client can unblock)
 
 No amount of further code moves these:
 - **O-03 SMS / A2P 10DLC** — nobody can sign in without phone-OTP delivery. **Longest lead time
-  — start first.** (The `SMSSender`/notify seam is ready; it's a config flip once approved.)
+  — start first.** (Wave 5: `TwilioSMSSender` is now **built** behind the seam; the moment A2P
+  is approved it is `HG_SMS_PROVIDER=twilio` + three env vars, no rebuild — config refuses to
+  boot if those are incomplete.)
 - **Stripe live account + keys** — real charges. (Live/fake is a `Configured()` gate.)
-- **O-01 HST registration** — legal basis to charge tax. (Tax is already computed.)
+- **O-01 HST registration** — legal basis to charge tax. (Tax is already computed; wave 5 wired
+  `HG_TAX_HST_REGISTRATION_NUMBER` / `HG_TAX_PLATFORM_LEGAL_NAME` through to the order store,
+  rendered only when set.)
 - **O-04** refund liability · **O-05** launch province (default Ontario) · **O-06** self-declared
   halal (default hide) — product decisions; defaults coded.
 - **Real Mapbox token** (your subscription) for live maps.
@@ -63,16 +100,19 @@ No amount of further code moves these:
 
 ## Honest completion estimate
 
-- **Backend: ~95%** — gate-green, boots as a full stack, contract-complete at 152 ops.
-- **Apps: ~60–65%** — breadth built and compiler-clean; runtime/device verification + tests are
-  the gap.
-- **Shippable v1: ~65–70% by code**, and **launch is blocked on the human items above** — most
-  critically A2P sign-in. A running, provably-correct system exists; it cannot yet take a real
-  customer through phone sign-in → paid order → HST invoice until those flips land.
+- **Backend: ~96%** — gate-green, boots as a full stack, contract-complete at 152 ops, tests now
+  hermetic against a long-lived DB, and both launch-critical config flips (Twilio, HST) are
+  built and one env-var away.
+- **Apps: ~68–72%** — breadth built, compiler-clean, and now carrying a unit/smoke test net;
+  device/runtime verification of native-only paths is the remaining gap.
+- **Shippable v1: ~70–75% by code**, and **launch is blocked on the human items above** — most
+  critically A2P sign-in. A running, provably-correct system exists; every human-blocked item is
+  now de-risked to a config flip, so the day the client answers, launch is not lagged by code.
 
 ## Immediate next (buildable) if the push continues
 
-1. Fix notify test hermeticity; add the app-level test net.
-2. Rider Stripe-Connect payout flow; admin live-map with a token.
-3. De-risk each human-blocked item into a one-line config flip (Twilio adapter behind the seam,
-   Stripe live path, HST number) so the moment the client answers, launch isn't lagged.
+1. Device/runtime verification of native paths (camera/QR, navigation) with a dev build.
+2. Admin live-map render + rider payout flow verification once a Mapbox token / test Connect
+   account is available.
+3. End-to-end receipt-writer consumption of the O-01 tax fields; incremental per-handler
+   adoption of the generated contract types.
