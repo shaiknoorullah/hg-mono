@@ -19,6 +19,7 @@ DOMAIN_BLURB = {
     "documents": "KYC uploads, review states and every rejection reason.",
     "errors": "`{error}` envelopes for the codes an app actually branches on.",
     "halal": "Badges, certificates, checks and issuing bodies — the platform's core promise.",
+    "handoff": "The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results.",
     "onboarding": "Restaurant and rider onboarding, profiles, vehicles and trading state.",
     "orders": "The 14 `OrderState` values, per-audience projections, tracking and receipts.",
     "payments": "The 8 `PaymentState` values, saved cards and setup intents.",

@@ -1530,6 +1530,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orders/{orderId}/handoff/delivery-scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rider scans the seal at delivery
+         * @description The one proof that gates `PICKED_UP`/`ARRIVED` → `DELIVERED` (T15/T16) on the handoff
+         *     side — the customer's own proof of delivery (OTP or photo, D-21) is a separate,
+         *     unrelated requirement and both must clear. Same signature, order-binding and
+         *     single-use-nonce checks as `scanPickup`, scoped to the `DELIVERY` proof so the same
+         *     physical QR can legally be scanned once at pickup and once at delivery without either
+         *     scan being treated as a replay of the other. `seal_intact: false` never blocks
+         *     delivery; it is recorded as tamper evidence for support to act on.
+         */
+        post: operations["scanDelivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orders/{orderId}/handoff/pickup-scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rider scans the seal at pickup
+         * @description The one proof that gates `READY_FOR_PICKUP` → `PICKED_UP` (T12). The rider scans the
+         *     QR on the package; the server verifies the EdDSA signature, that the token's
+         *     `order_id` matches this order, and that its `nonce` has never been consumed for a
+         *     `PICKUP` proof on this seal (single-use — `UNIQUE(seal_id, nonce)` makes a replay a
+         *     constraint violation, not a check that might be skipped). A failed `seal_intact` check
+         *     does **not** block the pickup — the physical handoff still happened — but it is
+         *     recorded on the seal and the event trail as tamper evidence.
+         */
+        post: operations["scanPickup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orders/{orderId}/handoff/seal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bind a physical seal to this order at packing
+         * @description Restaurant staff scan or key in the pre-coded `seal_code` printed on the physical
+         *     tamper-evident label as they finish packing. The seal must be `ISSUED` (platform-known
+         *     stock, not yet bound) and is bound to exactly this order for its lifetime — a seal
+         *     never moves between orders. Binding mints the EdDSA-signed `{order_id, seal_id, nonce}`
+         *     token (P-04 signing keys) that the client renders as the QR code affixed to the
+         *     package; that same code is what the rider scans at pickup and at delivery.
+         */
+        post: operations["bindPackageSeal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orders/{orderId}/handoff/tamper-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Customer reports the seal was tampered with
+         * @description Filed by the customer after delivery — the rider never files this; their only
+         *     tamper-adjacent signal is `seal_intact` on their own scan. This never auto-fails the
+         *     order or the payment: it appends a `TAMPER_REPORT` event carrying the photo trail and
+         *     opens the existing dispute flow (A-33/A-35, `DELIVERED`/`COMPLETED` → `DISPUTED`),
+         *     which decides the money outcome from the full scan-and-photo chain of custody.
+         */
+        post: operations["reportTamper"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/orders/{orderId}/payment": {
         parameters: {
             query?: never;
@@ -3514,6 +3615,19 @@ export interface components {
          * @enum {string}
          */
         DeliveryInstruction: "LEAVE_AT_DOOR" | "DO_NOT_RING_BELL" | "DO_NOT_CALL" | "MEET_AT_DOOR" | "MEET_IN_LOBBY";
+        DeliveryScanInput: {
+            latitude?: components["schemas"]["Latitude"];
+            longitude?: components["schemas"]["Longitude"];
+            /**
+             * Format: uuid
+             * @description Optional. A `READY` object with purpose `POD`, uploaded by the scanning rider.
+             */
+            photo_object_id?: string;
+            /** @description The same signed QR payload scanned at pickup, scanned again at the door. */
+            qr_token: string;
+            /** @description Visual check at the point of scan. `false` is recorded as tamper evidence; it never blocks the transition. */
+            seal_intact: boolean;
+        };
         DependencyReport: {
             boot_probes: {
                 detail?: string | null;
@@ -3724,7 +3838,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -3945,6 +4059,38 @@ export interface components {
              */
             issuing_body_id: string;
             scope: components["schemas"]["HalalCertificateScope"];
+        };
+        /**
+         * @description Only the rider ever scans; the customer's only handoff event is a tamper report.
+         * @enum {string}
+         */
+        HandoffActor: "RESTAURANT" | "RIDER" | "CUSTOMER";
+        HandoffEvent: {
+            actor: components["schemas"]["HandoffActor"];
+            actor_account_id?: string | null;
+            at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            id: string;
+            latitude?: components["schemas"]["Latitude"] | null;
+            longitude?: components["schemas"]["Longitude"] | null;
+            method: components["schemas"]["HandoffMethod"];
+            note?: string | null;
+            /** Format: uuid */
+            order_id: string;
+            photo_object_id?: string | null;
+            seal_id?: string | null;
+            seal_intact?: boolean | null;
+            type: components["schemas"]["HandoffEventType"];
+        };
+        /** @enum {string} */
+        HandoffEventType: "SEAL" | "PICKUP" | "DELIVERY" | "TAMPER_REPORT";
+        /** @enum {string} */
+        HandoffMethod: "QR" | "OTP" | "PHOTO";
+        /** @description The proof and its effect: the seal's new state, the event just appended, and the order state it gated. */
+        HandoffScanResult: {
+            event: components["schemas"]["HandoffEvent"];
+            order_state: components["schemas"]["OrderState"];
+            seal: components["schemas"]["PackageSeal"];
         };
         /** @enum {string} */
         HandoverMethod: "HANDED_TO_CUSTOMER" | "LEFT_AT_DOOR" | "LEFT_WITH_RECEPTION" | "HANDED_TO_OTHER_PERSON";
@@ -4656,6 +4802,28 @@ export interface components {
             /** Format: uuid */
             restaurant_id: string;
         };
+        PackageSeal: {
+            bound_at?: components["schemas"]["Timestamp"] | null;
+            created_at: components["schemas"]["Timestamp"];
+            delivery_verified_at?: components["schemas"]["Timestamp"] | null;
+            /** Format: uuid */
+            id: string;
+            order_id?: string | null;
+            pickup_verified_at?: components["schemas"]["Timestamp"] | null;
+            /** @description The signed QR payload, present once `status` is no longer `ISSUED`. No price, no PII — only `{order_id, seal_id, nonce}`. */
+            qr_token?: string | null;
+            /** Format: uuid */
+            restaurant_id: string;
+            seal_code: string;
+            status: components["schemas"]["PackageSealStatus"];
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        /**
+         * @description The seal's lifecycle. `ISSUED` is platform-known stock not yet bound to an order;
+         *     every other member requires `order_id` and `qr_token` to be set.
+         * @enum {string}
+         */
+        PackageSealStatus: "ISSUED" | "BOUND" | "PICKUP_VERIFIED" | "DELIVERY_VERIFIED" | "TAMPER_REPORTED";
         PageMeta: {
             has_more: boolean;
             /** @description Null at the end of the collection. */
@@ -4733,6 +4901,19 @@ export interface components {
          * @example +14165550123
          */
         PhoneE164: string;
+        PickupScanInput: {
+            latitude?: components["schemas"]["Latitude"];
+            longitude?: components["schemas"]["Longitude"];
+            /**
+             * Format: uuid
+             * @description Optional. A `READY` object with purpose `POD`, uploaded by the scanning rider.
+             */
+            photo_object_id?: string;
+            /** @description The signed QR payload scanned off the package. */
+            qr_token: string;
+            /** @description Visual check at the point of scan. `false` is recorded as tamper evidence; it never blocks the transition. */
+            seal_intact: boolean;
+        };
         /**
          * @description D-21. Derived from the order's delivery instruction and returned to the rider as
          *     `required_pod_method`. `DELIVERED` cannot commit without the artefact in the **same
@@ -5757,6 +5938,10 @@ export interface components {
          * @enum {string}
          */
         RouteSource: "ROUTED" | "CACHED" | "FALLBACK";
+        SealBindInput: {
+            /** @description The pre-coded label printed on the physical tamper-evident seal. */
+            seal_code: string;
+        };
         /** @description Each group paginates independently, so advancing one never disturbs the other. */
         SearchMeta: {
             dishes: components["schemas"]["PageMeta"];
@@ -5856,6 +6041,14 @@ export interface components {
          * @enum {string}
          */
         StoredObjectState: "PENDING" | "READY" | "REJECTED" | "DELETED";
+        TamperReportInput: {
+            note: string;
+            /**
+             * Format: uuid
+             * @description A `READY` object with purpose `POD`, uploaded by the reporting customer.
+             */
+            photo_object_id: string;
+        };
         /**
          * @description P-11. Defaults to `PREPARED_FOOD` and is admin-changeable only.
          *     `BEVERAGE_ALCOHOL` is rejected at menu publish until V2.
@@ -6046,6 +6239,7 @@ export type SchemaCustomerProfile = components['schemas']['CustomerProfile'];
 export type SchemaCustomerProfileUpdateInput = components['schemas']['CustomerProfileUpdateInput'];
 export type SchemaDelayReasonCode = components['schemas']['DelayReasonCode'];
 export type SchemaDeliveryInstruction = components['schemas']['DeliveryInstruction'];
+export type SchemaDeliveryScanInput = components['schemas']['DeliveryScanInput'];
 export type SchemaDependencyReport = components['schemas']['DependencyReport'];
 export type SchemaDevice = components['schemas']['Device'];
 export type SchemaDevicePlatform = components['schemas']['DevicePlatform'];
@@ -6088,6 +6282,11 @@ export type SchemaHalalIssuingBodyStatus = components['schemas']['HalalIssuingBo
 export type SchemaHalalIssuingBodyStatusInput = components['schemas']['HalalIssuingBodyStatusInput'];
 export type SchemaHalalRejectionReasonCode = components['schemas']['HalalRejectionReasonCode'];
 export type SchemaHalalTranscriptionInput = components['schemas']['HalalTranscriptionInput'];
+export type SchemaHandoffActor = components['schemas']['HandoffActor'];
+export type SchemaHandoffEvent = components['schemas']['HandoffEvent'];
+export type SchemaHandoffEventType = components['schemas']['HandoffEventType'];
+export type SchemaHandoffMethod = components['schemas']['HandoffMethod'];
+export type SchemaHandoffScanResult = components['schemas']['HandoffScanResult'];
 export type SchemaHandoverMethod = components['schemas']['HandoverMethod'];
 export type SchemaHealthStatus = components['schemas']['HealthStatus'];
 export type SchemaHoursOverride = components['schemas']['HoursOverride'];
@@ -6150,6 +6349,8 @@ export type SchemaOtpChallenge = components['schemas']['OtpChallenge'];
 export type SchemaOtpRequestInput = components['schemas']['OtpRequestInput'];
 export type SchemaOtpVerifyInput = components['schemas']['OtpVerifyInput'];
 export type SchemaOwnedMenu = components['schemas']['OwnedMenu'];
+export type SchemaPackageSeal = components['schemas']['PackageSeal'];
+export type SchemaPackageSealStatus = components['schemas']['PackageSealStatus'];
 export type SchemaPageMeta = components['schemas']['PageMeta'];
 export type SchemaPassword = components['schemas']['Password'];
 export type SchemaPaymentIntentKind = components['schemas']['PaymentIntentKind'];
@@ -6160,6 +6361,7 @@ export type SchemaPayoutDetail = components['schemas']['PayoutDetail'];
 export type SchemaPayoutInterval = components['schemas']['PayoutInterval'];
 export type SchemaPayoutState = components['schemas']['PayoutState'];
 export type SchemaPhoneE164 = components['schemas']['PhoneE164'];
+export type SchemaPickupScanInput = components['schemas']['PickupScanInput'];
 export type SchemaPodMethod = components['schemas']['PodMethod'];
 export type SchemaPostalCode = components['schemas']['PostalCode'];
 export type SchemaPresignedDownload = components['schemas']['PresignedDownload'];
@@ -6246,6 +6448,7 @@ export type SchemaRiderVehicleInput = components['schemas']['RiderVehicleInput']
 export type SchemaRole = components['schemas']['Role'];
 export type SchemaRoleGrant = components['schemas']['RoleGrant'];
 export type SchemaRouteSource = components['schemas']['RouteSource'];
+export type SchemaSealBindInput = components['schemas']['SealBindInput'];
 export type SchemaSearchMeta = components['schemas']['SearchMeta'];
 export type SchemaSearchResults = components['schemas']['SearchResults'];
 export type SchemaSelectedAddon = components['schemas']['SelectedAddon'];
@@ -6259,6 +6462,7 @@ export type SchemaStaffUserInput = components['schemas']['StaffUserInput'];
 export type SchemaStoredObject = components['schemas']['StoredObject'];
 export type SchemaStoredObjectPurpose = components['schemas']['StoredObjectPurpose'];
 export type SchemaStoredObjectState = components['schemas']['StoredObjectState'];
+export type SchemaTamperReportInput = components['schemas']['TamperReportInput'];
 export type SchemaTaxCategory = components['schemas']['TaxCategory'];
 export type SchemaTaxKind = components['schemas']['TaxKind'];
 export type SchemaTimestamp = components['schemas']['Timestamp'];
@@ -8782,6 +8986,252 @@ export interface operations {
             };
             404: components["responses"]["Error"];
             /** @description `CANCELLATION_WINDOW_CLOSED` or `ILLEGAL_TRANSITION`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    scanDelivery: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryScanInput"];
+            };
+        };
+        responses: {
+            /** @description Delivery verified; the order has advanced to `DELIVERED`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["HandoffScanResult"];
+                    };
+                };
+            };
+            /** @description `SEAL_NOT_FOUND` — no seal is bound to this order. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `SEAL_NOT_BOUND`, `ILLEGAL_TRANSITION`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `SEAL_TOKEN_INVALID`, `SEAL_ORDER_MISMATCH`, `SEAL_NONCE_REPLAYED`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    scanPickup: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PickupScanInput"];
+            };
+        };
+        responses: {
+            /** @description Pickup verified; the order has advanced to `PICKED_UP`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["HandoffScanResult"];
+                    };
+                };
+            };
+            /** @description `SEAL_NOT_FOUND` — no seal is bound to this order. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `SEAL_NOT_BOUND`, `ILLEGAL_TRANSITION`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `SEAL_TOKEN_INVALID`, `SEAL_ORDER_MISMATCH`, `SEAL_NONCE_REPLAYED`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    bindPackageSeal: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SealBindInput"];
+            };
+        };
+        responses: {
+            /** @description Seal bound; `qr_token` is the QR payload to render on the label. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PackageSeal"];
+                    };
+                };
+            };
+            /** @description `SEAL_NOT_FOUND` — no such seal code for this restaurant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `SEAL_ALREADY_BOUND` — this seal is already bound to another order. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    reportTamper: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TamperReportInput"];
+            };
+        };
+        responses: {
+            /** @description Tamper report recorded; the order has moved to `DISPUTED`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["HandoffScanResult"];
+                    };
+                };
+            };
+            /** @description `SEAL_NOT_FOUND` — no seal is bound to this order. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `ILLEGAL_TRANSITION` — the order is not in a state that can be disputed. */
             409: {
                 headers: {
                     [name: string]: unknown;

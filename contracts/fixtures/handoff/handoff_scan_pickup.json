@@ -1,0 +1,41 @@
+{
+  "scenario": "handoff_scan_pickup",
+  "domain": "handoff",
+  "schema": "HandoffScanResult",
+  "describes": "scanPickup's 200: the proof and its effect together — the order has already advanced to PICKED_UP.",
+  "operations": [
+    "scanPickup"
+  ],
+  "status": 200,
+  "payload": {
+    "seal": {
+      "id": "7b028ce0-ae7e-4ee5-a81f-e4258df95fdc",
+      "seal_code": "HGSEAL-PICKUP_VERIFIED",
+      "order_id": "ecc880e3-3740-40c4-a75c-e171cef366d8",
+      "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "status": "PICKUP_VERIFIED",
+      "qr_token": "hgseal.9b5f3135-3507-4f50-a8e.52e56794-6591-487a-adc",
+      "bound_at": "2026-08-10T18:02:11.412Z",
+      "pickup_verified_at": "2026-08-10T18:42:11.412Z",
+      "delivery_verified_at": null,
+      "created_at": "2026-08-09T18:42:11.412Z",
+      "updated_at": "2026-08-10T18:42:11.412Z"
+    },
+    "event": {
+      "id": "b9f6a96e-00ef-4aa4-adca-37a95b6662e4",
+      "order_id": "ecc880e3-3740-40c4-a75c-e171cef366d8",
+      "seal_id": "7b028ce0-ae7e-4ee5-a81f-e4258df95fdc",
+      "type": "PICKUP",
+      "actor": "RIDER",
+      "actor_account_id": "bb344e16-80c9-43e7-a3b2-c6bc1d3ef231",
+      "method": "QR",
+      "seal_intact": true,
+      "latitude": 43.6817,
+      "longitude": -79.3403,
+      "photo_object_id": null,
+      "note": null,
+      "at": "2026-08-10T18:42:11.412Z"
+    },
+    "order_state": "PICKED_UP"
+  }
+}

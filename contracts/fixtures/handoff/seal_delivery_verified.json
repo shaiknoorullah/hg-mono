@@ -1,0 +1,24 @@
+{
+  "scenario": "seal_delivery_verified",
+  "domain": "handoff",
+  "schema": "PackageSeal",
+  "describes": "Both proofs cleared: identity held at pickup and at the door.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "seal-state-matrix"
+  ],
+  "payload": {
+    "id": "8d512446-c255-4e23-a407-9393187113b9",
+    "seal_code": "HGSEAL-DELIVERY_VERIFIED",
+    "order_id": "ecc880e3-3740-40c4-a75c-e171cef366d8",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "status": "DELIVERY_VERIFIED",
+    "qr_token": "hgseal.6eb16dc6-7504-45ce-ab8.c346434e-0d49-4dae-a9b",
+    "bound_at": "2026-08-10T18:02:11.412Z",
+    "pickup_verified_at": "2026-08-10T18:17:11.412Z",
+    "delivery_verified_at": "2026-08-10T18:41:11.412Z",
+    "created_at": "2026-08-09T18:42:11.412Z",
+    "updated_at": "2026-08-10T18:42:11.412Z"
+  }
+}

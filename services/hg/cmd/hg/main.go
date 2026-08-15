@@ -41,6 +41,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handoff"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
@@ -347,6 +348,21 @@ func (a *orderLifecycleAdapter) CompleteDelivery(ctx context.Context, orderID, r
 	})
 }
 
+// OpenDispute implements handoff.OrderLifecycle's third method: a customer-filed
+// tamper report advances DELIVERED or COMPLETED to DISPUTED (T19). Transition
+// reads the order's *actual* current state under FOR UPDATE and validates it
+// against the compile-time table itself — this adapter does not need to know
+// which of the two legal predecessors the order is currently in.
+func (a *orderLifecycleAdapter) OpenDispute(ctx context.Context, orderID, customerAccountID, reason string) error {
+	return a.store.Transition(ctx, orders.TransitionRequest{
+		OrderID:        orderID,
+		To:             machine.StateDisputed,
+		Actor:          machine.ActorCustomer,
+		ActorAccountID: customerAccountID,
+		Reason:         reason,
+	})
+}
+
 func main() {
 	if err := run(); err != nil {
 		// Boot failures go to stderr in plain text as well as the structured
@@ -551,6 +567,15 @@ func run() error {
 	dispatch.Routes(router, dispatch.NewHandler(dispatchSvc))
 	dispatchRunner := dispatch.NewDispatchRunner(dispatchSvc, log, 3000, 5*time.Second)
 	go dispatchRunner.Run(ctx)
+
+	// B11 — Handoff (internal/handoff, migration 00027): package-seal chain of
+	// custody. Reuses the same orderLifecycleAdapter instance dispatch is wired
+	// with above — it already satisfies dispatch.OrderLifecycle's two methods
+	// plus handoff.OrderLifecycle's OpenDispute — and auth's P-04 Ed25519 signing
+	// key, so no second key pair is minted for this module alone.
+	handoffStore := handoff.NewStore(st.DB().Pool)
+	handoffSvc := handoff.NewService(handoffStore, dispatchLifecycle, authSecrets.SigningPriv, authSecrets.SigningPub, log)
+	handoff.Routes(router, handoff.NewHandler(handoffSvc))
 
 	// B7 — Restaurant partner portal (R-01…R-26).
 	// Scope resolver reads account_role; ownership enforced in SQL (P-07 / IDOR).

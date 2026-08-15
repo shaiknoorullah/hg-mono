@@ -2,7 +2,7 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 317,
+  "count": 330,
   "counts_by_domain": {
     "admin": 15,
     "cart": 12,
@@ -11,6 +11,7 @@
     "documents": 23,
     "errors": 23,
     "halal": 25,
+    "handoff": 13,
     "onboarding": 35,
     "orders": 44,
     "payments": 12,
@@ -2395,6 +2396,166 @@
         "state-matrix"
       ],
       "file": "halal/halal_issuing_body_suspended.json"
+    },
+    {
+      "scenario": "handoff_event_delivery",
+      "domain": "handoff",
+      "schema": "HandoffEvent",
+      "describes": "The rider's delivery scan, with an optional POD photo attached.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "handoff-event-matrix"
+      ],
+      "file": "handoff/handoff_event_delivery.json"
+    },
+    {
+      "scenario": "handoff_event_delivery_tamper_flagged",
+      "domain": "handoff",
+      "schema": "HandoffEvent",
+      "describes": "`seal_intact:false` at the rider's own scan — identity still held (this really is the assigned rider, at the door), so the delivery is still recorded; the integrity flag is evidence, not a block.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "handoff-event-matrix"
+      ],
+      "file": "handoff/handoff_event_delivery_tamper_flagged.json"
+    },
+    {
+      "scenario": "handoff_event_pickup",
+      "domain": "handoff",
+      "schema": "HandoffEvent",
+      "describes": "The rider's pickup scan — identity and integrity both held.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "handoff-event-matrix"
+      ],
+      "file": "handoff/handoff_event_pickup.json"
+    },
+    {
+      "scenario": "handoff_event_seal",
+      "domain": "handoff",
+      "schema": "HandoffEvent",
+      "describes": "The bind: restaurant staff scanned the physical label and the token was minted.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "handoff-event-matrix"
+      ],
+      "file": "handoff/handoff_event_seal.json"
+    },
+    {
+      "scenario": "handoff_event_tamper_report",
+      "domain": "handoff",
+      "schema": "HandoffEvent",
+      "describes": "Filed by the customer after delivery. No nonce (not a QR proof) — opens the dispute flow (A-33/A-35).",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "handoff-event-matrix"
+      ],
+      "file": "handoff/handoff_event_tamper_report.json"
+    },
+    {
+      "scenario": "handoff_scan_delivery",
+      "domain": "handoff",
+      "schema": "HandoffScanResult",
+      "describes": "scanDelivery's 200: PICKED_UP → DELIVERED, gated on the same physical token scoped to the DELIVERY proof.",
+      "operations": [
+        "scanDelivery"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "handoff/handoff_scan_delivery.json"
+    },
+    {
+      "scenario": "handoff_scan_pickup",
+      "domain": "handoff",
+      "schema": "HandoffScanResult",
+      "describes": "scanPickup's 200: the proof and its effect together — the order has already advanced to PICKED_UP.",
+      "operations": [
+        "scanPickup"
+      ],
+      "status": 200,
+      "tags": [],
+      "file": "handoff/handoff_scan_pickup.json"
+    },
+    {
+      "scenario": "handoff_tamper_report",
+      "domain": "handoff",
+      "schema": "HandoffScanResult",
+      "describes": "reportTamper's 200: DELIVERED → DISPUTED. Never a money decision by itself — it hands the scan-and-photo trail to the dispute flow (A-33/A-35).",
+      "operations": [
+        "reportTamper"
+      ],
+      "status": 200,
+      "tags": [
+        "edge"
+      ],
+      "file": "handoff/handoff_tamper_report.json"
+    },
+    {
+      "scenario": "seal_bound",
+      "domain": "handoff",
+      "schema": "PackageSeal",
+      "describes": "Bound at packing; `qr_token` is what the restaurant renders as the QR affixed to the package.",
+      "operations": [
+        "bindPackageSeal"
+      ],
+      "status": 200,
+      "tags": [
+        "seal-state-matrix"
+      ],
+      "file": "handoff/seal_bound.json"
+    },
+    {
+      "scenario": "seal_delivery_verified",
+      "domain": "handoff",
+      "schema": "PackageSeal",
+      "describes": "Both proofs cleared: identity held at pickup and at the door.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "seal-state-matrix"
+      ],
+      "file": "handoff/seal_delivery_verified.json"
+    },
+    {
+      "scenario": "seal_issued",
+      "domain": "handoff",
+      "schema": "PackageSeal",
+      "describes": "Platform-known stock, not yet bound to an order. The only status where `order_id` and `qr_token` are null.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "seal-state-matrix"
+      ],
+      "file": "handoff/seal_issued.json"
+    },
+    {
+      "scenario": "seal_pickup_verified",
+      "domain": "handoff",
+      "schema": "PackageSeal",
+      "describes": "The rider's pickup scan verified the signature, order binding and single-use nonce.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "seal-state-matrix"
+      ],
+      "file": "handoff/seal_pickup_verified.json"
+    },
+    {
+      "scenario": "seal_tamper_reported",
+      "domain": "handoff",
+      "schema": "PackageSeal",
+      "describes": "A scan (`seal_intact:false`) or the customer's own tamper report flagged this seal. The identity checks still passed — this is an integrity signal, not an identity failure — and never auto-fails the order.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "seal-state-matrix"
+      ],
+      "file": "handoff/seal_tamper_reported.json"
     },
     {
       "scenario": "restaurant_heartbeat",
@@ -4879,6 +5040,9 @@
       "document_submitted",
       "document_superseded"
     ],
+    "bindPackageSeal": [
+      "seal_bound"
+    ],
     "cancelOrder": [
       "order_arrived",
       "order_authorized",
@@ -5459,6 +5623,9 @@
     "reportRiderPositions": [
       "rider_position_ack"
     ],
+    "reportTamper": [
+      "handoff_tamper_report"
+    ],
     "requestOtp": [
       "otp_challenge"
     ],
@@ -5483,6 +5650,12 @@
       "document_rejected",
       "document_submitted",
       "document_superseded"
+    ],
+    "scanDelivery": [
+      "handoff_scan_delivery"
+    ],
+    "scanPickup": [
+      "handoff_scan_pickup"
     ],
     "search": [
       "search_results_empty",
@@ -5620,6 +5793,7 @@
     "acceptOrder": "restaurant_order_preparing",
     "addCartLine": "cart_single_line",
     "attachRestaurantDocument": "document_submitted",
+    "bindPackageSeal": "seal_bound",
     "cancelOrder": "order_cancelled",
     "cancelOrderAdmin": "order_admin_view_completed",
     "changePassword": "session_grant_customer",
@@ -5708,9 +5882,12 @@
     "registerRestaurant": "restaurant_registration",
     "rejectOrder": "restaurant_order_rejected",
     "reportRiderPositions": "rider_position_ack",
+    "reportTamper": "handoff_tamper_report",
     "requestOtp": "otp_challenge",
     "reviewRestaurantDocument": "document_approved",
     "reviewRiderDocument": "document_approved",
+    "scanDelivery": "handoff_scan_delivery",
+    "scanPickup": "handoff_scan_pickup",
     "search": "search_results_populated",
     "sendRestaurantHeartbeat": "restaurant_heartbeat",
     "setDefaultAddress": "addresses_list",

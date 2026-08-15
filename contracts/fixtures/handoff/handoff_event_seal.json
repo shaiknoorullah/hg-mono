@@ -1,0 +1,26 @@
+{
+  "scenario": "handoff_event_seal",
+  "domain": "handoff",
+  "schema": "HandoffEvent",
+  "describes": "The bind: restaurant staff scanned the physical label and the token was minted.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "handoff-event-matrix"
+  ],
+  "payload": {
+    "id": "89b271c0-d4b6-4baa-a940-132333175137",
+    "order_id": "ecc880e3-3740-40c4-a75c-e171cef366d8",
+    "seal_id": "4af5d36e-1ec1-409c-ab77-c936dc9e5797",
+    "type": "SEAL",
+    "actor": "RESTAURANT",
+    "actor_account_id": "1dd693fc-51ac-44f7-a12a-02b9cb9e2ddf",
+    "method": "QR",
+    "seal_intact": null,
+    "latitude": null,
+    "longitude": null,
+    "photo_object_id": null,
+    "note": null,
+    "at": "2026-08-10T18:42:11.412Z"
+  }
+}

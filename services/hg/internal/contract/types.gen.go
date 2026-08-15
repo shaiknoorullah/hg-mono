@@ -829,6 +829,12 @@ const (
 	ErrorCodeREVIEWLOCKLOST                 ErrorCode = "REVIEW_LOCK_LOST"
 	ErrorCodeREVIEWWINDOWCLOSED             ErrorCode = "REVIEW_WINDOW_CLOSED"
 	ErrorCodeRIDERNOTAVAILABLE              ErrorCode = "RIDER_NOT_AVAILABLE"
+	ErrorCodeSEALALREADYBOUND               ErrorCode = "SEAL_ALREADY_BOUND"
+	ErrorCodeSEALNONCEREPLAYED              ErrorCode = "SEAL_NONCE_REPLAYED"
+	ErrorCodeSEALNOTBOUND                   ErrorCode = "SEAL_NOT_BOUND"
+	ErrorCodeSEALNOTFOUND                   ErrorCode = "SEAL_NOT_FOUND"
+	ErrorCodeSEALORDERMISMATCH              ErrorCode = "SEAL_ORDER_MISMATCH"
+	ErrorCodeSEALTOKENINVALID               ErrorCode = "SEAL_TOKEN_INVALID"
 	ErrorCodeSELFAPPROVALFORBIDDEN          ErrorCode = "SELF_APPROVAL_FORBIDDEN"
 	ErrorCodeSESSIONEXPIRED                 ErrorCode = "SESSION_EXPIRED"
 	ErrorCodeSESSIONREVOKED                 ErrorCode = "SESSION_REVOKED"
@@ -1105,6 +1111,18 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeREVIEWWINDOWCLOSED:
 		return true
 	case ErrorCodeRIDERNOTAVAILABLE:
+		return true
+	case ErrorCodeSEALALREADYBOUND:
+		return true
+	case ErrorCodeSEALNONCEREPLAYED:
+		return true
+	case ErrorCodeSEALNOTBOUND:
+		return true
+	case ErrorCodeSEALNOTFOUND:
+		return true
+	case ErrorCodeSEALORDERMISMATCH:
+		return true
+	case ErrorCodeSEALTOKENINVALID:
 		return true
 	case ErrorCodeSELFAPPROVALFORBIDDEN:
 		return true
@@ -1439,6 +1457,72 @@ func (e HalalRejectionReasonCode) Valid() bool {
 	case HalalRejectionReasonCodeSCOPEINSUFFICIENT:
 		return true
 	case HalalRejectionReasonCodeSUSPECTEDFORGERY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HandoffActor.
+const (
+	HandoffActorCUSTOMER   HandoffActor = "CUSTOMER"
+	HandoffActorRESTAURANT HandoffActor = "RESTAURANT"
+	HandoffActorRIDER      HandoffActor = "RIDER"
+)
+
+// Valid indicates whether the value is a known member of the HandoffActor enum.
+func (e HandoffActor) Valid() bool {
+	switch e {
+	case HandoffActorCUSTOMER:
+		return true
+	case HandoffActorRESTAURANT:
+		return true
+	case HandoffActorRIDER:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HandoffEventType.
+const (
+	HandoffEventTypeDELIVERY     HandoffEventType = "DELIVERY"
+	HandoffEventTypePICKUP       HandoffEventType = "PICKUP"
+	HandoffEventTypeSEAL         HandoffEventType = "SEAL"
+	HandoffEventTypeTAMPERREPORT HandoffEventType = "TAMPER_REPORT"
+)
+
+// Valid indicates whether the value is a known member of the HandoffEventType enum.
+func (e HandoffEventType) Valid() bool {
+	switch e {
+	case HandoffEventTypeDELIVERY:
+		return true
+	case HandoffEventTypePICKUP:
+		return true
+	case HandoffEventTypeSEAL:
+		return true
+	case HandoffEventTypeTAMPERREPORT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HandoffMethod.
+const (
+	HandoffMethodOTP   HandoffMethod = "OTP"
+	HandoffMethodPHOTO HandoffMethod = "PHOTO"
+	HandoffMethodQR    HandoffMethod = "QR"
+)
+
+// Valid indicates whether the value is a known member of the HandoffMethod enum.
+func (e HandoffMethod) Valid() bool {
+	switch e {
+	case HandoffMethodOTP:
+		return true
+	case HandoffMethodPHOTO:
+		return true
+	case HandoffMethodQR:
 		return true
 	default:
 		return false
@@ -2231,6 +2315,33 @@ func (e OtpRequestInputPurpose) Valid() bool {
 	}
 }
 
+// Defines values for PackageSealStatus.
+const (
+	BOUND            PackageSealStatus = "BOUND"
+	DELIVERYVERIFIED PackageSealStatus = "DELIVERY_VERIFIED"
+	ISSUED           PackageSealStatus = "ISSUED"
+	PICKUPVERIFIED   PackageSealStatus = "PICKUP_VERIFIED"
+	TAMPERREPORTED   PackageSealStatus = "TAMPER_REPORTED"
+)
+
+// Valid indicates whether the value is a known member of the PackageSealStatus enum.
+func (e PackageSealStatus) Valid() bool {
+	switch e {
+	case BOUND:
+		return true
+	case DELIVERYVERIFIED:
+		return true
+	case ISSUED:
+		return true
+	case PICKUPVERIFIED:
+		return true
+	case TAMPERREPORTED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PaymentIntentKind.
 const (
 	PaymentIntentKindADJUSTMENT      PaymentIntentKind = "ADJUSTMENT"
@@ -2341,19 +2452,19 @@ func (e PayoutState) Valid() bool {
 
 // Defines values for PodMethod.
 const (
-	OTP                  PodMethod = "OTP"
-	PHOTO                PodMethod = "PHOTO"
-	PHOTOWITHATTESTATION PodMethod = "PHOTO_WITH_ATTESTATION"
+	PodMethodOTP                  PodMethod = "OTP"
+	PodMethodPHOTO                PodMethod = "PHOTO"
+	PodMethodPHOTOWITHATTESTATION PodMethod = "PHOTO_WITH_ATTESTATION"
 )
 
 // Valid indicates whether the value is a known member of the PodMethod enum.
 func (e PodMethod) Valid() bool {
 	switch e {
-	case OTP:
+	case PodMethodOTP:
 		return true
-	case PHOTO:
+	case PodMethodPHOTO:
 		return true
-	case PHOTOWITHATTESTATION:
+	case PodMethodPHOTOWITHATTESTATION:
 		return true
 	default:
 		return false
@@ -4177,6 +4288,22 @@ type DelayReasonCode string
 // unattended drops require a photo.
 type DeliveryInstruction string
 
+// DeliveryScanInput defines model for DeliveryScanInput.
+type DeliveryScanInput struct {
+	// Latitude WGS84 latitude. Never a money field — the only `number` types in this contract are geographic or rating values.
+	Latitude  *Latitude  `json:"latitude,omitempty"`
+	Longitude *Longitude `json:"longitude,omitempty"`
+
+	// PhotoObjectId Optional. A `READY` object with purpose `POD`, uploaded by the scanning rider.
+	PhotoObjectId *openapi_types.UUID `json:"photo_object_id,omitempty"`
+
+	// QrToken The same signed QR payload scanned at pickup, scanned again at the door.
+	QrToken string `json:"qr_token"`
+
+	// SealIntact Visual check at the point of scan. `false` is recorded as tamper evidence; it never blocks the transition.
+	SealIntact bool `json:"seal_intact"`
+}
+
 // DependencyReport defines model for DependencyReport.
 type DependencyReport struct {
 	BootProbes []struct {
@@ -4808,6 +4935,53 @@ type HalalTranscriptionInput struct {
 	// other two fail it, because the platform has no item-level halal data model and must
 	// not make an item-level claim.
 	Scope HalalCertificateScope `json:"scope"`
+}
+
+// HandoffActor Only the rider ever scans; the customer's only handoff event is a tamper report.
+type HandoffActor string
+
+// HandoffEvent defines model for HandoffEvent.
+type HandoffEvent struct {
+	// Actor Only the rider ever scans; the customer's only handoff event is a tamper report.
+	Actor          HandoffActor        `json:"actor"`
+	ActorAccountId *openapi_types.UUID `json:"actor_account_id,omitempty"`
+
+	// At RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	At            Timestamp           `json:"at"`
+	Id            openapi_types.UUID  `json:"id"`
+	Latitude      *Latitude           `json:"latitude,omitempty"`
+	Longitude     *Longitude          `json:"longitude,omitempty"`
+	Method        HandoffMethod       `json:"method"`
+	Note          *string             `json:"note,omitempty"`
+	OrderId       openapi_types.UUID  `json:"order_id"`
+	PhotoObjectId *openapi_types.UUID `json:"photo_object_id,omitempty"`
+	SealId        *openapi_types.UUID `json:"seal_id,omitempty"`
+	SealIntact    *bool               `json:"seal_intact,omitempty"`
+	Type          HandoffEventType    `json:"type"`
+}
+
+// HandoffEventType defines model for HandoffEventType.
+type HandoffEventType string
+
+// HandoffMethod defines model for HandoffMethod.
+type HandoffMethod string
+
+// HandoffScanResult The proof and its effect: the seal's new state, the event just appended, and the order state it gated.
+type HandoffScanResult struct {
+	Event HandoffEvent `json:"event"`
+
+	// OrderState P-14 — **the** order enum. Fourteen states, five terminal (`COMPLETED`, `CANCELLED`,
+	// `REJECTED`, `FAILED`, `RESOLVED`); `DISPUTED` is non-terminal. Rider assignment is a
+	// separate, subordinate `dispatch` machine that may advance this one through three named
+	// transitions and may **never** cancel an order.
+	//
+	// Every non-terminal state carries a `deadline_at` and a named `deadline_action`,
+	// enforced by a Postgres `CHECK` — "waits forever" is unrepresentable.
+	//
+	// `order.state` has exactly one writer. There is no `PUT /orders/{id}/status`; admins
+	// move orders only through named actions.
+	OrderState OrderState  `json:"order_state"`
+	Seal       PackageSeal `json:"seal"`
 }
 
 // HandoverMethod defines model for HandoverMethod.
@@ -5908,6 +6082,34 @@ type OwnedMenu struct {
 	RestaurantId openapi_types.UUID `json:"restaurant_id"`
 }
 
+// PackageSeal defines model for PackageSeal.
+type PackageSeal struct {
+	BoundAt *Timestamp `json:"bound_at,omitempty"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt          Timestamp           `json:"created_at"`
+	DeliveryVerifiedAt *Timestamp          `json:"delivery_verified_at,omitempty"`
+	Id                 openapi_types.UUID  `json:"id"`
+	OrderId            *openapi_types.UUID `json:"order_id,omitempty"`
+	PickupVerifiedAt   *Timestamp          `json:"pickup_verified_at,omitempty"`
+
+	// QrToken The signed QR payload, present once `status` is no longer `ISSUED`. No price, no PII — only `{order_id, seal_id, nonce}`.
+	QrToken      *string            `json:"qr_token,omitempty"`
+	RestaurantId openapi_types.UUID `json:"restaurant_id"`
+	SealCode     string             `json:"seal_code"`
+
+	// Status The seal's lifecycle. `ISSUED` is platform-known stock not yet bound to an order;
+	// every other member requires `order_id` and `qr_token` to be set.
+	Status PackageSealStatus `json:"status"`
+
+	// UpdatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	UpdatedAt Timestamp `json:"updated_at"`
+}
+
+// PackageSealStatus The seal's lifecycle. `ISSUED` is platform-known stock not yet bound to an order;
+// every other member requires `order_id` and `qr_token` to be set.
+type PackageSealStatus string
+
 // PageMeta defines model for PageMeta.
 type PageMeta struct {
 	HasMore bool `json:"has_more"`
@@ -6006,6 +6208,22 @@ type PayoutState string
 //
 // Examples: +14165550123
 type PhoneE164 = string
+
+// PickupScanInput defines model for PickupScanInput.
+type PickupScanInput struct {
+	// Latitude WGS84 latitude. Never a money field — the only `number` types in this contract are geographic or rating values.
+	Latitude  *Latitude  `json:"latitude,omitempty"`
+	Longitude *Longitude `json:"longitude,omitempty"`
+
+	// PhotoObjectId Optional. A `READY` object with purpose `POD`, uploaded by the scanning rider.
+	PhotoObjectId *openapi_types.UUID `json:"photo_object_id,omitempty"`
+
+	// QrToken The signed QR payload scanned off the package.
+	QrToken string `json:"qr_token"`
+
+	// SealIntact Visual check at the point of scan. `false` is recorded as tamper evidence; it never blocks the transition.
+	SealIntact bool `json:"seal_intact"`
+}
 
 // PodMethod D-21. Derived from the order's delivery instruction and returned to the rider as
 // `required_pod_method`. `DELIVERED` cannot commit without the artefact in the **same
@@ -7541,6 +7759,12 @@ type RoleGrantScopeType string
 // approximation.
 type RouteSource string
 
+// SealBindInput defines model for SealBindInput.
+type SealBindInput struct {
+	// SealCode The pre-coded label printed on the physical tamper-evident seal.
+	SealCode string `json:"seal_code"`
+}
+
 // SearchMeta Each group paginates independently, so advancing one never disturbs the other.
 type SearchMeta struct {
 	Dishes PageMeta `json:"dishes"`
@@ -7666,6 +7890,14 @@ type StoredObjectPurpose string
 
 // StoredObjectState Only a `READY` object may be attached to a document, a menu item or a POD.
 type StoredObjectState string
+
+// TamperReportInput defines model for TamperReportInput.
+type TamperReportInput struct {
+	Note string `json:"note"`
+
+	// PhotoObjectId A `READY` object with purpose `POD`, uploaded by the reporting customer.
+	PhotoObjectId openapi_types.UUID `json:"photo_object_id"`
+}
 
 // TaxCategory P-11. Defaults to `PREPARED_FOOD` and is admin-changeable only.
 // `BEVERAGE_ALCOHOL` is rejected at menu publish until V2.
@@ -8261,6 +8493,50 @@ type CancelOrderParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// ScanDeliveryParams defines parameters for ScanDelivery.
+type ScanDeliveryParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ScanPickupParams defines parameters for ScanPickup.
+type ScanPickupParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// BindPackageSealParams defines parameters for BindPackageSeal.
+type BindPackageSealParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ReportTamperParams defines parameters for ReportTamper.
+type ReportTamperParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // SubmitOrderRatingParams defines parameters for SubmitOrderRating.
 type SubmitOrderRatingParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
@@ -8716,6 +8992,18 @@ type CreateOrderJSONRequestBody = OrderInput
 
 // CancelOrderJSONRequestBody defines body for CancelOrder for application/json ContentType.
 type CancelOrderJSONRequestBody = OrderCancellationInput
+
+// ScanDeliveryJSONRequestBody defines body for ScanDelivery for application/json ContentType.
+type ScanDeliveryJSONRequestBody = DeliveryScanInput
+
+// ScanPickupJSONRequestBody defines body for ScanPickup for application/json ContentType.
+type ScanPickupJSONRequestBody = PickupScanInput
+
+// BindPackageSealJSONRequestBody defines body for BindPackageSeal for application/json ContentType.
+type BindPackageSealJSONRequestBody = SealBindInput
+
+// ReportTamperJSONRequestBody defines body for ReportTamper for application/json ContentType.
+type ReportTamperJSONRequestBody = TamperReportInput
 
 // SubmitOrderRatingJSONRequestBody defines body for SubmitOrderRating for application/json ContentType.
 type SubmitOrderRatingJSONRequestBody = OrderRatingInput
