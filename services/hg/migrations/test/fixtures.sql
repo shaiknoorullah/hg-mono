@@ -21,19 +21,72 @@ INSERT INTO account_role (account_id, role, scope_type)
 VALUES ('11111111-1111-4111-8111-111111111111', 'CUSTOMER', 'GLOBAL')
 ON CONFLICT DO NOTHING;
 
+-- The ACTIVE rider fxRiderID references from the COMPLETED dispatch below (and
+-- that the conformance harness drives as an assigned rider). Self-contained so
+-- fixtures.sql loads on a clean DB — the FK to account(id) must resolve without
+-- relying on any prior rider registration having polluted the database.
+INSERT INTO account (id, phone_e164, status, timezone)
+VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578', '+14165550188', 'ACTIVE', 'America/Toronto')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO account_role (account_id, role, scope_type)
+VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578', 'RIDER', 'GLOBAL')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO rider_profile (account_id, first_name, last_name, date_of_birth,
+                           onboarding_state, account_status, availability_state,
+                           is_online, approved_at)
+VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578', 'Test', 'Rider', '1995-05-01',
+        'ACTIVE', 'ACTIVE', 'OFFLINE', false, now() - interval '30 days')
+ON CONFLICT (account_id) DO NOTHING;
+
+-- The RESTAURANT_MANAGER (fxRestaurantManagerID) the conformance harness
+-- authenticates as for every restaurant-portal read/write. The catalog scope
+-- resolver (RestaurantForPrincipal, P-07) answers "which restaurant may this
+-- principal act for" from a RESTAURANT-scoped account_role — with no such grant
+-- every portal endpoint is a 404. Self-contained so this resolves on a clean DB
+-- rather than relying on a manager registered in a prior session.
+INSERT INTO account (id, phone_e164, status, timezone)
+VALUES ('77777777-7777-4777-8777-777777777777', '+14165550170', 'ACTIVE', 'America/Toronto')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO account_role (account_id, role, scope_type, scope_id)
+VALUES ('77777777-7777-4777-8777-777777777777', 'RESTAURANT_MANAGER', 'RESTAURANT',
+        '33333333-3333-4333-8333-333333333333')
+ON CONFLICT DO NOTHING;
+
+-- The SUPER_ADMIN (fxSuperAdminID) the harness authenticates as for admin
+-- writes. Admin authorisation itself is header-driven in the test server, but
+-- admin write paths persist the actor as an FK — a refund's audit_event actor,
+-- an issuing-body decided_by, a certificate verified_by. Without this account
+-- those writes 500 on the FK, so it must exist for admin conformance to pass on
+-- a clean DB.
+INSERT INTO account (id, phone_e164, status, timezone)
+VALUES ('019ff68d-af0f-7e5b-a1ab-25bfa033f6f5', '+14165550101', 'ACTIVE', 'America/Toronto')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO account_role (account_id, role, scope_type)
+VALUES ('019ff68d-af0f-7e5b-a1ab-25bfa033f6f5', 'SUPER_ADMIN', 'GLOBAL')
+ON CONFLICT DO NOTHING;
+
 INSERT INTO address (id, account_id, label, line1, city, province, postal_code, location, timezone, is_default)
 VALUES ('22222222-2222-4222-8222-222222222222', '11111111-1111-4111-8111-111111111111',
         'Home', '1245 Danforth Avenue', 'Toronto', 'ON', 'M4J 1M4',
         ST_SetSRID(ST_MakePoint(-79.3282, 43.6820), 4326)::geography, 'America/Toronto', true)
 ON CONFLICT (id) DO NOTHING;
 
+-- halal_status CERTIFIED so the customer-facing halal gate (catalog
+-- visiblePredicate: account_state='LIVE' AND halal_status IN
+-- ('CERTIFIED','EXPIRING_SOON')) makes this restaurant discoverable. Without it
+-- every customer read is a C-13 404, and the conformance floor's restaurant ops
+-- only pass against a database already polluted with a halal-visible row.
 INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code,
                         location, timezone, onboarding_state, account_state, is_accepting_orders,
-                        commission_rate_bps)
+                        commission_rate_bps, halal_status)
 VALUES ('33333333-3333-4333-8333-333333333333', 'karachi-kitchen', 'Karachi Kitchen Inc.',
         'Karachi Kitchen', '1180 Danforth Avenue', 'Toronto', 'ON', 'M4J 1M1',
         ST_SetSRID(ST_MakePoint(-79.3332, 43.6810), 4326)::geography, 'America/Toronto',
-        'ACTIVE', 'LIVE', true, 0)
+        'ACTIVE', 'LIVE', true, 0, 'CERTIFIED')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO menu_category (id, restaurant_id, name)
