@@ -1552,6 +1552,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orders/{orderId}/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The customer's rating of this order (food + rider)
+         * @description C-38 (scoped). Either half may be null: the customer may have rated only the food, only
+         *     the rider, or neither yet. `null`/`null` is not an error — it means "not rated yet",
+         *     distinct from a 404 (no such order).
+         */
+        get: operations["getOrderRating"];
+        /**
+         * Rate the order's food and/or the rider
+         * @description C-38 (scoped to the food + rider targets — dish-level ratings are a tracked V2 gap, see
+         *     docs/decisions/). Both `food` and `rider` are optional in the request — the customer may
+         *     submit either or both in one call; each provided target upserts its own row (one rating
+         *     per `(order_id, target)`, rule C-38.2) and recomputes that target's `rating_avg` /
+         *     `rating_count` in the same transaction, from `PUBLISHED` rows only.
+         *
+         *     Only orders in `DELIVERED` or `COMPLETED`, within 14 days of `delivered_at`, may be
+         *     rated — otherwise `409 REVIEW_WINDOW_CLOSED`. A rating already on file may be replaced
+         *     within 24 h of its own `created_at`; past that, `409 REVIEW_EDIT_WINDOW_CLOSED`. A score
+         *     outside 1-5 is `422 VALIDATION_FAILED`, never silently clamped.
+         */
+        put: operations["submitOrderRating"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/orders/{orderId}/receipt": {
         parameters: {
             query?: never;
@@ -2352,6 +2387,36 @@ export interface paths {
          */
         put: operations["submitRestaurantProfile"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/restaurant/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List staff accounts scoped to the caller's restaurant
+         * @description Restaurant-scoped counterpart to `listStaff` (which is platform-role only). Returns
+         *     every account holding a `RESTAURANT_MANAGER` or `RESTAURANT_STAFF` grant on the
+         *     caller's restaurant — never accounts scoped to a different restaurant, and never
+         *     platform staff.
+         */
+        get: operations["listRestaurantStaff"];
+        put?: never;
+        /**
+         * Invite a staff account scoped to the caller's restaurant
+         * @description Restaurant-scoped counterpart to `createStaffUser`. The creator sets no password; the
+         *     account is created `INVITED`. The grant is `RESTAURANT_STAFF` only — an owner or
+         *     manager cannot self-serve a new `RESTAURANT_MANAGER` grant through this route (that
+         *     remains a platform-admin action, avoiding an unaudited manager-mints-manager chain).
+         */
+        post: operations["createRestaurantStaffUser"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3659,7 +3724,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -3699,6 +3764,20 @@ export interface components {
             /** @example delivery_instructions[0] */
             field: string;
             message: string;
+        };
+        /** @description C-38 target 1: the order's food, bound to the restaurant. */
+        FoodRating: {
+            created_at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            order_id: string;
+            /** Format: uuid */
+            restaurant_id: string;
+            review?: string | null;
+            /** Format: int32 */
+            score: number;
+            status: components["schemas"]["RatingStatus"];
+            tags?: ("Food quality" | "Portion size" | "Packaging" | "Value" | "Speed")[];
+            updated_at: components["schemas"]["Timestamp"];
         };
         /**
          * @description Pickup is modelled but not offered at V0; the delivery fee line is omitted for it.
@@ -4200,6 +4279,8 @@ export interface components {
          */
         OrderActorKind: "CUSTOMER" | "RESTAURANT" | "RIDER" | "SUPPORT" | "ADMIN" | "SYSTEM";
         OrderAdminView: components["schemas"]["OrderCustomerView"] & {
+            /** @description The delivery address coordinates, for LiveMapBox. */
+            destination_location?: components["schemas"]["GeoPoint"] | null;
             dispatch_history?: {
                 at: components["schemas"]["Timestamp"];
                 offer_outcome?: components["schemas"]["DispatchOfferOutcome"] | null;
@@ -4217,6 +4298,17 @@ export interface components {
             /** @description True when the caller passed a justified reveal, which is itself audited. */
             pii_revealed?: boolean;
             refunds: components["schemas"]["Refund"][];
+            /**
+             * @description The restaurant's map coordinates, for LiveMapBox. Null only when the restaurant
+             *     row itself has no geocoded location yet (should not happen post-onboarding).
+             */
+            restaurant_location?: components["schemas"]["GeoPoint"] | null;
+            /**
+             * @description The rider's live position. Unlike the customer-scoped OrderTracking (which hides
+             *     this before PICKED_UP), admin sees it whenever a rider is assigned and has a
+             *     fresh ping — admin oversight is not subject to the customer's pickup-only gate.
+             */
+            rider_location?: components["schemas"]["RiderLocation"] | null;
             timeline: components["schemas"]["OrderTransition"][];
         };
         OrderCancellationInput: {
@@ -4377,6 +4469,34 @@ export interface components {
             order_id: string;
             state: components["schemas"]["PaymentState"];
             wallet?: string | null;
+        };
+        /**
+         * @description Either half may be null — "not rated yet" is a valid, non-error state (C-38: skipping is
+         *     first-class).
+         */
+        OrderRating: {
+            food: components["schemas"]["FoodRating"] | null;
+            /** Format: uuid */
+            order_id: string;
+            rider: components["schemas"]["RiderRating"] | null;
+        };
+        /**
+         * @description Both fields are optional but at least one must be present — submitting neither is a
+         *     client error, not a silent no-op.
+         */
+        OrderRatingInput: {
+            food?: {
+                review?: string | null;
+                /** Format: int32 */
+                score: number;
+                tags?: ("Food quality" | "Portion size" | "Packaging" | "Value" | "Speed")[];
+            } | null;
+            rider?: {
+                comment?: string | null;
+                /** Format: int32 */
+                score: number;
+                tags?: ("On time" | "Polite" | "Careful handling" | "Followed instructions" | "Late" | "Rude" | "Wrong drop-off")[];
+            } | null;
         };
         OrderRejectInput: {
             /** @description At least 20 characters when the reason code is `OTHER`. */
@@ -4865,6 +4985,8 @@ export interface components {
             statutory_label: string;
             tax_kind: components["schemas"]["TaxKind"];
         };
+        /** @enum {string} */
+        RatingStatus: "PUBLISHED" | "PENDING_MODERATION" | "REMOVED";
         ReadinessStatus: {
             dependencies: {
                 detail?: string | null;
@@ -5340,6 +5462,24 @@ export interface components {
         RestaurantRejectReasonCode: "ITEM_UNAVAILABLE" | "KITCHEN_AT_CAPACITY" | "CLOSING_SOON" | "EQUIPMENT_FAILURE" | "ADDRESS_OUT_OF_RANGE" | "SUSPECTED_FRAUD" | "OTHER";
         /** @enum {string} */
         RestaurantSort: "RECOMMENDED" | "RATING_DESC" | "ETA_ASC" | "DISTANCE_ASC";
+        RestaurantStaffUser: {
+            created_at: components["schemas"]["Timestamp"];
+            /** Format: email */
+            email: string;
+            full_name: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            last_login_at?: string | null;
+            /** @enum {string} */
+            role: "RESTAURANT_MANAGER" | "RESTAURANT_STAFF";
+            status: components["schemas"]["StaffStatus"];
+        };
+        RestaurantStaffUserInput: {
+            /** Format: email */
+            email: string;
+            full_name: string;
+        };
         /**
          * @description Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
          * @enum {string}
@@ -5551,6 +5691,22 @@ export interface components {
             photo_url?: string | null;
             rating_avg?: number | null;
             vehicle_type: components["schemas"]["VehicleType"];
+        };
+        /**
+         * @description C-38 target 3: the rider. Rider ratings are never shown to the customer population
+         *     (C-18 rule 3) — this shape is only ever returned to the customer who submitted it, on
+         *     `getOrderRating`/`submitOrderRating`, never on a public rider profile.
+         */
+        RiderRating: {
+            comment?: string | null;
+            created_at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            order_id: string;
+            /** Format: int32 */
+            score: number;
+            status: components["schemas"]["RatingStatus"];
+            tags?: ("On time" | "Polite" | "Careful handling" | "Followed instructions" | "Late" | "Rude" | "Wrong drop-off")[];
+            updated_at: components["schemas"]["Timestamp"];
         };
         RiderVehicle: {
             colour?: string | null;
@@ -5913,6 +6069,7 @@ export type SchemaErrorCode = components['schemas']['ErrorCode'];
 export type SchemaErrorEnvelope = components['schemas']['ErrorEnvelope'];
 export type SchemaFeedSection = components['schemas']['FeedSection'];
 export type SchemaFieldError = components['schemas']['FieldError'];
+export type SchemaFoodRating = components['schemas']['FoodRating'];
 export type SchemaFulfilment = components['schemas']['Fulfilment'];
 export type SchemaGeoPoint = components['schemas']['GeoPoint'];
 export type SchemaHalalBadge = components['schemas']['HalalBadge'];
@@ -5978,6 +6135,8 @@ export type SchemaOrderInternalMoney = components['schemas']['OrderInternalMoney
 export type SchemaOrderLine = components['schemas']['OrderLine'];
 export type SchemaOrderMoney = components['schemas']['OrderMoney'];
 export type SchemaOrderPayment = components['schemas']['OrderPayment'];
+export type SchemaOrderRating = components['schemas']['OrderRating'];
+export type SchemaOrderRatingInput = components['schemas']['OrderRatingInput'];
 export type SchemaOrderRejectInput = components['schemas']['OrderRejectInput'];
 export type SchemaOrderRestaurantRef = components['schemas']['OrderRestaurantRef'];
 export type SchemaOrderRestaurantView = components['schemas']['OrderRestaurantView'];
@@ -6017,6 +6176,7 @@ export type SchemaQuoteInput = components['schemas']['QuoteInput'];
 export type SchemaQuoteLine = components['schemas']['QuoteLine'];
 export type SchemaQuoteLineAddon = components['schemas']['QuoteLineAddon'];
 export type SchemaQuoteTaxLine = components['schemas']['QuoteTaxLine'];
+export type SchemaRatingStatus = components['schemas']['RatingStatus'];
 export type SchemaReadinessStatus = components['schemas']['ReadinessStatus'];
 export type SchemaRealtimeSchemaBundle = components['schemas']['RealtimeSchemaBundle'];
 export type SchemaRealtimeTicket = components['schemas']['RealtimeTicket'];
@@ -6059,6 +6219,8 @@ export type SchemaRestaurantRegistrationInput = components['schemas']['Restauran
 export type SchemaRestaurantRejectApplicationReasonCode = components['schemas']['RestaurantRejectApplicationReasonCode'];
 export type SchemaRestaurantRejectReasonCode = components['schemas']['RestaurantRejectReasonCode'];
 export type SchemaRestaurantSort = components['schemas']['RestaurantSort'];
+export type SchemaRestaurantStaffUser = components['schemas']['RestaurantStaffUser'];
+export type SchemaRestaurantStaffUserInput = components['schemas']['RestaurantStaffUserInput'];
 export type SchemaRiderAccountStatus = components['schemas']['RiderAccountStatus'];
 export type SchemaRiderApplication = components['schemas']['RiderApplication'];
 export type SchemaRiderApplicationSummary = components['schemas']['RiderApplicationSummary'];
@@ -6078,6 +6240,7 @@ export type SchemaRiderPositionBatchInput = components['schemas']['RiderPosition
 export type SchemaRiderProfile = components['schemas']['RiderProfile'];
 export type SchemaRiderProfileInput = components['schemas']['RiderProfileInput'];
 export type SchemaRiderPublicProfile = components['schemas']['RiderPublicProfile'];
+export type SchemaRiderRating = components['schemas']['RiderRating'];
 export type SchemaRiderVehicle = components['schemas']['RiderVehicle'];
 export type SchemaRiderVehicleInput = components['schemas']['RiderVehicleInput'];
 export type SchemaRole = components['schemas']['Role'];
@@ -8656,6 +8819,82 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getOrderRating: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order's rating state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["OrderRating"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    submitOrderRating: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderRatingInput"];
+            };
+        };
+        responses: {
+            /** @description Rating recorded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["OrderRating"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `REVIEW_WINDOW_CLOSED` or `REVIEW_EDIT_WINDOW_CLOSED`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
     getOrderReceipt: {
         parameters: {
             query?: never;
@@ -9924,6 +10163,73 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    listRestaurantStaff: {
+        parameters: {
+            query?: {
+                /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restaurant staff accounts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RestaurantStaffUser"][];
+                        meta: components["schemas"]["PageMeta"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createRestaurantStaffUser: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantStaffUserInput"];
+            };
+        };
+        responses: {
+            /** @description Restaurant staff account invited. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RestaurantStaffUser"];
+                    };
+                };
+            };
+            409: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

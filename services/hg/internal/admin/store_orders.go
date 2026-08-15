@@ -94,6 +94,11 @@ type adminOrderRow struct {
 	// rider is the assigned rider's masked public ref (no phone, no earnings),
 	// nil until a rider is on the order (A-38 / P-07).
 	Rider *adminRiderRow
+
+	// LiveMapBox data (admin-only widening of OrderAdminView): restaurant
+	// coordinates, destination coordinates and the rider's live position.
+	RestaurantLat, RestaurantLng float64
+	RiderLocation                *orders.RiderLocation
 }
 
 // adminAddressRow is the delivery address projection (contract Address). Latitude
@@ -230,7 +235,8 @@ SELECT o.id, o.code, o.state::text, o.restaurant_id, r.display_name,
 func (r *OrdersRepo) GetOrder(ctx context.Context, orderID string) (*adminOrderRow, error) {
 	var v adminOrderRow
 	// dispatch_state is joined here (one dispatch row per order, LEFT JOIN because
-	// it exists only after the restaurant accepts).
+	// it exists only after the restaurant accepts). Restaurant coordinates are
+	// decomposed here too, for the admin live-map (LiveMapBox) widening.
 	err := r.pool.QueryRow(ctx, `
 SELECT o.id, o.code, o.state::text, o.state_since, o.restaurant_id, r.display_name,
        o.subtotal_cents, o.discount_cents, o.delivery_fee_cents, o.service_fee_cents,
@@ -238,7 +244,8 @@ SELECT o.id, o.code, o.state::text, o.state_since, o.restaurant_id, r.display_na
        o.cancel_reason::text, o.reject_reason::text, o.fulfilment::text,
        o.placed_at, o.accepted_at, o.cancelled_at, o.completed_at, o.deadline_at,
        o.commission_cents, o.restaurant_net_cents, o.rider_earnings_cents, o.platform_gross_cents,
-       d.state::text AS dispatch_state
+       d.state::text AS dispatch_state,
+       ST_Y(r.location::geometry), ST_X(r.location::geometry)
   FROM "order" o
   JOIN restaurant r ON r.id = o.restaurant_id
   LEFT JOIN dispatch d ON d.order_id = o.id
@@ -249,7 +256,8 @@ SELECT o.id, o.code, o.state::text, o.state_since, o.restaurant_id, r.display_na
 		&v.CancelReason, &v.RejectReason, &v.Fulfilment,
 		&v.PlacedAt, &v.AcceptedAt, &v.CancelledAt, &v.CompletedAt, &v.DeadlineAt,
 		&v.CommissionCents, &v.RestaurantNetCents, &v.RiderEarningsCents, &v.PlatformGrossCents,
-		&v.DispatchState)
+		&v.DispatchState,
+		&v.RestaurantLat, &v.RestaurantLng)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -289,6 +297,17 @@ SELECT rp.first_name, left(rp.last_name, 1), NULL::text, rv.vehicle_type::text, 
 		v.Rider = &rd
 	} else if !errors.Is(riderErr, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("load rider: %w", riderErr)
+	}
+
+	// Rider live position for the admin LiveMapBox. Unlike the customer-scoped
+	// getOrderTracking (gated to PICKED_UP/ARRIVED), admin sees it for the whole
+	// trip once a rider is assigned — admin oversight is not subject to that
+	// pickup-only gate. Absent (nil) until a rider is on the order.
+	_, riderLoc, posErr := r.st.LoadRiderForOrder(ctx, orderID)
+	if posErr == nil {
+		v.RiderLocation = riderLoc
+	} else if !errors.Is(posErr, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("load rider position: %w", posErr)
 	}
 
 	// Load transitions for timeline.

@@ -1,0 +1,18 @@
+{
+  "scenario": "error_review_window_closed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `REVIEW_WINDOW_CLOSED`. C-38 rule 4 (scoped): `submitOrderRating` on an order that is not DELIVERED/COMPLETED, has no rider assigned for the rider half, or is more than 14 days past `delivered_at`.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "REVIEW_WINDOW_CLOSED",
+      "message": "This order cannot be rated (not yet delivered, no rider assigned, or the 14-day window has closed).",
+      "request_id": "CGQZ1K6PEY9K6MYX91SM6FSP51"
+    }
+  }
+}

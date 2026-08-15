@@ -131,3 +131,20 @@ type delayInputDTO struct {
 	AddedMinutes int    `json:"added_minutes"`
 	ReasonCode   string `json:"reason_code"`
 }
+
+// staffUserDTO is the contract's RestaurantStaffUser.
+type staffUserDTO struct {
+	ID          string  `json:"id"`
+	Email       string  `json:"email"`
+	FullName    string  `json:"full_name"`
+	Role        string  `json:"role"`
+	Status      string  `json:"status"`
+	LastLoginAt *string `json:"last_login_at"`
+	CreatedAt   string  `json:"created_at"`
+}
+
+// staffUserInputDTO is the contract's RestaurantStaffUserInput.
+type staffUserInputDTO struct {
+	Email    string `json:"email"`
+	FullName string `json:"full_name"`
+}

@@ -2137,6 +2137,85 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         default:
           $ref: '#/components/responses/Error'
+  /v1/orders/{orderId}/rating:
+    get:
+      operationId: getOrderRating
+      tags: [orders]
+      summary: The customer's rating of this order (food + rider)
+      description: |
+        C-38 (scoped). Either half may be null: the customer may have rated only the food, only
+        the rider, or neither yet. `null`/`null` is not an error — it means "not rated yet",
+        distinct from a 404 (no such order).
+      x-roles: [CUSTOMER]
+      x-version: V1
+      parameters:
+        - $ref: '#/components/parameters/OrderIdPath'
+      responses:
+        '200':
+          description: The order's rating state.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OrderRating'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: submitOrderRating
+      tags: [orders]
+      summary: Rate the order's food and/or the rider
+      description: |
+        C-38 (scoped to the food + rider targets — dish-level ratings are a tracked V2 gap, see
+        docs/decisions/). Both `food` and `rider` are optional in the request — the customer may
+        submit either or both in one call; each provided target upserts its own row (one rating
+        per `(order_id, target)`, rule C-38.2) and recomputes that target's `rating_avg` /
+        `rating_count` in the same transaction, from `PUBLISHED` rows only.
+
+        Only orders in `DELIVERED` or `COMPLETED`, within 14 days of `delivered_at`, may be
+        rated — otherwise `409 REVIEW_WINDOW_CLOSED`. A rating already on file may be replaced
+        within 24 h of its own `created_at`; past that, `409 REVIEW_EDIT_WINDOW_CLOSED`. A score
+        outside 1-5 is `422 VALIDATION_FAILED`, never silently clamped.
+      x-roles: [CUSTOMER]
+      x-version: V1
+      parameters:
+        - $ref: '#/components/parameters/OrderIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRatingInput'
+      responses:
+        '200':
+          description: Rating recorded.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OrderRating'
+        '409':
+          description: '`REVIEW_WINDOW_CLOSED` or `REVIEW_EDIT_WINDOW_CLOSED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
   /v1/payment-methods:
     get:
       operationId: listPaymentMethods
@@ -2809,6 +2888,74 @@ paths:
                   data:
                     $ref: '#/components/schemas/RestaurantHours'
         '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/restaurant/staff:
+    get:
+      operationId: listRestaurantStaff
+      tags: [restaurant]
+      summary: List staff accounts scoped to the caller's restaurant
+      description: |
+        Restaurant-scoped counterpart to `listStaff` (which is platform-role only). Returns
+        every account holding a `RESTAURANT_MANAGER` or `RESTAURANT_STAFF` grant on the
+        caller's restaurant — never accounts scoped to a different restaurant, and never
+        platform staff.
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V1
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Restaurant staff accounts.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RestaurantStaffUser'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createRestaurantStaffUser
+      tags: [restaurant]
+      summary: Invite a staff account scoped to the caller's restaurant
+      description: |
+        Restaurant-scoped counterpart to `createStaffUser`. The creator sets no password; the
+        account is created `INVITED`. The grant is `RESTAURANT_STAFF` only — an owner or
+        manager cannot self-serve a new `RESTAURANT_MANAGER` grant through this route (that
+        remains a platform-admin action, avoiding an unaudited manager-mints-manager chain).
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V1
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestaurantStaffUserInput'
+      responses:
+        '201':
+          description: Restaurant staff account invited.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RestaurantStaffUser'
+        '409':
           $ref: '#/components/responses/Error'
         default:
           $ref: '#/components/responses/Error'
@@ -5795,6 +5942,8 @@ components:
         - CANCELLATION_WINDOW_CLOSED
         - DELAY_LIMIT_REACHED
         - DELAY_NOT_ALLOWED_IN_STATUS
+        - REVIEW_WINDOW_CLOSED
+        - REVIEW_EDIT_WINDOW_CLOSED
         # --- dispatch -------------------------------------------------------------
         - OFFER_ALREADY_TAKEN
         - OFFER_EXPIRED
@@ -8498,6 +8647,137 @@ components:
           minLength: 5
           maxLength: 200
           description: 'Required when `reason_code` is `OTHER`.'
+    FoodRating:
+      type: object
+      additionalProperties: false
+      required: [order_id, restaurant_id, score, status, created_at, updated_at]
+      description: 'C-38 target 1: the order''s food, bound to the restaurant.'
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        restaurant_id:
+          type: string
+          format: uuid
+        score:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 5
+        review:
+          type: [string, 'null']
+          maxLength: 1000
+        tags:
+          type: array
+          items:
+            type: string
+            enum: ['Food quality', 'Portion size', 'Packaging', 'Value', 'Speed']
+        status:
+          $ref: '#/components/schemas/RatingStatus'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    RiderRating:
+      type: object
+      additionalProperties: false
+      required: [order_id, score, status, created_at, updated_at]
+      description: |
+        C-38 target 3: the rider. Rider ratings are never shown to the customer population
+        (C-18 rule 3) — this shape is only ever returned to the customer who submitted it, on
+        `getOrderRating`/`submitOrderRating`, never on a public rider profile.
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        score:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 5
+        comment:
+          type: [string, 'null']
+          maxLength: 500
+        tags:
+          type: array
+          items:
+            type: string
+            enum: ['On time', 'Polite', 'Careful handling', 'Followed instructions', 'Late', 'Rude', 'Wrong drop-off']
+        status:
+          $ref: '#/components/schemas/RatingStatus'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    RatingStatus:
+      type: string
+      enum: [PUBLISHED, PENDING_MODERATION, REMOVED]
+    OrderRating:
+      type: object
+      additionalProperties: false
+      required: [order_id, food, rider]
+      description: |
+        Either half may be null — "not rated yet" is a valid, non-error state (C-38: skipping is
+        first-class).
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        food:
+          oneOf:
+            - $ref: '#/components/schemas/FoodRating'
+            - type: 'null'
+        rider:
+          oneOf:
+            - $ref: '#/components/schemas/RiderRating'
+            - type: 'null'
+    OrderRatingInput:
+      type: object
+      additionalProperties: false
+      description: |
+        Both fields are optional but at least one must be present — submitting neither is a
+        client error, not a silent no-op.
+      properties:
+        food:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [score]
+              properties:
+                score:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  maximum: 5
+                review:
+                  type: [string, 'null']
+                  maxLength: 1000
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    enum: ['Food quality', 'Portion size', 'Packaging', 'Value', 'Speed']
+            - type: 'null'
+        rider:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [score]
+              properties:
+                score:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: [string, 'null']
+                  maxLength: 500
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    enum: ['On time', 'Polite', 'Careful handling', 'Followed instructions', 'Late', 'Rude', 'Wrong drop-off']
+            - type: 'null'
     Receipt:
       type: object
       additionalProperties: false
@@ -10297,6 +10577,42 @@ components:
         role:
           type: string
           enum: [SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
+    RestaurantStaffUser:
+      type: object
+      additionalProperties: false
+      required: [id, email, full_name, role, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [RESTAURANT_MANAGER, RESTAURANT_STAFF]
+        status:
+          $ref: '#/components/schemas/StaffStatus'
+        last_login_at:
+          type: [string, 'null']
+          format: date-time
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    RestaurantStaffUserInput:
+      type: object
+      additionalProperties: false
+      required: [email, full_name]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 120
     RestaurantApplicationSummary:
       type: object
       # `additionalProperties: false` is intentionally absent: this schema is an `allOf` base
@@ -10757,6 +11073,26 @@ components:
             pii_revealed:
               type: boolean
               description: 'True when the caller passed a justified reveal, which is itself audited.'
+            restaurant_location:
+              oneOf:
+                - $ref: '#/components/schemas/GeoPoint'
+                - type: 'null'
+              description: |
+                The restaurant's map coordinates, for LiveMapBox. Null only when the restaurant
+                row itself has no geocoded location yet (should not happen post-onboarding).
+            destination_location:
+              oneOf:
+                - $ref: '#/components/schemas/GeoPoint'
+                - type: 'null'
+              description: 'The delivery address coordinates, for LiveMapBox.'
+            rider_location:
+              oneOf:
+                - $ref: '#/components/schemas/RiderLocation'
+                - type: 'null'
+              description: |
+                The rider's live position. Unlike the customer-scoped OrderTracking (which hides
+                this before PICKED_UP), admin sees it whenever a rider is assigned and has a
+                fresh ping — admin oversight is not subject to the customer's pickup-only gate.
     OrderInternalMoney:
       type: object
       additionalProperties: false

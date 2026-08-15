@@ -23,6 +23,8 @@ const (
 	ActionOrderReject       httpx.Action = "restaurant.order_reject"
 	ActionOrderReady        httpx.Action = "restaurant.order_ready"
 	ActionOrderDelay        httpx.Action = "restaurant.order_delay"
+	ActionStaffRead         httpx.Action = "restaurant.staff_read"
+	ActionStaffWrite        httpx.Action = "restaurant.staff_write"
 )
 
 // Routes registers the restaurant-partner routes.  Every route carries an
@@ -91,4 +93,10 @@ func Routes(r *httpx.Router, h *Handler) {
 		write(ActionOrderReady, "markOrderReady"), h.MarkOrderReady)
 	r.Post("/v1/restaurant/orders/{orderId}/delay",
 		write(ActionOrderDelay, "delayOrder"), h.DelayOrder)
+
+	// Staff (restaurant-scoped roster; platform /v1/admin/staff is SUPER_ADMIN only).
+	r.Get("/v1/restaurant/staff",
+		read(ActionStaffRead, "listRestaurantStaff"), h.ListRestaurantStaff)
+	r.Post("/v1/restaurant/staff",
+		write(ActionStaffWrite, "createRestaurantStaffUser"), h.CreateRestaurantStaffUser)
 }

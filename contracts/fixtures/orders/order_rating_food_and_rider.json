@@ -1,0 +1,42 @@
+{
+  "scenario": "order_rating_food_and_rider",
+  "domain": "orders",
+  "schema": "OrderRating",
+  "describes": "Both targets rated in one `submitOrderRating` call — a 4-star food review with tags and a 5-star rider rating with tags, both `PUBLISHED` (no PII/profanity trip).",
+  "operations": [
+    "getOrderRating",
+    "submitOrderRating"
+  ],
+  "status": 200,
+  "tags": [
+    "ratings"
+  ],
+  "payload": {
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "food": {
+      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "score": 4,
+      "review": "Solid biryani, arrived hot.",
+      "tags": [
+        "Food quality",
+        "Speed"
+      ],
+      "status": "PUBLISHED",
+      "created_at": "2026-08-10T16:42:11.412Z",
+      "updated_at": "2026-08-10T16:42:11.412Z"
+    },
+    "rider": {
+      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "score": 5,
+      "comment": "On time and courteous.",
+      "tags": [
+        "On time",
+        "Polite"
+      ],
+      "status": "PUBLISHED",
+      "created_at": "2026-08-10T16:42:11.412Z",
+      "updated_at": "2026-08-10T16:42:11.412Z"
+    }
+  }
+}

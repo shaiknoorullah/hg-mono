@@ -825,7 +825,9 @@ const (
 	ErrorCodeRESTAURANTUNAVAILABLE          ErrorCode = "RESTAURANT_UNAVAILABLE"
 	ErrorCodeRESUBMITTOOSOON                ErrorCode = "RESUBMIT_TOO_SOON"
 	ErrorCodeREVERSALWINDOWEXPIRED          ErrorCode = "REVERSAL_WINDOW_EXPIRED"
+	ErrorCodeREVIEWEDITWINDOWCLOSED         ErrorCode = "REVIEW_EDIT_WINDOW_CLOSED"
 	ErrorCodeREVIEWLOCKLOST                 ErrorCode = "REVIEW_LOCK_LOST"
+	ErrorCodeREVIEWWINDOWCLOSED             ErrorCode = "REVIEW_WINDOW_CLOSED"
 	ErrorCodeRIDERNOTAVAILABLE              ErrorCode = "RIDER_NOT_AVAILABLE"
 	ErrorCodeSELFAPPROVALFORBIDDEN          ErrorCode = "SELF_APPROVAL_FORBIDDEN"
 	ErrorCodeSESSIONEXPIRED                 ErrorCode = "SESSION_EXPIRED"
@@ -1096,7 +1098,11 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeREVERSALWINDOWEXPIRED:
 		return true
+	case ErrorCodeREVIEWEDITWINDOWCLOSED:
+		return true
 	case ErrorCodeREVIEWLOCKLOST:
+		return true
+	case ErrorCodeREVIEWWINDOWCLOSED:
 		return true
 	case ErrorCodeRIDERNOTAVAILABLE:
 		return true
@@ -1169,6 +1175,33 @@ func (e FeedSectionKey) Valid() bool {
 	case YouMightLike:
 		return true
 	case YourFavouriteRestaurants:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FoodRatingTags.
+const (
+	FoodRatingTagsFoodQuality FoodRatingTags = "Food quality"
+	FoodRatingTagsPackaging   FoodRatingTags = "Packaging"
+	FoodRatingTagsPortionSize FoodRatingTags = "Portion size"
+	FoodRatingTagsSpeed       FoodRatingTags = "Speed"
+	FoodRatingTagsValue       FoodRatingTags = "Value"
+)
+
+// Valid indicates whether the value is a known member of the FoodRatingTags enum.
+func (e FoodRatingTags) Valid() bool {
+	switch e {
+	case FoodRatingTagsFoodQuality:
+		return true
+	case FoodRatingTagsPackaging:
+		return true
+	case FoodRatingTagsPortionSize:
+		return true
+	case FoodRatingTagsSpeed:
+		return true
+	case FoodRatingTagsValue:
 		return true
 	default:
 		return false
@@ -2045,6 +2078,66 @@ func (e OrderDelayInputAddedMinutes) Valid() bool {
 	}
 }
 
+// Defines values for OrderRatingInputFoodTags.
+const (
+	OrderRatingInputFoodTagsFoodQuality OrderRatingInputFoodTags = "Food quality"
+	OrderRatingInputFoodTagsPackaging   OrderRatingInputFoodTags = "Packaging"
+	OrderRatingInputFoodTagsPortionSize OrderRatingInputFoodTags = "Portion size"
+	OrderRatingInputFoodTagsSpeed       OrderRatingInputFoodTags = "Speed"
+	OrderRatingInputFoodTagsValue       OrderRatingInputFoodTags = "Value"
+)
+
+// Valid indicates whether the value is a known member of the OrderRatingInputFoodTags enum.
+func (e OrderRatingInputFoodTags) Valid() bool {
+	switch e {
+	case OrderRatingInputFoodTagsFoodQuality:
+		return true
+	case OrderRatingInputFoodTagsPackaging:
+		return true
+	case OrderRatingInputFoodTagsPortionSize:
+		return true
+	case OrderRatingInputFoodTagsSpeed:
+		return true
+	case OrderRatingInputFoodTagsValue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderRatingInputRiderTags.
+const (
+	OrderRatingInputRiderTagsCarefulHandling      OrderRatingInputRiderTags = "Careful handling"
+	OrderRatingInputRiderTagsFollowedInstructions OrderRatingInputRiderTags = "Followed instructions"
+	OrderRatingInputRiderTagsLate                 OrderRatingInputRiderTags = "Late"
+	OrderRatingInputRiderTagsOnTime               OrderRatingInputRiderTags = "On time"
+	OrderRatingInputRiderTagsPolite               OrderRatingInputRiderTags = "Polite"
+	OrderRatingInputRiderTagsRude                 OrderRatingInputRiderTags = "Rude"
+	OrderRatingInputRiderTagsWrongDropOff         OrderRatingInputRiderTags = "Wrong drop-off"
+)
+
+// Valid indicates whether the value is a known member of the OrderRatingInputRiderTags enum.
+func (e OrderRatingInputRiderTags) Valid() bool {
+	switch e {
+	case OrderRatingInputRiderTagsCarefulHandling:
+		return true
+	case OrderRatingInputRiderTagsFollowedInstructions:
+		return true
+	case OrderRatingInputRiderTagsLate:
+		return true
+	case OrderRatingInputRiderTagsOnTime:
+		return true
+	case OrderRatingInputRiderTagsPolite:
+		return true
+	case OrderRatingInputRiderTagsRude:
+		return true
+	case OrderRatingInputRiderTagsWrongDropOff:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrderState.
 const (
 	OrderStateARRIVED           OrderState = "ARRIVED"
@@ -2369,6 +2462,27 @@ func (e Province) Valid() bool {
 	case SK:
 		return true
 	case YT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RatingStatus.
+const (
+	PENDINGMODERATION RatingStatus = "PENDING_MODERATION"
+	PUBLISHED         RatingStatus = "PUBLISHED"
+	REMOVED           RatingStatus = "REMOVED"
+)
+
+// Valid indicates whether the value is a known member of the RatingStatus enum.
+func (e RatingStatus) Valid() bool {
+	switch e {
+	case PENDINGMODERATION:
+		return true
+	case PUBLISHED:
+		return true
+	case REMOVED:
 		return true
 	default:
 		return false
@@ -2966,6 +3080,24 @@ func (e RestaurantSort) Valid() bool {
 	}
 }
 
+// Defines values for RestaurantStaffUserRole.
+const (
+	RestaurantStaffUserRoleRESTAURANTMANAGER RestaurantStaffUserRole = "RESTAURANT_MANAGER"
+	RestaurantStaffUserRoleRESTAURANTSTAFF   RestaurantStaffUserRole = "RESTAURANT_STAFF"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantStaffUserRole enum.
+func (e RestaurantStaffUserRole) Valid() bool {
+	switch e {
+	case RestaurantStaffUserRoleRESTAURANTMANAGER:
+		return true
+	case RestaurantStaffUserRoleRESTAURANTSTAFF:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RiderAccountStatus.
 const (
 	RiderAccountStatusACTIVE      RiderAccountStatus = "ACTIVE"
@@ -3173,6 +3305,39 @@ func (e RiderPositionAckRejectedCode) Valid() bool {
 	case RiderPositionAckRejectedCodeLOWACCURACY:
 		return true
 	case RiderPositionAckRejectedCodeSTALEPOINT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderRatingTags.
+const (
+	RiderRatingTagsCarefulHandling      RiderRatingTags = "Careful handling"
+	RiderRatingTagsFollowedInstructions RiderRatingTags = "Followed instructions"
+	RiderRatingTagsLate                 RiderRatingTags = "Late"
+	RiderRatingTagsOnTime               RiderRatingTags = "On time"
+	RiderRatingTagsPolite               RiderRatingTags = "Polite"
+	RiderRatingTagsRude                 RiderRatingTags = "Rude"
+	RiderRatingTagsWrongDropOff         RiderRatingTags = "Wrong drop-off"
+)
+
+// Valid indicates whether the value is a known member of the RiderRatingTags enum.
+func (e RiderRatingTags) Valid() bool {
+	switch e {
+	case RiderRatingTagsCarefulHandling:
+		return true
+	case RiderRatingTagsFollowedInstructions:
+		return true
+	case RiderRatingTagsLate:
+		return true
+	case RiderRatingTagsOnTime:
+		return true
+	case RiderRatingTagsPolite:
+		return true
+	case RiderRatingTagsRude:
+		return true
+	case RiderRatingTagsWrongDropOff:
 		return true
 	default:
 		return false
@@ -4432,6 +4597,24 @@ type FieldError struct {
 	Message string `json:"message"`
 }
 
+// FoodRating C-38 target 1: the order's food, bound to the restaurant.
+type FoodRating struct {
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt    Timestamp          `json:"created_at"`
+	OrderId      openapi_types.UUID `json:"order_id"`
+	RestaurantId openapi_types.UUID `json:"restaurant_id"`
+	Review       *string            `json:"review,omitempty"`
+	Score        int32              `json:"score"`
+	Status       RatingStatus       `json:"status"`
+	Tags         *[]FoodRatingTags  `json:"tags,omitempty"`
+
+	// UpdatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	UpdatedAt Timestamp `json:"updated_at"`
+}
+
+// FoodRatingTags defines model for FoodRating.Tags.
+type FoodRatingTags string
+
 // Fulfilment Pickup is modelled but not offered at V0; the delivery fee line is omitted for it.
 type Fulfilment string
 
@@ -5084,7 +5267,10 @@ type OrderAdminView struct {
 	DeliveredAt          *time.Time                   `json:"delivered_at,omitempty"`
 	DeliveryAddress      *Address                     `json:"delivery_address,omitempty"`
 	DeliveryInstructions *[]DeliveryInstruction       `json:"delivery_instructions,omitempty"`
-	DispatchHistory      *[]struct {
+
+	// DestinationLocation The delivery address coordinates, for LiveMapBox.
+	DestinationLocation *GeoPoint `json:"destination_location,omitempty"`
+	DispatchHistory     *[]struct {
 		// At RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
 		At             Timestamp             `json:"at"`
 		OfferOutcome   *DispatchOfferOutcome `json:"offer_outcome,omitempty"`
@@ -5117,14 +5303,23 @@ type OrderAdminView struct {
 	PiiRevealed *bool `json:"pii_revealed,omitempty"`
 
 	// PlacedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
-	PlacedAt            Timestamp                   `json:"placed_at"`
-	QuoteId             *openapi_types.UUID         `json:"quote_id,omitempty"`
-	ReadyAt             *time.Time                  `json:"ready_at,omitempty"`
-	Refunds             []Refund                    `json:"refunds"`
-	RejectReason        *RestaurantRejectReasonCode `json:"reject_reason,omitempty"`
-	Restaurant          OrderRestaurantRef          `json:"restaurant"`
-	Rider               *RiderPublicProfile         `json:"rider,omitempty"`
-	SpecialInstructions *string                     `json:"special_instructions,omitempty"`
+	PlacedAt     Timestamp                   `json:"placed_at"`
+	QuoteId      *openapi_types.UUID         `json:"quote_id,omitempty"`
+	ReadyAt      *time.Time                  `json:"ready_at,omitempty"`
+	Refunds      []Refund                    `json:"refunds"`
+	RejectReason *RestaurantRejectReasonCode `json:"reject_reason,omitempty"`
+	Restaurant   OrderRestaurantRef          `json:"restaurant"`
+
+	// RestaurantLocation The restaurant's map coordinates, for LiveMapBox. Null only when the restaurant
+	// row itself has no geocoded location yet (should not happen post-onboarding).
+	RestaurantLocation *GeoPoint           `json:"restaurant_location,omitempty"`
+	Rider              *RiderPublicProfile `json:"rider,omitempty"`
+
+	// RiderLocation The rider's live position. Unlike the customer-scoped OrderTracking (which hides
+	// this before PICKED_UP), admin sees it whenever a rider is assigned and has a
+	// fresh ping — admin oversight is not subject to the customer's pickup-only gate.
+	RiderLocation       *RiderLocation `json:"rider_location,omitempty"`
+	SpecialInstructions *string        `json:"special_instructions,omitempty"`
 
 	// State P-14 — **the** order enum. Fourteen states, five terminal (`COMPLETED`, `CANCELLED`,
 	// `REJECTED`, `FAILED`, `RESOLVED`); `DISPUTED` is non-terminal. Rider assignment is a
@@ -5442,6 +5637,35 @@ type OrderPayment struct {
 	State  PaymentState `json:"state"`
 	Wallet *string      `json:"wallet,omitempty"`
 }
+
+// OrderRating Either half may be null — "not rated yet" is a valid, non-error state (C-38: skipping is
+// first-class).
+type OrderRating struct {
+	Food    *FoodRating        `json:"food"`
+	OrderId openapi_types.UUID `json:"order_id"`
+	Rider   *RiderRating       `json:"rider"`
+}
+
+// OrderRatingInput Both fields are optional but at least one must be present — submitting neither is a
+// client error, not a silent no-op.
+type OrderRatingInput struct {
+	Food *struct {
+		Review *string                     `json:"review,omitempty"`
+		Score  int32                       `json:"score"`
+		Tags   *[]OrderRatingInputFoodTags `json:"tags,omitempty"`
+	} `json:"food,omitempty"`
+	Rider *struct {
+		Comment *string                      `json:"comment,omitempty"`
+		Score   int32                        `json:"score"`
+		Tags    *[]OrderRatingInputRiderTags `json:"tags,omitempty"`
+	} `json:"rider,omitempty"`
+}
+
+// OrderRatingInputFoodTags defines model for OrderRatingInput.Food.Tags.
+type OrderRatingInputFoodTags string
+
+// OrderRatingInputRiderTags defines model for OrderRatingInput.Rider.Tags.
+type OrderRatingInputRiderTags string
 
 // OrderRejectInput defines model for OrderRejectInput.
 type OrderRejectInput struct {
@@ -6203,6 +6427,9 @@ type QuoteTaxLine struct {
 	TaxKind TaxKind `json:"tax_kind"`
 }
 
+// RatingStatus defines model for RatingStatus.
+type RatingStatus string
+
 // ReadinessStatus defines model for ReadinessStatus.
 type ReadinessStatus struct {
 	Dependencies []struct {
@@ -6916,6 +7143,27 @@ type RestaurantRejectReasonCode string
 // RestaurantSort defines model for RestaurantSort.
 type RestaurantSort string
 
+// RestaurantStaffUser defines model for RestaurantStaffUser.
+type RestaurantStaffUser struct {
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt   Timestamp               `json:"created_at"`
+	Email       openapi_types.Email     `json:"email"`
+	FullName    string                  `json:"full_name"`
+	Id          openapi_types.UUID      `json:"id"`
+	LastLoginAt *time.Time              `json:"last_login_at,omitempty"`
+	Role        RestaurantStaffUserRole `json:"role"`
+	Status      StaffStatus             `json:"status"`
+}
+
+// RestaurantStaffUserRole defines model for RestaurantStaffUser.Role.
+type RestaurantStaffUserRole string
+
+// RestaurantStaffUserInput defines model for RestaurantStaffUserInput.
+type RestaurantStaffUserInput struct {
+	Email    openapi_types.Email `json:"email"`
+	FullName string              `json:"full_name"`
+}
+
 // RiderAccountStatus Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
 type RiderAccountStatus string
 
@@ -7218,6 +7466,26 @@ type RiderPublicProfile struct {
 	// (`driving` / `cycling` / `walking`).
 	VehicleType VehicleType `json:"vehicle_type"`
 }
+
+// RiderRating C-38 target 3: the rider. Rider ratings are never shown to the customer population
+// (C-18 rule 3) — this shape is only ever returned to the customer who submitted it, on
+// `getOrderRating`/`submitOrderRating`, never on a public rider profile.
+type RiderRating struct {
+	Comment *string `json:"comment,omitempty"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp          `json:"created_at"`
+	OrderId   openapi_types.UUID `json:"order_id"`
+	Score     int32              `json:"score"`
+	Status    RatingStatus       `json:"status"`
+	Tags      *[]RiderRatingTags `json:"tags,omitempty"`
+
+	// UpdatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	UpdatedAt Timestamp `json:"updated_at"`
+}
+
+// RiderRatingTags defines model for RiderRating.Tags.
+type RiderRatingTags string
 
 // RiderVehicle defines model for RiderVehicle.
 type RiderVehicle struct {
@@ -7993,6 +8261,17 @@ type CancelOrderParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// SubmitOrderRatingParams defines parameters for SubmitOrderRating.
+type SubmitOrderRatingParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // CreatePaymentMethodSetupIntentParams defines parameters for CreatePaymentMethodSetupIntent.
 type CreatePaymentMethodSetupIntentParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
@@ -8157,6 +8436,26 @@ type ListRestaurantPayoutsParams struct {
 
 	// Cursor Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// ListRestaurantStaffParams defines parameters for ListRestaurantStaff.
+type ListRestaurantStaffParams struct {
+	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// CreateRestaurantStaffUserParams defines parameters for CreateRestaurantStaffUser.
+type CreateRestaurantStaffUserParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
 // ListRestaurantsParams defines parameters for ListRestaurants.
@@ -8418,6 +8717,9 @@ type CreateOrderJSONRequestBody = OrderInput
 // CancelOrderJSONRequestBody defines body for CancelOrder for application/json ContentType.
 type CancelOrderJSONRequestBody = OrderCancellationInput
 
+// SubmitOrderRatingJSONRequestBody defines body for SubmitOrderRating for application/json ContentType.
+type SubmitOrderRatingJSONRequestBody = OrderRatingInput
+
 // CreateQuoteJSONRequestBody defines body for CreateQuote for application/json ContentType.
 type CreateQuoteJSONRequestBody = QuoteInput
 
@@ -8456,6 +8758,9 @@ type RejectOrderJSONRequestBody = OrderRejectInput
 
 // SubmitRestaurantProfileJSONRequestBody defines body for SubmitRestaurantProfile for application/json ContentType.
 type SubmitRestaurantProfileJSONRequestBody = RestaurantProfileInput
+
+// CreateRestaurantStaffUserJSONRequestBody defines body for CreateRestaurantStaffUser for application/json ContentType.
+type CreateRestaurantStaffUserJSONRequestBody = RestaurantStaffUserInput
 
 // SubmitProofOfDeliveryJSONRequestBody defines body for SubmitProofOfDelivery for application/json ContentType.
 type SubmitProofOfDeliveryJSONRequestBody = ProofOfDeliveryInput

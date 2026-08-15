@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -835,4 +837,106 @@ func (h *Handler) DelayOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.Respond(w, r, http.StatusOK, order)
+}
+
+// ─── Staff ──────────────────────────────────────────────────────────────────
+
+// ListRestaurantStaff implements GET /v1/restaurant/staff.
+// x-roles: OWNER, MANAGER only — restaurant staff do not manage their own roster.
+func (h *Handler) ListRestaurantStaff(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
+		return
+	}
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
+		return
+	}
+	limit := 20
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 100 {
+			limit = n
+		}
+	}
+	cur, curID, ok := decodeStaffCursor(r)
+	if !ok {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"cursor is malformed.", []httpx.FieldError{{Field: "cursor", Code: "invalid", Message: "malformed cursor"}})
+		return
+	}
+	rows, err := h.repo.ListStaff(r.Context(), restaurantID, limit+1, cur, curID)
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	hasMore := len(rows) > limit
+	if hasMore {
+		rows = rows[:limit]
+	}
+	out := make([]staffUserDTO, 0, len(rows))
+	for _, s := range rows {
+		out = append(out, staffUserDTO{
+			ID: s.ID, Email: s.Email, FullName: s.FullName, Role: s.Role, Status: s.Status,
+			LastLoginAt: tsPtr(s.LastLoginAt), CreatedAt: httpx.Timestamp(s.CreatedAt),
+		})
+	}
+	meta := httpx.Meta{HasMore: hasMore}
+	if hasMore && len(rows) > 0 {
+		last := rows[len(rows)-1]
+		meta.NextCursor = ptrString(encodeStaffCursor(last.CreatedAt, last.ID))
+	}
+	httpx.RespondList(w, r, http.StatusOK, out, meta)
+}
+
+// CreateRestaurantStaffUser implements POST /v1/restaurant/staff.
+// x-roles: OWNER, MANAGER only. Grants exactly RESTAURANT_STAFF (never
+// RESTAURANT_MANAGER — see contract description).
+func (h *Handler) CreateRestaurantStaffUser(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
+		return
+	}
+	var in staffUserInputDTO
+	if !decodeStrict(w, r, &in) {
+		return
+	}
+	in.Email = strings.TrimSpace(in.Email)
+	if in.Email == "" || len(in.Email) > 254 || !strings.Contains(in.Email, "@") {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"email is invalid.", []httpx.FieldError{{Field: "email", Code: "invalid", Message: "a valid email is required"}})
+		return
+	}
+	if l := len([]rune(in.FullName)); l < 2 || l > 120 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"full_name is invalid.", []httpx.FieldError{{Field: "full_name", Code: "invalid", Message: "full_name must be 2..120 characters"}})
+		return
+	}
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
+		return
+	}
+	roles := make([]string, 0, len(p.Roles))
+	for _, rl := range p.Roles {
+		roles = append(roles, string(rl))
+	}
+	row, err := h.repo.CreateStaff(r.Context(), p.AccountID, roles, restaurantID, StaffInput{Email: in.Email, FullName: in.FullName})
+	if errors.Is(err, ErrStaffEmailInUse) {
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode("EMAIL_IN_USE"),
+			"That email already belongs to an account.", nil)
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusCreated, staffUserDTO{
+		ID: row.ID, Email: row.Email, FullName: row.FullName, Role: row.Role, Status: row.Status,
+		LastLoginAt: nil, CreatedAt: httpx.Timestamp(row.CreatedAt),
+	})
 }

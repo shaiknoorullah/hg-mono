@@ -772,6 +772,24 @@ def _applications(reg, synth) -> None:
         tags=["admin", "state-matrix"],
     )
 
+    reg.add(
+        "restaurant_staff_list",
+        "onboarding",
+        "array<RestaurantStaffUser>",
+        "A restaurant's own staff roster (`listRestaurantStaff`), scoped to the caller's "
+        "restaurant — never platform staff and never another restaurant's accounts. "
+        "Restaurant-scoped counterpart to admin's platform-role-only `/v1/admin/staff`.",
+        [
+            {**synth.make("RestaurantStaffUser", f"restaurant-staff-{i}"), "role": role, "status": status}
+            for i, (role, status) in enumerate(
+                [("RESTAURANT_MANAGER", "ACTIVE"), ("RESTAURANT_STAFF", "INVITED")]
+            )
+        ],
+        operations=["listRestaurantStaff", "createRestaurantStaffUser"],
+        meta={"next_cursor": None, "has_more": False, "total": 2},
+        tags=["restaurant", "state-matrix"],
+    )
+
 
 def _auth_and_config(reg, synth) -> None:
     reg.add(

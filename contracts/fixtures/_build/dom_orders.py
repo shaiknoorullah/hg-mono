@@ -308,6 +308,7 @@ def build(reg, synth) -> None:
     _receipts(reg)
     _payments(reg, synth)
     _refunds(reg, synth)
+    _ratings(reg, synth)
 
 
 def _customer_orders(reg) -> None:
@@ -711,6 +712,81 @@ def _tracking(reg, synth) -> None:
         },
         operations=["getOrderTracking"],
         tags=["tracking", "edge", "degraded"],
+    )
+
+
+def _ratings(reg, synth) -> None:
+    order_id = uuid_for("order:completed")
+    restaurant_id = uuid_for("restaurant:karachi-kitchen")
+
+    reg.add(
+        "order_rating_unrated",
+        "orders",
+        "OrderRating",
+        "The customer has not rated this order yet. Neither half is an error state — C-38: "
+        "skipping the post-delivery prompt is a first-class outcome, not a defect.",
+        {"order_id": order_id, "food": None, "rider": None},
+        operations=["getOrderRating"],
+        tags=["ratings"],
+    )
+
+    food_rated_at = ts(-2 * 60 * MINUTE)
+    reg.add(
+        "order_rating_food_and_rider",
+        "orders",
+        "OrderRating",
+        "Both targets rated in one `submitOrderRating` call — a 4-star food review with tags "
+        "and a 5-star rider rating with tags, both `PUBLISHED` (no PII/profanity trip).",
+        {
+            "order_id": order_id,
+            "food": {
+                "order_id": order_id,
+                "restaurant_id": restaurant_id,
+                "score": 4,
+                "review": "Solid biryani, arrived hot.",
+                "tags": ["Food quality", "Speed"],
+                "status": "PUBLISHED",
+                "created_at": food_rated_at,
+                "updated_at": food_rated_at,
+            },
+            "rider": {
+                "order_id": order_id,
+                "score": 5,
+                "comment": "On time and courteous.",
+                "tags": ["On time", "Polite"],
+                "status": "PUBLISHED",
+                "created_at": food_rated_at,
+                "updated_at": food_rated_at,
+            },
+        },
+        operations=["getOrderRating", "submitOrderRating"],
+        tags=["ratings"],
+    )
+
+    pending_at = ts(-30 * MINUTE)
+    reg.add(
+        "order_rating_food_pending_moderation",
+        "orders",
+        "OrderRating",
+        "The food review's free text matched the auto-moderation rules (C-38 rule 6: contains "
+        "an email/phone/URL, or the customer has had 2+ reviews removed in 90 days) — "
+        "`PENDING_MODERATION` and excluded from `restaurants.rating_avg` until a moderator acts.",
+        {
+            "order_id": order_id,
+            "food": {
+                "order_id": order_id,
+                "restaurant_id": restaurant_id,
+                "score": 3,
+                "review": "Contact me at test@example.com if you want photos.",
+                "tags": [],
+                "status": "PENDING_MODERATION",
+                "created_at": pending_at,
+                "updated_at": pending_at,
+            },
+            "rider": None,
+        },
+        operations=["getOrderRating"],
+        tags=["ratings", "edge"],
     )
 
 

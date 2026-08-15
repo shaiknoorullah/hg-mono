@@ -55,6 +55,8 @@ const (
 	ActionOrderTrackingRead     httpx.Action = "order.tracking.read"
 	ActionOrderReceiptRead      httpx.Action = "order.receipt.read"
 	ActionOrderRiderProfileRead httpx.Action = "order.rider_profile.read"
+	ActionOrderRatingRead       httpx.Action = "order.rating.read"
+	ActionOrderRatingWrite      httpx.Action = "order.rating.write"
 )
 
 // Handler serves the cart, quote and order operations.
@@ -456,6 +458,12 @@ func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, ErrCancellationWindowClosed):
 		httpx.Fail(w, r, http.StatusConflict, codeCancellationClosed,
 			"This order can no longer be cancelled from the app. Please contact support.", nil)
+	case errors.Is(err, ErrReviewWindowClosed):
+		httpx.Fail(w, r, http.StatusConflict, codeReviewWindowClosed,
+			"This order cannot be rated (not yet delivered, no rider assigned, or the 14-day window has closed).", nil)
+	case errors.Is(err, ErrReviewEditWindowClosed):
+		httpx.Fail(w, r, http.StatusConflict, codeReviewEditWindowClosed,
+			"This rating was submitted more than 24 hours ago and can no longer be edited.", nil)
 	case errors.As(err, &illegal):
 		allowed := make([]string, 0, len(illegal.Allowed))
 		for _, s := range illegal.Allowed {

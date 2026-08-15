@@ -203,6 +203,14 @@ func (s *Store) GetOrderTracking(ctx context.Context, accountID, orderID string)
 
 // loadRiderForOrder fetches the assigned rider profile + current position for
 // an order. Returns (nil, nil, pgx.ErrNoRows) when no rider is assigned.
+// LoadRiderForOrder is the exported form of loadRiderForOrder, for callers
+// outside this package (admin's live-map projection, which is not subject to
+// the customer-scoped PICKED_UP/ARRIVED gate — admin oversight sees the
+// rider's position for the whole trip once a rider is assigned).
+func (s *Store) LoadRiderForOrder(ctx context.Context, orderID string) (*RiderPublicProfile, *RiderLocation, error) {
+	return s.loadRiderForOrder(ctx, orderID)
+}
+
 func (s *Store) loadRiderForOrder(ctx context.Context, orderID string) (*RiderPublicProfile, *RiderLocation, error) {
 	var rp RiderPublicProfile
 	var rl RiderLocation

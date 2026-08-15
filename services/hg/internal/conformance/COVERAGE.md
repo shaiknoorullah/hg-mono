@@ -6,11 +6,11 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 144
-- **Validated (covered):** 144
+- **Total contract operations:** 148
+- **Validated (covered):** 148
 - **Not yet validated (uncovered):** 0
 
-## Covered (144)
+## Covered (148)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
@@ -37,6 +37,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `createQuote` — POST /v1/quotes
 - `createRealtimeTicket` — POST /v1/realtime/ticket
 - `createRefund` — POST /v1/refunds
+- `createRestaurantStaffUser` — POST /v1/restaurant/staff
 - `createStaffUser` — POST /v1/admin/staff
 - `createUpload` — POST /v1/uploads
 - `decideHalalCertificate` — POST /v1/admin/halal-certificates/{certificateId}/decision
@@ -64,6 +65,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getOrder` — GET /v1/orders/{orderId}
 - `getOrderAdmin` — GET /v1/admin/orders/{orderId}
 - `getOrderPayment` — GET /v1/orders/{orderId}/payment
+- `getOrderRating` — GET /v1/orders/{orderId}/rating
 - `getOrderReceipt` — GET /v1/orders/{orderId}/receipt
 - `getOrderRiderPublicProfile` — GET /v1/orders/{orderId}/rider
 - `getOrderTracking` — GET /v1/orders/{orderId}/tracking
@@ -101,6 +103,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `listRestaurantDocuments` — GET /v1/restaurant/documents
 - `listRestaurantOrders` — GET /v1/restaurant/orders
 - `listRestaurantPayouts` — GET /v1/restaurant/payouts
+- `listRestaurantStaff` — GET /v1/restaurant/staff
 - `listRestaurants` — GET /v1/restaurants
 - `listRiderApplications` — GET /v1/admin/rider-applications
 - `listRiderDocuments` — GET /v1/riders/me/documents
@@ -139,6 +142,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `setRestaurantAcceptingOrders` — PATCH /v1/restaurant/availability
 - `setRestaurantHours` — PUT /v1/restaurant/hours
 - `setRiderAvailability` — PUT /v1/riders/me/availability
+- `submitOrderRating` — PUT /v1/orders/{orderId}/rating
 - `submitProofOfDelivery` — POST /v1/riders/me/assignments/{assignmentId}/proof-of-delivery
 - `submitRestaurantDocuments` — POST /v1/restaurant/documents/submit
 - `submitRestaurantProfile` — PUT /v1/restaurant/profile

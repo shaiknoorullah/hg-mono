@@ -1,0 +1,18 @@
+{
+  "scenario": "error_review_edit_window_closed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `REVIEW_EDIT_WINDOW_CLOSED`. C-38 rule 2: a rating is editable for 24 h from its own `created_at`, then frozen — replacing it past that window is rejected rather than silently overwritten.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "REVIEW_EDIT_WINDOW_CLOSED",
+      "message": "This rating was submitted more than 24 hours ago and can no longer be edited.",
+      "request_id": "V7C4MVE5D7AZQ6AGXHVNA27TVJ"
+    }
+  }
+}

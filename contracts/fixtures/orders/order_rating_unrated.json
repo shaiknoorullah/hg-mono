@@ -1,0 +1,18 @@
+{
+  "scenario": "order_rating_unrated",
+  "domain": "orders",
+  "schema": "OrderRating",
+  "describes": "The customer has not rated this order yet. Neither half is an error state — C-38: skipping the post-delivery prompt is a first-class outcome, not a defect.",
+  "operations": [
+    "getOrderRating"
+  ],
+  "status": 200,
+  "tags": [
+    "ratings"
+  ],
+  "payload": {
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "food": null,
+    "rider": null
+  }
+}

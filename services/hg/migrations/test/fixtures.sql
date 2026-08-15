@@ -165,4 +165,38 @@ VALUES
    now() + interval '30 minutes', 'PREP_OVERDUE', 3000, 0, 419, 0, 0, 500, 3919)
 ON CONFLICT (id) DO NOTHING;
 
+-- A DELIVERED order (fxCustomerID, fxRestaurantID, fxRiderID) inside the
+-- 14-day review window, for getOrderRating/submitOrderRating (C-38, scoped).
+-- Terminal state ⇒ deadline_at/deadline_action are NULL (order_deadline_required).
+INSERT INTO quote (
+  id, account_id, cart_id, restaurant_id, delivery_address_id, fulfilment,
+  pricing_config_id, tax_jurisdiction_code,
+  subtotal_cents, delivery_fee_cents, service_fee_cents, tax_total_cents, tip_cents, total_cents,
+  input_hash, state_hash, expires_at)
+SELECT '7a000000-0000-4000-8000-000000000004', '11111111-1111-4111-8111-111111111111',
+       '66666666-6666-4666-8666-666666666666', '33333333-3333-4333-8333-333333333333',
+       '22222222-2222-4222-8222-222222222222', 'DELIVERY',
+       pc.id, 'CA-ON', 3000, 419, 0, 0, 500, 3919,
+       digest('7a000000-0000-4000-8000-000000000004', 'sha256'),
+       digest('7a000000-0000-4000-8000-000000000004', 'sha256'), now() + interval '10 minutes'
+  FROM pricing_config pc WHERE pc.version = 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO "order" (
+  id, code, quote_id, account_id, restaurant_id, delivery_address_id, fulfilment,
+  state, deadline_at, deadline_action,
+  subtotal_cents, discount_cents, delivery_fee_cents, service_fee_cents,
+  tax_total_cents, tip_cents, total_cents, delivered_at)
+VALUES
+  ('14000000-0000-4000-8000-000000000001', 'HG-TEST04', '7a000000-0000-4000-8000-000000000004',
+   '11111111-1111-4111-8111-111111111111', '33333333-3333-4333-8333-333333333333',
+   '22222222-2222-4222-8222-222222222222', 'DELIVERY', 'COMPLETED', NULL, NULL,
+   3000, 0, 419, 0, 0, 500, 3919, now() - interval '1 day')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO dispatch (order_id, state, deadline_at, deadline_action, rider_account_id, assigned_at)
+VALUES ('14000000-0000-4000-8000-000000000001', 'COMPLETED', NULL, NULL,
+        '019ffe57-fbd0-7355-ade8-b03ea7943578', now() - interval '2 days')
+ON CONFLICT (order_id) DO NOTHING;
+
 COMMIT;

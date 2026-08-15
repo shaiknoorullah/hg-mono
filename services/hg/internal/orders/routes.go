@@ -29,4 +29,8 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Get("/v1/orders/{orderId}/tracking", httpx.Policy{Action: ActionOrderTrackingRead, Class: httpx.ClassRead, OperationID: "getOrderTracking"}, h.GetOrderTracking)
 	r.Get("/v1/orders/{orderId}/receipt", httpx.Policy{Action: ActionOrderReceiptRead, Class: httpx.ClassRead, OperationID: "getOrderReceipt"}, h.GetOrderReceipt)
 	r.Get("/v1/orders/{orderId}/rider", httpx.Policy{Action: ActionOrderRiderProfileRead, Class: httpx.ClassRead, OperationID: "getOrderRiderPublicProfile"}, h.GetOrderRiderPublicProfile)
+
+	// Ratings (C-38, scoped to food + rider targets).
+	r.Get("/v1/orders/{orderId}/rating", httpx.Policy{Action: ActionOrderRatingRead, Class: httpx.ClassRead, OperationID: "getOrderRating"}, h.GetOrderRating)
+	r.Put("/v1/orders/{orderId}/rating", httpx.Policy{Action: ActionOrderRatingWrite, Class: httpx.ClassWrite, Idempotent: true, OperationID: "submitOrderRating"}, h.SubmitOrderRating)
 }

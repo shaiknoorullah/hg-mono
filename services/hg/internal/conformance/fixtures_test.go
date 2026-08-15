@@ -42,6 +42,11 @@ const (
 
 	// A delivery address owned by fxCustomerID.
 	fxAddressID = "22222222-2222-4222-8222-222222222222"
+
+	// A COMPLETED order (fxCustomerID, fxRestaurantID, fxRiderID assigned via
+	// dispatch), delivered_at 1 day ago — inside the 14-day review window, for
+	// getOrderRating / submitOrderRating (C-38, scoped; migrations/test/fixtures.sql).
+	fxRatableOrderID = "14000000-0000-4000-8000-000000000001"
 )
 
 // Role name constants (mirror httpx.Role values; kept as plain strings so the

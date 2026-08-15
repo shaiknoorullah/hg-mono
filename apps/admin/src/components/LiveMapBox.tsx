@@ -7,12 +7,12 @@
  * channel where available; this box takes whatever coordinates the caller can give it and
  * degrades honestly when it can't.
  *
- * **Known contract gap** (recorded in `docs/design/admin-order-detail.md` "Backend" and
- * `AGENTS.md` §8): `OrderAdminView` carries the delivery address (destination) but not the
- * restaurant's coordinates or the rider's live position — `getOrderTracking`, which has
- * both, is `x-roles: [CUSTOMER]` only. This box renders every pin it has real coordinates
- * for and says plainly what it does not have, rather than guessing a restaurant location
- * or fabricating a rider marker.
+ * `OrderAdminView` was widened to carry `restaurant_location` / `destination_location` /
+ * `rider_location` directly (the admin-scoped counterpart to the customer-only
+ * `getOrderTracking` shape — admin oversight is not subject to the customer's
+ * PICKED_UP/ARRIVED rider-visibility gate). This box still renders only the pins it has
+ * real coordinates for and says plainly what it does not have — a rider pin is absent,
+ * honestly, until a rider is assigned and has reported a position, never fabricated.
  *
  * Without `VITE_MAPBOX_TOKEN` configured this renders the box's empty state instead of a
  * silently broken map — no token, no tile request, ever.

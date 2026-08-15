@@ -360,6 +360,26 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 
 	stateSince := ptr(httpx.Timestamp(row.StateSince))
 
+	restaurantLocation := &adminGeoPoint{Latitude: row.RestaurantLat, Longitude: row.RestaurantLng}
+	var destinationLocation *adminGeoPoint
+	if row.DeliveryAddress != nil {
+		a := row.DeliveryAddress
+		destinationLocation = &adminGeoPoint{Latitude: a.Latitude, Longitude: a.Longitude}
+	}
+	var riderLocation *adminRiderLocation
+	if row.RiderLocation != nil {
+		rl := row.RiderLocation
+		riderLocation = &adminRiderLocation{
+			Latitude:   rl.Latitude,
+			Longitude:  rl.Longitude,
+			HeadingDeg: rl.HeadingDeg,
+			SpeedMPS:   rl.SpeedMPS,
+			AccuracyM:  rl.AccuracyM,
+			RecordedAt: httpx.Timestamp(rl.RecordedAt),
+			IsCoarse:   rl.IsCoarse,
+		}
+	}
+
 	return adminOrderView{
 		ID:    row.ID,
 		Code:  row.Code,
@@ -403,9 +423,12 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 			PlatformGrossCents: row.PlatformGrossCents,
 			Currency:           row.Currency,
 		},
-		Timeline:    timeline,
-		Payment:     payment,
-		Refunds:     refunds,
-		PiiRevealed: piiRevealed,
+		Timeline:            timeline,
+		Payment:             payment,
+		Refunds:             refunds,
+		PiiRevealed:         piiRevealed,
+		RestaurantLocation:  restaurantLocation,
+		DestinationLocation: destinationLocation,
+		RiderLocation:       riderLocation,
 	}
 }

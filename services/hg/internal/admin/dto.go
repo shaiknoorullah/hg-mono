@@ -432,6 +432,29 @@ type adminOrderView struct {
 	Payment       adminOrderPayment       `json:"payment"`
 	Refunds       []adminRefund           `json:"refunds"`
 	PiiRevealed   bool                    `json:"pii_revealed"`
+
+	// LiveMapBox fields (admin-only widening of the customer-scoped OrderTracking
+	// shape): restaurant + destination coordinates and the rider's live position.
+	RestaurantLocation  *adminGeoPoint      `json:"restaurant_location"`
+	DestinationLocation *adminGeoPoint      `json:"destination_location"`
+	RiderLocation       *adminRiderLocation `json:"rider_location"`
+}
+
+// adminGeoPoint is the contract's GeoPoint.
+type adminGeoPoint struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+// adminRiderLocation is the contract's RiderLocation (GeoPoint + kinematics).
+type adminRiderLocation struct {
+	Latitude   float64  `json:"latitude"`
+	Longitude  float64  `json:"longitude"`
+	HeadingDeg *float64 `json:"heading_deg"`
+	SpeedMPS   *float64 `json:"speed_mps"`
+	AccuracyM  *float64 `json:"accuracy_m"`
+	RecordedAt string   `json:"recorded_at"`
+	IsCoarse   bool     `json:"is_coarse"`
 }
 
 // adminAddress is the contract's Address (delivery address on the admin order

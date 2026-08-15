@@ -10,9 +10,11 @@
  * + actions), per the design doc. Cancel and refund both go through the named admin actions
  * (`cancelOrderAdmin`, `issueRefund`) — **no direct writes to `order.state`** (P-14).
  *
- * The live-map box's known contract gap (no restaurant/rider coordinates on this
- * projection) is documented in `LiveMapBox.tsx` and shown to the admin as an honest empty
- * state rather than a fabricated pin.
+ * The live-map box reads `restaurant_location` / `destination_location` / `rider_location`
+ * directly off `OrderAdminView` (widened alongside `getOrderTracking`'s customer-scoped
+ * shape — admin is not subject to the customer's PICKED_UP/ARRIVED rider-visibility gate).
+ * A rider pin is absent, honestly, until a rider is assigned and has reported a position —
+ * never a fabricated one.
  */
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -164,9 +166,34 @@ export function OrderDetailScreen() {
       latitude: data.delivery_address.latitude,
       longitude: data.delivery_address.longitude,
     });
+  } else if (data.destination_location) {
+    pins.push({
+      kind: 'customer',
+      label: 'Delivery address',
+      latitude: data.destination_location.latitude,
+      longitude: data.destination_location.longitude,
+    });
+  }
+  if (data.restaurant_location) {
+    pins.push({
+      kind: 'restaurant',
+      label: data.restaurant?.name ?? 'Restaurant',
+      latitude: data.restaurant_location.latitude,
+      longitude: data.restaurant_location.longitude,
+    });
+  }
+  if (data.rider_location) {
+    pins.push({
+      kind: 'rider',
+      label: 'Rider (live)',
+      latitude: data.rider_location.latitude,
+      longitude: data.rider_location.longitude,
+    });
   }
   const missingLabel =
-    'Restaurant and live rider coordinates are not on this projection — getOrderTracking has them but is customer-only (contract gap, see docs/design/admin-order-detail.md).';
+    data.restaurant_location || data.rider_location
+      ? null
+      : 'No live rider position yet — a rider has not been assigned or has not reported a location.';
 
   return (
     <section aria-labelledby="order-heading" className="adm-stack">

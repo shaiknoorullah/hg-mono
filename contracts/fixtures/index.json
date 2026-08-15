@@ -2,17 +2,17 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 311,
+  "count": 317,
   "counts_by_domain": {
     "admin": 15,
     "cart": 12,
     "catalogue": 31,
     "dispatch": 31,
     "documents": 23,
-    "errors": 21,
+    "errors": 23,
     "halal": 25,
-    "onboarding": 34,
-    "orders": 41,
+    "onboarding": 35,
+    "orders": 44,
     "payments": 12,
     "platform": 23,
     "realtime": 8,
@@ -1948,6 +1948,30 @@
       "file": "errors/error_restaurant_closed.json"
     },
     {
+      "scenario": "error_review_edit_window_closed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REVIEW_EDIT_WINDOW_CLOSED`. C-38 rule 2: a rating is editable for 24 h from its own `created_at`, then frozen — replacing it past that window is rejected rather than silently overwritten.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_review_edit_window_closed.json"
+    },
+    {
+      "scenario": "error_review_window_closed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REVIEW_WINDOW_CLOSED`. C-38 rule 4 (scoped): `submitOrderRating` on an order that is not DELIVERED/COMPLETED, has no rider assigned for the rider half, or is more than 14 days past `delivered_at`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_review_window_closed.json"
+    },
+    {
       "scenario": "error_unknown_field",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2704,6 +2728,22 @@
       "file": "onboarding/restaurant_registration.json"
     },
     {
+      "scenario": "restaurant_staff_list",
+      "domain": "onboarding",
+      "schema": "array<RestaurantStaffUser>",
+      "describes": "A restaurant's own staff roster (`listRestaurantStaff`), scoped to the caller's restaurant — never platform staff and never another restaurant's accounts. Restaurant-scoped counterpart to admin's platform-role-only `/v1/admin/staff`.",
+      "operations": [
+        "listRestaurantStaff",
+        "createRestaurantStaffUser"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_staff_list.json"
+    },
+    {
       "scenario": "rider_onboarding_active",
       "domain": "onboarding",
       "schema": "RiderOnboardingStatus",
@@ -3197,6 +3237,50 @@
         "order-state-matrix"
       ],
       "file": "orders/order_preparing.json"
+    },
+    {
+      "scenario": "order_rating_food_and_rider",
+      "domain": "orders",
+      "schema": "OrderRating",
+      "describes": "Both targets rated in one `submitOrderRating` call — a 4-star food review with tags and a 5-star rider rating with tags, both `PUBLISHED` (no PII/profanity trip).",
+      "operations": [
+        "getOrderRating",
+        "submitOrderRating"
+      ],
+      "status": 200,
+      "tags": [
+        "ratings"
+      ],
+      "file": "orders/order_rating_food_and_rider.json"
+    },
+    {
+      "scenario": "order_rating_food_pending_moderation",
+      "domain": "orders",
+      "schema": "OrderRating",
+      "describes": "The food review's free text matched the auto-moderation rules (C-38 rule 6: contains an email/phone/URL, or the customer has had 2+ reviews removed in 90 days) — `PENDING_MODERATION` and excluded from `restaurants.rating_avg` until a moderator acts.",
+      "operations": [
+        "getOrderRating"
+      ],
+      "status": 200,
+      "tags": [
+        "ratings",
+        "edge"
+      ],
+      "file": "orders/order_rating_food_pending_moderation.json"
+    },
+    {
+      "scenario": "order_rating_unrated",
+      "domain": "orders",
+      "schema": "OrderRating",
+      "describes": "The customer has not rated this order yet. Neither half is an error state — C-38: skipping the post-delivery prompt is a first-class outcome, not a defect.",
+      "operations": [
+        "getOrderRating"
+      ],
+      "status": 200,
+      "tags": [
+        "ratings"
+      ],
+      "file": "orders/order_rating_unrated.json"
     },
     {
       "scenario": "order_ready_for_pickup",
@@ -4878,6 +4962,9 @@
       "refund_submitted",
       "refund_succeeded"
     ],
+    "createRestaurantStaffUser": [
+      "restaurant_staff_list"
+    ],
     "createStaffUser": [
       "staff_list"
     ],
@@ -5051,6 +5138,11 @@
       "payment_requires_confirmation",
       "payment_requires_payment_method",
       "payment_succeeded"
+    ],
+    "getOrderRating": [
+      "order_rating_food_and_rider",
+      "order_rating_food_pending_moderation",
+      "order_rating_unrated"
     ],
     "getOrderReceipt": [
       "receipt_pickup_zero_tip",
@@ -5276,6 +5368,9 @@
       "payout_transferred",
       "payout_transferring"
     ],
+    "listRestaurantStaff": [
+      "restaurant_staff_list"
+    ],
     "listRestaurants": [
       "restaurant_list_empty",
       "restaurant_list_long_names",
@@ -5427,6 +5522,9 @@
       "rider_availability_online_idle",
       "rider_availability_online_stale"
     ],
+    "submitOrderRating": [
+      "order_rating_food_and_rider"
+    ],
     "submitProofOfDelivery": [
       "assignment_arrived_at_dropoff",
       "assignment_arrived_at_pickup",
@@ -5536,6 +5634,7 @@
     "createQuote": "quote_standard",
     "createRealtimeTicket": "realtime_ticket",
     "createRefund": "refund_requested",
+    "createRestaurantStaffUser": "restaurant_staff_list",
     "createStaffUser": "staff_list",
     "createUpload": "presigned_upload",
     "decideHalalCertificate": "halal_certificate_status_approved",
@@ -5558,6 +5657,7 @@
     "getOrder": "order_preparing",
     "getOrderAdmin": "order_admin_view_completed",
     "getOrderPayment": "payment_succeeded",
+    "getOrderRating": "order_rating_food_and_rider",
     "getOrderReceipt": "receipt_standard",
     "getOrderTracking": "tracking_picked_up",
     "getOwnMenu": "owned_menu_with_pending_version",
@@ -5593,6 +5693,7 @@
     "listRestaurantDocuments": "restaurant_document_pack_complete",
     "listRestaurantOrders": "restaurant_order_queue_busy",
     "listRestaurantPayouts": "payout_paid",
+    "listRestaurantStaff": "restaurant_staff_list",
     "listRestaurants": "restaurant_list_populated",
     "listRiderApplications": "rider_application_queue",
     "listRiderDocuments": "rider_document_pack_complete",
@@ -5618,6 +5719,7 @@
     "setRestaurantAcceptingOrders": "restaurant_open_state_open",
     "setRestaurantHours": "restaurant_hours_standard",
     "setRiderAvailability": "rider_availability_online_idle",
+    "submitOrderRating": "order_rating_food_and_rider",
     "submitProofOfDelivery": "assignment_delivered",
     "submitRestaurantDocuments": "restaurant_onboarding_documents_review",
     "submitRestaurantProfile": "restaurant_profile",

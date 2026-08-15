@@ -204,6 +204,24 @@ ERRORS = [
         "Was `internal_error`. The only correct client behaviour is retry-with-backoff and "
         "show `request_id` in the support sheet.",
     ),
+    (
+        "review_window_closed",
+        409,
+        "REVIEW_WINDOW_CLOSED",
+        "This order cannot be rated (not yet delivered, no rider assigned, or the 14-day window has closed).",
+        None,
+        "C-38 rule 4 (scoped): `submitOrderRating` on an order that is not DELIVERED/COMPLETED, "
+        "has no rider assigned for the rider half, or is more than 14 days past `delivered_at`.",
+    ),
+    (
+        "review_edit_window_closed",
+        409,
+        "REVIEW_EDIT_WINDOW_CLOSED",
+        "This rating was submitted more than 24 hours ago and can no longer be edited.",
+        None,
+        "C-38 rule 2: a rating is editable for 24 h from its own `created_at`, then frozen — "
+        "replacing it past that window is rejected rather than silently overwritten.",
+    ),
 ]
 
 

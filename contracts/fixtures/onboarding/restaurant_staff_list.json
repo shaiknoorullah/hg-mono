@@ -1,0 +1,40 @@
+{
+  "scenario": "restaurant_staff_list",
+  "domain": "onboarding",
+  "schema": "array<RestaurantStaffUser>",
+  "describes": "A restaurant's own staff roster (`listRestaurantStaff`), scoped to the caller's restaurant — never platform staff and never another restaurant's accounts. Restaurant-scoped counterpart to admin's platform-role-only `/v1/admin/staff`.",
+  "operations": [
+    "listRestaurantStaff",
+    "createRestaurantStaffUser"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "state-matrix"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 2
+  },
+  "payload": [
+    {
+      "id": "c7796348-e7d2-461f-a4ac-9876e1fb5252",
+      "email": "owner@karachikitchen.ca",
+      "full_name": "Full Name",
+      "role": "RESTAURANT_MANAGER",
+      "status": "ACTIVE",
+      "last_login_at": "2026-08-10T18:32:11.412Z",
+      "created_at": "2026-08-10T17:57:11.412Z"
+    },
+    {
+      "id": "895332b2-b9e9-4482-ab4c-a40f83b7f963",
+      "email": "owner@karachikitchen.ca",
+      "full_name": "Full Name",
+      "role": "RESTAURANT_STAFF",
+      "status": "INVITED",
+      "last_login_at": "2026-08-10T18:32:11.412Z",
+      "created_at": "2026-08-10T17:57:11.412Z"
+    }
+  ]
+}
