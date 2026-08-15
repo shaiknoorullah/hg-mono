@@ -2,9 +2,10 @@ package notify
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -18,11 +19,12 @@ import (
 // insertAccount creates a minimal account row and returns its id, so
 // notification's account_id FK is satisfiable in tests without depending on
 // the auth module (which is not built in this isolated worktree). The phone
-// number is suffixed with a fresh UUID so re-running the suite against a
-// long-lived database (HG_TEST_POSTGRES_DSN, as opposed to the default
-// fresh-per-test container) never collides with a previous run's rows.
-var phoneSeq atomic.Int64
-
+// number's digits are random (not a process-local counter, which restarts at
+// 1 on every `go test` invocation and so collides with rows a previous run
+// left behind on a long-lived database) so re-running the suite against
+// HG_TEST_POSTGRES_DSN never collides with a previous run's rows. Mirrors
+// internal/invariants/notify_helpers_test.go's insertNotifyAccount.
+//
 // insertAccount ignores the exact digits of phonePrefix beyond its use as a
 // human-readable label in test names; the actual phone_e164 stored is always
 // freshly generated so concurrent/rerun test cases never collide on the
@@ -30,7 +32,9 @@ var phoneSeq atomic.Int64
 func insertAccount(t *testing.T, pool *pgxpool.Pool, phonePrefix string) uuid.UUID {
 	t.Helper()
 	_ = phonePrefix
-	n := phoneSeq.Add(1)
+	var buf [8]byte
+	_, _ = rand.Read(buf[:])
+	n := binary.BigEndian.Uint64(buf[:]) % 1_000_000_000
 	phone := fmt.Sprintf("+1555%09d", n)
 	var id uuid.UUID
 	err := pool.QueryRow(context.Background(),
@@ -38,6 +42,17 @@ func insertAccount(t *testing.T, pool *pgxpool.Pool, phonePrefix string) uuid.UU
 	if err != nil {
 		t.Fatalf("insert account: %v", err)
 	}
+	t.Cleanup(func() {
+		ctx := context.Background()
+		// notification/notification_delivery reference account_id without
+		// ON DELETE CASCADE, so deleting the account first would fail on the
+		// FK and (with the error ignored) leave every dependent row behind
+		// on every run. Delete children first so re-runs against a
+		// long-lived database (HG_TEST_POSTGRES_DSN) don't accumulate rows.
+		_, _ = pool.Exec(ctx, `DELETE FROM notification_delivery WHERE notification_id IN (SELECT id FROM notification WHERE account_id = $1)`, id)
+		_, _ = pool.Exec(ctx, `DELETE FROM notification WHERE account_id = $1`, id)
+		_, _ = pool.Exec(ctx, `DELETE FROM account WHERE id = $1`, id)
+	})
 	return id
 }
 
