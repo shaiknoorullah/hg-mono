@@ -30,6 +30,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/account"
@@ -43,6 +44,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
@@ -59,6 +61,13 @@ import (
 // it is always non-nil by the time any Transition can run.
 type orderRealtimeEmitter struct {
 	store *realtime.Store
+	// notify is the transactional-outbox enqueuer (P-24). It is optional: when
+	// nil (e.g. a build without the notify module wired) EmitOrderTransition
+	// still emits the realtime event and simply skips the notification. When
+	// set, the order-lifecycle notification is written into the SAME tx as the
+	// state change, so it commits or rolls back atomically with the transition
+	// (notify/doc.go: a notification is a row first, a delivery attempt second).
+	notify *notify.Enqueuer
 }
 
 func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error {
@@ -69,7 +78,7 @@ func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.T
 		return fmt.Errorf("marshal order transition payload: %w", err)
 	}
 	oid := orderID
-	_, _, err = realtime.EmitInTx(ctx, tx,
+	if _, _, err = realtime.EmitInTx(ctx, tx,
 		"order:"+orderID,
 		"order.state_changed",
 		1,
@@ -77,8 +86,85 @@ func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.T
 		json.RawMessage(payload),
 		&oid,
 		nil,
+	); err != nil {
+		return err
+	}
+	if e.notify == nil {
+		return nil
+	}
+	return e.enqueueLifecycleNotification(ctx, tx, orderID, newState)
+}
+
+// enqueueLifecycleNotification maps a customer-facing order state to its
+// notify builder and enqueues it inside the transition tx. Order details
+// (code, customer account, restaurant name, deadline_at) are read from the
+// SAME tx so they reflect exactly the committing state. States with no
+// customer notification (or non-customer recipients whose target account is
+// not the order's own account_id) are a deliberate no-op here — the restaurant
+// "new order" and rider "ready for pickup" alerts are enqueued by their own
+// modules against their own recipient accounts, not from this customer-scoped
+// seam.
+func (e *orderRealtimeEmitter) enqueueLifecycleNotification(ctx context.Context, tx pgx.Tx, orderID, newState string) error {
+	oid, err := uuid.Parse(orderID)
+	if err != nil {
+		return fmt.Errorf("notify: parse order id %q: %w", orderID, err)
+	}
+
+	var (
+		code           string
+		accountID      uuid.UUID
+		restaurantName string
+		deadlineAt     *time.Time
+		rejectReason   *string
+		cancelReason   *string
 	)
+	if err := tx.QueryRow(ctx, `
+		SELECT o.code, o.account_id, o.deadline_at, r.display_name,
+		       o.reject_reason::text, o.cancel_reason::text
+		  FROM "order" o
+		  JOIN restaurant r ON r.id = o.restaurant_id
+		 WHERE o.id = $1`, oid).
+		Scan(&code, &accountID, &deadlineAt, &restaurantName, &rejectReason, &cancelReason); err != nil {
+		return fmt.Errorf("notify: load order %s for lifecycle notification: %w", orderID, err)
+	}
+
+	ev := notify.OrderEvent{
+		OrderID:        oid,
+		OrderShortCode: code,
+		AccountID:      accountID,
+		RestaurantName: restaurantName,
+	}
+	if deadlineAt != nil {
+		ev.DeadlineAt = *deadlineAt
+	}
+
+	var n notify.New
+	switch machine.State(newState) {
+	case machine.StatePreparing:
+		// T6: RESTAURANT_PENDING -> PREPARING is the restaurant accepting and
+		// the capture point (invariant 5). This is the customer's "accepted".
+		n = notify.NotifyOrderAccepted(ev)
+	case machine.StateRejected:
+		n = notify.NotifyOrderRejected(ev, deref(rejectReason))
+	case machine.StatePickedUp:
+		n = notify.NotifyOrderPickedUp(ev)
+	case machine.StateDelivered:
+		n = notify.NotifyOrderDelivered(ev)
+	case machine.StateCancelled:
+		n = notify.NotifyOrderCancelled(ev, deref(cancelReason))
+	default:
+		return nil // no customer notification for this transition
+	}
+
+	_, err = e.notify.Enqueue(ctx, tx, n)
 	return err
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 // orderPaymentGateway bridges the orders module to the payments sibling: it
@@ -250,6 +336,27 @@ func run() error {
 		return err
 	}
 
+	// P-24 transactional notifications. The notify module enqueues a
+	// notification row + River delivery job inside a business tx (see the order
+	// emitter below). Channel senders are fakes for now: real SMS/push is
+	// blocked on O-03 (A2P registration) — until then the INAPP inbox row (the
+	// system of record per listNotifications) is written and push/SMS are
+	// no-ops rather than a hard boot dependency. NoAccountLookup means no
+	// external target is resolved, which is the correct behaviour while senders
+	// are fakes. River's own tables ship as migration 00024_river_outbox.sql.
+	notifier := notify.NewNotifier().
+		Register(notify.ChannelPush, notify.NewFakeSender()).
+		Register(notify.ChannelSMS, notify.NewFakeSender()).
+		Register(notify.ChannelEmail, notify.NewFakeSender())
+	notifyClient, err := notify.NewClient(st.DB().Pool, notify.Options{
+		Notifier: notifier,
+		Accounts: notify.NoAccountLookup{},
+		Log:      log,
+	})
+	if err != nil {
+		return fmt.Errorf("notify: construct client: %w", err)
+	}
+
 	// 4. Routes. Every module contributes a Routes(router, …) function; every
 	// route carries a Policy; Verify refuses to boot on a defective one.
 	//
@@ -312,7 +419,7 @@ func run() error {
 	// after rtStore is built (B8 below). The HTTP server starts only after all
 	// wiring completes, so emitter.store is always non-nil before any Transition
 	// can be called.
-	rtEmitter := &orderRealtimeEmitter{}
+	rtEmitter := &orderRealtimeEmitter{notify: notifyClient.Enqueue}
 	ordersStore := orders.NewStore(st.DB().Pool, rtEmitter).WithMedia(mediaResolver)
 	// The orders handler + P-15 deadline runner are wired just below, AFTER the
 	// payments service, so createOrder can ask the payments gateway for a real
@@ -387,6 +494,13 @@ func run() error {
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
 	defer rtGateway.Shutdown()
+
+	// Start the notify worker pool now that migrations have run and the process
+	// is otherwise ready. Enqueue (used inside order transitions above) works
+	// without Start; Start is what drains and delivers queued jobs.
+	if err := notifyClient.Start(ctx); err != nil {
+		return fmt.Errorf("notify: start worker pool: %w", err)
+	}
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
@@ -464,6 +578,10 @@ func run() error {
 		log.Error("graceful shutdown exceeded its budget; forcing close",
 			slog.String("error", err.Error()))
 		_ = srv.Close()
+	}
+	// Drain in-flight notify jobs within the same shutdown budget.
+	if err := notifyClient.Stop(shutdownCtx); err != nil {
+		log.Warn("notify worker pool did not stop cleanly", slog.String("error", err.Error()))
 	}
 	st.Close()
 	log.Info("stopped")
