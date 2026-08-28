@@ -16,6 +16,17 @@ import (
 // absent every conformance test skips, coverage is 0, and we do NOT fail (there
 // was nothing to validate); the skip is itself the loud signal in CI logs.
 func TestMain(m *testing.M) {
+	// Self-seed every FK prerequisite the conformance tests reference, once,
+	// before any test runs — so the gate is real on a freshly-migrated DB and
+	// not a false green riding on a polluted long-lived dev database. Skipped
+	// when there is no DB (every conformance test then skips anyway).
+	if dsn := os.Getenv("HG_TEST_POSTGRES_DSN"); dsn != "" {
+		if err := ensureBaseSeed(dsn); err != nil {
+			fmt.Fprintf(os.Stderr, "conformance TestMain: base seed: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
 	code := m.Run()
 
 	// Only enforce the floor when the harness actually had a DB to run against.

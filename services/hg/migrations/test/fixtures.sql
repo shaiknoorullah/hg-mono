@@ -40,6 +40,20 @@ VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578', 'Test', 'Rider', '1995-05-01',
         'ACTIVE', 'ACTIVE', 'OFFLINE', false, now() - interval '30 days')
 ON CONFLICT (account_id) DO NOTHING;
 
+-- fxRiderID's Stripe Connect account: a fully-enabled RIDER connect_account.
+-- The payments conformance reads (getConnectStatus, listRiderPayouts, and the
+-- earning/payout seed helper's connect-account lookup) all resolve this exact
+-- row (owner_type RIDER, owner_id = fxRiderID). On a clean DB it does not exist
+-- until POST /v1/connect/account runs — so on a first pass the read tests were
+-- red and only went green once a later write test had created it. Seeding it
+-- here makes the rider payout/earnings reads self-contained on a fresh DB, and
+-- keeps createConnectAccount's (owner_type, owner_id) idempotency intact.
+INSERT INTO connect_account (id, owner_type, owner_id, stripe_account_id, country,
+                             default_currency, charges_enabled, payouts_enabled, details_submitted)
+VALUES ('0a333333-0000-4000-8000-00000000c001', 'RIDER', '019ffe57-fbd0-7355-ade8-b03ea7943578',
+        'acct_test_fixture_rider01', 'CA', 'CAD', true, true, true)
+ON CONFLICT (owner_type, owner_id) DO NOTHING;
+
 -- The RESTAURANT_MANAGER (fxRestaurantManagerID) the conformance harness
 -- authenticates as for every restaurant-portal read/write. The catalog scope
 -- resolver (RestaurantForPrincipal, P-07) answers "which restaurant may this
