@@ -1,10 +1,22 @@
-# v1 status — after the 5-wave ultracode push
+# v1 status — 5-wave push, released as `v1.0.0-rc1`
 
 _Halal Goes. Consolidated, **personally verified** status (not agent self-report). Aug 2026.
 The rule this whole push was held to: report the real state, never a green light I didn't
 run myself._
 
-## Wave 5 (this push) — landed & verified GREEN
+## Since wave 5 — release + hardening (all personally re-verified)
+
+- **Tagged `v1.0.0-rc1`** (release candidate; not GA — launch is still client-gated below).
+  `main` fast-forwarded to it locally; **not yet pushed** (sandbox has no GitHub creds — run
+  `git push origin main && git push origin v1.0.0-rc1`).
+- **Fixed a false green** (`c9ac97d`): the conformance harness never loaded seed data, so it only
+  passed on a *polluted* dev DB. It now self-seeds — verified **152/152 twice + full `go test ./...`
+  green on a CLEAN DB from an empty volume** (the way a real deploy checks). This is now the bar.
+- **Twilio Verify WhatsApp OTP built** (`4827f53`) — see O-03 below; unblocks OTP sign-in *now*.
+- **Mapbox tokens placed + API-verified** — see the Mapbox line below.
+- **Release runbook** committed: `RELEASING.md` + per-surface `.env.example` + go-live env vars.
+
+## Wave 5 — landed & verified GREEN
 
 Four increments merged into `integration` in dependency order, each committed, the whole
 tree re-gated after merge:
@@ -85,17 +97,24 @@ Mapbox needs a dev build + token).
 ## HUMAN-BLOCKED — these gate LAUNCH, not code (only you/the client can unblock)
 
 No amount of further code moves these:
-- **O-03 SMS / A2P 10DLC** — nobody can sign in without phone-OTP delivery. **Longest lead time
-  — start first.** (Wave 5: `TwilioSMSSender` is now **built** behind the seam; the moment A2P
-  is approved it is `HG_SMS_PROVIDER=twilio` + three env vars, no rebuild — config refuses to
-  boot if those are incomplete.)
+- **O-03 SMS / A2P 10DLC** — for universal Canadian coverage (not everyone has WhatsApp), phone
+  **SMS** OTP still needs A2P. **Longest lead time — keep it moving.** BUT this is **no longer a
+  hard sign-in blocker**: a **Twilio Verify WhatsApp OTP path is now built** (`4827f53`,
+  `HG_OTP_PROVIDER=twilio_verify`, WhatsApp-verified via Meta — a separate track from carrier
+  A2P), so you can pilot/QA real OTP sign-in **today** and add SMS as a one-word fallback when
+  A2P clears. `TwilioSMSSender` (Messaging) is also built for when A2P lands. Both refuse to boot
+  without their creds. _Interim gap: WhatsApp-only excludes non-WhatsApp users — SMS closes that._
 - **Stripe live account + keys** — real charges. (Live/fake is a `Configured()` gate.)
 - **O-01 HST registration** — legal basis to charge tax. (Tax is already computed; wave 5 wired
   `HG_TAX_HST_REGISTRATION_NUMBER` / `HG_TAX_PLATFORM_LEGAL_NAME` through to the order store,
   rendered only when set.)
 - **O-04** refund liability · **O-05** launch province (default Ontario) · **O-06** self-declared
   halal (default hide) — product decisions; defaults coded.
-- **Real Mapbox token** (your subscription) for live maps.
+- ~~Real Mapbox token~~ **DONE** — two public `pk.` tokens placed (admin `VITE_MAPBOX_TOKEN`,
+  mobile `EXPO_PUBLIC_MAPBOX_TOKEN`, in gitignored env). API-verified: admin token renders from
+  `localhost:5173` and its **URL restriction is enforced** on tile requests (disallowed origin →
+  403); mobile token valid/unrestricted (native SDKs can't restrict). Mobile map *wiring* still
+  needs an Expo dev build.
 - **Production hosting** — box/cluster + domain/DNS + TLS for Traefik.
 
 ## Honest completion estimate
