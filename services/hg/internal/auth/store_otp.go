@@ -92,6 +92,75 @@ func (s *Store) BumpSend(ctx context.Context, challengeID string) (*OtpChallenge
 	return &c, nil
 }
 
+// OpenChallengeByID returns the open (unconsumed, unexpired) challenge for an
+// id, or ErrNotFound. It is the PhoneVerifier path's lookup: verifyOtp receives
+// only a challenge_id + code, so we read the id back to recover the phone that
+// the provider's VerificationCheck needs. It does not touch the attempt counter.
+func (s *Store) OpenChallengeByID(ctx context.Context, challengeID string) (*OtpChallenge, error) {
+	var c OtpChallenge
+	err := s.pool.QueryRow(ctx, `
+		SELECT id, phone_e164, purpose, attempts, max_attempts, sends,
+		       last_sent_at, expires_at, window_ends_at, consumed_at
+		FROM otp_challenge
+		WHERE id = $1 AND consumed_at IS NULL AND expires_at > now()
+		LIMIT 1`, challengeID).Scan(
+		&c.ID, &c.PhoneE164, &c.Purpose, &c.Attempts, &c.MaxAttempts, &c.Sends,
+		&c.LastSentAt, &c.ExpiresAt, &c.WindowEndsAt, &c.ConsumedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// MarkChallengeConsumed marks a challenge consumed after the provider has
+// approved the code (the PhoneVerifier path — the local hash-compare in
+// ConsumeChallenge is never run). It is idempotent-safe: a second call matches
+// zero rows and returns ErrNotFound.
+func (s *Store) MarkChallengeConsumed(ctx context.Context, challengeID string) error {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE otp_challenge
+		SET consumed_at = now(), attempts = attempts + 1
+		WHERE id = $1 AND consumed_at IS NULL`, challengeID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ChargeChallengeAttempt increments the attempt counter on an open challenge and
+// returns the remaining attempts. It is the PhoneVerifier path's wrong-code
+// branch: the provider tracks its own attempt cap, but we mirror it locally so
+// the OTP_INCORRECT response carries an attempts_remaining consistent with the
+// self-hosted path. ErrNotFound means no open challenge remains (exhausted or
+// expired) — the caller reports OTP_INVALID_OR_EXPIRED.
+func (s *Store) ChargeChallengeAttempt(ctx context.Context, challengeID string) (int, error) {
+	var remaining int
+	err := s.pool.QueryRow(ctx, `
+		UPDATE otp_challenge
+		SET attempts = attempts + 1
+		WHERE id = $1
+		  AND consumed_at IS NULL
+		  AND expires_at > now()
+		  AND attempts < max_attempts
+		RETURNING max_attempts - attempts`, challengeID).Scan(&remaining)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	if err != nil {
+		return 0, err
+	}
+	if remaining < 0 {
+		remaining = 0
+	}
+	return remaining, nil
+}
+
 // VerifyOutcome is the result of a single conditional consume attempt.
 type VerifyOutcome struct {
 	// Consumed is true when the code matched and the challenge was consumed.

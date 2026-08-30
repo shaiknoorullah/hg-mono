@@ -20,6 +20,27 @@ type Service struct {
 	secrets *Secrets
 	log     *slog.Logger
 	now     func() time.Time
+
+	// verifier, when non-nil, replaces the self-hosted OTP path: the provider
+	// generates, sends and validates the code, so no code is stored locally.
+	// nil (the default) keeps the LogSMSSender / stored-challenge path, so dev
+	// and the conformance suite are unchanged. Set once at wiring time via
+	// UsePhoneVerifier; never mutated after boot.
+	verifier      PhoneVerifier
+	verifyChannel string
+}
+
+// UsePhoneVerifier switches this service onto the PhoneVerifier (Twilio Verify)
+// path for requestOtp/verifyOtp. channel ("whatsapp" or "sms") is passed to
+// Start. It is called once during wiring (see NewModule) and must not be called
+// after the service is serving. A nil verifier is a no-op, leaving the
+// self-hosted default in place.
+func (s *Service) UsePhoneVerifier(v PhoneVerifier, channel string) {
+	if v == nil {
+		return
+	}
+	s.verifier = v
+	s.verifyChannel = channel
 }
 
 // NewService wires the service.

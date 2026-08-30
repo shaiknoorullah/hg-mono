@@ -43,6 +43,9 @@ func (e *otpIncorrectError) Error() string { return "otp incorrect" }
 // (or re-sends) the code, and enqueues the SMS. It fails closed (503) when Redis
 // is unreachable. The response never signals whether the number is known.
 func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string, deviceID, ip *string) (*wireOtpChallenge, error) {
+	if s.verifier != nil {
+		return s.requestOTPViaVerifier(ctx, phone, purpose, deviceID, ip)
+	}
 	// Rate limits (Redis). Keys rebuild from nothing — a flush costs at most a
 	// window of extra allowance; the OTP attempt counter itself is in Postgres.
 	// rl:otp:phone:{phone} — 5 requests / 15 min.
@@ -133,9 +136,113 @@ func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string,
 	}, nil
 }
 
+// requestOTPViaVerifier is the PhoneVerifier (Twilio Verify) variant of
+// RequestOTP. It keeps the same P-02 request throttle, 60 s cooldown and open-
+// challenge re-send scaffolding as the self-hosted path, but the provider owns
+// the code: Start(phone, channel) generates and delivers it, and no code is
+// stored — the otp_challenge row exists only to map challenge_id → phone (with a
+// non-reproducible sentinel hash) so verifyOtp can recover the number. The
+// response body is identical to the self-hosted path, and Start runs for ANY
+// number (existence is resolved only after an approved Check), so the response
+// never signals whether the number is known.
+func (s *Service) requestOTPViaVerifier(ctx context.Context, phone, purpose string, deviceID, ip *string) (*wireOtpChallenge, error) {
+	// Local request throttle (Verify layers its own send caps on top).
+	if err := s.rl.Allow(ctx, "rl:otp:phone:"+phone, 5, 15*time.Minute); err != nil {
+		return nil, err
+	}
+	if ip != nil {
+		if err := s.rl.Allow(ctx, "rl:otp:ip:"+*ip, 20, 15*time.Minute); err != nil {
+			return nil, err
+		}
+	}
+
+	cooldownKey := "rl:otp:cooldown:" + phone + ":" + purpose
+	if open, err := s.store.OpenChallenge(ctx, phone, purpose); err == nil {
+		remaining, cderr := s.rl.Cooldown(ctx, cooldownKey)
+		if cderr != nil {
+			return nil, cderr
+		}
+		if remaining > 0 {
+			// Still cooling down: report the same challenge without re-sending.
+			return &wireOtpChallenge{
+				ChallengeID:  open.ID,
+				ResendAfterS: int32(remaining / time.Second),
+				ExpiresAt:    httpx.Timestamp(open.ExpiresAt),
+			}, nil
+		}
+		bumped, berr := s.store.BumpSend(ctx, open.ID)
+		if errors.Is(berr, ErrNotFound) {
+			// Send cap reached; return the existing challenge, no re-send.
+			return &wireOtpChallenge{
+				ChallengeID:  open.ID,
+				ResendAfterS: 60,
+				ExpiresAt:    httpx.Timestamp(open.ExpiresAt),
+			}, nil
+		}
+		if berr != nil {
+			return nil, berr
+		}
+		s.startVerification(ctx, phone)
+		if err := s.rl.SetCooldown(ctx, cooldownKey, 60*time.Second); err != nil {
+			return nil, err
+		}
+		return &wireOtpChallenge{
+			ChallengeID:  bumped.ID,
+			ResendAfterS: 60,
+			ExpiresAt:    httpx.Timestamp(bumped.ExpiresAt),
+		}, nil
+	}
+
+	// No open challenge: record a code-less challenge (sentinel hash; the real
+	// code lives at the provider) and ask the provider to send.
+	sentinel, err := randomSentinelHash()
+	if err != nil {
+		return nil, err
+	}
+	challenge, err := s.store.InsertChallenge(ctx, phone, purpose, sentinel, deviceID, ip)
+	if err != nil {
+		return nil, err
+	}
+	s.startVerification(ctx, phone)
+	if err := s.rl.SetCooldown(ctx, cooldownKey, 60*time.Second); err != nil {
+		return nil, err
+	}
+	return &wireOtpChallenge{
+		ChallengeID:  challenge.ID,
+		ResendAfterS: 60,
+		ExpiresAt:    httpx.Timestamp(challenge.ExpiresAt),
+	}, nil
+}
+
+// startVerification asks the provider to send a code, swallowing (only logging,
+// masked, never the code) any failure. Surfacing a Start error to the caller
+// would let a malformed/blocked number be distinguished from a valid one, so the
+// challenge is returned regardless — exactly as the self-hosted path swallows an
+// SMS send failure.
+func (s *Service) startVerification(ctx context.Context, phone string) {
+	if err := s.verifier.Start(ctx, phone, s.verifyChannel); err != nil {
+		s.log.WarnContext(ctx, "otp verify start failed",
+			"phone", maskPhone(phone), "channel", s.verifyChannel, "error", err.Error())
+	}
+}
+
+// randomSentinelHash returns 32 random bytes to fill otp_challenge.code_hash
+// (NOT NULL) on the PhoneVerifier path, where no local code exists. It can never
+// match a real HMAC compare, and the compare is never run on this path anyway.
+func randomSentinelHash() ([]byte, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
 // VerifyOTP consumes a challenge and issues a session, finding-or-creating the
 // account by phone.
 func (s *Service) VerifyOTP(ctx context.Context, challengeID, code string, client ClientSurface, deviceID, userAgent, ip *string) (*issuedSession, error) {
+	if s.verifier != nil {
+		return s.verifyOTPViaVerifier(ctx, challengeID, code, client, deviceID, userAgent, ip)
+	}
 	codeHash := HMACCode(code, s.secrets.OTPPepper)
 	outcome, err := s.store.ConsumeChallenge(ctx, challengeID, codeHash)
 	if err != nil {
@@ -149,6 +256,59 @@ func (s *Service) VerifyOTP(ctx context.Context, challengeID, code string, clien
 	}
 
 	acct, isNew, err := s.store.FindOrCreateByPhone(ctx, outcome.Phone, client.signupRole())
+	if err != nil {
+		return nil, err
+	}
+	if acct.Status != "ACTIVE" {
+		return nil, errAccountNotActive
+	}
+	return s.issueSession(ctx, acct, "otp", client, deviceID, userAgent, ip, isNew)
+}
+
+// verifyOTPViaVerifier is the PhoneVerifier (Twilio Verify) variant of VerifyOTP.
+// It recovers the phone from the challenge id, asks the provider to validate the
+// code, and on approval runs the SAME resolve-or-create-account + issue-session
+// path as the self-hosted flow. P-02 holds: account existence is resolved only
+// AFTER an approved Check, so a wrong code, an unknown number and a known number
+// with a wrong code are indistinguishable, and the resolve-or-create work (equal
+// for known/unknown numbers) keeps the approved-path latency uniform.
+func (s *Service) verifyOTPViaVerifier(ctx context.Context, challengeID, code string, client ClientSurface, deviceID, userAgent, ip *string) (*issuedSession, error) {
+	challenge, err := s.store.OpenChallengeByID(ctx, challengeID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, errOTPInvalidOrExpired
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	approved, cerr := s.verifier.Check(ctx, challenge.PhoneE164, code)
+	if errors.Is(cerr, ErrVerifyNoPending) {
+		return nil, errOTPInvalidOrExpired
+	}
+	if cerr != nil {
+		// Genuine transport/provider failure: surface as a generic internal
+		// error (handler maps to 500). No enumeration signal, no code leaked.
+		return nil, cerr
+	}
+	if !approved {
+		// Wrong (or still-pending) code. Charge a local attempt to mirror the
+		// self-hosted OTP_INCORRECT shape; an exhausted challenge collapses to
+		// OTP_INVALID_OR_EXPIRED.
+		remaining, aerr := s.store.ChargeChallengeAttempt(ctx, challengeID)
+		if errors.Is(aerr, ErrNotFound) {
+			return nil, errOTPInvalidOrExpired
+		}
+		if aerr != nil {
+			return nil, aerr
+		}
+		return nil, &otpIncorrectError{remaining: remaining}
+	}
+
+	// Approved: consume the challenge, then resolve-or-create + issue.
+	if merr := s.store.MarkChallengeConsumed(ctx, challengeID); merr != nil && !errors.Is(merr, ErrNotFound) {
+		return nil, merr
+	}
+	acct, isNew, err := s.store.FindOrCreateByPhone(ctx, challenge.PhoneE164, client.signupRole())
 	if err != nil {
 		return nil, err
 	}

@@ -41,7 +41,40 @@ type Config struct {
 	MinIO    MinIO
 	Stripe   Stripe
 	SMS      SMS
+	OTP      OTP
 	Tax      Tax
+}
+
+// OTP holds the phone-verification provider selection. It is orthogonal to SMS
+// (which only transports a code this service generated): with a Verify provider
+// the code is generated, delivered AND validated by the provider, so no code is
+// stored locally. The default provider is "log" — the self-hosted challenge path
+// (LogSMSSender + stored otp_challenge) — so dev is unchanged with nothing set.
+type OTP struct {
+	// Provider selects the phone-verification path. "log" (default) is the
+	// self-hosted challenge; "twilio_verify" delegates to Twilio Verify. Any
+	// other value is a boot-time config error.
+	Provider string
+	Verify   TwilioVerify
+}
+
+// TwilioVerify holds the Twilio Verify service credentials. The account SID and
+// auth token are the same HG_TWILIO_ACCOUNT_SID/HG_TWILIO_AUTH_TOKEN the
+// Messages sender uses; the Verify Service SID (VA...) and channel are distinct.
+// Required only when OTP.Provider == "twilio_verify".
+type TwilioVerify struct {
+	AccountSID string
+	AuthToken  string
+	// ServiceSID is the Verify Service SID (starts with "VA").
+	ServiceSID string
+	// Channel is "whatsapp" (default when twilio_verify) or "sms".
+	Channel string
+}
+
+// Configured reports whether enough credentials were supplied to call Twilio
+// Verify: an account sid, an auth token, and a Verify service sid.
+func (v TwilioVerify) Configured() bool {
+	return v.AccountSID != "" && v.AuthToken != "" && v.ServiceSID != ""
 }
 
 // SMS holds the O-03 SMS-provider settings. The default provider is "log"
@@ -259,6 +292,38 @@ func Load(getenv func(string) string) (*Config, error) {
 	if cfg.SMS.Provider == "twilio" && !cfg.SMS.Twilio.Configured() {
 		l.errf("HG_SMS_PROVIDER=twilio requires HG_TWILIO_ACCOUNT_SID, HG_TWILIO_AUTH_TOKEN, and either " +
 			"HG_TWILIO_FROM_NUMBER or HG_TWILIO_MESSAGING_SERVICE_SID")
+	}
+
+	cfg.OTP = OTP{
+		Provider: l.optional("HG_OTP_PROVIDER", "log"),
+		Verify: TwilioVerify{
+			// The account creds are shared with the Messages sender's Twilio vars.
+			AccountSID: l.optional("HG_TWILIO_ACCOUNT_SID", ""),
+			AuthToken:  l.optional("HG_TWILIO_AUTH_TOKEN", ""),
+			ServiceSID: l.optional("HG_TWILIO_VERIFY_SERVICE_SID", ""),
+			Channel:    l.optional("HG_TWILIO_VERIFY_CHANNEL", ""),
+		},
+	}
+	switch cfg.OTP.Provider {
+	case "log", "twilio_verify":
+	default:
+		l.errf("HG_OTP_PROVIDER: %q is not one of log, twilio_verify", cfg.OTP.Provider)
+	}
+	if cfg.OTP.Provider == "twilio_verify" {
+		// WhatsApp is the default channel when Verify is active; the client can
+		// opt down to SMS.
+		if cfg.OTP.Verify.Channel == "" {
+			cfg.OTP.Verify.Channel = "whatsapp"
+		}
+		switch cfg.OTP.Verify.Channel {
+		case "whatsapp", "sms":
+		default:
+			l.errf("HG_TWILIO_VERIFY_CHANNEL: %q is not one of whatsapp, sms", cfg.OTP.Verify.Channel)
+		}
+		if !cfg.OTP.Verify.Configured() {
+			l.errf("HG_OTP_PROVIDER=twilio_verify requires HG_TWILIO_VERIFY_SERVICE_SID, " +
+				"HG_TWILIO_ACCOUNT_SID, and HG_TWILIO_AUTH_TOKEN")
+		}
 	}
 
 	cfg.Tax = Tax{

@@ -29,7 +29,7 @@ type Module struct {
 // and logger. The SMS sender defaults to a LogSMSSender while O-03 is unresolved
 // (pass a real sender once a provider is chosen). echoOTP logs the code and must
 // be true only in local.
-func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSSender, echoOTP bool, log *slog.Logger) *Module {
+func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSSender, phoneVerifier PhoneVerifier, verifyChannel string, echoOTP bool, log *slog.Logger) *Module {
 	if log == nil {
 		log = slog.Default()
 	}
@@ -45,6 +45,9 @@ func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSS
 		map[string]ed25519.PublicKey{secrets.SigningKID: secrets.SigningPub}, "hg-api")
 
 	svc := NewService(store, rl, sms, issuer, deny, secrets, log)
+	// O-03 / phone-OTP provider: a non-nil PhoneVerifier (Twilio Verify) takes
+	// over requestOtp/verifyOtp; nil leaves the self-hosted challenge default.
+	svc.UsePhoneVerifier(phoneVerifier, verifyChannel)
 	handler := NewHandler(svc, store, deny, secrets)
 
 	return &Module{

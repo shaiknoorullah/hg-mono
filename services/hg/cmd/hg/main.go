@@ -484,9 +484,24 @@ func run() error {
 	} else {
 		log.Warn("sms provider: log (O-03 not resolved) — OTP codes are not delivered outside local echo")
 	}
+	// O-03 / phone-OTP verification provider. HG_OTP_PROVIDER=twilio_verify (with
+	// a Verify Service SID + account creds; config refuses to boot otherwise)
+	// hands code generation, delivery AND validation to Twilio Verify over
+	// WhatsApp or SMS. Unset/"log" keeps the self-hosted challenge path, so dev
+	// is unchanged. This is orthogonal to HG_SMS_PROVIDER above.
+	var phoneVerifier auth.PhoneVerifier
+	var verifyChannel string
+	if cfg.OTP.Provider == "twilio_verify" {
+		v := cfg.OTP.Verify
+		phoneVerifier = auth.NewTwilioVerifyClient(nil, v.AccountSID, v.AuthToken, v.ServiceSID, v.Channel)
+		verifyChannel = v.Channel
+		log.Info("otp provider: twilio_verify", "channel", v.Channel)
+	} else {
+		log.Info("otp provider: log (self-hosted challenge)")
+	}
 	authModule := auth.NewModule(
 		st.DB().Pool, st.Cache().Client, authSecrets,
-		smsSender, cfg.Env.IsLocal(), log)
+		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
 
 	router := httpx.NewRouter(httpx.Options{
 		Logger:        log,
