@@ -21,6 +21,17 @@ module.exports = {
      */
     '^react-native$': require.resolve('react-native'),
     '^react$': require.resolve('react'),
+    /*
+     * Same duplicate-physical-copy problem as react-native/react above, one layer down:
+     * `@hg/ui-native`'s `Icon` primitive imports `react-native-svg`, which pnpm's peer-hash
+     * virtual store resolves under its OWN nested `react-native` copy — a copy the preset's
+     * `setupFiles` never patched with the RN test-environment's `NativeModules` mock, so
+     * `codegenNativeComponent` (Fabric-generated `Circle`/`Path`/etc.) throws
+     * "__fbBatchedBridgeConfig is not set" the first time it resolves a native component.
+     * Pinning the specifier to this app's own resolution collapses it back to the one copy
+     * jest's preset already initialised.
+     */
+    '^react-native-svg$': require.resolve('react-native-svg'),
   },
   /*
    * pnpm stores real packages under `node_modules/.pnpm/<name>@<version>/node_modules/<name>`, so
