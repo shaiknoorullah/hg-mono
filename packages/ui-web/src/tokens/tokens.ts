@@ -14,49 +14,49 @@
 
 export const color = {
   "brand": {
-    "50": "#FFF9E6",
-    "100": "#FFF0BF",
-    "200": "#FFE694",
-    "300": "#FFDB69",
-    "400": "#FFD147",
-    "500": "#FFC220",
-    "600": "#DFA400",
-    "700": "#A87C00",
-    "800": "#7A5800",
-    "900": "#513B00",
-    "950": "#2B1F00"
+    "50": "#FEF0EA",
+    "100": "#FBD9CB",
+    "200": "#F8BCA3",
+    "300": "#F5966B",
+    "400": "#F3703F",
+    "500": "#F1521E",
+    "600": "#D8410F",
+    "700": "#B0330B",
+    "800": "#8A2909",
+    "900": "#5E1B06",
+    "950": "#2E0D03"
   },
   "accent": {
-    "50": "#EEF2F9",
-    "100": "#D6DFEE",
-    "200": "#B0C0DC",
-    "300": "#8098C4",
-    "400": "#5471A8",
-    "500": "#34528C",
-    "600": "#24406F",
-    "700": "#1B3157",
-    "800": "#142542",
-    "900": "#0E1A2F",
-    "950": "#080F1C"
+    "50": "#E7EDEA",
+    "100": "#C6D3CC",
+    "200": "#9FB2A9",
+    "300": "#6F8A7E",
+    "400": "#41685A",
+    "500": "#274E42",
+    "600": "#1B3B31",
+    "700": "#143026",
+    "800": "#0F241C",
+    "900": "#0A1913",
+    "950": "#05100B"
   },
   "neutral": {
     "0": "#FFFFFF",
-    "50": "#FAF9F7",
-    "100": "#F3F1ED",
-    "200": "#E7E3DC",
-    "300": "#D5CFC5",
-    "400": "#B6AEA1",
-    "500": "#948C7E",
-    "600": "#6E6658",
-    "700": "#4A443B",
-    "800": "#332E28",
-    "900": "#1F1B17",
-    "950": "#12100D",
+    "50": "#FFFAEA",
+    "100": "#F6EFDD",
+    "200": "#E6E0D4",
+    "300": "#D8D0BF",
+    "400": "#B9B0A0",
+    "500": "#8B8578",
+    "600": "#6E7C77",
+    "700": "#4A4E48",
+    "800": "#33352F",
+    "900": "#232323",
+    "950": "#171717",
     "1000": "#000000"
   },
   "success": {
-    "50": "#E7F7F0",
-    "100": "#C7EEDE",
+    "50": "#E9F3E4",
+    "100": "#CFE6C6",
     "300": "#4FC79A",
     "500": "#0E9F6E",
     "600": "#067A55",
@@ -74,13 +74,13 @@ export const color = {
     "900": "#52210C"
   },
   "danger": {
-    "50": "#FDECEA",
-    "100": "#FBD5D1",
-    "300": "#F08C82",
-    "500": "#D92D20",
-    "600": "#B42318",
-    "700": "#912018",
-    "900": "#55110C"
+    "50": "#FBE9E7",
+    "100": "#F6CFCB",
+    "300": "#E88379",
+    "500": "#C42B1C",
+    "600": "#A0210F",
+    "700": "#821A0D",
+    "900": "#4C0F07"
   },
   "info": {
     "50": "#E9F1FE",
@@ -93,17 +93,17 @@ export const color = {
   },
   "halal": {
     "certified": {
-      "seal": "#04482A",
-      "sealPressed": "#033520",
-      "sealDark": "#0F7A46",
+      "seal": "#0F7A43",
+      "sealPressed": "#0C6338",
+      "sealDark": "#10864A",
       "onSeal": "#FFFFFF",
-      "ring": "#D4A72C",
-      "ringDark": "#E3BE4A",
-      "tint": "#E4F0E9",
-      "tintText": "#04482A",
-      "tintBorder": "#9DC4AE",
-      "tintDark": "#08261A",
-      "tintTextDark": "#7BE0A8"
+      "ring": "#C9A24B",
+      "ringDark": "#DDB863",
+      "tint": "#E9F3E4",
+      "tintText": "#0C4A2A",
+      "tintBorder": "#A9CBB4",
+      "tintDark": "#0A2A1B",
+      "tintTextDark": "#7FE3AB"
     },
     "expiring": {
       "text": "#7A5600",
@@ -144,9 +144,9 @@ export const color = {
   "map": {
     "routeActive": "#0B72E7",
     "routeTravelled": "#948C7E",
-    "pinRestaurant": "#FFC220",
-    "pinCustomer": "#24406F",
-    "pinRider": "#04482A",
+    "pinRestaurant": "#F1521E",
+    "pinCustomer": "#1B3B31",
+    "pinRider": "#0F7A43",
     "geofenceStroke": "#0B72E7",
     "geofenceFill": "#0B72E71F"
   }
@@ -523,7 +523,7 @@ export const elevation = {
     "web": "none",
     "rn": null,
     "android": 0,
-    "surfaceStep": "#12100D"
+    "surfaceStep": "#171717"
   },
   "1": {
     "web": "0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08)",
@@ -537,7 +537,7 @@ export const elevation = {
       "shadowRadius": 3
     },
     "android": 1,
-    "surfaceStep": "#1F1B17"
+    "surfaceStep": "#232323"
   },
   "2": {
     "web": "0 2px 4px rgba(0,0,0,.06), 0 4px 8px rgba(0,0,0,.08)",
@@ -551,7 +551,7 @@ export const elevation = {
       "shadowRadius": 6
     },
     "android": 3,
-    "surfaceStep": "#1F1B17"
+    "surfaceStep": "#232323"
   },
   "3": {
     "web": "0 4px 8px rgba(0,0,0,.08), 0 8px 16px rgba(0,0,0,.10)",
@@ -565,8 +565,8 @@ export const elevation = {
       "shadowRadius": 12
     },
     "android": 6,
-    "surfaceStep": "#332E28",
-    "darkHairline": "#332E28"
+    "surfaceStep": "#33352F",
+    "darkHairline": "#33352F"
   },
   "4": {
     "web": "0 8px 16px rgba(0,0,0,.10), 0 16px 32px rgba(0,0,0,.12)",
@@ -580,8 +580,8 @@ export const elevation = {
       "shadowRadius": 24
     },
     "android": 12,
-    "surfaceStep": "#332E28",
-    "darkHairline": "#332E28"
+    "surfaceStep": "#33352F",
+    "darkHairline": "#33352F"
   },
   "sticky": {
     "web": "0 -2px 8px rgba(0,0,0,.08)",
@@ -595,7 +595,7 @@ export const elevation = {
       "shadowRadius": 8
     },
     "android": 8,
-    "surfaceStep": "#332E28"
+    "surfaceStep": "#33352F"
   }
 } as const;
 
@@ -701,36 +701,36 @@ export const breakpoint = {
  * colours force the ring to flip to `focus.onColor`; the flip set is computed
  * from measured contrast at generate time, not asserted by hand:
  *
- *   light: brand 2.84:1 → flipped, accent 2.24:1 → flipped, danger 1.05:1 → flipped, warning 1.14:1 → flipped, info 1:1 → flipped, halal 2.33:1 → flipped, inverse 3.73:1
- *   dark: brand 1.5:1 → flipped, accent 4.24:1, danger 1.99:1 → flipped, warning 2.15:1 → flipped, info 1.89:1 → flipped, halal 4.39:1, inverse 7.03:1
+ *   light: brand 1.3:1 → flipped, accent 2.67:1 → flipped, danger 1.23:1 → flipped, warning 1.14:1 → flipped, info 1:1 → flipped, halal 1.18:1 → flipped, inverse 3.42:1
+ *   dark: brand 1.45:1 → flipped, accent 5.03:1, danger 2.33:1 → flipped, warning 2.15:1 → flipped, info 1.89:1 → flipped, halal 2.22:1 → flipped, inverse 6.46:1
  */
 export const roles = {
   "light": {
     "surface": {
-      "base": "#FFFFFF",
-      "sunken": "#FAF9F7",
-      "subtle": "#F3F1ED",
+      "base": "#FFFAEA",
+      "sunken": "#F6EFDD",
+      "subtle": "#F6EFDD",
       "raised": "#FFFFFF",
-      "inverse": "#1F1B17",
-      "chrome": "#24406F",
-      "scrim": "#1F1B17B8"
+      "inverse": "#232323",
+      "chrome": "#1B3B31",
+      "scrim": "#232323B8"
     },
     "text": {
-      "primary": "#1F1B17",
-      "secondary": "#4A443B",
-      "tertiary": "#6E6658",
-      "placeholder": "#948C7E",
-      "disabled": "#B6AEA1",
-      "onBrand": "#1F1B17",
-      "onInverse": "#F3F1ED",
+      "primary": "#232323",
+      "secondary": "#4A4E48",
+      "tertiary": "#6E7C77",
+      "placeholder": "#8B8578",
+      "disabled": "#B9B0A0",
+      "onBrand": "#FFFFFF",
+      "onInverse": "#F6EFDD",
       "onAccent": "#FFFFFF",
       "link": "#0959B8"
     },
     "border": {
-      "decorative": "#E7E3DC",
-      "interactive": "#948C7E",
-      "strong": "#4A443B",
-      "brand": "#DFA400"
+      "decorative": "#E6E0D4",
+      "interactive": "#8B8578",
+      "strong": "#4A4E48",
+      "brand": "#D8410F"
     },
     "focus": {
       "ring": "#0B72E7",
@@ -747,45 +747,45 @@ export const roles = {
       }
     },
     "state": {
-      "hoverOverlay": "#1F1B170F",
-      "pressedOverlay": "#1F1B171F",
-      "selectedTint": "#FFF9E6",
+      "hoverOverlay": "#2323230F",
+      "pressedOverlay": "#2323231F",
+      "selectedTint": "#FEF0EA",
       "disabledOpacity": 0.6
     },
     "action": {
       "primary": {
-        "bg": "#FFC220",
-        "bgPressed": "#DFA400",
-        "fg": "#1F1B17"
+        "bg": "#F1521E",
+        "bgPressed": "#D8410F",
+        "fg": "#FFFFFF"
       },
       "secondary": {
-        "bg": "#24406F",
-        "bgPressed": "#1B3157",
+        "bg": "#1B3B31",
+        "bgPressed": "#143026",
         "fg": "#FFFFFF"
       },
       "tertiary": {
-        "border": "#948C7E",
-        "fg": "#1F1B17"
+        "border": "#8B8578",
+        "fg": "#232323"
       },
       "danger": {
-        "bg": "#D92D20",
-        "bgPressed": "#B42318",
+        "bg": "#C42B1C",
+        "bgPressed": "#A0210F",
         "fg": "#FFFFFF"
       }
     },
     "control": {
-      "bg": "#FFFFFF",
-      "border": "#948C7E",
-      "borderHover": "#4A443B",
-      "selectedBg": "#FFC220",
-      "selectedFg": "#1F1B17",
-      "trackOff": "#4A443B",
-      "trackOn": "#DFA400",
+      "bg": "#FFFAEA",
+      "border": "#8B8578",
+      "borderHover": "#4A4E48",
+      "selectedBg": "#F1521E",
+      "selectedFg": "#FFFFFF",
+      "trackOff": "#4A4E48",
+      "trackOn": "#D8410F",
       "thumb": "#FFFFFF"
     },
     "feedback": {
       "success": {
-        "tint": "#E7F7F0",
+        "tint": "#E9F3E4",
         "tintText": "#05603F",
         "text": "#067A55",
         "icon": "#0E9F6E",
@@ -801,12 +801,12 @@ export const roles = {
         "onSolid": "#FFFFFF"
       },
       "danger": {
-        "tint": "#FDECEA",
-        "tintText": "#912018",
-        "text": "#B42318",
-        "icon": "#D92D20",
-        "border": "#D92D20",
-        "solid": "#D92D20",
+        "tint": "#FBE9E7",
+        "tintText": "#821A0D",
+        "text": "#A0210F",
+        "icon": "#C42B1C",
+        "border": "#C42B1C",
+        "solid": "#C42B1C",
         "onSolid": "#FFFFFF"
       },
       "info": {
@@ -820,40 +820,40 @@ export const roles = {
       }
     },
     "skeleton": {
-      "base": "#D5CFC5",
-      "highlight": "#E7E3DC"
+      "base": "#D8D0BF",
+      "highlight": "#E6E0D4"
     }
   },
   "dark": {
     "surface": {
-      "base": "#12100D",
+      "base": "#171717",
       "sunken": "#000000",
-      "subtle": "#1F1B17",
-      "raised": "#332E28",
-      "inverse": "#F3F1ED",
-      "chrome": "#0E1A2F",
+      "subtle": "#232323",
+      "raised": "#33352F",
+      "inverse": "#F6EFDD",
+      "chrome": "#0A1913",
       "scrim": "#000000C4"
     },
     "text": {
-      "primary": "#F3F1ED",
-      "secondary": "#B6AEA1",
-      "tertiary": "#948C7E",
-      "placeholder": "#6E6658",
-      "disabled": "#4A443B",
-      "onBrand": "#12100D",
-      "onInverse": "#1F1B17",
+      "primary": "#F6EFDD",
+      "secondary": "#B9B0A0",
+      "tertiary": "#8B8578",
+      "placeholder": "#6E7C77",
+      "disabled": "#4A4E48",
+      "onBrand": "#FFFFFF",
+      "onInverse": "#232323",
       "onAccent": "#FFFFFF",
       "link": "#6FA9F2"
     },
     "border": {
-      "decorative": "#332E28",
-      "interactive": "#6E6658",
-      "strong": "#948C7E",
-      "brand": "#FFD147"
+      "decorative": "#33352F",
+      "interactive": "#6E7C77",
+      "strong": "#8B8578",
+      "brand": "#F3703F"
     },
     "focus": {
       "ring": "#6FA9F2",
-      "offset": "#12100D",
+      "offset": "#171717",
       "onColor": "#FFFFFF",
       "ringOn": {
         "brand": "#FFFFFF",
@@ -861,45 +861,45 @@ export const roles = {
         "danger": "#FFFFFF",
         "warning": "#FFFFFF",
         "info": "#FFFFFF",
-        "halal": "#6FA9F2",
+        "halal": "#FFFFFF",
         "inverse": "#6FA9F2"
       }
     },
     "state": {
       "hoverOverlay": "#FFFFFF14",
       "pressedOverlay": "#FFFFFF29",
-      "selectedTint": "#2B1F00",
+      "selectedTint": "#2E0D03",
       "disabledOpacity": 0.5
     },
     "action": {
       "primary": {
-        "bg": "#FFC220",
-        "bgPressed": "#DFA400",
-        "fg": "#12100D"
+        "bg": "#F1521E",
+        "bgPressed": "#D8410F",
+        "fg": "#FFFFFF"
       },
       "secondary": {
-        "bg": "#24406F",
-        "bgPressed": "#1B3157",
+        "bg": "#1B3B31",
+        "bgPressed": "#143026",
         "fg": "#FFFFFF"
       },
       "tertiary": {
-        "border": "#6E6658",
-        "fg": "#F3F1ED"
+        "border": "#6E7C77",
+        "fg": "#F6EFDD"
       },
       "danger": {
-        "bg": "#D92D20",
-        "bgPressed": "#B42318",
+        "bg": "#C42B1C",
+        "bgPressed": "#A0210F",
         "fg": "#FFFFFF"
       }
     },
     "control": {
-      "bg": "#12100D",
-      "border": "#6E6658",
-      "borderHover": "#948C7E",
-      "selectedBg": "#FFC220",
-      "selectedFg": "#12100D",
-      "trackOff": "#948C7E",
-      "trackOn": "#DFA400",
+      "bg": "#171717",
+      "border": "#6E7C77",
+      "borderHover": "#8B8578",
+      "selectedBg": "#F1521E",
+      "selectedFg": "#FFFFFF",
+      "trackOff": "#8B8578",
+      "trackOn": "#D8410F",
       "thumb": "#FFFFFF"
     },
     "feedback": {
@@ -920,12 +920,12 @@ export const roles = {
         "onSolid": "#FFFFFF"
       },
       "danger": {
-        "tint": "#55110C",
-        "tintText": "#F08C82",
-        "text": "#F08C82",
-        "icon": "#F08C82",
-        "border": "#D92D20",
-        "solid": "#D92D20",
+        "tint": "#4C0F07",
+        "tintText": "#E88379",
+        "text": "#E88379",
+        "icon": "#E88379",
+        "border": "#C42B1C",
+        "solid": "#C42B1C",
         "onSolid": "#FFFFFF"
       },
       "info": {
@@ -939,8 +939,8 @@ export const roles = {
       }
     },
     "skeleton": {
-      "base": "#332E28",
-      "highlight": "#4A443B"
+      "base": "#33352F",
+      "highlight": "#4A4E48"
     }
   }
 } as const;

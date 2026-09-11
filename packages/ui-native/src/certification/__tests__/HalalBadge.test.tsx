@@ -21,8 +21,8 @@ afterEach(() => {
 describe('HalalBadge — the four states', () => {
   it('resolves CERTIFIED to a filled bottle-green seal, a brass ring and a solid shield', () => {
     const seal = resolveSeal('CERTIFIED', 'light');
-    expect(seal.fill).toBe('#04482A');
-    expect(seal.ring).toBe('#D4A72C');
+    expect(seal.fill).toBe('#0F7A43');
+    expect(seal.ring).toBe('#C9A24B');
     expect(seal.shield).toBe('solid');
 
     renderThemed(<HalalBadge state="CERTIFIED" restaurantId="r1" />);

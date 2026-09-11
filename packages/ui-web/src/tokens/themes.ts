@@ -30,30 +30,30 @@ export const themes = {
       },
       "color": {
         "surface": {
-          "base": "#FFFFFF",
-          "sunken": "#FAF9F7",
-          "subtle": "#F3F1ED",
+          "base": "#FFFAEA",
+          "sunken": "#F6EFDD",
+          "subtle": "#F6EFDD",
           "raised": "#FFFFFF",
-          "inverse": "#1F1B17",
-          "chrome": "#24406F",
-          "scrim": "#1F1B17B8"
+          "inverse": "#232323",
+          "chrome": "#1B3B31",
+          "scrim": "#232323B8"
         },
         "text": {
-          "primary": "#1F1B17",
-          "secondary": "#4A443B",
-          "tertiary": "#6E6658",
-          "placeholder": "#948C7E",
-          "disabled": "#B6AEA1",
-          "onBrand": "#1F1B17",
-          "onInverse": "#F3F1ED",
+          "primary": "#232323",
+          "secondary": "#4A4E48",
+          "tertiary": "#6E7C77",
+          "placeholder": "#8B8578",
+          "disabled": "#B9B0A0",
+          "onBrand": "#FFFFFF",
+          "onInverse": "#F6EFDD",
           "onAccent": "#FFFFFF",
           "link": "#0959B8"
         },
         "border": {
-          "decorative": "#E7E3DC",
-          "interactive": "#948C7E",
-          "strong": "#4A443B",
-          "brand": "#DFA400"
+          "decorative": "#E6E0D4",
+          "interactive": "#8B8578",
+          "strong": "#4A4E48",
+          "brand": "#D8410F"
         },
         "focus": {
           "ring": "#0B72E7",
@@ -70,45 +70,45 @@ export const themes = {
           }
         },
         "state": {
-          "hoverOverlay": "#1F1B170F",
-          "pressedOverlay": "#1F1B171F",
-          "selectedTint": "#FFF9E6",
+          "hoverOverlay": "#2323230F",
+          "pressedOverlay": "#2323231F",
+          "selectedTint": "#FEF0EA",
           "disabledOpacity": 0.6
         },
         "action": {
           "primary": {
-            "bg": "#FFC220",
-            "bgPressed": "#DFA400",
-            "fg": "#1F1B17"
+            "bg": "#F1521E",
+            "bgPressed": "#D8410F",
+            "fg": "#FFFFFF"
           },
           "secondary": {
-            "bg": "#24406F",
-            "bgPressed": "#1B3157",
+            "bg": "#1B3B31",
+            "bgPressed": "#143026",
             "fg": "#FFFFFF"
           },
           "tertiary": {
-            "border": "#948C7E",
-            "fg": "#1F1B17"
+            "border": "#8B8578",
+            "fg": "#232323"
           },
           "danger": {
-            "bg": "#D92D20",
-            "bgPressed": "#B42318",
+            "bg": "#C42B1C",
+            "bgPressed": "#A0210F",
             "fg": "#FFFFFF"
           }
         },
         "control": {
-          "bg": "#FFFFFF",
-          "border": "#948C7E",
-          "borderHover": "#4A443B",
-          "selectedBg": "#FFC220",
-          "selectedFg": "#1F1B17",
-          "trackOff": "#4A443B",
-          "trackOn": "#DFA400",
+          "bg": "#FFFAEA",
+          "border": "#8B8578",
+          "borderHover": "#4A4E48",
+          "selectedBg": "#F1521E",
+          "selectedFg": "#FFFFFF",
+          "trackOff": "#4A4E48",
+          "trackOn": "#D8410F",
           "thumb": "#FFFFFF"
         },
         "feedback": {
           "success": {
-            "tint": "#E7F7F0",
+            "tint": "#E9F3E4",
             "tintText": "#05603F",
             "text": "#067A55",
             "icon": "#0E9F6E",
@@ -124,12 +124,12 @@ export const themes = {
             "onSolid": "#FFFFFF"
           },
           "danger": {
-            "tint": "#FDECEA",
-            "tintText": "#912018",
-            "text": "#B42318",
-            "icon": "#D92D20",
-            "border": "#D92D20",
-            "solid": "#D92D20",
+            "tint": "#FBE9E7",
+            "tintText": "#821A0D",
+            "text": "#A0210F",
+            "icon": "#C42B1C",
+            "border": "#C42B1C",
+            "solid": "#C42B1C",
             "onSolid": "#FFFFFF"
           },
           "info": {
@@ -143,8 +143,8 @@ export const themes = {
           }
         },
         "skeleton": {
-          "base": "#D5CFC5",
-          "highlight": "#E7E3DC"
+          "base": "#D8D0BF",
+          "highlight": "#E6E0D4"
         }
       },
       "typography": {
@@ -455,7 +455,7 @@ export const themes = {
           "web": "none",
           "rn": null,
           "android": 0,
-          "surfaceStep": "#12100D"
+          "surfaceStep": "#171717"
         },
         "1": {
           "web": "0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08)",
@@ -469,7 +469,7 @@ export const themes = {
             "shadowRadius": 3
           },
           "android": 1,
-          "surfaceStep": "#1F1B17"
+          "surfaceStep": "#232323"
         },
         "2": {
           "web": "0 2px 4px rgba(0,0,0,.06), 0 4px 8px rgba(0,0,0,.08)",
@@ -483,7 +483,7 @@ export const themes = {
             "shadowRadius": 6
           },
           "android": 3,
-          "surfaceStep": "#1F1B17"
+          "surfaceStep": "#232323"
         },
         "3": {
           "web": "0 4px 8px rgba(0,0,0,.08), 0 8px 16px rgba(0,0,0,.10)",
@@ -497,8 +497,8 @@ export const themes = {
             "shadowRadius": 12
           },
           "android": 6,
-          "surfaceStep": "#332E28",
-          "darkHairline": "#332E28"
+          "surfaceStep": "#33352F",
+          "darkHairline": "#33352F"
         },
         "4": {
           "web": "0 8px 16px rgba(0,0,0,.10), 0 16px 32px rgba(0,0,0,.12)",
@@ -512,8 +512,8 @@ export const themes = {
             "shadowRadius": 24
           },
           "android": 12,
-          "surfaceStep": "#332E28",
-          "darkHairline": "#332E28"
+          "surfaceStep": "#33352F",
+          "darkHairline": "#33352F"
         },
         "sticky": {
           "web": "0 -2px 8px rgba(0,0,0,.08)",
@@ -527,7 +527,7 @@ export const themes = {
             "shadowRadius": 8
           },
           "android": 8,
-          "surfaceStep": "#332E28"
+          "surfaceStep": "#33352F"
         }
       },
       "motion": {
@@ -635,34 +635,34 @@ export const themes = {
       },
       "color": {
         "surface": {
-          "base": "#12100D",
+          "base": "#171717",
           "sunken": "#000000",
-          "subtle": "#1F1B17",
-          "raised": "#332E28",
-          "inverse": "#F3F1ED",
-          "chrome": "#0E1A2F",
+          "subtle": "#232323",
+          "raised": "#33352F",
+          "inverse": "#F6EFDD",
+          "chrome": "#0A1913",
           "scrim": "#000000C4"
         },
         "text": {
-          "primary": "#F3F1ED",
-          "secondary": "#B6AEA1",
-          "tertiary": "#948C7E",
-          "placeholder": "#6E6658",
-          "disabled": "#4A443B",
-          "onBrand": "#12100D",
-          "onInverse": "#1F1B17",
+          "primary": "#F6EFDD",
+          "secondary": "#B9B0A0",
+          "tertiary": "#8B8578",
+          "placeholder": "#6E7C77",
+          "disabled": "#4A4E48",
+          "onBrand": "#FFFFFF",
+          "onInverse": "#232323",
           "onAccent": "#FFFFFF",
           "link": "#6FA9F2"
         },
         "border": {
-          "decorative": "#332E28",
-          "interactive": "#6E6658",
-          "strong": "#948C7E",
-          "brand": "#FFD147"
+          "decorative": "#33352F",
+          "interactive": "#6E7C77",
+          "strong": "#8B8578",
+          "brand": "#F3703F"
         },
         "focus": {
           "ring": "#6FA9F2",
-          "offset": "#12100D",
+          "offset": "#171717",
           "onColor": "#FFFFFF",
           "ringOn": {
             "brand": "#FFFFFF",
@@ -670,45 +670,45 @@ export const themes = {
             "danger": "#FFFFFF",
             "warning": "#FFFFFF",
             "info": "#FFFFFF",
-            "halal": "#6FA9F2",
+            "halal": "#FFFFFF",
             "inverse": "#6FA9F2"
           }
         },
         "state": {
           "hoverOverlay": "#FFFFFF14",
           "pressedOverlay": "#FFFFFF29",
-          "selectedTint": "#2B1F00",
+          "selectedTint": "#2E0D03",
           "disabledOpacity": 0.5
         },
         "action": {
           "primary": {
-            "bg": "#FFC220",
-            "bgPressed": "#DFA400",
-            "fg": "#12100D"
+            "bg": "#F1521E",
+            "bgPressed": "#D8410F",
+            "fg": "#FFFFFF"
           },
           "secondary": {
-            "bg": "#24406F",
-            "bgPressed": "#1B3157",
+            "bg": "#1B3B31",
+            "bgPressed": "#143026",
             "fg": "#FFFFFF"
           },
           "tertiary": {
-            "border": "#6E6658",
-            "fg": "#F3F1ED"
+            "border": "#6E7C77",
+            "fg": "#F6EFDD"
           },
           "danger": {
-            "bg": "#D92D20",
-            "bgPressed": "#B42318",
+            "bg": "#C42B1C",
+            "bgPressed": "#A0210F",
             "fg": "#FFFFFF"
           }
         },
         "control": {
-          "bg": "#12100D",
-          "border": "#6E6658",
-          "borderHover": "#948C7E",
-          "selectedBg": "#FFC220",
-          "selectedFg": "#12100D",
-          "trackOff": "#948C7E",
-          "trackOn": "#DFA400",
+          "bg": "#171717",
+          "border": "#6E7C77",
+          "borderHover": "#8B8578",
+          "selectedBg": "#F1521E",
+          "selectedFg": "#FFFFFF",
+          "trackOff": "#8B8578",
+          "trackOn": "#D8410F",
           "thumb": "#FFFFFF"
         },
         "feedback": {
@@ -729,12 +729,12 @@ export const themes = {
             "onSolid": "#FFFFFF"
           },
           "danger": {
-            "tint": "#55110C",
-            "tintText": "#F08C82",
-            "text": "#F08C82",
-            "icon": "#F08C82",
-            "border": "#D92D20",
-            "solid": "#D92D20",
+            "tint": "#4C0F07",
+            "tintText": "#E88379",
+            "text": "#E88379",
+            "icon": "#E88379",
+            "border": "#C42B1C",
+            "solid": "#C42B1C",
             "onSolid": "#FFFFFF"
           },
           "info": {
@@ -748,8 +748,8 @@ export const themes = {
           }
         },
         "skeleton": {
-          "base": "#332E28",
-          "highlight": "#4A443B"
+          "base": "#33352F",
+          "highlight": "#4A4E48"
         }
       },
       "typography": {
@@ -1060,7 +1060,7 @@ export const themes = {
           "web": "none",
           "rn": null,
           "android": 0,
-          "surfaceStep": "#12100D"
+          "surfaceStep": "#171717"
         },
         "1": {
           "web": "0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08)",
@@ -1074,7 +1074,7 @@ export const themes = {
             "shadowRadius": 3
           },
           "android": 1,
-          "surfaceStep": "#1F1B17"
+          "surfaceStep": "#232323"
         },
         "2": {
           "web": "0 2px 4px rgba(0,0,0,.06), 0 4px 8px rgba(0,0,0,.08)",
@@ -1088,7 +1088,7 @@ export const themes = {
             "shadowRadius": 6
           },
           "android": 3,
-          "surfaceStep": "#1F1B17"
+          "surfaceStep": "#232323"
         },
         "3": {
           "web": "0 4px 8px rgba(0,0,0,.08), 0 8px 16px rgba(0,0,0,.10)",
@@ -1102,8 +1102,8 @@ export const themes = {
             "shadowRadius": 12
           },
           "android": 6,
-          "surfaceStep": "#332E28",
-          "darkHairline": "#332E28"
+          "surfaceStep": "#33352F",
+          "darkHairline": "#33352F"
         },
         "4": {
           "web": "0 8px 16px rgba(0,0,0,.10), 0 16px 32px rgba(0,0,0,.12)",
@@ -1117,8 +1117,8 @@ export const themes = {
             "shadowRadius": 24
           },
           "android": 12,
-          "surfaceStep": "#332E28",
-          "darkHairline": "#332E28"
+          "surfaceStep": "#33352F",
+          "darkHairline": "#33352F"
         },
         "sticky": {
           "web": "0 -2px 8px rgba(0,0,0,.08)",
@@ -1132,7 +1132,7 @@ export const themes = {
             "shadowRadius": 8
           },
           "android": 8,
-          "surfaceStep": "#332E28"
+          "surfaceStep": "#33352F"
         }
       },
       "motion": {
@@ -1242,30 +1242,30 @@ export const themes = {
       },
       "color": {
         "surface": {
-          "base": "#FFFFFF",
-          "sunken": "#FAF9F7",
-          "subtle": "#F3F1ED",
+          "base": "#FFFAEA",
+          "sunken": "#F6EFDD",
+          "subtle": "#F6EFDD",
           "raised": "#FFFFFF",
-          "inverse": "#1F1B17",
-          "chrome": "#24406F",
-          "scrim": "#1F1B17B8"
+          "inverse": "#232323",
+          "chrome": "#1B3B31",
+          "scrim": "#232323B8"
         },
         "text": {
-          "primary": "#1F1B17",
-          "secondary": "#4A443B",
-          "tertiary": "#6E6658",
-          "placeholder": "#948C7E",
-          "disabled": "#B6AEA1",
-          "onBrand": "#1F1B17",
-          "onInverse": "#F3F1ED",
+          "primary": "#232323",
+          "secondary": "#4A4E48",
+          "tertiary": "#6E7C77",
+          "placeholder": "#8B8578",
+          "disabled": "#B9B0A0",
+          "onBrand": "#FFFFFF",
+          "onInverse": "#F6EFDD",
           "onAccent": "#FFFFFF",
           "link": "#0959B8"
         },
         "border": {
-          "decorative": "#E7E3DC",
-          "interactive": "#948C7E",
-          "strong": "#4A443B",
-          "brand": "#DFA400"
+          "decorative": "#E6E0D4",
+          "interactive": "#8B8578",
+          "strong": "#4A4E48",
+          "brand": "#D8410F"
         },
         "focus": {
           "ring": "#0B72E7",
@@ -1282,45 +1282,45 @@ export const themes = {
           }
         },
         "state": {
-          "hoverOverlay": "#1F1B170F",
-          "pressedOverlay": "#1F1B171F",
-          "selectedTint": "#FFF9E6",
+          "hoverOverlay": "#2323230F",
+          "pressedOverlay": "#2323231F",
+          "selectedTint": "#FEF0EA",
           "disabledOpacity": 0.6
         },
         "action": {
           "primary": {
-            "bg": "#FFC220",
-            "bgPressed": "#DFA400",
-            "fg": "#1F1B17"
+            "bg": "#F1521E",
+            "bgPressed": "#D8410F",
+            "fg": "#FFFFFF"
           },
           "secondary": {
-            "bg": "#24406F",
-            "bgPressed": "#1B3157",
+            "bg": "#1B3B31",
+            "bgPressed": "#143026",
             "fg": "#FFFFFF"
           },
           "tertiary": {
-            "border": "#948C7E",
-            "fg": "#1F1B17"
+            "border": "#8B8578",
+            "fg": "#232323"
           },
           "danger": {
-            "bg": "#D92D20",
-            "bgPressed": "#B42318",
+            "bg": "#C42B1C",
+            "bgPressed": "#A0210F",
             "fg": "#FFFFFF"
           }
         },
         "control": {
-          "bg": "#FFFFFF",
-          "border": "#948C7E",
-          "borderHover": "#4A443B",
-          "selectedBg": "#FFC220",
-          "selectedFg": "#1F1B17",
-          "trackOff": "#4A443B",
-          "trackOn": "#DFA400",
+          "bg": "#FFFAEA",
+          "border": "#8B8578",
+          "borderHover": "#4A4E48",
+          "selectedBg": "#F1521E",
+          "selectedFg": "#FFFFFF",
+          "trackOff": "#4A4E48",
+          "trackOn": "#D8410F",
           "thumb": "#FFFFFF"
         },
         "feedback": {
           "success": {
-            "tint": "#E7F7F0",
+            "tint": "#E9F3E4",
             "tintText": "#05603F",
             "text": "#067A55",
             "icon": "#0E9F6E",
@@ -1336,12 +1336,12 @@ export const themes = {
             "onSolid": "#FFFFFF"
           },
           "danger": {
-            "tint": "#FDECEA",
-            "tintText": "#912018",
-            "text": "#B42318",
-            "icon": "#D92D20",
-            "border": "#D92D20",
-            "solid": "#D92D20",
+            "tint": "#FBE9E7",
+            "tintText": "#821A0D",
+            "text": "#A0210F",
+            "icon": "#C42B1C",
+            "border": "#C42B1C",
+            "solid": "#C42B1C",
             "onSolid": "#FFFFFF"
           },
           "info": {
@@ -1355,8 +1355,8 @@ export const themes = {
           }
         },
         "skeleton": {
-          "base": "#D5CFC5",
-          "highlight": "#E7E3DC"
+          "base": "#D8D0BF",
+          "highlight": "#E6E0D4"
         }
       },
       "typography": {
@@ -1667,7 +1667,7 @@ export const themes = {
           "web": "none",
           "rn": null,
           "android": 0,
-          "surfaceStep": "#12100D"
+          "surfaceStep": "#171717"
         },
         "1": {
           "web": "0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08)",
@@ -1681,7 +1681,7 @@ export const themes = {
             "shadowRadius": 3
           },
           "android": 1,
-          "surfaceStep": "#1F1B17"
+          "surfaceStep": "#232323"
         },
         "2": {
           "web": "0 2px 4px rgba(0,0,0,.06), 0 4px 8px rgba(0,0,0,.08)",
@@ -1695,7 +1695,7 @@ export const themes = {
             "shadowRadius": 6
           },
           "android": 3,
-          "surfaceStep": "#1F1B17"
+          "surfaceStep": "#232323"
         },
         "3": {
           "web": "0 4px 8px rgba(0,0,0,.08), 0 8px 16px rgba(0,0,0,.10)",
@@ -1709,8 +1709,8 @@ export const themes = {
             "shadowRadius": 12
           },
           "android": 6,
-          "surfaceStep": "#332E28",
-          "darkHairline": "#332E28"
+          "surfaceStep": "#33352F",
+          "darkHairline": "#33352F"
         },
         "4": {
           "web": "0 8px 16px rgba(0,0,0,.10), 0 16px 32px rgba(0,0,0,.12)",
@@ -1724,8 +1724,8 @@ export const themes = {
             "shadowRadius": 24
           },
           "android": 12,
-          "surfaceStep": "#332E28",
-          "darkHairline": "#332E28"
+          "surfaceStep": "#33352F",
+          "darkHairline": "#33352F"
         },
         "sticky": {
           "web": "0 -2px 8px rgba(0,0,0,.08)",
@@ -1739,7 +1739,7 @@ export const themes = {
             "shadowRadius": 8
           },
           "android": 8,
-          "surfaceStep": "#332E28"
+          "surfaceStep": "#33352F"
         }
       },
       "motion": {
@@ -1847,34 +1847,34 @@ export const themes = {
       },
       "color": {
         "surface": {
-          "base": "#12100D",
+          "base": "#171717",
           "sunken": "#000000",
-          "subtle": "#1F1B17",
-          "raised": "#332E28",
-          "inverse": "#F3F1ED",
-          "chrome": "#0E1A2F",
+          "subtle": "#232323",
+          "raised": "#33352F",
+          "inverse": "#F6EFDD",
+          "chrome": "#0A1913",
           "scrim": "#000000C4"
         },
         "text": {
-          "primary": "#F3F1ED",
-          "secondary": "#B6AEA1",
-          "tertiary": "#948C7E",
-          "placeholder": "#6E6658",
-          "disabled": "#4A443B",
-          "onBrand": "#12100D",
-          "onInverse": "#1F1B17",
+          "primary": "#F6EFDD",
+          "secondary": "#B9B0A0",
+          "tertiary": "#8B8578",
+          "placeholder": "#6E7C77",
+          "disabled": "#4A4E48",
+          "onBrand": "#FFFFFF",
+          "onInverse": "#232323",
           "onAccent": "#FFFFFF",
           "link": "#6FA9F2"
         },
         "border": {
-          "decorative": "#332E28",
-          "interactive": "#6E6658",
-          "strong": "#948C7E",
-          "brand": "#FFD147"
+          "decorative": "#33352F",
+          "interactive": "#6E7C77",
+          "strong": "#8B8578",
+          "brand": "#F3703F"
         },
         "focus": {
           "ring": "#6FA9F2",
-          "offset": "#12100D",
+          "offset": "#171717",
           "onColor": "#FFFFFF",
           "ringOn": {
             "brand": "#FFFFFF",
@@ -1882,45 +1882,45 @@ export const themes = {
             "danger": "#FFFFFF",
             "warning": "#FFFFFF",
             "info": "#FFFFFF",
-            "halal": "#6FA9F2",
+            "halal": "#FFFFFF",
             "inverse": "#6FA9F2"
           }
         },
         "state": {
           "hoverOverlay": "#FFFFFF14",
           "pressedOverlay": "#FFFFFF29",
-          "selectedTint": "#2B1F00",
+          "selectedTint": "#2E0D03",
           "disabledOpacity": 0.5
         },
         "action": {
           "primary": {
-            "bg": "#FFC220",
-            "bgPressed": "#DFA400",
-            "fg": "#12100D"
+            "bg": "#F1521E",
+            "bgPressed": "#D8410F",
+            "fg": "#FFFFFF"
           },
           "secondary": {
-            "bg": "#24406F",
-            "bgPressed": "#1B3157",
+            "bg": "#1B3B31",
+            "bgPressed": "#143026",
             "fg": "#FFFFFF"
           },
           "tertiary": {
-            "border": "#6E6658",
-            "fg": "#F3F1ED"
+            "border": "#6E7C77",
+            "fg": "#F6EFDD"
           },
           "danger": {
-            "bg": "#D92D20",
-            "bgPressed": "#B42318",
+            "bg": "#C42B1C",
+            "bgPressed": "#A0210F",
             "fg": "#FFFFFF"
           }
         },
         "control": {
-          "bg": "#12100D",
-          "border": "#6E6658",
-          "borderHover": "#948C7E",
-          "selectedBg": "#FFC220",
-          "selectedFg": "#12100D",
-          "trackOff": "#948C7E",
-          "trackOn": "#DFA400",
+          "bg": "#171717",
+          "border": "#6E7C77",
+          "borderHover": "#8B8578",
+          "selectedBg": "#F1521E",
+          "selectedFg": "#FFFFFF",
+          "trackOff": "#8B8578",
+          "trackOn": "#D8410F",
           "thumb": "#FFFFFF"
         },
         "feedback": {
@@ -1941,12 +1941,12 @@ export const themes = {
             "onSolid": "#FFFFFF"
           },
           "danger": {
-            "tint": "#55110C",
-            "tintText": "#F08C82",
-            "text": "#F08C82",
-            "icon": "#F08C82",
-            "border": "#D92D20",
-            "solid": "#D92D20",
+            "tint": "#4C0F07",
+            "tintText": "#E88379",
+            "text": "#E88379",
+            "icon": "#E88379",
+            "border": "#C42B1C",
+            "solid": "#C42B1C",
             "onSolid": "#FFFFFF"
           },
           "info": {
@@ -1960,8 +1960,8 @@ export const themes = {
           }
         },
         "skeleton": {
-          "base": "#332E28",
-          "highlight": "#4A443B"
+          "base": "#33352F",
+          "highlight": "#4A4E48"
         }
       },
       "typography": {
@@ -2272,7 +2272,7 @@ export const themes = {
           "web": "none",
           "rn": null,
           "android": 0,
-          "surfaceStep": "#12100D"
+          "surfaceStep": "#171717"
         },
         "1": {
           "web": "0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08)",
@@ -2286,7 +2286,7 @@ export const themes = {
             "shadowRadius": 3
           },
           "android": 1,
-          "surfaceStep": "#1F1B17"
+          "surfaceStep": "#232323"
         },
         "2": {
           "web": "0 2px 4px rgba(0,0,0,.06), 0 4px 8px rgba(0,0,0,.08)",
@@ -2300,7 +2300,7 @@ export const themes = {
             "shadowRadius": 6
           },
           "android": 3,
-          "surfaceStep": "#1F1B17"
+          "surfaceStep": "#232323"
         },
         "3": {
           "web": "0 4px 8px rgba(0,0,0,.08), 0 8px 16px rgba(0,0,0,.10)",
@@ -2314,8 +2314,8 @@ export const themes = {
             "shadowRadius": 12
           },
           "android": 6,
-          "surfaceStep": "#332E28",
-          "darkHairline": "#332E28"
+          "surfaceStep": "#33352F",
+          "darkHairline": "#33352F"
         },
         "4": {
           "web": "0 8px 16px rgba(0,0,0,.10), 0 16px 32px rgba(0,0,0,.12)",
@@ -2329,8 +2329,8 @@ export const themes = {
             "shadowRadius": 24
           },
           "android": 12,
-          "surfaceStep": "#332E28",
-          "darkHairline": "#332E28"
+          "surfaceStep": "#33352F",
+          "darkHairline": "#33352F"
         },
         "sticky": {
           "web": "0 -2px 8px rgba(0,0,0,.08)",
@@ -2344,7 +2344,7 @@ export const themes = {
             "shadowRadius": 8
           },
           "android": 8,
-          "surfaceStep": "#332E28"
+          "surfaceStep": "#33352F"
         }
       },
       "motion": {

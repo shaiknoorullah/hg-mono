@@ -575,17 +575,32 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
     ),
   ).sort();
 
+  /**
+   * The forest brand chrome (color.accent.*) is a dark, low-chroma green NEUTRAL, not a
+   * verified-halal signal (amended invariant #10, docs/decisions/palette-and-invariant-10.md).
+   * Its darker steps fall inside the reserved hue band, so they are registered here as
+   * allowed neutrals — exactly like the pinRider exception — so L-4 keeps forbidding the
+   * seal emerald and any other bright solid green outside color.halal.* while letting the
+   * chrome through. Generated from the palette so it can never drift.
+   */
+  const forestExceptions: Record<string, string> = {};
+  for (const [p, hex] of Object.entries(byPath)) {
+    if (/^color\.accent\.\d+$/.test(p) && inReservedHue(hex)) forestExceptions[p] = hex;
+  }
+
   files['lint-tokens.json'] = `${JSON.stringify(
     {
       $comment:
         'GENERATED from docs/design/tokens.json by packages/ui-native/src/tokens/build.ts. ' +
         'Consumed by the L-4 ESLint rule: no filled background may resolve to a hue in ' +
-        '[100,180] unless it comes from color.halal.*.',
+        '[100,180] unless it comes from color.halal.* or is a registered exception ' +
+        '(color.map.pinRider, or the forest chrome neutrals color.accent.*).',
       hueBand: { min: 100, max: 180 },
       minSaturation: 0.15,
       halalHexes,
       exceptions: {
         'color.map.pinRider': byPath['color.map.pinRider'],
+        ...forestExceptions,
       },
       byPath,
       byUtility,

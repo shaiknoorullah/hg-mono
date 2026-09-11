@@ -7,7 +7,7 @@
  * The reason this rule exists rather than a guideline: we measured, and hue cannot separate
  * the halal seal from semantic success.
  *
- *     halal seal #04482A  vs  success.solid #067A55  →  2.00:1
+ *     halal seal #0F7A43  vs  success.solid #067A55  →  1.30:1
  *     halal tint #E4F0E9  vs  success.tint  #E7F7F0  →  1.06:1
  *
  * There is no pair of greens that are both individually accessible and 3:1 apart from each

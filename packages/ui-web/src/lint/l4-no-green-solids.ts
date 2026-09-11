@@ -152,10 +152,17 @@ export const HALAL_HEXES: ReadonlySet<string> = (() => {
 })();
 
 /**
- * The one registered exception, 01-foundations.md §2.6: the rider map pin is
- * a Halal Goes rider, not a certification claim. It carries no shield.
+ * Registered exceptions to RULE H-1:
+ *  - `color.map.pinRider` (01-foundations.md §2.6): the rider map pin is a Halal Goes
+ *    rider, not a certification claim. It carries no shield.
+ *  - `color.accent.*` — the forest brand chrome. The amended invariant #10
+ *    (docs/decisions/palette-and-invariant-10.md) classifies the deep forest as a dark,
+ *    low-chroma green NEUTRAL used as chrome (app bars, headers), NOT the verified-halal
+ *    signal. The verified signal is the brighter emerald in color.halal.* alone. Allowing
+ *    the chrome here keeps L-4 forbidding the seal emerald and every other bright solid
+ *    green outside color.halal.*.
  */
-export const ALLOWED_TOKEN_PATHS = ['color.halal.', 'color.map.pinRider'] as const;
+export const ALLOWED_TOKEN_PATHS = ['color.halal.', 'color.map.pinRider', 'color.accent.'] as const;
 
 const ALLOWED_VAR_NAMES = new Set(
   [
@@ -164,12 +171,16 @@ const ALLOWED_VAR_NAMES = new Set(
     '--color-halal',
     '--hg-color-map-pin-rider',
     '--color-map-pin-rider',
+    '--hg-color-accent',
+    '--color-accent',
+    '--hg-surface-chrome',
+    '--surface-chrome',
   ].map((s) => s.toLowerCase()),
 );
 
 /** Tailwind utility names whose colour is allowed to be a green solid. */
 function isAllowedUtility(name: string): boolean {
-  return name.startsWith('halal-') || name === 'map-pin-rider';
+  return name.startsWith('halal-') || name === 'map-pin-rider' || name.startsWith('accent-');
 }
 
 function isAllowedVar(name: string): boolean {
@@ -192,7 +203,7 @@ function flattenColors(tree: unknown, path: string[], into: Map<string, string>)
   }
 }
 
-/** e.g. "brand-500" → "#FFC220", "halal-certified-seal" → "#04482A". */
+/** e.g. "brand-500" → "#FFC220", "halal-certified-seal" → "#0F7A43". */
 export const COLOR_BY_UTILITY: ReadonlyMap<string, string> = (() => {
   const map = new Map<string, string>();
   flattenColors(color, [], map);
@@ -208,11 +219,11 @@ export const COLOR_BY_UTILITY: ReadonlyMap<string, string> = (() => {
 // Scanners
 // --------------------------------------------------------------------------
 
-/** `background: #04482A`, `background-color: var(--hg-...)`, `fill: #...` */
+/** `background: #0F7A43`, `background-color: var(--hg-...)`, `fill: #...` */
 const CSS_BACKGROUND = /\b(background|background-color|fill)\s*:\s*([^;{}]+)/g;
 /** Tailwind `bg-<name>` / `fill-<name>` in a class string. */
 const TW_BACKGROUND = /(?:^|[\s"'`:])(?:bg|fill)-([a-z0-9][a-z0-9-]*)/g;
-/** `backgroundColor: '#04482A'` in a style object. */
+/** `backgroundColor: '#0F7A43'` in a style object. */
 const JSX_BACKGROUND = /background(?:Color)?\s*:\s*['"`](#[0-9a-fA-F]{3,8})['"`]/g;
 const HEX = /#[0-9a-fA-F]{3,8}\b/;
 const VAR_REF = /var\(\s*(--[a-z0-9-]+)/i;
@@ -297,7 +308,7 @@ export function lintSource(file: string, source: string): L4Violation[] {
     const utility = match[1];
     if (!utility) continue;
     if (isAllowedUtility(utility)) continue;
-    // Arbitrary value: bg-[#04482A] / bg-[var(--x)]
+    // Arbitrary value: bg-[#0F7A43] / bg-[var(--x)]
     const hex = COLOR_BY_UTILITY.get(utility.toLowerCase());
     if (!hex) continue;
     if (HALAL_HEXES.has(hex)) continue;
@@ -311,7 +322,7 @@ export function lintSource(file: string, source: string): L4Violation[] {
     );
   }
 
-  // bg-[#04482A] and bg-[var(--…)] arbitrary values.
+  // bg-[#0F7A43] and bg-[var(--…)] arbitrary values.
   for (const match of source.matchAll(/(?:bg|fill)-\[([^\]]+)\]/g)) {
     const inner = match[1] ?? '';
     const resolved = resolveValue(inner);
