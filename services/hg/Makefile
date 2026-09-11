@@ -178,6 +178,27 @@ seed: ensure-env ## Load the seed data in ./migrations/seed
 		psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v ON_ERROR_STOP=1 \
 		-f /dev/stdin < migrations/seed/seed.sql
 
+.PHONY: dev-admin
+dev-admin: ensure-env ## Provision a login-able dev SUPER_ADMIN (email+password+TOTP) for driving the admin console
+	@set -a; . $(ENV_FILE); set +a; \
+	EMAIL="$${DEV_ADMIN_EMAIL:-dev-admin@halalgoes.test}"; \
+	echo "→ ensuring account $$EMAIL (SUPER_ADMIN)"; \
+	$(COMPOSE) exec -T postgres psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -v ON_ERROR_STOP=1 -q -c "INSERT INTO account (email, email_verified_at, status) VALUES ('$$EMAIL', now(), 'ACTIVE') ON CONFLICT (email) DO UPDATE SET email_verified_at = COALESCE(account.email_verified_at, now()); INSERT INTO account_role (account_id, role, scope_type) SELECT a.id, 'SUPER_ADMIN', 'GLOBAL' FROM account a WHERE a.email='$$EMAIL' AND NOT EXISTS (SELECT 1 FROM account_role r WHERE r.account_id=a.id AND r.role='SUPER_ADMIN' AND r.revoked_at IS NULL);"
+	@set -a; . $(ENV_FILE); set +a; \
+	EMAIL="$${DEV_ADMIN_EMAIL:-dev-admin@halalgoes.test}"; \
+	PASSWORD="$${DEV_ADMIN_PASSWORD:-DevAdmin!2026}"; \
+	DSN="postgres://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$$POSTGRES_DB?sslmode=disable"; \
+	SEED_EMAIL="$$EMAIL" SEED_PASSWORD="$$PASSWORD" HG_POSTGRES_DSN="$$DSN" $(GO) run ./cmd/seedpw >/dev/null; \
+	OUT=$$(SEED_EMAIL="$$EMAIL" HG_APP_DATA_KEY="$$HG_APP_DATA_KEY" HG_POSTGRES_DSN="$$DSN" $(GO) run ./cmd/seedtotp); \
+	SECRET=$$(echo "$$OUT" | sed -n 's/^TOTP_SECRET=//p'); \
+	echo "$$SECRET" > /tmp/hg-admin-totp-secret.txt; \
+	echo "✓ dev admin ready:"; \
+	echo "    email    $$EMAIL"; \
+	echo "    password $$PASSWORD"; \
+	echo "    TOTP     secret written to /tmp/hg-admin-totp-secret.txt"; \
+	echo "    code now $$(cd $(CURDIR) && SECRET="$$SECRET" $(GO) run ./cmd/totpnow)"; \
+	echo "  drive it:  APP_URL=http://localhost:5173 SEED_EMAIL=$$EMAIL SEED_PASSWORD='$$PASSWORD' node ../../tools/verify/admin-full-drive.mjs"
+
 # ---------------------------------------------------------------------------
 # Diagnostics
 # ---------------------------------------------------------------------------
