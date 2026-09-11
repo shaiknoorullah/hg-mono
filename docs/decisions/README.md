@@ -54,6 +54,29 @@ Cannot proceed on engineering judgement. *(O-02 resolved — see S-11.)*
 | O-05 | **Launch province(s)** | Gates tax rates and address validation. Default: Ontario only | You |
 | O-06 | **Self-declared halal restaurants** — list behind an explicit filter, or hide entirely? | Product-defining. Default: hide entirely | You |
 
+
+## Settled — launch decisions (Sep 2026, client-confirmed at rc1)
+
+| # | Decision | Value | Code state |
+|---|---|---|---|
+| O-05 | **Launch province(s)** | **Ontario only** (13% HST) | Default — no change. `HG_TAX_HST_REGISTRATION_NUMBER=728591827RT0001` set in `deploy/.env` (gitignored). |
+| O-04 | **Refund liability allocation** | **By-fault, per reason code** | **Already coded** in `payments.ComputeLiabilitySplit`: item-missing/wrong & food-quality/safety/halal → restaurant; never-delivered → rider earnings reversed + platform; restaurant-rejected → restaurant; late/no-rider/changed-mind/goodwill/platform-error → platform; unknown → platform (fail-safe). Ledger balances by construction. |
+| O-06 | **Self-declared (uncertified) halal restaurants** | **Show behind an explicit opt-in filter** (was default: hide) | **Build required** — see below. Currently the discovery predicate hard-excludes everything but CERTIFIED/EXPIRING_SOON. |
+
+### O-06 build scope + invariant guardrails
+
+Changing from *hide* to *filter-gated show* touches the product's central claim, so it is built
+with hard guardrails (invariants #8, #9, #10):
+- A distinct listing/display state (e.g. `SELF_DECLARED`) that is **excluded by default** from
+  every discovery surface; it appears only when the customer explicitly opts in via a clearly
+  labelled **"self-declared · unverified"** filter.
+- Self-declared listings render **no halal badge, no green seal, no certification panel** (#8:
+  a missing/unverified halal field renders no badge — silence is never consent). They carry a
+  neutral "self-declared, not verified by us" label — **never** styled with `color.halal.*` (#10)
+  and **never** red (#9).
+- Contract change (a discovery filter param + the new display state), client regen, fixtures for
+  the state, then the customer-app filter UI.
+
 ## Open — non-blocking
 
 Shipping on defaults; revisit when convenient.
