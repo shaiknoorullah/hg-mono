@@ -638,8 +638,13 @@ for (const k of Object.keys(motion.duration))
   t.push(`  --animate-duration-${kebab(k)}: var(--hg-duration-${kebab(k)});`);
 for (const k of Object.keys(motion.easing)) t.push(`  --ease-${kebab(k)}: var(--hg-ease-${kebab(k)});`);
 t.push('');
-for (const k of Object.keys(breakpoint))
-  t.push(`  --breakpoint-${kebab(k)}: var(--hg-breakpoint-${kebab(k)});`);
+// Breakpoints must be LITERAL: Tailwind v4 resolves --breakpoint-* at build
+// time to generate `@media (min-width: …)`. A `var()` here is emitted verbatim
+// into the media condition (`@media (width >= var(--hg-breakpoint-md))`), which
+// is illegal CSS, so every responsive variant silently dies. Breakpoints don't
+// theme-flip, so a literal is correct. (--hg-breakpoint-* stays for runtime JS.)
+for (const [k, v] of Object.entries(breakpoint))
+  t.push(`  --breakpoint-${kebab(k)}: ${px(v)};`);
 t.push('');
 /** `--color-<twPath>: var(--hg-<hgPrefix>-<path>)` for every leaf of `tree`. */
 function forwardColors(twPrefix, hgPrefix, tree, out = []) {

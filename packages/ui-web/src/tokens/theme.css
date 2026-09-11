@@ -104,11 +104,11 @@
   --ease-emphasized: var(--hg-ease-emphasized);
   --ease-linear: var(--hg-ease-linear);
 
-  --breakpoint-sm: var(--hg-breakpoint-sm);
-  --breakpoint-md: var(--hg-breakpoint-md);
-  --breakpoint-lg: var(--hg-breakpoint-lg);
-  --breakpoint-xl: var(--hg-breakpoint-xl);
-  --breakpoint-2xl: var(--hg-breakpoint-2xl);
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 
   /* Ramps. Exposed so the theme layer and the certification tier can reach
      them; components use the role names below instead (lint L-2). */
