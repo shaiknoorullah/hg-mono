@@ -21,6 +21,13 @@ module.exports = {
      */
     '^react-native$': require.resolve('react-native'),
     '^react$': require.resolve('react'),
+    /*
+     * Same duplicate-copy problem as react-native/react above, now that this app pulls
+     * `react-native-svg` directly (for @hg/ui-native's `Icon`) alongside the copy nativewind's
+     * dependency chain resolves for @hg/ui-native's own devDependency: two peer-hash directories,
+     * two native-module registries. Pin to this app's copy.
+     */
+    '^react-native-svg$': require.resolve('react-native-svg'),
   },
   transformIgnorePatterns: [
     'node_modules/(?!(?:\\.pnpm/)?(?:@?react-native|@react-native-community|@testing-library|expo|@expo|nativewind))',

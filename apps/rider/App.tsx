@@ -22,9 +22,10 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeProvider } from '@hg/ui-native';
+import { useHgFonts } from '@hg/ui-native/fonts';
 
 import { NavProvider } from './src/nav';
-import { Router } from './src/Router';
+import { RiderShell } from './src/RiderShell';
 import { requestOtp, verifyOtp } from './src/auth';
 import { subscribe, isAuthed } from './src/token';
 
@@ -185,8 +186,17 @@ const styles = StyleSheet.create({
 // Root
 // ---------------------------------------------------------------------------
 
-export default function App(): React.ReactElement {
+export default function App(): React.ReactElement | null {
   const authed = React.useSyncExternalStore(subscribe, isAuthed, isAuthed);
+  // Plus Jakarta Sans (--hg-font-ui's RN counterpart) must be registered before anything under
+  // `ThemeProvider` renders — `typeStyle()` names these exact face strings. Render nothing (the
+  // Expo splash screen stays up) until it resolves; a font load error still renders safely, RN
+  // falls back to the system font, so we don't block on it.
+  const { fontsLoaded } = useHgFonts();
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   if (!authed) {
     return (
@@ -206,7 +216,7 @@ export default function App(): React.ReactElement {
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
           <View style={{ flex: 1 }}>
             <NavProvider>
-              <Router />
+              <RiderShell />
             </NavProvider>
           </View>
         </SafeAreaView>
