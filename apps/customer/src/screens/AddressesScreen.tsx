@@ -14,6 +14,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  Icon,
   Spinner,
   Toast,
   useTheme,
@@ -68,7 +69,7 @@ export function AddressesScreen(): React.ReactElement {
         actions={[
           {
             key: 'add',
-            icon: <Text style={{ fontSize: 20, color: theme.color.text.onBrand }}>+</Text>,
+            icon: <Icon name="plus" weight="bold" size={20} color={theme.color.text.onBrand} />,
             accessibilityLabel: 'Add address',
             onPress: () => nav.push({ name: 'addressForm', addressId: null }),
           },

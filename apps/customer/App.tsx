@@ -25,6 +25,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, setClientErrorReporter } from '@hg/ui-native';
+import { useHgFonts } from '@hg/ui-native/fonts';
 
 import { Router } from './src/navigation/Router';
 import { requestOtp, verifyOtp } from './src/api/auth';
@@ -208,8 +209,12 @@ const styles = StyleSheet.create({
 // Root
 // ---------------------------------------------------------------------------
 
-export default function App(): React.ReactElement {
+export default function App(): React.ReactElement | null {
   const authed = React.useSyncExternalStore(subscribe, isAuthed, isAuthed);
+  // Plus Jakarta Sans (the design system's `--hg-font-ui` counterpart), loaded once at the root
+  // before anything renders — `ThemeProvider`'s `typeStyle()` emits these exact face names.
+  // `fontError` still renders (RN falls back to the system font); only the loading gate blocks.
+  const { fontsLoaded, fontError } = useHgFonts();
 
   React.useEffect(() => {
     // Unmapped enum values (halal states, error codes) report rather than crash. In this scaffold
@@ -219,6 +224,18 @@ export default function App(): React.ReactElement {
       console.warn('[hg-customer] client error reported:', code);
     });
   }, []);
+
+  React.useEffect(() => {
+    if (fontError) {
+      // eslint-disable-next-line no-console
+      console.warn('[hg-customer] font load error, falling back to system font:', fontError);
+    }
+  }, [fontError]);
+
+  if (!fontsLoaded) {
+    // Keep the Expo splash screen up rather than flashing an unstyled frame.
+    return null;
+  }
 
   if (!authed) {
     return (

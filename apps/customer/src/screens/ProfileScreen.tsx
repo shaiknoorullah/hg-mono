@@ -16,6 +16,7 @@ import {
   Card,
   Divider,
   ErrorState,
+  Icon,
   Input,
   Spinner,
   Switch,
@@ -166,7 +167,9 @@ function ProfileForm({
           <Text style={[body, { color: theme.color.text.primary, fontWeight: '700' }]}>
             Saved addresses
           </Text>
-          <Text style={{ color: theme.color.text.tertiary }}>›</Text>
+          <View style={{ transform: [{ scaleX: -1 }] }}>
+            <Icon name="back" weight="linear" size={18} color={theme.color.text.tertiary} />
+          </View>
         </View>
       </Card>
 
@@ -175,7 +178,9 @@ function ProfileForm({
           <Text style={[body, { color: theme.color.text.primary, fontWeight: '700' }]}>
             Order history
           </Text>
-          <Text style={{ color: theme.color.text.tertiary }}>›</Text>
+          <View style={{ transform: [{ scaleX: -1 }] }}>
+            <Icon name="back" weight="linear" size={18} color={theme.color.text.tertiary} />
+          </View>
         </View>
       </Card>
 

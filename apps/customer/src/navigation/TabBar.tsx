@@ -7,25 +7,45 @@
  * "Orders" from three screens deep in Discover should land on Orders' root, not resume a stale
  * push stack. `BottomNav` itself is `@hg/ui-native`'s glass pill — same component as the rider
  * app, themed by the `customer` register.
+ *
+ * Icons come from the `Icon` primitive (Solar set): **linear = inactive, bold = active**, per
+ * the shared convention documented on `BottomNav` itself. The detached primary action is the
+ * cart affordance — orange soft-tint by construction (never green: RULE H-1 reserves solid
+ * green for halal certification alone), never embedded as a sixth tab.
  */
 import * as React from 'react';
-import { Text } from 'react-native';
-import { BottomNav } from '@hg/ui-native';
+import { BottomNav, Icon } from '@hg/ui-native';
 import type { BottomNavItem } from '@hg/ui-native';
 
 import { useNavigation, type Route, type RouteName } from './stack';
 
 type TabKey = 'discovery' | 'orders' | 'notifications' | 'profile';
 
-function Glyph({ children }: { children: string }): React.ReactElement {
-  return <Text style={{ fontSize: 18, lineHeight: 22 }}>{children}</Text>;
-}
-
 const TABS: readonly BottomNavItem[] = [
-  { key: 'discovery', label: 'Discover', icon: <Glyph>⌂</Glyph> },
-  { key: 'orders', label: 'Orders', icon: <Glyph>▤</Glyph> },
-  { key: 'notifications', label: 'Alerts', icon: <Glyph>◎</Glyph> },
-  { key: 'profile', label: 'Profile', icon: <Glyph>☺</Glyph> },
+  {
+    key: 'discovery',
+    label: 'Discover',
+    icon: <Icon name="home" weight="linear" />,
+    activeIcon: <Icon name="home" weight="bold" />,
+  },
+  {
+    key: 'orders',
+    label: 'Orders',
+    icon: <Icon name="orders" weight="linear" />,
+    activeIcon: <Icon name="orders" weight="bold" />,
+  },
+  {
+    key: 'notifications',
+    label: 'Alerts',
+    icon: <Icon name="bell" weight="linear" />,
+    activeIcon: <Icon name="bell" weight="bold" />,
+  },
+  {
+    key: 'profile',
+    label: 'Profile',
+    icon: <Icon name="profile" weight="linear" />,
+    activeIcon: <Icon name="profile" weight="bold" />,
+  },
 ];
 
 export function CustomerTabBar({
@@ -49,6 +69,12 @@ export function CustomerTabBar({
       onChange={(key) => {
         if (key === active) return;
         nav.reset({ name: key as TabKey } as Route);
+      }}
+      action={{
+        label: 'View cart',
+        icon: <Icon name="cart" weight="bold" />,
+        onPress: () => nav.push({ name: 'cart' }),
+        testID: 'CustomerTabBar-action-cart',
       }}
       testID="CustomerTabBar"
     />

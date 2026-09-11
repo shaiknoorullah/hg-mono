@@ -13,16 +13,21 @@
     "test": "jest"
   },
   "dependencies": {
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/metro-runtime": "~6.1.2",
     "@hg/api-client": "workspace:*",
     "@hg/ui-native": "workspace:*",
+    "@rnmapbox/maps": "^10.3.5",
     "expo": "~54.0.0",
     "expo-clipboard": "~8.0.7",
+    "expo-dev-client": "~6.0.21",
+    "expo-font": "~13.3.2",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
     "react-native-safe-area-context": "~5.6.0",
+    "react-native-svg": "^15.11.2",
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {
