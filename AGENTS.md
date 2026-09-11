@@ -98,8 +98,8 @@ cd services/hg && make up && make migrate && make run
 
 ## 8. Known gaps
 
-- The compose stack has **never been brought up** — no Docker daemon in the environment it was written in. First `make up` is the real test.
-- Auth stubs deny everything, so every non-public route currently returns 401. Intentional until the auth module lands.
+- The compose stack **boots from an empty volume and runs healthy** — Traefik + 2× API + Postgres/PostGIS + Redis + MinIO; `/health` and `/health/ready` return 200 through the published port. First bring-up is done, not pending.
+- The auth module is **built and live**: phone OTP sign-in (WhatsApp/SMS via Twilio Verify), email + password + TOTP for admin/restaurant, the role matrix, and session/refresh. Non-public routes enforce the deny-by-default matrix, not a blanket 401. (Dev has no seeded login account — use `make dev-admin` to provision one.)
 - `DependencyReport` in the contract cannot express the configured-vs-actual comparison; the config-reality probe lives on a non-contract `/debug/deps` route until the contract is widened.
-- The halal shield glyph is drawn from `View` geometry rather than inline SVG (`react-native-svg` is not a dependency) — a deliberate deviation from `docs/design/01-foundations.md §11`.
+- `react-native-svg` is now a dependency of `@hg/ui-native`, used by the `Icon` primitive for Solar product iconography (Sep 2026 — a scoped reversal of the original no-SVG stance). The **halal shield glyph and the four structural glyphs stay `View`-drawn deliberately** (`docs/design/01-foundations.md §11`) — the reversal is for product icons only, not the halal instrument.
 - Tailwind v4 emits `@media (width >= var(--hg-breakpoint-xl))`; `var()` is illegal in a media condition, so that one breakpoint is inert.
