@@ -57,10 +57,21 @@ built in Astro. Sep 2026._
    Branch/analytics/consent wiring, schema.org, OG.
 5. **Deploy to Vercel** + domain + verify Lighthouse/LCP + tracking fires + forms land.
 
-## Pending inputs (next question round — after the research lands, so options are grounded)
+## Conversion mechanics (confirmed)
 
-- Positioning: the one-line promise for each side; launch city/area to name; app-store vs
-  waitlist for the customer CTA (are the apps store-ready, or waitlist first?).
-- Restaurant offer: commission/onboarding hook to advertise (S-01 says 0% at launch — lead with that?).
+- **Both sides are WAITLIST at launch** (apps not store-published yet):
+  - **Customer** → capture **phone number** (+ optional launch-city). Phone is the app's identity
+    (OTP sign-in), so the waitlist doubles as the pre-launch reachable list. **Consent matters:**
+    CASL — an explicit "text me when Halal Goes launches in my area" opt-in checkbox; store consent
+    timestamp; these are marketing sends (Dittofeed, consent-gated), never mixed with transactional.
+    Validate E.164; dedupe by phone.
+  - **Restaurant** → capture **email** (+ restaurant name / city). B2B lead → routes to onboarding.
+- Waitlist rows land in a lightweight store (Vercel + a form endpoint → the CDP / a table);
+  referral "move up the list" mechanic optional in a v1.1.
+- **Domain: `halalgoes.com`** — client-owned; point at Vercel (A/CNAME + TLS auto).
+
+## Pending inputs (next round — after the research lands, so options are grounded)
+
+- Positioning: the one-line promise for each side; launch city/area to name.
+- Restaurant offer: commission/onboarding hook to advertise (S-01 = 0% commission at launch — lead with that?).
 - Brand direction inputs for the fresh identity (mood, references) → then the Claude Design prompt.
-- Domain: is `halalgoes.com` yours to point at Vercel?
