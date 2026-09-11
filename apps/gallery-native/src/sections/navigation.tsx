@@ -6,7 +6,7 @@
  */
 import * as React from 'react';
 import { Text, View } from 'react-native';
-import { AppBar, BottomNav, Modal, Sheet, Tabs } from '@hg/ui-native';
+import { AppBar, BottomNav, Icon, Modal, Sheet, Tabs, useTheme } from '@hg/ui-native';
 import type { AppBarVariant, TabsVariant } from '@hg/ui-native';
 
 import { Case, ChromeButton, Column, Note, Section, Shelf, Subsection, useChrome } from '../chrome';
@@ -119,16 +119,44 @@ function AppBars() {
 
 /* ------------------------------------------------------------------------ bottom nav */
 
+/**
+ * `icon`/`activeIcon` pairs — the linear-inactive/bold-active convention BottomNav's own doc
+ * comment asks every call site to follow.
+ */
 const CUSTOMER_TABS = [
-  { key: 'browse', label: 'Browse', icon: <Glyph>⌂</Glyph> },
-  { key: 'search', label: 'Search', icon: <Glyph>⌕</Glyph> },
-  { key: 'orders', label: 'Orders', icon: <Glyph>▤</Glyph>, badge: 2, badgeNoun: 'active' },
-  { key: 'account', label: 'Account', icon: <Glyph>☺</Glyph> },
+  {
+    key: 'browse',
+    label: 'Browse',
+    icon: <Icon name="home" weight="linear" />,
+    activeIcon: <Icon name="home" weight="bold" />,
+  },
+  {
+    key: 'search',
+    label: 'Search',
+    icon: <Icon name="search" weight="linear" />,
+    activeIcon: <Icon name="search" weight="bold" />,
+  },
+  {
+    key: 'orders',
+    label: 'Orders',
+    icon: <Icon name="orders" weight="linear" />,
+    activeIcon: <Icon name="orders" weight="bold" />,
+    badge: 2,
+    badgeNoun: 'active',
+  },
+  {
+    key: 'account',
+    label: 'Account',
+    icon: <Icon name="profile" weight="linear" />,
+    activeIcon: <Icon name="profile" weight="bold" />,
+  },
 ];
 
 function BottomNavs() {
   const [active, setActive] = React.useState('orders');
+  const [actionActive, setActionActive] = React.useState(false);
   const [hidden, setHidden] = React.useState(false);
+  const theme = useTheme();
   return (
     <Subsection title="BottomNav">
       <Note>
@@ -136,8 +164,38 @@ function BottomNavs() {
         than sitting beside it as a node a screen reader meets on its own. `hidden` unmounts the bar
         entirely; it is set during checkout and during the rider offer sheet.
       </Note>
+      <Note>
+        <strong>Glass, not opaque</strong> — translucent chrome (`withAlpha` over
+        `surface.chrome`), not the old solid full-width bar. The first case below adds a{' '}
+        <strong>detached primary action</strong>: a soft-tint (never solid) orange circle that
+        floats above the pill, its icon swapping linear → bold on press — the &quot;too much on
+        the eyes&quot; note that moved it off a heavy fill in review.
+      </Note>
       <Shelf>
         <Column width={420}>
+          <Case
+            label="BottomNav — glass pill + detached action"
+            code='action={{ label: "New order", icon: <Icon name="plus" .../> }}'
+            fill
+          >
+            <BottomNav
+              items={CUSTOMER_TABS}
+              active={active}
+              onChange={setActive}
+              action={{
+                label: 'Start a new order',
+                icon: (
+                  <Icon
+                    name="plus"
+                    weight={actionActive ? 'bold' : 'linear'}
+                    color={theme.color.action.primary}
+                  />
+                ),
+                active: actionActive,
+                onPress: () => setActionActive((v) => !v),
+              }}
+            />
+          </Case>
           <Case label="BottomNav — live" code="active / onChange — press the tabs" fill>
             <BottomNav items={CUSTOMER_TABS} active={active} onChange={setActive} />
           </Case>

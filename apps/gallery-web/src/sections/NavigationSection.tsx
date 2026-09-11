@@ -201,10 +201,31 @@ export function NavigationSection() {
         name="SideNav"
         purpose="The persistent rail. Badges are folded into each item’s accessible name (“Halal review, 7 waiting”), and a disabled item carries the reason rather than leaving it to be guessed."
         declaredStates={['expanded', 'collapsed', 'active item', 'badge count', 'badge dot', 'disabled with reason']}
+        notes={
+          <>
+            <strong>Glass, not opaque.</strong> The rail is now a translucent surface
+            (<code>bg-surface-base/85</code>) with a real CSS <code>backdrop-blur</code>, mirroring
+            the RN <code>BottomNav</code>&apos;s glass pill. The active item is a{' '}
+            <strong>soft tint</strong> of the action-orange ramp (
+            <code>var(--hg-state-selected-tint)</code>) rather than the old solid{' '}
+            <code>bg-control-selected-bg</code> fill — that solid fill is still correct for a
+            small control swatch, but stretched across a whole nav row it was the same
+            &quot;too much on the eyes&quot; the RN action button moved off a heavy fill for. Put
+            something behind the rail (scroll the page under it) to see the blur.
+          </>
+        }
       >
         <Specimen label="Expanded and collapsed" wide>
           <Row align="start" gap="1.5rem">
-            <div className="h-96">
+            <div
+              className="h-96"
+              // A plain striped ground, purely so scrolling content is visible THROUGH the
+              // glass rail below — proof the rail is translucent + blurred, not just tinted.
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(135deg, var(--hg-surface-subtle) 0 16px, var(--hg-surface-base) 16px 32px)',
+              }}
+            >
               <SideNav
                 groups={NAV_GROUPS}
                 activeKey={activeNav}

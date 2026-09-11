@@ -13,6 +13,9 @@
 export { Button } from './Button';
 export type { ButtonProps, ButtonVariant, ButtonSize } from './Button';
 
+export { Icon, ICON_NAMES, SOLAR_ICON_IDS } from './Icon';
+export type { IconProps, IconName, IconWeight } from './Icon';
+
 export { IconButton } from './IconButton';
 export type { IconButtonProps, IconButtonVariant, IconButtonSize } from './IconButton';
 

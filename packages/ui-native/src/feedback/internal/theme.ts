@@ -134,6 +134,22 @@ function feedbackRole(theme: Theme, tone: 'info' | 'warning' | 'danger' | 'succe
   }
 }
 
+/**
+ * Applies alpha to a token colour, for the "glass" (translucent) surfaces —
+ * `navigation/BottomNav.tsx`'s pill and detached action button. Takes a 6-digit `#RRGGBB` (or an
+ * already-8-digit `#RRGGBBAA`, whose own alpha is discarded) TOKEN value — never a literal — and
+ * an alpha fraction, and returns the 8-digit RN-legal colour string. This is the same technique
+ * the token generator already used to produce `state.pressedOverlay` / `surface.scrim` (both are
+ * pre-baked 8-digit hex in `themes.ts`); this helper exists for the cases that need a *runtime*
+ * alpha the generator did not pre-bake — an existing surface role dimmed to look like frosted
+ * glass, not a new colour.
+ */
+export function withAlpha(hex: string, alpha: number): string {
+  const base = hex.length >= 7 ? hex.slice(0, 7) : hex;
+  const clamped = Math.round(Math.min(1, Math.max(0, alpha)) * 255);
+  return `${base}${clamped.toString(16).padStart(2, '0').toUpperCase()}`;
+}
+
 /** The readable colour to draw on top of a tone's `solid`. */
 export function onSolid(theme: Theme, tone: StatusTone): string {
   if (tone === 'brand') return theme.color.text.onBrand;

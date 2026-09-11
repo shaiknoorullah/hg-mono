@@ -10,6 +10,8 @@ import {
   Checkbox,
   Chip,
   Divider,
+  Icon,
+  ICON_NAMES,
   IconButton,
   Input,
   Popover,
@@ -74,7 +76,7 @@ export function PrimitivesSection() {
     <Section
       id="primitives"
       title="Tier 1 — Primitives"
-      blurb="The foundation. Sixteen components, none of which knows anything about halal, orders or money — everything above this tier is composed out of these."
+      blurb="The foundation. Sixteen components plus the Solar Icon primitive, none of which knows anything about halal, orders or money — everything above this tier is composed out of these. A Plus Jakarta Sans type specimen sits alongside Icon since both are new foundation-level wiring, not components in their own right."
       source="packages/ui-web/src/primitives/"
     >
       <Note>
@@ -86,6 +88,73 @@ export function PrimitivesSection() {
         <code>primary</code> button and then at the Contrast readout section, which has something
         to say about that particular pair.
       </Note>
+
+      {/* ---------------------------------------------------------------- */}
+      <ComponentBlock
+        name="Icon"
+        purpose="The Solar icon primitive (@iconify-json/solar via @iconify/react). Fourteen curated semantic names — the cross-platform contract with @hg/ui-native's Icon, which resolves the same ids through react-native-svg."
+        declaredStates={['linear (inactive)', 'bold (active)']}
+      >
+        <Specimen
+          label="Every semantic name — linear beside bold"
+          wide
+          caption="Convention: linear = inactive, bold = active — the same rule BottomNav's tabs and the SideNav rail read weight by. Colour here is secondary (fg-secondary vs the action orange); the shape itself is what's supposed to carry the state."
+        >
+          {/*
+            `repeat(auto-fill, minmax(...))` rather than `sm:`/`lg:` responsive classes — this
+            repo's Tailwind v4 build emits `@media (width >= var(--hg-breakpoint-*))`, which is
+            invalid CSS (`var()` is illegal in a media condition, CLAUDE.md §8), so those
+            breakpoints are inert. `SpecimenGrid` (../gallery/kit.tsx) already works around the
+            same bug the same way.
+          */}
+          <div
+            className="grid gap-x-8 gap-y-4"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(11rem, 100%), 1fr))' }}
+          >
+            {ICON_NAMES.map((name) => (
+              <div key={name} className="flex items-center gap-3">
+                <span className="flex items-center gap-2 text-fg-secondary">
+                  <Icon name={name} weight="linear" size={24} />
+                  <Icon name={name} weight="bold" size={24} className="text-action-primary-bg" />
+                </span>
+                <code className="text-mono-sm text-fg-tertiary">{name}</code>
+              </div>
+            ))}
+          </div>
+        </Specimen>
+        <Specimen label="Sizes — 16 · 20 · 24 · 32 · 48 (icon.sm…icon.2xl)">
+          <Row gap="1rem">
+            {[16, 20, 24, 32, 48].map((size) => (
+              <Icon key={size} name="star" weight="bold" size={size} className="text-action-primary-bg" />
+            ))}
+          </Row>
+        </Specimen>
+      </ComponentBlock>
+
+      {/* ---------------------------------------------------------------- */}
+      <ComponentBlock
+        name="Typography — Plus Jakarta Sans"
+        purpose="--hg-font-ui now resolves to 'Plus Jakarta Sans Variable' (self-hosted via @fontsource-variable/plus-jakarta-sans, imported in styles/globals.css), the old system-font stack surviving as the fallback chain. No type-scale value changed — every text-* utility below already read this token before this package added a real face behind it."
+        declaredStates={['display', 'heading', 'body', 'label']}
+      >
+        <Specimen
+          label="The scale, in the live font"
+          wide
+          caption="If this reads as the platform system font instead of a geometric grotesque, the @fontsource import failed to resolve — check the network tab for the plus-jakarta-sans-*.woff2 requests."
+        >
+          <Stack gap="0.75rem">
+            <p className="text-display-lg text-fg-primary">Halal Goes</p>
+            <p className="text-heading-lg text-fg-primary">Karachi Kitchen — verified halal</p>
+            <p className="max-w-prose text-body-md text-fg-secondary">
+              Every order is priced by the server, decomposed to zero residual, and paired to a
+              live H1–H7 certification instrument.
+            </p>
+            <p className="text-label-md text-fg-tertiary">
+              PLUS JAKARTA SANS &middot; WEIGHTS 400 / 600 / 700
+            </p>
+          </Stack>
+        </Specimen>
+      </ComponentBlock>
 
       {/* ---------------------------------------------------------------- */}
       <ComponentBlock
