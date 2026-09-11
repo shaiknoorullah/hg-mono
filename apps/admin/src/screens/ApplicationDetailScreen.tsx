@@ -20,6 +20,7 @@ import {
   DataTable,
   EmptyState,
   ErrorState,
+  Icon,
   Skeleton,
   type DataTableColumn,
 } from '@hg/ui-web';
@@ -121,8 +122,8 @@ export function ApplicationDetailScreen() {
 
   return (
     <section aria-labelledby="app-detail-heading" className="adm-stack">
-      <Button variant="tertiary" size="sm" onPress={() => navigate('/')}>
-        ← Back to queue
+      <Button variant="tertiary" size="sm" iconStart={<Icon name="back" size={16} />} onPress={() => navigate('/')}>
+        Back to queue
       </Button>
 
       {status === 'loading' ? (

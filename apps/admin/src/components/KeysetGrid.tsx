@@ -110,8 +110,26 @@ export function KeysetGrid<T>({
           events={
             onRowActivate
               ? {
-                  row: {
+                  // Wired on `cell`, deliberately not `row`. LyteNyte's row wrapper is a
+                  // zero-height, `pointer-events: none` positioning shim for unpinned rows
+                  // (`useRowStyle`: `height: isTranslated ? 0 : height`) — its own `onClick`
+                  // only ever fires by bubbling up from a cell, and it has no real hit-testable
+                  // geometry of its own (this is what made the row nav flaky: clicking near a
+                  // row edge, or any programmatic click on the row element itself, could land
+                  // outside any actionable target). Each `role="gridcell"` child is the real
+                  // interactive unit — full row height, `pointer-events: all`, `tabIndex: 0` —
+                  // so activation is wired there for both pointer and keyboard, giving reliable
+                  // click *and* keyboard Enter (a cell is natively in the tab order; arrow keys
+                  // already move focus between cells/rows via LyteNyte's built-in range
+                  // selection, so Tab + Enter reaches and activates any row without a custom
+                  // roving-tabindex implementation here).
+                  cell: {
                     click: ({ row }) => {
+                      const data = row.kind === 'leaf' ? row.data : null;
+                      if (data != null) onRowActivate(data);
+                    },
+                    keyDown: ({ event, row }) => {
+                      if (event.key !== 'Enter') return;
                       const data = row.kind === 'leaf' ? row.data : null;
                       if (data != null) onRowActivate(data);
                     },

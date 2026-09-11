@@ -24,6 +24,7 @@ import {
   EmptyState,
   ErrorState,
   HalalChecklist,
+  Icon,
   Skeleton,
   useToast,
   type HalalApprovalGate,
@@ -136,8 +137,8 @@ export function HalalVerificationScreen() {
 
   return (
     <section aria-labelledby="halal-heading" className="adm-stack">
-      <Button variant="tertiary" size="sm" onPress={() => navigate(-1)}>
-        ← Back
+      <Button variant="tertiary" size="sm" iconStart={<Icon name="back" size={16} />} onPress={() => navigate(-1)}>
+        Back
       </Button>
 
       <h1 id="halal-heading" className="text-title-md text-fg-primary">

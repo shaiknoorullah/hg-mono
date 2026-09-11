@@ -25,33 +25,48 @@
     min-height: 100vh;
   }
 
-  .adm-header {
-    display: flex;
-    align-items: center;
-    gap: var(--hg-space-6);
-    border-block-end: 1px solid var(--hg-border-decorative);
-    background-color: var(--hg-surface-base);
-    padding: var(--hg-space-4) var(--hg-space-6);
+  /* `AppShell` (@hg/ui-web) owns the shell's own flex/landmark layout now; this class only
+     needs to make sure it can actually stretch to fill the admin theme wrapper around it. */
+  .adm-app-shell {
+    flex: 1;
   }
 
   .adm-brand {
     text-decoration: none;
   }
 
-  .adm-nav {
-    display: flex;
-    gap: var(--hg-space-2);
-  }
-
+  /* Still used by in-screen toolbar controls that aren't a full `Button` (e.g. the orders
+     grid's inline "Search" trigger) — not by the top-level nav any more (that's `SideNav`). */
   .adm-nav-link {
     padding: var(--hg-space-1) var(--hg-space-3);
     border-radius: var(--hg-radius-sm);
     color: var(--hg-text-secondary);
     text-decoration: none;
     font: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--hg-space-1);
   }
 
-  .adm-nav-link[aria-current='page'] {
+  /* Sign-out control in the `SideNav` footer — same shape as a nav row, not quite a `Button`
+     (it isn't a page action, it's chrome), so it keeps the nav-row treatment. */
+  .adm-signout {
+    display: flex;
+    align-items: center;
+    gap: var(--hg-space-2);
+    width: 100%;
+    min-height: 2.75rem;
+    padding: var(--hg-space-2) var(--hg-space-3);
+    border: none;
+    border-radius: var(--hg-radius-sm);
+    background: transparent;
+    color: var(--hg-text-secondary);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .adm-signout:hover {
     background-color: var(--hg-surface-sunken);
     color: var(--hg-text-primary);
   }

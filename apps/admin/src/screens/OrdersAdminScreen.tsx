@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { OrderState, Schema } from '@hg/api-client';
 import { HgApiError, isApiError } from '@hg/api-client';
-import { Chip, Input, useCursorPagination, type PageMeta } from '@hg/ui-web';
+import { Chip, Icon, Input, useCursorPagination, type PageMeta } from '@hg/ui-web';
 
 import { api } from '../lib/api.js';
 import { formatTimestamp, formatMoney } from '../lib/format.js';
@@ -97,6 +97,7 @@ export function OrdersAdminScreen() {
             void load();
           }}
         >
+          <Icon name="search" size={16} />
           Search
         </button>
       </div>
