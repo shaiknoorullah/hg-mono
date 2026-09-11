@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { isApiError, type Schema } from '@hg/api-client';
+import { Button, Chip, Icon, IconButton, Input, Textarea } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
-import { Button, Chip, FieldError, Input, Label } from './primitives';
-import { IconClose } from '../lib/icons';
 
 const DIETARY_TAGS: Exclude<Schema['DietaryTag'], 'HALAL_CERTIFIED'>[] = [
   'VEGETARIAN',
@@ -30,27 +29,38 @@ const ALLERGEN_TAGS: Schema['AllergenTag'][] = [
   'MUSTARD',
 ];
 
-function TagToggle<T extends string>({ value, options, onChange, tone }: { value: T[]; options: readonly T[]; onChange: (next: T[]) => void; tone: 'accent' | 'warning' }) {
+/**
+ * Real filter chips (`02-components.md` §10 `variant="filter"`) rather than the app's old
+ * hand-rolled toggle buttons — this is exactly the shape `@hg/ui-web`'s `Chip` primitive is
+ * for. `warning` tone for allergens (matches its danger-adjacent meaning); dietary tags use
+ * `neutral`, since there is no `accent` tone on this component (only `neutral | warning | veg
+ * | nonveg` — see `Chip`'s own header on why solid-green tones are deliberately absent).
+ */
+function TagToggle<T extends string>({
+  value,
+  options,
+  onChange,
+  tone,
+}: {
+  value: T[];
+  options: readonly T[];
+  onChange: (next: T[]) => void;
+  tone: 'neutral' | 'warning';
+}) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {options.map((opt) => {
         const active = value.includes(opt);
         return (
-          <button
-            type="button"
+          <Chip
             key={opt}
-            onClick={() => onChange(active ? value.filter((v) => v !== opt) : [...value, opt])}
-            className={
-              'rounded-[var(--r-pill)] px-2.5 py-1 text-[11px] font-bold transition-colors ' +
-              (active
-                ? tone === 'accent'
-                  ? 'bg-[var(--accent-600)] text-white'
-                  : 'bg-[var(--warning-600)] text-white'
-                : 'bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] text-[var(--ink2)]')
-            }
-          >
-            {opt.replace(/_/g, ' ')}
-          </button>
+            variant="filter"
+            tone={tone}
+            size="sm"
+            label={opt.replace(/_/g, ' ')}
+            selected={active}
+            onPress={() => onChange(active ? value.filter((v) => v !== opt) : [...value, opt])}
+          />
         );
       })}
     </div>
@@ -102,7 +112,7 @@ export function EditItemDialog({
   const [price, setPrice] = useState((Number(item.price_cents) / 100).toFixed(2));
   const [description, setDescription] = useState(item.description ?? '');
   const [ingredientsText, setIngredientsText] = useState(item.ingredients_text ?? '');
-  const [prepMinutes, setPrepMinutes] = useState(item.prep_minutes ?? 20);
+  const [prepMinutes, setPrepMinutes] = useState(String(item.prep_minutes ?? 20));
   const [dietaryTags, setDietaryTags] = useState<Exclude<Schema['DietaryTag'], 'HALAL_CERTIFIED'>[]>(
     (item.dietary_tags ?? []).filter((t): t is Exclude<Schema['DietaryTag'], 'HALAL_CERTIFIED'> => t !== 'HALAL_CERTIFIED'),
   );
@@ -126,7 +136,7 @@ export function EditItemDialog({
             price_cents: priceCents,
             description: description || undefined,
             ingredients_text: ingredientsText || undefined,
-            prep_minutes: prepMinutes,
+            prep_minutes: Number(prepMinutes) || undefined,
             dietary_tags: dietaryTags,
             allergen_tags: allergenTags,
             allergens_declared: true,
@@ -144,76 +154,48 @@ export function EditItemDialog({
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[min(520px,92vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--r)] bg-[var(--card)] p-6 shadow-[var(--shadow-3)]">
+        <Dialog.Overlay className="fixed inset-0 z-(--hg-z-modal) bg-surface-scrim" />
+        <Dialog.Content className="fixed start-1/2 top-1/2 z-(--hg-z-modal) max-h-[88vh] w-[min(520px,92vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-line-decorative bg-surface-raised p-6 shadow-e4">
           <div className="mb-1 flex items-start justify-between">
-            <Dialog.Title className="text-[16px] font-extrabold text-[var(--ink)]">Edit item</Dialog.Title>
-            <Dialog.Close className="rounded-full p-1 text-[var(--ink3)] hover:bg-[var(--hair)]">
-              <IconClose size={16} />
+            <Dialog.Title className="text-heading-sm font-semibold text-fg-primary">Edit item</Dialog.Title>
+            <Dialog.Close asChild>
+              <IconButton variant="plain" size="sm" accessibilityLabel="Close" icon={<Icon name="close" size={16} />} />
             </Dialog.Close>
           </div>
-          <p className="mb-4 text-[12px] text-[var(--ink2)]">
+          <p className="mb-4 text-body-sm text-fg-secondary">
             Price and prep time apply instantly. Name, description, ingredients and tags queue for admin review before
             customers see them — see the pending badge on the menu list.
           </p>
 
           <div className="space-y-4">
+            <Input label="Item name" required minLength={2} value={name} onChange={setName} />
+            <Input label="Price (CAD)" required variant="numeric" value={price} onChange={setPrice} />
+            <Input label="Prep time (min)" variant="numeric" value={prepMinutes} onChange={setPrepMinutes} />
+            <Textarea label="Description" rows={2} maxLength={600} value={description} onChange={setDescription} />
+            <Textarea label="Ingredients" rows={2} maxLength={1000} value={ingredientsText} onChange={setIngredientsText} />
+
             <div>
-              <Label htmlFor="edit-name">Item name</Label>
-              <Input id="edit-name" required minLength={2} value={name} onChange={(e) => setName(e.target.value)} />
+              <p className="mb-1.5 text-label-md text-fg-secondary">Dietary tags</p>
+              <TagToggle value={dietaryTags} options={DIETARY_TAGS} onChange={setDietaryTags} tone="neutral" />
+              <p className="mt-1 text-caption text-fg-tertiary">Halal certified is platform-derived and can't be set here.</p>
             </div>
             <div>
-              <Label htmlFor="edit-price">Price (CAD)</Label>
-              <Input id="edit-price" required type="number" step="0.01" min="0.5" max="500" value={price} onChange={(e) => setPrice(e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="edit-prep">Prep time (min)</Label>
-              <Input id="edit-prep" type="number" min={1} max={120} value={prepMinutes} onChange={(e) => setPrepMinutes(Number(e.target.value))} />
-            </div>
-            <div>
-              <Label htmlFor="edit-desc">Description</Label>
-              <textarea
-                id="edit-desc"
-                rows={2}
-                maxLength={600}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded-[var(--r-sm)] border border-[var(--hair)] bg-[var(--card)] px-3 py-2 text-[13.5px] outline-none focus:border-[var(--primary)]"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-ingredients">Ingredients</Label>
-              <textarea
-                id="edit-ingredients"
-                rows={2}
-                maxLength={1000}
-                value={ingredientsText}
-                onChange={(e) => setIngredientsText(e.target.value)}
-                className="w-full rounded-[var(--r-sm)] border border-[var(--hair)] bg-[var(--card)] px-3 py-2 text-[13.5px] outline-none focus:border-[var(--primary)]"
-              />
-            </div>
-            <div>
-              <Label>Dietary tags</Label>
-              <TagToggle value={dietaryTags} options={DIETARY_TAGS} onChange={setDietaryTags} tone="accent" />
-              <p className="mt-1 text-[11px] text-[var(--ink3)]">Halal certified is platform-derived and can't be set here.</p>
-            </div>
-            <div>
-              <Label>Allergens present</Label>
+              <p className="mb-1.5 text-label-md text-fg-secondary">Allergens present</p>
               <TagToggle value={allergenTags} options={ALLERGEN_TAGS} onChange={setAllergenTags} tone="warning" />
             </div>
 
             {item.variant_groups && item.variant_groups.length > 0 && (
               <div>
-                <Label>Variants (read-only)</Label>
-                <div className="space-y-2 rounded-[var(--r-sm)] border border-[var(--hair)] p-3">
+                <p className="mb-1.5 text-label-md text-fg-secondary">Variants (read-only)</p>
+                <div className="space-y-2 rounded-sm border border-line-decorative p-3">
                   {item.variant_groups.map((g) => (
                     <div key={g.id}>
-                      <p className="text-[12px] font-bold text-[var(--ink2)]">
-                        {g.name} {g.required && <Chip tone="neutral">Required</Chip>}
+                      <p className="flex items-center gap-1.5 text-label-sm font-bold text-fg-secondary">
+                        {g.name} {g.required && <Chip variant="static" tone="neutral" size="sm" label="Required" />}
                       </p>
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {g.variants.map((v) => (
-                          <span key={v.id} className="rounded-[var(--r-pill)] bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] px-2 py-0.5 text-[11px] text-[var(--ink2)]">
+                          <span key={v.id} className="rounded-full bg-surface-subtle px-2 py-0.5 text-label-sm text-fg-secondary">
                             {v.name}
                             {v.pricing_mode === 'DELTA' && v.delta_cents != null ? ` (+${(Number(v.delta_cents) / 100).toFixed(2)})` : ''}
                             {v.pricing_mode === 'ABSOLUTE' && v.price_cents != null ? ` (${(Number(v.price_cents) / 100).toFixed(2)})` : ''}
@@ -223,16 +205,20 @@ export function EditItemDialog({
                     </div>
                   ))}
                 </div>
-                <p className="mt-1 text-[11px] text-[var(--ink3)]">
+                <p className="mt-1 text-caption text-fg-tertiary">
                   Variant editing isn't in the API contract yet — this app can only display what the backend already
                   has.
                 </p>
               </div>
             )}
 
-            <FieldError>{error}</FieldError>
+            {error ? (
+              <p role="alert" className="text-body-sm text-feedback-danger-text">
+                {error}
+              </p>
+            ) : null}
 
-            <Button className="w-full" loading={busy} onClick={submit} disabled={!name || !price}>
+            <Button fullWidth loading={busy} onPress={() => void submit()} disabled={!name || !price}>
               Save changes
             </Button>
           </div>

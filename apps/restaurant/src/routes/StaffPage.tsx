@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import type { Schema } from '@hg/api-client';
-import { Button, Card, Chip, EmptyState, FieldError, Input, Label } from '../components/primitives';
-import { IconAlert, IconPlus, IconTrash, IconUsers } from '../lib/icons';
+import { Button, Card, EmptyState, Icon, IconButton, Input, Select } from '@hg/ui-web';
+import { StatusChip } from '../components/StatusChip';
+import { IconAlert, IconTrash, IconUsers } from '../lib/icons';
 
 /**
  * Restaurant-scoped staff management has no backend surface: `contracts/openapi.yaml`
@@ -79,34 +80,29 @@ function InviteForm({ onAdd }: { onAdd: (member: LocalStaffMember) => void }) {
   }
 
   return (
-    <Card className="p-5">
-      <h2 className="mb-3 text-[14px] font-extrabold text-[var(--ink)]">Add a team member</h2>
-      <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_140px_auto]">
-        <div>
-          <Label htmlFor="staff-name">Full name</Label>
-          <Input id="staff-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Amina Rahman" />
-        </div>
-        <div>
-          <Label htmlFor="staff-email">Email</Label>
-          <Input id="staff-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="amina@restaurant.ca" />
-        </div>
-        <div>
-          <Label htmlFor="staff-role">Role</Label>
-          <select
-            id="staff-role"
-            className="h-11 w-full rounded-[var(--r-sm)] border border-[var(--hair)] bg-[var(--card)] px-3 text-[13.5px] outline-none focus:border-[var(--primary)]"
-            value={role}
-            onChange={(e) => setRole(e.target.value as LocalRole)}
-          >
-            <option value="RESTAURANT_MANAGER">Manager</option>
-            <option value="RESTAURANT_STAFF">Staff</option>
-          </select>
-        </div>
-        <Button type="submit" className="self-end">
-          <IconPlus size={15} /> Add
+    <Card>
+      <h2 className="mb-3 text-label-lg font-extrabold text-fg-primary">Add a team member</h2>
+      <form onSubmit={submit} className="grid grid-cols-1 items-start gap-3 sm:grid-cols-[1fr_1fr_140px_auto]">
+        <Input label="Full name" value={fullName} onChange={setFullName} placeholder="Amina Rahman" />
+        <Input label="Email" variant="email" value={email} onChange={setEmail} placeholder="amina@restaurant.ca" />
+        <Select
+          label="Role"
+          value={role}
+          onChange={(v) => setRole(v as LocalRole)}
+          options={[
+            { value: 'RESTAURANT_MANAGER', label: 'Manager' },
+            { value: 'RESTAURANT_STAFF', label: 'Staff' },
+          ]}
+        />
+        <Button type="submit" className="self-end" iconStart={<Icon name="plus" size={15} />}>
+          Add
         </Button>
       </form>
-      <FieldError>{error}</FieldError>
+      {error ? (
+        <p role="alert" className="mt-2 text-caption font-semibold text-feedback-danger-text">
+          {error}
+        </p>
+      ) : null}
     </Card>
   );
 }
@@ -129,13 +125,13 @@ export function StaffPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <header className="mb-6">
-        <h1 className="flex items-center gap-2 text-[20px] font-extrabold text-[var(--ink)]">
+        <h1 className="flex items-center gap-2 text-heading-md font-extrabold text-fg-primary">
           <IconUsers size={20} /> Staff
         </h1>
-        <p className="text-[13px] text-[var(--ink2)]">Who can accept orders, edit the menu and adjust hours for this location.</p>
+        <p className="text-body-sm text-fg-secondary">Who can accept orders, edit the menu and adjust hours for this location.</p>
       </header>
 
-      <div className="mb-5 flex items-start gap-3 rounded-[var(--r-sm)] border border-[var(--warning-50)] bg-[var(--warning-50)] px-4 py-3 text-[12.5px] text-[var(--warning-700)]">
+      <div className="mb-5 flex items-start gap-3 rounded-sm border border-feedback-warning-border bg-feedback-warning-tint px-4 py-3 text-caption text-feedback-warning-text">
         <IconAlert size={17} />
         <p>
           This roster is kept in this browser only. The API contract has no restaurant-scoped staff endpoint yet — see
@@ -147,13 +143,18 @@ export function StaffPage() {
 
       <div className="mt-5">
         {roster.length === 0 ? (
-          <EmptyState icon={<IconUsers size={32} />} title="No team members yet" description="Add a manager or staff member above." />
+          <EmptyState
+            illustration={<IconUsers size={32} />}
+            title="No team members yet"
+            description="Add a manager or staff member above."
+            variant="inline"
+          />
         ) : (
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden" padding="0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] border-collapse text-left">
+              <table className="w-full min-w-[520px] border-collapse text-start">
                 <thead>
-                  <tr className="border-b border-[var(--hair)] text-[11.5px] font-bold uppercase tracking-wide text-[var(--ink3)]">
+                  <tr className="border-b border-line-decorative text-label-sm font-bold uppercase tracking-wide text-fg-tertiary">
                     <th className="px-5 py-3">Name</th>
                     <th className="px-5 py-3">Email</th>
                     <th className="px-5 py-3">Role</th>
@@ -162,20 +163,20 @@ export function StaffPage() {
                 </thead>
                 <tbody>
                   {roster.map((m) => (
-                    <tr key={m.id} className="border-b border-[var(--hair)] last:border-0">
-                      <td className="px-5 py-3.5 text-[13px] font-semibold text-[var(--ink)]">{m.full_name}</td>
-                      <td className="px-5 py-3.5 text-[13px] text-[var(--ink2)]">{m.email}</td>
+                    <tr key={m.id} className="border-b border-line-decorative last:border-0">
+                      <td className="px-5 py-3.5 text-body-sm font-semibold text-fg-primary">{m.full_name}</td>
+                      <td className="px-5 py-3.5 text-body-sm text-fg-secondary">{m.email}</td>
                       <td className="px-5 py-3.5">
-                        <Chip tone="accent">{ROLE_LABEL[m.role]}</Chip>
+                        <StatusChip tone="accent">{ROLE_LABEL[m.role]}</StatusChip>
                       </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => removeMember(m.id)}
-                          className="rounded-[var(--r-sm)] p-2 text-[var(--ink3)] transition-colors hover:bg-[var(--danger-50)] hover:text-[var(--danger-600)]"
-                          aria-label={`Remove ${m.full_name}`}
-                        >
-                          <IconTrash size={16} />
-                        </button>
+                      <td className="px-5 py-3.5 text-end">
+                        <IconButton
+                          variant="plain"
+                          size="sm"
+                          accessibilityLabel={`Remove ${m.full_name}`}
+                          icon={<IconTrash size={16} />}
+                          onPress={() => removeMember(m.id)}
+                        />
                       </td>
                     </tr>
                   ))}

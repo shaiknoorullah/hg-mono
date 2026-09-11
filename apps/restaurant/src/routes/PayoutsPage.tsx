@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { unwrap, type Schema } from '@hg/api-client';
+import { Button, Card, EmptyState, ErrorState, Icon } from '@hg/ui-web';
 import { api } from '../lib/apiHelpers';
 import { useAsync } from '../lib/useAsync';
 import { useAuth } from '../lib/auth';
-import { Button, Card, Chip, EmptyState, ErrorState, PageLoading } from '../components/primitives';
-import { IconWallet, IconLock } from '../lib/icons';
+import { PageLoading } from '../components/PageLoading';
+import { StatusChip, type StatusChipTone } from '../components/StatusChip';
+import { IconWallet } from '../lib/icons';
 
 /** See the note in OrdersPage.tsx re: the `Cents` brand not surviving openapi-fetch. */
 function money(value: unknown) {
@@ -28,7 +30,7 @@ const STATE_LABEL: Record<Schema['PayoutState'], string> = {
   HELD: 'Held',
 };
 
-function stateTone(state: Schema['PayoutState']): 'accent' | 'warning' | 'danger' | 'neutral' {
+function stateTone(state: Schema['PayoutState']): StatusChipTone {
   if (state === 'PAID' || state === 'TRANSFERRED') return 'accent';
   if (state === 'HELD') return 'warning';
   if (state === 'FAILED') return 'danger';
@@ -65,7 +67,7 @@ export function PayoutsPage() {
       return (
         <div className="p-4 sm:p-6 lg:p-8">
           <EmptyState
-            icon={<IconLock size={32} />}
+            illustration={<Icon name="close" size={32} />}
             title="Payouts are visible to the account owner"
             description="Your role (manager) can run the kitchen, but weekly payout history is restricted to the restaurant's owner account for financial-privacy reasons. Ask the owner to check this page, or sign in with the owner account."
           />
@@ -86,28 +88,28 @@ export function PayoutsPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-[20px] font-extrabold text-[var(--ink)]">
+          <h1 className="flex items-center gap-2 text-heading-md font-extrabold text-fg-primary">
             <IconWallet size={20} /> Payouts
           </h1>
-          <p className="text-[13px] text-[var(--ink2)]">Weekly, every Monday, automatic — no minimum balance required.</p>
+          <p className="text-body-sm text-fg-secondary">Weekly, every Monday, automatic — no minimum balance required.</p>
         </div>
-        <Button variant="secondary" onClick={reload}>
+        <Button variant="secondary" onPress={reload}>
           Refresh
         </Button>
       </header>
 
       {payouts.length === 0 ? (
         <EmptyState
-          icon={<IconWallet size={32} />}
+          illustration={<IconWallet size={32} />}
           title="No payouts yet"
           description="Your first weekly payout appears here once you've completed orders in a settlement window."
         />
       ) : (
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden" padding="0">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] border-collapse text-left">
+            <table className="w-full min-w-[560px] border-collapse text-start">
               <thead>
-                <tr className="border-b border-[var(--hair)] text-[11.5px] font-bold uppercase tracking-wide text-[var(--ink3)]">
+                <tr className="border-b border-line-decorative text-label-sm font-bold uppercase tracking-wide text-fg-tertiary">
                   <th className="px-5 py-3">Period</th>
                   <th className="px-5 py-3">Orders</th>
                   <th className="px-5 py-3">Amount</th>
@@ -117,20 +119,22 @@ export function PayoutsPage() {
               </thead>
               <tbody>
                 {payouts.map((p) => (
-                  <tr key={p.id} className="border-b border-[var(--hair)] last:border-0">
-                    <td className="px-5 py-3.5 text-[13px] font-semibold text-[var(--ink)]">
+                  <tr key={p.id} className="border-b border-line-decorative last:border-0">
+                    <td className="px-5 py-3.5 text-body-sm font-semibold text-fg-primary">
                       {formatDate(p.period_start)} – {formatDate(p.period_end)}
                     </td>
-                    <td className="px-5 py-3.5 text-[13px] text-[var(--ink2)]">{p.entry_count ?? '—'}</td>
-                    <td className="px-5 py-3.5 text-[13px] font-extrabold tabular-nums text-[var(--ink)]">{money(p.amount_cents)}</td>
+                    <td className="px-5 py-3.5 text-body-sm text-fg-secondary">{p.entry_count ?? '—'}</td>
+                    <td data-hg-numeric="tabular" className="px-5 py-3.5 text-body-sm font-extrabold text-fg-primary">
+                      {money(p.amount_cents)}
+                    </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex flex-col gap-1">
-                        <Chip tone={stateTone(p.state)}>{STATE_LABEL[p.state]}</Chip>
-                        {p.state === 'HELD' && p.hold_reason && <span className="text-[11px] text-[var(--warning-700)]">{p.hold_reason}</span>}
-                        {p.state === 'FAILED' && p.failure_message && <span className="text-[11px] text-[var(--danger-700)]">{p.failure_message}</span>}
+                      <div className="flex flex-col items-start gap-1">
+                        <StatusChip tone={stateTone(p.state)}>{STATE_LABEL[p.state]}</StatusChip>
+                        {p.state === 'HELD' && p.hold_reason && <span className="text-caption text-feedback-warning-text">{p.hold_reason}</span>}
+                        {p.state === 'FAILED' && p.failure_message && <span className="text-caption text-feedback-danger-text">{p.failure_message}</span>}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-[12.5px] text-[var(--ink2)]">{p.paid_at ? formatDate(p.paid_at) : '—'}</td>
+                    <td className="px-5 py-3.5 text-caption text-fg-secondary">{p.paid_at ? formatDate(p.paid_at) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -141,10 +145,10 @@ export function PayoutsPage() {
 
       {(cursorStack.length > 1 || nextCursor) && (
         <div className="mt-4 flex items-center justify-center gap-3">
-          <Button variant="secondary" disabled={cursorStack.length <= 1} onClick={() => setCursorStack((s) => s.slice(0, -1))}>
+          <Button variant="secondary" disabled={cursorStack.length <= 1} onPress={() => setCursorStack((s) => s.slice(0, -1))}>
             Newer
           </Button>
-          <Button variant="secondary" disabled={!nextCursor} onClick={() => setCursorStack((s) => [...s, nextCursor])}>
+          <Button variant="secondary" disabled={!nextCursor} onPress={() => setCursorStack((s) => [...s, nextCursor])}>
             Older
           </Button>
         </div>

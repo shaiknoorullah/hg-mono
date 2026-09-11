@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import * as Switch from '@radix-ui/react-switch';
 import { isApiError, type Schema } from '@hg/api-client';
+import { Button, Card, EmptyState, ErrorState, Icon, IconButton, cx } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
 import { useAsync } from '../lib/useAsync';
-import { Button, Card, Chip, EmptyState, ErrorState, PageLoading } from '../components/primitives';
-import { IconEdit, IconMenuBook, IconPlus } from '../lib/icons';
+import { PageLoading } from '../components/PageLoading';
+import { StatusChip } from '../components/StatusChip';
+import { IconEdit, IconMenuBook } from '../lib/icons';
 import { AddItemDialog } from '../components/AddItemDialog';
 import { EditItemDialog, type EditableMenuItem } from '../components/EditItemDialog';
 
@@ -62,24 +64,20 @@ export function MenuPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-[20px] font-extrabold text-[var(--ink)]">Menu</h1>
-          <p className="text-[13px] text-[var(--ink2)]">Out-of-stock and hidden items stay listed — they just can't be added to a cart.</p>
+          <h1 className="text-heading-md font-extrabold text-fg-primary">Menu</h1>
+          <p className="text-body-sm text-fg-secondary">Out-of-stock and hidden items stay listed — they just can't be added to a cart.</p>
         </div>
-        <Button onClick={() => setAddOpen(true)}>
-          <IconPlus size={15} /> Add item
+        <Button iconStart={<Icon name="plus" size={15} />} onPress={() => setAddOpen(true)}>
+          Add item
         </Button>
       </header>
 
       {categories.length === 0 ? (
         <EmptyState
-          icon={<IconMenuBook size={32} />}
+          illustration={<IconMenuBook size={32} />}
           title="No categories yet"
           description="Add your first category and item to get one step closer to going live."
-          action={
-            <Button onClick={() => setAddOpen(true)}>
-              <IconPlus size={15} /> Add your first item
-            </Button>
-          }
+          primaryAction={{ label: 'Add your first item', onPress: () => setAddOpen(true) }}
         />
       ) : (
         <div className="flex gap-6">
@@ -91,60 +89,64 @@ export function MenuPage() {
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={
-                    'flex w-full items-center justify-between rounded-[var(--r-sm)] px-3 py-2.5 text-left text-[13px] font-bold transition-colors ' +
-                    ((activeCategory ?? categories[0]?.id) === cat.id
-                      ? 'bg-[var(--accent-50)] text-[var(--accent-700)]'
-                      : 'text-[var(--ink2)] hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]')
-                  }
+                  className={cx(
+                    'flex w-full items-center justify-between rounded-sm px-3 py-2.5 text-start text-label-md font-bold hg-focus-inset',
+                    (activeCategory ?? categories[0]?.id) === cat.id
+                      ? 'bg-[var(--hg-state-selected-tint)] text-fg-primary'
+                      : 'text-fg-secondary hover:bg-surface-subtle',
+                  )}
                 >
                   <span className="truncate">{cat.name}</span>
-                  {!cat.is_active && <Chip tone="neutral">Off</Chip>}
+                  {!cat.is_active && <StatusChip tone="neutral">Off</StatusChip>}
                 </button>
               ))}
           </nav>
 
           <div className="min-w-0 flex-1 space-y-3">
             {(selected?.items ?? []).length === 0 && (
-              <EmptyState title="No items in this category" description="Add an item to fill it in." />
+              <EmptyState title="No items in this category" description="Add an item to fill it in." variant="inline" />
             )}
             {(selected?.items ?? []).map((item) => (
-              <Card key={item.id} className="flex items-center gap-4 p-4">
+              <Card key={item.id} className="flex items-center gap-4">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-[14px] font-bold text-[var(--ink)]">{item.name}</p>
-                    {item.availability_state === 'BLOCKED' && <Chip tone="danger">Blocked by admin</Chip>}
-                    {item.availability_state === 'HIDDEN' && <Chip tone="neutral">Hidden</Chip>}
-                    {item.dietary_tags?.includes('HALAL_CERTIFIED') && <Chip tone="halal">Halal certified</Chip>}
-                    {item.pending_version && <Chip tone="warning">Edit pending review</Chip>}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-label-lg font-bold text-fg-primary">{item.name}</p>
+                    {item.availability_state === 'BLOCKED' && <StatusChip tone="danger">Blocked by admin</StatusChip>}
+                    {item.availability_state === 'HIDDEN' && <StatusChip tone="neutral">Hidden</StatusChip>}
+                    {/* Not `HalalBadge`: every listing on this platform is already halal-certified
+                        (the certification tier's job is proving that claim once, not tagging
+                        individual items), so this is a plain informational label, never a
+                        second, redundant green seal (RULE H-1 / lint L-4). */}
+                    {item.dietary_tags?.includes('HALAL_CERTIFIED') && <StatusChip tone="neutral">Halal certified</StatusChip>}
+                    {item.pending_version && <StatusChip tone="warning">Edit pending review</StatusChip>}
                     {(item.variant_groups?.length ?? 0) > 0 && (
-                      <Chip tone="neutral">
+                      <StatusChip tone="neutral">
                         {item.variant_groups!.length} variant group{item.variant_groups!.length === 1 ? '' : 's'}
-                      </Chip>
+                      </StatusChip>
                     )}
                   </div>
-                  <p className="truncate text-[12.5px] text-[var(--ink2)]">{item.description}</p>
-                  <p className="mt-1 text-[13px] font-extrabold text-[var(--ink)]">{money(item.price_cents)}</p>
+                  <p className="truncate text-body-sm text-fg-secondary">{item.description}</p>
+                  <p className="mt-1 text-label-md font-extrabold text-fg-primary">{money(item.price_cents)}</p>
                 </div>
                 <div className="flex flex-none items-center gap-3">
-                  <span className="text-[11.5px] font-bold text-[var(--ink2)]">
+                  <span className="text-label-sm font-bold text-fg-secondary">
                     {item.availability_state === 'AVAILABLE' ? 'Available' : 'Out of stock'}
                   </span>
                   <Switch.Root
                     checked={item.availability_state === 'AVAILABLE'}
                     disabled={busyItem === item.id || item.availability_state === 'BLOCKED' || item.availability_state === 'HIDDEN'}
                     onCheckedChange={() => toggleAvailability(item)}
-                    className="relative h-6 w-11 rounded-full bg-[var(--hair)] outline-none transition-colors data-[state=checked]:bg-[var(--accent-600)] disabled:opacity-50"
+                    className="relative h-6 w-11 rounded-full bg-surface-subtle outline-none transition-colors data-[state=checked]:bg-action-primary-bg disabled:opacity-50"
                   >
-                    <Switch.Thumb className="block h-5 w-5 translate-x-0.5 rounded-full bg-white shadow-[var(--shadow-1)] transition-transform duration-200 data-[state=checked]:translate-x-[22px]" />
+                    <Switch.Thumb className="block h-5 w-5 translate-x-0.5 rounded-full bg-white shadow-e1 transition-transform duration-200 data-[state=checked]:translate-x-[22px]" />
                   </Switch.Root>
-                  <button
-                    onClick={() => setEditItem(item)}
-                    className="rounded-[var(--r-sm)] p-2 text-[var(--ink3)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-[var(--ink)]"
-                    aria-label={`Edit ${item.name}`}
-                  >
-                    <IconEdit size={16} />
-                  </button>
+                  <IconButton
+                    variant="plain"
+                    size="sm"
+                    accessibilityLabel={`Edit ${item.name}`}
+                    icon={<IconEdit size={16} />}
+                    onPress={() => setEditItem(item)}
+                  />
                 </div>
               </Card>
             ))}
