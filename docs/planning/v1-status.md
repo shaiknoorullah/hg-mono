@@ -94,27 +94,28 @@ Mapbox needs a dev build + token).
 - Receipt-writer consumption of the O-01 tax fields end-to-end (values now flow to the store;
   the snapshot writer stamping them onto the persisted receipt is the remaining wire).
 
-## HUMAN-BLOCKED — these gate LAUNCH, not code (only you/the client can unblock)
+## LAUNCH GATES — status (client-side)
 
-No amount of further code moves these:
-- **O-03 SMS / A2P 10DLC** — for universal Canadian coverage (not everyone has WhatsApp), phone
-  **SMS** OTP still needs A2P. **Longest lead time — keep it moving.** BUT this is **no longer a
-  hard sign-in blocker**: a **Twilio Verify WhatsApp OTP path is now built** (`4827f53`,
-  `HG_OTP_PROVIDER=twilio_verify`, WhatsApp-verified via Meta — a separate track from carrier
-  A2P), so you can pilot/QA real OTP sign-in **today** and add SMS as a one-word fallback when
-  A2P clears. `TwilioSMSSender` (Messaging) is also built for when A2P lands. Both refuse to boot
-  without their creds. _Interim gap: WhatsApp-only excludes non-WhatsApp users — SMS closes that._
-- **Stripe live account + keys** — real charges. (Live/fake is a `Configured()` gate.)
-- **O-01 HST registration** — legal basis to charge tax. (Tax is already computed; wave 5 wired
-  `HG_TAX_HST_REGISTRATION_NUMBER` / `HG_TAX_PLATFORM_LEGAL_NAME` through to the order store,
-  rendered only when set.)
-- **O-04** refund liability · **O-05** launch province (default Ontario) · **O-06** self-declared
-  halal (default hide) — product decisions; defaults coded.
-- ~~Real Mapbox token~~ **DONE** — two public `pk.` tokens placed (admin `VITE_MAPBOX_TOKEN`,
-  mobile `EXPO_PUBLIC_MAPBOX_TOKEN`, in gitignored env). API-verified: admin token renders from
-  `localhost:5173` and its **URL restriction is enforced** on tile requests (disallowed origin →
-  403); mobile token valid/unrestricted (native SDKs can't restrict). Mobile map *wiring* still
-  needs an Expo dev build.
+### ✅ Resolved since rc1
+- **Mapbox** — two public `pk.` tokens placed (admin `VITE_MAPBOX_TOKEN`, mobile
+  `EXPO_PUBLIC_MAPBOX_TOKEN`, gitignored env). API-verified: admin renders from `localhost:5173`
+  and its URL restriction is enforced on tile requests (disallowed origin → 403). Mobile map
+  *wiring* still needs an Expo dev build.
+- **O-01 HST** — registration number provided (`728591827RT0001`), staged in `deploy/.env`;
+  wired to the receipt, rendered only when set. Tax already computed.
+- **O-04 / O-05 / O-06 product decisions — SETTLED** (see `docs/decisions/`): O-05 Ontario only
+  (13% HST); O-04 **by-fault refunds — already coded** in `ComputeLiabilitySplit`; O-06
+  **hide-entirely** (default; filter-gated declined to keep the core halal promise). All zero-code.
+- **OTP sign-in — no longer a hard blocker**: **Twilio Verify WhatsApp OTP is built** (`4827f53`,
+  `HG_OTP_PROVIDER=twilio_verify`, Verify service `VA…` staged) — WhatsApp works today
+  (Meta-verified, separate track from carrier A2P). Pilot/QA real sign-in now.
+
+### ⛔ Still open (only two hard client items)
+- **O-03 SMS / A2P 10DLC** — needed for **universal** coverage (non-WhatsApp users), NOT for
+  sign-in to function (WhatsApp covers that now). Longest lead time — keep it moving; flip is
+  `HG_SMS_PROVIDER=twilio` + creds (`TwilioSMSSender` built) or Verify's SMS channel.
+- **Stripe live account + keys** — real charges. Live/fake is a `Configured()` gate;
+  flip = `HG_STRIPE_SECRET_KEY` + `HG_STRIPE_WEBHOOK_SECRET`.
 - **Production hosting** — box/cluster + domain/DNS + TLS for Traefik.
 
 ## Honest completion estimate
