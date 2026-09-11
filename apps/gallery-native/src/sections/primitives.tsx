@@ -18,6 +18,8 @@ import {
   Chip,
   Divider,
   FilterChip,
+  Icon,
+  ICON_NAMES,
   IconButton,
   Input,
   Radio,
@@ -27,8 +29,10 @@ import {
   Spinner,
   Switch,
   Toast,
+  useTheme,
+  useTypeStyle,
 } from '@hg/ui-native';
-import type { ButtonSize, ButtonVariant } from '@hg/ui-native';
+import type { ButtonSize, ButtonVariant, IconName } from '@hg/ui-native';
 
 import { Case, Claim, Column, Mono, Note, Section, Shelf, Subsection } from '../chrome';
 import type { SectionMeta } from '../chrome';
@@ -762,11 +766,89 @@ function Toasts() {
   );
 }
 
+/* ----------------------------------------------------------------------------- icons */
+
+function Icons() {
+  const theme = useTheme();
+  return (
+    <Subsection title="Icon">
+      <Claim>
+        The Solar icon primitive, rendered as real SVG via `react-native-svg` (`CLAUDE.md` §8's
+        View-geometry deviation is reversed for product iconography — see `primitives/Icon.tsx`).
+        Convention: **linear = inactive, bold = active** — the same rule `BottomNav`'s tabs and
+        its detached action button read weight by (section 05). The whole ~28-icon subset
+        resolves from a build-time generated file, not the full ~7,700-icon Solar set — nothing
+        about this component touches the network.
+      </Claim>
+      <Shelf>
+        {(ICON_NAMES as readonly IconName[]).map((name) => (
+          <Case key={name} label={name} code={`weight="linear" / "bold"`}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Icon name={name} weight="linear" size={24} color={theme.color.text.secondary} />
+              <Icon name={name} weight="bold" size={24} color={theme.color.action.primary} />
+            </View>
+          </Case>
+        ))}
+      </Shelf>
+      <Shelf>
+        <Case label="Icon — sizes" code="icon.sm…icon.2xl (16 · 20 · 24 · 32 · 48)">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {[16, 20, 24, 32, 48].map((size) => (
+              <Icon key={size} name="star" weight="bold" size={size} color={theme.color.action.primary} />
+            ))}
+          </View>
+        </Case>
+      </Shelf>
+    </Subsection>
+  );
+}
+
+/* ------------------------------------------------------------------------ typography */
+
+function TypographySample() {
+  const display = useTypeStyle('display.lg');
+  const heading = useTypeStyle('heading.lg');
+  const body = useTypeStyle('body.md');
+  const label = useTypeStyle('label.md');
+  const c = useChromeMuted();
+  return (
+    <Subsection title="Typography — Plus Jakarta Sans">
+      <Claim>
+        `theme.typography.*` now resolves to Plus Jakarta Sans face names
+        (`PlusJakartaSans_400Regular` … `_700Bold`, see `tokens/ThemeProvider.tsx`'s
+        `UI_FAMILY_BY_WEIGHT`) — the RN counterpart to web's `--hg-font-ui`. `useHgFonts()`
+        (`@hg/ui-native/fonts`) registers the four weights via `expo-font` at app boot; this
+        gallery's root (`App.tsx`) calls it and blanks the screen until the fonts land, exactly
+        the pattern an app should follow. NOT runtime-verified here — there is no Expo dev client
+        in the environment this was built in, only `tsc --noEmit`.
+      </Claim>
+      <Case label="The scale, in the live font" code="typography['display.lg' | 'heading.lg' | 'body.md' | 'label.md']" fill>
+        <View style={{ gap: 8 }}>
+          <Text style={display}>Halal Goes</Text>
+          <Text style={heading}>Karachi Kitchen — verified halal</Text>
+          <Text style={[body, { color: c }]}>
+            Every order is priced by the server and paired to a live H1–H7 certification
+            instrument.
+          </Text>
+          <Text style={[label, { color: c }]}>PLUS JAKARTA SANS · WEIGHTS 400 / 600 / 700</Text>
+        </View>
+      </Case>
+    </Subsection>
+  );
+}
+
+function useChromeMuted() {
+  const theme = useTheme();
+  return theme.color.text.secondary;
+}
+
 export function PrimitivesSection({ onLayoutY }: { onLayoutY?: (id: string, y: number) => void }) {
   return (
     <Section meta={meta} onLayoutY={onLayoutY}>
       <Buttons />
       <IconButtons />
+      <Icons />
+      <TypographySample />
       <Badges />
       <Inputs />
       <Selects />
@@ -775,7 +857,7 @@ export function PrimitivesSection({ onLayoutY }: { onLayoutY?: (id: string, y: n
       <Avatars />
       <Loaders />
       <Toasts />
-      <Mono size={10}>14 / 14 primitives exercised</Mono>
+      <Mono size={10}>14 / 14 primitives exercised, plus the Icon primitive and a type specimen</Mono>
     </Section>
   );
 }

@@ -1,0 +1,16 @@
+{
+  "home": { "linear": "home-2-linear", "bold": "home-2-bold" },
+  "search": { "linear": "magnifier-linear", "bold": "magnifier-bold" },
+  "cart": { "linear": "cart-large-2-linear", "bold": "cart-large-2-bold" },
+  "orders": { "linear": "checklist-linear", "bold": "checklist-bold" },
+  "profile": { "linear": "user-circle-linear", "bold": "user-circle-bold" },
+  "map": { "linear": "map-point-linear", "bold": "map-point-bold" },
+  "bell": { "linear": "bell-linear", "bold": "bell-bold" },
+  "back": { "linear": "alt-arrow-left-linear", "bold": "alt-arrow-left-bold" },
+  "close": { "linear": "close-linear", "bold": "close-bold" },
+  "plus": { "linear": "add-linear", "bold": "add-bold" },
+  "check": { "linear": "check-circle-linear", "bold": "check-circle-bold" },
+  "star": { "linear": "star-linear", "bold": "star-bold" },
+  "clock": { "linear": "clock-circle-linear", "bold": "clock-circle-bold" },
+  "menu": { "linear": "hamburger-menu-linear", "bold": "hamburger-menu-bold" }
+}

@@ -52,12 +52,19 @@ export function useTheme(): Theme {
  * RN has no font fallback chain — a missing family renders the system font silently — so
  * the weighted face name is derived from the token's weight and `expo-font` must have
  * registered it before the splash gate lifts (foundations §3.1).
+ *
+ * The UI typeface is Plus Jakarta Sans (matches web's `--hg-font-ui`, see
+ * `packages/ui-web/src/styles/globals.css`). These are Google Fonts / `expo-font` face names —
+ * `@expo-google-fonts/plus-jakarta-sans`'s own export names, one static weight per face, since
+ * RN's `fontFamily` takes a single face name, not a variable-font weight range the way CSS does.
+ * `useHgFonts()` (`./useHgFonts.ts`, subpath `@hg/ui-native/fonts`) is what actually registers
+ * these four faces with `expo-font` at app boot — this map only has to agree with it on names.
  */
 const UI_FAMILY_BY_WEIGHT: Readonly<Record<string, string>> = {
-  '400': 'Inter_400Regular',
-  '500': 'Inter_500Medium',
-  '600': 'Inter_600SemiBold',
-  '700': 'Inter_700Bold',
+  '400': 'PlusJakartaSans_400Regular',
+  '500': 'PlusJakartaSans_500Medium',
+  '600': 'PlusJakartaSans_600SemiBold',
+  '700': 'PlusJakartaSans_700Bold',
 };
 const MONO_FAMILY = 'JetBrainsMono_400Regular';
 

@@ -7,6 +7,9 @@
 export { Button } from './Button.js';
 export type { ButtonProps, ButtonVariant, ButtonSize } from './Button.js';
 
+export { Icon, ICON_NAMES, SOLAR_ICON_IDS } from './Icon.js';
+export type { IconProps, IconName, IconWeight } from './Icon.js';
+
 export { IconButton } from './IconButton.js';
 export type { IconButtonProps, IconButtonVariant, IconButtonSize } from './IconButton.js';
 

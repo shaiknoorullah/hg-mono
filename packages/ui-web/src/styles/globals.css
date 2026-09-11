@@ -17,9 +17,25 @@
 @import '../tokens/tokens.css';
 @import '../tokens/theme.css';
 
+/* Plus Jakarta Sans (variable), self-hosted — the design brief's UI typeface.
+ * Registers the `@font-face` rules under the family name 'Plus Jakarta Sans Variable'. */
+@import '@fontsource-variable/plus-jakarta-sans';
+
 /* The library ships TypeScript source, so an app's Tailwind scan will not find
    our utility classes on its own. This registers them. */
 @source '../**/*.{ts,tsx}';
+
+/* Points `--hg-font-ui` at the font just registered above. Deliberately UNLAYERED (not inside
+ * `@layer base`) and placed after the `tokens.css` import: `../tokens/tokens.css` is also
+ * generated + unlayered, so per the CSS cascade-layers spec (unlayered rules always beat layered
+ * ones, and among unlayered rules of equal specificity the later one in source order wins) this
+ * is the only place in this file that can override a generated token var without editing the
+ * generated file — which is forbidden (tokens.css says so, and `generate:tokens:check` would
+ * flag a hand-edit as drift). The old system font stack survives as the fallback chain. */
+:root {
+  --hg-font-ui: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
 
 @layer base {
   :root {

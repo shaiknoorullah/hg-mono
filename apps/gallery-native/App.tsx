@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, setClientErrorReporter } from '@hg/ui-native';
 import type { ColorScheme, ThemeName } from '@hg/ui-native';
+import { useHgFonts } from '@hg/ui-native/fonts';
 
 import {
   ChromeContext,
@@ -56,12 +57,23 @@ const SECTIONS: readonly SectionMeta[] = [
 const clientErrors: { code: string; at: number }[] = [];
 
 export default function App() {
+  // Plus Jakarta Sans, the RN counterpart to web's `--hg-font-ui`. Every hook call stays
+  // unconditional and ABOVE the early return below (Rules of Hooks) — only the render output
+  // forks on `fontsLoaded`, never the hook order.
+  const { fontsLoaded, fontError } = useHgFonts();
   const [themeName, setThemeName] = React.useState<ThemeName>('customer');
   const [scheme, setScheme] = React.useState<ColorScheme>('light');
   const scroller = React.useRef<ScrollView>(null);
   const offsets = React.useRef<Record<string, number>>({});
   const { width } = useWindowDimensions();
   const wide = width >= 1080;
+
+  React.useEffect(() => {
+    if (fontError) {
+      // eslint-disable-next-line no-console
+      console.warn('Plus Jakarta Sans failed to load — falling back to the system font.', fontError);
+    }
+  }, [fontError]);
 
   React.useEffect(() => {
     setClientErrorReporter((code) => {
@@ -85,6 +97,13 @@ export default function App() {
       scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
     }
   }, []);
+
+  // Keep the splash screen up (render nothing) until the four Plus Jakarta Sans weights are
+  // registered — otherwise the gallery's own Typography specimen (section 03) would flash the
+  // system font and then jump, which is exactly the "why does the app look different for one
+  // frame" bug this gate exists to prevent. A font ERROR still renders — the system-font
+  // fallback is a legitimate, readable app; a font that never resolves is not.
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <SafeAreaProvider>

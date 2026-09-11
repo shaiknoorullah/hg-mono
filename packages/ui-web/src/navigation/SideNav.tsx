@@ -17,6 +17,18 @@ import { cx } from '../feedback/internal.js';
  *  - No arrow-key roving. A11y §4.3 lists the composites that take arrows —
  *    `RadioGroup`, `Tabs`, `BottomNav`, the `DataTable` grid, `Select`, chip rows — and a
  *    link list is not one of them. Tab order is the navigation.
+ *
+ * Visual treatment, mirroring `@hg/ui-native`'s `BottomNav`: the rail is **glass** — a
+ * translucent surface (`bg-surface-base/85`) with a real CSS `backdrop-blur`, not the old
+ * fully opaque panel — and the active item is a **soft tint**
+ * (`bg-[var(--hg-state-selected-tint)]`, a light wash of the action-orange ramp), never the
+ * heavy solid `bg-control-selected-bg` fill the row used to carry. That solid fill is still
+ * correct for a small control swatch (a checkbox's checked square, a switch's on-track); it
+ * reads as "too much" stretched across an entire nav row, which is the same "too much on the
+ * eyes" note that moved the RN action button off a solid fill. The left accent bar stays solid
+ * orange (`before:bg-action-primary-bg`) — a 4px sliver is exactly the scale that fill is fine
+ * at. Always orange, never green: RULE H-1 reserves solid green for `color.halal.*` alone, and
+ * this is wayfinding chrome, not a certification.
  */
 
 export interface SideNavItem {
@@ -76,7 +88,12 @@ export function SideNav({
       data-testid={testId}
       data-collapsed={collapsed || undefined}
       className={cx(
-        'flex h-full shrink-0 flex-col border-e border-line-decorative bg-surface-base',
+        'flex h-full shrink-0 flex-col border-e border-line-decorative',
+        // Glass: translucent surface + real backdrop blur, not an opaque panel. A browser
+        // without `backdrop-filter` support just renders the translucent surface un-blurred —
+        // still legible, since `/85` alone is a light wash, not a transparency the text needs
+        // the blur to stay readable against.
+        'bg-surface-base/85 backdrop-blur-xl',
         collapsed ? 'w-16' : 'w-64',
         className,
       )}
@@ -129,7 +146,11 @@ export function SideNav({
                   'text-label-lg',
                   'hg-focus-inset',
                   active
-                    ? 'bg-control-selected-bg font-semibold text-fg-primary before:absolute before:inset-y-1 before:start-0 before:w-1 before:rounded-e-full before:bg-action-primary-bg'
+                    ? // Soft tint, not the solid `bg-control-selected-bg` fill that role is
+                      // fine for on a small control swatch and "too much on the eyes" stretched
+                      // across a full nav row. The 4px accent bar stays a solid orange fill —
+                      // that scale is fine.
+                      'bg-[var(--hg-state-selected-tint)] font-semibold text-fg-primary before:absolute before:inset-y-1 before:start-0 before:w-1 before:rounded-e-full before:bg-action-primary-bg'
                     : 'text-fg-secondary hover:bg-surface-subtle',
                   item.disabled && 'pointer-events-none opacity-[var(--hg-state-disabled-opacity)]',
                 );
