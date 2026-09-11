@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Button, Card, Icon, Input } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
-import { Button, Card, FieldError, Input, Label } from '../components/primitives';
-import { IconLock, IconMail, IconShieldCheck } from '../lib/icons';
+import { IconLock, IconMail } from '../lib/icons';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -32,93 +32,76 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--canvas)] px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-surface-sunken px-4">
       <div className="hg-fade-up w-full max-w-[400px]">
         <div className="mb-7 flex flex-col items-center gap-3 text-center">
-          <div className="grid h-12 w-12 place-items-center rounded-[var(--r)] bg-[var(--halal-seal)] text-white shadow-[var(--shadow-2)]">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C7.58172 2 4 6.00258 4 10.5C4 14.9622 6.55332 19.8124 10.5371 21.6744C11.4657 22.1085 12.5343 22.1085 13.4629 21.6744C17.4467 19.8124 20 14.9622 20 10.5C20 6.00258 16.4183 2 12 2Z" />
-            </svg>
+          <div className="grid size-12 place-items-center rounded-lg bg-action-primary-bg text-action-primary-fg shadow-e2">
+            <Icon name="check" weight="bold" size={22} />
           </div>
           <div>
-            <h1 className="text-[19px] font-extrabold text-[var(--ink)]">Halal Goes for restaurants</h1>
-            <p className="text-[13.5px] text-[var(--ink2)]">Sign in to manage orders, menu and hours.</p>
+            <h1 className="text-heading-md font-extrabold text-fg-primary">Halal Goes for restaurants</h1>
+            <p className="text-body-sm text-fg-secondary">Sign in to manage orders, menu and hours.</p>
           </div>
         </div>
 
-        <Card className="p-6">
+        <Card>
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             {!needsTotp && (
               <>
-                <div>
-                  <Label htmlFor="email">Business email</Label>
-                  <div className="relative">
-                    <IconMail size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink3)]" />
-                    <Input
-                      id="email"
-                      type="email"
-                      required
-                      autoComplete="username"
-                      className="pl-9"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="owner@restaurant.ca"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <IconLock size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink3)]" />
-                    <Input
-                      id="password"
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                      className="pl-9"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
+                <Input
+                  label="Business email"
+                  id="email"
+                  variant="email"
+                  required
+                  autoComplete="username"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="owner@restaurant.ca"
+                  prefix={<IconMail size={16} />}
+                />
+                <Input
+                  label="Password"
+                  id="password"
+                  variant="password"
+                  required
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="••••••••"
+                  prefix={<IconLock size={16} />}
+                />
               </>
             )}
 
             {needsTotp && (
               <div className="hg-fade-up">
-                <Label htmlFor="totp">6-digit authentication code</Label>
-                <div className="relative">
-                  <IconShieldCheck size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--halal-seal)]" />
-                  <Input
-                    id="totp"
-                    inputMode="numeric"
-                    pattern="[0-9]{6}"
-                    maxLength={6}
-                    required
-                    autoFocus
-                    className="pl-9 tracking-[0.3em]"
-                    value={totp}
-                    onChange={(e) => setTotp(e.target.value.replace(/\D/g, ''))}
-                    placeholder="000000"
-                  />
-                </div>
-                <p className="mt-1.5 text-[12.5px] text-[var(--ink2)]">
-                  Open your authenticator app and enter the current code for this account.
-                </p>
+                <Input
+                  label="6-digit authentication code"
+                  id="totp"
+                  variant="otp"
+                  maxLength={6}
+                  required
+                  autoFocus
+                  value={totp}
+                  onChange={(v) => setTotp(v.replace(/\D/g, ''))}
+                  helperText="Open your authenticator app and enter the current code for this account."
+                />
               </div>
             )}
 
-            <FieldError>{error}</FieldError>
+            {error ? (
+              <p role="alert" className="text-body-sm font-semibold text-feedback-danger-text">
+                {error}
+              </p>
+            ) : null}
 
-            <Button type="submit" loading={busy} className="mt-1 w-full">
+            <Button type="submit" loading={busy} fullWidth className="mt-1">
               {needsTotp ? 'Verify and sign in' : 'Sign in'}
             </Button>
             {needsTotp && (
               <button
                 type="button"
                 onClick={() => setNeedsTotp(false)}
-                className="text-[12.5px] font-bold text-[var(--ink2)] underline underline-offset-2"
+                className="text-label-sm font-bold text-fg-secondary underline underline-offset-2"
               >
                 Use a different account
               </button>
@@ -126,9 +109,9 @@ export function LoginPage() {
           </form>
         </Card>
 
-        <p className="mt-5 text-center text-[13px] text-[var(--ink2)]">
+        <p className="mt-5 text-center text-body-sm text-fg-secondary">
           New to Halal Goes?{' '}
-          <Link to="/register" className="font-bold text-[var(--primary)]">
+          <Link to="/register" className="font-bold text-action-primary-bg">
             Register your restaurant
           </Link>
         </p>

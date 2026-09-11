@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { isApiError } from '@hg/api-client';
-import { Button, Card, FieldError } from '../../components/primitives';
+import { Button, Card } from '@hg/ui-web';
 
 export function PassthroughStep({
   title,
@@ -33,11 +33,15 @@ export function PassthroughStep({
   }
 
   return (
-    <Card className="hg-fade-up p-6">
-      <h2 className="mb-1 text-[16px] font-extrabold text-[var(--ink)]">{title}</h2>
-      <p className="mb-5 text-[13.5px] text-[var(--ink2)]">{description}</p>
-      <FieldError>{error}</FieldError>
-      <Button className="w-full" loading={busy} onClick={handle}>
+    <Card className="hg-fade-up">
+      <h2 className="mb-1 text-heading-sm font-extrabold text-fg-primary">{title}</h2>
+      <p className="mb-5 text-body-sm text-fg-secondary">{description}</p>
+      {error ? (
+        <p role="alert" className="mb-3 text-body-sm font-semibold text-feedback-danger-text">
+          {error}
+        </p>
+      ) : null}
+      <Button fullWidth loading={busy} onPress={handle}>
         {ctaLabel}
       </Button>
     </Card>

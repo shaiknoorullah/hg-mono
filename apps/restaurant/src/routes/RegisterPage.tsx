@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Button, Card, Icon, Input } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
-import { Button, Card, FieldError, Input, Label } from '../components/primitives';
-import { IconCheck } from '../lib/icons';
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -29,17 +28,17 @@ export function RegisterPage() {
 
   if (done) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--canvas)] px-4">
-        <Card className="hg-fade-up max-w-[400px] p-8 text-center">
-          <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-[var(--halal-tint)] text-[var(--halal-seal)]">
-            <IconCheck size={22} />
+      <div className="flex min-h-dvh items-center justify-center bg-surface-sunken px-4">
+        <Card className="hg-fade-up max-w-[400px] text-center">
+          <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-action-primary-bg text-action-primary-fg">
+            <Icon name="check" weight="bold" size={22} />
           </div>
-          <h1 className="text-[17px] font-extrabold text-[var(--ink)]">Check your inbox</h1>
-          <p className="mt-2 text-[13.5px] text-[var(--ink2)]">
-            We sent a verification link to <strong className="text-[var(--ink)]">{email}</strong>. Confirm it to
-            start onboarding {businessName}.
+          <h1 className="text-heading-sm font-extrabold text-fg-primary">Check your inbox</h1>
+          <p className="mt-2 text-body-sm text-fg-secondary">
+            We sent a verification link to <strong className="text-fg-primary">{email}</strong>. Confirm it to start
+            onboarding {businessName}.
           </p>
-          <Button variant="secondary" className="mt-6 w-full" onClick={() => navigate('/login')}>
+          <Button variant="secondary" fullWidth className="mt-6" onPress={() => navigate('/login')}>
             Back to sign in
           </Button>
         </Card>
@@ -48,61 +47,57 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--canvas)] px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-surface-sunken px-4">
       <div className="hg-fade-up w-full max-w-[420px]">
         <div className="mb-7 text-center">
-          <h1 className="text-[19px] font-extrabold text-[var(--ink)]">Register your restaurant</h1>
-          <p className="text-[13.5px] text-[var(--ink2)]">
+          <h1 className="text-heading-md font-extrabold text-fg-primary">Register your restaurant</h1>
+          <p className="text-body-sm text-fg-secondary">
             Halal certification, documents and menu come next — this just opens the account.
           </p>
         </div>
-        <Card className="p-6">
+        <Card>
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
-            <div>
-              <Label htmlFor="business">Business name</Label>
-              <Input
-                id="business"
-                required
-                minLength={2}
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="Damascus Sweets & Grill"
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">Business email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="owner@restaurant.ca"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                minLength={12}
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 12 characters"
-              />
-            </div>
-            <FieldError>{error}</FieldError>
-            <Button type="submit" loading={busy} className="mt-1 w-full">
+            <Input
+              label="Business name"
+              required
+              minLength={2}
+              value={businessName}
+              onChange={setBusinessName}
+              placeholder="Damascus Sweets & Grill"
+            />
+            <Input
+              label="Business email"
+              variant="email"
+              required
+              autoComplete="username"
+              value={email}
+              onChange={setEmail}
+              placeholder="owner@restaurant.ca"
+            />
+            <Input
+              label="Password"
+              variant="password"
+              required
+              minLength={12}
+              autoComplete="new-password"
+              value={password}
+              onChange={setPassword}
+              placeholder="At least 12 characters"
+              helperText="At least 12 characters."
+            />
+            {error ? (
+              <p role="alert" className="text-body-sm font-semibold text-feedback-danger-text">
+                {error}
+              </p>
+            ) : null}
+            <Button type="submit" loading={busy} fullWidth className="mt-1">
               Create account
             </Button>
           </form>
         </Card>
-        <p className="mt-5 text-center text-[13px] text-[var(--ink2)]">
+        <p className="mt-5 text-center text-body-sm text-fg-secondary">
           Already registered?{' '}
-          <Link to="/login" className="font-bold text-[var(--primary)]">
+          <Link to="/login" className="font-bold text-action-primary-bg">
             Sign in
           </Link>
         </p>

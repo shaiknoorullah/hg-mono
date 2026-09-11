@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react';
 import { isApiError, idempotencyKey, type Schema } from '@hg/api-client';
+import { Button, Card, ErrorState, Icon } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../../lib/apiHelpers';
 import { useAsync } from '../../lib/useAsync';
-import { Button, Card, Chip, PageLoading, ErrorState } from '../../components/primitives';
-import { IconCheck, IconUpload, IconClock } from '../../lib/icons';
+import { PageLoading } from '../../components/PageLoading';
+import { StatusChip } from '../../components/StatusChip';
+import { IconUpload } from '../../lib/icons';
 
 const DOC_TYPES: { type: Schema['RestaurantDocType']; label: string; hint: string }[] = [
   { type: 'BUSINESS_LICENCE', label: 'Business licence', hint: 'Municipal or provincial business licence.' },
@@ -71,39 +73,48 @@ function DocRow({ docType, label, hint, current, onAttached }: {
     }
   }
 
+  // A per-document review state — SUBMITTED/IN_REVIEW/APPROVED/REJECTED/EXPIRED — not the
+  // restaurant-wide `halal_display_state` `HalalBadge` renders, so it stays a plain
+  // `StatusChip` rather than the certification tier's badge. `APPROVED` deliberately does
+  // NOT go solid green (RULE H-1 / lint L-4 reserve that to `HalalBadge` alone); "expired"
+  // reads as cool neutral, echoing (without literally reusing) the halal namespace's own
+  // "expired is cool slate, never red" rule.
   const stateChip = (() => {
     if (!current) return null;
     switch (current.state) {
       case 'SUBMITTED':
-        return <Chip tone="accent"><IconClock size={12} /> Submitted</Chip>;
+        return <StatusChip tone="accent"><Icon name="clock" size={12} /> Submitted</StatusChip>;
       case 'IN_REVIEW':
-        return <Chip tone="accent"><IconClock size={12} /> In review</Chip>;
+        return <StatusChip tone="accent"><Icon name="clock" size={12} /> In review</StatusChip>;
       case 'APPROVED':
-        return <Chip tone="halal"><IconCheck size={12} /> Approved</Chip>;
+        return <StatusChip tone="neutral"><Icon name="check" size={12} /> Approved</StatusChip>;
       case 'REJECTED':
-        return <Chip tone="danger">Rejected — reupload</Chip>;
+        return <StatusChip tone="danger">Rejected — reupload</StatusChip>;
       case 'EXPIRED':
-        return <Chip tone="expired">Expired — reupload</Chip>;
+        return <StatusChip tone="neutral">Expired — reupload</StatusChip>;
       default:
-        return <Chip>{current.state}</Chip>;
+        return <StatusChip tone="neutral">{current.state}</StatusChip>;
     }
   })();
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--hair)] py-4 last:border-0">
+    <div className="flex items-center justify-between gap-3 border-b border-line-decorative py-4 last:border-0">
       <div className="min-w-0">
-        <p className="text-[14px] font-bold text-[var(--ink)]">{label}</p>
-        <p className="text-[12.5px] text-[var(--ink2)]">{hint}</p>
+        <p className="text-label-lg font-bold text-fg-primary">{label}</p>
+        <p className="text-caption text-fg-secondary">{hint}</p>
         {current?.rejection_reason_code && (
-          <p className="mt-1 text-[12px] font-semibold text-[var(--danger-600)]">{current.review_note ?? current.rejection_reason_code}</p>
+          <p className="mt-1 text-caption font-semibold text-feedback-danger-text">{current.review_note ?? current.rejection_reason_code}</p>
         )}
-        {error && <p className="mt-1 text-[12px] font-semibold text-[var(--danger-600)]">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-1 text-caption font-semibold text-feedback-danger-text">
+            {error}
+          </p>
+        )}
       </div>
       <div className="flex flex-none items-center gap-2">
         {stateChip}
         <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])} />
-        <Button variant="secondary" loading={busy} onClick={() => inputRef.current?.click()}>
-          <IconUpload size={15} />
+        <Button variant="secondary" size="sm" loading={busy} iconStart={<IconUpload size={15} />} onPress={() => inputRef.current?.click()}>
           {current ? 'Replace' : 'Upload'}
         </Button>
       </div>
@@ -139,9 +150,9 @@ export function DocumentsStep({ onSubmitted }: { onSubmitted: () => void }) {
   }
 
   return (
-    <Card className="hg-fade-up p-6">
-      <h2 className="mb-1 text-[16px] font-extrabold text-[var(--ink)]">Compliance documents</h2>
-      <p className="mb-2 text-[13px] text-[var(--ink2)]">
+    <Card className="hg-fade-up">
+      <h2 className="mb-1 text-heading-sm font-extrabold text-fg-primary">Compliance documents</h2>
+      <p className="mb-2 text-body-sm text-fg-secondary">
         All four are required before we can review your restaurant. Documents live in a private store — nothing here
         is ever public.
       </p>
@@ -150,8 +161,12 @@ export function DocumentsStep({ onSubmitted }: { onSubmitted: () => void }) {
           <DocRow key={d.type} docType={d.type} label={d.label} hint={d.hint} current={byType.get(d.type)} onAttached={reload} />
         ))}
       </div>
-      {submitError && <p className="mt-3 text-[12.5px] font-semibold text-[var(--danger-600)]">{submitError}</p>}
-      <Button className="mt-5 w-full" disabled={!allSubmitted} loading={submitting} onClick={submit}>
+      {submitError && (
+        <p role="alert" className="mt-3 text-caption font-semibold text-feedback-danger-text">
+          {submitError}
+        </p>
+      )}
+      <Button fullWidth className="mt-5" disabled={!allSubmitted} loading={submitting} onPress={submit}>
         Submit for review
       </Button>
     </Card>

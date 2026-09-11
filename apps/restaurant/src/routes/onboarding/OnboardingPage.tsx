@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
+import { Card, ErrorState } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../../lib/apiHelpers';
 import { useAsync } from '../../lib/useAsync';
-import { PageLoading, ErrorState, Card } from '../../components/primitives';
+import { PageLoading } from '../../components/PageLoading';
 import { ProfileStep } from './ProfileStep';
 import { DocumentsStep } from './DocumentsStep';
 import { ReviewStatus } from './ReviewStatus';
@@ -26,7 +27,7 @@ export function OnboardingPage() {
   if (status === 'loading') return <PageLoading label="Checking onboarding status…" />;
   if (status === 'error' || !data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--canvas)] p-6">
+      <div className="flex min-h-dvh items-center justify-center bg-surface-sunken p-6">
         <div className="w-full max-w-lg">
           <ErrorState description={error ?? undefined} onRetry={reload} />
         </div>
@@ -38,24 +39,24 @@ export function OnboardingPage() {
   const progressableSteps = STEPS.filter((s) => s !== 'AWAITING_REVIEW' && s !== 'FIX_DOCUMENTS');
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] px-4 py-10">
+    <div className="min-h-dvh bg-surface-sunken px-4 py-10">
       <div className="mx-auto w-full max-w-2xl">
         <header className="mb-6">
-          <p className="text-[12.5px] font-bold uppercase tracking-wide text-[var(--accent-600)]">Get set up</p>
-          <h1 className="text-[21px] font-extrabold text-[var(--ink)]">Onboarding</h1>
+          <p className="text-label-sm font-bold uppercase tracking-wide text-action-primary-bg">Get set up</p>
+          <h1 className="text-heading-lg font-extrabold text-fg-primary">Onboarding</h1>
         </header>
 
-        <Card className="mb-6 p-4">
-          <div className="mb-2 flex items-center justify-between text-[12px] font-bold text-[var(--ink2)]">
+        <Card className="mb-6">
+          <div className="mb-2 flex items-center justify-between text-label-sm font-bold text-fg-secondary">
             <span>{data.progress_percent}% complete</span>
             <span>
               Step {Math.max(1, progressableSteps.indexOf(data.current_step === 'AWAITING_REVIEW' || data.current_step === 'FIX_DOCUMENTS' ? 'DOCUMENTS' : data.current_step) + 1)} of{' '}
               {progressableSteps.length}
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-[var(--hair)]">
+          <div className="h-2 overflow-hidden rounded-full bg-surface-subtle">
             <div
-              className="h-full rounded-full bg-[var(--primary)] transition-all duration-500"
+              className="h-full rounded-full bg-action-primary-bg transition-all duration-500"
               style={{ width: `${data.progress_percent}%` }}
             />
           </div>

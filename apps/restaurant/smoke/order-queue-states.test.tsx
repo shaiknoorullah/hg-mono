@@ -1,0 +1,100 @@
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
+
+import queueBusy from '../../../contracts/fixtures/orders/restaurant_order_queue_busy.json';
+import queueEmpty from '../../../contracts/fixtures/orders/restaurant_order_queue_empty.json';
+
+/**
+ * `OrdersPage` drives all three states — loading, empty (queue drained, a *positive* tone —
+ * not "no records yet") and error — never a happy-path-only render (AGENTS.md §6). Salvaged
+ * and adapted from the abandoned `apps/restaurant-web` stub's `queue-states.test.tsx`: this
+ * app's queue is a card grid, not `@hg/ui-web`'s `DataTable`, so the assertions target
+ * `OrdersPage`'s own markup instead of `DataTable`'s `data-testid`s.
+ */
+
+function stubOk(body: unknown): Response {
+  return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
+
+function neverResolves(): Promise<Response> {
+  return new Promise(() => {});
+}
+
+async function renderOrders() {
+  const { OrdersPage } = await import('../src/routes/OrdersPage');
+  return render(<OrdersPage />);
+}
+
+describe('restaurant order queue — loading, empty, error, rows', () => {
+  beforeAll(() => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({
+        matches: false, media: query, onchange: null,
+        addListener: () => {}, removeListener: () => {},
+        addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+      }),
+    });
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
+      observe() {} unobserve() {} disconnect() {}
+    };
+    Element.prototype.scrollIntoView = function scrollIntoView() {};
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    // The api client binds `fetch` at module-construction time; force a fresh module graph
+    // so the next test's mock isn't shadowed by a client instance captured against this one.
+    vi.resetModules();
+  });
+
+  it('shows a loading state while the fetch is in flight', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(neverResolves);
+
+    await renderOrders();
+
+    expect(screen.getByRole('status')).not.toBeNull();
+    expect(screen.getByText('Loading the order queue…')).not.toBeNull();
+  });
+
+  it('shows the positive drained-queue empty state for zero orders', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(stubOk({ data: queueEmpty.payload, meta: { next_cursor: null, has_more: false, total: 0 } }));
+
+    await renderOrders();
+
+    const empty = await screen.findByTestId('empty-state');
+    expect(empty.getAttribute('data-tone')).toBe('positive');
+    expect(screen.getByText('No live orders')).not.toBeNull();
+  });
+
+  it('shows the error state with a retry action on failure', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Something broke', request_id: 'req-1' } }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    await renderOrders();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('error-state')).not.toBeNull();
+    });
+    expect(screen.getByRole('button', { name: /try again/i })).not.toBeNull();
+  });
+
+  it('renders real order cards once the fetch resolves with orders', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(stubOk({ data: queueBusy.payload, meta: { next_cursor: null, has_more: false, total: (queueBusy.payload as unknown[]).length } }));
+
+    const { container } = await renderOrders();
+
+    // Nested layout (card → row → span) means the order code's text is a substring of
+    // several ancestors' `textContent`, so a plain `getByText`/`queryByText` substring
+    // match is ambiguous (throws "multiple elements"). Asserting on the rendered
+    // container's full text avoids that without coupling the test to internal markup.
+    await waitFor(() => {
+      expect(container.textContent).toContain('HG-RENG-18X');
+    });
+  });
+});
