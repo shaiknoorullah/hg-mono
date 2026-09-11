@@ -1,0 +1,62 @@
+# Isolated parallel stack for the FIRST real `make up` proof.
+#
+# This override lets the full production-shaped stack run ALONGSIDE the dev
+# dependencies (project `hg`, containers hg-postgres-1 / hg-redis-1 / hg-minio-1
+# and a host `go run` on :8080) without touching them.
+#
+#   docker compose -p hgdeploy \
+#     --env-file .env --env-file .env.isolated \
+#     -f docker-compose.yml -f docker-compose.isolated.yml up --build -d
+#
+# What isolation buys us:
+#   * project name hgdeploy -> container names hgdeploy-*-1, never hg-*-1
+#   * its own bridge network (name overridden below) -> no shared L2 with dev
+#   * its own volumes (compose prefixes them hgdeploy_*) -> separate data
+#   * remapped host ports (see .env.isolated) -> no port collision with dev
+#
+# Nothing here is meant for production; it exists to prove the base file works.
+
+networks:
+  hg-net:
+    # The base file hard-codes `name: hg-net`, which the running dev deps already
+    # own. Override it to a project-scoped name so this stack gets its own bridge.
+    name: hgdeploy-net
+
+services:
+  # Traefik's docker provider is told which network to route on. The base file
+  # names the literal `hg-net`; on the isolated network that name no longer
+  # exists, so Traefik would find no routable IP. Point it at hgdeploy-net.
+  traefik:
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=hgdeploy-net
+      - --entrypoints.web.address=:80
+      - --entrypoints.traefik.address=:8080
+      - --accesslog=true
+      - --accesslog.format=json
+      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
+      - --ping=true
+
+  # The api service labels also hard-code traefik.docker.network=hg-net, which
+  # tells Traefik which of the container's networks to dial. Override it.
+  api:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=hgdeploy-net
+      - traefik.http.routers.hg-api.rule=PathPrefix(`/`)
+      - traefik.http.routers.hg-api.entrypoints=web
+      - traefik.http.routers.hg-api.priority=1
+      - traefik.http.routers.hg-api.service=hg-api
+      - traefik.http.routers.hg-internal.rule=PathPrefix(`/internal`) || PathPrefix(`/debug`)
+      - traefik.http.routers.hg-internal.entrypoints=web
+      - traefik.http.routers.hg-internal.priority=10
+      - traefik.http.routers.hg-internal.service=hg-api
+      - traefik.http.routers.hg-internal.middlewares=hg-internal-only@docker
+      - traefik.http.middlewares.hg-internal-only.ipallowlist.sourcerange=127.0.0.1/32
+      - traefik.http.services.hg-api.loadbalancer.server.port=8080
+      - traefik.http.services.hg-api.loadbalancer.healthcheck.path=/health/ready
+      - traefik.http.services.hg-api.loadbalancer.healthcheck.interval=10s
+      - traefik.http.services.hg-api.loadbalancer.healthcheck.timeout=3s

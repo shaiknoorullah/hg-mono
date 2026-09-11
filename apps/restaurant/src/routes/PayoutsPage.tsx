@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { unwrap, type Schema } from '@hg/api-client';
 import { api } from '../lib/apiHelpers';
 import { useAsync } from '../lib/useAsync';
+import { useAuth } from '../lib/auth';
 import { Button, Card, Chip, EmptyState, ErrorState, PageLoading } from '../components/primitives';
-import { IconWallet } from '../lib/icons';
+import { IconWallet, IconLock } from '../lib/icons';
 
 /** See the note in OrdersPage.tsx re: the `Cents` brand not surviving openapi-fetch. */
 function money(value: unknown) {
@@ -38,6 +39,9 @@ export function PayoutsPage() {
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([null]);
   const cursor = cursorStack[cursorStack.length - 1] ?? null;
 
+  const { principal } = useAuth();
+  const isOwner = principal?.roles.some((r) => r.role === 'RESTAURANT_OWNER') ?? false;
+
   const { status, data, error, reload } = useAsync(
     () =>
       unwrap(api.GET('/v1/restaurant/payouts', { params: { query: { cursor: cursor ?? undefined, limit: 20 } } })).then((envelope) => ({
@@ -54,6 +58,20 @@ export function PayoutsPage() {
 
   if (status === 'loading') return <PageLoading label="Loading your payout history…" />;
   if (status === 'error') {
+    // P-19: payout.read is granted to RESTAURANT_OWNER only, by contract design — a
+    // manager account gets a 403 here every time. That's a permission boundary, not a
+    // failure, so it gets a neutral explanation rather than the red "something broke" card.
+    if (!isOwner) {
+      return (
+        <div className="p-4 sm:p-6 lg:p-8">
+          <EmptyState
+            icon={<IconLock size={32} />}
+            title="Payouts are visible to the account owner"
+            description="Your role (manager) can run the kitchen, but weekly payout history is restricted to the restaurant's owner account for financial-privacy reasons. Ask the owner to check this page, or sign in with the owner account."
+          />
+        </div>
+      );
+    }
     return (
       <div className="p-6">
         <ErrorState description={error ?? undefined} onRetry={reload} />

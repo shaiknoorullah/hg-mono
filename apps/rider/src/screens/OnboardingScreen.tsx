@@ -7,12 +7,11 @@
  * `confirmUpload`) before it is attached, exactly as P-27/P-28 require: the client never chooses
  * a bucket, a key, or a "READY" state for itself.
  *
- * This scaffold has no camera/file-picker dependency yet, so "capture" mints a small synthetic
- * placeholder payload and hashes it locally (`sha256.ts`) — the upload plumbing this exercises is
- * real; only the source of bytes is a stand-in. Against the mock the presigned PUT target is a
- * fixture CDN URL that does not accept writes, so that one sub-step is skipped there and the flow
- * continues from `confirmUpload`, which the mock answers unconditionally; a real backend requires
- * every step in order.
+ * "Capture" opens the device camera (`capture.ts`, `expo-image-picker`), falling back to the
+ * photo library where no camera exists (web, most simulators). Against the mock the presigned PUT
+ * target is a fixture CDN URL that does not accept writes, so that one sub-step is skipped there
+ * and the flow continues from `confirmUpload`, which the mock answers unconditionally; a real
+ * backend requires every step in order.
  *
  * States: loading (status read) · error (status read failed) · ready (every next_step, including
  * the empty-ish AWAITING_REVIEW "nothing to do but wait" state and the terminal DONE state).
@@ -38,7 +37,8 @@ import { idempotencyKey, isApiError, unwrap } from '@hg/api-client';
 import { api, IS_MOCK } from '../api';
 import type { RiderOnboardingStatus, KycDocument, ConnectStatus } from '../apiTypes';
 import { Screen, LoadingView, ErrorView } from './Screen';
-import { sha256Hex } from '../sha256';
+import { captureImage } from '../capture';
+import { sha256HexBytes } from '../sha256';
 import { useNav } from '../nav';
 
 type VehicleType = Schema['VehicleType'];
@@ -606,20 +606,22 @@ function DocumentCard({
   const needsExpiry = docType !== 'PROFILE_PHOTO';
 
   const captureDoc = React.useCallback(async () => {
+    const shot = await captureImage();
+    if (!shot.ok) {
+      if (shot.reason !== 'CANCELLED') setCapture({ phase: 'error', message: shot.message });
+      return;
+    }
     setCapture({ phase: 'uploading' });
     try {
-      // A synthetic placeholder stands in for a real camera/file-picker capture (not wired in
-      // this scaffold) — the upload plumbing below is the real three-call flow either way.
-      const payload = `HG-KYC::${docType}::${idempotencyKey()}`;
-      const contentType = 'image/jpeg';
+      const { bytes, contentType } = shot.image;
       const upload = await unwrap(
         api.POST('/v1/uploads', {
           params: { header: { 'Idempotency-Key': idempotencyKey() } },
           body: {
             purpose: 'KYC_DOCUMENT',
             content_type: contentType,
-            byte_size: payload.length,
-            sha256: sha256Hex(payload),
+            byte_size: bytes.byteLength,
+            sha256: sha256HexBytes(bytes),
           },
         }),
       );
@@ -631,7 +633,7 @@ function DocumentCard({
         await fetch(upload.data.url, {
           method: upload.data.method,
           headers: { 'Content-Type': contentType, ...upload.data.required_headers },
-          body: payload,
+          body: bytes.buffer as ArrayBuffer,
         });
       }
 

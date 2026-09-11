@@ -44,7 +44,21 @@ export function DependencyDashboardScreen() {
       ) : null}
 
       {status === 'error' ? (
-        <ErrorState variant="page" errorCode={error.code} description={error.message} onRetry={reload} />
+        <ErrorState
+          variant="page"
+          errorCode={error.code}
+          description={
+            // G-7: /internal/deps is intentionally restricted at the Traefik edge to
+            // 127.0.0.1 — a browser (even through the same Docker network) never presents
+            // as that literal address, so this call is refused by design, not by outage.
+            // Explain the real cause rather than the generic transport-error copy.
+            'This diagnostics endpoint is deliberately restricted to the server’s own host ' +
+            '(127.0.0.1) and is never reachable from a browser, by design (G-7) — this is not ' +
+            'an outage. Check it from the host itself, e.g. `curl 127.0.0.1:8080/internal/deps` ' +
+            'on the machine running the API container.'
+          }
+          onRetry={reload}
+        />
       ) : null}
 
       {status === 'ready' && data ? (

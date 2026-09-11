@@ -306,8 +306,7 @@ function HeartGlyph({ filled }: { filled: boolean }): React.JSX.Element {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="var(--hg-icon-lg)"
-      height="var(--hg-icon-lg)"
+      style={{ width: 'var(--hg-icon-lg)', height: 'var(--hg-icon-lg)' }}
       aria-hidden="true"
       focusable="false"
       fill={filled ? 'currentColor' : 'none'}

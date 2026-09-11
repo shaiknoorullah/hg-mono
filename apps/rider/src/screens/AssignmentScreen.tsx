@@ -20,7 +20,7 @@
  *   ready   — the assignment with pickup, drop-off, items and the next action.
  */
 import * as React from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { Text } from 'react-native';
 import {
   Badge,
@@ -38,10 +38,46 @@ import type { BadgeVariant } from '@hg/ui-native';
 import type { Schema } from '@hg/api-client';
 import { cents, idempotencyKey, isApiError, unwrap } from '@hg/api-client';
 
-import { clientFor, IS_MOCK, POD_OBJECT_ID } from '../api';
+import { api, clientFor, IS_MOCK } from '../api';
 import type { Assignment } from '../apiTypes';
+import { captureImage } from '../capture';
+import { sha256HexBytes } from '../sha256';
 import { Screen, LoadingView, ErrorView } from './Screen';
 import { useNav } from '../nav';
+
+/** Runs the same real 3-call private-bucket upload flow the onboarding screen uses, for a POD
+ *  photo instead of a KYC document, and returns the confirmed `stored_object` id. */
+async function uploadPodPhoto(): Promise<string> {
+  const shot = await captureImage();
+  if (!shot.ok) {
+    throw new Error(shot.reason === 'CANCELLED' ? 'Photo capture cancelled.' : shot.message);
+  }
+  const { bytes, contentType } = shot.image;
+  const upload = await unwrap(
+    api.POST('/v1/uploads', {
+      params: { header: { 'Idempotency-Key': idempotencyKey() } },
+      body: {
+        purpose: 'POD',
+        content_type: contentType,
+        byte_size: bytes.byteLength,
+        sha256: sha256HexBytes(bytes),
+      },
+    }),
+  );
+  if (!IS_MOCK) {
+    await fetch(upload.data.url, {
+      method: upload.data.method,
+      headers: { 'Content-Type': contentType, ...upload.data.required_headers },
+      body: bytes.buffer as ArrayBuffer,
+    });
+  }
+  const confirmed = await unwrap(
+    api.POST('/v1/uploads/{uploadId}/confirm', {
+      params: { path: { uploadId: upload.data.upload_id } },
+    }),
+  );
+  return confirmed.data.id;
+}
 
 type AssignmentState = Schema['AssignmentState'];
 
@@ -79,6 +115,11 @@ const FORWARD: Partial<
     at: 'dropoff',
   },
 };
+
+/** Deep-links out to the device's own maps app for turn-by-turn — no in-app map view is built. */
+function mapsUrl(loc: { latitude: number; longitude: number }): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}&travelmode=driving`;
+}
 
 /** Demo-only: the assignment fixtures the mock serves, exposed as a picker. */
 const SCENARIOS: { value: string; label: string }[] = [
@@ -181,6 +222,7 @@ export function AssignmentScreen({
     // `error_otp_incorrect` ErrorEnvelope fixture; any other code takes the happy path.
     const podScenario = IS_MOCK && method === 'OTP' && otp === '0000' ? 'error_otp_incorrect' : scenario;
     try {
+      const photoObjectId = method === 'PHOTO' ? await uploadPodPhoto() : undefined;
       let data = await unwrap(
         clientFor(podScenario).POST('/v1/riders/me/assignments/{assignmentId}/proof-of-delivery', {
           params: {
@@ -192,9 +234,7 @@ export function AssignmentScreen({
               ? { method: 'OTP', otp_code: otp }
               : {
                   method: 'PHOTO',
-                  // In a real build this id comes from an upload to the private hg-pod bucket; here
-                  // it is provisioned out of band (POD_OBJECT_ID) or minted for the mock.
-                  photo_object_id: POD_OBJECT_ID ?? idempotencyKey(),
+                  photo_object_id: photoObjectId!,
                   handover_method: 'LEFT_AT_DOOR',
                 },
         }),
@@ -346,6 +386,18 @@ export function AssignmentScreen({
                 {stepError ? (
                   <Banner variant="warning" title="Couldn't advance" description={stepError} />
                 ) : null}
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  fullWidth
+                  onPress={() =>
+                    void Linking.openURL(
+                      mapsUrl(step.at === 'pickup' ? state.assignment.pickup : state.assignment.dropoff),
+                    )
+                  }
+                >
+                  Open in Maps
+                </Button>
                 <Button
                   variant="primary"
                   size="xl"

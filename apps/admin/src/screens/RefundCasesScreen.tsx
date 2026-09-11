@@ -12,6 +12,7 @@
  * matching the platform-wide rule that red is reserved for a halal ruling this is not.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 import { HgApiError, cents, isApiError } from '@hg/api-client';
 import {
@@ -43,7 +44,16 @@ function newIdempotencyKey(): string {
 const TERMINAL_BAD = new Set(['FAILED', 'DECLINED', 'CANCELLED']);
 
 const COLUMNS: readonly DataTableColumn<Refund>[] = [
-  { key: 'order_id', header: 'Order', contentClass: 'id', cell: (row) => row.order_id.slice(0, 8) },
+  {
+    key: 'order_id',
+    header: 'Order',
+    contentClass: 'id',
+    // The Refund contract carries only `order_id` (a UUID) — no human order code (that
+    // lives on the Order resource, not this one), so the id is shown truncated with the
+    // full UUID as a title; the row itself is clickable through to the order (see
+    // `onRowActivate` below), matching the Orders grid's "click through to detail" pattern.
+    cell: (row) => <span title={row.order_id}>{row.order_id.slice(0, 8)}</span>,
+  },
   { key: 'kind', header: 'Kind', contentClass: 'enum', cell: (row) => enumLabel(row.kind) },
   { key: 'reason_code', header: 'Reason', contentClass: 'enum', cell: (row) => enumLabel(row.reason_code) },
   { key: 'amount_cents', header: 'Amount', contentClass: 'money', align: 'end', cell: (row) => formatMoney(row.amount_cents) },
@@ -79,6 +89,7 @@ const REASONS = [
 ] as const;
 
 export function RefundCasesScreen() {
+  const navigate = useNavigate();
   const toast = useToast();
   const pagination = useCursorPagination();
   const [rows, setRows] = useState<readonly Refund[]>([]);
@@ -205,6 +216,7 @@ export function RefundCasesScreen() {
         rows={rows}
         getRowId={(row) => row.id}
         getRowLabel={(row) => `${row.kind} refund for order ${row.order_id}`}
+        onRowActivate={(row) => navigate(`/orders/${row.order_id}`)}
         loading={tableStatus === 'loading'}
         error={dtError}
         emptyState={<EmptyState title="No refunds" description="No refunds or disputes have been recorded yet." />}

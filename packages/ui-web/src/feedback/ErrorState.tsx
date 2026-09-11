@@ -90,6 +90,14 @@ const COPY: Partial<Record<string, Copy>> = {
     description: 'The request timed out before the server answered. It may still have worked.',
     retryable: true,
   },
+  TRANSPORT_ERROR: {
+    title: 'Could not reach the server',
+    description:
+      'The request never got a response — a connection, network, or access-policy failure ' +
+      'before the server could answer. Check your connection, or that this address is reachable ' +
+      'from where you are, then try again.',
+    retryable: true,
+  },
 
   /* --- transport / platform ---------------------------------------------- */
   INTERNAL_ERROR: {

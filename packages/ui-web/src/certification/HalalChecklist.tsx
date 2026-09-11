@@ -694,8 +694,7 @@ function LockGlyph(): React.JSX.Element {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="var(--hg-icon-sm)"
-      height="var(--hg-icon-sm)"
+      style={{ width: 'var(--hg-icon-sm)', height: 'var(--hg-icon-sm)' }}
       aria-hidden="true"
       focusable="false"
       fill="none"

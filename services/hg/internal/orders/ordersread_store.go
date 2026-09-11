@@ -215,8 +215,9 @@ func (s *Store) loadRiderForOrder(ctx context.Context, orderID string) (*RiderPu
 	var rp RiderPublicProfile
 	var rl RiderLocation
 	var riderAccountID string
-	var lat, lng float64
+	var lat, lng *float64
 	var headingDeg, speedMPS, accuracyM *float64
+	var recordedAt *time.Time
 
 	err := s.pool.QueryRow(ctx, `
 		SELECT rp.account_id,
@@ -244,7 +245,7 @@ func (s *Store) loadRiderForOrder(ctx context.Context, orderID string) (*RiderPu
 		&rp.RatingAvg,
 		&lat, &lng,
 		&headingDeg, &speedMPS, &accuracyM,
-		&rl.RecordedAt)
+		&recordedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, pgx.ErrNoRows
 	}
@@ -252,11 +253,20 @@ func (s *Store) loadRiderForOrder(ctx context.Context, orderID string) (*RiderPu
 		return nil, nil, err
 	}
 
-	rl.Latitude = lat
-	rl.Longitude = lng
+	// A rider can be dispatched before sending any GPS fix (rider_position is a
+	// LEFT JOIN): treat that as "rider assigned, no position yet" rather than an
+	// error — return the profile with a nil location instead of panicking on a
+	// NULL->float64 scan.
+	if lat == nil || lng == nil || recordedAt == nil {
+		return &rp, nil, nil
+	}
+
+	rl.Latitude = *lat
+	rl.Longitude = *lng
 	rl.HeadingDeg = headingDeg
 	rl.SpeedMPS = speedMPS
 	rl.AccuracyM = accuracyM
+	rl.RecordedAt = *recordedAt
 	// A position with unknown or worse-than-~100 m accuracy is coarse.
 	rl.IsCoarse = accuracyM == nil || *accuracyM > coarseAccuracyThresholdM
 

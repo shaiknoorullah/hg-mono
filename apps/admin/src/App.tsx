@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore } from 'react';
 import { HashRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
-import { ToastProvider, TooltipProvider, themeAttributes } from '@hg/ui-web';
+import { Button, Card, Input, ToastProvider, TooltipProvider, themeAttributes } from '@hg/ui-web';
 
 import { OnboardingQueueScreen } from './screens/OnboardingQueueScreen';
 import { ApplicationDetailScreen } from './screens/ApplicationDetailScreen';
@@ -62,54 +62,56 @@ function LoginGate() {
 
   return (
     <div {...themeAttributes('admin')} className="adm-shell">
-      <main className="adm-main">
-        <form className="adm-login" onSubmit={onSubmit} aria-label="Admin sign-in">
-          <h1 className="text-title-md text-fg-primary">Admin sign in</h1>
-          <label className="text-body-sm text-fg-secondary">
-            Email
-            <input
-              type="email"
+      <main
+        className="adm-main"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}
+      >
+        <Card>
+          <form
+            onSubmit={onSubmit}
+            aria-label="Admin sign-in"
+            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--hg-space-4)', minWidth: 320 }}
+          >
+            <h1 className="text-title-md text-fg-primary">Admin sign in</h1>
+
+            <Input
+              label="Email"
+              variant="email"
               name="email"
-              autoComplete="username"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={setEmail}
               required
             />
-          </label>
-          <label className="text-body-sm text-fg-secondary">
-            Password
-            <input
-              type="password"
+            <Input
+              label="Password"
+              variant="password"
               name="password"
-              autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               required
             />
-          </label>
-          <label className="text-body-sm text-fg-secondary">
-            Authenticator code
-            <input
-              type="text"
+            <Input
+              label="Authenticator code"
+              variant="otp"
               name="totp"
-              autoComplete="one-time-code"
-              inputMode="numeric"
               pattern="\d{6}"
               maxLength={6}
               value={totpCode}
-              onChange={(e) => setTotpCode(e.target.value)}
+              onChange={setTotpCode}
               required
             />
-          </label>
-          {error ? (
-            <p role="alert" className="text-body-sm" style={{ color: 'var(--hg-color-fg-danger, crimson)' }}>
-              {error}
-            </p>
-          ) : null}
-          <button type="submit" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+
+            {error ? (
+              <p role="alert" className="text-body-sm" style={{ color: 'var(--hg-feedback-danger-text, #9E1E23)' }}>
+                {error}
+              </p>
+            ) : null}
+
+            <Button type="submit" disabled={busy} loading={busy} fullWidth>
+              {busy ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+        </Card>
       </main>
     </div>
   );

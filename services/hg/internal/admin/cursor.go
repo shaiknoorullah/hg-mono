@@ -59,7 +59,7 @@ func decodeTimeCursor(r *http.Request) (*time.Time, *string, bool) {
 // splitCSV splits a form-style array query value (style: form, explode: false).
 func splitCSV(s string) []string {
 	if s == "" {
-		return nil
+		return []string{}
 	}
 	return strings.Split(s, ",")
 }

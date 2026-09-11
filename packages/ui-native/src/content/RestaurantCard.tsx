@@ -20,7 +20,7 @@
  * with its own label and its own hit area, deliberately outside the card's pressable.
  */
 import * as React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Schema } from '@hg/api-client';
 
@@ -52,6 +52,13 @@ export interface RestaurantCardProps {
   availability?: Availability;
   onPress?: () => void;
   onFavourite?: () => void;
+  /**
+   * NO_ADDRESS availability replaces the meaningless ETA/fee/distance row with a "Set your
+   * address" prompt (below). Without a handler it renders as inert text; with one, it becomes
+   * its own pressable that stops the tap from bubbling into the card's own `onPress` — the
+   * same "second, adjacent target" rule the favourite control follows, just laid out inline.
+   */
+  onSetAddress?: () => void;
   favourited?: boolean;
   showDistance?: boolean;
   loading?: boolean;
@@ -68,6 +75,7 @@ export function RestaurantCard({
   onPress,
   onFavourite,
   favourited = false,
+  onSetAddress,
   showDistance = true,
   loading = false,
   style,
@@ -176,12 +184,31 @@ export function RestaurantCard({
         action that would make it meaningful rather than by three blanks.
       */}
       {state.state === 'NO_ADDRESS' ? (
-        <Text
-          testID={`${testID}-noAddress`}
-          style={[typeStyle(theme, 'body.sm'), { color: theme.color.text.link }]}
-        >
-          Set your address
-        </Text>
+        onSetAddress ? (
+          <Pressable
+            testID={`${testID}-noAddress`}
+            onPress={(e) => {
+              // Stop the tap short of the Card's own onPress — this text sits inside the
+              // card's pressable region, and without this it navigates into the card
+              // behind it instead of opening the address form.
+              e.stopPropagation();
+              onSetAddress();
+            }}
+            accessibilityRole="link"
+            hitSlop={8}
+          >
+            <Text style={[typeStyle(theme, 'body.sm'), { color: theme.color.text.link, textDecorationLine: 'underline' }]}>
+              Set your address
+            </Text>
+          </Pressable>
+        ) : (
+          <Text
+            testID={`${testID}-noAddress`}
+            style={[typeStyle(theme, 'body.sm'), { color: theme.color.text.link }]}
+          >
+            Set your address
+          </Text>
+        )
       ) : null}
     </View>
   );

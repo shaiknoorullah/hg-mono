@@ -56,6 +56,22 @@ func (s *Store) FindOrCreateByPhone(ctx context.Context, phone, role string) (ac
 		return nil, false, err
 	}
 
+	// A CUSTOMER-audience signup must leave a customer_profile row behind:
+	// GET /v1/me/profile (and everything gated behind it — Addresses, Checkout)
+	// otherwise 404s forever for a first-time customer, since nothing else on
+	// this path ever creates the row. first_name is NOT NULL with no default,
+	// so a lazy placeholder is inserted; UpdateCustomerProfile lets the
+	// customer replace it. ON CONFLICT DO NOTHING makes this idempotent for an
+	// existing account that is only now being granted the CUSTOMER role.
+	if role == "CUSTOMER" {
+		if _, err = tx.Exec(ctx, `
+			INSERT INTO customer_profile (account_id, first_name)
+			VALUES ($1, 'there')
+			ON CONFLICT (account_id) DO NOTHING`, id); err != nil {
+			return nil, false, err
+		}
+	}
+
 	if err = tx.Commit(ctx); err != nil {
 		return nil, false, err
 	}

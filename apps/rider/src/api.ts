@@ -29,16 +29,6 @@ export const API_BASE_URL =
  */
 export const IS_MOCK = API_BASE_URL === DEFAULT_BASE_URL;
 
-/**
- * Proof-of-delivery photo upload is not built into this V0 scaffold. Against the mock any id is
- * accepted; against a real backend the `PHOTO` method needs a `READY` `stored_object` of purpose
- * `POD`. When one has been provisioned out of band it can be supplied here so the delivery loop can
- * complete end-to-end; otherwise a fresh id is minted (which the mock accepts and a real backend
- * rejects with `POD_REQUIRED`, surfacing the POD error state).
- */
-export const POD_OBJECT_ID: string | undefined =
-  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_POD_OBJECT_ID) || undefined;
-
 export const api = createHgClient({
   baseUrl: API_BASE_URL,
   getToken,

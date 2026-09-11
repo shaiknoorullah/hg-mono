@@ -27,6 +27,7 @@ import {
 import type { Restaurant } from '@hg/ui-native';
 
 import { api } from '../api/client';
+import { getDefaultAddress, getAddressVersion, subscribeAddressVersion } from '../api/addresses';
 import { useNavigation } from '../navigation/stack';
 import { CustomerTabBar } from '../navigation/TabBar';
 
@@ -44,7 +45,19 @@ export function DiscoveryScreen(): React.ReactElement {
   const load = React.useCallback(async () => {
     setStatus({ kind: 'loading' });
     try {
-      const body = await unwrap(api.GET('/v1/restaurants', { params: { query: { limit: 20 } } }));
+      // The restaurants list only computes real distance/ETA/fee (vs. the NO_ADDRESS card
+      // state) when latitude/longitude are on the query — the server has no notion of "the
+      // caller's current address" on its own, so the client resolves the customer's default
+      // address itself. Failure here (e.g. no addresses yet) degrades to NO_ADDRESS, not an
+      // error — browsing is still legitimate with nothing set (see RestaurantCard).
+      let query: { limit: number; latitude?: number; longitude?: number } = { limit: 20 };
+      try {
+        const addr = await getDefaultAddress();
+        if (addr) query = { ...query, latitude: addr.latitude, longitude: addr.longitude };
+      } catch {
+        // Anonymous/errored address lookup — fall through with no coordinates.
+      }
+      const body = await unwrap(api.GET('/v1/restaurants', { params: { query } }));
       // `body.data` is the contract's `RestaurantCard[]`; `@hg/ui-native` re-exports the identical
       // generated shape as `Restaurant`. The two are structurally equal but nominally distinct
       // across the module boundary (the branded `Cents` fields), so one cast bridges them — the
@@ -59,6 +72,19 @@ export function DiscoveryScreen(): React.ReactElement {
     void load();
   }, [load]);
 
+  // Discovery keeps the same route key across a push/pop (Router.tsx), so it never remounts
+  // when the customer returns from adding an address — without this it would keep showing
+  // NO_ADDRESS after a successful save until the app was reloaded.
+  const addressVersion = React.useSyncExternalStore(subscribeAddressVersion, getAddressVersion);
+  const isFirstRender = React.useRef(true);
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    void load();
+  }, [addressVersion, load]);
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
       <AppBar title="Discover" subtitle="Halal-certified, near you" />
@@ -67,6 +93,7 @@ export function DiscoveryScreen(): React.ReactElement {
           status={status}
           onRetry={load}
           onOpen={(id) => nav.push({ name: 'restaurant', restaurantId: id })}
+          onSetAddress={() => nav.push({ name: 'addressForm', addressId: null })}
           bottomInset={insets.bottom}
         />
       </View>
@@ -79,11 +106,13 @@ function Body({
   status,
   onRetry,
   onOpen,
+  onSetAddress,
   bottomInset,
 }: {
   status: Status;
   onRetry: () => void;
   onOpen: (restaurantId: string) => void;
+  onSetAddress: () => void;
   bottomInset: number;
 }): React.ReactElement {
   if (status.kind === 'loading') {
@@ -123,7 +152,7 @@ function Body({
       keyExtractor={(r) => r.id}
       contentContainerStyle={{ padding: 16, paddingBottom: 16 + bottomInset, gap: 16 }}
       renderItem={({ item }) => (
-        <RestaurantCard restaurant={item} onPress={() => onOpen(item.id)} />
+        <RestaurantCard restaurant={item} onPress={() => onOpen(item.id)} onSetAddress={onSetAddress} />
       )}
     />
   );

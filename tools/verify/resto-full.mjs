@@ -4,7 +4,7 @@ import { execSync } from 'node:child_process';
 const APP = 'http://localhost:5183';
 const EMAIL = 'resto-qa@demo.hg';
 const PASSWORD = 'RestoQA@1234';
-const TOTP_SECRET = 'MSRMDH22NRZ7KJKFSWTXTHCDPULSEBPH';
+const TOTP_SECRET = 'TVUUMK6M6YL4FPQPHCTX67QZS6QLE66B';
 const OUT = '/home/devsupreme/work/hg-mono/tools/verify';
 
 function totpNow() {

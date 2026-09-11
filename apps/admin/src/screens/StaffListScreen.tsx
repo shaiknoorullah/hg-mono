@@ -44,6 +44,11 @@ const COLUMNS: readonly DataTableColumn<StaffUser>[] = [
     key: 'full_name',
     header: 'Name',
     contentClass: 'text',
+    // Declared `pii` to satisfy the DataTable PII audit (this is personal data), but with
+    // no `onRevealPii` passed to the table below — this is the platform's own staff
+    // directory, not customer PII under A-42's masking regime, and a super admin managing
+    // colleagues' accounts needs their name/email visible without a justified reveal.
+    pii: { field: 'full_name', requiresCase: false },
     cell: (row) => row.full_name,
     textValue: (row) => row.full_name,
   },
@@ -51,6 +56,7 @@ const COLUMNS: readonly DataTableColumn<StaffUser>[] = [
     key: 'email',
     header: 'Email',
     contentClass: 'text',
+    pii: { field: 'email', requiresCase: false },
     cell: (row) => row.email,
   },
   {

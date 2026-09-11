@@ -29,7 +29,11 @@ function rotr(x: number, n: number): number {
 
 /** SHA-256 of a UTF-8 string, as lowercase hex — exactly what `UploadInput.sha256` expects. */
 export function sha256Hex(message: string): string {
-  const bytes = utf8Bytes(message);
+  return sha256HexBytes(utf8Bytes(message));
+}
+
+/** SHA-256 of raw bytes (e.g. a captured photo's contents), as lowercase hex. */
+export function sha256HexBytes(bytes: Uint8Array): string {
   const bitLen = bytes.length * 8;
 
   // Pad: 0x80, then zeros, then the 64-bit big-endian bit length, to a multiple of 64 bytes.

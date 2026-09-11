@@ -28,6 +28,7 @@ import type { Schema } from '@hg/api-client';
 import { unwrap, isApiError } from '@hg/api-client';
 
 import { api } from '../api';
+import { getFreshFix, useLocationReporting } from '../location';
 import { Screen, LoadingView, ErrorView } from './Screen';
 import { useNav } from '../nav';
 
@@ -110,15 +111,45 @@ export function AvailabilityScreen(): React.ReactElement {
     void load();
   }, [load]);
 
+  // Keep the server's fix fresh for as long as this rider is online — a stale fix downgrades the
+  // authoritative state to ONLINE_STALE server-side. Stops the instant the rider goes offline.
+  useLocationReporting(
+    state.status === 'ready' && isOnline(state.availability.availability_state),
+  );
+
   const setOnline = React.useCallback(
     async (next: boolean) => {
       setBusy(true);
       setBlocking([]);
       setConflict(null);
       try {
+        // Going online carries a fresh device fix directly on this PUT — the server treats a
+        // fix on the request itself as current (positions are dropped server-side while
+        // offline, so there is nothing to report beforehand; see location.ts).
+        let located: Awaited<ReturnType<typeof getFreshFix>> | undefined;
+        if (next) {
+          located = await getFreshFix();
+          if (!located.ok) {
+            if (located.reason === 'PERMISSION_DENIED') {
+              setBlocking(['FOREGROUND_LOCATION_PERMISSION']);
+            } else {
+              setConflict(located.message);
+            }
+            setBusy(false);
+            return;
+          }
+        }
         const data = await unwrap(
           api.PUT('/v1/riders/me/availability', {
-            body: { is_online: next },
+            body:
+              located?.ok
+                ? {
+                    is_online: next,
+                    latitude: located.fix.latitude,
+                    longitude: located.fix.longitude,
+                    accuracy_m: located.fix.accuracy_m,
+                  }
+                : { is_online: next },
           }),
         );
         setState({ status: 'ready', availability: data.data });

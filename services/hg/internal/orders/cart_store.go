@@ -155,6 +155,27 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	if err != nil {
 		return nil, fmt.Errorf("load cart: %w", err)
 	}
+	// The contract documents delivery_address_id as "always the customer's currently
+	// selected address" — i.e. their address-book default, not a value some client
+	// call is expected to stamp onto the cart row. Nothing in this module ever writes
+	// cart.delivery_address_id (there is no such endpoint), so falling back to it alone
+	// would leave every cart permanently NO_ADDRESS even for a customer with a saved,
+	// default address. Resolve the customer's current default (falling back to their
+	// oldest saved address) each read instead, matching the documented "currently
+	// selected, never addresses[0]" semantics without needing a schema or contract change.
+	if addressID == nil {
+		var resolvedID string
+		aerr := tx.QueryRow(ctx, `
+			SELECT id FROM address
+			 WHERE account_id = $1 AND deleted_at IS NULL
+			 ORDER BY is_default DESC, created_at ASC
+			 LIMIT 1`, accountID).Scan(&resolvedID)
+		if aerr == nil {
+			addressID = &resolvedID
+		} else if !errors.Is(aerr, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("resolve default address: %w", aerr)
+		}
+	}
 	c.ID = cartID
 	c.RestaurantID = &restaurantID
 	c.RestaurantName = &restaurantName

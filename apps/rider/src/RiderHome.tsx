@@ -107,9 +107,11 @@ function Masthead(): React.ReactElement {
   return (
     <View style={{ gap: 4 }}>
       <Text style={{ ...title, color: theme.color.text.primary }}>Your shift</Text>
-      <Text style={{ ...caption, color: theme.color.text.secondary }}>
-        GET /v1/riders/me · {API_BASE_URL}
-      </Text>
+      {__DEV__ ? (
+        <Text style={{ ...caption, color: theme.color.text.tertiary }}>
+          GET /v1/riders/me · {API_BASE_URL}
+        </Text>
+      ) : null}
     </View>
   );
 }

@@ -64,6 +64,10 @@ describe('AvailabilityScreen — go online', () => {
     let putBody: unknown = null;
     fetchSpy.mockImplementation(async (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
+      // Going online first reports a fresh fix (see src/location.ts) before the PUT.
+      if (url.includes('/riders/me/positions')) {
+        return stubOk({ data: { accepted: 1, rejected: [] } });
+      }
       if (url.includes('/riders/me/availability')) {
         putBody = input instanceof Request ? await input.clone().json() : init?.body ? JSON.parse(String(init.body)) : null;
         return stubOk({
@@ -80,9 +84,15 @@ describe('AvailabilityScreen — go online', () => {
 
     fireEvent.press(screen.getByTestId('Switch'));
 
-    // The server round trip actually happened, with the right request body — never a local flip.
+    // The server round trip actually happened, with a fresh fix on the request body (see
+    // location.ts) — never a local flip.
     await waitFor(() => {
-      expect(putBody).toEqual({ is_online: true });
+      expect(putBody).toEqual({
+        is_online: true,
+        latitude: 43.65,
+        longitude: -79.38,
+        accuracy_m: 5,
+      });
     });
 
     // Only once the server answers does the authoritative badge flip to online.
