@@ -8,6 +8,31 @@
  * halal ruling, but the platform still avoids the alarm-red the halal surfaces reserve for
  * "never say this" (rule 9/10). `bucket_privacy`, `postgis` and `stripe_livemode` are
  * treated as critical (a failure is `AT_RISK`); `email_dns` / `sms_sender` are `WATCH`.
+ *
+ * **Design-system sweep investigation — why this still fails client-side, on purpose:**
+ * the fetch below goes through the app's one shared `@hg/api-client` instance (`../lib/api.js`,
+ * same base URL / auth / client-surface header every other screen uses — there is no separate,
+ * unproxied call to route through), and it still fails in the browser with a CORS-shaped
+ * console error. Traced to the infra layer, not this screen: `deploy/docker-compose.yml`
+ * fronts `/internal/deps` with a Traefik `ipallowlist` middleware scoped to `127.0.0.1/32`
+ * (see its comment: "never exposed to the public internet"). Docker's port-mapping means even
+ * a `curl` from the host itself doesn't present as literal `127.0.0.1` to Traefik — confirmed
+ * by hand: `curl http://localhost:8080/internal/deps` returns a bare `403 Forbidden` from
+ * Traefik, before the request ever reaches the Go app's own CORS middleware, so the OPTIONS
+ * preflight comes back with no `Access-Control-Allow-Origin` header and the browser reports it
+ * as a CORS failure. `http://localhost:5175` (this dev server) *is* on `HG_CORS_ALLOWED_ORIGINS`
+ * — the app-level allowlist was never the problem. A same-origin dev proxy would not help
+ * either: the proxied request still leaves the Vite process as a non-loopback source through
+ * Docker's network and hits the same allowlist. **Conclusion: this is a genuinely host-only
+ * debug route, not a misconfigured one — no client-side routing change makes it browser-
+ * reachable without weakening the G-7 invariant it exists to enforce.** The chosen fix is the
+ * second option the brief allows: guard it so it fails honestly — the `useLoad` catch below
+ * never throws unhandled, and the error state names the real cause with a host-side workaround,
+ * rather than a generic "could not reach the API" line. The one thing that cannot be suppressed
+ * from application code is the browser's own network-level console line for the blocked
+ * preflight (`Access to fetch … has been blocked by CORS policy …`) — Chrome logs that from its
+ * network stack before any page JS runs, on every blocked cross-origin request; no `try/catch`,
+ * `fetch` option, or React error boundary can prevent that one line from appearing.
  */
 import { useCallback } from 'react';
 import type { Schema } from '@hg/api-client';
@@ -31,8 +56,10 @@ export function DependencyDashboardScreen() {
         System dependencies
       </h1>
       <p className="text-body-md text-fg-secondary mb-4">
-        G-7. Resolved and connected addresses, not configured strings. Never exposed to the
-        public internet — this view is reachable only with an admin session.
+        G-7. Resolved and connected addresses, not configured strings. `/internal/deps` sits
+        behind an IP allowlist scoped to the server's own loopback — by design, no browser
+        session can reach it, admin or otherwise; the report below is meant to be pulled from
+        the host itself.
       </p>
 
       {status === 'loading' ? (

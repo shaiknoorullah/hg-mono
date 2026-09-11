@@ -21,6 +21,7 @@ import {
   Chip,
   DataTable,
   EmptyState,
+  Icon,
   Input,
   Select,
   Textarea,
@@ -180,7 +181,11 @@ export function RefundCasesScreen() {
             dual-approved above CAD 50.
           </p>
         </div>
-        <Button variant="primary" onPress={() => setFormOpen((v) => !v)}>
+        <Button
+          variant="primary"
+          iconStart={formOpen ? <Icon name="close" size={18} /> : <Icon name="plus" size={18} weight="bold" />}
+          onPress={() => setFormOpen((v) => !v)}
+        >
           {formOpen ? 'Close' : 'Open a case'}
         </Button>
       </div>
@@ -224,13 +229,13 @@ export function RefundCasesScreen() {
 
       <div className="adm-form-actions">
         {pagination.canGoPrevious ? (
-          <Button variant="tertiary" size="sm" onPress={pagination.previous}>
-            ← Previous page
+          <Button variant="tertiary" size="sm" iconStart={<Icon name="back" size={16} />} onPress={pagination.previous}>
+            Previous page
           </Button>
         ) : null}
         {meta?.has_more ? (
           <Button variant="tertiary" size="sm" onPress={() => pagination.next(meta)}>
-            Next page →
+            Next page
           </Button>
         ) : null}
       </div>

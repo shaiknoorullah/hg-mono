@@ -27,6 +27,7 @@ import {
   Chip,
   ConfirmDialog,
   ErrorState,
+  Icon,
   Input,
   Select,
   Skeleton,
@@ -197,8 +198,8 @@ export function OrderDetailScreen() {
 
   return (
     <section aria-labelledby="order-heading" className="adm-stack">
-      <Button variant="tertiary" size="sm" onPress={() => navigate('/orders')}>
-        ← Back to orders
+      <Button variant="tertiary" size="sm" iconStart={<Icon name="back" size={16} />} onPress={() => navigate('/orders')}>
+        Back to orders
       </Button>
 
       <header className="adm-stack" style={{ gap: 'var(--hg-space-1)' }}>
@@ -329,10 +330,10 @@ export function OrderDetailScreen() {
               acceptance (A-38 / T11 / T13).
             </p>
             <div className="adm-form-actions">
-              <Button variant="secondary" onPress={() => setCancelOpen(true)}>
+              <Button variant="secondary" iconStart={<Icon name="close" size={18} />} onPress={() => setCancelOpen(true)}>
                 Cancel order
               </Button>
-              <Button variant="secondary" onPress={() => setRefundOpen(true)}>
+              <Button variant="secondary" iconStart={<Icon name="clock" size={18} />} onPress={() => setRefundOpen(true)}>
                 Issue refund
               </Button>
             </div>

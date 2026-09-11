@@ -19,6 +19,7 @@ import {
   DataTable,
   EmptyState,
   ErrorState,
+  Icon,
   Skeleton,
   useToast,
   type DataTableColumn,
@@ -122,8 +123,8 @@ export function RiderApplicationDetailScreen() {
 
   return (
     <section aria-labelledby="rider-app-heading" className="adm-stack">
-      <Button variant="tertiary" size="sm" onPress={() => navigate('/riders')}>
-        ← Back to rider queue
+      <Button variant="tertiary" size="sm" iconStart={<Icon name="back" size={16} />} onPress={() => navigate('/riders')}>
+        Back to rider queue
       </Button>
 
       {status === 'loading' ? (
@@ -213,10 +214,15 @@ export function RiderApplicationDetailScreen() {
 
           {data.onboarding_state === 'DOCUMENTS_REVIEW' ? (
             <div className="adm-form-actions">
-              <Button variant="primary" onPress={() => void onApprove()} disabled={approving}>
+              <Button
+                variant="primary"
+                iconStart={<Icon name="check" size={18} weight="bold" />}
+                onPress={() => void onApprove()}
+                disabled={approving}
+              >
                 {approving ? 'Approving…' : 'Approve'}
               </Button>
-              <Button variant="secondary" onPress={() => setRejectOpen(true)}>
+              <Button variant="secondary" iconStart={<Icon name="close" size={18} />} onPress={() => setRejectOpen(true)}>
                 Reject
               </Button>
             </div>
