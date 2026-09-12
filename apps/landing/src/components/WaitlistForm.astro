@@ -1,0 +1,35 @@
+---
+import Button from './Button.astro';
+import Icon from './Icon.astro';
+interface Props {
+  audience: 'eat' | 'own';
+  withIcon?: boolean;
+  withConsent?: boolean;
+  context: string;
+}
+const { audience, withIcon = false, withConsent = false, context } = Astro.props;
+const eat = audience === 'eat';
+---
+<form class="waitlist-form" data-audience={audience} data-context={context} novalidate>
+  <div class="form-row">
+    <label class:list={['field', withIcon && 'has-icon']}>
+      {withIcon && <Icon name={eat ? 'phone' : 'mail'} size="md" />}
+      {eat
+        ? <input type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="(416) 555-0134" aria-label="Phone number" required />
+        : <input type="email" name="email" autocomplete="email" placeholder="chef@yourrestaurant.ca" aria-label="Email address" required />}
+    </label>
+    <Button size="lg" type="submit" variant="primary">{eat ? 'Notify me' : 'Get early access'}</Button>
+  </div>
+
+  {withConsent && (
+    <label class="checkline">
+      <input type="checkbox" name="consent" checked />
+      <span>
+        <span class="cl-label">{eat ? 'Text me once, when we launch in my city' : 'Email me about launch partner onboarding'}</span>
+        <span class="cl-desc">{eat ? 'Consent is timestamped. Unsubscribe any time.' : 'No card, no contract, no commission at launch.'}</span>
+      </span>
+    </label>
+  )}
+
+  <p class="formmsg" role="status" aria-live="polite"></p>
+</form>

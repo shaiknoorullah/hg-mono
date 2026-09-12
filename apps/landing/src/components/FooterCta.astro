@@ -1,0 +1,73 @@
+---
+import HalalShield from './HalalShield.astro';
+import Icon from './Icon.astro';
+import WaitlistForm from './WaitlistForm.astro';
+const columns: [string, string[]][] = [
+  ['Company', ['About', 'Careers', 'Contact']],
+  ['For restaurants', ['List your restaurant', 'Verification standard', 'Payouts']],
+  ['Legal', ['Privacy', 'Terms', 'Accessibility']],
+];
+---
+<footer class="foot">
+  <div class="container">
+    <div class="foot-cta two-col">
+      <div class="foot-cta-copy">
+        <h2 class="mkt-h2 aud-eat foot-h">Verified halal, delivered.</h2>
+        <h2 class="mkt-h2 aud-own foot-h">0% commission at launch.</h2>
+        <p class="aud-eat foot-sub">Leave your number and we will text you once, on launch day.</p>
+        <p class="aud-own foot-sub">Leave your email and we will walk you through onboarding.</p>
+      </div>
+      <div class="foot-form">
+        <div class="aud-eat"><WaitlistForm audience="eat" context="footer" /></div>
+        <div class="aud-own"><WaitlistForm audience="own" context="footer" /></div>
+      </div>
+    </div>
+
+    <div class="foot-cols">
+      <div class="foot-brand">
+        <span class="wordmark">Halal Goes</span>
+        <span class="foot-tag">
+          <HalalShield size={16} color="var(--color-halal-certified-seal)" checkColor="var(--color-accent-800)" />
+          Verified halal, delivered.
+        </span>
+        <span class="socials">
+          {['globe', 'message-circle', 'mail'].map((i) => (
+            <span class="social-chip"><Icon name={i} size="md" /></span>
+          ))}
+        </span>
+      </div>
+      {columns.map(([h, links]) => (
+        <div class="foot-col">
+          <span class="foot-col-h">{h.toUpperCase()}</span>
+          {links.map((l) => <a href="#">{l}</a>)}
+        </div>
+      ))}
+    </div>
+
+    <p class="foot-legal">
+      Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.
+      © 2026 Halal Goes · Ontario, Canada.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .foot { background: var(--color-accent-800); color: var(--color-neutral-50); }
+  .foot .container { padding-top: clamp(64px,8vw,88px); padding-bottom: 40px; }
+  .foot-cta { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,460px); gap: 56px; align-items: center; padding-bottom: 56px; border-bottom: 1px solid rgba(255,255,255,.14); }
+  .foot-h { color: var(--color-neutral-50); }
+  .foot-cta-copy { display: grid; gap: 16px; }
+  .foot-sub { margin: 0; font-size: 17px; line-height: 1.55; color: rgba(255,255,255,.8); max-width: 420px; }
+  .foot-form .waitlist-form { display: grid; gap: 8px; }
+  .foot-cols { display: flex; gap: 40px; flex-wrap: wrap; padding: 40px 0 32px; }
+  .foot-brand { display: grid; gap: 10px; min-width: 220px; align-content: start; }
+  .wordmark { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -.03em; }
+  .foot-tag { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.72); }
+  .socials { display: flex; gap: 10px; margin-top: 6px; }
+  .social-chip { width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--radius-sm); background: rgba(255,255,255,.1); }
+  .foot-col { display: grid; gap: 8px; align-content: start; min-width: 170px; }
+  .foot-col-h { font-size: 13px; font-weight: 700; letter-spacing: .04em; color: rgba(255,255,255,.6); }
+  .foot-col a { font-size: 15px; color: rgba(255,255,255,.85); }
+  .foot-col a:hover { color: #fff; }
+  .foot-legal { margin: 0; font-size: 12px; line-height: 1.6; color: rgba(255,255,255,.6); max-width: 720px; }
+</style>

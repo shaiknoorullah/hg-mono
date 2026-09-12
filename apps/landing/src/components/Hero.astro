@@ -1,0 +1,78 @@
+---
+import Badge from './Badge.astro';
+import HalalBadge from './HalalBadge.astro';
+import HalalShield from './HalalShield.astro';
+import Icon from './Icon.astro';
+import WaitlistForm from './WaitlistForm.astro';
+---
+<section id="waitlist" class="hero">
+  <div class="container two-col hero-grid">
+    <!-- Order food -->
+    <div class="aud-eat hero-copy">
+      <span><Badge tone="accent" icon="map-pin">Launching in Ontario</Badge></span>
+      <h1 class="mkt-h1">Verified halal,<br />delivered.</h1>
+      <p class="hero-sub">Every restaurant checked seven ways before it reaches you.</p>
+      <WaitlistForm audience="eat" withIcon withConsent context="hero" />
+      <div class="trust">
+        <HalalBadge size="sm" />
+        <span class="trust-note">[XX] certified restaurants ready for launch day</span>
+      </div>
+    </div>
+
+    <!-- List your restaurant -->
+    <div class="aud-own hero-copy">
+      <span><Badge tone="accent" icon="store">Launch partners · Ontario</Badge></span>
+      <h1 class="mkt-h1">0% commission<br />at launch.</h1>
+      <p class="hero-sub">Keep every dollar — and reach halal diners who trust the badge.</p>
+      <WaitlistForm audience="own" withIcon withConsent context="hero" />
+      <div class="trust">
+        <HalalBadge size="sm" />
+        <span class="trust-note">[XX] restaurants already on the launch list</span>
+      </div>
+    </div>
+
+    <!-- Shared seal art -->
+    <div class="seal-art">
+      <div class="photo" role="img" aria-label="Food photography placeholder">
+        <Icon name="shopping-bag" size={40} color="var(--color-neutral-400)" />
+        <span>food photography</span>
+      </div>
+      <div class="seal-card">
+        <span class="seal-plate">
+          <HalalShield size={32} color="var(--color-halal-certified-on-seal)" checkColor="var(--color-halal-certified-seal)" />
+        </span>
+        <span>
+          <span class="seal-title">Halal certified</span>
+          <span class="seal-sub">Checked seven ways · certified by [body]</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero { background: var(--surface-base); }
+  .hero-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 56px; align-items: center; padding-top: clamp(48px,7vw,72px); padding-bottom: clamp(56px,8vw,88px); }
+  .hero-copy { display: grid; gap: 24px; justify-items: start; }
+  .hero-sub { margin: 0; font-size: 20px; line-height: 1.5; color: var(--text-secondary); max-width: 460px; }
+  .hero-copy .waitlist-form { width: 100%; max-width: 460px; display: grid; gap: 12px; }
+  .trust { display: flex; align-items: center; gap: 14px; padding-top: 4px; flex-wrap: wrap; }
+  .trust-note { font-size: 14px; color: var(--text-tertiary); }
+
+  .seal-art { position: relative; display: grid; place-items: center; padding: 24px; }
+  .photo {
+    width: 100%; height: clamp(300px, 42vw, 420px); border-radius: var(--radius-marketing-md);
+    background: linear-gradient(135deg, var(--color-neutral-100), var(--color-neutral-200));
+    display: grid; place-items: center; align-content: center; gap: 8px; color: var(--text-tertiary); font-size: 13px;
+  }
+  .seal-card {
+    position: absolute; bottom: 44px; left: 0; display: flex; align-items: center; gap: 14px;
+    background: var(--surface-raised); padding: 14px 18px; border-radius: var(--radius-marketing-md); box-shadow: var(--elev-4);
+  }
+  .seal-plate {
+    width: 52px; height: 52px; display: grid; place-items: center; border-radius: var(--radius-md);
+    background: var(--color-halal-certified-seal); box-shadow: inset 0 0 0 2px var(--color-halal-certified-ring);
+  }
+  .seal-title { display: block; font-size: 15px; font-weight: 700; color: var(--color-halal-certified-tint-text); }
+  .seal-sub { display: block; font-size: 13px; color: var(--text-tertiary); }
+</style>

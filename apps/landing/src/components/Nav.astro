@@ -1,0 +1,51 @@
+---
+import Button from './Button.astro';
+---
+<header class="nav">
+  <div class="container nav-inner">
+    <span class="wordmark">Halal Goes</span>
+    <div class="nav-seg-wrap">
+      <div class="seg" role="tablist" aria-label="Choose audience">
+        <button role="tab" type="button" data-aud="eat" aria-selected="true">Order food</button>
+        <button role="tab" type="button" data-aud="own" aria-selected="false">List your restaurant</button>
+      </div>
+    </div>
+    <span class="aud-eat"><Button href="#waitlist" variant="primary">Join the waitlist</Button></span>
+    <span class="aud-own"><Button href="#waitlist" variant="primary">Get early access</Button></span>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--color-accent-600); color: var(--color-neutral-50);
+    box-shadow: var(--elev-2);
+  }
+  .nav-inner { display: flex; align-items: center; gap: 24px; height: 72px; }
+  .wordmark { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -.03em; }
+  .nav-seg-wrap { margin: 0 auto; }
+</style>
+
+<script>
+  const root = document.documentElement;
+  const btns = document.querySelectorAll<HTMLButtonElement>('.seg [data-aud]');
+  function setAudience(aud: string, persist = true) {
+    root.dataset.audience = aud;
+    btns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.aud === aud)));
+    if (persist) {
+      try { localStorage.setItem('hg-audience', aud); } catch {}
+      // fire a page event so trackers / other islands can react
+      window.dispatchEvent(new CustomEvent('hg:audience', { detail: aud }));
+    }
+  }
+  btns.forEach((b) => b.addEventListener('click', () => setAudience(b.dataset.aud!)));
+  // restore prior choice, or honour ?for=restaurant deep-link
+  try {
+    const params = new URLSearchParams(location.search);
+    const deep = params.get('for');
+    const saved = localStorage.getItem('hg-audience');
+    if (deep === 'restaurant' || deep === 'own') setAudience('own', false);
+    else if (deep === 'eat' || deep === 'customer') setAudience('eat', false);
+    else if (saved === 'own' || saved === 'eat') setAudience(saved, false);
+  } catch {}
+</script>

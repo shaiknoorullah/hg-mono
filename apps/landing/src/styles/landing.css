@@ -1,0 +1,77 @@
+/* Landing-page layout + the audience-toggle mechanism.
+   Both audience variants render in the DOM (good for crawlers); [data-audience]
+   on <html> switches which is visible. Default: eat. */
+
+[data-audience="eat"] .aud-own { display: none !important; }
+[data-audience="own"] .aud-eat { display: none !important; }
+
+.container { max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 32px); }
+
+.mkt-h1 {
+  margin: 0; font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(40px, 8vw, var(--type-marketing-hero-size));
+  line-height: var(--type-marketing-hero-line);
+  letter-spacing: var(--type-marketing-hero-tracking);
+  color: var(--color-accent-600);
+}
+.mkt-h2 {
+  margin: 0; font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(30px, 5vw, var(--type-marketing-section-size));
+  line-height: var(--type-marketing-section-line);
+  letter-spacing: var(--type-marketing-section-tracking);
+  color: var(--color-accent-600);
+}
+.section { padding: clamp(64px, 9vw, 96px) 0; }
+.eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+
+/* ── Field (Input) — from the kit's Input, size lg ─────────────────────── */
+.field { position: relative; display: flex; align-items: center; }
+.field > svg { position: absolute; left: 14px; color: var(--text-tertiary); pointer-events: none; }
+.field input {
+  width: 100%; min-height: 56px; padding: 0 16px; font-family: var(--font-ui); font-size: 16px;
+  color: var(--text-primary); background: var(--surface-raised);
+  border: 1.5px solid var(--border-interactive); border-radius: var(--radius-md); outline: none;
+}
+.field.has-icon input { padding-left: 44px; }
+.field input::placeholder { color: var(--text-placeholder); }
+.field input:focus-visible { border-color: var(--focus-ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 30%, transparent); }
+
+/* ── Checkbox (CASL consent) ───────────────────────────────────────────── */
+.checkline { display: flex; gap: 10px; align-items: flex-start; }
+.checkline input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--color-brand-500); flex: 0 0 auto; }
+.checkline .cl-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.checkline .cl-desc { display: block; font-size: 13px; font-weight: 400; color: var(--text-tertiary); margin-top: 2px; }
+
+/* ── Segmented control (the audience toggle) ───────────────────────────── */
+.seg { display: inline-flex; padding: 3px; gap: 2px; background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.16); border-radius: var(--radius-full); }
+.seg button {
+  display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 18px;
+  font-family: var(--font-ui); font-size: var(--type-label-lg-size); font-weight: 600; white-space: nowrap;
+  color: rgba(255,255,255,.82); background: transparent; border: none; border-radius: var(--radius-full); cursor: pointer;
+  transition: background-color var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard);
+}
+.seg button[aria-selected="true"] { color: var(--color-accent-800); background: var(--color-neutral-0); box-shadow: var(--elev-1); }
+
+.form-row { display: flex; gap: 10px; align-items: flex-start; }
+.form-row .field { flex: 1; }
+.formmsg { font-size: 13px; min-height: 18px; }
+.formmsg[data-ok] { color: var(--color-success-700); }
+.formmsg[data-err] { color: var(--color-danger-600); }
+
+/* ── Responsive: stack the two-column layouts on narrow screens ─────────── */
+@media (max-width: 900px) {
+  .two-col { grid-template-columns: 1fr !important; gap: 40px !important; }
+  .grid-3 { grid-template-columns: 1fr !important; }
+  .grid-2 { grid-template-columns: 1fr !important; }
+  .nav-inner { flex-wrap: wrap; height: auto !important; padding-top: 12px !important; padding-bottom: 12px !important; gap: 12px !important; }
+  .nav-seg-wrap { order: 3; width: 100%; margin: 0 !important; }
+  .seg { width: 100%; }
+  .seg button { flex: 1; justify-content: center; }
+  /* Hero: headline + form first on mobile (above the fold), seal art after. */
+  .hero-grid .seal-art { order: 2; }
+}
+@media (max-width: 520px) {
+  .form-row { flex-direction: column; }
+  .form-row .btn { width: 100%; }
+}

@@ -1,0 +1,54 @@
+---
+import Icon from './Icon.astro';
+const BENEFITS = {
+  eat: [
+    { icon: 'badge-check', title: 'A verified selection', body: 'Every listing carries the certifying body and the date we checked it.' },
+    { icon: 'navigation', title: 'Live tracking', body: 'See the kitchen accept, seal and hand over your order, then watch it come.' },
+    { icon: 'package', title: 'Sealed-to-door integrity', body: 'Bags are sealed at the restaurant. If the seal is broken, tell us and we refund.' },
+  ],
+  own: [
+    { icon: 'banknote', title: '0% commission at launch', body: 'Every launch partner keeps the full order value. Processing fees are shown per payout.' },
+    { icon: 'file-text', title: 'Onboarding in a day', body: 'Certificate, menu, hours. No hardware, no integration work, no exclusivity.' },
+    { icon: 'badge-check', title: 'The badge as a trust asset', body: 'Download your verification badge for your window, menus and socials.' },
+  ],
+};
+---
+{(['eat', 'own'] as const).map((aud) => {
+  const dark = aud === 'own';
+  return (
+    <section class:list={[`aud-${aud}`, 'benefits', dark && 'benefits--dark']}>
+      <div class="container">
+        <div class="benefits-head">
+          <h2 class="mkt-h2">Why Halal Goes</h2>
+          <span class="benefits-aud">{dark ? 'For restaurants' : 'For people ordering'}</span>
+        </div>
+        <div class="grid-3 benefits-grid">
+          {BENEFITS[aud].map((b) => (
+            <div class="benefit">
+              <span class="benefit-icon"><Icon name={b.icon} size="lg" /></span>
+              <h3 class="benefit-title">{b.title}</h3>
+              <p class="benefit-body">{b.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+})}
+
+<style>
+  .benefits { background: var(--color-neutral-100); padding: clamp(64px,8vw,88px) 0; }
+  .benefits--dark { background: var(--color-accent-600); }
+  .benefits-head { display: flex; align-items: baseline; gap: 20px; margin-bottom: 40px; flex-wrap: wrap; }
+  .benefits-aud { font-size: 15px; color: var(--text-tertiary); }
+  .benefits--dark .mkt-h2 { color: var(--color-neutral-50); }
+  .benefits--dark .benefits-aud { color: rgba(255,255,255,.75); }
+  .benefits-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; }
+  .benefit { display: grid; gap: 12px; align-content: start; }
+  .benefit-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-raised); color: var(--color-brand-700); border: 1px solid var(--border-decorative); }
+  .benefits--dark .benefit-icon { background: rgba(255,255,255,.1); color: var(--color-brand-300); border-color: rgba(255,255,255,.14); }
+  .benefit-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; color: var(--color-accent-600); }
+  .benefits--dark .benefit-title { color: var(--color-neutral-50); }
+  .benefit-body { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-secondary); }
+  .benefits--dark .benefit-body { color: rgba(255,255,255,.8); }
+</style>

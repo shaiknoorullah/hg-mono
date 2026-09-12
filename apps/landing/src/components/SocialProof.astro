@@ -1,0 +1,62 @@
+---
+import Icon from './Icon.astro';
+import HalalBadge from './HalalBadge.astro';
+const STAR = 'M11.5 2.3a.53.53 0 0 1 1 0l2.3 4.68a2.1 2.1 0 0 0 1.6 1.16l5.17.76a.53.53 0 0 1 .29.9l-3.74 3.64a2.1 2.1 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.1 2.1 0 0 0-1.97 0L6.4 21a.53.53 0 0 1-.77-.56l.88-5.14a2.1 2.1 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .29-.9l5.17-.76a2.1 2.1 0 0 0 1.6-1.16z';
+const cities: [string, string][] = [['Scarborough', '[XX]'], ['Mississauga', '[XX]'], ['Markham', '[XX]'], ['Ottawa', '[XX]']];
+---
+<section class="social">
+  <div class="container two-col social-grid">
+    <div class="social-main">
+      <h2 class="mkt-h2 aud-eat">People are waiting</h2>
+      <h2 class="mkt-h2 aud-own">Restaurants are signing up</h2>
+      <div class="grid-2 quotes">
+        {[1, 2].map(() => (
+          <figure class="quote">
+            <span class="stars" aria-label="5 out of 5">
+              {[0, 1, 2, 3, 4].map(() => (
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={STAR} fill="currentColor" /></svg>
+              ))}
+            </span>
+            <blockquote class="aud-eat">“Placeholder quote — real customer testimonials pending. Keep the tone plain and specific.”</blockquote>
+            <blockquote class="aud-own">“Placeholder quote — real partner testimonials pending. Keep the tone plain and specific.”</blockquote>
+            <figcaption>Name · City, ON</figcaption>
+          </figure>
+        ))}
+      </div>
+      <p class="ph-note">Honest placeholders until real quotes exist. No invented reviews, no borrowed logos.</p>
+    </div>
+
+    <aside class="cities">
+      <HalalBadge size="sm" />
+      <div class="cities-title">Launch-city interest</div>
+      <div class="cities-list">
+        {cities.map(([c, n]) => (
+          <div class="city">
+            <Icon name="map-pin" size="sm" color="var(--text-tertiary)" />
+            <span class="city-name">{c}</span>
+            <span class="city-n">{n}</span>
+          </div>
+        ))}
+      </div>
+      <p class="ph-note">Counts are placeholders until the waitlist is live.</p>
+    </aside>
+  </div>
+</section>
+
+<style>
+  .social { background: var(--surface-base); }
+  .social-grid { display: grid; grid-template-columns: minmax(0,1fr) 380px; gap: 56px; align-items: start; padding: clamp(64px,8vw,88px) 0; }
+  .social-main { display: grid; gap: 20px; }
+  .quotes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .quote { margin: 0; padding: 24px 24px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); display: grid; gap: 12px; }
+  .stars { display: inline-flex; gap: 2px; color: var(--color-halal-certified-ring); }
+  .quote blockquote { margin: 0; font-size: 17px; line-height: 1.55; color: var(--text-primary); }
+  .quote figcaption { font-size: 13px; color: var(--text-tertiary); }
+  .ph-note { margin: 0; font-size: 12px; color: var(--text-tertiary); }
+  .cities { padding: 28px; background: var(--color-neutral-100); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); display: grid; gap: 16px; align-content: start; }
+  .cities-title { font-size: 15px; font-weight: 600; color: var(--color-accent-600); }
+  .cities-list { display: grid; gap: 10px; }
+  .city { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+  .city-name { flex: 1; color: var(--text-secondary); }
+  .city-n { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+</style>

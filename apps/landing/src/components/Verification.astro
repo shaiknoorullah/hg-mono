@@ -1,0 +1,72 @@
+---
+import HalalShield from './HalalShield.astro';
+import Button from './Button.astro';
+const POINTS = [
+  'Verification point 1', 'Verification point 2', 'Verification point 3', 'Verification point 4',
+  'Verification point 5', 'Verification point 6', 'Verification point 7',
+];
+---
+<section class="verify">
+  <div class="container two-col verify-grid">
+    <div class="verify-lead">
+      <span class="big-seal">
+        <HalalShield size={58} color="var(--color-halal-certified-on-seal)" checkColor="var(--color-halal-certified-seal)" />
+      </span>
+      <h2 class="mkt-h2 tint-text">How we verify</h2>
+      <p class="verify-body">
+        A restaurant joins Halal Goes only after an admin has checked its certification against a
+        seven-point review. We record who certified it, the certificate number, and the date we checked.
+        The badge you see on a listing is that record — not a claim of our own.
+      </p>
+      <p class="verify-disclaimer">
+        Certification verified by Halal Goes on the date shown. Halal Goes does not itself certify food.
+      </p>
+      <Button variant="secondary" rightIcon="arrow-right">Read the verification standard</Button>
+    </div>
+
+    <div class="verify-points">
+      <div class="eyebrow tint-text">The seven-point check</div>
+      <div class="points-grid">
+        {POINTS.map((p, i) => (
+          <div class:list={['point', i === 6 && 'point--wide']}>
+            <span class="point-n">{i + 1}</span>
+            <span class="point-label">{p}</span>
+          </div>
+        ))}
+      </div>
+      <div class="bodies">
+        <div class="eyebrow tint-text">Certifying bodies we recognise</div>
+        <div class="bodies-row">
+          {[1, 2, 3, 4].map((n) => <div class="body-slot">body logo {n}</div>)}
+        </div>
+        <p class="ph-note">Placeholders: the list of recognised bodies and their logos was not supplied with the brief.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .verify {
+    background: var(--color-halal-certified-tint);
+    border-top: 1px solid var(--color-halal-certified-tint-border);
+    border-bottom: 1px solid var(--color-halal-certified-tint-border);
+  }
+  .verify-grid { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 64px; align-items: start; padding: clamp(64px,9vw,96px) 0; }
+  .tint-text { color: var(--color-halal-certified-tint-text); }
+  .verify-lead { display: grid; gap: 20px; justify-items: start; }
+  .big-seal { width: 96px; height: 96px; display: grid; place-items: center; border-radius: 20px; background: var(--color-halal-certified-seal); box-shadow: inset 0 0 0 3px var(--color-halal-certified-ring); }
+  .verify-body { margin: 0; font-size: 17px; line-height: 1.6; color: var(--color-halal-certified-tint-text); opacity: .9; max-width: 420px; }
+  .verify-disclaimer { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-halal-certified-tint-text); opacity: .75; max-width: 420px; }
+
+  .verify-points { display: grid; gap: 12px; }
+  .points-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .point { display: flex; align-items: center; gap: 12px; padding: 16px 18px; background: var(--surface-raised); border: 1px solid var(--color-halal-certified-tint-border); border-radius: var(--radius-marketing-sm); }
+  .point--wide { grid-column: span 2; }
+  .point-n { width: 28px; height: 28px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--color-halal-certified-tint); color: var(--color-halal-certified-seal); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .point-label { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+
+  .bodies { margin-top: 12px; display: grid; gap: 10px; }
+  .bodies-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .body-slot { width: 150px; height: 60px; display: grid; place-items: center; background: var(--surface-raised); border: 1px dashed var(--color-halal-certified-tint-border); border-radius: var(--radius-marketing-sm); font-size: 12px; color: var(--text-tertiary); }
+  .ph-note { margin: 0; font-size: 12px; color: var(--color-halal-certified-tint-text); opacity: .7; }
+</style>

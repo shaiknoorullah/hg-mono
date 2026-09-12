@@ -1,0 +1,43 @@
+---
+import Icon from './Icon.astro';
+export const QA: [string, string][] = [
+  ['What does “verified halal” mean here?', 'It means an admin has checked the restaurant’s halal certificate against a seven-point review, and recorded who issued it, the certificate number and the date of the check. The badge shows that record. Halal Goes does not itself certify food, and makes no religious ruling.'],
+  ['Where do you deliver?', 'Ontario first, starting in the Greater Toronto Area. Join the waitlist with your city and we will tell you when we reach it.'],
+  ['What does it cost?', 'For people ordering: the menu price, a delivery fee shown before you pay, tax, and a tip that goes entirely to your rider. For restaurants: 0% commission at launch. Payment processing fees are itemised on every payout statement.'],
+  ['When do you launch?', 'We are pre-launch. Both forms on this page are waitlists, not app downloads — there is nothing to install yet.'],
+  ['What happens if a certificate expires?', 'The restaurant stops appearing for customers until it is renewed. We do not show a warning badge on food: an expired certificate means our knowledge has lapsed, not that the food is not halal.'],
+];
+---
+<section class="faq">
+  <div class="faq-wrap">
+    <h2 class="mkt-h2">Questions</h2>
+    <div class="faq-list">
+      {QA.map(([q, a], i) => (
+        <details name="faq" open={i === 0}>
+          <summary>
+            <span>{q}</span>
+            <Icon name="chevron-down" size="md" color="var(--text-tertiary)" class="chev" />
+          </summary>
+          <p>{a}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq { background: var(--color-neutral-100); padding: clamp(64px,9vw,96px) 0; }
+  .faq-wrap { max-width: 860px; margin: 0 auto; padding: 0 clamp(20px,5vw,32px); }
+  .faq .mkt-h2 { margin-bottom: 32px; }
+  .faq-list { display: grid; gap: 10px; }
+  details { background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); overflow: hidden; }
+  summary {
+    display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 0 24px; cursor: pointer;
+    font-family: var(--font-ui); font-size: 17px; font-weight: 600; color: var(--color-accent-600); list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary > span:first-child { flex: 1; }
+  .chev { transition: transform var(--duration-base) var(--ease-standard); flex: 0 0 auto; }
+  details[open] .chev { transform: rotate(180deg); }
+  details p { margin: 0; padding: 0 24px 22px; font-size: 15px; line-height: 1.65; color: var(--text-secondary); max-width: 680px; }
+</style>
