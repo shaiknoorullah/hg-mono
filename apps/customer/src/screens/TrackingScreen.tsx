@@ -32,6 +32,11 @@ import {
 import { getOrder } from '../api/orders';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
+import { TamperReportCard } from '../components/TamperReportCard';
+
+// Delivery-phase states where the customer has (or has just received) the sealed bag and can
+// report a broken seal.
+const DELIVERY_PHASE: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED', 'DELIVERED']);
 
 type Order = Schema['OrderCustomerView'];
 
@@ -112,6 +117,10 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
           </View>
 
           <Receipt order={state.order} />
+
+          {DELIVERY_PHASE.has(state.order.state) ? (
+            <TamperReportCard orderId={orderId} />
+          ) : null}
 
           <Button variant="secondary" onPress={load}>
             Refresh
