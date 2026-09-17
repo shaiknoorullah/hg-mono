@@ -97,8 +97,17 @@ import { STATES, ISSUERS } from '../lib/claims';
     .states-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 639px) {
-    .states-hero { padding-left: 0; margin: 36px 0 40px; }
-    .states-hero :global(.rc) { max-width: none; }
-    .states-grid { grid-template-columns: 1fr; }
+    /* On a phone the hero's specimen card is only a few screens up, so repeating
+       it here is redundancy rather than reinforcement — and it costs ~500px of
+       scroll. The four state cards below carry this section's argument on their
+       own. On desktop the two sit far enough apart to read as a callback. */
+    .states-hero { display: none; }
+    .states-head { margin-bottom: 26px; }
+    .states-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .st { padding: 14px; }
+    .st-mark { width: 30px; height: 30px; margin-bottom: 10px; }
+    .st-label { font-size: 14px; }
+    .st-body { font-size: 13px; line-height: 1.45; margin-bottom: 9px; }
+    .st-mono { font-size: 10px; }
   }
 </style>

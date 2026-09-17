@@ -129,16 +129,23 @@ const hma = ISSUERS[0].name;
      the fold so there is a visible cut edge to scroll past. A section that ends
      flush at the fold is a false floor — the cheapest way to lose the rest. */
   @media (max-width: 899px) {
-    .hero-grid { grid-template-columns: 1fr; gap: 36px; padding-top: 40px; padding-bottom: 64px; }
-    .hero-copy { max-width: none; gap: 18px; }
+    .hero-grid { grid-template-columns: 1fr; gap: 28px; padding-top: 32px; padding-bottom: 48px; }
+    .hero-copy { max-width: none; gap: 16px; }
+    .hero-copy .lede { max-width: none; }
     .hero-photo {
-      aspect-ratio: 4 / 5;
+      aspect-ratio: 3 / 2;
       min-height: 0;
-      max-height: 420px;
+      max-height: 300px;
       margin-inline: calc(50% - 50vw);
       border-radius: 0;
     }
-    .hero-record { position: static; width: 100%; margin-top: 24px; }
+    .hero-record { position: static; width: 100%; margin-top: 20px; }
     .hero-record :global(.rc) { max-width: none; }
+  }
+  @media (max-width: 639px) {
+    .hero-grid { gap: 22px; padding-top: 24px; padding-bottom: 40px; }
+    .hero-copy { gap: 13px; }
+    .chip { font-size: 11px; }
+    .hero-photo { max-height: 232px; }
   }
 </style>

@@ -178,6 +178,40 @@ html.js [data-print].is-in { clip-path: inset(0); }
   background: var(--color-warning-50); color: var(--color-warning-700);
 }
 
+/* ── Phone scale ────────────────────────────────────────────────────────────
+ * Desktop metrics don't survive a 390px viewport by shrinking proportionally.
+ * The type was technically correct (18px lede, 40px H1) and still read as
+ * oversized, because at this width those sizes buy only ~34 characters a line —
+ * so every paragraph becomes a tall column and the page runs on forever.
+ *
+ * The fix is line LENGTH, not just size: drop a step and tighten the leading so
+ * a sentence fits in fewer lines, then take the section rhythm down with it.
+ * Nothing here goes below 15.5px body or shrinks a tap target.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  body { font-size: 16px; line-height: 1.6; }
+
+  .mkt-h1 { font-size: clamp(30px, 8.4vw, 36px); line-height: 1.06; letter-spacing: -.03em; }
+  .mkt-h2 { font-size: clamp(23px, 6.6vw, 30px); line-height: 1.12; max-width: 18ch; }
+  .mkt-h3 { font-size: 18px; }
+  .lede { font-size: 16.5px; line-height: 1.5; }
+  .body { font-size: 15.5px; line-height: 1.6; }
+  .caption { font-size: 13.5px; }
+  .eyebrow { font-size: 11px; margin-bottom: 10px; letter-spacing: .07em; }
+  .mono { font-size: 12px; }
+
+  .section { padding-block: 48px; }
+  .section--tight { padding-block: 38px; }
+  .section--hinge { padding-block: 60px; }
+
+  .form-help, .form-objection { font-size: 12.5px; }
+  .checkline .cl-label { font-size: 14.5px; line-height: 1.4; }
+  .checkline .cl-desc { font-size: 11.5px; }
+  .field-label { font-size: 12.5px; }
+  .field input { min-height: 48px; font-size: 16px; } /* 16px min: anything less zooms iOS */
+  .btn--lg { min-height: 48px; font-size: 15px; }
+}
+
 /* ── Utility ────────────────────────────────────────────────────────────── */
 .stack { display: grid; justify-items: start; }
 .vh {
