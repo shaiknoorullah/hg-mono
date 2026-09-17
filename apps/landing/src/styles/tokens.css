@@ -32,7 +32,9 @@
   --type-marketing-section-size:40px;--type-marketing-section-line:1.1;--type-marketing-section-tracking:-0.02em;
 
   /* ── Space / radius / elevation ───────────────────────────────────────── */
-  --space-section:96px;--space-block:24px;
+  /* Section rhythm is deliberately uneven — uniform 96px is what reads "flat".
+     tight = short high-contrast strips · hinge = the three narrative turns. */
+  --space-section:96px;--space-section-tight:72px;--space-section-hinge:176px;--space-block:24px;
   --target-min:44px;
   --radius-none:0px;--radius-xs:4px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;--radius-2xl:24px;--radius-full:9999px;
   --radius-marketing-sm:11px;--radius-marketing-md:16px;--radius-marketing-pill:999px;

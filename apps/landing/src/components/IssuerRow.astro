@@ -1,0 +1,64 @@
+---
+/**
+ * The certifying bodies whose certificates we accept.
+ *
+ * Set in TYPE, never as logos. A logo wall implies a partnership that does not
+ * exist, and this is the one page where implying something we don't have costs
+ * us the whole argument. The non-affiliation line ships with it, always.
+ *
+ * HFSAA is American. We print that rather than hiding it — being first to
+ * mention the awkward detail is the cheapest credibility on the page, and the
+ * alternative (quietly swapping in a Canadian-sounding body) would be inventing
+ * a claim the registry does not make.
+ */
+import { ISSUERS } from '../lib/claims';
+---
+<div class="issuers">
+  <p class="eyebrow" data-reveal>Certificates we read</p>
+  <ul class="issuer-list" data-reveal-group>
+    {ISSUERS.map((b) => (
+      <li class="issuer" data-reveal>
+        {b.url ? (
+          <a href={b.url} rel="noopener noreferrer" target="_blank" class="issuer-name">{b.name}</a>
+        ) : (
+          <span class="issuer-name">{b.name}</span>
+        )}
+        <span class="issuer-where">{b.where}</span>
+      </li>
+    ))}
+  </ul>
+  <p class="issuer-note" data-reveal>
+    We're not affiliated with these organisations and they don't endorse us. We read the
+    certificates they issue and print their name on the listing, so you know whose standard
+    you're looking at. We don't rank them, and the registry isn't closed — send us one we
+    don't list and we'll assess it.
+  </p>
+</div>
+
+<style>
+  .issuers { margin-top: 36px; }
+  .issuer-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 14px; }
+  .issuer { display: grid; gap: 3px; }
+  .issuer-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .03em;
+    line-height: 1.4;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    justify-self: start;
+  }
+  a.issuer-name { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border-decorative); }
+  a.issuer-name:hover { text-decoration-color: var(--text-primary); }
+  .issuer-where {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+  }
+  .issuer-note { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-tertiary); max-width: 52ch; }
+</style>

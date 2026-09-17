@@ -1,0 +1,104 @@
+---
+/**
+ * Show the failure mode voluntarily. This is the credibility beat.
+ *
+ * Telling a stranger, before launch, exactly when you will refuse to vouch for
+ * something is the most persuasive thing available to us — and it costs nothing,
+ * because these four states already exist in the product.
+ *
+ * Two invariants are literally the content of this section:
+ *   #8 a missing halal field renders NO badge, never an optimistic one
+ *   #9 never red for a halal state — red reads as *haram*, a religious ruling
+ *      the platform does not make. Expired is cool slate: "we can't vouch".
+ *
+ * This section carries the page's ONE grid break: the large record card is
+ * offset right, off the optical left edge. One asymmetry in a strict grid reads
+ * as art direction; three read as chaos. Do not add a second.
+ */
+import RecordCard from './RecordCard.astro';
+import { STATES, ISSUERS } from '../lib/claims';
+---
+<section class="section--hinge states">
+  <div class="container">
+    <header class="states-head">
+      <p class="eyebrow" data-reveal>What the badge can say</p>
+      <h2 class="mkt-h2" data-reveal>Including when we can't vouch for a kitchen.</h2>
+      <p class="body states-lede" data-reveal>
+        Four states, and only four. We'd rather show you less than show you something we can't
+        stand behind.
+      </p>
+    </header>
+
+    <div class="states-hero" data-reveal>
+      <RecordCard
+        specimen
+        state="certified"
+        caption="Specimen · what a listing's record looks like once it passes"
+        issuer={ISSUERS[0].name}
+        reviews="None yet. We haven't opened."
+      />
+    </div>
+
+    <div class="states-grid" data-reveal-group>
+      {STATES.map((s) => (
+        <div class="st" data-reveal>
+          <span class:list={['st-mark', `st-mark--${s.state}`]} aria-hidden="true"></span>
+          <p class="st-label">{s.label}</p>
+          <p class="st-body">{s.body}</p>
+          <p class="mono st-mono">{s.mono}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .states { background: var(--surface-base); }
+  .states-head { max-width: 620px; }
+  .states-lede { margin-top: 14px; }
+
+  /* THE one grid break on the page. */
+  .states-hero { margin: 48px 0 56px; padding-left: 32px; }
+  .states-hero :global(.rc) { max-width: 460px; }
+
+  .states-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+  .st {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-decorative);
+    border-radius: var(--radius-marketing-md);
+    padding: 20px;
+  }
+  .st-mark { display: block; width: 40px; height: 40px; border-radius: var(--radius-sm); margin-bottom: 14px; }
+  .st-mark--certified {
+    background: var(--color-halal-certified-seal);
+    box-shadow: inset 0 0 0 2px var(--color-halal-certified-ring);
+  }
+  .st-mark--expired { background: var(--color-halal-expired-seal); }
+  /* Under review reads as a badge that is drawn but not filled in — a solid
+     slate outline, plus the diagonal of an unfinished form. */
+  .st-mark--review {
+    box-shadow: inset 0 0 0 2px var(--color-halal-expired-seal);
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent 0 5px,
+      color-mix(in srgb, var(--color-halal-expired-seal) 22%, transparent) 5px 7px
+    );
+  }
+  /* No badge at all — and it must not read as a *quieter badge*. A dashed
+     hairline says "nothing has been drawn here", which is the honest mark.
+     Never a greyed shield: invariant #8 is that silence renders nothing. */
+  .st-mark--none { box-shadow: none; border: 1px dashed var(--border-decorative); }
+
+  .st-label { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .st-body { margin: 0 0 12px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+  .st-mono { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; line-height: 1.5; }
+
+  @media (max-width: 999px) {
+    .states-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 639px) {
+    .states-hero { padding-left: 0; margin: 36px 0 40px; }
+    .states-hero :global(.rc) { max-width: none; }
+    .states-grid { grid-template-columns: 1fr; }
+  }
+</style>

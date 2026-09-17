@@ -1,0 +1,191 @@
+---
+/**
+ * The certification record, as a designed artifact.
+ *
+ * This is the brand lockup: the seal NEVER appears without the record beneath it.
+ * A seal on its own is the placebo badge this category is already drowning in —
+ * the record is the whole difference, so the two ship together or not at all.
+ *
+ * Four states, and only four, mirroring the product's halal enum:
+ *   certified — emerald seal + brass ring. The only filled solid green on the site.
+ *   expired   — cool slate. NEVER red: red reads as *haram*, a religious ruling
+ *               this platform does not make (invariant #9). Expired means our
+ *               knowledge has lapsed, not that anything is wrong with the food.
+ *   review    — outlined slate, no fill. Paperwork in, checking not finished.
+ *   none      — NO BADGE AT ALL. Not a greyed shield, not a neutral chip: an
+ *               empty hairline square (invariant #8 — a missing halal field
+ *               renders no badge, never an optimistic one).
+ *
+ * `specimen` renders the shape of the record with its identifying values left as
+ * ruled blanks. It exists so the hero can show what we keep on file without
+ * inventing a restaurant, a certificate number or an admin's name. On launch day
+ * this component takes real props and the caption is deleted — a data change,
+ * not a design change.
+ */
+import HalalShield from './HalalShield.astro';
+import RecordLine from './RecordLine.astro';
+
+interface Props {
+  state?: 'certified' | 'expired' | 'review' | 'none';
+  specimen?: boolean;
+  caption?: string;
+  kitchen?: string;
+  city?: string;
+  issuer?: string;
+  certNumber?: string;
+  scope?: string;
+  inForceTo?: string;
+  checkedBy?: string;
+  reviews?: string;
+  footnote?: string;
+  size?: 'lg' | 'sm';
+  class?: string;
+}
+const {
+  state = 'certified',
+  specimen = false,
+  caption,
+  kitchen,
+  city,
+  issuer,
+  certNumber,
+  scope,
+  inForceTo,
+  checkedBy,
+  reviews,
+  footnote,
+  size = 'lg',
+  class: cls,
+} = Astro.props;
+
+const STATUS = {
+  certified: { label: 'Halal certified' },
+  expired: { label: 'Certificate expired' },
+  review: { label: 'Under review' },
+  none: { label: 'No record' },
+} as const;
+const status = STATUS[state];
+---
+<article class:list={['rc', `rc--${size}`, `rc--${state}`, cls]}>
+  {caption && (
+    <p class="rc-caption" data-print>{caption}</p>
+  )}
+
+  <div class="rc-status">
+    {state === 'certified' && (
+      <span class="rc-seal">
+        <HalalShield
+          size={size === 'lg' ? 22 : 18}
+          color="var(--color-halal-certified-on-seal)"
+          checkColor="var(--color-halal-certified-seal)"
+        />
+      </span>
+    )}
+    {state === 'expired' && <span class="rc-seal rc-seal--slate" aria-hidden="true"></span>}
+    {state === 'review' && <span class="rc-seal rc-seal--outline" aria-hidden="true"></span>}
+    {state === 'none' && <span class="rc-seal rc-seal--empty" aria-hidden="true"></span>}
+    <span class="rc-status-label">{status.label}</span>
+  </div>
+
+  <hr class="rc-rule" />
+
+  <dl class="rc-fields">
+    <RecordLine
+      label="Kitchen"
+      value={specimen ? undefined : kitchen && city ? `${kitchen} · ${city}` : kitchen}
+      blank={22}
+    />
+    <RecordLine label="Issued by" value={issuer} blank={20} />
+    <RecordLine label="Certificate" value={specimen ? undefined : certNumber} blank={14} />
+    <RecordLine label="Scope" value={specimen ? undefined : scope} blank={18} />
+    <RecordLine label="In force to" value={specimen ? undefined : inForceTo} blank={11} />
+    <RecordLine label="Checked by" value={specimen ? undefined : checkedBy} blank={16} />
+  </dl>
+
+  {reviews && (
+    <>
+      <hr class="rc-rule" />
+      <dl class="rc-fields">
+        <RecordLine label="Reviews" value={reviews} prose />
+      </dl>
+    </>
+  )}
+
+  {footnote && (
+    <>
+      <hr class="rc-rule" />
+      <p class="rc-footnote">{footnote}</p>
+    </>
+  )}
+</article>
+
+<style>
+  /* Paper on a table, not app chrome floating on a gradient: opaque white, one
+     hairline, one shadow level. No blur, no glass, no white top-highlight. */
+  .rc {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-decorative);
+    border-radius: var(--radius-marketing-md);
+    box-shadow: var(--elev-1);
+    padding: 28px;
+    max-width: 420px;
+  }
+  .rc--sm { padding: 20px; max-width: 340px; }
+
+  .rc-caption {
+    margin: 0 0 18px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .085em;
+    line-height: 1.55;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .rc-status { display: flex; align-items: center; gap: 12px; }
+  .rc-status-label { font-size: 16px; font-weight: 800; letter-spacing: -.01em; color: var(--text-primary); }
+  .rc--sm .rc-status-label { font-size: 15px; }
+
+  .rc-seal {
+    width: 36px; height: 36px; flex: 0 0 auto;
+    display: grid; place-items: center;
+    border-radius: var(--radius-sm);
+    background: var(--color-halal-certified-seal);
+    box-shadow: inset 0 0 0 2px var(--color-halal-certified-ring);
+  }
+  .rc--sm .rc-seal { width: 30px; height: 30px; }
+
+  /* Expired: cool slate. The whole point of this colour is that it is not red. */
+  .rc-seal--slate { background: var(--color-halal-expired-seal); box-shadow: none; }
+  /* Under review: outline only — paperwork received, nothing vouched for yet. */
+  .rc-seal--outline {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--color-halal-expired-seal);
+    opacity: .6;
+  }
+  /* No record: renders NO badge. An empty hairline square is the honest mark. */
+  .rc-seal--empty {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--border-decorative);
+  }
+  .rc--none .rc-status-label,
+  .rc--review .rc-status-label { color: var(--text-tertiary); }
+
+  .rc-rule { border: 0; border-top: 1px solid var(--border-decorative); margin: 16px 0; }
+  .rc--sm .rc-rule { margin: 13px 0; }
+
+  .rc-fields { margin: 0; display: grid; }
+
+  .rc-footnote {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    max-width: 52ch;
+  }
+
+  @media (max-width: 480px) {
+    .rc { padding: 22px; }
+  }
+</style>

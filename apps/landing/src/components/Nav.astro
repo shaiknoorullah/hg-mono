@@ -1,51 +1,74 @@
 ---
-import Button from './Button.astro';
+/**
+ * Name the brand, put a door where a restaurateur will find it, get out of the
+ * way of the food.
+ *
+ * No CTA button and no orange: the hero form is already on screen, and a second
+ * ask in the highest-attention strip is three affordances fighting over one
+ * glance. No hamburger either — two text links do not need a drawer.
+ *
+ * The segmented audience toggle that used to live here is gone, along with the
+ * `data-audience` root attribute and its localStorage persistence. Asking a
+ * stranger to classify themselves before they have read anything is a tax, and
+ * it forced two <h1>s and two heroes into one DOM on every mobile visit.
+ */
+interface Props {
+  /** Which page this nav sits on — decides where the cross-link points. */
+  page?: 'diner' | 'restaurant';
+}
+const { page = 'diner' } = Astro.props;
+const cross =
+  page === 'diner'
+    ? { href: '/for-restaurants', label: 'I own a restaurant' }
+    : { href: '/', label: 'I want to order' };
 ---
-<header class="nav">
+<header class="nav" data-nav>
   <div class="container nav-inner">
-    <span class="wordmark">Halal Goes</span>
-    <div class="nav-seg-wrap">
-      <div class="seg" role="tablist" aria-label="Choose audience">
-        <button role="tab" type="button" data-aud="eat" aria-selected="true">Order food</button>
-        <button role="tab" type="button" data-aud="own" aria-selected="false">List your restaurant</button>
-      </div>
-    </div>
-    <span class="aud-eat"><Button href="#waitlist" variant="primary">Join the waitlist</Button></span>
-    <span class="aud-own"><Button href="#waitlist" variant="primary">Get early access</Button></span>
+    <a class="wordmark" href="/">Halal Goes</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#the-door" class="nav-link nav-link--wide">How we check</a>
+      <a href={cross.href} class="nav-link">{cross.label} <span class="arw" aria-hidden="true">→</span></a>
+    </nav>
   </div>
 </header>
 
 <style>
+  /* Cream, not forest. A dark bar at the top of a cream page is a lid; it also
+     spends the forest budget, which belongs to the refusal and the footer. */
   .nav {
     position: sticky; top: 0; z-index: 100;
-    background: var(--color-accent-600); color: var(--color-neutral-50);
-    box-shadow: var(--elev-2);
+    background: var(--surface-base);
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--duration-base) var(--ease-standard);
   }
-  .nav-inner { display: flex; align-items: center; gap: 24px; height: 72px; }
-  .wordmark { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -.03em; }
-  .nav-seg-wrap { margin: 0 auto; }
+  .nav.is-stuck { border-bottom-color: var(--border-decorative); }
+
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 60px; }
+  .wordmark { font-size: 17px; font-weight: 800; letter-spacing: -.03em; color: var(--text-primary); }
+
+  .nav-links { display: flex; align-items: center; gap: 26px; }
+  .nav-link {
+    font-size: 15px; font-weight: 600; color: var(--text-primary);
+    border-bottom: 1px solid transparent; padding-bottom: 2px;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+  }
+  .nav-link:hover { border-bottom-color: var(--text-primary); }
+  .nav-link .arw { color: var(--text-tertiary); font-weight: 400; }
+
+  /* Mobile keeps only the door a restaurateur is looking for. */
+  @media (max-width: 640px) {
+    .nav-link--wide { display: none; }
+    .nav-link { font-size: 14px; }
+  }
 </style>
 
 <script>
-  const root = document.documentElement;
-  const btns = document.querySelectorAll<HTMLButtonElement>('.seg [data-aud]');
-  function setAudience(aud: string, persist = true) {
-    root.dataset.audience = aud;
-    btns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.aud === aud)));
-    if (persist) {
-      try { localStorage.setItem('hg-audience', aud); } catch {}
-      // fire a page event so trackers / other islands can react
-      window.dispatchEvent(new CustomEvent('hg:audience', { detail: aud }));
-    }
+  // The hairline only appears once the page has actually moved, so the nav has
+  // no edge at rest and the hero reads as one uninterrupted surface.
+  const nav = document.querySelector('[data-nav]');
+  if (nav) {
+    const onScroll = () => nav.classList.toggle('is-stuck', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
-  btns.forEach((b) => b.addEventListener('click', () => setAudience(b.dataset.aud!)));
-  // restore prior choice, or honour ?for=restaurant deep-link
-  try {
-    const params = new URLSearchParams(location.search);
-    const deep = params.get('for');
-    const saved = localStorage.getItem('hg-audience');
-    if (deep === 'restaurant' || deep === 'own') setAudience('own', false);
-    else if (deep === 'eat' || deep === 'customer') setAudience('eat', false);
-    else if (saved === 'own' || saved === 'eat') setAudience(saved, false);
-  } catch {}
 </script>

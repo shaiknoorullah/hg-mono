@@ -1,73 +1,90 @@
 ---
-import HalalShield from './HalalShield.astro';
-import Icon from './Icon.astro';
+/**
+ * Close with the identical words as the hero. One conversion, repeated verbatim,
+ * is what a single-conversion page is for — a second, cleverer closing line just
+ * teaches the reader they were being sold two different things.
+ *
+ * Cream, and left-aligned on the optical edge. A centred closing block on a page
+ * where nothing else is centred is the template tell, and the forest budget is
+ * already spent on the refusal, the restaurant band, and the footer below.
+ */
 import WaitlistForm from './WaitlistForm.astro';
-const columns: [string, string[]][] = [
-  ['Company', ['About', 'Careers', 'Contact']],
-  ['For restaurants', ['List your restaurant', 'Verification standard', 'Payouts']],
-  ['Legal', ['Privacy', 'Terms', 'Accessibility']],
-];
+import { DISCLAIMER, PLACE } from '../lib/claims';
+
+interface Props {
+  audience?: 'eat' | 'own';
+  heading?: string;
+  lede?: string;
+}
+const {
+  audience = 'eat',
+  // The diner close repeats the hero H1 VERBATIM. One conversion, said twice in
+  // the same words, is what a single-conversion page is for.
+  heading = 'Order without asking.',
+  lede = "Leave your email. We'll write once, the day we open in your area — and after that, only when there's something worth telling you.",
+} = Astro.props;
+const year = new Date().getFullYear();
 ---
-<footer class="foot">
+<section class="section--hinge ask" id="waitlist">
   <div class="container">
-    <div class="foot-cta two-col">
-      <div class="foot-cta-copy">
-        <h2 class="mkt-h2 aud-eat foot-h">Verified halal, delivered.</h2>
-        <h2 class="mkt-h2 aud-own foot-h">0% commission at launch.</h2>
-        <p class="aud-eat foot-sub">Leave your number and we will text you once, on launch day.</p>
-        <p class="aud-own foot-sub">Leave your email and we will walk you through onboarding.</p>
-      </div>
-      <div class="foot-form">
-        <div class="aud-eat"><WaitlistForm audience="eat" context="footer" /></div>
-        <div class="aud-own"><WaitlistForm audience="own" context="footer" /></div>
-      </div>
+    <div class="ask-inner">
+      <h2 class="mkt-h2" data-reveal>{heading}</h2>
+      <p class="lede ask-lede" data-reveal>{lede}</p>
+      <div data-reveal><WaitlistForm audience={audience} context="footer" /></div>
+      <p class="form-objection ask-obj" data-reveal>
+        {audience === 'eat'
+          ? "Nothing to install — we're pre-launch. No account, no card."
+          : 'No card and no hardware to buy. We read your certificate before anything else happens.'}
+      </p>
     </div>
+  </div>
+</section>
 
-    <div class="foot-cols">
-      <div class="foot-brand">
-        <span class="wordmark">Halal Goes</span>
-        <span class="foot-tag">
-          <HalalShield size={16} color="var(--color-halal-certified-seal)" checkColor="var(--color-accent-800)" />
-          Verified halal, delivered.
-        </span>
-        <span class="socials">
-          {['globe', 'message-circle', 'mail'].map((i) => (
-            <span class="social-chip"><Icon name={i} size="md" /></span>
-          ))}
-        </span>
+<footer class="band band--deep site-foot">
+  <div class="container">
+    <div class="foot-top">
+      <div>
+        <p class="foot-mark">Halal Goes</p>
+        <p class="foot-tag">Verified halal, delivered.</p>
       </div>
-      {columns.map(([h, links]) => (
-        <div class="foot-col">
-          <span class="foot-col-h">{h.toUpperCase()}</span>
-          {links.map((l) => <a href="#">{l}</a>)}
-        </div>
-      ))}
+      <nav class="foot-links" aria-label="Footer">
+        <a href="/verification">The verification standard</a>
+        <a href="/for-restaurants">I own a restaurant</a>
+      </nav>
     </div>
-
-    <p class="foot-legal">
-      Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.
-      © 2026 Halal Goes · Ontario, Canada.
+    <p class="mono foot-legal">{DISCLAIMER}</p>
+    <p class="mono foot-copy">
+      © {year} Halal Goes · {PLACE.province}, {PLACE.country} · Pre-launch — this page is a
+      waitlist, not an app
     </p>
   </div>
 </footer>
 
 <style>
-  .foot { background: var(--color-accent-800); color: var(--color-neutral-50); }
-  .foot .container { padding-top: clamp(64px,8vw,88px); padding-bottom: 40px; }
-  .foot-cta { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,460px); gap: 56px; align-items: center; padding-bottom: 56px; border-bottom: 1px solid rgba(255,255,255,.14); }
-  .foot-h { color: var(--color-neutral-50); }
-  .foot-cta-copy { display: grid; gap: 16px; }
-  .foot-sub { margin: 0; font-size: 17px; line-height: 1.55; color: rgba(255,255,255,.8); max-width: 420px; }
-  .foot-form .waitlist-form { display: grid; gap: 8px; }
-  .foot-cols { display: flex; gap: 40px; flex-wrap: wrap; padding: 40px 0 32px; }
-  .foot-brand { display: grid; gap: 10px; min-width: 220px; align-content: start; }
-  .wordmark { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -.03em; }
-  .foot-tag { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.72); }
-  .socials { display: flex; gap: 10px; margin-top: 6px; }
-  .social-chip { width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--radius-sm); background: rgba(255,255,255,.1); }
-  .foot-col { display: grid; gap: 8px; align-content: start; min-width: 170px; }
-  .foot-col-h { font-size: 13px; font-weight: 700; letter-spacing: .04em; color: rgba(255,255,255,.6); }
-  .foot-col a { font-size: 15px; color: rgba(255,255,255,.85); }
-  .foot-col a:hover { color: #fff; }
-  .foot-legal { margin: 0; font-size: 12px; line-height: 1.6; color: rgba(255,255,255,.6); max-width: 720px; }
+  .ask { background: var(--surface-base); }
+  .ask-inner { max-width: 560px; }
+  .ask-lede { margin: 16px 0 28px; color: var(--text-secondary); }
+  .ask-obj { margin-top: 14px; }
+
+  .site-foot { padding-block: 48px; }
+  .foot-top {
+    display: flex; flex-wrap: wrap; gap: 24px 48px;
+    justify-content: space-between; align-items: flex-start;
+    padding-bottom: 28px;
+  }
+  .foot-mark { margin: 0 0 4px; font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
+  .foot-tag { margin: 0; font-size: 14px; color: var(--color-accent-200); }
+  .foot-links { display: flex; flex-wrap: wrap; gap: 10px 28px; }
+  .foot-links a {
+    font-size: 14px; font-weight: 600; color: var(--color-neutral-50);
+    border-bottom: 1px solid rgba(255, 255, 255, .28); padding-bottom: 2px;
+  }
+  .foot-links a:hover { border-bottom-color: var(--color-neutral-50); }
+
+  .foot-legal {
+    margin: 0 0 12px; padding-top: 22px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    line-height: 1.6; max-width: 70ch; color: var(--color-accent-200);
+  }
+  .foot-copy { margin: 0; font-size: 11px; line-height: 1.6; color: var(--color-accent-300); }
 </style>

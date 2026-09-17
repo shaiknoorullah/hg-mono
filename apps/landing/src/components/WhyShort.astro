@@ -1,0 +1,67 @@
+---
+/**
+ * Prove the problem is real using somebody else's reporting, in the fewest
+ * possible words, attributed and linked.
+ *
+ * Placement is deliberate: not the opener (as an opener this is a grievance) and
+ * not a footnote (as a footnote it is wasted). It sits between the appetite and
+ * the door, explaining a restriction the reader has just been given a reason to
+ * care about.
+ *
+ * Every number here was verified against the article before it shipped, and we
+ * never name the chains in our own copy — the link does that.
+ */
+import { CBC } from '../lib/claims';
+---
+<section class="section section--tight why">
+  <div class="container">
+    <hr class="rule" />
+    <div class="why-body">
+      <p class="eyebrow" data-reveal>Why the list is short</p>
+
+      <p class="body why-para" data-reveal>
+        In October 2024, CBC Marketplace sent an undercover team into {CBC.locations} Greater
+        Toronto Area locations of five well-known chains. Employees at {CBC.claimedCertified} of
+        them said the whole restaurant was halal-certified. <strong>Not one of the ten was.</strong>
+      </p>
+
+      <p class="body why-para" data-reveal>
+        In those six visits, staff produced a certificate belonging to their <em>meat supplier</em> —
+        a real document, certifying the meat — and used it to suggest the kitchen itself was
+        certified. The team was also shown {CBC.expiredShown} expired certificates. One had run
+        out eight years earlier.
+      </p>
+
+      <p class="body why-para" data-reveal>
+        Nobody in that story is lying on purpose. The system is confusing, and the person who
+        carries the doubt home is you. Those two failures — a supplier's certificate standing in
+        for a kitchen's, and a certificate that quietly ran out — are checks six and five below.
+      </p>
+
+      <p class="mono why-src" data-reveal>
+        Source: CBC Marketplace, {CBC.date} —
+        <a href={CBC.url} rel="noopener noreferrer" target="_blank">read the investigation →</a>
+      </p>
+    </div>
+    <hr class="rule" />
+  </div>
+</section>
+
+<style>
+  /* Cream, not a dark band. The dark budget is spent on the refusal and the
+     footer; spending a third on a grievance would make the page feel aggrieved. */
+  .why { background: var(--surface-base); }
+  .why-body { padding-block: 44px; max-width: 640px; }
+  .why-para { margin-bottom: 18px; font-size: 18px; line-height: 1.6; color: var(--text-primary); }
+  .why-para:last-of-type { margin-bottom: 26px; }
+  .why-para strong { font-weight: 800; }
+  .why-para em { font-style: italic; }
+
+  /* The only non-orange link on the page: attribution is not a call to action. */
+  .why-src a {
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+</style>

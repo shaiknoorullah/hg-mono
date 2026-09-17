@@ -18,8 +18,13 @@ const RS_URL = import.meta.env.PUBLIC_RUDDERSTACK_DATA_PLANE_URL;
 const analyticsConfigured = Boolean(RS_KEY && RS_URL);
 ---
 <!doctype html>
-<html lang="en" data-audience="eat">
+<html lang="en">
   <head>
+    <!-- Render-blocking ON PURPOSE, and the only reason any reveal is allowed to
+         exist: every hidden state on this site is written as `html.js [data-reveal]`,
+         so if scripting is off or a bundle 404s the page is simply visible rather
+         than blank. Four lines, inline, before paint. -->
+    <script is:inline>document.documentElement.className += ' js';</script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
@@ -74,54 +79,7 @@ const analyticsConfigured = Boolean(RS_KEY && RS_URL);
 
     <script>
       import '../scripts/forms.ts';
-    </script>
-
-    <!-- Scroll-reveal + count-up. Progressive: no JS = everything simply visible. -->
-    <script is:inline>
-      (function () {
-        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var reveals = document.querySelectorAll('[data-reveal]');
-        if (reduce || !('IntersectionObserver' in window)) {
-          reveals.forEach(function (el) { el.classList.add('is-in'); });
-        } else {
-          var io = new IntersectionObserver(function (entries) {
-            entries.forEach(function (e) {
-              if (e.isIntersecting) {
-                var sibs = e.target.parentElement ? [].slice.call(e.target.parentElement.querySelectorAll(':scope > [data-reveal]')) : [e.target];
-                var idx = Math.max(0, sibs.indexOf(e.target));
-                e.target.style.setProperty('--reveal-delay', (idx % 6) * 80 + 'ms');
-                e.target.classList.add('is-in');
-                io.unobserve(e.target);
-              }
-            });
-          }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
-          reveals.forEach(function (el) { io.observe(el); });
-        }
-        // Count-up on [data-count] when it scrolls in.
-        function countUp(el) {
-          var target = parseFloat(el.getAttribute('data-count')) || 0;
-          var suffix = el.getAttribute('data-suffix') || '';
-          if (reduce) { el.textContent = target.toLocaleString() + suffix; return; }
-          var start = null, dur = 1400;
-          function step(t) {
-            if (start === null) start = t;
-            var p = Math.min((t - start) / dur, 1);
-            var eased = 1 - Math.pow(1 - p, 3);
-            el.textContent = Math.round(target * eased).toLocaleString() + suffix;
-            if (p < 1) requestAnimationFrame(step);
-          }
-          requestAnimationFrame(step);
-        }
-        var counters = document.querySelectorAll('[data-count]');
-        if ('IntersectionObserver' in window) {
-          var cio = new IntersectionObserver(function (entries) {
-            entries.forEach(function (e) { if (e.isIntersecting) { countUp(e.target); cio.unobserve(e.target); } });
-          }, { threshold: 0.6 });
-          counters.forEach(function (el) { cio.observe(el); });
-        } else {
-          counters.forEach(countUp);
-        }
-      })();
+      import '../scripts/motion.ts';
     </script>
 
     {analyticsConfigured && (

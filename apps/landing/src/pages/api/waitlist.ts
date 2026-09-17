@@ -5,7 +5,6 @@ import type { APIRoute } from 'astro';
 // secret is ever exposed to the browser; WAITLIST_WEBHOOK_URL is a server env var.
 export const prerender = false;
 
-const E164 = /^\+[1-9]\d{7,14}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function json(data: unknown, status = 200) {
@@ -31,21 +30,39 @@ export const POST: APIRoute = async ({ request }) => {
     receivedAt: new Date().toISOString(),
   };
 
-  if (audience === 'eat') {
-    const phone = String(body?.phone || '');
-    if (!E164.test(phone)) return json({ ok: false, error: 'invalid_phone' }, 422);
-    // CASL: an explicit, timestamped opt-in is required for marketing texts.
-    if (body?.consent !== true) return json({ ok: false, error: 'consent_required' }, 422);
-    lead.phone = phone;
+  // The consent artifact is the same on both paths: CASL treats a commercial
+  // email exactly as it treats a commercial text. Recording the rendered
+  // SENTENCE (not just a boolean) is what makes the record hold up later —
+  // "they consented" is not a defence; "they consented to this text, on this
+  // date, from this part of the page" is.
+  const recordConsent = () => {
+    if (body?.consent !== true) return false;
     lead.consent = true;
     lead.consentAt = typeof body?.consentAt === 'string' ? body.consentAt : lead.receivedAt;
-  } else if (audience === 'own') {
+    lead.consentText = typeof body?.consentText === 'string' ? body.consentText.slice(0, 400) : '';
+    return true;
+  };
+
+  // A post-signup detail (which part of the GTA) rather than a new lead.
+  if (typeof body?.city === 'string' && body.city.trim()) {
+    lead.city = body.city.trim().slice(0, 80);
+    lead.kind = 'detail';
+  }
+
+  if (audience !== 'eat' && audience !== 'own') {
+    return json({ ok: false, error: 'unknown_audience' }, 422);
+  }
+
+  // Both audiences are email. SMS is not offered: decision O-03 (A2P 10DLC
+  // registration) is unresolved, so there is no approved sender and "we'll text
+  // you at launch" would be a promise we cannot keep. If a phone number is ever
+  // posted here it is ignored rather than stored — collecting a channel we
+  // cannot use is worse than not asking.
+  if (lead.kind !== 'detail') {
     const email = String(body?.email || '').toLowerCase();
     if (!EMAIL.test(email)) return json({ ok: false, error: 'invalid_email' }, 422);
+    if (!recordConsent()) return json({ ok: false, error: 'consent_required' }, 422);
     lead.email = email;
-    lead.consentAt = typeof body?.consentAt === 'string' ? body.consentAt : lead.receivedAt;
-  } else {
-    return json({ ok: false, error: 'unknown_audience' }, 422);
   }
 
   const sink = import.meta.env.WAITLIST_WEBHOOK_URL;

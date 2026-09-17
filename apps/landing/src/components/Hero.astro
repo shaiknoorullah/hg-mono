@@ -1,113 +1,144 @@
 ---
-import Badge from './Badge.astro';
-import HalalBadge from './HalalBadge.astro';
-import HalalShield from './HalalShield.astro';
-import Icon from './Icon.astro';
+/**
+ * Make them hungry, say where we are, take the address — and immediately below
+ * that, hand over the artifact, so the scroll is earned rather than requested.
+ *
+ * The record card sits ON the photograph on purpose. Appetite and proof land in
+ * the same frame, in the first screen. Opening a *food* brand with a certificate
+ * makes a white paper; opening it with food alone makes another delivery app.
+ *
+ * Nothing on the card is invented. It is a SPECIMEN: real field labels, real
+ * structure, one real organisation's name, and every identifying value left as a
+ * ruled blank. On launch day it takes real props and the caption is deleted.
+ */
+import RecordCard from './RecordCard.astro';
 import WaitlistForm from './WaitlistForm.astro';
+import { ISSUERS, PLACE } from '../lib/claims';
+
+const HERO_IMG = '/img/hero.jpg';
+const hma = ISSUERS[0].name;
 ---
-<section id="waitlist" class="hero">
-  <div class="hero-glow" aria-hidden="true"></div>
-  <div class="container two-col hero-grid">
-    <!-- Order food -->
-    <div class="aud-eat hero-copy">
-      <span><Badge tone="accent" icon="map-pin">Launching in the Greater Toronto Area</Badge></span>
-      <h1 class="mkt-h1">Verified halal,<br />delivered.</h1>
-      <p class="hero-sub">
-        Every restaurant on Halal Goes clears a <strong>seven-point halal check</strong> before a single
-        order goes out — the certificate, who issued it, and the date we verified it. No self-declared
-        badges. Just food you can trust, at your door.
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="chip" data-reveal>
+        <span class="chip-dot" aria-hidden="true"></span>
+        {PLACE.province.toUpperCase()} · PRE-LAUNCH
       </p>
-      <WaitlistForm audience="eat" withIcon withConsent context="hero" />
-      <div class="trust">
-        <HalalBadge size="sm" />
-        <span class="trust-note">Every listing is admin-verified against its certificate — or it isn’t listed.</span>
+
+      <h1 class="mkt-h1" data-reveal>Order without asking.</h1>
+
+      <p class="lede" data-reveal>
+        Halal delivery across {PLACE.province}. Every kitchen here had its certificate read by a
+        person — the issuer, the address it names, the date it runs out — before it was ever
+        listed. So the only thing left to decide is dinner.
+      </p>
+
+      <div class="hero-form" data-reveal>
+        <WaitlistForm audience="eat" context="hero" />
       </div>
+
+      <p class="form-objection" data-reveal>
+        Nothing to install — we're pre-launch. No account, no card.
+      </p>
     </div>
 
-    <!-- List your restaurant -->
-    <div class="aud-own hero-copy">
-      <span><Badge tone="accent" icon="store">For restaurants · Ontario</Badge></span>
-      <h1 class="mkt-h1">0% commission<br />at launch.</h1>
-      <p class="hero-sub">
-        Keep <strong>every dollar</strong> of every order — no commission for launch partners. Get in front
-        of halal diners who choose by the badge, with onboarding that takes a certificate, a menu, and an
-        afternoon.
-      </p>
-      <WaitlistForm audience="own" withIcon withConsent context="hero" />
-      <div class="trust">
-        <HalalBadge size="sm" />
-        <span class="trust-note">The verified badge on your storefront — a trust asset, not a fee.</span>
-      </div>
-    </div>
+    <div class="hero-art">
+      <figure class="hero-photo">
+        <img
+          src={HERO_IMG}
+          alt="A shared table part-way through a meal, several people reaching for the dishes"
+          width="1000"
+          height="1250"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+      </figure>
 
-    <!-- Shared food art -->
-    <div class="seal-art">
-      <div class="photo-frame lift">
-        <img src="/img/hero-spread.jpg" alt="A spread of freshly prepared halal dishes" width="640" height="720" loading="eager" />
-        <div class="photo-grad" aria-hidden="true"></div>
-      </div>
-
-      <div class="seal-card">
-        <span class="seal-plate">
-          <HalalShield size={32} color="var(--color-halal-certified-on-seal)" checkColor="var(--color-halal-certified-seal)" />
-        </span>
-        <span>
-          <span class="seal-title">Halal certified</span>
-          <span class="seal-sub">Checked seven ways · certificate on file</span>
-        </span>
-      </div>
-
-      <div class="float-chip chip-eta">
-        <Icon name="navigation" size="sm" color="var(--color-brand-500)" />
-        <span><b>Live tracking</b><br />Sealed to your door</span>
+      <div class="hero-record" data-reveal>
+        <RecordCard
+          specimen
+          state="certified"
+          caption="Specimen · the fields we fill in before a kitchen is listed"
+          issuer={hma}
+          reviews="None yet. We haven't opened."
+          footnote="We don't certify food and we don't make religious rulings. We read the certificate, check it, and print who issued it."
+        />
       </div>
     </div>
   </div>
 </section>
 
 <style>
-  .hero { position: relative; background: var(--surface-base); overflow: hidden; }
-  .hero-glow {
-    position: absolute; inset: -20% -10% auto auto; width: 60%; height: 120%;
-    background: radial-gradient(60% 50% at 70% 30%, rgba(241,82,30,.10), transparent 70%),
-                radial-gradient(50% 40% at 80% 60%, rgba(15,122,67,.08), transparent 70%);
-    pointer-events: none;
+  .hero { background: var(--surface-base); }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+    gap: 64px;
+    align-items: center;
+    padding-top: 72px;
+    padding-bottom: 120px;
   }
-  .hero-grid { position: relative; display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,1fr); gap: 56px; align-items: center; padding-top: clamp(48px,7vw,80px); padding-bottom: clamp(56px,8vw,96px); }
-  .hero-copy { display: grid; gap: 22px; justify-items: start; }
-  .hero-sub { margin: 0; font-size: clamp(17px, 2.4vw, 20px); line-height: 1.55; color: var(--text-secondary); max-width: 480px; }
-  .hero-sub strong { color: var(--color-accent-600); font-weight: 700; }
-  .hero-copy .waitlist-form { width: 100%; max-width: 480px; display: grid; gap: 12px; }
-  .trust { display: flex; align-items: center; gap: 14px; padding-top: 2px; flex-wrap: wrap; }
-  .trust-note { font-size: 14px; color: var(--text-tertiary); max-width: 300px; }
 
-  .seal-art { position: relative; display: grid; place-items: center; padding: 20px 10px; }
-  .photo-frame {
-    position: relative; width: 100%; max-width: 460px; aspect-ratio: 5 / 6; border-radius: 22px; overflow: hidden;
-    box-shadow: 0 24px 60px -18px rgba(15,36,28,.45), 0 4px 14px rgba(15,36,28,.14);
+  .hero-copy { display: grid; justify-items: start; gap: 22px; max-width: 540px; }
+
+  .chip {
+    margin: 0; display: inline-flex; align-items: center; gap: 9px;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+    letter-spacing: .08em; color: var(--text-tertiary);
+  }
+  .chip-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--color-halal-certified-seal);
+    box-shadow: 0 0 0 2px var(--color-halal-certified-ring);
+  }
+
+  .hero-copy .lede { max-width: 46ch; color: var(--text-secondary); }
+  .hero-form { width: 100%; }
+
+  /* The photograph bleeds off the right edge of the viewport. Full strength —
+     no scrim, no gradient, no zoom. If it needs a scrim to hold the type, the
+     crop is wrong; fix the crop. */
+  .hero-art { position: relative; }
+  .hero-photo {
+    margin: 0;
+    aspect-ratio: 4 / 5;
+    min-height: 620px;
+    overflow: hidden;
+    border-radius: var(--radius-marketing-md) 0 0 var(--radius-marketing-md);
+    /* Bleed to the RIGHT VIEWPORT EDGE. The usual `calc(50% - 50vw)` trick is
+       wrong here: this element sits in a half-width grid column, so its `50%` is
+       half the column, not half the container — which overshoots the edge and
+       gives the whole page a horizontal scrollbar. Measure from the container
+       instead: the gap between the container's content edge and the viewport is
+       half the leftover width, plus the gutter. */
+    margin-right: calc(-1 * ((100vw - min(100vw, 1160px)) / 2 + 24px));
     background: var(--color-neutral-100);
   }
-  .photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .photo-grad { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(15,36,28,.28)); }
+  .hero-photo img { width: 100%; height: 100%; object-fit: cover; }
 
-  .seal-card {
-    position: absolute; bottom: 34px; left: -6px; display: flex; align-items: center; gap: 14px;
-    background: var(--surface-raised); padding: 13px 18px; border-radius: 16px;
-    box-shadow: 0 16px 34px -10px rgba(15,36,28,.4), 0 2px 8px rgba(15,36,28,.12);
+  /* Paper resting on the table's lower-left corner. One shadow level, opaque. */
+  .hero-record { position: absolute; left: -56px; bottom: -40px; width: 400px; z-index: 2; }
+
+  @media (max-width: 1200px) {
+    .hero-record { left: -24px; width: 370px; }
   }
-  .seal-plate { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 14px; background: var(--color-halal-certified-seal); box-shadow: inset 0 0 0 2px var(--color-halal-certified-ring); }
-  .seal-title { display: block; font-size: 15px; font-weight: 700; color: var(--color-halal-certified-tint-text); }
-  .seal-sub { display: block; font-size: 12.5px; color: var(--text-tertiary); }
 
-  .float-chip {
-    position: absolute; top: 26px; right: -4px; display: flex; align-items: center; gap: 9px;
-    background: var(--surface-raised); padding: 10px 14px; border-radius: 14px; font-size: 12px; line-height: 1.3;
-    box-shadow: 0 12px 28px -10px rgba(15,36,28,.34); color: var(--text-secondary);
-  }
-  .float-chip b { color: var(--color-accent-600); }
-
-  @media (max-width: 560px) {
-    .float-chip { display: none; }
-    .seal-card { left: 8px; bottom: 16px; }
+  /* Below the split: everything stacks, and the photo is deliberately CLIPPED by
+     the fold so there is a visible cut edge to scroll past. A section that ends
+     flush at the fold is a false floor — the cheapest way to lose the rest. */
+  @media (max-width: 899px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 36px; padding-top: 40px; padding-bottom: 64px; }
+    .hero-copy { max-width: none; gap: 18px; }
+    .hero-photo {
+      aspect-ratio: 4 / 5;
+      min-height: 0;
+      max-height: 420px;
+      margin-inline: calc(50% - 50vw);
+      border-radius: 0;
+    }
+    .hero-record { position: static; width: 100%; margin-top: 24px; }
+    .hero-record :global(.rc) { max-width: none; }
   }
 </style>

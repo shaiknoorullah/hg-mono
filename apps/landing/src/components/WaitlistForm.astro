@@ -1,35 +1,102 @@
 ---
+/**
+ * The single conversion on the site. One field, forever.
+ *
+ * Three things here are compliance, not preference:
+ *  1. The consent box ships UNCHECKED. A pre-checked box is not express consent
+ *     under CASL (CRTC 2012-549). The previous version shipped `checked`.
+ *  2. The rendered consent SENTENCE is submitted alongside the timestamp, so the
+ *     artifact survives a later copy edit — "they consented to something" is not
+ *     a defence; "they consented to this text on this date" is.
+ *  3. Both audiences log it. CASL covers commercial email identically to SMS,
+ *     and the restaurant path previously recorded no consent artifact at all.
+ *
+ * WHY EMAIL AND NOT A PHONE NUMBER, on a mobile-first consumer page where a
+ * phone field would convert better: decision O-03 (SMS / A2P 10DLC registration)
+ * is unresolved and is the longest-lead item in the project — there is no
+ * approved sender today. "We'll text you at launch" is therefore a promise we
+ * cannot currently keep, and an unkeepable promise is the one thing a brand
+ * whose entire pitch is carefulness cannot afford. Email is deliverable now.
+ * When O-03 clears this becomes a one-line switch back.
+ */
 import Button from './Button.astro';
-import Icon from './Icon.astro';
+
 interface Props {
   audience: 'eat' | 'own';
-  withIcon?: boolean;
-  withConsent?: boolean;
+  /** Where on the page this instance sits — recorded with the submission. */
   context: string;
+  id?: string;
 }
-const { audience, withIcon = false, withConsent = false, context } = Astro.props;
+const { audience, context, id } = Astro.props;
 const eat = audience === 'eat';
+
+const CONSENT = eat
+  ? 'Email me when Halal Goes opens in my area.'
+  : 'Email me about listing my restaurant.';
+const CONSENT_SUB = eat
+  ? 'One message when we open in Ontario, then only when there are newly verified kitchens near you. One-click unsubscribe on every email.'
+  : 'What we check, what it costs, and how to get listed. One-click unsubscribe on every email.';
+const fieldId = `${context}-${audience}-input`;
+const consentId = `${context}-${audience}-consent`;
+const msgId = `${context}-${audience}-msg`;
 ---
-<form class="waitlist-form" data-audience={audience} data-context={context} novalidate>
-  <div class="form-row">
-    <label class:list={['field', withIcon && 'has-icon']}>
-      {withIcon && <Icon name={eat ? 'phone' : 'mail'} size="md" />}
-      {eat
-        ? <input type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="(416) 555-0134" aria-label="Phone number" required />
-        : <input type="email" name="email" autocomplete="email" placeholder="chef@yourrestaurant.ca" aria-label="Email address" required />}
-    </label>
-    <Button size="lg" type="submit" variant="primary">{eat ? 'Notify me' : 'Get early access'}</Button>
+<form
+  class="waitlist-form"
+  id={id}
+  data-audience={audience}
+  data-context={context}
+  data-consent-text={CONSENT}
+  novalidate
+>
+  <div class="wf-row">
+    <div class="field">
+      <label class="field-label" for={fieldId}>{eat ? 'Email' : 'Work email'}</label>
+      <input
+        id={fieldId}
+        type="email"
+        name="email"
+        inputmode="email"
+        autocomplete="email"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder={eat ? 'you@example.com' : 'chef@yourrestaurant.ca'}
+        aria-describedby={msgId}
+        required
+      />
+    </div>
+    <div class="wf-submit">
+      <Button size="lg" type="submit" variant="primary" fullWidth>
+        {eat ? 'Email me when you open' : 'Send me the details'}
+      </Button>
+    </div>
   </div>
 
-  {withConsent && (
-    <label class="checkline">
-      <input type="checkbox" name="consent" checked />
-      <span>
-        <span class="cl-label">{eat ? 'Text me once, when we launch in my city' : 'Email me about launch partner onboarding'}</span>
-        <span class="cl-desc">{eat ? 'Consent is timestamped. Unsubscribe any time.' : 'No card, no contract, no commission at launch.'}</span>
-      </span>
-    </label>
-  )}
+  <p class="form-help">
+    {eat ? "One email, the day we open. We don't run a newsletter." : 'What we check and what it costs. No sales call.'}
+  </p>
 
-  <p class="formmsg" role="status" aria-live="polite"></p>
+  <label class="checkline" for={consentId}>
+    <input id={consentId} type="checkbox" name="consent" />
+    <span>
+      <span class="cl-label">{CONSENT}</span>
+      <span class="cl-desc">{CONSENT_SUB}</span>
+    </span>
+  </label>
+
+  <p class="formmsg" id={msgId} role="status" aria-live="polite"></p>
 </form>
+
+<style>
+  .waitlist-form { display: grid; gap: 14px; width: 100%; max-width: 480px; }
+  .wf-row { display: grid; gap: 12px; }
+  .wf-submit { align-self: end; }
+
+  /* Side by side once there is room for a 52px button without crushing the field. */
+  @media (min-width: 640px) {
+    .wf-row { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+    .wf-submit :global(.btn) { width: auto; padding-inline: 22px; }
+  }
+
+  .waitlist-form .form-help { margin-top: -4px; }
+</style>

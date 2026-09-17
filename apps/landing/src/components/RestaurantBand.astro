@@ -1,0 +1,115 @@
+---
+/**
+ * Catch the diner who owns a kitchen, or whose cousin does.
+ *
+ * No email capture here. Capturing on a band the visitor skimmed produces
+ * low-intent leads and splits the measurement — the ask lives on the page this
+ * links to, where they have read the argument.
+ *
+ * Every commercial claim below is the DECIDED one, and deliberately unglamorous:
+ * commission is 0% at launch and switchable (S-01), which is not a partner
+ * programme, a founding-member tier, or a promotion with a clock on it. Dressing
+ * it up as one would be the first lie on a page about not lying.
+ */
+import Button from './Button.astro';
+import { MONEY } from '../lib/claims';
+
+const NEEDED = [
+  'Your halal certificate',
+  'Your business licence',
+  'A food-safety permit and owner ID',
+];
+---
+<section class="band section--tight resto">
+  <div class="container resto-grid">
+    <div class="resto-copy">
+      <p class="eyebrow" data-reveal>For restaurant owners</p>
+      <h2 class="mkt-h2 resto-h" data-reveal>
+        You paid for the certification. Start getting credit for it.
+      </h2>
+      <p class="resto-body" data-reveal>
+        We list only kitchens whose certificate we've actually read — so you're not ranked
+        beside one that typed “halal” into a form. And nobody can buy their way above you:
+        a restaurant cannot pay for or influence its position in the feed.
+      </p>
+      <p class="mono resto-rate" data-reveal>
+        Commission at launch: {MONEY.commissionAtLaunch} · Service fee: $0.00 ·
+        {MONEY.tipToRider} of every tip and {MONEY.deliveryFeeToRider} of the delivery fee go to the rider
+      </p>
+      <p class="resto-caveat" data-reveal>
+        That's a per-restaurant setting, not a promotion with a countdown on it. We'd rather
+        tell you plainly that it can change than sell you an offer that expires.
+      </p>
+      <p data-reveal class="resto-cta">
+        <Button href="/for-restaurants" variant="primary">See what we check →</Button>
+      </p>
+    </div>
+
+    <div class="resto-card" data-reveal>
+      <p class="rcard-head">What listing takes</p>
+      <ul class="rcard-list">
+        {NEEDED.map((n) => <li>{n}</li>)}
+      </ul>
+      <p class="rcard-foot">
+        A person reads all of it. Nothing is auto-approved, on a timer or otherwise.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .resto { background: var(--color-accent-600); color: var(--color-neutral-50); }
+  .resto-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: 64px;
+    align-items: start;
+  }
+  .resto-h { color: var(--color-neutral-50); max-width: 18ch; }
+  .resto-body {
+    margin: 16px 0 24px;
+    font-size: 17px;
+    line-height: 1.65;
+    max-width: 52ch;
+    color: var(--color-accent-100);
+  }
+  .resto-rate {
+    margin: 0 0 12px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, .14);
+    line-height: 1.7;
+    max-width: 56ch;
+  }
+  .resto-caveat { margin: 0 0 28px; font-size: 14px; line-height: 1.6; max-width: 52ch; color: var(--color-accent-200); }
+  .resto-cta { margin: 0; }
+
+  /* One white document card on forest — the same paper, a different ground. */
+  .resto-card {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border-radius: var(--radius-marketing-md);
+    padding: 28px;
+  }
+  .rcard-head {
+    margin: 0 0 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .rcard-list { list-style: none; margin: 0 0 18px; padding: 0; }
+  .rcard-list li {
+    padding-block: 13px;
+    border-top: 1px solid var(--border-decorative);
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .rcard-list li:first-child { border-top: 0; padding-top: 0; }
+  .rcard-foot { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
+
+  @media (max-width: 899px) {
+    .resto-grid { grid-template-columns: 1fr; gap: 32px; }
+  }
+</style>

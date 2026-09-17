@@ -1,115 +1,159 @@
-/* Landing-page layout + the audience-toggle mechanism.
-   Both audience variants render in the DOM (good for crawlers); [data-audience]
-   on <html> switches which is visible. Default: eat. */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Halal Goes — marketing surface.
 
-[data-audience="eat"] .aud-own { display: none !important; }
-[data-audience="own"] .aud-eat { display: none !important; }
+   The grammar, in one paragraph: a cream ground carrying white *document* cards,
+   interrupted exactly three times by a full-bleed forest band. Structure is drawn
+   with 1px hairlines — rules, not boxes. Everything sits on ONE optical left edge;
+   nothing on this site is centred. Evidence (certificate fields, dates, step
+   labels, neighbourhoods) is always set in mono, because it should read as
+   recorded rather than written.
 
-.container { max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 32px); }
+   Colour is a budget, not a palette:
+     orange   — exactly 5 instances on `/` (4 buttons + the standard link arrow)
+     forest   — exactly 3 full-bleed surfaces (refusal, restaurant band, footer)
+     emerald  — the seal, its ticks, the certified state. Never a button, never a rule.
+     brass    — the seal's ring. Nothing else, ever.
+     danger   — NOWHERE. Invariant #9: red reads as *haram*, a ruling we don't make.
+   ───────────────────────────────────────────────────────────────────────────── */
 
+/* ── Frame ──────────────────────────────────────────────────────────────── */
+body { font-family: var(--font-display); font-size: 17px; line-height: 1.65; }
+
+/* One faint paper grain over the cream, so it reads as stock rather than as
+   #FFFAEA. Fixed + pointer-events:none so it never intercepts a tap.
+   Never on forest — turbulence bands badly on dark. */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .032;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body > * { position: relative; z-index: 1; }
+
+.container { width: 100%; max-width: 1160px; margin-inline: auto; padding-inline: 24px; }
+@media (max-width: 899px) { .container { padding-inline: 20px; } }
+
+.section { padding-block: var(--space-section); }
+.section--tight { padding-block: var(--space-section-tight); }
+.section--hinge { padding-block: var(--space-section-hinge); }
+@media (max-width: 899px) {
+  .section { padding-block: 64px; }
+  .section--tight { padding-block: 52px; }
+  .section--hinge { padding-block: 96px; }
+}
+
+/* Forest bands bleed edge to edge. No radius, no shadow — a plane change, not a card. */
+.band { background: var(--color-accent-600); color: var(--color-neutral-50); }
+.band--deep { background: var(--color-accent-800); }
+
+/* ── Type ───────────────────────────────────────────────────────────────── */
+/* Two weights on the spine: 800 and 400. Middleweight everywhere is the single
+   loudest "default template" tell. 600 exists only on buttons, labels and nav. */
 .mkt-h1 {
-  margin: 0; font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(40px, 8vw, var(--type-marketing-hero-size));
-  line-height: var(--type-marketing-hero-line);
-  letter-spacing: var(--type-marketing-hero-tracking);
-  color: var(--color-accent-600);
+  margin: 0; font-size: clamp(40px, 6.6vw, 72px); font-weight: 800;
+  line-height: 1.02; letter-spacing: -.035em; text-wrap: balance;
 }
 .mkt-h2 {
-  margin: 0; font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(30px, 5vw, var(--type-marketing-section-size));
-  line-height: var(--type-marketing-section-line);
-  letter-spacing: var(--type-marketing-section-tracking);
-  color: var(--color-accent-600);
+  margin: 0; font-size: clamp(30px, 4.2vw, 46px); font-weight: 800;
+  line-height: 1.08; letter-spacing: -.025em; text-wrap: balance; max-width: 16ch;
 }
-.section { padding: clamp(64px, 9vw, 96px) 0; }
-.eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+.mkt-h3 { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.25; letter-spacing: -.015em; }
+.lede { margin: 0; font-size: clamp(18px, 2.1vw, 20px); font-weight: 400; line-height: 1.45; max-width: 56ch; }
+.body { margin: 0; font-size: 17px; line-height: 1.65; max-width: 62ch; color: var(--text-secondary); }
+.caption { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
 
-/* ── Field (Input) — from the kit's Input, size lg ─────────────────────── */
-.field { position: relative; display: flex; align-items: center; }
-.field > svg { position: absolute; left: 14px; color: var(--text-tertiary); pointer-events: none; }
+/* The eyebrow and the record line are the same device at two sizes: mono is
+   reserved to evidence and structure, and never carries persuasion. */
+.eyebrow {
+  display: block; margin: 0 0 14px; font-family: var(--font-mono); font-size: 12px;
+  font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary);
+}
+.mono {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 400; letter-spacing: .04em;
+  font-variant-numeric: var(--numeric-tabular); color: var(--text-tertiary);
+}
+.band .eyebrow, .band .mono { color: var(--color-accent-200); }
+
+/* ── Document cards ─────────────────────────────────────────────────────── */
+/* White is reserved to record-shaped things. Never a section background. */
+.doc {
+  background: var(--surface-raised); border: 1px solid var(--border-decorative);
+  border-radius: var(--radius-marketing-md); box-shadow: var(--elev-1);
+}
+.doc--flat { box-shadow: var(--elev-0); }
+
+/* Rules, not boxes: the divider that does all the structural work. */
+.rule { border: 0; border-top: 1px solid var(--border-decorative); margin: 0; }
+
+/* ── Links ──────────────────────────────────────────────────────────────── */
+.tlink {
+  display: inline-flex; align-items: baseline; gap: 7px; font-size: 15px; font-weight: 600;
+  color: var(--text-primary); text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-thickness: 1px; text-decoration-color: var(--border-decorative);
+  transition: text-decoration-color var(--duration-fast) var(--ease-standard);
+}
+.tlink:hover { text-decoration-color: var(--action-primary); }
+.tlink .arw { color: var(--action-primary); font-weight: 400; }
+.band .tlink { color: var(--color-neutral-50); text-decoration-color: rgba(255,255,255,.3); }
+.band .tlink:hover { text-decoration-color: var(--color-neutral-50); }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+/* 11px radius, never a pill — a 999px CTA is the delivery-app default. */
+.btn { border-radius: var(--radius-marketing-sm); font-family: var(--font-display); }
+.btn--lg { min-height: 52px; font-size: 16px; }
+
+/* ── Motion ─────────────────────────────────────────────────────────────── */
+/* Content is visible by DEFAULT. The hidden state exists only under `html.js`,
+   which a ~4-line head script sets before paint — so a JS failure leaves the page
+   readable rather than blank. No `opacity:0` may live outside this block. */
+html.js [data-reveal] {
+  opacity: .001;
+  transform: translateY(12px);
+  transition: opacity 320ms var(--ease-standard), transform 320ms var(--ease-standard);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+html.js [data-reveal].is-in { opacity: 1; transform: none; }
+
+/* The one move with any personality, spent on the one element that *is* the
+   brand: the specimen caption printing itself onto the form, left to right. */
+html.js [data-print] { clip-path: inset(0 100% 0 0); transition: clip-path 600ms var(--ease-standard); }
+html.js [data-print].is-in { clip-path: inset(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  html.js [data-reveal] { opacity: 1; transform: none; }
+  html.js [data-print] { clip-path: inset(0); }
+}
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
+.field-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 7px; }
 .field input {
-  width: 100%; min-height: 56px; padding: 0 16px; font-family: var(--font-ui); font-size: 16px;
+  width: 100%; min-height: 52px; padding: 0 16px; font-family: var(--font-display); font-size: 16px;
   color: var(--text-primary); background: var(--surface-raised);
-  border: 1.5px solid var(--border-interactive); border-radius: var(--radius-md); outline: none;
+  border: 1px solid var(--border-interactive); border-radius: var(--radius-marketing-sm);
+  transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
 }
-.field.has-icon input { padding-left: 44px; }
 .field input::placeholder { color: var(--text-placeholder); }
-.field input:focus-visible { border-color: var(--focus-ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 30%, transparent); }
+.field input:focus { outline: none; border-color: var(--text-primary); box-shadow: 0 0 0 3px var(--state-hover-overlay); }
+.field input:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
-/* ── Checkbox (CASL consent) ───────────────────────────────────────────── */
-.checkline { display: flex; gap: 10px; align-items: flex-start; }
-.checkline input[type="checkbox"] { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--color-brand-500); flex: 0 0 auto; }
-.checkline .cl-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.checkline .cl-desc { display: block; font-size: 13px; font-weight: 400; color: var(--text-tertiary); margin-top: 2px; }
+.form-help { margin: 8px 0 0; font-size: 13px; color: var(--text-tertiary); }
+.form-objection { margin: 0; font-size: 13px; color: var(--text-secondary); max-width: 46ch; }
 
-/* ── Segmented control (the audience toggle) ───────────────────────────── */
-.seg { display: inline-flex; padding: 3px; gap: 2px; background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.16); border-radius: var(--radius-full); }
-.seg button {
-  display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 18px;
-  font-family: var(--font-ui); font-size: var(--type-label-lg-size); font-weight: 600; white-space: nowrap;
-  color: rgba(255,255,255,.82); background: transparent; border: none; border-radius: var(--radius-full); cursor: pointer;
-  transition: background-color var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard);
-}
-.seg button[aria-selected="true"] { color: var(--color-accent-800); background: var(--color-neutral-0); box-shadow: var(--elev-1); }
+/* 44px hit area on a 20px visual box. */
+.checkline { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; cursor: pointer; }
+.checkline input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--action-primary); flex: 0 0 auto; }
+.checkline .cl-label { display: block; font-size: 15px; color: var(--text-primary); }
+.checkline .cl-desc { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
 
-.form-row { display: flex; gap: 10px; align-items: flex-start; }
-.form-row .field { flex: 1; }
-.formmsg { font-size: 13px; min-height: 18px; }
-.formmsg[data-ok] { color: var(--color-success-700); }
-.formmsg[data-err] { color: var(--color-danger-600); }
-
-/* ── Responsive: stack the two-column layouts on narrow screens ─────────── */
-@media (max-width: 900px) {
-  .two-col { grid-template-columns: 1fr !important; gap: 40px !important; }
-  .grid-3 { grid-template-columns: 1fr !important; }
-  .grid-2 { grid-template-columns: 1fr !important; }
-  .nav-inner { flex-wrap: wrap; height: auto !important; padding-top: 12px !important; padding-bottom: 12px !important; gap: 12px !important; }
-  .nav-seg-wrap { order: 3; width: 100%; margin: 0 !important; }
-  .seg { width: 100%; }
-  .seg button { flex: 1; justify-content: center; }
-  /* Hero: headline + form first on mobile (above the fold), seal art after. */
-  .hero-grid .seal-art { order: 2; }
-}
-@media (max-width: 520px) {
-  .form-row { flex-direction: column; }
-  .form-row .btn { width: 100%; }
+/* Errors are ember, never red. Nothing on this site is ever red. */
+.formmsg { margin: 0; font-size: 14px; }
+.formmsg:empty { display: none; }
+.formmsg[data-tone='error'] {
+  padding: 10px 14px; border-radius: var(--radius-marketing-sm);
+  background: var(--color-warning-50); color: var(--color-warning-700);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Motion — entrance, scroll-reveal, hover. Sophisticated but restrained.
-   ───────────────────────────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: no-preference) {
-  [data-reveal] {
-    opacity: 0;
-    transform: translateY(24px);
-    transition: opacity .7s cubic-bezier(.2, 0, 0, 1), transform .7s cubic-bezier(.2, 0, 0, 1);
-    transition-delay: var(--reveal-delay, 0ms);
-    will-change: opacity, transform;
-  }
-  [data-reveal].is-in { opacity: 1; transform: none; }
-
-  /* Hero rises on load, staggered. */
-  .hero-copy > * { animation: hg-rise .9s cubic-bezier(.2, 0, 0, 1) both; }
-  .hero-copy > *:nth-child(1) { animation-delay: .06s; }
-  .hero-copy > *:nth-child(2) { animation-delay: .14s; }
-  .hero-copy > *:nth-child(3) { animation-delay: .22s; }
-  .hero-copy > *:nth-child(4) { animation-delay: .30s; }
-  .hero-copy > *:nth-child(5) { animation-delay: .38s; }
-  .seal-art { animation: hg-fade .9s cubic-bezier(.2, 0, 0, 1) both .4s; }
-  .seal-card { animation: hg-pop .7s cubic-bezier(.2, 0, 0, 1.05) both .9s; }
-  .seal-plate svg .chk, .big-seal svg .chk { stroke-dasharray: 30; stroke-dashoffset: 30; animation: hg-draw .7s cubic-bezier(.2,0,0,1) both 1.1s; }
-  @keyframes hg-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
-  @keyframes hg-fade { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
-  @keyframes hg-pop  { from { opacity: 0; transform: translateY(14px) scale(.92); } to { opacity: 1; transform: none; } }
-  @keyframes hg-draw { to { stroke-dashoffset: 0; } }
+/* ── Utility ────────────────────────────────────────────────────────────── */
+.stack { display: grid; justify-items: start; }
+.vh {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
-
-/* Hover lift on interactive cards. */
-.lift { transition: transform .28s cubic-bezier(.2, 0, 0, 1), box-shadow .28s cubic-bezier(.2, 0, 0, 1); }
-.lift:hover { transform: translateY(-5px); box-shadow: var(--elev-4); }
-
-/* Buttons get a subtle press/hover depth. */
-.btn { transition: transform .12s ease, background-color var(--duration-fast) var(--ease-standard), box-shadow .18s ease; }
-.btn--primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(241,82,30,.32); }
-.btn:active { transform: translateY(0); }
