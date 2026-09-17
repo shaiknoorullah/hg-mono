@@ -76,6 +76,54 @@ const analyticsConfigured = Boolean(RS_KEY && RS_URL);
       import '../scripts/forms.ts';
     </script>
 
+    <!-- Scroll-reveal + count-up. Progressive: no JS = everything simply visible. -->
+    <script is:inline>
+      (function () {
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var reveals = document.querySelectorAll('[data-reveal]');
+        if (reduce || !('IntersectionObserver' in window)) {
+          reveals.forEach(function (el) { el.classList.add('is-in'); });
+        } else {
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) {
+                var sibs = e.target.parentElement ? [].slice.call(e.target.parentElement.querySelectorAll(':scope > [data-reveal]')) : [e.target];
+                var idx = Math.max(0, sibs.indexOf(e.target));
+                e.target.style.setProperty('--reveal-delay', (idx % 6) * 80 + 'ms');
+                e.target.classList.add('is-in');
+                io.unobserve(e.target);
+              }
+            });
+          }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+          reveals.forEach(function (el) { io.observe(el); });
+        }
+        // Count-up on [data-count] when it scrolls in.
+        function countUp(el) {
+          var target = parseFloat(el.getAttribute('data-count')) || 0;
+          var suffix = el.getAttribute('data-suffix') || '';
+          if (reduce) { el.textContent = target.toLocaleString() + suffix; return; }
+          var start = null, dur = 1400;
+          function step(t) {
+            if (start === null) start = t;
+            var p = Math.min((t - start) / dur, 1);
+            var eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = Math.round(target * eased).toLocaleString() + suffix;
+            if (p < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        }
+        var counters = document.querySelectorAll('[data-count]');
+        if ('IntersectionObserver' in window) {
+          var cio = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) { if (e.isIntersecting) { countUp(e.target); cio.unobserve(e.target); } });
+          }, { threshold: 0.6 });
+          counters.forEach(function (el) { cio.observe(el); });
+        } else {
+          counters.forEach(countUp);
+        }
+      })();
+    </script>
+
     {analyticsConfigured && (
       <script is:inline define:vars={{ RS_KEY, RS_URL }}>
         (function () {

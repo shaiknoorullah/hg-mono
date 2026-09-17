@@ -15,11 +15,11 @@ const STEPS = {
 ---
 <section class="hiw">
   <div class="container">
-    <h2 class="mkt-h2">How it works</h2>
+    <h2 class="mkt-h2" data-reveal>How it works</h2>
     {(['eat', 'own'] as const).map((aud) => (
       <div class:list={[`aud-${aud}`, 'grid-3', 'steps']}>
         {STEPS[aud].map((s, i) => (
-          <div class="step">
+          <div class="step lift" data-reveal>
             <div class="step-head">
               <span class="step-icon"><Icon name={s.icon} size="lg" /></span>
               <span class="step-n">0{i + 1}</span>

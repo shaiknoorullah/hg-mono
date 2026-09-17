@@ -19,12 +19,12 @@ const BENEFITS = {
     <section class:list={[`aud-${aud}`, 'benefits', dark && 'benefits--dark']}>
       <div class="container">
         <div class="benefits-head">
-          <h2 class="mkt-h2">Why Halal Goes</h2>
-          <span class="benefits-aud">{dark ? 'For restaurants' : 'For people ordering'}</span>
+          <h2 class="mkt-h2" data-reveal>Why Halal Goes</h2>
+          <span class="benefits-aud" data-reveal>{dark ? 'For restaurants' : 'For people ordering'}</span>
         </div>
         <div class="grid-3 benefits-grid">
           {BENEFITS[aud].map((b) => (
-            <div class="benefit">
+            <div class="benefit" data-reveal>
               <span class="benefit-icon"><Icon name={b.icon} size="lg" /></span>
               <h3 class="benefit-title">{b.title}</h3>
               <p class="benefit-body">{b.body}</p>

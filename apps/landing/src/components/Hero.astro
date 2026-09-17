@@ -6,73 +6,108 @@ import Icon from './Icon.astro';
 import WaitlistForm from './WaitlistForm.astro';
 ---
 <section id="waitlist" class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
   <div class="container two-col hero-grid">
     <!-- Order food -->
     <div class="aud-eat hero-copy">
-      <span><Badge tone="accent" icon="map-pin">Launching in Ontario</Badge></span>
+      <span><Badge tone="accent" icon="map-pin">Launching in the Greater Toronto Area</Badge></span>
       <h1 class="mkt-h1">Verified halal,<br />delivered.</h1>
-      <p class="hero-sub">Every restaurant checked seven ways before it reaches you.</p>
+      <p class="hero-sub">
+        Every restaurant on Halal Goes clears a <strong>seven-point halal check</strong> before a single
+        order goes out — the certificate, who issued it, and the date we verified it. No self-declared
+        badges. Just food you can trust, at your door.
+      </p>
       <WaitlistForm audience="eat" withIcon withConsent context="hero" />
       <div class="trust">
         <HalalBadge size="sm" />
-        <span class="trust-note">[XX] certified restaurants ready for launch day</span>
+        <span class="trust-note">Every listing is admin-verified against its certificate — or it isn’t listed.</span>
       </div>
     </div>
 
     <!-- List your restaurant -->
     <div class="aud-own hero-copy">
-      <span><Badge tone="accent" icon="store">Launch partners · Ontario</Badge></span>
+      <span><Badge tone="accent" icon="store">For restaurants · Ontario</Badge></span>
       <h1 class="mkt-h1">0% commission<br />at launch.</h1>
-      <p class="hero-sub">Keep every dollar — and reach halal diners who trust the badge.</p>
+      <p class="hero-sub">
+        Keep <strong>every dollar</strong> of every order — no commission for launch partners. Get in front
+        of halal diners who choose by the badge, with onboarding that takes a certificate, a menu, and an
+        afternoon.
+      </p>
       <WaitlistForm audience="own" withIcon withConsent context="hero" />
       <div class="trust">
         <HalalBadge size="sm" />
-        <span class="trust-note">[XX] restaurants already on the launch list</span>
+        <span class="trust-note">The verified badge on your storefront — a trust asset, not a fee.</span>
       </div>
     </div>
 
-    <!-- Shared seal art -->
+    <!-- Shared food art -->
     <div class="seal-art">
-      <div class="photo" role="img" aria-label="Food photography placeholder">
-        <Icon name="shopping-bag" size={40} color="var(--color-neutral-400)" />
-        <span>food photography</span>
+      <div class="photo-frame lift">
+        <img src="/img/hero-spread.jpg" alt="A spread of freshly prepared halal dishes" width="640" height="720" loading="eager" />
+        <div class="photo-grad" aria-hidden="true"></div>
       </div>
+
       <div class="seal-card">
         <span class="seal-plate">
           <HalalShield size={32} color="var(--color-halal-certified-on-seal)" checkColor="var(--color-halal-certified-seal)" />
         </span>
         <span>
           <span class="seal-title">Halal certified</span>
-          <span class="seal-sub">Checked seven ways · certified by [body]</span>
+          <span class="seal-sub">Checked seven ways · certificate on file</span>
         </span>
+      </div>
+
+      <div class="float-chip chip-eta">
+        <Icon name="navigation" size="sm" color="var(--color-brand-500)" />
+        <span><b>Live tracking</b><br />Sealed to your door</span>
       </div>
     </div>
   </div>
 </section>
 
 <style>
-  .hero { background: var(--surface-base); }
-  .hero-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 56px; align-items: center; padding-top: clamp(48px,7vw,72px); padding-bottom: clamp(56px,8vw,88px); }
-  .hero-copy { display: grid; gap: 24px; justify-items: start; }
-  .hero-sub { margin: 0; font-size: 20px; line-height: 1.5; color: var(--text-secondary); max-width: 460px; }
-  .hero-copy .waitlist-form { width: 100%; max-width: 460px; display: grid; gap: 12px; }
-  .trust { display: flex; align-items: center; gap: 14px; padding-top: 4px; flex-wrap: wrap; }
-  .trust-note { font-size: 14px; color: var(--text-tertiary); }
+  .hero { position: relative; background: var(--surface-base); overflow: hidden; }
+  .hero-glow {
+    position: absolute; inset: -20% -10% auto auto; width: 60%; height: 120%;
+    background: radial-gradient(60% 50% at 70% 30%, rgba(241,82,30,.10), transparent 70%),
+                radial-gradient(50% 40% at 80% 60%, rgba(15,122,67,.08), transparent 70%);
+    pointer-events: none;
+  }
+  .hero-grid { position: relative; display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,1fr); gap: 56px; align-items: center; padding-top: clamp(48px,7vw,80px); padding-bottom: clamp(56px,8vw,96px); }
+  .hero-copy { display: grid; gap: 22px; justify-items: start; }
+  .hero-sub { margin: 0; font-size: clamp(17px, 2.4vw, 20px); line-height: 1.55; color: var(--text-secondary); max-width: 480px; }
+  .hero-sub strong { color: var(--color-accent-600); font-weight: 700; }
+  .hero-copy .waitlist-form { width: 100%; max-width: 480px; display: grid; gap: 12px; }
+  .trust { display: flex; align-items: center; gap: 14px; padding-top: 2px; flex-wrap: wrap; }
+  .trust-note { font-size: 14px; color: var(--text-tertiary); max-width: 300px; }
 
-  .seal-art { position: relative; display: grid; place-items: center; padding: 24px; }
-  .photo {
-    width: 100%; height: clamp(300px, 42vw, 420px); border-radius: var(--radius-marketing-md);
-    background: linear-gradient(135deg, var(--color-neutral-100), var(--color-neutral-200));
-    display: grid; place-items: center; align-content: center; gap: 8px; color: var(--text-tertiary); font-size: 13px;
+  .seal-art { position: relative; display: grid; place-items: center; padding: 20px 10px; }
+  .photo-frame {
+    position: relative; width: 100%; max-width: 460px; aspect-ratio: 5 / 6; border-radius: 22px; overflow: hidden;
+    box-shadow: 0 24px 60px -18px rgba(15,36,28,.45), 0 4px 14px rgba(15,36,28,.14);
+    background: var(--color-neutral-100);
   }
+  .photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-grad { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(15,36,28,.28)); }
+
   .seal-card {
-    position: absolute; bottom: 44px; left: 0; display: flex; align-items: center; gap: 14px;
-    background: var(--surface-raised); padding: 14px 18px; border-radius: var(--radius-marketing-md); box-shadow: var(--elev-4);
+    position: absolute; bottom: 34px; left: -6px; display: flex; align-items: center; gap: 14px;
+    background: var(--surface-raised); padding: 13px 18px; border-radius: 16px;
+    box-shadow: 0 16px 34px -10px rgba(15,36,28,.4), 0 2px 8px rgba(15,36,28,.12);
   }
-  .seal-plate {
-    width: 52px; height: 52px; display: grid; place-items: center; border-radius: var(--radius-md);
-    background: var(--color-halal-certified-seal); box-shadow: inset 0 0 0 2px var(--color-halal-certified-ring);
-  }
+  .seal-plate { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 14px; background: var(--color-halal-certified-seal); box-shadow: inset 0 0 0 2px var(--color-halal-certified-ring); }
   .seal-title { display: block; font-size: 15px; font-weight: 700; color: var(--color-halal-certified-tint-text); }
-  .seal-sub { display: block; font-size: 13px; color: var(--text-tertiary); }
+  .seal-sub { display: block; font-size: 12.5px; color: var(--text-tertiary); }
+
+  .float-chip {
+    position: absolute; top: 26px; right: -4px; display: flex; align-items: center; gap: 9px;
+    background: var(--surface-raised); padding: 10px 14px; border-radius: 14px; font-size: 12px; line-height: 1.3;
+    box-shadow: 0 12px 28px -10px rgba(15,36,28,.34); color: var(--text-secondary);
+  }
+  .float-chip b { color: var(--color-accent-600); }
+
+  @media (max-width: 560px) {
+    .float-chip { display: none; }
+    .seal-card { left: 8px; bottom: 16px; }
+  }
 </style>

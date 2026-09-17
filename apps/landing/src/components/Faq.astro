@@ -10,10 +10,10 @@ export const QA: [string, string][] = [
 ---
 <section class="faq">
   <div class="faq-wrap">
-    <h2 class="mkt-h2">Questions</h2>
+    <h2 class="mkt-h2" data-reveal>Questions</h2>
     <div class="faq-list">
       {QA.map(([q, a], i) => (
-        <details name="faq" open={i === 0}>
+        <details name="faq" open={i === 0} data-reveal>
           <summary>
             <span>{q}</span>
             <Icon name="chevron-down" size="md" color="var(--text-tertiary)" class="chev" />
