@@ -2,14 +2,30 @@
 /**
  * The single conversion on the site. One field, forever.
  *
- * Three things here are compliance, not preference:
- *  1. The consent box ships UNCHECKED. A pre-checked box is not express consent
- *     under CASL (CRTC 2012-549). The previous version shipped `checked`.
- *  2. The rendered consent SENTENCE is submitted alongside the timestamp, so the
- *     artifact survives a later copy edit — "they consented to something" is not
- *     a defence; "they consented to this text on this date" is.
- *  3. Both audiences log it. CASL covers commercial email identically to SMS,
- *     and the restaurant path previously recorded no consent artifact at all.
+ * CONSENT, and why there is no tick-box.
+ *
+ * There was one, and it restated the submit button word for word — "Email me
+ * when Halal Goes opens in my area." under a button reading "Email me when you
+ * open". Two controls, one meaning: pure friction.
+ *
+ * CASL needs a positive, unbundled action, and CRTC 2012-549 names two examples
+ * of one: ticking a box, OR "actively entering their e-mail address in an
+ * electronic form". A box is required when consent rides along with something
+ * else — a checkout, a signup carrying other terms — because then the action of
+ * submitting means several things at once and consent must be separable. This
+ * form does exactly one thing, so typing an address and pressing a button that
+ * says what will be sent IS the unbundled positive action.
+ *
+ * What still has to be true, and is:
+ *  1. The notice sits WITH the control, states who is sending and what, and is
+ *     legible — not buried in a footer or behind a link.
+ *  2. Nothing is pre-agreed on the user's behalf beyond the single purpose they
+ *     came here for. There is no second purpose hidden in the submit.
+ *  3. The rendered consent SENTENCE is submitted with the timestamp and the
+ *     method, so the artifact survives a later copy edit — "they consented" is
+ *     not a defence; "they consented to this text, this way, on this date" is.
+ *  4. Both audiences log it. CASL treats commercial email and SMS identically,
+ *     and the restaurant path previously recorded no artifact at all.
  *
  * WHY EMAIL AND NOT A PHONE NUMBER, on a mobile-first consumer page where a
  * phone field would convert better: decision O-03 (SMS / A2P 10DLC registration)
@@ -30,14 +46,12 @@ interface Props {
 const { audience, context, id } = Astro.props;
 const eat = audience === 'eat';
 
+// The consent record. This exact sentence is rendered to the user AND stored
+// with the lead — they must never drift apart.
 const CONSENT = eat
-  ? 'Email me when Halal Goes opens in my area.'
-  : 'Email me about listing my restaurant.';
-const CONSENT_SUB = eat
-  ? 'One message when we open in Ontario, then only when there are newly verified kitchens near you. One-click unsubscribe on every email.'
-  : 'What we check, what it costs, and how to get listed. One-click unsubscribe on every email.';
+  ? 'By joining, you are asking Halal Goes to email you once when we open in Ontario, and after that only when newly verified kitchens open near you.'
+  : 'By joining, you are asking Halal Goes to email you what we check, what it costs, and how to get listed.';
 const fieldId = `${context}-${audience}-input`;
-const consentId = `${context}-${audience}-consent`;
 const msgId = `${context}-${audience}-msg`;
 ---
 <!--
@@ -59,6 +73,7 @@ const msgId = `${context}-${audience}-msg`;
   <input type="hidden" name="audience" value={audience} />
   <input type="hidden" name="context" value={context} />
   <input type="hidden" name="consentText" value={CONSENT} />
+  <input type="hidden" name="consentMethod" value="form_submit" />
   <div class="wf-row">
     <div class="field">
       <label class="field-label" for={fieldId}>{eat ? 'Email' : 'Work email'}</label>
@@ -83,17 +98,7 @@ const msgId = `${context}-${audience}-msg`;
     </div>
   </div>
 
-  <p class="form-help">
-    {eat ? "One email, the day we open. We don't run a newsletter." : 'What we check and what it costs. No sales call.'}
-  </p>
-
-  <label class="checkline" for={consentId}>
-    <input id={consentId} type="checkbox" name="consent" />
-    <span>
-      <span class="cl-label">{CONSENT}</span>
-      <span class="cl-desc">{CONSENT_SUB}</span>
-    </span>
-  </label>
+  <p class="wf-consent">{CONSENT} One-click unsubscribe on every email, and we never pass your address to anyone else.</p>
 
   <p class="formmsg" id={msgId} role="status" aria-live="polite"></p>
 </form>
@@ -110,4 +115,14 @@ const msgId = `${context}-${audience}-msg`;
   }
 
   .waitlist-form .form-help { margin-top: -4px; }
+
+  /* Legible, beside the control, in the user's reading order — a consent notice
+     that has to be hunted for is not a notice. */
+  .wf-consent {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--text-tertiary);
+    max-width: 52ch;
+  }
 </style>

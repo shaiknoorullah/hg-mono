@@ -74,9 +74,14 @@ export const POST: APIRoute = async ({ request }) => {
   // date, from this part of the page" is.
   const recordConsent = () => {
     if (body?.consent !== true) return false;
+    // The sentence the user actually saw is the artifact. Refuse to record a
+    // consent we cannot describe — a bare `true` proves nothing later.
+    const text = typeof body?.consentText === 'string' ? body.consentText.trim() : '';
+    if (text.length < 20) return false;
     lead.consent = true;
     lead.consentAt = typeof body?.consentAt === 'string' ? body.consentAt : lead.receivedAt;
-    lead.consentText = typeof body?.consentText === 'string' ? body.consentText.slice(0, 400) : '';
+    lead.consentText = text.slice(0, 400);
+    lead.consentMethod = body?.consentMethod === 'form_submit' ? 'form_submit' : 'unknown';
     return true;
   };
 
@@ -101,7 +106,7 @@ export const POST: APIRoute = async ({ request }) => {
       return reply(false, 'invalid_email', 422, 'That email doesn\u2019t look right', 'Go back and check the address, then try again.');
     }
     if (!recordConsent()) {
-      return reply(false, 'consent_required', 422, 'We need the tick-box', 'Canadian anti-spam law needs your express consent before we can email you. Go back and tick the box, and we\u2019ll write once when we open.');
+      return reply(false, 'consent_required', 422, 'That didn\u2019t go through', 'We could not record what you agreed to, so we have not stored your address. Please go back and submit the form again.');
     }
     lead.email = email;
   }

@@ -114,21 +114,16 @@ function wire(form: HTMLFormElement) {
       consentAt: new Date().toISOString(),
     };
 
-    const consent = form.querySelector<HTMLInputElement>('[name="consent"]');
-    let echo = '';
-
     const email = (form.querySelector<HTMLInputElement>('[name="email"]')?.value || '').trim().toLowerCase();
     if (!EMAIL_RE.test(email)) return fail("That email doesn't look right.");
     payload.email = email;
-    echo = email;
-    if (!consent?.checked) {
-      return fail(
-        audience === 'eat'
-          ? "Tick the box and we'll email you once, when we open."
-          : 'Tick the box and we can send you the details.',
-      );
-    }
+    const echo = email;
+
+    // Submitting this form IS the express consent — there is nothing else it
+    // could mean, and the notice sits directly above the button. We record how
+    // it was obtained so the artifact is honest about the mechanism.
     payload.consent = true;
+    payload.consentMethod = 'form_submit';
 
     submit.setAttribute('aria-busy', 'true');
     submit.disabled = true;
