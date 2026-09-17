@@ -53,9 +53,17 @@ const eat = audience === 'eat';
 // consent to email unbundled from general terms, so the one thing being
 // consented to has to be legible right here, at the control. The Terms and the
 // Privacy Policy carry everything else.
-const CONSENT = eat
+const PURPOSE = eat
   ? 'One email at launch, then only when new kitchens near you are verified.'
   : 'We email you what we check, what it costs, and how to get listed.';
+
+// The stored artifact must be the WHOLE notice the user saw, not just its first
+// sentence — /privacy promises "the exact sentence you were shown", and a record
+// that quietly omits the Terms agreement is the drift this file exists to stop.
+// Link targets are spelled out because a stored record cannot carry an <a>.
+const CONSENT =
+  `${PURPOSE} Unsubscribe any time. By joining you agree to our Terms ` +
+  `(halalgoes.com/terms) and Privacy Policy (halalgoes.com/privacy).`;
 const fieldId = `${context}-${audience}-input`;
 const msgId = `${context}-${audience}-msg`;
 ---
@@ -104,7 +112,7 @@ const msgId = `${context}-${audience}-msg`;
   </div>
 
   <p class="wf-consent">
-    {CONSENT} Unsubscribe any time. By joining you agree to our
+    {PURPOSE} Unsubscribe any time. By joining you agree to our
     <a href="/terms">Terms</a> and <a href="/privacy">Privacy&nbsp;Policy</a>.
   </p>
 
