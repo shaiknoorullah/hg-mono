@@ -47,12 +47,20 @@ const cross =
   .wordmark { font-size: 17px; font-weight: 800; letter-spacing: -.03em; color: var(--text-primary); }
 
   .nav-links { display: flex; align-items: center; gap: 26px; }
+  /* Full-height targets: 60px of nav is the whole hit area, and the underline
+     is drawn by a pseudo-element so padding doesn't push the rule off the text. */
   .nav-link {
+    position: relative;
+    display: inline-flex; align-items: center;
+    min-height: var(--target-min);
     font-size: 15px; font-weight: 600; color: var(--text-primary);
-    border-bottom: 1px solid transparent; padding-bottom: 2px;
+  }
+  .nav-link::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 16px;
+    border-bottom: 1px solid transparent;
     transition: border-color var(--duration-fast) var(--ease-standard);
   }
-  .nav-link:hover { border-bottom-color: var(--text-primary); }
+  .nav-link:hover::after { border-bottom-color: var(--text-primary); }
   .nav-link .arw { color: var(--text-tertiary); font-weight: 400; }
 
   /* Mobile keeps only the door a restaurateur is looking for. */

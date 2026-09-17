@@ -96,9 +96,27 @@ body > * { position: relative; z-index: 1; }
 .band .tlink:hover { text-decoration-color: var(--color-neutral-50); }
 
 /* ── Buttons ────────────────────────────────────────────────────────────── */
-/* 11px radius, never a pill — a 999px CTA is the delivery-app default. */
-.btn { border-radius: var(--radius-marketing-sm); font-family: var(--font-display); }
-.btn--lg { min-height: 52px; font-size: 16px; }
+/* 11px radius, never a pill — a 999px CTA is the delivery-app default.
+ *
+ * These are GLOBAL on purpose. Button.astro's own styles are Astro-scoped, so
+ * they reach only the markup that component renders — and two places here use
+ * raw `.btn` markup that the component can't produce: the sticky CTA, and the
+ * success state that forms.ts injects after submit. Without this block those
+ * two render as 28px-tall unstyled links. Any `.btn` on this site, wherever it
+ * came from, must end up the same size and shape. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: var(--radius-marketing-sm);
+  font-family: var(--font-display); font-weight: 600; line-height: 1.2;
+  text-align: center; cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.btn--md { min-height: var(--target-min); padding: 0 16px; font-size: 15px; }
+.btn--lg { min-height: 52px; padding: 0 20px; font-size: 16px; }
+.btn--primary { background: var(--action-primary); color: var(--text-on-brand); }
+.btn--primary:hover { background: var(--action-primary-pressed); }
+.btn--outline { background: transparent; color: var(--color-brand-700); border-color: var(--border-brand); }
 
 /* ── Motion ─────────────────────────────────────────────────────────────── */
 /* Content is visible by DEFAULT. The hidden state exists only under `html.js`,
@@ -137,9 +155,18 @@ html.js [data-print].is-in { clip-path: inset(0); }
 .form-help { margin: 8px 0 0; font-size: 13px; color: var(--text-tertiary); }
 .form-objection { margin: 0; font-size: 13px; color: var(--text-secondary); max-width: 46ch; }
 
-/* 44px hit area on a 20px visual box. */
+/* The consent box keeps a 20px visual mark but a 44px TARGET — the box is the
+   single most consequential control on the page and it is also the smallest, so
+   it gets the padding rather than the label doing all the work. */
+/* The whole row is the <label>, so the tap target is the full 85px-tall block,
+   not the 20px box — which is why the box does not need to grow. (A checkbox is
+   a replaced element: it ignores padding in Chromium, and forcing the issue with
+   negative margins knocks the box out of line with its own text.) */
 .checkline { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; cursor: pointer; }
-.checkline input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--action-primary); flex: 0 0 auto; }
+.checkline input {
+  width: 20px; height: 20px; margin: 1px 0 0;
+  accent-color: var(--action-primary); flex: 0 0 auto;
+}
 .checkline .cl-label { display: block; font-size: 15px; color: var(--text-primary); }
 .checkline .cl-desc { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
 

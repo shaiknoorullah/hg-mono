@@ -40,14 +40,25 @@ const fieldId = `${context}-${audience}-input`;
 const consentId = `${context}-${audience}-consent`;
 const msgId = `${context}-${audience}-msg`;
 ---
+<!--
+  action/method are real, not decoration: with JavaScript off this form still
+  posts to the endpoint, which accepts form-encoded bodies and answers with a
+  plain confirmation page. A waitlist that silently does nothing for a visitor
+  on a locked-down browser is the worst possible failure for this brand.
+-->
 <form
   class="waitlist-form"
   id={id}
+  action="/api/waitlist"
+  method="post"
   data-audience={audience}
   data-context={context}
   data-consent-text={CONSENT}
   novalidate
 >
+  <input type="hidden" name="audience" value={audience} />
+  <input type="hidden" name="context" value={context} />
+  <input type="hidden" name="consentText" value={CONSENT} />
   <div class="wf-row">
     <div class="field">
       <label class="field-label" for={fieldId}>{eat ? 'Email' : 'Work email'}</label>

@@ -76,10 +76,11 @@ const year = new Date().getFullYear();
   .foot-tag { margin: 0; font-size: 14px; color: var(--color-accent-200); }
   .foot-links { display: flex; flex-wrap: wrap; gap: 10px 28px; }
   .foot-links a {
+    display: inline-flex; align-items: center; min-height: var(--target-min);
     font-size: 14px; font-weight: 600; color: var(--color-neutral-50);
-    border-bottom: 1px solid rgba(255, 255, 255, .28); padding-bottom: 2px;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .28);
   }
-  .foot-links a:hover { border-bottom-color: var(--color-neutral-50); }
+  .foot-links a:hover { box-shadow: inset 0 -1px 0 var(--color-neutral-50); }
 
   .foot-legal {
     margin: 0 0 12px; padding-top: 22px;
