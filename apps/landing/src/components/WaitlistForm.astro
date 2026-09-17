@@ -48,9 +48,14 @@ const eat = audience === 'eat';
 
 // The consent record. This exact sentence is rendered to the user AND stored
 // with the lead — they must never drift apart.
+//
+// It stays short but it does NOT become "you agree to our Terms". CASL wants
+// consent to email unbundled from general terms, so the one thing being
+// consented to has to be legible right here, at the control. The Terms and the
+// Privacy Policy carry everything else.
 const CONSENT = eat
-  ? 'By joining, you are asking Halal Goes to email you once when we open in Ontario, and after that only when newly verified kitchens open near you.'
-  : 'By joining, you are asking Halal Goes to email you what we check, what it costs, and how to get listed.';
+  ? 'One email at launch, then only when new kitchens near you are verified.'
+  : 'We email you what we check, what it costs, and how to get listed.';
 const fieldId = `${context}-${audience}-input`;
 const msgId = `${context}-${audience}-msg`;
 ---
@@ -98,7 +103,10 @@ const msgId = `${context}-${audience}-msg`;
     </div>
   </div>
 
-  <p class="wf-consent">{CONSENT} One-click unsubscribe on every email, and we never pass your address to anyone else.</p>
+  <p class="wf-consent">
+    {CONSENT} Unsubscribe any time. By joining you agree to our
+    <a href="/terms">Terms</a> and <a href="/privacy">Privacy&nbsp;Policy</a>.
+  </p>
 
   <p class="formmsg" id={msgId} role="status" aria-live="polite"></p>
 </form>
@@ -125,4 +133,11 @@ const msgId = `${context}-${audience}-msg`;
     color: var(--text-tertiary);
     max-width: 52ch;
   }
+  .wf-consent a {
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--border-decorative);
+  }
+  .wf-consent a:hover { text-decoration-color: var(--action-primary); }
 </style>
