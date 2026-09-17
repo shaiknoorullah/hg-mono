@@ -93,4 +93,13 @@ const BODIES = ['HMA Canada', 'HFSAA', 'ISNA Canada'];
   .bodies-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .body-badge { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; background: var(--surface-raised); border: 1px solid var(--color-halal-certified-tint-border); border-radius: var(--radius-full); font-size: 14px; font-weight: 700; color: var(--color-halal-certified-tint-text); }
   .bodies-more { font-size: 12.5px; color: var(--color-halal-certified-tint-text); opacity: .7; }
+
+  /* Mobile: the seven-point grid must stack — 2 columns at 390px is unreadable. */
+  @media (max-width: 720px) {
+    .verify-grid { grid-template-columns: 1fr; gap: 36px; padding: clamp(48px,10vw,64px) 0; }
+    .points-grid { grid-template-columns: 1fr; }
+    .point { grid-template-columns: auto 1fr; }
+    .point--wide { grid-column: auto; grid-template-columns: auto auto 1fr; }
+    .big-seal { width: 78px; height: 78px; }
+  }
 </style>
