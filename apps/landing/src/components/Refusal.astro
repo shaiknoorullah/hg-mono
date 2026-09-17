@@ -30,7 +30,7 @@ import { DISCLAIMER } from '../lib/claims';
   .refusal { background: var(--color-accent-600); color: var(--color-neutral-50); }
   .refusal-h {
     margin: 0 0 28px;
-    font-size: clamp(30px, 4.6vw, 48px);
+    font-size: var(--t-h2);
     font-weight: 800;
     line-height: 1.1;
     letter-spacing: -.025em;
@@ -38,8 +38,8 @@ import { DISCLAIMER } from '../lib/claims';
   }
   .refusal-body {
     margin: 0 0 32px;
-    font-size: 18px;
-    line-height: 1.65;
+    font-size: var(--t-lede);
+    line-height: 1.6;
     max-width: 58ch;
     color: var(--color-accent-100);
   }
@@ -54,8 +54,8 @@ import { DISCLAIMER } from '../lib/claims';
   }
 
   @media (max-width: 639px) {
-    .refusal-h { font-size: clamp(24px, 7vw, 32px); margin-bottom: 20px; }
-    .refusal-body { font-size: 15.5px; line-height: 1.6; margin-bottom: 24px; }
-    .refusal-fixed { font-size: 11px; padding-top: 18px; line-height: 1.65; }
+    .refusal-h { margin-bottom: 20px; }
+    .refusal-body { margin-bottom: 24px; }
+    .refusal-fixed { padding-top: 18px; }
   }
 </style>

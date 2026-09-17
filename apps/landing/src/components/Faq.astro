@@ -80,7 +80,7 @@ export const QA: [string, string][] = [
   summary {
     display: flex; align-items: flex-start; gap: 20px;
     padding: 20px 0; cursor: pointer; list-style: none;
-    font-size: 17px; font-weight: 700; line-height: 1.35;
+    font-size: var(--t-body); font-weight: 700; line-height: 1.35;
     color: var(--text-primary);
   }
   summary::-webkit-details-marker { display: none; }
@@ -89,12 +89,12 @@ export const QA: [string, string][] = [
   details[open] .chev { transform: rotate(180deg); }
   details p {
     margin: 0; padding: 0 0 22px;
-    font-size: 16px; line-height: 1.65; color: var(--text-secondary); max-width: 62ch;
+    font-size: var(--t-body-sm); line-height: 1.65; color: var(--text-secondary); max-width: 62ch;
   }
 
   @media (max-width: 639px) {
     .faq-h { margin-bottom: 22px; }
-    summary { font-size: 15.5px; padding: 16px 0; gap: 14px; min-height: var(--target-min); }
-    details p { font-size: 14.5px; line-height: 1.6; padding-bottom: 18px; }
+    summary { padding: 16px 0; gap: 14px; min-height: var(--target-min); }
+    details p { padding-bottom: 18px; }
   }
 </style>

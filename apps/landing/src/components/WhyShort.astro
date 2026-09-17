@@ -52,7 +52,7 @@ import { CBC } from '../lib/claims';
      footer; spending a third on a grievance would make the page feel aggrieved. */
   .why { background: var(--surface-base); }
   .why-body { padding-block: 44px; max-width: 640px; }
-  .why-para { margin-bottom: 18px; font-size: 18px; line-height: 1.6; color: var(--text-primary); }
+  .why-para { margin-bottom: 18px; font-size: var(--t-lede); line-height: 1.6; color: var(--text-primary); }
   .why-para:last-of-type { margin-bottom: 26px; }
   .why-para strong { font-weight: 800; }
   .why-para em { font-style: italic; }
@@ -67,7 +67,7 @@ import { CBC } from '../lib/claims';
 
   @media (max-width: 639px) {
     .why-body { padding-block: 30px; }
-    .why-para { font-size: 15.5px; line-height: 1.6; margin-bottom: 14px; }
+    .why-para { margin-bottom: 14px; }
     .why-para:last-of-type { margin-bottom: 20px; }
   }
 </style>

@@ -102,12 +102,12 @@ import { CHECKS } from '../lib/claims';
     font-variant-numeric: var(--numeric-tabular);
     line-height: 1.7;
   }
-  .chk-title { margin: 0 0 5px; font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--text-primary); }
-  .chk-body { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-secondary); max-width: 56ch; }
+  .chk-title { margin: 0 0 5px; font-size: var(--t-body); font-weight: 700; line-height: 1.3; color: var(--text-primary); }
+  .chk-body { margin: 0; font-size: var(--t-body-sm); line-height: 1.55; color: var(--text-secondary); max-width: 56ch; }
   .chk-flag {
     margin: 8px 0 0;
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--t-micro);
     letter-spacing: .05em;
     text-transform: uppercase;
     color: var(--text-tertiary);
@@ -127,10 +127,8 @@ import { CHECKS } from '../lib/claims';
     .door-grid { gap: 28px; }
     .door-card { padding: 20px; }
     .chk { grid-template-columns: 22px minmax(0, 1fr) 16px; gap: 10px; padding-block: 15px; }
-    .chk-title { font-size: 15.5px; margin-bottom: 4px; }
-    .chk-body { font-size: 14px; line-height: 1.5; }
-    .chk-flag { font-size: 10px; margin-top: 6px; }
-    .chk-n { font-size: 11px; }
+    .chk-title { margin-bottom: 4px; }
+    .chk-flag { margin-top: 6px; }
     .door-standfirst { margin-top: 10px; }
     .issuers { margin-top: 26px; }
   }

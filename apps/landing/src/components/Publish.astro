@@ -93,8 +93,8 @@
   .publish-list li { padding-block: 22px; border-top: 1px solid var(--border-decorative); }
   .publish-list li:first-child { border-top: 0; padding-top: 0; }
 
-  .pl-title { margin: 0 0 6px; font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--text-primary); }
-  .pl-body { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-secondary); max-width: 58ch; }
+  .pl-title { margin: 0 0 6px; font-size: var(--t-body); font-weight: 700; line-height: 1.3; color: var(--text-primary); }
+  .pl-body { margin: 0; font-size: var(--t-body-sm); line-height: 1.6; color: var(--text-secondary); max-width: 58ch; }
   .pl-link {
     color: var(--text-primary); font-weight: 600;
     text-decoration: underline; text-underline-offset: 3px;
@@ -108,8 +108,8 @@
     background: var(--surface-raised);
     border: 1px solid var(--border-decorative);
     border-radius: var(--radius-marketing-md);
-    font-size: 12px;
-    line-height: 1.65;
+    font-size: var(--t-micro);
+    line-height: 1.7;
     letter-spacing: .04em;
     text-transform: uppercase;
     max-width: none;
@@ -121,8 +121,6 @@
   @media (max-width: 639px) {
     .publish-grid { gap: 26px; }
     .publish-list li { padding-block: 16px; }
-    .pl-title { font-size: 15.5px; }
-    .pl-body { font-size: 14px; line-height: 1.55; }
-    .empty-strip { margin-top: 32px; padding: 14px 15px; font-size: 10.5px; line-height: 1.7; }
+    .empty-strip { margin-top: 32px; padding: 14px 15px; }
   }
 </style>

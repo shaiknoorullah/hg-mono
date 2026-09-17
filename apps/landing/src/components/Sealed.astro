@@ -61,14 +61,14 @@ import { SEAL } from '../lib/claims';
     display: block;
     margin-bottom: 9px;
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--t-micro);
     font-weight: 500;
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--text-tertiary);
   }
-  .sl-title { margin: 0 0 5px; font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--text-primary); }
-  .sl-body { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-secondary); max-width: 56ch; }
+  .sl-title { margin: 0 0 5px; font-size: var(--t-body); font-weight: 700; line-height: 1.3; color: var(--text-primary); }
+  .sl-body { margin: 0; font-size: var(--t-body-sm); line-height: 1.55; color: var(--text-secondary); max-width: 56ch; }
 
   @media (max-width: 999px) {
     .sealed-grid { grid-template-columns: 1fr; gap: 36px; }
@@ -77,8 +77,6 @@ import { SEAL } from '../lib/claims';
     .sealed-grid { gap: 26px; }
     .sealed-card { padding: 20px; }
     .sl { padding-block: 16px; }
-    .sl-title { font-size: 15.5px; }
-    .sl-body { font-size: 14px; line-height: 1.5; }
-    .sl-n { font-size: 10px; margin-bottom: 7px; }
+    .sl-n { margin-bottom: 7px; }
   }
 </style>

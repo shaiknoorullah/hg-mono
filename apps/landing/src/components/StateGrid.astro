@@ -89,9 +89,9 @@ import { STATES, ISSUERS } from '../lib/claims';
      Never a greyed shield: invariant #8 is that silence renders nothing. */
   .st-mark--none { box-shadow: none; border: 1px dashed var(--border-decorative); }
 
-  .st-label { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: var(--text-primary); }
-  .st-body { margin: 0 0 12px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
-  .st-mono { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; line-height: 1.5; }
+  .st-label { margin: 0 0 6px; font-size: var(--t-body-sm); font-weight: 700; color: var(--text-primary); }
+  .st-body { margin: 0 0 12px; font-size: var(--t-caption); line-height: 1.5; color: var(--text-secondary); }
+  .st-mono { font-size: var(--t-micro); letter-spacing: .05em; text-transform: uppercase; line-height: 1.5; }
 
   @media (max-width: 999px) {
     .states-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -106,8 +106,6 @@ import { STATES, ISSUERS } from '../lib/claims';
     .states-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .st { padding: 14px; }
     .st-mark { width: 30px; height: 30px; margin-bottom: 10px; }
-    .st-label { font-size: 14px; }
-    .st-body { font-size: 13px; line-height: 1.45; margin-bottom: 9px; }
-    .st-mono { font-size: 10px; }
+    .st-body { line-height: 1.45; margin-bottom: 9px; }
   }
 </style>

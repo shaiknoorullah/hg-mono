@@ -16,8 +16,49 @@
      danger   — NOWHERE. Invariant #9: red reads as *haram*, a ruling we don't make.
    ───────────────────────────────────────────────────────────────────────────── */
 
+/* ── Type scale ─────────────────────────────────────────────────────────────
+ * TWO RAMPS, ONE SYSTEM — and every size on the site comes from here.
+ *
+ * Display (h1/h2/h3) climbs on the GOLDEN RATIO, φ ≈ 1.618. That is not
+ * decoration: the desktop scale was already sitting on it by accident
+ * (17 × φ³ = 71.98, which is where the 72px H1 came from), so formalising it
+ * kept the desktop page and fixed the phone.
+ *
+ * Text (lede/body/caption/micro) climbs on a MINOR THIRD, ≈ 1.2. Running text
+ * needs small, quiet steps; a φ jump between body and lede would make a
+ * paragraph look like a pull-quote. Mixing a wide display ramp with a narrow
+ * text ramp is the normal thing to do and it is why the two are separate here.
+ *
+ * Each step interpolates linearly between 390px and 1440px viewports, so there
+ * is ONE scale rather than a desktop scale plus a pile of mobile overrides —
+ * which is exactly how the ratios drifted apart last time: the phone ended up at
+ * H1/lede ≈ 2.0 with lede only 1px above body, while desktop ran at 3.8.
+ *
+ *              390px      1440px     step ratio
+ *   h1         44   →     72         φ
+ *   h2         27   →     44         φ
+ *   h3         17   →     27         φ
+ *   lede       16   →     19     ┐
+ *   body       15.5 →     17     ├   minor third
+ *   body-sm    14   →     15     │   (card and list copy)
+ *   caption    12.5 →     14     │
+ *   micro      11   →     12     ┘
+ *
+ *   h1 : lede  =  2.75 on a phone, 3.79 on desktop.
+ * ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --t-h1:      clamp(44px,   2.667vw + 33.60px, 72px);
+  --t-h2:      clamp(27px,   1.619vw + 20.69px, 44px);
+  --t-h3:      clamp(17px,   0.952vw + 13.29px, 27px);
+  --t-lede:    clamp(16px,   0.286vw + 14.89px, 19px);
+  --t-body:    clamp(15.5px, 0.143vw + 14.94px, 17px);
+  --t-body-sm: clamp(14px,   0.095vw + 13.63px, 15px);
+  --t-caption: clamp(12.5px, 0.143vw + 11.94px, 14px);
+  --t-micro:   clamp(11px,   0.095vw + 10.63px, 12px);
+}
+
 /* ── Frame ──────────────────────────────────────────────────────────────── */
-body { font-family: var(--font-display); font-size: 17px; line-height: 1.65; }
+body { font-family: var(--font-display); font-size: var(--t-body); line-height: 1.65; }
 
 /* One faint paper grain over the cream, so it reads as stock rather than as
    #FFFAEA. Fixed + pointer-events:none so it never intercepts a tap.
@@ -48,26 +89,26 @@ body > * { position: relative; z-index: 1; }
 /* Two weights on the spine: 800 and 400. Middleweight everywhere is the single
    loudest "default template" tell. 600 exists only on buttons, labels and nav. */
 .mkt-h1 {
-  margin: 0; font-size: clamp(40px, 6.6vw, 72px); font-weight: 800;
-  line-height: 1.02; letter-spacing: -.035em; text-wrap: balance;
+  margin: 0; font-size: var(--t-h1); font-weight: 800;
+  line-height: 1.03; letter-spacing: -.035em; text-wrap: balance;
 }
 .mkt-h2 {
-  margin: 0; font-size: clamp(30px, 4.2vw, 46px); font-weight: 800;
-  line-height: 1.08; letter-spacing: -.025em; text-wrap: balance; max-width: 16ch;
+  margin: 0; font-size: var(--t-h2); font-weight: 800;
+  line-height: 1.1; letter-spacing: -.025em; text-wrap: balance; max-width: 17ch;
 }
-.mkt-h3 { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.25; letter-spacing: -.015em; }
-.lede { margin: 0; font-size: clamp(18px, 2.1vw, 20px); font-weight: 400; line-height: 1.45; max-width: 56ch; }
-.body { margin: 0; font-size: 17px; line-height: 1.65; max-width: 62ch; color: var(--text-secondary); }
-.caption { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+.mkt-h3 { margin: 0; font-size: var(--t-h3); font-weight: 800; line-height: 1.25; letter-spacing: -.015em; }
+.lede { margin: 0; font-size: var(--t-lede); font-weight: 400; line-height: 1.5; max-width: 56ch; }
+.body { margin: 0; font-size: var(--t-body); line-height: 1.65; max-width: 62ch; color: var(--text-secondary); }
+.caption { margin: 0; font-size: var(--t-caption); line-height: 1.5; color: var(--text-secondary); }
 
 /* The eyebrow and the record line are the same device at two sizes: mono is
    reserved to evidence and structure, and never carries persuasion. */
 .eyebrow {
-  display: block; margin: 0 0 14px; font-family: var(--font-mono); font-size: 12px;
+  display: block; margin: 0 0 14px; font-family: var(--font-mono); font-size: var(--t-micro);
   font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary);
 }
 .mono {
-  font-family: var(--font-mono); font-size: 13px; font-weight: 400; letter-spacing: .04em;
+  font-family: var(--font-mono); font-size: var(--t-caption); font-weight: 400; letter-spacing: .04em;
   font-variant-numeric: var(--numeric-tabular); color: var(--text-tertiary);
 }
 .band .eyebrow, .band .mono { color: var(--color-accent-200); }
@@ -141,7 +182,7 @@ html.js [data-print].is-in { clip-path: inset(0); }
 }
 
 /* ── Forms ──────────────────────────────────────────────────────────────── */
-.field-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 7px; }
+.field-label { display: block; font-size: var(--t-caption); font-weight: 600; color: var(--text-primary); margin-bottom: 7px; }
 .field input {
   width: 100%; min-height: 52px; padding: 0 16px; font-family: var(--font-display); font-size: 16px;
   color: var(--text-primary); background: var(--surface-raised);
@@ -152,8 +193,8 @@ html.js [data-print].is-in { clip-path: inset(0); }
 .field input:focus { outline: none; border-color: var(--text-primary); box-shadow: 0 0 0 3px var(--state-hover-overlay); }
 .field input:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
-.form-help { margin: 8px 0 0; font-size: 13px; color: var(--text-tertiary); }
-.form-objection { margin: 0; font-size: 13px; color: var(--text-secondary); max-width: 46ch; }
+.form-help { margin: 8px 0 0; font-size: var(--t-caption); color: var(--text-tertiary); }
+.form-objection { margin: 0; font-size: var(--t-caption); color: var(--text-secondary); max-width: 46ch; }
 
 /* The consent box keeps a 20px visual mark but a 44px TARGET — the box is the
    single most consequential control on the page and it is also the smallest, so
@@ -177,25 +218,14 @@ html.js [data-print].is-in { clip-path: inset(0); }
  * Nothing here goes below 15.5px body or shrinks a tap target.
  * ─────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 639px) {
-  body { font-size: 16px; line-height: 1.6; }
-
-  .mkt-h1 { font-size: clamp(30px, 8.4vw, 36px); line-height: 1.06; letter-spacing: -.03em; }
-  .mkt-h2 { font-size: clamp(23px, 6.6vw, 30px); line-height: 1.12; max-width: 18ch; }
-  .mkt-h3 { font-size: 18px; }
-  .lede { font-size: 16.5px; line-height: 1.5; }
-  .body { font-size: 15.5px; line-height: 1.6; }
-  .caption { font-size: 13.5px; }
-  .eyebrow { font-size: 11px; margin-bottom: 10px; letter-spacing: .07em; }
-  .mono { font-size: 12px; }
-
   .section { padding-block: 48px; }
   .section--tight { padding-block: 38px; }
   .section--hinge { padding-block: 60px; }
 
-  .form-help, .form-objection { font-size: 12.5px; }
-  .wf-consent { font-size: 11.5px; line-height: 1.5; }
-  .field-label { font-size: 12.5px; }
-  .field input { min-height: 48px; font-size: 16px; } /* 16px min: anything less zooms iOS */
+  .form-objection { font-size: var(--t-caption); }
+  .wf-consent { font-size: var(--t-caption); line-height: 1.5; }
+  .field-label { font-size: var(--t-caption); }
+  .field input { min-height: 48px; font-size: 16px; } /* 16px floor: less and iOS zooms on focus */
   .btn--lg { min-height: 48px; font-size: 15px; }
 }
 
