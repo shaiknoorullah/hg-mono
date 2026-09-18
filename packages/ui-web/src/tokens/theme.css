@@ -75,6 +75,22 @@
   --text-mono-sm--line-height: var(--hg-text-mono-sm-line);
   --text-mono-sm--font-weight: var(--hg-text-mono-sm-weight);
   --text-mono-sm--letter-spacing: var(--hg-text-mono-sm-tracking);
+  --text-marketing-hero: var(--hg-text-marketing-hero-size);
+  --text-marketing-hero--line-height: var(--hg-text-marketing-hero-line);
+  --text-marketing-hero--font-weight: var(--hg-text-marketing-hero-weight);
+  --text-marketing-hero--letter-spacing: var(--hg-text-marketing-hero-tracking);
+  --text-marketing-hero-phone: var(--hg-text-marketing-hero-phone-size);
+  --text-marketing-hero-phone--line-height: var(--hg-text-marketing-hero-phone-line);
+  --text-marketing-hero-phone--font-weight: var(--hg-text-marketing-hero-phone-weight);
+  --text-marketing-hero-phone--letter-spacing: var(--hg-text-marketing-hero-phone-tracking);
+  --text-marketing-section: var(--hg-text-marketing-section-size);
+  --text-marketing-section--line-height: var(--hg-text-marketing-section-line);
+  --text-marketing-section--font-weight: var(--hg-text-marketing-section-weight);
+  --text-marketing-section--letter-spacing: var(--hg-text-marketing-section-tracking);
+  --text-marketing-section-phone: var(--hg-text-marketing-section-phone-size);
+  --text-marketing-section-phone--line-height: var(--hg-text-marketing-section-phone-line);
+  --text-marketing-section-phone--font-weight: var(--hg-text-marketing-section-phone-weight);
+  --text-marketing-section-phone--letter-spacing: var(--hg-text-marketing-section-phone-tracking);
 
   --radius-none: var(--hg-radius-none);
   --radius-xs: var(--hg-radius-xs);
@@ -102,6 +118,7 @@
   --ease-decelerate: var(--hg-ease-decelerate);
   --ease-accelerate: var(--hg-ease-accelerate);
   --ease-emphasized: var(--hg-ease-emphasized);
+  --ease-spring: var(--hg-ease-spring);
   --ease-linear: var(--hg-ease-linear);
 
   --breakpoint-sm: 640px;

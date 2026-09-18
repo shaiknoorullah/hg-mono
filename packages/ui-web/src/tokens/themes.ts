@@ -423,6 +423,76 @@ export const themes = {
             "lineHeightPx": 15,
             "letterSpacing": "0"
           }
+        },
+        "marketing": {
+          "hero": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 118,
+            "fontWeight": 650,
+            "lineHeight": 0.9,
+            "lineHeightPx": 106,
+            "letterSpacing": "-0.03em"
+          },
+          "heroPhone": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 72,
+            "fontWeight": 800,
+            "lineHeight": 0.85,
+            "lineHeightPx": 61,
+            "letterSpacing": "-0.045em"
+          },
+          "section": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 60,
+            "fontWeight": 700,
+            "lineHeight": 1,
+            "lineHeightPx": 60,
+            "letterSpacing": "-0.03em"
+          },
+          "sectionPhone": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 34,
+            "fontWeight": 700,
+            "lineHeight": 1.02,
+            "lineHeightPx": 35,
+            "letterSpacing": "-0.03em"
+          }
         }
       },
       "space": {
@@ -563,6 +633,12 @@ export const themes = {
             0,
             0,
             1.05
+          ],
+          "spring": [
+            0.34,
+            1.56,
+            0.64,
+            1
           ],
           "linear": [
             0,
@@ -1028,6 +1104,76 @@ export const themes = {
             "lineHeightPx": 15,
             "letterSpacing": "0"
           }
+        },
+        "marketing": {
+          "hero": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 118,
+            "fontWeight": 650,
+            "lineHeight": 0.9,
+            "lineHeightPx": 106,
+            "letterSpacing": "-0.03em"
+          },
+          "heroPhone": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 72,
+            "fontWeight": 800,
+            "lineHeight": 0.85,
+            "lineHeightPx": 61,
+            "letterSpacing": "-0.045em"
+          },
+          "section": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 60,
+            "fontWeight": 700,
+            "lineHeight": 1,
+            "lineHeightPx": 60,
+            "letterSpacing": "-0.03em"
+          },
+          "sectionPhone": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 34,
+            "fontWeight": 700,
+            "lineHeight": 1.02,
+            "lineHeightPx": 35,
+            "letterSpacing": "-0.03em"
+          }
         }
       },
       "space": {
@@ -1168,6 +1314,12 @@ export const themes = {
             0,
             0,
             1.05
+          ],
+          "spring": [
+            0.34,
+            1.56,
+            0.64,
+            1
           ],
           "linear": [
             0,
@@ -1635,6 +1787,76 @@ export const themes = {
             "lineHeightPx": 15,
             "letterSpacing": "0"
           }
+        },
+        "marketing": {
+          "hero": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 118,
+            "fontWeight": 650,
+            "lineHeight": 0.9,
+            "lineHeightPx": 106,
+            "letterSpacing": "-0.03em"
+          },
+          "heroPhone": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 72,
+            "fontWeight": 800,
+            "lineHeight": 0.85,
+            "lineHeightPx": 61,
+            "letterSpacing": "-0.045em"
+          },
+          "section": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 60,
+            "fontWeight": 700,
+            "lineHeight": 1,
+            "lineHeightPx": 60,
+            "letterSpacing": "-0.03em"
+          },
+          "sectionPhone": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 34,
+            "fontWeight": 700,
+            "lineHeight": 1.02,
+            "lineHeightPx": 35,
+            "letterSpacing": "-0.03em"
+          }
         }
       },
       "space": {
@@ -1775,6 +1997,12 @@ export const themes = {
             0,
             0,
             1.05
+          ],
+          "spring": [
+            0.34,
+            1.56,
+            0.64,
+            1
           ],
           "linear": [
             0,
@@ -2240,6 +2468,76 @@ export const themes = {
             "lineHeightPx": 15,
             "letterSpacing": "0"
           }
+        },
+        "marketing": {
+          "hero": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 118,
+            "fontWeight": 650,
+            "lineHeight": 0.9,
+            "lineHeightPx": 106,
+            "letterSpacing": "-0.03em"
+          },
+          "heroPhone": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 72,
+            "fontWeight": 800,
+            "lineHeight": 0.85,
+            "lineHeightPx": 61,
+            "letterSpacing": "-0.045em"
+          },
+          "section": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 60,
+            "fontWeight": 700,
+            "lineHeight": 1,
+            "lineHeightPx": 60,
+            "letterSpacing": "-0.03em"
+          },
+          "sectionPhone": {
+            "fontFamily": [
+              "Bricolage Grotesque",
+              "Plus Jakarta Sans",
+              "-apple-system",
+              "BlinkMacSystemFont",
+              "Segoe UI",
+              "Helvetica Neue",
+              "Arial",
+              "sans-serif"
+            ],
+            "fontSize": 34,
+            "fontWeight": 700,
+            "lineHeight": 1.02,
+            "lineHeightPx": 35,
+            "letterSpacing": "-0.03em"
+          }
         }
       },
       "space": {
@@ -2380,6 +2678,12 @@ export const themes = {
             0,
             0,
             1.05
+          ],
+          "spring": [
+            0.34,
+            1.56,
+            0.64,
+            1
           ],
           "linear": [
             0,

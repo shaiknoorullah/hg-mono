@@ -490,9 +490,9 @@ push(':root {');
 }
 push('');
 push('  /* Type */');
-push(`  --hg-font-ui: ${fontStack(font.family.ui)};`);
-push(`  --hg-font-rtl: ${fontStack(font.family.rtl)};`);
-push(`  --hg-font-mono: ${fontStack(font.family.mono)};`);
+// Every declared family gets a var — hardcoding three meant a new family (display)
+// silently produced var(--hg-font-display) with nothing behind it.
+for (const [k, stack] of Object.entries(font.family)) push(`  --hg-font-${kebab(k)}: ${fontStack(stack)};`);
 for (const [k, v] of Object.entries(font.weight)) push(`  --hg-weight-${kebab(k)}: ${v};`);
 push(`  --hg-numeric-tabular: ${font.numeric.tabular};`);
 for (const [name, t] of Object.entries(flattenTypography(typography))) {
@@ -501,9 +501,17 @@ for (const [name, t] of Object.entries(flattenTypography(typography))) {
   push(`  --hg-text-${name}-line-px: ${px(t.lineHeightPx)};`);
   push(`  --hg-text-${name}-weight: ${t.fontWeight};`);
   push(`  --hg-text-${name}-tracking: ${t.letterSpacing};`);
-  push(
-    `  --hg-text-${name}-family: ${t.fontFamily === font.family.mono ? 'var(--hg-font-mono)' : 'var(--hg-font-ui)'};`,
-  );
+  // Resolve by identity against every declared family. A silent fallback to --hg-font-ui
+  // is exactly the bug 01-foundations.md warns about, so an unknown family fails the build.
+  const sameStack = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const familyVar = Object.entries(font.family).find(([, stack]) => sameStack(stack, t.fontFamily))?.[0];
+  if (!familyVar) {
+    throw new Error(
+      `typography.${name}.fontFamily does not match any font.family.* entry — ` +
+        `add the family or fix the reference. Got: ${JSON.stringify(t.fontFamily)}`,
+    );
+  }
+  push(`  --hg-text-${name}-family: var(--hg-font-${kebab(familyVar)});`);
 }
 push('');
 push('  /* Space, radius, sizing */');
