@@ -191,6 +191,14 @@ locations claimed the whole restaurant was certified when none of them was. We r
 certificate's scope covers. If it doesn't cover everything sold, the restaurant doesn't go
 live.
 
+**Is the meat hand- or machine-slaughtered?**
+We record what the certificate says, and show it on the restaurant's page. If the certificate
+doesn't state a method, we show nothing rather than guess. We don't rank one method above the
+other — that's a question for your certifier, not for us.
+
+> 🚫 **BLOCKED — do not publish.** There is no `slaughter_method` field yet. Ships only after
+> schema → contract → admin capture → app display. See `docs/decisions/halal-slaughter-method.md`.
+
 **What do you do with my number?**
 One text when we launch in your city. That's it — it isn't sold, and it isn't used for anything
 else. You can unsubscribe from that message.
@@ -243,6 +251,9 @@ Every factual claim on the page, with its source. **Nothing goes on the page tha
 - Any comparison to a named competitor.
 - "Guaranteed halal", "100% halal", or any phrasing that makes the platform the authority rather
   than the certificate.
+- **Slaughter method (hand/machine).** Approved in principle, but the field does not exist yet.
+  The FAQ answer above is drafted and blocked — publishing it before the column ships would be an
+  overclaim on the most sensitive topic on the page.
 
 ---
 
