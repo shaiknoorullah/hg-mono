@@ -1,0 +1,30 @@
+# TLS override. Same shape as deploy/docker-compose.isolated.yml — an override
+# rather than a second copy of the file.
+#
+#   docker compose --env-file .env \
+#     -f docker-compose.yml -f docker-compose.tls.yml up -d
+#
+# PREREQUISITE: the product stack's Traefik has no HTTPS. deploy/docker-compose.yml
+# declares only `web` on :80 and the dashboard on :8080 — no `websecure`, no ACME
+# resolver. Add both there before using this file, or Traefik will advertise an
+# entrypoint that does not exist and the router will simply never match.
+# README.md §3 has the exact lines.
+services:
+  umami:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=hg-net
+      - traefik.http.routers.umami.rule=Host(`${UMAMI_HOST:?set UMAMI_HOST in .env}`)
+      - traefik.http.routers.umami.entrypoints=websecure
+      - traefik.http.routers.umami.tls=true
+      - traefik.http.routers.umami.tls.certresolver=${UMAMI_CERT_RESOLVER:-letsencrypt}
+      - traefik.http.services.umami.loadbalancer.server.port=3000
+
+      # Plain HTTP redirects rather than serving. The tracker is loaded from an
+      # HTTPS page, so an http:// tracker URL is blocked as mixed content and
+      # you would collect nothing while everything looked fine.
+      - traefik.http.routers.umami-http.rule=Host(`${UMAMI_HOST}`)
+      - traefik.http.routers.umami-http.entrypoints=web
+      - traefik.http.routers.umami-http.middlewares=umami-https@docker
+      - traefik.http.middlewares.umami-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.umami-https.redirectscheme.permanent=true
