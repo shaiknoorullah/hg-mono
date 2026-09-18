@@ -25,3 +25,4 @@ apps/gallery-native/dist/
 !.claude/skills/
 .expo/
 *.tsbuildinfo
+.neon
