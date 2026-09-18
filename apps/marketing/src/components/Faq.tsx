@@ -1,11 +1,15 @@
+'use client';
+
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { type AudienceTrack } from '@/lib/audiences';
 
 /**
- * Native <details>, not a JavaScript accordion.
+ * shadcn's Accordion — Radix underneath, so the disclosure semantics, the
+ * roving focus, the aria-expanded/aria-controls pairing and the height
+ * animation are the component's job rather than mine.
  *
- * It works before hydration, it is keyboard-operable and screen-reader-correct
- * for free, and the browser's find-in-page can open a closed answer — which a
- * div-based accordion silently cannot. The only thing added is the marker.
+ * `type="multiple"` on purpose: these are independent objections, and answering
+ * one should not close the one above it. `collapsible` is implied by multiple.
  */
 export function Faq({ track }: { track: AudienceTrack }) {
   return (
@@ -15,29 +19,18 @@ export function Faq({ track }: { track: AudienceTrack }) {
           Questions people ask.
         </h2>
 
-        <div className="mt-6 md:mt-0">
+        <Accordion type="multiple" className="mt-6 md:mt-0">
           {track.faq.map(({ q, a }) => (
-            <details key={q} className="group border-b border-line-decorative">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-body-lg leading-snug font-semibold text-fg-primary [&::-webkit-details-marker]:hidden">
+            <AccordionItem key={q} value={q} className="border-line-decorative">
+              <AccordionTrigger className="py-4 text-body-lg leading-snug font-semibold text-fg-primary hover:no-underline">
                 {q}
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                  className="mt-1 block flex-none text-mk-ink transition-transform duration-[180ms] ease-[var(--hg-ease-spring)] group-open:rotate-45 motion-reduce:transition-none"
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </summary>
-              <p className="mt-0 mb-4 max-w-[58ch] text-body-md leading-relaxed text-mk-ink">{a}</p>
-            </details>
+              </AccordionTrigger>
+              <AccordionContent className="max-w-[58ch] pb-4 text-body-md leading-relaxed text-mk-ink">
+                {a}
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       </div>
     </section>
   );

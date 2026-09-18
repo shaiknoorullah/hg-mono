@@ -1,0 +1,78 @@
+/* ---------------------------------------------------------------------------
+ * shadcn/ui, driven by the Halal Goes design system.
+ *
+ * shadcn components are styled through a fixed set of CSS variable names —
+ * --background, --primary, --border and so on. A default install defines those
+ * as its own palette, which would put a SECOND set of colours in the app beside
+ * the --hg-* tokens and let the two drift.
+ *
+ * So none of them hold a colour here. Every one is an alias onto the token that
+ * already owns that role. Two consequences worth stating:
+ *
+ *   - Theming is inherited, not duplicated. Every --hg-* below already flips
+ *     light/dark, so the shadcn components flip with the rest of the site and
+ *     there is no second dark palette to maintain.
+ *   - The contrast work carries over. --primary-foreground is
+ *     action.primary.fg, which is the #0F241C ink at 4.63:1 rather than the
+ *     white that measured 3.52:1 — so a shadcn Button inherits that fix instead
+ *     of reintroducing the bug.
+ *
+ * Radius is deliberately absent: the components use `rounded-md` and
+ * `rounded-xl`, which already resolve to the product's radius scale through
+ * @hg/ui-web's theme. Redefining --radius here would fork that scale.
+ * ------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --background: var(--hg-surface-base);
+  --foreground: var(--hg-text-primary);
+
+  --card: var(--hg-surface-raised);
+  --card-foreground: var(--hg-text-primary);
+  --popover: var(--hg-surface-raised);
+  --popover-foreground: var(--hg-text-primary);
+
+  /* The CTA orange, with the dark ink that passes AA on it. */
+  --primary: var(--hg-action-primary-bg);
+  --primary-foreground: var(--hg-action-primary-fg);
+
+  /* Forest, the second action colour. Never green-as-success: solid green is
+     reserved to color.halal.* (invariant 10 / lint L-4), and accent.600 is a
+     brand colour rather than a status one. */
+  --secondary: var(--hg-action-secondary-bg);
+  --secondary-foreground: var(--hg-action-secondary-fg);
+
+  --muted: var(--hg-surface-sunken);
+  /* The marketing ink — the one role the product map has no equivalent for,
+     defined with light and dark values in marketing-tokens.css. */
+  --muted-foreground: var(--hg-mk-ink);
+
+  --accent: var(--hg-surface-sunken);
+  --accent-foreground: var(--hg-text-primary);
+
+  --destructive: var(--hg-feedback-danger-solid);
+
+  --border: var(--hg-border-decorative);
+  --input: var(--hg-control-border);
+  --ring: var(--hg-focus-ring);
+}

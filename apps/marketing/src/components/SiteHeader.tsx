@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AudienceSwitch } from '@/components/AudienceSwitch';
 import { SwapLabel } from '@/components/SwapLabel';
+import { Button } from '@/components/ui/button';
 import { TRACKS, type Audience } from '@/lib/audiences';
 
 /**
@@ -24,13 +25,16 @@ export function SiteHeader({ current }: { current: Audience }) {
       <AudienceSwitch current={current} />
 
       {/* Desktop only: on phones this would crowd the wordmark, and the form is
-          a scroll away rather than a page away. */}
-      <Link
-        href="#waitlist"
-        className="group hidden h-12 flex-none items-center rounded-md bg-action-primary-bg px-[22px] text-label-lg font-bold text-action-primary-fg no-underline transition-[transform,background-color] duration-[180ms] ease-[var(--hg-ease-spring)] hover:-translate-y-0.5 hover:bg-action-primary-bg-pressed motion-reduce:hover:translate-y-0 md:inline-flex"
+          a scroll away rather than a page away. asChild keeps it a real <a> —
+          a button that navigates is not a button. */}
+      <Button
+        asChild
+        className="group hidden h-12 flex-none rounded-md px-[22px] text-label-lg font-bold no-underline transition-[transform,background-color] duration-[180ms] ease-[var(--hg-ease-spring)] hover:-translate-y-0.5 hover:bg-action-primary-bg-pressed motion-reduce:hover:translate-y-0 md:inline-flex"
       >
-        <SwapLabel>{TRACKS[current].headerCta}</SwapLabel>
-      </Link>
+        <Link href="#waitlist">
+          <SwapLabel>{TRACKS[current].headerCta}</SwapLabel>
+        </Link>
+      </Button>
     </header>
   );
 }

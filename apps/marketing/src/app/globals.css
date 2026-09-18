@@ -12,6 +12,10 @@
    See the header of that file for why it is not in docs/design/tokens.json. */
 @import '../styles/marketing-tokens.css';
 
+/* shadcn/ui's variable names, aliased onto the tokens above so the components
+   are driven by the design system instead of shipping a second palette. */
+@import '../styles/shadcn-bridge.css';
+
 /* Bridge next/font to the tokens.
    next/font self-hosts each file under a generated family name, exposed as
    --font-*-file. The token stacks (--hg-font-*) name the family literally and
