@@ -1,5 +1,9 @@
 # Self-hosting Umami on the Contabo VPS
 
+> **This is the LATER path.** Today Umami runs on Vercel against Neon — see
+> **[VERCEL.md](./VERCEL.md)**, which also covers getting from there to here
+> without losing history. Nothing below is needed until the VPS exists.
+
 Everything here is additive: a new directory, its own compose project, its own
 database and volume. It edits nothing in `deploy/docker-compose.yml`.
 
