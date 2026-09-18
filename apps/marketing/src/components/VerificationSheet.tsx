@@ -34,7 +34,7 @@ const ISSUERS = [
 
 /* Document furniture: mono, tracked, small. Used for every label on the sheet so
    the form reads as a form rather than as a styled marketing list. */
-const FURNITURE = 'font-mono text-[11px] leading-none font-medium tracking-[0.06em] text-accent-600 uppercase';
+const FURNITURE = 'font-mono text-[11px] leading-none font-medium tracking-[0.06em] text-mk-ink uppercase';
 const SCHEDULE_HEAD = 'm-0 font-mono text-[12px] leading-none font-semibold tracking-[0.1em] text-fg-primary uppercase';
 const RULE = 'border-fg-primary';
 
@@ -59,7 +59,7 @@ export function VerificationSheet() {
     <section id="seven-checks" className="mt-16 scroll-mt-6 md:mt-24">
       <div className="md:grid md:grid-cols-[1fr_440px] md:items-end md:gap-16">
         <div>
-          <p className="m-0 inline-block rounded-full bg-feedback-success-tint px-3 py-2 text-marketing-eyebrow-phone text-accent-600 uppercase md:px-3.5 md:py-2.5 md:text-marketing-eyebrow">
+          <p className="m-0 inline-block rounded-full bg-feedback-success-tint px-3 py-2 text-marketing-eyebrow-phone text-mk-ink uppercase md:px-3.5 md:py-2.5 md:text-marketing-eyebrow">
             What verified means
           </p>
           <h2 className="mt-4 mb-0 max-w-[700px] font-display text-marketing-section-phone text-fg-primary md:mt-[18px] md:text-marketing-section">
@@ -68,7 +68,7 @@ export function VerificationSheet() {
             not a promise.
           </h2>
         </div>
-        <p className="mt-4 mb-0 text-body-lg leading-relaxed text-accent-600 md:mt-0 md:mb-1.5 md:text-[19px]">
+        <p className="mt-4 mb-0 text-body-lg leading-relaxed text-mk-ink md:mt-0 md:mb-1.5 md:text-[19px]">
           Before a restaurant can appear on Halal Goes, a reviewer reads its halal certificate and records
           seven checks against it. This is the sheet they fill in. Nothing on it is inferred, scanned or
           auto-approved.
@@ -78,7 +78,7 @@ export function VerificationSheet() {
       {/* The hinge: the first monospace on the page, on the cream, just above the
           sheet — so the shift from marketing voice to document voice is visible
           before the document arrives. */}
-      <p className="mt-6 mb-0 flex items-center gap-3 font-mono text-[10px] leading-tight font-medium tracking-[0.08em] text-accent-600 uppercase md:mt-[30px] md:text-[11px] md:leading-none">
+      <p className="mt-6 mb-0 flex items-center gap-3 font-mono text-[10px] leading-tight font-medium tracking-[0.08em] text-mk-ink uppercase md:mt-[30px] md:text-[11px] md:leading-none">
         <span aria-hidden="true" className="hidden h-px w-7 flex-none bg-fg-primary md:block" />
         Exhibit A — the verification sheet, as a reviewer sees it · specimen, no restaurant named
       </p>
@@ -93,7 +93,7 @@ export function VerificationSheet() {
           <span className="text-[11px] leading-none font-semibold tracking-[0.1em] text-fg-primary uppercase md:text-[12.5px]">
             Form HG-7 — certificate of halal verification
           </span>
-          <span className="text-[10px] leading-none font-medium tracking-[0.04em] text-accent-600 uppercase md:text-[11.5px]">
+          <span className="text-[10px] leading-none font-medium tracking-[0.04em] text-mk-ink uppercase md:text-[11.5px]">
             Specimen · rev. 1 · checklist v1 · Ontario
           </span>
         </div>
@@ -114,13 +114,13 @@ export function VerificationSheet() {
                     i === SCHEDULE_A.length - 1 ? RULE : 'border-line-decorative'
                   }`}
                 >
-                  <span className="w-7 flex-none font-mono text-[12px] font-medium text-accent-600 tabular-nums">
+                  <span className="w-7 flex-none font-mono text-[12px] font-medium text-mk-ink tabular-nums">
                     {n}
                   </span>
                   <span className="min-w-0 flex-1 text-body-md leading-snug font-medium md:text-[17px] md:leading-tight">
                     {text}
                   </span>
-                  <span className="hidden w-[184px] flex-none font-mono text-[10.5px] leading-none font-medium tracking-[0.04em] text-accent-600 uppercase md:block">
+                  <span className="hidden w-[184px] flex-none font-mono text-[10.5px] leading-none font-medium tracking-[0.04em] text-mk-ink uppercase md:block">
                     {by}
                   </span>
                   <PassMark />
@@ -128,7 +128,7 @@ export function VerificationSheet() {
               ))}
             </ol>
 
-            <p className="mt-2 mb-0 font-mono text-[10.5px] leading-relaxed tracking-[0.03em] text-accent-600">
+            <p className="mt-2 mb-0 font-mono text-[10.5px] leading-relaxed tracking-[0.03em] text-mk-ink">
               05 and 07 are computed by the server. A reviewer cannot mark them passed against the
               computation.
             </p>
@@ -146,7 +146,7 @@ export function VerificationSheet() {
                   aria-label={sub ? `${abbr} ${sub}` : abbr}
                   className="flex size-[84px] flex-none items-center justify-center rounded-full border border-fg-primary"
                 >
-                  <div className="flex size-[68px] flex-col items-center justify-center rounded-full border border-dashed border-halal-certified-ring font-mono leading-none text-fg-primary">
+                  <div className="flex size-[68px] flex-col items-center justify-center rounded-full border border-dashed border-mk-seal-ring font-mono leading-none text-fg-primary">
                     <span className={`font-semibold ${size}`}>{abbr}</span>
                     {sub ? (
                       <span className="mt-1 text-[8px] font-medium tracking-[0.14em] uppercase">{sub}</span>
@@ -154,7 +154,7 @@ export function VerificationSheet() {
                   </div>
                 </div>
               ))}
-              <p className="m-0 min-w-[240px] flex-1 text-body-sm leading-relaxed text-accent-600 md:ms-2.5 md:text-[14.5px]">
+              <p className="m-0 min-w-[240px] flex-1 text-body-sm leading-relaxed text-mk-ink md:ms-2.5 md:text-[14.5px]">
                 A certificate from any <strong className="font-semibold text-fg-primary">one</strong> of these
                 satisfies check 02. The registry is seeded, not closed — a body can be added as it is
                 accepted — but the issuer is always chosen from the registry, never typed in.
@@ -162,7 +162,7 @@ export function VerificationSheet() {
             </div>
 
             <div
-              className={`mt-6 flex justify-between gap-4 border-t pt-3 font-mono text-[10px] leading-none font-medium tracking-[0.05em] text-accent-600 uppercase md:mt-auto md:text-[10.5px] ${RULE}`}
+              className={`mt-6 flex justify-between gap-4 border-t pt-3 font-mono text-[10px] leading-none font-medium tracking-[0.05em] text-mk-ink uppercase md:mt-auto md:text-[10.5px] ${RULE}`}
             >
               <span>Rejection — any one fail, with a reason code</span>
               <span className="hidden md:block">Page 1 of 1</span>
@@ -196,7 +196,7 @@ export function VerificationSheet() {
             <div className="mt-3.5 flex items-center gap-3">
               {/* Slate, never red. Invariant 9: red reads as haram, which is a
                   religious ruling the platform does not make. */}
-              <span className="inline-flex h-9 flex-none items-center gap-2 rounded-sm bg-halal-expired-seal ps-2.5 pe-3 text-label-lg leading-none font-semibold whitespace-nowrap text-halal-expired-on-seal">
+              <span className="inline-flex h-9 flex-none items-center gap-2 rounded-sm bg-mk-expired-bg ps-2.5 pe-3 text-label-lg leading-none font-semibold whitespace-nowrap text-mk-expired-fg">
                 <svg
                   width="18"
                   height="18"
@@ -212,7 +212,7 @@ export function VerificationSheet() {
                 </svg>
                 Certification expired
               </span>
-              <span className="font-mono text-[10.5px] leading-relaxed font-medium tracking-[0.05em] text-accent-600 uppercase">
+              <span className="font-mono text-[10.5px] leading-relaxed font-medium tracking-[0.05em] text-mk-ink uppercase">
                 State: expired
                 <br />
                 Not orderable
@@ -227,7 +227,7 @@ export function VerificationSheet() {
               at all. We don’t guess.
             </p>
 
-            <p className="mt-5 mb-0 border-t border-line-decorative pt-3 font-mono text-[10.5px] leading-relaxed tracking-[0.03em] text-accent-600 md:mt-auto">
+            <p className="mt-5 mb-0 border-t border-line-decorative pt-3 font-mono text-[10.5px] leading-relaxed tracking-[0.03em] text-mk-ink md:mt-auto">
               APPROVED → EXPIRED at expires_on, end of day, America/Toronto. Red is never used for a halal
               state: red reads as a religious ruling, and this platform does not make one.
             </p>
@@ -237,7 +237,7 @@ export function VerificationSheet() {
 
       {/* Back to the warm voice: soft radius, sage, display face. */}
       <div className="mt-6 box-border flex flex-col gap-3 rounded-xl bg-feedback-success-tint px-5 py-3.5 md:flex-row md:items-center md:justify-between md:gap-8 md:ps-6.5">
-        <p className="m-0 max-w-[900px] text-body-md leading-snug text-accent-600 md:text-[17px]">
+        <p className="m-0 max-w-[900px] text-body-md leading-snug text-mk-ink md:text-[17px]">
           Every restaurant you can order from has a sheet like this on file. Issuing body, certificate
           number, dates and the day we verified it are on the restaurant’s page, with the certificate one
           tap away.

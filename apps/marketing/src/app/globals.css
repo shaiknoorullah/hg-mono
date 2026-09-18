@@ -27,12 +27,9 @@
 }
 
 html {
-  /* Tells the browser to render native UI — form controls, scrollbars, the
-     caret, autofill — in light. Without it a dark-mode device styles the input
-     and the checkbox dark inside a cream card, which is how you get a page that
-     is *mostly* right and still looks broken. Pairs with data-theme="light" on
-     <html>; see the comment there. */
-  color-scheme: light;
+  /* Both, now that the site has a real dark palette: native UI — form controls,
+     scrollbars, the caret, autofill — follows the same scheme as the page. */
+  color-scheme: light dark;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -32,7 +32,7 @@
   --dark1: var(--hg-surface-chrome);
   --dark2: var(--hg-color-accent-700);
   --dark3: var(--hg-color-accent-500);
-  --light1: var(--hg-surface-base);
+  --light1: var(--hg-color-neutral-50);
   --light2: var(--hg-border-decorative);
   --light3: var(--hg-color-neutral-300);
   --white2: var(--hg-surface-raised);
@@ -74,14 +74,14 @@
 .klaro .cookie-notice .cm-btn.cm-btn-danger,
 .klaro .cookie-modal .cm-btn.cm-btn-danger {
   background: transparent;
-  border: 1.5px solid var(--hg-surface-base);
-  color: var(--hg-surface-base); /* 11.7:1 on surface.chrome */
+  border: 1.5px solid var(--hg-color-neutral-50);
+  color: var(--hg-color-neutral-50); /* 11.7:1 on surface.chrome */
 }
 
 .klaro .cookie-notice .cm-btn.cm-btn-danger:hover,
 .klaro .cookie-modal .cm-btn.cm-btn-danger:hover {
   background: var(--hg-color-accent-700);
-  color: var(--hg-surface-base);
+  color: var(--hg-color-neutral-50);
 }
 
 /* "Choose" measured 3.48:1 in brand orange on the dark card, and was 21px tall
@@ -91,7 +91,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: var(--hg-surface-base);
+  color: var(--hg-color-neutral-50);
   text-decoration: underline;
   text-underline-offset: 4px;
   text-decoration-thickness: 1.5px;

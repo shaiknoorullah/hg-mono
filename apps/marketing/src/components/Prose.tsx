@@ -12,7 +12,7 @@ export function Prose({ children }: { children: React.ReactNode }) {
       className="
         max-w-[68ch] text-body-lg leading-relaxed text-fg-primary
         [&_a]:text-fg-link [&_a]:underline [&_a]:underline-offset-4
-        [&_blockquote]:my-6 [&_blockquote]:border-s-2 [&_blockquote]:border-line-brand [&_blockquote]:ps-5 [&_blockquote]:text-accent-600
+        [&_blockquote]:my-6 [&_blockquote]:border-s-2 [&_blockquote]:border-line-brand [&_blockquote]:ps-5 [&_blockquote]:text-mk-ink
         [&_code]:rounded-xs [&_code]:bg-surface-sunken [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-mono-sm
         [&_h2]:mt-10 [&_h2]:mb-3 [&_h2]:font-display [&_h2]:text-heading-xl [&_h2]:text-fg-primary
         [&_h3]:mt-8 [&_h3]:mb-2 [&_h3]:font-display [&_h3]:text-heading-lg [&_h3]:text-fg-primary

@@ -50,7 +50,7 @@ export default async function PostPage({ params }: Params) {
       <article className="mt-8 md:mt-12">
         <Link
           href="/blog"
-          className="inline-flex min-h-11 items-center font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-accent-600 uppercase"
+          className="inline-flex min-h-11 items-center font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-mk-ink uppercase"
         >
           ← Writing
         </Link>
@@ -58,12 +58,12 @@ export default async function PostPage({ params }: Params) {
         <h1 className="mt-4 mb-0 max-w-[20ch] font-display text-marketing-section-phone text-fg-primary md:text-marketing-section">
           {post.title}
         </h1>
-        <p className="mt-4 mb-0 max-w-[60ch] text-body-lg leading-relaxed text-accent-600 md:text-[19px]">
+        <p className="mt-4 mb-0 max-w-[60ch] text-body-lg leading-relaxed text-mk-ink md:text-[19px]">
           {post.summary}
         </p>
         <time
           dateTime={post.publishedAt ?? undefined}
-          className="mt-5 block font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-accent-600 uppercase"
+          className="mt-5 block font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-mk-ink uppercase"
         >
           {post.publishedAt}
         </time>
@@ -76,10 +76,10 @@ export default async function PostPage({ params }: Params) {
             post has any. Everything factual on this site is attributable. */}
         {sources.length > 0 ? (
           <section className="mt-12 max-w-[68ch] border-t border-line-decorative pt-6">
-            <h2 className="m-0 font-mono text-[11px] leading-none font-semibold tracking-[0.1em] text-accent-600 uppercase">
+            <h2 className="m-0 font-mono text-[11px] leading-none font-semibold tracking-[0.1em] text-mk-ink uppercase">
               Sources
             </h2>
-            <ol className="mt-4 m-0 list-decimal ps-5 text-body-sm leading-relaxed text-accent-600">
+            <ol className="mt-4 m-0 list-decimal ps-5 text-body-sm leading-relaxed text-mk-ink">
               {sources.map((source) => (
                 <li key={source.url} className="my-1.5">
                   <a href={source.url} className="text-fg-link underline underline-offset-4">

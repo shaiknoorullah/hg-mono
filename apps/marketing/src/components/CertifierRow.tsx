@@ -23,13 +23,13 @@ export function CertifierRow({ className = '' }: { className?: string }) {
       <div className="flex h-11 items-center justify-between gap-3 md:justify-start md:gap-7">
         <h2
           id="certifiers-heading"
-          className="flex-none text-[10px] leading-none font-semibold tracking-[0.16em] whitespace-nowrap text-accent-600 uppercase md:text-marketing-eyebrow"
+          className="flex-none text-[10px] leading-none font-semibold tracking-[0.16em] whitespace-nowrap text-mk-ink uppercase md:text-marketing-eyebrow"
         >
           Certificates we recognise
         </h2>
         <Link
           href="#seven-checks"
-          className="inline-flex min-h-11 flex-none items-center gap-1.5 py-2.5 text-[13px] leading-none font-bold whitespace-nowrap text-accent-600 underline decoration-[var(--hg-color-brand-500)] decoration-2 underline-offset-4 md:text-label-lg"
+          className="inline-flex min-h-11 flex-none items-center gap-1.5 py-2.5 text-[13px] leading-none font-bold whitespace-nowrap text-mk-ink underline decoration-[var(--hg-mk-accent)] decoration-2 underline-offset-4 md:text-label-lg"
         >
           The seven checks
           <svg
@@ -37,7 +37,7 @@ export function CertifierRow({ className = '' }: { className?: string }) {
             height="14"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--hg-color-brand-500)"
+            stroke="var(--hg-mk-accent)"
             strokeWidth="2.4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -53,7 +53,7 @@ export function CertifierRow({ className = '' }: { className?: string }) {
         {CERTIFIERS.map(({ abbr, sub, size }) => (
           <div
             key={abbr}
-            className="flex size-14 flex-none flex-col items-center justify-center rounded-full border-[1.5px] border-accent-600 leading-none text-accent-600 md:size-18"
+            className="flex size-14 flex-none flex-col items-center justify-center rounded-full border-[1.5px] border-mk-ink leading-none text-mk-ink md:size-18"
           >
             <span className={`font-extrabold tracking-[-0.01em] ${size}`}>{abbr}</span>
             {sub ? (
@@ -63,7 +63,7 @@ export function CertifierRow({ className = '' }: { className?: string }) {
             ) : null}
           </div>
         ))}
-        <p className="m-0 ms-1.5 max-w-[250px] text-[12px] leading-snug font-medium text-accent-600 md:ms-2.5 md:text-body-sm">
+        <p className="m-0 ms-1.5 max-w-[250px] text-[12px] leading-snug font-medium text-mk-ink md:ms-2.5 md:text-body-sm">
           Only these three bodies, and only while the certificate is in date.
         </p>
       </div>

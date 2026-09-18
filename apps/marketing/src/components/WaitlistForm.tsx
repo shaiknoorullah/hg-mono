@@ -36,7 +36,7 @@ export function WaitlistForm({ track }: { track: AudienceTrack }) {
     return (
       <div className={card}>
         <p className="m-0 font-display text-heading-xl text-fg-primary">You’re on the list.</p>
-        <p className="mt-2 mb-0 text-body-md text-accent-600">
+        <p className="mt-2 mb-0 text-body-md text-mk-ink">
           {track.id === 'restaurant'
             ? 'We’ll email you when we open listings in your city. Nothing before then.'
             : 'We’ll text you once, the day we launch in your city. Nothing before then.'}
@@ -99,7 +99,7 @@ export function WaitlistForm({ track }: { track: AudienceTrack }) {
           aria-describedby={message ? messageId : undefined}
           className="mt-0.5 size-6 flex-none accent-[var(--hg-action-primary-bg)]"
         />
-        <label htmlFor={consentId} className="text-body-sm leading-relaxed text-accent-600">
+        <label htmlFor={consentId} className="text-body-sm leading-relaxed text-mk-ink">
           {track.form.consent}
         </label>
       </div>
@@ -109,7 +109,7 @@ export function WaitlistForm({ track }: { track: AudienceTrack }) {
         role="status"
         aria-live="polite"
         className={`mt-3 mb-0 text-body-sm leading-relaxed ${
-          message ? 'text-feedback-danger-text' : 'text-accent-600'
+          message ? 'text-feedback-danger-text' : 'text-mk-ink'
         }`}
       >
         {message ?? track.form.reassurance}

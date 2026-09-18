@@ -28,7 +28,7 @@ export function Hero({ track, launch }: { track: AudienceTrack; launch: LaunchSt
             no overlap at all, so the plate and seal become one element. */}
         <div
           aria-hidden="true"
-          className="absolute -end-1 top-1 z-0 size-34 rounded-full bg-halal-certified-tint md:hidden"
+          className="absolute -end-1 top-1 z-0 size-34 rounded-full bg-mk-seal-plate md:hidden"
         />
 
         <h1 className="relative z-10 m-0 font-display text-marketing-hero-phone text-fg-primary md:w-max md:flex-none md:text-marketing-hero">
@@ -39,14 +39,14 @@ export function Hero({ track, launch }: { track: AudienceTrack; launch: LaunchSt
           ))}
         </h1>
 
-        <div className="absolute end-1 top-3 z-20 md:static md:z-auto md:grid md:size-74 md:flex-none md:place-items-center md:rounded-full md:bg-halal-certified-tint">
+        <div className="absolute end-1 top-3 z-20 md:static md:z-auto md:grid md:size-74 md:flex-none md:place-items-center md:rounded-full md:bg-mk-seal-plate">
           <Seal size={120} className="md:hidden" />
           <Seal size={240} className="hidden md:block" />
         </div>
       </div>
 
       <div className="mt-5 md:mt-7 md:grid md:grid-cols-[1fr_440px] md:grid-rows-[auto_1fr] md:gap-x-12">
-        <p className="m-0 max-w-[560px] font-display text-marketing-lede-phone text-accent-600 md:col-start-1 md:row-start-1 md:text-marketing-lede">
+        <p className="m-0 max-w-[560px] font-display text-marketing-lede-phone text-mk-ink md:col-start-1 md:row-start-1 md:text-marketing-lede">
           {track.lede}
         </p>
 

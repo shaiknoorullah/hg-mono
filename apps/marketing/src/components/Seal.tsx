@@ -31,9 +31,9 @@ export function Seal({ size = 240, className }: { size?: number; className?: str
       // hidden md:block pair that picks the phone or desktop size.
       className={`block ${className ?? ''}`}
     >
-      <circle cx="120" cy="120" r="117" fill="none" stroke="var(--hg-color-halal-certified-ring)" strokeWidth="3" />
-      <circle cx="120" cy="120" r="106" fill="none" stroke="var(--hg-color-halal-certified-ring)" strokeWidth="1" />
-      <circle cx="120" cy="120" r="92" fill="var(--hg-color-halal-certified-seal)" />
+      <circle cx="120" cy="120" r="117" fill="none" stroke="var(--hg-mk-seal-ring)" strokeWidth="3" />
+      <circle cx="120" cy="120" r="106" fill="none" stroke="var(--hg-mk-seal-ring)" strokeWidth="1" />
+      <circle cx="120" cy="120" r="92" fill="var(--hg-mk-seal)" />
 
       <defs>
         <path id={`${uid}-top`} d="M44,120 a76,76 0 0,1 152,0" />
@@ -42,7 +42,7 @@ export function Seal({ size = 240, className }: { size?: number; className?: str
 
       {/* aria-hidden: the words are already in the svg's aria-label, and a
           textPath read letter-by-letter is worse than silence. */}
-      <g aria-hidden="true" fill="var(--hg-color-halal-certified-on-seal)">
+      <g aria-hidden="true" fill="var(--hg-mk-on-seal)">
         <text
           fontFamily="var(--font-display)"
           fontSize="12"
@@ -75,15 +75,15 @@ export function Seal({ size = 240, className }: { size?: number; className?: str
       <g aria-hidden="true" transform="translate(78 78) scale(3.5)">
         <path
           d={SHIELD_D}
-          fill="var(--hg-color-halal-certified-on-seal)"
-          stroke="var(--hg-color-halal-certified-on-seal)"
+          fill="var(--hg-mk-on-seal)"
+          stroke="var(--hg-mk-on-seal)"
           strokeWidth="0.4"
           strokeLinejoin="round"
         />
         <path
           d="M8.4 12.1l2.5 2.5 4.7-4.9"
           fill="none"
-          stroke="var(--hg-color-halal-certified-seal)"
+          stroke="var(--hg-mk-seal)"
           strokeWidth="1.9"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -116,13 +116,13 @@ export function StampSeal({ size = 168, className }: { size?: number; className?
       aria-label="Halal Goes verified seal — issued only when all seven checks pass"
       className={`block ${className ?? ''}`}
     >
-      <circle cx="120" cy="120" r="116" fill="none" stroke="var(--hg-color-halal-certified-ring)" strokeWidth="2.5" />
-      <circle cx="120" cy="120" r="106" fill="none" stroke="var(--hg-color-halal-certified-seal)" strokeWidth="3" />
+      <circle cx="120" cy="120" r="116" fill="none" stroke="var(--hg-mk-seal-ring)" strokeWidth="2.5" />
+      <circle cx="120" cy="120" r="106" fill="none" stroke="var(--hg-mk-seal)" strokeWidth="3" />
       <defs>
         <path id={`${uid}-top`} d="M34,120 a86,86 0 0,1 172,0" />
         <path id={`${uid}-bot`} d="M26,120 a94,94 0 0,0 188,0" />
       </defs>
-      <g aria-hidden="true" fill="var(--hg-color-halal-certified-seal)">
+      <g aria-hidden="true" fill="var(--hg-mk-seal)">
         <text fontFamily="var(--font-mono)" fontSize="13.5" fontWeight="600" letterSpacing="2.4" textAnchor="middle">
           <textPath href={`#${uid}-top`} startOffset="50%">
             HALAL GOES · VERIFIED
@@ -141,23 +141,23 @@ export function StampSeal({ size = 168, className }: { size?: number; className?
         cy="120"
         r="72"
         fill="none"
-        stroke="var(--hg-color-halal-certified-seal)"
+        stroke="var(--hg-mk-seal)"
         strokeWidth="1.25"
         strokeDasharray="3 3"
       />
-      <circle cx="120" cy="120" r="58" fill="var(--hg-color-halal-certified-seal)" />
+      <circle cx="120" cy="120" r="58" fill="var(--hg-mk-seal)" />
       <g aria-hidden="true" transform="translate(84 84) scale(3)">
         <path
           d={SHIELD_D}
-          fill="var(--hg-color-halal-certified-on-seal)"
-          stroke="var(--hg-color-halal-certified-on-seal)"
+          fill="var(--hg-mk-on-seal)"
+          stroke="var(--hg-mk-on-seal)"
           strokeWidth="0.4"
           strokeLinejoin="round"
         />
         <path
           d="M8.4 12.1l2.5 2.5 4.7-4.9"
           fill="none"
-          stroke="var(--hg-color-halal-certified-seal)"
+          stroke="var(--hg-mk-seal)"
           strokeWidth="1.9"
           strokeLinecap="round"
           strokeLinejoin="round"
