@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+
+  "installCommand": "pnpm install --frozen-lockfile --filter '@hg/marketing...'",
+
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../packages/ui-web ../../pnpm-lock.yaml"
+}
