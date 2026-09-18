@@ -209,15 +209,22 @@ Requested [confirmed]. It is buildable, but it needs a real date, and there is a
 the site's own rule is **ethical urgency only, no fake scarcity** (`landing-page-plan.md`), and launch
 is currently blocked on client-side items (A2P 10DLC, Stripe live keys, hosting) with no committed date.
 
-A countdown to an invented date is fake scarcity on a product whose entire claim is trustworthiness.
-Three honest options:
+**Resolved [confirmed]:** the countdown ships, and the real date is set at launch, when the site
+goes public and the blocked items have cleared. Nothing is publicly visible before then, so no
+visitor ever sees an invented deadline — the concern about fake scarcity does not arise.
 
-1. **Countdown to a committed launch date** — best, once a date exists and is defensible.
-2. **A live waitlist counter** — "N people ahead of you in Ontario". Real, rises on its own, creates
-   momentum without a deadline. Works today.
-3. **A cohort close date that is actually honoured** — "first 500 get launch-week priority".
+Built so it cannot go wrong by accident, rather than by remembering to fix it:
 
-Recommendation: ship (2) now, add (1) when a date is committed. Build the component either way.
+- **One value, `NEXT_PUBLIC_LAUNCH_AT`** (RFC 3339). Changing the date is an env-var edit and a
+  redeploy — no code change, no rebuild of the component.
+- **Unset → the countdown does not render.** It falls back to the live waitlist counter ("N people
+  ahead of you in Ontario"), which is a real number and true from day one. This is the default, so
+  the failure mode of forgetting to set a date is *no countdown*, never a wrong one.
+- **Date in the past → switches to the live state**, never negative numbers or a frozen `00:00:00`.
+- **Invalid value → treated as unset**, and the build logs a warning.
+
+The waitlist counter is built regardless: it is honest urgency that works today and keeps working
+after launch, when a countdown has nothing left to count.
 
 ---
 
