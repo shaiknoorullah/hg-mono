@@ -71,7 +71,18 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-CA" className={`${display.variable} ${ui.variable} ${mono.variable}`}>
+    // data-theme="light" pins the palette. The design system ships a dark role
+    // map behind `prefers-color-scheme: dark`, guarded by
+    // `:root:not([data-theme="light"])` — that guard is the documented opt-out
+    // and this site needs it: every approved artboard is light, no dark variant
+    // was ever designed, and the marketing ink is a primitive that does not
+    // theme-flip, so on a dark-mode device the surface went to #171717 while the
+    // body copy stayed #1B3B31. Dark green on near-black.
+    <html
+      lang="en-CA"
+      data-theme="light"
+      className={`${display.variable} ${ui.variable} ${mono.variable}`}
+    >
       <body>
         {children}
         {/* Inert until Klaro rewrites its attributes on consent. Placed after
