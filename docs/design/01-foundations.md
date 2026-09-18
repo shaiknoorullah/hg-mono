@@ -206,14 +206,14 @@ One UI family across all four surfaces. Multiple families cost RN bundle size an
 
 | Role | Family | Weights shipped | Licence | Why |
 |---|---|---|---|---|
-| **UI (all text)** | **Inter** | 400, 500, 600, 700 | SIL OFL | Designed for UI at small sizes; large x-height; unambiguous `1/l/I` and `0/O` (matters for order numbers, unit numbers, certificate numbers); genuine `tnum` tabular figures; ships as static weights so Expo `expo-font` does not need variable-font support. |
-| **RTL companion (not shipped at launch)** | **IBM Plex Sans Arabic** | 400, 500, 600, 700 | SIL OFL | Pre-selected now so §D8 holds: when Arabic is added the family swap is a token change, not a redesign. Vertical metrics are close enough to Inter that line-height tokens survive the swap. |
+| **UI (all text)** | **Plus Jakarta Sans** | 400, 500, 600, 700 | SIL OFL | Adopted Sep 2026 (`0cabf7c`), replacing Inter. Warmer, more distinctive at display sizes than a neutral grotesque, and ships as static weights so Expo `expo-font` does not need variable-font support. **It is weaker than Inter at disambiguating `1/l/I` and `0/O`** — so identifiers that must not be misread (certificate numbers, order numbers, unit numbers) are set in `typography.mono.*` with `font.numeric.tabular`, never in this face. |
+| **RTL companion (not shipped at launch)** | **IBM Plex Sans Arabic** | 400, 500, 600, 700 | SIL OFL | Pre-selected now so §D8 holds: when Arabic is added the family swap is a token change, not a redesign. Vertical metrics are close enough to Plus Jakarta Sans that line-height tokens survive the swap. |
 | **Data / mono (admin only)** | **JetBrains Mono** | 400, 600 | SIL OFL | Admin `DataTable` IDs, UUIDv7s, JSON payloads in audit views, cert numbers in the halal checklist. |
 
 **Fallback chains** (used verbatim as the `fontFamily` value on web; RN registers the loaded family name and falls through to the platform default):
 
 ```
---hg-font-ui:   "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+--hg-font-ui:   "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
                 Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 --hg-font-rtl:  "IBM Plex Sans Arabic", "Noto Sans Arabic", "Geeza Pro",
                 "Segoe UI", Tahoma, sans-serif;
@@ -221,7 +221,7 @@ One UI family across all four surfaces. Multiple families cost RN bundle size an
                 Consolas, "Liberation Mono", monospace;
 ```
 
-React Native has no fallback chain — a missing family renders the system font silently. So: **`expo-font` load is awaited at the splash gate**, and a startup assertion logs an error if `Inter_600SemiBold` is not resolvable. Never ship a screen that renders in a fallback the design was not measured against.
+React Native has no fallback chain — a missing family renders the system font silently. So: **`expo-font` load is awaited at the splash gate**, and a startup assertion logs an error if `PlusJakartaSans_600SemiBold` is not resolvable. Never ship a screen that renders in a fallback the design was not measured against.
 
 ### 3.2 Numerals — non-negotiable
 

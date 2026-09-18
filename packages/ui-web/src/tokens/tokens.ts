@@ -155,7 +155,7 @@ export const color = {
 export const font = {
   "family": {
     "ui": [
-      "Inter",
+      "Plus Jakarta Sans",
       "-apple-system",
       "BlinkMacSystemFont",
       "Segoe UI",
@@ -171,6 +171,16 @@ export const font = {
       "Geeza Pro",
       "Segoe UI",
       "Tahoma",
+      "sans-serif"
+    ],
+    "display": [
+      "Bricolage Grotesque",
+      "Plus Jakarta Sans",
+      "-apple-system",
+      "BlinkMacSystemFont",
+      "Segoe UI",
+      "Helvetica Neue",
+      "Arial",
       "sans-serif"
     ],
     "mono": [
@@ -198,7 +208,7 @@ export const typography = {
   "display": {
     "lg": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -216,7 +226,7 @@ export const typography = {
     },
     "md": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -236,7 +246,7 @@ export const typography = {
   "heading": {
     "xl": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -254,7 +264,7 @@ export const typography = {
     },
     "lg": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -272,7 +282,7 @@ export const typography = {
     },
     "md": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -290,7 +300,7 @@ export const typography = {
     },
     "sm": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -310,7 +320,7 @@ export const typography = {
   "body": {
     "lg": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -328,7 +338,7 @@ export const typography = {
     },
     "md": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -346,7 +356,7 @@ export const typography = {
     },
     "sm": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -366,7 +376,7 @@ export const typography = {
   "label": {
     "lg": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -384,7 +394,7 @@ export const typography = {
     },
     "md": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -402,7 +412,7 @@ export const typography = {
     },
     "sm": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -421,7 +431,7 @@ export const typography = {
   },
   "caption": {
     "fontFamily": [
-      "Inter",
+      "Plus Jakarta Sans",
       "-apple-system",
       "BlinkMacSystemFont",
       "Segoe UI",
@@ -469,6 +479,76 @@ export const typography = {
       "lineHeight": 1.4,
       "lineHeightPx": 15,
       "letterSpacing": "0"
+    }
+  },
+  "marketing": {
+    "hero": {
+      "fontFamily": [
+        "Bricolage Grotesque",
+        "Plus Jakarta Sans",
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Helvetica Neue",
+        "Arial",
+        "sans-serif"
+      ],
+      "fontSize": 118,
+      "fontWeight": 650,
+      "lineHeight": 0.9,
+      "lineHeightPx": 106,
+      "letterSpacing": "-0.03em"
+    },
+    "heroPhone": {
+      "fontFamily": [
+        "Bricolage Grotesque",
+        "Plus Jakarta Sans",
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Helvetica Neue",
+        "Arial",
+        "sans-serif"
+      ],
+      "fontSize": 72,
+      "fontWeight": 800,
+      "lineHeight": 0.85,
+      "lineHeightPx": 61,
+      "letterSpacing": "-0.045em"
+    },
+    "section": {
+      "fontFamily": [
+        "Bricolage Grotesque",
+        "Plus Jakarta Sans",
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Helvetica Neue",
+        "Arial",
+        "sans-serif"
+      ],
+      "fontSize": 60,
+      "fontWeight": 700,
+      "lineHeight": 1,
+      "lineHeightPx": 60,
+      "letterSpacing": "-0.03em"
+    },
+    "sectionPhone": {
+      "fontFamily": [
+        "Bricolage Grotesque",
+        "Plus Jakarta Sans",
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Helvetica Neue",
+        "Arial",
+        "sans-serif"
+      ],
+      "fontSize": 34,
+      "fontWeight": 700,
+      "lineHeight": 1.02,
+      "lineHeightPx": 35,
+      "letterSpacing": "-0.03em"
     }
   }
 } as const;
@@ -633,6 +713,12 @@ export const motion = {
       0,
       1.05
     ],
+    "spring": [
+      0.34,
+      1.56,
+      0.64,
+      1
+    ],
     "linear": [
       0,
       0,
@@ -721,7 +807,7 @@ export const roles = {
       "tertiary": "#6E7C77",
       "placeholder": "#8B8578",
       "disabled": "#B9B0A0",
-      "onBrand": "#FFFFFF",
+      "onBrand": "#0F241C",
       "onInverse": "#F6EFDD",
       "onAccent": "#FFFFFF",
       "link": "#0959B8"
@@ -755,8 +841,8 @@ export const roles = {
     "action": {
       "primary": {
         "bg": "#F1521E",
-        "bgPressed": "#D8410F",
-        "fg": "#FFFFFF"
+        "bgPressed": "#F3703F",
+        "fg": "#0F241C"
       },
       "secondary": {
         "bg": "#1B3B31",
@@ -778,7 +864,7 @@ export const roles = {
       "border": "#8B8578",
       "borderHover": "#4A4E48",
       "selectedBg": "#F1521E",
-      "selectedFg": "#FFFFFF",
+      "selectedFg": "#0F241C",
       "trackOff": "#4A4E48",
       "trackOn": "#D8410F",
       "thumb": "#FFFFFF"
@@ -840,7 +926,7 @@ export const roles = {
       "tertiary": "#8B8578",
       "placeholder": "#6E7C77",
       "disabled": "#4A4E48",
-      "onBrand": "#FFFFFF",
+      "onBrand": "#0F241C",
       "onInverse": "#232323",
       "onAccent": "#FFFFFF",
       "link": "#6FA9F2"
@@ -874,8 +960,8 @@ export const roles = {
     "action": {
       "primary": {
         "bg": "#F1521E",
-        "bgPressed": "#D8410F",
-        "fg": "#FFFFFF"
+        "bgPressed": "#F3703F",
+        "fg": "#0F241C"
       },
       "secondary": {
         "bg": "#1B3B31",
@@ -897,7 +983,7 @@ export const roles = {
       "border": "#6E7C77",
       "borderHover": "#8B8578",
       "selectedBg": "#F1521E",
-      "selectedFg": "#FFFFFF",
+      "selectedFg": "#0F241C",
       "trackOff": "#8B8578",
       "trackOn": "#D8410F",
       "thumb": "#FFFFFF"

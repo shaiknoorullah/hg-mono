@@ -156,7 +156,11 @@ function componentRoles(scheme) {
   const dark = scheme === 'dark';
   return {
     'action.primary.bg': '{color.brand.500}',
-    'action.primary.bgPressed': '{color.brand.600}',
+    // Lighter on press, not darker. With the label now dark ink (4.63:1 on
+    // brand.500), brand.600 would drop it to 3.63:1 — and white on brand.600 is
+    // 4.48:1, so darkening the press has no accessible label at all. brand.400
+    // gives 5.58:1. The resting brand orange is unchanged.
+    'action.primary.bgPressed': '{color.brand.400}',
     'action.primary.fg': t('text.onBrand'),
     'action.secondary.bg': '{color.accent.600}',
     'action.secondary.bgPressed': '{color.accent.700}',
@@ -490,9 +494,9 @@ push(':root {');
 }
 push('');
 push('  /* Type */');
-push(`  --hg-font-ui: ${fontStack(font.family.ui)};`);
-push(`  --hg-font-rtl: ${fontStack(font.family.rtl)};`);
-push(`  --hg-font-mono: ${fontStack(font.family.mono)};`);
+// Every declared family gets a var — hardcoding three meant a new family (display)
+// silently produced var(--hg-font-display) with nothing behind it.
+for (const [k, stack] of Object.entries(font.family)) push(`  --hg-font-${kebab(k)}: ${fontStack(stack)};`);
 for (const [k, v] of Object.entries(font.weight)) push(`  --hg-weight-${kebab(k)}: ${v};`);
 push(`  --hg-numeric-tabular: ${font.numeric.tabular};`);
 for (const [name, t] of Object.entries(flattenTypography(typography))) {
@@ -501,9 +505,17 @@ for (const [name, t] of Object.entries(flattenTypography(typography))) {
   push(`  --hg-text-${name}-line-px: ${px(t.lineHeightPx)};`);
   push(`  --hg-text-${name}-weight: ${t.fontWeight};`);
   push(`  --hg-text-${name}-tracking: ${t.letterSpacing};`);
-  push(
-    `  --hg-text-${name}-family: ${t.fontFamily === font.family.mono ? 'var(--hg-font-mono)' : 'var(--hg-font-ui)'};`,
-  );
+  // Resolve by identity against every declared family. A silent fallback to --hg-font-ui
+  // is exactly the bug 01-foundations.md warns about, so an unknown family fails the build.
+  const sameStack = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const familyVar = Object.entries(font.family).find(([, stack]) => sameStack(stack, t.fontFamily))?.[0];
+  if (!familyVar) {
+    throw new Error(
+      `typography.${name}.fontFamily does not match any font.family.* entry — ` +
+        `add the family or fix the reference. Got: ${JSON.stringify(t.fontFamily)}`,
+    );
+  }
+  push(`  --hg-text-${name}-family: var(--hg-font-${kebab(familyVar)});`);
 }
 push('');
 push('  /* Space, radius, sizing */');
@@ -618,9 +630,11 @@ t.push('  /* Spacing: one 4px base unit; Tailwind derives the whole scale from i
 t.push('     which reproduces space.1..space.24 exactly (all multiples of 4). */');
 t.push('  --spacing: var(--hg-space-1);');
 t.push('');
-t.push('  --font-ui: var(--hg-font-ui);');
-t.push('  --font-rtl: var(--hg-font-rtl);');
-t.push('  --font-mono: var(--hg-font-mono);');
+// Loop, don't list. tokens.css already derives its --hg-font-* block from
+// font.family; hardcoding the three known families HERE is what left
+// --font-display declared in tokens.css but absent from the Tailwind theme,
+// so the `font-display` utility silently did not exist.
+for (const k of Object.keys(font.family)) t.push(`  --font-${kebab(k)}: var(--hg-font-${kebab(k)});`);
 t.push('');
 for (const [name] of Object.entries(flattenTypography(typography))) {
   t.push(`  --text-${name}: var(--hg-text-${name}-size);`);

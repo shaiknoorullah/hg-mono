@@ -43,7 +43,7 @@ export const themes = {
           tertiary: '#6E7C77',
           placeholder: '#8B8578',
           disabled: '#B9B0A0',
-          onBrand: '#FFFFFF',
+          onBrand: '#0F241C',
           onInverse: '#F6EFDD',
           onAccent: '#FFFFFF',
           link: '#0959B8',
@@ -127,9 +127,9 @@ export const themes = {
       },
       typography: {
         'display.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -146,9 +146,9 @@ export const themes = {
           letterSpacing: -0.72,
         },
         'display.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -165,9 +165,9 @@ export const themes = {
           letterSpacing: -0.6,
         },
         'heading.xl': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -184,9 +184,9 @@ export const themes = {
           letterSpacing: -0.24,
         },
         'heading.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -203,9 +203,9 @@ export const themes = {
           letterSpacing: -0.2,
         },
         'heading.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -222,9 +222,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'heading.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -241,9 +241,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -260,9 +260,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -279,9 +279,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -298,9 +298,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -317,9 +317,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -336,9 +336,9 @@ export const themes = {
           letterSpacing: 0.13,
         },
         'label.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -355,9 +355,9 @@ export const themes = {
           letterSpacing: 0.44,
         },
         caption: {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -407,6 +407,78 @@ export const themes = {
           lineHeightRatio: 1.4,
           letterSpacing: 0,
         },
+        'marketing.hero': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 118,
+          fontWeight: '650',
+          lineHeight: 106,
+          lineHeightRatio: 0.9,
+          letterSpacing: -3.54,
+        },
+        'marketing.heroPhone': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 72,
+          fontWeight: '800',
+          lineHeight: 61,
+          lineHeightRatio: 0.85,
+          letterSpacing: -3.24,
+        },
+        'marketing.section': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 60,
+          fontWeight: '700',
+          lineHeight: 60,
+          lineHeightRatio: 1,
+          letterSpacing: -1.8,
+        },
+        'marketing.sectionPhone': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 34,
+          fontWeight: '700',
+          lineHeight: 35,
+          lineHeightRatio: 1.02,
+          letterSpacing: -1.02,
+        },
       },
       density: {
         rowHeight: 64,
@@ -441,7 +513,7 @@ export const themes = {
           tertiary: '#8B8578',
           placeholder: '#6E7C77',
           disabled: '#4A4E48',
-          onBrand: '#FFFFFF',
+          onBrand: '#0F241C',
           onInverse: '#232323',
           onAccent: '#FFFFFF',
           link: '#6FA9F2',
@@ -525,9 +597,9 @@ export const themes = {
       },
       typography: {
         'display.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -544,9 +616,9 @@ export const themes = {
           letterSpacing: -0.72,
         },
         'display.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -563,9 +635,9 @@ export const themes = {
           letterSpacing: -0.6,
         },
         'heading.xl': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -582,9 +654,9 @@ export const themes = {
           letterSpacing: -0.24,
         },
         'heading.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -601,9 +673,9 @@ export const themes = {
           letterSpacing: -0.2,
         },
         'heading.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -620,9 +692,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'heading.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -639,9 +711,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -658,9 +730,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -677,9 +749,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -696,9 +768,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -715,9 +787,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -734,9 +806,9 @@ export const themes = {
           letterSpacing: 0.13,
         },
         'label.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -753,9 +825,9 @@ export const themes = {
           letterSpacing: 0.44,
         },
         caption: {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -804,6 +876,78 @@ export const themes = {
           lineHeight: 15,
           lineHeightRatio: 1.4,
           letterSpacing: 0,
+        },
+        'marketing.hero': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 118,
+          fontWeight: '650',
+          lineHeight: 106,
+          lineHeightRatio: 0.9,
+          letterSpacing: -3.54,
+        },
+        'marketing.heroPhone': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 72,
+          fontWeight: '800',
+          lineHeight: 61,
+          lineHeightRatio: 0.85,
+          letterSpacing: -3.24,
+        },
+        'marketing.section': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 60,
+          fontWeight: '700',
+          lineHeight: 60,
+          lineHeightRatio: 1,
+          letterSpacing: -1.8,
+        },
+        'marketing.sectionPhone': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 34,
+          fontWeight: '700',
+          lineHeight: 35,
+          lineHeightRatio: 1.02,
+          letterSpacing: -1.02,
         },
       },
       density: {
@@ -841,7 +985,7 @@ export const themes = {
           tertiary: '#4A4E48',
           placeholder: '#8B8578',
           disabled: '#B9B0A0',
-          onBrand: '#FFFFFF',
+          onBrand: '#0F241C',
           onInverse: '#F6EFDD',
           onAccent: '#FFFFFF',
           link: '#0959B8',
@@ -925,9 +1069,9 @@ export const themes = {
       },
       typography: {
         'display.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -944,9 +1088,9 @@ export const themes = {
           letterSpacing: -0.72,
         },
         'display.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -963,9 +1107,9 @@ export const themes = {
           letterSpacing: -0.6,
         },
         'heading.xl': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -982,9 +1126,9 @@ export const themes = {
           letterSpacing: -0.24,
         },
         'heading.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1001,9 +1145,9 @@ export const themes = {
           letterSpacing: -0.2,
         },
         'heading.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1020,9 +1164,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'heading.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1039,9 +1183,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1058,9 +1202,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1077,9 +1221,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1096,9 +1240,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1115,9 +1259,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1134,9 +1278,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1153,9 +1297,9 @@ export const themes = {
           letterSpacing: 0.44,
         },
         caption: {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1205,6 +1349,78 @@ export const themes = {
           lineHeightRatio: 1.4,
           letterSpacing: 0,
         },
+        'marketing.hero': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 118,
+          fontWeight: '650',
+          lineHeight: 106,
+          lineHeightRatio: 0.9,
+          letterSpacing: -3.54,
+        },
+        'marketing.heroPhone': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 72,
+          fontWeight: '800',
+          lineHeight: 61,
+          lineHeightRatio: 0.85,
+          letterSpacing: -3.24,
+        },
+        'marketing.section': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 60,
+          fontWeight: '700',
+          lineHeight: 60,
+          lineHeightRatio: 1,
+          letterSpacing: -1.8,
+        },
+        'marketing.sectionPhone': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 34,
+          fontWeight: '700',
+          lineHeight: 35,
+          lineHeightRatio: 1.02,
+          letterSpacing: -1.02,
+        },
       },
       density: {
         rowHeight: 72,
@@ -1239,7 +1455,7 @@ export const themes = {
           tertiary: '#B9B0A0',
           placeholder: '#6E7C77',
           disabled: '#4A4E48',
-          onBrand: '#FFFFFF',
+          onBrand: '#0F241C',
           onInverse: '#232323',
           onAccent: '#FFFFFF',
           link: '#6FA9F2',
@@ -1323,9 +1539,9 @@ export const themes = {
       },
       typography: {
         'display.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1342,9 +1558,9 @@ export const themes = {
           letterSpacing: -0.72,
         },
         'display.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1361,9 +1577,9 @@ export const themes = {
           letterSpacing: -0.6,
         },
         'heading.xl': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1380,9 +1596,9 @@ export const themes = {
           letterSpacing: -0.24,
         },
         'heading.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1399,9 +1615,9 @@ export const themes = {
           letterSpacing: -0.2,
         },
         'heading.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1418,9 +1634,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'heading.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1437,9 +1653,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1456,9 +1672,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1475,9 +1691,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1494,9 +1710,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1513,9 +1729,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1532,9 +1748,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1551,9 +1767,9 @@ export const themes = {
           letterSpacing: 0.44,
         },
         caption: {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1602,6 +1818,78 @@ export const themes = {
           lineHeight: 15,
           lineHeightRatio: 1.4,
           letterSpacing: 0,
+        },
+        'marketing.hero': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 118,
+          fontWeight: '650',
+          lineHeight: 106,
+          lineHeightRatio: 0.9,
+          letterSpacing: -3.54,
+        },
+        'marketing.heroPhone': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 72,
+          fontWeight: '800',
+          lineHeight: 61,
+          lineHeightRatio: 0.85,
+          letterSpacing: -3.24,
+        },
+        'marketing.section': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 60,
+          fontWeight: '700',
+          lineHeight: 60,
+          lineHeightRatio: 1,
+          letterSpacing: -1.8,
+        },
+        'marketing.sectionPhone': {
+          fontFamily: 'Bricolage Grotesque',
+          fontFamilyStack: [
+            'Bricolage Grotesque',
+            'Plus Jakarta Sans',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'Segoe UI',
+            'Helvetica Neue',
+            'Arial',
+            'sans-serif',
+          ],
+          fontSize: 34,
+          fontWeight: '700',
+          lineHeight: 35,
+          lineHeightRatio: 1.02,
+          letterSpacing: -1.02,
         },
       },
       density: {

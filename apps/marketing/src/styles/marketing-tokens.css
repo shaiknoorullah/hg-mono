@@ -1,0 +1,82 @@
+/* ---------------------------------------------------------------------------
+ * Marketing type, owned by this app.
+ *
+ * halalgoes.com SHARES the product's palette, role map, radii, spacing and —
+ * critically — the halal tokens, all of it from docs/design/tokens.json via
+ * @hg/ui-web. The seal on this page has to be the same green, the same gold
+ * ring and the same shield as the seal in the app; if they drift, the page is
+ * advertising a badge the product does not show. So Seal.tsx reads
+ * --hg-color-halal-certified-* directly and never restates a colour locally.
+ *
+ * Type is declared here instead so that building this site cannot require an
+ * edit to the shared token file, and therefore cannot change what the four
+ * product apps compile against. Marketing moves fast and the apps should not
+ * feel it.
+ *
+ * Four of these roles (hero, heroPhone, section, sectionPhone) also exist in
+ * docs/design/tokens.json from Gate A, with identical values. The duplication
+ * is deliberate and one-directional: this file is what the site renders from,
+ * and nothing here reaches back into the product system. Reconciling the two is
+ * a change to the design system, to be made on its own terms and not as a
+ * side-effect of a marketing build.
+ *
+ * Hand-authored — the only hand-authored token file in the repo. There is no
+ * generator and no drift check because there is nothing to drift from.
+ * ------------------------------------------------------------------------- */
+
+@theme {
+  /* Bricolage Grotesque. Variable, with an optical-size axis — which is why the
+     phone hero is HEAVIER than the desktop one (800 vs 650): optical weight
+     grows with size, so the same face needs less weight when it is larger.
+     --font-display-file is next/font's self-hosted family (see layout.tsx);
+     everything after it is the fallback chain. */
+  --font-display:
+    var(--font-display-file), 'Bricolage Grotesque', 'Plus Jakarta Sans', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Hero — the headline, and nothing else on the site is set at this size. */
+  --text-marketing-hero: 7.375rem; /* 118px */
+  --text-marketing-hero--line-height: 0.9;
+  --text-marketing-hero--font-weight: 650;
+  --text-marketing-hero--letter-spacing: -0.03em;
+
+  --text-marketing-hero-phone: 4.5rem; /* 72px */
+  --text-marketing-hero-phone--line-height: 0.85;
+  --text-marketing-hero-phone--font-weight: 800;
+  --text-marketing-hero-phone--letter-spacing: -0.045em;
+
+  /* Section heads. */
+  --text-marketing-section: 3.75rem; /* 60px */
+  --text-marketing-section--line-height: 1;
+  --text-marketing-section--font-weight: 700;
+  --text-marketing-section--letter-spacing: -0.03em;
+
+  --text-marketing-section-phone: 2.125rem; /* 34px */
+  --text-marketing-section-phone--line-height: 1.02;
+  --text-marketing-section-phone--font-weight: 700;
+  --text-marketing-section-phone--letter-spacing: -0.03em;
+
+  /* Standfirst — the sentence under a head. Display face at a text weight, so
+     the subhead speaks in the same voice as the headline. */
+  --text-marketing-lede: 1.625rem; /* 26px */
+  --text-marketing-lede--line-height: 1.25;
+  --text-marketing-lede--font-weight: 500;
+  --text-marketing-lede--letter-spacing: -0.01em;
+
+  --text-marketing-lede-phone: 1.25rem; /* 20px */
+  --text-marketing-lede-phone--line-height: 1.35;
+  --text-marketing-lede-phone--font-weight: 500;
+  --text-marketing-lede-phone--letter-spacing: -0.01em;
+
+  /* Tracked chip above a head. Set in the UI face, not the display face: at
+     13px the optical-size axis buys nothing and the tracking does the work. */
+  --text-marketing-eyebrow: 0.8125rem; /* 13px */
+  --text-marketing-eyebrow--line-height: 1;
+  --text-marketing-eyebrow--font-weight: 600;
+  --text-marketing-eyebrow--letter-spacing: 0.16em;
+
+  --text-marketing-eyebrow-phone: 0.75rem; /* 12px */
+  --text-marketing-eyebrow-phone--line-height: 1;
+  --text-marketing-eyebrow-phone--font-weight: 600;
+  --text-marketing-eyebrow-phone--letter-spacing: 0.14em;
+}

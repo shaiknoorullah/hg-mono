@@ -1,0 +1,101 @@
+# Umami — self-hosted analytics for halalgoes.com.
+#
+#   cd deploy/umami
+#   cp .env.example .env    # then fill in the three secrets it refuses to boot without
+#   docker compose --env-file .env up -d
+#
+# This file is ADDITIVE. It edits nothing in deploy/docker-compose.yml, runs
+# under its own project name, and keeps its own database and volume. Bring it up
+# or tear it down without the product stack noticing.
+#
+# Three decisions worth not undoing:
+#
+#   * Its own Postgres, not the product's. The product's database is the order
+#     ledger; analytics writes have no business sharing a backup, a restore or a
+#     connection pool with it. You can lose this volume and lose nothing that
+#     matters. That is the point.
+#   * It joins hg-net so Traefik routes to it. The network is declared external,
+#     so if the product stack is down you get "network hg-net not found" — a
+#     clear error rather than a second, silently-unrouted bridge.
+#   * No published ports. The only way in is through Traefik, exactly like the
+#     API. `docker compose port` is for debugging, not for access.
+
+name: hg-analytics
+
+networks:
+  hg-net:
+    external: true
+    name: hg-net
+
+volumes:
+  umami-pgdata:
+
+services:
+  umami:
+    # Pin this. `latest` on a box you are not watching is how an analytics
+    # upgrade becomes an outage you find out about a week later. Find the
+    # current tag at github.com/umami-software/umami/pkgs/container/umami.
+    image: ghcr.io/umami-software/umami:${UMAMI_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    # PID 1 that reaps zombies and forwards signals, so `docker compose stop`
+    # is a graceful shutdown rather than a 10-second wait and a SIGKILL.
+    init: true
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${UMAMI_POSTGRES_USER:-umami}:${UMAMI_POSTGRES_PASSWORD:?set UMAMI_POSTGRES_PASSWORD in .env}@umami-db:5432/${UMAMI_POSTGRES_DB:-umami}
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in .env — openssl rand -hex 32}
+      TWO_FACTOR_ENCRYPTION_KEY: ${UMAMI_TWO_FACTOR_KEY:?set UMAMI_TWO_FACTOR_KEY in .env — openssl rand -hex 32}
+
+      # Serves the tracker at /${UMAMI_TRACKER_SCRIPT_NAME}.js instead of
+      # /script.js. `script.js` from a host called `analytics.*` is on every
+      # blocklist worth the name; a first-party path that is not is the whole
+      # reason to self-host rather than use the cloud version.
+      TRACKER_SCRIPT_NAME: ${UMAMI_TRACKER_SCRIPT_NAME:-hg}
+      # Same reasoning for where events are POSTed. Must match nothing public.
+      COLLECT_API_ENDPOINT: ${UMAMI_COLLECT_ENDPOINT:-/api/hg-collect}
+
+      DISABLE_TELEMETRY: ${UMAMI_DISABLE_TELEMETRY:-1}
+      # Trust Traefik's forwarded header, or every visitor geolocates to the
+      # Docker bridge gateway.
+      CLIENT_IP_HEADER: X-Forwarded-For
+    networks: [hg-net]
+    expose:
+      - "3000"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=hg-net
+      # A Host rule beats the API's PathPrefix(`/`) without any priority
+      # juggling: the API router is pinned at priority 1, and Traefik derives a
+      # much higher default priority from this rule's length.
+      - traefik.http.routers.umami.rule=Host(`${UMAMI_HOST:?set UMAMI_HOST in .env, e.g. analytics.halalgoes.com}`)
+      - traefik.http.routers.umami.entrypoints=web
+      - traefik.http.services.umami.loadbalancer.server.port=3000
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:3000/api/heartbeat || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  umami-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${UMAMI_POSTGRES_USER:-umami}
+      POSTGRES_PASSWORD: ${UMAMI_POSTGRES_PASSWORD:?set UMAMI_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${UMAMI_POSTGRES_DB:-umami}
+      # Umami's own docs ask for UTC so regional offsets cannot skew timestamps.
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - umami-pgdata:/var/lib/postgresql/data
+    networks: [hg-net]
+    # No published port. Reach it with `docker compose exec umami-db psql`.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${UMAMI_POSTGRES_USER:-umami} -d ${UMAMI_POSTGRES_DB:-umami}']
+      interval: 10s
+      timeout: 5s
+      retries: 5

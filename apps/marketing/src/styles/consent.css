@@ -1,0 +1,131 @@
+/* ---------------------------------------------------------------------------
+ * Klaro, wearing the design system.
+ *
+ * Klaro themes through its own custom properties, so this is a mapping rather
+ * than a rewrite: every value forwards to a token, and the banner inherits dark
+ * mode, the radii and the type for free.
+ *
+ * The one mapping that is not cosmetic: Klaro calls its accept colour "green"
+ * (--green1/2/3). It cannot BE green here. Solid green is reserved to
+ * color.halal.* (invariant 10, lint rule L-4) — a green Accept button on a
+ * halal platform reads as a halal state, which is the exact confusion the
+ * invariant exists to prevent. So the greens map to the brand orange, which is
+ * what every other primary action on the site already uses.
+ * ------------------------------------------------------------------------- */
+
+.klaro {
+  --font-family: var(--font-ui);
+  --title-font-family: var(--font-display);
+  --font-size: 14px;
+
+  --border-radius: var(--hg-radius-md);
+  --border-style: solid;
+  --border-width: 1px;
+
+  /* Accept / primary action — brand orange, never green. */
+  --green1: var(--hg-action-primary-bg);
+  --green2: var(--hg-action-primary-bg-pressed);
+  --green3: var(--hg-action-primary-bg-pressed);
+  --button-text-color: var(--hg-action-primary-fg);
+
+  /* Surfaces and ink. Klaro's "dark" is its notice background. */
+  --dark1: var(--hg-surface-chrome);
+  --dark2: var(--hg-color-accent-700);
+  --dark3: var(--hg-color-accent-500);
+  --light1: var(--hg-surface-base);
+  --light2: var(--hg-border-decorative);
+  --light3: var(--hg-color-neutral-300);
+  --white2: var(--hg-surface-raised);
+  --white3: var(--hg-surface-raised);
+
+  /* Klaro's secondary palette. Not relied on for the decline button — see the
+     explicit rules below, which exist because mapping it to an accent colour
+     put dark ink on the dark notice at 1.15:1. */
+  --blue1: var(--hg-color-accent-500);
+  --blue2: var(--hg-color-accent-400);
+
+  --box-shadow-color: rgb(0 0 0 / 0.16);
+
+  /* Bottom-left, above the fold-bottom, clear of the CTA on phones. */
+  --notice-position: fixed;
+  --notice-bottom: 16px;
+  --notice-left: 16px;
+  --notice-right: auto;
+  --notice-max-width: 420px;
+}
+
+/* Every control at the 44px touch target the rest of the site uses; Klaro's
+   own buttons are shorter. */
+.klaro .cookie-modal .cm-btn,
+.klaro .cookie-notice .cm-btn {
+  min-height: 44px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * Declining is exactly as easy as accepting.
+ *
+ * Klaro renders decline with its "danger" palette, which on this notice's deep
+ * green card measured 1.15:1 — invisible, and the precise dark pattern the
+ * config comment promises not to ship. It is an outlined button in the same ink
+ * as the notice text: same height, same weight, same prominence as accept,
+ * differing only in fill.
+ * ------------------------------------------------------------------------- */
+.klaro .cookie-notice .cm-btn.cm-btn-danger,
+.klaro .cookie-modal .cm-btn.cm-btn-danger {
+  background: transparent;
+  border: 1.5px solid var(--hg-surface-base);
+  color: var(--hg-surface-base); /* 11.7:1 on surface.chrome */
+}
+
+.klaro .cookie-notice .cm-btn.cm-btn-danger:hover,
+.klaro .cookie-modal .cm-btn.cm-btn-danger:hover {
+  background: var(--hg-color-accent-700);
+  color: var(--hg-surface-base);
+}
+
+/* "Choose" measured 3.48:1 in brand orange on the dark card, and was 21px tall
+   — under the 24px minimum target size as well as under the contrast floor. */
+.klaro .cookie-notice .cm-link,
+.klaro .cookie-notice .cn-learn-more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--hg-surface-base);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1.5px;
+}
+
+.klaro .cookie-notice:not(.cookie-modal-notice) {
+  box-shadow: var(--hg-elevation-3);
+}
+
+/* Klaro's focus styling is its own; use ours so the ring matches the page. */
+.klaro a:focus-visible,
+.klaro button:focus-visible,
+.klaro input:focus-visible {
+  outline: 2px solid var(--hg-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Klaro focuses the notice container on mount so screen readers announce it.
+   The container is an announcement region, not an operable control, so the
+   global :focus-visible ring painted a blue outline around the whole card on
+   every page load. Suppressed HERE ONLY — every control inside it keeps its
+   ring, which is what 2.4.7 is actually about. */
+.klaro .cookie-notice:focus,
+.klaro .cookie-notice:focus-visible,
+.klaro .cookie-modal:focus,
+.klaro .cookie-modal:focus-visible {
+  outline: none;
+}
+
+@media (max-width: 480px) {
+  .klaro {
+    --notice-left: 12px;
+    --notice-right: 12px;
+    --notice-bottom: 12px;
+    --notice-max-width: none;
+  }
+}

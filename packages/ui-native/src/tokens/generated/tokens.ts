@@ -174,7 +174,7 @@ export const tokens = {
         tertiary: '#6E7C77',
         placeholder: '#8B8578',
         disabled: '#B9B0A0',
-        onBrand: '#FFFFFF',
+        onBrand: '#0F241C',
         onInverse: '#F6EFDD',
         onAccent: '#FFFFFF',
         link: '#0959B8',
@@ -213,7 +213,7 @@ export const tokens = {
         tertiary: '#8B8578',
         placeholder: '#6E7C77',
         disabled: '#4A4E48',
-        onBrand: '#FFFFFF',
+        onBrand: '#0F241C',
         onInverse: '#232323',
         onAccent: '#FFFFFF',
         link: '#6FA9F2',
@@ -240,7 +240,7 @@ export const tokens = {
   font: {
     family: {
       ui: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -256,6 +256,16 @@ export const tokens = {
         'Geeza Pro',
         'Segoe UI',
         'Tahoma',
+        'sans-serif',
+      ],
+      display: [
+        'Bricolage Grotesque',
+        'Plus Jakarta Sans',
+        '-apple-system',
+        'BlinkMacSystemFont',
+        'Segoe UI',
+        'Helvetica Neue',
+        'Arial',
         'sans-serif',
       ],
       mono: [
@@ -281,7 +291,7 @@ export const tokens = {
   typography: {
     'display.lg': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -299,7 +309,7 @@ export const tokens = {
     },
     'display.md': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -317,7 +327,7 @@ export const tokens = {
     },
     'heading.xl': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -335,7 +345,7 @@ export const tokens = {
     },
     'heading.lg': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -353,7 +363,7 @@ export const tokens = {
     },
     'heading.md': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -371,7 +381,7 @@ export const tokens = {
     },
     'heading.sm': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -389,7 +399,7 @@ export const tokens = {
     },
     'body.lg': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -407,7 +417,7 @@ export const tokens = {
     },
     'body.md': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -425,7 +435,7 @@ export const tokens = {
     },
     'body.sm': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -443,7 +453,7 @@ export const tokens = {
     },
     'label.lg': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -461,7 +471,7 @@ export const tokens = {
     },
     'label.md': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -479,7 +489,7 @@ export const tokens = {
     },
     'label.sm': {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -497,7 +507,7 @@ export const tokens = {
     },
     caption: {
       fontFamily: [
-        'Inter',
+        'Plus Jakarta Sans',
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -544,6 +554,74 @@ export const tokens = {
       lineHeight: 1.4,
       lineHeightPx: 15,
       letterSpacing: '0',
+    },
+    'marketing.hero': {
+      fontFamily: [
+        'Bricolage Grotesque',
+        'Plus Jakarta Sans',
+        '-apple-system',
+        'BlinkMacSystemFont',
+        'Segoe UI',
+        'Helvetica Neue',
+        'Arial',
+        'sans-serif',
+      ],
+      fontSize: 118,
+      fontWeight: 650,
+      lineHeight: 0.9,
+      lineHeightPx: 106,
+      letterSpacing: '-0.03em',
+    },
+    'marketing.heroPhone': {
+      fontFamily: [
+        'Bricolage Grotesque',
+        'Plus Jakarta Sans',
+        '-apple-system',
+        'BlinkMacSystemFont',
+        'Segoe UI',
+        'Helvetica Neue',
+        'Arial',
+        'sans-serif',
+      ],
+      fontSize: 72,
+      fontWeight: 800,
+      lineHeight: 0.85,
+      lineHeightPx: 61,
+      letterSpacing: '-0.045em',
+    },
+    'marketing.section': {
+      fontFamily: [
+        'Bricolage Grotesque',
+        'Plus Jakarta Sans',
+        '-apple-system',
+        'BlinkMacSystemFont',
+        'Segoe UI',
+        'Helvetica Neue',
+        'Arial',
+        'sans-serif',
+      ],
+      fontSize: 60,
+      fontWeight: 700,
+      lineHeight: 1,
+      lineHeightPx: 60,
+      letterSpacing: '-0.03em',
+    },
+    'marketing.sectionPhone': {
+      fontFamily: [
+        'Bricolage Grotesque',
+        'Plus Jakarta Sans',
+        '-apple-system',
+        'BlinkMacSystemFont',
+        'Segoe UI',
+        'Helvetica Neue',
+        'Arial',
+        'sans-serif',
+      ],
+      fontSize: 34,
+      fontWeight: 700,
+      lineHeight: 1.02,
+      lineHeightPx: 35,
+      letterSpacing: '-0.03em',
     },
   },
   space: {
@@ -701,6 +779,12 @@ export const tokens = {
         0,
         0,
         1.05,
+      ],
+      spring: [
+        0.34,
+        1.56,
+        0.64,
+        1,
       ],
       linear: [
         0,
