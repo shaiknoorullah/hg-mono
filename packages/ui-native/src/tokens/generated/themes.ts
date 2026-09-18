@@ -127,9 +127,9 @@ export const themes = {
       },
       typography: {
         'display.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -146,9 +146,9 @@ export const themes = {
           letterSpacing: -0.72,
         },
         'display.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -165,9 +165,9 @@ export const themes = {
           letterSpacing: -0.6,
         },
         'heading.xl': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -184,9 +184,9 @@ export const themes = {
           letterSpacing: -0.24,
         },
         'heading.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -203,9 +203,9 @@ export const themes = {
           letterSpacing: -0.2,
         },
         'heading.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -222,9 +222,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'heading.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -241,9 +241,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -260,9 +260,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -279,9 +279,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -298,9 +298,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -317,9 +317,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -336,9 +336,9 @@ export const themes = {
           letterSpacing: 0.13,
         },
         'label.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -355,9 +355,9 @@ export const themes = {
           letterSpacing: 0.44,
         },
         caption: {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -525,9 +525,9 @@ export const themes = {
       },
       typography: {
         'display.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -544,9 +544,9 @@ export const themes = {
           letterSpacing: -0.72,
         },
         'display.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -563,9 +563,9 @@ export const themes = {
           letterSpacing: -0.6,
         },
         'heading.xl': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -582,9 +582,9 @@ export const themes = {
           letterSpacing: -0.24,
         },
         'heading.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -601,9 +601,9 @@ export const themes = {
           letterSpacing: -0.2,
         },
         'heading.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -620,9 +620,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'heading.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -639,9 +639,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -658,9 +658,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -677,9 +677,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -696,9 +696,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -715,9 +715,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -734,9 +734,9 @@ export const themes = {
           letterSpacing: 0.13,
         },
         'label.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -753,9 +753,9 @@ export const themes = {
           letterSpacing: 0.44,
         },
         caption: {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -925,9 +925,9 @@ export const themes = {
       },
       typography: {
         'display.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -944,9 +944,9 @@ export const themes = {
           letterSpacing: -0.72,
         },
         'display.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -963,9 +963,9 @@ export const themes = {
           letterSpacing: -0.6,
         },
         'heading.xl': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -982,9 +982,9 @@ export const themes = {
           letterSpacing: -0.24,
         },
         'heading.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1001,9 +1001,9 @@ export const themes = {
           letterSpacing: -0.2,
         },
         'heading.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1020,9 +1020,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'heading.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1039,9 +1039,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1058,9 +1058,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1077,9 +1077,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1096,9 +1096,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1115,9 +1115,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1134,9 +1134,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1153,9 +1153,9 @@ export const themes = {
           letterSpacing: 0.44,
         },
         caption: {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1323,9 +1323,9 @@ export const themes = {
       },
       typography: {
         'display.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1342,9 +1342,9 @@ export const themes = {
           letterSpacing: -0.72,
         },
         'display.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1361,9 +1361,9 @@ export const themes = {
           letterSpacing: -0.6,
         },
         'heading.xl': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1380,9 +1380,9 @@ export const themes = {
           letterSpacing: -0.24,
         },
         'heading.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1399,9 +1399,9 @@ export const themes = {
           letterSpacing: -0.2,
         },
         'heading.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1418,9 +1418,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'heading.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1437,9 +1437,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1456,9 +1456,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1475,9 +1475,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'body.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1494,9 +1494,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.lg': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1513,9 +1513,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.md': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1532,9 +1532,9 @@ export const themes = {
           letterSpacing: 0,
         },
         'label.sm': {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',
@@ -1551,9 +1551,9 @@ export const themes = {
           letterSpacing: 0.44,
         },
         caption: {
-          fontFamily: 'Inter',
+          fontFamily: 'Plus Jakarta Sans',
           fontFamilyStack: [
-            'Inter',
+            'Plus Jakarta Sans',
             '-apple-system',
             'BlinkMacSystemFont',
             'Segoe UI',

@@ -155,7 +155,7 @@ export const color = {
 export const font = {
   "family": {
     "ui": [
-      "Inter",
+      "Plus Jakarta Sans",
       "-apple-system",
       "BlinkMacSystemFont",
       "Segoe UI",
@@ -198,7 +198,7 @@ export const typography = {
   "display": {
     "lg": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -216,7 +216,7 @@ export const typography = {
     },
     "md": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -236,7 +236,7 @@ export const typography = {
   "heading": {
     "xl": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -254,7 +254,7 @@ export const typography = {
     },
     "lg": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -272,7 +272,7 @@ export const typography = {
     },
     "md": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -290,7 +290,7 @@ export const typography = {
     },
     "sm": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -310,7 +310,7 @@ export const typography = {
   "body": {
     "lg": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -328,7 +328,7 @@ export const typography = {
     },
     "md": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -346,7 +346,7 @@ export const typography = {
     },
     "sm": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -366,7 +366,7 @@ export const typography = {
   "label": {
     "lg": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -384,7 +384,7 @@ export const typography = {
     },
     "md": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -402,7 +402,7 @@ export const typography = {
     },
     "sm": {
       "fontFamily": [
-        "Inter",
+        "Plus Jakarta Sans",
         "-apple-system",
         "BlinkMacSystemFont",
         "Segoe UI",
@@ -421,7 +421,7 @@ export const typography = {
   },
   "caption": {
     "fontFamily": [
-      "Inter",
+      "Plus Jakarta Sans",
       "-apple-system",
       "BlinkMacSystemFont",
       "Segoe UI",
