@@ -1,0 +1,19 @@
+---
+// Bespoke halal shield (NEVER lucide/shield-check, never a font glyph — a font glyph
+// fails silently and would render a blank certification badge). Verbatim geometry from
+// the design kit's assets/halal-shield.svg (C2PA metadata stripped).
+interface Props {
+  size?: number;
+  color?: string; // shield fill
+  checkColor?: string; // check-mark stroke
+}
+const {
+  size = 24,
+  color = 'var(--color-halal-certified-seal)',
+  checkColor = 'var(--color-halal-certified-on-seal)',
+} = Astro.props;
+---
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+  <path d="M12 2.4 3.6 5.7v5.9c0 4.9 3.6 8.5 8.4 10 4.8-1.5 8.4-5.1 8.4-10V5.7L12 2.4Z" fill={color}></path>
+  <path class="chk" d="m8 12.1 2.7 2.7L16.2 9" fill="none" stroke={checkColor} stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>

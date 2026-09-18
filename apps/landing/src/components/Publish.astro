@@ -1,0 +1,126 @@
+---
+/**
+ * The credibility band — and a deliberate substitution.
+ *
+ * The obvious thing here is a founder: a face, a first name, a signed note, a
+ * mailbox. That is the strongest version of this section and we are not
+ * shipping it, because the three facts it needs (a real name, a real
+ * neighbourhood, a monitored mailbox) are the client's to give and we do not
+ * have them. A stock portrait and an invented signature on a page whose entire
+ * claim is "we check things carefully" would be the argument against us.
+ *
+ * So this section answers a different credibility question — not "who are you"
+ * but "how would I ever catch you out". Verifiability instead of personality:
+ * everything below is something a stranger can go and check, or a commitment
+ * that can later be held against us.
+ *
+ * When the client supplies the three facts, the founder note goes back above
+ * this band. It does not replace it.
+ */
+---
+<section class="section section--tight publish">
+  <div class="container">
+    <div class="publish-grid">
+      <div class="publish-lead">
+        <p class="eyebrow" data-reveal>How to catch us out</p>
+        <h2 class="mkt-h2" data-reveal>Everything here is checkable.</h2>
+        <p class="body publish-lede" data-reveal>
+          We're asking you to trust a list. The only honest way to earn that is to make it easy
+          to prove us wrong.
+        </p>
+      </div>
+
+      <ul class="publish-list" data-reveal-group>
+        <li data-reveal>
+          <p class="pl-title">The standard is written down, versioned and dated.</p>
+          <p class="pl-body">
+            Not a page of principles — the actual seven checks, what makes an issuer acceptable,
+            and what we refuse to claim. If we change it, the version changes with it.
+            <a class="pl-link" href="/verification">Read it →</a>
+          </p>
+        </li>
+        <li data-reveal>
+          <p class="pl-title">We print the issuer's name, not a label of our own.</p>
+          <p class="pl-body">
+            Every listing names the body that issued the certificate. We don't rank issuers or
+            score them, because which bodies you accept is your judgement, not ours.
+          </p>
+        </li>
+        <li data-reveal>
+          <p class="pl-title">You can open the certificate itself.</p>
+          <p class="pl-body">
+            Not a badge that stands in for a document — the document. Signed in, from the
+            listing, on a link that expires in five minutes and is never served from a public URL.
+          </p>
+        </li>
+        <li data-reveal>
+          <p class="pl-title">Nobody can buy their way up the list.</p>
+          <p class="pl-body">
+            A restaurant cannot pay for or influence its position in the feed. There is no
+            promoted tier and there is no plan to build one.
+          </p>
+        </li>
+        <li data-reveal>
+          <p class="pl-title">We'll publish what we turn down.</p>
+          <p class="pl-body">
+            From launch: how many applications we received, how many passed, and how many we
+            rejected. A verifier who only ever reports approvals isn't verifying anything.
+          </p>
+        </li>
+      </ul>
+    </div>
+
+    <!-- The honest empty state. This strip is the whole anti-fabrication policy
+         in one sentence, and it is the most valuable thing on a pre-launch page. -->
+    <p class="mono empty-strip" data-reveal>
+      No reviews, no ratings, no customer counts and no partner logos on this page. We haven't
+      opened yet. When we do, every number here will be one you can check.
+    </p>
+  </div>
+</section>
+
+<style>
+  .publish { background: var(--surface-base); }
+  .publish-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    gap: 64px;
+    align-items: start;
+  }
+  .publish-lede { margin-top: 14px; max-width: 46ch; }
+
+  .publish-list { list-style: none; margin: 0; padding: 0; display: grid; }
+  .publish-list li { padding-block: 22px; border-top: 1px solid var(--border-decorative); }
+  .publish-list li:first-child { border-top: 0; padding-top: 0; }
+
+  .pl-title { margin: 0 0 6px; font-size: var(--t-body); font-weight: 700; line-height: 1.3; color: var(--text-primary); }
+  .pl-body { margin: 0; font-size: var(--t-body-sm); line-height: 1.6; color: var(--text-secondary); max-width: 58ch; }
+  .pl-link {
+    color: var(--text-primary); font-weight: 600;
+    text-decoration: underline; text-underline-offset: 3px;
+    text-decoration-color: var(--border-decorative); white-space: nowrap;
+  }
+  .pl-link:hover { text-decoration-color: var(--action-primary); }
+
+  .empty-strip {
+    margin: 48px 0 0;
+    padding: 18px 20px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-decorative);
+    border-radius: var(--radius-marketing-md);
+    font-size: var(--t-micro);
+    line-height: 1.7;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    max-width: none;
+  }
+
+  @media (max-width: 999px) {
+    .publish-grid { grid-template-columns: 1fr; gap: 36px; }
+  }
+  @media (max-width: 639px) {
+    .publish-grid { gap: 26px; }
+    .publish-list li { padding-block: 16px; }
+    .empty-strip { margin-top: 32px; padding: 14px 15px; }
+  }
+</style>

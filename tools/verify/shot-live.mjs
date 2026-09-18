@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
+const failed = [];
+p.on('requestfailed', r => failed.push(r.url() + ' :: ' + r.failure()?.errorText));
+p.on('response', r => { if (r.status() >= 400) failed.push(r.status() + ' ' + r.url()); });
+await p.goto('https://landing-shaiknoorullahs-projects.vercel.app/', { waitUntil: 'networkidle' });
+await p.waitForTimeout(1500);
+await p.screenshot({ path: '/tmp/claude-1000/-home-devsupreme-work-hg-mono/7ee2a43c-6879-4ed0-93b0-1db24f5e568f/scratchpad/live-landing.png', fullPage: true });
+console.log('failed/4xx requests:', failed.length ? '\n' + failed.slice(0,10).join('\n') : 'none');
+await b.close();

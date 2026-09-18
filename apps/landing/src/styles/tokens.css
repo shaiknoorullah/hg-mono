@@ -1,0 +1,68 @@
+/* Halal Goes design tokens — assembled verbatim from the "Halal Goes Design System"
+   Claude Design project (tokens/*.css). Single source of truth for the landing page.
+   Marketing surfaces use --font-display (Plus Jakarta Sans) and the marketing radii/type. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  /* ── Brand — ACTION orange. Primary CTA. Never green. ─────────────────── */
+  --color-brand-50:#FEF0EA;--color-brand-100:#FBD9CB;--color-brand-200:#F8BCA3;--color-brand-300:#F5966B;--color-brand-400:#F3703F;--color-brand-500:#F1521E;--color-brand-600:#D8410F;--color-brand-700:#B0330B;--color-brand-800:#8A2909;--color-brand-900:#5E1B06;--color-brand-950:#2E0D03;
+  /* ── Accent — forest "pine". Dark low-chroma brand NEUTRAL (chrome). ───── */
+  --color-accent-50:#E7EDEA;--color-accent-100:#C6D3CC;--color-accent-200:#9FB2A9;--color-accent-300:#6F8A7E;--color-accent-400:#41685A;--color-accent-500:#274E42;--color-accent-600:#1B3B31;--color-accent-700:#143026;--color-accent-800:#0F241C;--color-accent-900:#0A1913;--color-accent-950:#05100B;
+  /* ── Neutral — warm cream + ink. ──────────────────────────────────────── */
+  --color-neutral-0:#FFFFFF;--color-neutral-50:#FFFAEA;--color-neutral-100:#F6EFDD;--color-neutral-200:#E6E0D4;--color-neutral-300:#D8D0BF;--color-neutral-400:#B9B0A0;--color-neutral-500:#8B8578;--color-neutral-600:#6E7C77;--color-neutral-700:#4A4E48;--color-neutral-800:#33352F;--color-neutral-900:#232323;--color-neutral-950:#171717;--color-neutral-1000:#000000;
+  /* ── Semantic (tint-only success; ember warning; true-red danger; info) ── */
+  --color-success-50:#E9F3E4;--color-success-100:#CFE6C6;--color-success-300:#4FC79A;--color-success-500:#0E9F6E;--color-success-600:#067A55;--color-success-700:#05603F;--color-success-800:#04492F;--color-success-900:#03301F;
+  --color-warning-50:#FEF1E7;--color-warning-100:#FDDDC4;--color-warning-300:#F59A5C;--color-warning-500:#E8690F;--color-warning-600:#B84A08;--color-warning-700:#8F3A06;--color-warning-900:#52210C;
+  --color-danger-50:#FBE9E7;--color-danger-100:#F6CFCB;--color-danger-300:#E88379;--color-danger-500:#C42B1C;--color-danger-600:#A0210F;--color-danger-700:#821A0D;--color-danger-900:#4C0F07;
+  --color-info-50:#E9F1FE;--color-info-100:#CBDFFC;--color-info-300:#6FA9F2;--color-info-500:#0B72E7;--color-info-600:#0959B8;--color-info-700:#07458F;--color-info-900:#04264F;
+  /* ── RESERVED: halal namespace. Seal emerald is the only filled solid green. */
+  --color-halal-certified-seal:#0F7A43;--color-halal-certified-seal-pressed:#0C6338;--color-halal-certified-seal-dark:#10864A;--color-halal-certified-on-seal:#FFFFFF;--color-halal-certified-ring:#C9A24B;--color-halal-certified-ring-dark:#DDB863;--color-halal-certified-tint:#E9F3E4;--color-halal-certified-tint-text:#0C4A2A;--color-halal-certified-tint-border:#A9CBB4;
+  --color-halal-expired-seal:#4E5862;
+
+  /* ── Type ─────────────────────────────────────────────────────────────── */
+  --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  --font-display:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --font-weight-regular:400;--font-weight-medium:500;--font-weight-semibold:600;--font-weight-bold:700;
+  --numeric-tabular:tabular-nums;
+  --type-label-md-size:13px;--type-label-lg-size:15px;
+  /* Marketing display steps (landing page, desktop 1280px). */
+  --type-marketing-hero-size:60px;--type-marketing-hero-line:1.05;--type-marketing-hero-tracking:-0.03em;
+  --type-marketing-section-size:40px;--type-marketing-section-line:1.1;--type-marketing-section-tracking:-0.02em;
+
+  /* ── Space / radius / elevation ───────────────────────────────────────── */
+  /* Section rhythm is deliberately uneven — uniform 96px is what reads "flat".
+     tight = short high-contrast strips · hinge = the three narrative turns. */
+  --space-section:96px;--space-section-tight:72px;--space-section-hinge:176px;--space-block:24px;
+  --target-min:44px;
+  --radius-none:0px;--radius-xs:4px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;--radius-2xl:24px;--radius-full:9999px;
+  --radius-marketing-sm:11px;--radius-marketing-md:16px;--radius-marketing-pill:999px;
+  --elev-0:none;
+  --elev-1:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.08);
+  --elev-2:0 2px 4px rgba(0,0,0,.06),0 4px 8px rgba(0,0,0,.08);
+  --elev-3:0 4px 8px rgba(0,0,0,.08),0 8px 16px rgba(0,0,0,.10);
+  --elev-4:0 8px 16px rgba(0,0,0,.10),0 16px 32px rgba(0,0,0,.12);
+  --elev-sticky:0 -2px 8px rgba(0,0,0,.08);
+  --duration-fast:120ms;--duration-base:180ms;
+  --ease-standard:cubic-bezier(.2,0,0,1);
+
+  /* ── Semantic ROLES (light) ───────────────────────────────────────────── */
+  --surface-base:var(--color-neutral-50);--surface-sunken:var(--color-neutral-100);--surface-subtle:var(--color-neutral-100);--surface-raised:var(--color-neutral-0);--surface-inverse:var(--color-neutral-900);--surface-chrome:var(--color-accent-600);
+  --text-primary:var(--color-neutral-900);--text-secondary:var(--color-neutral-700);--text-tertiary:var(--color-neutral-600);--text-placeholder:var(--color-neutral-500);--text-on-brand:var(--color-neutral-0);--text-on-accent:var(--color-neutral-0);--text-link:var(--color-info-600);
+  --border-decorative:var(--color-neutral-200);--border-interactive:var(--color-neutral-500);--border-strong:var(--color-neutral-700);--border-brand:var(--color-brand-600);
+  --focus-ring:var(--color-info-500);--focus-offset:var(--color-neutral-0);
+  --state-hover-overlay:#2323230F;--state-pressed-overlay:#2323231F;--state-selected-tint:var(--color-brand-50);--state-disabled-opacity:.6;
+  --action-primary:var(--color-brand-500);--action-primary-pressed:var(--color-brand-600);--action-secondary:var(--color-accent-600);--action-secondary-pressed:var(--color-accent-800);
+}
+
+/* ── Base element defaults ──────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;border-radius:4px}
+.hg-tabular{font-variant-numeric:var(--numeric-tabular)}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+@keyframes hg-spin{to{transform:rotate(360deg)}}

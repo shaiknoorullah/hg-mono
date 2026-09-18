@@ -43,6 +43,7 @@ import type { Assignment } from '../apiTypes';
 import { captureImage } from '../capture';
 import { sha256HexBytes } from '../sha256';
 import { Screen, LoadingView, ErrorView } from './Screen';
+import { SealScanCard } from '../components/SealScanCard';
 import { useNav } from '../nav';
 
 /** Runs the same real 3-call private-bucket upload flow the onboarding screen uses, for a POD
@@ -155,6 +156,10 @@ export function AssignmentScreen({
   const [advancing, setAdvancing] = React.useState(false);
   const [podError, setPodError] = React.useState<string | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
+  // Handoff seal scans: at pickup and at the door the rider scans the tamper-evident seal before
+  // advancing. "Skip" (no seal bound to this order) also sets these, so unsealed orders still flow.
+  const [pickupSealDone, setPickupSealDone] = React.useState(false);
+  const [deliverySealDone, setDeliverySealDone] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setState({ status: 'loading' });
@@ -370,6 +375,13 @@ export function AssignmentScreen({
               description="Proof of delivery is recorded. Nice work."
               action={{ label: 'Back to shift', onPress: nav.resetHome }}
             />
+          ) : atDropoff && !deliverySealDone ? (
+            <SealScanCard
+              orderId={state.assignment.order_id}
+              phase="delivery"
+              onScanned={() => setDeliverySealDone(true)}
+              onSkip={() => setDeliverySealDone(true)}
+            />
           ) : atDropoff ? (
             <PodCard
               method={state.assignment.required_pod_method}
@@ -378,6 +390,13 @@ export function AssignmentScreen({
               error={podError}
               submitting={submitting}
               onSubmit={() => void submitPod()}
+            />
+          ) : step && state.assignment.state === 'ARRIVED_AT_PICKUP' && !pickupSealDone ? (
+            <SealScanCard
+              orderId={state.assignment.order_id}
+              phase="pickup"
+              onScanned={() => setPickupSealDone(true)}
+              onSkip={() => setPickupSealDone(true)}
             />
           ) : step ? (
             <Card variant="outlined">

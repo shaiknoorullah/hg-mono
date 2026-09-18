@@ -1,0 +1,130 @@
+---
+import '../styles/tokens.css';
+import '../styles/landing.css';
+interface Props {
+  title: string;
+  description: string;
+  jsonLd?: unknown[];
+}
+const {
+  title = 'Halal Goes — verified halal, delivered.',
+  description = 'Every restaurant on Halal Goes is admin-verified against a seven-point halal certification check. Pre-launch in Ontario — join the waitlist.',
+  jsonLd = [],
+} = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://halalgoes.com').href;
+// Analytics is consent-gated and only loads when configured.
+const RS_KEY = import.meta.env.PUBLIC_RUDDERSTACK_WRITE_KEY;
+const RS_URL = import.meta.env.PUBLIC_RUDDERSTACK_DATA_PLANE_URL;
+const analyticsConfigured = Boolean(RS_KEY && RS_URL);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Render-blocking ON PURPOSE, and the only reason any reveal is allowed to
+         exist: every hidden state on this site is written as `html.js [data-reveal]`,
+         so if scripting is off or a bundle 404s the page is simply visible rather
+         than blank. Four lines, inline, before paint. -->
+    <script is:inline>document.documentElement.className += ' js';</script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#1B3B31" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Halal Goes" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content="/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {jsonLd.map((obj) => (
+      <script is:inline type="application/ld+json" set:html={JSON.stringify(obj)} />
+    ))}
+    <!-- First-party UTM capture (attribution). Essential, no PII, session-scoped. -->
+    <script is:inline>
+      (function () {
+        try {
+          var p = new URLSearchParams(location.search);
+          var keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'];
+          var found = {};
+          keys.forEach(function (k) { if (p.get(k)) found[k] = p.get(k); });
+          if (Object.keys(found).length) {
+            found.landing_at = new Date().toISOString();
+            found.referrer = document.referrer || '';
+            sessionStorage.setItem('hg-utm', JSON.stringify(found));
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <slot />
+
+    {analyticsConfigured && (
+      <div id="consent" hidden>
+        <p>We use privacy-friendly analytics to understand what’s working. Okay to enable?</p>
+        <div class="consent-actions">
+          <button id="consent-no" type="button">No thanks</button>
+          <button id="consent-yes" type="button">Allow</button>
+        </div>
+      </div>
+    )}
+
+    <script>
+      import '../scripts/forms.ts';
+      import '../scripts/motion.ts';
+    </script>
+
+    {analyticsConfigured && (
+      <script is:inline define:vars={{ RS_KEY, RS_URL }}>
+        (function () {
+          var choice;
+          try { choice = localStorage.getItem('hg-consent'); } catch (e) {}
+          function loadRudder() {
+            if (window.rudderanalytics) return;
+            var rs = (window.rudderanalytics = []);
+            ['load','page','track','identify','ready'].forEach(function (m) {
+              rs[m] = function () { rs.push([m].concat([].slice.call(arguments))); };
+            });
+            rs.load(RS_KEY, RS_URL);
+            var s = document.createElement('script');
+            s.src = 'https://cdn.rudderlabs.com/v3/modern/rsa.min.js';
+            s.async = true;
+            document.head.appendChild(s);
+            rs.page();
+          }
+          if (choice === 'yes') { loadRudder(); return; }
+          if (choice === 'no') return;
+          var banner = document.getElementById('consent');
+          if (!banner) return;
+          banner.hidden = false;
+          document.getElementById('consent-yes').addEventListener('click', function () {
+            try { localStorage.setItem('hg-consent', 'yes'); } catch (e) {}
+            banner.hidden = true; loadRudder();
+          });
+          document.getElementById('consent-no').addEventListener('click', function () {
+            try { localStorage.setItem('hg-consent', 'no'); } catch (e) {}
+            banner.hidden = true;
+          });
+        })();
+      </script>
+    )}
+
+    <style>
+      #consent { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 520px; margin: 0 auto; z-index: 500;
+        background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg);
+        box-shadow: var(--elev-4); padding: 16px 18px; display: grid; gap: 12px; font-size: 14px; color: var(--text-secondary); }
+      .consent-actions { display: flex; gap: 10px; justify-content: flex-end; }
+      .consent-actions button { min-height: 40px; padding: 0 16px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; font-family: var(--font-ui); }
+      #consent-no { background: transparent; border: 1.5px solid var(--border-interactive); color: var(--text-primary); }
+      #consent-yes { background: var(--action-primary); border: none; color: var(--text-on-brand); }
+    </style>
+  </body>
+</html>

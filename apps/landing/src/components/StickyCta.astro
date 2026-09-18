@@ -1,0 +1,39 @@
+---
+/**
+ * Returns the ask to the thumb once the hero form has scrolled away, and gets
+ * out of the way again whenever a real form is on screen.
+ *
+ * Mobile only. Sticky CTAs win roughly half of the mobile tests they appear in,
+ * which makes this a thing to measure rather than a gift — it is cheap to remove
+ * if the numbers say so.
+ */
+---
+<div class="sticky-cta" data-sticky-cta>
+  <span class="sc-text">Opening in Ontario</span>
+  <a class="btn btn--primary btn--md sc-btn" href="#waitlist">Join the waitlist</a>
+</div>
+
+<style>
+  .sticky-cta {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 90;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    min-height: 64px;
+    padding: 12px 20px;
+    /* Never sits on the iOS home indicator. */
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: var(--surface-raised);
+    border-top: 1px solid var(--border-decorative);
+    box-shadow: var(--elev-sticky);
+    transform: translateY(100%);
+    transition: transform 240ms var(--ease-standard);
+  }
+  .sticky-cta.is-in { transform: none; }
+
+  .sc-text { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .sc-btn { flex: 0 0 auto; }
+
+  @media (min-width: 768px) { .sticky-cta { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .sticky-cta { transition: none; } }
+</style>

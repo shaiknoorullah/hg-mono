@@ -1,0 +1,61 @@
+---
+/**
+ * Turn the hardest legal constraint into the most trustworthy sentence on the
+ * site. Humility at scale reads as confidence.
+ *
+ * This copy currently lives in the product as small grey disclaimer text. It is
+ * the best writing we have and it belongs at 48px.
+ *
+ * Columns 9-12 stay empty on purpose. That emptiness is the section's whole
+ * design — the visual equivalent of not over-claiming. Do not fill it.
+ */
+import { DISCLAIMER } from '../lib/claims';
+---
+<section class="band section--hinge refusal">
+  <div class="container">
+    <h2 class="refusal-h" data-reveal>
+      We don't certify food.<br />We don't make rulings.<br />That isn't ours to make.
+    </h2>
+    <p class="refusal-body" data-reveal>
+      We do the clerical work. We get the certificate, we read it, we check it's real and still
+      in force, and we put our name against the date we checked. What the badge shows is what
+      the certificate says — including who issued it, so you can decide whether that issuer
+      meets your standard. We don't rank issuers and we don't score them.
+    </p>
+    <p class="mono refusal-fixed" data-reveal>{DISCLAIMER}</p>
+  </div>
+</section>
+
+<style>
+  .refusal { background: var(--color-accent-600); color: var(--color-neutral-50); }
+  .refusal-h {
+    margin: 0 0 28px;
+    font-size: var(--t-h2);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.025em;
+    max-width: 18ch;
+  }
+  .refusal-body {
+    margin: 0 0 32px;
+    font-size: var(--t-lede);
+    line-height: 1.6;
+    max-width: 58ch;
+    color: var(--color-accent-100);
+  }
+  /* The fixed copy the product itself is pinned to, quoted verbatim. */
+  .refusal-fixed {
+    margin: 0;
+    padding-top: 22px;
+    border-top: 1px solid rgba(255, 255, 255, .14);
+    max-width: 62ch;
+    line-height: 1.6;
+    color: var(--color-accent-200);
+  }
+
+  @media (max-width: 639px) {
+    .refusal-h { margin-bottom: 20px; }
+    .refusal-body { margin-bottom: 24px; }
+    .refusal-fixed { padding-top: 18px; }
+  }
+</style>

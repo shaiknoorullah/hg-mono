@@ -1,0 +1,119 @@
+---
+/**
+ * The appetite engine — the largest single block of vertical space on the page.
+ * Turns "halal delivery" from an abstraction into six things you can taste.
+ *
+ * Hard rule: no restaurant names, no logos, no prices, no ratings, no "4.8★".
+ * Every one of those is fabricated proof before launch. Tiles are DISHES, and
+ * dishes are both real and ownable.
+ *
+ * Note what is deliberately NOT here: neighbourhood labels. The decided launch
+ * unit is the province of Ontario (O-05) — no city or neighbourhood is decided,
+ * so naming one would be a claim about where we open that nobody has made.
+ */
+const TILES = [
+  { img: '/img/grill.jpg', span: 46, caption: 'Charcoal chicken, still spitting.', alt: 'Chicken skewers over charcoal, char marks catching the light' },
+  { img: '/img/rice.jpg', span: 36, caption: 'Rice by the tray, not the portion.', alt: 'A large tray of spiced rice with meat, served family-style' },
+  { img: '/img/shawarma.jpg', span: 54, caption: 'Shawarma carved off the spit.', alt: 'Shawarma being carved from a vertical spit' },
+  { img: '/img/curry.jpg', span: 38, caption: 'A curry that took all afternoon.', alt: 'A dark, slow-cooked curry in a steel dish' },
+  { img: '/img/bread.jpg', span: 50, caption: 'Bread straight out of the oven.', alt: 'Flatbread fresh from a hot oven, blistered on top' },
+  { img: '/img/platter.jpg', span: 40, caption: 'A platter, for when there are nine of you.', alt: 'A large mixed grill platter laid out for a group' },
+];
+---
+<section class="section craving">
+  <div class="container">
+    <header class="craving-head">
+      <p class="eyebrow" data-reveal>What's on it</p>
+      <h2 class="mkt-h2" data-reveal>Everything here made the list.</h2>
+      <p class="body craving-lede" data-reveal>
+        Charcoal, rice, bread out of the oven — from kitchens whose certificates we've read,
+        line by line, before you ever saw them.
+      </p>
+    </header>
+
+    <div class="craving-grid" data-reveal-group>
+      {TILES.map((t, i) => (
+        <figure class="tile" style={`--span:${t.span}`} data-reveal>
+          <img
+            src={t.img}
+            alt={t.alt}
+            width="1000"
+            height="1250"
+            loading={i === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+          />
+          <figcaption>{t.caption}</figcaption>
+        </figure>
+      ))}
+    </div>
+
+    <p class="mono craving-foot" data-reveal>
+      Kitchen names go up when they've passed the check — not before.
+    </p>
+  </div>
+</section>
+
+<style>
+  .craving { background: var(--surface-base); }
+  .craving-head { margin-bottom: 44px; }
+  .craving-lede { margin-top: 14px; max-width: 62ch; }
+
+  /* Hand-set row spans so the tiles are deliberately uneven — an even 3×2 grid
+     of identical rectangles is the stock "gallery" block. */
+  .craving-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: 8px;
+    /* row-gap MUST be 0. With 8px implicit rows, a `span 46` would otherwise
+       pick up 45 row gaps as well as 46 rows — a 368px tile renders 1268px tall
+       and the section becomes three storeys of photograph. Vertical rhythm comes
+       from the tiles' own margin instead, which the span math ignores. */
+    column-gap: 20px;
+    row-gap: 0;
+  }
+  .tile {
+    grid-row: span var(--span);
+    position: relative;
+    /* Resets <figure>'s UA margin AND supplies the row rhythm in one shorthand —
+       a separate `margin: 0` after a `margin-bottom` silently wipes the gap. */
+    margin: 0 0 20px;
+    overflow: hidden;
+    border-radius: var(--radius-marketing-md);
+    border: 1px solid var(--border-decorative);
+    background: var(--color-neutral-100);
+  }
+  .tile img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 180ms var(--ease-standard);
+  }
+  /* Confirms a tile is an object rather than a background. Pointer/focus only —
+     there is no touch equivalent and it does not need one. */
+  @media (hover: hover) {
+    .tile:hover img { transform: scale(1.015); }
+  }
+
+  .tile figcaption {
+    position: absolute; inset: auto 0 0 0;
+    padding: 40px 18px 16px;
+    font-size: 17px; font-weight: 600; line-height: 1.3;
+    color: var(--color-neutral-0);
+    /* The only gradient anywhere on the site, and it is capped at 35% of the
+       tile so it reads as a caption plate, not as a "dark overlay" treatment. */
+    background: linear-gradient(to top, rgba(15, 36, 28, .78), rgba(15, 36, 28, 0));
+  }
+
+  .craving-foot { margin: 28px 0 0; }
+
+  @media (max-width: 899px) {
+    .craving-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
+    .tile { margin-bottom: 14px; }
+  }
+  /* One across on a phone: a vertical scroll of plates is the most appetising
+     mobile form there is, and it comes free. */
+  @media (max-width: 599px) {
+    .craving-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; column-gap: 10px; }
+    .tile { grid-row: auto; aspect-ratio: 4 / 5; margin-bottom: 10px; }
+    .tile figcaption { font-size: 13px; padding: 26px 11px 11px; line-height: 1.25; }
+    .craving-head { margin-bottom: 26px; }
+  }
+</style>

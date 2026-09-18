@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halal Goes — Build Completion Report</title>
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+  @page { size: A4; margin: 0; }
+  :root {
+    --forest:#1B3B31; --forest-deep:#0F241C; --cream:#FFFAEA; --card:#FFFFFF;
+    --orange:#F1521E; --ink:#232323; --muted:#6E7C77; --border:#E6E0D4;
+    --seal:#0F7A43; --brass:#C9A24B; --slate:#4E5862; --danger:#C42B1C; --sage:#E9F3E4;
+    --disp:"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --ui:"Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:var(--ui); color:var(--ink); background:var(--cream); font-size:10.5px; line-height:1.5; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .page { width:210mm; min-height:297mm; padding:16mm 15mm; background:var(--cream); position:relative; }
+  .page + .page { border-top:0; }
+  h1,h2,h3 { font-family:var(--disp); color:var(--forest); margin:0; letter-spacing:-.01em; }
+  h2 { font-size:17px; font-weight:700; margin:0 0 3px; }
+  h3 { font-size:12px; font-weight:700; margin:0 0 4px; }
+  p { margin:0 0 6px; }
+  .muted { color:var(--muted); }
+  .mono { font-variant-numeric:tabular-nums; }
+  a { color:var(--seal); text-decoration:none; }
+
+  /* Cover */
+  .cover { background:var(--forest); color:var(--cream); border-radius:0; padding:22mm 15mm; display:flex; flex-direction:column; min-height:297mm; }
+  .cover .seal { width:64px; height:64px; display:grid; place-items:center; border-radius:14px; background:var(--seal); box-shadow:inset 0 0 0 3px var(--brass); margin-bottom:20px; }
+  .cover h1 { color:var(--cream); font-size:44px; font-weight:800; line-height:1.03; letter-spacing:-.03em; margin-bottom:12px; }
+  .cover .sub { font-size:15px; color:rgba(255,255,255,.82); max-width:130mm; line-height:1.5; }
+  .cover .meta { margin-top:auto; display:flex; gap:26px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,.16); padding-top:16px; }
+  .cover .meta div span { display:block; }
+  .cover .meta .k { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.55); margin-bottom:2px; }
+  .cover .meta .v { font-size:13px; font-weight:600; color:var(--cream); font-family:var(--disp); }
+  .pill { display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18); padding:5px 12px; border-radius:999px; font-size:11px; font-weight:600; color:var(--cream); }
+  .dot { width:8px; height:8px; border-radius:999px; background:var(--orange); }
+
+  /* layout bits */
+  .eyebrow { font-size:9px; text-transform:uppercase; letter-spacing:.09em; color:var(--orange); font-weight:700; margin-bottom:5px; }
+  .lead { font-size:12px; color:var(--forest); line-height:1.55; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; page-break-inside:avoid; }
+  .section { margin-bottom:16px; page-break-inside:avoid; }
+  .rule { height:1px; background:var(--border); margin:14px 0; border:0; }
+
+  /* completion bars */
+  .bars { display:grid; gap:9px; margin-top:4px; }
+  .bar-row { display:grid; grid-template-columns:52mm 1fr 34px; align-items:center; gap:10px; }
+  .bar-label { font-size:10.5px; font-weight:600; color:var(--ink); }
+  .bar-track { height:14px; background:var(--sage); border-radius:999px; overflow:hidden; position:relative; }
+  .bar-fill { height:100%; border-radius:999px; background:var(--seal); }
+  .bar-fill.mid { background:var(--orange); }
+  .bar-fill.low { background:var(--slate); }
+  .bar-pct { font-size:11px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; color:var(--forest); }
+
+  /* stat tiles */
+  .tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .tile { background:var(--card); border:1px solid var(--border); border-radius:11px; padding:10px 12px; }
+  .tile .n { font-family:var(--disp); font-size:22px; font-weight:800; color:var(--forest); line-height:1; letter-spacing:-.02em; }
+  .tile .l { font-size:9px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.04em; }
+
+  /* tables */
+  table { width:100%; border-collapse:collapse; font-size:10px; }
+  th { text-align:left; font-size:8.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; padding:6px 8px; border-bottom:1.5px solid var(--border); }
+  td { padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  .tag { display:inline-block; font-size:8.5px; font-weight:700; padding:2px 7px; border-radius:999px; letter-spacing:.02em; white-space:nowrap; }
+  .t-done { background:var(--sage); color:var(--seal); }
+  .t-open { background:#FBEEE9; color:var(--danger); }
+  .t-part { background:#FBF1D8; color:#7A5600; }
+  .t-def  { background:#EDEFF1; color:var(--slate); }
+
+  /* callout */
+  .callout { border-left:4px solid var(--orange); background:var(--card); border-radius:0 12px 12px 0; padding:12px 16px; page-break-inside:avoid; }
+  .callout.seal { border-left-color:var(--seal); }
+  .callout h3 { color:var(--orange); }
+  .callout.seal h3 { color:var(--seal); }
+  ul { margin:4px 0 6px; padding-left:16px; }
+  li { margin-bottom:3px; }
+  .foot { position:absolute; bottom:9mm; left:15mm; right:15mm; display:flex; justify-content:space-between; font-size:8px; color:var(--muted); border-top:1px solid var(--border); padding-top:5px; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="cover">
+  <div class="seal">
+    <svg viewBox="0 0 24 24" width="38" height="38"><path d="M12 2.4 3.6 5.7v5.9c0 4.9 3.6 8.5 8.4 10 4.8-1.5 8.4-5.1 8.4-10V5.7L12 2.4Z" fill="#FFFFFF"/><path d="m8 12.1 2.7 2.7L16.2 9" fill="none" stroke="#0F7A43" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="pill"><span class="dot"></span> Build Completion Report</div>
+  <h1 style="margin-top:16px">Halal Goes<br>build status</h1>
+  <p class="sub">A whole-tree audit of what is complete against the plan — the contract-first backend, the four operator/consumer apps, the shared design system, the marketing site, and launch readiness. Findings verified by a five-way parallel code scout, not self-report.</p>
+  <div class="meta">
+    <div><span class="k">Release</span><span class="v">v1.0.0-rc1</span></div>
+    <div><span class="k">Date</span><span class="v">17 Sep 2026</span></div>
+    <div><span class="k">Branch</span><span class="v mono">main · e871f9c</span></div>
+    <div><span class="k">Shippable v1 (code)</span><span class="v">~72%</span></div>
+    <div><span class="k">Launch blockers</span><span class="v">3 (config/infra)</span></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 2 — EXEC SUMMARY ============ -->
+<section class="page">
+  <div class="eyebrow">Executive summary</div>
+  <h2>Where the build stands</h2>
+  <p class="lead" style="max-width:170mm">The <b>engine is built and provably correct</b>; the <b>apps are broad and wired</b>; the <b>launch is gated on people, not code</b>. The specification (198 features) and decision log are closed. The Go backend passes 152/152 contract-conformance and an 18/18 invariant suite against a real Postgres. All four apps adopt the shared design system and the generated API client. The one <b>load-bearing feature — the seven-check halal instrument — is wired end-to-end.</b> What remains is mostly external: SMS A2P registration, live Stripe keys, and production hosting.</p>
+
+  <div class="tiles" style="margin:12px 0 16px">
+    <div class="tile"><div class="n">152/152</div><div class="l">Contract ops conform</div></div>
+    <div class="tile"><div class="n">18/18</div><div class="l">Invariants pinned</div></div>
+    <div class="tile"><div class="n">27</div><div class="l">Migrations · ~105 tables</div></div>
+    <div class="tile"><div class="n">77</div><div class="l">Shared UI components</div></div>
+    <div class="tile"><div class="n">344</div><div class="l">Go source files</div></div>
+    <div class="tile"><div class="n">330+</div><div class="l">Contract fixtures</div></div>
+    <div class="tile"><div class="n">4+1</div><div class="l">Apps + marketing site</div></div>
+    <div class="tile"><div class="n">198</div><div class="l">Features specced</div></div>
+  </div>
+
+  <h3 style="margin-top:6px">Completion by dimension</h3>
+  <div class="bars">
+    <div class="bar-row"><span class="bar-label">Specification &amp; decisions</span><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span><span class="bar-pct">100%</span></div>
+    <div class="bar-row"><span class="bar-label">API contract &amp; fixtures</span><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span><span class="bar-pct">100%</span></div>
+    <div class="bar-row"><span class="bar-label">Design system &amp; client</span><span class="bar-track"><span class="bar-fill" style="width:95%"></span></span><span class="bar-pct">95%</span></div>
+    <div class="bar-row"><span class="bar-label">Backend (Go monolith)</span><span class="bar-track"><span class="bar-fill" style="width:95%"></span></span><span class="bar-pct">95%</span></div>
+    <div class="bar-row"><span class="bar-label">Marketing / landing site</span><span class="bar-track"><span class="bar-fill mid" style="width:90%"></span></span><span class="bar-pct">90%</span></div>
+    <div class="bar-row"><span class="bar-label">Infra &amp; runbook (single-host)</span><span class="bar-track"><span class="bar-fill mid" style="width:90%"></span></span><span class="bar-pct">90%</span></div>
+    <div class="bar-row"><span class="bar-label">Apps (4 surfaces)</span><span class="bar-track"><span class="bar-fill mid" style="width:80%"></span></span><span class="bar-pct">80%</span></div>
+    <div class="bar-row"><span class="bar-label">Shippable v1 (by code)</span><span class="bar-track"><span class="bar-fill mid" style="width:72%"></span></span><span class="bar-pct">72%</span></div>
+    <div class="bar-row"><span class="bar-label">Production hosting / TLS</span><span class="bar-track"><span class="bar-fill low" style="width:3%"></span></span><span class="bar-pct">0%</span></div>
+  </div>
+
+  <div class="callout seal" style="margin-top:16px">
+    <h3>The single claim is intact</h3>
+    <p style="margin:0">The platform exists to make one promise — <b>verified halal</b>. The admin seven-check instrument (A-15) is wired end-to-end: <span class="mono">GET/PUT …/checks → HalalChecklist</span>, which owns the fixed H1–H7 order, the H5/H7 server-computed locks, and an <b>unforgeable approve gate</b> that only renders once all seven pass. The seal, the palette reservation (solid green = halal only), and the "no badge on a missing field" rule all hold in code.</p>
+  </div>
+
+  <div class="foot"><span>Halal Goes — Build Completion Report</span><span>2 · Executive summary</span></div>
+</section>
+
+<!-- ============ PAGE 3 — FOUNDATION + BACKEND ============ -->
+<section class="page">
+  <div class="eyebrow">Complete — the load-bearing layers</div>
+  <h2>Foundation, contract &amp; backend</h2>
+
+  <div class="section">
+    <h3>Specification &amp; contract — 100%</h3>
+    <p>The <b>spec of record</b> is closed: 198 features / 10,525 lines across platform, admin, restaurant, customer, rider — each SOW-traced, versioned V0 (43, "one real paid order end-to-end") / V1 (73) / V2–V3 (82). The <b>API contract</b> is the single source of truth: <b>152 operations</b> in <span class="mono">openapi.yaml</span> (matches target exactly), a WebSocket companion, and <b>330+ fixtures</b> covering every state. The generated <span class="mono">@hg/api-client</span> is emitted from it (hand-editing forbidden and enforced).</p>
+  </div>
+
+  <div class="section">
+    <h3>Design system — 95%</h3>
+    <p><b>77 shared components</b> (43 web · 34 native) across primitives, content, feedback, navigation, certification and data. This session's foundation landed clean: the <b>Solar <span class="mono">Icon</span> primitive</b>, the bespoke <b>HalalShield</b>, the <b>glass adaptive nav</b> (<span class="mono">BottomNav</span> native / <span class="mono">SideNav</span> web), <b>Plus Jakarta</b> font wiring, and a regenerable token layer. The <b>L-4 lint</b> ("no solid green outside the halal namespace") is live in both stacks. <span class="muted">Minor: two token-JSON sources (design-tokens build input vs the richer docs spec) should be reconciled or documented.</span></p>
+  </div>
+
+  <div class="section">
+    <h3>Backend (Go modular monolith) — 95%</h3>
+    <p>All planned domains exist, are <b>routed live</b> in <span class="mono">main.go</span>, and are exercised by a real harness — not stubs. 20 internal packages (auth, session, account, addresses, catalog, orders, payments, dispatch, rider, restaurant, admin, notify, realtime, handoff, files, httpx, store, system, config).</p>
+    <div class="grid2" style="margin-top:8px">
+      <div class="card"><h3 style="font-size:10.5px">Proven correct</h3>
+        <ul style="margin-bottom:0">
+          <li><b>152/152</b> contract conformance (enforced floor in <span class="mono">spec_test.go</span>)</li>
+          <li><b>18/18</b> invariants: server-prices-order, deny-by-default, deadline_at, authorise→capture/void, ledger SUM=0, atomic notify-in-tx</li>
+          <li>Full stack boots healthy from an <b>empty volume</b>; migrations 0→27 clean</li>
+          <li>Transactional notifications = <b>River outbox</b>, enqueued inside the order tx (genuinely atomic, verified in code)</li>
+        </ul>
+      </div>
+      <div class="card"><h3 style="font-size:10.5px">The ~5% gap</h3>
+        <ul style="margin-bottom:0">
+          <li>~30 scoped, non-blocking TODOs: session-revocation pub/sub, one realtime bearer-auth path, trading-hours evaluation, a few discovery facets</li>
+          <li>Incremental adoption of generated contract types per handler</li>
+          <li><span class="muted">Stale doc-comments (e.g. "addresses are stubs") that code inspection disproves — cosmetic, not functional</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot"><span>Halal Goes — Build Completion Report</span><span>3 · Foundation &amp; backend</span></div>
+</section>
+
+<!-- ============ PAGE 4 — APPS ============ -->
+<section class="page">
+  <div class="eyebrow">Built &amp; wired — pending device verification</div>
+  <h2>The four apps — ~80%</h2>
+  <p class="muted" style="margin-top:-2px">Breadth is real: every app is wired to the generated client and adopts the shared design system (no app hand-rolls a competing palette). Empty/loading/error coverage is near-universal via shared wrappers. <span style="color:var(--forest)">Verification of native-only paths (maps, camera) still needs a device.</span></p>
+
+  <table style="margin-top:8px">
+    <thead><tr><th>App</th><th>Surface</th><th style="width:34mm">Screens</th><th>Client</th><th>Design sys.</th><th style="width:16px">%</th></tr></thead>
+    <tbody>
+      <tr><td><b>Customer</b></td><td>Expo / RN</td><td>11 (discovery, restaurant, cart, checkout, tracking, orders, rate, profile, addresses…)</td><td><span class="tag t-done">wired</span></td><td><span class="tag t-done">ui-native</span></td><td class="mono"><b>85</b></td></tr>
+      <tr><td><b>Restaurant</b></td><td>Vite / React</td><td>10 (login, register, onboarding+KYC, orders, menu, hours, payouts, staff, settings)</td><td><span class="tag t-done">wired</span></td><td><span class="tag t-done">ui-web</span></td><td class="mono"><b>85</b></td></tr>
+      <tr><td><b>Admin</b></td><td>Vite + LyteNyte</td><td>10 (onboarding queue, application/cert detail, riders, orders+detail, refunds, system, staff)</td><td><span class="tag t-done">wired</span></td><td><span class="tag t-done">ui-web</span></td><td class="mono"><b>85</b></td></tr>
+      <tr><td><b>Rider</b></td><td>Expo / RN</td><td>9 (home, availability, offer, assignment, onboarding, earnings, payout, profile, history)</td><td><span class="tag t-done">wired</span></td><td><span class="tag t-done">ui-native</span></td><td class="mono"><b>70</b></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:14px">
+    <h3>⚑ Notable finding — the handoff / QR chain-of-custody has no frontend</h3>
+    <p style="margin:0 0 5px">The backend built the signed-QR seal chain — <span class="mono">bindPackageSeal · scanPickup · scanDelivery · reportTamper</span> (4 contract ops, EdDSA-signed, nonce-replay-rejected). <b>No app calls any of them.</b> The rider delivers via plain assignment transitions + a 4-digit OTP / drop-photo POD, which works but <b>bypasses the seal chain the backend implemented.</b> The status doc's "rider: QR scan (handoff)" line overstates what's in code — only POD-OTP is real. This is a genuine functional gap, and it's what pulls the rider app to 70%.</p>
+    <p style="margin:0" class="muted"><b>Decision needed:</b> build the rider scan surface + restaurant seal-bind screen (closes the gap), <i>or</i> formally descope QR-seal to v1.1 and rely on the working OTP/photo POD for launch.</p>
+  </div>
+
+  <div class="grid2" style="margin-top:12px">
+    <div class="card"><h3 style="font-size:10.5px">Holds in code</h3><ul style="margin-bottom:0"><li>Server prices every order — checkout renders only server <span class="mono">*_cents</span>, never computes a price</li><li>A-15 seven-check halal instrument wired end-to-end (admin)</li><li>Real KYC presign-upload flow (restaurant onboarding, rider docs)</li></ul></div>
+    <div class="card"><h3 style="font-size:10.5px">Device-verification pending</h3><ul style="margin-bottom:0"><li>Customer live-tracking Mapbox render (needs Expo dev build + token)</li><li>Admin order-detail live map (needs <span class="mono">VITE_MAPBOX_TOKEN</span> in browser — verified earlier this session)</li><li>Rider camera KYC / POD photo capture (needs device)</li></ul></div>
+  </div>
+
+  <div class="foot"><span>Halal Goes — Build Completion Report</span><span>4 · The four apps</span></div>
+</section>
+
+<!-- ============ PAGE 5 — MARKETING + LAUNCH ============ -->
+<section class="page">
+  <div class="eyebrow">Go-to-market &amp; launch readiness</div>
+  <h2>Marketing site &amp; launch gates</h2>
+
+  <div class="section">
+    <h3>Marketing landing site — 90%</h3>
+    <p>Built this session from the Claude Design system as a production <b>Astro</b> app (<span class="mono">apps/landing</span>, → Vercel, halalgoes.com). Dual-audience one-scroll page (14 sections): nav toggle, both heroes ("Verified halal, delivered." / "0% commission at launch."), the verification centerpiece, how-it-works, benefits, social proof, FAQ, footer CTA. <b>Zero-JS static</b> + islands for the toggle and the two waitlist forms. Waitlist re-validates server-side (phone→E.164 + CASL consent timestamp / email) via <span class="mono">/api/waitlist</span>. SEO complete: schema.org (Organization/WebSite/FAQPage), sitemap, robots, <span class="mono">/llms.txt</span>, OG, consent-gated analytics. A Vercel build artifact already exists. <span class="muted">Remaining: real photography, certifying-body logos, OG image, live counts, and wiring the <span class="mono">WAITLIST_WEBHOOK_URL</span> sink — assets/config, not code.</span></p>
+  </div>
+
+  <div class="section">
+    <h3>Launch gates</h3>
+    <table style="margin-top:4px">
+      <thead><tr><th style="width:52mm">Gate</th><th style="width:22mm">Status</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Mapbox tokens (runtime)</td><td><span class="tag t-done">resolved</span></td><td>Public <span class="mono">pk.</span> tokens placed + API-verified (URL-restricted). Mobile render needs a dev build.</td></tr>
+        <tr><td>O-01 · HST registration</td><td><span class="tag t-done">resolved</span></td><td><span class="mono">728591827RT0001</span> staged in <span class="mono">deploy/.env</span>, wired to receipts.</td></tr>
+        <tr><td>O-04 · Refund liability</td><td><span class="tag t-done">resolved</span></td><td>By-fault split coded in <span class="mono">ComputeLiabilitySplit</span>.</td></tr>
+        <tr><td>O-05 · Launch province</td><td><span class="tag t-done">resolved</span></td><td>Ontario only, 13% HST (default).</td></tr>
+        <tr><td>O-06 · Self-declared halal</td><td><span class="tag t-done">resolved</span></td><td>Hide entirely (coded default).</td></tr>
+        <tr><td>OTP sign-in (WhatsApp)</td><td><span class="tag t-done">resolved</span></td><td>Twilio Verify built — sign-in works today via WhatsApp.</td></tr>
+        <tr><td>O-03 · SMS A2P 10DLC</td><td><span class="tag t-open">open</span></td><td>Universal (non-WhatsApp) coverage. Longest lead time; flip = <span class="mono">HG_SMS_PROVIDER=twilio</span> + creds.</td></tr>
+        <tr><td>Stripe live keys</td><td><span class="tag t-open">open</span></td><td>Real charges. Flip = <span class="mono">HG_STRIPE_SECRET_KEY</span> + webhook secret. Fake gateway today.</td></tr>
+        <tr><td>Production hosting + TLS</td><td><span class="tag t-open">open</span></td><td>Compose is single-host HTTP; no box/DNS/ACME wired. 0% built.</td></tr>
+        <tr><td>Mapbox <b>download</b> token (native)</td><td><span class="tag t-part">needed</span></td><td>Secret <span class="mono">sk.</span> Downloads:Read token to build the mobile Mapbox SDK. Public token gets 403.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout seal">
+    <h3>Android APK build — proven on this machine</h3>
+    <p style="margin:0">Toolchain installed and working (JDK 21 + <b>NDK 27.1.12297006</b> + CMake 3.22.1). The customer app compiled a valid <span class="mono">app-debug.apk</span> (153 MB) in 4m 7s — native C++ (reanimated/worklets/Fabric via the NDK) builds across all ABIs. A Mapbox-included release APK needs only the secret download token above.</p>
+  </div>
+
+  <div class="foot"><span>Halal Goes — Build Completion Report</span><span>5 · Marketing &amp; launch</span></div>
+</section>
+
+<!-- ============ PAGE 6 — DEFERRED + NEXT ============ -->
+<section class="page">
+  <div class="eyebrow">Planned, by design — not this milestone</div>
+  <h2>Deferred to v2 &amp; what's next</h2>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Deferred to v2 <span class="tag t-def" style="vertical-align:middle">planned · 0% build</span></h3>
+      <p style="margin:6px 0 4px"><b>Growth / marketing data platform.</b> Decisions locked, nothing built — deliberately separated from the OLTP plane:</p>
+      <ul style="margin-top:2px"><li>CDP (RudderStack) → warehouse (ClickHouse) + dbt + Kestra</li><li>Castled reverse-ETL · Dittofeed engagement</li><li>OpenFeature + GrowthBook flags · Branch attribution</li><li>Metabase BI · Klaro consent · Chatwoot support</li></ul>
+      <p style="margin:8px 0 4px"><b>Technical telemetry.</b> OpenTelemetry → ClickStack/HyperDX — planned; a thin pre-launch slice is desired but <b>not yet built</b>.</p>
+      <p style="margin:6px 0 0" class="muted">Transactional notifications (River outbox) are <b>v1 and done</b> — kept separate from the marketing plane by design.</p>
+    </div>
+    <div class="card">
+      <h3>Recommended next — buildable now</h3>
+      <p style="margin:6px 0 3px"><b>Engineering (no external dependency):</b></p>
+      <ul style="margin-top:2px">
+        <li><b>Resolve the handoff gap</b> — build rider QR-scan + restaurant seal-bind, <i>or</i> record a v1.1 descope decision</li>
+        <li><b>Native device verification</b> — APK build is proven; add the Mapbox <span class="mono">sk.</span> token + an emulator to render-check maps &amp; camera</li>
+        <li>Landing: drop in real assets &amp; wire the waitlist sink</li>
+        <li>Close the ~30 scoped backend TODOs; reconcile the two token sources</li>
+      </ul>
+      <p style="margin:8px 0 3px"><b>Client / config (unblocks launch):</b></p>
+      <ul style="margin-top:2px">
+        <li>SMS A2P 10DLC registration (longest lead — start now)</li>
+        <li>Stripe live account + keys</li>
+        <li>Production hosting + domain/DNS + TLS</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:14px">
+    <h3>Bottom line</h3>
+    <p style="margin:0">A <b>running, provably-correct system exists</b> and every human-blocked item is de-risked to a config flip — the day the client answers on SMS, Stripe and hosting, launch is not lagged by code. The most valuable engineering call to make now is the <b>handoff / QR chain-of-custody</b>: build its two frontend surfaces, or consciously descope it to v1.1 and launch on the working OTP/photo proof-of-delivery.</p>
+  </div>
+
+  <div class="rule"></div>
+  <p class="muted" style="font-size:9px">Method — findings from a five-way parallel code scout (backend · apps · design/contracts · docs/plans · launch/infra) run over <span class="mono">main @ e871f9c</span> on 17 Sep 2026, cross-checked against ground-truth counts and this session's own verified work. Percentages are code-completeness estimates against the planned v1 scope; they exclude on-device runtime verification except where noted.</p>
+
+  <div class="foot"><span>Halal Goes — Build Completion Report · v1.0.0-rc1</span><span>6 · Deferred &amp; next steps</span></div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,1912 @@
+[
+{
+"id": "P-01",
+"domain": "Platform",
+"title": "Account model",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-02",
+"domain": "Platform",
+"title": "Phone OTP authentication",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-03",
+"domain": "Platform",
+"title": "Email + password authentication",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-04",
+"domain": "Platform",
+"title": "Sessions: token format, lifetime, refresh, revocation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Sessions/refresh live; revoke pub/sub is a scoped TODO"
+},
+{
+"id": "P-05",
+"domain": "Platform",
+"title": "Role, scope and permission model",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-06",
+"domain": "Platform",
+"title": "Deny-by-default routing and the middleware chain",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Deny-by-default enforced; XFF-trust hardening TODO"
+},
+{
+"id": "P-07",
+"domain": "Platform",
+"title": "Ownership checks",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-08",
+"domain": "Platform",
+"title": "Currency representation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-09",
+"domain": "Platform",
+"title": "Canonical price computation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-10",
+"domain": "Platform",
+"title": "Fee breakdown presented to the customer",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-11",
+"domain": "Platform",
+"title": "Canadian sales tax",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-12",
+"domain": "Platform",
+"title": "Rounding and allocation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-13",
+"domain": "Platform",
+"title": "The ledger and the zero-residual invariant",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-14",
+"domain": "Platform",
+"title": "Order lifecycle states and transitions",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-15",
+"domain": "Platform",
+"title": "Deadlines and timeout actions",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-16",
+"domain": "Platform",
+"title": "PaymentIntent lifecycle and capture timing",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Authorise\u2192capture/void, tested"
+},
+{
+"id": "P-17",
+"domain": "Platform",
+"title": "Webhooks, idempotency and reconciliation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-18",
+"domain": "Platform",
+"title": "Refunds, cancellations and compensation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "By-fault refund split coded (ComputeLiabilitySplit)"
+},
+{
+"id": "P-19",
+"domain": "Platform",
+"title": "Stripe Connect: onboarding and payouts",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Smoke",
+"note": "Stripe Connect built; LIVE keys pending (config)"
+},
+{
+"id": "P-20",
+"domain": "Platform",
+"title": "WebSocket connection authentication",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-21",
+"domain": "Platform",
+"title": "Channels and subscriptions",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-22",
+"domain": "Platform",
+"title": "Event catalogue and envelope",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-23",
+"domain": "Platform",
+"title": "Delivery guarantees, replay and multi-replica fan-out",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-24",
+"domain": "Platform",
+"title": "Notification router: which event, which role, which channel",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-25",
+"domain": "Platform",
+"title": "Push notifications",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Smoke",
+"note": "Expo push wired"
+},
+{
+"id": "P-26",
+"domain": "Platform",
+"title": "SMS and email",
+"ver": "V1",
+"crit": false,
+"status": "Partial",
+"tested": "Verified",
+"note": "WhatsApp OTP live; carrier SMS A2P pending (config)"
+},
+{
+"id": "P-27",
+"domain": "Platform",
+"title": "Bucket layout and private-by-default",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-28",
+"domain": "Platform",
+"title": "Presigned upload and download",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-29",
+"domain": "Platform",
+"title": "Document lifecycle, review and retention",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-30",
+"domain": "Platform",
+"title": "Canonical geography schema",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-31",
+"domain": "Platform",
+"title": "Distance, duration and ETA",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-32",
+"domain": "Platform",
+"title": "Rider search and offer",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-33",
+"domain": "Platform",
+"title": "Restaurant and dish search",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-34",
+"domain": "Platform",
+"title": "Filters and halal certification",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-35",
+"domain": "Platform",
+"title": "Append-only audit trail",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-36",
+"domain": "Platform",
+"title": "Request validation and the response envelope",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-37",
+"domain": "Platform",
+"title": "Idempotency keys",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Idempotency keys; in-tx completion a scoped TODO"
+},
+{
+"id": "P-38",
+"domain": "Platform",
+"title": "Rate limiting",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "P-39",
+"domain": "Platform",
+"title": "Background runtime",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Backend \u2014 contract-conformant + invariant-tested"
+},
+{
+"id": "C-01",
+"domain": "Customer",
+"title": "Registration & phone OTP verification",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "C-02",
+"domain": "Customer",
+"title": "Login, logout, session lifecycle",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "C-03",
+"domain": "Customer",
+"title": "Profile management",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-04",
+"domain": "Customer",
+"title": "Preferences",
+"ver": "V3",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V3)"
+},
+{
+"id": "C-05",
+"domain": "Customer",
+"title": "Account deletion",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-06",
+"domain": "Customer",
+"title": "Help centre & FAQ",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-07",
+"domain": "Customer",
+"title": "Call support",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "C-08",
+"domain": "Customer",
+"title": "Customer support: message thread",
+"ver": "V2",
+"crit": false,
+"status": "Partial",
+"tested": "Untested",
+"note": "Support thread thin; full desk (Chatwoot) is v2"
+},
+{
+"id": "C-09",
+"domain": "Customer",
+"title": "Home feed",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "C-10",
+"domain": "Customer",
+"title": "Search",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-11",
+"domain": "Customer",
+"title": "Filters and sort",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "C-12",
+"domain": "Customer",
+"title": "Halal certification display and verification  CRITICAL",
+"ver": "V1",
+"crit": true,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "C-13",
+"domain": "Customer",
+"title": "Restaurant detail page",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "C-14",
+"domain": "Customer",
+"title": "Restaurant availability & serviceability gating",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-15",
+"domain": "Customer",
+"title": "Food item detail",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-16",
+"domain": "Customer",
+"title": "Variant and add-on selection",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-17",
+"domain": "Customer",
+"title": "Favourite restaurants",
+"ver": "V3",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V3)"
+},
+{
+"id": "C-18",
+"domain": "Customer",
+"title": "Reviews and ratings display",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "C-19",
+"domain": "Customer",
+"title": "Cart management",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "C-20",
+"domain": "Customer",
+"title": "Single-restaurant cart constraint",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-21",
+"domain": "Customer",
+"title": "Coupons, promo codes and discounts",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "C-22",
+"domain": "Customer",
+"title": "Price breakdown",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-23",
+"domain": "Customer",
+"title": "Order placement",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "C-24",
+"domain": "Customer",
+"title": "Payment methods",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-25",
+"domain": "Customer",
+"title": "Payment execution and 3DS",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Device",
+"note": "Payment/3DS \u2014 needs live Stripe to verify"
+},
+{
+"id": "C-26",
+"domain": "Customer",
+"title": "Order history and active-order resume",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "C-27",
+"domain": "Customer",
+"title": "Order receipts",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-28",
+"domain": "Customer",
+"title": "Reorder",
+"ver": "V3",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V3)"
+},
+{
+"id": "C-29",
+"domain": "Customer",
+"title": "Order cancellation by the customer",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-30",
+"domain": "Customer",
+"title": "Delivery address management",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-31",
+"domain": "Customer",
+"title": "Address entry: autocomplete, geocoding and map pin",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Device",
+"note": "Address map pin \u2014 needs dev build + token"
+},
+{
+"id": "C-32",
+"domain": "Customer",
+"title": "Live order tracking",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Device",
+"note": "Live tracking map \u2014 needs Expo dev build + token"
+},
+{
+"id": "C-33",
+"domain": "Customer",
+"title": "Delivery instructions",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-34",
+"domain": "Customer",
+"title": "Contacting the rider",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Contact rider (masked) \u2014 built, unverified"
+},
+{
+"id": "C-35",
+"domain": "Customer",
+"title": "Contacting the restaurant",
+"ver": "V3",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Contact restaurant (masked) \u2014 built, unverified"
+},
+{
+"id": "C-36",
+"domain": "Customer",
+"title": "Tipping the rider",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "C-37",
+"domain": "Customer",
+"title": "Refund requests and refund tracking",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "C-38",
+"domain": "Customer",
+"title": "Reviews and ratings submission",
+"ver": "V2",
+"crit": false,
+"status": "Partial",
+"tested": "Untested",
+"note": "Food+rider ratings done; dish-level deferred (R-13)"
+},
+{
+"id": "C-39",
+"domain": "Customer",
+"title": "Grievances and dispute escalation",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "C-40",
+"domain": "Customer",
+"title": "Notifications: push, in-app inbox, and alerts",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-01",
+"domain": "Restaurant",
+"title": "Restaurant account signup",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-02",
+"domain": "Restaurant",
+"title": "Email verification and account activation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-03",
+"domain": "Restaurant",
+"title": "Login, session and token lifecycle",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-04",
+"domain": "Restaurant",
+"title": "Onboarding state machine and progress tracking",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-05",
+"domain": "Restaurant",
+"title": "Business profile submission",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-06",
+"domain": "Restaurant",
+"title": "Operating hours, holidays and temporary closure",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-07",
+"domain": "Restaurant",
+"title": "Compliance document upload",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-08",
+"domain": "Restaurant",
+"title": "Document pack submission and admin verification review",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-09",
+"domain": "Restaurant",
+"title": "Verification status tracking",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-10",
+"domain": "Restaurant",
+"title": "Document expiry, renewal and compliance suspension",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-11",
+"domain": "Restaurant",
+"title": "Payout account: add and verify bank details",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-12",
+"domain": "Restaurant",
+"title": "Profile management after activation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-13",
+"domain": "Restaurant",
+"title": "Restaurant imagery",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-14",
+"domain": "Restaurant",
+"title": "Menu and category management",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-15",
+"domain": "Restaurant",
+"title": "Menu item authoring",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-16",
+"domain": "Restaurant",
+"title": "Menu item images",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-17",
+"domain": "Restaurant",
+"title": "Menu change approval workflow",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Menu approval \u2014 admin-gated, never auto-approve"
+},
+{
+"id": "R-18",
+"domain": "Restaurant",
+"title": "Item availability and out-of-stock management",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-19",
+"domain": "Restaurant",
+"title": "Out-of-stock interaction with active carts and checkout",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-20",
+"domain": "Restaurant",
+"title": "Variants and modifier groups",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "R-21",
+"domain": "Restaurant",
+"title": "Special offers, discounts and combos",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "R-22",
+"domain": "Restaurant",
+"title": "Store availability: accepting-orders toggle and auto-offline",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-23",
+"domain": "Restaurant",
+"title": "Live order dashboard",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-24",
+"domain": "Restaurant",
+"title": "Order acceptance, rejection and response timeout",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-25",
+"domain": "Restaurant",
+"title": "Preparation status updates",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-26",
+"domain": "Restaurant",
+"title": "Delay handling and rider communication",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-27",
+"domain": "Restaurant",
+"title": "Order history, search and export",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-28",
+"domain": "Restaurant",
+"title": "Restaurant-initiated cancellation after acceptance",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-29",
+"domain": "Restaurant",
+"title": "Sales dashboard and analytics",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "R-30",
+"domain": "Restaurant",
+"title": "Performance reports",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "R-31",
+"domain": "Restaurant",
+"title": "Earnings ledger, statements and payment history",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "R-32",
+"domain": "Restaurant",
+"title": "Payout schedule, preferences and payout requests",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-33",
+"domain": "Restaurant",
+"title": "Escalations and disputes",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "R-34",
+"domain": "Restaurant",
+"title": "Notifications and alerts",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-35",
+"domain": "Restaurant",
+"title": "Support and help",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "R-36",
+"domain": "Restaurant",
+"title": "Account status, suspension, reinstatement and in-flight orde",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-01",
+"domain": "Rider",
+"title": "Rider signup: phone entry + OTP + account creation",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "D-02",
+"domain": "Rider",
+"title": "Login, session, logout",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-03",
+"domain": "Rider",
+"title": "Rider profile & age verification",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-04",
+"domain": "Rider",
+"title": "Vehicle registration record",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-05",
+"domain": "Rider",
+"title": "Document upload",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Device",
+"note": "Doc/camera capture \u2014 needs device"
+},
+{
+"id": "D-06",
+"domain": "Rider",
+"title": "Verification status tracking + notifications",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-07",
+"domain": "Rider",
+"title": "Re-verification request & document resubmission",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-08",
+"domain": "Rider",
+"title": "Payout account onboarding",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-09",
+"domain": "Rider",
+"title": "Profile management",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-10",
+"domain": "Rider",
+"title": "Availability: online / offline",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "D-11",
+"domain": "Rider",
+"title": "Foreground location streaming",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Device",
+"note": "Foreground location \u2014 needs device"
+},
+{
+"id": "D-12",
+"domain": "Rider",
+"title": "Background location during an active delivery",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Device",
+"note": "Background location \u2014 needs device"
+},
+{
+"id": "D-13",
+"domain": "Rider",
+"title": "Dispatch: candidate selection, ranking and offer waves",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-14",
+"domain": "Rider",
+"title": "Receiving an offer on the device",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "D-15",
+"domain": "Rider",
+"title": "Offer expiry, wave escalation, and the no-rider-found path",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-16",
+"domain": "Rider",
+"title": "Accepting an offer",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-17",
+"domain": "Rider",
+"title": "Rejecting or ignoring an offer",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-18",
+"domain": "Rider",
+"title": "Order dashboard",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "D-19",
+"domain": "Rider",
+"title": "Order details",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-20",
+"domain": "Rider",
+"title": "Delivery status updates",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Smoke",
+"note": "Delivery status via assignment transitions"
+},
+{
+"id": "D-21",
+"domain": "Rider",
+"title": "Proof of delivery",
+"ver": "V1",
+"crit": false,
+"status": "Partial",
+"tested": "Device",
+"note": "OTP + photo POD built; QR-SEAL chain-of-custody frontend NOT wired"
+},
+{
+"id": "D-22",
+"domain": "Rider",
+"title": "Navigation & maps",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Device",
+"note": "Navigation/maps \u2014 needs dev build + token"
+},
+{
+"id": "D-23",
+"domain": "Rider",
+"title": "Distance tracking for payment",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-24",
+"domain": "Rider",
+"title": "Customer communication",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-25",
+"domain": "Rider",
+"title": "Restaurant communication",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-26",
+"domain": "Rider",
+"title": "Earnings formula and per-delivery ledger",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "D-27",
+"domain": "Rider",
+"title": "Earnings dashboard",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-28",
+"domain": "Rider",
+"title": "Payouts",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-29",
+"domain": "Rider",
+"title": "Performance metrics",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-30",
+"domain": "Rider",
+"title": "Delivery history",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-31",
+"domain": "Rider",
+"title": "Ratings received from customers",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-32",
+"domain": "Rider",
+"title": "Incident reporting & mid-delivery exceptions",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-33",
+"domain": "Rider",
+"title": "Notifications & alerts",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "D-34",
+"domain": "Rider",
+"title": "Support & help",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-01",
+"domain": "Admin",
+"title": "Staff account provisioning",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "A-02",
+"domain": "Admin",
+"title": "Role-based access control model",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-03",
+"domain": "Admin",
+"title": "Staff authentication, MFA and session policy",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "A-04",
+"domain": "Admin",
+"title": "Audit log",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-05",
+"domain": "Admin",
+"title": "Audit log viewer and export",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-06",
+"domain": "Admin",
+"title": "Global platform settings",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-07",
+"domain": "Admin",
+"title": "Promotions and campaigns",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-08",
+"domain": "Admin",
+"title": "Content management",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-09",
+"domain": "Admin",
+"title": "Platform KPI dashboard",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-10",
+"domain": "Admin",
+"title": "Scheduled reports and data export",
+"ver": "V3",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V3)"
+},
+{
+"id": "A-11",
+"domain": "Admin",
+"title": "Support team oversight",
+"ver": "V3",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V3)"
+},
+{
+"id": "A-12",
+"domain": "Admin",
+"title": "Escalation routing and tiering",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-13",
+"domain": "Admin",
+"title": "Restaurant onboarding review queue",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "A-14",
+"domain": "Admin",
+"title": "KYC document review",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-15",
+"domain": "Admin",
+"title": "Halal certification verification  core product function",
+"ver": "V1",
+"crit": true,
+"status": "Complete",
+"tested": "Verified",
+"note": "\u2605 Seven-check halal instrument \u2014 wired end-to-end, unforgeable gate"
+},
+{
+"id": "A-16",
+"domain": "Admin",
+"title": "Halal issuing-body registry",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-17",
+"domain": "Admin",
+"title": "Halal certificate expiry monitoring and lapse handling",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-18",
+"domain": "Admin",
+"title": "Restaurant approval / rejection decision",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "A-19",
+"domain": "Admin",
+"title": "Menu approval queue",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-20",
+"domain": "Admin",
+"title": "Restaurant compliance monitoring",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-21",
+"domain": "Admin",
+"title": "Restaurant performance monitoring",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-22",
+"domain": "Admin",
+"title": "Restaurant account state actions",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-23",
+"domain": "Admin",
+"title": "Rider onboarding review and approval",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Built + runtime-driven this session"
+},
+{
+"id": "A-24",
+"domain": "Admin",
+"title": "Rider document expiry monitoring",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-25",
+"domain": "Admin",
+"title": "Rider performance monitoring",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-26",
+"domain": "Admin",
+"title": "Rider incident handling",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-27",
+"domain": "Admin",
+"title": "Rider account state actions",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-28",
+"domain": "Admin",
+"title": "Customer account state actions",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-29",
+"domain": "Admin",
+"title": "In-flight order treatment on entity state change",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-30",
+"domain": "Admin",
+"title": "Review moderation",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-31",
+"domain": "Admin",
+"title": "Abuse and fraud report handling",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-32",
+"domain": "Admin",
+"title": "Feedback and ratings review",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-33",
+"domain": "Admin",
+"title": "Refund issuance and authority limits",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Refund issuance + authority limits"
+},
+{
+"id": "A-34",
+"domain": "Admin",
+"title": "Goodwill credit issuance",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-35",
+"domain": "Admin",
+"title": "Dispute case management",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-36",
+"domain": "Admin",
+"title": "Rider earnings and payout dispute assistance",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-37",
+"domain": "Admin",
+"title": "Case model, queue and assignment",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-38",
+"domain": "Admin",
+"title": "Order lookup and admin order intervention",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Verified",
+"note": "Order intervention + live map \u2014 browser-verified this session"
+},
+{
+"id": "A-39",
+"domain": "Admin",
+"title": "Restaurant and rider document upload assistance",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-40",
+"domain": "Admin",
+"title": "Customer account assistance",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+},
+{
+"id": "A-41",
+"domain": "Admin",
+"title": "Delivery issue resolution",
+"ver": "V2",
+"crit": false,
+"status": "Deferred",
+"tested": "-",
+"note": "Contracted post-launch (V2)"
+},
+{
+"id": "A-42",
+"domain": "Admin",
+"title": "Global entity search, PII masking and access justification",
+"ver": "V1",
+"crit": false,
+"status": "Complete",
+"tested": "Untested",
+"note": "Built + wired; no automated test yet"
+}
+]

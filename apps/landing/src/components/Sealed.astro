@@ -1,0 +1,82 @@
+---
+/**
+ * Chain of custody, stated as a fact.
+ *
+ * The animated journey is dead — it was brittle, it was the kind of thing that
+ * announces "a machine designed this page", and it was never as good as the
+ * plain sentences underneath it. The fact is excellent copy on its own.
+ *
+ * Shipped as a white document card with three ruled rows, in exactly the grammar
+ * of the seven checks. That is a DECISION, not a placeholder: the alternative
+ * until real photography exists is stock, and a stock photo of a stranger's hand
+ * on a stranger's doorstep is worse than type on this page.
+ *
+ * Forbidden here permanently: connecting lines, arrows, numbered rails, sticky
+ * columns, scroll-scrub, anything that plays.
+ *
+ * Carefully NOT claimed: that a broken seal blocks the handoff or triggers a
+ * refund. The contract says twice that it does not.
+ */
+import { SEAL } from '../lib/claims';
+---
+<section class="section section--tight sealed">
+  <div class="container sealed-grid">
+    <div class="sealed-lead">
+      <p class="eyebrow" data-reveal>After you order</p>
+      <h2 class="mkt-h2" data-reveal>Sealed at the kitchen. Opened by you.</h2>
+      <p class="body sealed-lede" data-reveal>
+        Verifying the kitchen is only half of it. The other half is making sure nothing happened
+        to the bag between their pass and your door.
+      </p>
+    </div>
+
+    <div class="doc sealed-card" data-reveal-group>
+      {SEAL.map((s, i) => (
+        <div class="sl" data-reveal>
+          <span class="sl-n">{String(i + 1).padStart(2, '0')} · {s.step}</span>
+          <p class="sl-title">{s.title}</p>
+          <p class="sl-body">{s.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .sealed { background: var(--surface-base); }
+  .sealed-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    gap: 64px;
+    align-items: start;
+  }
+  .sealed-lede { margin-top: 14px; max-width: 48ch; }
+
+  .sealed-card { padding: 36px 40px; }
+  .sl { padding-block: 22px; border-top: 1px solid var(--border-decorative); }
+  .sl:first-child { border-top: 0; padding-top: 0; }
+  .sl:last-child { padding-bottom: 0; }
+
+  .sl-n {
+    display: block;
+    margin-bottom: 9px;
+    font-family: var(--font-mono);
+    font-size: var(--t-micro);
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .sl-title { margin: 0 0 5px; font-size: var(--t-body); font-weight: 700; line-height: 1.3; color: var(--text-primary); }
+  .sl-body { margin: 0; font-size: var(--t-body-sm); line-height: 1.55; color: var(--text-secondary); max-width: 56ch; }
+
+  @media (max-width: 999px) {
+    .sealed-grid { grid-template-columns: 1fr; gap: 36px; }
+  }
+  @media (max-width: 639px) {
+    .sealed-grid { gap: 26px; }
+    .sealed-card { padding: 20px; }
+    .sl { padding-block: 16px; }
+    .sl-n { margin-bottom: 7px; }
+  }
+</style>

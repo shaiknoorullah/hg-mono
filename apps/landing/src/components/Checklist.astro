@@ -1,0 +1,135 @@
+---
+/**
+ * Make the labour visible. Appetite has been earned; now the reader wants to
+ * know why they're allowed to have it.
+ *
+ * A single ruled column at EVERY width — never a seven-card grid. A grid reads
+ * as a feature list; a ruled column reads as a form somebody filled in. That is
+ * the entire point, and it is why this section is the one place a "responsive
+ * improvement" would destroy the argument.
+ *
+ * The two server-computed checks are marked as such. That detail is true, it is
+ * enforced by a database constraint rather than by policy, and it is the single
+ * most convincing sentence available to us — because it is a limit on our own
+ * discretion, not a boast about our diligence.
+ */
+import HalalShield from './HalalShield.astro';
+import IssuerRow from './IssuerRow.astro';
+import { CHECKS } from '../lib/claims';
+---
+<section class="section door" id="the-door">
+  <div class="container door-grid">
+    <div class="door-lead">
+      <p class="eyebrow" data-reveal>The door</p>
+      <h2 class="mkt-h2" data-reveal>How a kitchen gets on the list.</h2>
+      <p class="body door-standfirst" data-reveal>
+        Anyone can write “halal” on a menu. Getting onto this list takes a document, seven
+        checks, and a person's name against the date they checked it. The badge on a listing
+        <strong>is</strong> that record.
+      </p>
+      <IssuerRow />
+      <p data-reveal class="door-link">
+        <a class="tlink" href="/verification">Read the verification standard <span class="arw" aria-hidden="true">→</span></a>
+      </p>
+    </div>
+
+    <div class="door-doc">
+      <div class="doc door-card" data-reveal-group>
+        {CHECKS.map((c, i) => (
+          <div class="chk" style={`--i:${i}`} data-reveal>
+            <span class="chk-n">{String(i + 1).padStart(2, '0')}</span>
+            <div class="chk-text">
+              <p class="chk-title">{c.title}</p>
+              <p class="chk-body">{c.body}</p>
+              {c.by === 'system' && (
+                <p class="chk-flag">Computed by the server · no admin can override it</p>
+              )}
+            </div>
+            <span class="chk-tick" aria-hidden="true">
+              <HalalShield
+                size={18}
+                color="transparent"
+                checkColor="var(--color-halal-certified-seal)"
+              />
+            </span>
+          </div>
+        ))}
+      </div>
+      <p class="mono door-foot" data-reveal>
+        All seven must pass. One fail and the kitchen isn't listed — there is no partial credit
+        and nothing is ever approved on a timer.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .door { background: var(--surface-base); }
+  .door-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    gap: 64px;
+    align-items: start;
+  }
+
+  /* The lead column rides along while the reader works down the seven. */
+  @media (min-width: 1000px) {
+    .door-lead { position: sticky; top: 88px; }
+  }
+  .door-standfirst { margin-top: 14px; max-width: 56ch; }
+  .door-standfirst strong { font-weight: 800; color: var(--text-primary); }
+  .door-link { margin: 24px 0 0; }
+
+  .door-card { padding: 40px; }
+
+  /* Rules, not boxes. */
+  .chk {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) 20px;
+    gap: 16px;
+    align-items: start;
+    padding-block: 20px;
+    border-top: 1px solid var(--border-decorative);
+  }
+  .chk:first-child { border-top: 0; padding-top: 0; }
+  .chk:last-child { padding-bottom: 0; }
+
+  .chk-n {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    font-variant-numeric: var(--numeric-tabular);
+    line-height: 1.7;
+  }
+  .chk-title { margin: 0 0 5px; font-size: var(--t-body); font-weight: 700; line-height: 1.3; color: var(--text-primary); }
+  .chk-body { margin: 0; font-size: var(--t-body-sm); line-height: 1.55; color: var(--text-secondary); max-width: 56ch; }
+  .chk-flag {
+    margin: 8px 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--t-micro);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  /* Emerald appears here as a tick only — never a filled shield. The filled
+     shield is reserved to the seal, which never appears without its record. */
+  .chk-tick { line-height: 0; padding-top: 3px; }
+  html.js .chk[data-reveal] { transition-delay: calc(var(--i) * 80ms); }
+
+  .door-foot { margin: 22px 0 0; max-width: 62ch; line-height: 1.6; }
+
+  @media (max-width: 999px) {
+    .door-grid { grid-template-columns: 1fr; gap: 40px; }
+  }
+  @media (max-width: 639px) {
+    .door-grid { gap: 28px; }
+    .door-card { padding: 20px; }
+    .chk { grid-template-columns: 22px minmax(0, 1fr) 16px; gap: 10px; padding-block: 15px; }
+    .chk-title { margin-bottom: 4px; }
+    .chk-flag { margin-top: 6px; }
+    .door-standfirst { margin-top: 10px; }
+    .issuers { margin-top: 26px; }
+  }
+</style>

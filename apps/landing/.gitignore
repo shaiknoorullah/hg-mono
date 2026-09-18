@@ -1,0 +1,10 @@
+# build output
+dist/
+.vercel/
+.astro/
+node_modules/
+# env
+.env
+.env.local
+.env.production
+.vercel

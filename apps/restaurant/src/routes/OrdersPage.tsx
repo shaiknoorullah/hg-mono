@@ -7,6 +7,7 @@ import { DeadlineTimer } from '../components/DeadlineTimer';
 import { PageLoading } from '../components/PageLoading';
 import { StatusChip } from '../components/StatusChip';
 import { RejectDialog, type RejectableOrder } from '../components/RejectDialog';
+import { SealBindRow } from '../components/SealBindRow';
 import { idempotencyKey, isApiError } from '@hg/api-client';
 
 const STATE_LABEL: Partial<Record<Schema['OrderState'], string>> = {
@@ -181,6 +182,9 @@ export function OrdersPage() {
                 >
                   Mark ready for pickup
                 </Button>
+              )}
+              {(order.state === 'PREPARING' || order.state === 'READY_FOR_PICKUP') && (
+                <SealBindRow orderId={order.id} />
               )}
             </Card>
           ))}
