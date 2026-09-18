@@ -22,5 +22,9 @@
   },
   "devDependencies": {
     "playwright": "1.50.1"
+  },
+  "dependencies": {
+    "@neon/config": "^1.7.2",
+    "@neon/env": "^1.4.3"
   }
 }
