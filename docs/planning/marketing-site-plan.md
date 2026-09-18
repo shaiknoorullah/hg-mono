@@ -1,8 +1,25 @@
 # Marketing site — build plan
 
-_Sep 2026. Supersedes the framework/CMS/analytics decisions in `landing-page-plan.md`; that
-document's IA, conversion mechanics and copy strategy still stand. Client-confirmed inputs are
-marked **[confirmed]**._
+_Sep 2026. Client-confirmed inputs are marked **[confirmed]**._
+
+> **`landing-page-plan.md` and `claude-design-brief.md` were deleted (Sep 2026).** Both specified
+> the Astro build; the site is Next.js and is built, so they described a stack that does not exist.
+> Where their content went:
+>
+> | Their content | Now |
+> |---|---|
+> | Astro · Decap CMS · Vercel | Next.js · Keystatic · Vercel — §1 below, and `apps/marketing/` |
+> | Dual audience toggle | **Three** audiences (riders added), as real pages: `AudienceSwitch.tsx` |
+> | The nine-section IA | Built, in the copy deck's order: hero → why → verification sheet → steps → FAQ → final CTA |
+> | Copy strategy | `docs/marketing/copy-deck.md` (Gate B) |
+> | Conversion mechanics — phone, CASL opt-in, consent timestamp, E.164 | Built: `WaitlistForm.tsx`, `lib/contact.ts`, `actions/waitlist.ts` |
+> | Analytics · consent · SEO | Built: Umami behind Klaro, `sitemap.ts`, `robots.ts`, JSON-LD, generated OG |
+> | Claude Design brief → artboards | Done: F0 desktop, E1-m phone, V verification — all approved and ported |
+> | "Social proof: certified-restaurant count" | **Now forbidden.** Counts are on the copy deck's not-publishable list until they can be read live from the database |
+>
+> **Two things did not carry over and are open:**
+> - **Dedupe by phone.** `saveSignup` does not deduplicate; the same number can join twice.
+> - **Referral "move up the list"** was a v1.1 idea and remains unbuilt.
 
 The deliverable is **halalgoes.com**: a three-audience marketing site — customers, restaurants,
 **riders** — that is marketing-ready (forms capture, leads land), ads-ready (pixels, UTM, conversion
@@ -10,7 +27,7 @@ events), content-ready (blog + CMS + SEO), and does not read as machine-generate
 
 ---
 
-## 1. Decisions changed from `landing-page-plan.md`
+## 1. Decisions changed from the original Astro plan
 
 | Area | Was | Now | Why |
 |---|---|---|---|
@@ -206,7 +223,8 @@ Stated plainly, because a trust product is the wrong place to overclaim.
 ## 9. The countdown
 
 Requested [confirmed]. It is buildable, but it needs a real date, and there is a conflict to resolve:
-the site's own rule is **ethical urgency only, no fake scarcity** (`landing-page-plan.md`), and launch
+the site's own rule is **ethical urgency only, no fake scarcity** — carried over from the deleted
+Astro plan and still binding — and launch
 is currently blocked on client-side items (A2P 10DLC, Stripe live keys, hosting) with no committed date.
 
 **Resolved [confirmed]:** the countdown ships, and the real date is set at launch, when the site

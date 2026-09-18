@@ -182,6 +182,13 @@ Landingi pre-launch go/no-go checklist (https://landingi.com/conversion-optimiza
 
 ## 4. SEO/GEO + analytics/attribution wiring (Astro on Vercel-or-self-hosted)
 
+> **Stack note (Sep 2026).** This section was written against Astro. The site is **Next.js**, so
+> the Astro-specific packages below — `@astrojs/sitemap`, `astro-seo`, `astro-seo-schema` — do not
+> apply; their jobs are done by `src/app/sitemap.ts`, `robots.ts`, the Metadata API and
+> `StructuredData.tsx` in `apps/marketing/`. The *reasoning* in this section (what to mark up, why
+> GEO blocks matter, consent before tracking) still holds, and the rest of this document is
+> framework-independent.
+
 **Astro is already ahead:** zero client-JS by default, full HTML + structured data at build time,
 so AI crawlers get real markup not a JS shell. The work is plumbing (sitemap + JSON-LD +
 robots/llms.txt), not framework-fighting.
