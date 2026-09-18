@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- The seal, reduced to what survives at 32px: gold ring, green field,
+       shield. The circular lettering is unreadable at favicon size. -->
+  <circle cx="120" cy="120" r="117" fill="#FFFAEA"/>
+  <circle cx="120" cy="120" r="112" fill="none" stroke="#C9A24B" stroke-width="8"/>
+  <circle cx="120" cy="120" r="98" fill="#0F7A43"/>
+  <g transform="translate(66 66) scale(4.5)">
+    <path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF"/>
+    <path d="M8.4 12.1l2.5 2.5 4.7-4.9" fill="none" stroke="#0F7A43" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

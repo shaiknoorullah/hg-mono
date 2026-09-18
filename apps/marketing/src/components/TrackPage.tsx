@@ -4,6 +4,7 @@ import { Hero } from '@/components/Hero';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { Steps } from '@/components/Steps';
+import { FaqLd } from '@/components/StructuredData';
 import { VerificationSheet } from '@/components/VerificationSheet';
 import { WhyThisExists } from '@/components/WhyThisExists';
 import { TRACKS, type Audience } from '@/lib/audiences';
@@ -39,6 +40,7 @@ export function TrackPage({ audience }: { audience: Audience }) {
         <FinalCta track={track} />
       </main>
       <SiteFooter />
+      <FaqLd track={track} />
     </div>
   );
 }

@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, IBM_Plex_Mono, Plus_Jakarta_Sans } from 'next/font/google';
+import { Analytics } from '@/components/Analytics';
+import { ConsentManager } from '@/components/ConsentManager';
+import { OrganizationLd } from '@/components/StructuredData';
+import { SITE, absolute } from '@/lib/site';
 import './globals.css';
 
 /* Three families, matching font.family.* in docs/design/tokens.json.
@@ -34,11 +38,28 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Halal Goes — verified halal, delivered',
+  // metadataBase is what makes every relative canonical, OG url and image in
+  // the tree resolve to an absolute URL. Without it Next warns and emits
+  // relative values, which scrapers ignore.
+  metadataBase: new URL(SITE.origin),
+  title: {
+    default: 'Halal Goes — verified halal, delivered',
+    // Child pages set their own full title; this is for any that do not.
+    template: '%s — Halal Goes',
+  },
   description:
     'Every restaurant on Halal Goes passes seven checks against its halal certificate before it goes live. Ontario first.',
-  // No Open Graph image yet: a missing image degrades to a text card, an image
-  // referencing a file that does not exist degrades to a broken one.
+  applicationName: SITE.name,
+  alternates: { canonical: absolute('/') },
+  openGraph: {
+    type: 'website',
+    siteName: SITE.name,
+    locale: SITE.locale,
+    url: absolute('/'),
+  },
+  twitter: { card: 'summary_large_image' },
+  // No verification tokens and no author/creator handles: every one of those is
+  // a real account that does not exist yet, and a wrong one is worse than none.
 };
 
 export const viewport: Viewport = {
@@ -51,7 +72,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-CA" className={`${display.variable} ${ui.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Inert until Klaro rewrites its attributes on consent. Placed after
+            the content so it can never delay first paint. */}
+        <Analytics />
+        <ConsentManager />
+        <OrganizationLd />
+      </body>
     </html>
   );
 }

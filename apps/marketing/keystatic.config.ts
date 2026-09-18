@@ -1,0 +1,79 @@
+import { collection, config, fields } from '@keystatic/core';
+
+/**
+ * The CMS. Git IS the database — every post is a Markdoc file in this repo, so
+ * an edit is a commit, review is a diff, and rollback is a revert. There is no
+ * database to run, no second copy of the content, and nothing to migrate.
+ *
+ * Storage is local by default, which is what `pnpm --filter @hg/marketing dev`
+ * needs and what makes the editor work with no credentials at all. Set
+ * KEYSTATIC_GITHUB_CLIENT_ID / _SECRET (and NEXT_PUBLIC_KEYSTATIC_GITHUB_APP_SLUG)
+ * and it switches to GitHub mode, where the editor commits through the GitHub
+ * App on behalf of whoever signed in. See src/app/keystatic/README for the
+ * reason the route refuses to serve an unauthenticated editor in production.
+ */
+
+const githubConfigured =
+  !!process.env.KEYSTATIC_GITHUB_CLIENT_ID && !!process.env.KEYSTATIC_GITHUB_CLIENT_SECRET;
+
+export default config({
+  storage: githubConfigured
+    ? { kind: 'github', repo: { owner: 'shaiknoorullah', name: 'hg-mono' } }
+    : { kind: 'local' },
+
+  ui: {
+    brand: { name: 'Halal Goes' },
+  },
+
+  collections: {
+    posts: collection({
+      label: 'Blog posts',
+      slugField: 'title',
+      path: 'apps/marketing/content/posts/*',
+      format: { contentField: 'content' },
+      entryLayout: 'content',
+      columns: ['title', 'publishedAt'],
+      schema: {
+        title: fields.slug({
+          name: { label: 'Title', validation: { length: { min: 1, max: 70 } } },
+          slug: {
+            label: 'URL slug',
+            description: 'Becomes /blog/<slug>. Changing it after publishing breaks existing links.',
+          },
+        }),
+
+        // Deliberately required and deliberately capped. It is the meta
+        // description AND the card on the index, so a post without one either
+        // ships a truncated first paragraph to Google or nothing at all.
+        summary: fields.text({
+          label: 'Summary',
+          description: 'One or two sentences. Used as the meta description and on the blog index.',
+          multiline: true,
+          validation: { length: { min: 50, max: 160 } },
+        }),
+
+        publishedAt: fields.date({
+          label: 'Published',
+          description: 'A date in the future keeps the post out of the index, the sitemap and /blog.',
+          validation: { isRequired: true },
+        }),
+
+        // Every claim on this site has a source. A post is not exempt.
+        sources: fields.array(
+          fields.object({
+            label: fields.text({ label: 'Label' }),
+            url: fields.url({ label: 'URL' }),
+          }),
+          {
+            label: 'Sources',
+            description:
+              'Anything factual in the post is cited here. See docs/marketing/copy-deck.md — nothing goes on the site that is not in the claims register.',
+            itemLabel: (props) => props.fields.label.value || 'Source',
+          },
+        ),
+
+        content: fields.markdoc({ label: 'Content' }),
+      },
+    }),
+  },
+});
