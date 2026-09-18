@@ -15,8 +15,13 @@ vendor/
 __pycache__/
 *.pyc
 
+# next.js build output and its generated ambient types
+.next/
+next-env.d.ts
+
 # expo web export output
 apps/gallery-native/dist/
 .claude/*
 !.claude/skills/
 .expo/
+*.tsbuildinfo

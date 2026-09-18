@@ -1,0 +1,63 @@
+@import 'tailwindcss';
+
+/* The design system, generated from docs/design/tokens.json.
+   tokens.css declares the --hg-* custom properties (light + dark + [data-theme]);
+   theme.css maps them onto Tailwind v4 utility names via @theme inline.
+   Neither is hand-editable — `pnpm --filter @hg/ui-web generate:tokens` owns both,
+   and pnpm check fails on drift. */
+@import '@hg/ui-web/tokens.css';
+@import '@hg/ui-web/theme.css';
+
+/* Marketing-only type, owned by this app rather than by the product system.
+   See the header of that file for why it is not in docs/design/tokens.json. */
+@import '../styles/marketing-tokens.css';
+
+/* Bridge next/font to the tokens.
+   next/font self-hosts each file under a generated family name, exposed as
+   --font-*-file. The token stacks (--hg-font-*) name the family literally and
+   carry the fallback chain. Putting the generated name FIRST and the token stack
+   after means next/font serves the file while the token stays the declared
+   intent and supplies every fallback — rather than the token naming a family the
+   browser was never sent. */
+@theme inline {
+  --font-ui: var(--font-ui-file), var(--hg-font-ui);
+  --font-mono: var(--font-mono-file), var(--hg-font-mono);
+  /* --font-display is bridged the same way, but in marketing-tokens.css:
+     the display face is marketing's own, so its stack lives with it. */
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  /* The role map names these --hg-surface-* / --hg-text-*, not --hg-color-*;
+     the --hg-color-* prefix belongs to the primitive ramps. */
+  background: var(--hg-surface-base);
+  color: var(--hg-text-primary);
+  font-family: var(--font-ui-file), var(--hg-font-ui);
+  margin: 0;
+}
+
+/* One focus treatment for the whole site, from the tokens. Every interactive
+   element here is a plain element rather than a @hg/ui-web primitive, so the
+   ring has to be declared once rather than inherited from Button. */
+:focus-visible {
+  outline: 2px solid var(--hg-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--hg-radius-xs);
+}
+
+/* Motion budget, measured off wisprflow.ai and stored as motion.easing.spring.
+   Transform and opacity only — never layout. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

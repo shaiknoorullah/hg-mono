@@ -240,16 +240,6 @@ module.exports = {
           'Tahoma',
           'sans-serif',
         ],
-        display: [
-          'Bricolage Grotesque',
-          'Plus Jakarta Sans',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'Segoe UI',
-          'Helvetica Neue',
-          'Arial',
-          'sans-serif',
-        ],
         mono: [
           'JetBrains Mono',
           'ui-monospace',
@@ -385,38 +375,6 @@ module.exports = {
             lineHeight: '15px',
             fontWeight: '400',
             letterSpacing: '0px',
-          },
-        ],
-        'marketing-hero': [
-          '118px',
-          {
-            lineHeight: '106px',
-            fontWeight: '650',
-            letterSpacing: '-3.54px',
-          },
-        ],
-        'marketing-heroPhone': [
-          '72px',
-          {
-            lineHeight: '61px',
-            fontWeight: '800',
-            letterSpacing: '-3.24px',
-          },
-        ],
-        'marketing-section': [
-          '60px',
-          {
-            lineHeight: '60px',
-            fontWeight: '700',
-            letterSpacing: '-1.8px',
-          },
-        ],
-        'marketing-sectionPhone': [
-          '34px',
-          {
-            lineHeight: '35px',
-            fontWeight: '700',
-            letterSpacing: '-1.02px',
           },
         ],
       },
