@@ -1,13 +1,17 @@
 {
   "expo": {
-    "name": "Halal Goes — Rider",
+    "name": "Halal Goes \u2014 Rider",
     "slug": "hg-rider",
     "version": "0.0.0",
     "orientation": "portrait",
     "scheme": "hgrider",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "web": {
       "bundler": "metro",
       "output": "single"
@@ -26,8 +30,10 @@
         "CAMERA",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
-      ]
+        "ACCESS_BACKGROUND_LOCATION",
+        "RECORD_AUDIO"
+      ],
+      "package": "com.devsupreme.hgrider"
     },
     "plugins": [
       "expo-dev-client",
