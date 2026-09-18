@@ -13,6 +13,7 @@
 
   --font-ui: var(--hg-font-ui);
   --font-rtl: var(--hg-font-rtl);
+  --font-display: var(--hg-font-display);
   --font-mono: var(--hg-font-mono);
 
   --text-display-lg: var(--hg-text-display-lg-size);

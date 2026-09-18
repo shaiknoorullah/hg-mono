@@ -325,7 +325,7 @@
   --hg-text-tertiary: #6E7C77;
   --hg-text-placeholder: #8B8578;
   --hg-text-disabled: #B9B0A0;
-  --hg-text-on-brand: #FFFFFF;
+  --hg-text-on-brand: #0F241C;
   --hg-text-on-inverse: #F6EFDD;
   --hg-text-on-accent: #FFFFFF;
   --hg-text-link: #0959B8;
@@ -348,8 +348,8 @@
   --hg-state-selected-tint: #FEF0EA;
   --hg-state-disabled-opacity: 0.6;
   --hg-action-primary-bg: #F1521E;
-  --hg-action-primary-bg-pressed: #D8410F;
-  --hg-action-primary-fg: #FFFFFF;
+  --hg-action-primary-bg-pressed: #F3703F;
+  --hg-action-primary-fg: #0F241C;
   --hg-action-secondary-bg: #1B3B31;
   --hg-action-secondary-bg-pressed: #143026;
   --hg-action-secondary-fg: #FFFFFF;
@@ -362,7 +362,7 @@
   --hg-control-border: #8B8578;
   --hg-control-border-hover: #4A4E48;
   --hg-control-selected-bg: #F1521E;
-  --hg-control-selected-fg: #FFFFFF;
+  --hg-control-selected-fg: #0F241C;
   --hg-control-track-off: #4A4E48;
   --hg-control-track-on: #D8410F;
   --hg-control-thumb: #FFFFFF;
@@ -414,7 +414,7 @@
     --hg-text-tertiary: #8B8578;
     --hg-text-placeholder: #6E7C77;
     --hg-text-disabled: #4A4E48;
-    --hg-text-on-brand: #FFFFFF;
+    --hg-text-on-brand: #0F241C;
     --hg-text-on-inverse: #232323;
     --hg-text-on-accent: #FFFFFF;
     --hg-text-link: #6FA9F2;
@@ -437,8 +437,8 @@
     --hg-state-selected-tint: #2E0D03;
     --hg-state-disabled-opacity: 0.5;
     --hg-action-primary-bg: #F1521E;
-    --hg-action-primary-bg-pressed: #D8410F;
-    --hg-action-primary-fg: #FFFFFF;
+    --hg-action-primary-bg-pressed: #F3703F;
+    --hg-action-primary-fg: #0F241C;
     --hg-action-secondary-bg: #1B3B31;
     --hg-action-secondary-bg-pressed: #143026;
     --hg-action-secondary-fg: #FFFFFF;
@@ -451,7 +451,7 @@
     --hg-control-border: #6E7C77;
     --hg-control-border-hover: #8B8578;
     --hg-control-selected-bg: #F1521E;
-    --hg-control-selected-fg: #FFFFFF;
+    --hg-control-selected-fg: #0F241C;
     --hg-control-track-off: #8B8578;
     --hg-control-track-on: #D8410F;
     --hg-control-thumb: #FFFFFF;
@@ -509,7 +509,7 @@
   --hg-text-tertiary: #8B8578;
   --hg-text-placeholder: #6E7C77;
   --hg-text-disabled: #4A4E48;
-  --hg-text-on-brand: #FFFFFF;
+  --hg-text-on-brand: #0F241C;
   --hg-text-on-inverse: #232323;
   --hg-text-on-accent: #FFFFFF;
   --hg-text-link: #6FA9F2;
@@ -532,8 +532,8 @@
   --hg-state-selected-tint: #2E0D03;
   --hg-state-disabled-opacity: 0.5;
   --hg-action-primary-bg: #F1521E;
-  --hg-action-primary-bg-pressed: #D8410F;
-  --hg-action-primary-fg: #FFFFFF;
+  --hg-action-primary-bg-pressed: #F3703F;
+  --hg-action-primary-fg: #0F241C;
   --hg-action-secondary-bg: #1B3B31;
   --hg-action-secondary-bg-pressed: #143026;
   --hg-action-secondary-fg: #FFFFFF;
@@ -546,7 +546,7 @@
   --hg-control-border: #6E7C77;
   --hg-control-border-hover: #8B8578;
   --hg-control-selected-bg: #F1521E;
-  --hg-control-selected-fg: #FFFFFF;
+  --hg-control-selected-fg: #0F241C;
   --hg-control-track-off: #8B8578;
   --hg-control-track-on: #D8410F;
   --hg-control-thumb: #FFFFFF;

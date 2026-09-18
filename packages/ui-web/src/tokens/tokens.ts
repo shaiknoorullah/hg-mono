@@ -807,7 +807,7 @@ export const roles = {
       "tertiary": "#6E7C77",
       "placeholder": "#8B8578",
       "disabled": "#B9B0A0",
-      "onBrand": "#FFFFFF",
+      "onBrand": "#0F241C",
       "onInverse": "#F6EFDD",
       "onAccent": "#FFFFFF",
       "link": "#0959B8"
@@ -841,8 +841,8 @@ export const roles = {
     "action": {
       "primary": {
         "bg": "#F1521E",
-        "bgPressed": "#D8410F",
-        "fg": "#FFFFFF"
+        "bgPressed": "#F3703F",
+        "fg": "#0F241C"
       },
       "secondary": {
         "bg": "#1B3B31",
@@ -864,7 +864,7 @@ export const roles = {
       "border": "#8B8578",
       "borderHover": "#4A4E48",
       "selectedBg": "#F1521E",
-      "selectedFg": "#FFFFFF",
+      "selectedFg": "#0F241C",
       "trackOff": "#4A4E48",
       "trackOn": "#D8410F",
       "thumb": "#FFFFFF"
@@ -926,7 +926,7 @@ export const roles = {
       "tertiary": "#8B8578",
       "placeholder": "#6E7C77",
       "disabled": "#4A4E48",
-      "onBrand": "#FFFFFF",
+      "onBrand": "#0F241C",
       "onInverse": "#232323",
       "onAccent": "#FFFFFF",
       "link": "#6FA9F2"
@@ -960,8 +960,8 @@ export const roles = {
     "action": {
       "primary": {
         "bg": "#F1521E",
-        "bgPressed": "#D8410F",
-        "fg": "#FFFFFF"
+        "bgPressed": "#F3703F",
+        "fg": "#0F241C"
       },
       "secondary": {
         "bg": "#1B3B31",
@@ -983,7 +983,7 @@ export const roles = {
       "border": "#6E7C77",
       "borderHover": "#8B8578",
       "selectedBg": "#F1521E",
-      "selectedFg": "#FFFFFF",
+      "selectedFg": "#0F241C",
       "trackOff": "#8B8578",
       "trackOn": "#D8410F",
       "thumb": "#FFFFFF"
