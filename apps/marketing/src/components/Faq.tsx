@@ -29,12 +29,12 @@ export function Faq({ track }: { track: AudienceTrack }) {
                   strokeWidth="2"
                   strokeLinecap="round"
                   aria-hidden="true"
-                  className="mt-1 block flex-none text-accent-600 transition-transform duration-[180ms] ease-[var(--hg-ease-spring)] group-open:rotate-45 motion-reduce:transition-none"
+                  className="mt-1 block flex-none text-mk-ink transition-transform duration-[180ms] ease-[var(--hg-ease-spring)] group-open:rotate-45 motion-reduce:transition-none"
                 >
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </summary>
-              <p className="mt-0 mb-4 max-w-[58ch] text-body-md leading-relaxed text-accent-600">{a}</p>
+              <p className="mt-0 mb-4 max-w-[58ch] text-body-md leading-relaxed text-mk-ink">{a}</p>
             </details>
           ))}
         </div>

@@ -80,3 +80,82 @@
   --text-marketing-eyebrow-phone--font-weight: 600;
   --text-marketing-eyebrow-phone--letter-spacing: 0.14em;
 }
+
+/* ---------------------------------------------------------------------------
+ * Marketing colour — the parts that must flip and had nowhere to flip from.
+ *
+ * The product's role map already themes correctly: surface, fg, line, action,
+ * control, feedback all have dark values and the site consumes them. What broke
+ * on a dark-mode device was everything below — values taken from PRIMITIVE ramp
+ * steps, which by design do not theme-flip. `--hg-color-accent-600` has no dark
+ * value at all, so the surface went to #171717 while 43 pieces of body copy
+ * stayed #1B3B31.
+ *
+ * These are marketing-scoped (mk) rather than added to docs/design/tokens.json:
+ * the apps do not have a "marketing ink", and this file already owns the type
+ * for the same reason.
+ *
+ * Every value below was measured, not eyeballed — see the table in each block.
+ * The guard pattern is the product's own: an explicit [data-theme] wins in both
+ * directions, the bare media query is the default.
+ * ------------------------------------------------------------------------- */
+
+@theme inline {
+  /* `inline` matters: without it Tailwind freezes the light value into the
+     utility at build time and the dark block below never takes effect. */
+  --color-mk-ink: var(--hg-mk-ink);
+  --color-mk-accent: var(--hg-mk-accent);
+  --color-mk-seal: var(--hg-mk-seal);
+  --color-mk-seal-ring: var(--hg-mk-seal-ring);
+  --color-mk-seal-plate: var(--hg-mk-seal-plate);
+  --color-mk-on-seal: var(--hg-mk-on-seal);
+  --color-mk-expired-bg: var(--hg-mk-expired-bg);
+  --color-mk-expired-fg: var(--hg-mk-expired-fg);
+}
+
+:root {
+  /* Light — the approved artboards, unchanged.
+       ink      #1B3B31 on #FFFAEA  11.72:1
+       accent   #F1521E underline / arrow, non-text
+       seal     #0F7A43 field, #C9A24B ring, #E9F3E4 plate
+       expired  white on #4E5862     7.25:1 */
+  --hg-mk-ink: #1B3B31;
+  --hg-mk-accent: #F1521E;
+  --hg-mk-seal: #0F7A43;
+  --hg-mk-seal-ring: #C9A24B;
+  --hg-mk-seal-plate: #E9F3E4;
+  --hg-mk-on-seal: #FFFFFF;
+  --hg-mk-expired-bg: #4E5862;
+  --hg-mk-expired-fg: #FFFFFF;
+}
+
+/* Dark. The ink is accent.200 rather than a grey: it keeps the brand's green
+   voice and sits in the same hierarchy under text.primary that accent.600 sits
+   in on cream (ink 8.04 vs primary 15.63 here; 11.72 vs 15.05 there).
+     ink      #9FB2A9 on #171717   8.04:1 · on raised 5.57:1 · on plate 6.92:1
+     accent   #F1521E on #171717   5.09:1
+     seal     #10864A field on #171717 3.87:1 — a non-text boundary, 1.4.11 wants 3
+     ring     2.45:1 on the field — the SAME documented exemption as light
+              (_pairs: decorative brass ring; the informational boundary is
+              seal-vs-surface), and that boundary is 3.87 here
+     expired  INVERTS. White on #7C8794 is 3.65:1 and fails; #171717 on it is
+              4.91:1. Still cool slate, never red — invariant 9 holds. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --hg-mk-ink: #9FB2A9;
+    --hg-mk-seal: #10864A;
+    --hg-mk-seal-ring: #DDB863;
+    --hg-mk-seal-plate: #0A2A1B;
+    --hg-mk-expired-bg: #7C8794;
+    --hg-mk-expired-fg: #171717;
+  }
+}
+
+:root[data-theme='dark'] {
+  --hg-mk-ink: #9FB2A9;
+  --hg-mk-seal: #10864A;
+  --hg-mk-seal-ring: #DDB863;
+  --hg-mk-seal-plate: #0A2A1B;
+  --hg-mk-expired-bg: #7C8794;
+  --hg-mk-expired-fg: #171717;
+}

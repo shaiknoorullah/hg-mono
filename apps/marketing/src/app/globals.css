@@ -27,6 +27,9 @@
 }
 
 html {
+  /* Both, now that the site has a real dark palette: native UI — form controls,
+     scrollbars, the caret, autofill — follows the same scheme as the page. */
+  color-scheme: light dark;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

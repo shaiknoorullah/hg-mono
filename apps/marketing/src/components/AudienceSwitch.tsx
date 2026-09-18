@@ -32,7 +32,7 @@ export function AudienceSwitch({ current, className = '' }: { current: Audience;
               'transition-colors duration-[140ms]',
               active
                 ? 'border border-action-secondary-bg bg-action-secondary-bg text-action-secondary-fg'
-                : 'border border-line-decorative bg-surface-raised text-accent-600 hover:bg-surface-sunken md:border-transparent md:bg-transparent',
+                : 'border border-line-decorative bg-surface-raised text-mk-ink hover:bg-surface-sunken md:border-transparent md:bg-transparent',
             ].join(' ')}
           >
             {track.tab}

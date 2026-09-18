@@ -16,7 +16,7 @@ export function FinalCta({ track }: { track: AudienceTrack }) {
           <h2 className="m-0 font-display text-marketing-section-phone text-fg-primary md:text-marketing-section">
             {track.finalCta.heading}
           </h2>
-          <p className="mt-3 mb-0 max-w-[40ch] text-body-lg leading-relaxed text-accent-600 md:mt-4 md:text-[19px]">
+          <p className="mt-3 mb-0 max-w-[40ch] text-body-lg leading-relaxed text-mk-ink md:mt-4 md:text-[19px]">
             {track.finalCta.body}
           </p>
         </div>

@@ -28,7 +28,7 @@ export default async function BlogIndex() {
         <h1 className="m-0 max-w-[16ch] font-display text-marketing-section-phone text-fg-primary md:text-marketing-section">
           Writing
         </h1>
-        <p className="mt-4 mb-0 max-w-[52ch] text-body-lg leading-relaxed text-accent-600 md:text-[19px]">
+        <p className="mt-4 mb-0 max-w-[52ch] text-body-lg leading-relaxed text-mk-ink md:text-[19px]">
           How halal certification actually works in Canada, what the seven checks are for, and what we find
           when we run them.
         </p>
@@ -39,13 +39,13 @@ export default async function BlogIndex() {
         {posts.length === 0 ? (
           <div className="mt-8 max-w-[52ch] rounded-2xl border border-line-decorative bg-surface-raised p-6 md:mt-12 md:p-8">
             <p className="m-0 font-display text-heading-lg text-fg-primary">Nothing published yet.</p>
-            <p className="mt-2 mb-0 text-body-md leading-relaxed text-accent-600">
+            <p className="mt-2 mb-0 text-body-md leading-relaxed text-mk-ink">
               The first pieces are being written. In the meantime, the seven checks — and what each one
               catches — are set out in full on the home page.
             </p>
             <Link
               href="/#seven-checks"
-              className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-label-lg font-bold text-accent-600 underline decoration-[var(--hg-color-brand-500)] decoration-2 underline-offset-4"
+              className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-label-lg font-bold text-mk-ink underline decoration-[var(--hg-mk-accent)] decoration-2 underline-offset-4"
             >
               Read the seven checks
               <svg
@@ -53,7 +53,7 @@ export default async function BlogIndex() {
                 height="16"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--hg-color-brand-500)"
+                stroke="var(--hg-mk-accent)"
                 strokeWidth="2.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -71,14 +71,14 @@ export default async function BlogIndex() {
                 <Link href={`/blog/${post.slug}`} className="group block py-6 no-underline md:py-8">
                   <time
                     dateTime={post.publishedAt}
-                    className="font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-accent-600 uppercase"
+                    className="font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-mk-ink uppercase"
                   >
                     {formatDate(post.publishedAt)}
                   </time>
-                  <h2 className="mt-3 mb-0 max-w-[24ch] font-display text-heading-xl text-fg-primary group-hover:underline group-hover:decoration-[var(--hg-color-brand-500)] group-hover:decoration-2 group-hover:underline-offset-4 md:text-[34px] md:leading-tight">
+                  <h2 className="mt-3 mb-0 max-w-[24ch] font-display text-heading-xl text-fg-primary group-hover:underline group-hover:decoration-[var(--hg-mk-accent)] group-hover:decoration-2 group-hover:underline-offset-4 md:text-[34px] md:leading-tight">
                     {post.title}
                   </h2>
-                  <p className="mt-2 mb-0 max-w-[60ch] text-body-md leading-relaxed text-accent-600">
+                  <p className="mt-2 mb-0 max-w-[60ch] text-body-md leading-relaxed text-mk-ink">
                     {post.summary}
                   </p>
                 </Link>

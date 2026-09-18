@@ -14,11 +14,11 @@ export function Steps({ track }: { track: AudienceTrack }) {
       <ol className="mt-6 grid list-none grid-cols-1 gap-px p-0 md:mt-10 md:grid-cols-3 md:gap-8">
         {track.steps.items.map((step, i) => (
           <li key={step.title} className="border-t border-line-decorative pt-5 md:pt-6">
-            <span className="font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-accent-600 tabular-nums">
+            <span className="font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-mk-ink tabular-nums">
               {String(i + 1).padStart(2, '0')}
             </span>
             <h3 className="mt-3 mb-0 font-display text-heading-xl text-fg-primary">{step.title}</h3>
-            <p className="mt-2 mb-0 text-body-md leading-relaxed text-accent-600">{step.body}</p>
+            <p className="mt-2 mb-0 text-body-md leading-relaxed text-mk-ink">{step.body}</p>
           </li>
         ))}
       </ol>
