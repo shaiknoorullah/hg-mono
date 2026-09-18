@@ -626,9 +626,9 @@ t.push('  /* Spacing: one 4px base unit; Tailwind derives the whole scale from i
 t.push('     which reproduces space.1..space.24 exactly (all multiples of 4). */');
 t.push('  --spacing: var(--hg-space-1);');
 t.push('');
-  // Same loop as tokens.css: hardcoding families here is what left --font-display
-  // declared in tokens.css but absent from the Tailwind theme.
-  for (const k of Object.keys(font.family)) t.push(`  --font-${kebab(k)}: var(--hg-font-${kebab(k)});`);
+t.push('  --font-ui: var(--hg-font-ui);');
+t.push('  --font-rtl: var(--hg-font-rtl);');
+t.push('  --font-mono: var(--hg-font-mono);');
 t.push('');
 for (const [name] of Object.entries(flattenTypography(typography))) {
   t.push(`  --text-${name}: var(--hg-text-${name}-size);`);

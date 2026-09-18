@@ -1,23 +1,26 @@
 /* ---------------------------------------------------------------------------
- * The marketing design system. Owned here, on purpose.
+ * Marketing type, owned by this app.
  *
- * halalgoes.com SHARES the product's palette, radii, spacing, elevation and —
- * critically — the halal tokens, all of which come from docs/design/tokens.json
- * via @hg/ui-web. The seal on this page has to be the same green as the seal in
- * the app, and that only stays true if there is one source for it.
+ * halalgoes.com SHARES the product's palette, role map, radii, spacing and —
+ * critically — the halal tokens, all of it from docs/design/tokens.json via
+ * @hg/ui-web. The seal on this page has to be the same green, the same gold
+ * ring and the same shield as the seal in the app; if they drift, the page is
+ * advertising a badge the product does not show. So Seal.tsx reads
+ * --hg-color-halal-certified-* directly and never restates a colour locally.
  *
- * What it does NOT share is type. A 118px hero and a display face exist for one
- * surface and one surface only. They lived in docs/design/tokens.json briefly
- * and the cost showed up immediately: the generated Expo tokens carried four
- * web-marketing roles across four themes — 288 lines of a 118px headline that
- * no phone will ever render. Product design systems get simpler when the
- * marketing type is not in them.
+ * Type is declared here instead so that building this site cannot require an
+ * edit to the shared token file, and therefore cannot change what the four
+ * product apps compile against. Marketing moves fast and the apps should not
+ * feel it.
  *
- * So: shared below the type layer, separate at it. If a value here ever needs
- * to appear in an app, that is the signal to promote it into
- * docs/design/tokens.json — not to reach across for it.
+ * Four of these roles (hero, heroPhone, section, sectionPhone) also exist in
+ * docs/design/tokens.json from Gate A, with identical values. The duplication
+ * is deliberate and one-directional: this file is what the site renders from,
+ * and nothing here reaches back into the product system. Reconciling the two is
+ * a change to the design system, to be made on its own terms and not as a
+ * side-effect of a marketing build.
  *
- * Hand-authored, and the only hand-authored token file in the repo. There is no
+ * Hand-authored — the only hand-authored token file in the repo. There is no
  * generator and no drift check because there is nothing to drift from.
  * ------------------------------------------------------------------------- */
 

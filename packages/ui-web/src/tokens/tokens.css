@@ -118,6 +118,7 @@
   /* Type */
   --hg-font-ui: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   --hg-font-rtl: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Geeza Pro", "Segoe UI", Tahoma, sans-serif;
+  --hg-font-display: "Bricolage Grotesque", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --hg-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --hg-weight-regular: 400;
   --hg-weight-medium: 500;
@@ -214,6 +215,30 @@
   --hg-text-mono-sm-weight: 400;
   --hg-text-mono-sm-tracking: 0;
   --hg-text-mono-sm-family: var(--hg-font-mono);
+  --hg-text-marketing-hero-size: 7.375rem;
+  --hg-text-marketing-hero-line: 0.9;
+  --hg-text-marketing-hero-line-px: 106px;
+  --hg-text-marketing-hero-weight: 650;
+  --hg-text-marketing-hero-tracking: -0.03em;
+  --hg-text-marketing-hero-family: var(--hg-font-display);
+  --hg-text-marketing-hero-phone-size: 4.5rem;
+  --hg-text-marketing-hero-phone-line: 0.85;
+  --hg-text-marketing-hero-phone-line-px: 61px;
+  --hg-text-marketing-hero-phone-weight: 800;
+  --hg-text-marketing-hero-phone-tracking: -0.045em;
+  --hg-text-marketing-hero-phone-family: var(--hg-font-display);
+  --hg-text-marketing-section-size: 3.75rem;
+  --hg-text-marketing-section-line: 1;
+  --hg-text-marketing-section-line-px: 60px;
+  --hg-text-marketing-section-weight: 700;
+  --hg-text-marketing-section-tracking: -0.03em;
+  --hg-text-marketing-section-family: var(--hg-font-display);
+  --hg-text-marketing-section-phone-size: 2.125rem;
+  --hg-text-marketing-section-phone-line: 1.02;
+  --hg-text-marketing-section-phone-line-px: 35px;
+  --hg-text-marketing-section-phone-weight: 700;
+  --hg-text-marketing-section-phone-tracking: -0.03em;
+  --hg-text-marketing-section-phone-family: var(--hg-font-display);
 
   /* Space, radius, sizing */
   --hg-space-0: 0;

@@ -76,12 +76,6 @@ asymmetric editorial grid, a bespoke interactive verification instrument, and a 
 borrowed from Wispr Flow (§5). Direction is chosen with the client at **Gate A** before any code.
 
 ### Token work
-> **Superseded, Sep 2026.** Two things in this paragraph turned out wrong. The tokens of record are
-> `docs/design/tokens.json` (not `packages/design-tokens/`, which is an orphan consumed by nothing),
-> and the marketing *type* does not land there at all — it lives in
-> `apps/marketing/src/styles/marketing-tokens.css`. Colour, radii, spacing and the halal tokens are
-> still shared from `docs/design/tokens.json`. See `docs/decisions/marketing-design-system-separation.md`.
-
 All of it lands in `packages/design-tokens/tokens/tokens.json`, which already carries `typography`,
 `radius` and `motion` groups, and regenerates `tokens.css` + Tailwind v4 `theme.css` + `tokens.ts`.
 `pnpm check` already fails on token drift and on hand-edited generated files. **No colour token changes.**
