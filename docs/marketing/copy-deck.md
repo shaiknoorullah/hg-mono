@@ -239,6 +239,10 @@ Every factual claim on the page, with its source. **Nothing goes on the page tha
 | Weekly Monday payouts, automatic, no minimum | `S-04` | Yes |
 | Free cancellation before the restaurant accepts | `S-05` | Yes |
 | Ontario at launch | `O-05` | Yes |
+| 100% of a tip reaches the rider | `docs/spec/01-platform.md` **I-13.5** (tip pass-through, enforced by the ledger: `PLATFORM_REVENUE` has no `TIP` row) | Yes — **allocation only**. Tip *taxation* is still an open DECISION REQUIRED at `01-platform.md:869`; write nothing about tax |
+| Live rider position and an ETA while the order is out | `docs/spec/02-customer.md` — `order.rider_location` events, `eta_at` always present | Yes |
+| Nothing is taken if you cancel before the restaurant accepts | `S-05` + invariant 5 (authorise then capture; capture happens on acceptance) | Yes |
+| Certificates and owner ID are never public | Invariant 7 — private buckets, short-lived presigned URLs | Yes |
 | >12 unregulated certifiers; CFIA requires certification but doesn't certify or regulate certifiers | CBC Marketplace, 18 Oct 2024 | Yes — cite CBC |
 | 6 of 10 claimed whole-restaurant certification; none certified; 8 expired certificates, one by 8 years | CBC Marketplace, 18 Oct 2024 | Yes — cite CBC, **name no chains** |
 
@@ -254,6 +258,21 @@ Every factual claim on the page, with its source. **Nothing goes on the page tha
 - **Slaughter method (hand/machine).** Approved in principle, but the field does not exist yet.
   The FAQ answer above is drafted and blocked — publishing it before the column ships would be an
   overclaim on the most sensitive topic on the page.
+
+---
+
+## Shipped
+
+The customer, restaurant and rider pages are built from this deck (`apps/marketing`). Section order
+as specified; headline **A** shipped, **B** still to test. Two deviations, both deliberate:
+
+- **The slaughter-method FAQ is not on the page.** Still blocked on the schema — see below.
+- **"Halal is a claim anyone can print" is customer-only.** A restaurant owner and a rider already
+  know the category problem; it exists to tell a cold *customer* what we solve.
+
+The restaurant and rider **steps and FAQ** were written the same way as their hero copy — from the
+spec and the settled decisions, not from anything an owner or a rider said. Same caveat, same remedy:
+five real conversations each and they get replaced.
 
 ---
 

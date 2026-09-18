@@ -74,7 +74,81 @@ export function Seal({ size = 240, className }: { size?: number; className?: str
           instrument off the Solar icon set on purpose. */}
       <g aria-hidden="true" transform="translate(78 78) scale(3.5)">
         <path
-          d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z"
+          d={SHIELD_D}
+          fill="var(--hg-color-halal-certified-on-seal)"
+          stroke="var(--hg-color-halal-certified-on-seal)"
+          strokeWidth="0.4"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8.4 12.1l2.5 2.5 4.7-4.9"
+          fill="none"
+          stroke="var(--hg-color-halal-certified-seal)"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    </svg>
+  );
+}
+
+/* The shield is the one mark both seals share. Kept as a constant so the brand
+   seal and the document stamp below cannot drift apart. */
+const SHIELD_D = 'M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z';
+
+/**
+ * The stamp on the verification sheet.
+ *
+ * A different artefact from the brand seal above and deliberately so: this one
+ * is a rubber stamp on a form — thinner, green on white rather than white on
+ * green, rotated off-axis, and captioned with the count rather than the claim.
+ * It reads as something a reviewer applied, which is the point of the section.
+ */
+export function StampSeal({ size = 168, className }: { size?: number; className?: string }) {
+  const uid = `stamp-${size}`;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 240 240"
+      role="img"
+      aria-label="Halal Goes verified seal — issued only when all seven checks pass"
+      className={`block ${className ?? ''}`}
+    >
+      <circle cx="120" cy="120" r="116" fill="none" stroke="var(--hg-color-halal-certified-ring)" strokeWidth="2.5" />
+      <circle cx="120" cy="120" r="106" fill="none" stroke="var(--hg-color-halal-certified-seal)" strokeWidth="3" />
+      <defs>
+        <path id={`${uid}-top`} d="M34,120 a86,86 0 0,1 172,0" />
+        <path id={`${uid}-bot`} d="M26,120 a94,94 0 0,0 188,0" />
+      </defs>
+      <g aria-hidden="true" fill="var(--hg-color-halal-certified-seal)">
+        <text fontFamily="var(--font-mono)" fontSize="13.5" fontWeight="600" letterSpacing="2.4" textAnchor="middle">
+          <textPath href={`#${uid}-top`} startOffset="50%">
+            HALAL GOES · VERIFIED
+          </textPath>
+        </text>
+        <text fontFamily="var(--font-mono)" fontSize="13.5" fontWeight="600" letterSpacing="2.4" textAnchor="middle">
+          <textPath href={`#${uid}-bot`} startOffset="50%">
+            7 OF 7 CHECKS PASSED
+          </textPath>
+        </text>
+        <circle cx="30" cy="120" r="2.6" />
+        <circle cx="210" cy="120" r="2.6" />
+      </g>
+      <circle
+        cx="120"
+        cy="120"
+        r="72"
+        fill="none"
+        stroke="var(--hg-color-halal-certified-seal)"
+        strokeWidth="1.25"
+        strokeDasharray="3 3"
+      />
+      <circle cx="120" cy="120" r="58" fill="var(--hg-color-halal-certified-seal)" />
+      <g aria-hidden="true" transform="translate(84 84) scale(3)">
+        <path
+          d={SHIELD_D}
           fill="var(--hg-color-halal-certified-on-seal)"
           stroke="var(--hg-color-halal-certified-on-seal)"
           strokeWidth="0.4"
