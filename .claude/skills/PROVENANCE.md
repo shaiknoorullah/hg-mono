@@ -62,3 +62,21 @@ upstream by SHA-256 re-fetch. **Re-review on any upstream bump.**
   project** — disregard that section.
 - `community-marketing/references/community-models.md` is a chapter-level condensation of a
   commercial book. Attribution is present; no separate licence ships with it.
+
+## Correction — helper scripts, added Sep 2026
+
+The first install vendored only `SKILL.md` files. That was wrong for three skills, whose
+`SKILL.md` instructs running a sibling Python helper rather than estimating by eye — the original
+vetting looked for markdown relative links and did not catch a script reference:
+
+| Skill | Helper |
+|---|---|
+| landing-page-copy-readability-pass | `readability_report.py` |
+| accessibility-conversion-blocker-check | `contrast_check.py` |
+| landing-page-ab-test-readout | `significance.py` |
+
+Without them those three skills produce guessed numbers, which is the opposite of their purpose.
+Fetched from the same upstream and reviewed as executable code, a higher bar than the markdown:
+stdlib imports only (argparse, math, re, sys, dataclasses, collections), no subprocess, no
+network, no eval/exec, no writes; the only file I/O is reading the input file. Verified by running
+`readability_report.py` against real copy and checking its output against the source.
