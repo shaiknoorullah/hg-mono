@@ -14,7 +14,7 @@ export function PageShell({
   current?: Audience;
 }) {
   return (
-    <div className="mx-auto box-border flex min-h-dvh max-w-[1280px] flex-col px-5 pt-4 md:px-14 md:pt-8">
+    <div className="mx-auto box-border flex min-h-dvh max-w-[1280px] flex-col px-5 pt-4 lg:px-14 lg:pt-8">
       <SiteHeader current={current} />
       <main className="flex-1">{children}</main>
       <SiteFooter />

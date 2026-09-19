@@ -18,7 +18,7 @@ export function SiteFooter() {
   const link = 'inline-flex min-h-11 items-center text-body-sm text-fg-secondary underline underline-offset-4';
 
   return (
-    <footer className="mt-16 flex flex-col gap-2 border-t border-line-decorative pt-8 pb-10 md:mt-24 md:flex-row md:items-center md:justify-between md:gap-6">
+    <footer className="mt-16 flex flex-col gap-2 border-t border-line-decorative pt-8 pb-10 lg:mt-24 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
       <p className="m-0 font-display text-heading-sm font-extrabold tracking-[-0.03em] text-fg-primary">Halal Goes</p>
 
       <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-6">

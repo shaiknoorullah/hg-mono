@@ -52,20 +52,20 @@ export default function VerificationPage() {
   return (
     <PageShell>
       <article className="pb-4">
-        <header className="border-b border-line-decorative pb-8 md:pb-11">
-          <p className="m-0 font-mono text-[11px] leading-none font-medium tracking-[0.1em] text-mk-ink uppercase md:text-[12px]">
+        <header className="border-b border-line-decorative pb-8 lg:pb-11">
+          <p className="m-0 font-mono text-[11px] leading-none font-medium tracking-[0.1em] text-mk-ink uppercase lg:text-[12px]">
             {VERSION} · Effective {EFFECTIVE}
           </p>
-          <h1 className="mt-4 mb-0 max-w-[16ch] font-display text-marketing-section-phone text-fg-primary md:mt-[18px] md:text-marketing-section">
+          <h1 className="mt-4 mb-0 max-w-[16ch] font-display text-marketing-section-phone text-fg-primary lg:mt-[18px] lg:text-marketing-section">
             The verification standard.
           </h1>
-          <p className="mt-4 mb-0 max-w-[62ch] text-body-lg leading-relaxed text-mk-ink md:mt-[18px] md:text-[19px]">
+          <p className="mt-4 mb-0 max-w-[62ch] text-body-lg leading-relaxed text-mk-ink lg:mt-[18px] lg:text-[19px]">
             What a halal certificate has to survive before a kitchen appears on Halal Goes. If we change any
             of it, the version number changes with it.
           </p>
         </header>
 
-        <div className="pt-9 md:pt-13">
+        <div className="pt-9 lg:pt-13">
           <DocSection n="01" title="The seven checks">
             <p>
               All seven must pass. One fail and the kitchen is not listed — there is no partial credit, no

@@ -32,19 +32,19 @@ export function DocPage({
   return (
     <PageShell>
       <article className="pb-4">
-        <header className="border-b border-line-decorative pb-8 md:pb-11">
-          <p className="m-0 font-mono text-[11px] leading-none font-medium tracking-[0.1em] text-mk-ink uppercase md:text-[12px]">
+        <header className="border-b border-line-decorative pb-8 lg:pb-11">
+          <p className="m-0 font-mono text-[11px] leading-none font-medium tracking-[0.1em] text-mk-ink uppercase lg:text-[12px]">
             {version} · Effective {effective}
           </p>
-          <h1 className="mt-4 mb-0 max-w-[18ch] font-display text-marketing-section-phone text-fg-primary md:mt-[18px] md:text-marketing-section">
+          <h1 className="mt-4 mb-0 max-w-[18ch] font-display text-marketing-section-phone text-fg-primary lg:mt-[18px] lg:text-marketing-section">
             {heading}
           </h1>
-          <p className="mt-4 mb-0 max-w-[62ch] text-body-lg leading-relaxed text-mk-ink md:mt-[18px] md:text-[19px]">
+          <p className="mt-4 mb-0 max-w-[62ch] text-body-lg leading-relaxed text-mk-ink lg:mt-[18px] lg:text-[19px]">
             {standfirst}
           </p>
         </header>
 
-        <div className="pt-9 md:pt-13">{children}</div>
+        <div className="pt-9 lg:pt-13">{children}</div>
 
         <p className="mt-2 mb-0 max-w-[74ch] font-mono text-[11px] leading-relaxed tracking-[0.03em] text-mk-ink">
           {footnote ?? (
@@ -72,7 +72,7 @@ export function DocSection({ n, title, children }: { n: string; title: string; c
   return (
     <section
       className="
-        mb-9 max-w-[700px] md:mb-11
+        mb-9 max-w-[700px] lg:mb-11
         [&_a]:font-semibold [&_a]:text-fg-primary [&_a]:underline [&_a]:decoration-line-decorative [&_a]:underline-offset-[3px]
         hover:[&_a]:decoration-[var(--hg-mk-accent)]
         [&_code]:rounded-xs [&_code]:bg-surface-sunken [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-mono-sm

@@ -13,13 +13,13 @@ import { type AudienceTrack } from '@/lib/audiences';
  */
 export function Faq({ track }: { track: AudienceTrack }) {
   return (
-    <section id="faq" className="mt-16 scroll-mt-6 md:mt-24">
-      <div className="md:grid md:grid-cols-[1fr_440px] md:items-start md:gap-16">
-        <h2 className="m-0 max-w-[12ch] font-display text-marketing-section-phone text-fg-primary md:text-marketing-section">
+    <section id="faq" className="mt-16 scroll-mt-6 lg:mt-24">
+      <div className="lg:grid lg:grid-cols-[1fr_440px] lg:items-start lg:gap-16">
+        <h2 className="m-0 max-w-[12ch] font-display text-marketing-section-phone text-fg-primary lg:text-marketing-section">
           Questions people ask.
         </h2>
 
-        <Accordion type="multiple" className="mt-6 md:mt-0">
+        <Accordion type="multiple" className="mt-6 lg:mt-0">
           {track.faq.map(({ q, a }) => (
             <AccordionItem key={q} value={q} className="border-line-decorative">
               <AccordionTrigger className="py-4 text-body-lg leading-snug font-semibold text-fg-primary hover:no-underline">

@@ -31,10 +31,10 @@ export function AudienceSwitch({ current, className = '' }: { current: Audience;
       // The default is a centred, max-content flex row with a dropdown viewport.
       // No triggers here, so the viewport is off and the row is laid out by the
       // list below.
-      className={`-me-5 max-w-none justify-start overflow-x-auto overflow-y-hidden pe-5 md:me-0 md:flex-none md:overflow-visible md:pe-0 ${className}`}
+      className={`-me-5 max-w-none justify-start overflow-x-auto overflow-y-hidden pe-5 lg:me-0 lg:flex-none lg:overflow-visible lg:pe-0 ${className}`}
       viewport={false}
     >
-      <NavigationMenuList className="w-max flex-none justify-start gap-2 whitespace-nowrap md:gap-1 md:rounded-full md:border md:border-line-decorative md:bg-surface-raised md:p-1">
+      <NavigationMenuList className="w-max flex-none justify-start gap-2 whitespace-nowrap lg:gap-1 lg:rounded-full lg:border lg:border-line-decorative lg:bg-surface-raised lg:p-1">
         {AUDIENCES.map((id) => {
           const track = TRACKS[id];
           const active = id === current;
@@ -48,7 +48,7 @@ export function AudienceSwitch({ current, className = '' }: { current: Audience;
                   'text-label-lg font-semibold whitespace-nowrap transition-colors duration-[140ms]',
                   active
                     ? 'border border-action-secondary-bg bg-action-secondary-bg text-action-secondary-fg hover:bg-action-secondary-bg focus:bg-action-secondary-bg'
-                    : 'border border-line-decorative bg-surface-raised text-mk-ink hover:bg-surface-sunken md:border-transparent md:bg-transparent',
+                    : 'border border-line-decorative bg-surface-raised text-mk-ink hover:bg-surface-sunken lg:border-transparent lg:bg-transparent',
                 ].join(' ')}
               >
                 <Link href={track.href} aria-current={active ? 'page' : undefined}>

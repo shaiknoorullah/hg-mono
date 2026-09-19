@@ -52,7 +52,7 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
 
   if (result.status === 'ok') {
     return (
-      <Card className="gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none md:p-7">
+      <Card className="gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none lg:p-7">
         <p className="m-0 font-display text-heading-xl text-fg-primary">You’re on the list.</p>
         <p className="mt-2 mb-0 text-body-md text-mk-ink">
           {track.id === 'restaurant'
@@ -76,7 +76,7 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
     // overridden here rather than worked around, which is what tailwind-merge
     // inside cn() is for.
     <form action={submit} noValidate>
-      <Card className="gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none md:p-7">
+      <Card className="gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none lg:p-7">
         <input type="hidden" name="audience" value={track.id} />
         {/* Which form on which page, and the campaign that brought them — so a
             signup can be attributed without anything that identifies a person.
@@ -88,7 +88,7 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
           {track.form.label}
         </Label>
 
-        <div className="mt-2.5 flex flex-col gap-2.5 md:flex-row">
+        <div className="mt-2.5 flex flex-col gap-2.5 lg:flex-row">
           <Input
             id={fieldId}
             ref={contactRef}
@@ -101,7 +101,7 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
             required
             aria-invalid={invalidField === 'contact' || undefined}
             aria-describedby={message ? messageId : undefined}
-            className="h-14 rounded-md border-[1.5px] bg-control-bg px-4 text-body-lg md:flex-1"
+            className="h-14 rounded-md border-[1.5px] bg-control-bg px-4 text-body-lg lg:flex-1"
           />
 
           <Button
