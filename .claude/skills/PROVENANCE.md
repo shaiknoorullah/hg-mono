@@ -1,9 +1,15 @@
 # Third-party skills — provenance
 
-Five vendored skill packs, 41 skills. Packs 1, 2, 4 and 5 are MIT; pack 3 is
-Apache-2.0. All fetched Sep 2026 from public sources with no repo attached to the session and
-no credentials — packs 1 and 2 over `raw.githubusercontent.com`, packs 3, 4 and 5 by anonymous
-git clone. Packs 4 and 5 come from the same upstream repo and share one licence file.
+Six vendored skill packs, 42 skills. Packs 1, 2, 4 and 5 are MIT; packs 3 and 6 are
+Apache-2.0 under different copyright holders, so each carries its own licence text. All fetched
+Sep 2026 from public sources with no repo attached to the session and no credentials — packs 1
+and 2 over `raw.githubusercontent.com`, packs 3 to 6 by anonymous git clone. Packs 4 and 5 come
+from the same upstream repo and share one licence file.
+
+Packs 1 and 2 are marketing and landing-page diagnosis; packs 3 to 6 are 3D, WebGL and
+scroll-driven rendering, added Sep 2026 while exploring a hero treatment for
+`apps/marketing`. Pack 6 is vendor API documentation rather than technique guidance — see its
+section.
 
 ## Pack 1 — marketing (5 skills)
 
@@ -283,3 +289,50 @@ is a phone on a flat cream ground. Do not reach for them here.
   installed. Same class of dead end as pack 4's routing block.
 - `agents/openai.yaml` in each is an OpenAI Codex interface manifest, inert in Claude Code.
 - These skills reference Seijaku by pinned commit. Those links are upstream's, not verified here.
+
+---
+
+## Pack 6 — react-three-fiber (1 skill), added Sep 2026
+
+Source: **vercel-labs/json-render**, commit `3ad381881194e7011ad3ccd6d668033495a06c29`
+(2026-09-18), path `skills/react-three-fiber/`. Anonymous public clone, no credentials.
+
+Licence: **Apache-2.0, "Copyright 2025 Vercel Inc."** — text in
+`LICENSE-json-render-Apache-2.0`. It is a *different* copy from pack 3's Apache text (different
+copyright holder and appendix), so it ships as its own file rather than sharing one. No NOTICE
+file upstream. The single vendored file is byte-identical to upstream:
+
+| File | SHA-256 |
+|---|---|
+| `react-three-fiber/SKILL.md` | `f1120aeaf7cf695838b4daa37879403b007014babaf7ec3fed1eaafc7fb61593` |
+
+Reviewed in full: no prompt injection, no network or shell instructions, no credential access,
+no hidden unicode. It contains only TypeScript/JSON usage examples.
+
+### This one is a different kind of thing from packs 3-5, and the difference matters
+
+Packs 3, 4 and 5 are **technique guidance** — they teach how to do something and apply to any
+codebase. This is an **API reference for one npm package**, `@json-render/react-three-fiber`.
+It documents that package's 19 components, its catalog/registry pattern, its JSON spec format
+and its Zod material schema. It is useful only if this repo adopts `json-render`, a Vercel Labs
+library for rendering UI from JSON specs (its usual purpose is model-generated UI).
+
+**This repo does not use json-render, and nothing here proposes to.** As installed, the skill is
+reference material for a dependency we do not have.
+
+### Known caveats
+
+- **It mandates the runtime path this repo's measurements argue against.** Its peer dependencies
+  are `@react-three/fiber >= 8`, `@react-three/drei >= 9`, `three >= 0.160` — measured at
+  264-271 KB gzipped, against a marketing page that ships ~230 KB gz in total. The measured
+  alternative, pre-rendering frames offline, is 201 KB for 60 frames and puts three.js in
+  devDependencies (`apps/marketing/experiments/hero-flipbook/`). A JSON-spec runtime renderer
+  adds nothing when the frames are rendered ahead of time.
+- **Its stated React range is wider than R3F actually supports.** The skill says `react ^19.0.0`;
+  react-three-fiber 9.7.0 peers `react >=19 <19.3` (scheduler ^0.27 against React 19.3's 0.28).
+  This repo pins react 19.1.0, so it installs today, but adopting it pins us out of 19.3.
+- It names sibling `@json-render/*` skills (`core`, `react`, `next`, `shadcn`, and ~27 others in
+  the same upstream folder) that are not installed. Without at least `core` and `react`, the
+  catalog/registry examples here have no counterpart to read.
+- Nothing in it is specific to this project's constraints — no halal invariants, no contrast
+  floor, no reduced-motion guidance. Treat it as vendor documentation, not craft guidance.
