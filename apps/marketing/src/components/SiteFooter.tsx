@@ -2,12 +2,17 @@ import Link from 'next/link';
 import { ConsentPreferencesButton } from '@/components/ConsentManager';
 
 /**
- * Still deliberately thin. Privacy, terms and contact have to exist before they
- * are linked to, and none of them do yet — a footer full of dead links is the
- * clearest possible signal that a site was generated rather than built.
+ * Thin, and every link goes somewhere. A footer full of dead links is the
+ * clearest possible signal that a site was generated rather than built, which is
+ * why privacy, terms and the verification standard were written before they were
+ * linked rather than stubbed and linked anyway.
  *
- * Cookie preferences is the exception and is not optional: consent that cannot
- * be withdrawn as easily as it was given is not consent.
+ * The standard sits here as well as in the page body on purpose: it is the one
+ * document a reader might want to forward, and the footer is where people look
+ * for a document.
+ *
+ * Cookie preferences is not optional: consent that cannot be withdrawn as easily
+ * as it was given is not consent.
  */
 export function SiteFooter() {
   const link = 'inline-flex min-h-11 items-center text-body-sm text-fg-secondary underline underline-offset-4';
@@ -17,8 +22,17 @@ export function SiteFooter() {
       <p className="m-0 font-display text-heading-sm font-extrabold tracking-[-0.03em] text-fg-primary">Halal Goes</p>
 
       <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-6">
+        <Link href="/verification" className={link}>
+          Verification standard
+        </Link>
         <Link href="/blog" className={link}>
           Writing
+        </Link>
+        <Link href="/privacy" className={link}>
+          Privacy
+        </Link>
+        <Link href="/terms" className={link}>
+          Terms
         </Link>
         <ConsentPreferencesButton className={`${link} cursor-pointer bg-transparent p-0`} />
       </nav>
