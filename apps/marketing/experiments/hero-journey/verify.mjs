@@ -20,15 +20,38 @@ const shotsAt = process.argv.includes('--shots')
 if (!path) { console.error('usage: node verify.mjs <file.html> [--shots <dir>]'); process.exit(1); }
 
 const WIDTHS = [[1440, 900], [1024, 768], [768, 1024], [390, 844]];
+
+// Seek by driving real wheel input, never `scrollTo`.
+//
+// These pages run Lenis, which keeps its OWN scroll value and drives every
+// transform from it. A native `scrollTo` moves `window.scrollY` without moving
+// Lenis's value, so the page renders one position while the browser reports
+// another — and any measurement taken afterwards is of a page that no reader
+// will ever see. That desync produced a false "all clear" on a beat that really
+// did render empty. Wheel input goes through Lenis, so the two stay in step.
+async function seek(page, y) {
+  for (let i = 0; i < 60; i++) {
+    const cur = await page.evaluate(() => scrollY);
+    const delta = y - cur;
+    if (Math.abs(delta) < 10) break;
+    await page.mouse.wheel(0, Math.max(-2500, Math.min(2500, delta)));
+    await page.waitForTimeout(55);
+  }
+  await page.waitForTimeout(800);   // let the damped values converge
+}
 const browser = await chromium.launch({ executablePath: CHROME });
 const report = { file: path, widths: {}, reducedMotion: null, beats: null };
 
-const readBeats = () => [...document.querySelectorAll('[data-beat]')].map((el) => {
+// The three directions mark their beats differently — [data-beat] in some,
+// class="beat" + data-name in others. Key off both, or the harness silently
+// reports zero beats and reads as a pass.
+const readBeats = () => [...document.querySelectorAll('[data-beat], .beat')].map((el, i) => {
   const pinned = [...el.querySelectorAll('*')]
     .some((c) => getComputedStyle(c).position === 'sticky');
   return {
-    id: el.dataset.beat,
-    name: el.dataset.beatName || el.dataset.beat,
+    id: el.dataset.beat || el.id || `beat${i}`,
+    name: el.dataset.beatName || el.dataset.name || el.dataset.beat || `beat ${i}`,
+    deviceBeat: el.dataset.deviceBeat || null,
     top: el.offsetTop,
     height: el.offsetHeight,
     vh: +(el.offsetHeight / innerHeight).toFixed(2),
@@ -56,15 +79,16 @@ for (const [w, h] of WIDTHS) {
 
   // Horizontal overflow can appear only mid-transform, so step the whole page.
   let worstH = geom.hScrollAtRest;
+  const maxY = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
   for (let i = 0; i <= 16; i++) {
-    await page.evaluate((f) => scrollTo(0, (document.documentElement.scrollHeight - innerHeight) * f), i / 16);
-    await page.waitForTimeout(200);
+    await seek(page, (maxY * i) / 16);
     worstH = Math.max(worstH, await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth));
   }
 
   const pinned = geom.beats.filter((b) => b.pinned);
   report.widths[`${w}x${h}`] = {
     totalVh: geom.totalVh,
+    NO_BEATS_FOUND: geom.beats.length === 0 || undefined,
     pinnedBeats: pinned.length,
     shortestPinnedVh: pinned.length ? Math.min(...pinned.map((b) => b.vh)) : null,
     under250vh: pinned.filter((b) => b.vh < 2.5).map((b) => `${b.name} ${b.vh}vh`),
@@ -90,8 +114,38 @@ for (const [w, h] of WIDTHS) {
 
 // Per-beat entry frames. p=0.02 is the moment the beat pins and its opening
 // dwell begins: the composition must ALREADY be whole there.
+// Text a reader can actually SEE: on screen, not transparent, and not clipped
+// out by an overflow:hidden ancestor. Clipping is the case that defeats naive
+// checks — content pushed out by a transform stays at opacity 1 and reads as
+// present to anything that only inspects styles.
+const paintedText = () => {
+  let shown = 0, clipped = 0;
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let t;
+  while ((t = w.nextNode())) {
+    const str = t.textContent.trim(); if (!str) continue;
+    const el = t.parentElement;
+    if (!el || el.closest('.hud,#hud,[data-hud]')) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.bottom < 0 || r.top > innerHeight) continue;
+    let op = 1, e = el, cut = false;
+    while (e && e !== document.body) {
+      const cs = getComputedStyle(e);
+      op *= parseFloat(cs.opacity);
+      if (cs.overflow === 'hidden' || cs.overflowY === 'hidden') {
+        const pr = e.getBoundingClientRect();
+        if (r.top >= pr.bottom - 1 || r.bottom <= pr.top + 1) cut = true;
+      }
+      e = e.parentElement;
+    }
+    if (op > 0.15 && !cut) shown += str.length; else clipped += str.length;
+  }
+  return { shown, clipped };
+};
+
 if (shotsAt) {
   fs.mkdirSync(shotsAt, { recursive: true });
+  const painted = {};
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(BASE + path, { waitUntil: 'load' });
   await page.waitForTimeout(2500);
@@ -100,8 +154,7 @@ if (shotsAt) {
   for (const b of report.beats.filter((x) => x.pinned)) {
     // Park at the beat's mid-point first, so the pinned composition is on screen
     // when we measure where it actually sits.
-    await page.evaluate((y) => scrollTo(0, y), b.top + (b.height - 900) * 0.5);
-    await page.waitForTimeout(700);
+    await seek(page, b.top + (b.height - 900) * 0.5);
     bgs[b.id] = await page.evaluate((id) => {
       // Find the beat's largest opaque surface and return BOTH its colour and its
       // on-screen rect. Measuring the whole viewport is what makes this useless:
@@ -133,13 +186,20 @@ if (shotsAt) {
       }
       return best ? { bg: best.bg, rect: best.rect } : null;
     }, b.id);
+    // Approach the entry frame from ABOVE, the way a reader arrives, so what is
+    // captured is what they actually see when the beat pins.
     for (const lp of [0.02, 0.5]) {
-      await page.evaluate((y) => scrollTo(0, y), b.top + (b.height - 900) * lp);
-      await page.waitForTimeout(950);
+      if (lp === 0.02) await seek(page, Math.max(0, b.top - 900));
+      await seek(page, b.top + (b.height - 900) * lp);
       await page.screenshot({ path: `${shotsAt}/${tag}__${b.id}__${String(lp).replace('.', '_')}.png` });
+      if (lp === 0.02) painted[b.id] = await page.evaluate(paintedText);
     }
   }
   fs.writeFileSync(`${shotsAt}/backgrounds.json`, JSON.stringify(bgs, null, 1));
+  // A beat painting almost no text the moment it pins is blank at entry.
+  report.entryPainted = painted;
+  report.blankAtEntry = Object.entries(painted)
+    .filter(([, v]) => v.shown < 40).map(([k]) => k);
   await page.close();
 }
 

@@ -31,46 +31,70 @@ pre-installed build at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
 | Reduced motion: total height and sticky count | It must collapse to an ordinary document, not a frozen animation. Sticky count should be 0 |
 | Per-beat entry frame vs mid frame (`ink.py`) | See below |
 
-## The lesson worth keeping: never screenshot a smooth-scrolled page after a jump
+## The lesson worth keeping: a jump is not a scroll
 
-A screenshot pass reported a beat rendering as **an empty black slab**, and it was
-wrong. The page was fine. The harness was broken, and it cost a false bug report and a
-wasted round-trip to the agent that built the page.
+These pages run Lenis, which keeps its **own** scroll value and drives every transform
+from it. A native `scrollTo` moves `window.scrollY` without moving Lenis's value, so the
+page renders one position while the browser reports another. Every measurement taken
+afterwards describes a state no reader will ever see.
 
-What it did: `scrollTo(0, max * 0.46)` in one hop, then `waitForTimeout(1100)`, then
-capture. With Lenis smoothing a ~14,000 px jump, the page had *arrived* at the beat —
-the on-page HUD correctly read `04 THE REFUSAL · local p 0.00` — but the damped progress
-that drives the transforms was still trailing, so the headline lines were still clipped
-at `translateY(102%)`. The frame was a real transient, photographed and mistaken for a
-resting state.
+This cost two wrong calls in a row, in opposite directions:
 
-**Under natural scrolling the beat is never empty.** Wheeling 100 px per tick from one
-viewport before the beat through its first third, across 26 samples with the band
-substantially on screen, zero frames had the lines hidden; `getComputedStyle` reports
-`matrix(1, 0, 0, 1, 0, 0)` at the very scroll position the bad screenshot condemned.
+1. A screenshot pass jumped to 46% of the page in one `scrollTo` and captured a beat
+   rendering as an empty black slab. Reported as a defect.
+2. "Verifying" it — with tests that *also* began with a `scrollTo` to get near the beat —
+   showed the beat fully populated. The defect was retracted as a measurement artefact.
 
-So, for any page driven by a smooth-scroll library:
+Both readings were of a desynced page. The truth came from a test with **no `scrollTo`
+anywhere**: pure `mouse.wheel` from page load. Of 19 samples with the band substantially
+on screen, **9 had all three headline lines clipped out**. The original report was right.
 
-> **A jump is not a scroll.** Settle the page before measuring: park near the target,
-> move in short hops, and wait for the damped state to converge — or drive the wheel the
-> way a reader does. Verify anything a single frame seems to show with a second,
-> different method before calling it a defect.
+The arithmetic settles it independently of any harness: with `p = dwell(raw) =
+smoothstep(clamp((raw − 0.2) / 0.6))`, `dwell(0.02) = 0` exactly, so an entrance keyed to
+`seg(p, 0.06, …)` is zero — the content is clipped **by construction**, not by lag, for
+the whole opening dwell.
 
-`verify.mjs` follows this: it parks at each beat's mid-point first and only then steps to
-the frames it captures, so every jump is short.
+> **Drive real wheel input and approach each frame from above, the way a reader arrives.**
+> `verify.mjs` does this: `seek()` wheels to the target and waits for the damped values to
+> converge, and entry frames are reached by first moving a viewport above the beat.
 
-### The corollary that does hold: opacity lies
+### The corollary: opacity lies, and so does ink against the page
 
-While chasing the phantom, two plausible checks were both shown to be useless for this
-class of question, and that part is real:
+Two further checks were tried and both reported a blank beat as healthy:
 
-- Counting visible text weighted by ancestor `opacity` — content clipped by
-  `overflow: hidden` plus a transform stays at `opacity: 1` and reads as present.
-- Counting pixels that differ from the **page** background — a beat's own dark band reads
-  as ~50% ink against a cream page, and that number barely moves whether the band is full
-  or empty.
+- **Text weighted by ancestor `opacity`** — content pushed out by a transform inside
+  `overflow:hidden` stays at `opacity: 1` and reads as present. It is **clipped**, not
+  faded.
+- **Pixels differing from the *page* background** — a beat's own dark band reads as ~50%
+  ink against a cream page whether the band is full or empty.
 
-Only pixels measured **inside the beat's own surface, against that surface's own
-background colour**, answer the question. That is what `ink.py` does, and why
-`verify.mjs` reports each beat's largest opaque surface as a colour *and a rect* rather
-than assuming the page's.
+So the primary check in `verify.mjs` is **painted text**: on screen, not transparent, and
+not clipped — for each `overflow:hidden` ancestor it tests whether the text's rect still
+intersects it. Validated against a known-bad build and its fix:
+
+| | painted | clipped |
+|---|---|---|
+| before the fix | **0** | 511 |
+| after the fix | **511** | 0 |
+
+`ink.py` remains for visual confirmation, but it measures a surface rect captured at one
+scroll position, so it is unreliable for any surface that moves between frames. Trust
+`blankAtEntry` in the JSON, and look at the screenshots.
+
+## The rule the prototypes follow
+
+> **An entrance reveal must complete on approach, not on pinned progress.** At the moment
+> a beat pins — where its opening dwell begins — the composition must already be whole and
+> still. The pinned scroll is for the *narrative* (checks recording themselves, blanks
+> filling, a device changing screens), never for the furniture arriving.
+
+Mechanically, a second progress per beat that finishes where the pinned one starts:
+
+```js
+pIn = clamp((scroll - (top - vh)) / vh, 0, 1)   // 0 a viewport out, 1 as it pins
+dIn = damped(pIn)
+```
+
+Entrance segments read `dIn`; narrative segments keep the pinned progress. Pair it with a
+jump-snap — if the per-frame scroll delta exceeds a viewport, set damped equal to exact —
+so an anchor link or scrollbar drag does not land mid-assembly.
