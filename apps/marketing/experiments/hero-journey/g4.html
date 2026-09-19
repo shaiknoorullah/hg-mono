@@ -1,0 +1,1494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Halal Goes — the portal (G4)</title>
+<meta name="description" content="Verified halal, delivered. Seven checks on every restaurant, before it reaches you.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230F7A43'/%3E%3Cpath d='M7 12.3l3.3 3.3L17 8.6' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   HALAL GOES — the whole marketing site as one scroll journey
+   Direction G4 — THE PORTAL. Bezel-less aperture. No chassis. No rotation.
+
+   The aperture's identity is two constants and never changes anywhere on the
+   page: --portal-radius and --portal-hairline. Its SIZE and POSITION are the
+   expressive instruments. It is never rotated, never tilted, never given a
+   bezel, a button, a notch or a device silhouette.
+
+   Palette is the brief's list and nothing else. #6E7C77 is banned. Solid green
+   #0F7A43 is reserved to the halal seal (invariant 10). Red is never used for a
+   halal state (invariant 9). A missing halal field renders no badge at all
+   (invariant 8).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --cream:#FFFAEA; --sunken:#F6EFDD; --raised:#FFFFFF;
+  --ink:#232323; --body:#4A4E48; --mkink:#1B3B31;
+  --hair:#E6E0D4; --border:#8B8578;
+  --orange:#F1521E; --on-orange:#0F241C;
+  --seal:#0F7A43; --brass:#C9A24B; --sage:#E9F3E4;
+  --expired:#4E5862;
+
+  /* THE APERTURE. These two values are constant across the entire page so the
+     portal reads as one continuous window, not a series of frames. */
+  --portal-radius:40px;
+  --portal-hairline:1px;
+
+  --display:'Bricolage Grotesque','Plus Jakarta Sans',system-ui,sans-serif;
+  --ui:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+
+  --gutter:20px;
+  --ease:cubic-bezier(.2,0,0,1);
+}
+@media (min-width:1024px){ :root{ --gutter:56px; --portal-radius:44px; } }
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:var(--ui); font-size:16px; line-height:1.5;
+  font-synthesis-weight:none;
+  /* clip, not hidden: `hidden` here would turn <body> into the scroll container
+     and silently kill every position:sticky stage on the page. */
+  overflow-x:clip;
+}
+img{max-width:100%;display:block}
+h1,h2,h3,p,ol,ul,figure,dl,dd{margin:0}
+ol,ul{padding:0;list-style:none}
+a{color:var(--mkink)}
+a:hover{color:var(--orange)}
+button{font:inherit}
+:focus-visible{outline:3px solid var(--orange);outline-offset:3px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--raised);padding:12px 18px;border:1px solid var(--hair);border-radius:11px;font-weight:700;text-decoration:none}
+.skip:focus{left:12px;top:12px}
+
+/* ── type roles ─────────────────────────────────────────────────────────── */
+.display{font-family:var(--display);font-weight:650;letter-spacing:-0.03em;line-height:.98;color:var(--ink)}
+.h1{font-size:clamp(42px,8.6vw,88px);line-height:.92}
+.h2{font-size:clamp(29px,4.4vw,50px);line-height:1.02}
+.h3{font-size:clamp(20px,2.2vw,26px);line-height:1.12;font-family:var(--display);font-weight:650;letter-spacing:-0.02em}
+.lede{font-family:var(--display);font-weight:500;font-size:clamp(17px,2.05vw,21px);line-height:1.34;color:var(--mkink);letter-spacing:-0.01em}
+.body{font-size:clamp(15px,1.45vw,17px);line-height:1.62;color:var(--body)}
+.body-lg{font-size:clamp(16px,1.6vw,19px);line-height:1.58;color:var(--mkink)}
+.mono{font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--mkink);line-height:1.5}
+.mono-sm{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.075em;text-transform:uppercase;color:var(--body);line-height:1.4}
+.mono-note{font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.03em;line-height:1.7;color:var(--body);text-transform:none}
+.max62{max-width:62ch}
+.max56{max-width:56ch}
+.max46{max-width:46ch}
+
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--sage);color:var(--mkink);
+  border-radius:999px;padding:9px 15px;font-family:var(--mono);font-weight:500;font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;line-height:1}
+
+/* ── reveal primitive ───────────────────────────────────────────────────────
+   Default is FULLY VISIBLE. Nothing on this page is hidden by a rule that a
+   JS failure can strand. JS only ever lowers --rv below 1. */
+[data-rv]{opacity:calc(var(--rv,1) * var(--rv-base,1));transform:translateY(calc((1 - var(--rv,1)) * 18px));will-change:opacity,transform}
+
+/* ── site header ────────────────────────────────────────────────────────── */
+.wrap{width:100%;max-width:1280px;margin:0 auto;padding-inline:var(--gutter)}
+.site-header{display:flex;flex-direction:column;gap:12px;padding-block:18px 10px}
+@media (min-width:1024px){.site-header{flex-direction:row;align-items:center;justify-content:space-between;gap:24px;padding-block:28px 12px}}
+.wordmark{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-0.03em;line-height:1;color:var(--ink);text-decoration:none;align-self:flex-start;display:inline-flex;align-items:center;height:44px}
+.switch{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;margin-inline-end:calc(var(--gutter) * -1);padding-inline-end:var(--gutter);scrollbar-width:none}
+.switch::-webkit-scrollbar{display:none}
+@media (min-width:1024px){.switch{margin:0;padding:4px;gap:4px;border:1px solid var(--hair);border-radius:999px;background:var(--raised);overflow:visible}}
+.switch a{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:999px;font-size:15px;font-weight:600;text-decoration:none;white-space:nowrap;border:1px solid var(--hair);background:var(--raised);color:var(--mkink)}
+@media (min-width:1024px){.switch a{border-color:transparent;background:transparent}}
+.switch a[aria-current="page"]{background:var(--sage);border-color:var(--sage);color:var(--mkink)}
+.switch a[data-unbuilt]{color:var(--body)}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 26px;border:0;border-radius:11px;
+  background:var(--orange);color:var(--on-orange);font-family:var(--ui);font-weight:700;font-size:16px;line-height:1;
+  text-decoration:none;cursor:pointer;transition:transform 180ms var(--ease),background-color 180ms var(--ease)}
+.btn:hover{transform:translateY(-2px);color:var(--on-orange)}
+.btn-header{display:none}
+@media (min-width:1024px){.btn-header{display:inline-flex;height:48px;font-size:15px;padding:0 22px}}
+
+/* ── the beat machinery ─────────────────────────────────────────────────────
+   Every pinned beat is a tall <section> whose height IS its scroll budget,
+   containing one sticky, viewport-tall stage. Progress is computed in pixels
+   from the section's own measured top and height. */
+.beat{position:relative;height:calc(var(--len,300) * 1vh)}
+.beat--flow{height:auto;min-height:calc(var(--len,300) * 1vh)}
+.stage{position:sticky;top:0;height:100svh;display:flex;align-items:center;overflow:hidden}
+.beat--flow > .stage{position:static;height:auto;display:block;overflow:visible;padding-block:12svh}
+.stage-inner{width:100%;max-width:1280px;margin:0 auto;padding-inline:var(--gutter);position:relative;
+  transform:scale(var(--sfit,1));transform-origin:center center}
+.split{display:grid;gap:26px;align-items:center}
+@media (min-width:1024px){.split{grid-template-columns:minmax(0,1fr) clamp(380px,42%,540px);gap:56px}}
+@media (min-width:1024px){.split--4-7{grid-template-columns:4fr 7fr;gap:64px;align-items:start}}
+
+/* ── THE PORTAL ─────────────────────────────────────────────────────────────
+   No chassis. No bezel. No buttons. No device silhouette. An aperture and what
+   is inside it. Radius and hairline are the same two numbers everywhere on the
+   page; only width, height and position ever change, and it is NEVER rotated.
+   Size is driven from JS through --pw/--ph (px) so the radius and the hairline
+   stay literally constant instead of being scaled by a transform. */
+.portal-slot{position:relative;height:var(--slot-p,46svh);min-height:170px}
+@media (min-width:1024px){.portal-slot{height:var(--slot-d,var(--slot-p,56svh))}}
+.portal{
+  position:absolute;left:50%;top:50%;
+  width:var(--pw,320px);height:var(--ph,520px);
+  transform:translate(-50%,-50%) translate(var(--tx,0px),var(--ty,0px));
+  border-radius:var(--portal-radius);
+  border:var(--portal-hairline) solid var(--hair);
+  background:var(--raised);
+  overflow:hidden;
+  opacity:var(--pop,1);
+  contain:layout paint;
+  will-change:width,height,transform;
+}
+.portal--ink{background:var(--ink)}
+.portal--sunk{background:var(--sunken)}
+.psurf-wrap{position:absolute;inset:0}
+.psurf{position:absolute;left:50%;top:50%;width:var(--sw,320px);transform-origin:0 0;
+  transform:translate(var(--ox,0px),var(--oy,0px)) scale(var(--s,1)) translate(-50%,-50%);
+  text-align:left}
+
+/* ── surfaces: the record ───────────────────────────────────────────────── */
+.surf-record{--sw:322px;padding:26px 24px 28px}
+@media (min-width:1024px){.surf-record{--sw:404px;padding:28px 28px 30px}}
+.rec-cap{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.085em;text-transform:uppercase;color:var(--body);line-height:1.5;margin-bottom:16px}
+.rec-statusrow{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:var(--sage)}
+.surf-record[data-state="expired"] .rec-statusrow,
+.surf-record[data-state="review"] .rec-statusrow,
+.surf-record[data-state="none"] .rec-statusrow{background:transparent;padding:0}
+.rec-statuslabel{font-size:16px;font-weight:800;letter-spacing:-0.01em;color:var(--ink)}
+.surf-record[data-state="review"] .rec-statuslabel,
+.surf-record[data-state="none"] .rec-statuslabel{color:var(--body)}
+.rec-mark{width:36px;height:36px;flex:none;border-radius:8px}
+.mark-certified{background:var(--seal);box-shadow:inset 0 0 0 2px var(--brass);display:grid;place-items:center}
+.mark-expired{background:var(--expired)}
+.mark-review{box-shadow:inset 0 0 0 2px var(--expired);opacity:.6}
+.mark-none{box-shadow:inset 0 0 0 1px var(--border)}
+.rec-disc{margin-top:10px;font-size:11.5px;line-height:1.5;color:var(--body)}
+.rec-rule{height:1px;background:var(--hair);margin:16px -24px}
+@media (min-width:1024px){.rec-rule{margin:16px -28px}}
+.rec-line{display:flex;align-items:baseline;gap:14px;padding:7px 0}
+.rec-line dt{width:84px;flex:none;font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--body);line-height:1.4}
+.rec-line dd{margin:0;min-width:0;flex:1;font-size:13.5px;font-weight:600;line-height:1.35;color:var(--ink)}
+.rec-line dd.prose{font-weight:400;font-size:13px;color:var(--body)}
+@media (max-width:1023px){.surf-record [data-short]{display:none}}
+.blank{display:inline-block;border-top:1px dashed var(--border);opacity:.7;vertical-align:.32em;max-width:100%}
+
+/* the halal pill, as the artboards drew it */
+.pill-halal{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px 0 9px;border-radius:12px;
+  background:var(--seal);border:1.5px solid var(--brass);color:#FFFFFF;white-space:nowrap;font-size:13px;font-weight:700;line-height:1}
+.pill-expired{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px 0 10px;border-radius:8px;
+  background:var(--expired);color:#FFFFFF;font-size:13px;font-weight:600;line-height:1;white-space:nowrap}
+
+/* ── surfaces: the sheet (Form HG-7) ────────────────────────────────────── */
+.surf-sheet{--sw:326px;padding:22px 20px 24px}
+@media (min-width:1024px){.surf-sheet{--sw:748px;padding:26px 32px 28px}}
+.sheet-head{display:flex;flex-direction:column;gap:5px;border-bottom:1px solid var(--ink);padding-bottom:12px}
+@media (min-width:640px){.sheet-head{flex-direction:row;align-items:baseline;justify-content:space-between;gap:16px}}
+.sheet-head b{font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.sheet-head span{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--body)}
+.sched{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:6px;margin-top:18px}
+.sched h3{font-family:var(--mono);font-weight:600;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.sched span{font-family:var(--mono);font-weight:500;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--body)}
+.check-row{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--hair);padding:11px 0;color:var(--ink)}
+.check-row:last-child{border-color:var(--ink)}
+.check-row .n{width:26px;flex:none;font-family:var(--mono);font-weight:500;font-size:11.5px;color:var(--body);font-variant-numeric:tabular-nums}
+.check-row .t{min-width:0;flex:1;font-size:14px;font-weight:500;line-height:1.25}
+@media (min-width:1024px){.check-row .t{font-size:16.5px}}
+.check-row .by{display:none}
+@media (min-width:1024px){.check-row .by{display:block;width:182px;flex:none;font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.045em;text-transform:uppercase;color:var(--body)}}
+.tick{width:18px;height:18px;flex:none;display:block}
+.tick rect{fill:none;stroke:currentColor;stroke-width:1.25}
+.tick path{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;
+  opacity:0;transform:translateY(2px);transition:opacity 260ms var(--ease),transform 260ms var(--ease)}
+.check-row.is-on .tick path{opacity:1;transform:none}
+.check-row{color:var(--body);transition:color 260ms var(--ease)}
+.check-row.is-on{color:var(--ink)}
+.ring{width:72px;height:72px;flex:none;border-radius:999px;border:1px solid var(--ink);display:grid;place-items:center}
+.ring > span{width:58px;height:58px;border-radius:999px;border:1px dashed var(--brass);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--mono);color:var(--ink);line-height:1}
+.ring b{font-weight:600;font-size:12.5px}
+.ring i{font-style:normal;font-weight:500;font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;margin-top:4px}
+
+/* ── surfaces: sealed / door ────────────────────────────────────────────── */
+.surf-app{--sw:322px;padding:0;position:relative;height:var(--surf-h,384px)}
+@media (min-width:1024px){.surf-app{--sw:392px;--surf-h:560px;--sheet-h:312px}}
+.app-top{padding:26px 24px 0}
+.app-sheet{position:absolute;left:0;right:0;bottom:0;height:var(--sheet-h,236px);background:var(--sunken);border-radius:20px 20px 0 0;
+  padding:14px 22px 22px;display:flex;flex-direction:column;align-items:center;
+  transform:translateY(calc((1 - var(--sheet,1)) * 100%))}
+.grabber{width:36px;height:4px;border-radius:2px;background:var(--hair);flex:none}
+.trail{position:relative;margin-top:16px}
+.trail .rail{position:absolute;left:9px;top:10px;bottom:10px;width:2px;background:var(--ink);transform-origin:top;transform:scaleY(var(--rail,1))}
+.trail ol{position:relative;display:flex;flex-direction:column;gap:var(--trailgap,14px)}
+.surf-door{--surf-h:372px;--trailgap:18px}
+@media (min-width:1024px){.surf-door{--surf-h:436px;--trailgap:26px}}
+.trail li{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;line-height:1;color:var(--body);transition:color 280ms var(--ease)}
+.trail li.is-on{color:var(--ink)}
+.trail li svg{flex:none;display:block}
+.trail li svg .ck{opacity:0;transition:opacity 240ms var(--ease)}
+.trail li.is-on svg .ck{opacity:1}
+
+/* ── surfaces: the refusal, rendered inside the same window ─────────────── */
+.surf-refusal{--sw:322px;padding:34px 24px;color:var(--cream)}
+@media (min-width:1024px){.surf-refusal{--sw:940px;padding:64px 64px}}
+.surf-refusal .display{color:var(--cream)}
+.surf-refusal p{color:var(--cream)}
+
+/* ── surfaces: the plate (smallest true unit of the record) ─────────────── */
+.surf-plate{--sw:300px;padding:18px}
+@media (min-width:1024px){.surf-plate{--sw:352px;padding:20px}}
+
+/* ── craving filmstrip ──────────────────────────────────────────────────── */
+.surf-strip{--sw:max-content;display:flex;gap:18px;align-items:stretch}
+.tile{position:relative;width:268px;flex:none;aspect-ratio:4/5;overflow:hidden;border-radius:18px;border:1px solid var(--hair);background:var(--sunken)}
+@media (min-width:1024px){.tile{width:320px}}
+.tile img{width:100%;height:100%;object-fit:cover}
+.tile figcaption{position:absolute;inset-inline:0;bottom:0;padding:34px 16px 14px;color:#FFFFFF;font-size:15px;font-weight:600;line-height:1.2;
+  /* THE ONLY GRADIENT ON THE PAGE. Stops stay at 0.92 / 0.72 — the contrast is
+     derived, not sampled, and lowering either stop breaks AA. */
+  background:linear-gradient(to top,rgba(15,36,28,0.92) 0%,rgba(15,36,28,0.72) 42%,rgba(15,36,28,0) 100%)}
+
+/* ── section furniture ──────────────────────────────────────────────────── */
+.eyebrow{font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mkink)}
+.beatmark{font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mkink)}
+.card{background:var(--raised);border:1px solid var(--hair);border-radius:18px}
+.rulelist > li{border-top:1px solid var(--hair);padding:16px 0}
+.rulelist > li:first-child{border-top:0;padding-top:0}
+.state-card{background:transparent;border:1px solid var(--hair);border-radius:14px;padding:14px;
+  transition:background-color 300ms var(--ease),border-color 300ms var(--ease),box-shadow 300ms var(--ease)}
+.state-card.is-on{background:var(--raised);border-color:var(--mkink);box-shadow:0 2px 14px rgba(35,35,35,.07)}
+@media (max-width:1023px){[data-statecards]{grid-template-columns:minmax(0,1fr) !important}
+  [data-statecards] > li{display:none}[data-statecards] > li.is-on{display:block}}
+.state-mark{width:30px;height:30px;border-radius:7px;display:block;margin-bottom:10px}
+.state-mark.certified{background:var(--seal);box-shadow:inset 0 0 0 2px var(--brass)}
+.state-mark.expired{background:var(--expired)}
+.state-mark.review{box-shadow:inset 0 0 0 2px var(--expired);opacity:.6}
+.state-mark.none{border:1px dashed var(--hair)}
+
+/* ── the waitlist form ──────────────────────────────────────────────────── */
+.wl{background:var(--raised);border:1px solid var(--hair);border-radius:18px;padding:18px}
+@media (min-width:1024px){.wl{padding:26px}}
+.wl label.lab{display:block;font-size:15px;font-weight:600;color:var(--mkink)}
+.wl .row{margin-top:10px;display:flex;flex-direction:column;gap:10px}
+@media (min-width:640px){.wl .row{flex-direction:row}}
+.wl input[type=email]{flex:1;min-width:0;height:54px;padding:0 16px;border:1.5px solid var(--hair);border-radius:11px;background:var(--raised);
+  font-family:var(--ui);font-size:16px;color:var(--ink)}
+.wl input[type=email]::placeholder{color:var(--body);opacity:.8}
+.wl input[type=email]:focus{outline:3px solid var(--orange);outline-offset:2px;border-color:var(--mkink)}
+.wl input[aria-invalid="true"]{border-color:var(--orange);border-width:2px}
+.wl .consent{margin-top:14px;display:flex;align-items:flex-start;gap:10px}
+.wl .consent input{width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:var(--mkink)}
+.wl .consent label{font-size:13.5px;line-height:1.55;color:var(--body)}
+.wl .msg{margin-top:12px;font-size:13.5px;line-height:1.55;color:var(--body)}
+.wl .msg[data-tone="bad"]{color:var(--orange);font-weight:600}
+.wl-done .t{font-family:var(--display);font-weight:650;font-size:24px;letter-spacing:-0.02em;color:var(--ink)}
+
+@media (max-width:1023px){
+  .wl{padding:14px}
+  .wl input[type=email]{height:50px;font-size:16px}
+  .wl .row .btn{height:50px}
+  .wl .consent label{font-size:12.5px;line-height:1.5}
+  .wl .msg{font-size:12.5px;margin-top:10px}
+  .ring{width:48px !important;height:48px !important}
+  .ring > span{width:40px !important;height:40px !important}
+  .rulelist > li{padding:11px 0}
+  .rulelist > li p{font-size:13px !important;line-height:1.5 !important;margin-top:4px !important}
+  .rulelist > li > p:first-of-type{font-size:15px !important;line-height:1.2 !important;margin-top:6px !important}
+  .state-card{padding:12px}
+  /* the shipped sheet hides these same secondary mono spans below lg */
+  .sched span:not([data-counter]){display:none}
+  .lede{font-size:16.5px}
+}
+
+/* ── FAQ ────────────────────────────────────────────────────────────────── */
+.faq-item{border-top:1px solid var(--hair);min-height:34svh;display:flex;flex-direction:column;justify-content:center;padding:22px 0}
+.faq-item summary{list-style:none;cursor:pointer;font-size:clamp(17px,2vw,21px);font-weight:600;line-height:1.3;color:var(--ink);display:flex;gap:14px;align-items:flex-start}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:"";flex:none;width:12px;height:12px;margin-top:6px;margin-left:auto;border-right:2px solid var(--mkink);border-bottom:2px solid var(--mkink);transform:rotate(45deg);transition:transform 180ms var(--ease)}
+.faq-item[open] summary::after{transform:rotate(-135deg)}
+.faq-item .a{margin-top:12px;max-width:58ch}
+
+/* ── footer ─────────────────────────────────────────────────────────────── */
+.site-footer{border-top:1px solid var(--hair);margin-top:64px;padding:34px 0 48px;display:flex;flex-direction:column;gap:12px}
+@media (min-width:1024px){.site-footer{flex-direction:row;align-items:center;justify-content:space-between;gap:24px}}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:0 24px}
+.site-footer a,.site-footer button{display:inline-flex;align-items:center;min-height:44px;font-size:14px;color:var(--body);text-decoration:underline;text-underline-offset:4px;background:none;border:0;padding:0;cursor:pointer}
+
+/* ── the scroll HUD ─────────────────────────────────────────────────────── */
+.hud{position:fixed;right:12px;bottom:12px;z-index:80;background:var(--raised);border:1px solid var(--hair);
+  border-radius:10px;padding:9px 11px;font-family:var(--mono);font-size:10.5px;line-height:1.5;color:var(--ink);
+  letter-spacing:.02em;box-shadow:0 2px 10px rgba(35,35,35,.08);pointer-events:none;min-width:206px}
+.hud[hidden]{display:none}
+.hud b{font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.hud .bar{height:3px;background:var(--hair);border-radius:2px;margin-top:6px;overflow:hidden}
+.hud .bar i{display:block;height:100%;background:var(--mkink);width:calc(var(--hp,0) * 100%)}
+.hud .dim{color:var(--body)}
+
+/* ── reduced motion: a real path, not a downgrade ───────────────────────────
+   Lenis is not started, no beat is pinned, every beat is at its resting state,
+   and the page is an ordinary readable document top to bottom. */
+@media (prefers-reduced-motion: reduce){
+  [data-rv]{opacity:var(--rv-base,1) !important;transform:none !important}
+  .beat,.beat--flow{height:auto !important;min-height:0 !important}
+  .stage{position:static !important;height:auto !important;display:block !important;overflow:visible !important;padding-block:56px}
+  .stage-inner{transform:none !important}
+  /* one column, so every aperture gets the full measure and nothing is
+     rendered at a reduced scale just to fit a column */
+  .split{grid-template-columns:minmax(0,1fr) !important;gap:26px !important}
+  .portal-slot{height:auto !important;min-height:0}
+  .portal{position:relative;left:auto;top:auto;transform:none !important;margin:0 auto}
+  .psurf{transform:translate(-50%,-50%) !important}
+  .app-sheet{transform:none !important}
+  .check-row,.trail li{color:var(--ink) !important}
+  @media (max-width:1023px){[data-statecards] > li{display:block !important}}
+  .check-row .tick path,.trail li svg .ck{opacity:1 !important;transform:none !important}
+  .state-card{opacity:1 !important}
+  .faq-item{min-height:0}
+  .btn:hover{transform:none}
+  /* the filmstrip has no pan to ride, so it wraps at full tile size instead of
+     being shrunk to fit one window */
+  .surf-strip{--sw:658px;flex-wrap:wrap}
+}
+@media (prefers-reduced-motion: reduce) and (max-width:1023px){
+  .surf-strip{--sw:268px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ══ SITE HEADER ═══════════════════════════════════════════════════════ -->
+<div class="wrap" id="top">
+  <header class="site-header">
+    <a class="wordmark" href="#top">Halal Goes</a>
+    <nav class="switch" aria-label="I want to">
+      <a href="#top" aria-current="page">Order food</a>
+      <a href="#" data-unbuilt>List your restaurant<span class="sr"> — not built in this prototype</span></a>
+      <a href="#" data-unbuilt>Deliver with us<span class="sr"> — not built in this prototype</span></a>
+    </nav>
+    <a class="btn btn-header" href="#waitlist">Join the waitlist</a>
+  </header>
+</div>
+
+<main id="main">
+
+<!-- ══ BEAT 1 · 01 THE RECORD (hero) ═════════════════════════════════════ -->
+<section class="beat" data-beat data-id="hero" data-name="01 · The record" style="--len:360">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split">
+        <div>
+          <p class="chip" data-rv>Ontario · launching soon</p>
+          <h1 class="display h1" style="margin-top:16px" data-rv>
+            <span style="display:block">Verified</span>
+            <span style="display:block;padding-left:.2em">halal,</span>
+            <span style="display:block;padding-left:.16em">delivered.</span>
+          </h1>
+          <p class="lede" style="margin-top:18px;max-width:34ch" data-rv>Seven checks on every restaurant, before it reaches you.</p>
+
+          <div id="waitlist" style="margin-top:20px;max-width:520px" data-rv>
+            <form class="wl" data-waitlist data-context="hero" novalidate>
+              <label class="lab" for="wl1">Email address</label>
+              <div class="row">
+                <input id="wl1" name="contact" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required
+                       aria-describedby="wl1msg">
+                <button class="btn" type="submit">Notify me</button>
+              </div>
+              <div class="consent">
+                <input id="wl1c" name="consent" type="checkbox" aria-describedby="wl1msg">
+                <label for="wl1c">I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.</label>
+              </div>
+              <p class="msg" id="wl1msg" role="status" aria-live="polite">No spam. One email, the day we open in your area.</p>
+            </form>
+          </div>
+
+          <section aria-labelledby="certifiers" style="margin-top:22px" data-rv>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 24px">
+              <h2 id="certifiers" class="eyebrow" style="font-size:10px">Certificates we recognise</h2>
+              <a href="#seven-checks" style="display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;font-weight:700;color:var(--mkink);text-decoration:underline;text-decoration-color:var(--orange);text-decoration-thickness:2px;text-underline-offset:4px">The seven checks
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+            <div style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div class="ring" role="img" aria-label="HMA Canada" style="width:56px;height:56px"><span style="width:46px;height:46px;border-style:solid;border-color:var(--hair)"><b style="font-size:11px">HMA</b><i style="font-size:6.5px">Canada</i></span></div>
+              <div class="ring" role="img" aria-label="HFSAA" style="width:56px;height:56px"><span style="width:46px;height:46px;border-style:solid;border-color:var(--hair)"><b style="font-size:10px">HFSAA</b></span></div>
+              <div class="ring" role="img" aria-label="ISNA Canada" style="width:56px;height:56px"><span style="width:46px;height:46px;border-style:solid;border-color:var(--hair)"><b style="font-size:11px">ISNA</b><i style="font-size:6.5px">Canada</i></span></div>
+              <p class="body" style="flex:1;min-width:190px;max-width:250px;font-size:12.5px;line-height:1.4;color:var(--mkink)">Only these three bodies, and only while the certificate is in date.</p>
+            </div>
+          </section>
+        </div>
+
+        <!-- the aperture -->
+        <div>
+          <p class="beatmark" data-rv style="margin-bottom:10px">01 · The record</p>
+          <div class="portal-slot" data-slot style="--slot-d:62svh;--slot-p:25svh">
+          <div class="portal" data-portal>
+            <div class="psurf-wrap">
+              <div class="psurf surf-record" data-surf data-state="certified">
+                <p class="rec-cap">Specimen · what a listing’s record looks like once it passes</p>
+                <div class="rec-statusrow" data-focus="plate">
+                  <span class="rec-mark mark-certified" data-mark aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF"/><path d="m8 12.1 2.7 2.7L16.2 9" fill="none" stroke="#0F7A43" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                  <span style="min-width:0">
+                    <span class="rec-statuslabel" data-statuslabel>Halal certified</span>
+                    <p class="rec-disc">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+                  </span>
+                </div>
+                <div class="rec-rule"></div>
+                <dl style="margin:0">
+                  <div class="rec-line"><dt>Kitchen</dt><dd><span class="blank" style="width:19ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                  <div class="rec-line"><dt>Issued by</dt><dd>Halal Monitoring Authority (HMA Canada)</dd></div>
+                  <div class="rec-line"><dt>Certificate</dt><dd><span class="blank" style="width:13ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                  <div class="rec-line" data-short><dt>Scope</dt><dd><span class="blank" style="width:16ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                  <div class="rec-line"><dt>In force to</dt><dd><span class="blank" style="width:10ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                  <div class="rec-line" data-short><dt>Checked by</dt><dd><span class="blank" style="width:14ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                </dl>
+                <div class="rec-rule" data-short></div>
+                <dl style="margin:0" data-short><div class="rec-line"><dt>Reviews</dt><dd class="prose">None yet. We haven’t opened.</dd></div></dl>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 2 · RECOGNITION ══════════════════════════════════════════════ -->
+<section class="beat" data-beat data-id="recognition" data-name="The list" style="--len:260">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split">
+        <div>
+          <p class="display h2" style="max-width:22ch;line-height:1.1">
+            <span style="display:block" data-rv>You already have a list.</span>
+            <span style="display:block" data-rv>It’s four places long.</span>
+          </p>
+          <p class="mono-note max62" style="margin-top:18px" data-rv>The same kitchens for years, because somebody in the family checked once — and everywhere else stayed a question.</p>
+        </div>
+        <!-- the same window, shrunk to a card and set inline beside the prose -->
+        <div class="portal-slot" data-slot style="--slot-d:34svh;--slot-p:26svh">
+          <div class="portal" data-portal>
+            <div class="psurf-wrap">
+              <div class="psurf surf-record" data-surf data-state="certified">
+                <p class="rec-cap">Specimen · what a listing’s record looks like once it passes</p>
+                <div class="rec-statusrow" data-focus="plate">
+                  <span class="rec-mark mark-certified" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF"/><path d="m8 12.1 2.7 2.7L16.2 9" fill="none" stroke="#0F7A43" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                  <span style="min-width:0">
+                    <span class="rec-statuslabel">Halal certified</span>
+                    <p class="rec-disc">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+                  </span>
+                </div>
+                <div class="rec-rule"></div>
+                <dl style="margin:0">
+                  <div class="rec-line"><dt>Issued by</dt><dd>Halal Monitoring Authority (HMA Canada)</dd></div>
+                  <div class="rec-line"><dt>In force to</dt><dd><span class="blank" style="width:10ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 3 · THE CRAVING GRID ═════════════════════════════════════════ -->
+<section class="beat" data-beat data-id="craving" data-name="What’s on it" style="--len:360" aria-labelledby="craving-heading">
+  <div class="stage">
+    <div class="stage-inner">
+      <p class="eyebrow" data-rv>What’s on it</p>
+      <h2 id="craving-heading" class="display h2" style="margin-top:10px" data-rv>Everything here made the list.</h2>
+      <p class="body max62" style="margin-top:12px" data-rv>Charcoal, rice, bread out of the oven — from kitchens whose certificates we’ve read, line by line, before you ever saw them.</p>
+
+      <!-- the window holds still; the food moves through it -->
+      <div class="portal-slot" data-slot style="--slot-d:46svh;--slot-p:38svh;margin-top:20px">
+        <div class="portal" data-portal>
+          <div class="psurf-wrap">
+            <div class="psurf surf-strip" data-surf>
+              <figure class="tile"><img src="assets/grill.webp" alt="Chicken skewers over charcoal, char marks catching the light" width="1000" height="1250" fetchpriority="low"><figcaption>Charcoal chicken, still spitting.</figcaption></figure>
+              <figure class="tile"><img src="assets/rice.webp" alt="A large tray of spiced rice with meat, served family-style" width="1000" height="1250" loading="lazy"><figcaption>Rice by the tray, not the portion.</figcaption></figure>
+              <figure class="tile"><img src="assets/shawarma.webp" alt="Shawarma being carved from a vertical spit" width="1000" height="1250" loading="lazy"><figcaption>Shawarma carved off the spit.</figcaption></figure>
+              <figure class="tile"><img src="assets/curry.webp" alt="A dark, slow-cooked curry in a steel dish" width="1000" height="1250" loading="lazy"><figcaption>A curry that took all afternoon.</figcaption></figure>
+              <figure class="tile"><img src="assets/bread.webp" alt="Flatbread fresh from a hot oven, blistered on top" width="1000" height="1250" loading="lazy"><figcaption>Bread straight out of the oven.</figcaption></figure>
+              <figure class="tile"><img src="assets/platter.webp" alt="A large mixed grill platter laid out for a group" width="1000" height="1250" loading="lazy"><figcaption>A platter, for when there are nine of you.</figcaption></figure>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="mono-note" style="margin-top:16px" data-rv>Kitchen names go up when they’ve passed the check — not before.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 4 · WHY THIS EXISTS ══════════════════════════════════════════ -->
+<section class="beat" data-beat data-id="why" data-name="Why this exists" style="--len:300">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split">
+        <h2 class="display h2" style="max-width:14ch" data-rv>Halal is a claim anyone can print.</h2>
+        <div>
+          <p class="body-lg max56" data-rv>Canada has more than a dozen halal certifying agencies. Each sets its own standards, and none of them is regulated — the Canadian Food Inspection Agency requires halal food to be certified but does not do the certifying, and does not oversee the certifiers.</p>
+          <p class="body-lg max56" style="margin-top:16px" data-rv>In 2024, a CBC Marketplace investigation visited ten fast-food locations advertising halal food. Staff at six said the whole restaurant was certified. None of the ten was. Between them they produced eight expired certificates — one set had run out eight years earlier.</p>
+          <p class="body-lg max56" style="margin-top:16px;font-weight:600;color:var(--ink)" data-rv>That is the gap. Not restaurants lying, mostly: paperwork nobody checks.</p>
+          <p class="mono-note" style="margin-top:20px;font-size:10.5px" data-rv>Source: <a href="https://www.cbc.ca/news/marketplace/marketplace-halal-1.7352621" rel="noopener noreferrer" target="_blank">CBC Marketplace, “Fast-food chains serving up halal food with a side of misinformation, expired certificates”, 18 October 2024</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 5 · THE SEVEN CHECKS — THE INSTRUMENT ════════════════════════
+     The aperture is at its largest here. It starts as a card beside the
+     argument, then grows until it is the viewport, and the reader is looking
+     straight down at the sheet a reviewer fills in. ═══════════════════════ -->
+<section class="beat" id="seven-checks" data-beat data-id="checks" data-name="The seven checks" style="--len:760">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split">
+        <div data-prose>
+          <p class="chip" data-rv>What verified means</p>
+          <h2 class="display h2" style="margin-top:16px;max-width:13ch" data-rv>Verified is a record, not a promise.</h2>
+          <p class="body-lg max56" style="margin-top:16px" data-rv>Before a restaurant can appear on Halal Goes, a reviewer reads its halal certificate and records seven checks against it. This is the sheet they fill in. Nothing on it is inferred, scanned or auto-approved.</p>
+          <p class="mono" style="margin-top:20px;font-size:10px;letter-spacing:.08em;line-height:1.6" data-rv>Exhibit A — the verification sheet, as a reviewer sees it · specimen, no restaurant named</p>
+        </div>
+
+        <div class="portal-slot" data-slot style="--slot-d:62svh;--slot-p:36svh">
+          <div class="portal" data-portal>
+            <div class="psurf-wrap">
+              <section class="psurf surf-sheet" data-surf aria-label="Form HG-7, certificate of halal verification, specimen">
+                <div class="sheet-head">
+                  <b>Form HG-7 — certificate of halal verification</b>
+                  <span>Specimen · rev. 1 · checklist v1 · Ontario</span>
+                </div>
+
+                <div class="sched"><h3>Schedule A — the seven checks</h3><span data-counter>0/7</span></div>
+                <ol data-checks>
+                  <li class="check-row"><span class="n">01</span><span class="t">Certificate legible and complete</span><span class="by">Reviewer</span>
+                    <svg class="tick" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5"/><path d="M4.5 9.3l3 3 6-6.5"/></svg></li>
+                  <li class="check-row"><span class="n">02</span><span class="t">Issuing body on our accepted registry</span><span class="by">System · reviewer confirms</span>
+                    <svg class="tick" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5"/><path d="M4.5 9.3l3 3 6-6.5"/></svg></li>
+                  <li class="check-row"><span class="n">03</span><span class="t">Legal name matches the restaurant</span><span class="by">System · reviewer confirms</span>
+                    <svg class="tick" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5"/><path d="M4.5 9.3l3 3 6-6.5"/></svg></li>
+                  <li class="check-row"><span class="n">04</span><span class="t">Premises address matches the certificate</span><span class="by">System · reviewer decides</span>
+                    <svg class="tick" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5"/><path d="M4.5 9.3l3 3 6-6.5"/></svg></li>
+                  <li class="check-row"><span class="n">05</span><span class="t">Dates valid today, not about to lapse</span><span class="by">System · no override</span>
+                    <svg class="tick" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5"/><path d="M4.5 9.3l3 3 6-6.5"/></svg></li>
+                  <li class="check-row"><span class="n">06</span><span class="t">Scope covers everything sold here</span><span class="by">Reviewer</span>
+                    <svg class="tick" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5"/><path d="M4.5 9.3l3 3 6-6.5"/></svg></li>
+                  <li class="check-row"><span class="n">07</span><span class="t">Certificate not reused by another restaurant</span><span class="by">System · no override</span>
+                    <svg class="tick" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5"/><path d="M4.5 9.3l3 3 6-6.5"/></svg></li>
+                </ol>
+                <p class="mono-note" style="margin-top:8px;font-size:10.5px">05 and 07 are computed by the server. A reviewer cannot mark them passed against the computation.</p>
+
+                <div class="sched"><h3>Schedule B — accepted issuing bodies</h3><span>Registry · 3 seeded · extensible</span></div>
+                <div style="margin-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                  <div class="ring" role="img" aria-label="HMA Canada"><span><b>HMA</b><i>Canada</i></span></div>
+                  <div class="ring" role="img" aria-label="HFSAA"><span><b style="font-size:11px">HFSAA</b></span></div>
+                  <div class="ring" role="img" aria-label="ISNA Canada"><span><b>ISNA</b><i>Canada</i></span></div>
+                  <p class="body" style="flex:1;min-width:210px;font-size:13.5px;line-height:1.5">A certificate from any <strong style="color:var(--ink)">one</strong> of these satisfies check 02. The registry is seeded, not closed — a body can be added as it is accepted — but the issuer is always chosen from the registry, never typed in.</p>
+                </div>
+
+                <div class="sched"><h3>Schedule C — outcome</h3><span>Issued on 7/7 only</span></div>
+                <div style="margin-top:14px;display:flex;align-items:center;gap:14px">
+                  <p class="body" style="flex:1;min-width:0;font-size:14.5px;line-height:1.45;color:var(--ink)">The seal is the outcome of the sheet, not a setting: issued only when all seven checks are marked passed. Six of seven is a rejection with a reason, not a seal.</p>
+                  <svg width="130" height="130" viewBox="0 0 240 240" role="img" aria-label="Halal Goes verified seal — issued only when all seven checks pass" style="flex:none;display:block">
+                    <circle cx="120" cy="120" r="116" fill="none" stroke="#C9A24B" stroke-width="2.5"/>
+                    <circle cx="120" cy="120" r="106" fill="none" stroke="#0F7A43" stroke-width="3"/>
+                    <defs><path id="stampTop" d="M34,120 a86,86 0 0,1 172,0"/><path id="stampBot" d="M26,120 a94,94 0 0,0 188,0"/></defs>
+                    <g aria-hidden="true" fill="#0F7A43">
+                      <text font-family="'IBM Plex Mono',monospace" font-size="13.5" font-weight="600" letter-spacing="2.4" text-anchor="middle"><textPath href="#stampTop" startOffset="50%">HALAL GOES · VERIFIED</textPath></text>
+                      <text font-family="'IBM Plex Mono',monospace" font-size="13.5" font-weight="600" letter-spacing="2.4" text-anchor="middle"><textPath href="#stampBot" startOffset="50%">7 OF 7 CHECKS PASSED</textPath></text>
+                      <circle cx="30" cy="120" r="2.6"/><circle cx="210" cy="120" r="2.6"/>
+                    </g>
+                    <circle cx="120" cy="120" r="72" fill="none" stroke="#0F7A43" stroke-width="1.25" stroke-dasharray="3 3"/>
+                    <circle cx="120" cy="120" r="58" fill="#0F7A43"/>
+                    <g aria-hidden="true" transform="translate(84 84) scale(3)">
+                      <path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0.4" stroke-linejoin="round"/>
+                      <path d="M8.4 12.1l2.5 2.5 4.7-4.9" fill="none" stroke="#0F7A43" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                    </g>
+                  </svg>
+                </div>
+
+                <div class="sched"><h3>On lapse</h3><span>Withdrawn at expiry · same day</span></div>
+                <div style="margin-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                  <span class="pill-expired">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z"/></svg>
+                    Certification expired
+                  </span>
+                  <span class="mono-sm">State: expired<br>Not orderable</span>
+                </div>
+                <p class="body" style="margin-top:12px;font-size:14px;line-height:1.5;color:var(--ink)">When a certificate reaches its expiry date, the seal is withdrawn that same day. The listing shows the state above — neutral slate, meaning <em style="font-style:normal;font-weight:600">we can’t currently vouch</em> — never a red warning, never a badge left up in hope. If a halal field is missing from our records, no badge is shown at all. We don’t guess.</p>
+                <p class="mono-note" style="margin-top:12px;border-top:1px solid var(--hair);padding-top:12px;font-size:10.5px">APPROVED → EXPIRED at expires_on, end of day, America/Toronto. Red is never used for a halal state: red reads as a religious ruling, and this platform does not make one.</p>
+
+                <div style="margin-top:18px;display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--ink);padding-top:12px">
+                  <span class="mono-sm">Rejection — any one fail, with a reason code</span><span class="mono-sm">Page 1 of 1</span>
+                </div>
+
+                <p class="body" style="margin-top:20px;background:var(--sage);border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.5;color:var(--mkink)">Every restaurant you can order from has a sheet like this on file. Issuing body, certificate number, dates and the day we verified it are on the restaurant’s page, with the certificate one tap away.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 6 · THE REFUSAL ══════════════════════════════════════════════
+     The same window. Its radius and hairline do not change — only what is
+     behind the glass does, and here it is ink. ═══════════════════════════ -->
+<section class="beat" data-beat data-id="refusal" data-name="The refusal" style="--len:300" aria-labelledby="refusal-heading">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="portal-slot" data-slot style="--slot-d:76svh;--slot-p:60svh">
+        <div class="portal portal--ink" data-portal>
+          <div class="psurf-wrap">
+            <div class="psurf surf-refusal" data-surf>
+              <h2 id="refusal-heading" class="display h2" style="max-width:18ch;line-height:1.08">
+                <span style="display:block" data-rv>We don’t certify food.</span>
+                <span style="display:block" data-rv>We don’t make rulings.</span>
+                <span style="display:block" data-rv>That isn’t ours to make.</span>
+              </h2>
+              <p style="margin-top:26px;max-width:58ch;font-size:clamp(15px,1.5vw,18px);line-height:1.6;--rv-base:.9" data-rv>We do the clerical work. We get the certificate, we read it, we check it’s real and still in force, and we put our name against the date we checked. What the badge shows is what the certificate says — including who issued it, so you can decide whether that issuer meets your standard. We don’t rank issuers and we don’t score them.</p>
+              <p style="margin-top:28px;max-width:62ch;border-top:1px solid rgba(255,250,234,.22);padding-top:18px;font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.03em;line-height:1.7;--rv-base:.85" data-rv>Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 7 · WHAT THE BADGE CAN SAY ═══════════════════════════════════ -->
+<section class="beat" data-beat data-id="states" data-name="What the badge can say" style="--len:380" aria-labelledby="states-heading">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split">
+        <div class="portal-slot" data-slot style="--slot-d:64svh;--slot-p:50svh">
+          <div class="portal" data-portal>
+            <div class="psurf-wrap">
+              <div class="psurf surf-record" data-surf data-state="certified">
+                <p class="rec-cap" data-cap>Specimen · what a listing’s record looks like once it passes</p>
+                <div class="rec-statusrow" data-focus="plate">
+                  <span class="rec-mark mark-certified" data-mark aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" data-shield><path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF"/><path d="m8 12.1 2.7 2.7L16.2 9" fill="none" stroke="#0F7A43" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                  <span style="min-width:0">
+                    <span class="rec-statuslabel" data-statuslabel>Halal certified</span>
+                    <p class="rec-disc" data-statusbody>A current certificate is on file, a person has checked it against all seven points, and the record says who checked it and when.</p>
+                  </span>
+                </div>
+                <div class="rec-rule"></div>
+                <dl style="margin:0">
+                  <div class="rec-line"><dt>Kitchen</dt><dd><span class="blank" style="width:19ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                  <div class="rec-line"><dt>Issued by</dt><dd>Halal Monitoring Authority (HMA Canada)</dd></div>
+                  <div class="rec-line"><dt>Certificate</dt><dd><span class="blank" style="width:13ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                  <div class="rec-line" data-short><dt>Scope</dt><dd><span class="blank" style="width:16ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                  <div class="rec-line"><dt>In force to</dt><dd><span class="blank" style="width:10ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                  <div class="rec-line" data-short><dt>Checked by</dt><dd><span class="blank" style="width:14ch;height:15px" role="img" aria-label="not yet published"></span></dd></div>
+                </dl>
+                <div class="rec-rule" data-short></div>
+                <dl style="margin:0" data-short><div class="rec-line"><dt>Reviews</dt><dd class="prose">None yet. We haven’t opened.</dd></div></dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="eyebrow" data-rv>What the badge can say</p>
+          <h2 id="states-heading" class="display h2" style="margin-top:10px;max-width:16ch" data-rv>Including when we can’t vouch for a kitchen.</h2>
+          <p class="body max62" style="margin-top:12px" data-rv>Four states, and only four. We’d rather show you less than show you something we can’t stand behind.</p>
+          <ul style="margin-top:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px" data-statecards>
+            <li class="state-card is-on"><span class="state-mark certified" aria-hidden="true"></span><p style="font-size:14px;font-weight:700;color:var(--ink)">Halal certified</p><p class="body" style="margin-top:6px;font-size:12.5px;line-height:1.45">A current certificate is on file, a person has checked it against all seven points, and the record says who checked it and when.</p><p class="mono-sm" style="margin-top:10px">Record shown on the listing</p></li>
+            <li class="state-card"><span class="state-mark expired" aria-hidden="true"></span><p style="font-size:14px;font-weight:700;color:var(--ink)">Expired</p><p class="body" style="margin-top:6px;font-size:12.5px;line-height:1.45">The restaurant comes off the app until it is renewed. An expired certificate means our information has lapsed — not that anything is wrong with the food. There is no grace period.</p><p class="mono-sm" style="margin-top:10px">Delisted within 60 seconds</p></li>
+            <li class="state-card"><span class="state-mark review" aria-hidden="true"></span><p style="font-size:14px;font-weight:700;color:var(--ink)">Under review</p><p class="body" style="margin-top:6px;font-size:12.5px;line-height:1.45">We have the paperwork and we have not finished checking it. Nothing is ever auto-approved on a timer.</p><p class="mono-sm" style="margin-top:10px">Not visible to customers</p></li>
+            <li class="state-card"><span class="state-mark none" aria-hidden="true"></span><p style="font-size:14px;font-weight:700;color:var(--ink)">No record</p><p class="body" style="margin-top:6px;font-size:12.5px;line-height:1.45">If we have not read a certificate, you see nothing at all. Never a maybe, never an optimistic badge.</p><p class="mono-sm" style="margin-top:10px">No badge rendered</p></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 8 · 02 SEALED AT THE KITCHEN ═════════════════════════════════ -->
+<section class="beat" data-beat data-id="sealed" data-name="02 · Sealed at the kitchen" style="--len:340" aria-labelledby="sealed-heading">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split">
+        <div>
+          <p class="eyebrow" data-rv>After you order</p>
+          <h2 id="sealed-heading" class="display h2" style="margin-top:10px;max-width:15ch" data-rv>Sealed at the kitchen. Opened by you.</h2>
+          <p class="body max46" style="margin-top:12px" data-rv>Verifying the kitchen is only half of it. The other half is making sure nothing happened to the bag between their pass and your door.</p>
+          <ol class="rulelist" style="margin-top:20px">
+            <li data-rv><span class="mono-sm">01 · At the kitchen</span><p style="margin-top:6px;font-size:16px;font-weight:700;line-height:1.2;color:var(--ink)">The kitchen seals the bag.</p><p class="body max56" style="margin-top:5px;font-size:14px">A tamper-evident label goes across the opening as they finish packing, and it is bound to your order alone. A seal never moves between orders.</p></li>
+            <li data-rv><span class="mono-sm">02 · At pickup</span><p style="margin-top:6px;font-size:16px;font-weight:700;line-height:1.2;color:var(--ink)">Your rider scans it on collection.</p><p class="body max56" style="margin-top:5px;font-size:14px">The scan is what moves the order to picked up. Each code works once — a second use is rejected by the database, not by a check somebody might skip.</p></li>
+          </ol>
+        </div>
+
+        <div>
+          <p class="beatmark" data-rv style="margin-bottom:10px">02 · Sealed at the kitchen</p>
+          <div class="portal-slot" data-slot style="--slot-d:74svh;--slot-p:47svh">
+          <div class="portal" data-portal>
+            <div class="psurf-wrap">
+              <div class="psurf surf-app" data-surf>
+                <div class="app-top">
+                  <span class="mono-sm">Order</span>
+                  <div style="margin-top:6px"><span class="blank" style="width:12ch;height:16px" role="img" aria-label="not yet published"></span></div>
+                  <div style="margin-top:16px;display:flex;align-items:center;gap:10px">
+                    <span class="pill-halal"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 4 5v4.6c0 3.6 2.5 6.7 6 7.9 3.5-1.2 6-4.3 6-7.9V5l-6-2.5Z"/><path d="M7.2 10.2l2 2 3.8-4.2"/></svg>Halal certified</span>
+                  </div>
+                  <div style="margin-top:14px"><span class="mono-sm">Kitchen</span><div style="margin-top:6px"><span class="blank" style="width:17ch;height:16px" role="img" aria-label="not yet published"></span></div></div>
+                </div>
+                <div class="app-sheet" data-sheet>
+                  <span class="grabber" aria-hidden="true"></span>
+                  <svg width="104" height="116" viewBox="0 0 108 120" fill="none" aria-hidden="true" style="display:block;flex:none;margin-top:20px">
+                    <path d="M36 34C36 14 72 14 72 34" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14 34H94L100 112H8Z" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="2" y="26" width="104" height="22" rx="3" fill="#F6EFDD" stroke="#232323" stroke-width="2" stroke-linejoin="round"/>
+                    <text x="54" y="40.5" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" font-weight="500" letter-spacing="1.6" fill="#232323">SEALED</text>
+                  </svg>
+                  <p data-rv style="margin-top:16px;flex:none;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;line-height:1;color:var(--ink)">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M6.6 10.2l2.2 2.2 4.6-4.8"/></svg>
+                    <span>Scanned at pickup</span>
+                  </p>
+                  <div style="align-self:stretch;margin:16px -22px 0;height:1px;background:var(--hair);flex:none"></div>
+                  <div data-rv style="align-self:stretch;margin-top:14px;flex:none"><span class="mono-sm">Seal code</span><div style="margin-top:6px"><span class="blank" style="width:15ch;height:16px" role="img" aria-label="not yet published"></span></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 9 · 03 AT YOUR DOOR ══════════════════════════════════════════ -->
+<section class="beat" data-beat data-id="door" data-name="03 · At your door" style="--len:340">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split">
+        <div class="portal-slot" data-slot style="--slot-d:66svh;--slot-p:54svh">
+          <div class="portal" data-portal>
+            <div class="psurf-wrap">
+              <div class="psurf surf-app surf-door" data-surf>
+                <div class="app-top" style="padding-bottom:26px">
+                  <p style="font-size:24px;font-weight:700;line-height:1;letter-spacing:-0.01em;color:var(--ink)">Delivered</p>
+                  <div style="margin-top:16px"><span class="mono-sm">Delivered to</span><div style="margin-top:6px"><span class="blank" style="width:18ch;height:16px" role="img" aria-label="not yet published"></span></div></div>
+                  <div style="margin:18px -24px 0;height:1px;background:var(--hair)"></div>
+                  <div class="trail">
+                    <span class="rail" aria-hidden="true" data-rail></span>
+                    <ol data-trail>
+                      <li><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#FFFFFF"/><path class="ck" d="M6.6 10.2l2.2 2.2 4.6-4.8"/></svg><span>Order placed</span></li>
+                      <li><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#FFFFFF"/><path class="ck" d="M6.6 10.2l2.2 2.2 4.6-4.8"/></svg><span>Sealed at the kitchen</span></li>
+                      <li><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#FFFFFF"/><path class="ck" d="M6.6 10.2l2.2 2.2 4.6-4.8"/></svg><span>Picked up</span></li>
+                      <li><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#FFFFFF"/><path class="ck" d="M6.6 10.2l2.2 2.2 4.6-4.8"/></svg><span>Delivered</span></li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <ol class="rulelist">
+            <li data-rv><span class="mono-sm">03 · At your door</span><p style="margin-top:6px;font-size:clamp(18px,2vw,22px);font-weight:700;line-height:1.15;color:var(--ink)">It is scanned again when it reaches you.</p><p class="body max56" style="margin-top:8px">If a seal arrives broken you can report it with a photo, and the whole scan trail goes to a person to sort out.</p></li>
+          </ol>
+          <p class="mono-note max62" style="margin-top:22px" data-rv>A broken seal does not block pickup or delivery, and it never auto-fails the order or the payment. The customer files the tamper report, never the rider.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 10 · HOW ORDERING WORKS ══════════════════════════════════════ -->
+<section class="beat" data-beat data-id="steps" data-name="How ordering works" style="--len:300">
+  <div class="stage">
+    <div class="stage-inner">
+      <h2 class="display h2" data-rv>How ordering works</h2>
+      <div class="split" style="margin-top:22px;align-items:start">
+        <ol style="display:grid;gap:22px">
+          <li data-rv><span class="mono-sm" style="font-variant-numeric:tabular-nums">01</span><h3 class="h3" style="margin-top:8px">Pick a restaurant</h3><p class="body max56" style="margin-top:6px">Everything you can see has passed all seven checks. The seal on a listing is the outcome of the sheet above, and it comes down the day the certificate lapses.</p></li>
+          <li data-rv><span class="mono-sm" style="font-variant-numeric:tabular-nums">02</span><h3 class="h3" style="margin-top:8px">Order</h3><p class="body max56" style="margin-top:6px">You see the full total before you pay. Change your mind before the restaurant accepts and the order is cancelled free — nothing is taken.</p></li>
+          <li data-rv><span class="mono-sm" style="font-variant-numeric:tabular-nums">03</span><h3 class="h3" style="margin-top:8px">Follow it to the door</h3><p class="body max56" style="margin-top:6px">Your rider’s position updates as they go, so you know whether to answer the door now or in ten minutes.</p></li>
+        </ol>
+
+        <!-- the window at its smallest: a card in a column of prose -->
+        <div class="portal-slot" data-slot style="--slot-d:30svh;--slot-p:31svh">
+          <div class="portal" data-portal>
+            <div class="psurf-wrap">
+              <div class="psurf surf-plate" data-surf>
+                <div style="padding:14px;border-radius:14px;background:var(--sage)">
+                  <span class="pill-halal"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 4 5v4.6c0 3.6 2.5 6.7 6 7.9 3.5-1.2 6-4.3 6-7.9V5l-6-2.5Z"/><path d="M7.2 10.2l2 2 3.8-4.2"/></svg>Halal certified</span>
+                  <p class="rec-disc">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+                </div>
+                <div style="margin-top:14px"><span class="mono-sm">Issued by</span><p style="margin-top:5px;font-size:13.5px;font-weight:600;line-height:1.3;color:var(--ink)">Halal Monitoring Authority (HMA Canada)</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 11 · EVERYTHING HERE IS CHECKABLE ════════════════════════════ -->
+<section class="beat" data-beat data-id="checkable" data-name="Everything is checkable" style="--len:280" aria-labelledby="checkable-heading">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split split--4-7">
+        <div>
+          <p class="eyebrow" data-rv>How to catch us out</p>
+          <h2 id="checkable-heading" class="display h2" style="margin-top:10px;max-width:13ch" data-rv>Everything here is checkable.</h2>
+          <p class="body max46" style="margin-top:12px" data-rv>We’re asking you to trust a list. The only honest way to earn that is to make it easy to prove us wrong.</p>
+        </div>
+        <ul class="rulelist">
+          <li data-rv><p style="font-size:16px;font-weight:700;line-height:1.2;color:var(--ink)">The standard is written down, versioned and dated.</p><p class="body max56" style="margin-top:5px;font-size:14px">Not a page of principles — the actual seven checks, what makes an issuer acceptable, and what we refuse to claim. If we change it, the version changes with it.</p></li>
+          <li data-rv><p style="font-size:16px;font-weight:700;line-height:1.2;color:var(--ink)">We print the issuer’s name, not a label of our own.</p><p class="body max56" style="margin-top:5px;font-size:14px">Every listing names the body that issued the certificate. We don’t rank issuers or score them, because which bodies you accept is your judgement, not ours.</p></li>
+          <li data-rv><p style="font-size:16px;font-weight:700;line-height:1.2;color:var(--ink)">You can open the certificate itself.</p><p class="body max56" style="margin-top:5px;font-size:14px">Not a badge that stands in for a document — the document. Signed in, from the listing, on a link that expires in minutes and is never served from a public URL.</p></li>
+          <li data-rv><p style="font-size:16px;font-weight:700;line-height:1.2;color:var(--ink)">Nobody can buy their way up the list.</p><p class="body max56" style="margin-top:5px;font-size:14px">A restaurant cannot pay for or influence its position in the feed. There is no promoted tier and there is no plan to build one.</p></li>
+          <li data-rv><p style="font-size:16px;font-weight:700;line-height:1.2;color:var(--ink)">We’ll publish what we turn down.</p><p class="body max56" style="margin-top:5px;font-size:14px">From launch: how many applications we received, how many passed, and how many we rejected. A verifier who only ever reports approvals isn’t verifying anything.</p></li>
+        </ul>
+      </div>
+      <p class="mono-note" style="margin-top:22px;border:1px solid var(--hair);background:var(--raised);border-radius:14px;padding:14px 16px;text-transform:uppercase;letter-spacing:.05em;font-size:10.5px" data-rv>No reviews, no ratings, no customer counts and no partner logos on this page. We haven’t opened yet. When we do, every number here will be one you can check.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 12 · QUESTIONS PEOPLE ASK ════════════════════════════════════ -->
+<section class="beat beat--flow" id="faq" data-beat data-id="faq" data-name="Questions people ask" style="--len:320">
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="split split--4-7" style="align-items:start">
+        <h2 class="display h2" style="max-width:12ch;position:sticky;top:12svh" data-rv>Questions people ask.</h2>
+        <div>
+          <details class="faq-item" data-rv open><summary>What does “verified” mean here?</summary><p class="body a">A person reads the restaurant’s halal certificate and records seven checks against it: that it is legible and complete, that the issuing body is one we accept, that the legal name matches, that the premises address matches, that the dates are valid today, that the scope covers everything sold, and that the certificate is not already in use by another restaurant. All seven have to pass. Six of seven is a rejection with a reason, not a seal.</p></details>
+          <details class="faq-item" data-rv open><summary>Whose certificates do you accept?</summary><p class="body a">HMA Canada, HFSAA and ISNA Canada. A certificate from any one of them satisfies the issuer check. The list can grow as we accept more bodies; it is never typed in free-hand.</p></details>
+          <details class="faq-item" data-rv open><summary>What happens when a certificate expires?</summary><p class="body a">The seal comes down the same day. The listing shows a neutral “we can’t currently vouch” state and you can’t order from it until it’s renewed. We don’t leave a badge up in hope.</p></details>
+          <details class="faq-item" data-rv open><summary>Do you decide what’s halal?</summary><p class="body a">No. We check certificates issued by recognised bodies and report what we find. We don’t make religious rulings, and we don’t rank one certifier’s standard above another’s.</p></details>
+          <details class="faq-item" data-rv open><summary>Is the whole restaurant halal, or just some items?</summary><p class="body a">That’s check six. We record what the certificate’s scope covers, and if it doesn’t cover everything sold, the restaurant doesn’t go live.</p></details>
+          <details class="faq-item" data-rv open><summary>What do you do with my email address?</summary><p class="body a">Write to you when we open in your area, and after that only when there are newly verified kitchens near you. We don’t sell it and we don’t pass it to restaurants. Every email has one-click unsubscribe.</p></details>
+          <details class="faq-item" data-rv open><summary>When are you launching?</summary><p class="body a">Ontario first. We’re pre-launch — this page is a waitlist, not a download, and there’s nothing to install yet. Leave your email and we’ll write once, the day we open in your area.</p></details>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 13 · BE THERE ON DAY ONE ═════════════════════════════════════ -->
+<section class="beat" data-beat data-id="cta" data-name="Be there on day one" style="--len:260">
+  <div class="stage">
+    <div class="stage-inner">
+      <div style="background:var(--sage);border-radius:22px;padding:28px 22px" class="split" data-ctabox>
+        <div>
+          <h2 class="display h2" data-rv>Be there on day one.</h2>
+          <p class="body-lg max46" style="margin-top:12px" data-rv>One email the day we open in your area. Nothing before then.</p>
+          <div class="portal-slot" data-slot style="--slot-d:24svh;--slot-p:20svh;margin-top:16px">
+            <div class="portal" data-portal>
+              <div class="psurf-wrap">
+                <div class="psurf surf-plate" data-surf>
+                  <div style="padding:14px;border-radius:14px;background:var(--sage)">
+                    <span class="pill-halal"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5 4 5v4.6c0 3.6 2.5 6.7 6 7.9 3.5-1.2 6-4.3 6-7.9V5l-6-2.5Z"/><path d="M7.2 10.2l2 2 3.8-4.2"/></svg>Halal certified</span>
+                    <p class="rec-disc">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-rv>
+          <form class="wl" data-waitlist data-context="final" novalidate>
+            <label class="lab" for="wl2">Email address</label>
+            <div class="row">
+              <input id="wl2" name="contact" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="wl2msg">
+              <button class="btn" type="submit">Notify me</button>
+            </div>
+            <div class="consent">
+              <input id="wl2c" name="consent" type="checkbox" aria-describedby="wl2msg">
+              <label for="wl2c">I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.</label>
+            </div>
+            <p class="msg" id="wl2msg" role="status" aria-live="polite">No spam. One email, the day we open in your area.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="wrap">
+  <footer class="site-footer">
+    <p class="display" style="font-weight:800;font-size:20px">Halal Goes</p>
+    <nav aria-label="Footer">
+      <a href="#seven-checks">Verification standard</a>
+      <a href="#faq">Writing</a>
+      <a href="#faq">Privacy</a>
+      <a href="#faq">Terms</a>
+      <button type="button" data-cookie>Cookie preferences</button>
+    </nav>
+    <p class="body" style="font-size:14px">Ontario, Canada. Launching soon — prices in CAD.</p>
+  </footer>
+  <p class="mono-note" style="padding-bottom:40px;font-size:10.5px">Prototype · customer track only · the two other audience tracks are not built here. Press <kbd>d</kbd> to toggle the scroll HUD.</p>
+</div>
+
+<aside class="hud" id="hud" aria-hidden="true">
+  <div><b data-hud-beat>—</b></div>
+  <div><span class="dim">local</span> <span data-hud-p>0.000</span> &nbsp;<span class="dim">beat</span> <span data-hud-len>—</span></div>
+  <div><span class="dim">page</span> <span data-hud-total>—</span> &nbsp;<span class="dim">at</span> <span data-hud-at>—</span></div>
+  <div class="bar"><i></i></div>
+</aside>
+
+<script src="assets/lenis.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE SCROLL ENGINE
+
+   One scroll value. Per-beat progress computed IN PIXELS against each beat's
+   own measured offsetTop / offsetHeight. Exact progress owns everything
+   discrete (active beat, which checks are ticked, which state is shown, ARIA);
+   damped progress owns everything continuous (sizes, offsets, opacity). That
+   split is what stops text flickering between two states at a boundary.
+
+   Every pinned beat gets >= 250vh, and the three device-led journey beats get
+   >= 300vh. Inside a beat, roughly the first 20% and last 20% of its scroll
+   range HOLD STILL, so a reader can stop and read without the thing under them
+   still travelling.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── maths ─────────────────────────────────────────────────────────────── */
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function seg(p, a, b) { return clamp((p - a) / (b - a), 0, 1); }
+  function smooth(t) { return t * t * (3 - 2 * t); }
+  function easeIO(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function mix(a, b, t) { return a + (b - a) * t; }
+  /** The dwell map: hold, move, hold. */
+  function dwell(p, a, b) { return easeIO(seg(p, a === undefined ? 0.2 : a, b === undefined ? 0.8 : b)); }
+  /** A stepped pan with a plateau on each stop, so the reader always lands on something. */
+  function stepped(t, n) {
+    var u = t * (n - 1), i = Math.min(n - 2, Math.floor(u)), f = u - i;
+    return (i + smooth(clamp((f - 0.26) / 0.46, 0, 1))) / (n - 1);
+  }
+  function rv(el, v) { el.style.setProperty('--rv', v.toFixed(3)); }
+
+  /* ── the waitlist form: empty, focus, invalid, submitted ───────────────── */
+  var EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+  Array.prototype.forEach.call(document.querySelectorAll('form[data-waitlist]'), function (form) {
+    var input = form.querySelector('input[type=email]');
+    var consent = form.querySelector('input[type=checkbox]');
+    var msg = form.querySelector('.msg');
+    var rest = msg.textContent;
+    function say(text, bad) {
+      msg.textContent = text;
+      if (bad) { msg.setAttribute('data-tone', 'bad'); } else { msg.removeAttribute('data-tone'); }
+    }
+    input.addEventListener('input', function () {
+      input.removeAttribute('aria-invalid'); consent.removeAttribute('aria-invalid'); say(rest, false);
+    });
+    consent.addEventListener('change', function () { consent.removeAttribute('aria-invalid'); say(rest, false); });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var value = input.value.trim();
+      input.removeAttribute('aria-invalid'); consent.removeAttribute('aria-invalid');
+      if (value.length === 0) { input.setAttribute('aria-invalid', 'true'); say('Enter your email address.', true); input.focus(); return; }
+      if (!EMAIL.test(value)) { input.setAttribute('aria-invalid', 'true'); say('That doesn’t look like an email address.', true); input.focus(); return; }
+      if (!consent.checked) { consent.setAttribute('aria-invalid', 'true'); say('Please tick the box so we’re allowed to contact you.', true); consent.focus(); return; }
+      // Posts nowhere. This is a prototype.
+      var done = document.createElement('div');
+      done.className = 'wl wl-done';
+      done.setAttribute('tabindex', '-1');
+      done.innerHTML = '<p class="t">You’re on the list.</p><p class="body" style="margin-top:8px">We’ll email you once, the day we open in your area. Nothing before then.</p>';
+      form.replaceWith(done);
+      done.focus();
+    });
+  });
+
+  /* ── footer cookie control ─────────────────────────────────────────────── */
+  var cookieBtn = document.querySelector('[data-cookie]');
+  if (cookieBtn) {
+    cookieBtn.addEventListener('click', function () {
+      var p = document.createElement('p');
+      p.className = 'mono-note';
+      p.setAttribute('role', 'status');
+      p.style.cssText = 'flex-basis:100%;font-size:10.5px';
+      p.textContent = 'This prototype sets no cookies and loads no analytics. Nothing to withdraw.';
+      cookieBtn.after(p);
+      cookieBtn.disabled = true;
+    });
+  }
+
+  /* ── beats ─────────────────────────────────────────────────────────────── */
+  var beats = Array.prototype.map.call(document.querySelectorAll('[data-beat]'), function (el) {
+    var slot = el.querySelector('[data-slot]');
+    return {
+      id: el.dataset.id, name: el.dataset.name, el: el,
+      flow: el.classList.contains('beat--flow'),
+      stage: el.querySelector('.stage'), inner: el.querySelector('.stage-inner'),
+      slot: slot,
+      portal: slot ? slot.querySelector('[data-portal]') : null,
+      surf: slot ? slot.querySelector('[data-surf]') : null,
+      rvs: Array.prototype.slice.call(el.querySelectorAll('[data-rv]')),
+      pe: 0, pd: 0, pIn: 0, dIn: 0, top: 0, h: 1, travel: 1
+    };
+  });
+  var byId = {};
+  beats.forEach(function (b) { byId[b.id] = b; });
+
+  /* cached nodes for the discrete work */
+  var checkRows = byId.checks ? Array.prototype.slice.call(byId.checks.el.querySelectorAll('.check-row')) : [];
+  var checkCounter = byId.checks ? byId.checks.el.querySelector('[data-counter]') : null;
+  var trailRows = byId.door ? Array.prototype.slice.call(byId.door.el.querySelectorAll('[data-trail] li')) : [];
+  var trailRail = byId.door ? byId.door.el.querySelector('[data-rail]') : null;
+  var stateCards = byId.states ? Array.prototype.slice.call(byId.states.el.querySelectorAll('[data-statecards] > li')) : [];
+  var sealSheet = byId.sealed ? byId.sealed.el.querySelector('[data-sheet]') : null;
+  var checksProse = byId.checks ? byId.checks.el.querySelector('[data-prose]') : null;
+
+  var STATES = [
+    { state: 'certified', label: 'Halal certified', body: 'A current certificate is on file, a person has checked it against all seven points, and the record says who checked it and when.', mark: 'mark-certified', mono: 'Record shown on the listing' },
+    { state: 'expired', label: 'Certificate expired', body: 'The restaurant comes off the app until it is renewed. An expired certificate means our information has lapsed — not that anything is wrong with the food. There is no grace period.', mark: 'mark-expired', mono: 'Delisted within 60 seconds' },
+    { state: 'review', label: 'Under review', body: 'We have the paperwork and we have not finished checking it. Nothing is ever auto-approved on a timer.', mark: 'mark-review', mono: 'Not visible to customers' },
+    { state: 'none', label: 'No record', body: 'If we have not read a certificate, you see nothing at all. Never a maybe, never an optimistic badge.', mark: 'mark-none', mono: 'No badge rendered' }
+  ];
+
+  /* The reveal schedules, in DOM order per beat, as [start, end, clock].
+     There are TWO clocks and the difference is the whole point:
+
+       ENTRANCE (default) runs on `dIn` — the approach, which completes at the
+         moment the beat pins. Headings, prose, cards, the framing of a
+         composition. A beat must be WHOLE when it arrives; a pinned beat that
+         paints nothing for its opening dwell is a viewport of blank scrolling.
+       NARRATIVE ('pin')  runs on `pd` — the pinned progress. The things the
+         beat exists to show happening: a punchline landing, a row of the list
+         arriving, the payoff line at the end.
+
+     Everything a reader needs in order to know what they are looking at is on
+     the entrance clock. Only what the beat is *doing* is on the pinned one. */
+  var PLAN = {
+    // all entrance: the beat is two lines and a note, and they are the beat
+    recognition: [[0.10, 0.48], [0.34, 0.72], [0.56, 0.92]],
+    // head entrance; the closing line is the payoff after the six dishes
+    craving: [[0.08, 0.44], [0.24, 0.60], [0.40, 0.80], [0.76, 0.88, 'pin']],
+    // heading + the two sourced paragraphs on arrival; the conclusion and the
+    // citation land while you are in the beat
+    why: [[0.06, 0.42], [0.24, 0.62], [0.44, 0.86], [0.20, 0.42, 'pin'], [0.46, 0.66, 'pin']],
+    // all entrance: this column hands over to the aperture at p=0.16 and must
+    // be fully readable before it does
+    checks: [[0.06, 0.40], [0.18, 0.54], [0.32, 0.70], [0.46, 0.86]],
+    // the three-line refusal is one sentence group and arrives whole
+    refusal: [[0.10, 0.46], [0.26, 0.62], [0.42, 0.82], [0.58, 0.94], [0.20, 0.44, 'pin']],
+    states: [[0.08, 0.44], [0.22, 0.60], [0.38, 0.78]],
+    // eyebrow/h2/lede/journey-mark entrance; the two custody rows and the two
+    // labels inside the rising sheet are narrative
+    sealed: [[0.06, 0.40], [0.18, 0.56], [0.34, 0.74], [0.14, 0.34, 'pin'], [0.34, 0.54, 'pin'],
+             [0.04, 0.34], [0.52, 0.64, 'pin'], [0.62, 0.76, 'pin']],
+    door: [[0.10, 0.52], [0.66, 0.80, 'pin']],
+    // heading and the first step on arrival; steps two and three are the beat
+    steps: [[0.06, 0.44], [0.26, 0.74], [0.20, 0.40, 'pin'], [0.44, 0.64, 'pin']],
+    // framing and the first three claims on arrival; the last two and the
+    // honest empty-state strip are the beat
+    checkable: [[0.04, 0.36], [0.14, 0.50], [0.28, 0.64], [0.40, 0.74], [0.52, 0.84], [0.62, 0.92],
+                [0.16, 0.36, 'pin'], [0.34, 0.54, 'pin'], [0.58, 0.76, 'pin']],
+    cta: [[0.10, 0.46], [0.26, 0.62], [0.40, 0.82]]
+  };
+  function plan(b) {
+    var rows = PLAN[b.id];
+    if (!rows) return;
+    for (var i = 0; i < b.rvs.length; i++) {
+      var r = rows[i];
+      if (!r) { rv(b.rvs[i], 1); continue; }
+      rv(b.rvs[i], smooth(seg(r[2] === 'pin' ? b.pd : b.dIn, r[0], r[1])));
+    }
+  }
+
+  /* ── THE PORTAL — every aperture's transform state passes through here ────
+     The aperture is sized in real pixels, never scaled by a transform, so its
+     corner radius and its hairline stay identical on every beat: one window,
+     not a series of frames. It is never rotated. When this is swapped for a
+     real 3D model later, this function is the only seam. */
+  function setPortal(b, st) {
+    var p = b.portal;
+    p.style.setProperty('--pw', Math.max(24, Math.round(st.w)) + 'px');
+    p.style.setProperty('--ph', Math.max(24, Math.round(st.h)) + 'px');
+    p.style.setProperty('--tx', (st.tx || 0).toFixed(1) + 'px');
+    p.style.setProperty('--ty', (st.ty || 0).toFixed(1) + 'px');
+    p.style.setProperty('--pop', (st.op === undefined ? 1 : st.op).toFixed(3));
+    b.surf.style.setProperty('--s', (st.s || 1).toFixed(4));
+    // --ox/--oy are surface units on the way in, screen pixels on the way out
+    b.surf.style.setProperty('--ox', ((st.ox || 0) * (st.s || 1)).toFixed(1) + 'px');
+    b.surf.style.setProperty('--oy', ((st.oy || 0) * (st.s || 1)).toFixed(1) + 'px');
+  }
+  /** u=0 surface top aligned with aperture top, u=1 surface bottom with bottom. */
+  function panY(u, h, s, SH) { var r = Math.max(0, SH - h / s) / 2; return r - 2 * r * u; }
+  function panX(u, w, s, SW) { var r = Math.max(0, SW - w / s) / 2; return r - 2 * r * u; }
+  function focusY(b, sel, h, s) {
+    var t = b.surf.querySelector(sel); if (!t) return 0;
+    var cy = t.offsetTop + t.offsetHeight / 2;
+    var r = Math.max(0, b.sh - h / s) / 2;
+    return clamp(b.sh / 2 - cy, -r, r);
+  }
+  function containScale(b, w, h) { return Math.min(1, w / b.sw, h / b.sh); }
+  /** Scale the surface to the aperture's WIDTH, then let the aperture's height
+      crop it. Shrinking a record until it is unreadable is not a portal. */
+  function fitBox(b) {
+    var s = Math.min(1, b.slotW / b.sw);
+    return { s: s, w: b.sw * s, maxH: Math.min(b.sh * s, b.slotH) };
+  }
+
+  /* ── per-beat choreography ─────────────────────────────────────────────── */
+  var RENDER = {
+
+    /* 01 · THE RECORD — the aperture opens downward over the record. */
+    hero: function (b) {
+      var t = dwell(b.pd, 0.20, 0.80);
+      var f = fitBox(b);
+      // The window opens downward over the record. It is never cropped
+      // sideways: a cut label reads as broken, not as a window.
+      var h = mix(f.maxH * 0.58, f.maxH, t);
+      setPortal(b, { w: f.w, h: h, s: f.s, oy: panY(0, h, f.s, b.sh) });
+    },
+
+    /* The window shrunk to a card, inline in a column of prose. */
+    recognition: function (b) {
+      var t = dwell(b.pd, 0.18, 0.76);
+      var f = fitBox(b);
+      // Crop to the plate and only to the plate: the edges land on its own
+      // margins, so no line of type is ever sliced in half by the aperture.
+      var plate = b.surf.querySelector('[data-focus=plate]');
+      var h = Math.min(f.maxH, (plate.offsetHeight + mix(14, 40, t)) * f.s);
+      setPortal(b, { w: f.w, h: h, s: f.s, oy: focusY(b, '[data-focus=plate]', h, f.s), tx: mix(28, 0, b.dIn) });
+      plan(b);
+    },
+
+    /* The window holds still. The food moves through it, with a plateau on
+       every tile so a reader always lands on a dish they can read. */
+    craving: function (b) {
+      var t = dwell(b.pd, 0.14, 0.88);
+      var s = Math.min(1, b.slotH / b.sh);
+      var h = b.sh * s;
+      var w = Math.min(b.slotW, b.sw * s);
+      // Every dwell stop CENTRES a dish, so a reader who stops mid-beat is
+      // always looking at a whole tile and a whole caption.
+      var tiles = b.tiles || (b.tiles = Array.prototype.slice.call(b.surf.children));
+      var n = tiles.length, r = Math.max(0, b.sw - w / s) / 2;
+      var u = t * (n - 1), i = Math.min(n - 2, Math.floor(u)), fr = u - i;
+      var g = smooth(clamp((fr - 0.26) / 0.46, 0, 1));
+      function centreOn(k) { var e = tiles[k]; return clamp(b.sw / 2 - (e.offsetLeft + e.offsetWidth / 2), -r, r); }
+      setPortal(b, { w: w, h: h, s: s, ox: mix(centreOn(i), centreOn(i + 1), g) });
+      plan(b);
+    },
+
+    /* No aperture. There is nothing to show, so the window is not there. */
+    why: function (b) { plan(b); },
+
+    /* THE INSTRUMENT. The aperture leaves its column, grows until it IS the
+       viewport, and the seven checks tick one at a time. */
+    checks: function (b) {
+      var grow = dwell(b.pd, 0.16, 0.34);
+      var sSmall = Math.min(1, b.slotW / b.sw);
+      var sBig = Math.min(1, b.fullW / b.sw);
+      var s = mix(sSmall, sBig, grow);
+      var w = b.sw * s;
+      var h = Math.min(b.sh * s, mix(b.slotH, b.fullH, grow));
+      // Schedule A first, then the rest of the sheet — so the pan can never
+      // run ahead of the ticks on a narrow screen.
+      var lastRow = checkRows[checkRows.length - 1];
+      var aEnd = lastRow.offsetTop + lastRow.offsetHeight + 40;
+      var span = Math.max(1, b.sh - h / s);
+      var aU = clamp((aEnd - h / s) / span, 0, 1);
+      var u = seg(b.pd, 0.30, 0.66) * aU + seg(b.pd, 0.66, 0.86) * (1 - aU);
+      setPortal(b, {
+        w: w, h: h, s: s, oy: panY(u, h, s, b.sh),
+        tx: mix(0, b.txMid, grow), ty: mix(0, b.tyMid, grow)
+      });
+      // prose hands over to the aperture
+      var out = smooth(seg(b.pd, 0.14, 0.30));
+      checksProse.style.opacity = (1 - out).toFixed(3);
+      checksProse.style.transform = 'translateY(' + (-36 * out).toFixed(1) + 'px)';
+      checksProse.style.pointerEvents = out > 0.8 ? 'none' : '';
+      plan(b);
+      // DISCRETE — driven by exact progress, never the damped one
+      var n = clamp(Math.floor(seg(b.pe, 0.30, 0.66) * 7.999), 0, 7);
+      if (n !== b._n) {
+        b._n = n;
+        for (var i = 0; i < checkRows.length; i++) checkRows[i].classList.toggle('is-on', i < n);
+        checkCounter.textContent = n + '/7';
+      }
+    },
+
+    /* The same window. Only what is behind it changes. */
+    refusal: function (b) {
+      var t = dwell(b.pd, 0.16, 0.72);
+      var base = containScale(b, b.fullW, b.fullH);
+      var s = base * mix(0.62, 1, t);
+      setPortal(b, { w: b.sw * s, h: b.sh * s, s: s, ty: mix(18, 0, t) });
+      plan(b);
+    },
+
+    /* Four states, in the one window, ending on the honest one: no badge. */
+    states: function (b) {
+      var f = fitBox(b);
+      setPortal(b, { w: f.w, h: f.maxH, s: f.s, oy: panY(0, f.maxH, f.s, b.sh), ty: mix(12, -12, dwell(b.pd, 0.16, 0.88)) });
+      plan(b);
+      var i = clamp(Math.floor(seg(b.pe, 0.16, 0.90) * 3.999), 0, 3);
+      if (i !== b._i) {
+        b._i = i;
+        var st = STATES[i];
+        b.surf.dataset.state = st.state;
+        b.surf.querySelector('[data-statuslabel]').textContent = st.label;
+        b.surf.querySelector('[data-statusbody]').textContent = st.body;
+        var mark = b.surf.querySelector('[data-mark]');
+        mark.className = 'rec-mark ' + st.mark;
+        // Invariant 8: a missing halal field renders NO badge, never an
+        // optimistic one. Only `certified` draws the shield.
+        mark.querySelector('[data-shield]').style.display = st.state === 'certified' ? '' : 'none';
+        b.surf.querySelector('[data-cap]').textContent = 'Specimen · ' + st.mono;
+        for (var k = 0; k < stateCards.length; k++) stateCards[k].classList.toggle('is-on', k === i);
+      }
+    },
+
+    /* 02 · SEALED AT THE KITCHEN — the sheet rises inside the window. */
+    sealed: function (b) {
+      var f = fitBox(b);
+      setPortal(b, { w: f.w, h: f.maxH, s: f.s, oy: panY(0, f.maxH, f.s, b.sh) });
+      // The sheet RESTS peeking at the bottom edge the way a bottom sheet does,
+      // so the window is never an empty white box on arrival; the rise itself
+      // stays narrative.
+      sealSheet.style.setProperty('--sheet',
+        Math.max(0.15 * b.dIn, smooth(seg(b.pd, 0.12, 0.44))).toFixed(3));
+      plan(b);
+    },
+
+    /* 03 · AT YOUR DOOR — the trail completes, row by row. */
+    door: function (b) {
+      var f = fitBox(b);
+      setPortal(b, { w: f.w, h: f.maxH, s: f.s, oy: panY(0, f.maxH, f.s, b.sh) });
+      trailRail.style.setProperty('--rail', smooth(seg(b.pd, 0.20, 0.74)).toFixed(3));
+      plan(b);
+      var n = clamp(Math.floor(seg(b.pe, 0.22, 0.76) * 4.999), 0, 4);
+      if (n !== b._n) {
+        b._n = n;
+        for (var i = 0; i < trailRows.length; i++) trailRows[i].classList.toggle('is-on', i < n);
+      }
+    },
+
+    steps: function (b) {
+      var f = fitBox(b);
+      setPortal(b, { w: f.w, h: f.maxH, s: f.s, oy: panY(0, f.maxH, f.s, b.sh), ty: mix(16, -8, dwell(b.pd, 0.18, 0.84)) });
+      plan(b);
+    },
+
+    checkable: function (b) { plan(b); },
+
+    /* Flow beat: each item reveals on its own screen position, not on a
+       shared timeline, because the reader is moving past it, not through it. */
+    faq: function (b) {
+      var vh = window.innerHeight;
+      for (var i = 0; i < b.rvs.length; i++) {
+        var r = b.rvs[i].getBoundingClientRect();
+        rv(b.rvs[i], smooth(clamp((vh * 0.94 - r.top) / (vh * 0.2), 0, 1)));
+      }
+    },
+
+    /* The page closes on the same window it opened with. */
+    cta: function (b) {
+      var f = fitBox(b);
+      setPortal(b, { w: f.w, h: f.maxH, s: f.s, oy: panY(0, f.maxH, f.s, b.sh), ty: mix(12, 0, dwell(b.pd, 0.16, 0.6)) });
+      plan(b);
+    }
+  };
+
+  /* ── measurement — every number below comes from the DOM, in pixels ─────── */
+  function measure() {
+    var vh = window.innerHeight;
+    var sy = window.scrollY;
+    beats.forEach(function (b) {
+      b._dirty = undefined; b._n = undefined; b._i = undefined;
+      b.top = b.el.getBoundingClientRect().top + sy;
+      b.h = b.el.offsetHeight;
+      b.travel = Math.max(1, b.h - vh);
+      // fit the stage's contents if a short viewport would otherwise clip them
+      if (!b.flow && b.inner) {
+        b.inner.style.setProperty('--sfit', '1');
+        var have = b.stage.clientHeight - 24;
+        var need = b.inner.offsetHeight;
+        b.inner.style.setProperty('--sfit', need > have ? Math.max(0.74, have / need).toFixed(4) : '1');
+      }
+      if (!b.portal) return;
+      b.sw = b.surf.offsetWidth;
+      b.sh = b.surf.offsetHeight;
+      b.slotW = b.slot.clientWidth;
+      b.slotH = b.slot.clientHeight;
+      var cs = getComputedStyle(b.inner);
+      b.fullW = b.inner.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      b.fullH = b.stage.clientHeight - 40;
+      b.txMid = b.inner.offsetWidth / 2 - (b.slot.offsetLeft + b.slotW / 2);
+      b.tyMid = b.inner.offsetHeight / 2 - (b.slot.offsetTop + b.slotH / 2);
+    });
+  }
+
+  /* ── resting state (also the whole reduced-motion path) ────────────────── */
+  function rest() {
+    beats.forEach(function (b) {
+      b.rvs.forEach(function (e) { rv(e, 1); });
+      if (!b.portal) return;
+      var w = b.slot.clientWidth || b.inner.clientWidth;
+      var s = Math.min(1, w / b.surf.offsetWidth);
+      b.surf.style.setProperty('--ox', '0px'); b.surf.style.setProperty('--oy', '0px');
+      setPortal(b, { w: b.surf.offsetWidth * s, h: b.surf.offsetHeight * s, s: s });
+    });
+    checkRows.forEach(function (r) { r.classList.add('is-on'); });
+    if (checkCounter) checkCounter.textContent = '7/7';
+    trailRows.forEach(function (r) { r.classList.add('is-on'); });
+    stateCards.forEach(function (c) { c.classList.add('is-on'); });
+    if (sealSheet) sealSheet.style.setProperty('--sheet', '1');
+    if (trailRail) trailRail.style.setProperty('--rail', '1');
+    if (checksProse) { checksProse.style.opacity = '1'; checksProse.style.transform = 'none'; }
+  }
+
+  /* ── the HUD ───────────────────────────────────────────────────────────── */
+  var hud = document.getElementById('hud');
+  var hudBeat = hud.querySelector('[data-hud-beat]');
+  var hudP = hud.querySelector('[data-hud-p]');
+  var hudLen = hud.querySelector('[data-hud-len]');
+  var hudTotal = hud.querySelector('[data-hud-total]');
+  var hudAt = hud.querySelector('[data-hud-at]');
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'd' || e.key === 'D') {
+      var tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      hud.hidden = !hud.hidden;
+    }
+  });
+
+  /* ── smooth scroll ─────────────────────────────────────────────────────── */
+  var lenis = null;
+  if (!RM && window.Lenis) {
+    lenis = new window.Lenis({ lerp: 0.1, wheelMultiplier: 1, touchMultiplier: 1.6, smoothWheel: true });
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (!a) return;
+    if (a.hasAttribute('data-unbuilt')) { e.preventDefault(); return; }
+    var id = a.getAttribute('href');
+    if (id === '#') { e.preventDefault(); return; }
+    var target = document.querySelector(id);
+    if (!target) return;
+    e.preventDefault();
+    if (lenis) lenis.scrollTo(target, { offset: -20 }); else target.scrollIntoView();
+    target.setAttribute('tabindex', '-1');
+    target.focus({ preventScroll: true });
+  });
+
+  /* ── the frame ─────────────────────────────────────────────────────────── */
+  var last = 0, lastY = 0;
+  function frame(now) {
+    if (lenis) lenis.raf(now);
+    var dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now;
+    var y = lenis ? lenis.scroll : window.scrollY;
+    var vh = window.innerHeight;
+    var k = 1 - Math.exp(-13 * dt);       // damping toward exact
+    var active = beats[0], mid = y + vh * 0.5;
+    // A jump — an anchor link, a scrollbar drag, a restored position — must not
+    // be eased through. Past one viewport in a frame, the damped values snap.
+    var jump = Math.abs(y - lastY) > vh; lastY = y;
+
+    for (var i = 0; i < beats.length; i++) {
+      var b = beats[i];
+      // EXACT progress, in pixels, from this beat's own measured box
+      b.pe = clamp((y - b.top) / b.travel, 0, 1);
+      // APPROACH progress: 0 one viewport out, 1 the moment the beat pins.
+      // This is what makes a beat whole when it arrives.
+      b.pIn = clamp((y - (b.top - vh)) / vh, 0, 1);
+      // DAMPED progress — continuous things only
+      if (jump) { b.pd = b.pe; b.dIn = b.pIn; }
+      else {
+        b.pd += (b.pe - b.pd) * k;
+        b.dIn += (b.pIn - b.dIn) * k;
+      }
+      if (Math.abs(b.pe - b.pd) < 0.0004) b.pd = b.pe;
+      if (Math.abs(b.pIn - b.dIn) < 0.0004) b.dIn = b.pIn;
+      if (mid >= b.top && mid < b.top + b.h) active = b;
+
+      var near = (b.top - vh * 1.2) < y && y < (b.top + b.h + vh * 0.4);
+      if (near || b._dirty !== false) {
+        if (RENDER[b.id]) RENDER[b.id](b);
+        b._dirty = near ? true : false;
+      }
+    }
+
+    if (!hud.hidden) {
+      var idx = beats.indexOf(active) + 1;
+      hudBeat.textContent = (idx < 10 ? '0' : '') + idx + '/' + beats.length + ' · ' + active.name;
+      hudP.textContent = active.pe.toFixed(3);
+      hudLen.textContent = (active.h / vh).toFixed(2) + 'vp';
+      hudTotal.textContent = (document.documentElement.scrollHeight / vh).toFixed(1) + 'vp';
+      hudAt.textContent = (y / vh).toFixed(1) + 'vp';
+      hud.style.setProperty('--hp', active.pe.toFixed(3));
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ── boot ──────────────────────────────────────────────────────────────── */
+  function boot() {
+    if (RM) { measure(); rest(); hudStatic(); return; }
+    measure();
+    var y0 = window.scrollY, vh0 = window.innerHeight;
+    lastY = y0;
+    beats.forEach(function (b) {
+      b.pe = b.pd = clamp((y0 - b.top) / b.travel, 0, 1);
+      b.pIn = b.dIn = clamp((y0 - (b.top - vh0)) / vh0, 0, 1);
+      b._dirty = undefined;
+    });
+    requestAnimationFrame(frame);
+  }
+  function hudStatic() {
+    hudBeat.textContent = 'reduced motion';
+    hudP.textContent = '—'; hudLen.textContent = '—';
+    hudTotal.textContent = (document.documentElement.scrollHeight / window.innerHeight).toFixed(1) + 'vp';
+    hudAt.textContent = '—';
+  }
+
+  var rt;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { measure(); if (RM) rest(); }, 120);
+  });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { measure(); if (RM) rest(); });
+  }
+  window.addEventListener('load', function () { measure(); if (RM) rest(); });
+  boot();
+
+  /* Reported by the verification pass; also handy for the client. */
+  /** The scroll value the transforms are actually computed from. Reading
+      window.scrollY is fine; SETTING it is not — Lenis keeps its own scroll and
+      a native scrollTo desynchronises what is painted from what is reported. */
+  window.__scroll = function () { return lenis ? lenis.scroll : window.scrollY; };
+  window.__beats = function () {
+    return beats.map(function (b) { return { id: b.id, top: b.top, h: b.h, travel: b.travel, pe: b.pe, pIn: b.pIn, dIn: b.dIn }; });
+  };
+  window.__beatTable = function () {
+    var vh = window.innerHeight;
+    return beats.map(function (b) {
+      return { beat: b.name, id: b.id, px: b.h, vh: +(b.h / vh * 100).toFixed(0), viewports: +(b.h / vh).toFixed(2), pinned: !b.flow };
+    });
+  };
+})();
+</script>
+</body>
+</html>

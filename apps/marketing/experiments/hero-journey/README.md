@@ -2,9 +2,26 @@
 
 **Status: experiment.** Outside `src/` and `public/`, so Next never builds it.
 
-The prototypes themselves (`g1.html`, `g3.html`, `g4.html`) are the whole marketing
-site rebuilt as one scroll-driven storytelling journey, one file per visual direction,
-with Lenis vendored beside them. They land here once they pass the checks below.
+`g1.html`, `g3.html` and `g4.html` are the whole marketing site rebuilt as one
+scroll-driven storytelling journey, one self-contained file per visual direction, with
+Lenis vendored in `assets/`. `BRIEF.md` is what they were built from.
+
+| File | Direction | Page | Beats | Shortest |
+|---|---|---|---|---|
+| `g1.html` | **Two cropped phones.** Two handsets, one past the top edge and one past the bottom, rotating through the whole journey. The brief as originally given. The entire page is pinned — scroll-jacking in the full sense — which is what buys the dwell and keeps body text off the device screens | 42.3 vh | 13 | 2.6 vh |
+| `g3.html` | **Type-led.** No device above the fold; the hero is typography and the still seal, and the journey begins only once you scroll. Spends its motion budget on the seven checks instead — 5.6 vh, the longest single beat in any direction | 34.9 vh | 8 | 2.5 vh |
+| `g4.html` | **The portal.** No phone at all: a bezel-less aperture cut into the page, square-on at all times, growing to fill the viewport for the seven checks. Removes the phone-mockup problem rather than cropping around it | 46.0 vh | 13 | 2.6 vh |
+
+All three: zero horizontal scroll and zero console errors at 390 / 768 / 1024 / 1440, no
+beat blank at entry, and reduced motion collapsing to an ordinary document (13.9 / 14.6 /
+15.4 vh). The devices are DOM and CSS, not three.js — deliberately, so the choreography,
+the content and the pacing are settled cheaply before any WebGL is involved. Each keeps
+its device transform state in one table so the swap is a single edit.
+
+### Assets
+
+`assets/*.webp` are derived from `apps/marketing/public/img` and gitignored. After a
+fresh clone, run `python3 assets/build-assets.py` or the dish tiles will 404.
 
 See `docs/decisions/hero-motion-and-the-creative-direction.md` — this direction amends
 §7 of the signed creative direction, and carries five conditions that are still owed.

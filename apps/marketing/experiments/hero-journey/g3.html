@@ -1,0 +1,1603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halal Goes — Verified halal, delivered.</title>
+<meta name="description" content="Prototype — the Halal Goes marketing site as one scroll journey. Direction G3: type-led hero, the journey below.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<script>
+  /* Before paint. Every hidden initial state in the stylesheet is gated on
+     html.js, so a failure to run JS leaves a readable document rather than a
+     blank one. html.rm is the reduced-motion path: it un-pins every beat and
+     the page becomes an ordinary scrolling document. */
+  (function () {
+    var h = document.documentElement;
+    h.classList.add('js');
+    try {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) h.classList.add('rm');
+    } catch (e) {}
+  })();
+</script>
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   PALETTE — these hexes and no others.
+   #6E7C77 is banned (fails AA on cream). Never red for a halal state.
+   Solid green #0F7A43 is reserved to the halal seal and the certified mark.
+   ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --cream:#FFFAEA; --sunken:#F6EFDD; --raised:#FFFFFF;
+  --ink:#232323;   --body:#4A4E48;   --mkink:#1B3B31;
+  --hair:#E6E0D4;  --border:#8B8578;
+  --orange:#F1521E; --on-orange:#0F241C;
+  --seal:#0F7A43;  --brass:#C9A24B;  --sage:#E9F3E4;
+  --expired:#4E5862;
+
+  --f-display:'Bricolage Grotesque','Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;
+  --f-ui:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --gut:20px; --shell:1280px;
+  --ease:cubic-bezier(.2,0,0,1);
+  --dev-scale:1;
+}
+@media (min-width:1024px){ :root{ --gut:56px } }
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:var(--f-ui); font-size:17px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+/* One faint paper grain over the cream ground only — it sits behind every
+   section that paints its own background, so it never lands on the ink band. */
+body::before{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+main,header.site,footer.site{position:relative; z-index:1}
+
+h1,h2,h3,h4,p,ol,ul,dl,dd,figure,blockquote{margin:0}
+ol,ul{padding:0; list-style:none}
+img{max-width:100%; display:block}
+a{color:var(--mkink)}
+:focus-visible{outline:3px solid var(--orange); outline-offset:3px; border-radius:2px}
+
+.shell{width:100%; max-width:var(--shell); margin-inline:auto; padding-inline:var(--gut)}
+.skip{position:absolute; left:-9999px; top:0; z-index:99}
+.skip:focus{left:8px; top:8px; background:var(--ink); color:var(--cream); padding:10px 14px; border-radius:8px}
+.vh{position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+
+/* ── type roles ─────────────────────────────────────────────────────────── */
+.eyebrow{
+  font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.06em;
+  text-transform:uppercase; line-height:1.4; color:var(--mkink);
+}
+@media (min-width:1024px){ .eyebrow{font-size:12.5px} }
+.eyebrow-chip{
+  display:inline-block; background:var(--sage); border-radius:999px; padding:9px 14px;
+}
+.display{
+  font-family:var(--f-display); font-weight:780; letter-spacing:-.03em; line-height:1.05;
+  color:var(--ink); font-size:clamp(30px,5.1vw,52px);
+}
+@media (min-width:1024px){ .display{font-weight:650} }
+.display-sm{
+  font-family:var(--f-display); font-weight:700; letter-spacing:-.025em; line-height:1.12;
+  color:var(--ink); font-size:clamp(23px,2.6vw,30px);
+}
+.lede{
+  font-family:var(--f-display); font-weight:500; letter-spacing:-.01em;
+  font-size:clamp(19px,2.1vw,23px); line-height:1.4; color:var(--mkink);
+}
+.prose{color:var(--body); max-width:62ch; font-size:17px; line-height:1.65}
+.prose.big{font-size:clamp(17px,1.4vw,19px)}
+.prose strong{color:var(--ink); font-weight:600}
+.mono-note{
+  font-family:var(--f-mono); font-size:11px; line-height:1.7; letter-spacing:.03em; color:var(--body);
+}
+.mono-label{
+  font-family:var(--f-mono); font-size:10.5px; font-weight:500; letter-spacing:.07em;
+  text-transform:uppercase; line-height:1.2; color:var(--mkink);
+}
+
+/* ── buttons, form ──────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  height:52px; padding:0 26px; border:0; border-radius:11px;
+  background:var(--orange); color:var(--on-orange);
+  font-family:inherit; font-size:16px; font-weight:700; letter-spacing:-.01em; line-height:1;
+  text-decoration:none; cursor:pointer;
+  transition:transform 180ms var(--ease), background-color 180ms var(--ease);
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0)}
+html.rm .btn:hover{transform:none}
+
+.form-card{
+  background:var(--raised); border:1px solid var(--hair); border-radius:16px;
+  padding:18px; text-align:left; max-width:480px; margin-inline:auto; width:100%;
+}
+@media (min-width:1024px){ .form-card{padding:24px} }
+.form-card label.field-label{display:block; font-size:15px; font-weight:600; color:var(--ink)}
+.field-row{display:flex; flex-direction:column; gap:10px; margin-top:10px}
+@media (min-width:480px){ .field-row{flex-direction:row} }
+.field-row input{
+  flex:1; min-width:0; height:52px; padding:0 16px; border:1.5px solid var(--hair);
+  border-radius:11px; background:var(--raised); color:var(--ink);
+  font-family:inherit; font-size:16px; line-height:1;
+}
+.field-row input::placeholder{color:var(--body); opacity:.8}
+.field-row input[aria-invalid="true"]{border-color:var(--orange)}
+.consent{display:flex; align-items:flex-start; gap:10px; margin-top:14px}
+.consent input{
+  appearance:none; -webkit-appearance:none; flex:none; width:24px; height:24px; margin:1px 0 0;
+  border:1.5px solid var(--border); border-radius:6px; background:var(--raised); cursor:pointer;
+}
+.consent input:checked{background:var(--ink); border-color:var(--ink)}
+.consent input:checked::after{
+  content:''; display:block; width:10px; height:6px; margin:6px auto 0;
+  border-left:2px solid var(--cream); border-bottom:2px solid var(--cream); transform:rotate(-45deg);
+}
+.consent input[aria-invalid="true"]{border-color:var(--orange)}
+.consent label{font-size:14px; line-height:1.55; color:var(--body); cursor:pointer}
+.form-msg{margin-top:12px; font-size:14px; line-height:1.55; color:var(--body)}
+.form-msg.err{color:var(--orange); font-weight:600}
+.form-done{
+  background:var(--raised); border:1px solid var(--hair); border-radius:16px; padding:22px;
+  max-width:480px; margin-inline:auto; text-align:left;
+}
+.form-done h3{font-family:var(--f-display); font-size:24px; font-weight:700; letter-spacing:-.02em; color:var(--ink)}
+.form-done p{margin-top:8px; font-size:15px; line-height:1.6; color:var(--body)}
+
+/* ── site header ────────────────────────────────────────────────────────── */
+header.site{padding-top:16px}
+.header-inner{display:flex; flex-direction:column; gap:12px}
+@media (min-width:1024px){
+  .header-inner{flex-direction:row; align-items:center; justify-content:space-between; gap:24px; height:52px}
+}
+.wordmark{
+  font-family:var(--f-display); font-size:22px; font-weight:800; letter-spacing:-.03em;
+  line-height:1; color:var(--ink); text-decoration:none; align-self:flex-start;
+}
+.aud ul{display:flex; gap:8px; flex-wrap:wrap}
+@media (min-width:1024px){
+  .aud ul{gap:4px; border:1px solid var(--hair); background:var(--raised); border-radius:999px; padding:4px}
+}
+.aud a{
+  display:inline-flex; align-items:center; height:44px; padding:0 18px; border-radius:999px;
+  border:1px solid var(--hair); background:var(--raised); color:var(--mkink);
+  font-size:15px; font-weight:600; text-decoration:none; white-space:nowrap;
+  transition:background-color 140ms var(--ease);
+}
+@media (min-width:1024px){ .aud a{border-color:transparent; background:transparent} }
+.aud a[aria-current="page"]{background:var(--ink); border-color:var(--ink); color:var(--cream)}
+.aud a:not([aria-current]):hover{background:var(--sunken)}
+.header-cta{display:none}
+@media (min-width:1024px){ .header-cta{display:inline-flex} }
+
+/* ── HERO — type-led. No handset. The seal is present and never moves. ──── */
+.hero{padding:32px 0 64px; text-align:center}
+@media (min-width:1024px){ .hero{padding:32px 0 80px} }
+.hero-inner{display:flex; flex-direction:column; align-items:center}
+.seal-plate{
+  width:140px; height:140px; border-radius:50%; background:var(--sage);
+  display:grid; place-items:center; margin-bottom:18px;
+}
+@media (min-width:1024px){ .seal-plate{width:152px; height:152px; margin-bottom:20px} }
+.hero h1{
+  font-family:var(--f-display); font-weight:800; letter-spacing:-.03em; line-height:.92;
+  color:var(--ink); margin-top:18px;
+  font-size:min(72px,calc(19vw - 8px));
+}
+.hero h1 span{display:block}
+.hero h1 span+span{padding-left:.2em}
+@media (min-width:1024px){
+  .hero h1{font-size:min(124px,9.6vw); font-weight:650; white-space:nowrap; margin-top:22px}
+}
+.hero-lede{margin-top:22px; max-width:680px}
+.hero-form{margin-top:26px; width:100%; max-width:480px; scroll-margin-top:24px}
+.certifiers{margin-top:46px; width:100%}
+.cert-head{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px 22px;
+}
+.cert-head h2{
+  font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--mkink); line-height:1;
+}
+.cert-link{
+  display:inline-flex; align-items:center; gap:6px; min-height:44px;
+  font-size:14px; font-weight:700; color:var(--mkink); text-decoration:underline;
+  text-decoration-color:var(--orange); text-decoration-thickness:2px; text-underline-offset:4px;
+}
+.cert-row{
+  margin-top:14px; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:14px 20px;
+}
+.cert-rings{display:flex; gap:10px}
+.cert-rings li{
+  width:64px; height:64px; border:1.5px solid var(--mkink); border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  font-family:var(--f-mono); color:var(--mkink); line-height:1;
+}
+@media (min-width:1024px){ .cert-rings li{width:72px; height:72px} }
+.cert-rings b{font-size:13px; font-weight:600; letter-spacing:.04em}
+.cert-rings small{font-size:7.5px; font-weight:500; letter-spacing:.1em}
+.cert-rule{display:none; width:1px; height:40px; background:var(--hair)}
+@media (min-width:1024px){ .cert-rule{display:block} }
+.cert-note{max-width:300px; font-size:14px; line-height:1.5; color:var(--body); text-align:center}
+@media (min-width:1024px){ .cert-note{text-align:left} }
+
+/* ── beats: a tall section with a pinned stage inside it ────────────────── */
+.beat{position:relative; height:calc(var(--beat) * 1vh)}
+.stage{
+  position:sticky; top:0; height:100vh; height:100svh;
+  display:flex; flex-direction:column; justify-content:center;
+  overflow:hidden;
+}
+.stage.top{justify-content:flex-start; padding-top:clamp(24px,7vh,64px)}
+html.rm .beat{height:auto}
+html.rm .stage{position:static; height:auto; overflow:visible; padding:56px 0}
+
+/* ── journey overture ───────────────────────────────────────────────────── */
+.overture{background:var(--sunken)}
+.ov-grid{display:grid; gap:34px; align-items:center}
+@media (min-width:1024px){ .ov-grid{grid-template-columns:360px 1fr; gap:48px} }
+.ov-type h2{margin-top:18px}
+.ov-type .lede-sm{margin-top:16px; max-width:340px; font-size:17px; line-height:1.5; color:var(--body)}
+.ov-decks{
+  display:flex; align-items:flex-start; justify-content:center; perspective:1200px;
+  padding-block:8px;
+}
+.ov-decks > li{position:relative; flex:none; transform-style:preserve-3d; transform:translateY(var(--dy,0))}
+.ov-decks > li + li{margin-left:-18px}
+.ov-index{margin-top:26px; max-width:340px}
+.ov-index li{
+  display:flex; align-items:baseline; gap:12px; border-top:1px solid var(--hair); padding:11px 0;
+  font-family:var(--f-mono); font-size:12px; letter-spacing:.04em; color:var(--mkink); line-height:1.3;
+}
+.ov-index li:last-child{border-bottom:1px solid var(--hair)}
+.ov-index b{font-weight:500; opacity:.65}
+
+/* ── the handset ────────────────────────────────────────────────────────── */
+.device{
+  width:228px; height:468px; flex:none; background:var(--ink);
+  border:2px solid var(--sunken); border-radius:38px; padding:8px;
+  transform-origin:50% 50%; will-change:transform;
+}
+.device-screen{
+  width:100%; height:100%; background:var(--cream); border-radius:28px; overflow:hidden;
+  padding:26px 16px 16px; display:flex; flex-direction:column; gap:12px; color:var(--ink);
+}
+.device.mini{width:152px; height:278px; border-radius:26px; padding:6px}
+.device.mini .device-screen{border-radius:20px; padding:16px 11px 11px; gap:8px}
+.device.mini .mono-label{font-size:8px}
+.blank{
+  display:inline-block; height:0; border-bottom:1px dashed var(--border); opacity:.6;
+  transform-origin:left center; vertical-align:middle;
+}
+.dev-row{display:flex; align-items:center; justify-content:space-between; gap:8px; height:18px}
+.badge-plate{background:var(--sage); border-radius:12px; padding:14px; display:flex; flex-direction:column; align-items:flex-start; gap:10px}
+.device.mini .badge-plate{padding:10px; gap:7px}
+/* The certified badge — the only solid green on the page, with its brass ring.
+   It appears; it never pulses, shimmers or draws. */
+.badge-ring{display:inline-flex; border:1.5px solid var(--brass); border-radius:16px; padding:2px}
+.badge{
+  display:inline-flex; align-items:center; gap:6px; background:var(--seal); color:#FFFFFF;
+  border-radius:12px; padding:6px 10px 6px 8px; font-size:12px; font-weight:700; line-height:1; white-space:nowrap;
+}
+.device.mini .badge{font-size:9.5px; padding:5px 8px 5px 6px}
+.dev-small{font-size:11px; line-height:1.4; color:var(--mkink)}
+.device.mini .dev-small{font-size:9px}
+@media (max-width:1023px){
+  .device.mini{width:112px; height:212px; border-radius:20px; padding:5px}
+  .device.mini .device-screen{border-radius:15px; padding:12px 8px 8px; gap:6px}
+  .device.mini .mono-label{font-size:7px; letter-spacing:.05em}
+  .device.mini .badge{font-size:7.5px; padding:4px 6px 4px 5px; gap:4px; border-radius:9px}
+  .device.mini .badge-ring{border-radius:12px; padding:1.5px}
+  .device.mini .badge-plate{padding:7px; gap:5px; border-radius:9px}
+  .device.mini .dev-small{font-size:7.5px}
+  .device.mini .white-plate{padding:8px; gap:7px; border-radius:9px}
+  .device.mini .sealed-art{width:60px; height:58px}
+  .device.mini .sealed-band{height:11px}
+  .device.mini .sealed-band i{font-size:5.5px; letter-spacing:.1em}
+  .device.mini .rail li{font-size:7.5px; padding:2px 0; gap:5px}
+  .device.mini .rail-dot{width:11px; height:11px}
+  .device.mini .rail-spine{left:4.5px; top:9px; bottom:9px}
+  .ov-decks > li + li{margin-left:-14px}
+}
+.white-plate{background:var(--raised); border-radius:12px; padding:16px; display:flex; flex-direction:column; align-items:center; gap:14px}
+.device.mini .white-plate{padding:11px; gap:10px}
+.sealed-art{position:relative; width:116px; height:112px; color:var(--ink)}
+.device.mini .sealed-art{width:78px; height:76px}
+.sealed-band{
+  position:absolute; left:-8px; right:-8px; top:50%; height:20px; overflow:hidden;
+  transform:translateY(-50%) rotate(-5deg);
+}
+.sealed-band i{
+  display:flex; align-items:center; justify-content:center; width:100%; height:100%;
+  background:var(--ink); color:var(--cream); font-family:var(--f-mono);
+  font-size:9px; font-weight:500; letter-spacing:.14em; font-style:normal;
+  transform-origin:left center;
+}
+.device.mini .sealed-band{height:14px}
+.device.mini .sealed-band i{font-size:7px}
+.scan-line{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; line-height:1; color:var(--ink)}
+.rail{position:relative}
+.rail-spine{position:absolute; left:8px; top:12px; bottom:12px; width:2px; background:var(--ink); transform-origin:top center}
+.rail li{display:flex; align-items:center; gap:9px; padding:5px 0; font-size:12px; font-weight:500; line-height:1.15; color:var(--ink)}
+.rail-dot{
+  width:18px; height:18px; flex:none; border:2px solid var(--ink); border-radius:50%;
+  background:var(--raised); display:flex; align-items:center; justify-content:center; color:var(--ink);
+}
+.device.mini .rail li{font-size:9.5px; padding:3px 0; gap:7px}
+.device.mini .rail-dot{width:13px; height:13px}
+.device.mini .rail-spine{left:5.5px; top:10px; bottom:10px}
+.rail-final{
+  margin-top:8px; padding-top:12px; border-top:1px solid var(--hair);
+  display:flex; align-items:center; gap:10px;
+}
+.rail-final b{flex:1; font-size:15px; font-weight:700; letter-spacing:-.01em; line-height:1; color:var(--ink)}
+
+/* chapter stage */
+.chapter{text-align:center}
+.chapter .ch-index{font-family:var(--f-mono); font-size:11px; letter-spacing:.14em; color:var(--mkink); text-transform:uppercase}
+.chapter h2{margin-top:10px}
+.chapter .ch-dev{margin-top:clamp(18px,3.4vh,34px); display:flex; justify-content:center; perspective:1400px}
+.chapter .ch-cap{
+  position:relative; z-index:2; margin-top:clamp(22px,4vh,40px); font-family:var(--f-mono); font-size:12px; font-weight:500;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--mkink);
+}
+.chapter .ch-rule{width:56px; height:1px; background:var(--hair); margin:14px auto 0}
+
+/* ── recognition ────────────────────────────────────────────────────────── */
+.band{padding:88px 0}
+@media (min-width:1024px){ .band{padding:112px 0} }
+.band.tight{padding:64px 0}
+
+/* ── craving strip ──────────────────────────────────────────────────────── */
+.craving-head{max-width:760px}
+.craving-head h2{margin-top:14px}
+.craving-head p{margin-top:16px}
+.strip-window{margin-top:clamp(20px,3.6vh,40px); overflow:hidden; width:100%}
+.strip{display:flex; gap:20px; will-change:transform; padding-inline:var(--gut)}
+.tile{
+  position:relative; flex:none; width:clamp(210px,24vw,310px); aspect-ratio:4/5;
+  border:1px solid var(--hair); border-radius:16px; overflow:hidden; background:var(--sunken);
+}
+.tile img{width:100%; height:100%; object-fit:cover}
+/* The only gradient on the page. Stops stay at .92 / .72 — the contrast is
+   derived, not sampled, and lowering it breaks AA. */
+.tile figcaption{
+  position:absolute; inset-inline:0; bottom:0; padding:34px 16px 14px;
+  background:linear-gradient(to top,rgba(15,36,28,.92),rgba(15,36,28,.72),transparent);
+  color:#FFFFFF; font-size:14px; font-weight:600; line-height:1.25;
+}
+html.rm .strip{flex-wrap:wrap; gap:16px; transform:none !important}
+html.rm .strip-window{overflow:visible}
+html.rm .tile{width:min(310px,44vw)}
+
+/* ── why this exists ────────────────────────────────────────────────────── */
+.two-col{display:grid; gap:24px}
+@media (min-width:1024px){ .two-col{grid-template-columns:1fr 440px; gap:64px; align-items:start} }
+.split{display:grid; gap:28px}
+@media (min-width:1024px){ .split{grid-template-columns:4fr 7fr; gap:64px; align-items:start} }
+
+/* ── the sheet ──────────────────────────────────────────────────────────── */
+.sheet{
+  background:var(--raised); border:1px solid var(--ink); outline:1px solid var(--ink); outline-offset:4px;
+  padding:16px; width:100%;
+}
+@media (min-width:1024px){ .sheet{padding:22px 32px 20px} }
+.sheet-top{
+  display:flex; flex-direction:column; gap:4px; border-bottom:1px solid var(--ink); padding-bottom:12px;
+  font-family:var(--f-mono);
+}
+@media (min-width:768px){ .sheet-top{flex-direction:row; align-items:baseline; justify-content:space-between} }
+.sheet-top b{font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink)}
+.sheet-top span{font-size:10px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--mkink)}
+@media (min-width:1024px){ .sheet-top b{font-size:12.5px} .sheet-top span{font-size:11.5px} }
+.sched-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  border-bottom:1px solid var(--ink); padding-bottom:6px; margin-top:18px;
+}
+.sched-head h3{
+  font-family:var(--f-mono); font-size:12px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink); line-height:1;
+}
+.sched-count{
+  font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--mkink); font-variant-numeric:tabular-nums;
+}
+.checks li{
+  display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--hair);
+  padding:11px 0; color:var(--ink);
+}
+@media (min-width:1024px){ .checks li{height:44px; padding:0} }
+.checks li:last-child{border-bottom-color:var(--ink)}
+.checks .n{
+  width:26px; flex:none; font-family:var(--f-mono); font-size:12px; font-weight:500;
+  color:var(--mkink); font-variant-numeric:tabular-nums;
+}
+.checks .t{flex:1; min-width:0; font-size:15px; font-weight:500; line-height:1.3}
+@media (min-width:1024px){ .checks .t{font-size:17px} }
+.checks .by{
+  display:none; width:184px; flex:none; font-family:var(--f-mono); font-size:10.5px;
+  font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--mkink); line-height:1.1;
+}
+@media (min-width:1024px){ .checks .by{display:block} }
+.checks .mark{width:18px; height:18px; flex:none; color:var(--ink)}
+.sheet-foot{
+  display:flex; justify-content:space-between; gap:16px; border-top:1px solid var(--ink);
+  margin-top:20px; padding-top:12px;
+  font-family:var(--f-mono); font-size:10px; font-weight:500; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--mkink); line-height:1.2;
+}
+.sheet-cols{display:grid; gap:28px}
+@media (min-width:1024px){ .sheet-cols{grid-template-columns:1fr 392px; gap:40px} }
+.sheet-aside{border-top:1px solid var(--ink); padding-top:0}
+@media (min-width:1024px){ .sheet-aside{border-top:0; border-left:1px solid var(--ink); padding-left:28px} }
+.issuers{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:14px}
+.issuers .ring{
+  width:84px; height:84px; flex:none; border:1px solid var(--ink); border-radius:50%;
+  display:grid; place-items:center;
+}
+.issuers .ring i{
+  width:68px; height:68px; border:1px dashed var(--brass); border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  font-family:var(--f-mono); font-style:normal; color:var(--ink); line-height:1;
+}
+.issuers .ring b{font-size:14px; font-weight:600}
+.issuers .ring small{font-size:8px; font-weight:500; letter-spacing:.14em; text-transform:uppercase}
+.expired-pill{
+  display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px 0 10px;
+  border-radius:6px; background:var(--expired); color:#FFFFFF;
+  font-size:15px; font-weight:600; line-height:1; white-space:nowrap;
+}
+.callout{
+  margin-top:24px; background:var(--sage); border-radius:16px; padding:16px 20px;
+}
+
+/* ── refusal band ───────────────────────────────────────────────────────── */
+.refusal{
+  background:var(--ink); color:var(--cream); border-radius:24px; padding:44px 20px;
+}
+@media (min-width:1024px){ .refusal{padding:64px 48px} }
+.refusal h2{
+  font-family:var(--f-display); font-weight:780; letter-spacing:-.03em; line-height:1.1;
+  font-size:clamp(28px,4.6vw,50px); color:var(--cream); max-width:18ch;
+}
+@media (min-width:1024px){ .refusal h2{font-weight:650} }
+.refusal h2 .ln{display:block; overflow:hidden}
+.refusal h2 .ln i{display:block; font-style:normal}
+.refusal p.body{margin-top:26px; max-width:58ch; font-size:clamp(17px,1.4vw,19px); line-height:1.65; color:var(--cream); opacity:.9}
+.refusal p.fine{
+  margin-top:28px; max-width:62ch; border-top:1px solid rgba(255,250,234,.22); padding-top:18px;
+  font-family:var(--f-mono); font-size:11px; line-height:1.7; letter-spacing:.03em; color:var(--cream); opacity:.82;
+}
+
+/* ── state grid ─────────────────────────────────────────────────────────── */
+.states-grid{display:grid; gap:26px; align-items:start}
+@media (min-width:1024px){ .states-grid{grid-template-columns:minmax(0,1fr) 440px; gap:48px} }
+.record-card{
+  background:var(--raised); border:1px solid var(--hair); border-radius:16px; padding:26px;
+  box-shadow:0 1px 2px rgba(35,35,35,.06); max-width:460px; display:none;
+}
+@media (min-width:1024px){ .record-card{display:block} }
+.record-card .cap{
+  font-family:var(--f-mono); font-size:10.5px; font-weight:500; letter-spacing:.085em;
+  text-transform:uppercase; color:var(--mkink); line-height:1.6;
+}
+.record-head{display:flex; align-items:center; gap:12px; margin-top:16px}
+.record-mark{
+  width:36px; height:36px; flex:none; border-radius:6px; background:var(--seal);
+  box-shadow:inset 0 0 0 2px var(--brass); display:grid; place-items:center;
+}
+.record-head b{font-size:19px; font-weight:800; letter-spacing:-.01em; color:var(--ink)}
+.record-card hr{border:0; border-top:1px solid var(--hair); margin:16px 0}
+.record-line{display:flex; align-items:baseline; gap:16px; padding:7px 0}
+.record-line dt{
+  width:86px; flex:none; font-family:var(--f-mono); font-size:10.5px; font-weight:500;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--mkink); line-height:1.3;
+}
+.record-line dd{flex:1; min-width:0}
+.record-line dd .val{font-size:13.5px; font-weight:600; line-height:1.3; color:var(--ink)}
+.state-list{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:24px}
+@media (min-width:1024px){ .state-list{grid-template-columns:repeat(2,1fr); gap:16px; margin-top:32px} }
+.state-list li{background:var(--raised); border:1px solid var(--hair); border-radius:14px; padding:14px}
+@media (min-width:1024px){ .state-list li{padding:18px} }
+.state-mark{display:block; width:30px; height:30px; border-radius:6px; margin-bottom:12px}
+@media (min-width:1024px){ .state-mark{width:38px; height:38px} }
+.m-certified{background:var(--seal); box-shadow:inset 0 0 0 2px var(--brass)}
+.m-expired{background:var(--expired)}
+.m-review{box-shadow:inset 0 0 0 2px var(--expired); background:repeating-linear-gradient(-45deg,transparent 0 5px,rgba(78,88,98,.22) 5px 7px)}
+.m-none{border:1px dashed var(--hair)}
+.state-list b{display:block; font-size:14px; font-weight:700; color:var(--ink)}
+.state-list p{margin-top:6px; font-size:13px; line-height:1.45; color:var(--body)}
+.state-list .mono-label{margin-top:12px; font-size:10px; line-height:1.4}
+
+/* ── ruled document lists (sealed, checkable) ───────────────────────────── */
+.doc-list{background:var(--raised); border:1px solid var(--hair); border-radius:18px; padding:20px}
+@media (min-width:1024px){ .doc-list{padding:32px 40px} }
+.doc-list li{border-top:1px solid var(--hair); padding:18px 0}
+.doc-list li:first-child{border-top:0; padding-top:0}
+.doc-list li:last-child{padding-bottom:0}
+.doc-list b{display:block; margin-top:8px; font-size:19px; font-weight:700; line-height:1.25; color:var(--ink)}
+.doc-list p{margin-top:6px; max-width:56ch; font-size:16px; line-height:1.6; color:var(--body)}
+.plain-list li{border-top:1px solid var(--hair); padding:18px 0}
+.plain-list li:first-child{border-top:0; padding-top:0}
+.plain-list b{display:block; font-size:19px; font-weight:700; line-height:1.25; color:var(--ink)}
+.plain-list p{margin-top:6px; max-width:58ch; font-size:16px; line-height:1.6; color:var(--body)}
+.steps-grid{display:grid; gap:24px; margin-top:28px}
+@media (min-width:1024px){ .steps-grid{grid-template-columns:repeat(3,1fr); gap:32px; margin-top:40px} }
+.steps-grid li{border-top:1px solid var(--hair); padding-top:22px}
+.steps-grid h3{margin-top:12px; font-family:var(--f-display); font-size:23px; font-weight:700; letter-spacing:-.02em; color:var(--ink)}
+.steps-grid p{margin-top:8px; font-size:16px; line-height:1.6; color:var(--body)}
+.strip-note{
+  margin-top:32px; border:1px solid var(--hair); background:var(--raised); border-radius:14px;
+  padding:16px 18px; font-family:var(--f-mono); font-size:10.5px; line-height:1.9;
+  letter-spacing:.04em; text-transform:uppercase; color:var(--body);
+}
+
+/* ── faq ────────────────────────────────────────────────────────────────── */
+.faq details{border-bottom:1px solid var(--hair)}
+.faq summary{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+  padding:18px 0; cursor:pointer; list-style:none;
+  font-size:19px; font-weight:600; line-height:1.35; color:var(--ink);
+}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .chev{flex:none; margin-top:4px; transition:transform 180ms var(--ease)}
+.faq details[open] summary .chev{transform:rotate(180deg)}
+.faq .ans{max-width:58ch; padding-bottom:18px; font-size:16px; line-height:1.65; color:var(--body)}
+
+/* ── final cta + footer ─────────────────────────────────────────────────── */
+.final{background:var(--sage); border-radius:20px; padding:34px 20px}
+@media (min-width:1024px){
+  .final{display:grid; grid-template-columns:1fr 440px; gap:64px; align-items:center; padding:52px 48px}
+}
+.final p{margin-top:14px; max-width:40ch; font-size:clamp(17px,1.4vw,19px); line-height:1.6; color:var(--body)}
+.final .form-card{margin-top:24px}
+@media (min-width:1024px){ .final .form-card{margin-top:0} }
+footer.site{margin-top:88px; border-top:1px solid var(--hair); padding:32px 0 96px}
+.foot-inner{display:flex; flex-direction:column; gap:12px}
+@media (min-width:1024px){ .foot-inner{flex-direction:row; align-items:center; justify-content:space-between; gap:24px} }
+.foot-nav{display:flex; flex-wrap:wrap; gap:0 24px}
+.foot-nav a,.foot-nav button{
+  display:inline-flex; align-items:center; min-height:44px; font-family:inherit; font-size:14px;
+  color:var(--body); background:none; border:0; padding:0; cursor:pointer;
+  text-decoration:underline; text-underline-offset:4px;
+}
+.foot-note{font-size:14px; color:var(--body)}
+
+/* ── scroll HUD ─────────────────────────────────────────────────────────── */
+#hud{
+  position:fixed; right:12px; bottom:12px; z-index:50;
+  background:var(--ink); color:var(--cream); border-radius:10px; padding:10px 12px;
+  font-family:var(--f-mono); font-size:10.5px; line-height:1.55; letter-spacing:.04em;
+  min-width:212px; pointer-events:none; font-variant-numeric:tabular-nums;
+}
+#hud b{display:block; font-weight:600; letter-spacing:.09em; text-transform:uppercase; opacity:.62; font-size:9px}
+#hud .row{display:flex; justify-content:space-between; gap:12px}
+#hud .bar{height:3px; background:rgba(255,250,234,.22); border-radius:2px; margin-top:6px; overflow:hidden}
+#hud .bar i{display:block; height:100%; background:var(--cream); transform-origin:left center; transform:scaleX(0)}
+#hud[hidden]{display:none}
+@media (max-width:560px){
+  #hud{right:8px; bottom:8px; min-width:0; padding:7px 9px; font-size:9px; line-height:1.5}
+  #hud .row{gap:10px}
+}
+
+/* ── lenis ──────────────────────────────────────────────────────────────── */
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto !important}
+.lenis.lenis-stopped{overflow:hidden}
+
+/* ── initial states: gated on html.js, cleared under html.rm ───────────── */
+html.js [data-settle]{opacity:0; transform:translateY(12px)}
+html.js [data-settle].in{opacity:1; transform:none; transition:opacity 340ms var(--ease),transform 340ms var(--ease)}
+html.js .ov-decks > li{opacity:0}
+html.js .ov-index li{opacity:.28}
+html.js .chapter .ch-dev .device{opacity:0}
+html.js .checks .tk{opacity:0}
+html.js .refusal h2 .ln i{transform:translateY(102%)}
+html.js .refusal p.body,html.js .refusal p.fine{opacity:0}
+html.js [data-blank]{transform:scaleX(0)}
+html.js [data-fade]{opacity:0}
+html.js .rail-spine{transform:scaleY(0)}
+html.js .sealed-band i{transform:scaleX(0)}
+
+html.rm .ov-index li,html.rm [data-settle],html.rm .ov-decks > li,html.rm .chapter .ch-dev .device,
+html.rm .checks .tk,html.rm .refusal p.body,html.rm .refusal p.fine,html.rm [data-fade]{opacity:1 !important}
+html.rm [data-settle],html.rm .refusal h2 .ln i{transform:none !important}
+html.rm [data-blank],html.rm .sealed-band i{transform:scaleX(1) !important}
+html.rm .rail-spine{transform:scaleY(1) !important}
+html.rm .stage{overflow:visible}
+
+@media print{ .beat{height:auto} .stage{position:static; height:auto} #hud{display:none} }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ══ 1 · SITE HEADER ══════════════════════════════════════════════════ -->
+<header class="site" id="top">
+  <div class="shell header-inner">
+    <a class="wordmark" href="#top">Halal Goes</a>
+    <nav class="aud" aria-label="I want to">
+      <ul>
+        <li><a href="#top" aria-current="page">Order food</a></li>
+        <li><a href="#" data-offsite title="Customer track only in this prototype">List your restaurant</a></li>
+        <li><a href="#" data-offsite title="Customer track only in this prototype">Deliver with us</a></li>
+      </ul>
+    </nav>
+    <a class="btn header-cta" href="#waitlist">Join the waitlist</a>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ══ 2 · HERO — type-led. The seal is present and still. No handset. ═══ -->
+<section class="hero">
+  <div class="shell hero-inner">
+
+    <div class="seal-plate">
+      <!-- The product's own instrument, drawn not imported. It never animates. -->
+      <svg class="seal" viewBox="0 0 240 240" role="img" aria-label="Halal Goes verified seal" width="132" height="132" style="display:block;width:clamp(96px,8vw,112px);height:auto">
+        <circle cx="120" cy="120" r="117" fill="none" stroke="#C9A24B" stroke-width="3"/>
+        <circle cx="120" cy="120" r="106" fill="none" stroke="#C9A24B" stroke-width="1"/>
+        <circle cx="120" cy="120" r="92" fill="#0F7A43"/>
+        <defs>
+          <path id="seal-top" d="M44,120 a76,76 0 0,1 152,0"/>
+          <path id="seal-bot" d="M36,120 a84,84 0 0,0 168,0"/>
+        </defs>
+        <g aria-hidden="true" fill="#FFFFFF">
+          <text font-family="'Bricolage Grotesque',sans-serif" font-size="12" font-weight="700" letter-spacing="2.6" text-anchor="middle"><textPath href="#seal-top" startOffset="50%">HALAL GOES</textPath></text>
+          <text font-family="'Bricolage Grotesque',sans-serif" font-size="12" font-weight="700" letter-spacing="2.6" text-anchor="middle"><textPath href="#seal-bot" startOffset="50%">VERIFIED HALAL</textPath></text>
+          <circle cx="40" cy="120" r="2.4"/><circle cx="200" cy="120" r="2.4"/>
+        </g>
+        <g aria-hidden="true" transform="translate(78 78) scale(3.5)">
+          <path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width=".4" stroke-linejoin="round"/>
+          <path d="M8.4 12.1l2.5 2.5 4.7-4.9" fill="none" stroke="#0F7A43" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </svg>
+    </div>
+
+    <p class="eyebrow">Ontario · launching soon</p>
+
+    <h1><span>Verified</span><span>halal,</span><span>delivered.</span></h1>
+
+    <p class="lede hero-lede">Seven checks on every restaurant, before it reaches you.</p>
+
+    <div class="hero-form" id="waitlist">
+      <form class="wl" novalidate data-context="hero">
+        <div class="form-card">
+          <label class="field-label" for="wl-hero">Email address</label>
+          <div class="field-row">
+            <input id="wl-hero" name="contact" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
+            <button class="btn" type="submit">Notify me</button>
+          </div>
+          <div class="consent">
+            <input id="wl-hero-consent" name="consent" type="checkbox">
+            <label for="wl-hero-consent">I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.</label>
+          </div>
+          <p class="form-msg" role="status" aria-live="polite">No spam. One email, the day we open in your area.</p>
+        </div>
+      </form>
+    </div>
+
+    <section class="certifiers" aria-labelledby="certifiers-heading">
+      <div class="cert-head">
+        <h2 id="certifiers-heading">Certificates we recognise</h2>
+        <a class="cert-link" href="#seven-checks">The seven checks
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F1521E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+      <div class="cert-row">
+        <ul class="cert-rings">
+          <li><b>HMA</b><small>CANADA</small></li>
+          <li><b>HFSAA</b></li>
+          <li><b>ISNA</b><small>CANADA</small></li>
+        </ul>
+        <span class="cert-rule" aria-hidden="true"></span>
+        <p class="cert-note">Only these three bodies, and only while the certificate is in date.</p>
+      </div>
+    </section>
+
+  </div>
+</section>
+
+<!-- ══ BEAT 1 · THE JOURNEY — announces the movement; handsets take over ═ -->
+<section class="beat overture" data-beat="overture" data-beat-name="01 THE JOURNEY" style="--beat:300">
+  <div class="stage">
+    <div class="shell ov-grid">
+      <div class="ov-type">
+        <p class="eyebrow">The journey</p>
+        <h2 class="display">From the<br>certificate<br>to your door.</h2>
+        <p class="lede-sm">Three steps. Each one is shown to you in the app as it happens.</p>
+        <ol class="ov-index" data-ovindex>
+          <li><b>01</b><span>The record</span></li>
+          <li><b>02</b><span>Sealed at the kitchen</span></li>
+          <li><b>03</b><span>At your door</span></li>
+        </ol>
+      </div>
+
+      <ol class="ov-decks">
+        <li style="--dy:0px">
+          <div class="device mini" data-dev="ov1">
+            <div class="device-screen">
+              <p class="mono-label">Restaurant</p>
+              <span class="blank" style="width:94px" data-blank></span>
+              <div class="badge-plate">
+                <span class="badge-ring" data-fade><span class="badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6L12 3z"/><path d="m9 12 2 2 4-4"/></svg>
+                  Halal certified</span></span>
+                <span class="dev-small">Valid until <span class="blank" style="width:44px" data-blank></span></span>
+              </div>
+              <p class="mono-label" style="margin-top:2px">Menu</p>
+              <span class="blank" style="width:74px" data-blank></span>
+              <span class="blank" style="width:86px" data-blank></span>
+            </div>
+          </div>
+        </li>
+
+        <li style="--dy:22px">
+          <div class="device mini" data-dev="ov2">
+            <div class="device-screen">
+              <p class="mono-label">Tamper seal</p>
+              <div class="white-plate">
+                <div class="sealed-art">
+                  <svg width="100%" height="100%" viewBox="0 0 116 112" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M40 34v-8a18 18 0 0 1 36 0v8"/><rect x="20" y="34" width="76" height="68" rx="7"/></svg>
+                  <span class="sealed-band"><i>SEALED</i></span>
+                </div>
+                <span class="blank" style="width:80px" data-blank></span>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li style="--dy:44px">
+          <div class="device mini" data-dev="ov3">
+            <div class="device-screen">
+              <p class="mono-label">Delivery</p>
+              <span class="blank" style="width:88px" data-blank></span>
+              <div class="white-plate" style="align-items:stretch">
+                <div class="rail">
+                  <span class="rail-spine" aria-hidden="true"></span>
+                  <ol>
+                    <li><span class="rail-dot"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span><span>Confirmed</span></li>
+                    <li><span class="rail-dot"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span><span>Picked up</span></li>
+                    <li><span class="rail-dot"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span><span>Delivered</span></li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 3 · RECOGNITION ══════════════════════════════════════════════════ -->
+<section class="band">
+  <div class="shell" data-settle>
+    <p class="display" style="max-width:22ch">You already have a list.<br>It’s four places long.</p>
+    <p class="mono-note" style="margin-top:14px; max-width:62ch">The same kitchens for years, because somebody in the family checked once — and everywhere else stayed a question.</p>
+  </div>
+</section>
+
+<!-- ══ BEAT 2 · CRAVING GRID ════════════════════════════════════════════ -->
+<section class="beat" data-beat="craving" data-beat-name="02 WHAT’S ON IT" style="--beat:300" aria-labelledby="craving-heading">
+  <div class="stage">
+    <div class="shell">
+      <header class="craving-head">
+        <p class="eyebrow">What’s on it</p>
+        <h2 class="display" id="craving-heading">Everything here made the list.</h2>
+        <p class="prose big">Charcoal, rice, bread out of the oven — from kitchens whose certificates we’ve read, line by line, before you ever saw them.</p>
+      </header>
+    </div>
+    <div class="strip-window">
+      <ol class="strip" data-strip>
+        <li class="tile"><figure style="margin:0"><img src="assets/grill.webp" alt="Chicken skewers over charcoal, char marks catching the light" width="1000" height="1250"><figcaption>Charcoal chicken, still spitting.</figcaption></figure></li>
+        <li class="tile"><figure style="margin:0"><img src="assets/rice.webp" alt="A large tray of spiced rice with meat, served family-style" width="1000" height="1250" loading="lazy"><figcaption>Rice by the tray, not the portion.</figcaption></figure></li>
+        <li class="tile"><figure style="margin:0"><img src="assets/shawarma.webp" alt="Shawarma being carved from a vertical spit" width="1000" height="1250" loading="lazy"><figcaption>Shawarma carved off the spit.</figcaption></figure></li>
+        <li class="tile"><figure style="margin:0"><img src="assets/curry.webp" alt="A dark, slow-cooked curry in a steel dish" width="1000" height="1250" loading="lazy"><figcaption>A curry that took all afternoon.</figcaption></figure></li>
+        <li class="tile"><figure style="margin:0"><img src="assets/bread.webp" alt="Flatbread fresh from a hot oven, blistered on top" width="1000" height="1250" loading="lazy"><figcaption>Bread straight out of the oven.</figcaption></figure></li>
+        <li class="tile"><figure style="margin:0"><img src="assets/platter.webp" alt="A large mixed grill platter laid out for a group" width="1000" height="1250" loading="lazy"><figcaption>A platter, for when there are nine of you.</figcaption></figure></li>
+      </ol>
+    </div>
+    <div class="shell">
+      <p class="mono-note" style="margin-top:22px">Kitchen names go up when they’ve passed the check — not before.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 5 · WHY THIS EXISTS ══════════════════════════════════════════════ -->
+<section class="band">
+  <div class="shell two-col" data-settle>
+    <h2 class="display" style="max-width:14ch">Halal is a claim anyone can print.</h2>
+    <div>
+      <p class="prose big">Canada has more than a dozen halal certifying agencies. Each sets its own standards, and none of them is regulated — the Canadian Food Inspection Agency requires halal food to be certified but does not do the certifying, and does not oversee the certifiers.</p>
+      <p class="prose big" style="margin-top:16px">In 2024, a CBC Marketplace investigation visited ten fast-food locations advertising halal food. Staff at six said the whole restaurant was certified. None of the ten was. Between them they produced eight expired certificates — one set had run out eight years earlier.</p>
+      <p class="prose big" style="margin-top:16px; color:var(--ink); font-weight:500">That is the gap. Not restaurants lying, mostly: paperwork nobody checks.</p>
+      <p class="mono-note" style="margin-top:20px; font-size:10.5px">Source: CBC Marketplace, “Fast-food chains serving up halal food with a side of misinformation, expired certificates”, 18 October 2024.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 6 · VERIFICATION SHEET — the instrument, and the page's centrepiece ═ -->
+<section class="band tight" id="seven-checks" style="scroll-margin-top:24px">
+  <div class="shell two-col" data-settle style="align-items:end">
+    <div>
+      <p class="eyebrow eyebrow-chip">What verified means</p>
+      <h2 class="display" style="margin-top:18px; max-width:700px">Verified is a record,<br>not a promise.</h2>
+    </div>
+    <p class="prose big">Before a restaurant can appear on Halal Goes, a reviewer reads its halal certificate and records seven checks against it. This is the sheet they fill in. Nothing on it is inferred, scanned or auto-approved.</p>
+  </div>
+  <div class="shell" data-settle>
+    <p class="mono-note" style="margin-top:28px; display:flex; align-items:center; gap:12px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; line-height:1.5">
+      <span aria-hidden="true" style="flex:none; display:block; width:28px; height:1px; background:var(--ink)"></span>
+      Exhibit A — the verification sheet, as a reviewer sees it · specimen, no restaurant named
+    </p>
+  </div>
+</section>
+
+<section class="beat" data-beat="sheet" data-beat-name="03 THE SEVEN CHECKS" style="--beat:560">
+  <div class="stage">
+    <div class="shell">
+      <section class="sheet" aria-label="Form HG-7, certificate of halal verification, specimen">
+        <div class="sheet-top">
+          <b>Form HG-7 — certificate of halal verification</b>
+          <span>Specimen · rev. 1 · checklist v1 · Ontario</span>
+        </div>
+
+        <div class="sched-head">
+          <h3>Schedule A — the seven checks</h3>
+          <span class="sched-count" data-count aria-live="polite">0/7</span>
+        </div>
+
+        <ol class="checks" data-checks>
+          <li><span class="n">01</span><span class="t">Certificate legible and complete</span><span class="by">Reviewer</span><span class="mark"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path class="tk" d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vh" data-state>not yet recorded</span></span></li>
+          <li><span class="n">02</span><span class="t">Issuing body on our accepted registry</span><span class="by">System · reviewer confirms</span><span class="mark"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path class="tk" d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vh" data-state>not yet recorded</span></span></li>
+          <li><span class="n">03</span><span class="t">Legal name matches the restaurant</span><span class="by">System · reviewer confirms</span><span class="mark"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path class="tk" d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vh" data-state>not yet recorded</span></span></li>
+          <li><span class="n">04</span><span class="t">Premises address matches the certificate</span><span class="by">System · reviewer decides</span><span class="mark"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path class="tk" d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vh" data-state>not yet recorded</span></span></li>
+          <li><span class="n">05</span><span class="t">Dates valid today, not about to lapse</span><span class="by">System · no override</span><span class="mark"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path class="tk" d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vh" data-state>not yet recorded</span></span></li>
+          <li><span class="n">06</span><span class="t">Scope covers everything sold here</span><span class="by">Reviewer</span><span class="mark"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path class="tk" d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vh" data-state>not yet recorded</span></span></li>
+          <li><span class="n">07</span><span class="t">Certificate not reused by another restaurant</span><span class="by">System · no override</span><span class="mark"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path class="tk" d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vh" data-state>not yet recorded</span></span></li>
+        </ol>
+
+        <p class="mono-note" style="margin-top:10px; font-size:10.5px">05 and 07 are computed by the server. A reviewer cannot mark them passed against the computation.</p>
+
+        <div class="sheet-foot">
+          <span>Rejection — any one fail, with a reason code</span>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- the sheet's continuation: schedules B and C, in ordinary flow -->
+<section class="band tight">
+  <div class="shell" data-settle>
+    <section class="sheet" aria-label="Form HG-7, schedules B and C">
+      <div class="sheet-cols">
+        <div>
+          <div class="sched-head" style="margin-top:0">
+            <h3>Schedule B — accepted issuing bodies</h3>
+            <span class="sched-count">Registry · 3 seeded · extensible</span>
+          </div>
+          <div class="issuers">
+            <span class="ring" role="img" aria-label="HMA Canada"><i><b>HMA</b><small>Canada</small></i></span>
+            <span class="ring" role="img" aria-label="HFSAA"><i><b style="font-size:12.5px">HFSAA</b></i></span>
+            <span class="ring" role="img" aria-label="ISNA Canada"><i><b>ISNA</b><small>Canada</small></i></span>
+            <p class="prose" style="flex:1; min-width:240px; font-size:14.5px; line-height:1.6">A certificate from any <strong>one</strong> of these satisfies check 02. The registry is seeded, not closed — a body can be added as it is accepted — but the issuer is always chosen from the registry, never typed in.</p>
+          </div>
+          <div class="sheet-foot">
+            <span>Issued on 7/7 only</span><span>Page 1 of 1</span>
+          </div>
+        </div>
+
+        <div class="sheet-aside">
+          <div class="sched-head" style="margin-top:28px">
+            <h3>Schedule C — outcome</h3>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; margin-top:14px">
+            <p class="prose" style="flex:1; min-width:0; font-size:15.5px; line-height:1.5; color:var(--ink)">The seal is the outcome of the sheet, not a setting: issued only when all seven checks are marked passed. Six of seven is a rejection with a reason, not a seal.</p>
+            <!-- The stamp, applied off-axis by hand. Present and still — the seal
+                 is never animated, ever. -->
+            <span style="flex:none; transform:rotate(-8deg)">
+              <svg viewBox="0 0 240 240" role="img" aria-label="Halal Goes verified seal — issued only when all seven checks pass" width="132" height="132" style="display:block;width:clamp(104px,10vw,150px);height:auto">
+                <circle cx="120" cy="120" r="116" fill="none" stroke="#C9A24B" stroke-width="2.5"/>
+                <circle cx="120" cy="120" r="106" fill="none" stroke="#0F7A43" stroke-width="3"/>
+                <defs>
+                  <path id="stamp-top" d="M34,120 a86,86 0 0,1 172,0"/>
+                  <path id="stamp-bot" d="M26,120 a94,94 0 0,0 188,0"/>
+                </defs>
+                <g aria-hidden="true" fill="#0F7A43">
+                  <text font-family="'IBM Plex Mono',monospace" font-size="13.5" font-weight="600" letter-spacing="2.4" text-anchor="middle"><textPath href="#stamp-top" startOffset="50%">HALAL GOES · VERIFIED</textPath></text>
+                  <text font-family="'IBM Plex Mono',monospace" font-size="13.5" font-weight="600" letter-spacing="2.4" text-anchor="middle"><textPath href="#stamp-bot" startOffset="50%">7 OF 7 CHECKS PASSED</textPath></text>
+                  <circle cx="30" cy="120" r="2.6"/><circle cx="210" cy="120" r="2.6"/>
+                </g>
+                <circle cx="120" cy="120" r="72" fill="none" stroke="#0F7A43" stroke-width="1.25" stroke-dasharray="3 3"/>
+                <circle cx="120" cy="120" r="58" fill="#0F7A43"/>
+                <g aria-hidden="true" transform="translate(84 84) scale(3)">
+                  <path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width=".4" stroke-linejoin="round"/>
+                  <path d="M8.4 12.1l2.5 2.5 4.7-4.9" fill="none" stroke="#0F7A43" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                </g>
+              </svg>
+            </span>
+          </div>
+
+          <div class="sched-head">
+            <h3>On lapse</h3>
+            <span class="sched-count">Withdrawn at expiry · same day</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap">
+            <!-- Slate, never red. Red reads as haram — a ruling we do not make. -->
+            <span class="expired-pill">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z"/></svg>
+              Certification expired
+            </span>
+            <span class="mono-label" style="line-height:1.6">State: expired<br>Not orderable</span>
+          </div>
+          <p class="prose" style="margin-top:14px; font-size:15px; line-height:1.5; color:var(--ink)">When a certificate reaches its expiry date, the seal is withdrawn that same day. The listing shows the state above — neutral slate, meaning <em style="font-style:normal; font-weight:600">we can’t currently vouch</em> — never a red warning, never a badge left up in hope. If a halal field is missing from our records, no badge is shown at all. We don’t guess.</p>
+          <p class="mono-note" style="margin-top:20px; border-top:1px solid var(--hair); padding-top:12px; font-size:10.5px">APPROVED → EXPIRED at expires_on, end of day, America/Toronto. Red is never used for a halal state: red reads as a religious ruling, and this platform does not make one.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="callout" data-settle>
+      <p class="prose" style="max-width:900px; font-size:17px; line-height:1.5; color:var(--mkink)">Every restaurant you can order from has a sheet like this on file. Issuing body, certificate number, dates and the day we verified it are on the restaurant’s page, with the certificate one tap away.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 4 · REFUSAL ═════════════════════════════════════════════════ -->
+<section class="beat" data-beat="refusal" data-beat-name="04 THE REFUSAL" style="--beat:250">
+  <div class="stage">
+    <div class="shell">
+      <section class="refusal" aria-labelledby="refusal-heading">
+        <h2 id="refusal-heading"><span class="ln"><i>We don’t certify food.</i></span><span class="ln"><i>We don’t make rulings.</i></span><span class="ln"><i>That isn’t ours to make.</i></span></h2>
+        <p class="body">We do the clerical work. We get the certificate, we read it, we check it’s real and still in force, and we put our name against the date we checked. What the badge shows is what the certificate says — including who issued it, so you can decide whether that issuer meets your standard. We don’t rank issuers and we don’t score them.</p>
+        <p class="fine">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 5 · STATE GRID ══════════════════════════════════════════════ -->
+<section class="beat" data-beat="states" data-beat-name="05 WHAT THE BADGE CAN SAY" style="--beat:300" aria-labelledby="states-heading">
+  <div class="stage top">
+    <div class="shell">
+      <div class="states-grid">
+        <header style="max-width:620px">
+          <p class="eyebrow">What the badge can say</p>
+          <h2 class="display" id="states-heading" style="margin-top:14px">Including when we can’t vouch for a kitchen.</h2>
+          <p class="prose big" style="margin-top:16px">Four states, and only four. We’d rather show you less than show you something we can’t stand behind.</p>
+
+          <ul class="state-list" data-states>
+            <li><span class="state-mark m-certified" aria-hidden="true"></span><b>Halal certified</b><p>A current certificate is on file, a person has checked it against all seven points, and the record says who checked it and when.</p><p class="mono-label">Record shown on the listing</p></li>
+            <li><span class="state-mark m-expired" aria-hidden="true"></span><b>Expired</b><p>The restaurant comes off the app until it is renewed. An expired certificate means our information has lapsed — not that anything is wrong with the food. There is no grace period.</p><p class="mono-label">Delisted within 60 seconds</p></li>
+            <li><span class="state-mark m-review" aria-hidden="true"></span><b>Under review</b><p>We have the paperwork and we have not finished checking it. Nothing is ever auto-approved on a timer.</p><p class="mono-label">Not visible to customers</p></li>
+            <li><span class="state-mark m-none" aria-hidden="true"></span><b>No record</b><p>If we have not read a certificate, you see nothing at all. Never a maybe, never an optimistic badge.</p><p class="mono-label">No badge rendered</p></li>
+          </ul>
+        </header>
+
+        <article class="record-card" data-record>
+          <p class="cap">Specimen · what a listing’s record looks like once it passes</p>
+          <div class="record-head">
+            <span class="record-mark" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF"/><path d="m8 12.1 2.7 2.7L16.2 9" fill="none" stroke="#0F7A43" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <b>Halal certified</b>
+          </div>
+          <hr>
+          <dl>
+            <div class="record-line"><dt>Kitchen</dt><dd><span class="blank" style="width:22ch; max-width:100%" data-blank role="img" aria-label="not yet published"></span></dd></div>
+            <div class="record-line"><dt>Issued by</dt><dd><span class="val">Halal Monitoring Authority (HMA Canada)</span></dd></div>
+            <div class="record-line"><dt>Certificate</dt><dd><span class="blank" style="width:14ch; max-width:100%" data-blank role="img" aria-label="not yet published"></span></dd></div>
+            <div class="record-line"><dt>Scope</dt><dd><span class="blank" style="width:18ch; max-width:100%" data-blank role="img" aria-label="not yet published"></span></dd></div>
+            <div class="record-line"><dt>In force to</dt><dd><span class="blank" style="width:11ch; max-width:100%" data-blank role="img" aria-label="not yet published"></span></dd></div>
+            <div class="record-line"><dt>Checked by</dt><dd><span class="blank" style="width:16ch; max-width:100%" data-blank role="img" aria-label="not yet published"></span></dd></div>
+          </dl>
+          <hr>
+          <dl><div class="record-line"><dt>Reviews</dt><dd><span class="prose" style="font-size:14px">None yet. We haven’t opened.</span></dd></div></dl>
+        </article>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ BEAT 6 · 01 THE RECORD ═══════════════════════════════════════════ -->
+<section class="beat" data-beat="j01" data-beat-name="06 · 01 THE RECORD" style="--beat:320">
+  <div class="stage">
+    <div class="shell chapter">
+      <p class="ch-index">Step 01 of 03</p>
+      <h2 class="display-sm">The record</h2>
+      <div class="ch-dev">
+        <div class="device" data-dev="j01">
+          <div class="device-screen">
+            <p class="mono-label">Restaurant</p>
+            <div style="display:flex; align-items:flex-end; height:22px"><span class="blank" style="width:156px" data-blank role="img" aria-label="not yet published"></span></div>
+            <div class="badge-plate">
+              <span class="badge-ring" data-fade><span class="badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6L12 3z"/><path d="m9 12 2 2 4-4"/></svg>
+                Halal certified</span></span>
+              <span class="dev-small" style="display:flex; align-items:baseline; gap:8px">Valid until <span class="blank" style="width:72px" data-blank role="img" aria-label="not yet published"></span></span>
+              <p class="dev-small" data-fade>Halal Goes does not itself certify food.</p>
+            </div>
+            <p class="mono-label" style="margin-top:6px">Menu</p>
+            <div class="dev-row"><span class="blank" style="width:112px" data-blank></span><span class="blank" style="width:36px" data-blank></span></div>
+            <div class="dev-row"><span class="blank" style="width:128px" data-blank></span><span class="blank" style="width:36px" data-blank></span></div>
+          </div>
+        </div>
+      </div>
+      <p class="ch-cap">01 · The record</p>
+      <span class="ch-rule" aria-hidden="true"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 9 · SEALED ═══════════════════════════════════════════════════════ -->
+<section class="band" aria-labelledby="sealed-heading">
+  <div class="shell split" data-settle>
+    <div>
+      <p class="eyebrow">After you order</p>
+      <h2 class="display" id="sealed-heading" style="margin-top:14px">Sealed at the kitchen. Opened by you.</h2>
+      <p class="prose big" style="margin-top:16px; max-width:48ch">Verifying the kitchen is only half of it. The other half is making sure nothing happened to the bag between their pass and your door.</p>
+    </div>
+    <ol class="doc-list">
+      <li><span class="mono-label">01 · At the kitchen</span><b>The kitchen seals the bag.</b><p>A tamper-evident label goes across the opening as they finish packing, and it is bound to your order alone. A seal never moves between orders.</p></li>
+      <li><span class="mono-label">02 · At pickup</span><b>Your rider scans it on collection.</b><p>The scan is what moves the order to picked up. Each code works once — a second use is rejected by the database, not by a check somebody might skip.</p></li>
+      <li><span class="mono-label">03 · At your door</span><b>It is scanned again when it reaches you.</b><p>If a seal arrives broken you can report it with a photo, and the whole scan trail goes to a person to sort out.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══ BEAT 7 · 02 SEALED AT THE KITCHEN ════════════════════════════════ -->
+<section class="beat" data-beat="j02" data-beat-name="07 · 02 SEALED" style="--beat:320">
+  <div class="stage">
+    <div class="shell chapter">
+      <p class="ch-index">Step 02 of 03</p>
+      <h2 class="display-sm">Sealed at the kitchen</h2>
+      <div class="ch-dev">
+        <div class="device" data-dev="j02">
+          <div class="device-screen">
+            <p class="mono-label">Tamper seal</p>
+            <h3 style="font-size:17px; font-weight:700; letter-spacing:-.01em; line-height:1.2; color:var(--ink)">Your bag is sealed</h3>
+            <div class="white-plate">
+              <div class="sealed-art">
+                <svg width="100%" height="100%" viewBox="0 0 116 112" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M40 34v-8a18 18 0 0 1 36 0v8"/><rect x="20" y="34" width="76" height="68" rx="7"/></svg>
+                <span class="sealed-band"><i>SEALED</i></span>
+              </div>
+              <div style="width:100%; display:flex; flex-direction:column; gap:6px">
+                <span style="font-size:11px; line-height:1; color:var(--body)">Seal code</span>
+                <span class="blank" style="width:140px" data-blank role="img" aria-label="not yet published"></span>
+              </div>
+            </div>
+            <div class="scan-line" data-fade>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+              <span>Scanned at pickup</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="ch-cap">02 · Sealed at the kitchen</p>
+      <span class="ch-rule" aria-hidden="true"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 10 · STEPS ═══════════════════════════════════════════════════════ -->
+<section class="band">
+  <div class="shell" data-settle>
+    <h2 class="display">How ordering works</h2>
+    <ol class="steps-grid">
+      <li><span class="mono-label">01</span><h3>Pick a restaurant</h3><p>Everything you can see has passed all seven checks. The seal on a listing is the outcome of the sheet above, and it comes down the day the certificate lapses.</p></li>
+      <li><span class="mono-label">02</span><h3>Order</h3><p>You see the full total before you pay. Change your mind before the restaurant accepts and the order is cancelled free — nothing is taken.</p></li>
+      <li><span class="mono-label">03</span><h3>Follow it to the door</h3><p>Your rider’s position updates as they go, so you know whether to answer the door now or in ten minutes.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══ BEAT 8 · 03 AT YOUR DOOR ═════════════════════════════════════════ -->
+<section class="beat" data-beat="j03" data-beat-name="08 · 03 AT YOUR DOOR" style="--beat:340">
+  <div class="stage">
+    <div class="shell chapter">
+      <p class="ch-index">Step 03 of 03</p>
+      <h2 class="display-sm">At your door</h2>
+      <div class="ch-dev">
+        <div class="device" data-dev="j03">
+          <div class="device-screen">
+            <p class="mono-label">Delivery</p>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <span style="font-size:11px; line-height:1; color:var(--body)">Delivering to</span>
+              <span class="blank" style="width:150px" data-blank role="img" aria-label="not yet published"></span>
+            </div>
+            <div class="white-plate" style="align-items:stretch; padding:12px 14px 14px">
+              <div class="rail" data-rail>
+                <span class="rail-spine" aria-hidden="true"></span>
+                <ol>
+                  <li><span class="rail-dot" data-fade><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span><span>Order confirmed</span></li>
+                  <li><span class="rail-dot" data-fade><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span><span>Sealed at the kitchen</span></li>
+                  <li><span class="rail-dot" data-fade><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span><span>Picked up</span></li>
+                  <li><span class="rail-dot" data-fade><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span><span>On the way</span></li>
+                </ol>
+              </div>
+              <div class="rail-final">
+                <span class="rail-dot" style="width:22px; height:22px" data-fade><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
+                <b>Delivered</b>
+                <span class="blank" style="width:40px" data-blank></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="ch-cap">03 · At your door</p>
+      <span class="ch-rule" aria-hidden="true"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 11 · CHECKABLE ═══════════════════════════════════════════════════ -->
+<section class="band" aria-labelledby="checkable-heading">
+  <div class="shell" data-settle>
+    <div class="split">
+      <div>
+        <p class="eyebrow">How to catch us out</p>
+        <h2 class="display" id="checkable-heading" style="margin-top:14px">Everything here is checkable.</h2>
+        <p class="prose big" style="margin-top:16px; max-width:46ch">We’re asking you to trust a list. The only honest way to earn that is to make it easy to prove us wrong.</p>
+      </div>
+      <ul class="plain-list">
+        <li><b>The standard is written down, versioned and dated.</b><p>Not a page of principles — the actual seven checks, what makes an issuer acceptable, and what we refuse to claim. If we change it, the version changes with it. <a href="#" data-offsite style="font-weight:600; white-space:nowrap; color:var(--ink)">Read it →</a></p></li>
+        <li><b>We print the issuer’s name, not a label of our own.</b><p>Every listing names the body that issued the certificate. We don’t rank issuers or score them, because which bodies you accept is your judgement, not ours.</p></li>
+        <li><b>You can open the certificate itself.</b><p>Not a badge that stands in for a document — the document. Signed in, from the listing, on a link that expires in minutes and is never served from a public URL.</p></li>
+        <li><b>Nobody can buy their way up the list.</b><p>A restaurant cannot pay for or influence its position in the feed. There is no promoted tier and there is no plan to build one.</p></li>
+        <li><b>We’ll publish what we turn down.</b><p>From launch: how many applications we received, how many passed, and how many we rejected. A verifier who only ever reports approvals isn’t verifying anything.</p></li>
+      </ul>
+    </div>
+    <p class="strip-note">No reviews, no ratings, no customer counts and no partner logos on this page. We haven’t opened yet. When we do, every number here will be one you can check.</p>
+  </div>
+</section>
+
+<!-- ══ 12 · FAQ ═════════════════════════════════════════════════════════ -->
+<section class="band" id="faq" style="scroll-margin-top:24px">
+  <div class="shell two-col" data-settle>
+    <h2 class="display" style="max-width:12ch">Questions people ask.</h2>
+    <div class="faq">
+      <details><summary>What does “verified” mean here?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="ans">A person reads the restaurant’s halal certificate and records seven checks against it: that it is legible and complete, that the issuing body is one we accept, that the legal name matches, that the premises address matches, that the dates are valid today, that the scope covers everything sold, and that the certificate is not already in use by another restaurant. All seven have to pass. Six of seven is a rejection with a reason, not a seal.</div></details>
+      <details><summary>Whose certificates do you accept?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="ans">HMA Canada, HFSAA and ISNA Canada. A certificate from any one of them satisfies the issuer check. The list can grow as we accept more bodies; it is never typed in free-hand.</div></details>
+      <details><summary>What happens when a certificate expires?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="ans">The seal comes down the same day. The listing shows a neutral “we can’t currently vouch” state and you can’t order from it until it’s renewed. We don’t leave a badge up in hope.</div></details>
+      <details><summary>Do you decide what’s halal?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="ans">No. We check certificates issued by recognised bodies and report what we find. We don’t make religious rulings, and we don’t rank one certifier’s standard above another’s.</div></details>
+      <details><summary>Is the whole restaurant halal, or just some items?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="ans">That’s check six. We record what the certificate’s scope covers, and if it doesn’t cover everything sold, the restaurant doesn’t go live.</div></details>
+      <details><summary>What do you do with my email address?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="ans">Write to you when we open in your area, and after that only when there are newly verified kitchens near you. We don’t sell it and we don’t pass it to restaurants. Every email has one-click unsubscribe.</div></details>
+      <details><summary>When are you launching?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="ans">Ontario first. We’re pre-launch — this page is a waitlist, not a download, and there’s nothing to install yet. Leave your email and we’ll write once, the day we open in your area.</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 13 · FINAL CTA ═══════════════════════════════════════════════════ -->
+<section class="band tight">
+  <div class="shell" data-settle>
+    <div class="final">
+      <div>
+        <h2 class="display">Be there on day one.</h2>
+        <p>One email the day we open in your area. Nothing before then.</p>
+      </div>
+      <form class="wl" novalidate data-context="final">
+        <div class="form-card">
+          <label class="field-label" for="wl-final">Email address</label>
+          <div class="field-row">
+            <input id="wl-final" name="contact" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
+            <button class="btn" type="submit">Notify me</button>
+          </div>
+          <div class="consent">
+            <input id="wl-final-consent" name="consent" type="checkbox">
+            <label for="wl-final-consent">I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.</label>
+          </div>
+          <p class="form-msg" role="status" aria-live="polite">No spam. One email, the day we open in your area.</p>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ══ 14 · FOOTER ══════════════════════════════════════════════════════ -->
+<footer class="site">
+  <div class="shell foot-inner">
+    <p class="wordmark" style="font-size:20px">Halal Goes</p>
+    <nav class="foot-nav" aria-label="Footer">
+      <a href="#" data-offsite>Verification standard</a>
+      <a href="#" data-offsite>Writing</a>
+      <a href="#" data-offsite>Privacy</a>
+      <a href="#" data-offsite>Terms</a>
+      <button type="button" data-offsite>Cookie preferences</button>
+    </nav>
+    <p class="foot-note">Ontario, Canada. Launching soon — prices in CAD.</p>
+  </div>
+</footer>
+
+<aside id="hud" aria-hidden="true">
+  <b>Beat</b>
+  <div class="row"><span data-hud-name>—</span></div>
+  <div class="bar"><i data-hud-bar></i></div>
+  <div class="row" style="margin-top:6px"><span>local p</span><span data-hud-p>0.00</span></div>
+  <div class="row"><span>beat len</span><span data-hud-len>—</span></div>
+  <div class="row"><span>page</span><span data-hud-page>—</span></div>
+  <div class="row" style="opacity:.55; margin-top:4px"><span>press d</span><span>hide</span></div>
+</aside>
+
+<script src="assets/lenis.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var html = document.documentElement;
+  var RM = html.classList.contains('rm');
+
+  /* ─── maths ─────────────────────────────────────────────────────────── */
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function seg(t, a, b) { return clamp((t - a) / (b - a), 0, 1); }
+  function smooth(t) { return t * t * (3 - 2 * t); }
+  /* THE DWELL. The first 20% and the last 20% of a beat's scroll range hold
+     still; all the movement happens in the middle 60%. A reader can stop and
+     read without the thing under them still travelling. */
+  function dwell(p) { return smooth(clamp((p - 0.20) / 0.60, 0, 1)); }
+
+  function docTop(el) {
+    var y = 0;
+    while (el) { y += el.offsetTop; el = el.offsetParent; }
+    return y;
+  }
+
+  /* ─── beats: measured in pixels from their own offsetTop/offsetHeight ── */
+  var beats = [].slice.call(document.querySelectorAll('[data-beat]')).map(function (el) {
+    return {
+      el: el, id: el.getAttribute('data-beat'), name: el.getAttribute('data-beat-name'),
+      top: 0, height: 0, span: 1,
+      pExact: 0,   /* discrete owner: active beat, ticked checks, ARIA */
+      pDamped: 0,  /* continuous owner: transforms and opacity */
+      pIn: 0, dIn: 0   /* THE APPROACH: 0 a viewport out, 1 as the beat pins */
+    };
+  });
+  var byId = {};
+  beats.forEach(function (b) { byId[b.id] = b; });
+
+  var vh = window.innerHeight;
+  var devScale = 1;
+
+  function measure() {
+    vh = window.innerHeight;
+    devScale = clamp((vh * 0.545) / 468, 0.56, 1.00);
+    html.style.setProperty('--dev-scale', devScale);
+    beats.forEach(function (b) {
+      b.top = docTop(b.el);
+      b.height = b.el.offsetHeight;
+      b.span = Math.max(1, b.height - vh);
+    });
+    stripMax = strip ? Math.max(0, strip.scrollWidth - stripWindow.clientWidth) : 0;
+  }
+
+  /* ─── every device's transform state, in ONE place ───────────────────
+     When the handset is swapped for a real 3D model, this table is the only
+     thing that has to be re-pointed: from → to, per device, per beat. */
+  var DEVICES = {
+    ov1: { beat: 'overture', in: [0.00, 0.42], from: { x: 58, y: 40, ry: 42, rz: -16, s: 0.84, o: 1 }, to: { x: 0, y: 0, ry: 22, rz: -7, s: 0.94, o: 1 } },
+    ov2: { beat: 'overture', in: [0.16, 0.62], from: { x: 58, y: 48, ry: 34, rz: -12, s: 0.86, o: 0 }, to: { x: 0, y: 0, ry: 12, rz: -3, s: 0.97, o: 1 } },
+    ov3: { beat: 'overture', in: [0.32, 0.82], from: { x: 58, y: 56, ry: 26, rz: -8, s: 0.88, o: 0 }, to: { x: 0, y: 0, ry: -3, rz: 1, s: 1.00, o: 1 } },
+    j01: { beat: 'j01', in: [0.00, 0.34], from: { x: 76, y: 18, ry: 26, rz: -6, s: 0.92, o: 1 }, to: { x: 0, y: 0, ry: 10, rz: -2, s: 1, o: 1 } },
+    j02: { beat: 'j02', in: [0.00, 0.30], from: { x: 66, y: 16, ry: 22, rz: -5, s: 0.92, o: 1 }, to: { x: 0, y: 0, ry: 7, rz: -1.5, s: 1, o: 1 } },
+    j03: { beat: 'j03', in: [0.00, 0.28], from: { x: -62, y: 16, ry: -22, rz: 5, s: 0.92, o: 1 }, to: { x: 0, y: 0, ry: -6, rz: 1.5, s: 1, o: 1 } }
+  };
+  Object.keys(DEVICES).forEach(function (k) {
+    DEVICES[k].el = document.querySelector('[data-dev="' + k + '"]');
+  });
+  function applyDevice(key, k) {
+    var d = DEVICES[key];
+    if (!d || !d.el) return;
+    var a = d.from, b = d.to, m = function (p, q) { return p + (q - p) * k; };
+    var mini = d.el.classList.contains('mini');
+    d.el.style.opacity = m(a.o, b.o);
+    d.el.style.transform =
+      'translate3d(' + m(a.x, b.x).toFixed(2) + 'px,' + m(a.y, b.y).toFixed(2) + 'px,0)' +
+      ' rotateY(' + m(a.ry, b.ry).toFixed(2) + 'deg)' +
+      ' rotateZ(' + m(a.rz, b.rz).toFixed(2) + 'deg)' +
+      ' scale(' + (m(a.s, b.s) * (mini ? 1 : devScale)).toFixed(4) + ')';
+  }
+
+  /* ─── element handles ────────────────────────────────────────────────── */
+  var strip = document.querySelector('[data-strip]');
+  var stripWindow = document.querySelector('.strip-window');
+  var stripMax = 0;
+  var checkRows = [].slice.call(document.querySelectorAll('[data-checks] li'));
+  var countEl = document.querySelector('[data-count]');
+  var refusalLines = [].slice.call(document.querySelectorAll('.refusal h2 .ln i'));
+  var refusalBody = document.querySelector('.refusal p.body');
+  var refusalFine = document.querySelector('.refusal p.fine');
+  var recordCard = document.querySelector('[data-record]');
+  var recordBlanks = recordCard ? [].slice.call(recordCard.querySelectorAll('[data-blank]')) : [];
+  var stateItems = [].slice.call(document.querySelectorAll('[data-states] li'));
+  var lastCount = -1;
+
+  function blanksIn(scope) { return [].slice.call(scope.querySelectorAll('[data-blank]')); }
+  var j01Blanks = blanksIn(DEVICES.j01.el), j01Badge = DEVICES.j01.el.querySelector('.badge-ring'),
+      j01Note = DEVICES.j01.el.querySelector('.badge-plate p[data-fade]');
+  var j02Band = DEVICES.j02.el.querySelector('.sealed-band i'),
+      j02Blanks = blanksIn(DEVICES.j02.el), j02Scan = DEVICES.j02.el.querySelector('.scan-line');
+  var j03Spine = DEVICES.j03.el.querySelector('.rail-spine'),
+      j03Dots = [].slice.call(DEVICES.j03.el.querySelectorAll('.rail-dot')),
+      j03Blanks = blanksIn(DEVICES.j03.el);
+  var ovItems = [].slice.call(document.querySelectorAll('.ov-decks > li'));
+  var ovIndex = [].slice.call(document.querySelectorAll('[data-ovindex] li'));
+  var ovBlanks = ['ov1', 'ov2', 'ov3'].map(function (k) { return blanksIn(DEVICES[k].el); });
+  var ovBadge = DEVICES.ov1.el.querySelector('.badge-ring');
+  var ovSpine = DEVICES.ov3.el.querySelector('.rail-spine');
+  var ovBand = DEVICES.ov2.el.querySelector('.sealed-band i');
+
+  function setBlank(el, k) { el.style.transform = 'scaleX(' + k.toFixed(3) + ')'; }
+  function setFade(el, k) { if (el) el.style.opacity = k; }
+
+  /* ─── per-beat renderers ─────────────────────────────────────────────── */
+  var RENDER = {
+    overture: function (b) {
+      var d = b.pDamped, e = b.pExact, di = b.dIn;
+      ['ov1', 'ov2', 'ov3'].forEach(function (key, i) {
+        var k = smooth(seg(di, DEVICES[key].in[0], DEVICES[key].in[1]));
+        applyDevice(key, k);
+        if (ovItems[i]) ovItems[i].style.opacity = k;
+        if (ovIndex[i]) ovIndex[i].style.opacity = (0.28 + 0.72 * k).toFixed(3);
+      });
+      ovBlanks[0].forEach(function (el, i) { setBlank(el, seg(d, 0.30 + i * 0.05, 0.42 + i * 0.05)); });
+      ovBlanks[1].forEach(function (el) { setBlank(el, seg(d, 0.56, 0.68)); });
+      ovBlanks[2].forEach(function (el) { setBlank(el, seg(d, 0.72, 0.84)); });
+      setFade(ovBadge, e > 0.36 ? 1 : 0);
+      if (ovBand) ovBand.style.transform = 'scaleX(' + seg(d, 0.46, 0.64).toFixed(3) + ')';
+      if (ovSpine) ovSpine.style.transform = 'scaleY(' + seg(d, 0.66, 0.82).toFixed(3) + ')';
+    },
+
+    craving: function (b) {
+      if (!strip) return;
+      strip.style.transform = 'translate3d(' + (-stripMax * b.pDamped).toFixed(2) + 'px,0,0)';
+    },
+
+    /* The instrument. Seven checks record themselves, one at a time, across the
+       middle 60% of a 560vh beat — the page's longest by a wide margin. The
+       ticks are DISCRETE and driven by exact progress, so they never flicker
+       between two states; nothing else in this beat moves at all. */
+    sheet: function (b) {
+      var e = b.pExact, n = 0;
+      for (var i = 0; i < checkRows.length; i++) {
+        var at = 0.05 + i * 0.112;   /* 7/7 lands before the closing dwell */
+        var on = e >= at;
+        if (on) n++;
+        var row = checkRows[i];
+        if ((row.getAttribute('data-on') === '1') !== on) {
+          row.setAttribute('data-on', on ? '1' : '0');
+          row.querySelector('.tk').style.opacity = on ? 1 : 0;
+          row.querySelector('[data-state]').textContent = on ? 'passed' : 'not yet recorded';
+        }
+      }
+      if (n !== lastCount) { lastCount = n; countEl.textContent = n + '/7'; }
+    },
+
+    /* One idea, spent once: three lines printing onto the band, then the body.
+       Line by line — never word by word. */
+    refusal: function (b) {
+      var di = b.dIn;
+      refusalLines.forEach(function (el, i) {
+        var k = smooth(seg(di, 0.04 + i * 0.14, 0.34 + i * 0.14));
+        el.style.transform = 'translateY(' + ((1 - k) * 102).toFixed(2) + '%)';
+      });
+      setFade(refusalBody, smooth(seg(di, 0.46, 0.70)));
+      setFade(refusalFine, smooth(seg(di, 0.62, 0.86)));
+    },
+
+    states: function (b) {
+      var e = b.pExact, di = b.dIn;
+      recordBlanks.forEach(function (el, i) { setBlank(el, smooth(seg(di, 0.06 + i * 0.06, 0.22 + i * 0.06))); });
+      stateItems.forEach(function (li, i) {
+        var k = smooth(seg(di, 0.40 + i * 0.09, 0.58 + i * 0.09));
+        li.style.opacity = k;
+        li.style.transform = 'translateY(' + ((1 - k) * 12).toFixed(2) + 'px)';
+      });
+      if (recordCard) recordCard.setAttribute('aria-busy', e < 0.7 ? 'true' : 'false');
+    },
+
+    j01: function (b) {
+      var d = b.pDamped, e = b.pExact;
+      applyDevice('j01', smooth(seg(b.dIn, 0, 0.88)));
+      setBlank(j01Blanks[0], seg(d, 0.10, 0.24));
+      setFade(j01Badge, e > 0.20 ? 1 : 0);              /* appears; never pulses */
+      setBlank(j01Blanks[1], seg(d, 0.30, 0.42));
+      setFade(j01Note, seg(d, 0.40, 0.52));
+      for (var i = 2; i < j01Blanks.length; i++) setBlank(j01Blanks[i], seg(d, 0.56 + (i - 2) * 0.06, 0.70 + (i - 2) * 0.06));
+    },
+
+    j02: function (b) {
+      var d = b.pDamped, e = b.pExact;
+      applyDevice('j02', smooth(seg(b.dIn, 0, 0.88)));
+      j02Band.style.transform = 'scaleX(' + seg(d, 0.26, 0.52).toFixed(3) + ')';
+      j02Blanks.forEach(function (el) { setBlank(el, seg(d, 0.56, 0.70)); });
+      setFade(j02Scan, e > 0.78 ? 1 : 0);
+    },
+
+    j03: function (b) {
+      var d = b.pDamped, e = b.pExact;
+      applyDevice('j03', smooth(seg(b.dIn, 0, 0.88)));
+      j03Spine.style.transform = 'scaleY(' + seg(d, 0.26, 0.42).toFixed(3) + ')';
+      var marks = [0.42, 0.52, 0.62, 0.72, 0.86];
+      j03Dots.forEach(function (dot, i) { setFade(dot, e >= marks[i] ? 1 : 0); });
+      setBlank(j03Blanks[0], seg(d, 0.14, 0.28));
+      if (j03Blanks[1]) setBlank(j03Blanks[1], seg(d, 0.86, 0.96));
+    }
+  };
+
+  /* ─── HUD ────────────────────────────────────────────────────────────── */
+  var hud = document.getElementById('hud');
+  var hudName = hud.querySelector('[data-hud-name]'), hudP = hud.querySelector('[data-hud-p]'),
+      hudLen = hud.querySelector('[data-hud-len]'), hudPage = hud.querySelector('[data-hud-page]'),
+      hudBar = hud.querySelector('[data-hud-bar]');
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'd' && ev.key !== 'D') return;
+    var t = ev.target;
+    if (t && t.closest && t.closest('input,textarea,select,[contenteditable]')) return;
+    hud.hidden = !hud.hidden;
+  });
+
+  /* ─── the loop: one scroll value, exact vs damped kept apart ─────────── */
+  var lenis = null;
+  var lastY = null;
+  function scrollValue() {
+    return lenis ? lenis.scroll : (window.scrollY || window.pageYOffset || 0);
+  }
+
+  function frame(dt) {
+    var y = scrollValue();
+    var k = RM ? 1 : 1 - Math.exp(-9 * dt);       /* frame-rate independent damping */
+    /* A JUMP, not a scroll. An anchor link, a scrollbar drag, End, or a
+       restored scroll position moves more than a whole viewport between two
+       frames. Damping exists to smooth CONTINUOUS input; across a
+       discontinuity it is only lag, and the reader would land mid-beat
+       watching the composition catch up to where they already are. So on a
+       jump — and on the very first frame — damped adopts exact outright.
+       Lenis animates its own scrolling, so nothing a wheel or a trackpad can
+       do reaches a viewport in one frame; natural scrolling never trips this. */
+    var jumped = lastY === null || Math.abs(y - lastY) > vh;
+    lastY = y;
+    var active = null;
+
+    for (var i = 0; i < beats.length; i++) {
+      var b = beats[i];
+      var raw = clamp((y - b.top) / b.span, 0, 1);
+      b.pExact = RM ? 1 : dwell(raw);
+      b.pDamped = RM ? 1 : (jumped ? b.pExact : b.pDamped + (b.pExact - b.pDamped) * k);
+      b.pIn = RM ? 1 : clamp((y - (b.top - vh)) / vh, 0, 1);
+      b.dIn = RM ? 1 : (jumped ? b.pIn : b.dIn + (b.pIn - b.dIn) * k);
+      RENDER[b.id](b);
+      if (raw > 0 && raw < 1) active = b;
+      else if (!active && raw >= 1 && i === beats.length - 1) active = b;
+    }
+
+    if (!active) {
+      for (var j = beats.length - 1; j >= 0; j--) {
+        if (y >= beats[j].top) { active = beats[j]; break; }
+      }
+    }
+    if (active) {
+      var rawA = clamp((y - active.top) / active.span, 0, 1);
+      hudName.textContent = active.name + (rawA <= 0 || rawA >= 1 ? ' · held' : '');
+      hudP.textContent = rawA.toFixed(2);
+      hudLen.textContent = (active.height / vh).toFixed(1) + ' vh';
+      hudBar.style.transform = 'scaleX(' + rawA.toFixed(3) + ')';
+    } else {
+      hudName.textContent = '00 HERO · document';
+      hudP.textContent = '—';
+      hudLen.textContent = '—';
+      hudBar.style.transform = 'scaleX(0)';
+    }
+    hudPage.textContent = (document.documentElement.scrollHeight / vh).toFixed(1) + ' vh';
+  }
+
+  /* ─── settle reveals for the un-pinned sections (one shared observer) ── */
+  var settle = [].slice.call(document.querySelectorAll('[data-settle]'));
+  if (RM || !('IntersectionObserver' in window)) {
+    settle.forEach(function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6%' });
+    settle.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ─── the waitlist form: empty, focus, invalid, submitted ───────────── */
+  [].slice.call(document.querySelectorAll('form.wl')).forEach(function (form) {
+    var input = form.querySelector('input[type="email"]');
+    var consent = form.querySelector('input[type="checkbox"]');
+    var msg = form.querySelector('.form-msg');
+    var rest = msg.textContent;
+
+    function clear() {
+      input.removeAttribute('aria-invalid'); consent.removeAttribute('aria-invalid');
+      msg.classList.remove('err'); msg.textContent = rest;
+    }
+    input.addEventListener('input', clear);
+    consent.addEventListener('change', clear);
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var value = input.value.trim();
+      if (value.length === 0) { return fail(input, 'Enter your email address.'); }
+      if (!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(value)) { return fail(input, 'That doesn’t look like an email address.'); }
+      if (!consent.checked) { return fail(consent, 'Please tick the box so we’re allowed to contact you.'); }
+
+      var card = form.querySelector('.form-card');
+      var done = document.createElement('div');
+      done.className = 'form-done';
+      done.setAttribute('role', 'status');
+      done.innerHTML = '<h3>You’re on the list.</h3><p>We’ll email you once, the day we open in your area. Nothing before then.</p>';
+      card.replaceWith(done);
+      done.setAttribute('tabindex', '-1');
+      done.focus();
+    });
+
+    function fail(el, message) {
+      el.setAttribute('aria-invalid', 'true');
+      msg.classList.add('err');
+      msg.textContent = message;
+      el.focus();
+    }
+  });
+
+  /* Prototype: the other two audience tracks and the standalone documents are
+     separate pages in the real site; there is nothing behind them here. */
+  [].slice.call(document.querySelectorAll('[data-offsite]')).forEach(function (el) {
+    el.addEventListener('click', function (ev) { ev.preventDefault(); });
+  });
+
+  /* ─── boot ───────────────────────────────────────────────────────────── */
+  measure();
+  window.addEventListener('resize', function () { measure(); frame(0.016); });
+  window.addEventListener('load', function () { measure(); frame(0.016); });
+
+  if (RM) {
+    hud.hidden = true;
+    frame(1);
+  } else {
+    if (typeof Lenis === 'function') {
+      lenis = new Lenis({ lerp: 0.1, smoothWheel: true, wheelMultiplier: 1, touchMultiplier: 1.6 });
+    }
+    var prev = performance.now();
+    (function raf(now) {
+      var dt = Math.min(0.05, (now - prev) / 1000) || 0.016;
+      prev = now;
+      if (lenis) lenis.raf(now);
+      frame(dt);
+      requestAnimationFrame(raf);
+    })(prev);
+  }
+
+  /* Reporting hook for the pacing measurements. */
+  window.__beats = function () {
+    measure();
+    return {
+      viewport: vh,
+      pageVh: +(document.documentElement.scrollHeight / vh).toFixed(2),
+      pagePx: document.documentElement.scrollHeight,
+      beats: beats.map(function (b) {
+        return { id: b.id, name: b.name, px: b.height, vh: +(b.height / vh).toFixed(1), travelPx: b.span };
+      })
+    };
+  };
+})();
+</script>
+</body>
+</html>
