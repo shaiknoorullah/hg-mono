@@ -1,8 +1,9 @@
 # Third-party skills — provenance
 
-Four vendored skill packs. Packs 1, 2 and 4 are MIT; pack 3 is Apache-2.0. All fetched
-Sep 2026 from public sources with no repo attached to the session and no credentials —
-packs 1 and 2 over `raw.githubusercontent.com`, packs 3 and 4 by anonymous git clone.
+Five vendored skill packs, 41 skills. Packs 1, 2, 4 and 5 are MIT; pack 3 is
+Apache-2.0. All fetched Sep 2026 from public sources with no repo attached to the session and
+no credentials — packs 1 and 2 over `raw.githubusercontent.com`, packs 3, 4 and 5 by anonymous
+git clone. Packs 4 and 5 come from the same upstream repo and share one licence file.
 
 ## Pack 1 — marketing (5 skills)
 
@@ -209,3 +210,76 @@ folder from upstream if a visual reference for the quality bar is ever wanted.
   strongest transferable parts for this repo are the scene-ledger-as-data pattern, the
   separation of exact scroll progress from smoothed render progress, and
   `references/quality-and-qa.md`'s verification list.
+
+---
+
+## Pack 5 — 3D rendering (8 skills), added Sep 2026
+
+Source: **mengto/skills**, commit `5f47e389dac337a1bca5cddf376419248b3010f6` (2026-09-17),
+path `agent-skills/3d/`. Same repo and licence as pack 4: **MIT, "Copyright (c) 2026 Meng To"**,
+text in `LICENSE-mengto-skills-MIT`. Nothing was modified.
+
+`3d-falling-leaves` · `3d-four-seasons` · `3d-high-poly-models` ·
+`3d-high-resolution-textures` · `3d-retina-resolution` · `3d-sky-background` ·
+`3d-sky-rays` · `3d-virtual-tour`
+
+Each is `SKILL.md` + `REFERENCES.md` + `agents/openai.yaml`. All 24 files verified
+byte-identical to upstream. Rather than 24 rows, the manifest hash is recorded — reproduce it
+from `.claude/skills/` with:
+
+```bash
+find 3d-falling-leaves 3d-four-seasons 3d-high-poly-models 3d-high-resolution-textures \
+     3d-retina-resolution 3d-sky-background 3d-sky-rays 3d-virtual-tour -type f \
+  | sort | xargs sha256sum | sha256sum
+# 54194e43885eb381c2f47c341ad0e2d54290b90c087fb07848e648849cc0c378
+```
+
+Upstream's `agent-skills/3d/README.md` (the index) is not vendored — it is a directory listing
+whose relative links would all be wrong here.
+
+### Review before install
+
+**All eight `SKILL.md` files were read in full**, plus a `REFERENCES.md` sample, plus an
+automated scan across all 24 files for network/shell instructions, `eval`/`Function`,
+`child_process`, `process.env`, cookie and storage access, credential patterns, base64 blobs,
+and bidi/zero-width unicode. Nothing found. Each `REFERENCES.md` is a link list only — pinned
+GitHub permalinks into `MengTo/seijaku` plus three.js documentation. Every `name:` matches its
+directory.
+
+Quality note, since it bears on whether to trust them: these are unusually careful. They
+repeatedly separate a reference implementation's choices from requirements ("Seijaku's reference
+uses 72 samples, which is a reference choice rather than a required quality floor"), and they
+warn against overclaiming ("Claim ultra-realistic appearance only when the rendered result
+supports it"). That posture matches this repo's own.
+
+### Which of these actually bear on this project
+
+Three do:
+
+- **`3d-retina-resolution`** — directly applicable. The hero-flipbook experiment
+  (`apps/marketing/experiments/hero-flipbook/`) currently renders at `setPixelRatio(1)`; any
+  real build needs 2×, and this covers the renderer/composer double-ratio trap that silently
+  allocates 4× targets.
+- **`3d-high-resolution-textures`** — the POC puts the app UI on a `CanvasTexture`. This covers
+  texel density against projected pixel coverage, sRGB vs data maps, mip and anisotropy
+  behaviour, and the GPU-memory arithmetic (a 4096² RGBA8 map with mips is ~85 MiB resident,
+  regardless of how small the download was).
+- **`3d-high-poly-models`** — LOD and instancing guidance, marginally relevant.
+
+Five do not, and are installed for completeness rather than use: `3d-sky-rays`,
+`3d-sky-background`, `3d-falling-leaves`, `3d-four-seasons`, `3d-virtual-tour`. They assume an
+atmospheric outdoor world — sun shafts, seasons, foliage, architectural walkthroughs. This site
+is a phone on a flat cream ground. Do not reach for them here.
+
+### Known caveats
+
+- **Their performance framing assumes a live runtime scene.** This repo's measured position is
+  that the sequence should be pre-rendered (201 KB for 60 frames, vs 155–271 KB gz of JS for a
+  runtime three.js hero). Most of what these skills optimise — LOD thresholds, shadow-casting
+  light counts, texture streaming, startup stalls — does not apply when frames are rendered
+  offline. `3d-retina-resolution` and `3d-high-resolution-textures` still do, because they
+  govern the offline render's output quality.
+- **`3d-falling-leaves` routes to a `falling-leaves` skill** (2D canvas overlay) that is not
+  installed. Same class of dead end as pack 4's routing block.
+- `agents/openai.yaml` in each is an OpenAI Codex interface manifest, inert in Claude Code.
+- These skills reference Seijaku by pinned commit. Those links are upstream's, not verified here.
