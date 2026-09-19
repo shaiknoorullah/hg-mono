@@ -49,6 +49,7 @@ const readBeats = () => [...document.querySelectorAll('[data-beat], .beat')].map
   const pinned = [...el.querySelectorAll('*')]
     .some((c) => getComputedStyle(c).position === 'sticky');
   return {
+    index: i,
     id: el.dataset.beat || el.id || `beat${i}`,
     name: el.dataset.beatName || el.dataset.name || el.dataset.beat || `beat ${i}`,
     deviceBeat: el.dataset.deviceBeat || null,
@@ -155,12 +156,16 @@ if (shotsAt) {
     // Park at the beat's mid-point first, so the pinned composition is on screen
     // when we measure where it actually sits.
     await seek(page, b.top + (b.height - 900) * 0.5);
-    bgs[b.id] = await page.evaluate((id) => {
+    bgs[b.id] = await page.evaluate((idx) => {
       // Find the beat's largest opaque surface and return BOTH its colour and its
       // on-screen rect. Measuring the whole viewport is what makes this useless:
       // a dark band on a cream page reads as ~50% "ink" from the page around it,
       // which stays true whether the band is full or completely empty.
-      const el = document.querySelector(`[data-beat="${id}"]`);
+      // Select by INDEX, not by a data-beat selector: the directions mark beats
+      // differently and a selector that matches one of them returns null on the
+      // others, which crashes the probe rather than degrading.
+      const el = [...document.querySelectorAll('[data-beat], .beat')][idx];
+      if (!el) return null;
       let best = null;
       for (const e of [el, ...el.querySelectorAll('*')]) {
         const r = e.getBoundingClientRect();
@@ -185,7 +190,7 @@ if (shotsAt) {
         best.rect = [x0 + i, y0 + i, Math.max(x0 + i + 1, x1 - i), Math.max(y0 + i + 1, y1 - i)];
       }
       return best ? { bg: best.bg, rect: best.rect } : null;
-    }, b.id);
+    }, b.index);
     // Approach the entry frame from ABOVE, the way a reader arrives, so what is
     // captured is what they actually see when the beat pins.
     for (const lp of [0.02, 0.5]) {
