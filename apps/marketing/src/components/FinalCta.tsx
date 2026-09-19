@@ -21,7 +21,7 @@ export function FinalCta({ track }: { track: AudienceTrack }) {
           </p>
         </div>
         <div className="mt-6 md:mt-0">
-          <WaitlistForm track={track} />
+          <WaitlistForm track={track} context="final" />
         </div>
       </div>
     </section>

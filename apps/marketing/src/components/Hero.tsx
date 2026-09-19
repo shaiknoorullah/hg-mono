@@ -51,7 +51,7 @@ export function Hero({ track, launch }: { track: AudienceTrack; launch: LaunchSt
         </p>
 
         <div id="waitlist" className="mt-5 scroll-mt-6 md:col-start-2 md:row-span-2 md:row-start-1 md:mt-0 md:self-end">
-          <WaitlistForm track={track} />
+          <WaitlistForm track={track} context="hero" />
         </div>
 
         <CertifierRow className="mt-8 md:col-start-1 md:row-start-2 md:mt-0 md:self-end" />

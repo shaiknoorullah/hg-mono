@@ -22,9 +22,16 @@ export type Signup = {
   /** E.164 for a phone, lower-cased for an email. */
   contact: string;
   kind: 'tel' | 'email';
-  /** The exact consent sentence shown, kept verbatim: CASL wants the wording. */
+  /** The exact consent sentence shown, kept verbatim: CASL wants the wording.
+   *  "They consented" is not a defence. "They consented to this sentence, on
+   *  this date, from this part of the page" is — which is why all three ship
+   *  together and why a signup we cannot describe is refused rather than kept. */
   consentText: string;
   consentedAt: string;
+  /** Which form on which page: `hero`, `final`. Bounded by the caller. */
+  context: string;
+  /** Session-scoped campaign parameters. Empty for a direct visit. */
+  utm: Record<string, string>;
 };
 
 export async function saveSignup(signup: Signup): Promise<void> {

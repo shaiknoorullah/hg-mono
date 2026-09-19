@@ -2,7 +2,7 @@
  * The three audience tracks.
  *
  * Every string here comes from docs/marketing/copy-deck.md (Gate B) — this file
- * is the deck transcribed, not new copy. Two rules travel with it:
+ * is the deck transcribed, not new copy. Three rules travel with it:
  *
  *   1. Nothing goes on the page that is not in the deck's claims register. In
  *      particular: no restaurant, rider, order or waitlist COUNTS, and no
@@ -11,6 +11,13 @@
  *      delivered."). Option B ("Order without asking.") is the evidence-led
  *      alternative and is the first A/B test to run once there is traffic — it
  *      is recorded here so the test is a one-line change, not a rewrite.
+ *   3. `claims.ts` outranks this file. Where the deck's voice and the claims
+ *      register disagreed, the register won and the copy here changed — twice:
+ *      every track now collects an EMAIL and promises an email, because O-03
+ *      (SMS sender registration) is open and there is no approved sender
+ *      (claims.ts, WAITLIST_CHANNEL); and the restaurant track's "no contract,
+ *      no exclusivity, no setup fee" is gone, because none of the three is
+ *      specified anywhere in the repo (claims.ts, REJECTED).
  */
 
 export const AUDIENCES = ['customer', 'restaurant', 'rider'] as const;
@@ -55,14 +62,15 @@ export const TRACKS: Record<Audience, AudienceTrack> = {
     headlineAlt: ['Order', 'without', 'asking.'],
     lede: 'Seven checks on every restaurant, before it reaches you.',
     form: {
-      label: 'Mobile number',
-      placeholder: '+1 416 555 0134',
-      type: 'tel',
-      inputMode: 'tel',
-      autoComplete: 'tel',
+      label: 'Email address',
+      placeholder: 'you@example.com',
+      type: 'email',
+      inputMode: 'email',
+      autoComplete: 'email',
       submit: 'Notify me',
-      reassurance: 'No spam. One text, when we launch in your city.',
-      consent: 'I agree to receive one launch notification by text. Unsubscribe any time.',
+      reassurance: 'No spam. One email, the day we open in your area.',
+      consent:
+        'I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.',
     },
     steps: {
       heading: 'How ordering works',
@@ -103,17 +111,17 @@ export const TRACKS: Record<Audience, AudienceTrack> = {
         a: 'That’s check six. We record what the certificate’s scope covers, and if it doesn’t cover everything sold, the restaurant doesn’t go live.',
       },
       {
-        q: 'What do you do with my number?',
-        a: 'One text when we launch in your city. That’s it — it isn’t sold, and it isn’t used for anything else. You can unsubscribe from that message.',
+        q: 'What do you do with my email address?',
+        a: 'Write to you when we open in your area, and after that only when there are newly verified kitchens near you. We don’t sell it and we don’t pass it to restaurants. Every email has one-click unsubscribe.',
       },
       {
         q: 'When are you launching?',
-        a: 'Ontario first. We’ll text you the day it’s live in your city.',
+        a: 'Ontario first. We’re pre-launch — this page is a waitlist, not a download, and there’s nothing to install yet. Leave your email and we’ll write once, the day we open in your area.',
       },
     ],
     finalCta: {
       heading: 'Be there on day one.',
-      body: 'One text when we launch in your city. Nothing before then.',
+      body: 'One email the day we open in your area. Nothing before then.',
     },
   },
 
@@ -131,7 +139,7 @@ export const TRACKS: Record<Audience, AudienceTrack> = {
       inputMode: 'email',
       autoComplete: 'email',
       submit: 'Get early access',
-      reassurance: 'No contract, no exclusivity, no setup fee.',
+      reassurance: 'A person reads your certificate. Nothing is auto-approved, on a timer or otherwise.',
       consent: 'I agree to receive email about listing my restaurant. Unsubscribe any time.',
     },
     steps: {
@@ -169,8 +177,12 @@ export const TRACKS: Record<Audience, AudienceTrack> = {
         a: 'Every Monday, automatically. There is no minimum payout and no threshold to reach first.',
       },
       {
-        q: 'Is there a contract?',
-        a: 'No contract, no exclusivity and no setup fee. You can list with us and with anyone else.',
+        q: 'What if my certificate is from an issuer you don’t list?',
+        a: 'Send it anyway. The registry is seeded, not closed — if the issuing body is accredited and the certificate covers your kitchen, we will assess it and tell you either way, with a reason. We would rather add an issuer we can stand behind than turn away a kitchen that has done the work.',
+      },
+      {
+        q: 'Can I pay to rank higher?',
+        a: 'No, and there is no plan to build it. A restaurant cannot pay for or influence its position in the feed. That rule is the reason a diner has any reason to believe the list, so it is not for sale.',
       },
     ],
     finalCta: {
@@ -187,14 +199,14 @@ export const TRACKS: Record<Audience, AudienceTrack> = {
     headline: ['The delivery', 'fee is yours.', 'All of it.'],
     lede: '$2.99 plus $1.00 per kilometre, paid to you. Every Monday, automatically, with no minimum.',
     form: {
-      label: 'Mobile number',
-      placeholder: '+1 416 555 0134',
-      type: 'tel',
-      inputMode: 'tel',
-      autoComplete: 'tel',
+      label: 'Email address',
+      placeholder: 'you@example.com',
+      type: 'email',
+      inputMode: 'email',
+      autoComplete: 'email',
       submit: 'Start delivering',
       reassurance: 'No minimum payout. No waiting for a threshold.',
-      consent: 'I agree to receive one launch notification by text. Unsubscribe any time.',
+      consent: 'I agree to receive one launch email from Halal Goes. Unsubscribe any time.',
     },
     steps: {
       heading: 'How the money works',
@@ -233,7 +245,7 @@ export const TRACKS: Record<Audience, AudienceTrack> = {
     ],
     finalCta: {
       heading: 'Deliver from day one.',
-      body: 'We’ll text you when we start onboarding riders in your city.',
+      body: 'We’ll email you when we start onboarding riders in your area.',
     },
   },
 };

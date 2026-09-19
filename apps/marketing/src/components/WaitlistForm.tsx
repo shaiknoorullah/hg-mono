@@ -1,7 +1,8 @@
 'use client';
 
-import { useActionState, useEffect, useId, useRef } from 'react';
+import { useActionState, useEffect, useId, useRef, useState } from 'react';
 import { joinWaitlist, type WaitlistResult } from '@/app/actions/waitlist';
+import { captureAttribution, readAttribution } from '@/lib/attribution';
 import { SwapLabel } from '@/components/SwapLabel';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -25,8 +26,12 @@ const INITIAL: WaitlistResult = { status: 'idle' };
  *
  * Still a real <form> with a server action, so it works before hydration.
  */
-export function WaitlistForm({ track }: { track: AudienceTrack }) {
+export function WaitlistForm({ track, context }: { track: AudienceTrack; context: string }) {
   const [result, submit, pending] = useActionState(joinWaitlist, INITIAL);
+  // Read once, on the client, after mount: sessionStorage does not exist during
+  // the server render, so a hidden field seeded from it would be a hydration
+  // mismatch. Empty until then, which is the honest value.
+  const [utm, setUtm] = useState('');
   const id = useId();
   const fieldId = `${id}-contact`;
   const consentId = `${id}-consent`;
@@ -39,14 +44,20 @@ export function WaitlistForm({ track }: { track: AudienceTrack }) {
     if (result.status === 'invalid' && result.field === 'contact') contactRef.current?.focus();
   }, [result]);
 
+  useEffect(() => {
+    captureAttribution();
+    const found = readAttribution();
+    setUtm(Object.keys(found).length > 0 ? JSON.stringify(found) : '');
+  }, []);
+
   if (result.status === 'ok') {
     return (
       <Card className="gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none md:p-7">
         <p className="m-0 font-display text-heading-xl text-fg-primary">You’re on the list.</p>
         <p className="mt-2 mb-0 text-body-md text-mk-ink">
           {track.id === 'restaurant'
-            ? 'We’ll email you when we open listings in your city. Nothing before then.'
-            : 'We’ll text you once, the day we launch in your city. Nothing before then.'}
+            ? 'We’ll email you what we check, what it costs and how to get listed. If nothing lands in ten minutes, look in spam.'
+            : 'We’ll email you once, the day we open in your area. Nothing before then.'}
         </p>
       </Card>
     );
@@ -67,6 +78,11 @@ export function WaitlistForm({ track }: { track: AudienceTrack }) {
     <form action={submit} noValidate>
       <Card className="gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none md:p-7">
         <input type="hidden" name="audience" value={track.id} />
+        {/* Which form on which page, and the campaign that brought them — so a
+            signup can be attributed without anything that identifies a person.
+            Both are re-bounded on the server; neither is trusted. */}
+        <input type="hidden" name="context" value={context} />
+        <input type="hidden" name="utm" value={utm} />
 
         <Label htmlFor={fieldId} className="text-label-lg font-semibold text-fg-primary">
           {track.form.label}
