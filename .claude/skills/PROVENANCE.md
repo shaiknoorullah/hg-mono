@@ -1,7 +1,7 @@
 # Third-party skills — provenance
 
-Six vendored skill packs, 42 skills. Packs 1, 2, 4 and 5 are MIT; packs 3 and 6 are
-Apache-2.0 under different copyright holders, so each carries its own licence text. All fetched
+Seven vendored skill packs, 44 skills. Packs 1, 2, 4 and 5 are MIT; packs 3, 6 and 7 are
+Apache-2.0 under three different copyright holders, so each carries its own licence text. All fetched
 Sep 2026 from public sources with no repo attached to the session and no credentials — packs 1
 and 2 over `raw.githubusercontent.com`, packs 3 to 6 by anonymous git clone. Packs 4 and 5 come
 from the same upstream repo and share one licence file.
@@ -336,3 +336,71 @@ reference material for a dependency we do not have.
   catalog/registry examples here have no counterpart to read.
 - Nothing in it is specific to this project's constraints — no halal invariants, no contrast
   floor, no reduced-motion guidance. Treat it as vendor documentation, not craft guidance.
+
+---
+
+## Pack 7 — Blender (2 skills), added Sep 2026
+
+Source: **TerminalSkills/skills**, commit `511ec2060fe9e1b95a42ae042964f56d777b6c9b`
+(2026-09-13), paths `skills/blender-render-automation/` and `skills/blender-scripting/`.
+Anonymous public clone, no credentials.
+
+Licence: **Apache-2.0, "Copyright 2025 Terminal Skills"** — text in
+`LICENSE-terminalskills-Apache-2.0`. A third distinct Apache copy (packs 3 and 6 have their
+own holders), so it ships as its own file. No NOTICE upstream. Both files byte-identical:
+
+| File | SHA-256 |
+|---|---|
+| `blender-render-automation/SKILL.md` | `3a63d3ca037cb11bd9d70e7dad6cfd03afeaaec078980d2221e7c392e444fbbe` |
+| `blender-scripting/SKILL.md` | `2a944c129418472c0a21adafb47ad1e1ed6e5884854a7345ea7f170dfdd124d6` |
+
+Upstream's `_scores.json` is not vendored — it is the publisher's own ranking metadata.
+
+### Review before install
+
+Both read in full and scanned: no prompt injection, no network or shell instructions beyond
+the documented `blender --background --python` invocation, no `eval`/`exec`/`subprocess`, no
+credential or env access, no hidden unicode. They are `bpy` API guidance with worked examples.
+
+### Why these two, out of the dozen found
+
+A web sweep found roughly a dozen repositories publishing Blender skills. Most are unusable
+here for one of three reasons, and the reasons are worth recording so nobody re-evaluates them:
+
+- **They require a Blender GUI.** The two largest collections (arjun988/blender-skills, 94
+  skills; kevinbadi/blender-skills, 16) drive everything through **BlenderMCP**, whose addon
+  opens a TCP socket from Blender's N-panel. Its own troubleshooting says commands *"never
+  execute when Blender is running in headless mode"*. Useless without a display server.
+- **The licence does not permit this use.** TMHSDigital/Blender-Developer-Tools'
+  `headless-batch-scripting` is the best-written of the lot, and it is **CC-BY-NC-ND-4.0** —
+  non-commercial, no derivatives. Not usable on a commercial product.
+- **They are about export, not rendering.** freshtechbro's `blender-web-pipeline` covers glTF
+  export for three.js and does no rendering.
+
+These two are Apache-2.0 and headless-native (`blender --background --python`, args after `--`).
+
+### Known caveats
+
+- **Blender is NOT preinstalled.** It was installed for this repo from the official tarball —
+  4.5.14 LTS at `/opt/blender`, which runs `--background` with no GPU and no display server.
+  See `apps/marketing/experiments/hero-blender/README.md` for the command. That install does
+  not survive a fresh container.
+- **`blender-render-automation` leads with GPU configuration** (`cycles.device = 'GPU'`,
+  CUDA/OptiX/HIP). There is no GPU here. Use `cycles.device = 'CPU'`; everything else applies.
+- It also suggests `EEVEE` for previews. **EEVEE needs a GL context** and will not run
+  headless without xvfb; only Cycles renders with no display server. Use Cycles.
+- `blender-scripting`'s compatibility note suggests `apt install blender`, which would fetch
+  Ubuntu's 4.0.2. The tarball is newer and self-contained; prefer it.
+- Its advice to render animations as PNG sequences rather than straight to video is right, and
+  doubly so here: there is no ffmpeg in this environment, so video encoding is not available
+  at all. Frames are encoded to WebP with Pillow instead.
+
+### A correction, recorded because the numbers were measured
+
+The research that surfaced these skills recommended **against** installing Blender, estimating
+30–120 s/frame and concluding the three.js pipeline was sufficient. Measured on this container
+(4 cores, Cycles CPU, denoised, 720×960, 32 samples): **~6.5 s/frame**, about 5–18× faster than
+the estimate. Its samples and resolution were higher, so the figures are not contradictory —
+but the conclusion drawn from them was wrong for this case, and Blender resolved a model
+orientation problem that three.js could not (see the hero-blender README). Prefer the
+measurement.
