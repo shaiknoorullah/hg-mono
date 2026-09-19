@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#FFFAEA">
+<title>Ink Field</title>
+<meta name="description" content="Halal Goes launch hero: a live paper-and-ink halftone field, rendered in WebGL2 behind the headline. One file, no build.">
+<!--
+  ink-field.html — Halal Goes, pre-launch hero.
+
+  The argument of this page: a real-time field can belong on a brand of
+  restraint only if it reads as PAPER AND INK. So there is no gradient
+  anywhere. The field is a sheet of paper under raking light — a slowly
+  breathing height field — and its shadow is rendered as a 45° halftone
+  screen of ink dots on cream. A screen is not a blend: every pixel is
+  either paper or ink.
+
+  Two passes, raw WebGL2:
+    A. field   — domain-warped fbm height field, finite-difference lit,
+                 written to a small RGBA8 texture (one texel per 3 CSS px)
+    B. screen  — full-resolution: paper fibre + halftone dots whose radius
+                 comes from the field sampled at each dot's centre
+
+  Palette is exact and closed: cream #FFFAEA, sunken #F6EFDD, white,
+  ink #232323 / #4A4E48 / #1B3B31, hairline #E6E0D4, orange #F1521E (one
+  spot mark), seal green #0F7A43 + brass #C9A24B (the halal seal only).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<noscript><style>.instrument { display: none; }</style></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFFAEA;
+    --sunken: #F6EFDD;
+    --white: #FFFFFF;
+    --ink: #232323;
+    --body: #4A4E48;
+    --mk: #1B3B31;
+    --hair: #E6E0D4;
+    --orange: #F1521E;
+    --on-orange: #0F241C;
+    --seal: #0F7A43;
+    --brass: #C9A24B;
+    --sage: #E9F3E4;
+    --pad: clamp(20px, 3.4vw, 48px);
+    --display: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+    --ui: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--cream); color: var(--ink); }
+  body {
+    font-family: var(--ui);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: var(--cream); }
+
+  /* ---- overlay frame ------------------------------------------------- */
+  .frame {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none;
+    display: grid; grid-template-rows: auto 1fr auto;
+    padding: var(--pad);
+    padding-top: max(var(--pad), env(safe-area-inset-top));
+    padding-bottom: max(var(--pad), env(safe-area-inset-bottom));
+  }
+  .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .wordmark { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; color: var(--ink); }
+  .mono {
+    font-family: var(--mono); font-size: 12px; font-weight: 500; line-height: 1.3;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--body);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hero {
+    align-self: center; justify-self: start;
+    width: -webkit-fit-content; width: fit-content; max-width: min(680px, 100%);
+    padding: 12px 0;
+  }
+  .eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 22px; color: var(--mk); }
+  .spot { display: inline-block; width: 8px; height: 8px; background: var(--orange); flex: none; }
+  h1 {
+    font-family: var(--display); font-optical-sizing: auto;
+    font-weight: 650; font-size: clamp(64px, 7.6vw, 118px);
+    line-height: 0.94; letter-spacing: -0.03em; margin: 0; color: var(--ink);
+  }
+  .lede {
+    font-size: clamp(17px, 1.35vw, 20px); line-height: 1.5; max-width: 32ch;
+    margin: 26px 0 0; color: var(--body);
+  }
+
+  .bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+
+  /* The specimen record card: white is reserved to record-shaped things. */
+  .record {
+    background: var(--white); border: 1px solid var(--hair); border-radius: 16px;
+    padding: 16px 18px 14px; max-width: 460px; display: grid; gap: 12px;
+  }
+  .seal {
+    display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+    height: 32px; padding: 0 12px; border-radius: 12px;
+    background: var(--seal); color: var(--white);
+    box-shadow: 0 0 0 1.5px var(--brass);
+    font-family: var(--ui); font-weight: 600; font-size: 11px; line-height: 1.2; letter-spacing: 0.04em;
+  }
+  .seal svg { display: block; flex: none; }
+  .line { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+  .rule { display: inline-block; width: 4.5em; height: 0.72em; border-bottom: 1px solid var(--body); vertical-align: baseline; }
+  .caption { font-size: 10.5px; }
+
+  .instrument { pointer-events: auto; display: flex; gap: 8px; align-items: center; }
+  .badge, .btn {
+    font-family: var(--mono); font-weight: 500; font-size: 11px; line-height: 1;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--body);
+    background: var(--cream); border: 1px solid var(--hair); border-radius: 6px;
+    padding: 8px 10px; white-space: nowrap; margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .btn { cursor: pointer; color: var(--ink); appearance: none; -webkit-appearance: none; }
+  .btn:hover { border-color: var(--body); }
+  .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .btn[hidden] { display: none; }
+  #nogl { margin: 0; max-width: 44ch; text-align: right; }
+  #nogl[hidden] { display: none; }
+
+  @media (max-width: 639px) {
+    h1 { font-weight: 800; font-size: clamp(46px, 13.6vw, 62px); }
+    .eyebrow { margin-bottom: 16px; }
+    .lede { margin-top: 18px; font-size: 17px; }
+    .bottom { flex-direction: column-reverse; align-items: stretch; }
+    .record { max-width: none; padding: 14px 16px 12px; }
+    .instrument { align-self: flex-end; }
+    #nogl { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<canvas id="gl" aria-hidden="true"></canvas>
+
+<div class="frame">
+  <header class="top">
+    <span class="wordmark" id="wordmark">Halal Goes</span>
+  </header>
+
+  <main class="hero" id="hero">
+    <p class="eyebrow mono"><i class="spot" aria-hidden="true"></i>ONTARIO · LAUNCHING SOON</p>
+    <h1>Verified<br>halal,<br>delivered.</h1>
+    <p class="lede">Seven checks on every restaurant, before it reaches you.</p>
+  </main>
+
+  <footer class="bottom">
+    <aside class="record" aria-label="Specimen record">
+      <span class="seal" role="img" aria-label="Halal certified">
+        <!-- The bespoke shield from HalalShield.tsx: solid, tick knocked out in the plate colour. -->
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="currentColor" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+          <path d="M8.4 12.1l2.5 2.5 4.7-4.9" fill="none" stroke="#0F7A43" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Halal certified</span>
+      </span>
+      <p class="line mono">
+        <span>Certificate no. <i class="rule"></i></span>
+        <span>Issuer <i class="rule"></i></span>
+        <span>Expires <i class="rule" style="width:3.6em"></i></span>
+      </p>
+      <p class="caption mono">Specimen — the fields we fill in before a kitchen is listed.</p>
+    </aside>
+
+    <div class="instrument">
+      <p id="nogl" class="mono" hidden>WebGL2 isn’t available here, so the paper field is off. Everything else still reads.</p>
+      <button id="pause" class="btn" type="button" aria-pressed="false">Pause</button>
+      <output id="badge" class="badge" aria-live="off">GPU · WebGL2</output>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // Every tunable of the field lives here so a reviewer can read the whole
+  // instrument in one place. They are baked into the shaders as constants.
+  const FIELD = {
+    feature: 520,          // CSS px — wavelength of the largest undulation of the sheet
+    anisotropy: 0.72,      // <1 stretches the field along x, like brushed fibre
+    warp: 1.1,             // domain-warp strength (0 = plain fbm, >2 = marbling; keep low)
+    drift: [0.008, 0.003, 0.0025, 0.007, 0.0015],   // per-second drift of warp/height — very slow
+    light: [-0.78, -0.62], // raking light from the upper left (CSS space, y down)
+    gain: 540,             // slope → shade
+    washLo: 0.38, washHi: 0.82,   // ink pools in the low ground of the sheet
+    shadeW: 0.85, washW: 0.55,
+    reserveFloor: 0.18,    // ink allowed directly under the type (fraction)
+    reserveFalloff: 220,   // CSS px over which the reserve releases
+    markFalloff: 96,       // the same, for the small reserve under the wordmark
+    curveLo: 0.02, curveHi: 1.05,
+    coverMax: 0.44,        // absolute ceiling on dot coverage — dots never merge
+    pressDepth: 0.20, pressSigma: 140,  // pointer press: a dimple in the sheet
+    texelCss: 3,           // CSS px per field texel
+    cellDesktop: 6, cellPhone: 5,       // halftone cell, CSS px
+    stillTime: 26.0        // the composed still frame (prefers-reduced-motion)
+  };
+  const f = (x) => Number(x).toFixed(4);
+  const lightLen = Math.hypot(FIELD.light[0], FIELD.light[1]);
+
+  const canvas = document.getElementById('gl');
+  const badge = document.getElementById('badge');
+  const btn = document.getElementById('pause');
+  const hero = document.getElementById('hero');
+  const wordmark = document.getElementById('wordmark');
+  const nogl = document.getElementById('nogl');
+
+  function offline(msg) {
+    badge.textContent = msg;
+    btn.hidden = true;
+    nogl.hidden = false;
+  }
+
+  const gl = canvas.getContext('webgl2', {
+    alpha: false, antialias: false, depth: false, stencil: false,
+    premultipliedAlpha: false, powerPreference: 'high-performance'
+  });
+  if (!gl) { offline('NO WEBGL2'); return; }
+
+  /* ---- shaders ------------------------------------------------------- */
+  const VERT = `#version 300 es
+  layout(location = 0) in vec2 p;
+  void main() { gl_Position = vec4(p, 0.0, 1.0); }`;
+
+  const NOISE = `
+  float hash12(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+  float vnoise(vec2 p) {
+    vec2 i = floor(p), fr = fract(p);
+    vec2 u = fr * fr * (3.0 - 2.0 * fr);
+    return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x),
+               mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
+  }`;
+
+  // Pass A — the sheet. Low resolution; all the expensive noise lives here.
+  const FRAG_FIELD = `#version 300 es
+  precision highp float;
+  out vec4 o;
+  uniform vec2 uLowRes;
+  uniform vec2 uCss;
+  uniform float uTime;
+  uniform vec2 uPointer;
+  uniform float uPress;
+  uniform vec4 uReserve;
+  uniform vec4 uReserve2;
+
+  const float FEATURE = ${f(FIELD.feature)};
+  const float ANISO = ${f(FIELD.anisotropy)};
+  const float WARP = ${f(FIELD.warp)};
+  const float D0 = ${f(FIELD.drift[0])}, D1 = ${f(FIELD.drift[1])}, D2 = ${f(FIELD.drift[2])},
+              D3 = ${f(FIELD.drift[3])}, D4 = ${f(FIELD.drift[4])};
+  const vec2 LIGHT = vec2(${f(FIELD.light[0] / lightLen)}, ${f(FIELD.light[1] / lightLen)});
+  const float GAIN = ${f(FIELD.gain)};
+  const float WASH_LO = ${f(FIELD.washLo)}, WASH_HI = ${f(FIELD.washHi)};
+  const float SHADE_W = ${f(FIELD.shadeW)}, WASH_W = ${f(FIELD.washW)};
+  const float RESERVE_FLOOR = ${f(FIELD.reserveFloor)}, RESERVE_FALLOFF = ${f(FIELD.reserveFalloff)};
+  const float MARK_FALLOFF = ${f(FIELD.markFalloff)};
+  const float CURVE_LO = ${f(FIELD.curveLo)}, CURVE_HI = ${f(FIELD.curveHi)};
+  const float COVER_MAX = ${f(FIELD.coverMax)};
+  const float PRESS_DEPTH = ${f(FIELD.pressDepth)}, PRESS_SIGMA = ${f(FIELD.pressSigma)};
+  ${NOISE}
+  float fbm(vec2 p) {
+    float v = 0.0, a = 0.5;
+    mat2 m = mat2(0.8, 0.6, -0.6, 0.8);
+    for (int i = 0; i < 5; i++) { v += a * vnoise(p); p = m * p * 2.02 + 1.7; a *= 0.5; }
+    return v;
+  }
+  float height(vec2 css) {
+    vec2 p = css / FEATURE;
+    p.x *= ANISO;
+    float t = uTime;
+    vec2 q = vec2(fbm(p + t * vec2(D0, D1)),
+                  fbm(p + vec2(5.2, 1.3) - t * vec2(D2, D3)));
+    float h = fbm(p + WARP * (q - 0.5) + t * D4);
+    vec2 d = css - uPointer;
+    h -= uPress * PRESS_DEPTH * exp(-dot(d, d) / (2.0 * PRESS_SIGMA * PRESS_SIGMA));
+    return h;
+  }
+  void main() {
+    vec2 uv = gl_FragCoord.xy / uLowRes;
+    vec2 css = vec2(uv.x, 1.0 - uv.y) * uCss;          // CSS px, y down - matches the DOM
+    const float e = 6.0;
+    float h0 = height(css);
+    float hx = height(css + vec2(e, 0.0));
+    float hy = height(css + vec2(0.0, e));
+    vec2 g = vec2(hx - h0, hy - h0) / e;
+    float facing = dot(g, LIGHT);                       // >0 faces the light
+    float shade = clamp(-facing * GAIN, 0.0, 1.0);      // slopes turned away take ink
+    float wash = smoothstep(WASH_LO, WASH_HI, 1.0 - h0);// ink pools in the low ground
+    float v = shade * SHADE_W + wash * WASH_W;
+    // Reserve: the printmaker's masked area under the type. It scales the
+    // screen, it does not blend anything.
+    vec2 rc = uReserve.xy + 0.5 * uReserve.zw;
+    vec2 dd = max(abs(css - rc) - 0.5 * uReserve.zw, 0.0);
+    float reserve = smoothstep(0.0, RESERVE_FALLOFF, length(dd));
+    vec2 mc = uReserve2.xy + 0.5 * uReserve2.zw;
+    vec2 md = max(abs(css - mc) - 0.5 * uReserve2.zw, 0.0);
+    reserve *= smoothstep(0.0, MARK_FALLOFF, length(md));
+    v *= mix(RESERVE_FLOOR, 1.0, reserve);
+    float c = smoothstep(CURVE_LO, CURVE_HI, v) * COVER_MAX;
+    o = vec4(c, h0, reserve, 1.0);
+  }`;
+
+  // Pass B — the screen. Full resolution; paper fibre and 45° halftone dots.
+  const FRAG_SCREEN = `#version 300 es
+  precision highp float;
+  out vec4 o;
+  uniform sampler2D uField;
+  uniform vec2 uRes;
+  uniform float uDpr;
+  uniform vec2 uCss;
+  uniform float uCell;
+  const vec3 CREAM  = vec3(1.0, 0.98039, 0.91765);   // #FFFAEA
+  const vec3 SUNKEN = vec3(0.96471, 0.93725, 0.86667);// #F6EFDD
+  const vec3 INK    = vec3(0.13725);                  // #232323
+  const float PI = 3.14159265;
+  const float C45 = 0.70710678;
+  ${NOISE}
+  void main() {
+    vec2 css = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;
+    // Paper: two families of fibre (long in x, long in y) and a 1 CSS px grain,
+    // all static, all between cream and sunken - the sheet does not change.
+    float f1 = abs(vnoise(css * vec2(0.055, 0.5) + 3.1) * 2.0 - 1.0);
+    float f2 = abs(vnoise(css * vec2(0.5, 0.055) + 9.7) * 2.0 - 1.0);
+    float grain = hash12(floor(css));
+    float tex = clamp(0.55 * f1 + 0.35 * f2 + 0.25 * grain, 0.0, 1.0) * 0.70;
+    vec3 paper = mix(CREAM, SUNKEN, tex);
+    // Screen: rotate 45 deg, find this fragment's cell, size the dot from the
+    // field at the cell's centre. Coverage is capped, so dots never merge.
+    vec2 r = vec2(C45 * css.x - C45 * css.y, C45 * css.x + C45 * css.y);
+    vec2 ci = floor(r / uCell);
+    vec2 cc = (ci + 0.5) * uCell;
+    vec2 centre = vec2(C45 * cc.x + C45 * cc.y, -C45 * cc.x + C45 * cc.y);
+    vec2 uv = vec2(centre.x / uCss.x, 1.0 - centre.y / uCss.y);
+    float c = texture(uField, uv).r;
+    float rad = uCell * sqrt(c / PI);
+    float d = length(r - cc);
+    float px = 1.0 / uDpr;
+    float ink = 1.0 - smoothstep(rad - 0.7 * px, rad + 0.7 * px, d);
+    ink *= smoothstep(0.35 * px, 1.0 * px, rad);        // sub-pixel dots fade, never speckle
+    o = vec4(mix(paper, INK, ink), 1.0);
+  }`;
+
+  /* ---- GL resources ---------------------------------------------------- */
+  let progA, progB, uA, uB, vbo, tex, fbo;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      const log = gl.getShaderInfoLog(s) || '(no log)';
+      console.error('[ink-field] shader compile failed:\n' + log + '\n' +
+        src.split('\n').map((l, i) => String(i + 1).padStart(3) + '  ' + l).join('\n'));
+      throw new Error('shader compile: ' + log);
+    }
+    return s;
+  }
+  function link(vs, fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      const log = gl.getProgramInfoLog(p) || '(no log)';
+      console.error('[ink-field] program link failed:\n' + log);
+      throw new Error('program link: ' + log);
+    }
+    return p;
+  }
+
+  function build() {
+    progA = link(VERT, FRAG_FIELD);
+    progB = link(VERT, FRAG_SCREEN);
+    uA = {
+      lowRes: gl.getUniformLocation(progA, 'uLowRes'),
+      css: gl.getUniformLocation(progA, 'uCss'),
+      time: gl.getUniformLocation(progA, 'uTime'),
+      pointer: gl.getUniformLocation(progA, 'uPointer'),
+      press: gl.getUniformLocation(progA, 'uPress'),
+      reserve: gl.getUniformLocation(progA, 'uReserve'),
+      reserve2: gl.getUniformLocation(progA, 'uReserve2')
+    };
+    uB = {
+      field: gl.getUniformLocation(progB, 'uField'),
+      res: gl.getUniformLocation(progB, 'uRes'),
+      dpr: gl.getUniformLocation(progB, 'uDpr'),
+      css: gl.getUniformLocation(progB, 'uCss'),
+      cell: gl.getUniformLocation(progB, 'uCell')
+    };
+    vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    fbo = gl.createFramebuffer();
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+  }
+
+  /* ---- size ------------------------------------------------------------ */
+  let dpr = 0, cw = 0, ch = 0, W = 0, H = 0, lowW = 0, lowH = 0, cell = FIELD.cellDesktop;
+  const reserve = new Float32Array(4), reserve2 = new Float32Array(4);
+
+  function measure() {
+    const r = hero.getBoundingClientRect();
+    reserve[0] = r.left; reserve[1] = r.top; reserve[2] = r.width; reserve[3] = r.height;
+    const m = wordmark.getBoundingClientRect();
+    reserve2[0] = m.left; reserve2[1] = m.top; reserve2[2] = m.width; reserve2[3] = m.height;
+  }
+
+  // Returns true when the drawing buffer or the field texture was reallocated.
+  function syncSize() {
+    const w = Math.max(1, canvas.clientWidth), h = Math.max(1, canvas.clientHeight);
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    if (w === cw && h === ch && d === dpr && canvas.width === W && canvas.height === H) return false;
+    cw = w; ch = h; dpr = d;
+    W = Math.max(1, Math.floor(w * d)); H = Math.max(1, Math.floor(h * d));
+    canvas.width = W; canvas.height = H;
+    lowW = Math.max(1, Math.ceil(w / FIELD.texelCss));
+    lowH = Math.max(1, Math.ceil(h / FIELD.texelCss));
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, lowW, lowH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+      console.error('[ink-field] field framebuffer incomplete');
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    cell = w < 640 ? FIELD.cellPhone : FIELD.cellDesktop;
+    measure();
+    return true;
+  }
+
+  /* ---- render ---------------------------------------------------------- */
+  const ptr = { x: -1e5, y: -1e5 }, tgt = { x: -1e5, y: -1e5 };
+  let press = 0, pressTarget = 0, hasPtr = false;
+
+  function render(t) {
+    // A: the sheet, at field resolution.
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.viewport(0, 0, lowW, lowH);
+    gl.useProgram(progA);
+    gl.uniform2f(uA.lowRes, lowW, lowH);
+    gl.uniform2f(uA.css, cw, ch);
+    gl.uniform1f(uA.time, t);
+    gl.uniform2f(uA.pointer, ptr.x, ptr.y);
+    gl.uniform1f(uA.press, press);
+    gl.uniform4fv(uA.reserve, reserve);
+    gl.uniform4fv(uA.reserve2, reserve2);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // B: the screen, at drawing-buffer resolution.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, W, H);
+    gl.useProgram(progB);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.uniform1i(uB.field, 0);
+    gl.uniform2f(uB.res, W, H);
+    gl.uniform1f(uB.dpr, dpr);
+    gl.uniform2f(uB.css, cw, ch);
+    gl.uniform1f(uB.cell, cell);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  /* ---- clock, motion state, instrument --------------------------------- */
+  const mqStill = matchMedia('(prefers-reduced-motion: reduce)');
+  let still = mqStill.matches;           // composed still frame, no loop
+  let paused = still;                    // the WCAG 2.2.2 pause control
+  let lost = false;
+  let raf = 0, lastNow = 0;
+  let tField = still ? FIELD.stillTime : 0;
+  let phase = 0, phaseTarget = 0;        // wheel advances the sheet's state
+  let frames = 0, acc = 0, fps = 0, sinceMeasure = 0;
+
+  const running = () => !paused && !lost && !document.hidden;
+
+  function updateBadge() {
+    const size = W + '×' + H + ' · ' + Number(dpr.toFixed(2)) + '×';
+    badge.textContent = lost ? 'CONTEXT LOST'
+      : paused ? (still ? 'STILL · ' : 'PAUSED · ') + size
+      : document.hidden ? 'IDLE · ' + size
+      : fps + ' FPS · ' + size;
+    btn.textContent = paused ? 'Play' : 'Pause';
+    btn.setAttribute('aria-pressed', paused ? 'true' : 'false');
+  }
+
+  function schedule() {
+    if (running()) {
+      if (!raf) { lastNow = performance.now(); frames = 0; acc = 0; raf = requestAnimationFrame(frame); }
+    } else if (raf) {
+      cancelAnimationFrame(raf); raf = 0;
+    }
+    updateBadge();
+  }
+
+  function frame(now) {
+    raf = 0;
+    if (!running()) { updateBadge(); return; }
+    const dt = Math.min(0.05, Math.max(0, (now - lastNow) / 1000));
+    lastNow = now;
+    syncSize();
+    const kp = 1 - Math.exp(-dt * 10);
+    ptr.x += (tgt.x - ptr.x) * kp;
+    ptr.y += (tgt.y - ptr.y) * kp;
+    press += (pressTarget - press) * (1 - Math.exp(-dt * 4));
+    phase += (phaseTarget - phase) * (1 - Math.exp(-dt * 2.5));
+    tField += dt;
+    sinceMeasure += dt;
+    if (sinceMeasure > 1) { sinceMeasure = 0; measure(); }   // one layout read per second
+    render(tField + phase);
+    frames++; acc += dt * 1000;
+    if (acc >= 500) { fps = Math.round(frames * 1000 / acc); frames = 0; acc = 0; updateBadge(); }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function renderStill() {                // for paused / still / resize-while-paused
+    if (lost) return;
+    syncSize();
+    render(tField + phase);
+  }
+
+  /* ---- input ----------------------------------------------------------- */
+  function aim(e) {
+    tgt.x = e.clientX; tgt.y = e.clientY;
+    if (!hasPtr) { hasPtr = true; ptr.x = tgt.x; ptr.y = tgt.y; }
+  }
+  window.addEventListener('pointermove', (e) => {
+    aim(e);
+    if (e.pointerType !== 'touch' || pressTarget > 0) pressTarget = 1;
+  }, { passive: true });
+  window.addEventListener('pointerdown', (e) => {
+    aim(e);
+    if (e.pointerType === 'touch') { ptr.x = tgt.x; ptr.y = tgt.y; }
+    pressTarget = 1;
+  }, { passive: true });
+  window.addEventListener('pointerup', (e) => { if (e.pointerType === 'touch') pressTarget = 0; }, { passive: true });
+  window.addEventListener('pointercancel', () => { pressTarget = 0; }, { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => { pressTarget = 0; });
+  window.addEventListener('blur', () => { pressTarget = 0; });
+  // The page does not scroll; the wheel nudges the sheet's state, clamped
+  // per event and bounded so a fast scroll cannot run ahead of the eye.
+  window.addEventListener('wheel', (e) => {
+    const d = Math.max(-80, Math.min(80, e.deltaY));
+    phaseTarget = Math.max(phase - 12, Math.min(phase + 12, phaseTarget + d * 0.03));
+  }, { passive: true });
+
+  btn.addEventListener('click', () => {
+    paused = !paused;
+    if (paused) renderStill();
+    schedule();
+  });
+  mqStill.addEventListener('change', (e) => {
+    still = e.matches;
+    if (still) { paused = true; renderStill(); }
+    schedule();
+  });
+  document.addEventListener('visibilitychange', schedule);
+  window.addEventListener('resize', () => { if (!running()) { renderStill(); updateBadge(); } });
+  // Web fonts reflow the type block after first paint; re-measure the reserve
+  // when they land (fonts.ready can resolve before the font CSS has arrived).
+  if (document.fonts) {
+    const remeasure = () => { measure(); if (!running()) renderStill(); };
+    if (document.fonts.ready) document.fonts.ready.then(remeasure);
+    document.fonts.addEventListener('loadingdone', remeasure);
+  }
+
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    lost = true;
+    schedule();
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    lost = false;
+    try { build(); } catch (err) { offline('SHADER ERROR'); return; }
+    cw = 0; // force reallocation
+    renderStill();
+    schedule();
+  });
+
+  /* ---- go -------------------------------------------------------------- */
+  try { build(); } catch (err) { offline('SHADER ERROR'); return; }
+  renderStill();
+  const err = gl.getError();
+  if (err !== gl.NO_ERROR) console.warn('[ink-field] gl.getError after first frame: 0x' + err.toString(16));
+  schedule();
+})();
+</script>
+</body>
+</html>

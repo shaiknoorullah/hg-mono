@@ -79,3 +79,15 @@ Rider background checks · insurance commercial-use requirement · surge model �
 ## Decisions deliberately not required
 
 Closed without client input because the SOW's own wording or the product premise determines the answer. Recorded so they are not reopened: halal is a **precondition for listing**, not a filter; reviews are **order-bound** with authorship from the session, never the request body; the amount displayed is the amount charged; a missing halal field renders **no badge**.
+
+---
+
+## Standalone entries
+
+Decisions too long for a table row live in their own file beside this one.
+
+| File | Subject | Status |
+|---|---|---|
+| [`palette-and-invariant-10.md`](palette-and-invariant-10.md) | Old-brand green palette; amendment separating green-as-chrome from green-as-verified-signal | **Settled**, client-confirmed |
+| [`halal-slaughter-method.md`](halal-slaughter-method.md) | Slaughter-method position | **Settled** |
+| [`hero-motion-and-the-creative-direction.md`](hero-motion-and-the-creative-direction.md) | Marketing hero: the signed creative direction (`docs/design/landing-creative-direction.md` §6–§7) forbids the scroll-driven device sequence the client asked for. Includes the invariant-10 enforcement gap — L-4 cannot lint a canvas | **OPEN — needs the client** |
