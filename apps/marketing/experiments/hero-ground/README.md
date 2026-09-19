@@ -46,6 +46,14 @@ loads both in headless Chromium (SwiftShader), screenshots each and reports load
 nothing to disable for reduced motion**, because nothing moves. If the field turns out not
 to earn its keep, this is what replaces it — and it costs a `<style>` block.
 
+It tiles the **2-bit** variant, and that is deliberate. Counting distinct tones in a flat
+280×160 region of each render (no text, no CTA) gives **8** for the 2-bit bake, **7** for
+the runtime shader and **14** for 4-bit. At `opacity:.055` under `multiply` the tile's
+full 0–255 range compresses to about 14 levels of output red, so 2-bit's four input levels
+land ~4.7 apart and 4-bit's sixteen land ~0.94 apart — below the output's own quantisation,
+which is why the extra 2,816 B buys tones the page cannot show. The cheap variant is also
+the one that matches the live shader; 4-bit is the one that drifts from it.
+
 Note `probe.mjs` imports `playwright` bare, so run it where that resolves (the repo root),
 or point it at the pinned copy the other experiments use.
 
@@ -58,6 +66,8 @@ or point it at the pinned copy the other experiments use.
   reports raw and gzipped bytes.
 
 - `a-static.html` / `b-webgl.html` — the same hero, baked versus live.
+- `shot.mjs` — screenshots one page: `node shot.mjs a-static.html [out.png]`. Same bare
+  `playwright` import as `probe.mjs`, so run it from the repo root.
 - `probe.mjs` — loads both headless, screenshots and times them.
 
 ```bash
