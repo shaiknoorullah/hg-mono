@@ -14,10 +14,19 @@
   must never require an edit to `docs/design/tokens.json`.
 - **The seal is the product's seal.** `Seal.tsx` reads
   `--hg-color-halal-certified-*` directly. Never restate a halal colour here.
-- **Nothing goes on a page that is not in the claims register** in
-  `docs/marketing/copy-deck.md`. No counts, no testimonials, no competitor
-  comparisons, no tax claims. Copy lives in `src/lib/audiences.ts`, which is the
-  deck transcribed rather than new writing.
+- **Nothing goes on a page that is not in the claims register.** The register is
+  `src/lib/claims.ts` — every factual assertion about what we check, what we
+  charge and where we operate lives there with the file and decision that backs
+  it, and it ends with a REJECTED list of claims that must not come back. Its
+  rule: *if you cannot put a `source:` on it, it does not go on the page.* Copy
+  lives in `src/lib/audiences.ts` (the Gate B deck in
+  `docs/marketing/copy-deck.md`, transcribed rather than new writing); where the
+  two disagree, `claims.ts` wins and `audiences.ts` changes. No counts, no
+  testimonials, no competitor comparisons, no tax claims.
+- **The waitlist collects email on every track** while O-03 (SMS sender
+  registration) is open — `claims.ts`, `WAITLIST_CHANNEL`. The server action
+  refuses a track that drifts from it. Do not reintroduce a phone field, or copy
+  promising a text, until that decision closes.
 - **Invariants 8, 9 and 10 apply to marketing surfaces too.** No optimistic
   badge, never red for a halal state, and solid green is reserved to
   `color.halal.*` — which is why the consent banner's accept button is orange.
@@ -33,6 +42,14 @@ pnpm --filter @hg/marketing dev        # :5190, and the CMS at /keystatic
 pnpm --filter @hg/marketing build
 pnpm --filter @hg/marketing lint       # L-4 no-green-solids over src/
 ```
+
+## Breakpoints
+
+One breakpoint, and it is **`lg` (1024px)**, not `md`. Below it the phone
+artboard runs; at and above it the desktop artboard does. `md` was the switch
+originally and the desktop layout does not fit until ~1000px, so every tablet in
+portrait scrolled sideways — 227px on `/restaurants`. Do not add a `md:` variant
+back without checking 768px, and do not lower the switch.
 
 ---
 

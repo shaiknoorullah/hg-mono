@@ -1,0 +1,63 @@
+# Halal Goes
+
+> Halal Goes is a Canadian halal food-delivery marketplace, launching in Ontario.
+> A reviewer reads each restaurant's halal certificate against seven checks before
+> it is listed. The platform is pre-launch; all three sign-up forms are waitlists.
+
+## What Halal Goes is
+- A food-delivery marketplace for **verified halal** restaurants.
+- The single differentiator is **verification**: a person reads each restaurant's
+  halal certificate and records the result of seven separate checks, including who
+  issued it, the certificate number and the date it was checked. The badge on a
+  listing is that record, and the certificate can be opened from behind it.
+- Two of the seven checks — that the dates are valid, and that the certificate is
+  not already in use by a different restaurant — are computed by the server and
+  cannot be overridden by any member of staff. That is enforced in the database.
+- Halal Goes does **not** itself certify food and makes **no** religious ruling.
+  An expired certificate means the platform's knowledge has lapsed — the restaurant
+  comes off the app until it is renewed — not that the food is not halal.
+- No halal state is ever shown in red, and a missing halal record renders no badge
+  at all rather than an optimistic one.
+
+## Certifying bodies accepted
+- Halal Monitoring Authority (HMA Canada) — Ontario, Canada
+- Islamic Society of North America Canada (ISNA Canada) — Ontario, Canada
+- Halal Food Standards Alliance of America (HFSAA) — United States; certificates
+  issued to Canadian establishments are accepted
+Halal Goes is not affiliated with any of them and none of them endorses it. The
+registry is seeded rather than closed, and the bodies are not ranked or scored.
+
+## Coverage and status
+- Launching in the province of **Ontario, Canada**. Prices in CAD. No city or
+  neighbourhood within Ontario has been announced.
+- **Pre-launch.** There is no app to download yet; the site collects a waitlist.
+
+## For people ordering
+- Menu price, plus a delivery fee shown before payment, plus tax, plus an optional
+  tip. 100% of the tip and 100% of the delivery fee go to the rider. The amount
+  shown before payment is the amount charged.
+- Orders are sealed at the kitchen, and the seal is scanned at pickup and at the
+  door.
+- Join the waitlist with an email address, under an explicit, timestamped consent
+  recorded as the sentence the person was shown (CASL).
+
+## For restaurants
+- **0% commission at launch**, and the customer service fee is set to $0.00. Both
+  are per-restaurant settings rather than a promotion with an end date.
+- A restaurant cannot pay for or influence its position in the feed.
+- Onboarding is a halal certificate, a business licence, a food-safety permit and
+  owner ID. No hardware and no POS integration.
+- Join with an email address.
+
+## For riders
+- $2.99 per delivery plus $1.00 per kilometre, and all of it goes to the rider.
+- Payouts every Monday, automatically, with no minimum.
+- Join with an email address.
+
+## Documents of record
+- Verification standard: https://halalgoes.com/verification
+- Privacy policy: https://halalgoes.com/privacy
+- Website and waitlist terms: https://halalgoes.com/terms
+
+## Contact
+- Website: https://halalgoes.com
