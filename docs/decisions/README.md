@@ -90,4 +90,4 @@ Decisions too long for a table row live in their own file beside this one.
 |---|---|---|
 | [`palette-and-invariant-10.md`](palette-and-invariant-10.md) | Old-brand green palette; amendment separating green-as-chrome from green-as-verified-signal | **Settled**, client-confirmed |
 | [`halal-slaughter-method.md`](halal-slaughter-method.md) | Slaughter-method position | **Settled** |
-| [`hero-motion-and-the-creative-direction.md`](hero-motion-and-the-creative-direction.md) | Marketing hero: the signed creative direction (`docs/design/landing-creative-direction.md` §6–§7) forbids the scroll-driven device sequence the client asked for. Includes the invariant-10 enforcement gap — L-4 cannot lint a canvas | **OPEN — needs the client** |
+| [`hero-motion-and-the-creative-direction.md`](hero-motion-and-the-creative-direction.md) | Marketing hero: amends `docs/design/landing-creative-direction.md` §7 for `/` to permit scroll-driven sequences and Lenis. The seal-motion ban is **not** amended. Carries five owed conditions, chief of which is a rendered-pixel check for L-4 — lint cannot see inside a canvas | **Settled**, client-instructed · 5 conditions owed |

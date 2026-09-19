@@ -1,7 +1,8 @@
 # Decision: the hero direction — signed page or scroll-driven device sequence
 
-_Sep 2026. **OPEN — needs the client.** Written after building the thing the client asked
-for and then discovering the repo already contained a signed direction forbidding it._
+_Sep 2026. **SETTLED — Option B, client-instructed.** Written while open; resolved the same
+day. The record of the conflict is kept below because the conditions attached to Option B are
+now committed work, and because the process failure that produced it is worth not repeating._
 
 ## The conflict, plainly
 
@@ -130,8 +131,53 @@ surface in question is the only claim the product makes. Option B is legitimate 
 implementable; it just costs a CI check that does not exist yet, and it should be chosen
 with that cost visible rather than discovered afterwards.
 
-## Status
+## Resolution — Option B
 
-**Open.** Needs the client. Until it closes, the device/WebGL work stays in
-`apps/marketing/experiments/` and in published review artifacts, and does not enter
-`apps/marketing/src/`.
+The client chose Option B, in these instructions:
+
+- Design all of G1, G3 and G4 as complete scroll-driven journeys covering the whole
+  marketing site, as live prototypes to scroll and test.
+- Then port the chosen one to a three.js landing page.
+- **Use Lenis for smooth scroll** — named explicitly. §7's forbidden list names Lenis
+  specifically, so this instruction is what settles the conflict rather than merely
+  bending it.
+
+The concern in **The part that genuinely worries me** was raised before the decision and
+the client proceeded, which is their call. It does not go away by being overruled: the
+conditions below are now scheduled work, not caveats.
+
+### Amendments to `docs/design/landing-creative-direction.md`
+
+§7 is amended **for `/` only**:
+
+- "scroll-scrubbed or pinned sequences" — **permitted.** The page is a scroll journey.
+- "parallax" — **permitted**, as a consequence of the above.
+- "any dependency on GSAP, Lenis, Framer or Locomotive" — **Lenis permitted. The other
+  three remain forbidden**; nothing has asked for them and each is far larger.
+- "Total JS on `/`: … Nothing else." — **superseded.** Replaced by a measured ceiling
+  once the direction is chosen, so the cap stays falsifiable rather than becoming "as much
+  as it takes". Until that number exists this clause is open.
+- **"any motion on the seal — ever" is NOT amended.** It is the one clause in §7 about the
+  halal claim rather than about taste. It stands. `the-seal.html` breaches it today and
+  must lose its rocking before anything derived from it ships.
+
+§6's art-direction "never" list stands unamended, including "any tilted phone mockup" —
+which is why G1 crops its devices and G4 removes them entirely.
+
+### Conditions now owed
+
+1. **L-4 gains a rendered-pixel check** before any canvas hero reaches `apps/marketing/src/`.
+   A headless render at N scroll positions, sampled for saturated green outside the seal's
+   own bounding box, in CI. Without it invariant 10 is unenforced on the one surface whose
+   job is the halal claim, and two of two 3D artefacts have already breached a halal rule.
+2. **A measured JS ceiling for `/`**, replacing §7's "nothing else".
+3. **The CC-BY credit ships with the render**, not after it.
+4. **The seal stops moving.**
+5. **§7 and §6 get a staleness pass** — they still name `Faq.astro` and `SocialProof.astro`
+   from the deleted Astro app, and still specify Plus Jakarta Sans for headings, which Gate F
+   superseded with Bricolage Grotesque.
+
+### Status of the work
+
+The prototypes stay in `apps/marketing/experiments/` and in published review artifacts.
+Nothing enters `apps/marketing/src/` until a direction is chosen **and** condition 1 is met.
