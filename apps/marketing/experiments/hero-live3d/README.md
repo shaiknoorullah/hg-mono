@@ -18,10 +18,31 @@ self-contained page — open it in a browser directly.
 | `the-seal.html` | The seal as real geometry — LatheGeometry brass bezel, sage plate, the brand shield and check extruded from the exact SVG path — struck onto the certificate it vouches for. |
 | `ink-field.html` | The type-led treatment: paper as a halftone screen rather than a gradient. The closest of the three to what §7 actually specifies. |
 
-All three: three.js r169 from cdnjs, one persistent scene, native scroll as the conductor
+All three: one persistent scene, native scroll as the conductor
 (exact progress owns DOM state, a damped copy owns the camera), reduced motion as a real
 path rather than a degraded one, `document.hidden` pauses rendering, and a visible fallback
-with the full ordered story when WebGL 2 is unavailable.
+with the full ordered story when WebGL 2 is unavailable. (`ink-field.html` is pure canvas
+and CSS — it uses no 3D library at all.)
+
+## three.js is vendored, not fetched
+
+`three.module.min.js` (r169, MIT, 687 KB raw / 170 KB gz) sits beside the pages and is
+imported with a relative path. It was originally loaded from cdnjs through an import map,
+and **that is what broke `device-world.html` when it was published**: the page came up as
+the no-WebGL fallback because its module script failed before `boot()` ran. The scene was
+fine; the way it reached its library was not.
+
+Vendoring removes the whole class of failure — no CDN reachability, no host `script-src`
+policy, no import-map timing. The CDN URLs remain only as a fallback for opening these
+files straight off disk, tried after the local copy.
+
+Verified with every non-local origin blocked in headless Chromium: `device-world.html`
+reaches `js-gl` and renders (9 fps under SwiftShader), `the-seal.html` reaches `live`,
+neither shows its fallback, and neither logs a page error.
+
+The early error handler was also narrowed. It previously called the failure path on *any*
+error event with a message, so an unrelated host-runtime error or a failed font request
+could tear down a working scene. It now fires only for a failed `type="module"` script.
 
 ## Known defects, recorded rather than hidden
 

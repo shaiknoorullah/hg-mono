@@ -287,10 +287,17 @@ const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, stencil:
 if (!gl) {
   fail('Your browser could not provide a WebGL 2 context. The story below is complete without it.');
 } else {
-  let THREE = null;
-  try {
-    THREE = await import('https://cdnjs.cloudflare.com/ajax/libs/three.js/0.169.0/three.module.min.js');
-  } catch (e) {
+  /* three.js r169 (MIT). The copy published beside this page first, so the scene does
+     not depend on a CDN being reachable or on the host's script-src policy; the CDNs
+     are only a fallback for opening this file straight from disk. */
+  let THREE = null, threeErr = null;
+  for (const src of ['./three.module.min.js',
+                     'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.169.0/three.module.min.js',
+                     'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js']) {
+    try { THREE = await import(src); break; } catch (e) { threeErr = e; }
+  }
+  if (!THREE) {
+    console.error('three.js could not be loaded from any source', threeErr);
     fail('The rendering library could not be fetched. The story below is complete without it.');
   }
   if (THREE) {

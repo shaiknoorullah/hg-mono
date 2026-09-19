@@ -8,9 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Plus+Jakarta+Sans:wght@200..800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script type="importmap">
-{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.169.0/three.module.min.js" } }
-</script>
 <script>
   /* If the module never boots (no import-map support, CDN unreachable, script error before the first frame),
      fall back to the plain ordered story with a visible message rather than a silent canvas. */
@@ -23,9 +20,11 @@
       var el = document.getElementById('nogl'); if (el && msg) el.textContent = msg;
     }
     addEventListener('error', function (e) {
-      var scriptFailed = e && e.target && e.target.tagName === 'SCRIPT';       /* module fetch failed (capture phase) */
-      var uncaught = e && typeof e.message === 'string' && e.message.length;   /* e.g. no import-map support */
-      if (scriptFailed || uncaught) fail('The 3D scene could not start in this browser. The story continues below in order.');
+      /* Only our own module script counts. A failed font stylesheet, image or an
+         unrelated host-runtime error must not tear down a scene that is fine. */
+      if (e && e.target && e.target.tagName === 'SCRIPT' && e.target.type === 'module') {
+        fail('The 3D scene could not start in this browser. The story continues below in order.');
+      }
     }, true);
     addEventListener('load', function () {
       setTimeout(function () { fail('The 3D scene has not loaded. The story continues below in order.'); }, 9000);
@@ -186,7 +185,19 @@
 <pre id="debug" aria-hidden="true"></pre>
 
 <script type="module">
-import * as THREE from 'three';
+/* three.js r169 (MIT). Loaded from the copy published beside this page first, so the
+   scene does not depend on a CDN being reachable or on the host's script-src policy.
+   The CDNs are only a fallback for opening this file straight from disk. */
+const THREE_SOURCES = [
+  './three.module.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.169.0/three.module.min.js',
+  'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js',
+];
+let THREE = null, threeErr = null;
+for (const src of THREE_SOURCES) {
+  try { THREE = await import(src); break; } catch (err) { threeErr = err; }
+}
+if (!THREE) console.error('three.js could not be loaded from any source', threeErr);
 /* ───────────────────────── helpers ───────────────────────── */
 const $ = (s) => document.querySelector(s);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -393,7 +404,9 @@ function fallback(msg) {
 }
 
 const probe = document.createElement('canvas').getContext('webgl2');
-if (!probe) fallback(); else boot();
+if (!THREE) fallback('The rendering library could not be loaded. The story continues below in order.');
+else if (!probe) fallback();
+else boot();
 
 function roundedRectShape(w, h, r) {
   const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
