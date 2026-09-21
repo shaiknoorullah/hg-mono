@@ -8,6 +8,7 @@ import { Refusal } from '@/components/Refusal';
 import { Sealed } from '@/components/Sealed';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
+import { StickyCta } from '@/components/StickyCta';
 import { StateGrid } from '@/components/StateGrid';
 import { Steps } from '@/components/Steps';
 import { FaqLd } from '@/components/StructuredData';
@@ -57,6 +58,11 @@ export function TrackPage({ audience }: { audience: Audience }) {
       <SiteHeader current={audience} />
       <main className="flex-1">
         <Hero track={track} launch={launch} />
+        {/* Zero-height mark at the end of the hero. StickyCta watches this
+            rather than the hero itself: on a phone the hero is tall enough that
+            waiting for it to leave entirely would hold the bar back well past
+            the point it is useful. */}
+        <div id="hero-end" aria-hidden="true" className="h-px" />
         {isCustomer ? <Recognition /> : null}
         {isCustomer ? <CravingGrid /> : null}
         {isCustomer ? <WhyThisExists /> : null}
@@ -69,8 +75,9 @@ export function TrackPage({ audience }: { audience: Audience }) {
         <Faq track={track} />
         <FinalCta track={track} />
       </main>
-      <SiteFooter />
+      <SiteFooter current={audience} />
       <FaqLd track={track} />
+      <StickyCta track={track} />
     </div>
   );
 }

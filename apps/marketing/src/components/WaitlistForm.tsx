@@ -26,7 +26,26 @@ const INITIAL: WaitlistResult = { status: 'idle' };
  *
  * Still a real <form> with a server action, so it works before hydration.
  */
-export function WaitlistForm({ track, context }: { track: AudienceTrack; context: string }) {
+/**
+ * `compact` is for the sticky bar, which is a strip across the bottom of a page
+ * somebody is trying to read. Full height there measured 202px of a 900px
+ * viewport — a fifth of the screen taken from the page to hold a form nobody
+ * asked for yet. Compact drops the field label to screen readers only, loses
+ * the reassurance line (the footer form carries it), and shortens the controls.
+ *
+ * What it does NOT drop is the consent sentence. CASL consent travels with the
+ * field and is never implied, so a variant that hides it would not be a smaller
+ * form — it would be a different, worse one.
+ */
+export function WaitlistForm({
+  track,
+  context,
+  compact = false,
+}: {
+  track: AudienceTrack;
+  context: string;
+  compact?: boolean;
+}) {
   const [result, submit, pending] = useActionState(joinWaitlist, INITIAL);
   // Read once, on the client, after mount: sessionStorage does not exist during
   // the server render, so a hidden field seeded from it would be a hydration
@@ -52,7 +71,14 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
 
   if (result.status === 'ok') {
     return (
-      <Card className="gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none lg:p-7">
+      <Card
+        data-slot="card"
+        className={
+          compact
+            ? 'gap-0 rounded-none border-0 bg-transparent p-0 shadow-none'
+            : 'gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none lg:p-7'
+        }
+      >
         <p className="m-0 font-display text-heading-xl text-fg-primary">You’re on the list.</p>
         <p className="mt-2 mb-0 text-body-md text-mk-ink">
           {track.id === 'restaurant'
@@ -76,7 +102,14 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
     // overridden here rather than worked around, which is what tailwind-merge
     // inside cn() is for.
     <form action={submit} noValidate>
-      <Card className="gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none lg:p-7">
+      <Card
+        data-slot="card"
+        className={
+          compact
+            ? 'gap-0 rounded-none border-0 bg-transparent p-0 shadow-none'
+            : 'gap-0 rounded-2xl border-line-decorative p-[18px] shadow-none lg:p-7'
+        }
+      >
         <input type="hidden" name="audience" value={track.id} />
         {/* Which form on which page, and the campaign that brought them — so a
             signup can be attributed without anything that identifies a person.
@@ -84,11 +117,18 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
         <input type="hidden" name="context" value={context} />
         <input type="hidden" name="utm" value={utm} />
 
-        <Label htmlFor={fieldId} className="text-label-lg font-semibold text-fg-primary">
+        <Label
+          htmlFor={fieldId}
+          className={
+            compact
+              ? 'sr-only'
+              : 'text-label-lg font-semibold text-fg-primary'
+          }
+        >
           {track.form.label}
         </Label>
 
-        <div className="mt-2.5 flex flex-col gap-2.5 lg:flex-row">
+        <div className={`flex flex-col gap-2.5 lg:flex-row ${compact ? '' : 'mt-2.5'}`}>
           <Input
             id={fieldId}
             ref={contactRef}
@@ -101,13 +141,13 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
             required
             aria-invalid={invalidField === 'contact' || undefined}
             aria-describedby={message ? messageId : undefined}
-            className="h-14 rounded-md border-[1.5px] bg-control-bg px-4 text-body-lg lg:flex-1"
+            className={`rounded-md border-[1.5px] bg-control-bg px-4 lg:flex-1 ${compact ? 'h-12 text-body-md' : 'h-14 text-body-lg'}`}
           />
 
           <Button
             type="submit"
             disabled={pending}
-            className="group h-14 rounded-md px-[26px] text-body-lg font-bold transition-[transform,background-color] duration-[180ms] ease-[var(--hg-ease-spring)] hover:-translate-y-0.5 hover:bg-action-primary-bg-pressed disabled:translate-y-0 motion-reduce:hover:translate-y-0"
+            className={`group rounded-md font-bold transition-[transform,background-color] duration-[180ms] ease-[var(--hg-ease-spring)] hover:-translate-y-0.5 hover:bg-action-primary-bg-pressed disabled:translate-y-0 motion-reduce:hover:translate-y-0 ${compact ? 'h-12 px-5 text-body-md' : 'h-14 px-[26px] text-body-lg'}`}
           >
             {pending ? 'Sending…' : <SwapLabel>{track.form.submit}</SwapLabel>}
           </Button>
@@ -115,16 +155,19 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
 
         {/* CASL. Unticked, adjacent to the field, and the wording is stored with
             the signup so we can show what was agreed to. */}
-        <div className="mt-3.5 flex items-start gap-2.5">
+        <div className={`flex items-start gap-2.5 ${compact ? 'mt-2' : 'mt-3.5'}`}>
           <Checkbox
             id={consentId}
             name="consent"
             defaultChecked={values?.consent ?? false}
             aria-invalid={invalidField === 'consent' || undefined}
             aria-describedby={message ? messageId : undefined}
-            className="mt-0.5 size-6"
+            className={compact ? 'mt-px size-5' : 'mt-0.5 size-6'}
           />
-          <Label htmlFor={consentId} className="text-body-sm leading-relaxed font-normal text-mk-ink">
+          <Label
+            htmlFor={consentId}
+            className={`font-normal text-mk-ink ${compact ? 'text-[12px] leading-snug' : 'text-body-sm leading-relaxed'}`}
+          >
             {track.form.consent}
           </Label>
         </div>
@@ -133,9 +176,9 @@ export function WaitlistForm({ track, context }: { track: AudienceTrack; context
           id={messageId}
           role="status"
           aria-live="polite"
-          className={`mt-3 mb-0 text-body-sm leading-relaxed ${
+          className={`mb-0 leading-relaxed ${compact ? 'mt-1.5 text-[12px]' : 'mt-3 text-body-sm'} ${
             message ? 'text-feedback-danger-text' : 'text-mk-ink'
-          }`}
+          } ${compact && !message ? 'hidden' : ''}`}
         >
           {message ?? track.form.reassurance}
         </p>
