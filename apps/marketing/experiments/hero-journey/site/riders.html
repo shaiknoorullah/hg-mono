@@ -241,6 +241,10 @@ header.site{padding-top:16px}
   position:sticky; top:0; height:100vh; height:100svh;
   display:flex; flex-direction:column; justify-content:center;
   overflow:hidden;
+  /* Reserve the sticky bar's height. The reserve is CONSTANT, not tied to
+     whether the bar is currently shown — a padding that toggled with it would
+     jog every pinned composition each time the bar came and went. */
+  padding-bottom:var(--cta-h,0px);
 }
 .stage.top{justify-content:flex-start; padding-top:clamp(24px,7vh,64px)}
 html.rm .beat{height:auto}
@@ -510,18 +514,28 @@ html.rm .tile{width:min(310px,44vw)}
 .record-line dd{flex:1; min-width:0}
 .record-line dd .val{font-size:13.5px; font-weight:600; line-height:1.3; color:var(--ink)}
 .state-list{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:24px}
+/* A pinned stage must never crop its own composition. The badge-state beat is
+   the one that would on a 390x844 phone, so below the breakpoint it spends less
+   on furniture: a shorter top inset and a tighter gap above the cards. Measured
+   against the real overflow, not guessed. */
+@media (max-width:1023px){
+  .stage.top{padding-top:22px}
+  .state-list{margin-top:12px; gap:10px}
+  .state-list li{padding:11px}
+  [data-beat="states"] .lede{margin-top:10px}
+}
 @media (min-width:1024px){ .state-list{grid-template-columns:repeat(2,1fr); gap:16px; margin-top:32px} }
-.state-list li{background:var(--raised); border:1px solid var(--hair); border-radius:14px; padding:14px}
+.state-list li{background:var(--raised); border:1px solid var(--hair); border-radius:14px; padding:12px}
 @media (min-width:1024px){ .state-list li{padding:18px} }
-.state-mark{display:block; width:30px; height:30px; border-radius:6px; margin-bottom:12px}
+.state-mark{display:block; width:26px; height:26px; border-radius:6px; margin-bottom:9px}
 @media (min-width:1024px){ .state-mark{width:38px; height:38px} }
 .m-certified{background:var(--seal); box-shadow:inset 0 0 0 2px var(--brass)}
 .m-expired{background:var(--expired)}
 .m-review{box-shadow:inset 0 0 0 2px var(--expired); background:repeating-linear-gradient(-45deg,transparent 0 5px,rgba(78,88,98,.22) 5px 7px)}
 .m-none{border:1px dashed var(--hair)}
 .state-list b{display:block; font-size:14px; font-weight:700; color:var(--ink)}
-.state-list p{margin-top:6px; font-size:13px; line-height:1.45; color:var(--body)}
-.state-list .mono-label{margin-top:12px; font-size:10px; line-height:1.4}
+.state-list p{margin-top:5px; font-size:13px; line-height:1.4; color:var(--body)}
+.state-list .mono-label{margin-top:9px; font-size:10px; line-height:1.35}
 
 /* ── ruled document lists (sealed, checkable) ───────────────────────────── */
 .doc-list{background:var(--raised); border:1px solid var(--hair); border-radius:18px; padding:20px}
@@ -620,7 +634,15 @@ footer.site{margin-top:0; padding:0}
 }
 .stickycta[data-show="true"]{transform:translateY(0); visibility:visible}
 html.rm .stickycta{transition:none}
-.sticky-inner{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap}
+.sticky-inner{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:nowrap}
+@media (max-width:1023px){
+  .sticky-copy{min-width:0}
+  /* The second sentence is in the footer form's own reassurance; on a phone it
+     costs a line of a bar that is already taxing every pinned stage. */
+  .sticky-copy .long{display:none}
+}
+.sticky-form .form-msg{display:none}
+.sticky-form .form-msg.err{display:block; margin-top:6px; font-size:12px}
 .sticky-copy{margin:0; font-size:15px; line-height:1.45; color:var(--body)}
 .sticky-copy b{color:var(--ink); font-weight:700}
 .sticky-form{display:none}
@@ -636,9 +658,9 @@ html.rm .stickycta{transition:none}
   .sticky-form{display:block; flex:0 1 620px; min-width:0}
   .sticky-form .field-row{margin-top:0}
   .sticky-form .field-row input{height:48px}
-  .sticky-form .consent{margin-top:8px}
-  .sticky-form .consent label{font-size:12px; line-height:1.45}
-  .sticky-form .form-msg{margin-top:6px; font-size:12px}
+  .sticky-form .consent{margin-top:7px}
+  .sticky-form .consent label{font-size:12px; line-height:1.4}
+  .sticky-form .consent input{width:20px; height:20px}
 }
 
 /* ── scroll HUD ─────────────────────────────────────────────────────────── */
@@ -1111,7 +1133,7 @@ html.rm .stage{overflow:visible}
             </div>
             <div class="rail-final">
               <b>Scanned at</b>
-              <span class="blank" style="width:56px" data-blank></span>
+              <span class="blank" style="width:44px" data-blank></span>
             </div>
           </div>
         </div>
@@ -1187,7 +1209,7 @@ html.rm .stage{overflow:visible}
               <div class="dev-row"><span class="dev-small">Tips</span><span class="blank" style="width:52px" data-blank></span></div>
               <div class="rail-final">
                 <b>Paid Monday</b>
-                <span class="blank" style="width:56px" data-blank></span>
+                <span class="blank" style="width:44px" data-blank></span>
               </div>
             </div>
             <div class="badge-plate">
@@ -1331,7 +1353,7 @@ html.rm .stage{overflow:visible}
      real footer so the same ask is never on screen twice. -->
 <aside class="stickycta" id="stickycta" data-show="false" aria-label="Join the waitlist">
   <div class="shell sticky-inner">
-    <p class="sticky-copy"><b>Ontario · launching soon.</b> One email the day we open in your area.</p>
+    <p class="sticky-copy"><b>Ontario · launching soon.</b><span class="long"> One email the day we open in your area.</span></p>
     <a class="sticky-link" href="#foot-form" data-goto-foot>Join the waitlist</a>
     <form class="wl sticky-form" novalidate data-context="sticky">
       <div class="form-card" style="padding:0; border:0; background:none; max-width:none">
@@ -1747,12 +1769,18 @@ html.rm .stage{overflow:visible}
     if (!bar || !hero || !foot) return;
 
     var heroGone = false, footHere = false;
+    function reserve() {
+      /* Measured from the bar itself rather than hard-coded: it is two lines on
+         one breakpoint and one on another, and a wrong guess here crops a
+         pinned stage. */
+      document.documentElement.style.setProperty('--cta-h', bar.offsetHeight + 'px');
+    }
     function apply() {
       var show = heroGone && !footHere;
       if (bar.getAttribute('data-show') === String(show)) return;
       bar.setAttribute('data-show', String(show));
-      document.documentElement.style.setProperty('--cta-h', show ? bar.offsetHeight + 'px' : '0px');
     }
+    reserve();
     new IntersectionObserver(function (es) {
       heroGone = !es[0].isIntersecting; apply();
     }, { threshold: 0 }).observe(hero);
@@ -1760,11 +1788,8 @@ html.rm .stage{overflow:visible}
       footHere = es[0].isIntersecting; apply();
     }, { threshold: 0, rootMargin: '0px 0px -8% 0px' }).observe(foot);
 
-    window.addEventListener('resize', function () {
-      if (bar.getAttribute('data-show') === 'true') {
-        document.documentElement.style.setProperty('--cta-h', bar.offsetHeight + 'px');
-      }
-    });
+    window.addEventListener('resize', reserve);
+    window.addEventListener('load', reserve);
 
     /* Narrow screens send you to the footer form rather than carrying a
        cramped consent line. Scroll through Lenis so it matches the page. */
