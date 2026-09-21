@@ -1,6 +1,6 @@
 // Dead-scroll detector: how much of a pinned beat's length is FROZEN.
 //
-//   node dead-scroll.mjs <file.html>          (run from the repo root)
+//   node dead-scroll.mjs <file.html> [port]   (run from the repo root)
 //
 // A beat pins so that something can happen while it is held. If its whole
 // choreography runs on the approach clock, the pin has nothing left to do and
@@ -20,9 +20,13 @@
 
 import { chromium } from 'playwright';
 const file = process.argv[2];
+// Port is an argument, not a constant: this harness serves different
+// directories on different ports, and a hard-coded one silently measures
+// whatever else is listening rather than failing.
+const PORT = process.argv[3] || 5400;
 const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const p = await b.newPage({ viewport:{width:1440,height:900} });
-await p.goto(`http://127.0.0.1:5400/${file}`, { waitUntil:'load' });
+await p.goto(`http://127.0.0.1:${PORT}/${file}`, { waitUntil:'load' });
 await p.waitForTimeout(2500);
 async function wheelTo(y){
   for (let i=0;i<70;i++){

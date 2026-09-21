@@ -26,13 +26,31 @@ fresh clone, run `python3 assets/build-assets.py` or the dish tiles will 404.
 See `docs/decisions/hero-motion-and-the-creative-direction.md` — this direction amends
 §7 of the signed creative direction, and carries five conditions that are still owed.
 
+## The site
+
+`site/` is the full marketing site built on the G3 direction — seven pages with
+working links, a sticky signup that appears after the hero and hides over the footer,
+and a footer carrying its own form. `index.html`, `restaurants.html` and `riders.html`
+are scroll journeys; `verification.html`, `privacy.html`, `terms.html` and
+`writing.html` are quiet documents with no beat engine.
+
 ## Running it
 
 ```bash
-node apps/marketing/experiments/hero-journey/serve.mjs <dir-with-the-prototypes> 5400
+# the three single-page direction prototypes
+node apps/marketing/experiments/hero-journey/serve.mjs apps/marketing/experiments/hero-journey 5400
 node apps/marketing/experiments/hero-journey/verify.mjs g3.html --shots /tmp/ink   # from the repo root
 python3 apps/marketing/experiments/hero-journey/ink.py /tmp/ink
+node apps/marketing/experiments/hero-journey/dead-scroll.mjs g3.html 5400
+
+# the full site
+node apps/marketing/experiments/hero-journey/serve.mjs apps/marketing/experiments/hero-journey/site 5402
+node apps/marketing/experiments/hero-journey/site-check.mjs 5402
 ```
+
+Every tool takes its port as an argument. A hard-coded one silently measures
+whatever else is listening instead of failing, which is its own kind of wrong
+answer.
 
 `verify.mjs` needs `playwright`, which resolves from the repo root. Chromium is the
 pre-installed build at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
@@ -46,6 +64,8 @@ pre-installed build at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
 | Horizontal overflow at rest **and stepped through the page** | Overflow often appears only mid-transform, so a single at-rest check misses it |
 | Console errors | A silently-failed module leaves a fallback that looks deliberate |
 | Reduced motion: total height and sticky count | It must collapse to an ordinary document, not a frozen animation. Sticky count should be 0 |
+| Distinct states per beat (`dead-scroll.mjs`) | A beat pins so something can happen while it is held. `distinct: 1` means it never changes — a viewport or more of frozen scroll, which reads as broken |
+| All seven pages at four widths (`site-check.mjs`) | Overflow sampled at eleven scroll positions, not at rest: it usually appears mid-transform |
 | Per-beat entry frame vs mid frame (`ink.py`) | See below |
 
 ## The lesson worth keeping: a jump is not a scroll
