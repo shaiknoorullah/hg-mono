@@ -104,6 +104,7 @@
   /* `inline` matters: without it Tailwind freezes the light value into the
      utility at build time and the dark block below never takes effect. */
   --color-mk-ink: var(--hg-mk-ink);
+  --color-mk-wordmark: var(--hg-mk-wordmark);
   --color-mk-accent: var(--hg-mk-accent);
   --color-mk-seal: var(--hg-mk-seal);
   --color-mk-seal-ring: var(--hg-mk-seal-ring);
@@ -118,8 +119,11 @@
        ink      #1B3B31 on #FFFAEA  11.72:1
        accent   #F1521E underline / arrow, non-text
        seal     #0F7A43 field, #C9A24B ring, #E9F3E4 plate
-       expired  white on #4E5862     7.25:1 */
+       expired  white on #4E5862     7.25:1
+       wordmark #232323 on #FFFAEA  15.05:1 — the mark sits with the headlines,
+                not with the body copy, so it takes text.primary and not ink */
   --hg-mk-ink: #1B3B31;
+  --hg-mk-wordmark: #232323;
   --hg-mk-accent: #F1521E;
   --hg-mk-seal: #0F7A43;
   --hg-mk-seal-ring: #C9A24B;
@@ -138,11 +142,18 @@
      ring     2.45:1 on the field — the SAME documented exemption as light
               (_pairs: decorative brass ring; the informational boundary is
               seal-vs-surface), and that boundary is 3.87 here
+     wordmark #D0D0D1 on #171717  11.63:1 — this one is NOT derived, it is the
+              colour the supplied artwork is drawn in. The wordmark arrived as a
+              reversed lockup and that grey is the dark version of the brand
+              mark, so it is carried across rather than re-picked. It is
+              deliberately cooler and one step down from text.primary
+              (#F6EFDD, 15.63:1): a signature, not a headline.
      expired  INVERTS. White on #7C8794 is 3.65:1 and fails; #171717 on it is
               4.91:1. Still cool slate, never red — invariant 9 holds. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --hg-mk-ink: #9FB2A9;
+    --hg-mk-wordmark: #D0D0D1;
     --hg-mk-seal: #10864A;
     --hg-mk-seal-ring: #DDB863;
     --hg-mk-seal-plate: #0A2A1B;
@@ -153,6 +164,7 @@
 
 :root[data-theme='dark'] {
   --hg-mk-ink: #9FB2A9;
+  --hg-mk-wordmark: #D0D0D1;
   --hg-mk-seal: #10864A;
   --hg-mk-seal-ring: #DDB863;
   --hg-mk-seal-plate: #0A2A1B;

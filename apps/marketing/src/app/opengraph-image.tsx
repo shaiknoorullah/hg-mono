@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
+import { WORDMARK } from '@/lib/wordmark-art';
 
 /**
  * The social card, generated rather than designed in a file.
@@ -29,6 +30,7 @@ const ACCENT = '#1B3B31'; // accent.600
 const SEAL = '#0F7A43'; // halal.certified.seal
 const RING = '#C9A24B'; // halal.certified.ring
 const TINT = '#E9F3E4'; // halal.certified.tint
+const SWASH = '#F1521E'; // mk.accent — the wordmark's underline
 
 export default async function OpengraphImage() {
   const display = await readFile(join(process.cwd(), 'src/app/_fonts/BricolageGrotesque-Bold.ttf'));
@@ -47,9 +49,31 @@ export default async function OpengraphImage() {
           fontFamily: 'Bricolage Grotesque',
         }}
       >
-        <div style={{ display: 'flex', fontSize: 30, fontWeight: 800, letterSpacing: '-0.03em', color: INK }}>
-          Halal Goes
-        </div>
+        {/* The wordmark as paths, not text: Satori has no access to the brush
+            face, and the card is the one place the mark is seen without the
+            site around it. Same geometry as the header — one generated module,
+            so the card cannot drift from the page. */}
+        <svg
+          width={(64 * WORDMARK.viewBox.width) / WORDMARK.viewBox.height}
+          height={64}
+          viewBox={`0 0 ${WORDMARK.viewBox.width} ${WORDMARK.viewBox.height}`}
+        >
+          <defs>
+            <linearGradient
+              id="og-wordmark-swash"
+              x1="0"
+              y1={WORDMARK.ramp.top}
+              x2="0"
+              y2={WORDMARK.ramp.bottom}
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0" stopColor={INK} />
+              <stop offset="1" stopColor={SWASH} />
+            </linearGradient>
+          </defs>
+          <path fill={INK} fillRule="evenodd" d={WORDMARK.silhouette} />
+          <path fill="url(#og-wordmark-swash)" fillRule="evenodd" d={WORDMARK.swash} />
+        </svg>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 48 }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>

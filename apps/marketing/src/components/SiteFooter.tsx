@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ConsentPreferencesButton } from '@/components/ConsentManager';
+import { Wordmark } from '@/components/Wordmark';
 import { WaitlistForm } from '@/components/WaitlistForm';
 import { AUDIENCES, TRACKS, type Audience } from '@/lib/audiences';
 
@@ -46,9 +47,7 @@ export function SiteFooter({ current }: { current?: Audience }) {
       <div className="border-t border-line-decorative bg-surface-sunken py-12 lg:py-20">
         <div className="lg:grid lg:grid-cols-[1fr_480px] lg:items-start lg:gap-18">
           <div>
-            <p className="m-0 mb-4 font-display text-heading-sm font-extrabold tracking-[-0.03em] text-fg-primary">
-              Halal Goes
-            </p>
+            <Wordmark id="wordmark-footer" height={42} className="mb-5" />
             <p className="m-0 max-w-[15ch] font-display text-marketing-section-phone leading-[1.06] text-fg-primary lg:text-marketing-section">
               Seven checks, before it reaches you.
             </p>

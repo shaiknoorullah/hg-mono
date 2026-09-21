@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AudienceSwitch } from '@/components/AudienceSwitch';
+import { Wordmark } from '@/components/Wordmark';
 import { SwapLabel } from '@/components/SwapLabel';
 import { Button } from '@/components/ui/button';
 import { TRACKS, type Audience } from '@/lib/audiences';
@@ -15,11 +16,14 @@ import { TRACKS, type Audience } from '@/lib/audiences';
 export function SiteHeader({ current }: { current: Audience }) {
   return (
     <header className="flex flex-col gap-3 lg:h-13 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
-      <Link
-        href="/"
-        className="inline-flex h-11 flex-none items-center self-start font-display text-[22px] leading-none font-extrabold tracking-[-0.03em] text-fg-primary no-underline"
-      >
-        Halal Goes
+      {/* 30px below lg, 34 above: the script mark carries its ascenders and the
+          swash descender inside the box, so it needs more box than the 22px
+          Bricolage wordmark it replaces to read at the same size. Still inside
+          the 44px row, and the link keeps h-11 so the tap target does not
+          shrink to the artwork. */}
+      <Link href="/" className="inline-flex h-11 flex-none items-center self-start no-underline">
+        <Wordmark id="wordmark-header" height={30} className="lg:hidden" />
+        <Wordmark id="wordmark-header-lg" height={34} className="hidden lg:block" />
       </Link>
 
       <AudienceSwitch current={current} />
