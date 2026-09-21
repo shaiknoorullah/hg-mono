@@ -29,6 +29,14 @@ import { AUDIENCES, TRACKS, type Audience } from '@/lib/audiences';
  * consent notice is the taller of the two and was measured occluding the line
  * by 51px at 390. `max()`, not a sum: only one of them is ever up, because the
  * bar stands down while the notice is (see `consent.css`).
+ *
+ * That rule sits INSIDE the sunken band, not beside it, and the nesting is the
+ * whole point: the reserve makes this the tallest part of the footer, so a rule
+ * outside the band leaves a strip of page background — up to 204px of it —
+ * below where the band stops. In light that reads as a seam; in dark, where
+ * sunken is #000 against a #171717 page, it reads as the footer being cut off.
+ * Keeping it inside means the band's background is bounded by the last line
+ * rather than by the block above it, whatever the reserve resolves to.
  */
 
 const COLUMN_LABEL =
@@ -44,7 +52,7 @@ export function SiteFooter({ current }: { current?: Audience }) {
 
   return (
     <footer id="site-footer" className="mt-16 lg:mt-24">
-      <div className="border-t border-line-decorative bg-surface-sunken py-12 lg:py-20">
+      <div className="border-t border-line-decorative bg-surface-sunken pt-12 lg:pt-20">
         <div className="lg:grid lg:grid-cols-[1fr_480px] lg:items-start lg:gap-18">
           <div>
             <Wordmark id="wordmark-footer" height={42} className="mb-5" />
@@ -115,16 +123,16 @@ export function SiteFooter({ current }: { current?: Audience }) {
             <WaitlistForm track={track} context="footer" />
           </div>
         </div>
-      </div>
 
-      <div
-        className="flex flex-wrap items-baseline gap-x-7 gap-y-1.5 border-t border-line-decorative pt-6"
-        style={{
-          paddingBottom: 'calc(2rem + max(var(--sticky-cta-h, 0px), var(--hg-consent-h, 0px)))',
-        }}
-      >
-        <p className="m-0 text-body-sm text-fg-secondary">Ontario, Canada. Launching soon — prices in CAD.</p>
-        <p className="m-0 text-body-sm text-fg-secondary">Halal Goes does not itself certify food.</p>
+        <div
+          className="mt-12 flex flex-wrap items-baseline gap-x-7 gap-y-1.5 border-t border-line-decorative pt-6 lg:mt-20"
+          style={{
+            paddingBottom: 'calc(2rem + max(var(--sticky-cta-h, 0px), var(--hg-consent-h, 0px)))',
+          }}
+        >
+          <p className="m-0 text-body-sm text-fg-secondary">Ontario, Canada. Launching soon — prices in CAD.</p>
+          <p className="m-0 text-body-sm text-fg-secondary">Halal Goes does not itself certify food.</p>
+        </div>
       </div>
     </footer>
   );
