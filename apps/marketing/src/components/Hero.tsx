@@ -1,6 +1,5 @@
 import { CertifierRow } from '@/components/CertifierRow';
 import { LaunchEyebrow } from '@/components/LaunchEyebrow';
-import { Seal } from '@/components/Seal';
 import { WaitlistForm } from '@/components/WaitlistForm';
 import { type AudienceTrack } from '@/lib/audiences';
 import { type LaunchState } from '@/lib/launch';
@@ -13,24 +12,33 @@ import { type LaunchState } from '@/lib/launch';
  * 800. Bricolage Grotesque carries an optical-size axis, so the same face needs
  * LESS weight as it grows — setting the phone value on desktop is what made the
  * first desktop pass read as too heavy.
+ *
+ * THERE IS NO SEAL HERE, and that is the decision rather than an omission.
+ *
+ * Everywhere else on the site the seal is attached to something: the stamp on
+ * Form HG-7, issued only on 7/7; the specimen record card; the badge on a
+ * listing inside the device screens; the certified state in the four-state
+ * grid. In the hero it was attached to nothing — no restaurant, no certificate,
+ * no issuer, no date. A mark we drew ourselves, floating above a headline that
+ * already says the same words.
+ *
+ * That is the one thing this brand argues against. A seal is supposed to mean a
+ * specific record exists and a named person checked it on a named day; a seal
+ * that means "we are the kind of company that has seals" is the decoration the
+ * whole verification instrument exists to replace. It also had to be sized,
+ * placed and kept out of the type's way on every track and every width, and it
+ * lost that fight on two of three tracks.
+ *
+ * What carries the claim instead is already here and is real: the headline says
+ * it, and CertifierRow immediately below names the three bodies whose
+ * certificates we accept. Three named accreditors beat one self-issued badge.
  */
 export function Hero({ track, launch }: { track: AudienceTrack; launch: LaunchState }) {
   return (
     <section className="mt-6 lg:mt-10">
       <LaunchEyebrow state={launch} />
 
-      <div className="relative mt-5 lg:mt-[22px] lg:flex lg:items-center lg:gap-12">
-        {/* Phone only: the sage plate sits BEHIND the headline, so the type runs
-            onto it, while the seal below sits in front and the type runs behind
-            that. The two layers either side of the headline are the whole
-            composition — collapsing them into one would either hide the end of
-            the first line or float the seal off its plate. On desktop there is
-            no overlap at all, so the plate and seal become one element. */}
-        <div
-          aria-hidden="true"
-          className="absolute -end-1 top-1 z-0 size-34 rounded-full bg-mk-seal-plate lg:hidden"
-        />
-
+      <div className="mt-5 lg:mt-[22px]">
         {/* The phone hero is 72px by the artboard, and 72px does not fit every
             phone: "commission" is up to 5.32× its font size in Bricolage Bold, so it
             needs 373px inside a 350px box at 390 and a 320px box at 360 — 3px of
@@ -44,7 +52,7 @@ export function Hero({ track, launch }: { track: AudienceTrack; launch: LaunchSt
             5.32 is measured, not guessed — the widest line across the three
             tracks, divided by the font size. Re-measure it if a headline changes:
             range.selectNodeContents(span) on each line, widest ÷ fontSize. */}
-        <h1 className="relative z-10 m-0 font-display text-marketing-hero-phone text-fg-primary max-lg:[font-size:min(4.5rem,calc(18.8vw-7.6px))] lg:w-max lg:flex-none lg:text-marketing-hero">
+        <h1 className="m-0 font-display text-marketing-hero-phone text-fg-primary max-lg:[font-size:min(4.5rem,calc(18.8vw-7.6px))] lg:text-marketing-hero">
           {track.headline.map((line) => (
             <span key={line} className="block">
               {line}
@@ -52,10 +60,6 @@ export function Hero({ track, launch }: { track: AudienceTrack; launch: LaunchSt
           ))}
         </h1>
 
-        <div className="absolute end-1 top-3 z-20 lg:static lg:z-auto lg:grid lg:size-74 lg:flex-none lg:place-items-center lg:rounded-full lg:bg-mk-seal-plate">
-          <Seal size={120} className="lg:hidden" />
-          <Seal size={240} className="hidden lg:block" />
-        </div>
       </div>
 
       <div className="mt-5 lg:mt-7 lg:grid lg:grid-cols-[1fr_440px] lg:grid-rows-[auto_1fr] lg:gap-x-12">
