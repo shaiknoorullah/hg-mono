@@ -47,7 +47,7 @@ export default async function PostPage({ params }: Params) {
 
   return (
     <PageShell>
-      <article className="mt-8 md:mt-12">
+      <article className="mt-8 lg:mt-12">
         <Link
           href="/blog"
           className="inline-flex min-h-11 items-center font-mono text-[11px] leading-none font-medium tracking-[0.08em] text-mk-ink uppercase"
@@ -55,10 +55,10 @@ export default async function PostPage({ params }: Params) {
           ← Writing
         </Link>
 
-        <h1 className="mt-4 mb-0 max-w-[20ch] font-display text-marketing-section-phone text-fg-primary md:text-marketing-section">
+        <h1 className="mt-4 mb-0 max-w-[20ch] font-display text-marketing-section-phone text-fg-primary lg:text-marketing-section">
           {post.title}
         </h1>
-        <p className="mt-4 mb-0 max-w-[60ch] text-body-lg leading-relaxed text-mk-ink md:text-[19px]">
+        <p className="mt-4 mb-0 max-w-[60ch] text-body-lg leading-relaxed text-mk-ink lg:text-[19px]">
           {post.summary}
         </p>
         <time

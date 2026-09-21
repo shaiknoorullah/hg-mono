@@ -1,6 +1,7 @@
 'use server';
 
 import { AUDIENCES, TRACKS, type Audience } from '@/lib/audiences';
+import { WAITLIST_CHANNEL } from '@/lib/claims';
 import { checkContact } from '@/lib/contact';
 import { saveSignup, WaitlistNotConfigured } from '@/lib/waitlist-store';
 
@@ -22,6 +23,26 @@ function isAudience(value: unknown): value is Audience {
   return typeof value === 'string' && (AUDIENCES as readonly string[]).includes(value);
 }
 
+/**
+ * Attribution arrives as a JSON string from a hidden field, so it is whatever
+ * the browser chose to send. Parsed defensively and bounded: nothing here is
+ * trusted, and a malformed blob costs the signup nothing.
+ */
+function readSubmittedUtm(raw: FormDataEntryValue | null): Record<string, string> {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > 2000) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>).slice(0, 12)) {
+      if (typeof v === 'string') out[k.slice(0, 40)] = v.slice(0, 200);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 export async function joinWaitlist(_previous: WaitlistResult, form: FormData): Promise<WaitlistResult> {
   const audience = form.get('audience');
   if (!isAudience(audience)) {
@@ -34,6 +55,15 @@ export async function joinWaitlist(_previous: WaitlistResult, form: FormData): P
   const raw = String(form.get('contact') ?? '');
   const consented = form.get('consent') === 'on';
   const values = { contact: raw, consent: consented };
+
+  // Every track collects email while O-03 (SMS sender registration) is open —
+  // claims.ts, WAITLIST_CHANNEL. This asserts the two have not drifted apart:
+  // a `tel` field with no approved sender behind it collects a channel we
+  // cannot lawfully use, which is worse than not asking.
+  if (track.form.type !== WAITLIST_CHANNEL) {
+    console.error(`[waitlist] track ${audience} collects ${track.form.type}, but WAITLIST_CHANNEL is ${WAITLIST_CHANNEL}.`);
+    return { status: 'error', message: 'Something went wrong. Please reload the page and try again.', values };
+  }
 
   const contact = checkContact(track.form.type, raw);
   if (!contact.ok) return { status: 'invalid', field: 'contact', message: contact.message, values };
@@ -56,6 +86,8 @@ export async function joinWaitlist(_previous: WaitlistResult, form: FormData): P
       kind: track.form.type,
       consentText: track.form.consent,
       consentedAt: new Date().toISOString(),
+      context: String(form.get('context') ?? 'unknown').slice(0, 40),
+      utm: readSubmittedUtm(form.get('utm')),
     });
   } catch (cause) {
     if (cause instanceof WaitlistNotConfigured) {

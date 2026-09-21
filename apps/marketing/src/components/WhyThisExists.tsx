@@ -10,24 +10,24 @@
  */
 export function WhyThisExists() {
   return (
-    <section className="mt-16 md:mt-24">
-      <div className="md:grid md:grid-cols-[1fr_440px] md:items-start md:gap-16">
-        <h2 className="m-0 max-w-[14ch] font-display text-marketing-section-phone text-fg-primary md:text-marketing-section">
+    <section className="mt-16 lg:mt-24">
+      <div className="lg:grid lg:grid-cols-[1fr_440px] lg:items-start lg:gap-16">
+        <h2 className="m-0 max-w-[14ch] font-display text-marketing-section-phone text-fg-primary lg:text-marketing-section">
           Halal is a claim anyone can print.
         </h2>
 
-        <div className="mt-5 md:mt-0">
-          <p className="m-0 text-body-lg leading-relaxed text-mk-ink md:text-[19px]">
+        <div className="mt-5 lg:mt-0">
+          <p className="m-0 text-body-lg leading-relaxed text-mk-ink lg:text-[19px]">
             Canada has more than a dozen halal certifying agencies. Each sets its own standards, and none of
             them is regulated — the Canadian Food Inspection Agency requires halal food to be certified but
             does not do the certifying, and does not oversee the certifiers.
           </p>
-          <p className="mt-4 mb-0 text-body-lg leading-relaxed text-mk-ink md:text-[19px]">
+          <p className="mt-4 mb-0 text-body-lg leading-relaxed text-mk-ink lg:text-[19px]">
             In 2024, a CBC Marketplace investigation visited ten fast-food locations advertising halal food.
             Staff at six said the whole restaurant was certified. None of the ten was. Between them they
             produced eight expired certificates — one set had run out eight years earlier.
           </p>
-          <p className="mt-4 mb-0 text-body-lg leading-relaxed font-medium text-fg-primary md:text-[19px]">
+          <p className="mt-4 mb-0 text-body-lg leading-relaxed font-medium text-fg-primary lg:text-[19px]">
             That is the gap. Not restaurants lying, mostly: paperwork nobody checks.
           </p>
           <p className="mt-5 mb-0 font-mono text-[10.5px] leading-relaxed tracking-[0.03em] text-mk-ink">

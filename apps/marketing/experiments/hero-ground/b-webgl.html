@@ -1,0 +1,48 @@
+<!doctype html><meta charset=utf-8><title>Hero B — runtime WebGL2 quad</title>
+<style>
+:root{--cream:#FFFAEA;--forest:#1B3B31;--ink:#232323;--orange:#F1521E}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);
+ font:400 17px/1.65 system-ui,sans-serif;min-height:100vh}
+#g{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.055;mix-blend-mode:multiply}
+main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:12vh 24px}
+h1{font-weight:800;font-size:clamp(40px,6.6vw,72px);line-height:1.02;letter-spacing:-.035em;
+ max-width:12ch;margin:0 0 24px}
+p{max-width:56ch;margin:0 0 32px;font-size:20px;line-height:1.45}
+.rec{font:500 14px/1.5 ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;
+ color:var(--forest);border-top:1px solid #1b3b3122;padding-top:10px;max-width:62ch}
+a.cta{display:inline-block;background:var(--orange);color:#fff;text-decoration:none;
+ padding:14px 22px;border-radius:11px;font-weight:600;min-height:44px}
+</style>
+<canvas id=g></canvas>
+<main>
+<h1>You already have a list. It's four places long.</h1>
+<p>Every kitchen here had its halal certificate read by a person, against seven checks, before it was listed.</p>
+<a class=cta href=#>See the list</a>
+<p class=rec>SPECIMEN — THE FIELDS WE FILL IN BEFORE A KITCHEN IS LISTED.</p>
+</main>
+<script>
+// One fullscreen triangle, one fragment shader, bare WebGL2. No three.js.
+// Every animated value is a uniform (uP), so reduced motion = the same shader at a fixed uP.
+(()=>{const c=document.getElementById('g'),gl=c.getContext('webgl2',{antialias:false,alpha:true});
+if(!gl){c.remove();return}
+const vs=`#version 300 es
+void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.-1.,0,1);}`;
+const fs=`#version 300 es
+precision mediump float;uniform vec2 uR;uniform float uP;out vec4 o;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);
+ return mix(mix(h(i),h(i+vec2(1,0)),u.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),u.x),u.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int k=0;k<3;k++){v+=a*n(p);p*=2.;a*=.5;}return v;}
+void main(){vec2 p=gl_FragCoord.xy/128.;
+ float t=.55*fbm(p*12.)+.45*fbm(vec2(p.x*4.,p.y*.6));
+ float g=.5+(t-.5)*.82*uP; o=vec4(vec3(g),1.);}`;
+const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);return x};
+const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));
+gl.linkProgram(pr);gl.useProgram(pr);
+const uR=gl.getUniformLocation(pr,'uR'),uP=gl.getUniformLocation(pr,'uP');
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function draw(p){const d=Math.min(devicePixelRatio,1.5);c.width=innerWidth*d|0;c.height=innerHeight*d|0;
+ gl.viewport(0,0,c.width,c.height);gl.uniform2f(uR,c.width,c.height);gl.uniform1f(uP,p);gl.drawArrays(gl.TRIANGLES,0,3);}
+draw(1);addEventListener('resize',()=>draw(1));
+if(!still){/* ticker would live here; the static path is the identical shader at uP=1 */}})();
+</script>

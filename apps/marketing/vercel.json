@@ -3,5 +3,5 @@
 
   "installCommand": "pnpm install --frozen-lockfile --filter '@hg/marketing...'",
 
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../packages/ui-web ../../pnpm-lock.yaml"
+  "ignoreCommand": "base=${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}; git cat-file -e \"$base^{commit}\" 2>/dev/null || base=HEAD^; git diff --quiet \"$base\" HEAD -- . ../../packages/ui-web ../../pnpm-lock.yaml"
 }

@@ -1,0 +1,99 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#FFFAEA}canvas{display:block}</style></head>
+<body>
+<script type="module">
+import * as THREE from './lib/three.module.js';
+
+const W = 720, H = 960;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.setClearColor(0xFFFAEA, 1);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(22, W / H, 0.1, 100);
+camera.position.set(0, 0, 21);
+
+// ---- procedural unbranded slab: rounded-rect extrusion, no notch, no camera bump ----
+function roundedSlab(w, h, r, depth) {
+  const s = new THREE.Shape();
+  s.moveTo(-w/2 + r, -h/2);
+  s.lineTo(w/2 - r, -h/2); s.quadraticCurveTo(w/2, -h/2, w/2, -h/2 + r);
+  s.lineTo(w/2, h/2 - r);  s.quadraticCurveTo(w/2, h/2, w/2 - r, h/2);
+  s.lineTo(-w/2 + r, h/2); s.quadraticCurveTo(-w/2, h/2, -w/2, h/2 - r);
+  s.lineTo(-w/2, -h/2 + r);s.quadraticCurveTo(-w/2, -h/2, -w/2 + r, -h/2);
+  return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 3, curveSegments: 16 });
+}
+
+const PW = 3.0, PH = 6.3;
+const body = new THREE.Mesh(
+  roundedSlab(PW, PH, 0.42, 0.3),
+  new THREE.MeshStandardMaterial({ color: 0x1B3B31, roughness: 0.42, metalness: 0.25 })
+);
+body.position.z = -0.15;
+
+// ---- screen: CanvasTexture so we can draw real UI, and swap it per step ----
+const sc = document.createElement('canvas');
+sc.width = 512; sc.height = 1088;
+const ctx = sc.getContext('2d');
+
+function drawScreen(step) {
+  const w = sc.width, h = sc.height;
+  ctx.fillStyle = '#FFFAEA'; ctx.fillRect(0, 0, w, h);
+  ctx.textBaseline = 'top';
+  // ruled blank where a restaurant name would be — never an invented one
+  ctx.strokeStyle = '#8B8578'; ctx.globalAlpha = 0.6; ctx.lineWidth = 3;
+  ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(48, 120); ctx.lineTo(320, 120); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  if (step === 0) {
+    ctx.fillStyle = '#E9F3E4'; ctx.beginPath(); ctx.roundRect(40, 190, w - 80, 250, 24); ctx.fill();
+    ctx.fillStyle = '#0F7A43'; ctx.beginPath(); ctx.roundRect(72, 230, 300, 78, 20); ctx.fill();
+    ctx.strokeStyle = '#C9A24B'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(72, 230, 300, 78, 20); ctx.stroke();
+    ctx.fillStyle = '#FFFFFF'; ctx.font = '600 34px sans-serif'; ctx.fillText('Halal certified', 122, 250);
+    ctx.fillStyle = '#1B3B31'; ctx.font = '400 22px sans-serif';
+    ctx.fillText('Halal Goes does not itself', 72, 340);
+    ctx.fillText('certify food.', 72, 372);
+  } else {
+    ctx.fillStyle = '#1B3B31'; ctx.font = '600 30px sans-serif';
+    const rows = ['Sealed at the kitchen', 'Scanned at pickup', 'On the way', 'Delivered'];
+    rows.forEach((t, i) => {
+      const done = i <= step;
+      ctx.fillStyle = done ? '#0F7A43' : '#E6E0D4';
+      ctx.beginPath(); ctx.arc(70, 226 + i * 96, 16, 0, 7); ctx.fill();
+      ctx.fillStyle = done ? '#1B3B31' : '#8B8578';
+      ctx.font = '600 30px sans-serif'; ctx.fillText(t, 110, 210 + i * 96);
+    });
+  }
+}
+drawScreen(0);
+
+const tex = new THREE.CanvasTexture(sc);
+tex.colorSpace = THREE.SRGBColorSpace;
+tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const screen = new THREE.Mesh(
+  new THREE.PlaneGeometry(PW - 0.34, PH - 0.34),
+  new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })
+);
+screen.position.z = 0.235;
+
+const phone = new THREE.Group();
+phone.add(body); phone.add(screen);
+scene.add(phone);
+
+scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(-4, 6, 8); scene.add(key);
+const rim = new THREE.DirectionalLight(0xC9A24B, 0.8); rim.position.set(6, -2, 3); scene.add(rim);
+
+window.__renderFrame = (p) => {                     // p: 0..1 scroll progress
+  phone.rotation.y = (-0.55 + p * 1.1) * Math.PI / 3;
+  phone.rotation.x = 0.12 - p * 0.24;
+  phone.position.y = 0.5 - p * 1.0;
+  const step = Math.min(3, Math.floor(p * 4));
+  if (step !== window.__step) { window.__step = step; drawScreen(step); tex.needsUpdate = true; }
+  renderer.render(scene, camera);
+  return renderer.domElement.toDataURL('image/png');
+};
+window.__ready = true;
+</script>
+</body></html>

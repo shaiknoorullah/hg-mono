@@ -56,19 +56,19 @@ function PassMark() {
 
 export function VerificationSheet() {
   return (
-    <section id="seven-checks" className="mt-16 scroll-mt-6 md:mt-24">
-      <div className="md:grid md:grid-cols-[1fr_440px] md:items-end md:gap-16">
+    <section id="seven-checks" className="mt-16 scroll-mt-6 lg:mt-24">
+      <div className="lg:grid lg:grid-cols-[1fr_440px] lg:items-end lg:gap-16">
         <div>
-          <p className="m-0 inline-block rounded-full bg-feedback-success-tint px-3 py-2 text-marketing-eyebrow-phone text-mk-ink uppercase md:px-3.5 md:py-2.5 md:text-marketing-eyebrow">
+          <p className="m-0 inline-block rounded-full bg-feedback-success-tint px-3 py-2 text-marketing-eyebrow-phone text-mk-ink uppercase lg:px-3.5 lg:py-2.5 lg:text-marketing-eyebrow">
             What verified means
           </p>
-          <h2 className="mt-4 mb-0 max-w-[700px] font-display text-marketing-section-phone text-fg-primary md:mt-[18px] md:text-marketing-section">
+          <h2 className="mt-4 mb-0 max-w-[700px] font-display text-marketing-section-phone text-fg-primary lg:mt-[18px] lg:text-marketing-section">
             Verified is a record,
             <br />
             not a promise.
           </h2>
         </div>
-        <p className="mt-4 mb-0 text-body-lg leading-relaxed text-mk-ink md:mt-0 md:mb-1.5 md:text-[19px]">
+        <p className="mt-4 mb-0 text-body-lg leading-relaxed text-mk-ink lg:mt-0 lg:mb-1.5 lg:text-[19px]">
           Before a restaurant can appear on Halal Goes, a reviewer reads its halal certificate and records
           seven checks against it. This is the sheet they fill in. Nothing on it is inferred, scanned or
           auto-approved.
@@ -78,8 +78,8 @@ export function VerificationSheet() {
       {/* The hinge: the first monospace on the page, on the cream, just above the
           sheet — so the shift from marketing voice to document voice is visible
           before the document arrives. */}
-      <p className="mt-6 mb-0 flex items-center gap-3 font-mono text-[10px] leading-tight font-medium tracking-[0.08em] text-mk-ink uppercase md:mt-[30px] md:text-[11px] md:leading-none">
-        <span aria-hidden="true" className="hidden h-px w-7 flex-none bg-fg-primary md:block" />
+      <p className="mt-6 mb-0 flex items-center gap-3 font-mono text-[10px] leading-tight font-medium tracking-[0.08em] text-mk-ink uppercase lg:mt-[30px] lg:text-[11px] lg:leading-none">
+        <span aria-hidden="true" className="hidden h-px w-7 flex-none bg-fg-primary lg:block" />
         Exhibit A — the verification sheet, as a reviewer sees it · specimen, no restaurant named
       </p>
 
@@ -87,21 +87,21 @@ export function VerificationSheet() {
           everywhere inside — the only square corners on the site. */}
       <section
         aria-label="Form HG-7, certificate of halal verification, specimen"
-        className="mt-2 box-border border border-fg-primary bg-surface-raised px-4 py-5 outline outline-fg-primary outline-offset-4 md:mt-3.5 md:px-8 md:pt-[22px] md:pb-5"
+        className="mt-2 box-border border border-fg-primary bg-surface-raised px-4 py-5 outline outline-fg-primary outline-offset-4 lg:mt-3.5 lg:px-8 lg:pt-[22px] lg:pb-5"
       >
-        <div className={`flex flex-col gap-1 border-b pb-3 font-mono md:flex-row md:items-baseline md:justify-between ${RULE}`}>
-          <span className="text-[11px] leading-none font-semibold tracking-[0.1em] text-fg-primary uppercase md:text-[12.5px]">
+        <div className={`flex flex-col gap-1 border-b pb-3 font-mono lg:flex-row lg:items-baseline lg:justify-between ${RULE}`}>
+          <span className="text-[11px] leading-none font-semibold tracking-[0.1em] text-fg-primary uppercase lg:text-[12.5px]">
             Form HG-7 — certificate of halal verification
           </span>
-          <span className="text-[10px] leading-none font-medium tracking-[0.04em] text-mk-ink uppercase md:text-[11.5px]">
+          <span className="text-[10px] leading-none font-medium tracking-[0.04em] text-mk-ink uppercase lg:text-[11.5px]">
             Specimen · rev. 1 · checklist v1 · Ontario
           </span>
         </div>
 
-        <div className="md:grid md:grid-cols-[1fr_392px] md:gap-x-10">
+        <div className="lg:grid lg:grid-cols-[1fr_392px] lg:gap-x-10">
           {/* ---- Schedules A and B ---------------------------------------- */}
           <div className="flex min-w-0 flex-col">
-            <div className={`mt-4 flex items-baseline justify-between gap-3 border-b pb-1.5 md:mt-[18px] ${RULE}`}>
+            <div className={`mt-4 flex items-baseline justify-between gap-3 border-b pb-1.5 lg:mt-[18px] ${RULE}`}>
               <h3 className={SCHEDULE_HEAD}>Schedule A — the seven checks</h3>
               <span className={FURNITURE}>7/7</span>
             </div>
@@ -110,17 +110,17 @@ export function VerificationSheet() {
               {SCHEDULE_A.map(({ n, text, by }, i) => (
                 <li
                   key={n}
-                  className={`flex items-center gap-2.5 border-b py-3 text-fg-primary md:h-10 md:py-0 ${
+                  className={`flex items-center gap-2.5 border-b py-3 text-fg-primary lg:h-10 lg:py-0 ${
                     i === SCHEDULE_A.length - 1 ? RULE : 'border-line-decorative'
                   }`}
                 >
                   <span className="w-7 flex-none font-mono text-[12px] font-medium text-mk-ink tabular-nums">
                     {n}
                   </span>
-                  <span className="min-w-0 flex-1 text-body-md leading-snug font-medium md:text-[17px] md:leading-tight">
+                  <span className="min-w-0 flex-1 text-body-md leading-snug font-medium lg:text-[17px] lg:leading-tight">
                     {text}
                   </span>
-                  <span className="hidden w-[184px] flex-none font-mono text-[10.5px] leading-none font-medium tracking-[0.04em] text-mk-ink uppercase md:block">
+                  <span className="hidden w-[184px] flex-none font-mono text-[10.5px] leading-none font-medium tracking-[0.04em] text-mk-ink uppercase lg:block">
                     {by}
                   </span>
                   <PassMark />
@@ -135,7 +135,7 @@ export function VerificationSheet() {
 
             <div className={`mt-5 flex items-baseline justify-between gap-3 border-b pb-1.5 ${RULE}`}>
               <h3 className={SCHEDULE_HEAD}>Schedule B — accepted issuing bodies</h3>
-              <span className={`${FURNITURE} hidden md:block`}>Registry · 3 seeded · extensible</span>
+              <span className={`${FURNITURE} hidden lg:block`}>Registry · 3 seeded · extensible</span>
             </div>
 
             <div className="mt-3.5 flex flex-wrap items-center gap-3">
@@ -154,7 +154,7 @@ export function VerificationSheet() {
                   </div>
                 </div>
               ))}
-              <p className="m-0 min-w-[240px] flex-1 text-body-sm leading-relaxed text-mk-ink md:ms-2.5 md:text-[14.5px]">
+              <p className="m-0 min-w-[240px] flex-1 text-body-sm leading-relaxed text-mk-ink lg:ms-2.5 lg:text-[14.5px]">
                 A certificate from any <strong className="font-semibold text-fg-primary">one</strong> of these
                 satisfies check 02. The registry is seeded, not closed — a body can be added as it is
                 accepted — but the issuer is always chosen from the registry, never typed in.
@@ -162,35 +162,35 @@ export function VerificationSheet() {
             </div>
 
             <div
-              className={`mt-6 flex justify-between gap-4 border-t pt-3 font-mono text-[10px] leading-none font-medium tracking-[0.05em] text-mk-ink uppercase md:mt-auto md:text-[10.5px] ${RULE}`}
+              className={`mt-6 flex justify-between gap-4 border-t pt-3 font-mono text-[10px] leading-none font-medium tracking-[0.05em] text-mk-ink uppercase lg:mt-auto lg:text-[10.5px] ${RULE}`}
             >
               <span>Rejection — any one fail, with a reason code</span>
-              <span className="hidden md:block">Page 1 of 1</span>
+              <span className="hidden lg:block">Page 1 of 1</span>
             </div>
           </div>
 
           {/* ---- Schedule C: the outcome, and what happens on lapse -------- */}
-          <div className="mt-8 flex min-w-0 flex-col md:mt-[18px] md:border-s md:border-fg-primary md:ps-7">
+          <div className="mt-8 flex min-w-0 flex-col lg:mt-[18px] lg:border-s lg:border-fg-primary lg:ps-7">
             <div className={`flex items-baseline justify-between gap-3 border-b pb-1.5 ${RULE}`}>
               <h3 className={SCHEDULE_HEAD}>Schedule C — outcome</h3>
-              <span className={`${FURNITURE} hidden md:block`}>Issued on 7/7 only</span>
+              <span className={`${FURNITURE} hidden lg:block`}>Issued on 7/7 only</span>
             </div>
 
             <div className="mt-3.5 flex items-center gap-3">
-              <p className="m-0 min-w-0 flex-1 text-body-md leading-snug text-fg-primary md:text-[15.5px]">
+              <p className="m-0 min-w-0 flex-1 text-body-md leading-snug text-fg-primary lg:text-[15.5px]">
                 The seal is the outcome of the sheet, not a setting: issued only when all seven checks are
                 marked passed. Six of seven is a rejection with a reason, not a seal.
               </p>
               {/* Off-axis, like a stamp applied by hand rather than a logo placed. */}
               <div className="flex-none -rotate-8">
-                <StampSeal size={168} className="hidden md:block" />
-                <StampSeal size={120} className="md:hidden" />
+                <StampSeal size={168} className="hidden lg:block" />
+                <StampSeal size={120} className="lg:hidden" />
               </div>
             </div>
 
-            <div className={`mt-5 flex items-baseline justify-between gap-3 border-b pb-1.5 md:mt-[18px] ${RULE}`}>
+            <div className={`mt-5 flex items-baseline justify-between gap-3 border-b pb-1.5 lg:mt-[18px] ${RULE}`}>
               <h3 className={SCHEDULE_HEAD}>On lapse</h3>
-              <span className={`${FURNITURE} hidden md:block`}>Withdrawn at expiry · same day</span>
+              <span className={`${FURNITURE} hidden lg:block`}>Withdrawn at expiry · same day</span>
             </div>
 
             <div className="mt-3.5 flex items-center gap-3">
@@ -219,7 +219,7 @@ export function VerificationSheet() {
               </span>
             </div>
 
-            <p className="mt-3.5 mb-0 text-body-md leading-snug text-fg-primary md:text-[15px]">
+            <p className="mt-3.5 mb-0 text-body-md leading-snug text-fg-primary lg:text-[15px]">
               When a certificate reaches its expiry date, the seal is withdrawn that same day. The listing
               shows the state above — neutral slate, meaning{' '}
               <em className="font-semibold not-italic">we can’t currently vouch</em> — never a red warning,
@@ -227,7 +227,7 @@ export function VerificationSheet() {
               at all. We don’t guess.
             </p>
 
-            <p className="mt-5 mb-0 border-t border-line-decorative pt-3 font-mono text-[10.5px] leading-relaxed tracking-[0.03em] text-mk-ink md:mt-auto">
+            <p className="mt-5 mb-0 border-t border-line-decorative pt-3 font-mono text-[10.5px] leading-relaxed tracking-[0.03em] text-mk-ink lg:mt-auto">
               APPROVED → EXPIRED at expires_on, end of day, America/Toronto. Red is never used for a halal
               state: red reads as a religious ruling, and this platform does not make one.
             </p>
@@ -236,8 +236,8 @@ export function VerificationSheet() {
       </section>
 
       {/* Back to the warm voice: soft radius, sage, display face. */}
-      <div className="mt-6 box-border flex flex-col gap-3 rounded-xl bg-feedback-success-tint px-5 py-3.5 md:flex-row md:items-center md:justify-between md:gap-8 md:ps-6.5">
-        <p className="m-0 max-w-[900px] text-body-md leading-snug text-mk-ink md:text-[17px]">
+      <div className="mt-6 box-border flex flex-col gap-3 rounded-xl bg-feedback-success-tint px-5 py-3.5 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:ps-6.5">
+        <p className="m-0 max-w-[900px] text-body-md leading-snug text-mk-ink lg:text-[17px]">
           Every restaurant you can order from has a sheet like this on file. Issuing body, certificate
           number, dates and the day we verified it are on the restaurant’s page, with the certificate one
           tap away.

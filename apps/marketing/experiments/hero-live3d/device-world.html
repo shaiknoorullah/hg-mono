@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verified Halal Delivered</title>
+<meta name="description" content="Halal Goes hero: two handsets carry an order from a verified listing to the door, driven by native scroll in one persistent WebGL scene.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Plus+Jakarta+Sans:wght@200..800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+  /* If the module never boots (no import-map support, CDN unreachable, script error before the first frame),
+     fall back to the plain ordered story with a visible message rather than a silent canvas. */
+  (function () {
+    var done = false;
+    function fail(msg) {
+      if (done || document.documentElement.classList.contains('js-gl')) return;
+      done = true;
+      document.documentElement.classList.add('no-gl');
+      var el = document.getElementById('nogl'); if (el && msg) el.textContent = msg;
+    }
+    addEventListener('error', function (e) {
+      /* Only our own module script counts. A failed font stylesheet, image or an
+         unrelated host-runtime error must not tear down a scene that is fine. */
+      if (e && e.target && e.target.tagName === 'SCRIPT' && e.target.type === 'module') {
+        fail('The 3D scene could not start in this browser. The story continues below in order.');
+      }
+    }, true);
+    addEventListener('load', function () {
+      setTimeout(function () { fail('The 3D scene has not loaded. The story continues below in order.'); }, 9000);
+    });
+  })();
+</script>
+<style>
+  :root {
+    color-scheme: light;
+    --cream: #FFFAEA; --sunken: #F6EFDD; --white: #FFFFFF;
+    --ink: #232323; --body: #4A4E48; --mink: #1B3B31; --hair: #E6E0D4;
+    --orange: #F1521E; --on-orange: #0F241C;
+    --seal: #0F7A43; --brass: #C9A24B; --sage: #E9F3E4;
+    --font-display: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-ui: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--cream); }
+  body {
+    margin: 0; background: var(--cream); color: var(--ink);
+    font-family: var(--font-ui); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  #stage {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    z-index: 0; background: var(--cream);
+  }
+  main { position: relative; z-index: 1; }
+
+  /* Chapters are tall spacers; the copy is pinned and crossfaded once WebGL is live. */
+  .chapter { min-height: 150vh; min-height: 150dvh; }
+  .chapter--hero, .chapter--last { min-height: 100vh; min-height: 100dvh; }
+  .copy {
+    width: min(640px, calc(100vw - 32px)); margin: 0 auto; padding: 12vh 0;
+    text-align: center;
+  }
+  html.js-gl .copy {
+    position: fixed; left: 50%; top: 50%; padding: 0;
+    transform: translate(-50%, -50%); opacity: 0; pointer-events: none;
+    will-change: opacity, transform;
+  }
+  html.js-gl .copy[data-active="true"] { pointer-events: auto; }
+
+  .eyebrow {
+    margin: 0 0 18px; font: 500 12px/1.4 var(--font-mono); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--mink);
+  }
+  h1 {
+    margin: 0; color: var(--ink); font-family: var(--font-display);
+    font-weight: 650; font-variation-settings: "opsz" 96; letter-spacing: -0.03em;
+    font-size: clamp(56px, 8.6vw, 116px); line-height: 0.92; text-wrap: balance;
+  }
+  h1 .l { display: block; }
+  .lede {
+    margin: 26px auto 0; max-width: 34ch; color: var(--body);
+    font-size: clamp(17px, 1.55vw, 21px); line-height: 1.45; font-weight: 400;
+  }
+  h2 {
+    margin: 0 auto; max-width: 14ch; color: var(--mink); font-weight: 700; letter-spacing: -0.02em;
+    font-size: clamp(28px, 3.3vw, 44px); line-height: 1.08; text-wrap: balance;
+  }
+  .copy p.body {
+    margin: 18px auto 0; max-width: 36ch; color: var(--body);
+    font-size: clamp(16px, 1.3vw, 18px); line-height: 1.55;
+  }
+  @media (max-width: 640px) {
+    h1 { font-weight: 800; font-size: clamp(52px, 15vw, 64px); }
+    .eyebrow { margin-bottom: 14px; }
+    .lede { margin-top: 18px; font-size: 16px; }
+    h2 { font-size: 27px; }
+    .copy p.body { margin-top: 12px; font-size: 15px; }
+  }
+
+  /* Measurement badge: honest numbers, solid plate, no blur. */
+  #badge {
+    position: fixed; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 3;
+    font: 500 11px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase;
+    font-variant-numeric: tabular-nums; color: var(--body);
+    background: var(--cream); border: 1px solid var(--hair); border-radius: 6px;
+    padding: 7px 9px; pointer-events: none; white-space: nowrap;
+  }
+  #debug {
+    position: fixed; left: 12px; bottom: 12px; z-index: 3; display: none;
+    font: 400 11px/1.5 var(--font-mono); color: var(--body); white-space: pre;
+    background: var(--cream); border: 1px solid var(--hair); border-radius: 6px; padding: 8px 10px;
+  }
+  html.debug #debug { display: block; }
+
+  /* No WebGL: keep the story as a plain, ordered page. */
+  #nogl {
+    display: none; margin: 24px auto 0; width: min(640px, calc(100vw - 32px));
+    padding: 16px 18px; border: 1px solid var(--hair); border-radius: 10px;
+    font: 500 12px/1.5 var(--font-mono); letter-spacing: 0.04em; color: var(--body); background: var(--sunken);
+  }
+  html.no-gl #nogl { display: block; }
+  html.no-gl #stage, html.no-gl #badge, html.no-gl #debug { display: none; }
+  html.no-gl .chapter { min-height: 0; }
+
+  /* Narrow desktop aspects (tablet landscape): tighten the centre column so the flanks stay clear. */
+  @media (min-width: 641px) and (max-aspect-ratio: 1.45/1) {
+    h2 { max-width: 12ch; }
+    .copy p.body { max-width: 30ch; }
+    .lede { max-width: 30ch; }
+  }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-hidden="true"></canvas>
+
+<main>
+  <p id="nogl" role="status">This page renders two handsets with WebGL, which this browser has not made available. The story continues below in order.</p>
+
+  <section class="chapter chapter--hero" data-chapter="hero" aria-labelledby="h-title">
+    <header class="copy">
+      <p class="eyebrow">ONTARIO · LAUNCHING SOON</p>
+      <h1 id="h-title"><span class="l">Verified</span><span class="l">halal,</span><span class="l">delivered.</span></h1>
+      <p class="lede">Seven checks on every restaurant, before it reaches you.</p>
+    </header>
+  </section>
+
+  <section class="chapter" data-chapter="browse" aria-labelledby="c1">
+    <div class="copy">
+      <p class="eyebrow">01 · Browse</p>
+      <h2 id="c1">Only verified kitchens are listed.</h2>
+      <p class="body">Every restaurant on Halal Goes holds a halal certificate that a person has read against seven checks. If the certificate lapses, the listing goes with it.</p>
+    </div>
+  </section>
+
+  <section class="chapter" data-chapter="record" aria-labelledby="c2">
+    <div class="copy">
+      <p class="eyebrow">02 · The record</p>
+      <h2 id="c2">The certificate, in the open.</h2>
+      <p class="body">Who issued it and the seven checks it passed sit on every listing. Halal Goes does not itself certify food.</p>
+    </div>
+  </section>
+
+  <section class="chapter" data-chapter="sealed" aria-labelledby="c3">
+    <div class="copy">
+      <p class="eyebrow">03 · Sealed</p>
+      <h2 id="c3">Closed until you open it.</h2>
+      <p class="body">A tamper seal goes across your bag before it leaves the restaurant, and the rider scans it at pickup.</p>
+    </div>
+  </section>
+
+  <section class="chapter chapter--last" data-chapter="door" aria-labelledby="c4">
+    <div class="copy">
+      <p class="eyebrow">04 · At your door</p>
+      <h2 id="c4">Every step, on the record.</h2>
+      <p class="body">Accepted, sealed, picked up, delivered. Each step is stamped on your order in the sequence it happened.</p>
+    </div>
+  </section>
+</main>
+
+<div id="badge" role="status" aria-live="off">— FPS · —×—</div>
+<pre id="debug" aria-hidden="true"></pre>
+
+<script type="module">
+/* three.js r169 (MIT). Loaded from the copy published beside this page first, so the
+   scene does not depend on a CDN being reachable or on the host's script-src policy.
+   The CDNs are only a fallback for opening this file straight from disk. */
+const THREE_SOURCES = [
+  './three.module.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.169.0/three.module.min.js',
+  'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js',
+];
+let THREE = null, threeErr = null;
+for (const src of THREE_SOURCES) {
+  try { THREE = await import(src); break; } catch (err) { threeErr = err; }
+}
+if (!THREE) console.error('three.js could not be loaded from any source', threeErr);
+/* ───────────────────────── helpers ───────────────────────── */
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smoothstep = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+const damp = (c, t, l, dt) => c + (t - c) * (1 - Math.exp(-l * dt));
+
+/* Brand palette — the only chromatic values on the page. Greys are derived for shading only. */
+const C = {
+  cream: '#FFFAEA', sunken: '#F6EFDD', white: '#FFFFFF',
+  ink: '#232323', body: '#4A4E48', mink: '#1B3B31', hair: '#E6E0D4',
+  orange: '#F1521E', onOrange: '#0F241C',
+  seal: '#0F7A43', brass: '#C9A24B', sage: '#E9F3E4'
+};
+
+/* Unbranded handset. 1 unit = 10 cm: 71.5 × 147 × 7.8 mm, uniform 3.2 mm bezel, no notch, no bump. */
+const PHONE = { w: 0.715, h: 1.47, d: 0.078, r: 0.105, bezel: 0.032, bevel: 0.016 };
+const SCREEN = { w: PHONE.w - 2 * PHONE.bezel, h: PHONE.h - 2 * PHONE.bezel, r: PHONE.r - PHONE.bezel };
+
+/* ───────────────────────── scene ledger ─────────────────────────
+   Five keyframes: the hero establishing frame and the four authored chapters.
+   rot = [pitch x, yaw y, roll z]. Phone A bleeds past the top edge, B past the bottom.
+   Each phone changes screen exactly once, as an in-screen push, while the camera arrives at it. */
+const LEDGER = [
+  { id: 'hero', screens: { A: 'browse', B: 'record' }, world: { key: 1.8, rim: 1.3 },
+    desktop: { cam: { pos: [0, 0, 3.6], target: [0, 0, 0], fov: 32 },
+               A: { pos: [-1.08, 0.66, 0], rot: [-0.10, -0.28, 0.05] },
+               B: { pos: [1.08, -0.66, 0], rot: [0.10, 0.28, 0.05] } },
+    mobile:  { cam: { pos: [0, 0, 4.9], target: [0, 0, 0], fov: 32 },
+               A: { pos: [-0.16, 1.22, 0], rot: [-0.08, -0.22, 0.04] },
+               B: { pos: [0.16, -1.22, 0], rot: [0.08, 0.22, 0.04] } } },
+
+  { id: 'browse', screens: { A: 'browse', B: 'record' }, world: { key: 1.9, rim: 1.2 },
+    desktop: { cam: { pos: [-0.18, 0.20, 3.35], target: [-0.22, 0.20, 0], fov: 32 },
+               A: { pos: [-1.14, 0.62, 0.10], rot: [-0.05, -0.08, 0.02] },
+               B: { pos: [1.10, -0.84, -0.35], rot: [0.14, 0.62, 0.04] } },
+    mobile:  { cam: { pos: [0, 0.22, 4.5], target: [0, 0.18, 0], fov: 32 },
+               A: { pos: [-0.12, 1.28, 0.06], rot: [-0.04, -0.06, 0.02] },
+               B: { pos: [0.18, -1.40, -0.35], rot: [0.12, 0.45, 0.03] } } },
+
+  { id: 'record', screens: { A: 'browse', B: 'record' }, world: { key: 1.6, rim: 2.0 },
+    desktop: { cam: { pos: [0.45, -0.22, 3.3], target: [0.28, -0.18, 0], fov: 32 },
+               A: { pos: [-1.14, 0.84, -0.40], rot: [-0.16, -0.70, 0.06] },
+               B: { pos: [1.16, -0.62, 0.12], rot: [0.04, 0.06, -0.02] } },
+    mobile:  { cam: { pos: [0, -0.22, 4.5], target: [0, -0.18, 0], fov: 32 },
+               A: { pos: [-0.18, 1.40, -0.35], rot: [-0.12, -0.50, 0.04] },
+               B: { pos: [0.12, -1.28, 0.06], rot: [0.04, 0.06, -0.02] } } },
+
+  { id: 'sealed', screens: { A: 'sealed', B: 'record' }, world: { key: 1.9, rim: 1.6 },
+    desktop: { cam: { pos: [-0.40, 0.15, 3.1], target: [-0.28, 0.22, 0], fov: 32 },
+               A: { pos: [-1.16, 0.68, 0.20], rot: [-0.02, -0.04, 0.03] },
+               B: { pos: [1.14, -0.76, -0.50], rot: [0.10, 0.78, 0.02] } },
+    mobile:  { cam: { pos: [0, 0.18, 4.4], target: [0, 0.18, 0], fov: 32 },
+               A: { pos: [-0.12, 1.28, 0.10], rot: [-0.02, -0.03, 0.02] },
+               B: { pos: [0.18, -1.44, -0.40], rot: [0.10, 0.60, 0.02] } } },
+
+  { id: 'door', screens: { A: 'sealed', B: 'door' }, world: { key: 1.7, rim: 1.2 },
+    desktop: { cam: { pos: [0.10, 0.75, 4.0], target: [0.05, 0.0, 0], fov: 32 },
+               A: { pos: [-1.10, 0.62, 0], rot: [-0.16, -0.12, 0.02] },
+               B: { pos: [1.10, -0.74, 0.05], rot: [-0.14, 0.10, 0.02] } },
+    mobile:  { cam: { pos: [0, 0.40, 4.9], target: [0, 0.02, 0], fov: 32 },
+               A: { pos: [-0.15, 1.24, 0], rot: [-0.20, -0.08, 0.02] },
+               B: { pos: [0.15, -1.16, 0.03], rot: [-0.14, 0.08, 0.02] } } }
+];
+
+/* ───────────────────────── screen painters ─────────────────────────
+   Logical canvas 400 × 864 pt, drawn at 2× (800 × 1728). Far less UI than a real app,
+   at much larger relative type. Real values are never invented: they are ruled blanks. */
+const PT_W = 400, PT_H = Math.round(400 * SCREEN.h / SCREEN.w), TEX_SCALE = 2;
+const SEVEN_CHECKS = [
+  ['H1', 'Legible and complete'], ['H2', 'Issuer accepted'], ['H3', 'Name matches'],
+  ['H4', 'Address matches'], ['H5', 'Dates valid'], ['H6', 'Scope sufficient'], ['H7', 'Not reused']
+];
+
+function rrect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y); ctx.lineTo(x + w - rr, y); ctx.arcTo(x + w, y, x + w, y + rr, rr);
+  ctx.lineTo(x + w, y + h - rr); ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+  ctx.lineTo(x + rr, y + h); ctx.arcTo(x, y + h, x, y + h - rr, rr);
+  ctx.lineTo(x, y + rr); ctx.arcTo(x, y, x + rr, y, rr); ctx.closePath();
+}
+function text(ctx, str, x, y, { size = 16, weight = 500, font = 'ui', color = C.ink, align = 'left', tracking = 0 } = {}) {
+  ctx.font = `${weight} ${size}px ${font === 'mono' ? '"IBM Plex Mono", ui-monospace, monospace' : '"Plus Jakarta Sans", system-ui, sans-serif'}`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = tracking ? `${tracking}em` : '0em';
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(str, x, y);
+  return ctx.measureText(str).width;
+}
+const mono = (ctx, str, x, y, o = {}) => text(ctx, str.toUpperCase(), x, y, { size: 13, weight: 500, font: 'mono', color: C.body, tracking: 0.06, ...o });
+function blank(ctx, x, y, w, lw = 2) {           /* ruled blank: dashed, ~60 % opacity */
+  ctx.save(); ctx.globalAlpha = 0.6; ctx.strokeStyle = C.ink; ctx.lineWidth = lw; ctx.setLineDash([8, 6]); ctx.lineCap = 'butt';
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke(); ctx.restore();
+}
+function shield(ctx, cx, cy, s, fill, checkColor) {   /* bespoke shield, solid variant */
+  const h = s * 1.12, x0 = cx - s / 2, y0 = cy - h / 2;
+  ctx.beginPath();
+  ctx.moveTo(x0 + s * 0.14, y0); ctx.lineTo(x0 + s * 0.86, y0);
+  ctx.quadraticCurveTo(x0 + s, y0, x0 + s, y0 + h * 0.14); ctx.lineTo(x0 + s, y0 + h * 0.50);
+  ctx.bezierCurveTo(x0 + s, y0 + h * 0.80, x0 + s * 0.74, y0 + h * 0.94, cx, y0 + h);
+  ctx.bezierCurveTo(x0 + s * 0.26, y0 + h * 0.94, x0, y0 + h * 0.80, x0, y0 + h * 0.50);
+  ctx.lineTo(x0, y0 + h * 0.14); ctx.quadraticCurveTo(x0, y0, x0 + s * 0.14, y0); ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = checkColor; ctx.lineWidth = Math.max(1.5, s * 0.13); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - s * 0.25, cy); ctx.lineTo(cx - s * 0.07, cy + h * 0.16); ctx.lineTo(cx + s * 0.27, cy - h * 0.17); ctx.stroke();
+}
+function sealPill(ctx, cx, cy, h, size) {          /* Halal certified: seal green, brass ring, white shield */
+  ctx.font = `600 ${size}px "Plus Jakarta Sans", system-ui, sans-serif`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0em';
+  const label = 'Halal certified', tw = ctx.measureText(label).width;
+  const pad = h * 0.36, glyph = h * 0.5, gap = h * 0.22, w = pad + glyph + gap + tw + pad, x = cx - w / 2, y = cy - h / 2;
+  rrect(ctx, x, y, w, h, h / 2); ctx.fillStyle = C.seal; ctx.fill();
+  ctx.save(); rrect(ctx, x - 3, y - 3, w + 6, h + 6, h / 2 + 3); ctx.strokeStyle = C.brass; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  shield(ctx, x + pad + glyph / 2, cy, glyph, C.white, C.seal);
+  text(ctx, label, x + pad + glyph + gap, cy + size * 0.36, { size, weight: 600, color: C.white });
+  return w;
+}
+function checkDot(ctx, cx, cy, r) {                 /* complete step: ink, never green */
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = C.mink; ctx.fill();
+  ctx.strokeStyle = C.white; ctx.lineWidth = Math.max(1.5, r * 0.22); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - r * 0.42, cy); ctx.lineTo(cx - r * 0.1, cy + r * 0.32); ctx.lineTo(cx + r * 0.46, cy - r * 0.32); ctx.stroke();
+}
+function card(ctx, x, y) {                          /* listing card: photo plate, name blank, seal, distance blank */
+  rrect(ctx, x, y, 352, 118, 18); ctx.fillStyle = C.sunken; ctx.fill();
+  blank(ctx, x + 4, y + 148, 214, 2.5);
+  sealPill(ctx, x + 4 + 74, y + 188, 34, 15);
+  blank(ctx, x + 262, y + 190, 86, 2);
+}
+
+/* Phone A is cropped at the top, so its screens carry their idea low. Phone B is cropped at the bottom, so its screens carry it high. */
+const PAINTERS = {
+  browse(ctx) {
+    mono(ctx, 'Near you · verified', 24, 306);
+    text(ctx, 'Browse', 24, 366, { size: 44, weight: 700 });
+    card(ctx, 24, 404);
+    card(ctx, 24, 636);
+  },
+  record(ctx) {
+    mono(ctx, 'The record', 24, 66);
+    text(ctx, 'Certification', 24, 122, { size: 40, weight: 700 });
+    rrect(ctx, 24, 150, 352, 372, 24); ctx.fillStyle = C.sage; ctx.fill();
+    sealPill(ctx, 200, 206, 56, 22);
+    for (let i = 0; i < 7; i++) {
+      const y = 268 + i * 36;
+      checkDot(ctx, 56, y, 10);
+      text(ctx, SEVEN_CHECKS[i][1], 78, y + 6, { size: 17, weight: 500 });
+      mono(ctx, SEVEN_CHECKS[i][0], 352, y + 5, { size: 12, align: 'right' });
+    }
+    text(ctx, 'Halal Goes does not itself certify food.', 200, 566, { size: 16, weight: 400, color: C.body, align: 'center' });
+  },
+  sealed(ctx) {
+    mono(ctx, 'At pickup', 24, 318);
+    text(ctx, 'Scanned at pickup', 24, 372, { size: 34, weight: 700 });
+    /* bag */
+    ctx.beginPath(); ctx.moveTo(84, 452); ctx.lineTo(316, 452); ctx.lineTo(326, 626);
+    ctx.arcTo(326, 640, 312, 640, 14); ctx.lineTo(88, 640); ctx.arcTo(74, 640, 74, 626, 14); ctx.closePath();
+    ctx.fillStyle = C.sunken; ctx.fill(); ctx.strokeStyle = C.hair; ctx.lineWidth = 2; ctx.stroke();
+    rrect(ctx, 84, 428, 232, 44, 8); ctx.fillStyle = C.hair; ctx.fill();
+    /* tamper strip across the fold */
+    rrect(ctx, 40, 424, 320, 52, 8); ctx.fillStyle = C.white; ctx.fill();
+    ctx.strokeStyle = C.brass; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = C.hair; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(316, 430); ctx.lineTo(316, 470); ctx.stroke(); ctx.restore();
+    mono(ctx, 'Tamper seal · Halal Goes', 176, 455, { size: 12, color: C.ink, align: 'center' });
+    mono(ctx, 'Seal code', 24, 692);
+    blank(ctx, 24, 720, 262, 2.5);
+    rrect(ctx, 24, 764, 352, 56, 14); ctx.fillStyle = C.orange; ctx.fill();
+    text(ctx, 'Track order', 200, 799, { size: 18, weight: 700, color: C.onOrange, align: 'center' });
+  },
+  door(ctx) {
+    mono(ctx, 'Delivered', 24, 66);
+    text(ctx, 'At your door', 24, 124, { size: 44, weight: 700 });
+    mono(ctx, 'Delivered to', 24, 176);
+    blank(ctx, 24, 204, 300, 2.5);
+    blank(ctx, 24, 236, 196, 2.5);
+    const steps = ['Accepted', 'Sealed', 'Picked up', 'Delivered'];
+    ctx.strokeStyle = C.mink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(48, 300); ctx.lineTo(48, 300 + 72 * 3); ctx.stroke();
+    steps.forEach((s, i) => {
+      const y = 300 + i * 72;
+      checkDot(ctx, 48, y, 12);
+      text(ctx, s, 80, y + 7, { size: 21, weight: 600 });
+      blank(ctx, 282, y + 1, 94, 2);
+    });
+  }
+};
+
+function paintScreen(cv, id) {
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(TEX_SCALE, 0, 0, TEX_SCALE, 0, 0);
+  ctx.fillStyle = C.cream; ctx.fillRect(0, 0, PT_W, PT_H);
+  PAINTERS[id](ctx);
+}
+
+/* ───────────────────────── runtime ───────────────────────── */
+const canvas = $('#stage'), badge = $('#badge'), debugEl = $('#debug');
+const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
+let reduce = reduceMQ.matches;
+const finePointer = matchMedia('(pointer: fine)').matches;
+if (/[?&]debug/.test(location.search)) document.documentElement.classList.add('debug');
+
+function fallback(msg) {
+  document.documentElement.classList.add('no-gl');
+  if (msg) $('#nogl').textContent = msg;
+}
+
+const probe = document.createElement('canvas').getContext('webgl2');
+if (!THREE) fallback('The rendering library could not be loaded. The story continues below in order.');
+else if (!probe) fallback();
+else boot();
+
+function roundedRectShape(w, h, r) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+  s.lineTo(x + w, y + h - r); s.absarc(x + w - r, y + h - r, r, 0, Math.PI / 2, false);
+  s.lineTo(x + r, y + h); s.absarc(x + r, y + h - r, r, Math.PI / 2, Math.PI, false);
+  s.lineTo(x, y + r); s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
+function remapUV(geo, w, h) {
+  const p = geo.attributes.position, uv = geo.attributes.uv;
+  for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / w + 0.5, p.getY(i) / h + 0.5);
+  uv.needsUpdate = true;
+}
+
+/* Procedural softbox room for reflections: warm key panel, neutral fill, top strip, rim strip, cream floor bounce. */
+function makeEnvScene() {
+  const s = new THREE.Scene();
+  s.add(new THREE.Mesh(new THREE.BoxGeometry(14, 14, 14), new THREE.MeshBasicMaterial({ color: 0x3E3B37, side: THREE.BackSide })));
+  const panel = (w, h, pos, hex, k) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(k), side: THREE.DoubleSide }));
+    m.position.set(...pos); m.lookAt(0, 0, 0); s.add(m);
+  };
+  panel(4.5, 6, [-4.5, 3.2, 3.6], 0xFFF4E2, 5.5);
+  panel(3, 2.2, [4.6, 0.6, 2.4], 0xFFFFFF, 2.2);
+  panel(7, 0.5, [0, 5.5, -1.5], 0xFFFFFF, 3.5);
+  panel(0.5, 7, [3.6, -0.5, -4.5], 0xFFFFFF, 6);
+  panel(9, 9, [0, -6, 0], 0xF6EFDD, 0.85);
+  return s;
+}
+
+/* Screen material: emissive UI under clearcoat glass; a second map and a push-mix for chapter transitions. */
+function patchScreen(mat, u) {
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uMap2 = u.uMap2; shader.uniforms.uMix = u.uMix;
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform sampler2D uMap2;\nuniform float uMix;')
+      .replace('#include <emissivemap_fragment>', `
+        #ifdef USE_EMISSIVEMAP
+          vec2 suv = vEmissiveMapUv; vec4 emissiveColor;
+          if (suv.y < uMix) { emissiveColor = texture2D(uMap2, vec2(suv.x, suv.y - uMix + 1.0)); }
+          else { emissiveColor = texture2D(emissiveMap, vec2(suv.x, suv.y - uMix)); emissiveColor.rgb *= 1.0 - 0.30 * uMix; }
+          totalEmissiveRadiance *= emissiveColor.rgb;
+        #endif`);
+  };
+  mat.customProgramCacheKey = () => 'hg-screen-push';
+}
+
+function boot() {
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  } catch (e) { fallback(); return; }
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.setClearColor(new THREE.Color(C.cream), 1);
+  document.documentElement.classList.add('js-gl');
+  const gl = renderer.getContext();
+  const glCheck = () => { const e = gl.getError(); if (e !== gl.NO_ERROR) console.warn('WebGL error', e); };
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(C.cream);
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.3, 30);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envScene = makeEnvScene();
+  scene.environment = pmrem.fromScene(envScene, 0.035).texture;
+  pmrem.dispose(); envScene.traverse(o => { o.geometry?.dispose?.(); o.material?.dispose?.(); });
+
+  const key = new THREE.DirectionalLight(0xFFF3DF, 1.8); key.position.set(-2.2, 3.2, 3.5); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xFFFFFF, 1.3); rim.position.set(2.4, -1.2, -2.5); scene.add(rim);
+
+  /* materials */
+  const capMat = new THREE.MeshPhysicalMaterial({ color: 0x141414, roughness: 0.22, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.2 });
+  const bandMat = new THREE.MeshPhysicalMaterial({ color: 0x8E8A83, roughness: 0.34, metalness: 0.95, envMapIntensity: 1.4 });
+  const backMat = new THREE.MeshPhysicalMaterial({ color: 0x2A2926, roughness: 0.62, metalness: 0.05, clearcoat: 0.25, clearcoatRoughness: 0.4, envMapIntensity: 0.9 });
+
+  /* screens */
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+  const screens = {};
+  for (const id of Object.keys(PAINTERS)) {
+    const cv = document.createElement('canvas'); cv.width = PT_W * TEX_SCALE; cv.height = PT_H * TEX_SCALE;
+    paintScreen(cv, id);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = maxAniso;
+    tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter;
+    screens[id] = { cv, tex };
+  }
+  const repaintScreens = () => { for (const id in screens) { paintScreen(screens[id].cv, id); screens[id].tex.needsUpdate = true; } };
+  const fontJobs = ['500 13px "IBM Plex Mono"', '400 16px "Plus Jakarta Sans"', '500 17px "Plus Jakarta Sans"', '600 22px "Plus Jakarta Sans"', '700 44px "Plus Jakarta Sans"', '650 96px "Bricolage Grotesque"'];
+  Promise.race([Promise.all(fontJobs.map(f => document.fonts.load(f))).then(() => document.fonts.ready), new Promise(r => setTimeout(r, 3500))])
+    .then(() => { repaintScreens(); measure(); readScroll(); });
+  document.fonts.addEventListener?.('loadingdone', () => { repaintScreens(); measure(); readScroll(); });
+
+  /* handset */
+  const bodyShape = roundedRectShape(PHONE.w - 2 * PHONE.bevel, PHONE.h - 2 * PHONE.bevel, PHONE.r - PHONE.bevel);
+  const bodyGeo = new THREE.ExtrudeGeometry(bodyShape, { depth: PHONE.d - 2 * PHONE.bevel, bevelEnabled: true, bevelThickness: PHONE.bevel, bevelSize: PHONE.bevel, bevelSegments: 6, curveSegments: 22 });
+  bodyGeo.translate(0, 0, -(PHONE.d / 2 - PHONE.bevel));
+  const screenGeo = new THREE.ShapeGeometry(roundedRectShape(SCREEN.w, SCREEN.h, SCREEN.r), 18); remapUV(screenGeo, SCREEN.w, SCREEN.h);
+  const backGeo = new THREE.ShapeGeometry(roundedRectShape(PHONE.w - 0.06, PHONE.h - 0.06, PHONE.r - 0.03), 18);
+  const btnGeo = { power: new THREE.BoxGeometry(0.008, 0.15, 0.024), vol: new THREE.BoxGeometry(0.008, 0.085, 0.024) };
+
+  function makePhone() {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(bodyGeo, [capMat, bandMat]);
+    const u = { uMap2: { value: screens.browse.tex }, uMix: { value: 0 } };
+    const mat = new THREE.MeshPhysicalMaterial({ color: 0x000000, emissive: 0xFFFFFF, emissiveMap: screens.browse.tex, emissiveIntensity: 1, roughness: 0.18, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 0.45 });
+    mat.toneMapped = false; patchScreen(mat, u);
+    const screen = new THREE.Mesh(screenGeo, mat); screen.position.z = PHONE.d / 2 + 0.0006;
+    const back = new THREE.Mesh(backGeo, backMat); back.rotation.y = Math.PI; back.position.z = -(PHONE.d / 2 + 0.0006);
+    const power = new THREE.Mesh(btnGeo.power, bandMat); power.position.set(PHONE.w / 2 + 0.002, 0.30, 0);
+    const volUp = new THREE.Mesh(btnGeo.vol, bandMat); volUp.position.set(-PHONE.w / 2 - 0.002, 0.34, 0);
+    const volDn = new THREE.Mesh(btnGeo.vol, bandMat); volDn.position.set(-PHONE.w / 2 - 0.002, 0.225, 0);
+    group.add(body, screen, back, power, volUp, volDn);
+    return { group, mat, u };
+  }
+  const phones = { A: makePhone(), B: makePhone() };
+  scene.add(phones.A.group, phones.B.group);
+
+  /* ── scroll conductor: native scroll is the truth; exact vs smoothed progress stay separate ── */
+  const sections = [...document.querySelectorAll('[data-chapter]')];
+  const copies = sections.map(s => s.querySelector('.copy'));
+  let anchors = [], exact = 0, smooth = 0, widthAtMeasure = 0;
+  const maxScroll = () => Math.max(1, document.documentElement.scrollHeight - innerHeight);
+  function measure() {
+    const max = maxScroll(); widthAtMeasure = innerWidth;
+    anchors = sections.map((el, i) => i === 0 ? 0 : i === sections.length - 1 ? max : clamp(el.offsetTop + el.offsetHeight * 0.5 - innerHeight * 0.5, 0, max));
+    for (let i = 1; i < anchors.length; i++) anchors[i] = Math.max(anchors[i], anchors[i - 1] + 1);
+  }
+  function progressAt(y) {
+    y = clamp(y, 0, maxScroll()); if (y <= anchors[0]) return 0;
+    for (let i = 0; i < anchors.length - 1; i++) if (y <= anchors[i + 1]) return i + clamp((y - anchors[i]) / Math.max(1, anchors[i + 1] - anchors[i]), 0, 1);
+    return anchors.length - 1;
+  }
+  let ambient = 0;
+  function readScroll() { exact = progressAt(scrollY || pageYOffset || 0); ambient = 1; }
+
+  /* ── sizing: CSS owns layout, DPR capped at 2, composition mode from aspect ── */
+  let mode = 'desktop', tallPull = 0, dpr = 1;
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    mode = w / h < 1.1 ? 'mobile' : 'desktop';
+    tallPull = mode === 'desktop' ? Math.max(0, 1.5 - w / h) * 1.0 : 0;
+    if (innerWidth !== widthAtMeasure) { measure(); readScroll(); }
+    updateBadge(true);
+  }
+  new ResizeObserver(resize).observe(canvas);
+  addEventListener('resize', resize, { passive: true });
+  addEventListener('orientationchange', () => { measure(); readScroll(); }, { passive: true });
+  addEventListener('scroll', readScroll, { passive: true });
+  addEventListener('pageshow', () => { measure(); readScroll(); });
+  addEventListener('hashchange', () => { measure(); readScroll(); });
+  reduceMQ.addEventListener?.('change', e => { reduce = e.matches; smooth = exact; });
+
+  /* pointer parallax: fine pointers only, clamped, damped, never under reduced motion */
+  const par = { x: 0, y: 0 }, parTarget = { x: 0, y: 0 };
+  if (finePointer) addEventListener('pointermove', e => { parTarget.x = clamp(e.clientX / innerWidth * 2 - 1, -1, 1); parTarget.y = clamp(e.clientY / innerHeight * 2 - 1, -1, 1); }, { passive: true });
+
+  /* lifecycle */
+  let running = !document.hidden, lastT = 0;
+  document.addEventListener('visibilitychange', () => { running = !document.hidden; lastT = 0; if (running) readScroll(); });
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); running = false; badge.textContent = 'CONTEXT LOST'; });
+  canvas.addEventListener('webglcontextrestored', () => { running = !document.hidden; lastT = 0; });
+
+  /* ── per-frame state resolved once from the same progress value ── */
+  const camPos = new THREE.Vector3(), camTgt = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const copyState = copies.map(() => ({ o: -1, dy: 0 }));
+  function v3(out, a, b, t) { out.set(lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)); return out; }
+  function applyState(p, time, dt) {
+    const last = LEDGER.length - 1, i = clamp(Math.floor(p), 0, last - 1), t = clamp(p - i, 0, 1), te = t * t * (3 - 2 * t);
+    const ka = LEDGER[i], kb = LEDGER[i + 1], A = ka[mode], B = kb[mode];
+
+    par.x = damp(par.x, reduce ? 0 : parTarget.x, 4, dt); par.y = damp(par.y, reduce ? 0 : parTarget.y, 4, dt);
+    v3(camPos, A.cam.pos, B.cam.pos, te); v3(camTgt, A.cam.target, B.cam.target, te);
+    camera.position.set(camPos.x + par.x * 0.035, camPos.y - par.y * 0.025, camPos.z + tallPull);
+    camera.lookAt(camTgt.x + par.x * 0.012, camTgt.y - par.y * 0.008, camTgt.z);
+    const fov = lerp(A.cam.fov, B.cam.fov, te);
+    if (Math.abs(fov - camera.fov) > 1e-3) { camera.fov = fov; camera.updateProjectionMatrix(); }
+
+    const amp = reduce ? 0 : ambient;
+    const spread = mode === 'desktop' ? Math.max(0, 1.5 - camera.aspect) * 0.35 : 0;   /* narrow desktop aspects: widen the flanks */
+    for (const [id, ph] of [['A', 0], ['B', 2.1]]) {
+      const pa = A[id], pb = B[id], g = phones[id].group;
+      const px = lerp(pa.pos[0], pb.pos[0], te);
+      g.position.set(px + Math.sign(px) * spread + amp * 0.010 * Math.sin(time * 0.50 + ph),
+                     lerp(pa.pos[1], pb.pos[1], te) + amp * 0.014 * Math.sin(time * 0.41 + ph * 2),
+                     lerp(pa.pos[2], pb.pos[2], te));
+      g.rotation.set(lerp(pa.rot[0], pb.rot[0], te) + amp * 0.010 * Math.sin(time * 0.37 + ph),
+                     lerp(pa.rot[1], pb.rot[1], te) + amp * 0.014 * Math.sin(time * 0.45 + ph * 1.7),
+                     lerp(pa.rot[2], pb.rot[2], te));
+      const sa = ka.screens[id], sb = kb.screens[id], m = phones[id].mat, u = phones[id].u;
+      m.emissiveMap = screens[sa].tex;
+      if (sa === sb) { u.uMix.value = 0; }
+      else { u.uMap2.value = screens[sb].tex; u.uMix.value = reduce ? (t >= 0.5 ? 1 : 0) : smoothstep(0.22, 0.78, t); }
+    }
+    key.intensity = lerp(ka.world.key, kb.world.key, te);
+    rim.intensity = lerp(ka.world.rim, kb.world.rim, te);
+
+    /* pinned copy: crossfade with no overlap; reduced motion swaps instantly */
+    copies.forEach((el, idx) => {
+      const d = p - idx;
+      const o = reduce ? (Math.round(p) === idx ? 1 : 0) : 1 - clamp((Math.abs(d) - 0.28) / 0.2, 0, 1);
+      const dy = reduce ? 0 : clamp(d, -0.5, 0.5) * -40;
+      const st = copyState[idx];
+      if (Math.abs(st.o - o) > 1e-3 || Math.abs(st.dy - dy) > 0.05) {
+        st.o = o; st.dy = dy;
+        el.style.opacity = o.toFixed(3);
+        el.style.transform = `translate(-50%, calc(-50% + ${dy.toFixed(1)}px))`;
+        el.dataset.active = o > 0.5 ? 'true' : 'false';
+      }
+    });
+  }
+
+  /* ── measurement badge: real FPS, real drawing buffer ── */
+  const bufSize = new THREE.Vector2(); let frames = 0, acc = 0, fpsText = '—';
+  function updateBadge(force) {
+    renderer.getDrawingBufferSize(bufSize);
+    badge.textContent = `${fpsText} FPS · ${bufSize.x}×${bufSize.y}`;
+    if (document.documentElement.classList.contains('debug')) {
+      debugEl.textContent = `exact ${exact.toFixed(3)}  smooth ${smooth.toFixed(3)}\nmode ${mode}  dpr ${dpr.toFixed(2)}  reduce ${reduce}\ncam ${camera.position.x.toFixed(2)} ${camera.position.y.toFixed(2)} ${camera.position.z.toFixed(2)}  fov ${camera.fov.toFixed(1)}\ncalls ${renderer.info.render.calls}  tris ${renderer.info.render.triangles}`;
+    }
+  }
+
+  let firstFrame = true;
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!running) return;
+    const dt = lastT ? Math.min((now - lastT) / 1000, 1 / 30) : 1 / 60;
+    if (lastT) { frames++; acc += now - lastT; }
+    lastT = now;
+    smooth = reduce ? exact : damp(smooth, exact, 5.2, dt);
+    if (Math.abs(smooth - exact) < 1e-4) smooth = exact;
+    ambient = Math.max(0, ambient - dt / 4);
+    applyState(reduce ? Math.round(exact) : smooth, now / 1000, dt);
+    renderer.render(scene, camera);
+    if (firstFrame) { firstFrame = false; glCheck(); }
+    if (acc >= 500) { fpsText = String(Math.round(frames * 1000 / acc)); frames = 0; acc = 0; updateBadge(); }
+  }
+
+  measure(); readScroll(); smooth = exact; resize();
+  if (document.documentElement.classList.contains('debug')) {
+    window.__hg = { snap: () => { readScroll(); smooth = exact; }, anchors: () => anchors.slice(), progress: () => ({ exact, smooth, mode }) };
+  }
+  requestAnimationFrame(frame);
+}
+
+</script>
+</body>
+</html>

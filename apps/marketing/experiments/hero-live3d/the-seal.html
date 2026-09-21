@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Seal — Halal Goes</title>
+<meta name="description" content="The Halal Goes seal, struck onto the certificate it vouches for, rendered live. Seven checks on every restaurant, before it reaches you.">
+<meta name="theme-color" content="#FFFAEA">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── palette: exact values only ───────────────────────────────── */
+  :root {
+    --cream: #FFFAEA; --sunken: #F6EFDD; --white: #FFFFFF;
+    --ink: #232323; --body: #4A4E48; --mkt: #1B3B31;
+    --hair: #E6E0D4; --cta: #F1521E; --cta-ink: #0F241C;
+    --seal: #0F7A43; --brass: #C9A24B; --sage: #E9F3E4;
+    --display: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+    --sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --gutter: clamp(16px, 4vw, 56px);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--cream); color: var(--ink); scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--cream); font-family: var(--sans); font-size: 17px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: hidden;
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  /* ── the live canvas: fixed, full-bleed, cream until the first frame ── */
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; background: var(--cream); }
+  #gl[hidden] { display: none; }
+
+  /* ── graceful failure: a plain card, never a blank page ── */
+  #nogl {
+    position: fixed; left: 50%; top: 84px; transform: translateX(-50%); z-index: 6;
+    width: min(92vw, 520px); background: var(--white); border: 1px solid var(--hair);
+    border-radius: 12px; padding: 18px 20px; color: var(--body); font-size: 15px;
+  }
+  #nogl[hidden] { display: none; }
+  #nogl strong { color: var(--ink); font-weight: 600; }
+  #nogl p { margin: 6px 0 0; }
+
+  /* ── masthead ── */
+  .masthead {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center;
+    padding: 18px var(--gutter); pointer-events: none;
+  }
+  .masthead a { pointer-events: auto; color: var(--ink); text-decoration: none; font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+  .masthead .mono { pointer-events: auto; }
+  .mono { font-family: var(--mono); font-weight: 500; font-size: 12px; line-height: 1.4; letter-spacing: .06em; text-transform: uppercase; color: var(--body); }
+
+  /* ── chapters: the DOM story is complete and ordered without the canvas ── */
+  main { position: relative; z-index: 1; }
+  .chapter { position: relative; min-height: calc(var(--w, 1) * 100vh); }
+  .copy {
+    position: sticky; top: 0; height: 100vh; display: grid; align-content: center;
+    padding: 0 var(--gutter); max-width: 640px; pointer-events: none;
+  }
+  .copy > * { pointer-events: auto; }
+  .chapter[data-chapter="1"] .copy, .chapter[data-chapter="3"] .copy { max-width: 560px; }
+  .chapter[data-chapter="2"] .copy { max-width: 600px; }
+  .eyebrow { margin: 0 0 18px; }
+  h1 {
+    margin: 0; font-family: var(--display); font-weight: 650; font-variation-settings: "opsz" 96;
+    letter-spacing: -0.03em; font-size: clamp(56px, 7vw, 108px); line-height: .94; color: var(--ink);
+  }
+  h1 span { display: block; }
+  .lede { margin: 24px 0 0; font-size: clamp(17px, 1.45vw, 21px); line-height: 1.45; color: var(--body); max-width: 30ch; }
+  h2 { margin: 0; font-weight: 700; font-size: clamp(28px, 3vw, 40px); line-height: 1.08; letter-spacing: -0.02em; color: var(--ink); max-width: 18ch; }
+  .copy p.body { margin: 18px 0 0; color: var(--body); font-size: clamp(16px, 1.25vw, 18px); line-height: 1.55; max-width: 52ch; }
+  .cta {
+    display: inline-block; width: max-content; margin-top: 30px; background: var(--cta); color: var(--cta-ink);
+    font-weight: 600; font-size: 15px; line-height: 1; padding: 15px 20px; border-radius: 12px; text-decoration: none;
+  }
+  .cta:focus-visible, .rail a:focus-visible, .masthead a:focus-visible, footer a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+  /* the seven checks: rules, not boxes */
+  .checks { list-style: none; margin: 22px 0 0; padding: 0; border-top: 1px solid var(--hair); }
+  .checks li { display: grid; grid-template-columns: 28px 1fr 22px; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--hair); align-items: start; }
+  .checks .n { font-family: var(--mono); font-weight: 500; font-size: 12px; letter-spacing: .06em; color: var(--body); line-height: 1.9; }
+  .checks .t { font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--ink); }
+  .checks .d { display: block; font-weight: 400; font-size: 14px; line-height: 1.45; color: var(--body); margin-top: 1px; }
+  .checks .tick { width: 22px; height: 22px; margin-top: 1px; }
+  .checks .tick svg { display: block; width: 22px; height: 22px; stroke: var(--ink); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+  .checks li.is-checked .tick svg { opacity: 1; }
+  .count { margin: 12px 0 0; }
+
+  .standing { margin: 26px 0 0; padding-top: 18px; border-top: 1px solid var(--hair); color: var(--ink); font-size: clamp(16px, 1.25vw, 18px); line-height: 1.55; max-width: 46ch; }
+
+  /* ── fixed interface ── */
+  .rail { position: fixed; left: var(--gutter); bottom: 14px; z-index: 5; display: flex; gap: 18px; }
+  .rail a { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--body); text-decoration: none; padding: 6px 0; }
+  .rail a[aria-current="true"] { color: var(--ink); text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
+  .hud {
+    position: fixed; right: 12px; bottom: 12px; z-index: 5; pointer-events: none;
+    font-family: var(--mono); font-weight: 500; font-size: 11px; line-height: 1; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--body); background: var(--sunken); border: 1px solid var(--hair); padding: 7px 9px; border-radius: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  footer { position: relative; z-index: 1; background: var(--sunken); border-top: 1px solid var(--hair); padding: 40px var(--gutter) 64px; display: flex; flex-wrap: wrap; gap: 14px 32px; align-items: baseline; }
+  footer .wordmark { font-weight: 700; color: var(--ink); text-decoration: none; }
+  footer a.back { color: var(--body); font-size: 14px; }
+
+  /* ── reveal: gated on .js so a script failure strands nothing ── */
+  .js .copy > * { transition: opacity .42s cubic-bezier(.2,0,0,1), transform .42s cubic-bezier(.2,0,0,1); }
+  .js .chapter:not(.is-active) .copy > * { opacity: 0; transform: translateY(10px); }
+  .js .chapter.is-active .copy > *:nth-child(2) { transition-delay: .05s; }
+  .js .chapter.is-active .copy > *:nth-child(3) { transition-delay: .10s; }
+  .js .chapter.is-active .copy > *:nth-child(4) { transition-delay: .15s; }
+  .js .chapter.is-active .copy > *:nth-child(5) { transition-delay: .20s; }
+  .js.reduce .copy > * { transition: none; transform: none; }
+  .js.reduce .chapter:not(.is-active) .copy > * { transform: none; }
+  .js.reduce .checks .tick svg { transition: none; }
+  .checks .tick svg { transition: opacity .18s cubic-bezier(.2,0,0,1); }
+
+  /* ── phone: same story, a second composition ── */
+  @media (max-width: 819px) {
+    body { font-size: 16px; }
+    h1 { font-weight: 800; font-size: clamp(46px, 13.2vw, 62px); line-height: .94; }
+    .copy { align-content: start; padding-top: 92px; max-width: none; }
+    .chapter[data-chapter="2"] .copy { padding-top: 76px; }
+    .lede { font-size: 17px; margin-top: 18px; }
+    .cta { margin-top: 22px; }
+    .checks { margin-top: 14px; }
+    .checks li { padding: 7px 0; gap: 10px; }
+    .checks .t { font-size: 15px; }
+    .checks .d { display: none; }
+    /* while the live sheet is on screen its ruled rows are the list; the DOM list stays for readers and for no-WebGL */
+    .live .checks { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; border: 0; }
+    .live .count { margin-top: 18px; }
+    .rail a:not([aria-current="true"]) { display: none; }
+    .masthead .mono { display: none; }
+    h2 { font-size: 27px; }
+  }
+  @media (max-height: 560px) and (max-width: 819px) {
+    .copy { padding-top: 72px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gl" aria-hidden="true"></canvas>
+<div id="nogl" hidden role="status">
+  <strong>The live seal isn't rendering.</strong>
+  <p>Your browser could not provide a WebGL 2 context. The story below is complete without it.</p>
+</div>
+
+<header class="masthead">
+  <a href="#the-mark">Halal Goes</a>
+  <span class="mono">Ontario · Launching soon</span>
+</header>
+
+<main id="story">
+
+  <section class="chapter" id="the-mark" data-chapter="0" style="--w:1" aria-labelledby="h-mark">
+    <div class="copy">
+      <p class="eyebrow mono">ONTARIO · LAUNCHING SOON</p>
+      <h1 id="h-mark" aria-label="Verified halal, delivered."><span aria-hidden="true">Verified</span><span aria-hidden="true">halal,</span><span aria-hidden="true">delivered.</span></h1>
+      <p class="lede">Seven checks on every restaurant, before it reaches you.</p>
+      <a class="cta" href="#the-seven">How we check</a>
+    </div>
+  </section>
+
+  <section class="chapter" id="the-document" data-chapter="1" style="--w:1.7" aria-labelledby="h-doc">
+    <div class="copy">
+      <p class="eyebrow mono">02 · The document</p>
+      <h2 id="h-doc">Struck onto a record.</h2>
+      <p class="body">The seal never appears alone. It goes onto a certificate we hold on file — who issued it, which kitchen it names, what it covers, and the date it lapses. Every value here is ruled blank: no restaurant is listed yet.</p>
+    </div>
+  </section>
+
+  <section class="chapter" id="the-seven" data-chapter="2" style="--w:3.2" aria-labelledby="h-seven">
+    <div class="copy">
+      <p class="eyebrow mono">03 · The seven</p>
+      <h2 id="h-seven">Seven checks, in order, by a person.</h2>
+      <ol class="checks" id="checks">
+        <li><span class="n">01</span><span class="t">Readable, whole, unaltered<span class="d">Every page present, nothing obscured, no sign the certificate has been edited. A person looks at the scan.</span></span><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 12.1 2.7 2.7L16.2 9"/></svg></span></li>
+        <li><span class="n">02</span><span class="t">An issuer we accept<span class="d">The certifying body is on our accepted registry at the moment of review — and we print its name on the listing, so you can judge the issuer yourself.</span></span><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 12.1 2.7 2.7L16.2 9"/></svg></span></li>
+        <li><span class="n">03</span><span class="t">It names this business<span class="d">The legal name on the certificate is the restaurant's registered legal name, or a recorded alias of it. Not a parent brand.</span></span><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 12.1 2.7 2.7L16.2 9"/></svg></span></li>
+        <li><span class="n">04</span><span class="t">It covers this address<span class="d">The certified address matches the premises being listed, or the certificate names multiple premises and this is one of them.</span></span><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 12.1 2.7 2.7L16.2 9"/></svg></span></li>
+        <li><span class="n">05</span><span class="t">In force today<span class="d">Issued in the past, and not expiring within our minimum remaining window. The server computes this. No admin can wave it through.</span></span><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 12.1 2.7 2.7L16.2 9"/></svg></span></li>
+        <li><span class="n">06</span><span class="t">It covers the food<span class="d">The scope has to cover the establishment or the kitchen. A certificate that only covers a meat supplier fails this check.</span></span><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 12.1 2.7 2.7L16.2 9"/></svg></span></li>
+        <li><span class="n">07</span><span class="t">Not used by anyone else<span class="d">The certificate number is not already approved for a different restaurant. Also computed by the server, also not overridable.</span></span><span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 12.1 2.7 2.7L16.2 9"/></svg></span></li>
+      </ol>
+      <p class="count mono" id="count">0 of 7 recorded</p>
+    </div>
+  </section>
+
+  <section class="chapter" id="what-we-dont" data-chapter="3" style="--w:1.6" aria-labelledby="h-dont">
+    <div class="copy">
+      <p class="eyebrow mono">04 · What we don't</p>
+      <h2 id="h-dont">We don't certify food. We don't make rulings.</h2>
+      <p class="body">We do the clerical work. We get the certificate, we read it, we check it's real and still in force, and we put our name against the date we checked.</p>
+      <p class="standing">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <a class="wordmark" href="#the-mark">Halal Goes</a>
+  <span class="mono">Ontario · Launching soon</span>
+  <a class="back" href="#the-mark">Back to the seal ↑</a>
+</footer>
+
+<nav class="rail" aria-label="Chapters">
+  <a href="#the-mark" data-rail="0" aria-current="true">01 The mark</a>
+  <a href="#the-document" data-rail="1">02 The document</a>
+  <a href="#the-seven" data-rail="2">03 The seven</a>
+  <a href="#what-we-dont" data-rail="3">04 What we don't</a>
+</nav>
+<div class="hud" id="hud" aria-hidden="true">Loading</div>
+
+<script type="module">
+/* ───────────────────────────────────────────────────────────────────────
+   The Seal — one persistent three.js world, conducted by native scroll.
+   Four authored chapters move through the object: the mark, the document,
+   the seven, what we don't. Exact scroll progress drives state; a damped
+   copy drives the camera. Nothing here moves faster than it needs to.
+   ─────────────────────────────────────────────────────────────────────── */
+const $ = (s, r = document) => r.querySelector(s);
+const html = document.documentElement;
+html.classList.add('js');
+
+const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
+let reduce = reduceMQ.matches;
+html.classList.toggle('reduce', reduce);
+
+const canvas = $('#gl');
+const hud = $('#hud');
+const sections = Array.from(document.querySelectorAll('.chapter'));
+const railLinks = Array.from(document.querySelectorAll('.rail a'));
+const checkItems = Array.from(document.querySelectorAll('#checks li'));
+const countEl = $('#count');
+
+/* ── DOM-only conductor pieces that must work even if WebGL never comes up ── */
+let activeChapter = -1;
+function setActiveChapter(i) {
+  if (i === activeChapter) return;
+  activeChapter = i;
+  sections.forEach((s, k) => s.classList.toggle('is-active', k === i));
+  railLinks.forEach((a, k) => { if (k === i) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current'); });
+}
+function setTicks(n) {
+  checkItems.forEach((li, k) => li.classList.toggle('is-checked', k < n));
+  countEl.textContent = `${n} of 7 recorded`;
+}
+setActiveChapter(0);
+setTicks(0);
+
+function fail(message) {
+  html.classList.remove('live');
+  canvas.hidden = true;
+  const box = $('#nogl');
+  box.hidden = false;
+  box.querySelector('p').textContent = message;
+  hud.textContent = 'WebGL unavailable';
+  // keep the DOM story alive: chapter activation by scroll position alone
+  const measureFallback = () => {
+    const y = scrollY + innerHeight * 0.5;
+    let idx = 0;
+    sections.forEach((s, k) => { if (y >= s.offsetTop) idx = k; });
+    setActiveChapter(idx);
+    const s2 = sections[2];
+    const t = clamp((scrollY - s2.offsetTop) / Math.max(1, s2.offsetHeight - innerHeight), 0, 1);
+    setTicks(ticksFor(t));
+  };
+  addEventListener('scroll', measureFallback, { passive: true });
+  addEventListener('resize', measureFallback);
+  measureFallback();
+}
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const damp = (cur, tgt, lambda, dt) => lerp(cur, tgt, 1 - Math.exp(-lambda * dt));
+const TICK_AT = [0.30, 0.375, 0.45, 0.525, 0.60, 0.675, 0.75];
+const ticksFor = (t) => TICK_AT.reduce((n, th) => n + (t >= th ? 1 : 0), 0);
+
+/* ── context guard before the library is even requested ── */
+const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
+if (!gl) {
+  fail('Your browser could not provide a WebGL 2 context. The story below is complete without it.');
+} else {
+  /* three.js r169 (MIT). The copy published beside this page first, so the scene does
+     not depend on a CDN being reachable or on the host's script-src policy; the CDNs
+     are only a fallback for opening this file straight from disk. */
+  let THREE = null, threeErr = null;
+  for (const src of ['./three.module.min.js',
+                     'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.169.0/three.module.min.js',
+                     'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js']) {
+    try { THREE = await import(src); break; } catch (e) { threeErr = e; }
+  }
+  if (!THREE) {
+    console.error('three.js could not be loaded from any source', threeErr);
+    fail('The rendering library could not be fetched. The story below is complete without it.');
+  }
+  if (THREE) {
+    try { await boot(THREE); }
+    catch (e) { console.error(e); fail('The live seal hit an error while starting. The story below is complete without it.'); }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+async function boot(THREE) {
+  const isCoarse = matchMedia('(pointer: coarse)').matches;
+  const narrow = () => innerWidth < 820 || innerWidth / innerHeight < 0.95;
+  const DPR_CAP = 2;
+  let dprScale = 1;
+
+  /* ── renderer & colour pipeline ─────────────────────────────────── */
+  const renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: true, alpha: false });
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NeutralToneMapping;   // only the brass and ink are tone-mapped; brand colours opt out
+  renderer.toneMappingExposure = 1.0;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setClearColor(0xFFFAEA, 1);               // the cream ground, untouched by tone mapping
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
+  const world = new THREE.Group(); world.name = 'world'; scene.add(world);
+
+  /* ── environment: a studio room built in code, PMREM'd once ─────────
+     Brass needs contrast to read as metal: one long warm softbox where the
+     key sits, a dim cool fill opposite, mid walls, a dark floor. World "up"
+     is +Z (the paper's normal).                                            */
+  function makeEnvironment() {
+    const s = new THREE.Scene();
+    const c = (r, g, b) => new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b), side: THREE.BackSide });
+    const room = new THREE.Mesh(new THREE.BoxGeometry(40, 40, 40), [
+      c(0.22, 0.21, 0.19), c(0.20, 0.19, 0.17),   // +x, -x walls
+      c(0.24, 0.23, 0.21), c(0.16, 0.15, 0.14),   // +y (far), -y (near)
+      c(0.60, 0.58, 0.54), c(0.05, 0.045, 0.04),  // +z ceiling, -z floor
+    ]);
+    s.add(room);
+    const panel = (w, h, pos, r, g, b) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b), side: THREE.DoubleSide }));
+      m.position.set(...pos); m.lookAt(0, 0, 0); s.add(m); return m;
+    };
+    panel(15, 6, [-9.3, 9.9, 6.6], 4.4, 4.1, 3.5);     // key softbox — same direction as the directional key
+    panel(10, 9, [10.2, -6.8, 8.5], 1.15, 1.2, 1.3);   // cool fill
+    panel(24, 3, [2, 15, 3.5], 1.7, 1.6, 1.4);         // low warm horizon strip on the far side
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const rt = pmrem.fromScene(s, 0.035);
+    pmrem.dispose();
+    s.traverse(o => { if (o.isMesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()); } });
+    return rt.texture;
+  }
+  scene.environment = makeEnvironment();
+
+  /* ── lights: one raking key with shadow, one restrained fill ──────── */
+  const key = new THREE.DirectionalLight(0xFFF3DC, 3.0);
+  key.position.set(-13, 12, 9);
+  key.target.position.set(0, -2, 0);
+  key.castShadow = true;
+  const SHADOW = (isCoarse || narrow()) ? 1024 : 2048;
+  key.shadow.mapSize.set(SHADOW, SHADOW);
+  Object.assign(key.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 2, far: 60 });
+  key.shadow.bias = -0.0004;
+  key.shadow.normalBias = 0.03;
+  scene.add(key, key.target);
+  const fill = new THREE.DirectionalLight(0xEAF0FF, 0.42);
+  fill.position.set(12, -8, 10);
+  scene.add(fill);
+
+  /* ── the certificate ─────────────────────────────────────────────── */
+  const PW = 16, PH = 22.6;
+  const SEAL = { x: 4.75, y: -8.15 };
+  const CHECK_TITLES = ['Readable, whole, unaltered', 'An issuer we accept', 'It names this business', 'It covers this address', 'In force today', 'It covers the food', 'Not used by anyone else'];
+  const L = {
+    inset: 0.95,
+    headerY: 9.9, captionY: 9.15, rule1Y: 8.55,
+    record: { startY: 7.75, pitch: 0.92, labelX: -6.6, valueX: -3.2, rows: ['KITCHEN', 'ISSUED BY', 'CERTIFICATE NO.', 'SCOPE', 'IN FORCE TO', 'CHECKED BY'] },
+    rule2Y: 2.35, sevenY: 1.85,
+    checks: { startY: 1.05, pitch: 0.98, numX: -6.6, titleX: -5.7, boxX: 1.75, boxW: 0.6, noteX: 2.9, noteEnd: 6.6 },
+    rule3Y: -5.9,
+    verified: { y1: -6.85, y2: -7.75, labelX: -6.6, blankX: -4.1, blankEnd: -2.0 },
+    disclaimerY: -8.8, disclaimerLine: 0.33, disclaimerW: 4.7,
+  };
+
+  // gentle bow across the width and a lifted top-right corner: paper, not a texture
+  function paperZ(x, y) {
+    const bow = 0.05 * Math.cos((x / PW) * Math.PI);
+    const u = Math.max(0, x / (PW / 2) - 0.3), v = Math.max(0, y / (PH / 2) - 0.3);
+    return bow + 0.9 * Math.pow(u * v, 1.35);
+  }
+  function paperNormal(x, y, out) {
+    const e = 0.05;
+    const dzdx = (paperZ(x + e, y) - paperZ(x - e, y)) / (2 * e);
+    const dzdy = (paperZ(x, y + e) - paperZ(x, y - e)) / (2 * e);
+    return out.set(-dzdx, -dzdy, 1).normalize();
+  }
+
+  const paperGeo = new THREE.PlaneGeometry(PW, PH, 96, 136);
+  { const p = paperGeo.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, paperZ(p.getX(i), p.getY(i))); paperGeo.computeVertexNormals(); }
+
+  const paperMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.93, metalness: 0, envMapIntensity: 0.72, bumpScale: 0.02 });
+  paperMat.toneMapped = false;
+  const paper = new THREE.Mesh(paperGeo, paperMat);
+  paper.receiveShadow = true; paper.castShadow = true;
+  world.add(paper);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.ShadowMaterial({ color: 0x3B2F1E, opacity: 0.16 }));
+  ground.position.z = -0.012; ground.receiveShadow = true;
+  world.add(ground);
+
+  /* ── paper textures: tooth, rules, ruled blanks — drawn on a 2D canvas ── */
+  function mulberry(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function noiseTile(n, lo, hi, seed) {
+    const c = document.createElement('canvas'); c.width = c.height = n;
+    const g = c.getContext('2d'); const img = g.createImageData(n, n); const d = img.data; const rnd = mulberry(seed);
+    for (let i = 0; i < d.length; i += 4) { const v = Math.round(lo + (hi - lo) * rnd()); d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+    g.putImageData(img, 0, 0); return c;
+  }
+  function patternFill(g, tile, W, H, scale, alpha, op) {
+    const pat = g.createPattern(tile, 'repeat');
+    if (scale !== 1 && pat.setTransform) pat.setTransform(new DOMMatrix().scale(scale));
+    g.save(); g.globalAlpha = alpha; g.globalCompositeOperation = op; g.fillStyle = pat; g.fillRect(0, 0, W, H); g.restore();
+  }
+  function wrapText(g, text, maxW) {
+    const words = text.split(' '); const lines = []; let line = '';
+    for (const w of words) { const t = line ? line + ' ' + w : w; if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+    if (line) lines.push(line); return lines;
+  }
+  function buildPaperTextures(wide) {
+    const W = wide ? 2048 : 1280; const ppu = W / PW; const H = Math.round(PH * ppu);
+    const X = x => (x + PW / 2) * ppu, Y = y => (PH / 2 - y) * ppu, S = u => u * ppu;
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+    g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H);
+    patternFill(g, noiseTile(256, 243, 255, 11), W, H, 1, 1, 'multiply');                 // tooth
+    patternFill(g, noiseTile(64, 228, 255, 23), W, H, ppu / 9, 0.35, 'multiply');        // fibre clouds
+    g.imageSmoothingEnabled = true;
+    if ('letterSpacing' in g) g.letterSpacing = '0.06em';
+    const mono = (u, w = 500) => `${w} ${S(u)}px "IBM Plex Mono", ui-monospace, Menlo, monospace`;
+    const sans = (u, w = 600) => `${w} ${S(u)}px "Plus Jakarta Sans", system-ui, sans-serif`;
+    const rule = (x0, x1, y, color, w, alpha = 1, dash = null) => { g.save(); g.globalAlpha = alpha; g.strokeStyle = color; g.lineWidth = S(w); g.setLineDash(dash ? dash.map(S) : []); g.beginPath(); g.moveTo(X(x0), Y(y)); g.lineTo(X(x1), Y(y)); g.stroke(); g.restore(); };
+    const blank = (x0, x1, y) => rule(x0, x1, y - 0.16, '#4A4E48', 0.03, 0.6, [0.2, 0.12]);
+    const text = (str, x, y, font, color, align = 'left', alpha = 1) => { g.save(); g.globalAlpha = alpha; g.font = font; g.fillStyle = color; g.textAlign = align; g.textBaseline = 'middle'; g.fillText(str, X(x), Y(y)); g.restore(); };
+
+    // plate-mark hairline border
+    g.save(); g.strokeStyle = '#E6E0D4'; g.lineWidth = S(0.03); g.strokeRect(X(-PW / 2 + L.inset), Y(PH / 2 - L.inset), S(PW - 2 * L.inset), S(PH - 2 * L.inset)); g.restore();
+
+    // header
+    text('RECORD OF VERIFICATION', -6.6, L.headerY, mono(0.5), '#232323');
+    text('Halal Goes', 6.6, L.headerY, sans(0.62, 700), '#232323', 'right');
+    text('SPECIMEN — THE FIELDS WE FILL IN BEFORE A KITCHEN IS LISTED.', -6.6, L.captionY, mono(0.3), '#4A4E48');
+    rule(-6.6, 6.6, L.rule1Y, '#4A4E48', 0.025, 0.8);
+
+    // record rows: labels, one real issuer, ruled blanks everywhere else
+    L.record.rows.forEach((label, i) => {
+      const y = L.record.startY - i * L.record.pitch;
+      text(label, L.record.labelX, y, mono(0.34), '#4A4E48');
+      if (label === 'ISSUED BY') text('HALAL MONITORING AUTHORITY (HMA CANADA)', L.record.valueX, y, mono(0.36), '#232323');
+      else if (label === 'KITCHEN') { blank(L.record.valueX, 1.4, y); blank(2.0, 5.5, y); text('ON', 5.75, y, mono(0.34), '#232323'); }
+      else if (label === 'CHECKED BY') { blank(L.record.valueX, 1.4, y); blank(2.0, 6.6, y); }
+      else blank(L.record.valueX, 6.6, y);
+    });
+    rule(-6.6, 6.6, L.rule2Y, '#4A4E48', 0.025, 0.8);
+
+    // the seven checks: a ruled single column
+    text('SEVEN CHECKS', -6.6, L.sevenY, mono(0.34), '#232323');
+    CHECK_TITLES.forEach((title, i) => {
+      const y = L.checks.startY - i * L.checks.pitch;
+      text(String(i + 1).padStart(2, '0'), L.checks.numX, y, mono(0.34), '#4A4E48');
+      text(title, L.checks.titleX, y, sans(0.44), '#232323');
+      g.save(); g.globalAlpha = 0.55; g.strokeStyle = '#4A4E48'; g.lineWidth = S(0.025); g.strokeRect(X(L.checks.boxX), Y(y + L.checks.boxW / 2), S(L.checks.boxW), S(L.checks.boxW)); g.restore();
+      blank(L.checks.noteX, L.checks.noteEnd, y);
+      if (i < CHECK_TITLES.length - 1) rule(-6.6, 6.6, y - L.checks.pitch / 2, '#E6E0D4', 0.03);
+    });
+    rule(-6.6, 6.6, L.rule3Y, '#4A4E48', 0.025, 0.8);
+
+    // sign-off: the date shown on each listing is a ruled blank here
+    text('VERIFIED BY', L.verified.labelX, L.verified.y1, mono(0.34), '#4A4E48'); blank(L.verified.blankX, L.verified.blankEnd, L.verified.y1);
+    text('ON', L.verified.labelX, L.verified.y2, mono(0.34), '#4A4E48'); blank(L.verified.blankX, L.verified.blankEnd, L.verified.y2);
+    g.font = mono(0.24, 400);
+    wrapText(g, 'Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.', S(L.disclaimerW))
+      .forEach((line, i) => text(line, -6.6, L.disclaimerY - i * L.disclaimerLine, mono(0.24, 400), '#4A4E48'));
+
+    // bump: tooth, a soft plate-mark groove, and the impression left around the seal
+    const b = document.createElement('canvas'); b.width = W; b.height = H; const h = b.getContext('2d');
+    h.fillStyle = 'rgb(128,128,128)'; h.fillRect(0, 0, W, H);
+    patternFill(h, noiseTile(256, 92, 164, 37), W, H, 1, 1, 'source-over');
+    patternFill(h, noiseTile(64, 96, 160, 41), W, H, ppu / 9, 0.45, 'source-over');
+    [[0.14, 0.05], [0.09, 0.07], [0.045, 0.11]].forEach(([w, a]) => { h.save(); h.globalAlpha = a; h.strokeStyle = '#000'; h.lineWidth = S(w); h.strokeRect(X(-PW / 2 + L.inset), Y(PH / 2 - L.inset), S(PW - 2 * L.inset), S(PH - 2 * L.inset)); h.restore(); });
+    { const R = 1.78; const grad = h.createRadialGradient(X(SEAL.x), Y(SEAL.y), S(R - 0.05), X(SEAL.x), Y(SEAL.y), S(R + 0.42));
+      grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(0.18, 'rgba(0,0,0,0.22)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+      h.fillStyle = grad; h.beginPath(); h.arc(X(SEAL.x), Y(SEAL.y), S(R + 0.45), 0, Math.PI * 2); h.fill(); }
+
+    const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = maxAniso;
+    const bump = new THREE.CanvasTexture(b); bump.colorSpace = THREE.NoColorSpace; bump.anisotropy = maxAniso;
+    return { map, bump };
+  }
+
+  /* ── 2D profiles → real geometry ──────────────────────────────────── */
+  // Outline of a stroked polyline with round joins and caps, as a single Shape (no overlapping pieces).
+  function strokeShape(pts, hw, segs = 10) {
+    const n = pts.length, dir = [], nl = [];
+    for (let i = 0; i < n - 1; i++) { const d = pts[i + 1].clone().sub(pts[i]).normalize(); dir.push(d); nl.push(new THREE.Vector2(-d.y, d.x)); }
+    const out = [];
+    const push = p => { const l = out[out.length - 1]; if (!l || l.distanceToSquared(p) > 1e-10) out.push(p); };
+    const arc = (c, a0, a1) => { let d = a1 - a0; while (d > 0) d -= Math.PI * 2; while (d <= -Math.PI * 2) d += Math.PI * 2; for (let k = 0; k <= segs; k++) { const a = a0 + d * k / segs; push(new THREE.Vector2(c.x + Math.cos(a) * hw, c.y + Math.sin(a) * hw)); } };
+    const isect = (p, d, q, e) => { const den = d.x * e.y - d.y * e.x; if (Math.abs(den) < 1e-9) return p.clone(); const t = ((q.x - p.x) * e.y - (q.y - p.y) * e.x) / den; return new THREE.Vector2(p.x + d.x * t, p.y + d.y * t); };
+    const ang = v => Math.atan2(v.y, v.x);
+    const off = (i, k, s) => pts[i].clone().addScaledVector(nl[k], s);
+    push(off(0, 0, hw));
+    for (let i = 1; i < n - 1; i++) { const cr = dir[i - 1].x * dir[i].y - dir[i - 1].y * dir[i].x; if (cr > 1e-9) push(isect(off(i - 1, i - 1, hw), dir[i - 1], off(i, i, hw), dir[i])); else arc(pts[i], ang(nl[i - 1]), ang(nl[i])); }
+    push(off(n - 1, n - 2, hw));
+    arc(pts[n - 1], ang(nl[n - 2]), ang(nl[n - 2]) - Math.PI);
+    for (let i = n - 2; i >= 1; i--) { const cr = dir[i - 1].x * dir[i].y - dir[i - 1].y * dir[i].x; if (cr < -1e-9) push(isect(off(i, i, -hw), dir[i], off(i - 1, i - 1, -hw), dir[i - 1])); else arc(pts[i], ang(nl[i]) + Math.PI, ang(nl[i - 1]) + Math.PI); }
+    push(off(0, 0, -hw));
+    arc(pts[0], ang(nl[0]) + Math.PI, ang(nl[0]));
+    return new THREE.Shape(out);
+  }
+  // The brand's shield: M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z (viewBox 24)
+  function shieldShape(s) {
+    const P = (x, y) => [(x - 12) * s, (11.75 - y) * s];
+    const sh = new THREE.Shape();
+    sh.moveTo(...P(12, 2.25)); sh.lineTo(...P(4.5, 5.35)); sh.lineTo(...P(4.5, 11.37));
+    sh.bezierCurveTo(...P(4.5, 15.77), ...P(7.52, 19.87), ...P(12, 21.25));
+    sh.bezierCurveTo(...P(16.48, 19.87), ...P(19.5, 15.77), ...P(19.5, 11.37));
+    sh.lineTo(...P(19.5, 5.35)); sh.closePath();
+    return sh;
+  }
+  // The check: m8 12.1 2.7 2.7L16.2 9 — a 2-unit stroke with round caps, as one outline
+  function checkShape(s, cx = 12, cy = 11.75) {
+    const P = (x, y) => new THREE.Vector2((x - cx) * s, (cy - y) * s);
+    return strokeShape([P(8, 12.1), P(10.7, 14.8), P(16.2, 9)], 1.0 * s, 12);
+  }
+  // ExtrudeGeometry with bevels spans -bevelThickness … depth + bevelThickness. Never place anything on 0 … depth.
+  function extrude(shape, depth, bevel, curveSegments = 24) {
+    const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel * 0.9, bevelSegments: bevel > 0 ? 5 : 0, curveSegments });
+    geo.computeVertexNormals();
+    return { geo, back: bevel > 0 ? -bevel : 0, front: depth + (bevel > 0 ? bevel : 0) };
+  }
+
+  /* ── the seal: brass bezel, sage plate, green shield, white check ── */
+  const R_OUT = 1.78, RING_W = 0.30, R_MID = R_OUT - RING_W / 2, R_IN = R_OUT - RING_W;
+  const PLATE_T = 0.09, RING_H = 0.17;
+  function brassMaps() {
+    const W = 2048, H = 32;
+    const r = document.createElement('canvas'); r.width = W; r.height = H; const g = r.getContext('2d');
+    const img = g.createImageData(W, H); const d = img.data; const rnd = mulberry(7);
+    const low = new Float32Array(W); for (let i = 0; i < W; i++) low[i] = Math.sin(i / W * Math.PI * 2 * 3.0) * 0.5 + Math.sin(i / W * Math.PI * 2 * 11.0 + 1.3) * 0.5;
+    for (let x = 0; x < W; x++) {
+      const streak = (rnd() - 0.5) * 0.11 + (rnd() - 0.5) * 0.04;
+      const v = clamp(0.30 + streak + low[x] * 0.045, 0.16, 0.5);
+      for (let y = 0; y < H; y++) { const i = (y * W + x) * 4; const e = 1 + (y < 3 || y > H - 4 ? 0.12 : 0); const vv = Math.round(clamp(v * e, 0, 1) * 255); d[i] = d[i + 1] = d[i + 2] = vv; d[i + 3] = 255; }
+    }
+    g.putImageData(img, 0, 0);
+    const rough = new THREE.CanvasTexture(r); rough.colorSpace = THREE.NoColorSpace; rough.wrapS = THREE.RepeatWrapping; rough.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    return { rough };
+  }
+  const { rough: brassRough } = brassMaps();
+  const brassMat = new THREE.MeshPhysicalMaterial({ color: 0xC9A24B, metalness: 1.0, roughness: 1.0, roughnessMap: brassRough, anisotropy: 0.4, anisotropyRotation: 0, envMapIntensity: 1.0 });
+  const plateMat = new THREE.MeshStandardMaterial({ color: 0xE9F3E4, roughness: 0.55, metalness: 0, envMapIntensity: 0.6 }); plateMat.toneMapped = false;
+  const shieldMat = new THREE.MeshPhysicalMaterial({ color: 0x0F7A43, roughness: 0.46, metalness: 0, clearcoat: 0.15, clearcoatRoughness: 0.3, envMapIntensity: 0.42 }); shieldMat.toneMapped = false;
+  const checkMat = new THREE.MeshPhysicalMaterial({ color: 0xFFFFFF, roughness: 0.42, metalness: 0, clearcoat: 0.2, clearcoatRoughness: 0.3, envMapIntensity: 0.6 }); checkMat.toneMapped = false;
+  const inkMat = new THREE.MeshStandardMaterial({ color: 0x232323, roughness: 0.62, metalness: 0, envMapIntensity: 0.5 });
+
+  const seal = new THREE.Group(); seal.name = 'seal';
+  {
+    // bezel profile (r, y): outer wall from paper level, a soft flattened dome over the top, inner edge meets the plate
+    const pts = [new THREE.Vector2(R_OUT, -PLATE_T), new THREE.Vector2(R_OUT, 0)];
+    const N = 26;
+    for (let k = 0; k <= N; k++) { const a = Math.PI * k / N; const u = Math.cos(a); pts.push(new THREE.Vector2(R_MID + (RING_W / 2) * u, RING_H * Math.sqrt(Math.max(0, 1 - Math.pow(Math.abs(u), 2.2))))); }
+    pts.push(new THREE.Vector2(R_IN, -0.03));
+    const ringGeo = new THREE.LatheGeometry(pts, 200);
+    const ring = new THREE.Mesh(ringGeo, brassMat); ring.rotation.x = Math.PI / 2; ring.position.z = PLATE_T;
+    ring.castShadow = true; ring.receiveShadow = true; ring.name = 'ring'; seal.add(ring);
+
+    const plateGeo = new THREE.CylinderGeometry(R_MID, R_MID, PLATE_T, 128);
+    const plate = new THREE.Mesh(plateGeo, plateMat); plate.rotation.x = Math.PI / 2; plate.position.z = PLATE_T / 2;
+    plate.castShadow = false; plate.receiveShadow = true; seal.add(plate);
+
+    const sc = 2.0 / 19;                                   // shield height 2.0 units inside a 2.96 plate
+    const sh = extrude(shieldShape(sc), 0.12, 0.035, 26);
+    const shield = new THREE.Mesh(sh.geo, shieldMat); shield.position.z = PLATE_T - sh.back - 0.012;   // back bevel sunk 0.012 into the plate
+    shield.castShadow = true; shield.receiveShadow = true; seal.add(shield);
+    const shieldFront = shield.position.z + sh.front;
+
+    const ck = extrude(checkShape(sc), 0.05, 0.012, 12);
+    const check = new THREE.Mesh(ck.geo, checkMat); check.position.z = shieldFront - ck.back - 0.004;  // clears the shield's front bevel
+    check.castShadow = true; check.receiveShadow = true; seal.add(check);
+  }
+  seal.position.set(SEAL.x, SEAL.y, paperZ(SEAL.x, SEAL.y) + 0.002);
+  seal.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), paperNormal(SEAL.x, SEAL.y, new THREE.Vector3()));
+  world.add(seal);
+
+  /* ── seven ink ticks, one per ruled row, hidden until scroll records them ── */
+  const ticks = [];
+  {
+    const ts = 0.1;
+    const tk = extrude(checkShape(ts, 12.1, 11.9), 0.012, 0, 12);
+    for (let i = 0; i < 7; i++) {
+      const m = new THREE.Mesh(tk.geo, inkMat);
+      const x = L.checks.boxX + L.checks.boxW / 2 + 0.08, y = L.checks.startY - i * L.checks.pitch + 0.06;
+      m.position.set(x, y, paperZ(x, y) + 0.004);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), paperNormal(x, y, new THREE.Vector3()));
+      m.rotation.z += (i % 2 ? -1 : 1) * 0.05;                // a pen, not a stamp
+      m.castShadow = true; m.visible = false; m.scale.setScalar(0.001);
+      world.add(m); ticks.push({ mesh: m, a: 0, target: 0 });
+    }
+  }
+
+  /* ── chapters: the contract for camera, light and ambient motion ─── */
+  const S = SEAL;
+  const CHAP = [
+    { rock: 1.0, key: 3.0,
+      desk: { p: [S.x - 1.7, S.y - 6.4, 4.6], t: [S.x - 0.7, S.y + 0.6, 0.35], fov: 30 },
+      nar:  { p: [S.x + 0.8, S.y - 4.9, 14.75], t: [S.x + 0.5, S.y + 2.95, 0.3], fov: 40 } },
+    { rock: 0.75, key: 3.0,
+      desk: { p: [-13.7, -24.1, 27.5], t: [-5.2, -2.6, 0], fov: 30 },
+      nar:  { p: [-5.2, -22.4, 44.2], t: [0, 8.6, 0], fov: 40 } },
+    { rock: 0.3, key: 2.9,
+      desk: { p: [-7.6, -9, 24.5], t: [-4.6, -2, 0], fov: 30 },
+      nar:  { p: [-1.9, -15.4, 23.7], t: [-1.4, 4.5, 0], fov: 40 } },
+    { rock: 0.0, key: 2.6,
+      desk: { p: [-7.7, -21.2, 37.3], t: [-5.5, -1.2, 0], fov: 30 },
+      nar:  { p: [-1.6, -21.8, 65.6], t: [0.5, 13.1, 0], fov: 40 } },
+  ];
+  const camOf = (i) => narrow() ? CHAP[i].nar : CHAP[i].desk;
+
+  /* ── scroll conductor: native scroll is the truth, a damped copy renders ── */
+  let anchors = [], exact = 0, smooth = 0, direction = 0, prevY = 0, holdT = 0, widthAtMeasure = 0, dirty = true;
+  const maxScroll = () => Math.max(1, document.documentElement.scrollHeight - innerHeight);
+  function measure() {
+    const max = maxScroll(); widthAtMeasure = innerWidth;
+    anchors = sections.map((el, i) => i === 0 ? 0 : clamp(el.offsetTop + el.offsetHeight * 0.5 - innerHeight * 0.5, 0, max));
+    for (let i = 1; i < anchors.length; i++) anchors[i] = Math.max(anchors[i], anchors[i - 1] + 1);
+    readScroll();
+  }
+  function progressAt(y) {
+    y = clamp(y, 0, maxScroll());
+    if (y <= anchors[0]) return 0;
+    for (let i = 0; i < anchors.length - 1; i++) if (y <= anchors[i + 1]) return i + clamp((y - anchors[i]) / Math.max(1, anchors[i + 1] - anchors[i]), 0, 1);
+    return anchors.length - 1;
+  }
+  function readScroll() {
+    const y = scrollY || 0; const d = y - prevY; if (Math.abs(d) > 0.25) direction = d > 0 ? 1 : -1; prevY = y;
+    exact = progressAt(y);
+    const s2 = sections[2]; holdT = clamp((y - s2.offsetTop) / Math.max(1, s2.offsetHeight - innerHeight), 0, 1);
+    dirty = true;
+  }
+  addEventListener('scroll', readScroll, { passive: true });
+  addEventListener('pageshow', measure);
+  addEventListener('hashchange', () => setTimeout(measure, 0));
+  if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(() => measure()); sections.forEach(s => ro.observe(s)); ro.observe(document.body); }
+
+  /* ── pointer: a small tilt of the sheet toward the pointer; never on touch ── */
+  let px = 0, py = 0, sx = 0, sy = 0;
+  if (!isCoarse) {
+    addEventListener('pointermove', e => { px = (e.clientX / innerWidth) * 2 - 1; py = (e.clientY / innerHeight) * 2 - 1; }, { passive: true });
+    addEventListener('pointerleave', () => { px = 0; py = 0; });
+    document.addEventListener('mouseleave', () => { px = 0; py = 0; });
+  }
+
+  /* ── sizing: CSS owns layout, the drawing buffer follows DPR (capped at 2) ── */
+  const bufSize = new THREE.Vector2();
+  function resize() {
+    const w = Math.max(1, innerWidth), h = Math.max(1, innerHeight);
+    const pr = Math.min(devicePixelRatio || 1, DPR_CAP) * dprScale;
+    renderer.setPixelRatio(pr);
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    dirty = true;
+  }
+  addEventListener('resize', () => { resize(); if (innerWidth !== widthAtMeasure || !matchMedia('(pointer: coarse)').matches) measure(); });
+  addEventListener('orientationchange', () => { resize(); measure(); });
+  let dprMQ = null;
+  const watchDPR = () => { if (dprMQ) dprMQ.removeEventListener('change', onDPR); dprMQ = matchMedia(`(resolution: ${devicePixelRatio}dppx)`); dprMQ.addEventListener('change', onDPR); };
+  const onDPR = () => { resize(); watchDPR(); };
+  watchDPR();
+
+  /* ── fonts first, so the paper is printed in the right faces ─────── */
+  const fontLoads = ['500 32px "IBM Plex Mono"', '400 32px "IBM Plex Mono"', '600 32px "Plus Jakarta Sans"', '700 32px "Plus Jakarta Sans"'].map(f => document.fonts.load(f).catch(() => null));
+  await Promise.race([Promise.all(fontLoads), new Promise(r => setTimeout(r, 2500))]);
+  const printPaper = () => {
+    const { map, bump } = buildPaperTextures(!(isCoarse || narrow()));
+    if (paperMat.map) { paperMat.map.dispose(); paperMat.bumpMap.dispose(); }
+    paperMat.map = map; paperMat.bumpMap = bump; paperMat.needsUpdate = true; dirty = true;
+  };
+  let printed = document.fonts.status === 'loaded';
+  printPaper();
+  document.fonts.ready.then(() => { if (!printed) { printed = true; printPaper(); } });
+
+  resize(); measure();
+  smooth = exact;
+  await renderer.compileAsync(scene, camera).catch(() => {});
+
+  /* ── frame ───────────────────────────────────────────────────────── */
+  const _p = new THREE.Vector3(), _t = new THREE.Vector3(), _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _ta = new THREE.Vector3(), _tb = new THREE.Vector3();
+  let running = !document.hidden, raf = 0, last = 0, time = 0;
+  let frames = 0, acc = 0, fpsAt = 0, frameEMA = 16, slowSince = 0, lastGovern = 0;
+  const D2R = Math.PI / 180;
+
+  function compose(s) {
+    // resolve adjacent chapters once; dwell, then travel
+    const i = clamp(Math.floor(s), 0, CHAP.length - 1), j = Math.min(CHAP.length - 1, i + 1);
+    const local = j === i ? 0 : clamp(s - i, 0, 1);
+    const e = reduce ? (local >= 0.5 ? 1 : 0) : smoothstep(0.22, 0.98, local);
+    const a = camOf(i), b = camOf(j);
+    _pa.fromArray(a.p); _pb.fromArray(b.p); _ta.fromArray(a.t); _tb.fromArray(b.t);
+    _p.lerpVectors(_pa, _pb, e); _t.lerpVectors(_ta, _tb, e);
+    const fov = lerp(a.fov, b.fov, e);
+    return { p: _p, t: _t, fov, rock: lerp(CHAP[i].rock, CHAP[j].rock, e), key: lerp(CHAP[i].key, CHAP[j].key, e) };
+  }
+
+  function tick(now) {
+    if (!running) { raf = 0; return; }
+    raf = requestAnimationFrame(tick);
+    const dt = last ? Math.min((now - last) / 1000, 1 / 30) : 1 / 60; last = now;
+    time += dt;
+
+    // 1. exact state → DOM (chapter ownership and the seven ticks are never damped)
+    const idx = clamp(Math.round(exact), 0, sections.length - 1);
+    setActiveChapter(idx);
+    const n = ticksFor(holdT);
+    setTicks(n);
+    for (let i = 0; i < 7; i++) ticks[i].target = i < n ? 1 : 0;
+
+    // 2. damped render state
+    const prevSmooth = smooth;
+    smooth = reduce ? exact : damp(smooth, exact, 4.2, dt);
+    if (Math.abs(smooth - exact) < 0.0005) smooth = exact;
+    sx = reduce || isCoarse ? 0 : damp(sx, px, 3.0, dt);
+    sy = reduce || isCoarse ? 0 : damp(sy, py, 3.0, dt);
+    let anim = false;
+    for (const t of ticks) { const prev = t.a; t.a = reduce ? t.target : damp(t.a, t.target, 14, dt); if (Math.abs(t.a - t.target) < 0.002) t.a = t.target; if (t.a !== prev) anim = true; }
+
+    const st = compose(smooth);
+    const ambient = !reduce && st.rock > 0.001;
+    const moving = ambient || smooth !== prevSmooth || anim || Math.abs(sx) > 1e-4 || Math.abs(sy) > 1e-4;
+    if (!moving && !dirty) { sampleFps(now, false); return; }
+    dirty = false;
+
+    // 3. world state
+    camera.position.copy(st.p); camera.lookAt(st.t);
+    if (Math.abs(camera.fov - st.fov) > 1e-3) { camera.fov = st.fov; camera.updateProjectionMatrix(); }
+    key.intensity = st.key;
+    const rock = ambient ? st.rock : 0;
+    world.rotation.x = (rock * 1.5 * Math.sin(time * Math.PI * 2 / 17)) * D2R + (-sy * 1.1) * D2R;
+    world.rotation.y = (rock * 2.6 * Math.sin(time * Math.PI * 2 / 13 + 1.0)) * D2R + (sx * 1.7) * D2R;
+    for (const t of ticks) { const a = t.a; t.mesh.visible = a > 0.002; const s = 0.001 + a; t.mesh.scale.set(s, s, 1); t.mesh.position.z = paperZ(t.mesh.position.x, t.mesh.position.y) + 0.004 + (1 - a) * 0.35; }
+
+    // 4. render, 5. instrument
+    renderer.render(scene, camera);
+    sampleFps(now, true);
+    govern(now, dt);
+  }
+
+  function sampleFps(now, rendered) {
+    if (rendered) frames++;
+    if (!fpsAt) fpsAt = now;
+    if (now - fpsAt >= 500) {
+      const fps = Math.round(frames * 1000 / (now - fpsAt));
+      renderer.getDrawingBufferSize(bufSize);
+      hud.textContent = `${frames === 0 && reduce ? 'static' : fps + ' fps'} · ${bufSize.x}×${bufSize.y}${reduce ? ' · rm' : ''}`;
+      frames = 0; fpsAt = now;
+    }
+  }
+  function govern(now, dt) {
+    frameEMA = lerp(frameEMA, dt * 1000, 0.08);
+    if (frameEMA > 28) { if (!slowSince) slowSince = now; } else slowSince = 0;
+    const floor = Math.min(1, 1 / Math.min(devicePixelRatio || 1, DPR_CAP));   // never below native 1×
+    if (slowSince && now - slowSince > 2500 && now - lastGovern > 4000 && dprScale > floor + 1e-3) {
+      dprScale = Math.max(floor, dprScale - 0.25); lastGovern = now; slowSince = 0; resize();
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { running = false; cancelAnimationFrame(raf); raf = 0; hud.textContent = 'paused'; }
+    else { running = true; last = 0; fpsAt = 0; frames = 0; dirty = true; readScroll(); if (!raf) raf = requestAnimationFrame(tick); }
+  });
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); running = false; cancelAnimationFrame(raf); raf = 0; hud.textContent = 'context lost'; });
+  canvas.addEventListener('webglcontextrestored', () => { scene.environment = makeEnvironment(); running = true; last = 0; dirty = true; if (!raf) raf = requestAnimationFrame(tick); });
+  reduceMQ.addEventListener('change', e => { reduce = e.matches; html.classList.toggle('reduce', reduce); if (reduce) smooth = exact; dirty = true; });
+
+  hud.textContent = 'live';
+  html.classList.add('live');
+  if (running) raf = requestAnimationFrame(tick);
+}
+</script>
+</body>
+</html>

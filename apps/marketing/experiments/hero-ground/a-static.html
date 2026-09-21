@@ -1,0 +1,26 @@
+<!doctype html><meta charset=utf-8><title>Hero A — baked ground</title>
+<style>
+:root{--cream:#FFFAEA;--forest:#1B3B31;--ink:#232323;--orange:#F1521E}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);
+ font:400 17px/1.65 system-ui,sans-serif;min-height:100vh}
+/* the two baked tiles — no JS, no canvas, nothing to reduce for reduced-motion */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+ background-image:url(tooth-128-2bit.png);background-size:128px 128px;
+ mix-blend-mode:multiply;opacity:.055}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+ background-image:url(dither-64.png);background-size:64px 64px;opacity:.012}
+main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:12vh 24px}
+h1{font-weight:800;font-size:clamp(40px,6.6vw,72px);line-height:1.02;letter-spacing:-.035em;
+ max-width:12ch;margin:0 0 24px;color:var(--ink)}
+p{max-width:56ch;margin:0 0 32px;font-size:20px;line-height:1.45}
+.rec{font:500 14px/1.5 ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;
+ color:var(--forest);border-top:1px solid #1b3b3122;padding-top:10px;max-width:62ch}
+a.cta{display:inline-block;background:var(--orange);color:#fff;text-decoration:none;
+ padding:14px 22px;border-radius:11px;font-weight:600;min-height:44px}
+</style>
+<main>
+<h1>You already have a list. It's four places long.</h1>
+<p>Every kitchen here had its halal certificate read by a person, against seven checks, before it was listed.</p>
+<a class=cta href=#>See the list</a>
+<p class=rec>SPECIMEN — THE FIELDS WE FILL IN BEFORE A KITCHEN IS LISTED.</p>
+</main>

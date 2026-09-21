@@ -27,8 +27,8 @@ export function Seal({ size = 240, className }: { size?: number; className?: str
       role="img"
       aria-label="Halal Goes verified seal"
       // `block` belongs in the class list, not in a style attribute: an inline
-      // style outranks every utility, which silently defeated the md:hidden /
-      // hidden md:block pair that picks the phone or desktop size.
+      // style outranks every utility, which silently defeated the lg:hidden /
+      // hidden lg:block pair that picks the phone or desktop size.
       className={`block ${className ?? ''}`}
     >
       <circle cx="120" cy="120" r="117" fill="none" stroke="var(--hg-mk-seal-ring)" strokeWidth="3" />
@@ -95,7 +95,12 @@ export function Seal({ size = 240, className }: { size?: number; className?: str
 
 /* The shield is the one mark both seals share. Kept as a constant so the brand
    seal and the document stamp below cannot drift apart. */
-const SHIELD_D = 'M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z';
+/** The shield outline, shared by every instrument that draws one — the brand
+ *  seal, the sheet's stamp, and the record card's state mark. Exported so a
+ *  second copy of the geometry cannot drift away from this one. */
+export const HALAL_SHIELD_D =
+  'M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z';
+const SHIELD_D = HALAL_SHIELD_D;
 
 /**
  * The stamp on the verification sheet.

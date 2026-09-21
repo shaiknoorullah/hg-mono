@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Halal Goes — the journey (G1)</title>
+<meta name="description" content="Prototype: the whole Halal Goes marketing site as one scroll journey. Direction G1 — two handsets, cropped, rotating.">
+<script>document.documentElement.className += ' js';</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230F7A43'/%3E%3Cpath d='M12 4.2 6.6 6.4v4.3c0 3.2 2.2 6.1 5.4 7.1 3.2-1 5.4-3.9 5.4-7.1V6.4L12 4.2Z' fill='%23FFFFFF'/%3E%3Cpath d='m9.4 11.9 1.9 1.9 3.8-4.1' fill='none' stroke='%230F7A43' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   HALAL GOES — G1 "two phones, cropped, rotating"
+   One scroll journey. Palette is the brief's fourteen hexes and no others.
+   #6E7C77 is banned. Solid green #0F7A43 is reserved to the halal seal.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --cream:#FFFAEA; --sunken:#F6EFDD; --raised:#FFFFFF;
+  --ink:#232323;  --body:#4A4E48;   --mkink:#1B3B31;
+  --hair:#E6E0D4; --border:#8B8578;
+  --orange:#F1521E; --onorange:#0F241C;
+  --seal:#0F7A43; --brass:#C9A24B; --sage:#E9F3E4; --expired:#4E5862;
+
+  --ui:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --display:"Bricolage Grotesque","Plus Jakarta Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  /* composition ---------------------------------------------------------- */
+  --rail:0px;                       /* width reserved for a device column   */
+  --dw:170px; --dh:366px;           /* handset frame                        */
+  --aVis:clamp(150px,24dvh,220px);  /* how much of device A stays on screen */
+  --bVis:clamp(126px,20dvh,186px);
+  --headH:86px;
+  --col:min(680px, calc(100vw - 36px));
+  --persp:1200px;
+  --rad:14px;
+}
+
+@media (min-width:1000px){
+  :root{
+    --rail:clamp(228px,21.5vw,336px);
+    --dw:268px; --dh:576px;
+    --aVis:clamp(236px,40dvh,372px);
+    --bVis:clamp(220px,36dvh,340px);
+    --headH:112px;
+    --col:min(680px, calc(100vw - 2*var(--rail) - 56px));
+    --persp:1800px;
+  }
+}
+
+*,*::before,*::after{box-sizing:border-box}
+
+html{background:var(--cream);-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:var(--ui); font-size:17px; line-height:1.6;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+h1,h2,h3,p,ol,ul,figure,dl,dd{margin:0}
+ol,ul{padding:0;list-style:none}
+a{color:var(--mkink)}
+:focus-visible{outline:3px solid var(--orange);outline-offset:3px;border-radius:4px}
+
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:12px;top:-60px;z-index:99;background:var(--ink);color:var(--cream);
+  padding:10px 16px;border-radius:10px;font-weight:700;text-decoration:none;transition:top .16s}
+.skip:focus{top:12px}
+
+/* ── type roles ─────────────────────────────────────────────────────────── */
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;line-height:1.3;color:var(--mkink)}
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--sage);color:var(--mkink);
+  border-radius:999px;padding:8px 14px;font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.13em;text-transform:uppercase;line-height:1}
+h1.hero{font-family:var(--display);font-weight:800;font-size:clamp(40px,12.6vw,58px);
+  line-height:.9;letter-spacing:-.04em;color:var(--ink)}
+h1.hero span{display:block}
+.h2{font-family:var(--display);font-weight:700;font-size:clamp(26px,7.2vw,33px);
+  line-height:1.04;letter-spacing:-.03em;color:var(--ink)}
+.h3{font-family:var(--display);font-weight:700;font-size:clamp(19px,4.6vw,22px);
+  line-height:1.15;letter-spacing:-.02em;color:var(--ink)}
+.lede{font-family:var(--display);font-weight:500;font-size:clamp(18px,4.8vw,21px);
+  line-height:1.3;letter-spacing:-.01em;color:var(--mkink)}
+.body{font-size:15.5px;line-height:1.58;color:var(--mkink);max-width:62ch}
+.body.dim{color:var(--body)}
+.mono{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.035em;
+  line-height:1.55;color:var(--mkink)}
+.monou{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.07em;
+  text-transform:uppercase;line-height:1.4;color:var(--mkink)}
+.stack>*+*{margin-top:14px}
+.stack-s>*+*{margin-top:9px}
+.strong{font-weight:600;color:var(--ink)}
+
+@media (min-width:1000px){
+  body{font-size:17px}
+  h1.hero{font-size:clamp(56px,7.2vw,96px);line-height:.92;letter-spacing:-.03em;font-weight:650}
+  .h2{font-size:clamp(30px,3.6vw,54px);line-height:1}
+  .h3{font-size:clamp(20px,1.6vw,24px)}
+  .lede{font-size:clamp(19px,1.75vw,25px);line-height:1.3}
+  .body{font-size:17px;line-height:1.62}
+  .mono{font-size:11.5px}
+  .monou{font-size:11px}
+  .eyebrow{font-size:12px}
+  .stack>*+*{margin-top:18px}
+}
+
+/* ── site header ────────────────────────────────────────────────────────── */
+.siteHeader{position:fixed;inset:0 0 auto 0;z-index:40;background:var(--cream);
+  border-bottom:1px solid transparent;transition:border-color .2s}
+.siteHeader.stuck{border-bottom-color:var(--hair)}
+.headIn{width:var(--col);max-width:calc(100% - 24px);margin:0 auto;padding:10px 0 8px;
+  display:flex;flex-direction:column;gap:8px;align-items:center}
+.wordmarkRow{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px}
+.wordmark{font-family:var(--display);font-size:20px;font-weight:800;letter-spacing:-.03em;
+  line-height:1;color:var(--ink);text-decoration:none}
+.headCta{display:none}
+.switch{display:flex;gap:6px;width:100%;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px}
+.switch::-webkit-scrollbar{display:none}
+.switch a{flex:none;display:inline-flex;align-items:center;height:34px;padding:0 13px;
+  border-radius:999px;border:1px solid var(--hair);background:var(--raised);
+  font-size:12.5px;font-weight:600;color:var(--mkink);text-decoration:none;white-space:nowrap}
+.switch a[aria-current="page"]{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+@media (min-width:1000px){
+  .headIn{padding:20px 0 12px;gap:12px}
+  .wordmark{font-size:23px}
+  .headCta{display:inline-flex;align-items:center;height:42px;padding:0 20px;border-radius:11px;
+    background:var(--orange);color:var(--onorange);font-size:15px;font-weight:700;
+    text-decoration:none;line-height:1;transition:transform .18s cubic-bezier(.2,0,0,1)}
+  .headCta:hover{transform:translateY(-2px)}
+  .switch{justify-content:center;gap:4px;width:auto;border:1px solid var(--hair);
+    border-radius:999px;background:var(--raised);padding:4px}
+  .switch a{border-color:transparent;background:transparent;height:36px;font-size:13.5px}
+}
+
+/* ── the device layer ───────────────────────────────────────────────────── */
+.devHost{position:relative;z-index:10;pointer-events:none;
+  padding:18px;display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+html.js .devHost{position:fixed;inset:0;padding:0;display:block;
+  perspective:var(--persp);perspective-origin:50% 50%}
+.device{position:static;margin:0 auto;height:auto;box-shadow:none}
+html.js .device{position:absolute;height:var(--dh);box-shadow:0 26px 60px rgba(35,35,35,.16);width:var(--dw);height:var(--dh);padding:7px;border-radius:30px;
+  background:var(--ink);will-change:transform;transform-origin:50% 50%;
+  box-shadow:0 26px 60px rgba(35,35,35,.16)}
+@media (min-width:1000px){ .device{padding:8px;border-radius:36px} }
+.devA{left:-46px; top:calc(var(--aVis) - var(--dh))}
+.devB{right:-46px; bottom:calc(var(--bVis) - var(--dh))}
+@media (min-width:1000px){
+  .devA{left:calc(var(--rail) - var(--dw) - 18px)}
+  .devB{right:calc(var(--rail) - var(--dw) - 18px)}
+}
+.screens{position:relative;width:100%;height:auto;border-radius:24px;overflow:hidden;
+  background:var(--cream);display:flex;flex-direction:column;gap:8px}
+html.js .screens{height:100%;display:block;gap:0}
+@media (min-width:1000px){ .screens{border-radius:28px} }
+.screen{position:static;height:var(--dh);opacity:1;background:var(--cream);color:var(--ink);
+  display:flex;flex-direction:column;gap:8px;padding:14px 12px 0;
+  transition:opacity .42s cubic-bezier(.2,0,0,1)}
+html.js .screen{position:absolute;inset:0;height:auto;opacity:0}
+/* A is cropped at the top: bottom-align its screens so the visible band
+   always carries content rather than the empty head of the screen. */
+html.js .devA .screen{justify-content:flex-end;padding-bottom:16px}
+html.js .screen.on{opacity:1}
+@media (min-width:1000px){ .screen{padding:20px 17px 0;gap:11px} }
+
+/* device-screen furniture */
+.dRule{display:block;height:8px;border-bottom:1px dashed var(--border);opacity:.62}
+.dTitle{font-size:13px;font-weight:700;line-height:1;color:var(--ink)}
+.dLbl{font-family:var(--mono);font-size:8px;font-weight:500;letter-spacing:.06em;
+  text-transform:uppercase;line-height:1;color:var(--mkink)}
+.dRow{display:flex;align-items:center;justify-content:space-between;height:30px;
+  border-bottom:1px solid var(--hair)}
+.dBack{width:24px;height:24px;flex:none;border:0;border-radius:8px;background:var(--sunken);
+  color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0}
+.dSealPill{display:inline-flex;align-self:flex-start;align-items:center;gap:5px;height:24px;
+  padding:0 9px;background:var(--seal);color:#FFFFFF;border:1.5px solid var(--brass);
+  border-radius:9px;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
+.dSage{background:var(--sage);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.dHead{display:flex;align-items:center;gap:8px}
+.dTick{width:13px;height:13px;flex:none;border-radius:50%;background:var(--ink);color:#FFFFFF;
+  display:flex;align-items:center;justify-content:center}
+.dTick.pending{background:transparent;border:1.5px solid var(--border)}
+.dTick.now{background:transparent;border:2px solid var(--ink)}
+.dTick.now i{width:5px;height:5px;border-radius:50%;background:var(--ink);display:block}
+.dTick svg{display:block}
+.dStep{display:flex;align-items:center;gap:9px;height:30px;position:relative}
+.dStep .wire{position:absolute;left:6px;top:21px;width:2px;height:16px;background:var(--hair)}
+.dStep.done .wire{background:var(--ink)}
+.dStep span.t{font-size:10.5px;font-weight:600;line-height:1;color:var(--ink)}
+.dStep.todo span.t{font-weight:500;color:var(--body)}
+.dChk{display:flex;align-items:center;gap:6px;height:14px}
+.dChk .box{width:11px;height:11px;flex:none;border-radius:50%;border:1.5px solid var(--ink);
+  background:var(--ink);display:flex;align-items:center;justify-content:center;color:#FFFFFF}
+html.js .dChk .box{border-color:var(--border);background:transparent;
+  transition:background-color .25s,border-color .25s}
+html.js .dChk.hit .box{background:var(--ink);border-color:var(--ink)}
+.dChk .box svg{display:block}
+html.js .dChk .box svg{opacity:0;transition:opacity .25s}
+html.js .dChk.hit .box svg{opacity:1}
+.dBtn{height:28px;border-radius:9px;background:var(--orange);color:var(--onorange);border:0;
+  font-family:inherit;font-size:11px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;line-height:1}
+.dHeroImg{height:104px;flex:none;background:var(--sunken);border-radius:10px;padding:9px}
+@media (min-width:1000px){
+  .dTitle{font-size:16px} .dLbl{font-size:9.5px} .dRule{height:9px}
+  .dRow{height:36px} .dBack{width:30px;height:30px;border-radius:10px}
+  .dSealPill{height:30px;padding:0 12px;font-size:12px;border-radius:11px}
+  .dSage{padding:13px;border-radius:12px;gap:8px}
+  .dStep{height:38px;gap:11px} .dStep .wire{left:7.5px;top:27px;height:20px}
+  .dStep span.t{font-size:12.5px}
+  .dTick{width:17px;height:17px}
+  .dChk{height:18px;gap:8px} .dChk .box{width:14px;height:14px}
+  .dBtn{height:34px;font-size:13px;border-radius:10px}
+  .dHeroImg{height:150px;border-radius:12px}
+}
+
+/* ── beats, stages, panels ──────────────────────────────────────────────── */
+.beat{position:relative;z-index:20}
+.stage{position:relative}
+.panel{padding:24px 18px}
+.pIn{width:var(--col);max-width:100%;margin:0 auto}
+
+html.js .beat{height:calc(var(--bh) * 1vh)}
+html.js .stage{position:sticky;top:0;height:100vh;overflow:hidden}
+html.js .panel{position:absolute;inset:0;display:grid;place-items:center;
+  padding:calc(var(--aVis) + 10px) 0 calc(var(--bVis) + 10px);
+  opacity:0;visibility:hidden;will-change:transform,opacity}
+html.js .pIn{background:var(--cream);padding:10px 18px;width:100%}
+@media (min-width:1000px){
+  html.js .panel{padding:calc(var(--headH) + 14px) 0 26px}
+  html.js .pIn{background:transparent;padding:0;width:var(--col)}
+}
+
+/* ── waitlist form ──────────────────────────────────────────────────────── */
+.wl{background:var(--raised);border:1px solid var(--hair);border-radius:16px;padding:16px}
+@media (min-width:1000px){ .wl{padding:24px;border-radius:18px} }
+.wl label.fl{display:block;font-size:14px;font-weight:600;color:var(--ink)}
+.wlRow{display:flex;flex-direction:column;gap:9px;margin-top:9px}
+@media (min-width:1000px){ .wlRow{flex-direction:row} }
+.wl input[type=email]{flex:none;width:100%;min-width:0;height:50px;border:1.5px solid var(--ink);
+  border-radius:11px;background:var(--raised);padding:0 14px;font-family:inherit;
+  font-size:16px;color:var(--ink);transition:box-shadow .12s,border-color .12s}
+.wl input[type=email]::placeholder{color:var(--body)}
+.wl input[type=email]:focus{outline:0;border-color:var(--orange);box-shadow:0 0 0 3px rgba(241,82,30,.28)}
+.wl input[aria-invalid=true]{border-color:var(--expired);box-shadow:0 0 0 3px rgba(78,88,98,.22)}
+.wl button.sub{height:50px;padding:0 22px;border:0;border-radius:11px;background:var(--orange);
+  color:var(--onorange);font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
+  white-space:nowrap;transition:transform .18s cubic-bezier(.2,0,0,1)}
+.wl button.sub:hover{transform:translateY(-2px)}
+.wl button.sub:disabled{opacity:.7;cursor:default;transform:none}
+@media (min-width:1000px){ .wl input[type=email]{flex:1 1 auto;width:auto} }
+.consent{display:flex;align-items:flex-start;gap:10px;margin-top:13px}
+.consent input{width:21px;height:21px;flex:none;margin:1px 0 0;accent-color:var(--ink)}
+.consent label{font-size:13.5px;line-height:1.5;color:var(--mkink)}
+.wlMsg{margin-top:11px;font-size:13.5px;line-height:1.5;color:var(--body)}
+.wlMsg.bad{color:var(--expired);font-weight:600}
+.wlDone .h3{margin-bottom:6px}
+
+/* ── certifier rings ────────────────────────────────────────────────────── */
+.rings{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ring{width:54px;height:54px;flex:none;border:1.5px solid var(--mkink);border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  line-height:1;color:var(--mkink)}
+.ring b{font-weight:800;font-size:12px;letter-spacing:-.01em}
+.ring b.sm{font-size:11px}
+.ring i{font-style:normal;margin-top:3px;font-size:7px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+@media (min-width:1000px){ .ring{width:66px;height:66px} .ring b{font-size:14px} .ring b.sm{font-size:12.5px} }
+.arrowLink{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:700;
+  color:var(--mkink);text-decoration:underline;text-decoration-color:var(--orange);
+  text-decoration-thickness:2px;text-underline-offset:4px;background:none;border:0;
+  font-family:inherit;cursor:pointer;padding:6px 0}
+
+/* ── craving grid ───────────────────────────────────────────────────────── */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{position:relative;margin:0;overflow:hidden;border-radius:12px;border:1px solid var(--hair);
+  background:var(--sunken);aspect-ratio:3/2}
+.tile img{width:100%;height:100%;object-fit:cover}
+.tile figcaption{position:absolute;inset:auto 0 0 0;padding:26px 10px 9px;color:#FFFFFF;
+  font-size:11.5px;line-height:1.22;font-weight:600;
+  background:linear-gradient(to top,rgba(15,36,28,.92) 0%,rgba(15,36,28,.72) 50%,rgba(15,36,28,0) 100%)}
+@media (min-width:1000px){
+  .tiles{grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start}
+  .tile{aspect-ratio:auto}
+  .tile.s1{height:212px} .tile.s2{height:166px} .tile.s3{height:248px}
+  .tile.s4{height:176px} .tile.s5{height:230px} .tile.s6{height:184px}
+  .tile figcaption{padding:38px 14px 12px;font-size:14px;line-height:1.25}
+}
+
+/* ── the verification sheet ─────────────────────────────────────────────── */
+.sheet{border:1px solid var(--ink);background:var(--raised);padding:14px;
+  outline:1px solid var(--ink);outline-offset:4px}
+@media (min-width:1000px){ .sheet{padding:20px 24px} }
+.sheetHead{display:flex;flex-direction:column;gap:4px;border-bottom:1px solid var(--ink);padding-bottom:9px}
+@media (min-width:1200px){ .sheetHead{flex-direction:row;justify-content:space-between;align-items:baseline} }
+.schedHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  border-bottom:1px solid var(--ink);padding-bottom:6px}
+.schedHead h3{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink);line-height:1}
+@media (min-width:1000px){ .schedHead h3{font-size:12.5px} }
+.chkRow{display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--hair);
+  padding:7px 0;color:var(--ink)}
+.chkRow:last-child{border-bottom-color:var(--ink)}
+.chkRow .n{width:22px;flex:none;font-family:var(--mono);font-size:11px;font-weight:500;
+  color:var(--mkink);font-variant-numeric:tabular-nums}
+.chkRow .t{flex:1;min-width:0;font-size:13.5px;line-height:1.2;font-weight:500}
+.chkRow .by{display:none}
+.pass{width:17px;height:17px;flex:none;color:var(--ink)}
+html.js .pass{opacity:.22;transform:translateY(3px);
+  transition:opacity .3s cubic-bezier(.2,0,0,1),transform .3s cubic-bezier(.2,0,0,1)}
+html.js .chkRow.hit .pass{opacity:1;transform:none}
+@media (min-width:1000px){
+  /* min-height, never a fixed height: at 1000-1200 the longer checks wrap to
+     two lines and a fixed row would let them cross the rule below. */
+  .chkRow{min-height:37px;padding:5px 0;gap:11px}
+  .chkRow .t{font-size:16px}
+}
+@media (min-width:1200px){
+  .chkRow .by{display:block;width:172px;flex:none;font-family:var(--mono);font-size:10px;
+    font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--mkink);line-height:1.2}
+}
+.expiredChip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px 0 10px;
+  border-radius:6px;background:var(--expired);color:#FFFFFF;font-size:13.5px;font-weight:600;
+  line-height:1;white-space:nowrap}
+.sageStrip{background:var(--sage);border-radius:12px;padding:13px 15px}
+
+/* ── refusal band ───────────────────────────────────────────────────────── */
+.refusal{background:var(--ink);color:var(--cream);border-radius:22px;padding:26px 20px}
+@media (min-width:1000px){ .refusal{border-radius:26px;padding:44px 42px} }
+.refusal .h2{color:var(--cream)}
+.refusal .body{color:var(--cream);opacity:.9;max-width:58ch}
+.refusal .mono{color:var(--cream);opacity:.8;border-top:1px solid rgba(255,250,234,.22);padding-top:14px}
+
+/* ── record card + state grid ───────────────────────────────────────────── */
+.record{background:var(--raised);border:1px solid var(--hair);border-radius:16px;padding:18px;
+  box-shadow:0 1px 2px rgba(35,35,35,.06)}
+@media (min-width:1000px){ .record{padding:24px} }
+.recLine{display:flex;align-items:baseline;gap:14px;padding:5px 0}
+.recLine dt{width:82px;flex:none;font-family:var(--mono);font-size:10px;font-weight:500;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--mkink);line-height:1.3}
+.recLine dd{margin:0;flex:1;min-width:0}
+.blank{display:inline-block;border-top:1px dashed var(--border);opacity:.7;vertical-align:.3em}
+.stateMark{display:block;width:34px;height:34px;flex:none;border-radius:6px}
+.m-certified{background:var(--seal);box-shadow:inset 0 0 0 2px var(--brass);
+  display:grid;place-items:center;color:#FFFFFF}
+.m-expired{background:var(--expired)}
+.m-review{box-shadow:inset 0 0 0 2px var(--expired);opacity:.65;
+  background:repeating-linear-gradient(-45deg,transparent 0 5px,rgba(78,88,98,.22) 5px 7px)}
+.m-none{border:1px dashed var(--hair)}
+.stateGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.stateGrid li{background:var(--raised);border:1px solid var(--hair);border-radius:12px;padding:11px;
+  display:flex;flex-direction:column}
+@media (min-width:1000px){ .stateGrid{grid-template-columns:repeat(4,1fr);gap:14px} .stateGrid li{padding:16px} }
+
+/* ── ruled lists (sealed / steps / checkable) ───────────────────────────── */
+.ruled{border-top:1px solid var(--hair);padding-top:13px}
+.numTag{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--mkink);line-height:1;display:block;margin-bottom:8px}
+
+/* ── faq ────────────────────────────────────────────────────────────────── */
+.faq details{border-bottom:1px solid var(--hair)}
+.faq summary{list-style:none;cursor:pointer;padding:13px 28px 13px 0;position:relative;
+  font-size:15px;line-height:1.3;font-weight:600;color:var(--ink)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"";position:absolute;right:4px;top:50%;width:9px;height:9px;
+  border-right:2px solid var(--mkink);border-bottom:2px solid var(--mkink);
+  transform:translateY(-70%) rotate(45deg);transition:transform .18s cubic-bezier(.2,0,0,1)}
+.faq details[open] summary::after{transform:translateY(-25%) rotate(-135deg)}
+.faq .ans{padding:0 0 14px;font-size:14px;line-height:1.55;color:var(--mkink);max-width:58ch}
+@media (min-width:1000px){ .faq summary{font-size:17px;padding:16px 32px 16px 0} .faq .ans{font-size:15.5px} }
+
+/* ── footer ─────────────────────────────────────────────────────────────── */
+.footNav{display:flex;flex-wrap:wrap;gap:8px 20px}
+.footNav a,.footNav button{font-size:14px;color:var(--body);text-decoration:underline;
+  text-underline-offset:4px;background:none;border:0;font-family:inherit;padding:6px 0;cursor:pointer}
+
+/* ── the scroll HUD ─────────────────────────────────────────────────────── */
+.hud{position:fixed;right:10px;bottom:10px;z-index:60;background:var(--ink);color:var(--cream);
+  border-radius:10px;padding:9px 11px;font-family:var(--mono);font-size:10.5px;line-height:1.45;
+  letter-spacing:.02em;min-width:186px;pointer-events:none;
+  box-shadow:0 8px 22px rgba(35,35,35,.25)}
+.hud b{font-weight:600;color:#FFFFFF}
+.hud .bar{height:3px;background:rgba(255,250,234,.25);border-radius:2px;margin-top:5px;overflow:hidden}
+.hud .bar i{display:block;height:100%;background:var(--orange);width:0}
+.hud[hidden]{display:none}
+.hudHint{opacity:.65}
+
+/* ═══ reduced motion — a real path: ordinary document, nothing mid-transform ═══ */
+@media (prefers-reduced-motion:reduce){
+  html.js .beat{height:auto}
+  html.js .stage{position:static;height:auto;overflow:visible}
+  html.js .panel{position:static;display:block;opacity:1 !important;visibility:visible !important;
+    transform:none !important;padding:22px 0}
+  html.js .pIn{background:transparent;padding:0 18px;width:100%;max-width:min(680px,100%);margin:0 auto}
+  html.js .devHost{position:relative;inset:auto;height:auto;padding:18px;
+    display:flex;gap:18px;justify-content:center;flex-wrap:wrap;perspective:none}
+  html.js .device{position:static;width:var(--dw);height:auto;transform:none !important;
+    box-shadow:none;margin:0 auto}
+  html.js .screens{height:auto;display:flex;flex-direction:column;gap:8px}
+  html.js .screen{position:static;opacity:1 !important;height:var(--dh);border-radius:20px}
+  html.js .devA .screen{justify-content:flex-start;padding-bottom:0}
+  html.js .dChk .box{background:var(--ink);border-color:var(--ink)}
+  html.js .dChk .box svg{opacity:1}
+  html.js .siteHeader{position:static;border-bottom:1px solid var(--hair)}
+  html.js .hud{position:static;margin:16px auto 0;width:max-content}
+  html.js .pass,html.js .dChk .box svg{opacity:1;transform:none}
+  html.js .chkRow .pass{opacity:1}
+  *{transition:none !important;scroll-behavior:auto !important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ══ SITE HEADER ══ audience switch + CTA. Fixed; centred on the axis between
+     the two cropped devices on desktop, opaque on phone. ═════════════════════ -->
+<header class="siteHeader" id="siteHeader">
+  <div class="headIn">
+    <div class="wordmarkRow">
+      <a class="wordmark" href="#main">Halal Goes</a>
+      <a class="headCta" href="#waitlist" data-goto="hero:1">Join the waitlist</a>
+    </div>
+    <nav class="switch" aria-label="I want to">
+      <a href="#main" aria-current="page">Order food</a>
+      <a href="#main">List your restaurant</a>
+      <a href="#main">Deliver with us</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ══ DEVICE LAYER ══ two handsets, persistent for the whole journey.
+     A is always partly past the top edge, B always partly past the bottom.
+     Every transform is written from ONE place (KEYS[] in the script below), so
+     the DOM/CSS mock swaps cleanly for a 3D model later. ═══════════════════ -->
+<div class="devHost" id="devHost" aria-hidden="true">
+
+  <!-- ── DEVICE A · the restaurant / the record ───────────────────────────── -->
+  <div class="device devA" id="devA">
+    <div class="screens">
+
+      <!-- A1 · 01 Browse — the restaurant page, seal first -->
+      <div class="screen on" data-screen="browse">
+        <div class="dHeroImg">
+          <span class="dBack" role="presentation"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+        </div>
+        <span class="dRule" style="width:68%"></span>
+        <span class="dRule" style="width:42%"></span>
+        <p class="dTitle" style="padding-top:2px">Menu</p>
+        <div class="dRow"><span class="dRule" style="width:56%"></span><span class="dRule" style="width:18%"></span></div>
+        <div class="dRow"><span class="dRule" style="width:66%"></span><span class="dRule" style="width:18%"></span></div>
+        <div class="dRow"><span class="dRule" style="width:48%"></span><span class="dRule" style="width:18%"></span></div>
+        <div class="dSage">
+          <span class="dSealPill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>Halal certified</span>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span class="dLbl">Certifying body</span>
+            <span class="dRule" style="flex:1"></span>
+          </div>
+          <p style="margin:0;font-size:9.5px;line-height:1.35;color:var(--mkink)">Halal Goes does not itself certify food.</p>
+        </div>
+      </div>
+
+      <!-- A2 · 02 The record — certifying body, certificate no., valid until, 7 checks -->
+      <div class="screen" data-screen="record">
+        <div class="dHead">
+          <span class="dBack"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="dTitle">Certification record</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Certifying body</span><span class="dRule" style="width:74%"></span></div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Certificate no.</span><span class="dRule" style="width:56%"></span></div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Valid until</span><span class="dRule" style="width:44%"></span></div>
+        <p class="dTitle" style="font-size:11px;padding-top:2px">Seven checks</p>
+        <div id="devChecks" style="display:flex;flex-direction:column;gap:2px">
+          <div class="dChk"><span class="box"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="dRule" style="width:62%"></span></div>
+          <div class="dChk"><span class="box"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="dRule" style="width:70%"></span></div>
+          <div class="dChk"><span class="box"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="dRule" style="width:58%"></span></div>
+          <div class="dChk"><span class="box"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="dRule" style="width:66%"></span></div>
+          <div class="dChk"><span class="box"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="dRule" style="width:52%"></span></div>
+          <div class="dChk"><span class="box"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="dRule" style="width:72%"></span></div>
+          <div class="dChk"><span class="box"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="dRule" style="width:60%"></span></div>
+        </div>
+        <p style="margin:0;font-size:9px;line-height:1.4;color:var(--mkink);font-family:var(--mono)">05 and 07 computed by the server.</p>
+      </div>
+
+      <!-- A3 · Checkout — the amount shown is the amount charged; no price invented -->
+      <div class="screen" data-screen="checkout">
+        <div class="dHead">
+          <span class="dBack"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="dTitle">Checkout</span>
+        </div>
+        <span class="dSealPill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>Halal certified</span>
+        <div class="dRow"><span class="dRule" style="width:56%"></span><span class="dRule" style="width:20%"></span></div>
+        <div class="dRow"><span class="dRule" style="width:44%"></span><span class="dRule" style="width:20%"></span></div>
+        <div class="dRow" style="border-bottom-color:var(--ink)"><span class="dLbl">Total</span><span class="dRule" style="width:26%"></span></div>
+        <div style="display:flex;flex-direction:column;gap:3px;padding-top:2px"><span class="dLbl">Delivering to</span><span class="dRule" style="width:70%"></span></div>
+        <div class="dBtn" style="margin-top:4px">Place order</div>
+        <p style="margin:0;font-size:9px;line-height:1.4;color:var(--mkink);font-family:var(--mono)">The amount displayed is the amount charged.</p>
+      </div>
+
+      <!-- A4 · the record stays on file -->
+      <div class="screen" data-screen="onfile">
+        <div class="dHead">
+          <span class="dBack"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="dTitle">Certificate on file</span>
+        </div>
+        <span class="dSealPill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>Halal certified</span>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Issued by</span><span class="dRule" style="width:74%"></span></div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Certificate</span><span class="dRule" style="width:52%"></span></div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">In force to</span><span class="dRule" style="width:40%"></span></div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Checked by</span><span class="dRule" style="width:62%"></span></div>
+        <div class="dBtn" style="background:var(--sunken);color:var(--ink);margin-top:4px">Open the certificate</div>
+        <p style="margin:0;font-size:9px;line-height:1.4;color:var(--mkink);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em">Record shown on the listing</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── DEVICE B · the order, the seal, the door ─────────────────────────── -->
+  <div class="device devB" id="devB">
+    <div class="screens">
+
+      <!-- B1 · the order, being prepared -->
+      <div class="screen on" data-screen="tracking">
+        <div class="dHead">
+          <span class="dBack"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="dTitle">Your order</span>
+        </div>
+        <div class="dSage" style="flex-direction:row;align-items:center;gap:9px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B3B31" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 15v2"/></svg>
+          <span style="display:flex;flex-direction:column;gap:2px;color:var(--mkink)">
+            <span style="font-size:11px;font-weight:700;line-height:1.1">Sealed at the kitchen</span>
+            <span style="font-size:9px;line-height:1.3">Sealed before pickup.</span>
+          </span>
+        </div>
+        <ol style="padding-top:2px">
+          <li class="dStep done"><span class="wire"></span><span class="dTick"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t">Order accepted</span></li>
+          <li class="dStep"><span class="wire"></span><span class="dTick now"><i></i></span><span class="t">Being prepared</span></li>
+          <li class="dStep todo"><span class="wire"></span><span class="dTick pending"></span><span class="t">Rider on the way</span></li>
+          <li class="dStep todo"><span class="dTick pending"></span><span class="t">At your door</span></li>
+        </ol>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Delivering to</span><span class="dRule" style="width:68%"></span></div>
+      </div>
+
+      <!-- B2 · 03 Sealed — the bag sealed at the kitchen, before pickup -->
+      <div class="screen" data-screen="sealed">
+        <div class="dHead">
+          <span class="dBack"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="dTitle">Your order</span>
+        </div>
+        <div class="dSage" style="align-items:flex-start">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1B3B31" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 15v2"/></svg>
+          <span style="font-size:12px;font-weight:700;line-height:1.15;color:var(--mkink)">Sealed at the kitchen</span>
+          <span style="font-size:9.5px;line-height:1.4;color:var(--mkink)">A tamper-evident label goes across the opening. Bound to your order alone.</span>
+          <div style="display:flex;align-items:baseline;gap:8px"><span class="dLbl">Seal code</span><span class="dRule" style="flex:1"></span></div>
+        </div>
+        <ol style="padding-top:2px">
+          <li class="dStep done"><span class="wire"></span><span class="dTick"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t">Order accepted</span></li>
+          <li class="dStep done"><span class="wire"></span><span class="dTick"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t">Being prepared</span></li>
+          <li class="dStep"><span class="wire"></span><span class="dTick now"><i></i></span><span class="t">Rider on the way</span></li>
+          <li class="dStep todo"><span class="dTick pending"></span><span class="t">At your door</span></li>
+        </ol>
+      </div>
+
+      <!-- B3 · 04 At your door — the delivery timeline -->
+      <div class="screen" data-screen="door">
+        <div class="dHead">
+          <span class="dBack"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="dTitle">Your order</span>
+        </div>
+        <ol style="padding-top:2px">
+          <li class="dStep done"><span class="wire"></span><span class="dTick"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t">Order accepted</span></li>
+          <li class="dStep done"><span class="wire"></span><span class="dTick"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t">Being prepared</span></li>
+          <li class="dStep done"><span class="wire"></span><span class="dTick"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t">Rider on the way</span></li>
+          <li class="dStep"><span class="dTick now"><i></i></span><span class="t">At your door</span></li>
+        </ol>
+        <div class="dSage" style="flex-direction:row;align-items:center;gap:9px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B3B31" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 15v2"/></svg>
+          <span style="font-size:10.5px;font-weight:600;line-height:1.2;color:var(--mkink)">Scanned again when it reaches you</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Delivering to</span><span class="dRule" style="width:68%"></span></div>
+      </div>
+
+      <!-- B4 · delivered — the record stays on file -->
+      <div class="screen" data-screen="delivered">
+        <div class="dHead">
+          <span class="dTick" style="width:20px;height:20px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>
+          <span class="dTitle">Delivered</span>
+        </div>
+        <p style="margin:0;font-size:11px;line-height:1.35;color:var(--mkink)">Your order has arrived.</p>
+        <div class="dSage" style="gap:7px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span class="dTick" style="width:12px;height:12px"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>
+            <span style="font-size:10px;font-weight:600;color:var(--mkink)">Sealed at the kitchen</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span class="dTick" style="width:12px;height:12px"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>
+            <span style="font-size:10px;font-weight:600;color:var(--mkink)">Certificate on file</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Order</span><span class="dRule" style="width:52%"></span></div>
+        <div style="display:flex;flex-direction:column;gap:3px"><span class="dLbl">Delivered at</span><span class="dRule" style="width:44%"></span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<main id="main">
+
+<!-- ═══ BEAT 1 · HERO ═══ 3 panels × 120vh = 360vh ═══════════════════════════ -->
+<section class="beat" data-name="Hero" style="--bh:360">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <p class="chip">Ontario · launching soon</p>
+      <h1 class="hero"><span>Verified</span><span>halal,</span><span>delivered.</span></h1>
+      <p class="lede" style="max-width:26ch">Seven checks on every restaurant, before it reaches you.</p>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn" id="waitlist">
+    <div class="stack">
+      <p class="eyebrow">The waitlist</p>
+      <form class="wl" data-wl novalidate>
+        <label class="fl" for="wl1">Email address</label>
+        <div class="wlRow">
+          <input id="wl1" name="contact" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
+          <button class="sub" type="submit">Notify me</button>
+        </div>
+        <div class="consent">
+          <input id="wl1c" name="consent" type="checkbox">
+          <label for="wl1c">I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.</label>
+        </div>
+        <p class="wlMsg" role="status" aria-live="polite" data-msg>No spam. One email, the day we open in your area.</p>
+      </form>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <section class="stack" aria-labelledby="certifiers-heading">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 24px">
+        <h2 class="eyebrow" id="certifiers-heading" style="letter-spacing:.16em;font-weight:600">Certificates we recognise</h2>
+        <button class="arrowLink" type="button" data-goto="sheet:0">The seven checks
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F1521E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <div class="rings">
+        <div class="ring" role="img" aria-label="HMA Canada"><b>HMA</b><i>Canada</i></div>
+        <div class="ring" role="img" aria-label="HFSAA"><b class="sm">HFSAA</b></div>
+        <div class="ring" role="img" aria-label="ISNA Canada"><b>ISNA</b><i>Canada</i></div>
+        <p class="body" style="flex:1;min-width:190px;max-width:260px;font-size:13.5px">Only these three bodies, and only while the certificate is in date.</p>
+      </div>
+      <p class="monou">Scroll · the journey</p>
+    </section>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 2 · RECOGNITION ═══ 1 panel × 260vh ════════════════════════════ -->
+<section class="beat" data-name="Recognition" style="--bh:260">
+ <div class="stage">
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <h2 class="h2" style="max-width:22ch">You already have a list.<br>It’s four places long.</h2>
+      <p class="mono" style="max-width:62ch">The same kitchens for years, because somebody in the family checked once — and everywhere else stayed a question.</p>
+    </div>
+  </div></div>
+ </div>
+</section>
+
+<!-- ═══ BEAT 3 · CRAVING GRID ═══ 2 panels × 170vh = 340vh ══════════════════ -->
+<section class="beat" data-name="Craving grid" style="--bh:340">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <p class="eyebrow">What’s on it</p>
+      <h2 class="h2">Everything here made the list.</h2>
+      <p class="body">Charcoal, rice, bread out of the oven — from kitchens whose certificates we’ve read, line by line, before you ever saw them.</p>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="stack-s">
+      <div class="tiles">
+        <figure class="tile s1"><img src="assets/grill.webp" alt="Chicken skewers over charcoal, char marks catching the light" width="1000" height="1250" loading="lazy" decoding="async"><figcaption>Charcoal chicken, still spitting.</figcaption></figure>
+        <figure class="tile s2"><img src="assets/rice.webp" alt="A large tray of spiced rice with meat, served family-style" width="1000" height="1250" loading="lazy" decoding="async"><figcaption>Rice by the tray, not the portion.</figcaption></figure>
+        <figure class="tile s3"><img src="assets/shawarma.webp" alt="Shawarma being carved from a vertical spit" width="1000" height="1250" loading="lazy" decoding="async"><figcaption>Shawarma carved off the spit.</figcaption></figure>
+        <figure class="tile s4"><img src="assets/curry.webp" alt="A dark, slow-cooked curry in a steel dish" width="1000" height="1250" loading="lazy" decoding="async"><figcaption>A curry that took all afternoon.</figcaption></figure>
+        <figure class="tile s5"><img src="assets/bread.webp" alt="Flatbread fresh from a hot oven, blistered on top" width="1000" height="1250" loading="lazy" decoding="async"><figcaption>Bread straight out of the oven.</figcaption></figure>
+        <figure class="tile s6"><img src="assets/platter.webp" alt="A large mixed grill platter laid out for a group" width="1000" height="1250" loading="lazy" decoding="async"><figcaption>A platter, for when there are nine of you.</figcaption></figure>
+      </div>
+      <p class="mono">Kitchen names go up when they’ve passed the check — not before.</p>
+    </div>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 4 · WHY THIS EXISTS ═══ 2 panels × 150vh = 300vh ═══════════════ -->
+<section class="beat" data-name="Why this exists" style="--bh:300">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <h2 class="h2" style="max-width:14ch">Halal is a claim anyone can print.</h2>
+      <p class="body">Canada has more than a dozen halal certifying agencies. Each sets its own standards, and none of them is regulated — the Canadian Food Inspection Agency requires halal food to be certified but does not do the certifying, and does not oversee the certifiers.</p>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <p class="eyebrow">Why the list is short</p>
+      <p class="body">In 2024, a CBC Marketplace investigation visited ten fast-food locations advertising halal food. Staff at six said the whole restaurant was certified. None of the ten was. Between them they produced eight expired certificates — one set had run out eight years earlier.</p>
+      <p class="body strong" style="font-weight:500;color:var(--ink)">That is the gap. Not restaurants lying, mostly: paperwork nobody checks.</p>
+      <p class="mono">Source: CBC Marketplace, “Fast-food chains serving up halal food with a side of misinformation, expired certificates”, 18 October 2024.</p>
+    </div>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 5 · THE VERIFICATION SHEET ═══ device beat 02 "The record".
+     4 panels × 115vh = 460vh. The instrument — the most important section. ═══ -->
+<section class="beat" data-name="Verification sheet" data-device-beat="02 · The record" style="--bh:460">
+ <div class="stage">
+
+  <div class="panel" id="seven-checks"><div class="pIn">
+    <div class="stack">
+      <p class="chip">What verified means</p>
+      <h2 class="h2">Verified is a record,<br>not a promise.</h2>
+      <p class="body">Before a restaurant can appear on Halal Goes, a reviewer reads its halal certificate and records seven checks against it. This is the sheet they fill in. Nothing on it is inferred, scanned or auto-approved.</p>
+      <p class="monou" style="display:flex;align-items:center;gap:12px"><span aria-hidden="true" style="flex:none;width:26px;height:1px;background:var(--ink)"></span>Exhibit A — the verification sheet, as a reviewer sees it · specimen, no restaurant named</p>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <section class="sheet" aria-label="Form HG-7, certificate of halal verification, specimen">
+      <div class="sheetHead">
+        <span class="monou" style="font-weight:600;letter-spacing:.1em;color:var(--ink)">Form HG-7 — certificate of halal verification</span>
+        <span class="monou" style="letter-spacing:.04em">Specimen · rev. 1 · checklist v1 · Ontario</span>
+      </div>
+      <div class="schedHead" style="margin-top:14px"><h3>Schedule A — the seven checks</h3><span class="monou" id="chkCount">0/7</span></div>
+      <ol id="scheduleA">
+        <li class="chkRow"><span class="n">01</span><span class="t">Certificate legible and complete</span><span class="by">Reviewer</span><svg class="pass" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+        <li class="chkRow"><span class="n">02</span><span class="t">Issuing body on our accepted registry</span><span class="by">System · reviewer confirms</span><svg class="pass" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+        <li class="chkRow"><span class="n">03</span><span class="t">Legal name matches the restaurant</span><span class="by">System · reviewer confirms</span><svg class="pass" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+        <li class="chkRow"><span class="n">04</span><span class="t">Premises address matches the certificate</span><span class="by">System · reviewer decides</span><svg class="pass" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+        <li class="chkRow"><span class="n">05</span><span class="t">Dates valid today, not about to lapse</span><span class="by">System · no override</span><svg class="pass" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+        <li class="chkRow"><span class="n">06</span><span class="t">Scope covers everything sold here</span><span class="by">Reviewer</span><svg class="pass" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+        <li class="chkRow"><span class="n">07</span><span class="t">Certificate not reused by another restaurant</span><span class="by">System · no override</span><svg class="pass" viewBox="0 0 18 18" role="img" aria-label="Passed"><rect x="0.75" y="0.75" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.25"/><path d="M4.5 9.3l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></li>
+      </ol>
+      <p class="mono" style="margin-top:8px">05 and 07 are computed by the server. A reviewer cannot mark them passed against the computation.</p>
+      <div class="monou" style="display:flex;justify-content:space-between;gap:14px;border-top:1px solid var(--ink);margin-top:14px;padding-top:10px">
+        <span>Rejection — any one fail, with a reason code</span><span>Page 1 of 1</span>
+      </div>
+    </section>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <section class="sheet" aria-label="Schedule B — accepted issuing bodies">
+      <div class="schedHead"><h3>Schedule B — accepted issuing bodies</h3><span class="monou">Registry · 3 seeded · extensible</span></div>
+      <div class="rings" style="margin-top:14px">
+        <div class="ring" role="img" aria-label="HMA Canada"><b>HMA</b><i>Canada</i></div>
+        <div class="ring" role="img" aria-label="HFSAA"><b class="sm">HFSAA</b></div>
+        <div class="ring" role="img" aria-label="ISNA Canada"><b>ISNA</b><i>Canada</i></div>
+      </div>
+      <p class="body" style="margin-top:14px;font-size:14.5px">A certificate from any <strong class="strong">one</strong> of these satisfies check 02. The registry is seeded, not closed — a body can be added as it is accepted — but the issuer is always chosen from the registry, never typed in.</p>
+      <div class="schedHead" style="margin-top:18px"><h3>Schedule C — outcome</h3><span class="monou">Issued on 7/7 only</span></div>
+      <p class="body" style="margin-top:12px;font-size:14.5px">The seal is the outcome of the sheet, not a setting: issued only when all seven checks are marked passed. Six of seven is a rejection with a reason, not a seal.</p>
+    </section>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <section class="sheet" aria-label="On lapse">
+        <div class="schedHead"><h3>On lapse</h3><span class="monou">Withdrawn at expiry · same day</span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px">
+          <span class="expiredChip">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z"/></svg>
+            Certification expired
+          </span>
+          <span class="monou">State: expired<br>Not orderable</span>
+        </div>
+        <p class="body" style="margin-top:14px;font-size:14.5px;color:var(--ink)">When a certificate reaches its expiry date, the seal is withdrawn that same day. The listing shows the state above — neutral slate, meaning <em style="font-style:normal;font-weight:600">we can’t currently vouch</em> — never a red warning, never a badge left up in hope. If a halal field is missing from our records, no badge is shown at all. We don’t guess.</p>
+        <p class="mono" style="margin-top:14px;border-top:1px solid var(--hair);padding-top:10px">APPROVED → EXPIRED at expires_on, end of day, America/Toronto. Red is never used for a halal state: red reads as a religious ruling, and this platform does not make one.</p>
+      </section>
+      <div class="sageStrip">
+        <p class="body" style="font-size:14.5px">Every restaurant you can order from has a sheet like this on file. Issuing body, certificate number, dates and the day we verified it are on the restaurant’s page, with the certificate one tap away.</p>
+      </div>
+    </div>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 6 · THE REFUSAL ═══ 2 panels × 145vh = 290vh ═══════════════════ -->
+<section class="beat" data-name="Refusal" style="--bh:290">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <section class="refusal" aria-labelledby="refusal-heading">
+      <h2 class="h2" id="refusal-heading" style="max-width:18ch;line-height:1.08">We don’t certify food.<br>We don’t make rulings.<br>That isn’t ours to make.</h2>
+    </section>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <section class="refusal" aria-label="What we do instead">
+      <p class="body">We do the clerical work. We get the certificate, we read it, we check it’s real and still in force, and we put our name against the date we checked. What the badge shows is what the certificate says — including who issued it, so you can decide whether that issuer meets your standard. We don’t rank issuers and we don’t score them.</p>
+      <p class="mono" style="margin-top:22px;max-width:62ch">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+    </section>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 7 · THE FOUR STATES ═══ 2 panels × 160vh = 320vh ═══════════════ -->
+<section class="beat" data-name="Badge states" style="--bh:320">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <p class="eyebrow">What the badge can say</p>
+      <h2 class="h2" style="max-width:620px">Including when we can’t vouch for a kitchen.</h2>
+      <p class="body">Four states, and only four. We’d rather show you less than show you something we can’t stand behind.</p>
+      <article class="record" style="max-width:440px">
+        <p class="monou" style="letter-spacing:.085em;margin-bottom:14px">Specimen · what a listing’s record looks like once it passes</p>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="stateMark m-certified" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2.25 4.5 5.35v6.02c0 4.4 3.02 8.5 7.5 9.88 4.48-1.38 7.5-5.48 7.5-9.88V5.35L12 2.25Z" fill="#FFFFFF"/><path d="m8 12.1 2.7 2.7L16.2 9" fill="none" stroke="#0F7A43" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span style="font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--ink)">Halal certified</span>
+        </div>
+        <hr style="border:0;border-top:1px solid var(--hair);margin:14px 0">
+        <dl style="margin:0">
+          <div class="recLine"><dt>Kitchen</dt><dd><span class="blank" role="img" aria-label="not yet published" style="width:22ch;max-width:100%"></span></dd></div>
+          <div class="recLine"><dt>Issued by</dt><dd><span style="font-size:13.5px;font-weight:600;color:var(--ink)">Halal Monitoring Authority (HMA Canada)</span></dd></div>
+          <div class="recLine"><dt>Certificate</dt><dd><span class="blank" role="img" aria-label="not yet published" style="width:14ch;max-width:100%"></span></dd></div>
+          <div class="recLine"><dt>Scope</dt><dd><span class="blank" role="img" aria-label="not yet published" style="width:18ch;max-width:100%"></span></dd></div>
+          <div class="recLine"><dt>In force to</dt><dd><span class="blank" role="img" aria-label="not yet published" style="width:11ch;max-width:100%"></span></dd></div>
+          <div class="recLine"><dt>Checked by</dt><dd><span class="blank" role="img" aria-label="not yet published" style="width:16ch;max-width:100%"></span></dd></div>
+        </dl>
+        <hr style="border:0;border-top:1px solid var(--hair);margin:14px 0">
+        <div class="recLine"><dt style="width:82px;flex:none" class="monou">Reviews</dt><dd style="flex:1"><span class="body" style="font-size:13.5px">None yet. We haven’t opened.</span></dd></div>
+      </article>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <ul class="stateGrid">
+      <li>
+        <span class="stateMark m-certified" aria-hidden="true" style="margin-bottom:10px"></span>
+        <p style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px">Halal certified</p>
+        <p class="body" style="font-size:12.5px;line-height:1.4;margin-bottom:10px">A current certificate is on file, a person has checked it against all seven points, and the record says who checked it and when.</p>
+        <p class="monou">Record shown on the listing</p>
+      </li>
+      <li>
+        <span class="stateMark m-expired" aria-hidden="true" style="margin-bottom:10px"></span>
+        <p style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px">Expired</p>
+        <p class="body" style="font-size:12.5px;line-height:1.4;margin-bottom:10px">The restaurant comes off the app until it is renewed. An expired certificate means our information has lapsed — not that anything is wrong with the food. There is no grace period.</p>
+        <p class="monou">Delisted within 60 seconds</p>
+      </li>
+      <li>
+        <span class="stateMark m-review" aria-hidden="true" style="margin-bottom:10px"></span>
+        <p style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px">Under review</p>
+        <p class="body" style="font-size:12.5px;line-height:1.4;margin-bottom:10px">We have the paperwork and we have not finished checking it. Nothing is ever auto-approved on a timer.</p>
+        <p class="monou">Not visible to customers</p>
+      </li>
+      <li>
+        <span class="stateMark m-none" aria-hidden="true" style="margin-bottom:10px"></span>
+        <p style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px">No record</p>
+        <p class="body" style="font-size:12.5px;line-height:1.4;margin-bottom:10px">If we have not read a certificate, you see nothing at all. Never a maybe, never an optimistic badge.</p>
+        <p class="monou">No badge rendered</p>
+      </li>
+    </ul>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 8 · SEALED ═══ device beat 03 "Sealed". 3 panels × 115vh = 345vh ═ -->
+<section class="beat" data-name="Sealed" data-device-beat="03 · Sealed" style="--bh:345">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <p class="eyebrow">After you order</p>
+      <h2 class="h2" id="sealed-heading">Sealed at the kitchen. Opened by you.</h2>
+      <p class="body" style="max-width:48ch">Verifying the kitchen is only half of it. The other half is making sure nothing happened to the bag between their pass and your door.</p>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <ol class="stack">
+      <li>
+        <span class="numTag">01 · At the kitchen</span>
+        <p class="h3" style="margin-bottom:6px">The kitchen seals the bag.</p>
+        <p class="body" style="max-width:56ch">A tamper-evident label goes across the opening as they finish packing, and it is bound to your order alone. A seal never moves between orders.</p>
+      </li>
+      <li class="ruled">
+        <span class="numTag">02 · At pickup</span>
+        <p class="h3" style="margin-bottom:6px">Your rider scans it on collection.</p>
+        <p class="body" style="max-width:56ch">The scan is what moves the order to picked up. Each code works once — a second use is rejected by the database, not by a check somebody might skip.</p>
+      </li>
+    </ol>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <div>
+        <span class="numTag">03 · At your door</span>
+        <p class="h3" style="margin-bottom:6px">It is scanned again when it reaches you.</p>
+        <p class="body" style="max-width:56ch">If a seal arrives broken you can report it with a photo, and the whole scan trail goes to a person to sort out.</p>
+      </div>
+      <p class="mono">Chain of custody · bindPackageSeal → scanPickup → scanDelivery. A tamper report is filed by the customer, never by the rider.</p>
+    </div>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 9 · STEPS ═══ device beat 04 "At your door". 3 panels × 115 = 345vh -->
+<section class="beat" data-name="How ordering works" data-device-beat="04 · At your door" style="--bh:345">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <h2 class="h2">How ordering works</h2>
+      <div>
+        <span class="numTag">01</span>
+        <h3 class="h3" style="margin-bottom:8px">Pick a restaurant</h3>
+        <p class="body">Everything you can see has passed all seven checks. The seal on a listing is the outcome of the sheet above, and it comes down the day the certificate lapses.</p>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <p class="eyebrow">How ordering works</p>
+      <div>
+        <span class="numTag">02</span>
+        <h3 class="h3" style="margin-bottom:8px">Order</h3>
+        <p class="body">You see the full total before you pay. Change your mind before the restaurant accepts and the order is cancelled free — nothing is taken.</p>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <p class="eyebrow">How ordering works</p>
+      <div>
+        <span class="numTag">03</span>
+        <h3 class="h3" style="margin-bottom:8px">Follow it to the door</h3>
+        <p class="body">Your rider’s position updates as they go, so you know whether to answer the door now or in ten minutes.</p>
+      </div>
+    </div>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 10 · CHECKABLE ═══ 3 panels × 110vh = 330vh ════════════════════ -->
+<section class="beat" data-name="Checkable" style="--bh:330">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <p class="eyebrow">How to catch us out</p>
+      <h2 class="h2" id="checkable-heading">Everything here is checkable.</h2>
+      <p class="body" style="max-width:46ch">We’re asking you to trust a list. The only honest way to earn that is to make it easy to prove us wrong.</p>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <ul class="stack">
+      <li>
+        <p class="h3" style="margin-bottom:6px">The standard is written down, versioned and dated.</p>
+        <p class="body" style="max-width:58ch">Not a page of principles — the actual seven checks, what makes an issuer acceptable, and what we refuse to claim. If we change it, the version changes with it. <a href="#seven-checks" data-goto="sheet:0" style="font-weight:600;white-space:nowrap;color:var(--ink)">Read it →</a></p>
+      </li>
+      <li class="ruled">
+        <p class="h3" style="margin-bottom:6px">We print the issuer’s name, not a label of our own.</p>
+        <p class="body" style="max-width:58ch">Every listing names the body that issued the certificate. We don’t rank issuers or score them, because which bodies you accept is your judgement, not ours.</p>
+      </li>
+      <li class="ruled">
+        <p class="h3" style="margin-bottom:6px">You can open the certificate itself.</p>
+        <p class="body" style="max-width:58ch">Not a badge that stands in for a document — the document. Signed in, from the listing, on a link that expires in minutes and is never served from a public URL.</p>
+      </li>
+    </ul>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="stack">
+      <ul class="stack">
+        <li>
+          <p class="h3" style="margin-bottom:6px">Nobody can buy their way up the list.</p>
+          <p class="body" style="max-width:58ch">A restaurant cannot pay for or influence its position in the feed. There is no promoted tier and there is no plan to build one.</p>
+        </li>
+        <li class="ruled">
+          <p class="h3" style="margin-bottom:6px">We’ll publish what we turn down.</p>
+          <p class="body" style="max-width:58ch">From launch: how many applications we received, how many passed, and how many we rejected. A verifier who only ever reports approvals isn’t verifying anything.</p>
+        </li>
+      </ul>
+      <p class="monou" style="border:1px solid var(--hair);background:var(--raised);border-radius:12px;padding:13px 15px;line-height:1.9;letter-spacing:.04em">No reviews, no ratings, no customer counts and no partner logos on this page. We haven’t opened yet. When we do, every number here will be one you can check.</p>
+    </div>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 11 · FAQ ═══ 2 panels × 160vh = 320vh ══════════════════════════ -->
+<section class="beat" data-name="FAQ" style="--bh:320">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="stack faq">
+      <h2 class="h2" style="max-width:12ch">Questions people ask.</h2>
+      <div>
+        <details open><summary>What does “verified” mean here?</summary><div class="ans">A person reads the restaurant’s halal certificate and records seven checks against it: that it is legible and complete, that the issuing body is one we accept, that the legal name matches, that the premises address matches, that the dates are valid today, that the scope covers everything sold, and that the certificate is not already in use by another restaurant. All seven have to pass. Six of seven is a rejection with a reason, not a seal.</div></details>
+        <details><summary>Whose certificates do you accept?</summary><div class="ans">HMA Canada, HFSAA and ISNA Canada. A certificate from any one of them satisfies the issuer check. The list can grow as we accept more bodies; it is never typed in free-hand.</div></details>
+        <details><summary>What happens when a certificate expires?</summary><div class="ans">The seal comes down the same day. The listing shows a neutral “we can’t currently vouch” state and you can’t order from it until it’s renewed. We don’t leave a badge up in hope.</div></details>
+        <details><summary>Do you decide what’s halal?</summary><div class="ans">No. We check certificates issued by recognised bodies and report what we find. We don’t make religious rulings, and we don’t rank one certifier’s standard above another’s.</div></details>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="stack faq">
+      <p class="eyebrow">Questions people ask</p>
+      <div>
+        <details open><summary>Is the whole restaurant halal, or just some items?</summary><div class="ans">That’s check six. We record what the certificate’s scope covers, and if it doesn’t cover everything sold, the restaurant doesn’t go live.</div></details>
+        <details><summary>What do you do with my email address?</summary><div class="ans">Write to you when we open in your area, and after that only when there are newly verified kitchens near you. We don’t sell it and we don’t pass it to restaurants. Every email has one-click unsubscribe.</div></details>
+        <details><summary>When are you launching?</summary><div class="ans">Ontario first. We’re pre-launch — this page is a waitlist, not a download, and there’s nothing to install yet. Leave your email and we’ll write once, the day we open in your area.</div></details>
+      </div>
+    </div>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 12 · FINAL CTA ═══ 2 panels × 150vh = 300vh ════════════════════ -->
+<section class="beat" data-name="Final CTA" style="--bh:300">
+ <div class="stage">
+
+  <div class="panel"><div class="pIn">
+    <div class="sageStrip" style="padding:24px 20px;border-radius:18px">
+      <h2 class="h2">Be there on day one.</h2>
+      <p class="lede" style="margin-top:12px;max-width:40ch">One email the day we open in your area. Nothing before then.</p>
+    </div>
+  </div></div>
+
+  <div class="panel"><div class="pIn">
+    <div class="sageStrip" style="padding:20px 16px;border-radius:18px">
+      <form class="wl" data-wl novalidate>
+        <label class="fl" for="wl2">Email address</label>
+        <div class="wlRow">
+          <input id="wl2" name="contact" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
+          <button class="sub" type="submit">Notify me</button>
+        </div>
+        <div class="consent">
+          <input id="wl2c" name="consent" type="checkbox">
+          <label for="wl2c">I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.</label>
+        </div>
+        <p class="wlMsg" role="status" aria-live="polite" data-msg>No spam. One email, the day we open in your area.</p>
+      </form>
+    </div>
+  </div></div>
+
+ </div>
+</section>
+
+<!-- ═══ BEAT 13 · FOOTER ═══ 1 panel × 260vh ════════════════════════════════ -->
+<section class="beat" data-name="Footer" style="--bh:260">
+ <div class="stage">
+  <div class="panel"><div class="pIn">
+    <footer class="stack" style="border-top:1px solid var(--hair);padding-top:20px">
+      <p class="wordmark" style="font-family:var(--display);font-size:20px;font-weight:800">Halal Goes</p>
+      <nav class="footNav" aria-label="Footer">
+        <a href="#seven-checks" data-goto="sheet:0">Verification standard</a>
+        <a href="#main">Writing</a>
+        <a href="#main">Privacy</a>
+        <a href="#main">Terms</a>
+        <button type="button">Cookie preferences</button>
+      </nav>
+      <p class="body dim" style="font-size:14px">Ontario, Canada. Launching soon — prices in CAD.</p>
+      <p class="mono">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+    </footer>
+  </div></div>
+ </div>
+</section>
+
+</main>
+
+<div class="hud" id="hud" role="status" aria-live="off">
+  <div><b id="hudBeat">—</b></div>
+  <div>beat <span id="hudBeatIx">0</span>/13 · <span id="hudBeatLen">—</span></div>
+  <div>local <b id="hudP">0.00</b> · panel <span id="hudPanel">—</span></div>
+  <div class="bar"><i id="hudBar"></i></div>
+  <div class="hudHint">page <span id="hudTotal">—</span> · <span id="hudMode">smooth</span> · d</div>
+</div>
+
+<script src="assets/lenis.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   G1 — the scroll engine.
+
+   One scroll progress value, computed in PIXELS against each beat's own
+   measured offsetTop / offsetHeight. Exact progress owns everything discrete
+   (active panel, which checks are ticked, which device screen is on, ARIA);
+   damped progress owns everything continuous (transforms, opacity). That split
+   is what stops the copy flickering between two states at a boundary.
+
+   Every device transform lives in KEYS[] — one keyframe per panel, in one
+   place, so the DOM/CSS handsets swap for a 3D model without touching anything
+   else.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  var smooth = function (t) { return t * t * (3 - 2 * t); };
+
+  /* DWELL — the first 20% and last 20% of a panel's scroll range hold still.
+     A reader must be able to stop and read without the thing under them still
+     travelling. */
+  var DWELL_IN = 0.20, DWELL_OUT = 0.80;
+  function dwell(t) {
+    if (t <= DWELL_IN) return 0;
+    if (t >= DWELL_OUT) return 1;
+    return smooth((t - DWELL_IN) / (DWELL_OUT - DWELL_IN));
+  }
+
+  /* ── the device keyframes ────────────────────────────────────────────────
+     [ax, ay, aYaw, aRoll, aPitch,  bx, by, bYaw, bRoll, bPitch]
+     A is the top-cropped handset, B the bottom-cropped one. y is bounded so A
+     is ALWAYS partly past the top edge and B ALWAYS partly past the bottom —
+     the crop is the signature of this direction. */
+  var KEYS = [
+    [  0,   0, 16,  8,  0,    0,   0, -16,  8,  0], /* 00 hero · headline      */
+    [-14, -30, 19, 9.5, 1,   10,  26, -13, 6.5,-1], /* 01 hero · form          */
+    [-26, -58, 22, 11,  2,   20,  50, -10,  5, -2], /* 02 hero · certifiers    */
+    [  6, -18, 13,  6,  0,   -8,  18, -17,  8,  0], /* 03 recognition          */
+    [-30,  36,  9,  4, -2,   26, -34, -21,10.5, 2], /* 04 craving · header     */
+    [-40,  70,  6, 2.5,-3,   36, -62, -24, 12,  3], /* 05 craving · the grid   */
+    [-10,  20, 12, 5.5,-1,   12, -20, -18,  9,  1], /* 06 why · the claim      */
+    [ 14, -26, 17,  8,  1,  -14,  26, -12,  6, -1], /* 07 why · CBC            */
+    [  0, -46, 10,  5,  3,    0,  40,  -9, 4.5,-2], /* 08 sheet · what verified*/
+    [  0, -56,  6,  3,  4,    0,  48,  -6,  3, -2], /* 09 sheet · Schedule A   */
+    [  0, -58,  4,  2,  4,    0,  52,  -4,  2, -2], /* 10 sheet · Schedule B/C */
+    [ -6, -48,  7, 3.5, 2,    6,  44,  -7, 3.5,-1], /* 11 sheet · on lapse     */
+    [-22, -20, 14,  7,  0,   22,  14, -14,  7,  0], /* 12 refusal · the line   */
+    [-34,  10, 18,  9, -1,   34, -10, -18,  9,  1], /* 13 refusal · disclaimer */
+    [ -8, -40, 11,  5,  1,    8,  30, -11, 5.5,-1], /* 14 states · specimen    */
+    [  8, -56,  8, 3.5, 2,   -8,  40,  -8,  4, -1], /* 15 states · four states */
+    [ 26, -10, -6, -3,  0,  -24, -36,   9, -4,  0], /* 16 sealed · intro       */
+    [ 34,   6,-10, -5, -1,  -30, -54,  13, -6,  1], /* 17 sealed · 01 + 02     */
+    [ 30,  14, -8, -4, -1,  -26, -66,  11, -5,  1], /* 18 sealed · 03 the door */
+    [ 12,  -6, -4, -2,  0,  -12, -46,   7, -3,  0], /* 19 steps · pick         */
+    [  0, -20,  0,  0,  1,    0, -28,   3,-1.5, 0], /* 20 steps · order        */
+    [-10, -34,  4,  2,  1,    8,  -8,  -2,  1,  0], /* 21 steps · to the door  */
+    [-20, -50,  9, 4.5, 2,   18,  14,  -8,  4, -1], /* 22 checkable · intro    */
+    [-26, -64, 12,  6,  2,   24,  28, -11, 5.5,-1], /* 23 checkable · 1-3      */
+    [-20, -52, 10,  5,  2,   18,  20,  -9, 4.5,-1], /* 24 checkable · 4-5      */
+    [ -6, -30,  6,  3,  1,    6,  34,  -6,  3, -1], /* 25 faq · 1-4            */
+    [  6, -16,  3, 1.5, 0,   -6,  40,  -3, 1.5,-1], /* 26 faq · 5-7            */
+    [  0, -40,  5, 2.5, 1,    0,  24,  -5, 2.5,-1], /* 27 cta · day one        */
+    [  0, -54,  2,  1,  1,    0,  16,  -2,  1,  0], /* 28 cta · the form       */
+    [  0, -66,  1, 0.5, 0,    0,   8,  -1, 0.5, 0], /* 29 footer               */
+    [  0, -72,  0,  0,  0,    0,   4,   0,  0,  0]  /* 30 terminal rest        */
+  ];
+
+  /* Which app screen each handset is showing, per panel. The device screen and
+     the prose beside it are about the same thing at the same moment. */
+  var SCREEN_A = [], SCREEN_B = [], i;
+  for (i = 0; i <= 7; i++)  { SCREEN_A[i] = 'browse';   SCREEN_B[i] = 'tracking'; }
+  for (i = 8; i <= 15; i++) { SCREEN_A[i] = 'record';   SCREEN_B[i] = 'tracking'; }
+  for (i = 16; i <= 18; i++){ SCREEN_A[i] = 'checkout'; SCREEN_B[i] = 'sealed';   }
+  SCREEN_A[19] = 'browse'; SCREEN_A[20] = 'checkout'; SCREEN_A[21] = 'checkout';
+  for (i = 19; i <= 21; i++){ SCREEN_B[i] = 'door'; }
+  for (i = 22; i <= 30; i++){ SCREEN_A[i] = 'onfile';   SCREEN_B[i] = 'delivered';}
+
+  /* ── DOM ─────────────────────────────────────────────────────────────────── */
+  var beats = [].slice.call(document.querySelectorAll('.beat'));
+  var devA = document.getElementById('devA');
+  var devB = document.getElementById('devB');
+  var screensA = [].slice.call(devA.querySelectorAll('.screen'));
+  var screensB = [].slice.call(devB.querySelectorAll('.screen'));
+  var header = document.getElementById('siteHeader');
+  var hud = document.getElementById('hud');
+  var chkRows = [].slice.call(document.querySelectorAll('#scheduleA .chkRow'));
+  var devChks = [].slice.call(document.querySelectorAll('#devChecks .dChk'));
+  var chkCount = document.getElementById('chkCount');
+
+  var model = [];      /* one entry per beat: {el, panels[], top, travel, start} */
+  var panels = [];     /* flat list of every panel element                       */
+  var totalPanels = 0;
+  var SHEET_PANEL = 9; /* Schedule A — where the seven checks tick in            */
+
+  function measure() {
+    panels.length = 0; model.length = 0; totalPanels = 0;
+    var vh = window.innerHeight;
+    for (var b = 0; b < beats.length; b++) {
+      var el = beats[b];
+      var stage = el.querySelector('.stage');
+      var ps = [].slice.call(el.querySelectorAll('.panel'));
+      var stageH = stage.getBoundingClientRect().height || vh;
+      var entry = {
+        el: el,
+        name: el.getAttribute('data-name') || ('Beat ' + (b + 1)),
+        deviceBeat: el.getAttribute('data-device-beat') || '',
+        panels: ps,
+        start: totalPanels,
+        n: ps.length,
+        top: el.offsetTop,
+        height: el.offsetHeight,
+        travel: Math.max(1, el.offsetHeight - stageH)
+      };
+      for (var k = 0; k < ps.length; k++) panels.push(ps[k]);
+      totalPanels += ps.length;
+      model.push(entry);
+    }
+    document.getElementById('hudTotal').textContent =
+      (Math.round(document.documentElement.scrollHeight / vh * 10) / 10) + ' vh';
+  }
+
+  /* ── state ───────────────────────────────────────────────────────────────── */
+  var exactScroll = 0, dampedScroll = 0, lastT = 0, lenis = null;
+  var lastScreenPanel = -1, lastTicks = -1, hudOn = true;
+
+  function progressAt(scroll) {
+    /* pixels against each beat's own measured box — never section centres,
+       never a wheel accumulator. Returns {P, beat, local}. */
+    var b = model.length - 1;
+    for (var j = 0; j < model.length; j++) {
+      if (scroll < model[j].top + model[j].height) { b = j; break; }
+    }
+    var e = model[b];
+    var local = clamp((scroll - e.top) / e.travel, 0, 1);
+    return { P: e.start + local * e.n, beat: b, local: local };
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function paint() {
+    var vh = window.innerHeight;
+    var mob = window.innerWidth < 1000;
+    var M = mob ? 0.46 : 1;
+
+    var ex = progressAt(exactScroll);
+    var dm = progressAt(dampedScroll);
+
+    /* ---- copy panels: cross-dissolve + a 12px settle, from DAMPED ---------- */
+    var FADE = 0.10;
+    for (var k = 0; k < panels.length; k++) {
+      var d1 = dm.P - (k - FADE / 2);
+      var d2 = (k + 1 + FADE / 2) - dm.P;
+      var a = clamp(Math.min(d1, d2) / FADE, 0, 1);
+      var el = panels[k];
+      if (a <= 0.004) {
+        if (el.style.visibility !== 'hidden') { el.style.visibility = 'hidden'; el.style.opacity = '0'; }
+        continue;
+      }
+      var al = smooth(a);
+      var ty = clamp((k + 0.5 - dm.P) * 20, -12, 12);
+      el.style.visibility = 'visible';
+      el.style.opacity = al.toFixed(3);
+      el.style.transform = 'translate3d(0,' + ty.toFixed(2) + 'px,0)';
+    }
+
+    /* ---- the two handsets: interpolate KEYS with the dwell, from DAMPED ---- */
+    var ki = clamp(Math.floor(dm.P), 0, KEYS.length - 2);
+    var f = dwell(clamp(dm.P - ki, 0, 1));
+    var A = KEYS[ki], B = KEYS[ki + 1];
+    var v = [];
+    for (var q = 0; q < 10; q++) v[q] = lerp(A[q], B[q], f);
+
+    devA.style.transform =
+      'translate3d(' + (v[0] * M).toFixed(2) + 'px,' + clamp(v[1] * M, -80, 80).toFixed(2) + 'px,0)' +
+      ' rotateX(' + v[4].toFixed(2) + 'deg) rotateY(' + v[2].toFixed(2) + 'deg) rotateZ(' + v[3].toFixed(2) + 'deg)';
+    devB.style.transform =
+      'translate3d(' + (v[5] * M).toFixed(2) + 'px,' + clamp(v[6] * M, -80, 80).toFixed(2) + 'px,0)' +
+      ' rotateX(' + v[9].toFixed(2) + 'deg) rotateY(' + v[7].toFixed(2) + 'deg) rotateZ(' + v[8].toFixed(2) + 'deg)';
+
+    /* ---- discrete state, from EXACT --------------------------------------- */
+    var cur = clamp(Math.floor(ex.P), 0, totalPanels - 1);
+    if (cur !== lastScreenPanel) {
+      lastScreenPanel = cur;
+      setScreen(screensA, SCREEN_A[cur]);
+      setScreen(screensB, SCREEN_B[cur]);
+    }
+
+    var ticks = 0;
+    if (ex.P >= SHEET_PANEL + 1) ticks = 7;
+    else if (ex.P > SHEET_PANEL) {
+      ticks = Math.floor(clamp((ex.P - SHEET_PANEL - 0.14) / 0.56, 0, 1) * 7.999);
+    }
+    if (ticks !== lastTicks) {
+      lastTicks = ticks;
+      for (var c = 0; c < chkRows.length; c++) chkRows[c].classList.toggle('hit', c < ticks);
+      for (var c2 = 0; c2 < devChks.length; c2++) devChks[c2].classList.toggle('hit', c2 < ticks);
+      chkCount.textContent = ticks + '/7';
+    }
+
+    header.classList.toggle('stuck', exactScroll > 8);
+
+    /* ---- HUD -------------------------------------------------------------- */
+    if (hudOn) {
+      var e = model[ex.beat];
+      document.getElementById('hudBeat').textContent =
+        e.name + (e.deviceBeat ? '  ▸ ' + e.deviceBeat : '');
+      document.getElementById('hudBeatIx').textContent = (ex.beat + 1);
+      document.getElementById('hudBeatLen').textContent =
+        Math.round(e.height / vh * 10) / 10 + ' vh';
+      document.getElementById('hudP').textContent = ex.local.toFixed(2);
+      document.getElementById('hudPanel').textContent =
+        (Math.min(e.n, Math.floor(ex.P - e.start) + 1)) + '/' + e.n;
+      document.getElementById('hudBar').style.width = (ex.local * 100).toFixed(1) + '%';
+    }
+  }
+
+  function setScreen(list, name) {
+    for (var s = 0; s < list.length; s++) {
+      list[s].classList.toggle('on', list[s].getAttribute('data-screen') === name);
+    }
+  }
+
+  /* ── loop ────────────────────────────────────────────────────────────────── */
+  function frame(t) {
+    var dt = lastT ? Math.min(0.1, (t - lastT) / 1000) : 0.016;
+    lastT = t;
+    if (lenis) lenis.raf(t);
+    exactScroll = lenis ? lenis.scroll : (window.scrollY || window.pageYOffset || 0);
+    /* damped trails exact — frame-rate independent */
+    dampedScroll += (exactScroll - dampedScroll) * (1 - Math.exp(-11 * dt));
+    if (Math.abs(exactScroll - dampedScroll) < 0.4) dampedScroll = exactScroll;
+    paint();
+    requestAnimationFrame(frame);
+  }
+
+  /* ── boot ────────────────────────────────────────────────────────────────── */
+  function boot() {
+    measure();
+    if (REDUCED) {
+      document.getElementById('hudBeat').textContent = 'reduced motion';
+      document.getElementById('hudMode').textContent = 'document mode';
+      document.getElementById('hudP').textContent = '1.00';
+      document.getElementById('hudPanel').textContent = 'all';
+      document.getElementById('hudBeatIx').textContent = String(beats.length);
+      document.getElementById('hudBeatLen').textContent = 'auto';
+      for (var c = 0; c < chkRows.length; c++) chkRows[c].classList.add('hit');
+      for (var d = 0; d < devChks.length; d++) devChks[d].classList.add('hit');
+      chkCount.textContent = '7/7';
+      header.classList.add('stuck');
+      return;
+    }
+    if (typeof window.Lenis === 'function') {
+      lenis = new window.Lenis({
+        duration: 1.05,
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 1.6,
+        easing: function (x) { return Math.min(1, 1.001 - Math.pow(2, -10 * x)); }
+      });
+      document.getElementById('hudMode').textContent = 'lenis';
+    } else {
+      document.getElementById('hudMode').textContent = 'native';
+    }
+    exactScroll = dampedScroll = lenis ? lenis.scroll : (window.scrollY || 0);
+    requestAnimationFrame(frame);
+  }
+
+  var rt;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { measure(); if (REDUCED) return; paint(); }, 120);
+  });
+  window.addEventListener('load', function () { measure(); });
+
+  /* ── the HUD toggle ──────────────────────────────────────────────────────── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'd' && e.key !== 'D') return;
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+    hudOn = !hudOn;
+    hud.hidden = !hudOn;
+  });
+
+  /* ── in-page navigation lands on a panel, not a pixel ────────────────────── */
+  var BEAT_KEY = { hero: 0, sheet: 4 };
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('[data-goto]') : null;
+    if (!a) return;
+    var spec = a.getAttribute('data-goto').split(':');
+    var bi = BEAT_KEY[spec[0]];
+    if (bi === undefined || !model[bi]) return;
+    e.preventDefault();
+    var m = model[bi];
+    var y = m.top + m.travel * ((parseInt(spec[1], 10) + 0.5) / m.n);
+    if (lenis) lenis.scrollTo(y, { duration: 1.3 });
+    else window.scrollTo(0, y);
+  });
+
+  /* ── the waitlist form · empty, focus, invalid, submitted ────────────────── */
+  var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  [].slice.call(document.querySelectorAll('[data-wl]')).forEach(function (form) {
+    var input = form.querySelector('input[type=email]');
+    var consent = form.querySelector('input[type=checkbox]');
+    var msg = form.querySelector('[data-msg]');
+    var btn = form.querySelector('button.sub');
+    var rest = msg.textContent;
+
+    function bad(text, el) {
+      msg.textContent = text;
+      msg.classList.add('bad');
+      if (el) { el.setAttribute('aria-invalid', 'true'); el.focus(); }
+    }
+    input.addEventListener('input', function () {
+      input.removeAttribute('aria-invalid');
+      if (msg.classList.contains('bad')) { msg.classList.remove('bad'); msg.textContent = rest; }
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      input.removeAttribute('aria-invalid');
+      var v = input.value.trim();
+      if (v.length === 0) return bad('Enter your email address.', input);
+      if (!EMAIL.test(v)) return bad('That doesn’t look like an email address.', input);
+      if (!consent.checked) return bad('Please tick the box so we’re allowed to contact you.', consent);
+
+      msg.classList.remove('bad');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      setTimeout(function () {
+        var done = document.createElement('div');
+        done.className = 'wlDone';
+        done.setAttribute('role', 'status');
+        done.innerHTML =
+          '<p class="h3">You’re on the list.</p>' +
+          '<p class="body" style="font-size:14.5px">We’ll email you once, the day we open in your area. Nothing before then.</p>';
+        form.innerHTML = '';
+        form.appendChild(done);
+      }, 450);
+    });
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>

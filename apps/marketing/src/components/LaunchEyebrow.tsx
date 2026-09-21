@@ -35,7 +35,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export function LaunchEyebrow({ state, className = '' }: { state: LaunchState; className?: string }) {
   const chip =
     'inline-flex items-center gap-2 self-start rounded-full bg-feedback-success-tint px-3 py-2 ' +
-    'text-marketing-eyebrow-phone text-mk-ink uppercase md:px-4 md:py-2.5 md:text-marketing-eyebrow';
+    'text-marketing-eyebrow-phone text-mk-ink uppercase lg:px-4 lg:py-2.5 lg:text-marketing-eyebrow';
 
   if (state.kind !== 'counting') {
     return (
