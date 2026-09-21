@@ -233,6 +233,10 @@ header.site{padding-top:16px}
 
 /* ── beats: a tall section with a pinned stage inside it ────────────────── */
 .beat{position:relative; height:calc(var(--beat) * 1vh)}
+/* A beat pins so that something can happen WHILE it is held. The entrance runs
+   on the approach clock (dIn) so nothing is blank when it pins; what happens
+   DURING the pin runs on pinned progress (pDamped). A beat with no pinned
+   segment is frozen scroll — see the README. */
 .stage{
   position:sticky; top:0; height:100vh; height:100svh;
   display:flex; flex-direction:column; justify-content:center;
@@ -1390,24 +1394,32 @@ html.rm .stage{overflow:visible}
     /* One idea, spent once: three lines printing onto the band, then the body.
        Line by line — never word by word. */
     refusal: function (b) {
-      var di = b.dIn;
+      /* The three lines print on APPROACH, so the band is never an empty slab
+         when it pins. What you then hold the beat for is the argument beneath
+         them: the clerical-work paragraph, and last the fixed disclaimer the
+         product itself is pinned to. Statement, then evidence. */
+      var di = b.dIn, d = b.pDamped;
       refusalLines.forEach(function (el, i) {
-        var k = smooth(seg(di, 0.04 + i * 0.14, 0.34 + i * 0.14));
+        var k = smooth(seg(di, 0.10 + i * 0.16, 0.44 + i * 0.16));
         el.style.transform = 'translateY(' + ((1 - k) * 102).toFixed(2) + '%)';
       });
-      setFade(refusalBody, smooth(seg(di, 0.46, 0.70)));
-      setFade(refusalFine, smooth(seg(di, 0.62, 0.86)));
+      setFade(refusalBody, smooth(seg(d, 0.10, 0.44)));
+      setFade(refusalFine, smooth(seg(d, 0.52, 0.84)));
     },
 
     states: function (b) {
-      var e = b.pExact, di = b.dIn;
-      recordBlanks.forEach(function (el, i) { setBlank(el, smooth(seg(di, 0.06 + i * 0.06, 0.22 + i * 0.06))); });
+      /* The heading and the empty record card arrive on APPROACH. The beat
+         itself is the record filling in line by line, and then the four states
+         arriving one at a time — ending on "No record", which is the one that
+         matters: invariant 8, no badge rather than an optimistic one. */
+      var d = b.pDamped;
+      recordBlanks.forEach(function (el, i) { setBlank(el, smooth(seg(d, 0.06 + i * 0.05, 0.24 + i * 0.05))); });
       stateItems.forEach(function (li, i) {
-        var k = smooth(seg(di, 0.40 + i * 0.09, 0.58 + i * 0.09));
+        var k = smooth(seg(d, 0.46 + i * 0.10, 0.66 + i * 0.10));
         li.style.opacity = k;
         li.style.transform = 'translateY(' + ((1 - k) * 12).toFixed(2) + 'px)';
       });
-      if (recordCard) recordCard.setAttribute('aria-busy', e < 0.7 ? 'true' : 'false');
+      if (recordCard) recordCard.setAttribute('aria-busy', d < 0.7 ? 'true' : 'false');
     },
 
     j01: function (b) {
