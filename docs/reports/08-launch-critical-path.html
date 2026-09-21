@@ -156,7 +156,7 @@
     <thead><tr><th style="width:44%">Gate</th><th style="width:20%">Owner</th><th style="width:20%">Time</th><th>State</th></tr></thead>
     <tbody>
       <tr><td><b>Cloud account with billing</b><br><span class="muted">So the platform has somewhere to run. We provision, configure and secure it from there.</span></td><td>You<br><span class="muted">then us</span></td><td>Hours from you<br><span class="muted">1&ndash;2 days from us</span></td><td><span class="tag t-open">Needed</span></td></tr>
-      <tr><td><b>Live payment keys</b><br><span class="muted">Business entity, bank account and payout onboarding. The payment code is written and tested against the sandbox.</span></td><td>You</td><td>Hours to days</td><td><span class="tag t-open">Needed</span></td></tr>
+      <tr><td><b>Live payment keys</b><br><span class="muted">Held up by the account-access problem on Stripe&rsquo;s side that we raised with you earlier. The payment code is written and already runs against their sandbox, so live keys are a configuration change rather than development work.</span></td><td>Stripe<br><span class="muted">we are chasing</span></td><td>Open with them</td><td><span class="tag t-part">Raised</span></td></tr>
       <tr><td><b>Messaging account details</b><br><span class="muted">Account identifiers for the sign-in codes. The sender itself is already verified.</span></td><td>You</td><td>Hours</td><td><span class="tag t-part">Confirm</span></td></tr>
       <tr><td><b>Domain release</b><br><span class="muted">Point halalgoes.com here. Released from its current project first, since a domain can only belong to one.</span></td><td>You</td><td>Minutes<br><span class="muted">+ DNS propagation</span></td><td><span class="tag t-part">Your call</span></td></tr>
       <tr><td><b>Verification pass across the apps</b><br><span class="muted">Runs alongside everything above and does not wait on any of it.</span></td><td>Us</td><td>In progress</td><td><span class="tag t-done">Underway</span></td></tr>
@@ -186,7 +186,7 @@
       <h3 style="color:var(--forest)">Customers order, riders deliver</h3>
       <p style="margin-bottom:4px">Full service: ordering, payment, dispatch, live tracking, payouts.</p>
       <p class="muted" style="margin:0">Opens once the verified restaurants from stage one are on the platform and the payment keys are live. By then every listing a customer sees has already been through the instrument.</p>
-      <p style="margin:6px 0 0"><b>Depends on:</b> payment keys, messaging details, and stage one holding.</p>
+      <p style="margin:6px 0 0"><b>Depends on:</b> the Stripe access clearing, messaging details, and stage one holding.</p>
     </div>
   </div>
 
@@ -235,7 +235,7 @@
       <tr><td><b>2</b></td><td><b>Approve the site</b></td><td>Until the pages are signed off we cannot scope the manual pass against a settled surface, and until that is scoped we cannot give you a production date worth holding us to. This is the item that unlocks the estimate.</td></tr>
       <tr><td><b>3</b></td><td><b>Register the stores as an <u>organisation</u></b></td><td>Not as an individual. A personal Google Play account opened since late 2023 must run a closed test with twelve testers for fourteen continuous days before it may publish. Organisation accounts publish straight to production. The account type is worth two weeks.</td></tr>
       <tr><td><b>4</b></td><td><b>Cloud account with billing</b></td><td>The only thing between today and stage one on 5 October.</td></tr>
-      <tr><td><b>5</b></td><td><b>Resolve the payment account access</b></td><td>The sign-in is currently failing, so we cannot retrieve live keys. Account recovery against the registered owner&rsquo;s address is the quickest route; if the account cannot be recovered, tell us and we will set up a fresh platform account instead. Payments stay in sandbox until this clears.</td></tr>
+      <tr><td><b>5</b></td><td><b>The Stripe account access</b><br><span class="muted">Already raised with you</span></td><td>This is the issue we flagged rather than a new one: the sign-in fails, so the live keys cannot be retrieved. It sits with Stripe and we are pursuing it. If it has not moved by the time stage one opens, the fallback is a fresh platform account on the same entity &mdash; a day&rsquo;s work, and one we would rather not spend, so the decision point is worth naming now rather than discovering later. Nothing in stage one touches payments.</td></tr>
       <tr><td><b>6</b></td><td><b>Messaging account credentials</b></td><td>The sender itself is already verified. We need the account identifiers and the verification service, which is a copy-and-paste from your dashboard.</td></tr>
       <tr><td><b>7</b></td><td><b>The domain, when you are ready</b></td><td>The site is live and shareable today regardless.</td></tr>
     </tbody>
