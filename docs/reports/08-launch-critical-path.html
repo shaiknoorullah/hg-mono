@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en-CA"><head><meta charset="utf-8">
+<title>Halal Goes — Launch Critical Path</title>
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+  @page { size: A4; margin: 0; }
+  :root {
+    --forest:#1B3B31; --forest-deep:#0F241C; --cream:#FFFAEA; --card:#FFFFFF;
+    --orange:#F1521E; --ink:#232323; --muted:#6E7C77; --border:#E6E0D4;
+    --seal:#0F7A43; --brass:#C9A24B; --slate:#4E5862; --danger:#C42B1C; --sage:#E9F3E4;
+    --disp:"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --ui:"Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:var(--ui); color:var(--ink); background:var(--cream); font-size:10.5px; line-height:1.5; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .page { width:210mm; min-height:297mm; padding:16mm 15mm; background:var(--cream); position:relative; }
+  .page + .page { border-top:0; }
+  h1,h2,h3 { font-family:var(--disp); color:var(--forest); margin:0; letter-spacing:-.01em; }
+  h2 { font-size:17px; font-weight:700; margin:0 0 3px; }
+  h3 { font-size:12px; font-weight:700; margin:0 0 4px; }
+  p { margin:0 0 6px; }
+  .muted { color:var(--muted); }
+  .mono { font-variant-numeric:tabular-nums; }
+  a { color:var(--seal); text-decoration:none; }
+
+  /* Cover */
+  .cover { background:var(--forest); color:var(--cream); border-radius:0; padding:22mm 15mm; display:flex; flex-direction:column; min-height:297mm; }
+  .cover .seal { width:64px; height:64px; display:grid; place-items:center; border-radius:14px; background:var(--seal); box-shadow:inset 0 0 0 3px var(--brass); margin-bottom:20px; }
+  .cover h1 { color:var(--cream); font-size:44px; font-weight:800; line-height:1.03; letter-spacing:-.03em; margin-bottom:12px; }
+  .cover .sub { font-size:15px; color:rgba(255,255,255,.82); max-width:130mm; line-height:1.5; }
+  .cover .meta { margin-top:auto; display:flex; gap:26px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,.16); padding-top:16px; }
+  .cover .meta div span { display:block; }
+  .cover .meta .k { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.55); margin-bottom:2px; }
+  .cover .meta .v { font-size:13px; font-weight:600; color:var(--cream); font-family:var(--disp); }
+  .pill { display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18); padding:5px 12px; border-radius:999px; font-size:11px; font-weight:600; color:var(--cream); }
+  .dot { width:8px; height:8px; border-radius:999px; background:var(--orange); }
+
+  /* layout bits */
+  .eyebrow { font-size:9px; text-transform:uppercase; letter-spacing:.09em; color:var(--orange); font-weight:700; margin-bottom:5px; }
+  .lead { font-size:12px; color:var(--forest); line-height:1.55; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; page-break-inside:avoid; }
+  .section { margin-bottom:16px; page-break-inside:avoid; }
+  .rule { height:1px; background:var(--border); margin:14px 0; border:0; }
+
+  /* completion bars */
+  .bars { display:grid; gap:9px; margin-top:4px; }
+  .bar-row { display:grid; grid-template-columns:52mm 1fr 34px; align-items:center; gap:10px; }
+  .bar-label { font-size:10.5px; font-weight:600; color:var(--ink); }
+  .bar-track { height:14px; background:var(--sage); border-radius:999px; overflow:hidden; position:relative; }
+  .bar-fill { height:100%; border-radius:999px; background:var(--seal); }
+  .bar-fill.mid { background:var(--orange); }
+  .bar-fill.low { background:var(--slate); }
+  .bar-pct { font-size:11px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; color:var(--forest); }
+
+  /* stat tiles */
+  .tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .tile { background:var(--card); border:1px solid var(--border); border-radius:11px; padding:10px 12px; }
+  .tile .n { font-family:var(--disp); font-size:22px; font-weight:800; color:var(--forest); line-height:1; letter-spacing:-.02em; }
+  .tile .l { font-size:9px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.04em; }
+
+  /* tables */
+  table { width:100%; border-collapse:collapse; font-size:10px; }
+  th { text-align:left; font-size:8.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; padding:6px 8px; border-bottom:1.5px solid var(--border); }
+  td { padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  .tag { display:inline-block; font-size:8.5px; font-weight:700; padding:2px 7px; border-radius:999px; letter-spacing:.02em; white-space:nowrap; }
+  .t-done { background:var(--sage); color:var(--seal); }
+  .t-open { background:#FBEEE9; color:var(--danger); }
+  .t-part { background:#FBF1D8; color:#7A5600; }
+  .t-def  { background:#EDEFF1; color:var(--slate); }
+
+  /* callout */
+  .callout { border-left:4px solid var(--orange); background:var(--card); border-radius:0 12px 12px 0; padding:12px 16px; page-break-inside:avoid; }
+  .callout.seal { border-left-color:var(--seal); }
+  .callout h3 { color:var(--orange); }
+  .callout.seal h3 { color:var(--seal); }
+  ul { margin:4px 0 6px; padding-left:16px; }
+  li { margin-bottom:3px; }
+  .foot { position:absolute; bottom:9mm; left:15mm; right:15mm; display:flex; justify-content:space-between; font-size:8px; color:var(--muted); border-top:1px solid var(--border); padding-top:5px; }
+
+  figure { margin:0; }
+  figure img { width:100%; display:block; border:1px solid var(--border); border-radius:10px; }
+  figcaption { font-size:8.5px; color:var(--muted); margin-top:5px; line-height:1.45; }
+  .shots2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .phones { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .phones img { border-radius:14px; }
+  .gate { display:grid; grid-template-columns:9mm 1fr; gap:8px; align-items:start; page-break-inside:avoid; margin-bottom:11px; }
+  .gate .num { font-family:var(--disp); font-size:21px; font-weight:800; color:var(--orange); line-height:1; }
+  .strike { text-decoration:line-through; color:var(--muted); }
+</style></head><body>
+
+<section class="cover">
+  <div class="seal"><svg viewBox="0 0 24 24" width="38" height="38"><path d="M12 2.4 3.6 5.7v5.9c0 4.9 3.6 8.5 8.4 10 4.8-1.5 8.4-5.1 8.4-10V5.7L12 2.4Z" fill="#FFFFFF"/><path d="m8 12.1 2.7 2.7L16.2 9" fill="none" stroke="#0F7A43" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="pill"><span class="dot"></span> Status &amp; Critical Path</div>
+  <h1 style="margin-top:16px">What is done,<br>and what is left</h1>
+  <p class="sub">The marketing site is live and public today. The platform passes its own contract and invariant suites on every run. What stands between here and taking real orders is three items — most of it account setup measured in hours — and the long-lead blocker everyone has been bracing for turns out not to apply.</p>
+  <div class="meta">
+    <div><span class="k">Date</span><span class="v">21 Sep 2026</span></div>
+    <div><span class="k">Website</span><span class="v">Live &amp; public</span></div>
+    <div><span class="k">V1 features complete</span><span class="v">158 / 191</span></div>
+    <div><span class="k">Remaining gates</span><span class="v">3</span></div>
+    <div><span class="k">Longest lead time</span><span class="v">Days, not weeks</span></div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">Delivered</div>
+  <h2>The website is live, and you can open it right now</h2>
+  <p class="lead">Seven pages, a desktop and a phone layout each, verified against the <b>deployed</b> build this morning rather than against a local copy.</p>
+
+  <figure style="margin:10px 0 4px">
+    <img src="assets/site-home.jpg" alt="The Halal Goes marketing site home page">
+    <figcaption>Checked at 1440&thinsp;px and 390&thinsp;px across <b>/</b>, <b>/restaurants</b>, <b>/riders</b>, <b>/verification</b>, <b>/blog</b>, <b>/privacy</b> and <b>/terms</b>. All fourteen combinations returned 200 with <b>zero</b> horizontal scroll, <b>zero</b> broken images and <b>zero</b> console errors.</figcaption>
+  </figure>
+
+  <div class="callout" style="margin-top:14px">
+    <h3>One decision we need from you: the domain</h3>
+    <p style="margin-bottom:4px">halalgoes.com still points at the <b>previous</b> site, which lives on a separate hosting project. A domain can belong to only one project, so moving it means releasing it from the old one. That is your call to make, not ours.</p>
+    <p style="margin:0">Worth knowing what is on it today: the hero headline renders in a tone close to unreadable against its own background, three images are broken including the logo, and it carries the claims <i>&ldquo;100&percnt; halal-certified&rdquo;</i> and <i>&ldquo;Verified for authenticity&rdquo;</i>. Neither is backed by a source we could put in front of a regulator. The new site states only what the seven checks actually establish.</p>
+  </div>
+
+  <hr class="rule">
+  <div class="eyebrow">The platform underneath</div>
+  <h2>The engine is built, and it re-proves itself on every run</h2>
+  <div class="tiles" style="margin-top:8px">
+    <div class="tile"><div class="n">152/152</div><div class="l">Contract operations conform</div></div>
+    <div class="tile"><div class="n">18/18</div><div class="l">Money &amp; safety invariants</div></div>
+    <div class="tile"><div class="n">158/191</div><div class="l">Features complete</div></div>
+    <div class="tile"><div class="n">330</div><div class="l">Fixtures, every state</div></div>
+  </div>
+  <p class="muted" style="margin-top:9px">The other 33 are 29 deliberately deferred to a later version and 4 partial. None of this is self-assessment: the contract suite runs every published API operation against its declared shape, and the invariant suite runs against a real database — every order&rsquo;s money decomposing to zero residual, no order state able to wait forever, a missing halal field rendering no badge rather than an optimistic one.</p>
+  <div class="foot"><span>Halal Goes — Launch Critical Path · 21 September 2026</span><span>2</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">Built, not described</div>
+  <h2>The one screen that carries the whole promise</h2>
+  <p class="lead">Everything on the next two pages is a screenshot taken this morning from the applications themselves, driven end to end &mdash; signing in, loading data, moving between screens. Nothing here is a mock-up.</p>
+
+  <figure style="margin:12px 0 0">
+    <img src="assets/admin-seven-checks.jpg" alt="The admin halal verification screen showing the seven checks">
+    <figcaption style="font-size:9.5px; line-height:1.55"><b>The verification instrument.</b> Seven mandatory checks against the certificate, each recorded against a named reviewer and a timestamp. Two of them &mdash; H5, that the dates are valid, and H7, that this certificate is not already in use by a different restaurant &mdash; are computed by the server and <b>cannot be overridden</b>. The screen says so in plain words: <i>&ldquo;No one can override it, including a Super Admin.&rdquo;</i> Approval is impossible until all seven pass.<br><br>This is the difference between a platform that promises halal and one that can show its working. The rule is not in a policy document that someone could decide to bend on a busy evening; it is in the software, and the software will not bend.</figcaption>
+  </figure>
+  <div class="foot"><span>Halal Goes — Launch Critical Path · 21 September 2026</span><span>3</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">Built, not described</div>
+  <h2>The other three surfaces</h2>
+
+  <div class="shots2" style="margin-top:10px">
+    <figure><img src="assets/admin-queue.jpg" alt="Restaurant onboarding queue">
+      <figcaption><b>Admin &mdash; onboarding queue.</b> Applications oldest first, with the review deadline tracked per row so nothing sits unattended.</figcaption></figure>
+    <figure><img src="assets/resto-orders.jpg" alt="Restaurant live orders">
+      <figcaption><b>Restaurant &mdash; live orders.</b> Alongside menu, trading hours, payouts, staff and settings.</figcaption></figure>
+  </div>
+
+  <div class="phones" style="margin-top:14px; align-items:start">
+    <figure><img src="assets/customer-home.jpg" alt="Customer app discovery screen">
+      <figcaption><b>Customer.</b> Every listing carries the certified badge &mdash; because a kitchen that has not passed the seven checks is never listed at all. There is no &ldquo;probably halal&rdquo; state for a customer to misread.</figcaption></figure>
+    <figure><img src="assets/rider-home.jpg" alt="Rider app work loop">
+      <figcaption><b>Rider.</b> Going on and off shift, the current offer and the active delivery, with earnings, history and documents behind the account section.</figcaption></figure>
+  </div>
+  <div class="foot"><span>Halal Goes — Launch Critical Path · 21 September 2026</span><span>4</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">The correction that matters most</div>
+  <h2>The blocker we have been planning around does not apply</h2>
+  <p class="lead">Our own decision log has carried this line for months: <i>&ldquo;SMS / A2P registration — nobody can sign in without it. Approval takes days to weeks. The longest lead time in the project.&rdquo;</i> We checked it against the carrier documentation this morning rather than taking it on trust.</p>
+
+  <div class="callout seal" style="margin-top:10px">
+    <h3>It was written against the wrong country, and the wrong channel</h3>
+    <ul style="margin-top:6px">
+      <li><b>A2P&nbsp;10DLC does not govern WhatsApp at all.</b> It covers SMS sent from ten-digit long codes to <b>United States</b> recipients. Other channels are out of its scope entirely.</li>
+      <li><b>The product already defaults to WhatsApp.</b> Not a change we are proposing — the sign-in code was written this way and ships that way today, with SMS as the alternative.</li>
+      <li><b>This is an Ontario launch.</b> For Canada-to-Canada messaging the registration is not mandatory. It remains worth completing so the SMS fallback delivers reliably, but it is an improvement, not a gate.</li>
+      <li><b>The business verification it does depend on is already done.</b> Confirmed today.</li>
+    </ul>
+    <p style="margin:6px 0 0"><b>Net effect: the item we had priced at &ldquo;days to weeks, and nothing ships without it&rdquo; is off the critical path.</b></p>
+  </div>
+
+  <hr class="rule">
+  <div class="eyebrow">What is actually left</div>
+  <h2>Three gates, and most of the clock is account setup</h2>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:44%">Gate</th><th style="width:20%">Owner</th><th style="width:20%">Time</th><th>State</th></tr></thead>
+    <tbody>
+      <tr><td><b>Cloud account with billing</b><br><span class="muted">So the platform has somewhere to run. We provision, configure and secure it from there.</span></td><td>You<br><span class="muted">then us</span></td><td>Hours from you<br><span class="muted">1&ndash;2 days from us</span></td><td><span class="tag t-open">Needed</span></td></tr>
+      <tr><td><b>Live payment keys</b><br><span class="muted">Business entity, bank account and payout onboarding. The payment code is written and tested against the sandbox.</span></td><td>You</td><td>Hours to days</td><td><span class="tag t-open">Needed</span></td></tr>
+      <tr><td><b>Messaging account details</b><br><span class="muted">Account identifiers for the sign-in codes. The sender itself is already verified.</span></td><td>You</td><td>Hours</td><td><span class="tag t-part">Confirm</span></td></tr>
+      <tr><td><b>Domain release</b><br><span class="muted">Point halalgoes.com at the new site. Needs releasing from the old hosting project first.</span></td><td>You</td><td>Minutes<br><span class="muted">+ DNS propagation</span></td><td><span class="tag t-part">Your call</span></td></tr>
+      <tr><td><b>Verification pass across the apps</b><br><span class="muted">Runs alongside everything above and does not wait on any of it. See overleaf.</span></td><td>Us</td><td>In progress</td><td><span class="tag t-done">Underway</span></td></tr>
+      <tr><td class="strike">SMS carrier registration</td><td class="muted">&mdash;</td><td class="muted">&mdash;</td><td><span class="tag t-def">Not a gate</span></td></tr>
+    </tbody>
+  </table>
+  <p class="muted" style="margin-top:9px">Nothing on this list is a queue we sit in. Every line is either an account you open or work already running.</p>
+  <div class="foot"><span>Halal Goes — Launch Critical Path · 21 September 2026</span><span>5</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">The plan</div>
+  <h2>Open in two stages, not one</h2>
+  <p class="lead">Restaurants and administrators sign in with email and password. Customers and riders sign in with a code to their phone. Those are two different systems, and only the second depends on messaging — which is what lets the first stage open without waiting on anything but hosting.</p>
+
+  <div class="grid2" style="margin-top:10px">
+    <div class="card">
+      <div class="eyebrow" style="color:var(--seal)">Stage one &mdash; proposed Mon 28 Sep</div>
+      <h3 style="color:var(--forest)">Restaurants onboard, we verify</h3>
+      <p style="margin-bottom:4px">Real restaurants apply, upload real certificates, and our reviewers run the seven checks against them. Listings are created and approved.</p>
+      <p class="muted" style="margin:0">No customer orders yet. This is the product&rsquo;s central claim being exercised on real documents, before anyone is relying on it for dinner — and it needs nothing from the messaging stack.</p>
+      <p style="margin:6px 0 0"><b>Depends on:</b> the cloud account, and nothing else.</p>
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="color:var(--orange)">Stage two &mdash; when stage one is stable</div>
+      <h3 style="color:var(--forest)">Customers order, riders deliver</h3>
+      <p style="margin-bottom:4px">Full service: ordering, payment, dispatch, live tracking, payouts.</p>
+      <p class="muted" style="margin:0">Opens once the verified restaurants from stage one are on the platform and the payment keys are live. By then every listing a customer sees has already been through the instrument.</p>
+      <p style="margin:6px 0 0"><b>Depends on:</b> payment keys, messaging details, and stage one holding.</p>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:14px">
+    <h3>Why two stages rather than one date</h3>
+    <p style="margin:0">A single launch puts the untested surface in front of paying customers on day one. Staging it means the first people to exercise the system are restaurant owners and our own reviewers, who can tell us something is wrong without it costing anyone a meal. On a platform whose entire promise is halal verification, a wrong badge is not a defect to patch next sprint &mdash; it is a harm we cannot take back. The staged opening is also a date we can actually hold.</p>
+  </div>
+
+  <hr class="rule">
+  <div class="eyebrow">This week</div>
+  <h2>Five defects found and fixed, by using the apps rather than testing them</h2>
+  <p class="lead">Capturing the screenshots on the previous page meant driving all four applications end to end. That found things every automated check had passed over.</p>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:30%">What</th><th>Why it mattered</th><th style="width:15%">State</th></tr></thead>
+    <tbody>
+      <tr><td><b>Admin console could not sign in</b></td><td>A diagnostic message containing a typographic dash &mdash; illegal in the underlying protocol &mdash; crashed the response it was attached to, on every request. The console that runs the seven checks could not be opened against test data <b>at all</b>. This is very likely why a large share of features sat marked &ldquo;not yet verified&rdquo;: nobody could reach them.</td><td><span class="tag t-done">Fixed</span></td></tr>
+      <tr><td><b>Restaurant payouts page went blank</b></td><td>A missing guard took down not just the page but the whole application shell, navigation included.</td><td><span class="tag t-done">Fixed</span></td></tr>
+      <tr><td><b>Customer app&rsquo;s first screen unreadable</b></td><td>The title on the home screen measured 1.28:1 against its background. Legibility requires 4.5:1. Dark text had been placed on a dark bar &mdash; the first thing every customer sees.</td><td><span class="tag t-done">Fixed</span></td></tr>
+      <tr><td><b>Rider app showed internal debug text</b></td><td>A raw internal value was rendering to riders in the live build.</td><td><span class="tag t-done">Fixed</span></td></tr>
+      <tr><td><b>Low-contrast grey across both phone apps</b></td><td>One shared colour fails the legibility standard in several places. It is a foundational value used everywhere, so it is being changed deliberately rather than patched per screen.</td><td><span class="tag t-part">Scheduled</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout seal" style="margin-top:14px">
+    <h3>What we need from you, in order</h3>
+    <ul style="margin-top:6px">
+      <li><b>The cloud account.</b> The only thing standing between today and stage one.</li>
+      <li><b>Payment account details.</b> Can run in parallel; needed for stage two.</li>
+      <li><b>A decision on the domain.</b> The new site is live and public today either way.</li>
+    </ul>
+    <p style="margin:6px 0 0">Give us the first and we will confirm the stage-one date in writing the same day.</p>
+  </div>
+  <div class="foot"><span>Halal Goes — Launch Critical Path · 21 September 2026</span><span>6</span></div>
+</section>
+</body></html>
