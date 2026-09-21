@@ -89,7 +89,7 @@ export class FixtureStore {
       if (!fixture) {
         return {
           source: 'none',
-          warning: `unknown scenario \`${requested}\` — see GET /__mock/scenarios`,
+          warning: `unknown scenario \`${requested}\` - see GET /__mock/scenarios`,
         };
       }
       const registered = (this.byOperation.get(operationId) ?? []).includes(requested);

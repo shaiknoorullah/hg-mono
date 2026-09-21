@@ -307,9 +307,14 @@ function RiderPanel({
         Refresh
       </Button>
 
-      <Text style={{ ...body, color: theme.color.text.tertiary, textAlign: 'center' }}>
-        Next route: {rider.next_route}
-      </Text>
+      {/* Diagnostic, not copy: `next_route` is a raw wire enum and "Next route: HOME"
+          means nothing to a rider on a shift. Gated the same way as the endpoint
+          readout at the top of this screen, rather than shipped to production. */}
+      {__DEV__ ? (
+        <Text style={{ ...body, color: theme.color.text.tertiary, textAlign: 'center' }}>
+          Next route: {rider.next_route}
+        </Text>
+      ) : null}
     </View>
   );
 }

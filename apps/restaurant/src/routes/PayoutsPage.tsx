@@ -42,7 +42,9 @@ export function PayoutsPage() {
   const cursor = cursorStack[cursorStack.length - 1] ?? null;
 
   const { principal } = useAuth();
-  const isOwner = principal?.roles.some((r) => r.role === 'RESTAURANT_OWNER') ?? false;
+  // Same guard as `nextCursor` below, for the same reason: on this page an
+  // unguarded hop past an optional chain is a white screen, not a missing value.
+  const isOwner = principal?.roles?.some((r) => r.role === 'RESTAURANT_OWNER') ?? false;
 
   const { status, data, error, reload } = useAsync(
     () =>
@@ -82,7 +84,10 @@ export function PayoutsPage() {
   }
 
   const payouts = data?.payouts ?? [];
-  const nextCursor = data?.meta.next_cursor ?? null;
+  // `data?.meta.next_cursor` guarded `data` and not `meta`, so a payload without a
+  // `meta` block threw and took the whole app shell down with it — a white screen,
+  // and the nav gone with it, not just this page.
+  const nextCursor = data?.meta?.next_cursor ?? null;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
