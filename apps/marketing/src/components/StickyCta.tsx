@@ -13,9 +13,24 @@ import { type AudienceTrack } from '@/lib/audiences';
  * Two IntersectionObservers rather than scroll maths. The bar is a function of
  * what is on screen, not of a scroll position, so it stays correct when the
  * viewport changes, when a section grows, and on a page whose length it does
- * not know. It watches a zero-height sentinel at the end of the hero rather
- * than the hero itself: the hero is tall enough on a phone that waiting for it
- * to leave entirely would hold the bar back past the point it is useful.
+ * not know.
+ *
+ * WHAT IT WATCHES, and why it is a region rather than a mark. `#hero-zone`
+ * spans everything the bar is meant to sit below — the hero on a track page,
+ * the masthead on a document page. It used to be a 1px mark at the end of the
+ * hero, and that was a real bug: at 390 and at 1024 the mark sits BELOW the
+ * fold, so it was `isIntersecting: false` at rest and still `false` after a
+ * jump past it. A boolean that does not change delivers no second entry, so
+ * `heroGone` stayed false and the bar never appeared again for the rest of the
+ * session — after an anchor jump, End, PageDown, or any frame that moved more
+ * than a viewport. A region that starts at the top of the page is intersecting
+ * before the threshold and not intersecting after it, so the crossing is a
+ * state change however it is made, and a reload is not the only cure.
+ *
+ * On a document page the same region also has to be SHORT enough to clear on a
+ * page as short as `/blog`, which is barely a viewport of scrolling — a
+ * full-screen sentinel there needed more scroll than the page had, and the bar
+ * never appeared at any width.
  *
  * Above `lg` the bar carries the whole form, consent line included. CASL
  * consent travels with the field and is never implied, and the sentence is long
@@ -34,7 +49,7 @@ export function StickyCta({ track }: { track: AudienceTrack }) {
 
   useEffect(() => {
     const el = bar.current;
-    const sentinel = document.getElementById('hero-end');
+    const sentinel = document.getElementById('hero-zone');
     const footer = document.getElementById('site-footer');
     if (!el || !sentinel || !footer) return;
 
@@ -50,12 +65,13 @@ export function StickyCta({ track }: { track: AudienceTrack }) {
 
     const heroWatch = new IntersectionObserver(
       ([entry]) => {
-        // `!isIntersecting` alone is true both when the sentinel is ABOVE the
+        // `!isIntersecting` alone is true both when the region is ABOVE the
         // viewport (scrolled past — what we want) and when it is still BELOW it
-        // (not reached yet). On a phone the hero is taller than the screen, so
-        // the sentinel starts below and the bar would appear immediately, over
-        // the hero it is meant to follow. Only above counts as gone.
-        heroGone = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+        // (not reached yet). The region starts at the top of the page so only
+        // the first is reachable, but the test is kept: it is what makes the
+        // rule true by construction rather than by where the region happens to
+        // begin, and it costs nothing.
+        heroGone = !entry.isIntersecting && entry.boundingClientRect.bottom <= 0;
         apply();
       },
       { threshold: 0 },
@@ -84,6 +100,7 @@ export function StickyCta({ track }: { track: AudienceTrack }) {
     <div
       ref={bar}
       aria-label="Join the waitlist"
+      data-sticky-cta=""
       data-show={show}
       className={[
         'fixed inset-x-0 bottom-0 z-30 border-t border-line-decorative bg-surface-raised',

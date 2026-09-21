@@ -129,3 +129,23 @@
     --notice-max-width: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * One ask in the corner at a time, and consent is the one that goes first.
+ *
+ * The notice is fixed in the same bottom corner as the sticky signup bar and is
+ * taller than it — measured, it covered 100% of the bar at 390 and 768, so a
+ * tap on "Join the waitlist" landed on Accept or Decline, and at 1024 it took
+ * the form's own CASL checkbox, leaving a form that could be filled but not
+ * consented to and therefore not submitted.
+ *
+ * Raising the notice above the bar only moves the collision up the page onto
+ * the footer's disclaimer and a pinned caption. So the bar stands down instead:
+ * it is hidden for the seconds before a visitor chooses, and the footer form —
+ * which the phone bar only ever linked to anyway — is untouched. `data-` and
+ * the custom property are published by `ConsentManager`.
+ * ------------------------------------------------------------------------- */
+html[data-consent-notice] [data-sticky-cta] {
+  visibility: hidden;
+  transform: translateY(102%);
+}

@@ -56,6 +56,39 @@ export function WaitlistForm({
   const consentId = `${id}-consent`;
   const messageId = `${id}-message`;
   const contactRef = useRef<HTMLInputElement>(null);
+  const doneRef = useRef<HTMLDivElement>(null);
+
+  /* THE CONSENT TICK, RE-SEEDED ACROSS A FAILED SUBMIT.
+   *
+   * React resets an uncontrolled form once its action resolves, and re-seeding
+   * `defaultValue` from what was submitted is what stops that wiping the email.
+   * The checkbox needs more than that. It is a Radix control, which reads
+   * `defaultChecked` ONCE at mount and then answers the form's reset event by
+   * restoring that first value — so a submit that failed validation came back
+   * with the email intact and the box silently cleared, and the visitor had to
+   * perform the CASL affirmative act again on every retry. Controlling it does
+   * not help either: the reset fires after the re-render and drives the
+   * controlled value back down with it.
+   *
+   * So the control is REMOUNTED on every result, with `defaultChecked` seeded
+   * from what was submitted. The value it restores on reset is then the
+   * visitor's own answer rather than the page's opening state. The counter is
+   * what makes the key change; the result object's identity is new on every
+   * action, which is what advances it.
+   */
+  const [formGen, setFormGen] = useState(0);
+  const [seenResult, setSeenResult] = useState(result);
+  if (seenResult !== result) {
+    setSeenResult(result);
+    setFormGen((n) => n + 1);
+  }
+
+  // The success card replaces the submit button the visitor pressed, so focus
+  // would otherwise land on <body> and the news would be announced to nobody.
+  // Focusing the card reads it out and puts the reader at the answer.
+  useEffect(() => {
+    if (result.status === 'ok') doneRef.current?.focus();
+  }, [result.status]);
 
   // Send focus back to the field the visitor has to fix. The live region
   // announces the message; without this they would have to find their way back.
@@ -72,7 +105,16 @@ export function WaitlistForm({
   if (result.status === 'ok') {
     return (
       <Card
+        ref={doneRef}
         data-slot="card"
+        // Announced AND focused. A live region that arrives in the DOM together
+        // with its text is announced unreliably; focus is the guarantee, and
+        // `tabIndex={-1}` makes a non-interactive card focusable without
+        // putting it in the tab order. The error path already announced — only
+        // success was silent.
+        role="status"
+        aria-live="polite"
+        tabIndex={-1}
         className={
           compact
             ? 'gap-0 rounded-none border-0 bg-transparent p-0 shadow-none'
@@ -157,6 +199,7 @@ export function WaitlistForm({
             the signup so we can show what was agreed to. */}
         <div className={`flex items-start gap-2.5 ${compact ? 'mt-2' : 'mt-3.5'}`}>
           <Checkbox
+            key={`consent-${formGen}`}
             id={consentId}
             name="consent"
             defaultChecked={values?.consent ?? false}

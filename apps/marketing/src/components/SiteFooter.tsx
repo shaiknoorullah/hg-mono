@@ -21,9 +21,13 @@ import { AUDIENCES, TRACKS, type Audience } from '@/lib/audiences';
  * Cookie preferences is not optional: consent that cannot be withdrawn as
  * easily as it was given is not consent.
  *
- * The bottom rule reserves `--sticky-cta-h` so the last line is never sitting
- * under the sticky bar. StickyCta hides itself over this footer, but the
- * reserve costs nothing and covers the moment before the observer fires.
+ * The bottom rule reserves whichever of the two fixed things in that corner is
+ * taller, so the last line — the one that says we do not certify food — is
+ * never sitting under either. StickyCta hides itself over this footer, but the
+ * reserve costs nothing and covers the moment before the observer fires; the
+ * consent notice is the taller of the two and was measured occluding the line
+ * by 51px at 390. `max()`, not a sum: only one of them is ever up, because the
+ * bar stands down while the notice is (see `consent.css`).
  */
 
 const COLUMN_LABEL =
@@ -116,7 +120,9 @@ export function SiteFooter({ current }: { current?: Audience }) {
 
       <div
         className="flex flex-wrap items-baseline gap-x-7 gap-y-1.5 border-t border-line-decorative pt-6"
-        style={{ paddingBottom: 'calc(2rem + var(--sticky-cta-h, 0px))' }}
+        style={{
+          paddingBottom: 'calc(2rem + max(var(--sticky-cta-h, 0px), var(--hg-consent-h, 0px)))',
+        }}
       >
         <p className="m-0 text-body-sm text-fg-secondary">Ontario, Canada. Launching soon — prices in CAD.</p>
         <p className="m-0 text-body-sm text-fg-secondary">Halal Goes does not itself certify food.</p>
