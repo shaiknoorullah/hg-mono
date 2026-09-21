@@ -1,5 +1,19 @@
--- The waitlist table. Run once against the Neon branch you point
--- DATABASE_URL at (Neon Console → SQL Editor, or `psql "$DATABASE_URL"`).
+-- The waitlist table. Already applied to the marketing database:
+--
+--   Neon project  halalgoes-marketing  (frosty-scene-41439298)
+--   Region        aws-us-east-1        — same region as the Vercel deploy;
+--                                        the analytics project is in Singapore
+--                                        and a cross-Pacific hop on every form
+--                                        submit is not a thing to accept.
+--   Database      halalgoes            branch main
+--
+-- Kept in its own project, deliberately. The old site's Payload CMS database
+-- holds the current halalgoes.com; the Umami database is Prisma-managed and
+-- exists for analytics. A consent record has a different retention obligation
+-- and a different access policy from either, and it should not be lost the day
+-- one of those is decommissioned.
+--
+-- Re-run it anywhere with: psql "$DATABASE_URL" -f this-file
 --
 -- Three columns here are not optional and not decoration. CASL asks what the
 -- person agreed to, not merely that they agreed: the exact sentence, the moment
