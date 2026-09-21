@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from content import DAY, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
-from synth import uuid_for
+from synth import int_for, uuid_for
 from world import certification_panel, public_address, slug
 
 # state -> (current_step, progress_percent, note). `current_step` is its own closed enum
@@ -443,7 +443,13 @@ def _halal(reg, synth) -> None:
                 "id": uuid_for(f"cert:{label}"),
                 "restaurant_id": uuid_for("restaurant:karachi-kitchen"),
                 "document_id": uuid_for(f"doc:restaurant:HALAL_CERTIFICATE:{label}"),
-                "certificate_number": f"HMA-ON-{40000 + abs(hash(label)) % 9999}",
+                # `int_for`, not `hash()`. Python randomises string hashing per
+                # process (PYTHONHASHSEED), so this field came out different on
+                # every run and the drift gate could never pass — it compares
+                # regenerated fixtures against the committed ones. The rest of
+                # this builder already derives everything from a stable digest;
+                # this was the single line that did not.
+                "certificate_number": f"HMA-ON-{int_for(label, 40000, 49998)}",
                 "certified_legal_name": "Karachi Kitchen Inc.",
                 "certified_address": "1245 Danforth Avenue, Toronto, ON M4J 1M4",
                 "scope": "WHOLE_ESTABLISHMENT",

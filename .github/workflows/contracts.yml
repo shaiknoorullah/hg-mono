@@ -14,9 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here on purpose. `package.json` already pins
+      # `packageManager: pnpm@10.33.0`, and action-setup@v4 refuses to start when
+      # the version is declared in both places — it cannot tell which one you
+      # meant, and a silent mismatch is how a lockfile gets rewritten by the
+      # wrong pnpm. Leaving it out makes `packageManager` the single source, so
+      # CI and a developer's machine resolve the same version by construction.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:

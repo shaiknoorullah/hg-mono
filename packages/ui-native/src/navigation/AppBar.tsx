@@ -96,7 +96,17 @@ export function AppBar({
     : contextual
       ? theme.color.surface.inverse
       : theme.color.surface.chrome;
-  const foreground = contextual ? theme.color.text.onInverse : theme.color.text.primary;
+  // `surface.chrome` is DARK in both schemes (#1B3B31 light, #0A1913 dark), but the
+  // foreground here was `text.primary`, which is only light in the dark scheme. On the
+  // light scheme that put #232323 on #1B3B31 — measured 1.28:1 for the customer app's
+  // "Discover" title, and 1.44:1 for its subtitle. Not low contrast: unreadable, on the
+  // first screen every customer sees.
+  //
+  // There is no `text.onChrome` token yet, so this names the light member of the pair
+  // explicitly per scheme. Both resolve to #F6EFDD, which is 11.6:1 on the light
+  // chrome. The `transparent` variant sits over `surface.scrim` and wants the same.
+  const onChrome = theme.scheme === 'dark' ? theme.color.text.primary : theme.color.text.onInverse;
+  const foreground = contextual ? theme.color.text.onInverse : onChrome;
 
   const control = Math.max(theme.target.min, 44);
 
@@ -179,7 +189,10 @@ export function AppBar({
               {subtitle ? (
                 <Text
                   numberOfLines={1}
-                  style={[type(theme, 'caption'), { color: contextual ? foreground : theme.color.text.secondary }]}
+                  // Same reason as `onChrome`: `text.secondary` is dark ink on the light
+                  // scheme, and this sits on the dark chrome. 0.78 keeps the title/subtitle
+                  // hierarchy without dropping below AA (8.4:1 on the light chrome).
+                  style={[type(theme, 'caption'), { color: foreground, opacity: contextual ? 1 : 0.78 }]}
                 >
                   {subtitle}
                 </Text>
@@ -223,7 +236,7 @@ export function AppBar({
             {title}
           </Text>
           {subtitle ? (
-            <Text style={[type(theme, 'body.sm'), { color: theme.color.text.secondary }]}>
+            <Text style={[type(theme, 'body.sm'), { color: foreground, opacity: 0.78 }]}>
               {subtitle}
             </Text>
           ) : null}

@@ -170,7 +170,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
   const requested = requestedScenario(req);
   const { fixture, source, warning } = store.resolve(route.operationId, requested);
-  if (warning) res.set('X-Mock-Warning', warning);
+  // A diagnostic must never take down the response it is diagnosing. Header values
+  // are latin-1 only, so one typographic dash in a warning string threw
+  // ERR_INVALID_CHAR inside res.set() and Express turned it into a 500 — on EVERY
+  // request an app made, because the app sets its scenario once and globally. The
+  // admin console could not sign in against fixtures for exactly this reason.
+  if (warning) res.set('X-Mock-Warning', warning.replace(/[^\x20-\x7E]/g, '-'));
 
   if (!fixture) {
     if (route.noContent) {
