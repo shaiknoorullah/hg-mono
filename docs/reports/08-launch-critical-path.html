@@ -206,11 +206,11 @@
 
   <div class="grid2" style="margin-top:10px">
     <div class="card">
-      <div class="eyebrow" style="color:var(--seal)">Stage one &mdash; proposed Mon 28 Sep</div>
+      <div class="eyebrow" style="color:var(--seal)">Stage one &mdash; Monday 5 October</div>
       <h3 style="color:var(--forest)">Restaurants onboard, we verify</h3>
       <p style="margin-bottom:4px">Real restaurants apply, upload real certificates, and our reviewers run the seven checks against them. Listings are created and approved.</p>
       <p class="muted" style="margin:0">No customer orders yet. This is the product&rsquo;s central claim being exercised on real documents, before anyone is relying on it for dinner — and it needs nothing from the messaging stack.</p>
-      <p style="margin:6px 0 0"><b>Depends on:</b> the cloud account, and nothing else.</p>
+      <p style="margin:6px 0 0"><b>Depends on:</b> the cloud account, and nothing else. With it in hand by <b>Wednesday 30 September</b>, this date holds.</p>
     </div>
     <div class="card">
       <div class="eyebrow" style="color:var(--orange)">Stage two &mdash; when stage one is stable</div>
@@ -226,14 +226,14 @@
     <p style="margin:0">A single launch puts the untested surface in front of paying customers on day one. Staging it means the first people to exercise the system are restaurant owners and our own reviewers, who can tell us something is wrong without it costing anyone a meal. On a platform whose entire promise is halal verification, a wrong badge is not a defect to patch next sprint &mdash; it is a harm we cannot take back. The staged opening is also a date we can actually hold.</p>
   </div>
 
-  <hr class="rule">
+  <hr class="rule" style="margin:9px 0">
   <div class="eyebrow">This week</div>
   <h2>Five defects found and fixed, by using the apps rather than testing them</h2>
   <p class="lead">Capturing the screenshots on the previous page meant driving all four applications end to end. That found things every automated check had passed over.</p>
   <table style="margin-top:6px">
     <thead><tr><th style="width:30%">What</th><th>Why it mattered</th><th style="width:15%">State</th></tr></thead>
     <tbody>
-      <tr><td><b>Admin console could not sign in</b></td><td>A diagnostic message containing a typographic dash &mdash; illegal in the underlying protocol &mdash; crashed the response it was attached to, on every request. The console that runs the seven checks could not be opened against test data <b>at all</b>. This is very likely why a large share of features sat marked &ldquo;not yet verified&rdquo;: nobody could reach them.</td><td><span class="tag t-done">Fixed</span></td></tr>
+      <tr><td><b>Admin console could not sign in</b></td><td>A diagnostic message containing a character the underlying protocol forbids crashed the response it was attached to, on every request. The console that runs the seven checks could not be opened against test data <b>at all</b> &mdash; very likely why a large share of features sat marked &ldquo;not yet verified&rdquo;: nobody could reach them.</td><td><span class="tag t-done">Fixed</span></td></tr>
       <tr><td><b>Restaurant payouts page went blank</b></td><td>A missing guard took down not just the page but the whole application shell, navigation included.</td><td><span class="tag t-done">Fixed</span></td></tr>
       <tr><td><b>Customer app&rsquo;s first screen unreadable</b></td><td>The title on the home screen measured 1.28:1 against its background. Legibility requires 4.5:1. Dark text had been placed on a dark bar &mdash; the first thing every customer sees.</td><td><span class="tag t-done">Fixed</span></td></tr>
       <tr><td><b>Rider app showed internal debug text</b></td><td>A raw internal value was rendering to riders in the live build.</td><td><span class="tag t-done">Fixed</span></td></tr>
@@ -241,14 +241,14 @@
     </tbody>
   </table>
 
-  <div class="callout seal" style="margin-top:14px">
+  <div class="callout seal" style="margin-top:10px">
     <h3>What we need from you, in order</h3>
     <ul style="margin-top:6px">
       <li><b>The cloud account.</b> The only thing standing between today and stage one.</li>
       <li><b>Payment account details.</b> Can run in parallel; needed for stage two.</li>
       <li><b>A decision on the domain.</b> The new site is live and public today either way.</li>
     </ul>
-    <p style="margin:6px 0 0">Give us the first and we will confirm the stage-one date in writing the same day.</p>
+    <p style="margin:6px 0 0">The cloud account is the one that moves the date. Everything else can run in parallel; that one cannot start until it exists.</p>
   </div>
   <div class="foot"><span>Halal Goes — Launch Critical Path · 21 September 2026</span><span>6</span></div>
 </section>
