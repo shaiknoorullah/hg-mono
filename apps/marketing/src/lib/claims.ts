@@ -43,7 +43,7 @@ export const CHECKS = [
   {
     key: 'H3_NAME_MATCH',
     title: 'The certificate names this business',
-    body: "The legal name on the certificate is the restaurant's registered legal name, or a recorded alias of it. Not a parent brand.",
+    body: 'The legal name on the certificate is the restaurant’s registered legal name, or a recorded alias of it. Not a parent brand.',
     by: 'human',
   },
   {

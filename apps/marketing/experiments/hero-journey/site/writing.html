@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writing — Halal Goes</title>
+<meta name="description" content="How halal certification actually works in Canada, what the seven checks are for, and what we find when we run them.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<script>
+  /* Before paint. Every hidden initial state in the stylesheet is gated on
+     html.js, so a failure to run JS leaves a readable document rather than a
+     blank one. html.rm is the reduced-motion path: it un-pins every beat and
+     the page becomes an ordinary scrolling document. */
+  (function () {
+    var h = document.documentElement;
+    h.classList.add('js');
+    try {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) h.classList.add('rm');
+    } catch (e) {}
+  })();
+</script>
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   PALETTE — these hexes and no others.
+   #6E7C77 is banned (fails AA on cream). Never red for a halal state.
+   Solid green #0F7A43 is reserved to the halal seal and the certified mark.
+   ───────────────────────────────────────────────────────────────────────── */
+:root{
+  --cream:#FFFAEA; --sunken:#F6EFDD; --raised:#FFFFFF;
+  --ink:#232323;   --body:#4A4E48;   --mkink:#1B3B31;
+  --hair:#E6E0D4;  --border:#8B8578;
+  --orange:#F1521E; --on-orange:#0F241C;
+  --seal:#0F7A43;  --brass:#C9A24B;  --sage:#E9F3E4;
+  --expired:#4E5862;
+
+  --f-display:'Bricolage Grotesque','Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;
+  --f-ui:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --gut:20px; --shell:1280px;
+  --ease:cubic-bezier(.2,0,0,1);
+  --dev-scale:1;
+}
+@media (min-width:1024px){ :root{ --gut:56px } }
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:var(--f-ui); font-size:17px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+/* One faint paper grain over the cream ground only — it sits behind every
+   section that paints its own background, so it never lands on the ink band. */
+body::before{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+main,header.site,footer.site{position:relative; z-index:1}
+
+h1,h2,h3,h4,p,ol,ul,dl,dd,figure,blockquote{margin:0}
+ol,ul{padding:0; list-style:none}
+img{max-width:100%; display:block}
+a{color:var(--mkink)}
+:focus-visible{outline:3px solid var(--orange); outline-offset:3px; border-radius:2px}
+
+.shell{width:100%; max-width:var(--shell); margin-inline:auto; padding-inline:var(--gut)}
+.skip{position:absolute; left:-9999px; top:0; z-index:99}
+.skip:focus{left:8px; top:8px; background:var(--ink); color:var(--cream); padding:10px 14px; border-radius:8px}
+.vh{position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+
+/* ── type roles ─────────────────────────────────────────────────────────── */
+.eyebrow{
+  font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.06em;
+  text-transform:uppercase; line-height:1.4; color:var(--mkink);
+}
+@media (min-width:1024px){ .eyebrow{font-size:12.5px} }
+.eyebrow-chip{
+  display:inline-block; background:var(--sage); border-radius:999px; padding:9px 14px;
+}
+.display{
+  font-family:var(--f-display); font-weight:780; letter-spacing:-.03em; line-height:1.05;
+  color:var(--ink); font-size:clamp(30px,5.1vw,52px);
+}
+@media (min-width:1024px){ .display{font-weight:650} }
+.display-sm{
+  font-family:var(--f-display); font-weight:700; letter-spacing:-.025em; line-height:1.12;
+  color:var(--ink); font-size:clamp(23px,2.6vw,30px);
+}
+.lede{
+  font-family:var(--f-display); font-weight:500; letter-spacing:-.01em;
+  font-size:clamp(19px,2.1vw,23px); line-height:1.4; color:var(--mkink);
+}
+.prose{color:var(--body); max-width:62ch; font-size:17px; line-height:1.65}
+.prose.big{font-size:clamp(17px,1.4vw,19px)}
+.prose strong{color:var(--ink); font-weight:600}
+.mono-note{
+  font-family:var(--f-mono); font-size:11px; line-height:1.7; letter-spacing:.03em; color:var(--body);
+}
+.mono-label{
+  font-family:var(--f-mono); font-size:10.5px; font-weight:500; letter-spacing:.07em;
+  text-transform:uppercase; line-height:1.2; color:var(--mkink);
+}
+
+/* ── buttons, form ──────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  height:52px; padding:0 26px; border:0; border-radius:11px;
+  background:var(--orange); color:var(--on-orange);
+  font-family:inherit; font-size:16px; font-weight:700; letter-spacing:-.01em; line-height:1;
+  text-decoration:none; cursor:pointer;
+  transition:transform 180ms var(--ease), background-color 180ms var(--ease);
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0)}
+html.rm .btn:hover{transform:none}
+
+.form-card{
+  background:var(--raised); border:1px solid var(--hair); border-radius:16px;
+  padding:18px; text-align:left; max-width:480px; margin-inline:auto; width:100%;
+}
+@media (min-width:1024px){ .form-card{padding:24px} }
+.form-card label.field-label{display:block; font-size:15px; font-weight:600; color:var(--ink)}
+.field-row{display:flex; flex-direction:column; gap:10px; margin-top:10px}
+@media (min-width:480px){ .field-row{flex-direction:row} }
+.field-row input{
+  flex:1; min-width:0; height:52px; padding:0 16px; border:1.5px solid var(--hair);
+  border-radius:11px; background:var(--raised); color:var(--ink);
+  font-family:inherit; font-size:16px; line-height:1;
+}
+.field-row input::placeholder{color:var(--body); opacity:.8}
+.field-row input[aria-invalid="true"]{border-color:var(--orange)}
+.consent{display:flex; align-items:flex-start; gap:10px; margin-top:14px}
+.consent input{
+  appearance:none; -webkit-appearance:none; flex:none; width:24px; height:24px; margin:1px 0 0;
+  border:1.5px solid var(--border); border-radius:6px; background:var(--raised); cursor:pointer;
+}
+.consent input:checked{background:var(--ink); border-color:var(--ink)}
+.consent input:checked::after{
+  content:''; display:block; width:10px; height:6px; margin:6px auto 0;
+  border-left:2px solid var(--cream); border-bottom:2px solid var(--cream); transform:rotate(-45deg);
+}
+.consent input[aria-invalid="true"]{border-color:var(--orange)}
+.consent label{font-size:14px; line-height:1.55; color:var(--body); cursor:pointer}
+.form-msg{margin-top:12px; font-size:14px; line-height:1.55; color:var(--body)}
+.form-msg.err{color:var(--orange); font-weight:600}
+.form-done{
+  background:var(--raised); border:1px solid var(--hair); border-radius:16px; padding:22px;
+  max-width:480px; margin-inline:auto; text-align:left;
+}
+.form-done h3{font-family:var(--f-display); font-size:24px; font-weight:700; letter-spacing:-.02em; color:var(--ink)}
+.form-done p{margin-top:8px; font-size:15px; line-height:1.6; color:var(--body)}
+
+/* ── site header ────────────────────────────────────────────────────────── */
+header.site{padding-top:16px}
+.header-inner{display:flex; flex-direction:column; gap:12px}
+@media (min-width:1024px){
+  .header-inner{flex-direction:row; align-items:center; justify-content:space-between; gap:24px; height:52px}
+}
+.wordmark{
+  font-family:var(--f-display); font-size:22px; font-weight:800; letter-spacing:-.03em;
+  line-height:1; color:var(--ink); text-decoration:none; align-self:flex-start;
+}
+.aud ul{display:flex; gap:8px; flex-wrap:wrap}
+@media (min-width:1024px){
+  .aud ul{gap:4px; border:1px solid var(--hair); background:var(--raised); border-radius:999px; padding:4px}
+}
+.aud a{
+  display:inline-flex; align-items:center; height:44px; padding:0 18px; border-radius:999px;
+  border:1px solid var(--hair); background:var(--raised); color:var(--mkink);
+  font-size:15px; font-weight:600; text-decoration:none; white-space:nowrap;
+  transition:background-color 140ms var(--ease);
+}
+@media (min-width:1024px){ .aud a{border-color:transparent; background:transparent} }
+.aud a[aria-current="page"]{background:var(--ink); border-color:var(--ink); color:var(--cream)}
+.aud a:not([aria-current]):hover{background:var(--sunken)}
+.header-cta{display:none}
+@media (min-width:1024px){ .header-cta{display:inline-flex} }
+
+
+.cert-link{
+  display:inline-flex; align-items:center; gap:6px; min-height:44px;
+  font-size:14px; font-weight:700; color:var(--mkink); text-decoration:underline;
+  text-decoration-color:var(--orange); text-decoration-thickness:2px; text-underline-offset:4px;
+}
+
+.blank{
+  display:inline-block; height:0; border-bottom:1px dashed var(--border); opacity:.6;
+  transform-origin:left center; vertical-align:middle;
+}
+
+/* ── ruled document lists (sealed, checkable) ───────────────────────────── */
+.doc-list{background:var(--raised); border:1px solid var(--hair); border-radius:18px; padding:20px}
+@media (min-width:1024px){ .doc-list{padding:32px 40px} }
+.doc-list li{border-top:1px solid var(--hair); padding:18px 0}
+.doc-list li:first-child{border-top:0; padding-top:0}
+.doc-list li:last-child{padding-bottom:0}
+.doc-list b{display:block; margin-top:8px; font-size:19px; font-weight:700; line-height:1.25; color:var(--ink)}
+.doc-list p{margin-top:6px; max-width:56ch; font-size:16px; line-height:1.6; color:var(--body)}
+.plain-list li{border-top:1px solid var(--hair); padding:18px 0}
+.plain-list li:first-child{border-top:0; padding-top:0}
+.plain-list b{display:block; font-size:19px; font-weight:700; line-height:1.25; color:var(--ink)}
+.plain-list p{margin-top:6px; max-width:58ch; font-size:16px; line-height:1.6; color:var(--body)}
+.steps-grid{display:grid; gap:24px; margin-top:28px}
+@media (min-width:1024px){ .steps-grid{grid-template-columns:repeat(3,1fr); gap:32px; margin-top:40px} }
+.steps-grid li{border-top:1px solid var(--hair); padding-top:22px}
+.steps-grid h3{margin-top:12px; font-family:var(--f-display); font-size:23px; font-weight:700; letter-spacing:-.02em; color:var(--ink)}
+.steps-grid p{margin-top:8px; font-size:16px; line-height:1.6; color:var(--body)}
+.strip-note{
+  margin-top:32px; border:1px solid var(--hair); background:var(--raised); border-radius:14px;
+  padding:16px 18px; font-family:var(--f-mono); font-size:10.5px; line-height:1.9;
+  letter-spacing:.04em; text-transform:uppercase; color:var(--body);
+}
+
+
+/* ── final cta + footer ─────────────────────────────────────────────────── */
+.final{background:var(--sage); border-radius:20px; padding:34px 20px}
+@media (min-width:1024px){
+  .final{display:grid; grid-template-columns:1fr 440px; gap:64px; align-items:center; padding:52px 48px}
+}
+.final p{margin-top:14px; max-width:40ch; font-size:clamp(17px,1.4vw,19px); line-height:1.6; color:var(--body)}
+.final .form-card{margin-top:24px}
+@media (min-width:1024px){ .final .form-card{margin-top:0} }
+footer.site{margin-top:88px; border-top:1px solid var(--hair); padding:32px 0 96px}
+.foot-inner{display:flex; flex-direction:column; gap:12px}
+@media (min-width:1024px){ .foot-inner{flex-direction:row; align-items:center; justify-content:space-between; gap:24px} }
+.foot-nav{display:flex; flex-wrap:wrap; gap:0 24px}
+.foot-nav a,.foot-nav button{
+  display:inline-flex; align-items:center; min-height:44px; font-family:inherit; font-size:14px;
+  color:var(--body); background:none; border:0; padding:0; cursor:pointer;
+  text-decoration:underline; text-underline-offset:4px;
+}
+.foot-note{font-size:14px; color:var(--body)}
+
+
+/* ── the footer proper ──────────────────────────────────────────────────
+   Bigger, and it carries a form of its own: by the time somebody has read the
+   whole argument, the ask should be in front of them without a scroll back. */
+footer.site{margin-top:0; padding:0}
+.foot-top{background:var(--sunken); border-top:1px solid var(--hair); padding:clamp(48px,8vh,88px) 0}
+.foot-grid{display:grid; gap:40px}
+@media (min-width:1024px){ .foot-grid{grid-template-columns:1fr 480px; gap:72px; align-items:start} }
+.foot-lede{font-family:var(--f-display); font-weight:650; font-variation-settings:"opsz" 48;
+  letter-spacing:-.02em; line-height:1.06; color:var(--ink);
+  font-size:clamp(30px,4.2vw,46px); max-width:15ch; margin:0}
+.foot-sub{margin:16px 0 0; max-width:46ch; font-size:clamp(16px,1.3vw,18px); line-height:1.6; color:var(--body)}
+.foot-cols{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px 24px; margin-top:36px}
+@media (min-width:640px){ .foot-cols{grid-template-columns:repeat(3,minmax(0,1fr))} }
+.foot-col h3{margin:0 0 10px; font-family:var(--f-mono); font-weight:500; font-size:11px;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--body)}
+.foot-col ul{list-style:none; margin:0; padding:0}
+.foot-col a,.foot-col button{
+  display:inline-flex; align-items:center; min-height:40px; font-family:inherit; font-size:15px;
+  color:var(--ink); background:none; border:0; padding:0; cursor:pointer; text-align:left;
+  text-decoration:underline; text-decoration-color:var(--hair); text-underline-offset:4px;
+}
+.foot-col a:hover,.foot-col button:hover{text-decoration-color:var(--orange)}
+.foot-col a[aria-current="page"]{text-decoration-color:var(--orange); font-weight:600}
+.foot-bottom{border-top:1px solid var(--hair); padding:26px 0 calc(32px + var(--cta-h,0px))}
+/* Both notes sit left: the right edge is where the HUD lives in this prototype,
+   and a disclaimer half under a debug overlay is not a disclaimer. */
+.foot-bottom .foot-inner{flex-direction:row; flex-wrap:wrap; justify-content:flex-start;
+  align-items:baseline; gap:6px 28px}
+
+
+/* ── sticky signup ──────────────────────────────────────────────────────
+   Appears once the hero is behind you and hides again over the real footer,
+   so the ask is never doubled on screen. Desktop carries the whole form,
+   consent included — CASL consent travels with the field, it is not implied.
+   Below 1024 the bar is a prompt that takes you to the footer form, because a
+   verbatim consent line cannot be made honest at that width. */
+.stickycta{
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
+  background:var(--raised); border-top:1px solid var(--hair);
+  padding:12px 0; transform:translateY(102%); visibility:hidden;
+  transition:transform .32s cubic-bezier(.2,0,0,1), visibility .32s;
+}
+.stickycta[data-show="true"]{transform:translateY(0); visibility:visible}
+html.rm .stickycta{transition:none}
+.sticky-inner{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap}
+.sticky-copy{margin:0; font-size:15px; line-height:1.45; color:var(--body)}
+.sticky-copy b{color:var(--ink); font-weight:700}
+.sticky-form{display:none}
+.sticky-link{
+  display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:0 20px;
+  border-radius:11px; background:var(--orange); color:var(--on-orange); font-weight:700; font-size:15px;
+  text-decoration:none; flex:none;
+}
+@media (min-width:1024px){
+  .stickycta{padding:14px 0}
+  .sticky-link{display:none}
+  .sticky-copy{flex:1 1 200px; min-width:0; max-width:34ch}
+  .sticky-form{display:block; flex:0 1 620px; min-width:0}
+  .sticky-form .field-row{margin-top:0}
+  .sticky-form .field-row input{height:48px}
+  .sticky-form .consent{margin-top:8px}
+  .sticky-form .consent label{font-size:12px; line-height:1.45}
+  .sticky-form .form-msg{margin-top:6px; font-size:12px}
+}
+
+
+/* ── lenis ──────────────────────────────────────────────────────────────── */
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto !important}
+.lenis.lenis-stopped{overflow:hidden}
+
+
+/* ── documents: verification · privacy · terms · writing ────────────────
+   These four are NOT scroll journeys. Ordinary flow, one column, a measure
+   held near 62ch, and no beat engine at all: a privacy policy that performs
+   is a privacy policy nobody trusts. Everything above this comment is the
+   chrome, spliced verbatim out of index.html. */
+/* padding-block, never the `padding` shorthand: .doc also carries .shell,
+   whose padding-inline is the page gutter, and a shorthand here would silently
+   flatten it to zero. */
+.doc{padding-block:28px 0}
+@media (min-width:1024px){ .doc{padding-block:40px 0} }
+/* A short document should not drop a 650px footer into the middle of the
+   first screen. writing.html is the one this bites — its honest state is
+   empty — so main is held to roughly a screen and the footer starts at the
+   fold, as it does on every other page here. */
+main#main{min-height:calc(100svh - 110px)}
+
+/* The first screen, drawn as nothing. The home page gives the sticky bar a
+   hero to leave; a document has no hero, so this stands in for one — one
+   viewport tall, absolutely positioned, occupying no layout space, starting
+   at the top of the document header. The bar's two observers are otherwise
+   the ones from index.html, unchanged. */
+.first-screen{position:absolute; left:0; top:0; width:1px; height:100vh; height:100svh; pointer-events:none}
+
+.doc-head{border-bottom:1px solid var(--hair); padding-bottom:30px}
+@media (min-width:1024px){ .doc-head{padding-bottom:44px} }
+.doc-stamp{
+  font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.1em;
+  text-transform:uppercase; line-height:1; color:var(--mkink);
+}
+@media (min-width:1024px){ .doc-stamp{font-size:12px} }
+.doc-head h1{margin-top:16px; max-width:17ch}
+@media (min-width:1024px){ .doc-head h1{margin-top:18px} }
+.doc-standfirst{margin-top:16px; max-width:560px; color:var(--mkink)}
+@media (min-width:1024px){ .doc-standfirst{margin-top:18px} }
+
+.doc-body{padding-top:34px}
+@media (min-width:1024px){ .doc-body{padding-top:52px} }
+.doc-sec{margin-bottom:36px; max-width:700px}
+@media (min-width:1024px){ .doc-sec{margin-bottom:46px} }
+/* The ordinal is document furniture, drawn beside the heading rather than
+   baked into its text — so a section can be inserted without rewriting every
+   heading after it. */
+.doc-n{
+  display:block; margin-bottom:9px; font-family:var(--f-mono); font-size:11px;
+  font-weight:500; letter-spacing:.1em; text-transform:uppercase; line-height:1; color:var(--mkink);
+}
+
+/* Prose is written as prose: a paragraph should not need a class to be one.
+   The measures below are PIXELS because they were measured, not assumed: 520px
+   of 17px Plus Jakarta Sans is ~67 characters a line, inside the 62-72 band a
+   long document needs. `ch` is the width of a zero, and this family's zero is
+   0.73em — wide enough that 58ch would have run to ~93 characters. */
+.doc-prose{margin-top:14px}
+.doc-prose > *:first-child{margin-top:0}
+.doc-prose p{margin-top:14px; max-width:520px; font-size:17px; line-height:1.65; color:var(--body)}
+.doc-prose strong{color:var(--ink); font-weight:600}
+.doc-prose h3{margin-top:26px; font-size:19px; font-weight:700; line-height:1.3; color:var(--ink)}
+.doc-prose a{
+  color:var(--ink); font-weight:600; text-decoration:underline;
+  text-decoration-color:var(--hair); text-underline-offset:4px;
+}
+.doc-prose a:hover{text-decoration-color:var(--orange)}
+.doc-prose code{
+  font-family:var(--f-mono); font-size:14.5px; background:var(--sunken);
+  border-radius:4px; padding:2px 6px;
+}
+.doc-prose ul{margin-top:16px; max-width:542px}
+/* The list marker is a rule, not a bullet — the same mark the seven checks
+   use, so a document and a form read as the same family of object. */
+.doc-prose ul li{
+  position:relative; margin-top:10px; padding-left:22px;
+  font-size:17px; line-height:1.65; color:var(--body);
+}
+.doc-prose ul li::before{
+  content:''; position:absolute; left:0; top:.8em; width:10px; height:1px; background:var(--border);
+}
+
+/* Ruled rows, not cards. A grid reads as a feature list; a ruled column reads
+   as a form somebody filled in, which is the whole argument of this page.
+   These reach the full measure of the section and carry no dash marker, so
+   they read as a ruled column rather than as another bulleted list. */
+.doc-prose .doc-rows{margin-top:24px; max-width:none}
+.doc-prose ul.doc-rows li,.doc-prose ol.doc-rows li{margin-top:0; padding-left:0}
+.doc-prose ul.doc-rows li::before,.doc-prose ol.doc-rows li::before{content:none}
+.doc-rows .mono-label{display:block}
+.doc-rows b{margin-top:7px}
+.doc-rows p{margin-top:6px; max-width:500px; font-size:16px; line-height:1.6; color:var(--body)}
+.doc-rows .after{display:block; margin-top:10px}
+.doc-issuer{
+  display:block; margin-bottom:5px; font-family:var(--f-mono); font-size:13px;
+  font-weight:500; letter-spacing:.03em; line-height:1.4; color:var(--ink);
+}
+.doc-issuer a{color:var(--ink); text-decoration:underline; text-decoration-color:var(--hair); text-underline-offset:4px}
+.doc-issuer a:hover{text-decoration-color:var(--orange)}
+
+/* A value we do not have yet, drawn as a ruled blank rather than invented.
+   The specimen record card's device, turned on ourselves. */
+.ruled-blank{
+  margin-top:18px; max-width:560px; background:var(--raised); border:1px solid var(--hair);
+  border-radius:14px; padding:18px 20px;
+}
+.ruled-blank .mono-label{display:block}
+.ruled-blank .blank-row{margin-top:16px; line-height:1.2}
+.ruled-blank .blank{width:min(24ch,100%)}
+.ruled-blank > p{margin-top:16px; max-width:470px; font-size:15px; line-height:1.6; color:var(--body)}
+
+.doc-foot{border-top:1px solid var(--hair); margin-top:4px; padding:22px 0 8px; max-width:640px}
+.doc-foot p + p{margin-top:10px}
+
+/* writing.html is an empty state, and the empty state is the one that ships
+   first — so it is the one that has to be right. */
+.doc-empty{
+  max-width:580px; background:var(--raised); border:1px solid var(--hair);
+  border-radius:18px; padding:24px;
+}
+@media (min-width:1024px){ .doc-empty{padding:32px} }
+.doc-empty p{margin-top:10px; font-size:17px; line-height:1.65; color:var(--body)}
+.doc-empty .cert-link{margin-top:14px}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ══ 1 · SITE HEADER ══════════════════════════════════════════════════ -->
+<header class="site" id="top">
+  <div class="shell header-inner">
+    <a class="wordmark" href="index.html">Halal Goes</a>
+    <nav class="aud" aria-label="I want to">
+      <ul>
+        <li><a href="index.html">Order food</a></li>
+        <li><a href="restaurants.html">List your restaurant</a></li>
+        <li><a href="riders.html">Deliver with us</a></li>
+      </ul>
+    </nav>
+    <a class="btn header-cta" href="#foot-form" data-goto-foot>Join the waitlist</a>
+  </div>
+</header>
+
+<main id="main">
+<span class="first-screen" aria-hidden="true"></span>
+  <article class="doc shell">
+  <header class="doc-head">
+    <h1 class="display" style="max-width:16ch">Writing</h1>
+    <p class="lede doc-standfirst">How halal certification actually works in Canada, what the seven checks are for, and what we find when we run them.</p>
+  </header>
+
+    <div class="doc-body">
+    <section class="doc-empty">
+      <h2 class="display-sm">Nothing published yet.</h2>
+      <p>The first pieces are being written. In the meantime, the seven checks — and what each one catches — are set out in full on the home page.</p>
+      <a class="cert-link" href="index.html#seven-checks">Read the seven checks
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </section>
+    </div>
+  </article>
+</main>
+
+<!-- ══ 14 · FOOTER ══════════════════════════════════════════════════════ -->
+<footer class="site" id="site-footer">
+  <div class="foot-top">
+    <div class="shell foot-grid">
+      <div>
+        <p class="wordmark" style="font-size:22px; margin:0 0 18px">Halal Goes</p>
+        <p class="foot-lede">Seven checks, before it reaches you.</p>
+        <p class="foot-sub">We are pre-launch in Ontario. Leave your email and we will write once,
+          the day we open in your area — and after that only when there are newly verified kitchens
+          near you.</p>
+
+        <div class="foot-cols">
+          <div class="foot-col">
+            <h3>I want to</h3>
+            <ul>
+              <li><a href="index.html">Order food</a></li>
+              <li><a href="restaurants.html">List your restaurant</a></li>
+              <li><a href="riders.html">Deliver with us</a></li>
+            </ul>
+          </div>
+          <div class="foot-col">
+            <h3>How we check</h3>
+            <ul>
+              <li><a href="verification.html">Verification standard</a></li>
+              <li><a href="index.html#seven-checks">The seven checks</a></li>
+              <li><a href="writing.html" aria-current="page">Writing</a></li>
+            </ul>
+          </div>
+          <div class="foot-col">
+            <h3>Legal</h3>
+            <ul>
+              <li><a href="privacy.html">Privacy</a></li>
+              <li><a href="terms.html">Terms</a></li>
+              <li><button type="button" data-offsite>Cookie preferences</button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <form class="wl" novalidate data-context="footer" id="foot-form">
+        <div class="form-card">
+          <label class="field-label" for="wl-foot">Email address</label>
+          <div class="field-row">
+            <input id="wl-foot" name="contact" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
+            <button class="btn" type="submit">Notify me</button>
+          </div>
+          <div class="consent">
+            <input id="wl-foot-consent" name="consent" type="checkbox">
+            <label for="wl-foot-consent">I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.</label>
+          </div>
+          <p class="form-msg" role="status" aria-live="polite">No spam. One email, the day we open in your area.</p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="foot-bottom">
+    <div class="shell foot-inner">
+      <p class="foot-note">Ontario, Canada. Launching soon — prices in CAD.</p>
+      <p class="foot-note">Halal Goes does not itself certify food.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Sticky signup. Shown once the hero is behind you, hidden again over the
+     real footer so the same ask is never on screen twice. -->
+<aside class="stickycta" id="stickycta" data-show="false" aria-label="Join the waitlist">
+  <div class="shell sticky-inner">
+    <p class="sticky-copy"><b>Ontario · launching soon.</b> One email the day we open in your area.</p>
+    <a class="sticky-link" href="#foot-form" data-goto-foot>Join the waitlist</a>
+    <form class="wl sticky-form" novalidate data-context="sticky">
+      <div class="form-card" style="padding:0; border:0; background:none; max-width:none">
+        <label class="field-label vh" for="wl-sticky">Email address</label>
+        <div class="field-row">
+          <input id="wl-sticky" name="contact" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required>
+          <button class="btn" type="submit">Notify me</button>
+        </div>
+        <div class="consent">
+          <input id="wl-sticky-consent" name="consent" type="checkbox">
+          <label for="wl-sticky-consent">I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.</label>
+        </div>
+        <p class="form-msg" role="status" aria-live="polite">No spam. One email, the day we open in your area.</p>
+      </div>
+    </form>
+  </div>
+</aside>
+
+<script src="assets/lenis.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var html = document.documentElement;
+  var RM = html.classList.contains('rm');
+
+  /* ─── lenis, and nothing else ────────────────────────────────────────
+     There is no beat engine on a document page: no pinned stages, no damped
+     progress, no HUD. Smooth scrolling is the only thing carried across, and
+     it is off entirely under reduced motion. */
+  var lenis = null;
+  if (!RM && typeof Lenis === 'function') {
+    lenis = new Lenis({ lerp: 0.1, smoothWheel: true, wheelMultiplier: 1, touchMultiplier: 1.6 });
+    requestAnimationFrame(function raf(now) { lenis.raf(now); requestAnimationFrame(raf); });
+  }
+
+  /* ─── the waitlist form: empty, focus, invalid, submitted ───────────── */
+  [].slice.call(document.querySelectorAll('form.wl')).forEach(function (form) {
+    var input = form.querySelector('input[type="email"]');
+    var consent = form.querySelector('input[type="checkbox"]');
+    var msg = form.querySelector('.form-msg');
+    var rest = msg.textContent;
+
+    function clear() {
+      input.removeAttribute('aria-invalid'); consent.removeAttribute('aria-invalid');
+      msg.classList.remove('err'); msg.textContent = rest;
+    }
+    input.addEventListener('input', clear);
+    consent.addEventListener('change', clear);
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var value = input.value.trim();
+      if (value.length === 0) { return fail(input, 'Enter your email address.'); }
+      if (!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(value)) { return fail(input, 'That doesn\u2019t look like an email address.'); }
+      if (!consent.checked) { return fail(consent, 'Please tick the box so we\u2019re allowed to contact you.'); }
+
+      var card = form.querySelector('.form-card');
+      var done = document.createElement('div');
+      done.className = 'form-done';
+      done.setAttribute('role', 'status');
+      done.innerHTML = '<h3>You\u2019re on the list.</h3><p>We\u2019ll email you once, the day we open in your area. Nothing before then.</p>';
+      card.replaceWith(done);
+      done.setAttribute('tabindex', '-1');
+      done.focus();
+    });
+
+    function fail(el, message) {
+      el.setAttribute('aria-invalid', 'true');
+      msg.classList.add('err');
+      msg.textContent = message;
+      el.focus();
+    }
+  });
+
+  /* ─── sticky signup ──────────────────────────────────────────────────
+     index.html's logic unchanged, with one substitution: there is no hero on
+     a document page, so the first observer watches .first-screen — an empty
+     element one viewport tall pinned to the top of <main>. The bar therefore
+     still appears once the first screen is behind you, and still hides as
+     soon as the footer arrives, so the same ask is never on screen twice. */
+  (function () {
+    var bar = document.getElementById('stickycta');
+    var hero = document.querySelector('.first-screen') || document.querySelector('main > *');
+    var foot = document.getElementById('site-footer');
+    if (!bar || !hero || !foot) return;
+
+    var heroGone = false, footHere = false;
+    function apply() {
+      var show = heroGone && !footHere;
+      if (bar.getAttribute('data-show') === String(show)) return;
+      bar.setAttribute('data-show', String(show));
+      document.documentElement.style.setProperty('--cta-h', show ? bar.offsetHeight + 'px' : '0px');
+    }
+    new IntersectionObserver(function (es) {
+      heroGone = !es[0].isIntersecting; apply();
+    }, { threshold: 0 }).observe(hero);
+    new IntersectionObserver(function (es) {
+      footHere = es[0].isIntersecting; apply();
+    }, { threshold: 0, rootMargin: '0px 0px -8% 0px' }).observe(foot);
+
+    window.addEventListener('resize', function () {
+      if (bar.getAttribute('data-show') === 'true') {
+        document.documentElement.style.setProperty('--cta-h', bar.offsetHeight + 'px');
+      }
+    });
+  })();
+
+  /* Narrow screens send you to the footer form rather than carrying a cramped
+     consent line, and so does the header CTA, because #waitlist is a home-page
+     anchor that does not exist here. Scroll through Lenis so it matches. */
+  [].slice.call(document.querySelectorAll('[data-goto-foot]')).forEach(function (jump) {
+    jump.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var target = document.getElementById('foot-form');
+      if (!target) return;
+      if (lenis && !RM) lenis.scrollTo(target, { offset: -40 });
+      else target.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'center' });
+      var field = target.querySelector('input[type="email"]');
+      if (field) setTimeout(function () { field.focus({ preventScroll: true }); }, RM ? 0 : 700);
+    });
+  });
+
+  /* Only the cookie banner has nothing behind it: every other link in the
+     chrome is a real page in this prototype. */
+  [].slice.call(document.querySelectorAll('[data-offsite]')).forEach(function (el) {
+    el.addEventListener('click', function (ev) { ev.preventDefault(); });
+  });
+})();
+</script>
+</body>
+</html>
