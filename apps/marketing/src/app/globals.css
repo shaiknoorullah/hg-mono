@@ -45,6 +45,16 @@ body {
   color: var(--hg-text-primary);
   font-family: var(--font-ui-file), var(--hg-font-ui);
   margin: 0;
+
+  /* `clip`, not `hidden`. The footer's band paints its background out to the
+     viewport edge from inside the 1280px container, which overhangs the page
+     box by half a scrollbar on each side; this absorbs that overhang instead of
+     letting it raise a horizontal scrollbar.
+
+     `hidden` would do the same and also turn <body> into a scroll container,
+     which silently kills `position: sticky` in every descendant — the header
+     bar among them. `clip` clips without scrolling, so nothing else changes. */
+  overflow-x: clip;
 }
 
 /* One focus treatment for the whole site, from the tokens. Every interactive

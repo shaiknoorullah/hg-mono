@@ -52,7 +52,28 @@ export function SiteFooter({ current }: { current?: Audience }) {
 
   return (
     <footer id="site-footer" className="mt-16 lg:mt-24">
-      <div className="border-t border-line-decorative bg-surface-sunken pt-12 lg:pt-20">
+      <div className="relative isolate pt-12 lg:pt-20">
+        {/* The band's ground, and only its ground. The page container is
+            max-w-[1280px] with its own gutters, so a background painted on the
+            band itself stops at the text — which reads as a slab floating in the
+            margins rather than as the bottom of the page, most of all in dark
+            where sunken is #000 against a #171717 gutter.
+
+            `calc(50% - 50vw)` is half this band minus half the viewport, which
+            lands the edge at x=0 for any container width, because the container
+            is centred. The layer carries the hairline too: a border on the band
+            would stop at the gutters while the ground kept going.
+
+            Content is NOT moved. It stays in the container, aligned with every
+            other section on the page — the background travels, the copy does
+            not. `isolate` keeps the -z-10 behind this band's own content instead
+            of behind the page. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 -z-10 border-t border-line-decorative bg-surface-sunken"
+          style={{ left: 'calc(50% - 50vw)', right: 'calc(50% - 50vw)' }}
+        />
+
         <div className="lg:grid lg:grid-cols-[1fr_480px] lg:items-start lg:gap-18">
           <div>
             <Wordmark id="wordmark-footer" height={42} className="mb-5" />
