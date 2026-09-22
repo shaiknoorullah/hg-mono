@@ -12,9 +12,28 @@ function resolveOrigin(): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (explicit) return explicit.replace(/\/$/, '');
 
-  // Vercel hands every preview and branch deploy its own host. Using it keeps a
-  // preview's canonicals self-referential rather than pointing every preview
-  // page at production, which is what makes Google pick the wrong URL.
+  // On a production deploy, the project's STABLE alias — never VERCEL_URL.
+  //
+  // VERCEL_URL is the per-deployment host (landing-dgmn9nq3r-….vercel.app). It
+  // is unique to one build, it is covered by Deployment Protection, and it stops
+  // resolving once that deployment is superseded. Baking it into og:image meant
+  // every share card pointed at a host that was first auth-walled and then dead,
+  // so the scraper got no image and fell back to whatever it could find — which
+  // is how a Halal Goes link came to unfurl as a Vercel card.
+  //
+  // VERCEL_PROJECT_PRODUCTION_URL is the alias that survives the next deploy,
+  // which is the only kind of URL that belongs in metadata somebody else caches.
+  const productionHost =
+    process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL ??
+    process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (process.env.VERCEL_ENV === 'production' && productionHost) {
+    return `https://${productionHost}`;
+  }
+
+  // Previews keep self-referential canonicals: a preview's own host is the right
+  // answer there, and pointing every preview page at production is what makes
+  // Google pick the wrong URL. Cards on a preview rot with the deploy, which is
+  // correct — the preview rots with it too.
   const vercelHost = process.env.NEXT_PUBLIC_VERCEL_URL ?? process.env.VERCEL_URL;
   if (vercelHost) return `https://${vercelHost}`;
 
