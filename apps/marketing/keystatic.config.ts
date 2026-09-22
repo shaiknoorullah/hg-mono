@@ -13,8 +13,27 @@ import { collection, config, fields } from '@keystatic/core';
  * reason the route refuses to serve an unauthenticated editor in production.
  */
 
-const githubConfigured =
-  !!process.env.KEYSTATIC_GITHUB_CLIENT_ID && !!process.env.KEYSTATIC_GITHUB_CLIENT_SECRET;
+/**
+ * Which storage this config selects — and it must answer the same on the server
+ * and in the browser, because this file is imported by both.
+ *
+ * It is gated on the NEXT_PUBLIC_ slug for exactly that reason. Next only
+ * inlines NEXT_PUBLIC_* into the client bundle, so gating on
+ * KEYSTATIC_GITHUB_CLIENT_ID — which is server-only, and must stay that way —
+ * made the two disagree: the route handler ran GitHub mode while the editor in
+ * the browser ran local mode. Sign-in succeeded, then the editor asked for
+ * `/api/keystatic/tree/main`, which is a LOCAL-mode endpoint the GitHub-mode
+ * handler does not serve. It answered 404 with the body `Not Found`, the client
+ * called JSON.parse on it, and the collection died with
+ * "Unexpected token 'N', \"Not Found\" is not valid JSON".
+ *
+ * So the slug is load-bearing, not decoration: it is the one signal about
+ * GitHub mode that both halves can see. `.env.example` says all four variables
+ * ship together, and `src/app/keystatic/layout.tsx` now refuses to serve the
+ * editor unless they do, so "slug set but credentials missing" 404s rather than
+ * rendering an editor that cannot read anything.
+ */
+const githubConfigured = !!process.env.NEXT_PUBLIC_KEYSTATIC_GITHUB_APP_SLUG;
 
 export default config({
   storage: githubConfigured

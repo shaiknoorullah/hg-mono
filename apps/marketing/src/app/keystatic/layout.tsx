@@ -11,8 +11,14 @@ import { notFound } from 'next/navigation';
  * editor sign in and commit as a real person.
  */
 export default function KeystaticLayout({ children }: { children: React.ReactNode }) {
+  // All three, not just the two secrets. The slug is what keystatic.config.ts
+  // reads to choose GitHub mode in the BROWSER, so credentials-without-slug is
+  // a deploy whose editor loads, signs in, and then cannot read a single file.
+  // Refusing to serve it is better than serving that.
   const githubConfigured =
-    !!process.env.KEYSTATIC_GITHUB_CLIENT_ID && !!process.env.KEYSTATIC_GITHUB_CLIENT_SECRET;
+    !!process.env.KEYSTATIC_GITHUB_CLIENT_ID &&
+    !!process.env.KEYSTATIC_GITHUB_CLIENT_SECRET &&
+    !!process.env.NEXT_PUBLIC_KEYSTATIC_GITHUB_APP_SLUG;
 
   if (process.env.NODE_ENV === 'production' && !githubConfigured) notFound();
 
