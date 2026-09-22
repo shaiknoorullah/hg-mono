@@ -3,7 +3,7 @@ import { Bricolage_Grotesque, IBM_Plex_Mono, Plus_Jakarta_Sans } from 'next/font
 import { Analytics } from '@/components/Analytics';
 import { ConsentManager } from '@/components/ConsentManager';
 import { OrganizationLd } from '@/components/StructuredData';
-import { SITE, absolute } from '@/lib/site';
+import { SITE, absolute, isProductionSite } from '@/lib/site';
 import './globals.css';
 
 /* Three families, matching font.family.* in docs/design/tokens.json.
@@ -58,6 +58,13 @@ export const metadata: Metadata = {
     url: absolute('/'),
   },
   twitter: { card: 'summary_large_image' },
+  // Non-production origins carry an explicit noindex, not just a robots.txt
+  // disallow. robots.txt asks a crawler not to FETCH; it does not stop Google
+  // indexing a URL it finds linked elsewhere, and a preview that ranks for the
+  // brand term is very hard to undo. This is also what lets robots.txt let the
+  // unfurl bots through (see `robots.ts`) without widening the indexing surface:
+  // a share card is built from a link somebody already has.
+  robots: isProductionSite() ? undefined : { index: false, follow: false },
   // No verification tokens and no author/creator handles: every one of those is
   // a real account that does not exist yet, and a wrong one is worse than none.
 };
