@@ -1,4 +1,4 @@
-// node --test .github/scripts/   — issue #40
+// node --test .github/scripts/pr-rules.test.mjs   — issue #40
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

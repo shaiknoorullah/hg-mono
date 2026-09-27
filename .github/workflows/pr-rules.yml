@@ -54,4 +54,4 @@ jobs:
         with:
           node-version: 22
       - name: the checker's own tests
-        run: node --test .github/scripts/
+        run: node --test .github/scripts/pr-rules.test.mjs
