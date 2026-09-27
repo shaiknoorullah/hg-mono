@@ -1,0 +1,10 @@
+# No emoji in docs: they render differently everywhere, screen readers read
+# them out by name, and a tick or a cross next to a halal state is a claim.
+# Matches characters with default emoji presentation, plus the emoji variation
+# selector. Plain symbols such as the star or the check mark in text are fine.
+extends: existence
+message: "No emoji in docs ('%s'). Use words."
+level: error
+nonword: true
+tokens:
+  - '[\x{1F000}-\x{1FAFF}\x{2705}\x{274C}\x{274E}\x{2728}\x{2753}-\x{2757}\x{2B50}\x{2B55}\x{26A1}\x{231A}\x{231B}\x{23E9}-\x{23F3}\x{FE0F}]'

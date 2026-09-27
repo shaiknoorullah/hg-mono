@@ -1,0 +1,38 @@
+# gitleaks config for the doc-sanitise check (issue #121).
+# Default rules, plus a short allowlist. Every entry below is a value that is
+# not a credential; each says why. Do not allowlist a path wholesale: a real
+# secret pasted into a fixture must still be caught.
+title = "hg-mono"
+
+[extend]
+useDefault = true
+
+# The seven halal check keys (H1_LEGIBLE_COMPLETE ... H7_UNIQUE_NOT_REUSED) are
+# enum values from the contract. Assigned to `check_key`, they look like a key.
+[[allowlists]]
+description = "halal check keys are enum values, not secrets"
+regexTarget = "secret"
+regexes = ['''^H[1-7]_[A-Z_]+$''']
+
+# Idempotency keys are request de-duplication ids that the client makes up.
+# Tests send fixed ones on purpose.
+[[allowlists]]
+description = "Idempotency-Key header values are not credentials"
+regexTarget = "line"
+regexes = ['''Idempotency-Key''']
+
+# Contract fixtures: fabricated values shaped like the real thing so the mock
+# server and the generated client are exercised with realistic strings.
+# Matched by exact value (Stripe-shaped test client secrets, a fake push
+# token) or by the seal-token shape, and only under contracts/fixtures/.
+[[allowlists]]
+description = "fabricated values in contract fixtures"
+condition = "AND"
+paths = ['''^contracts/fixtures/''']
+regexTarget = "secret"
+regexes = [
+  '''^pi_3QkR7mE8xVn2LbQ1_secret_5cGvA9pQ$''',
+  '''^seti_1QkR7mE8xVn2LbQ1_secret_TzP4nR8wKcJ2$''',
+  '''^f3c2a1d0e9b8a7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2$''',
+  '''^hgseal\.[0-9a-f-]+\.[0-9a-f-]+$''',
+]
