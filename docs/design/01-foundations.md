@@ -148,7 +148,7 @@ Four roles. Each has `.tint` (background), `.tintText`, `.solid` (fill), `.onSol
 | **success** | `#E7F7F0` / `#05603F` (6.89:1) | **no solid fill — see D3** | `#067A55` (5.35:1) | `#4FC79A` (8.31:1) | icon step `#0E9F6E` (3.39:1) |
 | **warning** | `#FEF1E7` / `#8F3A06` (6.83:1) | `#B84A08` + white (5.22:1) | `#B84A08` (5.22:1) | `#F59A5C` (8.05:1) | **orange, ~28°** — 3.23:1 from brand yellow |
 | **danger** | `#FDECEA` / `#912018` (7.58:1) | `#D92D20` + white (4.83:1) | `#B42318` (6.57:1) | `#F08C82` (7.32:1) | |
-| **info** | `#E9F1FE` / `#07458F` (8.19:1) | `#0B72E7` + white (4.59:1) | `#0959B8` (6.70:1) | `#6FA9F2` (7.19:1) | also the focus ring base |
+| **info** | `#E9F1FE` / `#07458F` (8.19:1) | `#0B72E7` + white (4.59:1) | `#0959B8` (6.70:1) | `#6FA9F2` (7.19:1) | was the focus ring base until Sep 2026 — focus now follows `border.brand` ([decision](../decisions/focus-indicator.md)) |
 
 Full numbered ramps are in `tokens.json` (`color.success.50…900` etc.).
 

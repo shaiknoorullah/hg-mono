@@ -80,10 +80,11 @@
 @layer components {
   /*
    * THE FOCUS RING — 04-accessibility.md §4.1, 02-components.md rule 3.
+   * For BORDERLESS controls (buttons, links, cards, chips). Bordered fields use
+   * .hg-focus-field below, where focus is the field's own border instead.
    *
    * Two layers, because no single colour clears 3:1 on every container we ship
-   * (info.500 measures 2.84:1 on brand yellow, 2.33:1 on the halal seal,
-   * 1.05:1 on danger, 2.24:1 on accent):
+   * (the generator measures and reports which containers flip):
    *
    *   control edge
    *     └─ 2px offset in the container's own colour   (--hg-focus-ring-offset)
@@ -102,15 +103,6 @@
 
   .hg-focus:focus-visible {
     outline: none;
-    box-shadow:
-      0 0 0 2px var(--hg-focus-ring-offset),
-      0 0 0 5px var(--hg-focus-ring-color);
-  }
-
-  /* Wrapper variant: the ring belongs to the composite (an input's border,
-     prefix and suffix are on the wrapper), but only :focus-visible inside
-     draws it — pointer focus still draws nothing. */
-  .hg-focus-within:has(:focus-visible) {
     box-shadow:
       0 0 0 2px var(--hg-focus-ring-offset),
       0 0 0 5px var(--hg-focus-ring-color);
@@ -146,6 +138,47 @@
       background-position: -200% 0;
     }
   }
+}
+
+/*
+ * FIELD FOCUS — docs/decisions/focus-indicator.md, 02-components.md rule 3.
+ *
+ * A bordered field (Input, Textarea, Select) shows focus with ITS OWN BORDER:
+ * 2px in the focus colour, and nothing else — no ring, no glow. Put the class
+ * on the element that owns the border; it matches when that element, or a
+ * descendant, is :focus-visible.
+ *
+ * The second pixel is an inset shadow, so the 1px→2px change never shifts
+ * layout (no padding compensation needed).
+ *
+ * An invalid field keeps its 2px danger border — that border already means
+ * "error" and cannot also mean "focused" — so focus there is the two-layer
+ * ring outside it: the one case with two indicators, each carrying a
+ * different meaning.
+ *
+ * Deliberately UNLAYERED: it recolours the border, and Tailwind's border-colour
+ * utilities (border-line-interactive, hover:border-line-strong) sit in the
+ * utilities layer, which beats @layer components.
+ */
+/* Transparent outline: invisible normally, drawn by forced-colors mode, which
+   strips box-shadow — so High Contrast users still get a focus indicator. */
+.hg-focus-field {
+  outline: 2px solid transparent;
+}
+
+.hg-focus-field:is(:focus-visible, :has(:focus-visible)) {
+  border-color: var(--hg-focus-ring-color);
+  box-shadow: inset 0 0 0 1px var(--hg-focus-ring-color);
+}
+
+.hg-focus-field:is([data-hg-state='error'], [aria-invalid='true']):is(
+    :focus-visible,
+    :has(:focus-visible)
+  ) {
+  border-color: var(--hg-feedback-danger-border);
+  box-shadow:
+    0 0 0 2px var(--hg-focus-ring-offset),
+    0 0 0 5px var(--hg-focus-ring-color);
 }
 
 /*

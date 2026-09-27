@@ -2,7 +2,7 @@ import { useId, useMemo, useState, type ReactNode } from 'react';
 import * as RadixSelect from '@radix-ui/react-select';
 import { AlertCircle, Check, ChevronDown } from 'lucide-react';
 import { cx } from './utils/cx.js';
-import { HG_FOCUS, HG_FOCUS_WITHIN } from './utils/focus.js';
+import { HG_FOCUS_FIELD } from './utils/focus.js';
 import { Skeleton } from './Skeleton.js';
 
 /**
@@ -134,7 +134,7 @@ export function Select({
   if (variant === 'native') {
     return shell(
       <div
-        className={cx('relative flex items-center rounded-sm', HG_FOCUS_WITHIN)}
+        className="relative flex items-center rounded-sm"
         data-hg-state={invalid ? 'error' : disabled ? 'disabled' : 'default'}
       >
         <select
@@ -152,6 +152,7 @@ export function Select({
           className={cx(
             TRIGGER,
             borderClasses,
+            HG_FOCUS_FIELD,
             'appearance-none outline-none',
             (disabled || loading) &&
               'cursor-not-allowed bg-surface-subtle opacity-(--hg-state-disabled-opacity)',
@@ -195,7 +196,7 @@ export function Select({
         className={cx(
           TRIGGER,
           borderClasses,
-          HG_FOCUS,
+          HG_FOCUS_FIELD,
           (disabled || loading) &&
             'cursor-not-allowed bg-surface-subtle opacity-(--hg-state-disabled-opacity)',
         )}
@@ -228,7 +229,7 @@ export function Select({
                 className={cx(
                   'h-11 w-full rounded-sm border border-line-interactive bg-control-bg px-3',
                   'text-body-md text-fg-primary outline-none',
-                  HG_FOCUS,
+                  HG_FOCUS_FIELD,
                 )}
               />
             </div>

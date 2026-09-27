@@ -56,7 +56,7 @@ export const themes = {
           "brand": "#D8410F"
         },
         "focus": {
-          "ring": "#0B72E7",
+          "ring": "#D8410F",
           "offset": "#FFFFFF",
           "onColor": "#FFFFFF",
           "ringOn": {
@@ -66,7 +66,7 @@ export const themes = {
             "warning": "#FFFFFF",
             "info": "#FFFFFF",
             "halal": "#FFFFFF",
-            "inverse": "#0B72E7"
+            "inverse": "#D8410F"
           }
         },
         "state": {
@@ -737,17 +737,17 @@ export const themes = {
           "brand": "#F3703F"
         },
         "focus": {
-          "ring": "#6FA9F2",
+          "ring": "#F3703F",
           "offset": "#171717",
           "onColor": "#FFFFFF",
           "ringOn": {
             "brand": "#FFFFFF",
-            "accent": "#6FA9F2",
+            "accent": "#F3703F",
             "danger": "#FFFFFF",
             "warning": "#FFFFFF",
             "info": "#FFFFFF",
             "halal": "#FFFFFF",
-            "inverse": "#6FA9F2"
+            "inverse": "#F3703F"
           }
         },
         "state": {
@@ -1420,7 +1420,7 @@ export const themes = {
           "brand": "#D8410F"
         },
         "focus": {
-          "ring": "#0B72E7",
+          "ring": "#D8410F",
           "offset": "#FFFFFF",
           "onColor": "#FFFFFF",
           "ringOn": {
@@ -1430,7 +1430,7 @@ export const themes = {
             "warning": "#FFFFFF",
             "info": "#FFFFFF",
             "halal": "#FFFFFF",
-            "inverse": "#0B72E7"
+            "inverse": "#D8410F"
           }
         },
         "state": {
@@ -2101,17 +2101,17 @@ export const themes = {
           "brand": "#F3703F"
         },
         "focus": {
-          "ring": "#6FA9F2",
+          "ring": "#F3703F",
           "offset": "#171717",
           "onColor": "#FFFFFF",
           "ringOn": {
             "brand": "#FFFFFF",
-            "accent": "#6FA9F2",
+            "accent": "#F3703F",
             "danger": "#FFFFFF",
             "warning": "#FFFFFF",
             "info": "#FFFFFF",
             "halal": "#FFFFFF",
-            "inverse": "#6FA9F2"
+            "inverse": "#F3703F"
           }
         },
         "state": {

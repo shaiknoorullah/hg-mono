@@ -10,13 +10,24 @@ describe('Input', () => {
     expect(screen.getByTestId('Input-field').props.accessibilityLabel).toBe('Delivery address');
   });
 
-  it('thickens the border and shows the ring on focus, and drops both on blur', () => {
+  // docs/decisions/focus-indicator.md: one indicator. Focus is the field's own 2px
+  // brand border, never border + ring.
+  it('shows focus as a 2px brand border with no ring, and reverts on blur', () => {
     renderThemed(<Input label="Email" value="" onChange={() => {}} />);
     const field = screen.getByTestId('Input-field');
+    const box = () => styleOf(screen.getByTestId('Input-field').parent!.parent!);
     fireEvent(field, 'focus');
-    expect(getHidden('Input-focus-ring')).toBeTruthy();
-    fireEvent(field, 'blur');
+    expect(box().borderWidth).toBe(2);
+    expect(box().borderColor).toBe(themes.customer.light.color.border.brand);
     expect(screen.queryByTestId('Input-focus-ring', { includeHiddenElements: true })).toBeNull();
+    fireEvent(field, 'blur');
+    expect(box().borderWidth).toBe(1);
+  });
+
+  it('keeps the danger border on an invalid field and draws the ring for focus', () => {
+    renderThemed(<Input label="Email" value="x" onChange={() => {}} errorText="Enter a valid email" />);
+    fireEvent(screen.getByTestId('Input-field'), 'focus');
+    expect(getHidden('Input-focus-ring')).toBeTruthy();
   });
 
   it('announces an error assertively, with a glyph as the second channel', () => {

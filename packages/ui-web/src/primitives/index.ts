@@ -65,7 +65,7 @@ export type { PopoverProps } from './Popover.js';
 export {
   HG_FOCUS,
   HG_FOCUS_INSET,
-  HG_FOCUS_WITHIN,
+  HG_FOCUS_FIELD,
   focusOn,
   focusRingColor,
 } from './utils/focus.js';

@@ -112,12 +112,15 @@ describe('token drift — generated tokens match docs/design/tokens.json', () =>
     expect('solid' in roles.light.feedback.danger).toBe(true);
   });
 
-  it('the focus ring flips exactly where 04-accessibility.md §4.1 says it does', () => {
-    // Single-layer info.500 measures below 3:1 on brand, accent, danger and the
-    // halal seal — so the ring colour must not be info.500 on those.
-    const ring = roles.light.focus.ring;
-    expect(ring).toBe(source('color.info.500'));
-    for (const container of ['brand', 'accent', 'danger', 'halal'] as const) {
+  it('the focus colour is the theme brand border, and flips where 04-accessibility.md §4.1 says', () => {
+    // docs/decisions/focus-indicator.md: one indicator in the theme's colour. A focused
+    // field's 2px border and a borderless control's ring are the same colour, so the
+    // ring IS border.brand in both schemes.
+    expect(roles.light.focus.ring).toBe(source('color.brand.600'));
+    expect(roles.dark.focus.ring).toBe(source('color.brand.400'));
+    // brand.600 measures below 3:1 on these fills (generator report) — the ring must
+    // not be drawn in the focus colour on them.
+    for (const container of ['brand', 'accent', 'danger', 'warning', 'info', 'halal'] as const) {
       expect(roles.light.focus.ringOn[container]).toBe(roles.light.focus.onColor);
     }
   });
