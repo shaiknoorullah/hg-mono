@@ -48,7 +48,7 @@ Each exists because it was violated in the previous system and cost real money o
 |---|---|
 | `docs/spec/` | **The specification of record** — 198 features, states, rules, acceptance criteria, SOW traceability |
 | `docs/decisions/` | Settled decisions, reconciled conflicts, open blockers |
-| `docs/design/` | Design system: DTCG tokens, 41 components, patterns, accessibility |
+| `docs/design/` | Design system: DTCG tokens, 41 components, patterns, accessibility. Redesign: `redesign-constitution.md` (the rules), `design-surface.md` (every screen and state), `audit/` (one per app) |
 | `docs/analysis/legacy-system/` | Forensic analysis of the system being replaced (18 reports) |
 | `docs/analysis/base-evaluation/` | Why `ts-monorepo-template` was harvested, not forked |
 | `docs/planning/` | The six competing operating models, three judgements, the winner, and the backend module briefs |
