@@ -24,7 +24,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider, setClientErrorReporter } from '@hg/ui-native';
+import { ThemeProvider, setClientErrorReporter, Wordmark } from '@hg/ui-native';
 import { useHgFonts } from '@hg/ui-native/fonts';
 
 import { Router } from './src/navigation/Router';
@@ -80,6 +80,9 @@ function LoginGate(): React.ReactElement {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.container}>
+        <View style={styles.brand}>
+          <Wordmark height={56} />
+        </View>
         <Text style={styles.title}>Sign in</Text>
 
         {phase === 'phone' ? (
@@ -157,6 +160,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 12,
   },
+  // The logo from @hg/ui-native — the same geometry as every other surface (packages/brand).
+  brand: { alignItems: 'center', marginBottom: 24 },
   title: {
     fontSize: 24,
     fontWeight: '700',

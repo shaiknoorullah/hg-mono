@@ -7,6 +7,12 @@
     "scheme": "hgrider",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFAEA"
+    },
     "platforms": [
       "ios",
       "android",
@@ -14,7 +20,8 @@
     ],
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/favicon.png"
     },
     "ios": {
       "supportsTablet": true,
@@ -33,7 +40,11 @@
         "ACCESS_BACKGROUND_LOCATION",
         "RECORD_AUDIO"
       ],
-      "package": "com.devsupreme.hgrider"
+      "package": "com.devsupreme.hgrider",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFAEA"
+      }
     },
     "plugins": [
       "expo-dev-client",

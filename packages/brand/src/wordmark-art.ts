@@ -1,12 +1,16 @@
 /**
- * GENERATED — do not hand-edit. `apps/marketing/brand/README.md` has the source
+ * GENERATED — do not hand-edit. `packages/brand/README.md` has the source
  * artwork, the measurements behind it and the regeneration command.
  *
- * Lives apart from `Wordmark.tsx` because three other things need the same
- * geometry and none of them can use the component: the OG card renders through
- * Satori, which is not a browser, and the favicon and app icons are built as
- * static files by `brand/build-assets.mjs`.
+ * Lives apart from any component because several things need the same geometry
+ * and not all of them can share one: the web and native `Wordmark`s (in
+ * `@hg/ui-web` and `@hg/ui-native`), the marketing site's `Wordmark`, its OG
+ * card (Satori, not a browser), and the favicons and app icons that
+ * `build-assets.mjs` writes as static files.
  */
+
+/** The business name, one word. The accessible name of every rendering of the mark. */
+export const BRAND_NAME = 'HalalGoes';
 
 export const WORDMARK = {
   viewBox: { width: 556, height: 186 },

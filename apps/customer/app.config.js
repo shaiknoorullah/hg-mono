@@ -27,10 +27,20 @@ module.exports = ({ config }) => ({
     scheme: 'hgcustomer',
     userInterfaceStyle: 'light',
     newArchEnabled: true,
+    // The HalalGoes logo. Every file under assets/ is written by
+    // `node packages/brand/build-assets.mjs` from the one traced geometry; do not
+    // edit them by hand. #FFFAEA is the light theme's surface.base.
+    icon: './assets/icon.png',
+    splash: {
+      image: './assets/splash.png',
+      resizeMode: 'contain',
+      backgroundColor: '#FFFAEA',
+    },
     platforms: ['ios', 'android', 'web'],
     web: {
       bundler: 'metro',
       output: 'single',
+      favicon: './assets/favicon.png',
     },
     ios: {
       supportsTablet: true,
@@ -39,6 +49,10 @@ module.exports = ({ config }) => ({
     android: {
       edgeToEdgeEnabled: true,
       package: 'com.halalgoes.customer',
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#FFFAEA',
+      },
     },
     plugins: [
       [

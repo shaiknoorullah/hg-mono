@@ -3,8 +3,8 @@
  *
  * Traced from the supplied artwork rather than shipped as a raster: the source
  * is 556x186, which is under 2x the size the footer renders it at, so a PNG
- * would be visibly soft on any phone. The geometry is in `lib/wordmark-art.ts`
- * and is generated; `brand/README.md` has the provenance and how to redo it.
+ * would be visibly soft on any phone. The geometry is in `@hg/brand`
+ * (packages/brand) and is generated; its README has the provenance and how to redo it.
  *
  * ONE MARK, BOTH THEMES, NO SECOND FILE.
  *
@@ -31,7 +31,7 @@
  * the same numbers. Without it the g descender gets a hard horizontal cut.
  */
 
-import { WORDMARK } from '@/lib/wordmark-art';
+import { BRAND_NAME, WORDMARK } from '@hg/brand';
 
 const { viewBox, ramp } = WORDMARK;
 
@@ -39,7 +39,7 @@ export function Wordmark({
   height = 32,
   id,
   className,
-  title = 'Halal Goes',
+  title = BRAND_NAME,
 }: {
   /** Height in px. Width follows the 556:186 artwork; nothing here is cropped. */
   height?: number;
