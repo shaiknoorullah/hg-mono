@@ -203,6 +203,7 @@ export function RestaurantScreen({ restaurantId }: { restaurantId: string }): Re
         >
           <Button
             variant="primary"
+            fullWidth
             onPress={() => nav.push({ name: 'cart' })}
           >
             {`View cart · ${itemCount} item${itemCount === 1 ? '' : 's'}`}
