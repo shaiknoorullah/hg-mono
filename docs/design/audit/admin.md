@@ -26,7 +26,7 @@ No code was changed._
 | `comfortable` | 64 | 16 | 16 |
 | `roomy` | 72 | 20 | 20 |
 
-The **admin register is `compact` — 44 / 12 / 12** per `01-foundations.md:417` (§10: the
+The **admin register is `compact` — 44 / 12 / 12** per `01-foundations.md:424` (§10: the
 `operational` theme covers "restaurant web, admin web … `compact` density"), §4's density
 table (`01-foundations.md:291`, "compact → restaurant queue, **admin tables**"), and
 `03-patterns.md:356` ("# 4. Admin surface (`operational` theme, `compact` density)").
@@ -183,7 +183,7 @@ into the seven-check instrument (`:238`–`266`).
    no row actions and **no viewer** — `DataTable` supports `rowActions`
    (`packages/ui-web/src/data/DataTable.tsx:76`) and `DocumentViewer` ships
    (`packages/ui-web/src/data/DocumentViewer.tsx:44`). A-14 is unbuilt and
-   `03-patterns.md:373` (§4.2 Document review: "The document is always visible while
+   `03-patterns.md:375` (§4.2 Document review: "The document is always visible while
    reviewing — a reviewer must never scroll away from the evidence to record a decision")
    is unimplemented on this surface.
 3. **`address_pin_warning` is dropped.** `openapi.yaml:11070` — "Soft warning when the map
@@ -251,7 +251,7 @@ The problems are everything around it.
    H4 `certified_address` vs the premises address; H6 whether `scope` covers what will be
    sold. **On this screen an admin can record all four without ever seeing the evidence any
    of them refers to.** H1 is not merely hard — it is unanswerable: there is no scan to call
-   legible. `03-patterns.md:373` states the principle for the lesser case of ordinary KYC:
+   legible. `03-patterns.md:375` states the principle for the lesser case of ordinary KYC:
    "a reviewer must never scroll away from the evidence to record a decision." Here there is
    no evidence to scroll to.
 
@@ -932,7 +932,7 @@ already does that well. It is **"make an unconsidered approval feel wrong to per
 
 **1. Evidence and claim in one eyeful, always.** Every check on this screen is a comparison,
 and a comparison performed from memory is not a check. The document goes on the start side and
-stays there, independently scrollable, never scrolled away from — `03-patterns.md:373` already
+stays there, independently scrollable, never scrolled away from — `03-patterns.md:375` already
 demands this for ordinary KYC, and it matters more here. Alongside each comparison check, the
 platform's own value and the certificate's claimed value sit **adjacent, in the same row, in
 `mono.md` where they are identifiers** (`01-foundations.md:209` already requires monospace +
@@ -1270,7 +1270,7 @@ is untested because no surface renders a seal state at all.
 
 ### 5.4 Divergence from the four foundation documents (summary)
 
-- **Density.** `01-foundations.md:417` + `:288` and `03-patterns.md:356` say admin =
+- **Density.** `01-foundations.md:424` + `:291` and `03-patterns.md:356` say admin =
   `compact` (44/12/12). `themes.ts:1384`–`1394` ships `comfortable` (64/16/16) and
   `themeAttributes('admin')` stamps it on the app (`App.tsx:83`, `:183`). **Unreconciled;
   needs a decision doc.**
@@ -1286,12 +1286,12 @@ is untested because no surface renders a seal state at all.
 - **`04-accessibility.md:184`** ("Admin adds 'Skip to table'") — never added.
 - **`04-accessibility.md:239`** (`aria-sort` on every sortable column) — no admin table is
   sortable, so the requirement is vacuously unmet everywhere.
-- **`01-foundations.md:168`/`:170`/`:173`** (RULES H-1/H-2) — breached at
+- **`01-foundations.md:168`/`:170`** (RULES H-1/H-2) — breached at
   `LiveMapBox.tsx:66` and side-stepped at `OrderDetailScreen.tsx:244` and
   `ApplicationDetailScreen.tsx:251`.
 - **Document drift worth fixing while here:** `01-foundations.md:178` states the certified
   seal as `#04482A` and the brass ring as `#D4A72C`; the frozen tokens are
-  `color.halal.certified.seal #0F7A43` and `certified.ring #C9A24B`. §11 still specifies
+  `color.halal.certified.seal #0F7A43` and `certified.ring #C9A24B`. §11 (`01-foundations.md:433`) still specifies
   **Lucide** as the icon set, while the app and `AGENTS.md` use the Solar subset
   (`App.tsx:42`, `solar-icon-map.json`). A designer working from the foundations document
   today would specify the wrong hexes and the wrong icon family.
