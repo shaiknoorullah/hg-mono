@@ -19,7 +19,10 @@
     "check": "pnpm validate:contract && pnpm validate:fixtures && pnpm generate:check && pnpm generate:tokens:check && pnpm lint && pnpm typecheck && pnpm check:backend",
     "check:backend": "cd services/hg && make check",
     "lint": "pnpm -r lint",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "coverage": "node .github/scripts/coverage.mjs collect",
+    "coverage:check": "node .github/scripts/coverage.mjs check",
+    "coverage:update-baseline": "node .github/scripts/coverage.mjs update-baseline"
   },
   "devDependencies": {
     "lefthook": "2.1.14",

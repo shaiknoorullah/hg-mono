@@ -85,7 +85,7 @@ cd services/hg && make up && make migrate && make run
 
 - **The contract is authoritative.** If a spec, a prompt or a person contradicts `contracts/openapi.yaml`, the contract wins — or the contract changes first, deliberately, and clients regenerate. Never hand-write a type that the generator emits.
 - **Every screen implements empty, loading and error.** Happy-path-only screens do not merge.
-- **Tests are few and high-value.** Roughly 15–25 that pin invariants — money, auth, the state machine, one end-to-end smoke — not thousands that pin getters. The previous system had more test code than production code and still failed.
+- **Tests are few and high-value.** Roughly 15–25 that pin invariants — money, auth, the state machine, one end-to-end smoke — not thousands that pin getters. The previous system had more test code than production code and still failed. Coverage is measured, not chased: a PR may not lower the coverage of any file it touches, and only money and safety code (pricing, ledger, the order state machine, auth, payments) has a fixed floor — see `coverage/` and [#118](https://github.com/shaiknoorullah/hg-mono/issues/118).
 - **Prefer making a bug unrepresentable over testing for it.** A `CHECK` constraint beats a test; a branded type beats a runtime assert; an unexported brand beats a code review.
 - **Fixtures cover every state**, not the happy one — all 14 order states, all four halal states, empty lists, expired certificates, failed payments.
 - **Issues, PRs and links follow [`CONTRIBUTING.md`](CONTRIBUTING.md).** Everything found, deferred or in progress is a GitHub issue; one PR does one thing; the title prefix sets the label; internal codes are always written out and linked to their definition.
