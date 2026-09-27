@@ -161,8 +161,17 @@ export const HALAL_HEXES: ReadonlySet<string> = (() => {
  *    signal. The verified signal is the brighter emerald in color.halal.* alone. Allowing
  *    the chrome here keeps L-4 forbidding the seal emerald and every other bright solid
  *    green outside color.halal.*.
+ *  - `color.map.pinCustomer` — the same forest neutral, #1B3B31, under a second
+ *    name. It is byte-identical to `color.accent.600` and `surface.chrome`, both
+ *    already allowed above, so listing it grants no colour that was not already
+ *    permitted; it only stops the alias being read as a new green.
  */
-export const ALLOWED_TOKEN_PATHS = ['color.halal.', 'color.map.pinRider', 'color.accent.'] as const;
+export const ALLOWED_TOKEN_PATHS = [
+  'color.halal.',
+  'color.map.pinRider',
+  'color.map.pinCustomer',
+  'color.accent.',
+] as const;
 
 const ALLOWED_VAR_NAMES = new Set(
   [
@@ -171,6 +180,8 @@ const ALLOWED_VAR_NAMES = new Set(
     '--color-halal',
     '--hg-color-map-pin-rider',
     '--color-map-pin-rider',
+    '--hg-color-map-pin-customer',
+    '--color-map-pin-customer',
     '--hg-color-accent',
     '--color-accent',
     '--hg-surface-chrome',
@@ -180,7 +191,12 @@ const ALLOWED_VAR_NAMES = new Set(
 
 /** Tailwind utility names whose colour is allowed to be a green solid. */
 function isAllowedUtility(name: string): boolean {
-  return name.startsWith('halal-') || name === 'map-pin-rider' || name.startsWith('accent-');
+  return (
+    name.startsWith('halal-') ||
+    name === 'map-pin-rider' ||
+    name === 'map-pin-customer' ||
+    name.startsWith('accent-')
+  );
 }
 
 function isAllowedVar(name: string): boolean {
@@ -195,7 +211,22 @@ function isAllowedVar(name: string): boolean {
 
 function flattenColors(tree: unknown, path: string[], into: Map<string, string>): void {
   if (typeof tree === 'string') {
-    into.set(path.join('-').toLowerCase(), tree.toUpperCase());
+    const hex = tree.toUpperCase();
+    into.set(path.join('-').toLowerCase(), hex);
+    // Also index the kebab form, split BEFORE lowercasing.
+    //
+    // The kebab pass used to run over the already-lowercased key, where
+    // /([a-z0-9])([A-Z])/ can never match — so `color.map.pinRider` was only
+    // ever stored as `map-pinrider`, and the CSS custom property that names it,
+    // `--hg-color-map-pin-rider`, resolved to nothing. Every camelCase leaf in
+    // the token tree was unreachable by its own variable name, which meant the
+    // registered map-pin exception was being carried by the prefix allowlist
+    // alone rather than by resolution.
+    const kebab = path
+      .map((seg) => seg.replace(/([a-z0-9])([A-Z])/g, '$1-$2'))
+      .join('-')
+      .toLowerCase();
+    if (!into.has(kebab)) into.set(kebab, hex);
     return;
   }
   if (tree && typeof tree === 'object') {
@@ -225,8 +256,36 @@ const CSS_BACKGROUND = /\b(background|background-color|fill)\s*:\s*([^;{}]+)/g;
 const TW_BACKGROUND = /(?:^|[\s"'`:])(?:bg|fill)-([a-z0-9][a-z0-9-]*)/g;
 /** `backgroundColor: '#0F7A43'` in a style object. */
 const JSX_BACKGROUND = /background(?:Color)?\s*:\s*['"`](#[0-9a-fA-F]{3,8})['"`]/g;
+/**
+ * Imperative painting: `el.style.background = …`, `node.style.fill = …`.
+ *
+ * The three scanners above are all declarative — a `background:` with a colon,
+ * or a Tailwind class. A colour assigned through a variable and applied with `=`
+ * is invisible to every one of them, which is how a solid green reached every
+ * restaurant pin on the admin map unnoticed.
+ */
+const IMPERATIVE_STYLE = /\.style\.(background|backgroundColor|fill)\s*=/;
+/**
+ * Replace comment bodies with spaces, preserving every byte offset so reported
+ * lines and columns stay true.
+ *
+ * A colour written in a comment paints nothing, and the imperative sweep below
+ * is broad enough to read prose as code without this: its first run flagged a
+ * hex inside this very file's documentation, because JSDoc backticks look
+ * exactly like a template literal.
+ */
+function blankComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/(^|[^:])\/\/[^\n]*/g, (m, lead: string) => lead + ' '.repeat(m.length - lead.length));
+}
+
+/** A string literal that looks like a colour value: '#rrggbb' or 'var(--x, #rrggbb)'. */
+const COLOUR_LITERAL = /['"`](\s*(?:var\(\s*--[a-z0-9-]+[^'"`]*\)|#[0-9a-fA-F]{3,8})\s*)['"`]/gi;
 const HEX = /#[0-9a-fA-F]{3,8}\b/;
 const VAR_REF = /var\(\s*(--[a-z0-9-]+)/i;
+/** The literal in `var(--name, #hex)` — what actually paints when the property is undefined. */
+const VAR_FALLBACK_HEX = /var\(\s*--[a-z0-9-]+\s*,\s*(#[0-9a-fA-F]{3,8})\s*\)/i;
 
 function positionOf(source: string, index: number): { line: number; column: number } {
   const before = source.slice(0, index);
@@ -253,15 +312,42 @@ function lineAt(source: string, index: number): string {
   return source.slice(start, end === -1 ? undefined : end).trim();
 }
 
-/** Resolve whatever a declaration's value is to a hex, if we can. */
+/**
+ * Resolve whatever a declaration's value is to a hex, if we can.
+ *
+ * Two things here are load-bearing, and both were once wrong in a way that let
+ * a solid green onto the admin map for every restaurant regardless of its halal
+ * state (`apps/admin/src/components/LiveMapBox.tsx`).
+ *
+ * **The allowlist names tokens, so it can only exempt a name that IS one.**
+ * `isAllowedVar` matches by prefix, and `--hg-color-halal-verified` — which does
+ * not exist; the token is `--hg-color-halal-certified-seal` — matched
+ * `--hg-color-halal` and was waved through. A misspelling became its own
+ * exemption. Resolution now happens first: a name that resolves to no token is
+ * not a token, so the allowlist does not apply to it.
+ *
+ * **An undefined custom property paints its fallback.** `var(--nonexistent,
+ * #067A55)` renders `#067A55` in every browser, so the fallback is the colour
+ * that reaches the eye and it has to be judged as a literal. The old code
+ * returned early on an allowlisted name and never looked inside the parens.
+ */
 function resolveValue(value: string): { hex: string; allowed: boolean } | null {
   const varMatch = VAR_REF.exec(value);
   if (varMatch?.[1]) {
     const name = varMatch[1];
-    if (isAllowedVar(name)) return null; // allowlisted by name
     const utility = name.replace(/^--(hg-)?(color-)?/, '');
-    const hex = COLOR_BY_UTILITY.get(utility.toLowerCase());
-    return hex ? { hex, allowed: false } : null;
+    const resolved = COLOR_BY_UTILITY.get(utility.toLowerCase());
+
+    if (resolved) {
+      // A real token. The allowlist is meaningful here, and the fallback is
+      // dead code because the property is defined.
+      return isAllowedVar(name) ? null : { hex: resolved, allowed: false };
+    }
+
+    // Resolves to nothing: whatever is written as the fallback is what paints.
+    const fallback = VAR_FALLBACK_HEX.exec(value);
+    if (fallback?.[1]) return { hex: fallback[1].toUpperCase(), allowed: false };
+    return null;
   }
   const hexMatch = HEX.exec(value);
   if (hexMatch) return { hex: hexMatch[0].toUpperCase(), allowed: false };
@@ -320,6 +406,29 @@ export function lintSource(file: string, source: string): L4Violation[] {
       green.hue,
       `L-4: \`bg-${utility}\` resolves to ${hex} (hue ${Math.round(green.hue)}°), a solid green outside color.halal.*`,
     );
+  }
+
+  // Imperative painting. Only files that actually assign to .style.background /
+  // .backgroundColor / .fill are swept, and only their colour-shaped string
+  // literals — the colour usually arrives through a variable, so the assignment
+  // site itself carries no hex to test. Narrow enough not to be noisy, and an
+  // `l4-allow:` comment still suppresses a deliberate case.
+  const code = blankComments(source);
+  if (IMPERATIVE_STYLE.test(code)) {
+    for (const match of code.matchAll(COLOUR_LITERAL)) {
+      const literal = match[1] ?? '';
+      const resolved = resolveValue(literal);
+      if (!resolved) continue;
+      if (HALAL_HEXES.has(resolved.hex)) continue;
+      const green = isReservedGreenSolid(resolved.hex);
+      if (!green) continue;
+      record(
+        match.index ?? 0,
+        resolved.hex,
+        green.hue,
+        `L-4: \`${literal.trim()}\` paints ${resolved.hex} (hue ${Math.round(green.hue)}°), a solid green outside color.halal.*, and is applied imperatively via .style`,
+      );
+    }
   }
 
   // bg-[#0F7A43] and bg-[var(--…)] arbitrary values.

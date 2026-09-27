@@ -24,7 +24,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider, setClientErrorReporter } from '@hg/ui-native';
+import { ThemeProvider, useTheme, setClientErrorReporter } from '@hg/ui-native';
 import { useHgFonts } from '@hg/ui-native/fonts';
 
 import { Router } from './src/navigation/Router';
@@ -38,6 +38,10 @@ import { subscribe, isAuthed } from './src/api/token';
 type Phase = 'phone' | 'code';
 
 function LoginGate(): React.ReactElement {
+  // The gate renders inside ThemeProvider (see the root below), so its colours
+  // come from the register like every other surface. They used to be raw hexes
+  // because this branch mounted OUTSIDE the provider and had no theme to read.
+  const theme = useTheme();
   const [phase, setPhase] = React.useState<Phase>('phone');
   const [phone, setPhone] = React.useState('');
   const [challengeId, setChallengeId] = React.useState('');
@@ -97,15 +101,15 @@ function LoginGate(): React.ReactElement {
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable
-              style={[styles.button, busy && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: theme.color.action.primary }, busy && styles.buttonDisabled]}
               onPress={handleSendCode}
               disabled={busy}
               accessibilityRole="button"
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.color.text.onBrand} />
               ) : (
-                <Text style={styles.buttonText}>Send code</Text>
+                <Text style={[styles.buttonText, { color: theme.color.text.onBrand }]}>Send code</Text>
               )}
             </Pressable>
           </>
@@ -124,15 +128,15 @@ function LoginGate(): React.ReactElement {
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable
-              style={[styles.button, busy && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: theme.color.action.primary }, busy && styles.buttonDisabled]}
               onPress={handleVerify}
               disabled={busy}
               accessibilityRole="button"
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.color.text.onBrand} />
               ) : (
-                <Text style={styles.buttonText}>Verify</Text>
+                <Text style={[styles.buttonText, { color: theme.color.text.onBrand }]}>Verify</Text>
               )}
             </Pressable>
             <Pressable
@@ -140,7 +144,7 @@ function LoginGate(): React.ReactElement {
               onPress={() => { setPhase('phone'); setError(null); setCode(''); }}
               accessibilityRole="button"
             >
-              <Text style={styles.linkText}>Change number</Text>
+              <Text style={[styles.linkText, { color: theme.color.action.primary }]}>Change number</Text>
             </Pressable>
           </>
         )}
@@ -177,7 +181,10 @@ const styles = StyleSheet.create({
     color: '#111',
   },
   button: {
-    backgroundColor: '#1a7a4a',
+    // Colour is applied from the theme at the usage site: action.primary. A
+    // solid green here violated invariant 10 — green is the verification seal,
+    // never "tap here" — and L-4 could not see it because this app declared no
+    // lint script.
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -187,7 +194,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -200,7 +206,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   linkText: {
-    color: '#1a7a4a',
     fontSize: 14,
   },
 });
@@ -237,20 +242,14 @@ export default function App(): React.ReactElement | null {
     return null;
   }
 
-  if (!authed) {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <LoginGate />
-      </SafeAreaProvider>
-    );
-  }
-
+  // ThemeProvider wraps BOTH branches. It used to wrap only the authenticated
+  // one, so the sign-in gate — the first screen every customer sees — rendered
+  // with no design system at all and hard-coded its own palette.
   return (
     <SafeAreaProvider>
       <ThemeProvider theme="customer" scheme="light">
         <StatusBar style="dark" />
-        <Router />
+        {authed ? <Router /> : <LoginGate />}
       </ThemeProvider>
     </SafeAreaProvider>
   );
