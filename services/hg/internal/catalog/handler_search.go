@@ -118,42 +118,90 @@ func (h *Handler) cardFor(rr restaurantRow, hasAddress bool, now time.Time) Rest
 	return toCard(rr, info, h.media)
 }
 
-// GetHomeFeed implements getHomeFeed (GET /v1/feed): fixed ordered sections; a
-// section that would be empty is omitted entirely.
+// GetHomeFeed implements getHomeFeed (GET /v1/feed) — C-09.
+//
+// Four of the six contracted sections, in the contract's fixed order, each
+// omitted entirely when empty (never an empty shell):
+//
+//	order_again · restaurants_near_you · trending_in_your_area · you_might_like
+//
+// The other two are omitted because they cannot honestly be built yet:
+//
+//   - your_favourite_restaurants: there is no favourites table and no endpoint
+//     to favourite a restaurant, so there is nothing to read.
+//   - popular_items: C-09 never defines it, and the contract types every
+//     section as RestaurantCard[] while the name promises items. Defining it is
+//     a product decision, possibly a contract change, not a query.
+//
+// Without a point, deliverability is unknown, so no section is returned. C-09
+// rule 5 has the client send its saved address's coordinates or show the
+// address prompt; there is no geographic fallback. (The old handler labelled
+// arbitrary restaurants "near you" here, in id order.)
 func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {
 	lat, lng, perr := parsePoint(r)
 	if perr != nil {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed, perr.Error(), nil)
 		return
 	}
-	hasAddress := lat != nil && lng != nil
-	now := h.now()
-
-	// restaurants_near_you: the visible restaurants closest to the point, or the
-	// top-rated visible restaurants when no point is supplied.
-	near, err := h.repo.listVisible(r.Context(), listFilters{
-		lat: lat, lng: lng, sort: "DISTANCE_ASC", limit: 10,
-	})
-	if h.mapErr(w, r, err) {
+	sections := []FeedSection{}
+	if lat == nil || lng == nil {
+		httpx.Respond(w, r, http.StatusOK, sections)
 		return
 	}
 
-	sections := []FeedSection{}
-	if len(near) > 0 {
-		cards := make([]RestaurantCard, 0, len(near))
-		for _, rr := range near {
-			cards = append(cards, h.cardFor(rr, hasAddress, now))
-		}
-		sections = append(sections, FeedSection{
-			Key:         "restaurants_near_you",
-			Title:       "Restaurants near you",
-			Restaurants: cards,
-		})
+	ctx := r.Context()
+	cfg, err := h.repo.currentDiscoveryConfig(ctx)
+	if h.mapErr(w, r, err) {
+		return
 	}
-	// TODO(scope): order_again, trending_in_your_area, your_favourite_restaurants,
-	// popular_items, you_might_like require order history and favourites owned by
-	// the orders and accounts modules. Omitted rather than faked with a placeholder
-	// section — an empty section must never be rendered as a shell (C-09).
+	pt := point{lat: *lat, lng: *lng}
+	now := h.now()
+	add := func(key, title string, rows []restaurantRow) {
+		if len(rows) == 0 {
+			return
+		}
+		cards := make([]RestaurantCard, 0, len(rows))
+		for _, rr := range rows {
+			cards = append(cards, h.cardFor(rr, true, now))
+		}
+		sections = append(sections, FeedSection{Key: key, Title: title, Restaurants: cards})
+	}
+
+	// Personal sections need an account. The route is CUSTOMER-only, so one is
+	// always present; the guard keeps an empty id from reaching a uuid column.
+	accountID := httpx.PrincipalFrom(ctx).AccountID
+
+	var orderAgain []restaurantRow
+	if accountID != "" {
+		if orderAgain, err = h.repo.feedOrderAgain(ctx, accountID, pt, cfg); h.mapErr(w, r, err) {
+			return
+		}
+	}
+	add("order_again", "Order again", orderAgain)
+
+	near, err := h.repo.feedNearYou(ctx, pt, cfg)
+	if h.mapErr(w, r, err) {
+		return
+	}
+	add("restaurants_near_you", "Restaurants near you", near)
+
+	trending, err := h.repo.feedTrending(ctx, pt, cfg)
+	if h.mapErr(w, r, err) {
+		return
+	}
+	add("trending_in_your_area", "Trending in your area", trending)
+
+	if accountID != "" {
+		shown := make([]string, 0, len(orderAgain))
+		for _, rr := range orderAgain {
+			shown = append(shown, rr.id)
+		}
+		mightLike, err := h.repo.feedYouMightLike(ctx, accountID, pt, cfg, shown)
+		if h.mapErr(w, r, err) {
+			return
+		}
+		add("you_might_like", "You might like", mightLike)
+	}
 
 	httpx.Respond(w, r, http.StatusOK, sections)
 }
