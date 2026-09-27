@@ -57,7 +57,6 @@ Each exists because it was violated in the previous system and cost real money o
 | `contracts/` | **Single source of truth for every API shape.** OpenAPI + WebSocket + 311 fixtures |
 | `packages/api-client/` | Generated TS client. **Hand-editing generated files is forbidden** |
 | `packages/ui-native/`, `ui-web/` | 81 components, both themes |
-| `apps/gallery-native/`, `gallery-web/` | Component galleries — the visual review surface |
 | `services/hg/` | The Go binary |
 | `deploy/` | docker compose + Traefik |
 
@@ -70,8 +69,6 @@ pnpm install
 pnpm check                              # contract + fixtures + drift + typecheck — the gate
 pnpm -r test
 pnpm mock                               # mock API on :4010, WS on /v1/ws
-pnpm --filter gallery-web dev           # web component gallery
-pnpm --filter @hg/gallery-native web    # native gallery in a browser
 cd services/hg && make up && make migrate && make run
 ```
 
@@ -92,7 +89,7 @@ cd services/hg && make up && make migrate && make run
 
 ## 7. State as of the last commit
 
-**Done:** specification (198 features), decisions, design system, API contract (144 operations, 80 enums), generated client, 311 fixtures, mock server, 81 components, both galleries verified.
+**Done:** specification (198 features), decisions, design system, API contract (144 operations, 80 enums), generated client, 311 fixtures, mock server, 81 components. Component review happens in the [UI/UX rework](https://github.com/shaiknoorullah/hg-mono/milestone/16).
 
 **In progress:** the Go backend. Skeleton, compose stack and the 91-table schema have landed. The seven domain modules are **not started** — briefs ready to dispatch in `docs/planning/backend-modules.md`.
 
