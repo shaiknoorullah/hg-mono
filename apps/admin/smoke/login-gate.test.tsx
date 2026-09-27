@@ -32,6 +32,13 @@ describe('admin login gate', () => {
     );
   });
 
+  // Query by accessible name, not raw label text: a required field's label also holds an
+  // aria-hidden " *", so its text is "Email *" while its accessible name is "Email".
+  // Password inputs have no ARIA role, so that one field is matched by label prefix.
+  const email = () => screen.getByRole('textbox', { name: 'Email' });
+  const password = () => screen.getByLabelText(/^Password/);
+  const totp = () => screen.getByRole('textbox', { name: 'Authenticator code' });
+
   afterEach(() => {
     cleanup();
     setToken(null);
@@ -44,9 +51,9 @@ describe('admin login gate', () => {
     render(<Root />);
 
     expect(screen.getByRole('heading', { name: 'Admin sign in' })).not.toBeNull();
-    expect(screen.getByLabelText('Email')).not.toBeNull();
-    expect(screen.getByLabelText('Password')).not.toBeNull();
-    expect(screen.getByLabelText('Authenticator code')).not.toBeNull();
+    expect(email()).not.toBeNull();
+    expect(password()).not.toBeNull();
+    expect(totp()).not.toBeNull();
 
     // Deny by default: nothing from the protected nav/shell is present.
     expect(screen.queryByRole('link', { name: 'Restaurants' })).toBeNull();
@@ -71,11 +78,11 @@ describe('admin login gate', () => {
     const { Root } = await import('../src/App');
     render(<Root />);
 
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'admin@halalgoes.ca' } });
-    fireEvent.change(screen.getByLabelText('Password'), {
+    fireEvent.change(email(), { target: { value: 'admin@halalgoes.ca' } });
+    fireEvent.change(password(), {
       target: { value: 'correct horse battery staple' },
     });
-    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '123456' } });
+    fireEvent.change(totp(), { target: { value: '123456' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
     await waitFor(() => expect(isAuthed()).toBe(true));
