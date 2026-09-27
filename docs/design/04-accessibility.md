@@ -146,14 +146,25 @@ The halal state comes **second, immediately after the name** — before rating, 
 
 ## 4. Focus handling
 
-### 4.1 The ring
+### 4.1 The indicator
 
-Two layers, because no single colour clears 3:1 on every container we ship (measured: `info.500` reaches only 2.84:1 on brand yellow, 2.33:1 on the halal seal, 1.05:1 on danger, 2.24:1 on accent):
+**One indicator per control, in the theme's focus colour** — `theme.*.focus.ring`, which is `border.brand` (`brand.600` light, `brand.400` dark). Why, and what it replaced: [`docs/decisions/focus-indicator.md`](../decisions/focus-indicator.md).
+
+**Bordered fields** (`Input`, `Textarea`, `Select`) — focus *is* the field's own border:
+
+```
+field edge: 1px border.interactive  →  2px theme.*.focus.ring
+            (4.30:1 on control.bg, 3.91:1 on surface.sunken; dark 5.9–6.2:1)
+```
+
+No ring, no glow. The system has no coloured shadows: elevation shadows are neutral and dark mode drops shadows entirely, so a glow would be an invented, light-only effect. On web the second pixel is an inset shadow so the change never shifts layout, and a transparent outline stays in place for forced-colors mode, which strips shadows. An **invalid** field keeps its 2px danger border — that border means "error" and cannot also mean "focused" — so it takes the two-layer ring below.
+
+**Borderless controls** (buttons, links, cards, chips) have no edge to recolour, so they take the **two-layer ring** — two layers because no single colour clears 3:1 on every container we ship (the token generator measures each container and reports the flip set):
 
 ```
 control edge
   └─ 2px offset  in the container's own colour (theme.*.focus.offset)
-      └─ 3px ring in theme.*.focus.ring   (info.500 light / info.300 dark)
+      └─ 3px ring in theme.*.focus.ring   (brand.600 light / brand.400 dark)
           ...flipping to theme.*.focus.onColor on any coloured container
              where the ring measures < 3:1
 ```

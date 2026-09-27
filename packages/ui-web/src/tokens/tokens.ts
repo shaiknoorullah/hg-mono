@@ -787,8 +787,8 @@ export const breakpoint = {
  * colours force the ring to flip to `focus.onColor`; the flip set is computed
  * from measured contrast at generate time, not asserted by hand:
  *
- *   light: brand 1.3:1 → flipped, accent 2.67:1 → flipped, danger 1.23:1 → flipped, warning 1.14:1 → flipped, info 1:1 → flipped, halal 1.18:1 → flipped, inverse 3.42:1
- *   dark: brand 1.45:1 → flipped, accent 5.03:1, danger 2.33:1 → flipped, warning 2.15:1 → flipped, info 1.89:1 → flipped, halal 2.22:1 → flipped, inverse 6.46:1
+ *   light: brand 1.27:1 → flipped, accent 2.73:1 → flipped, danger 1.26:1 → flipped, warning 1.16:1 → flipped, info 1.02:1 → flipped, halal 1.21:1 → flipped, inverse 3.5:1
+ *   dark: brand 1.21:1 → flipped, accent 4.19:1, danger 1.94:1 → flipped, warning 1.79:1 → flipped, info 1.57:1 → flipped, halal 1.85:1 → flipped, inverse 5.39:1
  */
 export const roles = {
   "light": {
@@ -819,7 +819,7 @@ export const roles = {
       "brand": "#D8410F"
     },
     "focus": {
-      "ring": "#0B72E7",
+      "ring": "#D8410F",
       "offset": "#FFFFFF",
       "onColor": "#FFFFFF",
       "ringOn": {
@@ -829,7 +829,7 @@ export const roles = {
         "warning": "#FFFFFF",
         "info": "#FFFFFF",
         "halal": "#FFFFFF",
-        "inverse": "#0B72E7"
+        "inverse": "#D8410F"
       }
     },
     "state": {
@@ -938,17 +938,17 @@ export const roles = {
       "brand": "#F3703F"
     },
     "focus": {
-      "ring": "#6FA9F2",
+      "ring": "#F3703F",
       "offset": "#171717",
       "onColor": "#FFFFFF",
       "ringOn": {
         "brand": "#FFFFFF",
-        "accent": "#6FA9F2",
+        "accent": "#F3703F",
         "danger": "#FFFFFF",
         "warning": "#FFFFFF",
         "info": "#FFFFFF",
         "halal": "#FFFFFF",
-        "inverse": "#6FA9F2"
+        "inverse": "#F3703F"
       }
     },
     "state": {

@@ -200,7 +200,10 @@ export function Input({
           </Text>
         ) : null}
         {suffix}
-        {focused ? (
+        {/* Focus is the field's own border (2px border.brand, above). The ring is drawn
+            only on an invalid field, whose danger border cannot also mean "focused" —
+            docs/decisions/focus-indicator.md. */}
+        {focused && hasError ? (
           <View
             pointerEvents="none"
             testID={`${testID}-focus-ring`}

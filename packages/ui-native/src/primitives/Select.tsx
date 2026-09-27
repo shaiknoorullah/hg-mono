@@ -178,8 +178,12 @@ export function Select({
     gap: tokens.space['2'],
     paddingHorizontal: tokens.space['3'],
     borderRadius: radius,
-    borderWidth: hasError ? 2 : 1,
-    borderColor: hasError ? theme.color.feedback.danger.border : theme.color.border.interactive,
+    borderWidth: hasError || focused ? 2 : 1,
+    borderColor: hasError
+      ? theme.color.feedback.danger.border
+      : focused
+        ? theme.color.border.brand
+        : theme.color.border.interactive,
     backgroundColor: disabled ? theme.color.surface.subtle : theme.color.surface.base,
     opacity: disabled ? theme.color.state.disabledOpacity : 1,
   };
@@ -222,7 +226,8 @@ export function Select({
         >
           {'▾'}
         </Text>
-        {focused ? (
+        {/* As Input: focus is the 2px border.brand border; the ring only on error. */}
+        {focused && hasError ? (
           <View
             pointerEvents="none"
             testID={`${testID}-focus-ring`}

@@ -23,11 +23,13 @@ export const HG_FOCUS = 'hg-focus';
 export const HG_FOCUS_INSET = 'hg-focus hg-focus-inset';
 
 /**
- * For a wrapper that draws the ring on behalf of a focusable descendant —
- * a text field whose border, prefix and suffix live on the wrapper. Keyed on
- * :focus-visible inside, so pointer focus still does not draw a ring.
+ * Focus for a BORDERED field (Input, Textarea, Select): the field's own border
+ * turns 2px in the focus colour — no ring, no glow. Goes on the element that
+ * owns the border; matches when it or a descendant is :focus-visible. An
+ * invalid field keeps its danger border and gets the two-layer ring instead.
+ * See docs/decisions/focus-indicator.md.
  */
-export const HG_FOCUS_WITHIN = 'hg-focus-within';
+export const HG_FOCUS_FIELD = 'hg-focus-field';
 
 /**
  * Per-container overrides. Each sets both layers: the offset takes the

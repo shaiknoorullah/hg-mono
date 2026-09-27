@@ -55,7 +55,7 @@ export const themes = {
           brand: '#D8410F',
         },
         focus: {
-          ring: '#0B72E7',
+          ring: '#D8410F',
           offset: '#FFFFFF',
           onColor: '#FFFFFF',
         },
@@ -525,7 +525,7 @@ export const themes = {
           brand: '#F3703F',
         },
         focus: {
-          ring: '#6FA9F2',
+          ring: '#F3703F',
           offset: '#171717',
           onColor: '#FFFFFF',
         },
@@ -997,7 +997,7 @@ export const themes = {
           brand: '#D8410F',
         },
         focus: {
-          ring: '#0B72E7',
+          ring: '#D8410F',
           offset: '#FFFFFF',
           onColor: '#FFFFFF',
         },
@@ -1467,7 +1467,7 @@ export const themes = {
           brand: '#F3703F',
         },
         focus: {
-          ring: '#6FA9F2',
+          ring: '#F3703F',
           offset: '#171717',
           onColor: '#FFFFFF',
         },

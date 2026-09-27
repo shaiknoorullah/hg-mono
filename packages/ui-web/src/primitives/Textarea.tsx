@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { cx } from './utils/cx.js';
-import { HG_FOCUS_WITHIN } from './utils/focus.js';
+import { HG_FOCUS_FIELD } from './utils/focus.js';
 
 /**
  * Textarea — 02-components.md §4. Same contract as `Input`, plus `rows`,
@@ -111,8 +111,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         className={cx(
           'flex rounded-sm border bg-control-bg px-3 py-2',
           'transition-colors duration-[var(--hg-duration-fast)] ease-standard',
-          HG_FOCUS_WITHIN,
-          'focus-within:border-2 focus-within:border-line-brand',
+          HG_FOCUS_FIELD,
           invalid
             ? 'border-2 border-feedback-danger-border'
             : 'border-line-interactive hover:border-line-strong',

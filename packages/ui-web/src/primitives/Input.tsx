@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { AlertCircle, Check } from 'lucide-react';
 import { cx } from './utils/cx.js';
-import { HG_FOCUS_WITHIN } from './utils/focus.js';
+import { HG_FOCUS_FIELD } from './utils/focus.js';
 import { Spinner } from './Spinner.js';
 
 /**
@@ -199,8 +199,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           'bg-control-bg text-fg-primary',
           'border transition-colors duration-[var(--hg-duration-fast)] ease-standard',
           SIZE[size],
-          HG_FOCUS_WITHIN,
-          'focus-within:border-2 focus-within:border-line-brand focus-within:px-[calc(var(--hg-space-3)-1px)]',
+          HG_FOCUS_FIELD,
           invalid
             ? 'border-2 border-feedback-danger-border px-[calc(var(--hg-space-3)-1px)]'
             : 'border-line-interactive hover:border-line-strong',
