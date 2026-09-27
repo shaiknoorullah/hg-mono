@@ -27,23 +27,23 @@ plus the frozen constraints in `docs/design/*` and the restaurant domain spec.
 | `surface.base` | `#FFFAEA` (warm cream) | `#171717` | `themes.ts:33` |
 | `surface.sunken` / `subtle` | `#F6EFDD` | `#000000` / `#232323` | `themes.ts:34-35` |
 | `surface.raised` | `#FFFFFF` | `#33352F` | `themes.ts:36` |
-| `text.primary` | `#232323` (15.07:1) | `#F6EFDD` | `themes.ts:43` |
+| `text.primary` | `#232323` (15.07:1) | `#F6EFDD` | `themes.ts:42` |
 | `action.primary.bg` / `.fg` | `#F1521E` / `#0F241C` (4.63:1) | same | `themes.ts` |
 | `action.secondary.bg` / `.fg` | **`#1B3B31`** / `#FFFFFF` (12.25:1) | `#0A1913`-family | `themes.ts` |
 | `action.danger.bg` / `.fg` | `#C42B1C` / `#FFFFFF` (5.66:1) | same | `themes.ts` |
 | `halal.certified.seal` / ring | `#0F7A43` / `#C9A24B` brass | `#10864A` / `#DDB863` | `tokens.json:105,109` |
-| `target.min` / `field` / **`criticalField`** | 44 / 56 / **72** | — | `tokens.json:395-397` |
+| `target.min` / `field` / **`criticalField`** | 44 / 56 / **72** | — | `tokens.json:396-399` |
 | `breakpoint.lg` | 1024 — *"Restaurant queue switches to 4 columns at/above this"* | — | `tokens.json:420` |
 
 Two things follow that the app does not currently honour:
 
-1. **`target.criticalField` = 72 names this app by name.** `tokens.json:397`:
+1. **`target.criticalField` = 72 names this app by name.** `tokens.json:398`:
    *"Rider Accept / Decline; **restaurant Accept order**. Irreversible-under-time-pressure
    actions."* Restated in `04-accessibility.md:68`.
 2. **The forest chrome `#1B3B31` is used nowhere in this app.** `grep -rn "chrome" src/` returns
    only two prose comments (`Shell.tsx:7,11`). `surface.chrome` is unreferenced. The restaurant
    register's defining surface colour is unused, and the app reads as a cream consumer admin
-   panel rather than an operational surface. (Note also that `themes.ts:9-14` still describes the
+   panel rather than an operational surface. (Note also that `themes.ts:8-18` still describes the
    register as "Midnight chrome" — stale documentation, superseded by
    `docs/decisions/palette-and-invariant-10.md`.)
 
@@ -97,9 +97,9 @@ Stated so the rest of this document is not built on them:
 
 1. **"R-05 is load-bearing: claim-bearing menu fields never auto-approve."** R-05 in
    `docs/spec/03-restaurant.md:347` is *Business profile submission* and says nothing about menu
-   claims. The claim/instant split lives in **R-17** (`03-restaurant.md:1043-1062`).
+   claims. The claim/instant split lives in **R-17** (`03-restaurant.md:1043-1063`).
 2. **R-17 does not say claim-bearing fields never auto-approve.** Its open decision **D-22**
-   (`03-restaurant.md:1057`) proposes the opposite: *"A pending version older than 24 hours is
+   (`03-restaurant.md:1059`) proposes the opposite: *"A pending version older than 24 hours is
    **auto-approved** by a scheduled job, tagged `auto_approved=true`, and retained in an admin
    post-hoc audit list"*, explicitly contrasted with *"unlike KYC (never auto-approved)"*. It is
    still a **DECISION REQUIRED** and is not listed in `docs/decisions/README.md` blockers.
@@ -108,14 +108,14 @@ What *is* load-bearing and settled in R-17, and what this audit holds the UI to:
 
 - **Reviewed** = `name, description, ingredients_text, dietary_tags, allergen_tags,
   image_media_id, portion_description`. **Instant** = `price_cents, availability_state,
-  out_of_stock_until, category_id, sort_order, prep_minutes` (`03-restaurant.md:1055`).
+  out_of_stock_until, category_id, sort_order, prep_minutes` (`03-restaurant.md:1057`).
 - A reviewed edit writes a version at `PENDING_REVIEW` and **leaves `live_version_id`
-  untouched** — customers keep seeing the old words (`:1050-1053`, AC2 `:1084`).
-- `DRAFT → PENDING_REVIEW` is an explicit **"Submit for approval"** click (`:1071`).
+  untouched** — customers keep seeing the old words (`:1051-1054`, AC2 `:1093`).
+- `DRAFT → PENDING_REVIEW` is an explicit **"Submit for approval"** click (`:1070`).
 - **R-17 R3:** rejection carries a reason code; `OTHER` needs ≥20 chars; *"The restaurant sees
   the code and note **verbatim**"*.
 - The reason enum includes **`UNSUBSTANTIATED_HALAL_CLAIM`** and **`MISSING_ALLERGEN`**
-  (`:1065`).
+  (`:1063`).
 
 Invariants 8/9/10 are not literally violated anywhere in this app — I checked every colour
 decision. There is no optimistic halal badge, nothing red carries a halal meaning, and no solid
@@ -146,15 +146,15 @@ hand-composed fixed glass pill bottom bar (113-135) showing the first four nav i
   with no `badge`. A staff member editing the menu or fixing hours has no indication that a
   180-second clock is running one route away. This is the cheapest possible fix to the worst
   problem in the app and the library already implements it.
-- **P1.2 — `AppShell`'s `systemBanner` slot is empty.** `AppShell.tsx:38` describes it as
+- **P1.2 — `AppShell`'s `systemBanner` slot is empty.** `AppShell.tsx:37-38` describes it as
   *"System-level banners. Above the scroll region, always visible."* There is therefore **no
   place in the current chrome** where a connection-lost banner, a sound-armed indicator, or the
-  R-10 certificate-expiry banner could live. `topBar` (`:35`) and `pageHeader` (`:40`) are also
+  R-10 certificate-expiry banner could live. `topBar` (`:34`) and `pageHeader` (`:40`) are also
   unused.
 - **P1.3 — No route-change announcement and no focus movement.** `AppShell` takes `routeKey` and
   `routeAnnouncement` (`:44-47`) and moves focus to the new `h1` on change (`AppShell.tsx:83-87`).
   The Shell passes neither, so keyboard and screen-reader users navigating the rail get no
-  announcement and keep focus in the nav. `skipTargets` (`:51`) is also unused, so there is no
+  announcement and keep focus in the nav. `skipTargets` (`:48-52`) is also unused, so there is no
   "Skip to queue".
 - **P1.4 — The `md:` rail (see §0.3).** Lines 71, 105, 115. The 768–1023px band is the worst
   layout the app can produce and it is the most likely device width.
@@ -237,12 +237,12 @@ a progress `Card` (49-63) with `progress_percent` (51) and a client-computed "St
 
 **Problems — this is the screen the brief's fourth question is about, and the answer is no.**
 
-- **P4.1 — `steps_completed` is never rendered.** R-04 (`03-restaurant.md:283-284`) exists to
+- **P4.1 — `steps_completed` is never rendered.** R-04 (`03-restaurant.md:283-286`) exists to
   make a checklist possible: *"Each step's completion is recorded as a boolean in
   `steps_completed` **so the UI can render a checklist** and so a partially-completed
   application survives logout."* The payload carries six booleans (`profile,
   documents_uploaded, documents_submitted, documents_approved, payout_account, menu_published`,
-  `:298`). The app renders a single percentage bar and one step. **At no point does an owner see
+  `:297`). The app renders a single percentage bar and one step. **At no point does an owner see
   the whole list of what is required.** They discover step 4 by completing step 3.
 - **P4.2 — `blocking_reason` is rendered in exactly one place, as a fallback.**
   `ReviewStatus.tsx:29` shows it only when `flagged.length === 0`. R-04 AC4 is explicit:
@@ -256,7 +256,7 @@ a progress `Card` (49-63) with `progress_percent` (51) and a client-computed "St
   certificate was rejected both read **"Step 2 of 5"**. R-04 R3 keeps `progress_percent`
   server-side for precisely this reason; the counter reintroduces the client-side step model
   next to it.
-- **P4.4 — No `StatusTimeline`.** `03-patterns.md:333` requires
+- **P4.4 — No `StatusTimeline`.** `03-patterns.md:346` requires
   `StatusTimeline variant="horizontal"` driven by the server's `onboarding_state`. The component
   ships (`feedback/StatusTimeline.tsx`) and is unused; a 2px progress bar (57-62) replaced it.
   The bar shows *how far*; the timeline shows *what and in what order*, which is the actual
@@ -319,28 +319,28 @@ respect invariant 7 (private buckets, presigned).
 **Problems.**
 
 - **P6.1 — This is the one surface where `UNVERIFIED` is supposed to render, and it doesn't.**
-  `03-patterns.md:335`: *"The halal certificate step carries a `HalalBadge surface="operational"`
+  `03-patterns.md:346`: *"The halal certificate step carries a `HalalBadge surface="operational"`
   reflecting the certificate's real state, including `UNVERIFIED` (**this is the one surface
   where `UNVERIFIED` renders**)."* `tokens.json:141` and `HalalBadge.tsx:16,165` both exist to
   serve exactly this. The halal certificate row instead gets the same generic
   `StatusChip` as the business licence (82-98). The certificate that is the product's single
   claim is presented as one of four interchangeable PDFs.
 - **P6.2 — Upload shows an indeterminate spinner, not byte progress.**
-  `03-patterns.md:337`: *"Upload shows real byte progress, never an indeterminate spinner."*
+  `03-patterns.md:350`: *"Upload shows real byte progress, never an indeterminate spinner."*
   Line 117 uses `Button loading`. A 12MB scan of a halal certificate over a restaurant's Wi-Fi
   looks identical to a hung request.
 - **P6.3 — The PUT failure is swallowed.** Lines 46-55 catch and ignore the object-store upload
   error with a dev-environment justification, relying on `/confirm` to detect it. In production a
   network drop mid-upload produces a confirm error attributed to the wrong step, and the
   operator's file selection is cleared (line 72) so they must find the file again.
-  `03-patterns.md:339`: *"Upload failure → retained locally, retryable, **with the file name
+  `03-patterns.md:352`: *"Upload failure → retained locally, retryable, **with the file name
   preserved**."*
 - **P6.4 — `allSubmitted` treats "present" as "good enough"** (134-137): it accepts any state
   that is not `REJECTED`/`EXPIRED`, including `SUBMITTED` and `IN_REVIEW`. That is probably right
   for re-submission, but the Submit button carries no explanation of what is missing when it is
   disabled — and a disabled `Button` in this library stays focusable specifically so it can
   explain itself (`Button.tsx:25-27`). It explains nothing.
-- **P6.5 — No expiry surface.** R-10 and `03-patterns.md:339` require a `Banner variant="warning"`
+- **P6.5 — No expiry surface.** R-10 and `03-patterns.md:352` require a `Banner variant="warning"`
   at `[30, 14, 7, 1]` days before halal-certificate expiry, escalating, then a `danger` banner
   explaining `DELISTED` status and how to restore. `Banner` is never imported anywhere in this
   app. A restaurant's certificate silently expires, the listing goes dark (invariant 9's cool
@@ -470,7 +470,7 @@ No, on both counts.
   *"Countdowns are linear and server-anchored. The 180 s restaurant response window (R-24) … animate
   `linear` from `server_expires_at − measured_skew`, **never from a local constant**."*
   Component 38's contract has **no `seconds` prop** and requires `serverNow`, with skew > 5 s
-  switching to monotonic elapsed time (`02-components.md:555-570`). `@hg/ui-web` exports
+  switching to monotonic elapsed time (`02-components.md:555-567`). `@hg/ui-web` exports
   `measureSkewMs` and `remainingMs` (`feedback/internal.ts:84`, `feedback/index.ts:70-77`), both
   unused. A kitchen tablet whose clock is three minutes fast shows every order as already
   expired; three minutes slow shows 3:00 remaining on a dead order.
@@ -486,13 +486,13 @@ No, on both counts.
   remains live on an expired order**. Pressing it returns `409 offer_expired` (R-24 R2/AC1), which
   surfaces as the generic red bar at `OrdersPage.tsx:88-92`. Component 38's rule is that a
   past-`expires_at` item *"renders nothing and triggers a re-fetch rather than a negative
-  countdown"*; `03-patterns.md:317` requires *"At expiry the modal closes itself and the order
+  countdown"*; `03-patterns.md:318` requires *"At expiry the modal closes itself and the order
   moves out of NEW — the restaurant is told what happened, not left with a dead dialog."*
 - **P9.8 — The countdown is announced to nobody.** No `aria-live`, no `role`, no announcements.
   Component 38 requires *"explicit assertive announcements at 50%, 25%, 10% and 0"*, and
-  `04-accessibility.md:203` lists "the remaining time is always visible **and always announced**"
+  `04-accessibility.md:206` lists "the remaining time is always visible **and always announced**"
   as what the platform owes in exchange for the WCAG 2.2.1 real-time exception. The only
-  supplementary information is a `title` tooltip (line 42) — and `02-components.md:599` forbids a
+  supplementary information is a `title` tooltip (line 42) — and `02-components.md:594` forbids a
   tooltip as *"the sole location of information required to complete a task"*.
 - **P9.9 — The urgent state pulses a red box-shadow with no reduced-motion guard.**
   `styles.css:41-52` (`hg-pulse-ring`, 1.8 s infinite). `01-foundations.md:367` and
@@ -514,7 +514,7 @@ Partly. The card is legible and the two buttons are labelled with verbs. But:
   the top-right is a countdown or a status chip. A new starter cannot learn the workflow from
   the layout because the layout does not encode it.
 - **P9.11 — The empty state collapses the structure, which the spec forbids.** Lines 94-100
-  render a centred `EmptyState`. `03-patterns.md:319-321`: *"the four columns persist with their
+  render a centred `EmptyState`. `03-patterns.md:320`: *"the four columns persist with their
   headers (**the structure is the information**) … **Never** collapse the columns — a restaurant
   staring at a blank screen cannot tell "quiet" from "broken"."* Given P9.1 and P9.2, "broken" is
   the likely state, and this screen is designed to be indistinguishable from "quiet". The copy is
@@ -522,17 +522,17 @@ Partly. The card is legible and the two buttons are labelled with verbs. But:
   `emptyQueueDrained` (`feedback/EmptyState.tsx:159-170`) with `meta` (*"Last processed 14:02"*)
   exists precisely to separate the two and is unused.
 - **P9.12 — Loading replaces the whole screen with a centred spinner.** Line 45. The spec's
-  sibling rule (`03-patterns.md:323`, and `:355` for admin: *"**Never** a centred spinner
+  sibling rule (`03-patterns.md:322`, and `:367` for admin: *"**Never** a centred spinner
   replacing the table — that loses the header and the user's place"*) requires column headers and
   counts first, then two skeleton cards per column. `Skeleton` ships and is unused.
 - **P9.13 — No `stale` state.** `OrderCard` has a `stale` prop documented *"Socket silent > 45 s.
   A stale queue must announce itself"* (`OrderCard.tsx:44`) and renders a "Not updating" word
   badge (`:88`). `Banner`'s highest-stakes documented use is the disconnect banner with
-  `emphasis="prominent"`. Neither exists here. `03-patterns.md:327` calls it *"the
+  `emphasis="prominent"`. Neither exists here. `03-patterns.md:325` calls it *"the
   highest-severity UI state on this surface"*.
 - **P9.14 — `special_instructions` is rendered at 12px.** Lines 111-115: `text-caption`
   (`typography.caption` = 12px/400, with `font-semibold` applied) in a tinted box. R-23 R2 and
-  `03-patterns.md:314` name it *"the highest-frequency source of order errors"* and require it
+  `03-patterns.md:316` name it *"the highest-frequency source of order errors"* and require it
   *"verbatim, HTML-escaped, **prominent** … its own bordered block, not a metadata line."*
   `OrderCard.tsx:173-182` implements it at `body.md` (15px) with a border. Here the allergy note
   is smaller than the item names above it.
@@ -575,9 +575,9 @@ Yes.
   reaching 72 needs an explicit height — see §4.
 - **P9.22 — Reject and Accept are the same size, the same shape, and 8px apart.**
   Line 131: `flex gap-2` (8px) with both children `fullWidth`. The rule appears in three
-  independent places: `04-accessibility.md:76` (*"Destructive and constructive actions in a timed
+  independent places: `04-accessibility.md:75` (*"Destructive and constructive actions in a timed
   decision are **≥24 apart** … An accidental Decline under a 30-second clock is
-  unrecoverable"*), `03-patterns.md:317` (*"Accept at `target.criticalField`, Reject separated by
+  unrecoverable"*), `03-patterns.md:318` (*"Accept at `target.criticalField`, Reject separated by
   ≥24"*), and `OrderCard.tsx:114` in code (*"a destructive/constructive pair under a deadline is
   ≥24"*, implemented as `gap-6`). The app ships one third of the required separation.
 - **P9.23 — Reject is first in reading and reaching order.** Line 132 places it at the start
@@ -589,19 +589,19 @@ Yes.
   (`:154-157`), and values survive a failure (`:95-101`). So a single stray tap does not void an
   authorisation. **But the countdown is not in the dialog.** `ConfirmDialog` has a `children`
   slot documented as *"Extra content — a `StatusTimeline`, a **`Countdown`**, an affected-record
-  summary"* (`:61`); `RejectDialog.tsx:38-66` passes none. The moment an operator opens the
+  summary"* (`:62`); `RejectDialog.tsx:38-66` passes none. The moment an operator opens the
   reject dialog, the 180-second clock **disappears from the screen**, behind a focus-trapping
   `alertdialog` overlay that also hides every other card on the board. A stray tap does not cost
   the order directly; it costs the operator their view of the deadline and of the rest of the
   queue, with no sound running to tell them anything changed.
 - **P9.25 — The 20-character note rule fires after the button press.**
   `RejectDialog.tsx:51-53` throws inside `onConfirm`. `ConfirmDialog` has `noteMinLength`
-  (`:59-60`) which produces *"a live counter with an explanation, never a silently disabled
+  (`:59`) which produces *"a live counter with an explanation, never a silently disabled
   button (A-15 R5)"*. It is not passed. The operator learns the rule by failing it. The reason
   the app hand-rolled it is real — the rule is conditional on `reasonCode === 'OTHER'` and
   `ConfirmDialog` owns `reasonCode` internally, so a caller cannot make `noteMinLength`
   conditional. That is a genuine frozen-library limitation, recorded in §5.
-- **P9.26 — The dialog never closes itself on expiry** (`03-patterns.md:317`), so an expired
+- **P9.26 — The dialog never closes itself on expiry** (`03-patterns.md:318`), so an expired
   order can be "rejected" into a 409.
 - **P9.27 — `ITEM_UNAVAILABLE` does not offer to mark the item out of stock.** R-24 R6: such a
   rejection *"prompts (but does not force) the restaurant to mark the offending item out of
@@ -638,11 +638,11 @@ availability word, a raw Radix `Switch` (135-142), and an edit `IconButton` (143
   empty state is indistinguishable from "I checked and there are none", and the PATCH declares
   the operator's positive attestation regardless. This is exactly the failure mode the brief
   names — silence becoming consent — applied to a food-safety claim adjacent to the halal claim.
-  R-17's rejection enum includes `MISSING_ALLERGEN` (`03-restaurant.md:1065`). An operator who
+  R-17's rejection enum includes `MISSING_ALLERGEN` (`03-restaurant.md:1063`). An operator who
   opens the dialog to fix a typo in a description re-affirms the allergen declaration for an item
   they never inspected.
 - **P10.2 — There is no "Submit for approval", so the DRAFT state is unrepresented.**
-  R-17 (`03-restaurant.md:1071`) makes `DRAFT → PENDING_REVIEW` an explicit submit. The dialog's
+  R-17 (`03-restaurant.md:1070`) makes `DRAFT → PENDING_REVIEW` an explicit submit. The dialog's
   single "Save changes" (221-223) sends instant fields and reviewed fields in one PATCH
   (134-143). An operator cannot draft a description, and cannot tell — before pressing save —
   which of the nine fields in front of them will change the customer's screen in one second and
@@ -662,7 +662,7 @@ availability word, a raw Radix `Switch` (135-142), and an edit `IconButton` (143
 - **P10.5 — "Edit pending review" is a 11px warning pill among four identical pills.**
   Line 121, `StatusChip` at `text-label-sm` (11px) `rounded-full`, in the same row as "Blocked by
   admin", "Hidden", "Halal certified" and "2 variant groups" (114-126) — same shape, same size,
-  same radius, four tones. `03-patterns.md:331` requires `Badge variant="info"` "Pending review"
+  same radius, four tones. `03-patterns.md:334` requires `Badge variant="info"` "Pending review"
   and that the item *"remain visible with their previous live values"*. The app renders one set
   of values with no indication of which are live and which are pending, and offers no
   before/after.
@@ -678,7 +678,7 @@ availability word, a raw Radix `Switch` (135-142), and an edit `IconButton` (143
   drop the chip and state the guarantee once, at the top of the menu, with the real `HalalBadge`.
 - **P10.7 — The availability failure path uses `window.alert()`.** `MenuPage.tsx:57`. A
   browser-modal dialog that blocks the entire tab — including the order queue, if it were live —
-  until dismissed, on a touch device, mid-service. `03-patterns.md:331` requires the toggle to
+  until dismissed, on a touch device, mid-service. `03-patterns.md:334` requires the toggle to
   *"revert the switch and toast the reason"*. `ToastProvider` is mounted at `App.tsx:147` and no
   screen in the app ever raises a toast.
 - **P10.8 — The availability toggle bypasses the frozen `Switch`.** Lines 135-142 use raw
@@ -692,7 +692,7 @@ availability word, a raw Radix `Switch` (135-142), and an edit `IconButton` (143
   Line 137. The reason is a chip elsewhere in the card (114-115) and there is no
   `disabledReason`-style association. `Button.tsx:25-27` records the house rule: *"a disabled
   button must stay focusable so it can explain itself"*.
-- **P10.10 — Editing is a centred modal, not the specified side sheet.** `03-patterns.md:331`
+- **P10.10 — Editing is a centred modal, not the specified side sheet.** `03-patterns.md:334`
   requires *"an edit `Sheet variant="side"`"* so the item list stays visible. Both dialogs are
   `@radix-ui/react-dialog` centred overlays (`EditItemDialog.tsx:155-158`,
   `AddItemDialog.tsx:61-64`) that cover the list. `EditItemDialog` is also
@@ -856,7 +856,7 @@ handled correctly.
 
 - **P14.1 — The halal card is 280px of right-column furniture.** Line 260 puts the single
   most important fact about this restaurant in a narrow sidebar below a 20-field form, at
-  `label.md` heading size (216, 223 — 13px). `01-foundations.md:15`: *"The product's single claim
+  `label.md` heading size (216, 223 — 13px). `AGENTS.md:15`: *"The product's single claim
   is halal verification. Everything else is furniture around it."* The layout inverts that.
 - **P14.2 — `HalalCertificationPanel` exists and is not used.** `@hg/ui-web/certification`
   exports it; `03-patterns.md` gives it the renewal-note row for `EXPIRING_SOON`
@@ -916,7 +916,7 @@ handled correctly.
   retries the request on recovery (`packages/api-client/src/client.ts:52-55,165-185`);
   `lib/api.ts:47-57` passes only `getToken` and `onError`, and its own comment (line 7) says
   *"`onUnauthorized` below is where that refresh would be wired in"* — it is not.
-  `04-accessibility.md:206`: *"Session/auth expiry (15 min access token) is invisible: refresh
+  `04-accessibility.md:210`: *"Session/auth expiry (15 min access token) is invisible: refresh
   rotates silently. A user is never dropped mid-form."* In this app, fifteen minutes after
   sign-in the queue's next fetch 401s and renders `ErrorState` with a Retry that will keep
   failing, mid-service, with no sign-in prompt.
@@ -927,7 +927,7 @@ handled correctly.
 - **P0.6 — No `prefers-reduced-motion` block in `styles.css`**, against three infinite or
   entrance animations (see P9.9).
 - **P0.7 — Loading is a centred spinner on every screen** (`PageLoading`, used 9 times) where
-  `Skeleton` ships and both `03-patterns.md:323` and `:355` forbid replacing the structure.
+  `Skeleton` ships and both `03-patterns.md:322` and `:367` forbid replacing the structure.
 
 ---
 
@@ -986,7 +986,7 @@ control), P9.22 (`:131`, `gap-2` = 8px where three separate documents and the li
 `OrderCard.tsx:114` require ≥24), P9.23 (`:132`, Reject at the start).
 
 *Business cost:* **a paid order voided by a mis-tap, and a compliance flag for the restaurant.**
-`04-accessibility.md:76`: *"An accidental Decline under a 30-second clock is unrecoverable."*
+`04-accessibility.md:75`: *"An accidental Decline under a 30-second clock is unrecoverable."*
 Under invariant 5 the authorisation is voided outright, so the customer is gone. And rejections
 are counted: `reject_rate_7d` over 20% raises an admin compliance flag, over 40% queues a review
 task (R-24 R5) — so accidental rejects accumulate into a regulatory-looking problem for a
@@ -1038,10 +1038,10 @@ the result is that the service-critical screen inherits the density of an admin 
 Three columns from the contract's real states — **New** (`RESTAURANT_PENDING`) · **Preparing**
 (`PREPARING`) · **Ready** (`READY_FOR_PICKUP`) — plus a collapsed out-for-delivery strip
 (`PICKED_UP`), at one breakpoint. Headers with counts render before the data and persist through
-empty, loading and error, because *the structure is the information* (`03-patterns.md:319`) and
+empty, loading and error, because *the structure is the information* (`03-patterns.md:320`) and
 because it is the only way a restaurant can tell "quiet" from "broken" — which, given problem 1,
 is the distinction this screen most needs to support. A new starter learns the workflow by
-watching cards move left to right; nobody has to explain it. (Note: `03-patterns.md:305` and
+watching cards move left to right; nobody has to explain it. (Note: `03-patterns.md:303` and
 `tokens.json:420` say four columns including `ACCEPTED`. The contract has no `ACCEPTED` state
 (`openapi.yaml:6310-6324`), and the contract wins — see §5.)
 
@@ -1065,7 +1065,7 @@ surface — both existing type steps. Anchored to `expires_at` from `restaurant.
 `server_time` from the `hello` frame, through `measureSkewMs`/`remainingMs`. Proportional
 escalation at 25% and 10%. Assertive announcements at 50/25/10/0. At zero: the card leaves New,
 the board refetches, and the operator is **told what happened** — *"Response window closed. The
-customer was not charged."* Never presented as their fault (`04-accessibility.md:205`).
+customer was not charged."* Never presented as their fault (`04-accessibility.md:209`).
 The escalation stays honest because the numeral itself is the information; colour only
 reinforces it.
 
@@ -1212,14 +1212,14 @@ countdown and both buttons.
   header, with the real `HalalBadge surface="operational"` reading the restaurant's
   `halal_display_state` — the composite, not the words alone.
 - Edit moves to `AppShell`'s `aside` region (a side sheet) so the list stays visible
-  (`03-patterns.md:331`), with two labelled groups:
+  (`03-patterns.md:334`), with two labelled groups:
   **"Live immediately"** — price, prep time, availability, category.
   **"Customers see these only after review"** — name, description, ingredients, dietary tags,
   allergens — with its own **Submit for approval** button, and allergens gated behind an explicit
   `Checkbox`: *"I have checked this item's allergens"* / or a positive "None present" option.
   `allergens_declared` is sent only from that act.
 - Availability failure: revert the `Switch` and raise a `Toast` with the reason
-  (`03-patterns.md:331`). Remove `window.alert()`.
+  (`03-patterns.md:334`). Remove `window.alert()`.
 - Replace raw Radix `Tabs` with `@hg/ui-web`'s `Tabs`.
 
 **Visible without scrolling:** the halal guarantee line, search, the category list, and the first
@@ -1249,7 +1249,7 @@ switch with its state word, the pause control, and today's hours.
 ### 4.5 Onboarding (all four steps)
 
 **Frame.** Replace the bar and the client step counter with `StatusTimeline
-variant="horizontal"` driven by the server's `onboarding_state` (`03-patterns.md:333`), and
+variant="horizontal"` driven by the server's `onboarding_state` (`03-patterns.md:346`), and
 render **`steps_completed` as a persistent six-item checklist** beside it — this is the fix for
 the brief's fourth question. `progress_percent` stays as the server's number, not a derived
 count.
@@ -1267,7 +1267,7 @@ you going live"* — so R-04 AC4's `no_live_menu_item` reaches the person who ca
   get names. Autosave per group.
 - **Step 2, Documents.** `StatusTimeline` for the pack, one row per document, with the halal
   certificate row carrying **`HalalBadge surface="operational"`** — including `UNVERIFIED`,
-  because this is the one surface where it renders (`03-patterns.md:335`). Real byte progress on
+  because this is the one surface where it renders (`03-patterns.md:346`). Real byte progress on
   upload. Preserve the file name on failure and offer retry. Disabled "Submit for review"
   explains which documents are outstanding (`Button` keeps focus specifically so it can).
 - **Step 3, Review status.** Fix the navigation: *"Go to documents"* must route to the documents
@@ -1326,7 +1326,7 @@ the blocking reason, and the current step's first action.
    whose rejection reason can be `UNSUBSTANTIATED_HALAL_CLAIM` should not auto-approve, and that
    D-22's liveness argument is better served by an SLA alarm than by a backstop.
 
-2. **How many columns the board has.** `03-patterns.md:305` and `tokens.json:420` both say four
+2. **How many columns the board has.** `03-patterns.md:303` and `tokens.json:420` both say four
    (New / Accepted / Preparing / Ready); the contract's `OrderState`
    (`openapi.yaml:6310-6324`) has no `ACCEPTED`, so accept moves `RESTAURANT_PENDING → PREPARING`.
    Under `AGENTS.md:80` the contract wins and the answer is three plus the out-for-delivery
@@ -1334,7 +1334,7 @@ the blocking reason, and the current step's first action.
    description corrected, or an `ACCEPTED` state added to the contract.
 
 3. **Where the countdown component lives.** `Countdown` is component 38
-   (`02-components.md:555-576`) with a precise contract, and `@hg/ui-web` does not export it —
+   (`02-components.md:555-571`) with a precise contract, and `@hg/ui-web` does not export it —
    only `measureSkewMs`/`remainingMs`. The library is frozen. **Need:** a decision — add
    `Countdown` to `@hg/ui-web` (it is specified, and the rider app will need the same thing), or
    accept a local composition in each app. §4.2 assumes the latter and holds it to component
