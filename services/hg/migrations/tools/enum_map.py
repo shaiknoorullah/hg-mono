@@ -2,7 +2,9 @@
 Single source of truth for the contract-enum -> Postgres-type mapping.
 
 `contracts/openapi.yaml` is the wire contract. Every enum it exposes either
-  (a) has a Postgres enum type whose label set is byte-identical, or
+  (a) has a Postgres enum type whose label set is byte-identical — generated
+      into 00002_enums.sql (MAPPED) or created by its own feature migration
+      (MAPPED_IN_MIGRATION), or
   (b) appears in EXCLUSIONS with a written reason.
 
 There is no third option, and `check_enums.py` fails CI if one appears.
@@ -131,6 +133,18 @@ MAPPED = {
     "DevicePlatform":                     "device_platform",
 }
 
+# Contract enums whose Postgres type is created by the feature migration that
+# introduced it, not by the generated 00002_enums.sql. gen_enums.py must not
+# emit these (the type would be created twice); check_enums.py still verifies
+# their labels against the live database. contract name -> (pg type, migration)
+MAPPED_IN_MIGRATION = {
+    "RatingStatus":                       ("rating_status", "00025_ratings.sql"),
+    "PackageSealStatus":                  ("package_seal_status", "00027_handoff.sql"),
+    "HandoffEventType":                   ("handoff_event_type", "00027_handoff.sql"),
+    "HandoffActor":                       ("handoff_actor", "00027_handoff.sql"),
+    "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
+}
+
 # Contract enums with no persisted counterpart. Each needs a reason.
 EXCLUSIONS = {
     "ErrorCode":
@@ -165,8 +179,24 @@ EXCLUSIONS = {
     "RefundApprovalRequest/properties/status":
         "Approval sub-state of refund_state; stored on refund.approval_status as a "
         "CHECK-constrained text to avoid a near-duplicate type.",
+    "RestaurantStaffUser/properties/role":
+        "Restaurant-scoped subset of role_name; stored as an account_role grant.",
+    "FoodRating/properties/tags/items":
+        "Rating tag vocabulary. Stored as free text[] on the rating row; the "
+        "allowed set is enforced at the API boundary.",
+    "RiderRating/properties/tags/items":
+        "Rating tag vocabulary. Stored as free text[] on the rating row; the "
+        "allowed set is enforced at the API boundary.",
+    "OrderRatingInput/properties/food/oneOf/0/properties/tags/items":
+        "Rating tag vocabulary. Stored as free text[] on the rating row; the "
+        "allowed set is enforced at the API boundary.",
+    "OrderRatingInput/properties/rider/oneOf/0/properties/tags/items":
+        "Rating tag vocabulary. Stored as free text[] on the rating row; the "
+        "allowed set is enforced at the API boundary.",
 }
 
 
 def db_type_for(contract_name):
+    if contract_name in MAPPED_IN_MIGRATION:
+        return MAPPED_IN_MIGRATION[contract_name][0]
     return MAPPED.get(contract_name)

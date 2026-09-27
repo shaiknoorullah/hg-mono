@@ -306,7 +306,7 @@ echo
 echo "9. Identity, riders and documents"
 reject "a rider under 18 cannot be onboarded" "rider_is_adult" \
   "INSERT INTO account (id, phone_e164, status) VALUES
-     ('14000000-0000-4000-8000-000000000001','+14165550188','ACTIVE');
+     ('14000000-0000-4000-8000-000000000001','+14165550198','ACTIVE');
    INSERT INTO rider_profile (account_id, first_name, last_name, date_of_birth)
      VALUES ('14000000-0000-4000-8000-000000000001','Too','Young', current_date - interval '17 years');"
 reject "a phone without a country code is rejected" "account_phone_e164_shape" \
