@@ -75,6 +75,12 @@ pnpm --filter @hg/gallery-native web    # native gallery in a browser
 cd services/hg && make up && make migrate && make run
 ```
 
+**Git hooks** ([`lefthook.yml`](lefthook.yml)) install on `pnpm install`; `pnpm exec lefthook install` re-installs them.
+- `commit-msg`: the message starts with `fix|feat|docs|refactor|perf|chore|ci|build|test`, optional `(scope)` and `!`, then `: ` — the same prefixes that label a PR.
+- `pre-commit` (staged files only): `gofmt`, and token / API-client drift when `docs/design/tokens.json` or `contracts/openapi.yaml` is staged.
+- `pre-push`: lint + tests for the workspace packages changed since `origin/main`; `go test ./...` when `services/hg` changed.
+- Emergency skip: `LEFTHOOK=0 git commit …` / `LEFTHOOK=0 git push`. CI runs the same checks, so skipping only moves the failure to the PR.
+
 ## 6. How to work here
 
 - **The contract is authoritative.** If a spec, a prompt or a person contradicts `contracts/openapi.yaml`, the contract wins — or the contract changes first, deliberately, and clients regenerate. Never hand-write a type that the generator emits.
