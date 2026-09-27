@@ -2441,7 +2441,7 @@ RETURNING *;
 
   Pagination is **keyset** (`after` cursor encoding the sort tuple), not offset, for stable paging.
 
-- **Data**: generated `search_tsv` columns; `discovery_config`; `search_query_log (id, account_id, q, filters jsonb, result_count, clicked_result_id, at)` for future ranking work and zero-result monitoring.
+- **Data**: generated `search_tsv` columns; `discovery_config` (`nearby_radius_m`, `trending_window_days`, `trending_min_orders`, `rail_size`, … — the home feed reads the first four, see R-14); `search_query_log (id, account_id, q, filters jsonb, result_count, clicked_result_id, at)` for future ranking work and zero-result monitoring.
   Redis: optional `search:v1:{sha256(normalized_query_json)}` with a 60 s TTL storing **JSON-serialized, schema-versioned** results including a `schema_v` field; a mismatch or parse error is treated as a miss. The key includes every input: q, lat/lng rounded to geohash7, all filters, sort, page cursor, and the requesting account's id when personalised. Disposable by construction.
 
 - **Rules & invariants**:

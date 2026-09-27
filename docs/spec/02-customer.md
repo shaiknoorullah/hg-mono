@@ -265,6 +265,12 @@ These exist so that individual features do not have to re-litigate them. Anythin
   2. Given a restaurant with `is_banned=true`, when the feed is requested, then that restaurant appears in no section (asserted for all six sections).
   3. Given location permission denied and no saved address, when home opens, then no feed request is made with coordinates `0,0` or any hardcoded city, and the address prompt is shown.
   4. Given a section returns fewer than its max, when rendered, then no placeholder cards are drawn.
+- **Implementation status (Sep 2026)**:
+  - Served: `order_again`, `restaurants_near_you`, `trending_in_your_area`, `you_might_like`.
+  - Not served yet: `your_favourite_restaurants` (no favourites table or endpoint) and `popular_items` (undefined here, and the contract types it as restaurant cards). Both need a product decision.
+  - Radius, trending window, trending floor and rail size come from `discovery_config`, not the figures above — see decision **R-14**. Every section is capped at `rail_size`.
+  - Every section is radius-gated, the personal ones included (AC1). A request with no point returns no sections (rule 5).
+  - Not yet built: the 120 s Redis cache, resolving `delivery_address_id` to a point, and the pull-to-refresh cache bypass.
 - **Out of scope**: sponsored placement / paid ranking; ML recommender training; infinite scroll on the home screen (see C-11 for the full list); banner/ad carousels backed by a campaign system (V3, not specified here); category tiles (folded into C-11 filters).
 - **Version**: V1 · **Size**: L
 
