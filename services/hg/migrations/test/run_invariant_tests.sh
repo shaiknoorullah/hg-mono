@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Invariant tests for the Halal Goes schema.
+# Invariant tests for the HalalGoes schema.
 #
 # Each case asserts that the DATABASE refuses something, or that an invariant
 # query returns zero rows. These are the claims the migrations make; this script

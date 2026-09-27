@@ -72,7 +72,7 @@
     "typescript": "^5.9.0",
     "vitest": "^3.0.0"
   },
-  "description": "Halal Goes web component library \u2014 tokens, primitives, certification, content, navigation, feedback and data tiers.",
+  "description": "HalalGoes web component library \u2014 tokens, primitives, certification, content, navigation, feedback and data tiers.",
   "sideEffects": [
     "*.css"
   ]

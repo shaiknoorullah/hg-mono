@@ -4,7 +4,7 @@ covers:
 reviewed: 2026-09-28
 ---
 
-# Halal Goes — database schema
+# HalalGoes — database schema
 
 Postgres 17 + PostGIS 3.6 (the spec target; verified locally on Postgres 16 +
 PostGIS 3.4 — see *Verification* below). Numbered, forward-only migrations,

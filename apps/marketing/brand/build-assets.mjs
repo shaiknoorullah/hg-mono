@@ -55,7 +55,7 @@ const ACCENT = '#F1521E'; // --hg-mk-accent
 function wordmarkSvg(fg) {
   const { view: v, ramp } = ART;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${v.w} ${v.h}" width="${v.w}" height="${v.h}">
-  <title>Halal Goes</title>
+  <title>HalalGoes</title>
   <defs>
     <linearGradient id="swash" x1="0" y1="${ramp.top}" x2="0" y2="${ramp.bottom}" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="${fg}"/>
@@ -115,7 +115,7 @@ function iconSvg({ box = 240, inset = 0.14, radius = 0.2, themed = true, theme =
     ? `<style>:root{--fg:${THEME.light.fg};--bg:${THEME.light.bg}}@media (prefers-color-scheme:dark){:root{--fg:${THEME.dark.fg};--bg:${THEME.dark.bg}}}</style>`
     : `<style>:root{--fg:${THEME[theme].fg};--bg:${THEME[theme].bg}}</style>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${box} ${box}" width="${box}" height="${box}">
-  <title>Halal Goes</title>
+  <title>HalalGoes</title>
   ${style}
   <defs><clipPath id="swashCrop"><rect x="${(cropRight - 9999).toFixed(2)}" y="-9999" width="9999" height="19998"/></clipPath></defs>
   <rect width="${box}" height="${box}" rx="${(box * radius).toFixed(1)}" fill="var(--bg)"/>

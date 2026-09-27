@@ -1,4 +1,4 @@
-# Halal Goes — Rider Mobile App (`halal-goes/apps/rider`) — Exhaustive Analysis
+# HalalGoes — Rider Mobile App (`halal-goes/apps/rider`) — Exhaustive Analysis
 
 Fleet report: frontend rider (delivery-partner / "Captain") app. All source/config files under
 `/home/user/halal-goes/apps/rider` were read in full (≈16,350 LOC across ~90 files, excluding assets/node_modules).

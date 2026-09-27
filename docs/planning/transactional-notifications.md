@@ -1,6 +1,6 @@
 # Transactional notification infrastructure (core system, v1)
 
-_Halal Goes. **Reliability-critical, OLTP-side, ships with the core product (v1) — not v2.**
+_HalalGoes. **Reliability-critical, OLTP-side, ships with the core product (v1) — not v2.**
 This is the delivery path for messages a user must receive: sign-in OTP, order accepted,
 payment captured, rider assigned, arriving, delivered, refund issued. It is **completely
 separate** from the marketing/engagement plane (`growth-stack.md` / Dittofeed), because the

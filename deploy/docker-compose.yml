@@ -1,4 +1,4 @@
-# Halal Goes — the whole stack, locally, in the shape production runs in.
+# HalalGoes — the whole stack, locally, in the shape production runs in.
 #
 #   docker compose --env-file .env up --build
 #

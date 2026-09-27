@@ -10,7 +10,7 @@ covers:
 reviewed: 2026-09-28
 ---
 
-# Halal Goes — Design Foundations (token system)
+# HalalGoes — Design Foundations (token system)
 
 **Status:** system of record for all four surfaces · **Date:** 2026-08-10
 **Consumers:** customer app (Expo/RN), rider app (Expo/RN), restaurant web, admin web.
@@ -20,7 +20,7 @@ reviewed: 2026-09-28
 
 ## 0. The one-paragraph brief
 
-Halal Goes is a **trust and verification** product that happens to sell food. Every restaurant in the catalogue is already halal-certified (customer spec C-12 R1: `EXPIRED` and `UNVERIFIED` restaurants are not merely de-emphasised, they are *invisible*). That inverts the usual food-delivery job of the badge: it is not a filter that separates good listings from bad ones, it is a **standing proof** attached to every listing, and the thing a customer looks for before they look at the photo. The system therefore has two visual registers that must never blur into each other:
+HalalGoes is a **trust and verification** product that happens to sell food. Every restaurant in the catalogue is already halal-certified (customer spec C-12 R1: `EXPIRED` and `UNVERIFIED` restaurants are not merely de-emphasised, they are *invisible*). That inverts the usual food-delivery job of the badge: it is not a filter that separates good listings from bad ones, it is a **standing proof** attached to every listing, and the thing a customer looks for before they look at the photo. The system therefore has two visual registers that must never blur into each other:
 
 - **Appetite register** — warm, saffron-forward, photo-led. This is where the HungerStation direction lives.
 - **Verification register** — a reserved bottle-green *seal*, a brass ring, a shield glyph, absolute dates, and the certifying body's name in plain text. Nothing else in the system may use it.
@@ -71,7 +71,7 @@ What we derived instead, and why it is defensible:
 
 ### 1.4 Where we deliberately diverge (summary — full reasoning at each site)
 
-| # | HungerStation | Halal Goes | Why |
+| # | HungerStation | HalalGoes | Why |
 |---|---|---|---|
 | D1 | Yellow is the loudest thing on screen | The **halal seal** is the loudest thing on a card; brand yellow is reserved for actions | If the certification competes with the brand for attention, the brand wins, and we have shipped a yellow food app with a compliance footnote. The seal is the product. |
 | D2 | Yellow/amber doubles as warning | Warning is **orange `#B84A08`**, never yellow | Brand yellow is spent on CTAs. Two ambers with different meanings is a defect. |
@@ -181,7 +181,7 @@ There is no pair of greens that are both (a) individually accessible against whi
 >
 > **RULE H-2 — the seal is composite.** A halal state is never "a colour". It is always `{ fill, ring, glyph, label }` shipped as one token group and one component (`HalalBadge`). A bare green dot is not a halal indicator and is a spec violation.
 >
-> **RULE H-3 — no red, ever.** No halal state uses the danger ramp. A red halal state reads as *haram* — a religious ruling. The platform explicitly does not make religious rulings (C-12 R6: "does not rank, score, or editorialise certifying bodies"; the standing line "Halal Goes does not itself certify food"; A-15 keeps issuing-body acceptance an admin registry decision). "We cannot currently vouch for this" is a **grey** statement, not a red one.
+> **RULE H-3 — no red, ever.** No halal state uses the danger ramp. A red halal state reads as *haram* — a religious ruling. The platform explicitly does not make religious rulings (C-12 R6: "does not rank, score, or editorialise certifying bodies"; the standing line "HalalGoes does not itself certify food"; A-15 keeps issuing-body acceptance an admin registry decision). "We cannot currently vouch for this" is a **grey** statement, not a red one.
 
 **The four states.**
 
@@ -192,7 +192,7 @@ There is no pair of greens that are both (a) individually accessible against whi
 | **`EXPIRED`** | fill `#4E5862` (cool slate) · label `#FFFFFF` (7.25:1) · tint `#EDEFF1` / text `#39424B` (8.87:1) | fill `#7C8794` (5.20:1 vs `#12100D`) · tint `#1B1F24` / text `#AEB6BF` (8.08:1) | Filled seal, **outline shield glyph** (not solid), no brass ring | **no** |
 | **`UNVERIFIED`** | **customer surfaces render nothing.** Operational surfaces: transparent fill, 1.5px **dashed** border `#B6AEA1`, text `#6E6658` (6.71:1) | dashed border `#4A443B`, text `#B6AEA1` | Dashed outline, dashed shield glyph | **no** |
 
-**Why the brass ring.** `#D4A72C` is the single point in the system where the brand's warm register touches the verification register. It does three jobs: it makes the seal read as a *seal* (a stamped, ringed mark) rather than a status chip; it visually claims the certification as a Halal Goes act, tying it to the brand; and it is a shape cue that no success toast will ever have. It is decorative — the seal's boundary against the page is already carried by `#04482A` vs `#FFFFFF` at 10.68:1 — so its own contrast against the page is not load-bearing.
+**Why the brass ring.** `#D4A72C` is the single point in the system where the brand's warm register touches the verification register. It does three jobs: it makes the seal read as a *seal* (a stamped, ringed mark) rather than a status chip; it visually claims the certification as a HalalGoes act, tying it to the brand; and it is a shape cue that no success toast will ever have. It is decorative — the seal's boundary against the page is already carried by `#04482A` vs `#FFFFFF` at 10.68:1 — so its own contrast against the page is not load-bearing.
 
 **Why `EXPIRING_SOON` keeps the green card badge.** Spec C-12 says the card badge is unchanged and only the detail panel gets a renewal note. We keep that. Downgrading the badge would tell the customer the restaurant's halal status is in doubt, which is false: the certificate is valid today. The note is a *renewal* signal for transparency, not a *warning*. It uses the reserved brass-ochre tint rather than the semantic warning orange precisely so it does not read as an alert.
 
@@ -206,7 +206,7 @@ Admin charts and the rider/customer map need a categorical set that avoids all r
 
 `viz.1 #24406F` · `viz.2 #0B72E7` · `viz.3 #7A5800` · `viz.4 #8E4EC6` · `viz.5 #B84A08` · `viz.6 #4E5862` · `viz.7 #0F766E` · `viz.8 #B42318`
 
-Map roles: `map.route.active #0B72E7` (5px, 2px white casing) · `map.route.travelled #948C7E` · `map.pin.restaurant` = brand seal shape in `#FFC220` with ink glyph · `map.pin.customer` = `#24406F` · `map.pin.rider` = `#04482A` bearing arrow *(this is the one authorised use of the halal green outside the namespace — a rider pin is a Halal Goes rider; it is not a certification claim, it carries no shield, and it is registered as an explicit exception in the lint allowlist)*. Geofence circle: `#0B72E7` at 12% fill, 2px stroke.
+Map roles: `map.route.active #0B72E7` (5px, 2px white casing) · `map.route.travelled #948C7E` · `map.pin.restaurant` = brand seal shape in `#FFC220` with ink glyph · `map.pin.customer` = `#24406F` · `map.pin.rider` = `#04482A` bearing arrow *(this is the one authorised use of the halal green outside the namespace — a rider pin is a HalalGoes rider; it is not a certification claim, it carries no shield, and it is registered as an explicit exception in the lint allowlist)*. Geofence circle: `#0B72E7` at 12% fill, 2px stroke.
 
 ---
 
@@ -462,5 +462,5 @@ All three share one `tokens.json`. A surface never defines a colour; it selects 
 ## 13. Open questions for the client
 
 1. **Brand hex.** `#FFC220` is derived, not sampled (§1.2). If the client can supply the HungerStation brand book or a licensed brand kit, replace `color.brand.500` and re-run §8. Nothing else in the system depends on the exact value — the accessible pairings are all against `text.onBrand`.
-2. **Halal Goes has its own wordmark.** This document specifies no logo. A yellow-and-green mark that includes a seal motif would let the badge and the logo reinforce each other; that is a brand-design engagement, not a token decision.
+2. **HalalGoes has its own wordmark.** This document specifies no logo. A yellow-and-green mark that includes a seal motif would let the badge and the logo reinforce each other; that is a brand-design engagement, not a token decision.
 3. **Density preference on the restaurant tablet.** `compact` assumes a 10" tablet at arm's length in a kitchen. If the deployment is a phone, the queue needs `comfortable` and a two-column layout instead of four.

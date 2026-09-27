@@ -1,4 +1,4 @@
-# HALAL GOES — FINAL CREATIVE DIRECTION
+# HALALGOES — FINAL CREATIVE DIRECTION
 ### v1.0 · 17 September 2026 · Hand this straight to build. `apps/landing` (Astro static + vanilla islands).
 
 ---
@@ -33,7 +33,7 @@ But Direction 2 alone would ship soft. Its hero is a right-bleed food photo with
 
 **Every halal household in the GTA already keeps a list.** Four places, maybe six. Assembled over years out of cousins, a WhatsApp group, and one bad experience you still think about. Everything else on every delivery app is off-limits — not because it's forbidden, but because nobody checked.
 
-**Halal Goes is that list, kept by someone whose job it is to keep it.**
+**HalalGoes is that list, kept by someone whose job it is to keep it.**
 
 The page does not argue about verification. It makes you hungry the way the group chat does — charcoal, rice, a lemon wedge, a table with too many hands on it — then tells you, calmly and in the register of paperwork, exactly what door every kitchen had to walk through to get on it. Verification is never the pitch. It is **the permission slip under the appetite**: the thing that lets you want dinner without running the private negotiation you normally run.
 
@@ -318,7 +318,7 @@ Same components, same grammar, different argument. One `<h1>`.
 > Rules that governed every line: no adjective about ourselves where a noun will do; no Arabic religious vocabulary in marketing copy; no *seamless, unlock, elevate, curated, journey, effortless, revolutionise, game-changer, "on a mission to"*; no "The [adjective] way to [verb] your [noun]"; plain Canadian English said out loud; every limit stated before the reader finds it. Two lines carry **[PRODUCT SIGN-OFF]** and the page works if they're cut.
 
 ### 5.1 Nav
-- Wordmark: `Halal Goes`
+- Wordmark: `HalalGoes`
 - Diner page: `How we check` · `I own a restaurant →`
 - Restaurant page: `How we check` · `I want to order →`
 
@@ -337,8 +337,8 @@ Same components, same grammar, different argument. One `<h1>`.
 - Placeholder: `416 555 0134`
 - Helper, under the field, 13px tertiary: `We text once, on launch day. We don't call.`
 - Button: **`Text me when you open`**
-- Consent, **unchecked**: `Text me when Halal Goes opens in my city.`
-- Consent sub-line, 12px: `One message at launch from Halal Goes, Toronto ON, then the occasional note about newly verified kitchens near you. Reply STOP any time.`
+- Consent, **unchecked**: `Text me when HalalGoes opens in my city.`
+- Consent sub-line, 12px: `One message at launch from HalalGoes, Toronto ON, then the occasional note about newly verified kitchens near you. Reply STOP any time.`
 - Objection line under the form, 13px secondary: `Nothing to install — we're pre-launch. One number, no account, no card.`
 
 **Record card:**
@@ -400,7 +400,7 @@ Same components, same grammar, different argument. One `<h1>`.
 4. **A number that checks out** — We verify the certificate number against the issuing body's own record.
 5. **In force today** — Not expired. We track the renewal date, and the listing comes down the day it lapses.
 6. **It covers the menu** — The scope of the certification matches the food this kitchen actually serves.
-7. **A person signed off** — A Halal Goes admin reviewed all six, and we record who checked it and when. That record is the badge.
+7. **A person signed off** — A HalalGoes admin reviewed all six, and we record who checked it and when. That record is the badge.
 
 **Issuer row label:** `CERTIFICATES WE READ`
 > `HALAL MONITORING AUTHORITY (HMA CANADA)` — `TORONTO, ON`
@@ -446,7 +446,7 @@ Same components, same grammar, different argument. One `<h1>`.
 
 > I'm `{founder.firstName}`. I grew up in `{founder.neighbourhood}`, and like everyone I know, I kept a short list of places I'd order from and quietly avoided the rest. Asking at the counter never got anyone a real answer — it just made you the difficult one.
 >
-> Halal Goes is me and a small team doing the part everybody does alone: getting the certificate, reading it, and writing down what it says. That's the whole company.
+> HalalGoes is me and a small team doing the part everybody does alone: getting the certificate, reading it, and writing down what it says. That's the whole company.
 >
 > We're pre-launch. There's nothing to install, there's no app, and there's nothing on this page we've made up.
 >
@@ -463,7 +463,7 @@ Same components, same grammar, different argument. One `<h1>`.
 
 **Eyebrow:** `FOR RESTAURANT OWNERS`
 **H2:** `You paid for the certification. Start getting credit for it.`
-**Body:** `Halal Goes lists only kitchens whose certificate we've verified — so you're not ranked beside one that typed "halal" into a form. Launch partners pay 0% commission: every dollar of every order is yours.`
+**Body:** `HalalGoes lists only kitchens whose certificate we've verified — so you're not ranked beside one that typed "halal" into a form. Launch partners pay 0% commission: every dollar of every order is yours.`
 **Arithmetic line, 15px mono:** `ON A $40 ORDER, A 29% DELIVERY COMMISSION TAKES $11.60. OURS TAKES $0.00.`
 **Source line, 12px:** `Rate published by DoorDash Canada, Premier plan.` [`their pricing page →`]
 **Card rows:** `Your halal certificate` · `Your menu and hours` · `An afternoon`
@@ -516,7 +516,7 @@ Same components, same grammar, different argument. One `<h1>`.
 > **You paid for the certification. Start getting credit for it.**
 
 **Lede:**
-> Halal Goes lists only restaurants whose certificate we've verified — so you're not ranked beside a kitchen that typed "halal" into a form. Launch partners pay 0% commission: every dollar of every order is yours.
+> HalalGoes lists only restaurants whose certificate we've verified — so you're not ranked beside a kitchen that typed "halal" into a form. Launch partners pay 0% commission: every dollar of every order is yours.
 
 **Record card caption (specimen, restaurant page):** `SPECIMEN · THE RECORD WE BUILD FROM THE DOCUMENT ALREADY IN YOUR DRAWER`
 
@@ -526,7 +526,7 @@ Same components, same grammar, different argument. One `<h1>`.
 - Helper: `We'll send the partner terms — two pages, no call.`
 - Button: **`Send me the partner details`**
 - Consent, **unchecked**: `Email me about becoming a launch partner.`
-- Consent sub-line: `Onboarding steps, launch dates and partner updates from Halal Goes, Toronto ON. One-click unsubscribe on every email.`
+- Consent sub-line: `Onboarding steps, launch dates and partner updates from HalalGoes, Toronto ON. One-click unsubscribe on every email.`
 - Objection line: `No card, no contract, no exclusivity, no hardware.`
 
 **The seven checks — H2:** `The standard you'll be held to.`
@@ -537,7 +537,7 @@ Same components, same grammar, different argument. One `<h1>`.
 | | |
 |---|---|
 | A major delivery app's published Canadian rate, top tier — 29% | **− $11.60** |
-| Halal Goes, launch partner | **− $0.00** |
+| HalalGoes, launch partner | **− $0.00** |
 | What reaches you | **$40.00**, less card processing, itemised on every payout |
 
 **Footnote:** `Competitor figure from DoorDash Canada's own published pricing page, Premier plan.` [`link`] *(Build note: re-check the live published rate in the week you ship, and update the figure or pull the block. A stale competitor number is exactly the error this brand can't afford.)*
@@ -564,11 +564,11 @@ Same components, same grammar, different argument. One `<h1>`.
 
 ### 5.x Meta + `/verification`
 
-- `/` title: `Halal food delivery in the GTA — every kitchen's certificate checked | Halal Goes`
-- `/` description: `Halal Goes reads the certificate before a kitchen is ever listed — the issuer, the number, the scope, the expiry, and the admin who signed off. Ontario, pre-launch. Join the waitlist.`
-- `/for-restaurants` title: `List your halal restaurant in Ontario — 0% commission for launch partners | Halal Goes`
-- `/for-restaurants` description: `Your halal certificate is already your best marketing. Halal Goes verifies it and puts it in front of diners who order by it. Launch partners pay 0% commission.`
-- `/verification` title: `The Halal Goes verification standard, v1.0 | Halal Goes`
+- `/` title: `Halal food delivery in the GTA — every kitchen's certificate checked | HalalGoes`
+- `/` description: `HalalGoes reads the certificate before a kitchen is ever listed — the issuer, the number, the scope, the expiry, and the admin who signed off. Ontario, pre-launch. Join the waitlist.`
+- `/for-restaurants` title: `List your halal restaurant in Ontario — 0% commission for launch partners | HalalGoes`
+- `/for-restaurants` description: `Your halal certificate is already your best marketing. HalalGoes verifies it and puts it in front of diners who order by it. Launch partners pay 0% commission.`
+- `/verification` title: `The HalalGoes verification standard, v1.0 | HalalGoes`
 - **`/verification` must exist before the standard link ships.** Contents: the seven checks in full; the accepted issuers and *why those*; how to submit an issuer we don't list; what happens on expiry; **what we explicitly do not claim**; how to dispute a listing, with a real email; and the stamp `v1.0 — effective 17 September 2026`. Commit in writing to publishing applications received / verified / **rejected** from launch. It is the artifact a family WhatsApp group forwards.
 - Footer tagline keeps **`Verified halal, delivered.`** It survives as the lockup. It just isn't the first thing a stranger reads.
 
@@ -769,7 +769,7 @@ Run this against the built page. Every line is objectively checkable; any failur
 - [ ] **One `<h1>` per page.** Check the DOM, not the design.
 
 **The final read**
-- [ ] **Cover the logo. Can you still tell this is Halal Goes?** With the brass-ringed seal, the mono record line, and the white-document-on-cream grammar — yes. With a dark hero, a big sans headline and an orange button — no. That is the whole test.
+- [ ] **Cover the logo. Can you still tell this is HalalGoes?** With the brass-ringed seal, the mono record line, and the white-document-on-cream grammar — yes. With a dark hero, a big sans headline and an orange button — no. That is the whole test.
 
 ---
 

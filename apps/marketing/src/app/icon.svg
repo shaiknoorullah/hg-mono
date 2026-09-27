@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
-  <title>Halal Goes</title>
+  <title>HalalGoes</title>
   <style>:root{--fg:#232323;--bg:#FFFAEA}@media (prefers-color-scheme:dark){:root{--fg:#D0D0D1;--bg:#171717}}</style>
   <defs><clipPath id="swashCrop"><rect x="-9850.27" y="-9999" width="9999" height="19998"/></clipPath></defs>
   <rect width="240" height="240" rx="48.0" fill="var(--bg)"/>

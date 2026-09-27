@@ -1,4 +1,4 @@
-# Git History Analysis — Halal Goes Platform (hg-api, halal-goes, hg-docker)
+# Git History Analysis — HalalGoes Platform (hg-api, halal-goes, hg-docker)
 
 Analysis date: 2026-08-09. All commands read-only against the checked-out branches
 (`claude/fleet-agents-repo-analysis-4rqpjt`, which contains `main` in all three repos).

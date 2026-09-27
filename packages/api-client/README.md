@@ -1,6 +1,6 @@
 # `@hg/api-client`
 
-The only way a Halal Goes frontend talks to the API.
+The only way a HalalGoes frontend talks to the API.
 
 ```ts
 import { createHgClient, unwrap, formatCents, idempotencyKey } from '@hg/api-client';

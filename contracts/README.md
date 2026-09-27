@@ -1,6 +1,6 @@
 # `contracts/` — the single source of truth for every API shape
 
-Two files define the entire wire surface of Halal Goes:
+Two files define the entire wire surface of HalalGoes:
 
 | File | What it defines |
 |---|---|

@@ -1,6 +1,6 @@
 # hg-mono
 
-Halal Goes — the whole platform in one repository.
+HalalGoes — the whole platform in one repository.
 
 A halal food-delivery marketplace for Canada. Customers find and order from **verified halal-certified** restaurants; riders deliver; restaurants manage orders; admins verify certification.
 

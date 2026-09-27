@@ -49,7 +49,7 @@ export function DocPage({
         <p className="mt-2 mb-0 max-w-[74ch] font-mono text-[11px] leading-relaxed tracking-[0.03em] text-mk-ink">
           {footnote ?? (
             <>
-              {version} · effective {effective} · Halal Goes · Ontario, Canada. This document applies to this
+              {version} · effective {effective} · HalalGoes · Ontario, Canada. This document applies to this
               website and its waitlist. It is not a contract for a delivery service — there isn’t one yet.
             </>
           )}

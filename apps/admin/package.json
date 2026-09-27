@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The Halal Goes admin console. One bootable smoke screen: the restaurant onboarding review queue, rendered from the mock with @hg/ui-web.",
+  "description": "The HalalGoes admin console. One bootable smoke screen: the restaurant onboarding review queue, rendered from the mock with @hg/ui-web.",
   "scripts": {
     "dev": "vite",
     "start": "vite",

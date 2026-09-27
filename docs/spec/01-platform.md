@@ -12,7 +12,7 @@ covers:
 reviewed: 2026-09-28
 ---
 
-# Halal Goes — Cross-Cutting Platform Layer Specification
+# HalalGoes — Cross-Cutting Platform Layer Specification
 
 **Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Redis 7, MinIO, Traefik v3, docker compose.
 **Currency**: CAD only. **Market**: Canada.
@@ -876,7 +876,7 @@ CREATE TABLE quote_tax_line (
   7. Given a province with no configured rate, When quoted, Then 422 `tax_profile_missing` and no order is created.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — GST/HST supplier position**: Is Halal Goes the deemed supplier for orders from non-registrant (small-supplier) restaurants, or does each restaurant remain the supplier? · **Proposed default**: platform is the deemed supplier for restaurants without a GST/HST number and collects/remits their food tax; registrant restaurants remain the supplier and receive their tax in their payout. Both paths are modelled by `restaurant.tax_role`. · **Why**: this determines who remits food tax and is the single highest-consequence tax question; it must be signed off by Canadian tax counsel before launch, and the data model supports either answer without a code change.
+> **DECISION REQUIRED — GST/HST supplier position**: Is HalalGoes the deemed supplier for orders from non-registrant (small-supplier) restaurants, or does each restaurant remain the supplier? · **Proposed default**: platform is the deemed supplier for restaurants without a GST/HST number and collects/remits their food tax; registrant restaurants remain the supplier and receive their tax in their payout. Both paths are modelled by `restaurant.tax_role`. · **Why**: this determines who remits food tax and is the single highest-consequence tax question; it must be signed off by Canadian tax counsel before launch, and the data model supports either answer without a code change.
 
 > **DECISION REQUIRED — QST registration**: Will the platform register for QST and operate in Quebec at launch? · **Proposed default**: no Quebec launch in V1; QC addresses are rejected at quote time with `province_not_served`. · **Why**: QST registration, French-language (Charter) obligations and Revenu Québec filing are a distinct workstream.
 
@@ -2514,7 +2514,7 @@ RETURNING *;
   4. Given an admin marks a certifier as not recognised, Then every restaurant relying on it drops to `SELF_DECLARED` within the nightly sweep and owners are notified.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — recognised halal certifiers**: Which certifying bodies does Halal Goes accept? · **Proposed default**: an admin-managed allowlist seeded with the major Canadian bodies, with anything else requiring manual admin review before `CERTIFIED` is granted. · **Why**: the platform's entire premise is that "certified" means something; an open list makes the badge worthless.
+> **DECISION REQUIRED — recognised halal certifiers**: Which certifying bodies does HalalGoes accept? · **Proposed default**: an admin-managed allowlist seeded with the major Canadian bodies, with anything else requiring manual admin review before `CERTIFIED` is granted. · **Why**: the platform's entire premise is that "certified" means something; an open list makes the badge worthless.
 
 > **DECISION REQUIRED — self-declared restaurants**: Are non-certified halal restaurants listed at all? · **Proposed default**: yes, but hidden behind an explicit filter change, badged "Self-declared, not verified", and never described as certified. · **Why**: supply at launch will be thin, but conflating the two destroys the product.
 

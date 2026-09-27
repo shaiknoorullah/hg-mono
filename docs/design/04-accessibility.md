@@ -6,7 +6,7 @@ covers:
 reviewed: 2026-09-28
 ---
 
-# Halal Goes — Accessibility Standard
+# HalalGoes — Accessibility Standard
 
 **Status:** system of record · **Date:** 2026-08-10
 **Target:** WCAG 2.2 Level AA across all four surfaces, with named AAA commitments where the product's claim depends on it.
@@ -16,7 +16,7 @@ reviewed: 2026-09-28
 
 ## 0. Why this document is not boilerplate
 
-Halal Goes is a religious-dietary compliance product. Its single claim — *this restaurant's halal certification has been verified* — is communicated by a coloured badge with an icon. That is exactly the construction that fails for the largest accessibility populations: colour-vision deficiency (~8% of men), low vision, and screen-reader users. **A halal badge that is only legible to a sighted, full-colour user is not a working feature.** Accordingly:
+HalalGoes is a religious-dietary compliance product. Its single claim — *this restaurant's halal certification has been verified* — is communicated by a coloured badge with an icon. That is exactly the construction that fails for the largest accessibility populations: colour-vision deficiency (~8% of men), low vision, and screen-reader users. **A halal badge that is only legible to a sighted, full-colour user is not a working feature.** Accordingly:
 
 > **A-0.** The halal certification state must be recoverable through **three independent channels**: colour, shape/glyph, and text. Any two channels removed, the state must still be unambiguous. This is tested, not assumed (§9).
 

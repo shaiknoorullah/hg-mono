@@ -127,7 +127,7 @@ export function HalalCertificationPanel({
 
       {/*
         C-12 R7. Always present, never collapsible — including in the loading and error
-        states, because "Halal Goes does not itself certify food" is a statement about the
+        states, because "HalalGoes does not itself certify food" is a statement about the
         platform, not about this restaurant's payload.
       */}
       <Text testID={`${testID}-disclaimer`} style={[captionType, { color: theme.color.text.tertiary }]}>
