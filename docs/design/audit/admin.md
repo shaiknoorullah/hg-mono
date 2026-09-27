@@ -109,7 +109,7 @@ and a submit `Button`. Then `AdminShell` (`App.tsx:177`–`210`): `AppShell` +
    contain no role concept). Every screen therefore renders every control to every staff
    role and lets the server refuse — see §1.3 problem 12 for why that is dangerous on the
    halal screen specifically.
-6. `styles.css:74`–`78` caps `.adm-main` at `max-width: 72rem` centred. That is a reading
+6. `styles.css:74`–`78` caps `.adm-main` at `max-width: 72rem` centred (`:76`). That is a reading
    measure for a document, not an operations console; it throws away the horizontal space a
    two-pane evidence layout needs on the one screen that needs it most.
 
@@ -506,7 +506,7 @@ Actions (`:266`–`341`); then a cancel `ConfirmDialog` (`:344`–`372`), a "Lin
    `apps/admin/src` (grepped). `LiveMapBox` receives coordinates from a single GET
    (`:186`–`193`) and `useLoad` never refetches (`lib/load.ts:68`–`70`), yet the component's
    own header claims "Rider position is live over the realtime channel where available"
-   (`LiveMapBox.tsx:6`–`7`) and a pin is labelled "Rider (live)" (`:189`).
+   (`LiveMapBox.tsx:6`–`7`) and a pin is labelled "Rider (live)" (`OrderDetailScreen.tsx:189`).
    `admin-order-detail.md` requires "rider location + state stream over the existing
    **WebSocket** realtime channel" with a last-known fallback. The label is a claim the code
    does not honour.
@@ -1002,7 +1002,7 @@ a needed component does not exist (`Sheet`, `Countdown`) I say so and name the s
 - **Use `pageHeader`** for the per-screen `h1` + `FilterBar`, so filters stay put while the
   table scrolls, and **`systemBanner`** for anything at the severity of "order is disputed"
   or "your review lock expires in 4 minutes".
-- **Drop the 72rem cap** (`styles.css:75`) on the two-pane routes; keep a measure cap only on
+- **Drop the 72rem cap** (`styles.css:76`) on the two-pane routes; keep a measure cap only on
   prose regions.
 - Replace `LoginGate`'s raw-hex error (`App.tsx:124`) with `Banner variant="danger"`.
 - Fix the icons: `System` must not be `check`.
