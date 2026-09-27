@@ -53,4 +53,22 @@ DROP EXTENSION IF EXISTS pgcrypto;
 DROP EXTENSION IF EXISTS unaccent;
 DROP EXTENSION IF EXISTS pg_trgm;
 DROP EXTENSION IF EXISTS citext;
-DROP EXTENSION IF EXISTS postgis;
+-- PostGIS is dropped only if nothing else depends on it. The postgis/postgis
+-- image (compose and CI) installs postgis_topology and postgis_tiger_geocoder
+-- on top of it; those are the image's, not this migration's, and for the same
+-- reason as the roles above a rollback must not reach past what it created.
+-- +goose StatementBegin
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_depend d
+      JOIN pg_extension postgis ON postgis.oid = d.refobjid
+     WHERE d.classid = 'pg_extension'::regclass
+       AND d.refclassid = 'pg_extension'::regclass
+       AND postgis.extname = 'postgis'
+  ) THEN
+    DROP EXTENSION IF EXISTS postgis;
+  END IF;
+END
+$$;
+-- +goose StatementEnd

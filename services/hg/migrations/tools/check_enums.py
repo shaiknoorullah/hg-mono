@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from enum_map import MAPPED, EXCLUSIONS          # noqa: E402
+from enum_map import EXCLUSIONS, db_type_for          # noqa: E402
 from openapi_enums import contract_enums         # noqa: E402
 
 DSN = os.environ.get("DATABASE_URL", "postgres:///hg")
@@ -44,7 +44,7 @@ def main():
     for name, values in sorted(contract.items()):
         if name in EXCLUSIONS:
             continue
-        pg = MAPPED.get(name)
+        pg = db_type_for(name)
         if not pg:
             failures.append("%s: no pg type mapped and no exclusion recorded" % name)
             continue

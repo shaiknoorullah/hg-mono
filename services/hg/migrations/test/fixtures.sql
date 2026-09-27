@@ -89,19 +89,59 @@ VALUES ('22222222-2222-4222-8222-222222222222', '11111111-1111-4111-8111-1111111
         ST_SetSRID(ST_MakePoint(-79.3282, 43.6820), 4326)::geography, 'America/Toronto', true)
 ON CONFLICT (id) DO NOTHING;
 
--- halal_status CERTIFIED so the customer-facing halal gate (catalog
--- visiblePredicate: account_state='LIVE' AND halal_status IN
--- ('CERTIFIED','EXPIRING_SOON')) makes this restaurant discoverable. Without it
--- every customer read is a C-13 404, and the conformance floor's restaurant ops
--- only pass against a database already polluted with a halal-visible row.
+-- The restaurant must be halal CERTIFIED so the customer-facing halal gate
+-- (catalog visiblePredicate: account_state='LIVE' AND halal_status IN
+-- ('CERTIFIED','EXPIRING_SOON')) makes it discoverable. Without it every
+-- customer read is a C-13 404. halal_status is trigger-derived and never
+-- hand-set (I-34.1), so it is certified below through the real chain.
 INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code,
                         location, timezone, onboarding_state, account_state, is_accepting_orders,
-                        commission_rate_bps, halal_status)
+                        commission_rate_bps)
 VALUES ('33333333-3333-4333-8333-333333333333', 'karachi-kitchen', 'Karachi Kitchen Inc.',
         'Karachi Kitchen', '1180 Danforth Avenue', 'Toronto', 'ON', 'M4J 1M1',
         ST_SetSRID(ST_MakePoint(-79.3332, 43.6810), 4326)::geography, 'America/Toronto',
-        'ACTIVE', 'LIVE', true, 0, 'CERTIFIED')
+        'ACTIVE', 'LIVE', true, 0)
 ON CONFLICT (id) DO NOTHING;
+
+-- Karachi Kitchen's certificate: APPROVED, from a seeded ACCEPTED issuing body,
+-- with all seven checks at PASS. The certificate insert fires the sync trigger,
+-- which sets restaurant.halal_status = CERTIFIED and links the certificate.
+-- The checks are deferred-constrained, which is why this file is one transaction.
+INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+                           state, uploaded_by, confirmed_at)
+VALUES ('33333333-3333-4333-8333-3333333300a1', 'hg-kyc', 'fixtures/karachi-kitchen-halal.pdf',
+        'KYC_DOCUMENT', 'application/pdf', 2048, decode(repeat('c3',32),'hex'), 'READY',
+        '019ff68d-af0f-7e5b-a1ab-25bfa033f6f5', now())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id,
+                          halal_issuing_body_id, state, deadline_at, deadline_action)
+SELECT '33333333-3333-4333-8333-3333333300a2', 'RESTAURANT', '33333333-3333-4333-8333-333333333333',
+       'HALAL_CERTIFICATE', '33333333-3333-4333-8333-3333333300a1', b.id, 'IN_REVIEW',
+       now() + interval '72 hours', 'ESCALATE'
+  FROM halal_issuing_body b WHERE b.status = 'ACCEPTED' ORDER BY b.name LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO halal_certificate (id, restaurant_id, document_id, certificate_number, issuing_body_id,
+                               certified_legal_name, certified_address, scope, issued_on, expires_on,
+                               status, checklist_version, verified_by, verified_at)
+SELECT '33333333-3333-4333-8333-3333333300a3', '33333333-3333-4333-8333-333333333333',
+       '33333333-3333-4333-8333-3333333300a2', 'FX-KARACHI-0001', d.halal_issuing_body_id,
+       'Karachi Kitchen Inc.', '1180 Danforth Avenue Toronto', 'WHOLE_ESTABLISHMENT',
+       current_date - 60, current_date + 305, 'APPROVED', 1,
+       '019ff68d-af0f-7e5b-a1ab-25bfa033f6f5', now()
+  FROM kyc_document d WHERE d.id = '33333333-3333-4333-8333-3333333300a2'
+ON CONFLICT (id) DO NOTHING;
+
+-- H5 and H7 are server-computed and not overridable (result = computed_result).
+INSERT INTO halal_certificate_check (halal_certificate_id, check_key, result, computed_result,
+                                     overridable, checked_by, checked_at)
+SELECT '33333333-3333-4333-8333-3333333300a3', k::halal_check_key, 'PASS', 'PASS',
+       k NOT IN ('H5_DATES_VALID', 'H7_UNIQUE_NOT_REUSED'),
+       '019ff68d-af0f-7e5b-a1ab-25bfa033f6f5', now()
+  FROM unnest(ARRAY['H1_LEGIBLE_COMPLETE', 'H2_ISSUER_ACCEPTED', 'H3_NAME_MATCH', 'H4_ADDRESS_MATCH',
+                    'H5_DATES_VALID', 'H6_SCOPE_SUFFICIENT', 'H7_UNIQUE_NOT_REUSED']) AS k
+ON CONFLICT DO NOTHING;
 
 INSERT INTO menu_category (id, restaurant_id, name)
 VALUES ('44444444-4444-4444-8444-444444444444', '33333333-3333-4333-8333-333333333333', 'Biryani')
