@@ -125,13 +125,13 @@ func (h *Handler) cardFor(rr restaurantRow, hasAddress bool, now time.Time) Rest
 //
 //	order_again · restaurants_near_you · trending_in_your_area · you_might_like
 //
-// The other two are omitted because they cannot honestly be built yet:
+// The other two are required (R-14) but cannot be built yet:
 //
-//   - your_favourite_restaurants: there is no favourites table and no endpoint
-//     to favourite a restaurant, so there is nothing to read.
-//   - popular_items: C-09 never defines it, and the contract types every
-//     section as RestaurantCard[] while the name promises items. Defining it is
-//     a product decision, possibly a contract change, not a query.
+//   - your_favourite_restaurants: reads the favourites table (C-17 rule 4),
+//     and C-17 is not built: no table, no endpoint to favourite a restaurant.
+//   - popular_items: undefined (O-07). C-09 points at dish ratings, but the
+//     contract types every section as RestaurantCard[]. The answer may need a
+//     contract change, not just a query.
 //
 // Without a point, deliverability is unknown, so no section is returned. C-09
 // rule 5 has the client send its saved address's coordinates or show the
