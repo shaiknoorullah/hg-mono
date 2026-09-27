@@ -1,0 +1,66 @@
+name: tests
+
+# Lint and every unit-test suite, on every PR and on main. A failing test or a
+# lint error anywhere in apps/, packages/ or services/hg fails the build. There
+# is no baseline here on purpose: a known-failing test stays red until it is
+# fixed, not hidden.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` — `packageManager` in package.json is the single source.
+      # See contracts.yml for why.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: lint
+        run: pnpm lint
+
+      # Runs even when lint failed, so one PR shows both results. --no-bail runs
+      # every package's suite and reports all failures, not just the first.
+      - name: test
+        if: ${{ !cancelled() }}
+        run: pnpm -r --no-bail test
+
+  go:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/hg
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/hg/go.mod
+          cache-dependency-path: services/hg/go.sum
+
+      - name: vet
+        run: make vet
+
+      # Same as `make test` locally: tests that need HG_TEST_POSTGRES_DSN skip
+      # when it is unset; the testcontainers-backed ones run here because the
+      # runner has Docker.
+      - name: test
+        if: ${{ !cancelled() }}
+        run: make test
