@@ -267,7 +267,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. Given a section returns fewer than its max, when rendered, then no placeholder cards are drawn.
 - **Implementation status (Sep 2026)**:
   - Served: `order_again`, `restaurants_near_you`, `trending_in_your_area`, `you_might_like`.
-  - Not served yet: `your_favourite_restaurants` (no favourites table or endpoint) and `popular_items` (undefined here, and the contract types it as restaurant cards). Both need a product decision.
+  - Required but not served yet (R-14): `your_favourite_restaurants` needs C-17 (favourites) built first; `popular_items` needs a definition (O-07).
   - Radius, trending window, trending floor and rail size come from `discovery_config`, not the figures above — see decision **R-14**. Every section is capped at `rail_size`.
   - Every section is radius-gated, the personal ones included (AC1). A request with no point returns no sections (rule 5).
   - Not yet built: the 120 s Redis cache, resolving `delivery_address_id` to a point, and the pull-to-refresh cache bypass.
