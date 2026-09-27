@@ -1,3 +1,11 @@
+---
+covers:
+  - apps/restaurant/**
+  - services/hg/internal/restaurant/**
+  - services/hg/internal/catalog/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — RESTAURANT domain specification
 
 **Status**: implementable spec, derived from SOW items 1–8 (Restaurant section).

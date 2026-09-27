@@ -1,3 +1,11 @@
+---
+covers:
+  - apps/customer/**
+  - services/hg/internal/account/**
+  - services/hg/internal/addresses/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — CUSTOMER Domain Specification
 
 **Target architecture:** Go modular monolith, single binary. PostgreSQL 17 + PostGIS · Redis · MinIO · Traefik. Expo (React Native) customer app.

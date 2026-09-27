@@ -1,3 +1,19 @@
+---
+covers:
+  - packages/ui-web/src/primitives/**
+  - packages/ui-web/src/certification/**
+  - packages/ui-web/src/content/**
+  - packages/ui-web/src/data/**
+  - packages/ui-web/src/feedback/**
+  - packages/ui-web/src/navigation/**
+  - packages/ui-native/src/primitives/**
+  - packages/ui-native/src/certification/**
+  - packages/ui-native/src/content/**
+  - packages/ui-native/src/feedback/**
+  - packages/ui-native/src/navigation/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — Component Inventory
 
 **Status:** system of record · **Date:** 2026-08-10

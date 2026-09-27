@@ -1,3 +1,17 @@
+---
+covers:
+  - services/hg/internal/auth/**
+  - services/hg/internal/session/**
+  - services/hg/internal/orders/**
+  - services/hg/internal/payments/**
+  - services/hg/internal/realtime/**
+  - services/hg/internal/notify/**
+  - services/hg/internal/files/**
+  - services/hg/internal/dispatch/**
+  - services/hg/internal/httpx/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — Cross-Cutting Platform Layer Specification
 
 **Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Redis 7, MinIO, Traefik v3, docker compose.

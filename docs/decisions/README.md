@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-09-28
+---
+
 # Decision log
 
 The five domain specs surfaced **141 decisions**. Most shipped with a written default and need no action. This log records the ones that were actively decided, the conflicts that were reconciled, and the handful still open.

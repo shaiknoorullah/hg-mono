@@ -1,3 +1,10 @@
+---
+covers:
+  - apps/admin/**
+  - services/hg/internal/admin/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
 
 **Status**: constrained specification, derived from `sow.txt` (Super Admin / Admin / Support Agent

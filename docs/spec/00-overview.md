@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-09-28
+---
+
 # Specification overview
 
 Derived from the client Statement of Work (`00-sow-source.txt`), which is deliberately non-technical. Every vague term in it has been constrained here into states, rules and testable acceptance criteria.

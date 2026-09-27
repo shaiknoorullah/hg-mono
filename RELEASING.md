@@ -1,3 +1,9 @@
+---
+covers:
+  - deploy/**
+reviewed: 2026-09-28
+---
+
 # Releasing Halal Goes
 
 The single place the go-live configuration lives. Full engineering status:

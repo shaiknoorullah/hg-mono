@@ -1,3 +1,11 @@
+---
+covers:
+  - packages/ui-web/src/certification/**
+  - packages/ui-native/src/certification/**
+  - packages/ui-web/src/styles/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — Accessibility Standard
 
 **Status:** system of record · **Date:** 2026-08-10

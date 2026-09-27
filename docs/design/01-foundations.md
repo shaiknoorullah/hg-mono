@@ -1,3 +1,15 @@
+---
+covers:
+  - docs/design/tokens.json
+  - packages/design-tokens/**
+  - packages/ui-web/src/tokens/**
+  - packages/ui-native/src/tokens/**
+  - packages/ui-web/src/styles/**
+  - packages/ui-web/src/lint/**
+  - packages/ui-native/src/lint/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — Design Foundations (token system)
 
 **Status:** system of record for all four surfaces · **Date:** 2026-08-10
