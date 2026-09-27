@@ -85,16 +85,17 @@ cd services/hg && make up && make migrate && make run
 
 ## 7. State as of the last commit
 
-**Done:** specification (198 features), decisions, design system, API contract (144 operations, 80 enums), generated client, 311 fixtures, mock server, 81 components, both galleries verified.
+**Done:** specification (198 features), decisions, design system, API contract (152 operations, 85 enums), generated client, 330 fixtures, mock server, 81 components, both galleries.
 
-**In progress:** the Go backend. Skeleton, compose stack and the 91-table schema have landed. The seven domain modules are **not started** — briefs ready to dispatch in `docs/planning/backend-modules.md`.
+**Backend:** built. 23 packages in `services/hg/internal` (auth, catalog, orders, payments, dispatch, realtime, notify, …), 28 migrations, `make check` green with the conformance gate covering every operation. The home feed serves four of its six sections (decision R-14).
 
-**Not started:** the four apps (customer, rider, restaurant web, admin web).
+**Apps:** all four exist (customer, rider, restaurant web, admin web) and run against the real backend, but are scaffolds rather than finished products. A redesign is underway: `docs/design/redesign-constitution.md` sets the rules, `docs/design/design-surface.md` lists every screen and state, and `docs/design/audit/` holds a per-app audit.
 
-**Blocked on a human** — see `docs/decisions/README.md`:
-- **O-01 HST registration** — no legal basis to charge tax without it (accountant)
-- **O-03 SMS / A2P registration** — nobody can sign in without phone OTP; longest lead time in the project
-- O-04 refund liability allocation · O-05 launch province (default Ontario) · O-06 self-declared halal listing (default: hide)
+**Blocked on a human** — see `docs/decisions/README.md` and `docs/planning/v0-launch-checklist.md`:
+- **O-01 HST** — the registration number is set; the supplier position is still with the accountant
+- **O-03 SMS / OTP** — nobody can sign in without verified Twilio credentials (the WhatsApp channel avoids A2P 10DLC)
+- **Production hosting** and a **live Stripe account** — the backend has only ever run locally
+- O-04, O-05 and O-06 are settled (Sep 2026)
 
 ## 8. Known gaps
 
