@@ -9,6 +9,42 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react-nativ
 
 import { setToken, isAuthed } from '../../token';
 
+jest.mock('expo-image-picker', () => {
+  // The gate renders the whole <App />, which transitively imports capture.ts and with it
+  // expo-image-picker. Loading the real module needs expo-modules-core's native
+  // EventEmitter, which the react-native preset never registers, so the import threw
+  // "Cannot read properties of undefined (reading 'EventEmitter')" and both tests here
+  // failed before rendering anything — the sign-in gate had no working test at all.
+  // The gate never opens the camera; a factory mock keeps the real module unloaded.
+  const denied = { granted: false, status: 'denied', canAskAgain: true, expires: 'never' };
+  return {
+    MediaTypeOptions: { Images: 'Images' },
+    launchCameraAsync: jest.fn(async () => ({ canceled: true, assets: null })),
+    launchImageLibraryAsync: jest.fn(async () => ({ canceled: true, assets: null })),
+    requestCameraPermissionsAsync: jest.fn(async () => denied),
+    requestMediaLibraryPermissionsAsync: jest.fn(async () => denied),
+  };
+});
+
+jest.mock('expo-camera', () => {
+  // Same failure class as expo-image-picker above: the seal scanner imports expo-camera,
+  // whose native EventEmitter is absent under the react-native preset. Unauthenticated,
+  // the gate never reaches the scanner.
+  const React = require('react');
+  return {
+    CameraView: () => React.createElement('CameraView'),
+    useCameraPermissions: () => [{ granted: false, canAskAgain: true, status: 'denied' }, jest.fn()],
+  };
+});
+
+jest.mock('expo-location', () => ({
+  Accuracy: { High: 4, Balanced: 3 },
+  requestForegroundPermissionsAsync: jest.fn(async () => ({ granted: false, status: 'denied' })),
+  getForegroundPermissionsAsync: jest.fn(async () => ({ granted: false, status: 'denied' })),
+  getCurrentPositionAsync: jest.fn(async () => { throw new Error('no location in tests'); }),
+  watchPositionAsync: jest.fn(async () => ({ remove: jest.fn() })),
+}));
+
 jest.mock('react-native-safe-area-context', () => {
   // The package's own jest mock is a TS `export default {...}`; babel-jest compiles that to
   // `{ default: {...} }`, but this app's named imports (`{ SafeAreaProvider }`) read the
