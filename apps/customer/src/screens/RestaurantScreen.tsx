@@ -14,9 +14,9 @@
  * numbers only ever come from a quote, downstream at checkout.
  */
 import * as React from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { unwrap } from '@hg/api-client';
+import { isApiError, unwrap } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 import {
   AppBar,
@@ -45,6 +45,37 @@ export function RestaurantScreen({ restaurantId }: { restaurantId: string }): Re
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const nav = useNavigation();
+
+  // "View certificate". The panel renders that action only when it is given a handler,
+  // and this screen used to give it none — so the certificate was unreachable from
+  // anywhere in the product, while the product's single claim is that it can be checked
+  // (C-12 traces to "view AND verify"). The URL is minted per request: presigned, 300 s,
+  // single use and audited server-side, never cached here. It opens in the platform's
+  // viewer because @hg/ui-native has no DocumentViewer yet (docs/design/02-components.md
+  // §25); an in-app viewer is a library decision for the redesign, not improvised here.
+  //
+  // "Report a halal concern" stays unwired on purpose: it routes to the C-39 grievance
+  // flow, which has no endpoint in the contract. A button that goes nowhere is worse than
+  // no button.
+  const [certOpening, setCertOpening] = React.useState(false);
+  const [certUnavailable, setCertUnavailable] = React.useState<'missing' | 'failed' | null>(null);
+  const onViewCertificate = React.useCallback(async () => {
+    if (certOpening) return;
+    setCertOpening(true);
+    setCertUnavailable(null);
+    try {
+      const res = await unwrap(
+        api.POST('/v1/restaurants/{restaurantId}/certificate-url', {
+          params: { path: { restaurantId } },
+        }),
+      );
+      await Linking.openURL(res.data.url);
+    } catch (e) {
+      setCertUnavailable(isApiError(e) && e.status === 404 ? 'missing' : 'failed');
+    } finally {
+      setCertOpening(false);
+    }
+  }, [certOpening, restaurantId]);
 
   const detail = useAsync<Detail>(
     () =>
@@ -122,7 +153,22 @@ export function RestaurantScreen({ restaurantId }: { restaurantId: string }): Re
             certification={
               detail.state.kind === 'ready' ? detail.state.data.certification : undefined
             }
+            onViewCertificate={onViewCertificate}
           />
+
+          {certUnavailable ? (
+            // Neutral, never warning: amber is the EXPIRING colour, and failing to open a
+            // file says nothing about whether the restaurant is certified.
+            <Banner
+              variant="neutral"
+              title="Couldn't open the certificate"
+              description={
+                certUnavailable === 'missing'
+                  ? "This restaurant's certificate isn't available to view right now."
+                  : 'Something went wrong opening it. Try again in a moment.'
+              }
+            />
+          ) : null}
 
           {detail.state.kind === 'ready' && detail.state.data.description ? (
             <Banner

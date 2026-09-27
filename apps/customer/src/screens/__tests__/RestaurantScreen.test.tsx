@@ -11,6 +11,7 @@ import restaurantDetail from '../../../../../contracts/fixtures/catalogue/restau
 import menuSingleItem from '../../../../../contracts/fixtures/catalogue/menu_single_item.json';
 import cartSingleLine from '../../../../../contracts/fixtures/cart/cart_single_line.json';
 import cartEmpty from '../../../../../contracts/fixtures/cart/cart_empty.json';
+import presignedDownload from '../../../../../contracts/fixtures/documents/presigned_download.json';
 
 jest.mock('react-native-safe-area-context', () => {
   const mod = require('react-native-safe-area-context/jest/mock');
@@ -86,5 +87,66 @@ describe('RestaurantScreen — add to cart surfaces the View cart bar', () => {
 
     fireEvent.press(screen.getByText('View cart · 1 item'));
     expect(push).toHaveBeenCalledWith({ name: 'cart' });
+  });
+});
+
+/**
+ * The product's single claim is that a halal certification can be checked. The panel only
+ * renders "View certificate" when handed a handler, and this screen used to hand it none,
+ * so the certificate was unreachable from anywhere in the app.
+ */
+describe('RestaurantScreen — the certificate can be viewed', () => {
+  function routeFetch(certificate: () => Response) {
+    const calls: string[] = [];
+    fetchSpy.mockImplementation(async (input, init) => {
+      const req = input instanceof Request ? input : null;
+      const url = req ? req.url : String(input);
+      const method = req ? req.method : (init?.method ?? 'GET');
+      // Before the /restaurants/ catch-all, which would otherwise swallow it.
+      if (url.endsWith('/certificate-url')) {
+        calls.push(method);
+        return certificate();
+      }
+      if (url.includes('/menu')) return stubOk({ data: menuSingleItem.payload });
+      if (url.endsWith('/v1/cart')) return stubOk({ data: cartEmpty.payload });
+      if (url.includes('/restaurants/')) return stubOk({ data: restaurantDetail.payload });
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    return calls;
+  }
+
+  it('mints a per-request URL and opens it', async () => {
+    const { Linking } = require('react-native');
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const calls = routeFetch(() => stubOk({ data: presignedDownload.payload }));
+
+    renderRestaurant(jest.fn());
+    fireEvent.press(await screen.findByText('View certificate'));
+
+    await waitFor(() => expect(openURL).toHaveBeenCalledWith(presignedDownload.payload.url));
+    // Minted on demand, never pre-fetched: the URL is single-use and short-lived.
+    expect(calls).toEqual(['POST']);
+    openURL.mockRestore();
+  });
+
+  it('says plainly when the certificate cannot be opened, without implying anything about halal status', async () => {
+    const { Linking } = require('react-native');
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    routeFetch(
+      () =>
+        new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Not found' } }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+
+    renderRestaurant(jest.fn());
+    fireEvent.press(await screen.findByText('View certificate'));
+
+    expect(await screen.findByText("This restaurant's certificate isn't available to view right now.")).toBeTruthy();
+    expect(openURL).not.toHaveBeenCalled();
+    // The certification panel itself is untouched by a failed view.
+    expect(screen.getByText('View certificate')).toBeTruthy();
+    openURL.mockRestore();
   });
 });
