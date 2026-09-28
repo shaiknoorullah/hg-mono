@@ -6,7 +6,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "generate": "pnpm --filter @hg/api-client generate",
+    "prepare": "lefthook install || echo 'lefthook: git hooks not installed (not a git checkout?)'",
+    "generate":"pnpm --filter @hg/api-client generate",
     "generate:check": "pnpm generate && git diff --exit-code -- packages/api-client/src/generated",
     "generate:tokens": "pnpm -r generate:tokens",
     "generate:tokens:check": "pnpm -r generate:tokens:check",
@@ -21,6 +22,7 @@
     "test": "pnpm -r test"
   },
   "devDependencies": {
+    "lefthook": "2.1.14",
     "playwright": "1.50.1"
   },
   "dependencies": {
