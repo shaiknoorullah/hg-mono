@@ -33,7 +33,7 @@ And one that is specific to this product:
 
 **Sections** (C-09, exactly these, in this order, each **omitted entirely when empty — never an empty shell**): `order_again` (≤6) · `restaurants_near_you` (≤20) · `trending_in_your_area` (≤8) · `your_favourite_restaurants` (≤10) · `popular_items` (≤10) · `you_might_like` (≤10).
 
-> **What the server sends today (R-14).** Four sections: `order_again`, `restaurants_near_you`, `trending_in_your_area`, `you_might_like`. `your_favourite_restaurants` and `popular_items` are required and coming, so design for all six; favourites needs C-17 first, and what `popular_items` shows is still open (O-07). Each section is capped at `discovery_config.rail_size` (currently 10), not the per-section caps above. Design for any subset of sections appearing, in this order.
+> **What the server sends today ([home feed decision R-14](../decisions/README.md#settled--reconciliations)).** Four sections: `order_again`, `restaurants_near_you`, `trending_in_your_area`, `you_might_like`. `your_favourite_restaurants` and `popular_items` are required and coming, so design for all six; favourites needs [favourite restaurants (C-17)](../spec/02-customer.md#c-17--favourite-restaurants) built first, and what `popular_items` shows is still open ([open decision O-07](../decisions/README.md#open--blocking)). Each section is capped at `discovery_config.rail_size` (currently 10), not the per-section caps above. Design for any subset of sections appearing, in this order.
 
 **Card anatomy** — the vertical order is fixed and is the most important layout decision in the customer app:
 

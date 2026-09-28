@@ -8,30 +8,31 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// The home feed's section queries — C-09.
+// The home feed's section queries — the home feed spec (docs/spec/02-customer.md "Home feed").
 //
 // Every section is a list of restaurant cards drawn through the same two gates:
-// visiblePredicate (only CERTIFIED / EXPIRING_SOON, LIVE, undeleted — C-09 rule
-// 3, one predicate for feed, search and detail) and an ST_DWithin radius around
-// the request point. The radius applies to the personal sections too: C-09 AC1
-// requires every section to be absent where nothing is in range, because a
+// visiblePredicate (only CERTIFIED / EXPIRING_SOON, LIVE, undeleted — the home
+// feed spec's rule 3: one predicate for feed, search and detail) and an ST_DWithin radius around
+// the request point. The radius applies to the personal sections too: the spec's
+// acceptance criterion 1 requires every section to be absent where nothing is in range, because a
 // restaurant you ordered from elsewhere cannot deliver to where you are now.
 //
 // Radii, windows, rail sizes and the trending floor come from discovery_config,
-// never from constants (P-33; the old feed's hard-coded numbers were B31).
+// never from constants (the discovery config spec (docs/spec/01-platform.md "Restaurant and dish search");
+// the old feed's hard-coded numbers were a known bug there).
 
 // orderAgainLookback is how many of the customer's most recent delivered orders
-// order_again and you_might_like read. C-09 rule 2 fixes it at 20; it is a
+// order_again and you_might_like read. The home feed spec's rule 2 fixes it at 20; it is a
 // definition of the section rather than a tuning knob, unlike the rail size.
 const orderAgainLookback = 20
 
 // youMightLikeCuisines is how many of the customer's most-ordered cuisines
-// you_might_like matches against. C-09 rule 2: "top-3".
+// you_might_like matches against. The home feed spec's rule 2: "top-3".
 const youMightLikeCuisines = 3
 
 var errNoDiscoveryConfig = errors.New("catalog: no effective discovery_config row")
 
-// discoveryConfig is the effective P-33 configuration for the feed.
+// discoveryConfig is the effective discovery configuration for the feed.
 type discoveryConfig struct {
 	nearbyRadiusM      int
 	trendingWindowDays int
@@ -42,7 +43,7 @@ type discoveryConfig struct {
 // currentDiscoveryConfig reads the newest discovery_config version in effect.
 // A missing row is a deployment fault — the seed always writes version 1 — and
 // is reported as one rather than papered over with defaults, which would be the
-// constants P-33 forbids.
+// constants the discovery config spec forbids.
 func (rp *Repo) currentDiscoveryConfig(ctx context.Context) (discoveryConfig, error) {
 	var c discoveryConfig
 	err := rp.db.QueryRow(ctx, `
@@ -116,7 +117,7 @@ func (rp *Repo) feedCards(ctx context.Context, pt point, radiusM, limit int,
 }
 
 // feedOrderAgain: distinct restaurants from the customer's last 20 delivered
-// orders, most recent first (C-09 rule 2).
+// orders, most recent first (the home feed spec's rule 2).
 //
 // "Delivered" is delivered_at IS NOT NULL, not state = 'DELIVERED': a delivered
 // order moves on to COMPLETED (or DISPUTED / RESOLVED), so matching the state
@@ -146,8 +147,8 @@ func (rp *Repo) feedNearYou(ctx context.Context, pt point, cfg discoveryConfig) 
 }
 
 // feedTrending: restaurants inside the radius ranked by delivered orders within
-// the trending window, among those with at least trending_min_orders (C-09 rule
-// 2). Ranked by plain count: P-33 mentions decay, but a decayed score is not
+// the trending window, among those with at least trending_min_orders (the home
+// feed spec's rule 2). Ranked by plain count: the discovery config spec mentions decay, but a decayed score is not
 // defined anywhere, and a count is reproducible and testable.
 func (rp *Repo) feedTrending(ctx context.Context, pt point, cfg discoveryConfig) ([]restaurantRow, error) {
 	return rp.feedCards(ctx, pt, cfg.nearbyRadiusM, cfg.railSize, func(arg func(any) string) feedQuery {
@@ -165,7 +166,8 @@ func (rp *Repo) feedTrending(ctx context.Context, pt point, cfg discoveryConfig)
 }
 
 // feedYouMightLike: restaurants sharing a cuisine with the customer's top-3
-// ordered cuisines, excluding those already shown in order_again (C-09 rule 2).
+// ordered cuisines, excluding those already shown in order_again (the home feed
+// spec's rule 2).
 // Ordered by rating, then distance.
 func (rp *Repo) feedYouMightLike(ctx context.Context, accountID string, pt point, cfg discoveryConfig,
 	exclude []string) ([]restaurantRow, error) {

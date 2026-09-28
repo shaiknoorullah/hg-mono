@@ -11,7 +11,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
-// The home feed, C-09, against a real migrated database.
+// The home feed (docs/spec/02-customer.md "Home feed"), against a real migrated database.
 //
 // Sections are asserted by the restaurants each test created. Other packages'
 // tests may be writing restaurants to the same database concurrently, so a test
@@ -113,7 +113,8 @@ func TestFeed_NearYouIsRadiusGatedAndHalalGated(t *testing.T) {
 	if slices.Contains(everySectionIDs(feed), outside) {
 		t.Errorf("a restaurant 40 km away appears in the feed; every section is radius-gated")
 	}
-	// C-09 AC2 / invariant 8: an uncertified restaurant is in NO section.
+	// The spec's acceptance criterion 2, and "a missing halal field renders no badge"
+	// (AGENTS.md "Non-negotiable invariants"): an uncertified restaurant is in NO section.
 	if slices.Contains(everySectionIDs(feed), unverified) {
 		t.Errorf("an UNVERIFIED restaurant appears in the feed")
 	}
@@ -240,7 +241,7 @@ func TestFeed_NothingDeliversHereMeansAnEmptyFeed(t *testing.T) {
 	cust := w.account("cust")
 	w.deliveredOrder(cust, usual, 1)
 
-	// C-09 AC1: with no restaurant within the radius, EVERY section is absent —
+	// The spec's acceptance criterion 1: with no restaurant within the radius, EVERY section is absent —
 	// including the personal ones. A restaurant you ordered from downtown cannot
 	// deliver to you 200 km north.
 	remote := [2]float64{45.4, -79.38}
@@ -255,7 +256,7 @@ func TestFeed_NoPointMeansNoLocationSections(t *testing.T) {
 	w.restaurant(restaurantOpts{name: "Somewhere", lat: la, lng: lo, certified: true})
 
 	// Without a point, deliverability is unknown, so nothing is labelled "near
-	// you". C-09 rule 5 makes the client send its saved address's point or show
+	// you". The spec's rule 5 makes the client send its saved address's point or show
 	// the address prompt; there is no geographic fallback.
 	if got := getFeed(t, h, w.account("cust"), nil); len(got) != 0 {
 		t.Errorf("feed with no point = %d sections, want 0: %+v", len(got), got)

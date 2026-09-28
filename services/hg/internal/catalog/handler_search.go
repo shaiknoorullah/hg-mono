@@ -118,23 +118,26 @@ func (h *Handler) cardFor(rr restaurantRow, hasAddress bool, now time.Time) Rest
 	return toCard(rr, info, h.media)
 }
 
-// GetHomeFeed implements getHomeFeed (GET /v1/feed) — C-09.
+// GetHomeFeed implements getHomeFeed (GET /v1/feed) — the home feed spec (docs/spec/02-customer.md "Home feed").
 //
 // Four of the six contracted sections, in the contract's fixed order, each
 // omitted entirely when empty (never an empty shell):
 //
 //	order_again · restaurants_near_you · trending_in_your_area · you_might_like
 //
-// The other two are required (R-14) but cannot be built yet:
+// The other two are required (docs/decisions/README.md "Settled — reconciliations", the home feed numbers row)
+// but cannot be built yet:
 //
-//   - your_favourite_restaurants: reads the favourites table (C-17 rule 4),
-//     and C-17 is not built: no table, no endpoint to favourite a restaurant.
-//   - popular_items: undefined (O-07). C-09 points at dish ratings, but the
+//   - your_favourite_restaurants: reads the favourites table (docs/spec/02-customer.md
+//     "Favourite restaurants", rule 4), and favourites is not built: no table, no
+//     endpoint to favourite a restaurant.
+//   - popular_items: undefined (docs/decisions/README.md "Open — blocking"). The
+//     home feed spec points at dish ratings, but the
 //     contract types every section as RestaurantCard[]. The answer may need a
 //     contract change, not just a query.
 //
-// Without a point, deliverability is unknown, so no section is returned. C-09
-// rule 5 has the client send its saved address's coordinates or show the
+// Without a point, deliverability is unknown, so no section is returned. The
+// home feed spec's rule 5 has the client send its saved address's coordinates or show the
 // address prompt; there is no geographic fallback. (The old handler labelled
 // arbitrary restaurants "near you" here, in id order.)
 func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {

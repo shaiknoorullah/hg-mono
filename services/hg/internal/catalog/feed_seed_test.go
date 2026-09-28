@@ -12,7 +12,7 @@ import (
 //
 // A restaurant is visible to customers only through the real halal chain:
 // restaurant.halal_status is derived by trigger and may never be hand-set
-// (I-34.1). CERTIFIED needs an APPROVED certificate from an ACCEPTED issuing
+// (docs/spec/01-platform.md "Filters and halal certification"). CERTIFIED needs an APPROVED certificate from an ACCEPTED issuing
 // body carrying all seven checks at PASS — a deferred constraint, so the
 // certificate and its checks go in inside one transaction. Seeding through that
 // chain, rather than around it, is what makes "an uncertified restaurant is in

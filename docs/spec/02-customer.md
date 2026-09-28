@@ -267,9 +267,9 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. Given a section returns fewer than its max, when rendered, then no placeholder cards are drawn.
 - **Implementation status (Sep 2026)**:
   - Served: `order_again`, `restaurants_near_you`, `trending_in_your_area`, `you_might_like`.
-  - Required but not served yet (R-14): `your_favourite_restaurants` needs C-17 (favourites) built first; `popular_items` needs a definition (O-07).
-  - Radius, trending window, trending floor and rail size come from `discovery_config`, not the figures above — see decision **R-14**. Every section is capped at `rail_size`.
-  - Every section is radius-gated, the personal ones included (AC1). A request with no point returns no sections (rule 5).
+  - Required but not served yet ([home feed decision R-14](../decisions/README.md#settled--reconciliations)): `your_favourite_restaurants` needs [favourite restaurants (C-17)](#c-17--favourite-restaurants) built first; `popular_items` needs a definition ([open decision O-07](../decisions/README.md#open--blocking)).
+  - Radius, trending window, trending floor and rail size come from `discovery_config`, not the figures above — see [home feed decision R-14](../decisions/README.md#settled--reconciliations). Every section is capped at `rail_size`.
+  - Every section is radius-gated, the personal ones included (acceptance criterion 1). A request with no point returns no sections (rule 5).
   - Not yet built: the 120 s Redis cache, resolving `delivery_address_id` to a point, and the pull-to-refresh cache bypass.
 - **Out of scope**: sponsored placement / paid ranking; ML recommender training; infinite scroll on the home screen (see C-11 for the full list); banner/ad carousels backed by a campaign system (V3, not specified here); category tiles (folded into C-11 filters).
 - **Version**: V1 · **Size**: L
