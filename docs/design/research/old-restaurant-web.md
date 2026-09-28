@@ -1,10 +1,16 @@
+---
+covers:
+  - apps/restaurant/src/**
+reviewed: 2026-09-28
+---
+
 # What the old restaurant web app teaches the redesign
 
 Brief for issue #140, which feeds the restaurant redesign (#82). Written 28 Sep 2026.
 
 **Sources**
 
-- **Old app:** `shaiknoorullah/halal-goes`, branch `restaurant-prod`, folder `apps/restaurant-web`, a Next.js app.
+- **Old app:** `shaiknoorullah/halal-goes`, branch `restaurant-prod`, the `restaurant-web` folder under `apps/`, a Next.js app.
   - Paths below written as `old:src/...` are relative to that folder.
 - **Today's app:** `apps/restaurant/src` in this repo.
 - **Rules and data:**
@@ -36,7 +42,7 @@ The owner says the old app is better at layout, hierarchy and information displa
 1. **Persistent frame.** The old app shows the same status on every screen: an icon rail, plus a 56px status bar with the page title, the accepting-orders switch, the restaurant name and area, "Closes at 10:00 PM today", help, notifications and profile. Today's app has only a side rail. The `TopBar` and `systemBanner` slots are empty, and there is no page title in the chrome.
 2. **Master–detail.** On the old orders page you pick an order from a list on the left and its full detail opens on the right, so you never lose your place. Today's app shows a flat grid of cards and has no detail view.
 3. **Summary first, then list, then drill-down.** Payments opens with three summary cards (earnings, pending, next payout), then tabs, then a table, then a detail sheet. The menu page opens with counts, then a toolbar, then grouped rows. Today's app opens straight into lists and shows no summary numbers anywhere.
-4. **More of the data is visible.** The old app shows add-ons, the rider, the customer's contact, the address, variants and add-ons on menu rows, image thumbnails, allergen counts, and why a transfer failed. Today's app leaves out much of what the contract already provides (see the audit, §1).
+4. **More of the data is visible.** The old app shows add-ons, the rider, the customer's contact, the address, variants and add-ons on menu rows, image thumbnails, allergen counts, and why a transfer failed. Today's app leaves out much of what the contract already provides (see the per-screen findings in the [restaurant audit, PR #14](https://github.com/shaiknoorullah/hg-mono/pull/14)).
 5. **Every screen has proper states.** There are skeletons shaped like each page's layout, and empty states that tell "nothing matches your filter" apart from "you have nothing yet". Today's app uses a centred spinner everywhere.
 
 It is not "best" for five reasons:
@@ -81,7 +87,7 @@ It is not "best" for five reasons:
 
 - **"Closes at" is coloured red while the restaurant is open,** and "Opens at" is green while it is closed. The meaning of the colours is backwards.
 - **Open and close times are worked out in the browser** from a single `opening_time`/`closing_time`. The server's `open_state` and `reason` are ignored.
-- **The switch is solid `green-500`,** which breaks the green reservation (invariant 10, lint rule L-4).
+- **The switch is solid `green-500`,** which breaks the green reservation ([solid green is reserved for halal status (invariant 10)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants), enforced by [the no-green-solids lint rule (L-4)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/01-foundations.md#9-token-pipeline-and-lint-rules)).
 - **The unread badge is a solid red dot** with "9+".
 - **The rail shows no counts,** so the new-order count is not visible from Menu or Payments.
 - **Logout has no confirmation.**
@@ -94,12 +100,12 @@ It is not "best" for five reasons:
 - **`topBar` → `TopBar` holding:**
   1. The page title.
   2. An open-state `Chip` driven by `open_state`, with `reason` as its tooltip. Tint only, never red.
-  3. A `Switch` for `is_accepting_orders`, labelled, and blocked until sound is armed (R-24).
+  3. A `Switch` for `is_accepting_orders`, labelled, and blocked until sound is armed ([order acceptance rules (R-24)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-24--order-acceptance-rejection-and-response-timeout)).
   4. A connection/"live" indicator.
   5. A notifications `IconButton` + `Popover`.
   6. A profile `Popover`.
 - **`sideNav` → `SideNav` with `collapsed`** for the tablet board. Give Orders a **badge** showing the count of pending orders.
-- **`systemBanner` → `Banner`** for suspension, delisting, an expiring certificate and connection loss.
+- **`systemBanner` → `Banner`** for suspension, removal from listings, an expiring certificate and connection loss.
 - **`pageHeader` → `Breadcrumbs`** plus the page description.
 
 **Don't copy:** the open-state text worked out in the browser, the colour meanings, or the uppercase title.
@@ -126,22 +132,22 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 ### Badly or wrongly done
 
 - **Five of the nine cards are empty placeholders.** That is scaffolding shipped as a screen.
-- **Revenue arrives as a string,** is run through `parseFloat`, and is shown as `$` in `en-US`. Invariant 3 forbids floats in money paths.
+- **Revenue arrives as a string,** is run through `parseFloat`, and is shown as `$` in `en-US`. [Money is integer minor units (invariant 3)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants), so floats are forbidden in money paths.
 - **A trend arrow is always green.**
 - **It sits in the first nav slot, ahead of Orders,** though Orders is the job.
 
 ### Recommendation
 
 **Don't build a KPI dashboard for V1.**
-- The contract has **no analytics or summary endpoint**. R-29 (sales dashboard) is V2.
+- The contract has **no analytics or summary endpoint**. [The sales dashboard (R-29)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-29--sales-dashboard-and-analytics) is V2.
 - Any tiles we could make would be computed in the browser, or empty like the old ones.
 
 **Carry the "numbers first" habit into the screens that have data:**
 
 - **Orders board header:** counts by column (New / Preparing / Ready / Out for delivery), computed from the live list, and `missed_order_count` from `RestaurantAvailability`.
-- **Payouts header:** see §6.
+- **Payouts header:** see [payments](#6-payments-payments).
 
-**When R-29 lands,** use `Card` stat tiles with `Price`, and a single `color.viz.*` series per chart. Never green for "up" or red for "down"; use tint and arrow shape instead.
+**When [the sales dashboard (R-29)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-29--sales-dashboard-and-analytics) lands,** use `Card` stat tiles with `Price`, and a single `color.viz.*` series per chart. Never green for "up" or red for "down"; use tint and arrow shape instead.
 
 ---
 
@@ -216,12 +222,12 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 **Money.**
 - The line total is computed in the browser: `parseFloat(unit_price) * quantity`.
 - The total is a `$` string, parsed with `parseFloat`, shown as USD, and **coloured solid `text-green-600`**.
-- **Rule:** display the server's `line_total_cents` and `money.*` through `Price`. Never do arithmetic on money in the browser (invariants 1 and 3).
+- **Rule:** display the server's `line_total_cents` and `money.*` through `Price`. Never do arithmetic on money in the browser ([the server prices every order, and money is integer minor units (invariants 1 and 3)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)).
 
 **Colour.**
-- Accept is solid `bg-green-600` (L-4), and Reject is `destructive` red at the same size, right next to it.
+- Accept is solid `bg-green-600` (breaks [the no-green-solids lint rule (L-4)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/01-foundations.md#9-token-pipeline-and-lint-rules)), and Reject is `destructive` red at the same size, right next to it.
 - Urgency is shown with red backgrounds and a pulsing red dot.
-- "Delivered" is solid green text with a ✅ emoji.
+- "Delivered" is solid green text with a check-mark emoji.
 
 **Deadline.**
 - There is **no reject reason** and no confirmation.
@@ -231,7 +237,7 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 **Unsafe behaviour** (in `OrderNotificationDialog`, which was never mounted):
 - **Closing the dialog rejects the order.**
 - **A timer in the browser auto-rejects the order when it runs out.**
-- Both directly break R-24: closing never rejects, and only the server decides expiry.
+- Both directly break [the order acceptance rules (R-24)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-24--order-acceptance-rejection-and-response-timeout): closing never rejects, and only the server decides expiry.
 - The spec also rules out auto-accept, so there must be no automatic action in either direction.
 
 **Privacy and data.**
@@ -330,7 +336,7 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 
 **Menu detail.**
 1. **Header card:**
-   - The name, **editable in place** (a pencil appears on hover; Enter saves, Esc cancels).
+   - The name, **editable in place** (a pencil appears on hover; Enter saves, Escape cancels).
    - An Active badge and an Activate/Deactivate button.
    - A description, also editable in place.
    - The schedule line.
@@ -381,7 +387,7 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 
 **It doesn't match our model.**
 - **Multiple menus with schedules.** Our spec has one menu per restaurant with up to 40 categories.
-- **A struck-through "Original price".** That is discount/offer behaviour (R-21, V2), and a misleading-price risk.
+- **A struck-through "Original price".** That is discount/offer behaviour ([special offers and discounts (R-21)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-21--special-offers-discounts-and-combos), V2), and a misleading-price risk.
 
 **It makes halal-adjacent claims with nothing behind them.**
 - A **Veg / Non-Veg badge in red and green** on every item.
@@ -428,7 +434,7 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 | Prep | Minutes |
 
 - **Rows expand** to show variant groups and add-on groups with their prices, which is the old app's best idea.
-- Multi-select enables **bulk "Mark out of stock"** (R-18 allows up to 200). The contract has no bulk endpoint, so either loop the single endpoint or add one.
+- Multi-select enables **bulk "Mark out of stock"** ([item availability rules (R-18)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-18--item-availability-and-out-of-stock-management) allow up to 200). The contract has no bulk endpoint, so either loop the single endpoint or add one.
 - No bars or sparklines here: there is no sales data per item.
 
 **Editor in the `aside`.** Replace the wizard with **two labelled groups**:
@@ -436,9 +442,9 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 - **"Customers see these only after review":** name, description, ingredients, dietary tags, allergens (with an explicit "none" acknowledgement) and image. It ends with an explicit **Submit for approval**.
 - If a `pending_version` or `REJECTED` version exists, a `Banner` at the top shows `rejection_reason_code` and `review_note` word for word, with a comparison against the live version.
 - `HALAL_CERTIFIED` is never offered as a choice. **Halal is the restaurant's certificate, not a per-item tag.**
-- Keep the old next-step prompt after creating an item, but only for what the contract supports. Variant and add-on writes don't exist yet (R-20 is V2).
+- Keep the old next-step prompt after creating an item, but only for what the contract supports. Variant and add-on writes don't exist yet ([variants and modifier groups (R-20)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-20--variants-and-modifier-groups) are V2).
 
-**Add-ons.** Wait for R-20 and the contract. When they land, reuse the old reusable-library pattern: a LyteNyte grid plus a side-sheet editor.
+**Add-ons.** Wait for [variants and modifier groups (R-20)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-20--variants-and-modifier-groups) and the contract. When they land, reuse the old reusable-library pattern: a LyteNyte grid plus a side-sheet editor.
 
 **Categories.** They live in the rail rather than on their own page. The contract has create only, so rename, reorder and delete need contract work first.
 
@@ -455,9 +461,9 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 **Badly done:** a placeholder page with a route.
 
 **Recommendation.** Leave it out of the nav.
-- Disputes (R-33) are V2.
+- [Escalations and disputes (R-33)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-33--escalations-and-disputes) are V2.
 - The contract has no restaurant ticket or refund endpoints.
-- When they land, design them as a thread using the notification-list pattern (§9) plus a `StatusTimeline`. Money must move only through ledger adjustments; never offer a "refund" button.
+- When they land, design them as a thread using the notification-list pattern (see [notifications stream](#11-notifications-stream)) plus a `StatusTimeline`. Money must move only through ledger adjustments; never offer a "refund" button.
 
 ---
 
@@ -518,7 +524,7 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 **Numbers first,** limited to what the contract carries.
 
 **Header strip:**
-- **Next payout**: "Monday", from S-04's weekly schedule, plus the amount of the newest payout that is not yet `PAID`.
+- **Next payout**: "Monday", from the [weekly Monday payout cadence (S-04)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--client-decisions), plus the amount of the newest payout that is not yet `PAID`.
 - **Last paid**: amount and date.
 - **Held or failed**: a count, using `Banner` when greater than zero.
 
@@ -539,7 +545,7 @@ Each is a `Card` with `Price`, and each blank shows "—" rather than an invente
 
 **Row detail** in the `aside`: the old detail-sheet layout of status, amounts and the failure block, without the Stripe IDs.
 
-**Contract gap.** The per-order earnings breakdown and the pending/available balance need the R-31 ledger endpoint, which doesn't exist yet. Record it as a contract item. Don't compute it in the browser.
+**Contract gap.** The per-order earnings breakdown and the pending/available balance need the ledger endpoint of [earnings ledger and statements (R-31)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-31--earnings-ledger-statements-and-payment-history), which doesn't exist yet. Record it as a contract item. Don't compute it in the browser.
 
 ---
 
@@ -562,7 +568,7 @@ Each is a `Card` with `Price`, and each blank shows "—" rather than an invente
 
 **2. Documents.**
 - Four upload tiles: business licence, **halal certificate**, food safety, owner ID.
-- Each tile is a dashed dropzone ("PDF, PNG, JPG up to 10MB"). Once uploaded it becomes a **thumbnail preview + file name + "Uploaded successfully" + remove**, with a spinner per tile while uploading.
+- Each tile is a dashed drop area ("PDF, PNG, JPG up to 10MB"). Once uploaded it becomes a **thumbnail preview + file name + "Uploaded successfully" + remove**, with a spinner per tile while uploading.
 
 **3. Payment.**
 - A review-status card with "Refresh status".
@@ -605,8 +611,8 @@ Each is a `Card` with `Price`, and each blank shows "—" rather than an invente
 
 **Colour.**
 - Stripe "No" is shown in red, and a solid green check marks success.
-- The rejected page uses a red XCircle and a red reason block.
-- Emoji ("🎉").
+- The rejected page uses a red `XCircle` icon and a red reason block.
+- Emoji (a party popper).
 
 **The halal certificate is just a file upload.**
 - It captures no issuer, number or expiry.
@@ -690,7 +696,7 @@ Open the onboarding link in the same tab, and handle the return to this page.
 
 **Keep the old read-then-edit cards** (Business profile, Owner, Tax/GST-HST, Delivery and prep), each with its own Edit/Save and field-level server errors.
 
-**Remove unwired notification switches.** The spec says `ORDER_NEW` cannot be turned off, and the contract has no preferences endpoint.
+**Remove notification switches that do nothing.** The spec says `ORDER_NEW` cannot be turned off, and the contract has no preferences endpoint.
 
 **Automatic scheduling** is covered by our `open_state` model: CLOSED_HOURS happens automatically. Say that in the Hours copy instead of offering a switch.
 
@@ -725,7 +731,7 @@ It exists. Today there is only an 11px account-state chip in Settings.
 
 ### Badly or wrongly done
 
-- **It is a dead end that locks the owner out.** R-36 says a suspended restaurant keeps **read access**: accepted orders complete, payouts pause, and history stays visible.
+- **It is a dead end that locks the owner out.** [Account status and suspension (R-36)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-36--account-status-suspension-reinstatement-and-in-flight-orders) says a suspended restaurant keeps **read access**: accepted orders complete, payouts pause, and history stays visible.
 - **It is red.**
 - **It never says what happens to in-flight orders and payouts.**
 
@@ -811,7 +817,7 @@ Actions that would change anything are disabled, with the reason in a `Tooltip`.
 
 Only `restaurant.order.new` becomes a notification; other events are filtered out as "UI events".
 
-**Documentation.** `docs/notifications.md` catalogues every notification: its type, category, priority, data fields and an example payload. That is good practice.
+**Documentation.** `old:docs/notifications.md` catalogues every notification: its type, category, priority, data fields and an example payload. That is good practice.
 
 ### Better than today
 
@@ -858,7 +864,7 @@ Today's app has **no notifications UI at all**, even though the contract has `li
    - `fix` → Bug Fixes
    - `perf` → Performance
    - `refactor` → Improvements
-   - docs, chore, test, ci and build are hidden
+   - `docs`, `chore`, `test`, `ci` and `build` are hidden
 2. That produces `CHANGELOG.md`.
 3. A script turns `CHANGELOG.md` into `public/changelog/index.json` plus one JSON file per release. Types are `ChangelogRelease {version, date, sections[{title, items[{scope, description}]}]}`.
 
@@ -926,7 +932,7 @@ Today's app has **no notifications UI at all**, even though the contract has `li
 | 12 | **Realtime that resumes and backs off on reconnect** | `useNotifications.ts` | One WebSocket client for board, badge and bell |
 | 13 | **Page-level errors that leave the rest of the page usable** | dashboard, payments | `ErrorState` per panel, not per page |
 | 14 | **Timelines with who did what** | `OrderEventTimeline.tsx` | `StatusTimeline` (actor in the secondary line) |
-| 15 | **A catalogue of notification types**, documented | `docs/notifications.md` | Keep a restaurant notification catalogue next to `contracts/` |
+| 15 | **A catalogue of notification types**, documented | `old:docs/notifications.md` | Keep a restaurant notification catalogue next to `contracts/` |
 
 ---
 
@@ -934,20 +940,20 @@ Today's app has **no notifications UI at all**, even though the contract has `li
 
 | Old behaviour | Rule broken | Where |
 |---|---|---|
-| Line totals computed in the browser (`parseFloat(unit_price) × qty`) and money handled as floats | Invariants 1 and 3 | orders pages |
+| Line totals computed in the browser (`parseFloat(unit_price) × qty`) and money handled as floats | [Server prices every order; money is integer minor units (invariants 1 and 3)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) | orders pages |
 | USD formatting | Market is CAD | settlements utilities |
-| Fee % and pending totals computed in the browser | Invariants 1 and 3 | payments |
-| Solid green Accept, solid green switch, green totals, green bars | Invariant 10 / L-4 | orders, status bar, payments |
+| Fee % and pending totals computed in the browser | [Server prices every order; money is integer minor units (invariants 1 and 3)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) | payments |
+| Solid green Accept, solid green switch, green totals, green bars | [Solid green is halal-only (invariant 10)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) / [no green solids (L-4)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/01-foundations.md#9-token-pipeline-and-lint-rules) | orders, status bar, payments |
 | Red urgency, red counters, red "Non-Veg" | "Never red for a halal state"; red "Non-Veg" also reads as a halal ruling | orders, menu |
-| "Halal certified: Yes/No" where a missing field reads as "No" | Invariant 8 | profile |
+| "Halal certified: Yes/No" where a missing field reads as "No" | [A missing halal field renders no badge (invariant 8)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) | profile |
 | No halal state, certifier or expiry anywhere in the operating app | The product's one claim | whole app |
-| Closing the dialog rejects the order; the browser timer auto-rejects | R-24: closing never rejects; the server decides expiry | `OrderNotificationDialog.tsx` |
-| Reject with no reason and no confirmation | R-24: reason codes required | orders |
-| Full name, raw phone and address before accept | R-23 privacy rules | orders |
-| Menu edits go live instantly, and there is no allergen acknowledgement | R-15 and R-17 review | menu form |
+| Closing the dialog rejects the order; the browser timer auto-rejects | [Order acceptance rules (R-24)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-24--order-acceptance-rejection-and-response-timeout): closing never rejects; the server decides expiry | `OrderNotificationDialog.tsx` |
+| Reject with no reason and no confirmation | [Order acceptance rules (R-24)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-24--order-acceptance-rejection-and-response-timeout): reason codes required | orders |
+| Full name, raw phone and address before accept | [Live order dashboard (R-23)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-23--live-order-dashboard) privacy rules | orders |
+| Menu edits go live instantly, and there is no allergen acknowledgement | [Menu item authoring (R-15)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-15--menu-item-authoring) and [menu change approval (R-17)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-17--menu-change-approval-workflow-admin) review | menu form |
 | Onboarding ticks always shown as done, and a 70% fallback | Claims must trace to data | onboarding |
 | Notification switches that save nothing | Screens must be real | settings |
-| A suspended account is a dead-end page | R-36: read access continues | account-suspended |
+| A suspended account is a dead-end page | [Account status and suspension (R-36)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-36--account-status-suspension-reinstatement-and-in-flight-orders): read access continues | account-suspended |
 | Placeholder pages ("Upcoming", disabled categories, "No data yet" charts) | Every screen must work | disputes, categories, dashboard |
 
 ---
@@ -957,12 +963,12 @@ Today's app has **no notifications UI at all**, even though the contract has `li
 These must be decided before the artboards, not worked around in the client.
 
 - **No restaurant analytics or summary endpoint.** It blocks dashboard tiles and any sparklines other than the payout amounts.
-- **No ledger or balance endpoint (R-31).** It blocks the old per-order earnings breakdown and "pending balance".
-- **Order history has no text or date filters and no export (R-27).**
+- **No ledger or balance endpoint ([earnings ledger and statements (R-31)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-31--earnings-ledger-statements-and-payment-history)).** It blocks the old per-order earnings breakdown and "pending balance".
+- **Order history has no text or date filters and no export ([order history, search and export (R-27)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/03-restaurant.md#r-27--order-history-search-and-export)).**
 - **Menu writes are missing:**
   - category update, reorder and delete
   - bulk availability
   - variant and add-on writes
   - explicit submit and withdraw of a version
 - **No map component in `@hg/ui-web`,** needed for the onboarding location picker and any rider map.
-- **LyteNyte Grid cell components (#141):** a status chip, counter, money, inline bar, sparkline, switch and thumbnail+name cell. Each needs its colours checked against L-4 and the halal-state rules.
+- **LyteNyte Grid cell components (#141):** a status chip, counter, money, inline bar, sparkline, switch and thumbnail+name cell. Each needs its colours checked against [the no-green-solids lint rule (L-4)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/01-foundations.md#9-token-pipeline-and-lint-rules) and the halal-state rules.
