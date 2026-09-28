@@ -48,8 +48,8 @@ export const ACCESSIBLE_LABEL: Readonly<Record<HalalDisplayState, string>> = {
 export function standingDisclaimer(verifiedAtIso: string | null | undefined): string {
   const on = verifiedAtIso ? formatAbsoluteDate(verifiedAtIso) : null;
   return on
-    ? `Certification verified by Halal Goes on ${on}. Halal Goes does not itself certify food.`
-    : 'Halal Goes does not itself certify food.';
+    ? `Certification verified by HalalGoes on ${on}. HalalGoes does not itself certify food.`
+    : 'HalalGoes does not itself certify food.';
 }
 
 /**

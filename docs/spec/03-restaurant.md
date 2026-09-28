@@ -6,7 +6,7 @@ covers:
 reviewed: 2026-09-28
 ---
 
-# Halal Goes — RESTAURANT domain specification
+# HalalGoes — RESTAURANT domain specification
 
 **Status**: implementable spec, derived from SOW items 1–8 (Restaurant section).
 **Target**: Go modular monolith, single binary. Postgres + Redis + MinIO + Traefik. No Temporal, no
@@ -761,7 +761,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Rules**:
   1. No bank account number, transit number, institution number or SIN is ever accepted by, or
-     stored in, the Halal Goes database. `bank_last4` and `bank_institution_name` are display-only
+     stored in, the HalalGoes database. `bank_last4` and `bank_institution_name` are display-only
      values echoed back by Stripe.
   2. Account Link TTL is Stripe's (a few minutes); the server records
      `onboarding_link_expires_at` and refuses to reuse an expired link, minting a new one instead.

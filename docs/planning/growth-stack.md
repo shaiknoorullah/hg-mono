@@ -1,6 +1,6 @@
 # Marketing-intelligence plane (v2) — self-hosted, best-of-breed
 
-_Halal Goes. **Scope: v2, plan-and-document now, build later.** This plane is **user + platform
+_HalalGoes. **Scope: v2, plan-and-document now, build later.** This plane is **user + platform
 data for marketing intelligence** — Martech, Adtech, CDP, engagement, flags/experiments. It is
 **not** the transactional OLTP plane (orders/ledger) and **not** the technical telemetry plane
 (see `telemetry-stack.md`). Researched Aug 2026._

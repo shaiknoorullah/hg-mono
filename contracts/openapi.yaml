@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: Halal Goes Platform API
+  title: HalalGoes Platform API
   version: 0.1.0
-  summary: Machine-readable contract for the Halal Goes marketplace (V0 cut).
+  summary: Machine-readable contract for the HalalGoes marketplace (V0 cut).
   description: |
-    **This document is the single source of truth for every wire shape on the Halal Goes
+    **This document is the single source of truth for every wire shape on the HalalGoes
     platform.** Generated clients are produced from it; hand-edited clients are forbidden.
 
     Derived from `docs/spec/00-overview.md` … `docs/spec/05-admin.md` and
@@ -49,7 +49,7 @@ info:
     Operations carry `x-version: V0` (in the 43-feature V0 cut) or `x-version: V1`
     (needed to make a V0 screen coherent, but not itself V0).
   contact:
-    name: Halal Goes platform team
+    name: HalalGoes platform team
     email: shaiknooru247@gmail.com
   license:
     name: UNLICENSED
@@ -7755,7 +7755,7 @@ components:
       required: [display_state, disclaimer]
       description: |
         C-12. The platform's core promise, made inspectable. The standing disclaimer is fixed
-        copy: "Certification verified by Halal Goes on {date}. Halal Goes does not itself
+        copy: "Certification verified by HalalGoes on {date}. HalalGoes does not itself
         certify food."
       properties:
         display_state:

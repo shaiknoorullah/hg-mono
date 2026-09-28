@@ -76,7 +76,7 @@ inside Next but needs Postgres for content; Decap needs an OAuth broker. Keystat
 ## 3. Design system — the anti-slop problem, stated honestly
 
 Anthropic's own design guidance names the current AI-design cliché explicitly: *warm cream ground,
-serif display, terracotta accent*. Halal Goes' locked palette is a warm cream ground (`#FFFAEA`) with
+serif display, terracotta accent*. HalalGoes' locked palette is a warm cream ground (`#FFFAEA`) with
 an orange accent (`#F1521E`). The palette is not the problem — it is recovered from the old deployed
 brand and documented in a decisions entry, so it is heritage, not a default. **But it means the
 palette cannot do any differentiating work, and every other axis has to.**

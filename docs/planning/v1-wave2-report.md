@@ -1,4 +1,4 @@
-# Halal Goes — v1 Wave 2 Integration Report
+# HalalGoes — v1 Wave 2 Integration Report
 
 _Date: 2026-08-15 · Branch: `integration` · Merge commit: `4edac27`_
 

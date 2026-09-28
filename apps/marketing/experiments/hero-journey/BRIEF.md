@@ -1,7 +1,7 @@
 # Brief — the whole marketing site as one scroll journey, as a live prototype
 
 You are building **one self-contained, scrollable HTML page** that ports the **entire**
-Halal Goes marketing site into a single scroll-driven storytelling journey, in **one
+HalalGoes marketing site into a single scroll-driven storytelling journey, in **one
 assigned visual direction**. The client will open it and scroll it to test the pacing. It
 is a prototype for judging choreography and content, not production code.
 

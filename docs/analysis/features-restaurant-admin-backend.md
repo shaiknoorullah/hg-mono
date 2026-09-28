@@ -1,4 +1,4 @@
-# Halal Goes — Feature Inventory: Restaurant App, Admin Dashboard, Backend
+# HalalGoes — Feature Inventory: Restaurant App, Admin Dashboard, Backend
 
 Scope: everything that exists today (working or not) across the restaurant-facing apps, the admin
 dashboard, and the backend. Built for scoping a from-scratch rebuild as a single Go binary.

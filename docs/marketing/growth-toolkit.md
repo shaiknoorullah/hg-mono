@@ -1,4 +1,4 @@
-# Halal Goes — Growth & Marketing Toolkit
+# HalalGoes — Growth & Marketing Toolkit
 
 _Synthesis of 7 research lanes (landing inspiration · copywriting · CRO · SEO/GEO+analytics ·
 marketing MCPs · design/creative MCPs · awesome-repos). Ranked, deduped, and wired **onto** the

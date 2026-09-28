@@ -204,7 +204,7 @@ Body — the `Signup` type in `src/lib/waitlist-store.ts:20`:
   "audience": "customer",
   "contact": "someone@example.com",
   "kind": "email",
-  "consentText": "I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.",
+  "consentText": "I agree to receive one launch email from HalalGoes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.",
   "consentedAt": "2026-09-21T14:03:11.427Z",
   "context": "hero",
   "utm": { "utm_source": "instagram", "utm_campaign": "launch" }

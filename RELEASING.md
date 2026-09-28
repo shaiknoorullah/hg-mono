@@ -4,7 +4,7 @@ covers:
 reviewed: 2026-09-28
 ---
 
-# Releasing Halal Goes
+# Releasing HalalGoes
 
 The single place the go-live configuration lives. Full engineering status:
 [`docs/planning/v1-status.md`](docs/planning/v1-status.md).

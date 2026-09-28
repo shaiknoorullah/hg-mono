@@ -13,7 +13,7 @@ _Sep 2026, client-confirmed. Supersedes the interim Crimson direction for the pr
 
 ## Decision
 
-Adopt the **cleaned old-brand (Halal Goes) palette** — recovered from the old project's deployed
+Adopt the **cleaned old-brand (HalalGoes) palette** — recovered from the old project's deployed
 site — kept ≥90% faithful, refined for cleaner ramps and contrast:
 
 | Role | Token | Hex |

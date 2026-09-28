@@ -137,7 +137,7 @@
   <div class="wrap">
     <div class="eyebrow">Migration evaluation · 4 deep-dive agents + spec review</div>
     <h1>hg-mono — should ts-monorepo-template be the base?</h1>
-    <p class="lede">Evaluating <code>ts-monorepo-template</code> as the foundation for consolidating all of Halal Goes into one monorepo, with a Go-microservices backend built under strict TDD.</p>
+    <p class="lede">Evaluating <code>ts-monorepo-template</code> as the foundation for consolidating all of HalalGoes into one monorepo, with a Go-microservices backend built under strict TDD.</p>
     <div class="metabar">
       <span><b>Candidate</b> shaiknoorullah/ts-monorepo-template</span>
       <span><b>Target</b> hg-mono · Go services · contracts-first · TDD</span>
@@ -167,7 +167,7 @@
     <p class="sec-intro">The request bundles three distinct calls. Separating them is the key to the recommendation: the direction is right, but this specific repo is a pattern library to harvest — not a turnkey base to fork.</p>
     <div class="verdicts">
       <div class="vc yes">
-        <div class="q">Consolidate all Halal Goes projects into one <code>hg-mono</code> monorepo?</div>
+        <div class="q">Consolidate all HalalGoes projects into one <code>hg-mono</code> monorepo?</div>
         <span class="badge yes">Strongly yes</span>
         <p>It structurally cures the platform's worst disease — frontend↔backend contract drift.</p>
       </div>
@@ -192,10 +192,10 @@
 <section id="why-mono">
   <div class="wrap">
     <div class="sec-num">02 / WHY A MONOREPO</div>
-    <h2>The monorepo fixes what broke Halal Goes</h2>
+    <h2>The monorepo fixes what broke HalalGoes</h2>
     <p class="sec-intro">Independent of which base you pick, consolidation is the right move — because the atlas's single worst finding is a direct consequence of splitting frontend and backend across repos.</p>
     <div class="prose">
-      <p>Halal Goes shipped <strong>two backends</strong>: the apps call ~60 endpoints that don't exist in the published API, with silent payload mismatches like <code>{is_accepting}</code> vs <code>{isAccepting}</code>. That happened because the only "contract" between repos was a hand-maintained Hoppscotch collection that drifted.</p>
+      <p>HalalGoes shipped <strong>two backends</strong>: the apps call ~60 endpoints that don't exist in the published API, with silent payload mismatches like <code>{is_accepting}</code> vs <code>{isAccepting}</code>. That happened because the only "contract" between repos was a hand-maintained Hoppscotch collection that drifted.</p>
       <p>The template's <strong>buf-based cross-language contracts pipeline</strong> is the exact antidote — and it's the one component all four agents independently rated genuinely excellent. A single <code>.proto</code> source generates typed <strong>Go servers and TS / React Native clients together</strong>, with a CI drift gate that fails the build when generated code and committed code diverge. In a monorepo, the two-backends failure becomes structurally impossible. That alone justifies the direction.</p>
     </div>
   </div>
@@ -261,7 +261,7 @@
       <table>
         <thead><tr><th style="width:170px">Option</th><th>What it means</th><th>Verdict</th></tr></thead>
         <tbody>
-          <tr><td><b>Fork wholesale</b></td><td>"Use this template", build Halal Goes on top of all 1,524 files.</td><td class="no" style="color:var(--crit);font-weight:600">Reject — you'd own hollow CI, a multi-tenant tax, and misleading docs.</td></tr>
+          <tr><td><b>Fork wholesale</b></td><td>"Use this template", build HalalGoes on top of all 1,524 files.</td><td class="no" style="color:var(--crit);font-weight:600">Reject — you'd own hollow CI, a multi-tenant tax, and misleading docs.</td></tr>
           <tr><td><b>Harvest into fresh repo</b></td><td>New <code>hg-mono</code>; copy in the proven substrate; rewrite docs; wire real gates.</td><td class="ok" style="color:var(--accent);font-weight:600">Recommended — proven parts in days, clean provenance, trustworthy CI.</td></tr>
           <tr><td><b>Ignore entirely</b></td><td>Greenfield monorepo from scratch.</td><td style="color:var(--warn);font-weight:600">Wasteful — the contracts pipeline + Nx polyglot config are worth harvesting.</td></tr>
         </tbody>
@@ -332,7 +332,7 @@
         </div></div>
         <div class="stage"><div class="ph"><b>Phase 2</b><span>weeks→months</span></div><div class="bd">
           <h4>The hard cores, under TDD</h4>
-          <p>Build checkout saga (Temporal, done right), geo dispatch, realtime tracking, and outbox/eventing. These are exactly Halal Goes' buggiest areas — TDD here pays for itself immediately.</p>
+          <p>Build checkout saga (Temporal, done right), geo dispatch, realtime tracking, and outbox/eventing. These are exactly HalalGoes' buggiest areas — TDD here pays for itself immediately.</p>
         </div></div>
         <div class="stage"><div class="ph"><b>Phase 3</b><span>weeks</span></div><div class="bd">
           <h4>Frontends into the monorepo</h4>

@@ -1,6 +1,6 @@
 # Admin order-detail view (with live tracking)
 
-_Halal Goes — admin console. Opens when an admin clicks an order row in the orders grid
+_HalalGoes — admin console. Opens when an admin clicks an order row in the orders grid
 (LyteNyte). The single place an admin sees everything about one order and can act on it or
 reach any party. Captured Aug 2026 from product direction._
 

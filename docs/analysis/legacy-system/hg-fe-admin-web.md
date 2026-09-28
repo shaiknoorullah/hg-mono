@@ -1,10 +1,10 @@
-# Halal Goes — admin-web Dashboard (apps/admin-web) — Exhaustive Analysis
+# HalalGoes — admin-web Dashboard (apps/admin-web) — Exhaustive Analysis
 
 Analyzed: 2026-08-09. Scope: `/home/user/halal-goes/apps/admin-web` (all source/config files; node_modules, lockfiles, binaries excluded).
 
 ## 1. Purpose & Role
 
-`admin-web` is the internal **operations/back-office dashboard** for the Halal Goes food-delivery platform. It is a **Next.js 15.5.7 (App Router, React 19.1.2, Turbopack)** web app inside the Turborepo, running on **dev port 3003** (`next dev --turbopack --port 3003`). Admins use it to:
+`admin-web` is the internal **operations/back-office dashboard** for the HalalGoes food-delivery platform. It is a **Next.js 15.5.7 (App Router, React 19.1.2, Turbopack)** web app inside the Turborepo, running on **dev port 3003** (`next dev --turbopack --port 3003`). Admins use it to:
 
 - Log in with email/password against the backend (`/auth/admin/login`) and manage sessions with JWT access/refresh tokens.
 - Review and approve/reject/suspend/ban/reinstate **restaurant** onboarding applications (including viewing uploaded verification documents via presigned MinIO URLs).

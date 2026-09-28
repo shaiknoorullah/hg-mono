@@ -3,7 +3,7 @@ covers: []
 reviewed: 2026-09-28
 ---
 
-# Halal Goes — Layout Patterns by Surface
+# HalalGoes — Layout Patterns by Surface
 
 **Status:** system of record · **Date:** 2026-08-10
 **Depends on:** [`01-foundations.md`](./01-foundations.md), [`02-components.md`](./02-components.md), [`tokens.json`](./tokens.json)
@@ -32,7 +32,7 @@ And one that is specific to this product:
 
 **Layout.** Collapsing `AppBar variant="large"` carrying the **address selector** as its title (location-first, per HungerStation — the catalogue is meaningless without an address) → persistent `Input variant="search"` pinned below the AppBar, always visible, never a magnifier that expands → **the standing certification header** → the fixed feed sections → `BottomNav`.
 
-**The standing certification header.** A single full-width strip directly under the search field, on `halal.certified.tint`, with the seal glyph and the fixed line: **"Every restaurant on Halal Goes is halal certified."** (C-11). It is stated once, at the top, and never repeated per section.
+**The standing certification header.** A single full-width strip directly under the search field, on `halal.certified.tint`, with the seal glyph and the fixed line: **"Every restaurant on HalalGoes is halal certified."** (C-11). It is stated once, at the top, and never repeated per section.
 
 > **Divergence D5 in practice.** HungerStation's home is a grid of vertical tiles (food / grocery / pharmacy / flowers) with filters below. We have one vertical and one guarantee. Copying the tile grid would build empty rooms; copying the filter row would offer a "halal" filter that implies non-certified listings exist. Instead the guarantee is a statement, and the seal on each card is its per-listing proof.
 
@@ -103,7 +103,7 @@ floating cart bar (sum of quantities, not distinct lines)
 **Loading.** Hero skeleton at 16:9 → **the certification panel skeleton reserves the seal at `lg` size and shows three metadata lines**; it never shows a spinner where the seal will be (§0 rule 4 — a briefly-empty certification area on a trust product reads as "no certification") → availability strip skeleton → tab strip skeleton → 4 menu-row skeletons. Menu payload is cached 5 min (C-13 R5); a cache hit renders instantly and revalidates behind a 2px bar.
 
 **Error.**
-- *Restaurant 404* — which is what an `EXPIRED`/`UNVERIFIED` restaurant returns (C-12 R1) — → a full-page state: "This restaurant isn't available on Halal Goes right now." **Do not say "certification expired"** on a customer surface; C-12's decision default hides the restaurant entirely precisely so customers never learn that non-certified restaurants exist on the platform. Action: "Browse restaurants near you".
+- *Restaurant 404* — which is what an `EXPIRED`/`UNVERIFIED` restaurant returns (C-12 R1) — → a full-page state: "This restaurant isn't available on HalalGoes right now." **Do not say "certification expired"** on a customer surface; C-12's decision default hides the restaurant entirely precisely so customers never learn that non-certified restaurants exist on the platform. Action: "Browse restaurants near you".
 - *Certification endpoint fails, detail succeeds* → the page renders; the panel shows `ErrorState variant="inline"` + Retry and **draws no seal**. The seal is never rendered from cache or from the list payload.
 - *Menu fails, detail succeeds* → the panel and availability persist; the menu area gets an inline error + Retry.
 
