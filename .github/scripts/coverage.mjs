@@ -39,7 +39,6 @@ const GO_MODULE = 'github.com/shaiknoorullah/hg-mono/services/hg';
 const JS = [
   { name: 'admin', dir: 'apps/admin', runner: 'vitest' },
   { name: 'restaurant', dir: 'apps/restaurant', runner: 'vitest' },
-  { name: 'gallery-web', dir: 'apps/gallery-web', runner: 'vitest' },
   { name: 'ui-web', dir: 'packages/ui-web', runner: 'vitest' },
   { name: 'customer', dir: 'apps/customer', runner: 'jest' },
   { name: 'rider', dir: 'apps/rider', runner: 'jest' },
