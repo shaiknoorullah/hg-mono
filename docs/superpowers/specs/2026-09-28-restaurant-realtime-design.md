@@ -1,3 +1,9 @@
+---
+covers:
+  - apps/restaurant/src/**
+reviewed: 2026-09-28
+---
+
 # Restaurant app — live updates and rider map
 
 **Status:** design approved 2026-09-28 · **Kind:** product feature (`apps/restaurant`)
@@ -33,10 +39,10 @@ Four smaller defects sit in the same code and are fixed here:
 
 ## 3. Connection
 
-`RealtimeProvider`, mounted once per signed-in session in `apps/restaurant/src/lib/realtime.ts` (+ a `useRealtime()` hook):
+`RealtimeProvider`, mounted once per signed-in session in a new `src/lib/realtime.ts` in `apps/restaurant/` (+ a `useRealtime()` hook):
 
 1. `POST /v1/realtime/ticket` → open the socket with the single-use ticket.
-2. Subscribe `restaurant:{restaurantId}`, plus `order:{id}` for each order currently rendered (subscribe on mount, unsubscribe on unmount).
+2. Subscribe `restaurant:{restaurantId}`, plus `order:{id}` for each order currently rendered (subscribe when the order is shown, unsubscribe when it leaves the screen).
 3. On close: reconnect with capped exponential backoff and a **fresh** ticket (tickets are single-use; reuse writes a `realtime.ticket_reuse` audit event). After reconnecting, refetch everything on screen — events missed while disconnected are not replayed.
 4. The sidebar's static "Live" label becomes a real indicator: **Live** / **Reconnecting…** / **Offline**. Per `02-components.md` (order card `stale` state): if the socket has been down more than 45 s, a banner above the queue says so and cards dim 10% — a stale queue must announce itself.
 
@@ -52,11 +58,11 @@ An event never patches local state from its payload. It invalidates and refetche
 | `order.state_changed`, `dispatch.assigned`, `order.eta_updated` | that order |
 | `restaurant.status_changed` | availability (Hours page toggle) |
 | `restaurant.payout_updated` | payouts |
-| `rider.location` | the only payload rendered directly — the map circle's position (§5) |
+| `rider.location` | the only payload rendered directly — the map circle's position (see [rider map](#5-rider-map)) |
 
 Why: it keeps the app correct when Redis is flushed or events are dropped (the repo's disposable-Redis rule), and it follows the contract's rule that money, distance and ETA are never derived from event payloads.
 
-Accessibility (`04-accessibility.md` §4): a live refetch never moves focus. New offers are announced politely through a live region; the sound is a second channel, never the only one.
+Accessibility ([focus is never moved on a data refresh](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/04-accessibility.md#42-movement)): a live refetch never moves focus. New offers are announced politely through a live region; the sound is a second channel, never the only one.
 
 ## 5. Rider map
 
@@ -68,7 +74,7 @@ Engine and styles follow `apps/admin/src/components/LiveMapBox.tsx` (`mapbox-gl`
 
 ## 6. Defect fixes
 
-- **Duplicates** — the queue dedupes by order ID before rendering. Defensive: the backend should never repeat an ID (the mock fixture that does is a separate bug), and a kitchen must never see one order twice.
+- **Duplicates** — the queue drops repeated order IDs before rendering. Defensive: the backend should never repeat an ID (the mock fixture that does is a separate bug), and a kitchen must never see one order twice.
 - **Role label** — reads the principal's restaurant-scoped role (`RESTAURANT_OWNER` / `_MANAGER` / `_STAFF`).
 - **Action feedback** — Accept / Reject / Ready show a toast and the card transitions to its new state.
 - **Expired offers** — an offer past `expires_at` renders no Accept; Reject/Dismiss only.
@@ -77,10 +83,10 @@ Engine and styles follow `apps/admin/src/components/LiveMapBox.tsx` (`mapbox-gl`
 
 1. **Vitest** (few, high-value): (a) `restaurant.order_offered` triggers a queue refetch; (b) a reconnect uses a fresh ticket and triggers a full refetch; (c) a response with a repeated ID renders one card.
 2. **Development loop against the mock** — the mock plays scripted realtime sequences: `ws://localhost:4010/v1/ws?ticket=dev&scenario=<name>` with `realtime_order_happy_path`, `realtime_order_restaurant_rejects`, `realtime_order_timeout_no_rider`, `realtime_rider_reassigned` and `realtime_gap_and_resume` (the reconnect path). The feature can be built without the harness.
-3. **End-to-end acceptance with the harness** — `make dev-scenario s=journey` against the real backend: the offer appears without Refresh, Accept confirms, the rider circle moves, "Rider arrived" shows, the order leaves the queue on pickup. Run in the user's Chrome via Claude in Chrome. When this lands, the harness playbook steps that say "press Refresh" are rewritten to "appears without Refresh".
+3. **End-to-end acceptance with the harness** — the harness's planned `dev-scenario` make target with `s=journey`, against the real backend: the offer appears without Refresh, Accept confirms, the rider circle moves, "Rider arrived" shows, the order leaves the queue on pickup. Run in the user's Chrome via Claude in Chrome. When this lands, the harness playbook steps that say "press Refresh" are rewritten to "appears without Refresh".
 
 ## 8. Dependencies
 
-- Builds and unit-tests independently of the harness (mock WebSocket playback, §7.2).
-- End-to-end acceptance (§7.3) needs harness stage 3 (journey simulator).
+- Builds and unit-tests independently of the harness (mock WebSocket playback, the development loop in [verification](#7-verification)).
+- End-to-end acceptance (the harness run in [verification](#7-verification)) needs harness stage 3 (journey simulator).
 - `HG_CORS_ALLOWED_ORIGINS` must include `http://localhost:5183`; the realtime ticket call is a normal REST call and is subject to it.
