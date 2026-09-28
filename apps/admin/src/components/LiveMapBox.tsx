@@ -48,9 +48,10 @@ export interface LiveMapBoxProps {
  * coordinate. A dot on a map cannot know the thing it was claiming, so it must
  * not claim it.
  *
- * Green on this map belongs to the RIDER pin, which is the registered exception
- * to L-4 (`01-foundations.md` §2.6: a Halal Goes rider is not a certification
- * claim, and carries no shield). The restaurant pin is the action orange.
+ * Green on this map belongs to the RIDER pin, the one registered exception to
+ * the no-green lint (docs/design/01-foundations.md "Data-visualisation and map
+ * colours": a rider is not a certification claim, and carries no shield). The
+ * restaurant pin is the action orange.
  */
 const PIN_COLOUR: Record<MapPin['kind'], string> = {
   restaurant: 'var(--hg-color-map-pin-restaurant, #F1521E)',

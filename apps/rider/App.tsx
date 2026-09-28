@@ -77,17 +77,17 @@ function LoginGate(): React.ReactElement {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: theme.color.surface.base }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.container}>
-        <Text style={styles.title}>Rider sign in</Text>
+        <Text style={[styles.title, { color: theme.color.text.primary }]}>Rider sign in</Text>
 
         {phase === 'phone' ? (
           <>
-            <Text style={styles.label}>Phone number (e.g. +14165550100)</Text>
+            <Text style={[styles.label, { color: theme.color.text.secondary }]}>Phone number (e.g. +14165550100)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.color.border.interactive, color: theme.color.text.primary }]}
               value={phone}
               onChangeText={setPhone}
               placeholder="+1 416 555 0100"
@@ -97,7 +97,7 @@ function LoginGate(): React.ReactElement {
               editable={!busy}
               accessibilityLabel="Phone number"
             />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={[styles.error, { color: theme.color.feedback.danger.text }]}>{error}</Text> : null}
             <Pressable
               style={[styles.button, { backgroundColor: theme.color.action.primary }, busy && styles.buttonDisabled]}
               onPress={handleSendCode}
@@ -113,9 +113,9 @@ function LoginGate(): React.ReactElement {
           </>
         ) : (
           <>
-            <Text style={styles.label}>Enter the code sent to {phone}</Text>
+            <Text style={[styles.label, { color: theme.color.text.secondary }]}>Enter the code sent to {phone}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.color.border.interactive, color: theme.color.text.primary }]}
               value={code}
               onChangeText={setCode}
               placeholder="000000"
@@ -125,7 +125,7 @@ function LoginGate(): React.ReactElement {
               editable={!busy}
               accessibilityLabel="Verification code"
             />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={[styles.error, { color: theme.color.feedback.danger.text }]}>{error}</Text> : null}
             <Pressable
               style={[styles.button, { backgroundColor: theme.color.action.primary }, busy && styles.buttonDisabled]}
               onPress={handleVerify}
@@ -153,27 +153,26 @@ function LoginGate(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#fff' },
+  flex: { flex: 1 },
   container: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
     gap: 12,
   },
-  title: { fontSize: 24, fontWeight: '700', color: '#111', marginBottom: 8 },
-  label: { fontSize: 14, color: '#555' },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
+  label: { fontSize: 14 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#111',
   },
   button: {
     // Colour applied from the theme at the usage site: action.primary. Solid
-    // green here violated invariant 10 — green is the seal, never 'tap here'.
+    // green here broke the rule that solid green is reserved for halal status
+    // (AGENTS.md "Non-negotiable invariants"): green is the seal, never 'tap here'.
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -181,7 +180,7 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { fontSize: 16, fontWeight: '600' },
-  error: { color: '#c0392b', fontSize: 13 },
+  error: { fontSize: 13 },
   link: { alignItems: 'center', paddingVertical: 8 },
   linkText: { fontSize: 14 },
 });
