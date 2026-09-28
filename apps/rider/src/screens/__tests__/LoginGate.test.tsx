@@ -43,11 +43,15 @@ afterAll(() => {
   fetchSpy.mockRestore();
 });
 
+// Required once at module scope, after the spy (so the api client captures it), not inside a
+// test: the first require transforms the whole app graph, which on a cold jest cache (every CI
+// run) takes seconds and would otherwise count against the test's timeout.
+const App = (require('../../../App') as typeof import('../../../App')).default;
+
 describe('rider OTP login gate', () => {
   it('blocks the protected work loop and shows only the phone form pre-auth', () => {
     expect(isAuthed()).toBe(false);
 
-    const App = require('../../../App').default;
     render(<App />);
 
     expect(screen.getByText('Rider sign in')).toBeTruthy();
@@ -71,7 +75,6 @@ describe('rider OTP login gate', () => {
       return stubOk({ data: {} });
     });
 
-    const App = require('../../../App').default;
     render(<App />);
 
     fireEvent.changeText(screen.getByPlaceholderText('+1 416 555 0100'), '+14165550100');
