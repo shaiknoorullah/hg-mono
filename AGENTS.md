@@ -92,16 +92,18 @@ cd services/hg && make up && make migrate && make run
 
 ## 7. State as of the last commit
 
-**Done:** specification (198 features), decisions, design system, API contract (144 operations, 80 enums), generated client, 311 fixtures, mock server, 81 components, both galleries verified.
+**Done:** specification (198 features), decisions, design system, API contract (152 operations, 85 enums), generated client, 330 fixtures, mock server, 81 components.
 
-**In progress:** the Go backend. Skeleton, compose stack and the 91-table schema have landed. The seven domain modules are **not started** — briefs ready to dispatch in `docs/planning/backend-modules.md`.
+**Backend:** built. 23 packages in `services/hg/internal` (auth, catalog, orders, payments, dispatch, realtime, notify, …); `make check` is green, with the conformance gate covering every operation. See the [build-completion report](docs/reports/06-build-completion.html).
 
-**Not started:** the four apps (customer, rider, restaurant web, admin web).
+**Apps:** all four exist (customer, rider, restaurant web, admin web) and run against the real backend. They are being redesigned and rebuilt: #80–#83 (design), #87–#90 (build).
 
-**Blocked on a human** — see `docs/decisions/README.md`:
-- **O-01 HST registration** — no legal basis to charge tax without it (accountant)
-- **O-03 SMS / A2P registration** — nobody can sign in without phone OTP; longest lead time in the project
-- O-04 refund liability allocation · O-05 launch province (default Ontario) · O-06 self-declared halal listing (default: hide)
+**Blocked on a human** — see the [open decisions](docs/decisions/README.md#open--blocking) and the [launch checklist](docs/planning/v0-launch-checklist.md):
+- **[HST supplier position (O-01)](docs/decisions/README.md#open--blocking)** — the registration number is set; who is the supplier of record is still with the accountant.
+- **[SMS / OTP provider (O-03)](docs/decisions/README.md#open--blocking)** — nobody can sign in without verified Twilio credentials.
+- **Production hosting** and a **live Stripe account** — the backend has only ever run locally.
+
+Refund liability, launch province and self-declared halal restaurants are [settled](docs/decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1).
 
 ## 8. Known gaps
 

@@ -44,15 +44,12 @@ Where two specs disagreed, or a spec default contradicted a client decision.
 
 ## Open — blocking
 
-Cannot proceed on engineering judgement. *(O-02 resolved — see S-11.)*
+Cannot proceed on engineering judgement. *(Accepted certifying bodies is resolved — see [client decisions (S-11)](#settled--client-decisions). Refund liability, launch province and self-declared halal restaurants were settled in Sep 2026 — see [launch decisions](#settled--launch-decisions-sep-2026-client-confirmed-at-rc1).)*
 
 | # | Decision | Why it blocks | Owner |
 |---|---|---|---|
 | O-01 | **HST registration number + supplier position** — is the platform the deemed supplier for non-registrant restaurants, or does each restaurant remain supplier of record? | No legal basis to charge tax. Affects every invoice and payout | Client's accountant |
 | O-03 | **SMS / A2P registration** — which provider and account sends OTP | Nobody can sign in without it. A2P 10DLC approval takes days to weeks. Check whether the existing Supabase setup already has a usable Twilio account behind it | You — today |
-| O-04 | **Refund liability allocation** — who absorbs each refund reason code | Determines ledger postings and partner balances | You |
-| O-05 | **Launch province(s)** | Gates tax rates and address validation. Default: Ontario only | You |
-| O-06 | **Self-declared halal restaurants** — list behind an explicit filter, or hide entirely? | Product-defining. Default: hide entirely | You |
 
 
 ## Settled — launch decisions (Sep 2026, client-confirmed at rc1)
