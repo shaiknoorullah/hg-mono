@@ -1,3 +1,10 @@
+---
+covers:
+  - apps/rider/**
+  - services/hg/internal/rider/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — RIDER Domain Specification
 
 **Status:** implementation-ready draft · **Date:** 2026-08-10

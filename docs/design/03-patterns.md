@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-09-28
+---
+
 # Halal Goes — Layout Patterns by Surface
 
 **Status:** system of record · **Date:** 2026-08-10

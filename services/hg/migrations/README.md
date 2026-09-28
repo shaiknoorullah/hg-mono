@@ -1,3 +1,9 @@
+---
+covers:
+  - services/hg/migrations/**
+reviewed: 2026-09-28
+---
+
 # Halal Goes — database schema
 
 Postgres 17 + PostGIS 3.6 (the spec target; verified locally on Postgres 16 +
