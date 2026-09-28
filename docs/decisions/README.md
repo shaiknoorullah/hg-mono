@@ -49,11 +49,11 @@ Cannot proceed on engineering judgement. *(O-02 resolved — see S-11.)*
 
 | # | Decision | Why it blocks | Owner |
 |---|---|---|---|
+| O-07 | **What `popular_items` shows** — the home feed section is required ([home feed numbers (R-14)](#settled--reconciliations)) but undefined. The [home feed spec (C-09)](../spec/02-customer.md#c-09--home-feed) lists it and points at dish ratings; the contract types it as restaurant cards. Popular dishes (needs a dish card in the contract) or popular restaurants (ranked by what, and how is it different from trending)? | The section cannot be built until this is decided | You |
 | O-01 | **HST registration number + supplier position** — is the platform the deemed supplier for non-registrant restaurants, or does each restaurant remain supplier of record? | No legal basis to charge tax. Affects every invoice and payout | Client's accountant |
 | O-03 | **SMS / A2P registration** — which provider and account sends OTP | Nobody can sign in without it. A2P 10DLC approval takes days to weeks. Check whether the existing Supabase setup already has a usable Twilio account behind it | You — today |
 | O-04 | **Refund liability allocation** — who absorbs each refund reason code | Determines ledger postings and partner balances | You |
 | O-05 | **Launch province(s)** | Gates tax rates and address validation. Default: Ontario only | You |
-| O-07 | **What `popular_items` shows** — the home feed section is required ([home feed numbers (R-14)](#settled--reconciliations)) but undefined. The [home feed spec (C-09)](../spec/02-customer.md#c-09--home-feed) lists it and points at dish ratings; the contract types it as restaurant cards. Popular dishes (needs a dish card in the contract) or popular restaurants (ranked by what, and how is it different from trending)? | The section cannot be built until this is decided | You |
 | O-06 | **Self-declared halal restaurants** — list behind an explicit filter, or hide entirely? | Product-defining. Default: hide entirely | You |
 
 
