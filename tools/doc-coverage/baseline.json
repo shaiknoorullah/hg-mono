@@ -691,6 +691,8 @@
     "apps/restaurant/package.json:preview",
     "apps/rider/package.json:build:web",
     "apps/rider/package.json:ios",
+    "package.json:coverage:check",
+    "package.json:coverage:update-baseline",
     "package.json:generate:tokens",
     "packages/design-tokens/package.json:generate:tokens",
     "packages/ui-native/package.json:generate:icons",
