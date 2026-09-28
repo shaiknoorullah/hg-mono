@@ -1,15 +1,10 @@
 {
   "AGENTS.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: getters": 1,
     "HalalGoes.Spelling: unexported": 1,
     "HalalGoes.Spelling: xl": 1
   },
-  "README.md": {
-    "HalalGoes.Name: Halal Goes": 1
-  },
   "RELEASING.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: creds": 1,
     "HalalGoes.Spelling: misconfig": 1
   },
@@ -26,7 +21,6 @@
     "HalalGoes.Spelling: uncompressible": 1
   },
   "docs/analysis/base-evaluation/domain-fit.md": {
-    "HalalGoes.Name: Halal Goes": 14,
     "HalalGoes.Spelling: Keycloak": 2,
     "HalalGoes.Spelling: Meilisearch": 1,
     "HalalGoes.Spelling: Ory": 2,
@@ -110,7 +104,6 @@
     "HalalGoes.Spelling: uv": 1
   },
   "docs/analysis/contract-drift/REPORT.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Ajv": 1,
     "HalalGoes.Spelling: Consu": 1,
     "HalalGoes.Spelling: DTO's": 1,
@@ -130,7 +123,6 @@
     "HalalGoes.Spelling: undecodable": 1
   },
   "docs/analysis/features-customer-rider.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Comms": 1,
     "HalalGoes.Spelling: Contactless": 1,
     "HalalGoes.Spelling: HOCs": 1,
@@ -143,7 +135,6 @@
     "HalalGoes.Spelling: upsell": 1
   },
   "docs/analysis/features-restaurant-admin-backend.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Onboards": 1,
     "HalalGoes.Spelling: deps": 1,
     "HalalGoes.Spelling: erroring": 1,
@@ -160,7 +151,6 @@
     "HalalGoes.Spelling: uncomment": 2
   },
   "docs/analysis/legacy-system/crosscut-order-flow.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: calc": 1,
     "HalalGoes.Spelling: citext": 1,
     "HalalGoes.Spelling: const": 1,
@@ -172,14 +162,12 @@
     "HalalGoes.Spelling: util": 1
   },
   "docs/analysis/legacy-system/gap-contract-verification.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: coords": 6,
     "HalalGoes.Spelling: populator": 1,
     "HalalGoes.Spelling: portainer": 1,
     "HalalGoes.Spelling: priceable": 1
   },
   "docs/analysis/legacy-system/gap-git-history.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Aaqeb": 2,
     "HalalGoes.Spelling: Abid": 1,
     "HalalGoes.Spelling: Azeezz": 1,
@@ -210,7 +198,6 @@
     "HalalGoes.Spelling: zrems": 1
   },
   "docs/analysis/legacy-system/hg-api-commerce-services.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Citext": 1,
     "HalalGoes.Spelling: arg": 2,
     "HalalGoes.Spelling: datasource": 1,
@@ -235,7 +222,6 @@
     "HalalGoes.Spelling: zsets": 1
   },
   "docs/analysis/legacy-system/hg-api-data-deploy.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: COPYd": 1,
     "HalalGoes.Spelling: Citext": 1,
     "HalalGoes.Spelling: DBs": 1,
@@ -271,7 +257,6 @@
     "HalalGoes.Spelling: yamls": 1
   },
   "docs/analysis/legacy-system/hg-api-docs-contracts.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Mehdipatnam": 1,
     "HalalGoes.Spelling: REDIS_": 1,
     "HalalGoes.Spelling: TEMPORAL_": 1,
@@ -281,7 +266,6 @@
     "HalalGoes.Spelling: unpatched": 1
   },
   "docs/analysis/legacy-system/hg-api-identity-services.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Keyv": 2,
     "HalalGoes.Spelling: LIMITs": 1,
     "HalalGoes.Spelling: backrelation": 1,
@@ -297,7 +281,6 @@
     "HalalGoes.Spelling: upserts": 1
   },
   "docs/analysis/legacy-system/hg-docker-infra.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: IPs": 1,
     "HalalGoes.Spelling: coords": 1,
     "HalalGoes.Spelling: creds": 1,
@@ -309,7 +292,6 @@
     "HalalGoes.Spelling: unparameterized": 1
   },
   "docs/analysis/legacy-system/hg-fe-admin-web.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: Deps": 1,
     "HalalGoes.Spelling: KPIs": 1,
     "HalalGoes.Spelling: Turbopack": 1,
@@ -322,7 +304,6 @@
     "HalalGoes.Spelling: turbopack": 2
   },
   "docs/analysis/legacy-system/hg-fe-packages.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: JSONs": 1,
     "HalalGoes.Spelling: arity": 2,
     "HalalGoes.Spelling: libs": 1,
@@ -333,7 +314,6 @@
     "HalalGoes.Spelling: tseslint": 1
   },
   "docs/analysis/legacy-system/hg-fe-restaurant-apps.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: Kuala": 1,
     "HalalGoes.Spelling: Lumpur": 1,
     "HalalGoes.Spelling: PNGs": 1,
@@ -349,7 +329,6 @@
     "HalalGoes.Spelling: typo'd": 1
   },
   "docs/analysis/legacy-system/hg-fe-rider-app.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: coords": 3,
     "HalalGoes.Spelling: nativewind": 1,
     "HalalGoes.Spelling: plist": 1,
@@ -358,7 +337,6 @@
     "HalalGoes.Spelling: typo'd": 1
   },
   "docs/analysis/legacy-system/hg-fe-users-app.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: Debounced": 1,
     "HalalGoes.Spelling: ETAs": 1,
     "HalalGoes.Spelling: IRider": 1,
@@ -370,7 +348,6 @@
     "HalalGoes.Spelling: unseparated": 1
   },
   "docs/analysis/legacy-system/hg-fe-web-root.md": {
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: Bundler": 1,
     "HalalGoes.Spelling: Deps": 1,
     "HalalGoes.Spelling: ESNext": 1,
@@ -394,9 +371,6 @@
     "HalalGoes.Spelling: gzips": 1,
     "HalalGoes.Spelling: mockups": 1
   },
-  "docs/decisions/palette-and-invariant-10.md": {
-    "HalalGoes.Name: Halal Goes": 1
-  },
   "docs/deploy/marketing-vercel.md": {
     "HalalGoes.Spelling: Buttondown": 1,
     "HalalGoes.Spelling: Contabo": 1,
@@ -410,7 +384,6 @@
   "docs/design/01-foundations.md": {
     "HalalGoes.Claims: 100% Halal": 1,
     "HalalGoes.Claims: Verified halal": 1,
-    "HalalGoes.Name: Halal Goes": 7,
     "HalalGoes.Spelling: Appic": 2,
     "HalalGoes.Spelling: ETAs": 1,
     "HalalGoes.Spelling: Hungerstation": 1,
@@ -437,7 +410,6 @@
     "HalalGoes.Spelling: wayfinding": 1
   },
   "docs/design/02-components.md": {
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: PDFs": 1,
     "HalalGoes.Spelling: SRs": 1,
     "HalalGoes.Spelling: Textarea": 1,
@@ -458,7 +430,6 @@
   },
   "docs/design/03-patterns.md": {
     "HalalGoes.Emoji: ✅": 60,
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: Debounced": 1,
     "HalalGoes.Spelling: autoplay": 1,
     "HalalGoes.Spelling: debounced": 1,
@@ -470,7 +441,6 @@
     "HalalGoes.Spelling: scrollable": 1
   },
   "docs/design/04-accessibility.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: Greyscale": 1,
     "HalalGoes.Spelling: Plex": 1,
     "HalalGoes.Spelling: achromatopsia": 1,
@@ -480,17 +450,12 @@
     "HalalGoes.Spelling: simulable": 1,
     "HalalGoes.Spelling: templatable": 1
   },
-  "docs/design/admin-order-detail.md": {
-    "HalalGoes.Name: Halal Goes": 1
-  },
   "docs/design/handoff-verification.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: untampered": 1
   },
   "docs/design/landing-creative-direction.md": {
     "HalalGoes.Claims: 100% HALAL": 1,
     "HalalGoes.Claims: verified halal": 1,
-    "HalalGoes.Name: Halal Goes": 6,
     "HalalGoes.Spelling: Buell": 1,
     "HalalGoes.Spelling: JPEGs": 1,
     "HalalGoes.Spelling: Standfirst": 2,
@@ -513,7 +478,6 @@
   },
   "docs/design/reference/customer-home.html": {
     "HalalGoes.Claims: Verified halal": 1,
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: Mezze": 1,
     "HalalGoes.Spelling: Mughlai": 1,
     "HalalGoes.Spelling: Napoli": 1,
@@ -527,7 +491,6 @@
   },
   "docs/design/research/component-libraries.md": {
     "HalalGoes.Emoji: ✅": 2,
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Mantine": 1,
     "HalalGoes.Spelling: Reusables": 2,
     "HalalGoes.Spelling: gz": 1,
@@ -535,7 +498,6 @@
     "HalalGoes.Spelling: themable": 1
   },
   "docs/design/research/design-research.md": {
-    "HalalGoes.Name: Halal Goes": 4,
     "HalalGoes.Spelling: Atlassian": 2,
     "HalalGoes.Spelling: Careem": 1,
     "HalalGoes.Spelling: Conti": 1,
@@ -564,7 +526,6 @@
     "HalalGoes.Spelling: wireframe": 1
   },
   "docs/design/support-desk.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Vue": 1,
     "HalalGoes.Spelling: softphone": 1
   },
@@ -582,7 +543,6 @@
   },
   "docs/marketing/growth-toolkit.md": {
     "HalalGoes.Emoji: ⭐": 11,
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: AIDA's": 1,
     "HalalGoes.Spelling: Ahrefs": 1,
     "HalalGoes.Spelling: Airbnb's": 1,
@@ -621,7 +581,6 @@
     "HalalGoes.Spelling: subagents": 2
   },
   "docs/marketing/objection-map.md": {
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: Agro": 1,
     "HalalGoes.Spelling: Arfan": 1,
     "HalalGoes.Spelling: Charlsie": 1,
@@ -645,7 +604,6 @@
     "HalalGoes.Spelling: backfilling": 1
   },
   "docs/planning/growth-stack.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Martech": 1,
     "HalalGoes.Spelling: dashboarding": 1,
     "HalalGoes.Spelling: droppable": 1,
@@ -683,7 +641,6 @@
     "HalalGoes.Spelling: sellable": 1
   },
   "docs/planning/marketing-site-plan.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Anthropic's": 1,
     "HalalGoes.Spelling: Grotesk": 1,
     "HalalGoes.Spelling: Wispr": 2,
@@ -694,12 +651,10 @@
     "HalalGoes.Spelling: typechecked": 1
   },
   "docs/planning/plan-A-contracts-first.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: deps": 1,
     "HalalGoes.Spelling: wireframes": 1
   },
   "docs/planning/plan-B-simulation.md": {
-    "HalalGoes.Name: Halal Goes": 4,
     "HalalGoes.Spelling: SIGKILLed": 1,
     "HalalGoes.Spelling: goldens": 1,
     "HalalGoes.Spelling: goroutines": 1,
@@ -711,7 +666,6 @@
     "HalalGoes.Spelling: wireframes": 1
   },
   "docs/planning/plan-C-strangler.md": {
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: Flexport": 1,
     "HalalGoes.Spelling: Hodgson": 1,
     "HalalGoes.Spelling: Reimplementing": 1,
@@ -723,7 +677,6 @@
     "HalalGoes.Spelling: reconciler's": 1
   },
   "docs/planning/plan-D-generate.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: Debuggability": 1,
     "HalalGoes.Spelling: FSMs": 1,
     "HalalGoes.Spelling: MCRs": 1,
@@ -739,7 +692,6 @@
     "HalalGoes.Spelling: tx": 1
   },
   "docs/planning/plan-E-factory.md": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: ADR's": 1,
     "HalalGoes.Spelling: DOC's": 1,
     "HalalGoes.Spelling: DORA's": 1,
@@ -759,7 +711,6 @@
   },
   "docs/planning/plan-F-falsification.md": {
     "HalalGoes.Emoji: ✅": 24,
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: ASMs": 1,
     "HalalGoes.Spelling: Agentic": 1,
     "HalalGoes.Spelling: Keil": 2,
@@ -787,13 +738,11 @@
     "HalalGoes.Spelling: wordlist": 1
   },
   "docs/planning/telemetry-stack.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Lucene": 1,
     "HalalGoes.Spelling: SLOs": 1,
     "HalalGoes.Spelling: swappable": 1
   },
   "docs/planning/transactional-notifications.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Asynq": 1,
     "HalalGoes.Spelling: creds": 1
   },
@@ -806,7 +755,6 @@
   },
   "docs/planning/v1-status.md": {
     "HalalGoes.Emoji: ✅": 1,
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Verify's": 1,
     "HalalGoes.Spelling: auth's": 1,
     "HalalGoes.Spelling: creds": 2,
@@ -819,14 +767,12 @@
     "HalalGoes.Spelling: SKIPs": 1
   },
   "docs/planning/v1-wave2-report.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: deps": 2,
     "HalalGoes.Spelling: libs": 1,
     "HalalGoes.Spelling: lytenyte": 1,
     "HalalGoes.Spelling: typechecks": 1
   },
   "docs/planning/v1-wave3-report.md": {
-    "HalalGoes.Name: Halal Goes": 1,
     "HalalGoes.Spelling: Makefile": 1,
     "HalalGoes.Spelling: RAISEs": 1,
     "HalalGoes.Spelling: handoff's": 1,
@@ -839,7 +785,6 @@
     "HalalGoes.Spelling: webhook's": 1
   },
   "docs/reports/01-legacy-system-atlas.html": {
-    "HalalGoes.Name: Halal Goes": 4,
     "HalalGoes.Spelling: GUIs": 1,
     "HalalGoes.Spelling: calc": 1,
     "HalalGoes.Spelling: coords": 1,
@@ -848,7 +793,6 @@
     "HalalGoes.Spelling: zsets": 1
   },
   "docs/reports/02-base-decision-brief.html": {
-    "HalalGoes.Name: Halal Goes": 6,
     "HalalGoes.Spelling: Dockerfiles": 1,
     "HalalGoes.Spelling: changesets": 1,
     "HalalGoes.Spelling: criticals": 1,
@@ -859,7 +803,6 @@
     "HalalGoes.Spelling: zerolog": 1
   },
   "docs/reports/03-operating-model.html": {
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: Untimeboxed": 1,
     "HalalGoes.Spelling: Wks": 2
   },
@@ -869,7 +812,6 @@
   "docs/reports/06-build-completion.html": {
     "HalalGoes.Claims: Verified halal": 1,
     "HalalGoes.Claims: verified halal": 1,
-    "HalalGoes.Name: Halal Goes": 7,
     "HalalGoes.Spelling: ABIs": 1,
     "HalalGoes.Spelling: CMake": 1,
     "HalalGoes.Spelling: creds": 1,
@@ -881,16 +823,13 @@
     "HalalGoes.Spelling: tx": 1
   },
   "docs/reports/07-feature-readiness.html": {
-    "HalalGoes.Name: Halal Goes": 4,
     "HalalGoes.Spelling: Vn": 1,
     "HalalGoes.Spelling: orde": 1
   },
   "docs/reports/08-launch-critical-path.html": {
-    "HalalGoes.Name: Halal Goes": 5,
     "HalalGoes.Spelling: px": 1
   },
   "docs/spec/01-platform.md": {
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: Deduplication": 1,
     "HalalGoes.Spelling: Interac": 1,
     "HalalGoes.Spelling: Lua": 1,
@@ -931,7 +870,6 @@
   "docs/spec/02-customer.md": {
     "HalalGoes.Claims: 100% Halal": 1,
     "HalalGoes.Claims: Verified halal": 1,
-    "HalalGoes.Name: Halal Goes": 6,
     "HalalGoes.Spelling: Backgrounding": 1,
     "HalalGoes.Spelling: Crockford": 1,
     "HalalGoes.Spelling: Deduplication": 1,
@@ -962,7 +900,6 @@
   },
   "docs/spec/03-restaurant.md": {
     "HalalGoes.Emoji: ️": 2,
-    "HalalGoes.Name: Halal Goes": 2,
     "HalalGoes.Spelling: CSV's": 1,
     "HalalGoes.Spelling: Kuala": 1,
     "HalalGoes.Spelling: Lumpur": 1,
@@ -989,7 +926,6 @@
     "HalalGoes.Spelling: unpayable": 1
   },
   "docs/spec/04-rider.md": {
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: HEADs": 1,
     "HalalGoes.Spelling: SMSs": 1,
     "HalalGoes.Spelling: backfilled": 1,
@@ -1011,7 +947,6 @@
     "HalalGoes.Spelling: waypoint": 1
   },
   "docs/spec/05-admin.md": {
-    "HalalGoes.Name: Halal Goes": 3,
     "HalalGoes.Spelling: Delisting": 2,
     "HalalGoes.Spelling: OCR'd": 1,
     "HalalGoes.Spelling: PIPEDA's": 1,
