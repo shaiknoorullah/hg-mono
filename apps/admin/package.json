@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "tsx ../../packages/ui-web/src/lint/run.ts src",
+    "lint": "../../packages/ui-web/node_modules/.bin/tsx ../../packages/ui-web/src/lint/run.ts src",
     "test": "vitest run"
   },
   "dependencies": {
@@ -24,15 +24,14 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/mapbox-gl": "^3.4.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
-    "@types/mapbox-gl": "^3.4.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^26.1.0",
     "tailwindcss": "^4.1.14",
-    "tsx": "^4.20.6",
     "typescript": "^5.9.0",
     "vite": "^7.0.0",
     "vitest": "^3.2.7"
