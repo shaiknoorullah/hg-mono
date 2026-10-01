@@ -26,6 +26,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -53,7 +54,7 @@ func (mfCatalogPresigner) PresignGet(_ context.Context, _, _ string, _ time.Dura
 // mfFilesPresigner implements files.Presigner (PUT + GET presign).
 type mfFilesPresigner struct{}
 
-func (mfFilesPresigner) PresignedPutObject(_ context.Context, _, _ string, _ time.Duration) (*url.URL, error) {
+func (mfFilesPresigner) PresignHeader(_ context.Context, _, _, _ string, _ time.Duration, _ url.Values, _ http.Header) (*url.URL, error) {
 	return url.Parse("https://stub.local/put")
 }
 
