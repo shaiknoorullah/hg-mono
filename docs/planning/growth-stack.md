@@ -39,6 +39,9 @@ data for marketing intelligence** — Martech, Adtech, CDP, engagement, flags/ex
 
 ## Adtech (the ad-ROI layer you called out)
 
+> **2026-10-01:** Branch is SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 Goal: attribute users and revenue across paid channels (Google, Meta, TikTok, etc.) and measure ROAS.
 - **Install / deep-link attribution:** OpenAttribution (OSS, young — watch-item) or Branch (free tier) for deferred deep links + SKAdNetwork/Privacy-Sandbox handling. Deep links also power referrals + shared restaurant links.
 - **Server-side conversion tracking:** send conversions to ad platforms via their **Conversions APIs** (Google Enhanced Conversions, Meta CAPI) using **RudderStack destinations** / **Castled**, not client pixels — more accurate post-ATT/cookie-loss, and consent-gated.

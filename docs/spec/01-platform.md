@@ -2028,6 +2028,8 @@ CREATE TABLE notification_delivery (
 
 ### P-25 — Push notifications (Expo)
 
+> **2026-10-01:** [The self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) allows Apple and Google push services. Expo Push is a hosted relay in front of them and is not on the exception list. Whether it stays is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 - **Behaviour**: Expo Push (`https://exp.host/--/api/v2/push/send`) fronts both FCM and APNs, which matches the Expo SDK 53 apps. Tokens are registered by the app after an explicit permission prompt and are bound to `(account_id, device_id, role_context)`.
 
   `POST /v1/devices` `{expo_push_token, device_id, platform, app_version, os_version, locale}` — upsert on `(account_id, device_id)`. `DELETE /v1/devices/{device_id}` on logout. **Logout always deletes the token**, so a shared phone never receives the previous user's orders.
@@ -2075,8 +2077,8 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
 
 - **Behaviour**:
   - **SMS**: one provider behind a `SMSSender` interface (Twilio at launch), Canadian long code or toll-free number **registered for A2P/short-code compliance**; Canadian carriers require pre-registration for application-to-person traffic. Messages: OTP, `must_reach` escalations, critical account/security. Every SMS includes the brand name; no marketing SMS in V1. Per-message cost is recorded in `notification_delivery.cost_cents`, with a daily spend circuit breaker.
-  - **Email**: one provider behind an `EmailSender` interface (Postmark/SES at launch) on a subdomain (`mail.halalgoes.com`) with **SPF, DKIM and DMARC** configured and a boot-time DNS probe that alerts if any is missing. Transactional and marketing streams are separated so a marketing complaint cannot damage transactional deliverability.
-  - **Templates**: stored in the repo as MJML→HTML + plaintext, versioned, rendered server-side, localised `en-CA` / `fr-CA`, with a golden-file test per template per locale. Admin-editable templates (`A37`) are V2 and, when added, are stored as `email_template` rows with a version history and a preview/approval step — never free-form HTML injected without sanitisation.
+  - **Email**: one provider behind an `EmailSender` interface ([Resend](https://resend.com), on HalalGoes's Resend accounts: [email decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) on a subdomain (`mail.halalgoes.com`) with **SPF, DKIM and DMARC** configured and a boot-time DNS probe that alerts if any is missing. Transactional and marketing streams are separated so a marketing complaint cannot damage transactional deliverability.
+  - **Templates**: built with [React Email](https://react.email) and stored in the repo, exported to HTML + plaintext, versioned, rendered server-side, localised `en-CA` / `fr-CA`, with a golden-file test per template per locale. Admin-editable templates (`A37`) are V2 and, when added, are stored as `email_template` rows with a version history and a preview/approval step — never free-form HTML injected without sanitisation.
   - Required templates at launch: email verification, password reset, security alert, order receipt, order cancelled + refund, refund settled, restaurant application approved/rejected, rider application approved/rejected, payout statement, Connect requirements due, monthly commission invoice.
 
 - **Data**: `notification_delivery` (P-24) carries provider ids and cost. `email_suppression (email, reason, at)` records bounces and complaints; a suppressed address is never emailed again for marketing and only for critical transactional mail.

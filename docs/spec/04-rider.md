@@ -723,6 +723,8 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 > **DECISION REQUIRED — maps/routing provider**: Google Maps Platform (Directions + Distance Matrix + Roads) or an OSM-based stack (Mapbox / self-hosted Valhalla + OSRM)? · **Proposed default**: Google Directions/Matrix server-side for launch, behind a `RoutingProvider` interface so a swap is one adapter. · **Why**: the client's SOW names Google and the team already has keys; the interface keeps the per-request cost negotiable later.
 
+> **2026-10-01:** Google Maps Platform and Mapbox are SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) now rules out. Self-hosted Valhalla or OSRM fit it. The choice is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 ---
 
 ### D-23 — Distance tracking for payment
