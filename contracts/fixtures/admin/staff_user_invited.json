@@ -1,0 +1,23 @@
+{
+  "scenario": "staff_user_invited",
+  "domain": "admin",
+  "schema": "StaffUser",
+  "describes": "What `createStaffUser` returns: a new account in `INVITED`. The super admin set no password; it becomes `ACTIVE` once the invitee sets one and enrols two-step sign-in.",
+  "operations": [
+    "createStaffUser"
+  ],
+  "status": 200,
+  "tags": [
+    "admin"
+  ],
+  "payload": {
+    "id": "9d527152-153b-4644-ac44-c50446660b8b",
+    "email": "hamza.siddiqui@halalgoes.ca",
+    "full_name": "Hamza Siddiqui",
+    "role": "SUPPORT_AGENT",
+    "status": "INVITED",
+    "mfa_enrolled": false,
+    "last_login_at": null,
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

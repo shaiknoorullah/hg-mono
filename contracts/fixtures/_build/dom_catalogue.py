@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from content import DISHES, IMAGE_BASE, LONG_DISH_NAME, LONG_RESTAURANT_NAME, HOUR, MINUTE, ts
+from content import DAY, DISHES, IMAGE_BASE, LONG_DISH_NAME, LONG_RESTAURANT_NAME, HOUR, MINUTE, ts
 from money import order_lines_from_quote, price_quote, quote_line
 from synth import uuid_for
 from world import (
@@ -27,6 +27,7 @@ KARACHI = "karachi-kitchen"
 def build(reg, synth) -> None:
     _restaurants(reg)
     _menus(reg, synth)
+    _menu_editing(reg)
     _certification(reg)
     _cart(reg)
     _quotes(reg)
@@ -468,6 +469,175 @@ def _menus(reg, synth) -> None:
         },
         operations=["getOwnMenu"],
     )
+
+
+# --------------------------------------------------------------------------- #
+# Menu editing: the restaurant's own edits and an admin's edits on its behalf
+# --------------------------------------------------------------------------- #
+
+ADMIN_NOTE = "Edited by HalalGoes at the restaurant's request (phone, 10 Aug)."
+
+
+def _version(item: dict, number: int, status: str, *, created: float, reviewed: float | None = None,
+             note: str | None = None, **content) -> dict:
+    """One `MenuItemVersion` of `item`: its claim-bearing content and where review stands."""
+    out = {
+        "id": uuid_for(f"menu-version:{item['id']}:{number}"),
+        "menu_item_id": item["id"],
+        "restaurant_id": uuid_for(f"restaurant:{KARACHI}"),
+        "version": number,
+        "name": item["name"],
+        "description": item["description"],
+        "ingredients_text": item["ingredients_text"],
+        "dietary_tags": item["dietary_tags"],
+        "allergen_tags": item["allergen_tags"],
+        "image_url": item["image_url"],
+        "review_status": status,
+        "rejection_reason_code": None,
+        "review_note": note,
+        "submitted_at": ts(created),
+        "reviewed_at": ts(reviewed) if reviewed is not None else None,
+        "created_at": ts(created),
+    }
+    out.update(content)
+    return out
+
+
+def _owner_view(item: dict, *, live: dict | None, pending: dict | None, sort_order: int = 1) -> dict:
+    """`MenuItemOwnerView`: the customer projection plus what only the restaurant sees."""
+    return {
+        **item,
+        "category_id": uuid_for("category:biryani-and-rice"),
+        "sort_order": sort_order,
+        "live_version": live,
+        "pending_version": pending,
+    }
+
+
+def _menu_editing(reg) -> None:
+    reg.add(
+        "menu_category_created",
+        "catalogue",
+        "MenuCategory",
+        "A new, empty category. Categories carry no halal claim, so they are live at once "
+        "and never reviewed.",
+        {
+            "id": uuid_for("category:weekend-breakfast"),
+            "name": "Weekend Breakfast",
+            "description": "Saturday and Sunday until noon.",
+            "sort_order": 8,
+            "is_active": True,
+            "item_count": 0,
+        },
+        operations=["createMenuCategory", "createMenuCategoryOnBehalf"],
+        tags=["restaurant", "menu-editing"],
+    )
+
+    # A dish the restaurant just added: nothing is live until a reviewer approves it.
+    new_item = menu_item(8)
+    first = _version(new_item, 1, "PENDING_REVIEW", created=-2 * MINUTE)
+    reg.add(
+        "menu_item_created_pending_review",
+        "catalogue",
+        "MenuItemOwnerView",
+        "`createMenuItem`: the dish exists, version 1 waits for review, and customers see "
+        "nothing yet (`live_version` is null). Price is set but cannot be ordered until "
+        "approval.",
+        _owner_view(new_item, live=None, pending=first, sort_order=9),
+        operations=["createMenuItem"],
+        tags=["restaurant", "menu-editing", "review-queue"],
+    )
+
+    admin_item = menu_item(9)
+    reg.add(
+        "menu_item_created_by_admin",
+        "catalogue",
+        "MenuItemOwnerView",
+        "`createMenuItemOnBehalf`: approved on creation, because the reviewer and the author "
+        "are the same accountable person. Live at once; the note says who added it.",
+        _owner_view(
+            admin_item,
+            live=_version(admin_item, 1, "APPROVED", created=-MINUTE, reviewed=-MINUTE, note=ADMIN_NOTE),
+            pending=None,
+            sort_order=10,
+        ),
+        operations=["createMenuItemOnBehalf"],
+        tags=["admin", "menu-editing"],
+    )
+
+    # Beef Nihari, approved at version 3, then edited in three different ways.
+    nihari = menu_item(1)
+    live_v3 = _version(nihari, 3, "APPROVED", created=-9 * DAY, reviewed=-9 * DAY + 2 * HOUR)
+    reg.add(
+        "menu_item_edit_pending_review",
+        "catalogue",
+        "MenuItemOwnerView",
+        "`updateMenuItem` changed the description: version 4 waits for review while "
+        "customers keep seeing version 3. A changed word can carry a halal claim, so it is "
+        "never live before a person has read it.",
+        _owner_view(
+            nihari,
+            live=live_v3,
+            pending=_version(
+                nihari, 4, "PENDING_REVIEW", created=-MINUTE,
+                description="Overnight-simmered beef shank in a bone-marrow gravy. Served with "
+                "two naan and a wedge of lime.",
+            ),
+        ),
+        operations=["updateMenuItem"],
+        tags=["restaurant", "menu-editing", "review-queue"],
+    )
+
+    reg.add(
+        "menu_item_edit_price_only",
+        "catalogue",
+        "MenuItemOwnerView",
+        "Only the price changed ($21.45 to $22.95): live at once, no review, no new "
+        "version. Orders already placed keep the price they were placed at.",
+        _owner_view({**nihari, "price_cents": 2295}, live=live_v3, pending=None),
+        operations=["updateMenuItem", "updateMenuItemOnBehalf"],
+        tags=["restaurant", "menu-editing"],
+    )
+
+    corrected = {**nihari, "name": "Beef Nihari (Large)"}
+    reg.add(
+        "menu_item_edited_by_admin",
+        "catalogue",
+        "MenuItemOwnerView",
+        "`updateMenuItemOnBehalf` renamed the dish: version 4 is approved on save and is "
+        "already what customers see. The note records that HalalGoes made the change.",
+        _owner_view(
+            corrected,
+            live=_version(corrected, 4, "APPROVED", created=-MINUTE, reviewed=-MINUTE, note=ADMIN_NOTE),
+            pending=None,
+        ),
+        operations=["updateMenuItemOnBehalf"],
+        tags=["admin", "menu-editing"],
+    )
+
+    # Marking a dish sold out from the kitchen. Never reviewed, never touches an order.
+    for scenario, state, until, note in [
+        ("menu_item_marked_out_of_stock_until", "OUT_OF_STOCK", ts(HOUR),
+         "Sold out for an hour; it comes back by itself at the time shown."),
+        ("menu_item_marked_out_of_stock_indefinitely", "OUT_OF_STOCK", None,
+         "Sold out until someone marks it available again. It shows in the weekly reminder "
+         "of items left out of stock."),
+        ("menu_item_marked_available", "AVAILABLE", None, "Back on: orderable again at once."),
+    ]:
+        reg.add(
+            scenario,
+            "catalogue",
+            "MenuItemOwnerView",
+            f"`setMenuItemAvailability` → `{state}`. {note} Accepted orders and customers' "
+            "carts are never changed by it.",
+            _owner_view(
+                {**nihari, "availability_state": state, "out_of_stock_until": until},
+                live=live_v3,
+                pending=None,
+            ),
+            operations=["setMenuItemAvailability"],
+            tags=["restaurant", "menu-editing", "state-matrix"],
+        )
 
 
 def _certification(reg) -> None:

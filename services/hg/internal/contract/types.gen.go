@@ -781,6 +781,7 @@ const (
 	ErrorCodeITEMUNAVAILABLE                ErrorCode = "ITEM_UNAVAILABLE"
 	ErrorCodeLASTOWNERREQUIRED              ErrorCode = "LAST_OWNER_REQUIRED"
 	ErrorCodeLEDGERBATCHUNBALANCED          ErrorCode = "LEDGER_BATCH_UNBALANCED"
+	ErrorCodeMENUVERSIONPENDING             ErrorCode = "MENU_VERSION_PENDING"
 	ErrorCodeMETHODNOTALLOWED               ErrorCode = "METHOD_NOT_ALLOWED"
 	ErrorCodeMFAREQUIRED                    ErrorCode = "MFA_REQUIRED"
 	ErrorCodeNOLIVEMENUITEM                 ErrorCode = "NO_LIVE_MENU_ITEM"
@@ -1015,6 +1016,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeLASTOWNERREQUIRED:
 		return true
 	case ErrorCodeLEDGERBATCHUNBALANCED:
+		return true
+	case ErrorCodeMENUVERSIONPENDING:
 		return true
 	case ErrorCodeMETHODNOTALLOWED:
 		return true
@@ -8929,6 +8932,9 @@ type CreateMenuCategoryOnBehalfJSONRequestBody = MenuCategoryInput
 
 // CreateMenuItemOnBehalfJSONRequestBody defines body for CreateMenuItemOnBehalf for application/json ContentType.
 type CreateMenuItemOnBehalfJSONRequestBody = MenuItemInput
+
+// UpdateMenuItemOnBehalfJSONRequestBody defines body for UpdateMenuItemOnBehalf for application/json ContentType.
+type UpdateMenuItemOnBehalfJSONRequestBody = MenuItemUpdateInput
 
 // DecideRiderApplicationJSONRequestBody defines body for DecideRiderApplication for application/json ContentType.
 type DecideRiderApplicationJSONRequestBody = RiderDecisionInput

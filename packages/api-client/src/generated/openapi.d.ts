@@ -600,6 +600,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/restaurants/{restaurantId}/menu/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["MenuItemIdPath"];
+                restaurantId: components["parameters"]["RestaurantIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a menu item on a restaurant's behalf
+         * @description Added to launch with `updateMenuItemOnBehalf` (`docs/decisions/README.md`, round 2,
+         *     "Launch scope and contract": an admin updates or removes a menu item on a
+         *     restaurant's behalf). A soft delete: the item leaves every customer read and the
+         *     restaurant's own menu at once, and the acting admin is recorded on the audit event.
+         *
+         *     Nothing a customer already bought changes — order lines snapshot their content and
+         *     price. A cart line holding the item is annotated unavailable with reason
+         *     `ITEM_DELETED`, never silently removed. A version of the item still waiting for
+         *     review is withdrawn, and deciding it afterwards is `409 ITEM_DELETED`. Removing an
+         *     item that is already removed, or that is not on this restaurant's menu, is `404`.
+         */
+        delete: operations["deleteMenuItemOnBehalf"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a menu item on a restaurant's behalf
+         * @description The admin twin of `updateMenuItem`, added to launch by the owner on 2026-10-01
+         *     (`docs/decisions/README.md`, round 2, "Launch scope and contract"). The same DTO
+         *     and the same guardrails: no `HALAL_CERTIFIED` assertion (`403 FIELD_NOT_WRITABLE`),
+         *     no alcohol or pork keyword (`422 PROHIBITED_INGREDIENT`), price inside the permitted
+         *     band (`422 PRICE_OUT_OF_RANGE`).
+         *
+         *     Operational fields apply immediately, as for the restaurant. Claim-bearing fields
+         *     are **approved on save**, exactly as an item an admin creates is approved on
+         *     creation: the reviewer and the author are the same accountable person. The new
+         *     version becomes `live_version`, and the acting admin is recorded on it and on the
+         *     audit event.
+         *
+         *     A restaurant's own edit is never silently discarded: when the item has a version in
+         *     `PENDING_REVIEW` and the body carries a claim-bearing field, the call is
+         *     `409 MENU_VERSION_PENDING` — decide that version first (`decideMenuVersion`). An item
+         *     that is not on this restaurant's menu is `404`, the same as one that does not exist.
+         */
+        patch: operations["updateMenuItemOnBehalf"];
+        trace?: never;
+    };
     "/v1/admin/rider-applications": {
         parameters: {
             query?: never;
@@ -3838,7 +3889,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -7549,6 +7600,87 @@ export interface operations {
             };
             404: components["responses"]["Error"];
             422: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteMenuItemOnBehalf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["MenuItemIdPath"];
+                restaurantId: components["parameters"]["RestaurantIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Item removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    updateMenuItemOnBehalf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["MenuItemIdPath"];
+                restaurantId: components["parameters"]["RestaurantIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuItemUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Updated item; any claim-bearing change is already live. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MenuItemOwnerView"];
+                    };
+                };
+            };
+            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `MENU_VERSION_PENDING` — the restaurant has an edit waiting for review. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `PRICE_OUT_OF_RANGE`, `PROHIBITED_INGREDIENT`, `VALIDATION_FAILED`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
