@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-09-28
+reviewed: 2026-10-01
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -2183,6 +2183,8 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   3. `POST /v1/uploads/{id}/confirm` → server `HEAD`s the object, verifies size, content type and checksum, sniffs magic bytes (a `.pdf` that is really a `.exe` is rejected), enqueues a virus scan for KYC uploads, and sets `state='READY'` (or `REJECTED` with a reason). Only a `READY` object may be attached to a `kyc_document` or a menu item.
 
   Unconfirmed objects are deleted by the deadline runner after 1 hour.
+
+  **Virus scan (KYC):** confirm leaves a KYC object `virus_scan_state='PENDING'` (other purposes `SKIPPED`). A scan worker streams each pending object from the bucket to clamd (`INSTREAM`, at `HG_CLAMD_ADDR`) and records `CLEAN`, `INFECTED` (with the signature in `virus_scan_detail`) or `TOO_LARGE` — a file over the scan limit (`HG_CLAMD_MAX_BYTES`, default 25 MiB) is flagged, never passed. While clamd is unreachable the worker backs off and retries; the object stays `PENDING`. A `kyc_document` can be `APPROVED` only when its object is `CLEAN`: the admin review answers `409 PRECONDITION_NOT_MET`, and a trigger makes the database refuse it from any writer.
 
   **Per-purpose limits:**
 

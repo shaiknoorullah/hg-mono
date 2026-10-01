@@ -54,21 +54,30 @@ var ErrForgeryHold = errors.New("admin: suspected forgery hold")
 // ErrDocDecided is returned when a document is already in a terminal state.
 var ErrDocDecided = errors.New("admin: document already decided")
 
+// ErrDocNotScanned is returned when an approval is attempted on a document
+// whose file has not been virus-scanned clean: the scan is still pending, found
+// a virus, or the file was too large to scan. Migration 00028_virus_scan makes
+// the database refuse it too. Spec: docs/spec/01-platform.md#p-28--presigned-upload-and-download.
+var ErrDocNotScanned = errors.New("admin: document file not virus-scanned clean")
+
 // ReviewDocument approves or rejects a single KYC document (A-14). Each document
 // is reviewed independently; rejecting one does not re-queue the approved ones.
 // The decision is attributed to the authenticated admin — no admin_id is read
 // from the body. Approving a document marked SUSPECTED_FORGERY is refused unless
-// the actor is a super admin who is clearing the hold.
+// the actor is a super admin who is clearing the hold, and approving one whose
+// file is not virus-scanned CLEAN is refused outright.
 func (r *Repo) ReviewDocument(ctx context.Context, actor auditActor, id, subjectType, decision string, reasonCode, reviewNote *string, isSuperAdmin bool) (kycDocRow, error) {
 	var out kycDocRow
 	err := r.inTx(ctx, func(tx pgx.Tx) error {
 		const sel = `
-SELECT id, state::text, rejection_reason_code::text
-  FROM kyc_document
- WHERE id=$1 AND subject_type=$2::kyc_subject_type AND deleted_at IS NULL
- FOR UPDATE`
+SELECT kd.id, kd.state::text, kd.rejection_reason_code::text, so.virus_scan_state
+  FROM kyc_document kd
+  JOIN stored_object so ON so.id = kd.stored_object_id
+ WHERE kd.id=$1 AND kd.subject_type=$2::kyc_subject_type AND kd.deleted_at IS NULL
+ FOR UPDATE OF kd`
 		var cur kycDocRow
-		if err := tx.QueryRow(ctx, sel, id, subjectType).Scan(&cur.ID, &cur.State, &cur.RejectionReasonCode); err != nil {
+		var scan string
+		if err := tx.QueryRow(ctx, sel, id, subjectType).Scan(&cur.ID, &cur.State, &cur.RejectionReasonCode, &scan); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -87,6 +96,10 @@ SELECT id, state::text, rejection_reason_code::text
 			// admin is clearing it.
 			if cur.RejectionReasonCode != nil && *cur.RejectionReasonCode == "SUSPECTED_FORGERY" && !isSuperAdmin {
 				return ErrForgeryHold
+			}
+			// Only a file the virus scanner read in full and passed may be approved.
+			if scan != "CLEAN" {
+				return ErrDocNotScanned
 			}
 			const upd = `
 UPDATE kyc_document

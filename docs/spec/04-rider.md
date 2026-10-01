@@ -2,7 +2,7 @@
 covers:
   - apps/rider/**
   - services/hg/internal/rider/**
-reviewed: 2026-09-28
+reviewed: 2026-10-01
 ---
 
 # HalalGoes — RIDER Domain Specification
@@ -259,6 +259,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **States**: `DOCUMENTS_REVIEW → DOCUMENTS_APPROVED (→ PAYOUT_PENDING)` or `→ DOCUMENTS_REJECTED`. Partial approval is allowed: individual documents can be `APPROVED` while others are `REJECTED`; the rider-level decision is `REJECTED` if ≥1 required document is rejected.
 - **Rules**:
   - Rejection uses a closed `rejection_code` taxonomy, each with rider-facing copy: `ILLEGIBLE`, `EXPIRED`, `WRONG_DOCUMENT_TYPE`, `NAME_MISMATCH`, `DOB_MISMATCH`, `PLATE_MISMATCH`, `SUSPECTED_ALTERATION`, `INCOMPLETE_PAGES`, `OTHER` (requires `rejection_note`). The **real** code and note are rendered — never a hardcoded example list.
+  - A document can be approved only once its file has been virus-scanned clean ([presigned upload and download](01-platform.md#p-28--presigned-upload-and-download)); until then an approval is refused and the document stays under review.
   - Review SLA: `sla_due_at = submitted_at + 48h` (business hours America/Toronto). Breach raises an ops alert; the rider sees "under review" with the expected decision date.
   - Notifications fired: `verification.submitted`, `verification.approved`, `verification.rejected` (lists each failed document + reason), `verification.expiring` (30/7/1 days), `verification.expired`. Each is push + in-app inbox row + WS event.
   - Support access from the rejection screen: a deep link that pre-fills a support ticket with `rider_id`, `review_id`, and the rejection codes (D-34).

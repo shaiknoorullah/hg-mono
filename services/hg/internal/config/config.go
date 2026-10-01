@@ -39,6 +39,7 @@ type Config struct {
 	Postgres Postgres
 	Redis    Redis
 	MinIO    MinIO
+	Clamd    Clamd
 	Stripe   Stripe
 	SMS      SMS
 	OTP      OTP
@@ -189,6 +190,24 @@ type MinIO struct {
 // Host returns the configured endpoint.
 func (m MinIO) Host() string { return m.Endpoint }
 
+// Clamd is the virus scanner every KYC upload passes through before it can be
+// approved (spec: docs/spec/01-platform.md#p-28--presigned-upload-and-download).
+// Addr is required outside local: without a scanner no document could ever be
+// approved, so a deployment that forgot it must fail at boot, not at the first
+// review. In local it may be blank, and then KYC uploads
+// stay PENDING and unapprovable — honest, not passed.
+type Clamd struct {
+	// Addr is clamd's TCP host:port.
+	Addr string
+	// MaxBytes is the largest file sent for scanning. A larger file is flagged
+	// TOO_LARGE, never passed. Keep it at or below clamd's StreamMaxLength
+	// (25 MiB by default), or clamd stops reading part-way and the file is
+	// flagged anyway.
+	MaxBytes int64
+	// Timeout bounds one scan: connect, stream and verdict.
+	Timeout time.Duration
+}
+
 // Buckets names the five P-27 buckets. Only hg-media is public-read.
 type Buckets struct {
 	KYC     string
@@ -268,6 +287,12 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.MinIO.PublicBaseURL = strings.TrimSuffix(
 		l.optional("HG_MINIO_PUBLIC_BASE_URL", defaultPublicBaseURL(cfg.MinIO.Endpoint, cfg.MinIO.UseSSL)), "/")
 
+	cfg.Clamd = Clamd{
+		Addr:     l.optional("HG_CLAMD_ADDR", ""),
+		MaxBytes: int64(l.intVal("HG_CLAMD_MAX_BYTES", 25<<20)),
+		Timeout:  l.duration("HG_CLAMD_TIMEOUT", 60*time.Second),
+	}
+
 	cfg.Stripe = Stripe{
 		SecretKey:         l.optional("HG_STRIPE_SECRET_KEY", ""),
 		WebhookSecret:     l.optional("HG_STRIPE_WEBHOOK_SECRET", ""),
@@ -337,6 +362,11 @@ func Load(getenv func(string) string) (*Config, error) {
 		l.denyLoopback("HG_POSTGRES_DSN", cfg.Postgres.Host())
 		l.denyLoopback("HG_REDIS_ADDR", cfg.Redis.Host())
 		l.denyLoopback("HG_MINIO_ENDPOINT", cfg.MinIO.Host())
+		if cfg.Clamd.Addr == "" {
+			l.errf("HG_CLAMD_ADDR is required outside local: KYC documents cannot be approved until they are virus-scanned")
+		} else {
+			l.denyLoopback("HG_CLAMD_ADDR", cfg.Clamd.Addr)
+		}
 	}
 
 	if err := l.err(); err != nil {

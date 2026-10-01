@@ -23,6 +23,12 @@
 //	hg-pod/{yyyy}/{mm}/{order_id}/{ulid}.jpg
 //	hg-media/menu-item/{menu_item_id}/{ulid}_{variant}.webp
 //
+// Virus scanning: ConfirmUpload marks a KYC object READY with
+// virus_scan_state=PENDING; ScanWorker streams it to clamd (INSTREAM) and
+// records CLEAN, INFECTED or TOO_LARGE. While clamd is down documents wait in
+// PENDING. Only a CLEAN file's document can be approved — the admin review
+// checks, and migration 00028_virus_scan makes the database refuse it too.
+//
 // Retention: hg-kyc 7 years after account closure with versioning on; hg-pod 90
 // days; hg-exports 30 days; hg-tmp a 24 h lifecycle rule.
 //

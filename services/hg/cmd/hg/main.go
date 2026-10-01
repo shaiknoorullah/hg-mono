@@ -658,10 +658,11 @@ func run() error {
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
 	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
+	fileObjects := files.NewMinIOObjectStore(st.Objects().Client)
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
 		st.Objects().Client,
-		files.NewMinIOObjectStore(st.Objects().Client),
+		fileObjects,
 		files.Buckets{
 			KYC:     cfg.MinIO.Buckets.KYC,
 			POD:     cfg.MinIO.Buckets.POD,
@@ -673,6 +674,19 @@ func run() error {
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
 	// payments.Routes(router, …), realtime.Routes(router, …).
+
+	// Virus-scan every confirmed KYC upload (spec: docs/spec/01-platform.md#p-28--presigned-upload-and-download).
+	// An admin cannot approve a document until its file is CLEAN, so without a
+	// scanner documents wait — config refuses to boot that way outside local.
+	if cfg.Clamd.Addr != "" && fileObjects != nil {
+		scanner := files.NewClamdScanner(cfg.Clamd.Addr, cfg.Clamd.Timeout)
+		go files.NewScanWorker(st.DB().Pool, fileObjects, scanner, cfg.Clamd.MaxBytes, log).Run(ctx)
+		log.Info("virus scan worker started",
+			slog.String("clamd", cfg.Clamd.Addr), slog.Int64("max_bytes", cfg.Clamd.MaxBytes))
+	} else {
+		log.Warn("virus scan worker not started (HG_CLAMD_ADDR unset or no object store) — " +
+			"KYC documents stay PENDING and cannot be approved")
+	}
 
 	if err := router.Verify(); err != nil {
 		return err

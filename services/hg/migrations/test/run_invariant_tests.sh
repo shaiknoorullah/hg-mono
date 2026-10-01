@@ -209,6 +209,7 @@ reject "a certificate cannot be APPROVED without all seven checks at PASS" "hala
      VALUES ('ee000000-0000-4000-8000-000000000001','hg-kyc','kyc/test/cert.pdf','KYC_DOCUMENT',
              'application/pdf',1024,digest('x','sha256'),'READY',
              '11111111-1111-4111-8111-111111111111',now());
+   UPDATE stored_object SET virus_scan_state='CLEAN' WHERE id='ee000000-0000-4000-8000-000000000001';
    INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id,
        state, reviewed_by, reviewed_at)
      VALUES ('ee000000-0000-4000-8000-000000000002','RESTAURANT','33333333-3333-4333-8333-333333333333',
@@ -228,6 +229,7 @@ reject "H5 and H7 are not overridable" "halal_check_hard_computed_flags" \
      VALUES ('ee000000-0000-4000-8000-000000000011','hg-kyc','kyc/test/cert2.pdf','KYC_DOCUMENT',
              'application/pdf',1024,digest('x2','sha256'),'READY',
              '11111111-1111-4111-8111-111111111111',now());
+   UPDATE stored_object SET virus_scan_state='CLEAN' WHERE id='ee000000-0000-4000-8000-000000000011';
    INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id,
        state, reviewed_by, reviewed_at)
      VALUES ('ee000000-0000-4000-8000-000000000012','RESTAURANT','33333333-3333-4333-8333-333333333333',
@@ -318,9 +320,19 @@ reject "a document decision with no reviewer is rejected" "kyc_document_decision
        state, uploaded_by, confirmed_at)
      VALUES ('15000000-0000-4000-8000-000000000001','hg-kyc','kyc/t/d.pdf','KYC_DOCUMENT',
              'application/pdf',10,digest('y','sha256'),'READY','11111111-1111-4111-8111-111111111111',now());
+   UPDATE stored_object SET virus_scan_state='CLEAN' WHERE id='15000000-0000-4000-8000-000000000001';
    INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state)
      VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
              '15000000-0000-4000-8000-000000000001','APPROVED');"
+reject "a document whose file is not virus-scanned clean cannot be approved" "kyc_document_virus_scan_clean" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at)
+     VALUES ('15000000-0000-4000-8000-000000000003','hg-kyc','kyc/t/f.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('w','sha256'),'READY','11111111-1111-4111-8111-111111111111',now());
+   INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+       reviewed_by, reviewed_at)
+     VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
+             '15000000-0000-4000-8000-000000000003','APPROVED','11111111-1111-4111-8111-111111111111',now());"
 reject "a document under review must carry its 72h SLA deadline" "kyc_document_deadline_required" \
   "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
        state, uploaded_by, confirmed_at)

@@ -3,7 +3,7 @@ covers:
   - services/hg/cmd/**
   - services/hg/migrations/**
   - apps/restaurant/.claude/skills/**
-reviewed: 2026-09-28
+reviewed: 2026-10-01
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -216,5 +216,6 @@ The harness produces real realtime events (order state changes, offers, `rider.l
 - **Payout seeds vs the ledger.** The [zero-residual ledger rule (invariant 6)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) requires every order's money to decompose to zero via the append-only ledger. If payout rows need backing ledger batches the SQL cannot honestly produce, payouts move from SQL to an admin payout run over the API; any state the API cannot reach (e.g. FAILED) is listed as a gap rather than forged.
 - **Proof of delivery.** If PoD requires an uploaded object in MinIO, the simulator uploads a bundled test image through the documented presigned flow.
 - **Dispatch reach.** The journey assumes dispatch offers to an online rider within range of the restaurant. `rider-sim` starts at the route's origin inside that radius; planning confirms the radius and offer loop in `internal/dispatch`.
+- **Approved documents need a clean scan.** An `APPROVED` `kyc_document` in the world SQL must point at a `stored_object` with `virus_scan_state = 'CLEAN'`; the database refuses the approval otherwise (`services/hg/migrations/00028_virus_scan.sql`).
 - **Drift.** The world SQL must follow schema migrations. Mitigated by the world verify in CI (see [verification](#8-verification)) — a migration that breaks the world fails the build.
 - **CORS.** `HG_CORS_ALLOWED_ORIGINS` must include each app's dev origin (restaurant `http://localhost:5183`); `.env.example` has them, and `devworld reset` warns when the running config lacks one.

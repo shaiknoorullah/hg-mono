@@ -116,12 +116,18 @@ func TestLoadRejectsLoopbackOutsideLocal(t *testing.T) {
 		"redis hostname":    {"HG_REDIS_ADDR", "localhost:6379"},
 		"redis ipv4":        {"HG_REDIS_ADDR", "127.0.0.1:6379"},
 		"minio":             {"HG_MINIO_ENDPOINT", "localhost:9000"},
+		"clamd":             {"HG_CLAMD_ADDR", "127.0.0.1:3310"},
+		// Without a scanner no KYC document could ever be approved, so outside
+		// local a missing scanner fails the boot, not the first review.
+		// Spec: docs/spec/01-platform.md#p-28--presigned-upload-and-download.
+		"clamd unset": {"HG_CLAMD_ADDR", ""},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			env := validEnv()
 			env["HG_ENV"] = "production"
 			env["HG_CORS_ALLOWED_ORIGINS"] = "https://app.halalgoes.com"
+			env["HG_CLAMD_ADDR"] = "clamav:3310"
 			env[tc.key] = tc.value
 
 			_, err := Load(getenvFrom(env))
