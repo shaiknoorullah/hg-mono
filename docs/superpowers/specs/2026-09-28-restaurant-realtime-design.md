@@ -72,6 +72,8 @@ Alongside the map: rider first name, vehicle, pickup ETA (from `order.eta_update
 
 Engine and styles follow `apps/admin/src/components/LiveMapBox.tsx` (`mapbox-gl`, `VITE_MAPBOX_TOKEN`). Without a token the map renders its empty state and the text facts still show. Colours obey the halal colour rules: no solid green outside `color.halal.*`.
 
+> **2026-10-01:** Mapbox is SaaS, which [the self-hosted, open-source rule](../../decisions/README.md#settled--platform-decisions-owner-2026-10-01) now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 ## 6. Defect fixes
 
 - **Duplicates** — the queue drops repeated order IDs before rendering. Defensive: the backend should never repeat an ID (the mock fixture that does is a separate bug), and a kitchen must never see one order twice.

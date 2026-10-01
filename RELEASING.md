@@ -52,6 +52,10 @@ files are committed and carry **no real secrets**.
   for programmatic Studio style/tileset publishing, keep it in a password manager / CI secret,
   and **never** put it in a `VITE_*`/`EXPO_PUBLIC_*` var (those ship to the client).
 
+> **2026-10-01:** Mapbox is SaaS, which [the self-hosted, open-source rule](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+> These steps stand until then.
+
 ## 3. Go-live flips (turn each client-gated item live)
 
 Each is a config change, not an eng sprint — the seams are built. Do them in this order.

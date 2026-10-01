@@ -7,6 +7,11 @@ first deploy; the section headings are the order the work has to happen in.
 repo. What is left is project settings, environment variables and one open
 decision — and that is what this file is.
 
+> **2026-10-01:** Vercel, and the hosted waitlist endpoints suggested below, are
+> SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing them is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+> This runbook stands until then.
+
 > Supersedes `apps/marketing/DEPLOY.md`, which is the earlier draft of the same
 > procedure and is missing `KEYSTATIC_SECRET`. Delete it once this has been
 > through a real deploy; two runbooks is how one of them goes stale.

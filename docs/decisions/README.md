@@ -1,6 +1,6 @@
 ---
 covers: []
-reviewed: 2026-09-28
+reviewed: 2026-10-01
 ---
 
 # Decision log
@@ -150,6 +150,16 @@ The owner answered 45 questions from the app redesign on 2026-09-28 ([decision p
 |---|---|---|---|
 | New design-system components | **Add `StatCard`, `KeyValueList`, `FileDrop` and `SideNav` now.** Defer `BarChart` and `Carousel` | They repeat across apps; charts have no data until the time-series API ([#152](https://github.com/shaiknoorullah/hg-mono/issues/152)) | 2026-09-28 |
 | Desktop working pages, restaurant and admin *(layout change)* | **The page fits the screen and never scrolls;** long lists scroll inside their own region. **No overlay sheets or modals for working tasks:** detail opens in panels on the page that collapse when not needed. **Collapsible sidebars.** **Overview, then detail, then more detail, as side-by-side panes** (list, order, timeline). Restaurant: **no column board;** a live strip in the header or footer lists every order awaiting acceptance with its countdown. Arrow keys move, one key accepts, one key rejects; reject still asks for a reason; a stray key press cannot accept an order that is not focused. Admin: the same panes for queues, verification, orders and refunds; the verification console shows the application, the certificate and the seven checks together. New components: split panels that can be resized, collapsible sidebar, detail panel ([#109](https://github.com/shaiknoorullah/hg-mono/issues/109)) | Owner's layout change: dense working screens where nothing moves and nothing covers the work | 2026-09-28 |
+
+## Settled — platform decisions (owner, 2026-10-01)
+
+How HalalGoes is built and hosted.
+
+| Decision | Value | Why | Date |
+|---|---|---|---|
+| Email | **Templates are built with [React Email](https://react.email). Mail is delivered through [Resend](https://resend.com)**, on HalalGoes's Resend accounts. This replaces Postmark or SES. The rest of the design holds: one provider behind the `EmailSender` interface, a sending subdomain with SPF, DKIM and DMARC, and retries then dead-letter ([SMS and email spec](../spec/01-platform.md#p-26--sms-and-email)). Sending real email: [#59](https://github.com/shaiknoorullah/hg-mono/issues/59) | React Email is open source, and Resend's deliverability is hard to match with a self-hosted mail server | 2026-10-01 |
+| Self-hosted and open source | **Every HalalGoes system runs self-hosted on open-source software, with no SaaS:** the marketing site, maps, geocoding and routing, object storage, analytics, the customer data platform and engagement, feature flags, telemetry and error tracking. **Exceptions:** email delivery through Resend (the row above), and services that cannot be self-hosted by nature: card payments (Stripe), mobile push delivery (Apple and Google push services), SMS carriers (Twilio Verify) and the app stores. *Note:* object storage is open source but pinned to one MinIO release (the row below). Hosted services the docs still name: [#199](https://github.com/shaiknoorullah/hg-mono/issues/199) | The owner's choice to own the stack | 2026-10-01 |
+| Object storage | **MinIO, pinned to the community release `RELEASE.2025-04-22T22-12-26Z`**, with the `minio/mc` client at `RELEASE.2025-04-16T18-13-26Z`, as [the compose file](../../deploy/docker-compose.yml) already runs. It is the last release whose web console has the full feature set. MinIO is open source (AGPL), so the self-hosting rule holds. **This release gets no upstream security fixes, so the console and the S3 API are never exposed to the public internet:** reach the console only over SSH or a VPN; keep the S3 endpoint inside the Docker network, or behind Traefik with presigned URLs only; keep buckets private; re-check this decision if a security advisory affects this release. Today the compose file publishes both ports and the media bucket is public-read: [#200](https://github.com/shaiknoorullah/hg-mono/issues/200) | The owner's choice: MinIO is familiar, and this release has the complete admin console | 2026-10-01 |
 
 ## Open — non-blocking
 

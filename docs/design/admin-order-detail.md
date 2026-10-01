@@ -14,6 +14,9 @@ reach any party. Captured Aug 2026 from product direction._
 
 ## The live-tracking map box (the ask)
 
+> **2026-10-01:** Mapbox is SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 - **Engine:** `mapbox-gl-js` (admin web), brand-tinted **hg-light / hg-dark** styles.
 - **On the map:** restaurant pin, **rider live position (moving)**, customer/destination pin, the
   active route line (**crimson** — brand; the *only* green on the map is the verified-halal

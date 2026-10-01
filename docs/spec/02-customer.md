@@ -867,6 +867,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 > **DECISION REQUIRED — maps & places provider**: Google Maps Platform (Places + Geocoding + Directions) or an alternative (Mapbox)? · **Proposed default**: **Google**, proxied server-side, since the apps already use `react-native-maps` with `PROVIDER_GOOGLE` and the rider app deep-links to Google navigation. · **Why**: it is the shortest path and the SOW names Google Maps as a dependency; the cost is a per-request billing exposure that the proxy + cache must contain.
 
+> **2026-10-01:** Google Maps Platform and Mapbox are SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) now rules out. Choosing a self-hosted provider is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 ---
 
 ### C-32 — Live order tracking
@@ -1122,6 +1124,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Version**: V1 · **Size**: L
 
 > **DECISION REQUIRED — push infrastructure**: Expo Push Service (managed) or direct FCM/APNs? · **Proposed default**: **Expo Push Service** for V1 (one integration, works with EAS builds, no APNs certificate management inside the Go binary), with the server-side sender abstracted so a direct FCM/APNs implementation can replace it without touching call sites. · **Why**: the apps are Expo-managed; direct APNs/FCM adds certificate operations for no launch-critical benefit.
+
+> **2026-10-01:** [The self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) allows Apple and Google push services. Expo Push Service is a hosted relay in front of them and is not on the exception list. Whether it stays is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 
 ---
 

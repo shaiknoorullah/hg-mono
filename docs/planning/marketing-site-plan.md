@@ -2,6 +2,10 @@
 
 _Sep 2026. Client-confirmed inputs are marked **[confirmed]**._
 
+> **2026-10-01:** this plan hosts the site and Umami on Vercel, with Postgres on Neon. Both are
+> SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing them is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 > **`landing-page-plan.md` and `claude-design-brief.md` were deleted (Sep 2026).** Both specified
 > the Astro build; the site is Next.js and is built, so they described a stack that does not exist.
 > Where their content went:
