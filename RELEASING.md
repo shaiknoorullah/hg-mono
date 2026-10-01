@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-09-28
+reviewed: 2026-10-01
 ---
 
 # Releasing HalalGoes
@@ -74,6 +74,9 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
    self-declared halal (default hide), O-04 refund liability.
 6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik.
+7. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
+   (`docker network inspect hg-net`). Unset, every request's client address is Traefik's, so
+   the per-IP sign-in limits throttle all customers as one. Never `0.0.0.0/0` (refused at boot).
 
 ## 4. Deploy the stack (on your host)
 
