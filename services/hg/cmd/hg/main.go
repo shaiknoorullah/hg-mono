@@ -635,7 +635,7 @@ func run() error {
 	// Complete the Seam C wiring: orders.Store now emits realtime outbox events
 	// on every state transition via the transactional outbox (I-15 / §6.1).
 	rtEmitter.store = rtStore
-	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil)
+	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, cfg.Realtime.MaxSockets)
 	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
 	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
 	go rtGateway.Run(ctx)

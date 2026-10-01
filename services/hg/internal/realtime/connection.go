@@ -31,19 +31,57 @@ type connection struct {
 	lastPong     time.Time
 	sentPingAt   time.Time
 	awaitingPong bool
+
+	// outbound is the bounded fan-out queue drained by writeLoop (send.go).
+	outbound chan []byte
+	// quit is closed by stop; closeCode and closeReason are set before it closes
+	// and read by the writer only after.
+	quit        chan struct{}
+	writerDone  chan struct{} // closed when writeLoop has closed the socket
+	stopOnce    sync.Once
+	closeCode   int
+	closeReason string
+}
+
+// newConnection builds a connection with its fan-out queue. serve starts the
+// writer.
+func newConnection(gw *Gateway, ws *wsConn, log *slog.Logger, connID, accountID, sessionID string, roles []string) *connection {
+	return &connection{
+		gw:         gw,
+		ws:         ws,
+		log:        log,
+		ctx:        context.Background(),
+		connID:     connID,
+		accountID:  accountID,
+		roles:      roles,
+		sessionID:  sessionID,
+		subs:       map[string]Viewer{},
+		outbound:   make(chan []byte, outboundQueueFrames),
+		quit:       make(chan struct{}),
+		writerDone: make(chan struct{}),
+	}
 }
 
 // serve runs the whole connection lifecycle: hello, then a read loop with the
 // heartbeat, reauth and session-revocation timers running alongside. It returns
 // when the socket closes for any reason.
 func (c *connection) serve() {
-	defer c.gw.unregister(c)
-	defer c.ws.close()
+	// Whatever ends the read loop also ends the writer. The writer, not this
+	// goroutine, closes the socket, so a close frame already handed to it
+	// (4429 from the read loop, say) still goes out first.
+	defer func() {
+		c.stop(0, "")
+		c.gw.unregister(c)
+		<-c.writerDone
+	}()
 
 	now := time.Now()
 	c.lastReauth = now
 	c.lastPong = now
 
+	// The writer starts before register: from then on the gateway may queue
+	// fan-out frames for this connection.
+	go c.writeLoop()
 	c.gw.register(c)
 
 	// hello: the principal, the roles, and the allowed channel set. The account
@@ -412,10 +450,13 @@ func (c *connection) notePong() {
 	c.mu.Unlock()
 }
 
-// closeWith sends a close frame and tears down. Safe to call concurrently.
+// closeWith records the close and hands the close frame to the writer, which
+// sends it and tears down. It never waits on the socket, and only the first
+// close is recorded and sent. Safe to call concurrently.
 func (c *connection) closeWith(code int, reason string) {
-	c.gw.store.CloseConnection(c.ctx, c.connID, code, reason)
-	_ = c.ws.writeClose(code, reason)
+	if c.stop(code, reason) {
+		c.gw.store.CloseConnection(c.ctx, c.connID, code, reason)
+	}
 }
 
 // isUnknownField reports whether a json decode error is the DisallowUnknownFields

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -22,6 +23,13 @@ const (
 	inboundSoftPerSec = 20
 	inboundHardPerSec = 100
 	redisChannelGlob  = "rt:*"
+
+	// outboundQueueFrames bounds the fan-out frames waiting for one socket. A
+	// phone that falls this far behind is closed with 1013 and resumes from
+	// Postgres (contracts/websocket.md "Gap detection — the client's contract").
+	// At most a few events a second reach one socket, so 64 is many seconds of
+	// lag, not a burst.
+	outboundQueueFrames = 64
 )
 
 // Gateway owns the live socket fleet on this replica. It subscribes once to the
@@ -34,6 +42,12 @@ type Gateway struct {
 	rdb   *redis.Client
 	log   *slog.Logger
 	auth  Reauthenticator
+
+	// maxSockets caps the live sockets on this replica; sockets counts them.
+	// An upgrade beyond the cap is closed with 1013 so the client retries and
+	// can land on the other replica.
+	maxSockets int64
+	sockets    atomic.Int64
 
 	mu    sync.RWMutex
 	conns map[*connection]struct{}
@@ -53,21 +67,36 @@ type Reauthenticator interface {
 	Reauth(ctx context.Context, accessToken string) (sessionID string, err error)
 }
 
-// NewGateway builds a Gateway. Call Run to start the Redis fan-out loop.
-func NewGateway(store *Store, rdb *redis.Client, log *slog.Logger, auth Reauthenticator) *Gateway {
+// NewGateway builds a Gateway that holds at most maxSockets live sockets. Call
+// Run to start the Redis fan-out loop.
+func NewGateway(store *Store, rdb *redis.Client, log *slog.Logger, auth Reauthenticator, maxSockets int) *Gateway {
 	if auth == nil {
 		auth = NoopReauthenticator{}
 	}
 	return &Gateway{
-		store: store,
-		rdb:   rdb,
-		log:   log,
-		auth:  auth,
-		conns: map[*connection]struct{}{},
-		index: map[string]map[*connection]struct{}{},
-		done:  make(chan struct{}),
+		store:      store,
+		rdb:        rdb,
+		log:        log,
+		auth:       auth,
+		maxSockets: int64(maxSockets),
+		conns:      map[*connection]struct{}{},
+		index:      map[string]map[*connection]struct{}{},
+		done:       make(chan struct{}),
 	}
 }
+
+// admit reserves a socket slot on this replica. It reports false when the
+// replica is full; a true result must be paired with exactly one release.
+func (g *Gateway) admit() bool {
+	if g.sockets.Add(1) > g.maxSockets {
+		g.sockets.Add(-1)
+		return false
+	}
+	return true
+}
+
+// release frees a slot taken by admit.
+func (g *Gateway) release() { g.sockets.Add(-1) }
 
 // Run starts the Redis pub/sub fan-out. It blocks until ctx is cancelled and
 // reconnects on error: a Redis outage costs live fan-out, never a lost event —
@@ -123,7 +152,9 @@ func (g *Gateway) Run(ctx context.Context) {
 }
 
 // dispatch routes one published envelope to every local connection subscribed to
-// its channel, projecting per viewer.
+// its channel, projecting per viewer. It never writes to a socket: it only
+// queues the frame for each connection's own writer, so one stalled phone
+// cannot delay delivery to the rest of the replica.
 func (g *Gateway) dispatch(redisChannel string, payload []byte) {
 	channel := strings.TrimPrefix(redisChannel, "rt:")
 
@@ -157,7 +188,7 @@ func (g *Gateway) dispatch(redisChannel string, payload []byte) {
 		}
 		out := env
 		out.Data = projected
-		c.send(out)
+		c.enqueue(out)
 	}
 }
 
@@ -208,7 +239,9 @@ func (g *Gateway) indexUnsubscribe(c *connection, channel string) {
 }
 
 // Shutdown stops the fan-out loop and closes every live socket with 1001
-// (server going away) so clients reconnect with backoff (§1.5).
+// (server going away) so clients reconnect with backoff (contracts/websocket.md
+// "Close codes"). Each close is handed to that socket's writer, so a stalled
+// socket does not hold up the rest.
 func (g *Gateway) Shutdown() {
 	g.closeOnce.Do(func() { close(g.done) })
 	g.mu.RLock()
