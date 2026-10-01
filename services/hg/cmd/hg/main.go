@@ -46,6 +46,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/partitions"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
@@ -641,6 +642,13 @@ func run() error {
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
 	defer rtGateway.Shutdown()
+
+	// Partition maintenance (docs/spec/01-platform.md, "P-39 — Background
+	// runtime"): at start-up and hourly, keep realtime_event,
+	// rider_position_history and audit_event partitioned ahead of the clock and
+	// drop the ones past retention. Every replica runs the loop; a lease lets
+	// one work at a time.
+	go partitions.New(st.DB().Pool, log).Run(ctx)
 
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works
