@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/netip"
 	"net/url"
 	"os"
 	"sort"
@@ -35,6 +36,10 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	LogLevel        slog.Level
 	CORSOrigins     []string
+	// TrustedProxies are the reverse proxies (Traefik) whose X-Forwarded-For
+	// the API believes when it works out a request's client address. Empty by
+	// default: then the socket peer is the client and the header is ignored.
+	TrustedProxies []netip.Prefix
 
 	Postgres Postgres
 	Redis    Redis
@@ -233,6 +238,7 @@ func Load(getenv func(string) string) (*Config, error) {
 
 	cfg.LogLevel = l.logLevel("HG_LOG_LEVEL", slog.LevelInfo)
 	cfg.CORSOrigins = l.originList("HG_CORS_ALLOWED_ORIGINS")
+	cfg.TrustedProxies = l.prefixList("HG_TRUSTED_PROXY_CIDRS")
 
 	cfg.Postgres = Postgres{
 		DSN:         l.required("HG_POSTGRES_DSN"),
@@ -466,6 +472,39 @@ func (l *loader) originList(key string) []string {
 	}
 	if len(out) == 0 && len(l.errs) == 0 {
 		l.errf("%s: no usable origin found", key)
+	}
+	return out
+}
+
+// prefixList parses a comma-separated list of CIDRs; a bare IP is one address.
+//
+// A prefix that covers every address (0.0.0.0/0, ::/0) is refused: trusting
+// every peer means believing X-Forwarded-For from anyone, so any caller could
+// pick the address its rate limits and audit rows are recorded under.
+func (l *loader) prefixList(key string) []netip.Prefix {
+	raw := strings.TrimSpace(l.getenv(key))
+	if raw == "" {
+		return nil
+	}
+	var out []netip.Prefix
+	for _, part := range strings.Split(raw, ",") {
+		s := strings.TrimSpace(part)
+		if s == "" {
+			continue
+		}
+		var p netip.Prefix
+		if ip, err := netip.ParseAddr(s); err == nil && ip.Zone() == "" {
+			p = netip.PrefixFrom(ip, ip.BitLen())
+		} else if p, err = netip.ParsePrefix(s); err != nil {
+			l.errf("%s: %q is not a CIDR (e.g. 172.18.0.0/16) or an IP address", key, s)
+			continue
+		}
+		if p.Bits() == 0 {
+			l.errf("%s: %q trusts every address, which lets any caller forge its client address; "+
+				"list only the proxy's own network", key, s)
+			continue
+		}
+		out = append(out, p.Masked())
 	}
 	return out
 }

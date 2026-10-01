@@ -168,6 +168,9 @@ func TestLoadRejectsMalformedValues(t *testing.T) {
 		"bad integer":           {"HG_REDIS_DB", "two", "HG_REDIS_DB"},
 		"bad boolean":           {"HG_MINIO_USE_SSL", "sometimes", "HG_MINIO_USE_SSL"},
 		"origin without scheme": {"HG_CORS_ALLOWED_ORIGINS", "app.halalgoes.com", "HG_CORS_ALLOWED_ORIGINS"},
+		"proxy not a CIDR":      {"HG_TRUSTED_PROXY_CIDRS", "172.18.0.0/16,traefik", "HG_TRUSTED_PROXY_CIDRS"},
+		"proxy trusts all IPv4": {"HG_TRUSTED_PROXY_CIDRS", "0.0.0.0/0", "HG_TRUSTED_PROXY_CIDRS"},
+		"proxy trusts all IPv6": {"HG_TRUSTED_PROXY_CIDRS", "::/0", "HG_TRUSTED_PROXY_CIDRS"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -182,6 +185,32 @@ func TestLoadRejectsMalformedValues(t *testing.T) {
 				t.Errorf("error does not name %s: %v", tc.key, err)
 			}
 		})
+	}
+}
+
+// TestLoadTrustedProxies pins the default (no proxy trusted, so a forged
+// X-Forwarded-For is inert) and the accepted forms: CIDRs and bare addresses.
+func TestLoadTrustedProxies(t *testing.T) {
+	cfg, err := Load(getenvFrom(validEnv()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.TrustedProxies) != 0 {
+		t.Errorf("TrustedProxies = %v by default, want none", cfg.TrustedProxies)
+	}
+
+	env := validEnv()
+	env["HG_TRUSTED_PROXY_CIDRS"] = " 172.18.0.7/16 , 10.0.0.2, fd00::/8 "
+	cfg, err = Load(getenvFrom(env))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, p := range cfg.TrustedProxies {
+		got = append(got, p.String())
+	}
+	if want := "172.18.0.0/16 10.0.0.2/32 fd00::/8"; strings.Join(got, " ") != want {
+		t.Errorf("TrustedProxies = %v, want %s", got, want)
 	}
 }
 
