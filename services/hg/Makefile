@@ -1,6 +1,6 @@
 # HalalGoes API — developer entry points.
 #
-#   make up        bring the whole stack up (Traefik, Postgres+PostGIS, Redis, MinIO, 2× API)
+#   make up        bring the whole stack up (Traefik, Postgres+PostGIS, Valkey, Silo, 2× API)
 #   make run       run the API on the host against the compose dependencies
 #   make test      go test ./...
 #   make lint      gofmt check, go vet, golangci-lint when installed
