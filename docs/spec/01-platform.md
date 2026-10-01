@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-09-28
+reviewed: 2026-10-01
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification

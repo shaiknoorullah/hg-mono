@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-09-28
+reviewed: 2026-10-01
 ---
 
 # Releasing HalalGoes
@@ -73,7 +73,10 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 4. **Mapbox token(s)** — §2.
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
    self-declared halal (default hide), O-04 refund liability.
-6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik.
+6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik, including the public
+   host for file links: `HG_MINIO_PRESIGN_BASE_URL` (e.g. `https://files.halalgoes.com`), routed
+   by Traefik to the object store with the Host header unchanged. Upload and download links are
+   signed for that host, so phones can use them.
 
 ## 4. Deploy the stack (on your host)
 
@@ -85,8 +88,9 @@ make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
 
-Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, or if
-`HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
+Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
+`HG_MINIO_PRESIGN_BASE_URL` is unset, or if `HG_SMS_PROVIDER=twilio` with incomplete creds —
+misconfig fails loudly, never silently.
 
 ## 5. Verify the gate (any time)
 
