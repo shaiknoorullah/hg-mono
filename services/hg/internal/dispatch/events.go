@@ -22,8 +22,9 @@ import (
 //     dispatch.offer_withdrawn ("taken") to every other offered rider, and the
 //     winner's rider.availability_changed;
 //   - an offer timing out: dispatch.offer_withdrawn ("expired");
-//   - every wave exhausted: dispatch.state_changed to NO_RIDER_FOUND, and
-//     admin.dispatch_failure on admin:ops;
+//   - the search's wave or time budget spent with no rider: dispatch.state_changed
+//     to NO_RIDER_FOUND, and admin.dispatch_failure on admin:ops, once, by the
+//     call that ends the search (MarkNoRiderFound);
 //   - delivery: dispatch.state_changed to COMPLETED;
 //   - a position report: rider.location to the order's customer and
 //     restaurant (the realtime catalogue coarsens it per role), at most every

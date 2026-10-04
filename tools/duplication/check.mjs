@@ -276,7 +276,7 @@ function fileIssuesFor(groups, dryRun) {
       'Fix: keep one copy as the source and link to it (docs) or call it (code) from the others.',
       'Accepting it instead? Regenerate `tools/duplication/baseline.json` with `node tools/duplication/check.mjs --update-baseline` and say why in the PR.',
       '',
-      'Filed by `.github/workflows/duplication.yml` (issue #122).',
+      'Filed by the duplication step of `.github/workflows/docs.yml` (issue #122).',
     ].join('\n');
     if (dryRun) console.log(`would open: ${title}\n${body}\n`);
     else execFileSync('gh', ['issue', 'create', '--title', title, '--body', body, '--label', 'chore'], { stdio: 'inherit' });

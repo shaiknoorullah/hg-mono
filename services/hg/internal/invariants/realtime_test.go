@@ -46,6 +46,13 @@ func (b lifecycleBridge) ConfirmPickup(ctx context.Context, orderID, riderAccoun
 	})
 }
 
+func (b lifecycleBridge) MarkArrived(ctx context.Context, orderID, riderAccountID string) error {
+	return b.st.Transition(ctx, orders.TransitionRequest{
+		OrderID: orderID, To: machine.StateArrived, Actor: machine.ActorRider,
+		ActorAccountID: riderAccountID, Reason: "rider arrived at the drop-off",
+	})
+}
+
 func (b lifecycleBridge) CompleteDelivery(ctx context.Context, orderID, riderAccountID string) error {
 	return b.st.Transition(ctx, orders.TransitionRequest{
 		OrderID: orderID, To: machine.StateDelivered, Actor: machine.ActorRider,
@@ -167,6 +174,7 @@ func TestRealtime_CheckoutToCompletedEmitsTheContractsEvents(t *testing.T) {
 		"dispatch.state_changed→ASSIGNED",
 		"order.state_changed→PICKED_UP",
 		"rider.location",
+		"order.state_changed→ARRIVED",
 		"dispatch.state_changed→COMPLETED",
 		"order.state_changed→DELIVERED",
 		"order.state_changed→COMPLETED",

@@ -15,24 +15,46 @@ type waveToEscalate struct {
 	Wave     int
 	RadiusM  int
 	ElapsedS int // seconds since the dispatch row was created (D-15 max_total_seconds)
+	// LastWaveEmpty is set when the lapsed wave found nobody within RadiusM,
+	// so the next wave searches one rung wider (escalateOne).
+	LastWaveEmpty bool
 }
 
-// FindWavesToEscalate returns dispatches still SEARCHING/OFFERED (no rider yet)
-// whose wave deadline — plus the inter-wave gap — has passed, so the next wave is
-// due (D-15). ExpireDueOffers should be run first so the lapsed offers are already
-// EXPIRED and excluded from the next candidate set.
-func (s *Store) FindWavesToEscalate(ctx context.Context, now time.Time, gap time.Duration) ([]waveToEscalate, error) {
+// ClaimWavesToEscalate claims the dispatches still SEARCHING/OFFERED (no rider
+// yet) whose wave deadline — plus the inter-wave gap — has passed, so the next
+// wave is due (D-15). ExpireDueOffers should be run first so the lapsed offers
+// are already EXPIRED and excluded from the next candidate set.
+//
+// Every replica runs the dispatch runner, so the claim takes the dispatch
+// row's lease, as the runner mechanics do for every deadline
+// (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions"): FOR
+// UPDATE SKIP LOCKED, then lease_until/lease_owner for escalationLease. A
+// search another replica holds is skipped until its lease lapses; the wave's
+// writer releases it (CreateWave), and so does MarkNoRiderFound. Two replicas
+// therefore never run the same search's next wave or end it twice
+// (https://github.com/shaiknoorullah/hg-mono/issues/294).
+func (s *Store) ClaimWavesToEscalate(ctx context.Context, now time.Time, gap time.Duration, owner string) ([]waveToEscalate, error) {
 	rows, err := s.db.Query(ctx, `
-SELECT order_id::text, wave, radius_m,
-       GREATEST(0, EXTRACT(EPOCH FROM ($1::timestamptz - created_at))::int)
-  FROM dispatch
- WHERE state IN ('SEARCHING', 'OFFERED')
-   AND rider_account_id IS NULL
-   AND deadline_action = 'NEXT_WAVE'
-   AND deadline_at IS NOT NULL
-   AND deadline_at + ($2 * interval '1 second') <= $1
- ORDER BY deadline_at
- LIMIT 200`, now, gap.Seconds())
+WITH due AS (
+  SELECT order_id FROM dispatch
+   WHERE state IN ('SEARCHING', 'OFFERED')
+     AND rider_account_id IS NULL
+     AND deadline_action = 'NEXT_WAVE'
+     AND deadline_at IS NOT NULL
+     AND deadline_at + ($2 * interval '1 second') <= $1
+     AND (lease_until IS NULL OR lease_until <= $1)
+   ORDER BY deadline_at
+   LIMIT 200
+   FOR UPDATE SKIP LOCKED)
+UPDATE dispatch d
+   SET lease_until = $1::timestamptz + ($3 * interval '1 second'), lease_owner = $4
+  FROM due
+ WHERE d.order_id = due.order_id
+RETURNING d.order_id::text, d.wave, d.radius_m,
+       GREATEST(0, EXTRACT(EPOCH FROM ($1::timestamptz - d.created_at))::int),
+       COALESCE((SELECT w.offers_sent = 0 FROM dispatch_wave w
+                  WHERE w.order_id = d.order_id AND w.wave_no = d.wave), false)`,
+		now, gap.Seconds(), escalationLease.Seconds(), owner)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +62,7 @@ SELECT order_id::text, wave, radius_m,
 	var out []waveToEscalate
 	for rows.Next() {
 		var w waveToEscalate
-		if err := rows.Scan(&w.OrderID, &w.Wave, &w.RadiusM, &w.ElapsedS); err != nil {
+		if err := rows.Scan(&w.OrderID, &w.Wave, &w.RadiusM, &w.ElapsedS, &w.LastWaveEmpty); err != nil {
 			return nil, err
 		}
 		out = append(out, w)
@@ -52,9 +74,20 @@ SELECT order_id::text, wave, radius_m,
 // budget with no acceptance (D-15 hard stop). Idempotent and safe: it only touches a
 // still-searching, unassigned dispatch, so it can never clobber an accept.
 //
+// It ends the dispatch only. The order stays READY_FOR_PICKUP: dispatch may
+// never cancel an order, and NO_RIDER_FOUND hands the order to its own
+// READY_FOR_PICKUP deadline instead, which escalates and, at its cap, cancels
+// with a full refund (docs/spec/01-platform.md: the dispatch sub-machine in
+// "P-14 — Order lifecycle states and transitions", and the order deadline
+// table in "P-15 — Deadlines and timeout actions"). No money moves here: the payment was captured when the
+// restaurant accepted, and the refund belongs to that cancellation
+// (https://github.com/shaiknoorullah/hg-mono/issues/336).
+//
 // The customer, the restaurant and ops hear of it in the same transaction:
 // dispatch.state_changed on the order's channel and admin.dispatch_failure on
-// admin:ops (events.go).
+// admin:ops (docs/spec/01-platform.md, "P-32 — Rider search and offer",
+// acceptance criterion 3; events.go). Only the call that moves the row writes
+// them, so a second replica's call says nothing.
 func (s *Store) MarkNoRiderFound(ctx context.Context, orderID string) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -73,7 +106,8 @@ WITH prev AS (
    FOR UPDATE)
 UPDATE dispatch d
    SET state = 'NO_RIDER_FOUND', state_since = now(),
-       deadline_at = NULL, deadline_action = NULL
+       deadline_at = NULL, deadline_action = NULL,
+       lease_until = NULL, lease_owner = NULL
   FROM prev
  WHERE d.order_id = prev.order_id
 RETURNING prev.state::text, d.wave, d.radius_m`, orderID).Scan(&from, &waves, &radiusM)
@@ -150,19 +184,4 @@ VALUES ($1, 'ONLINE_IDLE', 'OFFLINE', 'UNRESPONSIVE', 'SYSTEM')`, id); err != ni
 		return 0, err
 	}
 	return int64(len(ids)), nil
-}
-
-// nextRadiusIndex returns the index of the next-wider radius in the ladder after
-// the given one, or -1 when the ladder is exhausted.
-func nextRadiusIndex(radiusM int) int {
-	for i, r := range radiusLadderM {
-		if r == radiusM {
-			if i+1 < len(radiusLadderM) {
-				return i + 1
-			}
-			return -1
-		}
-	}
-	// Unknown radius (shouldn't happen): widen from the smallest rung.
-	return 0
 }

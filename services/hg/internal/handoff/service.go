@@ -10,12 +10,14 @@ import (
 )
 
 // OrderLifecycle is the seam from handoff to the orders module (P-14: orders is
-// the only writer of order.state). It is the same shape internal/dispatch
-// already declares for its own PICKED_UP/DELIVERED bridge, plus OpenDispute for
-// the tamper-report path — kept as an interface, not a direct import, for the
-// same reason dispatch's is: it keeps the dependency direction clean and lets
-// tests inject a fake. cmd/hg/main.go wires one concrete adapter that satisfies
-// both this interface and dispatch.OrderLifecycle.
+// the only writer of order.state). It reuses the pickup and delivery methods
+// internal/dispatch declares for its own bridge, plus OpenDispute for the
+// tamper-report path. The picked-up to arrived step is not part of this seam:
+// arrival is the rider's "I'm here" tap, which goes through dispatch (issue
+// #250). Kept as an interface, not a direct
+// import, for the same reason dispatch's is: it keeps the dependency direction
+// clean and lets tests inject a fake. cmd/hg/main.go wires one concrete adapter
+// that satisfies both this interface and dispatch.OrderLifecycle.
 type OrderLifecycle interface {
 	// ConfirmPickup advances the order from READY_FOR_PICKUP to PICKED_UP (T12).
 	ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error
