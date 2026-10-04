@@ -114,88 +114,174 @@ SELECT a.state::text, o.state::text,
 	}
 }
 
+// resumeSearch runs ResumeSearchTx for orderID in a transaction of its own, as
+// the orders deadline runner does when the pickup deadline lapses.
+func resumeSearch(t *testing.T, pool *pgxpool.Pool, orderID string) SearchStatus {
+	t.Helper()
+	ctx := context.Background()
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	got, err := ResumeSearchTx(ctx, tx, orderID)
+	if err != nil {
+		t.Fatalf("ResumeSearchTx: %v", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	return got
+}
+
+// runRoundToNoRider moves the test clock past each empty wave's hold and runs
+// the dispatch runner until the search stops SEARCHING, as
+// TestNoRider_WidensToTenKmThenEndsWithinBudget does.
+func runRoundToNoRider(t *testing.T, pool *pgxpool.Pool, runner *DispatchRunner, clk *testClock, orderID string) {
+	t.Helper()
+	for i := 0; i < 2*maxWaves && readDispatch(t, pool, orderID).state == "SEARCHING"; i++ {
+		clk.Advance(untilNextWave)
+		if err := runner.EscalateAndExpire(context.Background()); err != nil {
+			t.Fatalf("EscalateAndExpire: %v", err)
+		}
+	}
+	if d := readDispatch(t, pool, orderID); d.state != "NO_RIDER_FOUND" {
+		t.Fatalf("after running the round out, dispatch = %+v, want NO_RIDER_FOUND", d)
+	}
+}
+
+// dueOnTestClock moves a re-opened search's due time onto the test clock.
+// ResumeSearchTx makes the search due at the database's now; the runner in
+// these tests runs on a clock in 2001 (no_rider_integration_test.go), which
+// keeps its fleet-wide queries to this file's rows.
+func dueOnTestClock(t *testing.T, pool *pgxpool.Pool, clk *testClock, orderID string) {
+	t.Helper()
+	mustExec(t, pool, `UPDATE dispatch SET deadline_at = $2 WHERE order_id = $1`, orderID, clk.Now())
+}
+
 // TestResumeSearchReopensANoRiderFoundSearch: the dispatch half of a lapsed
 // pickup deadline (https://github.com/shaiknoorullah/hg-mono/issues/293). A
 // search that found no rider is searching again, due now, from the first
 // radius and with a fresh wave and time budget, so the dispatch runner offers
-// it to riders who came online since; when nobody is there, the round ends in
-// NO_RIDER_FOUND again. A running search is left alone.
+// it to riders who came online since; when nobody is there, the round runs its
+// waves and ends in NO_RIDER_FOUND again. A search not started yet, or still
+// running, is left alone.
 func TestResumeSearchReopensANoRiderFoundSearch(t *testing.T) {
 	pool := openPool(t)
-	store := NewStore(pool)
+	clk := newTestClock()
+	svc := newClockedService(pool, clk)
+	runner := NewDispatchRunner(svc, newTestLogger(), 3000, 5*time.Second)
 	ctx := context.Background()
-	orderID, _ := seedFixture(t, pool, 1)
+	o := seedRemoteReadyOrder(t, pool)
 
-	resume := func() SearchStatus {
-		t.Helper()
-		tx, err := pool.Begin(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer tx.Rollback(ctx) //nolint:errcheck
-		got, err := ResumeSearchTx(ctx, tx, orderID)
-		if err != nil {
-			t.Fatalf("ResumeSearchTx: %v", err)
-		}
-		if err := tx.Commit(ctx); err != nil {
-			t.Fatal(err)
-		}
-		return got
+	if got := resumeSearch(t, pool, o.id); got != SearchNotStarted {
+		t.Fatalf("an order with no search yet: %s, want %s", got, SearchNotStarted)
 	}
-
-	if got := resume(); got != SearchRunning {
+	if _, err := svc.RunWave(ctx, o.id, 1, 3000); err != nil {
+		t.Fatalf("first wave: %v", err)
+	}
+	if got := resumeSearch(t, pool, o.id); got != SearchRunning {
 		t.Fatalf("a running search: %s, want %s", got, SearchRunning)
 	}
 
-	// The search ran out of riders, long ago: its wave budget and time budget
-	// are spent, and its one rider let the offer lapse.
-	mustExec(t, pool, `UPDATE dispatch_offer SET state = 'EXPIRED', outcome = 'EXPIRED', outcome_at = now() WHERE order_id = $1`, orderID)
-	mustExec(t, pool, `UPDATE dispatch SET wave = $2, created_at = now() - interval '1 hour' WHERE order_id = $1`, orderID, maxWaves)
-	if err := store.MarkNoRiderFound(ctx, orderID); err != nil {
-		t.Fatalf("MarkNoRiderFound: %v", err)
-	}
+	// Nobody is near: the first round runs its whole wave budget and ends. It
+	// started long ago on the test clock, so its time budget is spent too.
+	runRoundToNoRider(t, pool, runner, clk, o.id)
+	mustExec(t, pool, `UPDATE dispatch SET created_at = $2 WHERE order_id = $1`, o.id, clk.Now().Add(-time.Hour))
 
-	if got := resume(); got != SearchReopened {
+	if got := resumeSearch(t, pool, o.id); got != SearchReopened {
 		t.Fatalf("a search that found no rider: %s, want %s", got, SearchReopened)
 	}
 	var state, action string
-	var due bool
+	var due, leased bool
 	var radius, wave int
 	mustQueryRow(t, pool, `
-SELECT state::text, deadline_action, deadline_at <= now(), radius_m, wave FROM dispatch WHERE order_id = $1`,
-		[]any{orderID}, &state, &action, &due, &radius, &wave)
-	if state != "SEARCHING" || action != "NEXT_WAVE" || !due || radius != radiusLadderM[0] || wave != maxWaves {
-		t.Errorf("re-opened dispatch = %s/%s due=%v radius %d wave %d; want SEARCHING/NEXT_WAVE due, radius %d, wave %d kept",
-			state, action, due, radius, wave, radiusLadderM[0], maxWaves)
+SELECT state::text, deadline_action, deadline_at <= now(), lease_until IS NOT NULL, radius_m, wave
+  FROM dispatch WHERE order_id = $1`,
+		[]any{o.id}, &state, &action, &due, &leased, &radius, &wave)
+	if state != "SEARCHING" || action != "NEXT_WAVE" || !due || leased || radius != radiusLadderM[0] || wave != maxWaves {
+		t.Errorf("re-opened dispatch = %s/%s due=%v leased=%v radius %d wave %d; want SEARCHING/NEXT_WAVE due, no lease, radius %d, wave %d kept",
+			state, action, due, leased, radius, wave, radiusLadderM[0], maxWaves)
 	}
 
-	waves, err := store.FindWavesToEscalate(ctx, time.Now().Add(interWaveGap+time.Second), interWaveGap)
+	// The runner claims it with a fresh budget: no wave yet in this round, no
+	// time spent, and no empty last wave to widen past.
+	dueOnTestClock(t, pool, clk, o.id)
+	clk.Advance(interWaveGap + time.Millisecond)
+	waves, err := svc.store.ClaimWavesToEscalate(ctx, clk.Now(), interWaveGap, runner.owner)
 	if err != nil {
-		t.Fatalf("FindWavesToEscalate: %v", err)
+		t.Fatalf("ClaimWavesToEscalate: %v", err)
 	}
 	var found *waveToEscalate
 	for i := range waves {
-		if waves[i].OrderID == orderID {
+		if waves[i].OrderID == o.id {
 			found = &waves[i]
 		}
 	}
 	if found == nil {
 		t.Fatal("the re-opened search is not due for its next wave")
 	}
-	if found.RoundWaves != 0 || found.ElapsedS > 60 {
-		t.Errorf("re-opened search budget: %d waves, %d s spent; want a fresh budget", found.RoundWaves, found.ElapsedS)
+	if found.RoundWaves != 0 || found.ElapsedS > 60 || found.LastWaveEmpty {
+		t.Errorf("re-opened search budget: %d waves, %d s spent, last wave empty %v; want a fresh budget",
+			found.RoundWaves, found.ElapsedS, found.LastWaveEmpty)
 	}
 
-	// Nobody is there to take it: the dispatch runner widens through the
-	// ladder and ends the round in NO_RIDER_FOUND, ready for the next lapse.
-	svc := NewService(store, nil)
-	svc.now = func() time.Time { return time.Now().UTC().Add(interWaveGap + time.Second) }
-	if err := NewDispatchRunner(svc, newTestLogger(), 0, 0).EscalateAndExpire(ctx); err != nil {
+	// Nobody is there to take it: the round runs its waves again and ends in
+	// NO_RIDER_FOUND, ready for the next lapse.
+	runner.escalateOne(ctx, *found)
+	runRoundToNoRider(t, pool, runner, clk, o.id)
+	if n := len(waveRadii(t, pool, o.id)); n != 2*maxWaves {
+		t.Errorf("waves over both rounds = %d, want %d (a full round each)", n, 2*maxWaves)
+	}
+}
+
+// TestReopenedSearchStartsAgainAtTheNearestRadius: a search re-opened after
+// ending on an empty wave at 10 km starts again at 3 km. Whether the last wave
+// was empty, which makes the next wave one rung wider, is asked of this
+// round's waves only; asked of the round before, the re-opened search would
+// skip 3 km and run its first wave at 6 km.
+func TestReopenedSearchStartsAgainAtTheNearestRadius(t *testing.T) {
+	pool := openPool(t)
+	clk := newTestClock()
+	svc := newClockedService(pool, clk)
+	runner := NewDispatchRunner(svc, newTestLogger(), 3000, 5*time.Second)
+	ctx := context.Background()
+	o := seedRemoteReadyOrder(t, pool)
+
+	if _, err := svc.RunWave(ctx, o.id, 1, 3000); err != nil {
+		t.Fatalf("first wave: %v", err)
+	}
+	runRoundToNoRider(t, pool, runner, clk, o.id)
+	if got, want := waveRadii(t, pool, o.id), []int{3000, 6000, 10000, 10000, 10000}; !sameInts(got, want) {
+		t.Fatalf("first round's radii = %v, want %v, ending on an empty wave at 10 km", got, want)
+	}
+
+	if got := resumeSearch(t, pool, o.id); got != SearchReopened {
+		t.Fatalf("ResumeSearchTx = %s, want %s", got, SearchReopened)
+	}
+	dueOnTestClock(t, pool, clk, o.id)
+	// A rider comes online about 2 km from the restaurant: inside 3 km.
+	rider := seedOnlineRider(t, pool, o.lng, o.lat+2.0/111.32)
+
+	clk.Advance(interWaveGap + time.Millisecond)
+	if err := runner.EscalateAndExpire(ctx); err != nil {
 		t.Fatalf("EscalateAndExpire: %v", err)
 	}
-	mustQueryRow(t, pool, `SELECT state::text FROM dispatch WHERE order_id = $1`, []any{orderID}, &state)
-	if state != "NO_RIDER_FOUND" {
-		t.Errorf("after a round with nobody to offer: dispatch %s, want NO_RIDER_FOUND", state)
+	d := readDispatch(t, pool, o.id)
+	if d.state != "SEARCHING" || d.wave != maxWaves+1 || d.radiusM != 3000 {
+		t.Fatalf("re-opened search's first wave: dispatch = %+v, want SEARCHING wave %d at 3000 m", d, maxWaves+1)
+	}
+	var waveRadius, distance int
+	var offerState string
+	if err := pool.QueryRow(ctx, `
+SELECT w.radius_m, f.state::text, f.distance_m
+  FROM dispatch_offer f JOIN dispatch_wave w ON w.id = f.dispatch_wave_id
+ WHERE f.order_id = $1 AND f.rider_account_id = $2`, o.id, rider).Scan(&waveRadius, &offerState, &distance); err != nil {
+		t.Fatalf("the rider 2 km away has no offer: %v", err)
+	}
+	if waveRadius != 3000 || offerState != "PENDING" || distance > 3000 {
+		t.Fatalf("offer = %s at %d m from a wave at %d m, want PENDING within 3 km from a wave at 3000 m",
+			offerState, distance, waveRadius)
 	}
 }
 

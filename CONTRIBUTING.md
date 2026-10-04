@@ -33,8 +33,10 @@ A scope is optional: `fix(restaurant): …`. App labels (`app:restaurant` …) a
 
 This applies to PRs, issues, docs and code comments. In code, where links don't render, write the meaning plus the file and heading: `// solid green is halal-only — AGENTS.md "Non-negotiable invariants"`.
 
-**Checked in CI** by [`pr-rules`](.github/workflows/pr-rules.yml). Run it before you open the PR:
+**Checked in CI** by `pr-rules`, a step of [`docs`](.github/workflows/docs.yml). Run it before you open the PR:
 
 ```bash
 node .github/scripts/pr-rules.mjs check --title "fix(restaurant): the queue showed orders twice" --body-file body.md
 ```
+
+**CI runs only for trusted PRs**, on the owner's self-hosted runners while the repository variable `HG_RUNS_ON` is set: branches of this repository, pushed by an account in `HG_CI_TRUSTED_ACTORS`. Each check runs only when a file it checks changed; the `gate` job in [`ci`](.github/workflows/ci.yml) is the one result to wait for. Why, and how to add a runner: [docs/ci/self-hosted-runners.md](docs/ci/self-hosted-runners.md).

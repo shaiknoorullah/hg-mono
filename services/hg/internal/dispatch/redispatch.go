@@ -32,9 +32,12 @@ const (
 // actions"; https://github.com/shaiknoorullah/hg-mono/issues/293).
 //
 // A search that ended in NO_RIDER_FOUND is re-opened: SEARCHING again, due at
-// once, from the first radius of the ladder, and with a fresh wave and time
-// budget counted from now (state_since), so the dispatch runner widens the
-// radius again for riders who came online since. Riders who already turned the
+// once and free of any escalation lease, from the first radius of the ladder,
+// and with a fresh wave and time budget counted from now (state_since), so the
+// dispatch runner widens the radius again for riders who came online since.
+// The round's first wave searches the first radius whatever the round before
+// ended on: the runner counts waves, and asks whether the last one was empty,
+// only since state_since (ClaimWavesToEscalate). Riders who already turned the
 // order down or let an offer lapse are never offered it again (the candidate
 // query excludes them). A search still running, or a rider already assigned,
 // is left alone; ops get the alert either way. Assigning a rider by hand has
@@ -64,7 +67,8 @@ SELECT state::text, rider_account_id IS NOT NULL
 	if _, err := tx.Exec(ctx, `
 UPDATE dispatch
    SET state = 'SEARCHING', state_since = now(), radius_m = $2,
-       deadline_at = now(), deadline_action = 'NEXT_WAVE'
+       deadline_at = now(), deadline_action = 'NEXT_WAVE',
+       lease_until = NULL, lease_owner = NULL
  WHERE order_id = $1`, orderID, radiusLadderM[0]); err != nil {
 		return "", fmt.Errorf("re-open search: %w", err)
 	}
