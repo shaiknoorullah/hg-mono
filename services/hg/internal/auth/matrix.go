@@ -299,8 +299,6 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("menu_version.read"),
 		httpx.Action("order.cancel_support"),
 		httpx.Action("order.read_any"),
-		// The platform-wide pause on new orders
-		// (https://github.com/shaiknoorullah/hg-mono/issues/244).
 		httpx.Action("ordering_pause.read"),
 		httpx.Action("ordering_pause.set"),
 		httpx.Action("platform_deps.read"),

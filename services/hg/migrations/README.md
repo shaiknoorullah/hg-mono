@@ -55,6 +55,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 4 | The decomposition invariant is one query returning zero rows. | `SELECT * FROM ledger_order_residual;` — plus `ledger_batch_imbalance`, `ledger_global_residual`, `ledger_charge_identity_breach`, `ledger_tip_passthrough_breach`, and `assert_ledger_invariants()` which raises on any of them. |
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
 | 6 | One canonical location column per entity, `geography(Point,4326)`, with the GiST indexes dispatch needs. | `lint_location_columns()`. A second location column, a `geometry`, a bare `point`, or a column named `coords` all fail the gate. |
+| 7 | The platform-wide pause on new orders ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) is one row that always exists, and a pause always says when it began and why. | `ordering_pause` (`00041`): a boolean primary key that must be `true`, the row inserted by the migration, `REVOKE DELETE, TRUNCATE` from `hg_app`, and the `ordering_pause_explained` CHECK. `createOrder` reads the row `FOR SHARE` in the transaction that inserts the order, so no order commits after a pause did. |
 
 The two schema lints are also runnable on their own:
 

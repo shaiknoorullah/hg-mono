@@ -281,6 +281,17 @@ reject "a receipt snapshot cannot be rewritten" "receipt_snapshot_is_immutable" 
   "UPDATE \"order\" SET receipt_snapshot = '{\"v\":1}' WHERE id='88888888-8888-4888-8888-888888888888';
    UPDATE \"order\" SET receipt_snapshot = '{\"v\":2}' WHERE id='88888888-8888-4888-8888-888888888888';"
 zero_rows "no quote taxes the tip" "SELECT * FROM quote_tip_taxed"
+# The platform-wide pause on new orders: one row, never removed, and a pause
+# always says when and why (https://github.com/shaiknoorullah/hg-mono/issues/244).
+n_rows "there is exactly one ordering-pause row" "1" "SELECT 1 FROM ordering_pause"
+reject "a second ordering-pause row is rejected" "ordering_pause_pkey" \
+  "INSERT INTO ordering_pause (id) VALUES (true);"
+reject "any ordering-pause row but the one is rejected" "ordering_pause_id_check" \
+  "INSERT INTO ordering_pause (id) VALUES (false);"
+reject "a pause with no reason or start time is rejected" "ordering_pause_explained" \
+  "UPDATE ordering_pause SET paused = true;"
+reject "the API role cannot delete the ordering-pause row" "permission denied" \
+  "SET LOCAL ROLE hg_app; DELETE FROM ordering_pause;"
 
 echo
 echo "8. Dispatch: exactly one rider"

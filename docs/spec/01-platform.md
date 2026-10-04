@@ -378,7 +378,7 @@ CREATE TABLE signing_key (
 
 - **Behaviour**: Authorization is `Can(principal, action, subject) → allow | deny`. `action` is a `noun.verb` string from a **closed, compile-time enumerated** set (`order.read`, `order.accept`, `menu_item.update`, `payout.read`, `kyc_document.download`, …). Permissions are a static Go map `role → set[action]`, versioned in-repo and covered by a golden test; they are **not** database-configurable in V1 (no runtime permission editing means no runtime permission bug). Scope narrows the subject set: a `RESTAURANT_MANAGER` scoped to R1 holding `order.accept` may only accept orders whose `restaurant_id = R1`, which is the *ownership* check (P-07), not the role check.
 
-  `SUPER_ADMIN` holds all actions. `ADMIN` holds all except `admin.grant_role`, `platform_config.write`, `payout_config.write`. `SUPPORT_AGENT` holds read actions plus `refund.request` (which requires admin approval above a threshold) and `order.annotate`.
+  `SUPER_ADMIN` holds all actions. `ADMIN` holds all except `admin.grant_role`, `platform_config.write`, `payout_config.write`. `SUPPORT_AGENT` holds read actions plus `refund.request` (which requires admin approval above a threshold) and `order.annotate`. So pausing new orders platform-wide (`ordering_pause.set`, [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) is `ADMIN` and `SUPER_ADMIN`; `SUPPORT_AGENT` only reads it (`ordering_pause.read`).
 
 - **Data**: no table in V1. `account_role` (P-01) is the only persisted authorization data. The permission matrix ships as `internal/authz/matrix.go` and is dumped into the OpenAPI description and into `docs/permissions.md` by `go generate`.
 
@@ -729,6 +729,7 @@ CREATE TABLE quote_line_addon (
   - **I-09.5** An order can only be created from a non-expired quote whose recomputation matches; there is no code path that accepts a total from the request.
   - **I-09.6** Every rounding operation appends to `rounding_log`; the log's replay reproduces the stored totals exactly (test).
   - **I-09.7** A quote referencing an unavailable item, a closed restaurant, or an address outside the restaurant's delivery radius fails at quote time with a typed error listing the offending lines — it never silently zeroes.
+  - **I-09.8** While staff have paused new orders platform-wide during an incident ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244); `setOrderingPause`), quote and order creation answer `409 ORDERING_PAUSED` and store nothing, and the cart reports `ORDERING_PAUSED` in `blocking_reasons`. Orders already placed carry on to the end. The switch is one Postgres row with no cache in front of it; order creation reads it `FOR SHARE` in the transaction that inserts the order, so an order never commits after the pause did.
 - **Acceptance criteria**:
   1. Given a checkout request containing `total_cents`, `pricing`, or any monetary field, When posted, Then 422 `unknown_field` and no order, quote or PaymentIntent is created.
   2. Given a quote for $50.00 with promo `SAVE10` (10%), Then `discount_items_cents = 500` and `total_cents` reflects $45.00 + fees + tax; a snapshot test pins the exact integer.
