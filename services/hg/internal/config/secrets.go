@@ -40,8 +40,11 @@ var SecretSettings = []string{
 type SecretSource string
 
 const (
-	SecretNotSet   SecretSource = "not set"
-	SecretFromEnv  SecretSource = "environment"
+	// SecretNotSet: neither NAME nor NAME_FILE is set.
+	SecretNotSet SecretSource = "not set"
+	// SecretFromEnv: the value came from the environment variable NAME.
+	SecretFromEnv SecretSource = "environment"
+	// SecretFromFile: the value came from the file NAME_FILE names.
 	SecretFromFile SecretSource = "file"
 )
 
