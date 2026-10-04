@@ -19,6 +19,10 @@ type Message struct {
 	// this as a client reference / idempotency key so a retried River job
 	// that actually landed upstream does not send twice.
 	IdempotencyKey string
+	// Email is the rendered email (subject, HTML and plain text) for the
+	// EMAIL channel; nil on every other channel. The worker renders it from
+	// the notification row just before sending (email.go).
+	Email *RenderedEmail
 }
 
 // ErrChannelNotConfigured is returned by Notifier.Send for a channel with no
@@ -74,6 +78,14 @@ func (a EmailAdapter) Send(ctx context.Context, target string, msg Message) (str
 	return a.SendEmail(ctx, target, msg)
 }
 
+// Provider implements ProviderNamer when the wrapped sender does.
+func (a EmailAdapter) Provider() string {
+	if n, ok := a.EmailSender.(ProviderNamer); ok {
+		return n.Provider()
+	}
+	return ""
+}
+
 // Notifier is the multi-channel dispatcher: one registered ChannelSender per
 // Channel. It has no failover policy of its own — the worker walks a
 // notification's channel plan and calls Send once per channel; Notifier's
@@ -98,6 +110,14 @@ func (n *Notifier) Register(ch Channel, s ChannelSender) *Notifier {
 func (n *Notifier) Configured(ch Channel) bool {
 	_, ok := n.senders[ch]
 	return ok
+}
+
+// Provider names the provider registered for ch, or "" when it does not say.
+func (n *Notifier) Provider(ch Channel) string {
+	if p, ok := n.senders[ch].(ProviderNamer); ok {
+		return p.Provider()
+	}
+	return ""
 }
 
 // Send dispatches to the registered sender for ch.

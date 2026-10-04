@@ -67,6 +67,30 @@
 // OTP code, a full address, card details or a token"). The code travels only
 // in the River job's args, which are not the contract-visible inbox.
 //
+// # Email
+//
+// Email templates are written in React Email (packages/emails) and exported
+// to static HTML and plain text with {{.Var}} slots, committed under
+// emailtmpl/templates and embedded in the binary; no Node runs in production.
+// A builder (messages.go) names a template and fills its display values
+// (EmailSpec, kept in notification.data); a single-use link token travels
+// only in the job (ChannelOverride.LinkToken). The worker renders the email
+// just before sending (email.go), so a retried job sends byte-for-byte the
+// same request.
+//
+// Delivery is Resend (senders.go, ResendSender), the one approved hosted
+// email provider. Every request carries "<notification id>:EMAIL" as
+// Resend's idempotency key, and the notification's lease (Repo.ClaimLease)
+// keeps two runs of one job from overlapping, so an email is sent once per
+// notification however often River runs its job. Outside production every
+// email passes AllowListSender first: an address not on HG_EMAIL_ALLOWLIST is
+// logged and recorded SUPPRESSED, never sent (issue #235). With no Resend key
+// the LogEmailSender records each email in the log instead.
+//
+// EMAIL is not part of the failover chain: it is always attempted for the
+// kinds that plan it, beside push and SMS (P-24's fallback ladder: "EMAIL is
+// always sent for its listed events regardless of socket state").
+//
 // # Halal invariants that touch this package
 //
 // This package renders no halal state and must not invent one. Order-event
@@ -87,6 +111,7 @@
 // are not wired into httpx.Router in this change (no router exists yet for
 // this isolated module build) but the repository methods they need are ready.
 //
-// Spec: docs/spec/01-platform.md P-24 (notification-router matrix), P-25
-// (push), P-26 (SMS/email channels + suppression).
+// Spec: docs/spec/01-platform.md, "P-24 — Notification router" (the
+// router matrix), "P-25 — Push notifications (Expo)" and "P-26 — SMS and
+// email" (channels and suppression).
 package notify

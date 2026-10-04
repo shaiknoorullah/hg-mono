@@ -1,0 +1,566 @@
+package notify
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+)
+
+// Builders for the notifications outside the order lifecycle: account
+// emails, application decisions, account standing, payouts and halal
+// certificate expiry (issue #248). Each returns a New that the caller enqueues
+// in the same transaction as the change it reports, so the message exists if
+// and only if the change committed (doc.go).
+//
+// Every builder:
+//   - writes an inbox title and body that hold no secret: no token, no code,
+//     no full address (docs/spec/01-platform.md, "P-24 — Notification
+//     router", rule I-24.5);
+//   - names an email template from packages/emails and fills it with
+//     display values formatted here (money from integer cents, 12-hour times);
+//   - sets a dedupe key, so a retried transaction or a double-click produces
+//     one notification, not two emails.
+//
+// Which roles get which channel follows the router matrix in the same spec
+// section: restaurants and admins by email and inbox; riders by push with
+// email beside it (riders have no web app to link to, so their emails carry no
+// button).
+
+// TxEnqueuer is the outbox's write side as other modules hold it
+// (*Enqueuer implements it).
+type TxEnqueuer interface {
+	Enqueue(ctx context.Context, tx pgx.Tx, n New) (EnqueueResult, error)
+}
+
+// Kinds for the notifications this file builds. notification.kind is a plain
+// string, so a new kind needs no migration.
+const (
+	KindEmailVerification                  Kind = "AUTH_EMAIL_VERIFICATION"
+	KindPasswordReset                      Kind = "AUTH_PASSWORD_RESET"
+	KindStaffInvite                        Kind = "STAFF_INVITE"
+	KindRestaurantApplicationApproved      Kind = "RESTAURANT_APPLICATION_APPROVED"
+	KindRestaurantApplicationChangesNeeded Kind = "RESTAURANT_APPLICATION_CHANGES_REQUESTED"
+	KindRestaurantApplicationRejected      Kind = "RESTAURANT_APPLICATION_REJECTED"
+	KindRiderApplicationApproved           Kind = "RIDER_APPLICATION_APPROVED"
+	KindRiderApplicationChangesNeeded      Kind = "RIDER_APPLICATION_CHANGES_REQUESTED"
+	KindRiderApplicationRejected           Kind = "RIDER_APPLICATION_REJECTED"
+	KindRestaurantSuspended                Kind = "RESTAURANT_SUSPENDED"
+	KindRestaurantReinstated               Kind = "RESTAURANT_REINSTATED"
+	KindRiderSuspended                     Kind = "RIDER_SUSPENDED"
+	KindRiderReinstated                    Kind = "RIDER_REINSTATED"
+	KindPayoutSent                         Kind = "PAYOUT_SENT"
+	// The two halal certificate kinds match the ones the expiry job in pull
+	// request #274 already writes (internal/halalexpiry/messages.go there).
+	KindHalalCertificateExpiring Kind = "HALAL_CERTIFICATE_EXPIRING"
+	KindHalalCertificateExpired  Kind = "HALAL_CERTIFICATE_EXPIRED"
+)
+
+// Paths on the restaurant and admin web apps that an email's button opens
+// (joined to Links by the renderer). The three token paths are new routes the
+// web apps add to consume the token through the existing API operations
+// (verifyEmail, resetPassword): issue #329.
+const (
+	PathVerifyEmail   = "/verify-email"
+	PathResetPassword = "/reset-password"
+	PathAcceptInvite  = "/accept-invite"
+	PathOnboarding    = "/onboarding"
+	PathSignIn        = "/login"
+	PathOrders        = "/orders"
+)
+
+func restaurantOrAdmin(role RoleContext) error {
+	if role != RoleRestaurant && role != RoleAdmin {
+		return fmt.Errorf("notify: %s has no web app to link to", role)
+	}
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// Sign-in and account emails: each carries one single-use link.
+// ---------------------------------------------------------------------------
+
+// LinkEmail is the input to the three single-use-link emails.
+type LinkEmail struct {
+	AccountID uuid.UUID
+	// Role picks the web app the link opens: RESTAURANT or ADMIN.
+	Role RoleContext
+	// To is the address the account registered, verified or not: these
+	// emails are how an address gets verified.
+	To string
+	// Token is the plaintext single-use token. It travels only in the
+	// delivery job and the email itself (ChannelOverride.LinkToken).
+	Token string
+	// TokenID identifies the token row (credential_token.id); it makes the
+	// dedupe key, so one token produces one email.
+	TokenID   string
+	ExpiresAt time.Time
+	Zone      *time.Location
+}
+
+func (a LinkEmail) validate() error {
+	if err := restaurantOrAdmin(a.Role); err != nil {
+		return err
+	}
+	if a.To == "" || a.Token == "" || a.TokenID == "" {
+		return fmt.Errorf("notify: a link email needs an address, a token and a token id")
+	}
+	return nil
+}
+
+func linkEmail(a LinkEmail, kind Kind, title, body, template, path string, vars map[string]string) (New, error) {
+	if err := a.validate(); err != nil {
+		return New{}, err
+	}
+	if vars == nil {
+		vars = map[string]string{}
+	}
+	vars["ExpiresAt"] = FormatDateTime(a.ExpiresAt, a.Zone)
+	return New{
+		AccountID:   a.AccountID,
+		RoleContext: a.Role,
+		Kind:        kind,
+		Title:       title,
+		Body:        body,
+		Priority:    PriorityHigh,
+		Channels:    []Channel{ChannelEmail},
+		DedupeKey:   strings.ToLower(string(kind)) + ":" + a.TokenID,
+		Email:       &EmailSpec{Template: template, Vars: vars, LinkPath: path},
+		Overrides:   map[Channel]ChannelOverride{ChannelEmail: {Target: a.To, LinkToken: a.Token}},
+	}, nil
+}
+
+// EmailVerification is the restaurant sign-up email that confirms the address
+// (docs/spec/01-platform.md, "P-03 — Email and password sign-in").
+func EmailVerification(a LinkEmail) (New, error) {
+	return linkEmail(a, KindEmailVerification,
+		"Confirm your email",
+		fmt.Sprintf("We sent a link to confirm your email address to %s.", maskEmail(a.To)),
+		"email_verification", PathVerifyEmail, nil)
+}
+
+// PasswordReset is the forgot-password email.
+func PasswordReset(a LinkEmail) (New, error) {
+	return linkEmail(a, KindPasswordReset,
+		"Password reset requested",
+		fmt.Sprintf("We sent a link to reset your password to %s. If it was not you, ignore it: your password stays the same.", maskEmail(a.To)),
+		"password_reset", PathResetPassword, nil)
+}
+
+// StaffInvite is the input to the staff invitation email.
+type StaffInvite struct {
+	LinkEmail
+	InviteeName string
+	// TeamName is who they join: "the HalalGoes team" for platform staff,
+	// the restaurant's name for restaurant staff.
+	TeamName  string
+	RoleLabel string // "an admin", "a support agent", "staff"
+}
+
+// StaffInviteEmail invites a new staff account to set its password
+// (docs/spec/05-admin.md, staff accounts; contract: createStaffUser and
+// createRestaurantStaffUser). The link consumes the token through the reset
+// password operation, which sets the first password.
+func StaffInviteEmail(a StaffInvite) (New, error) {
+	return linkEmail(a.LinkEmail, KindStaffInvite,
+		"You're invited to HalalGoes",
+		fmt.Sprintf("You are invited to join %s on HalalGoes. Set your password from the link we emailed to %s.", a.TeamName, maskEmail(a.To)),
+		"staff_invite", PathAcceptInvite,
+		map[string]string{"InviteeName": a.InviteeName, "TeamName": a.TeamName, "RoleLabel": a.RoleLabel})
+}
+
+// StaffInvitation is a new INVITED staff account to send an invitation to.
+type StaffInvitation struct {
+	AccountID   uuid.UUID
+	Role        RoleContext // ADMIN for platform staff, RESTAURANT for restaurant staff
+	Email       string
+	InviteeName string
+	TeamName    string
+	RoleLabel   string
+}
+
+// StaffInviter mints a staff invitation inside the caller's transaction: the
+// single-use token and the email that carries it. The auth module implements
+// it (auth.Service.InviteStaff), because the token is a sign-in credential;
+// the admin and restaurant modules call it from the transaction that creates
+// the invited account.
+type StaffInviter interface {
+	InviteStaff(ctx context.Context, tx pgx.Tx, inv StaffInvitation) error
+}
+
+// StaffRoleLabel words a staff role for the invitation.
+func StaffRoleLabel(role string) string {
+	switch role {
+	case "SUPER_ADMIN":
+		return "a super admin"
+	case "ADMIN":
+		return "an admin"
+	case "SUPPORT_AGENT":
+		return "a support agent"
+	case "RESTAURANT_MANAGER":
+		return "a manager"
+	default:
+		return "a member of staff"
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Application decisions
+// ---------------------------------------------------------------------------
+
+// Decision mirrors the contract's RestaurantDecision enum (used for riders too).
+type Decision string
+
+// The three application decisions.
+const (
+	// DecisionApprove approves the application.
+	DecisionApprove Decision = "APPROVE"
+	// DecisionRequestChanges sends the application back for changes.
+	DecisionRequestChanges Decision = "REQUEST_CHANGES"
+	// DecisionReject turns the application down.
+	DecisionReject Decision = "REJECT"
+)
+
+// RestaurantApplicationDecision is the input to the restaurant decision message.
+type RestaurantApplicationDecision struct {
+	AccountID      uuid.UUID // one owner or manager
+	RestaurantID   uuid.UUID
+	RestaurantName string
+	Decision       Decision
+	// ReasonText is the admin's reason, sent verbatim (contract:
+	// RestaurantDecisionInput.reason_text). The internal note is never passed.
+	ReasonText string
+	DecidedAt  time.Time
+}
+
+// RestaurantApplicationDecided tells a restaurant's owner the outcome of its
+// application review (router matrix row onboarding.state_changed: email and
+// inbox).
+func RestaurantApplicationDecided(a RestaurantApplicationDecision) (New, error) {
+	var kind Kind
+	var template, title, body string
+	switch a.Decision {
+	case DecisionApprove:
+		kind, template = KindRestaurantApplicationApproved, "restaurant_application_approved"
+		title = "Application approved"
+		body = fmt.Sprintf("%s is approved. Sign in to see what is left before you go live.", a.RestaurantName)
+	case DecisionRequestChanges:
+		kind, template = KindRestaurantApplicationChangesNeeded, "restaurant_application_changes_requested"
+		title = "Changes needed on your application"
+		body = fmt.Sprintf("Before we can approve %s, we need some changes: %s", a.RestaurantName, a.ReasonText)
+	case DecisionReject:
+		kind, template = KindRestaurantApplicationRejected, "restaurant_application_rejected"
+		title = "Application not approved"
+		body = fmt.Sprintf("We could not approve %s: %s", a.RestaurantName, a.ReasonText)
+	default:
+		return New{}, fmt.Errorf("notify: unknown restaurant decision %q", a.Decision)
+	}
+	return New{
+		AccountID:   a.AccountID,
+		RoleContext: RoleRestaurant,
+		Kind:        kind,
+		Title:       title,
+		Body:        body,
+		DeepLink:    "restaurant/onboarding/" + a.RestaurantID.String(),
+		Priority:    PriorityHigh,
+		Channels:    []Channel{ChannelEmail, ChannelInApp},
+		DedupeKey:   fmt.Sprintf("restaurant_application:%s:%d", a.RestaurantID, a.DecidedAt.UnixMicro()),
+		GroupKey:    "restaurant_application:" + a.RestaurantID.String(),
+		Data:        map[string]any{"restaurant_id": a.RestaurantID.String(), "decision": string(a.Decision)},
+		Email: &EmailSpec{Template: template, LinkPath: PathOnboarding, Vars: map[string]string{
+			"RestaurantName": a.RestaurantName, "ReasonText": a.ReasonText,
+		}},
+	}, nil
+}
+
+// RiderApplicationDecision is the input to the rider decision message.
+type RiderApplicationDecision struct {
+	AccountID  uuid.UUID
+	FirstName  string
+	Decision   Decision
+	ReasonText string // sent verbatim (contract: RiderDecisionInput.reason_text)
+	DecidedAt  time.Time
+}
+
+// RiderApplicationDecided tells a rider the outcome of their application
+// (router matrix: push and inbox; email goes beside push as a record).
+func RiderApplicationDecided(a RiderApplicationDecision) (New, error) {
+	var kind Kind
+	var template, title, body string
+	switch a.Decision {
+	case DecisionApprove:
+		kind, template = KindRiderApplicationApproved, "rider_application_approved"
+		title = "You're approved to deliver"
+		body = "Your application is approved. Set up payouts in the app to start taking deliveries."
+	case DecisionRequestChanges:
+		kind, template = KindRiderApplicationChangesNeeded, "rider_application_changes_requested"
+		title = "Changes needed on your application"
+		body = "Before we can approve your application, we need some changes: " + a.ReasonText
+	case DecisionReject:
+		kind, template = KindRiderApplicationRejected, "rider_application_rejected"
+		title = "Application not approved"
+		body = "We could not approve your application: " + a.ReasonText
+	default:
+		return New{}, fmt.Errorf("notify: unknown rider decision %q", a.Decision)
+	}
+	return New{
+		AccountID:   a.AccountID,
+		RoleContext: RoleRider,
+		Kind:        kind,
+		Title:       title,
+		Body:        body,
+		DeepLink:    "rider/onboarding",
+		Priority:    PriorityHigh,
+		Channels:    []Channel{ChannelPush, ChannelEmail, ChannelInApp},
+		DedupeKey:   fmt.Sprintf("rider_application:%s:%d", a.AccountID, a.DecidedAt.UnixMicro()),
+		GroupKey:    "rider_application:" + a.AccountID.String(),
+		Data:        map[string]any{"decision": string(a.Decision)},
+		Email: &EmailSpec{Template: template, Vars: map[string]string{
+			"FirstName": a.FirstName, "ReasonText": a.ReasonText,
+		}},
+	}, nil
+}
+
+// ---------------------------------------------------------------------------
+// Account standing: suspension and reinstatement
+// ---------------------------------------------------------------------------
+
+// RestaurantStanding is the input to the restaurant suspended and reinstated
+// messages.
+type RestaurantStanding struct {
+	AccountID      uuid.UUID // one owner or manager
+	RestaurantID   uuid.UUID
+	RestaurantName string
+	Suspended      bool   // false means reinstated
+	ReasonText     string // required when suspending; the note shown to the restaurant
+	ChangedAt      time.Time
+}
+
+// RestaurantStandingChanged reports a suspension or a reinstatement
+// (docs/spec/03-restaurant.md, "R-36 — Account status, suspension,
+// reinstatement and in-flight orders": ACCOUNT_SUSPENDED and
+// ACCOUNT_REINSTATED go by inbox and email).
+func RestaurantStandingChanged(a RestaurantStanding) (New, error) {
+	n := New{
+		AccountID:   a.AccountID,
+		RoleContext: RoleRestaurant,
+		Priority:    PriorityHigh,
+		Channels:    []Channel{ChannelEmail, ChannelInApp},
+		GroupKey:    "restaurant_standing:" + a.RestaurantID.String(),
+		Data:        map[string]any{"restaurant_id": a.RestaurantID.String()},
+	}
+	if a.Suspended {
+		if a.ReasonText == "" {
+			return New{}, fmt.Errorf("notify: a suspension notice needs the reason")
+		}
+		n.Kind = KindRestaurantSuspended
+		n.Title = "Your restaurant is suspended"
+		n.Body = fmt.Sprintf("%s is not taking new orders for now. Orders you already accepted still complete. Reason: %s", a.RestaurantName, a.ReasonText)
+		n.DedupeKey = fmt.Sprintf("restaurant_suspended:%s:%d", a.RestaurantID, a.ChangedAt.UnixMicro())
+		n.Email = &EmailSpec{Template: "restaurant_suspended", LinkPath: PathSignIn, Vars: map[string]string{
+			"RestaurantName": a.RestaurantName, "ReasonText": a.ReasonText,
+		}}
+		return n, nil
+	}
+	n.Kind = KindRestaurantReinstated
+	n.Title = "Your restaurant is back"
+	n.Body = fmt.Sprintf("The suspension on %s is lifted. You can take orders again.", a.RestaurantName)
+	n.DedupeKey = fmt.Sprintf("restaurant_reinstated:%s:%d", a.RestaurantID, a.ChangedAt.UnixMicro())
+	n.Email = &EmailSpec{Template: "restaurant_reinstated", LinkPath: PathOrders, Vars: map[string]string{
+		"RestaurantName": a.RestaurantName,
+	}}
+	return n, nil
+}
+
+// RiderStanding is the input to the rider suspended and reinstated messages.
+type RiderStanding struct {
+	AccountID  uuid.UUID
+	FirstName  string
+	Suspended  bool
+	ReasonText string
+	ChangedAt  time.Time
+}
+
+// RiderStandingChanged reports a rider's pause or reinstatement
+// (docs/decisions/README.md, "Notifying a paused rider who is reinstated").
+func RiderStandingChanged(a RiderStanding) (New, error) {
+	n := New{
+		AccountID:   a.AccountID,
+		RoleContext: RoleRider,
+		Priority:    PriorityHigh,
+		Channels:    []Channel{ChannelPush, ChannelEmail, ChannelInApp},
+		GroupKey:    "rider_standing:" + a.AccountID.String(),
+	}
+	if a.Suspended {
+		if a.ReasonText == "" {
+			return New{}, fmt.Errorf("notify: a suspension notice needs the reason")
+		}
+		n.Kind = KindRiderSuspended
+		n.Title = "Your rider account is paused"
+		n.Body = "You cannot go online for now. Reason: " + a.ReasonText
+		n.DedupeKey = fmt.Sprintf("rider_suspended:%s:%d", a.AccountID, a.ChangedAt.UnixMicro())
+		n.Email = &EmailSpec{Template: "rider_suspended", Vars: map[string]string{
+			"FirstName": a.FirstName, "ReasonText": a.ReasonText,
+		}}
+		return n, nil
+	}
+	n.Kind = KindRiderReinstated
+	n.Title = "You can deliver again"
+	n.Body = "Your rider account is active again. Go online whenever you are ready."
+	n.DedupeKey = fmt.Sprintf("rider_reinstated:%s:%d", a.AccountID, a.ChangedAt.UnixMicro())
+	n.Email = &EmailSpec{Template: "rider_reinstated", Vars: map[string]string{"FirstName": a.FirstName}}
+	return n, nil
+}
+
+// ---------------------------------------------------------------------------
+// Payouts
+// ---------------------------------------------------------------------------
+
+// Payout is the input to the payout-sent message.
+type Payout struct {
+	AccountID   uuid.UUID
+	Role        RoleContext // RESTAURANT or RIDER
+	PayeeName   string      // the restaurant's name, or the rider's first name
+	PayoutID    uuid.UUID
+	AmountCents int64
+	// PeriodStart and PeriodEnd bound the earnings paid, as the payout row
+	// stores them: PeriodEnd is the exclusive cutoff instant.
+	PeriodStart, PeriodEnd time.Time
+	SentAt                 time.Time
+	Zone                   *time.Location
+}
+
+// PayoutSent tells a partner their payout left (router matrix row
+// payout.paid: email and inbox for restaurants; push, email and inbox for
+// riders).
+func PayoutSent(a Payout) (New, error) {
+	if a.Role != RoleRestaurant && a.Role != RoleRider {
+		return New{}, fmt.Errorf("notify: payouts go to restaurants and riders, not %s", a.Role)
+	}
+	amount := FormatCents(a.AmountCents)
+	period := periodText(a.PeriodStart, a.PeriodEnd, a.Zone)
+	channels := []Channel{ChannelEmail, ChannelInApp}
+	if a.Role == RoleRider {
+		channels = []Channel{ChannelPush, ChannelEmail, ChannelInApp}
+	}
+	return New{
+		AccountID:   a.AccountID,
+		RoleContext: a.Role,
+		Kind:        KindPayoutSent,
+		Title:       "Payout sent",
+		Body:        fmt.Sprintf("We sent you %s for %s.", amount, period),
+		Priority:    PriorityNormal,
+		Channels:    channels,
+		DedupeKey:   "payout_sent:" + a.PayoutID.String(),
+		Data:        map[string]any{"payout_id": a.PayoutID.String(), "amount_cents": a.AmountCents},
+		Email: &EmailSpec{Template: "payout_sent", Vars: map[string]string{
+			"PayeeName": a.PayeeName, "Amount": amount, "PeriodText": period,
+			"SentAt": FormatDateTime(a.SentAt, a.Zone),
+		}},
+	}, nil
+}
+
+// periodText is "28 Sep – 4 Oct 2026": the start date through the day before
+// the exclusive cutoff.
+func periodText(start, endExclusive time.Time, loc *time.Location) string {
+	if loc == nil {
+		loc = defaultZone
+	}
+	s := start.In(loc)
+	e := endExclusive.In(loc).Add(-time.Nanosecond)
+	if s.Year() == e.Year() {
+		return s.Format("2 Jan") + " – " + e.Format("2 Jan 2006")
+	}
+	return s.Format("2 Jan 2006") + " – " + e.Format("2 Jan 2006")
+}
+
+// ---------------------------------------------------------------------------
+// Halal certificate expiry
+// ---------------------------------------------------------------------------
+
+// Certificate is the input to the renewal reminder and lapse messages.
+type Certificate struct {
+	AccountID      uuid.UUID // one owner or manager
+	RestaurantID   uuid.UUID
+	CertificateID  uuid.UUID
+	RestaurantName string
+	IssuerName     string    // the certifying body, e.g. "HMA Canada"
+	ExpiresOn      time.Time // a calendar date
+}
+
+// CertificateRenewalReminder is the reminder sent 30, 14, 7 and 1 days before
+// a halal certificate expires (docs/decisions/README.md, "Certificate renewal
+// reminders to restaurants"). daysBefore is the reminder threshold (it makes
+// the dedupe key, so each threshold sends once); daysLeft is the days actually
+// left on the day it is sent.
+//
+// It states dates, never a halal status, and carries no colour: the email's
+// "expiring" tint is the design system's own (packages/emails/src/palette.ts).
+func CertificateRenewalReminder(c Certificate, daysBefore, daysLeft int) New {
+	timeLeft := fmt.Sprintf("in %d days", daysLeft)
+	switch daysLeft {
+	case 0:
+		timeLeft = "today"
+	case 1:
+		timeLeft = "tomorrow"
+	}
+	priority := PriorityNormal
+	if daysBefore <= 7 {
+		priority = PriorityHigh
+	}
+	expires := FormatDateOnly(c.ExpiresOn)
+	return New{
+		AccountID:   c.AccountID,
+		RoleContext: RoleRestaurant,
+		Kind:        KindHalalCertificateExpiring,
+		Title:       "Halal certificate expires " + timeLeft,
+		Body: fmt.Sprintf("Your halal certificate from %s expires on %s. Upload the renewed certificate "+
+			"so %s stays listed: customers stop seeing it the day after the certificate expires.",
+			c.IssuerName, expires, c.RestaurantName),
+		Priority: priority,
+		Channels: []Channel{ChannelEmail, ChannelInApp},
+		Data: map[string]any{
+			"restaurant_id":  c.RestaurantID.String(),
+			"certificate_id": c.CertificateID.String(),
+			"expires_on":     c.ExpiresOn.Format(time.DateOnly),
+			"days_before":    daysBefore,
+		},
+		DedupeKey: fmt.Sprintf("halal_certificate_reminder:%s:%d", c.CertificateID, daysBefore),
+		GroupKey:  "halal_certificate:" + c.CertificateID.String(),
+		Email: &EmailSpec{Template: "certificate_renewal_reminder", LinkPath: PathOnboarding, Vars: map[string]string{
+			"RestaurantName": c.RestaurantName, "IssuerName": c.IssuerName,
+			"ExpiresOn": expires, "TimeLeft": timeLeft,
+		}},
+	}
+}
+
+// CertificateLapsed tells a restaurant its halal certificate expired and the
+// restaurant is hidden from customers until a renewed one is approved. The
+// state is told as "we can't currently vouch", never as a verdict on the food
+// (AGENTS.md "Non-negotiable invariants" #9).
+func CertificateLapsed(c Certificate) New {
+	expired := FormatDateOnly(c.ExpiresOn)
+	return New{
+		AccountID:   c.AccountID,
+		RoleContext: RoleRestaurant,
+		Kind:        KindHalalCertificateExpired,
+		Title:       "Halal certificate expired",
+		Body: fmt.Sprintf("Your halal certificate from %s expired on %s. %s is hidden from customers "+
+			"until a renewed certificate is approved.", c.IssuerName, expired, c.RestaurantName),
+		Priority: PriorityHigh,
+		Channels: []Channel{ChannelEmail, ChannelInApp},
+		Data: map[string]any{
+			"restaurant_id":  c.RestaurantID.String(),
+			"certificate_id": c.CertificateID.String(),
+			"expires_on":     c.ExpiresOn.Format(time.DateOnly),
+		},
+		DedupeKey: "halal_certificate_expired:" + c.CertificateID.String(),
+		GroupKey:  "halal_certificate:" + c.CertificateID.String(),
+		Email: &EmailSpec{Template: "certificate_lapsed", LinkPath: PathOnboarding, Vars: map[string]string{
+			"RestaurantName": c.RestaurantName, "IssuerName": c.IssuerName, "ExpiredOn": expired,
+		}},
+	}
+}
