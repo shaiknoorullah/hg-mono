@@ -5694,10 +5694,17 @@ paths:
         is released by the first run for a later period
         ([held payouts](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
+        What is paid comes from the ledger only; the request names who and as of when, never
+        an amount. An earning tied to an order is paid once the order is settled and its hold
+        has passed: an hour after delivery for a rider, three days for a restaurant. Refunds
+        and chargebacks are netted at once, and a balance at or below zero is carried, never
+        paid.
+
         `as_of` defaults to now and may not be in the future, so a run can never pay an
         earning before its week has closed. A replay with the same `Idempotency-Key` returns
         the run as it was first queued; the same key with a different body is
-        `409 IDEMPOTENCY_KEY_REUSE`.
+        `409 IDEMPOTENCY_KEY_REUSE`. The session must have signed in with two-step sign-in,
+        and an admin may not run a payout for a partner they are, or belong to.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V1
       x-rate-class: MONEY
@@ -5727,6 +5734,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: |
+            `MFA_REQUIRED`: the session did not sign in with two-step sign-in. `FORBIDDEN`: the
+            payee is the caller, or a restaurant the caller belongs to.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           description: '`NOT_FOUND`: the payee is neither a restaurant nor a rider.'
           content:
@@ -5740,7 +5755,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`VALIDATION_FAILED`: `as_of` is in the future.'
+          description: '`VALIDATION_FAILED`: `reason` is missing or too short, or `as_of` is in the future.'
           content:
             application/json:
               schema:
@@ -9778,7 +9793,15 @@ components:
     PayoutRunInput:
       type: object
       additionalProperties: false
+      required: [reason]
+      description: |
+        Who to pay and as of when; never an amount. Every amount comes from the ledger.
       properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: 'Why the run is needed now. Kept on the run and in the audit trail.'
         payee:
           $ref: '#/components/schemas/PayoutPayee'
           description: 'Run for this partner only. Omit it to run for every partner.'
@@ -9792,7 +9815,7 @@ components:
       # `additionalProperties: false` is intentionally absent: PayoutRunDetail extends this
       # schema with `allOf` (see the note on Payout).
       required: [id, kind, state, payee, period_start, period_end, as_of, due_at, requested_by,
-                 started_at, finished_at, attempts, partners, paid, held, released, carried,
+                 reason, started_at, finished_at, attempts, partners, paid, held, released, carried,
                  failed, paid_cents, held_cents, error, created_at]
       properties:
         id:
@@ -9821,6 +9844,9 @@ components:
           type: [string, 'null']
           format: uuid
           description: 'The admin who requested it; null for a scheduled run.'
+        reason:
+          type: [string, 'null']
+          description: 'Why the admin requested it; null for a scheduled run.'
         started_at:
           type: [string, 'null']
           format: date-time

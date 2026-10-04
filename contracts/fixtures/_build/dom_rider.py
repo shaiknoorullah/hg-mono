@@ -648,6 +648,7 @@ def _payout_run(synth, label: str, state: str, kind: str = "SCHEDULED") -> dict[
         as_of=RUN_DUE if scheduled else ts(),
         due_at=RUN_DUE if scheduled else ts(),
         requested_by=None if scheduled else uuid_for("admin-payout-run"),
+        reason=None if scheduled else "Riders asked to be paid before the long weekend.",
         started_at=None,
         finished_at=None,
         attempts=0,

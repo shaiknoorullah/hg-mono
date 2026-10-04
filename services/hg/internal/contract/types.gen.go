@@ -6393,7 +6393,10 @@ type PayoutRun struct {
 
 	// PeriodStart RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
 	PeriodStart Timestamp `json:"period_start"`
-	Released    int32     `json:"released"`
+
+	// Reason Why the admin requested it; null for a scheduled run.
+	Reason   *string `json:"reason"`
+	Released int32   `json:"released"`
 
 	// RequestedBy The admin who requested it; null for a scheduled run.
 	RequestedBy *openapi_types.UUID `json:"requested_by"`
@@ -6462,7 +6465,10 @@ type PayoutRunDetail struct {
 
 	// PeriodStart RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
 	PeriodStart Timestamp `json:"period_start"`
-	Released    int32     `json:"released"`
+
+	// Reason Why the admin requested it; null for a scheduled run.
+	Reason   *string `json:"reason"`
+	Released int32   `json:"released"`
 
 	// RequestedBy The admin who requested it; null for a scheduled run.
 	RequestedBy *openapi_types.UUID `json:"requested_by"`
@@ -6473,7 +6479,7 @@ type PayoutRunDetail struct {
 	State PayoutRunState `json:"state"`
 }
 
-// PayoutRunInput defines model for PayoutRunInput.
+// PayoutRunInput Who to pay and as of when; never an amount. Every amount comes from the ledger.
 type PayoutRunInput struct {
 	// AsOf Run as if it were this moment: the run pays the period that closed by then.
 	// Defaults to now; a time in the future is `422 VALIDATION_FAILED`.
@@ -6481,6 +6487,9 @@ type PayoutRunInput struct {
 
 	// Payee Run for this partner only. Omit it to run for every partner.
 	Payee *PayoutPayee `json:"payee,omitempty"`
+
+	// Reason Why the run is needed now. Kept on the run and in the audit trail.
+	Reason string `json:"reason"`
 }
 
 // PayoutRunKind `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.

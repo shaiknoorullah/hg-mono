@@ -429,10 +429,17 @@ export interface paths {
          *     is released by the first run for a later period
          *     ([held payouts](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
          *
+         *     What is paid comes from the ledger only; the request names who and as of when, never
+         *     an amount. An earning tied to an order is paid once the order is settled and its hold
+         *     has passed: an hour after delivery for a rider, three days for a restaurant. Refunds
+         *     and chargebacks are netted at once, and a balance at or below zero is carried, never
+         *     paid.
+         *
          *     `as_of` defaults to now and may not be in the future, so a run can never pay an
          *     earning before its week has closed. A replay with the same `Idempotency-Key` returns
          *     the run as it was first queued; the same key with a different body is
-         *     `409 IDEMPOTENCY_KEY_REUSE`.
+         *     `409 IDEMPOTENCY_KEY_REUSE`. The session must have signed in with two-step sign-in,
+         *     and an admin may not run a payout for a partner they are, or belong to.
          */
         post: operations["createPayoutRun"];
         delete?: never;
@@ -5111,6 +5118,8 @@ export interface components {
             /** @description The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid. */
             period_end: components["schemas"]["Timestamp"];
             period_start: components["schemas"]["Timestamp"];
+            /** @description Why the admin requested it; null for a scheduled run. */
+            reason: string | null;
             /** Format: int32 */
             released: number;
             /**
@@ -5125,6 +5134,7 @@ export interface components {
         PayoutRunDetail: components["schemas"]["PayoutRun"] & {
             lines: components["schemas"]["PayoutRunLine"][];
         };
+        /** @description Who to pay and as of when; never an amount. Every amount comes from the ledger. */
         PayoutRunInput: {
             /**
              * @description Run as if it were this moment: the run pays the period that closed by then.
@@ -5133,6 +5143,8 @@ export interface components {
             as_of?: components["schemas"]["Timestamp"];
             /** @description Run for this partner only. Omit it to run for every partner. */
             payee?: components["schemas"]["PayoutPayee"];
+            /** @description Why the run is needed now. Kept on the run and in the audit trail. */
+            reason: string;
         };
         /**
          * @description `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
@@ -7586,6 +7598,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            /**
+             * @description `MFA_REQUIRED`: the session did not sign in with two-step sign-in. `FORBIDDEN`: the
+             *     payee is the caller, or a restaurant the caller belongs to.
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description `NOT_FOUND`: the payee is neither a restaurant nor a rider. */
             404: {
                 headers: {
@@ -7604,7 +7628,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description `VALIDATION_FAILED`: `as_of` is in the future. */
+            /** @description `VALIDATION_FAILED`: `reason` is missing or too short, or `as_of` is in the future. */
             422: {
                 headers: {
                     [name: string]: unknown;
