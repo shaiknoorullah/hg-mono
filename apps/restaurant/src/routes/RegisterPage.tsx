@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Card, Icon, Input } from '@hg/ui-web';
+import { Button, Card, Icon, Input, Wordmark } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
 
 export function RegisterPage() {
@@ -49,7 +49,8 @@ export function RegisterPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-surface-sunken px-4">
       <div className="hg-fade-up w-full max-w-[420px]">
-        <div className="mb-7 text-center">
+        <div className="mb-7 flex flex-col items-center text-center">
+          <Wordmark height={48} className="mb-3" />
           <h1 className="text-heading-md font-extrabold text-fg-primary">Register your restaurant</h1>
           <p className="text-body-sm text-fg-secondary">
             Halal certification, documents and menu come next — this just opens the account.
