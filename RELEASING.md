@@ -80,9 +80,10 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    file links, `HG_MINIO_PRESIGN_BASE_URL`, to `https://` plus the files host: Traefik routes it
    to the object store with the Host header unchanged, so upload and download links signed for
    it work from phones.
-7. **Trusted proxy.** `HG_TRUSTED_PROXY_CIDRS` is the network Traefik reaches the API from. The
-   production override fixes that network's subnet and sets the variable to it; elsewhere, set it
-   from `docker network inspect hg-net`. Unset, the stack refuses to start: every request's client
+7. **Trusted proxy.** `HG_TRUSTED_PROXY_CIDRS` is the network Traefik reaches the API from. In
+   production that is `hg-proxy`, `10.88.0.0/29`, which only Traefik and the API join, and the
+   override sets the variable to exactly it; elsewhere, set it from
+   `docker network inspect hg-net`. Unset, the stack refuses to start: every request's client
    address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
    Never `0.0.0.0/0` (refused at boot).
 

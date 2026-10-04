@@ -11,11 +11,25 @@
 # resolver. Add both there before using this file, or Traefik will advertise an
 # entrypoint that does not exist and the router will simply never match.
 # README.md §3 has the exact lines.
+#
+# Networks. The analytics stack shares nothing with HalalGoes but Traefik:
+#
+#   * umami-net, its own internal network, holds Umami and its database. The
+#     database is on no other network, and is never HalalGoes's Postgres.
+#   * hg-edge, which the production override creates, is where Traefik meets
+#     the web containers of other stacks. Only Umami's web container joins it.
+#     Neither container is on hg-net, so neither can reach HalalGoes's
+#     Postgres, Valkey, Silo or API, and nothing of HalalGoes's can reach
+#     Umami's database.
+#
+# `!override` replaces the base file's `[hg-net]`; a plain list would be
+# appended to it. Start the product stack first: it owns hg-edge.
 services:
   umami:
+    networks: !override [umami-net, hg-edge]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=hg-net
+      - traefik.docker.network=hg-edge
       - traefik.http.routers.umami.rule=Host(`${UMAMI_HOST:?set UMAMI_HOST in .env}`)
       - traefik.http.routers.umami.entrypoints=websecure
       - traefik.http.routers.umami.tls=true
@@ -30,3 +44,14 @@ services:
       - traefik.http.routers.umami-http.middlewares=umami-https@docker
       - traefik.http.middlewares.umami-https.redirectscheme.scheme=https
       - traefik.http.middlewares.umami-https.redirectscheme.permanent=true
+
+  umami-db:
+    networks: !override [umami-net]
+
+networks:
+  # internal: no route out. Umami's own way out, if it needs one, is hg-edge.
+  umami-net:
+    internal: true
+  hg-edge:
+    external: true
+    name: hg-edge

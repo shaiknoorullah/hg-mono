@@ -19,10 +19,14 @@ One Contabo Cloud VPS 6 (6 vCPU, 12 GB) in US-East, and at launch the only serve
 
 - **Ports.** Only Traefik publishes, on 80 and 443 ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)). The Silo console is on the host's loopback: `ssh -L 9001:127.0.0.1:9001 prod`, then open `http://localhost:9001`.
 - **TLS.** Port 80 only redirects to HTTPS. Certificates come from Let's Encrypt through the TLS-ALPN challenge on 443, and both public hosts send HSTS ([#51](https://github.com/shaiknoorullah/hg-mono/issues/51)). No dashboard; the access log keeps no headers.
-- **Docker socket.** Traefik reads container labels through [Tecnativa's docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy), which answers only reads, on a network nothing else joins.
+- **The server.** The server playbook ([#276](https://github.com/shaiknoorullah/hg-mono/pull/276)) provides what this file assumes: the shared Docker networks, the Docker socket proxy, ClamAV, `.env` and the secret files. Its README section "What production's compose file must do" and this file must agree.
+- **Networks.** Each service joins only the networks it needs. Traefik is not on `hg-net`, where Postgres, Valkey and Silo are, and nothing on Traefik's other networks is either: Traefik reaches the API on `hg-proxy` and Silo on `hg-files`, which only those pairs join. So neither the edge nor the dev environment can reach Postgres, Valkey or Silo's S3 API. The whole map, with subnets, is at the top of [`docker-compose.prod.yml`](docker-compose.prod.yml).
+- **Docker socket.** Traefik reads container labels through the playbook's [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy), on `hg-socket`, which only the two of them join. The proxy answers reads of containers, events, ping and version, and refuses every POST: no exec, no container start, no volumes. It is the only container on the box that mounts the Docker socket.
 - **Files host.** `files.<domain>` reaches Silo only for an object in one of the five buckets, with GET, HEAD, PUT or OPTIONS, and never with a copy-source, streaming-upload or replication header. `/minio/`, bucket listings and everything else get 404. Signed upload and download links are signed for this host (`HG_MINIO_PRESIGN_BASE_URL`, set by the override).
-- **Client addresses.** `hg-net` has a fixed subnet, 172.30.0.0/24, and the override sets `HG_TRUSTED_PROXY_CIDRS` to it, so the API reads the client's address from Traefik's `X-Forwarded-For` and believes no one else's.
-- **Virus scanning.** ClamAV runs on this box until the standby takes it over: a 4 GiB limit, two scan threads, signature reloads one at a time, and nothing passed unscanned: an upload over 16 MiB is refused with an `INSTREAM size limit exceeded` error, which the scanning worker must treat as not clean, and content that unpacks past 100 MiB is reported as found. The unpacking limits are 100 MiB rather than 16 because a clean scanned PDF can decompress past 16 MiB and would otherwise be reported as infected. It is on `hg-scan`, a network it shares with the API alone, and is neither published nor routed. Nothing calls it yet: the API's scanning worker is [#218](https://github.com/shaiknoorullah/hg-mono/issues/218).
+- **Client addresses.** Traefik and the API share `hg-proxy` (10.88.0.0/29), which nothing else joins, and the override sets `HG_TRUSTED_PROXY_CIDRS` to exactly that subnet, never all of `hg-net` or Docker's private ranges. Traefik trusts no forwarded headers (its entrypoints set no `forwardedHeaders.insecure` and no `forwardedHeaders.trustedIPs`), so it deletes any `X-Forwarded-For` a client sends and writes the address it saw. The API believes that header from Traefik and no one else. No dev container joins `hg-proxy`.
+- **Secrets.** None is written in the files, and none has a default. Postgres, Silo, Valkey and the bucket job read theirs from read-only secret files (below), so the values are never in `docker inspect`, a command line or a log. The API and the migration runner are distroless binaries that read only environment variables, so theirs come from `.env`. The trade-off: whatever can inspect containers can read them, which is root on the box and Traefik, whose label reads through the socket proxy return each container's environment too. Moving them into files needs the API's config loader to accept `*_FILE` variables. `.env` is never committed.
+- **Hardening.** Every container drops all Linux capabilities and adds back only what its entrypoint uses (Traefik binds 80 and 443; Postgres's entrypoint prepares its data directory as root, then switches user), cannot gain privileges through setuid binaries, and runs on a read-only root filesystem. None is privileged.
+- **Virus scanning.** ClamAV is the playbook's, on `hg-scan` at 172.30.3.10:3310, until the standby takes it over; the API joins `hg-scan`, which only the two of them join. It must pass nothing unscanned: an upload over 16 MiB is refused with an `INSTREAM size limit exceeded` error, which the scanning worker must treat as not clean, and content that unpacks past 100 MiB is reported as found. The unpacking limits are 100 MiB rather than 16 because a clean scanned PDF can decompress past 16 MiB and would otherwise be reported as infected. Nothing calls it yet: the API's scanning worker is [#218](https://github.com/shaiknoorullah/hg-mono/issues/218).
 - **Images.** No `build:`. The API, migration and Postgres images come from GHCR by digest; the rest are pinned by digest in the files.
 - **Limits.** Every container has a memory limit and no swap on top of it; logs rotate at 20 MB × 5.
 - **Valkey** keeps nothing on disk and requires a password. Flushing it costs latency, never correctness ([platform spec, ground rules](../docs/spec/01-platform.md#0-ground-rules-that-bind-every-section)).
@@ -37,11 +41,13 @@ Docker counts limits in MiB, so this table does too. The kernel reports about 11
 | Kernel and firmware, not usable | 308 | |
 | OS, dockerd, sshd, WireGuard, journald | 700 | held back |
 | **In this override** | | |
-| Traefik + socket proxy | 128 + 48 | `GOMEMLIMIT=96MiB`, 300 s read timeout on 443 for slow uploads |
+| Traefik | 128 | `GOMEMLIMIT=96MiB`, 300 s read timeout on 443 for slow uploads |
 | API × 2 | 2 × 320 | `GOMEMLIMIT=256MiB`, 1.5 CPUs, 8 database connections each |
 | Postgres | 2,048 | `shared_buffers=512MB`, `effective_cache_size=1280MB`, `max_connections=60`, `shm_size` 256 MB |
 | Valkey | 128 | `maxmemory 64mb`, `allkeys-lru` |
 | Silo | 512 | `GOMEMLIMIT=400MiB`, 32 requests at once, slow scanner |
+| **Run by the server playbook ([#276](https://github.com/shaiknoorullah/hg-mono/pull/276))** | | |
+| Docker socket proxy | 48 | HAProxy measured 24 MB resident at idle and touched 32 MB while starting |
 | ClamAV | 4,096 | `MaxThreads 2`, `ConcurrentDatabaseReload no`, 2 CPUs |
 | *Subtotal* | *7,600* | |
 | **Production, in later overrides** | | budgeted here, not started by this file |
@@ -60,16 +66,16 @@ The dev environment's limits must fit its 976 MiB. One shape that does, for #235
 
 ### The seam for the dev environment
 
-Dev is its own compose project with its own network, database, cache, buckets, volumes and secrets ([#235](https://github.com/shaiknoorullah/hg-mono/issues/235)). It touches this stack only through:
+Dev is its own compose project with its own network, database, cache, buckets, volumes and secrets ([#235](https://github.com/shaiknoorullah/hg-mono/issues/235)), set up by the server playbook. It touches this stack only through:
 
-- **`hg-edge`** (172.30.1.0/24), a network Traefik joins and production's services do not. Dev's public containers join it and serve dev hosts; Traefik finds them through the socket proxy without a change to this file, but only names keep the two apart (below). Dev's own `HG_TRUSTED_PROXY_CIDRS` is that subnet.
+- **Traefik**, which joins the playbook's `hg-dev-proxy` (10.88.0.8/29) and `hg-dev-edge` (172.30.11.0/24) to route the dev hosts. Production's services are on neither. Dev's API trusts `hg-dev-proxy` alone, and no dev container ever joins production's `hg-proxy`, `hg-net`, `hg-files` or `hg-edge`. Traefik finds dev's containers through the socket proxy without a change to this file, but only names keep the two apart (below).
 - **ClamAV**, if dev scans with it: the scanner keeps no data. Dev reaches it on a network of its own, never on `hg-scan`, which would put dev's API beside production's.
 
 Traefik reads the labels of every container on the box and merges routers, services and middlewares **by name** across them. A dev stack built from the base [`docker-compose.yml`](docker-compose.yml) inherits its `hg-api` and `hg-internal` labels, and compose merges list-form labels key by key, so adding `hg-dev-*` labels in an override does not remove them. Router `hg-api` would then be defined twice with different rules, and Traefik drops it: production's API answers 404. Service `hg-api` has the same load-balancer settings in both, so Traefik merges the two and sends production requests to dev's API and dev's database. Dev's override must therefore:
 
 - use `labels: !override` on every service that carries labels in the base file (`api`), and on `minio` if dev routes it;
 - start every router, service and middleware name with `hg-dev-`;
-- carry `traefik.docker.network=hg-edge` on each container: Traefik's default network is `hg-net`, which dev's containers are not on.
+- carry `traefik.docker.network` on each container, `hg-dev-proxy` for the API and `hg-dev-edge` for the rest: Traefik's default network is `hg-proxy`, which dev's containers are never on.
 
 Before dev's `up`, this must print nothing:
 
@@ -87,8 +93,20 @@ Set these in `.env` beside the ones in [`.env.example`](.env.example). The stack
 | `HG_API_HOST`, `HG_FILES_HOST` | `api.halalgoes.com`, `files.halalgoes.com` |
 | `HG_UPLOAD_ORIGINS` | the admin and restaurant web origins, comma-separated |
 | `ACME_EMAIL` | the address Let's Encrypt writes to about expiring certificates |
-| `REDIS_PASSWORD`, `HG_APP_DATA_KEY` | `openssl rand -hex 32` |
-| `HG_TRUSTED_PROXY_CIDRS` | keep the value from `.env.example`: the base file requires it, and the override replaces it with `hg-net`'s subnet |
+| `REDIS_PASSWORD`, `HG_APP_DATA_KEY` | `openssl rand -hex 32`. The Valkey password must be one word: Valkey reads it from a config line |
+| `HG_TRUSTED_PROXY_CIDRS` | `10.88.0.0/29`. The base file requires it, and the override sets the API's to `hg-proxy`'s subnet whatever `.env` says |
+| `HG_SECRETS_DIR` | optional; the folder holding the secret files, `/srv/hg/secrets` unless set |
+
+`.env` still holds `POSTGRES_PASSWORD`, `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD`, because the base file interpolates them and the API reads them. The containers that can read a file get the same values from the secret files instead, mounted read-only at `/run/secrets/<name>`. Compose bind-mounts each file as it is on the host, so each must be mode 0400 and owned by the user that reads it in the container:
+
+| File in `$HG_SECRETS_DIR` | Value | Owner | Read by |
+|---|---|---|---|
+| `postgres_password` | `POSTGRES_PASSWORD` | root | Postgres's entrypoint, as root, before it switches to the `postgres` user |
+| `redis_password` | `REDIS_PASSWORD` | uid 999 | Valkey, which runs as its image's `valkey` user (999:1000) |
+| `minio_root_user` | `MINIO_ROOT_USER` | root | Silo and the bucket job |
+| `minio_root_password` | `MINIO_ROOT_PASSWORD` | root | Silo and the bucket job |
+
+Both `.env` and these files must be written by the playbook's secrets role from the same entries in `prod.sops.env`, so the two copies cannot differ.
 
 Check the merged file before every change, then start it:
 
@@ -98,6 +116,9 @@ P="--env-file .env -f docker-compose.yml -f docker-compose.prod.yml"
 docker compose $P config                     # only 80 and 443 published, no build:
 docker compose $P --profile tools run --rm migrate
 docker compose $P up -d
+# Only Traefik and the API on hg-proxy; only Traefik and Silo on hg-files:
+docker network inspect hg-proxy -f '{{range .Containers}}{{.Name}} {{end}}'
+docker network inspect hg-files -f '{{range .Containers}}{{.Name}} {{end}}'
 ```
 
 Migrations run first, as their own step, from a checkout of the release tag. API releases go through [docker-rollout](https://github.com/wowu/docker-rollout), which starts the new replicas before stopping the old ones; plain `up` recreates them and drops every WebSocket:
@@ -108,4 +129,4 @@ docker rollout $P -w 30 api
 
 The first certificate takes a minute. For a first run on a new box, set `ACME_CA_SERVER=https://acme-staging-v02.api.letsencrypt.org/directory` so failed attempts do not hit Let's Encrypt's rate limit, then remove it and the `letsencrypt` volume.
 
-Not in this override yet, each tracked in its issue: the per-role connection limits ([#215](https://github.com/shaiknoorullah/hg-mono/issues/215)), GHCR images ([#78](https://github.com/shaiknoorullah/hg-mono/issues/78)), the replica's path to Postgres over WireGuard ([#210](https://github.com/shaiknoorullah/hg-mono/issues/210)), nginx for the static sites ([#213](https://github.com/shaiknoorullah/hg-mono/issues/213)), the API calling ClamAV ([#218](https://github.com/shaiknoorullah/hg-mono/issues/218)), and GlitchTip, Umami, the WireGuard-only admin routes and the deploy script ([#208](https://github.com/shaiknoorullah/hg-mono/issues/208)).
+Not in this override yet, each tracked in its issue: the per-role connection limits ([#215](https://github.com/shaiknoorullah/hg-mono/issues/215)), GHCR images ([#78](https://github.com/shaiknoorullah/hg-mono/issues/78)), the replica's path to Postgres over WireGuard ([#210](https://github.com/shaiknoorullah/hg-mono/issues/210)), nginx for the static sites ([#213](https://github.com/shaiknoorullah/hg-mono/issues/213)), the API calling ClamAV ([#218](https://github.com/shaiknoorullah/hg-mono/issues/218)), the pgBackRest mounts and WAL archiving the server playbook expects ([#64](https://github.com/shaiknoorullah/hg-mono/issues/64), [#276](https://github.com/shaiknoorullah/hg-mono/pull/276)), and GlitchTip, Umami, the WireGuard-only admin routes and the deploy script ([#208](https://github.com/shaiknoorullah/hg-mono/issues/208)).
