@@ -384,6 +384,74 @@ SELECT count(*) FROM audit_event WHERE subject_type = 'RESTAURANT' AND subject_i
 	}
 }
 
+// After a withdrawal, the owners are told the restaurant is listed again once a
+// current certificate from an accepted body is approved. Approving one does so,
+// in the approval's transaction.
+func TestIntegrationApprovingACertificateFromAnAcceptedBodyListsAgain(t *testing.T) {
+	w := newIssuerWorld(t, "ACCEPTED")
+	ctx := context.Background()
+	if status, body := w.setBodyStatus(t, w.superAdminCaller(), "SUSPENDED"); status != http.StatusOK {
+		t.Fatalf("withdraw: %d %v", status, body)
+	}
+	if l := readListing(t, w.pool, w.restaurantID); l.state != "DELISTED" {
+		t.Fatalf("restaurant row = %+v, want DELISTED", l)
+	}
+
+	// A new certificate from a seeded, accepted body, reviewed the way an admin does.
+	var certID, bodyName string
+	if err := w.pool.QueryRow(ctx, `
+WITH so AS (
+  INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
+  VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024,
+          decode(repeat('a1',32),'hex'), 'READY', $2, now())
+  RETURNING id),
+doc AS (
+  INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state, deadline_at, deadline_action)
+  SELECT 'RESTAURANT', $1, 'HALAL_CERTIFICATE', so.id, 'IN_REVIEW', now()+interval '72 hours', 'ESCALATE' FROM so
+  RETURNING id),
+body AS (SELECT id, name FROM halal_issuing_body WHERE status = 'ACCEPTED' AND id <> $3 ORDER BY name LIMIT 1)
+INSERT INTO halal_certificate (restaurant_id, document_id, certificate_number, issuing_body_id, certified_legal_name,
+                               certified_address, scope, issued_on, expires_on, status, checklist_version)
+SELECT $1, doc.id, 'RENEW-'||md5(random()::text), body.id, 'Issuer Test Co', '1 Red River Rd',
+       'WHOLE_ESTABLISHMENT', current_date - 30, current_date + 300, 'PENDING', 1
+  FROM doc, body
+RETURNING id, (SELECT name FROM body)`, w.restaurantID, w.superAdmin, w.bodyID).Scan(&certID, &bodyName); err != nil {
+		t.Fatalf("seed certificate: %v", err)
+	}
+	riverClient, err := river.NewClient(riverpgxv5.New(w.pool), &river.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := NewRepo(w.pool).WithNotifier(notify.NewEnqueuer(notify.NewRepo(), riverClient))
+	actor := auditActor{staffID: w.superAdmin, roles: []string{"SUPER_ADMIN"}, requestID: "req-issuer-test"}
+	at := time.Now().UTC()
+	human := []halalCheckInput{
+		{CheckKey: CheckLegibleComplete, Result: ResultPass},
+		{CheckKey: CheckNameMatch, Result: ResultPass},
+		{CheckKey: CheckAddressMatch, Result: ResultPass},
+	}
+	if _, _, err := repo.RecordChecks(ctx, actor, certID, halalChecksInput{Checks: human}, 30, at); err != nil {
+		t.Fatalf("record checks: %v", err)
+	}
+	if _, _, err := repo.Decide(ctx, actor, certID, "APPROVE", nil, nil, 30, at); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+
+	if l := readListing(t, w.pool, w.restaurantID); l.state != "LIVE" || len(l.reasons) != 0 || l.halal != "CERTIFIED" {
+		t.Errorf("restaurant row = %+v, want LIVE, no reasons, CERTIFIED", l)
+	}
+	if v := w.customerSees(t, w.restaurantID, w.lat, w.lng); v.detail != 200 || !v.inList || v.badge != "CERTIFIED" ||
+		v.certifiedBy != bodyName {
+		t.Errorf("customer sees %+v, want it listed on the certificate from %s", v, bodyName)
+	}
+	if got := notified(t, w.pool, w.restaurantID, KindRestaurantRelisted); len(got) != 2 {
+		t.Errorf("notified %v about the relisting, want the owner and the manager", got)
+	}
+	if err := orderable(t, w.pool, w.restaurantID); err != nil {
+		t.Errorf("order check: %v, want orderable", err)
+	}
+}
+
 // An order in flight holds the restaurant row FOR SHARE until it commits
 // (orders.LockOrderableRestaurant). The withdrawal locks the row FOR UPDATE, so
 // it waits for that order and then delists, rather than delisting between the

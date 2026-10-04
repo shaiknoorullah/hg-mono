@@ -533,6 +533,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `halal_certifier` allowlist (**D-10**); `OTHER` is permitted, and the reviewer then marks the
      application "waiting on certifying body" until a super admin decides on that body
      ([body not on the accepted list](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+     A certificate counts only while its body is accepted. If a super admin later suspends,
+     retires or rejects the body, a restaurant no other accepted certificate vouches for loses its
+     badge and is delisted (hidden from customers, menu not locked) in the same request, and its
+     owners and managers are told. It is listed again when the body is accepted again or when a
+     current certificate from an accepted body is approved. Customer reads show the halal state
+     as of now, never a stored badge alone
+     ([withdrawing a body's acceptance](https://github.com/shaiknoorullah/hg-mono/issues/346)).
   8. Re-uploading a `doc_type` supersedes the previous row rather than mutating it. Full history is
      retained for audit; only the newest non-superseded row is "current".
   9. Uploads are permitted only in `onboarding_state ∈ {DOCUMENTS_PENDING, DOCUMENTS_REJECTED}` or,

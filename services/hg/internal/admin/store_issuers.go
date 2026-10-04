@@ -12,9 +12,10 @@ package admin
 // can no longer vouch for is delisted (hidden, no badge, menu not locked: the
 // recommended answer in https://github.com/shaiknoorullah/hg-mono/issues/269),
 // and a restaurant delisted only for its certificate is listed again once the
-// body is accepted again. Each change is audited, its owners and managers are
-// told through the notification outbox, and an alert goes to the admin:ops
-// channel.
+// body is accepted again, or once a current certificate from an accepted body
+// is approved (relistOnApprovalTx, called by Decide). Each change is audited,
+// its owners and managers are told through the notification outbox, and a
+// body's status change alerts the admin:ops channel.
 // Issue: https://github.com/shaiknoorullah/hg-mono/issues/346
 
 import (
@@ -60,8 +61,13 @@ const issuerSystemPrincipal = "HALAL_ISSUER"
 // Notification kinds. notification.kind is a plain string (contract
 // Notification.kind), so new kinds need no migration.
 const (
+	// A body's acceptance was withdrawn, or given again.
 	KindHalalIssuerWithdrawn  notify.Kind = "HALAL_ISSUER_WITHDRAWN"
 	KindHalalIssuerReaccepted notify.Kind = "HALAL_ISSUER_REACCEPTED"
+	// A certificate approval listed the restaurant again (or, failing closed,
+	// found it could not vouch for it).
+	KindRestaurantRelisted notify.Kind = "RESTAURANT_RELISTED"
+	KindRestaurantDelisted notify.Kind = "RESTAURANT_DELISTED"
 )
 
 // alertKindIssuerStatus is the admin.alert kind for one restaurant affected by
@@ -201,6 +207,29 @@ func (c issuerChange) changed() bool {
 	return c.toState != c.state || c.toHalal != c.halal
 }
 
+// issuerRestaurantColumns reads an issuerRestaurant from a `restaurant` aliased r.
+const issuerRestaurantColumns = `r.id::text, r.display_name, r.account_state::text, r.delist_reasons,
+       r.halal_status::text,
+       r.onboarding_state = 'ACTIVE' AND r.location IS NOT NULL AND r.province IS NOT NULL`
+
+func (ir *issuerRestaurant) scanTargets() []any {
+	return []any{&ir.id, &ir.name, &ir.state, &ir.reasons, &ir.halal, &ir.canGoLive}
+}
+
+// listingCause is what moved a restaurant's listing: a super admin changing an
+// issuing body's status, or an admin approving a certificate.
+type listingCause struct {
+	// body is the body whose status changed, or that issued the approved
+	// certificate.
+	body issuingBodyRow
+	// decidedAt is when the body's status changed (status changes only).
+	decidedAt time.Time
+	// certificateID is the approved certificate (approvals only).
+	certificateID string
+}
+
+func (c listingCause) approval() bool { return c.certificateID != "" }
+
 // resyncIssuerRestaurantsTx applies a body's new status to every restaurant
 // holding a certificate from it, inside the transaction that changed the
 // status, after the body row is locked and updated.
@@ -215,8 +244,7 @@ func (c issuerChange) changed() bool {
 // accept check, or waits and is refused.
 func (r *Repo) resyncIssuerRestaurantsTx(ctx context.Context, tx pgx.Tx, actor auditActor, body issuingBodyRow, decidedAt time.Time) error {
 	rows, err := tx.Query(ctx, `
-SELECT r.id::text, r.display_name, r.account_state::text, r.delist_reasons, r.halal_status::text,
-       r.onboarding_state = 'ACTIVE' AND r.location IS NOT NULL AND r.province IS NOT NULL
+SELECT `+issuerRestaurantColumns+`
   FROM restaurant r
  WHERE r.deleted_at IS NULL
    AND r.id IN (SELECT hc.restaurant_id FROM halal_certificate hc
@@ -229,7 +257,7 @@ SELECT r.id::text, r.display_name, r.account_state::text, r.delist_reasons, r.ha
 	var affected []issuerRestaurant
 	for rows.Next() {
 		var ir issuerRestaurant
-		if err := rows.Scan(&ir.id, &ir.name, &ir.state, &ir.reasons, &ir.halal, &ir.canGoLive); err != nil {
+		if err := rows.Scan(ir.scanTargets()...); err != nil {
 			rows.Close()
 			return err
 		}
@@ -248,11 +276,44 @@ SELECT r.id::text, r.display_name, r.account_state::text, r.delist_reasons, r.ha
 		if !ch.changed() {
 			continue
 		}
-		if err := r.reportIssuerChangeTx(ctx, tx, actor, body, decidedAt, ch); err != nil {
+		if err := r.reportListingChangeTx(ctx, tx, actor, listingCause{body: body, decidedAt: decidedAt}, ch); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// relistOnApprovalTx moves a restaurant's listing once a certificate of it is
+// approved, in the approval's transaction: a restaurant delisted only because
+// no certificate vouched for it (its body was withdrawn, or its certificate
+// lapsed) is listed again, as the owners were told it would be. The approval
+// itself is audited by Decide; this audits and announces only a change of
+// listing.
+func (r *Repo) relistOnApprovalTx(ctx context.Context, tx pgx.Tx, actor auditActor, cert certRow) error {
+	cause := listingCause{certificateID: cert.ID}
+	if cert.IssuingBodyID != nil {
+		if err := tx.QueryRow(ctx, `SELECT id::text, name, status::text FROM halal_issuing_body WHERE id = $1`,
+			*cert.IssuingBodyID).Scan(&cause.body.ID, &cause.body.Name, &cause.body.Status); err != nil {
+			return fmt.Errorf("read the issuing body of certificate %s: %w", cert.ID, err)
+		}
+	}
+	var ir issuerRestaurant
+	err := tx.QueryRow(ctx, `SELECT `+issuerRestaurantColumns+`
+  FROM restaurant r WHERE r.id = $1 AND r.deleted_at IS NULL FOR UPDATE`, cert.RestaurantID).Scan(ir.scanTargets()...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("lock restaurant %s: %w", cert.RestaurantID, err)
+	}
+	ch, err := setIssuerListingTx(ctx, tx, ir)
+	if err != nil {
+		return err
+	}
+	if ch.toState == ch.state {
+		return nil
+	}
+	return r.reportListingChangeTx(ctx, tx, actor, cause, ch)
 }
 
 // setIssuerListingTx derives one restaurant's stored halal state again and
@@ -292,12 +353,10 @@ func deref(s *string) string {
 	return *s
 }
 
-// reportIssuerChangeTx writes the audit row, the owners' and managers'
-// messages and the ops alert for one restaurant whose halal state or listing
-// changed, all in the status change's transaction.
-func (r *Repo) reportIssuerChangeTx(ctx context.Context, tx pgx.Tx, actor auditActor, body issuingBodyRow, decidedAt time.Time, ch issuerChange) error {
-	accepted := body.Status == "ACCEPTED"
-
+// reportListingChangeTx writes the audit row and the owners' and managers'
+// messages for one restaurant whose halal state or listing changed, and, when a
+// body's status caused it, the ops alert; all in the transaction that changed it.
+func (r *Repo) reportListingChangeTx(ctx context.Context, tx pgx.Tx, actor auditActor, cause listingCause, ch issuerChange) error {
 	action := "restaurant.halal_status_changed"
 	var reasonCode *string
 	switch {
@@ -311,6 +370,15 @@ func (r *Repo) reportIssuerChangeTx(ctx context.Context, tx pgx.Tx, actor auditA
 	case ch.relisted():
 		action = "restaurant.relisted"
 	}
+	after := map[string]any{
+		"account_state": ch.toState, "delist_reasons": ch.toReasons, "halal_status": ch.toHalal,
+		"issuing_body_id": cause.body.ID, "system_principal": issuerSystemPrincipal,
+	}
+	if cause.approval() {
+		after["certificate_id"] = cause.certificateID
+	} else {
+		after["issuing_body_status"] = cause.body.Status
+	}
 	if err := writeAudit(ctx, tx, auditEntry{
 		actor:       actor,
 		action:      action,
@@ -321,11 +389,7 @@ func (r *Repo) reportIssuerChangeTx(ctx context.Context, tx pgx.Tx, actor auditA
 		before: map[string]any{
 			"account_state": ch.state, "delist_reasons": ch.reasons, "halal_status": ch.halal,
 		},
-		after: map[string]any{
-			"account_state": ch.toState, "delist_reasons": ch.toReasons, "halal_status": ch.toHalal,
-			"issuing_body_id": body.ID, "issuing_body_status": body.Status,
-			"system_principal": issuerSystemPrincipal,
-		},
+		after: after,
 	}); err != nil {
 		return fmt.Errorf("audit restaurant %s: %w", ch.id, err)
 	}
@@ -338,13 +402,16 @@ func (r *Repo) reportIssuerChangeTx(ctx context.Context, tx pgx.Tx, actor auditA
 		return errNotifierNotWired
 	}
 	for _, acct := range recipients {
-		if _, err := r.notify.Enqueue(ctx, tx, issuerMessage(acct, body, decidedAt, ch)); err != nil {
+		if _, err := r.notify.Enqueue(ctx, tx, listingMessage(acct, cause, ch)); err != nil {
 			return fmt.Errorf("notify %s about restaurant %s: %w", acct, ch.id, err)
 		}
 	}
+	if cause.approval() {
+		return nil
+	}
 
 	severity := "WARNING"
-	if accepted && halalCurrent(ch.toHalal) {
+	if cause.body.Status == "ACCEPTED" && halalCurrent(ch.toHalal) {
 		severity = "INFO"
 	}
 	payload, err := json.Marshal(map[string]any{
@@ -353,8 +420,8 @@ func (r *Repo) reportIssuerChangeTx(ctx context.Context, tx pgx.Tx, actor auditA
 		"subject_type": "RESTAURANT",
 		"subject_id":   ch.id,
 		"message": fmt.Sprintf("%s: halal state %s, now %s; listing %s, now %s. Its certifying body %s was set to %s.",
-			ch.name, ch.halal, ch.toHalal, ch.state, ch.toState, body.Name, body.Status),
-		"at": decidedAt.UTC().Format(time.RFC3339),
+			ch.name, ch.halal, ch.toHalal, ch.state, ch.toState, cause.body.Name, cause.body.Status),
+		"at": cause.decidedAt.UTC().Format(time.RFC3339),
 	})
 	if err != nil {
 		return err
@@ -388,25 +455,42 @@ SELECT DISTINCT account_id FROM account_role
 	return out, rows.Err()
 }
 
-// issuerMessage is the message to one owner or manager. It quotes the body's
+// listingMessage is the message to one owner or manager. It quotes the body's
 // name and the restaurant's, never the super admin's justification (free text
 // stays out of messages), states no halal status word and carries no colour
 // (notify/doc.go, "Halal invariants that touch this package").
-func issuerMessage(account uuid.UUID, body issuingBodyRow, decidedAt time.Time, ch issuerChange) notify.New {
+func listingMessage(account uuid.UUID, cause listingCause, ch issuerChange) notify.New {
+	body := cause.body
 	n := notify.New{
 		AccountID:   account,
 		RoleContext: notify.RoleRestaurant,
 		Channels:    issuerMessageChannels,
 		Data: map[string]any{
-			"restaurant_id":       ch.id,
-			"issuing_body_id":     body.ID,
-			"issuing_body_status": body.Status,
-			"account_state":       ch.toState,
+			"restaurant_id":   ch.id,
+			"issuing_body_id": body.ID,
+			"account_state":   ch.toState,
 		},
 		// One message per recipient per decision, however often it is retried.
-		DedupeKey: fmt.Sprintf("halal_issuing_body:%s:%d:%s", body.ID, decidedAt.UnixNano(), ch.id),
+		DedupeKey: fmt.Sprintf("halal_issuing_body:%s:%d:%s", body.ID, cause.decidedAt.UnixNano(), ch.id),
 		GroupKey:  "restaurant_listing:" + ch.id,
 	}
+	if cause.approval() {
+		n.Data["certificate_id"] = cause.certificateID
+		n.DedupeKey = fmt.Sprintf("halal_certificate_approved:%s:%s", cause.certificateID, ch.id)
+		if ch.relisted() {
+			n.Kind, n.Priority = KindRestaurantRelisted, notify.PriorityNormal
+			n.Title = "Your restaurant is listed again"
+			n.Body = fmt.Sprintf("Your halal certificate from %s was approved, so %s is visible to customers "+
+				"and can take orders.", body.Name, ch.name)
+			return n
+		}
+		n.Kind, n.Priority = KindRestaurantDelisted, notify.PriorityHigh
+		n.Title = "Your restaurant is hidden from customers"
+		n.Body = fmt.Sprintf("HalalGoes cannot vouch for the halal certificate of %s now, so it is hidden from "+
+			"customers and cannot take new orders. Your menu is not locked.", ch.name)
+		return n
+	}
+	n.Data["issuing_body_status"] = body.Status
 	n.Kind, n.Priority = KindHalalIssuerWithdrawn, notify.PriorityHigh
 	if body.Status == "ACCEPTED" {
 		n.Kind = KindHalalIssuerReaccepted
@@ -429,8 +513,8 @@ func issuerMessage(account uuid.UUID, body issuingBodyRow, decidedAt time.Time, 
 	case ch.delisted():
 		n.Title = "Your restaurant is hidden from customers"
 		n.Body = fmt.Sprintf("HalalGoes no longer accepts halal certificates from %s, so %s is hidden from "+
-			"customers and cannot take new orders. It is listed again once it has a current certificate "+
-			"from a certifying body HalalGoes accepts. Your menu is not locked.", body.Name, ch.name)
+			"customers and cannot take new orders. It is listed again once a current certificate from a "+
+			"certifying body HalalGoes accepts is approved. Your menu is not locked.", body.Name, ch.name)
 	default:
 		n.Title = "Your halal certificate no longer counts"
 		n.Body = fmt.Sprintf("HalalGoes cannot vouch for the halal certificate of %s now: upload a current "+

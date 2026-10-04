@@ -460,6 +460,13 @@ UPDATE halal_certificate SET status='APPROVED', verified_by=$2, verified_at=now(
 			if _, err := tx.Exec(ctx, upd, id, verifiedBy); err != nil {
 				return err
 			}
+			// A restaurant delisted only because no certificate vouched for it
+			// (its body withdrawn, or its certificate lapsed) is listed again by
+			// this approval, in its transaction.
+			// Issue: https://github.com/shaiknoorullah/hg-mono/issues/346
+			if err := r.relistOnApprovalTx(ctx, tx, actor, cert); err != nil {
+				return err
+			}
 		case "REJECT":
 			if cert.Status != "PENDING" {
 				return ErrAlreadyDecided
