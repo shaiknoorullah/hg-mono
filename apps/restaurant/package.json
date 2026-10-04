@@ -8,6 +8,8 @@
     "dev": "vite",
     "start": "vite",
     "build": "vite build",
+    "build:dev": "node ../../scripts/release/app-env.cjs dev -- vite build",
+    "build:prod": "node ../../scripts/release/app-env.cjs prod -- vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "../../packages/ui-web/node_modules/.bin/tsx ../../packages/ui-web/src/lint/run.ts src",
