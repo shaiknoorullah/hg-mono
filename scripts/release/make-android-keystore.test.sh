@@ -37,6 +37,8 @@ case "$1 $2" in
       *) echo "unexpected gh api call: $*" >&2; exit 1 ;;
     esac ;;
   "api repos/example/hg-mono/environments/release/deployment-branch-policies") cat "$STATE/policies" 2>/dev/null || true ;;
+  "api repos/example/hg-mono/environments/release")
+    grep -q '"custom_branch_policies":true' "$STATE/environment.json" && echo true || echo false ;;
   *) echo "unexpected gh call: $*" >&2; exit 1 ;;
 esac
 GH

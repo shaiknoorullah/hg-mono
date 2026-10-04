@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Make the HalalGoes Android release key and hand it to GitHub Actions. The OWNER runs this once.
 #
-#   scripts/release/make-android-keystore.sh [--out DIR] [--repo OWNER/NAME] [--replace-existing-key] [--repo-secrets]
+#   scripts/release/make-android-keystore.sh [--out DIR] [--repo OWNER/NAME] [--replace-existing-key]
 #
 # What it does:
 #   1. Makes a release keystore with keytool and a random password, in DIR
 #      (default: ~/halalgoes-android-release-key, which must be outside any git checkout).
-#   2. Sets up the repo's `release` environment, which only main and the customer-v* and rider-v*
-#      tags may use, and stores in it the four secrets prod APKs are signed with:
-#      ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD,
-#      plus the variable ANDROID_RELEASE_CERT_SHA256 the workflow checks each APK against.
-#      --repo-secrets stores them as repo secrets instead, for a GitHub plan without environment
-#      secrets on private repos.
+#   2. Creates (or checks) the repo's `release` environment, which only main and the customer-v*
+#      and rider-v* tags may use, and stores in it, and only in it, the four secrets prod APKs are
+#      signed with: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
+#      ANDROID_KEY_PASSWORD, plus the variable ANDROID_RELEASE_CERT_SHA256 the workflow checks each
+#      APK against. Never repo secrets: any workflow on any branch can read those. If the
+#      environment cannot be created and limited that way, it stops before setting anything.
 #   3. Tells you how to back the key up. Read that part: it matters more than the rest.
 #
 # Run it again with the same DIR and it reuses the key there and only sets the secrets again.
@@ -35,8 +35,7 @@ while [ $# -gt 0 ]; do
     --out) OUT="${2:?--out needs a directory}"; shift 2 ;;
     --repo) REPO="${2:?--repo needs OWNER/NAME}"; shift 2 ;;
     --replace-existing-key) REPLACE=1; shift ;;
-    --repo-secrets) ENVIRONMENT=""; shift ;;
-    -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown argument: $1 (try --help)" ;;
   esac
 done
@@ -51,9 +50,9 @@ if [ -z "$REPO" ]; then
     || die "could not tell which repo this is. Pass --repo OWNER/NAME."
 fi
 
-# Where the secrets go: the release environment, or (with --repo-secrets) the repo.
-SCOPE=(--repo "$REPO")
-[ -z "$ENVIRONMENT" ] || SCOPE+=(--env "$ENVIRONMENT")
+# Every secret and variable goes to the release environment, never to the repo.
+SCOPE=(--repo "$REPO" --env "$ENVIRONMENT")
+POLICIES=("branch main" "tag customer-v*" "tag rider-v*")
 
 # The key must never be committed: refuse any folder inside a git checkout, before making it.
 probe="$OUT"
@@ -63,6 +62,27 @@ if git -C "$probe" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd -P)"
+
+printf 'Setting up the %s environment on %s …\n' "$ENVIRONMENT" "$REPO"
+# Create it if missing, and let only main (manual prod builds) and the Android release tags in.
+printf '{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' \
+  | gh api -X PUT "repos/$REPO/environments/$ENVIRONMENT" --input - >/dev/null \
+  || die "could not create or limit the $ENVIRONMENT environment on $REPO (it needs admin rights). Nothing was stored."
+policies="$(gh api "repos/$REPO/environments/$ENVIRONMENT/deployment-branch-policies" -q '.branch_policies[] | .type + " " + .name')" \
+  || die "could not read the $ENVIRONMENT environment's deployment rules. Nothing was stored."
+for policy in "${POLICIES[@]}"; do
+  grep -qxF "$policy" <<<"$policies" \
+    || gh api -X POST "repos/$REPO/environments/$ENVIRONMENT/deployment-branch-policies" \
+      -f type="${policy%% *}" -f name="${policy#* }" >/dev/null \
+    || die "could not add the deployment rule \"$policy\" to the $ENVIRONMENT environment. Nothing was stored."
+done
+# Check it took: only listed branches and tags, and every one of ours.
+scoped="$(gh api "repos/$REPO/environments/$ENVIRONMENT" -q '.deployment_branch_policy.custom_branch_policies')" || scoped=""
+policies="$(gh api "repos/$REPO/environments/$ENVIRONMENT/deployment-branch-policies" -q '.branch_policies[] | .type + " " + .name')" || policies=""
+[ "$scoped" = true ] || die "the $ENVIRONMENT environment is not limited to chosen branches and tags. Nothing was stored."
+for policy in "${POLICIES[@]}"; do
+  grep -qxF "$policy" <<<"$policies" || die "the $ENVIRONMENT environment lacks the rule \"$policy\". Nothing was stored."
+done
 
 KEYSTORE="$OUT/halalgoes-android-release.p12"
 SECRETS_FILE="$OUT/PASSWORDS-keep-with-the-keystore.txt"
@@ -77,7 +97,9 @@ if [ -f "$KEYSTORE" ]; then
   fi
   ALIAS="$KEY_ALIAS"
 else
-  if gh secret list "${SCOPE[@]}" 2>/dev/null | grep -q '^ANDROID_KEYSTORE_BASE64[[:space:]]' && [ "$REPLACE" -ne 1 ]; then
+  # Read the list first: `gh … | grep -q` under pipefail fails whenever grep stops reading early.
+  existing="$(gh secret list "${SCOPE[@]}" 2>/dev/null || true)"
+  if grep -q '^ANDROID_KEYSTORE_BASE64[[:space:]]' <<<"$existing" && [ "$REPLACE" -ne 1 ]; then
     die "$REPO already has a release key (secret ANDROID_KEYSTORE_BASE64), and there is none in $OUT.
 A new key means every installed copy of the apps must be uninstalled before it can update.
 If you have the old key, run this again with --out pointing at its folder.
@@ -106,22 +128,7 @@ FINGERPRINT="$(keytool -list -v -keystore "$KEYSTORE" -storetype PKCS12 -storepa
   | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | sed -n 1p)"
 [ -n "$FINGERPRINT" ] || die "could not read the certificate fingerprint from $KEYSTORE."
 
-if [ -n "$ENVIRONMENT" ]; then
-  printf 'Setting up the %s environment on %s …\n' "$ENVIRONMENT" "$REPO"
-  # Only main (manual prod builds) and the Android release tags may enter it.
-  printf '{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' \
-    | gh api -X PUT "repos/$REPO/environments/$ENVIRONMENT" --input - >/dev/null \
-    || die "could not set up the $ENVIRONMENT environment. If your GitHub plan has no environment secrets for private repos, run again with --repo-secrets."
-  policies="$(gh api "repos/$REPO/environments/$ENVIRONMENT/deployment-branch-policies" \
-    -q '.branch_policies[] | .type + " " + .name')"
-  for policy in "branch main" "tag customer-v*" "tag rider-v*"; do
-    grep -qxF "$policy" <<<"$policies" \
-      || gh api -X POST "repos/$REPO/environments/$ENVIRONMENT/deployment-branch-policies" \
-        -f type="${policy%% *}" -f name="${policy#* }" >/dev/null
-  done
-fi
-
-printf 'Setting the release secrets …\n'
+printf 'Storing the release secrets in the %s environment …\n' "$ENVIRONMENT"
 # Values go in on stdin, never as arguments: nothing lands in shell history or the process list.
 base64 <"$KEYSTORE" | tr -d '\n' | gh secret set ANDROID_KEYSTORE_BASE64 "${SCOPE[@]}"
 printf '%s' "$STORE_PASSWORD" | gh secret set ANDROID_KEYSTORE_PASSWORD "${SCOPE[@]}"
@@ -133,11 +140,17 @@ cat <<EOF
 
 Done. Prod APKs built by the release workflow are now signed with this key.
 
+  Stored in:             the "$ENVIRONMENT" environment of $REPO (Settings → Environments),
+                         which only main and the customer-v* and rider-v* tags may use:
+                         secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+                         ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD; variable ANDROID_RELEASE_CERT_SHA256.
+                         No repo-level secret was set.
+
   Key folder:            $OUT
     halalgoes-android-release.p12            the key
     PASSWORDS-keep-with-the-keystore.txt     its password and alias
   Certificate SHA-256:   $FINGERPRINT
-                         (also saved as the variable ANDROID_RELEASE_CERT_SHA256)
+                         (also the environment variable ANDROID_RELEASE_CERT_SHA256)
 
 BACK IT UP NOW. This is the only copy.
   Android only installs an update signed with the same key as the installed app. If this key

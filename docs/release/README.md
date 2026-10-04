@@ -104,11 +104,16 @@ before tagging it.
 
 ### What keeps a prod build trustworthy
 
-- Prod builds come only from `main` or a tag on `main`, as above.
-- The signing secrets belong to the repo's `release` environment, which only the prod Android job
-  enters, and which only `main` and the `customer-v*` and `rider-v*` tags may use. Dev builds and
-  pull requests cannot read them. The owner can add required reviewers to that environment in the
-  repo settings, so each prod build waits for approval.
+- Prod builds come only from `main` or a tag on `main`. The workflow checks this twice: once
+  before building anything, and again in the job that signs, where git must confirm that `main`
+  contains the commit before any step reads a signing secret. A tag name proves nothing on its
+  own: a tag can point at any commit.
+- The signing secrets belong to the repo's `release` environment, never to the repo itself (any
+  workflow on any branch can read a repo secret). Only the prod Android job enters that
+  environment, and GitHub lets in only `main` and the `customer-v*` and `rider-v*` tags: its
+  deployment rules (Settings → Environments → release) refuse every other branch and tag. Dev
+  builds and pull requests cannot read the secrets. The owner can add required reviewers to the
+  environment, so each prod build waits for approval.
 - Prod builds restore no cache: they are built from the commit alone.
 - Every action the workflow uses is pinned to a commit, and its inputs are checked against a fixed
   list before any script sees them.
@@ -176,9 +181,9 @@ The script:
 
 It never prints the password or passes it on a command line, and it refuses to write the key
 inside a git checkout. Run it again with the same folder to set the secrets again; it will not
-make a second key while the repo already has one. If GitHub refuses the environment (environment
-secrets on private repos need a paid plan), run it with `--repo-secrets` to store them as repo
-secrets instead; the prod-only and `main`-only rules still hold.
+make a second key while the repo already has one. It creates the `release` environment if it is
+missing and sets its deployment rules; if it cannot, it stops before storing anything, and it
+never falls back to repo secrets. At the end it prints where everything went.
 
 Until the secrets exist, a prod Android build stops at its first step with "Release key missing"
 and names this task. Dev builds don't need the key.
