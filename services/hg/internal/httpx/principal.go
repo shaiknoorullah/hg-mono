@@ -35,6 +35,31 @@ type Principal struct {
 	// Anonymous is true for an unauthenticated caller. Anonymous is a *valid*
 	// principal — stage 10 never rejects; stage 11 decides (P-06).
 	Anonymous bool
+	// credential is the access token the principal was proven with. A pointer, so
+	// printing or logging a Principal shows an address, never the token.
+	credential *bearer
+}
+
+// bearer holds a raw access token; see Principal.Credential.
+type bearer struct{ token string }
+
+// WithCredential returns p carrying the access token it was proven with. Only the
+// authentication middleware calls it, after verifying the token.
+func (p Principal) WithCredential(token string) Principal {
+	p.credential = &bearer{token: token}
+	return p
+}
+
+// Credential is the raw access token the principal was proven with, or "" when
+// there is none. It exists for the one check the database makes itself: a staff
+// account action passes it to account_state_apply (migration 00035), which hashes
+// it and acts only for the live two-step session it was issued for
+// (https://github.com/shaiknoorullah/hg-mono/pull/335). Never log it.
+func (p Principal) Credential() string {
+	if p.credential == nil {
+		return ""
+	}
+	return p.credential.token
 }
 
 // AnonymousPrincipal is the principal of a caller who presented no credentials.

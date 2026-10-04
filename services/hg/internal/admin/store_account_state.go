@@ -55,7 +55,7 @@ var (
 	// errActOnOwnAccount: staff cannot act on their own account or their own restaurant.
 	errActOnOwnAccount = errors.New("admin: staff cannot act on their own account")
 	// errStaffAccount: staff accounts are managed through the staff operations.
-	errStaffAccount = errors.New("admin: a staff account is not changed by a customer action")
+	errStaffAccount = errors.New("admin: a staff account is not changed by a rider or customer action")
 	// errConfirmOwnProposal: the person who proposed a ban cannot confirm it.
 	errConfirmOwnProposal = errors.New("admin: a ban needs a second person to confirm it")
 	// errMFARequired: the caller's session was not signed in with two-step sign-in.
@@ -313,31 +313,28 @@ SELECT action::text, COALESCE(actor_account_id::text, ''), created_at
 
 // writeAccountStateTx is the state change itself, made by the database function
 // account_state_apply (migration 00035), the only writer of an account's state:
-// the application role cannot UPDATE the state columns. The function reads the
+// the application role cannot UPDATE the state columns. It is given the caller's
+// access token, not an account id: it hashes the token, finds the live two-step
+// session it was issued for, and acts as that session's account. It reads the
 // actor's grants as they stand, checks the transition, the two-person ban and the
 // own-account rule again, decides a restaurant's listing from its certificate,
 // ends the sessions a confirmed ban ends, and writes the state, the history row and
-// the audit row together. The actor is bound to this transaction first
-// (hg.actor_id), and the function refuses any other.
+// the audit row together.
 func (r *Repo) writeAccountStateTx(ctx context.Context, tx pgx.Tx, in accountActionInput, hash []byte, out *accountStateChangeRow) error {
 	inFlightJSON, err := json.Marshal(out.InFlight)
 	if err != nil {
 		return err
 	}
 	request, err := json.Marshal(map[string]string{
-		"request_id": in.Actor.requestID, "session_id": in.Actor.sessionID,
-		"ip": in.Actor.ip, "user_agent": in.Actor.userAgent,
+		"request_id": in.Actor.requestID, "ip": in.Actor.ip, "user_agent": in.Actor.userAgent,
 	})
 	if err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, `SELECT set_config('hg.actor_id', $1, true)`, in.Actor.staffID); err != nil {
 		return err
 	}
 	return tx.QueryRow(ctx, `
 SELECT event_id::text, from_state, to_state, delist_reasons, sessions_revoked, created_at
   FROM account_state_apply($1::account_subject_type, $2, $3::account_action, $4, $5, $6, $7, $8, $9, $10)`,
-		string(in.Subject), in.SubjectID, string(in.Action), in.Actor.staffID, in.ReasonCode, in.ReasonText,
+		string(in.Subject), in.SubjectID, string(in.Action), in.Principal.Credential(), in.ReasonCode, in.ReasonText,
 		in.IdemKey, hash, string(inFlightJSON), string(request)).Scan(
 		&out.ID, &out.FromState, &out.ToState, &out.DelistReasons, &out.SessionsRevoked, &out.CreatedAt)
 }
@@ -569,13 +566,24 @@ func (a *riderApplier) lock(ctx context.Context, tx pgx.Tx, in accountActionInpu
 		return "", errActOnOwnAccount
 	}
 	var state string
+	var isStaff bool
 	err := tx.QueryRow(ctx, `
-SELECT account_status::text FROM rider_profile
- WHERE account_id = $1 AND deleted_at IS NULL FOR UPDATE`, in.SubjectID).Scan(&state)
+SELECT rp.account_status::text,
+       EXISTS (SELECT 1 FROM account_role r WHERE r.account_id = rp.account_id AND r.revoked_at IS NULL
+                  AND r.role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN'))
+  FROM rider_profile rp
+ WHERE rp.account_id = $1 AND rp.deleted_at IS NULL FOR UPDATE OF rp`, in.SubjectID).Scan(&state, &isStaff)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNotFound
 	}
-	return state, err
+	if err != nil {
+		return "", err
+	}
+	// A rider's ban ends every session of the account, staff sessions included.
+	if isStaff {
+		return "", errStaffAccount
+	}
+	return state, nil
 }
 
 func (a *riderApplier) apply(ctx context.Context, tx pgx.Tx, deps accountActionDeps, in accountActionInput, now time.Time, out *accountStateChangeRow) error {

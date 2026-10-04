@@ -360,6 +360,23 @@ psql "$DSN" -q -v ON_ERROR_STOP=1 -c "
   SELECT v.a::uuid, v.r::role_name, 'GLOBAL'
     FROM (VALUES ('$INV_ADMIN', 'ADMIN'), ('$INV_SUPER', 'SUPER_ADMIN')) AS v(a, r)
    WHERE NOT EXISTS (SELECT 1 FROM account_role x WHERE x.account_id = v.a::uuid AND x.role = v.r::role_name);" >/dev/null
+# The admin's live two-step session and the access token signed for it: a staff
+# action presents the token, and the database finds the session by its hash
+# (migration 00035). The token's signature is not the database's to check.
+INV_ADMIN_SESSION='13000000-0000-4000-8000-0000000000e1'
+INV_ADMIN_TOKEN="$(psql "$DSN" -At -c "
+  SELECT 'eyJhbGciOiJFZERTQSJ9.' || rtrim(translate(replace(encode(convert_to(json_build_object(
+           'sub', '$INV_ADMIN', 'sid', '$INV_ADMIN_SESSION', 'roles', json_build_array('ADMIN'),
+           'amr', json_build_array('pwd+totp'), 'exp', extract(epoch FROM now() + interval '1 hour')::bigint)::text,
+           'UTF8'), 'base64'), E'\n', ''), '+/', '-_'), '=') || '.c2ln'")"
+psql "$DSN" -q -v ON_ERROR_STOP=1 -c "
+  INSERT INTO session (id, family_id, account_id, amr, roles_snapshot, client, refresh_hash, access_hash,
+                       idle_expires_at, absolute_expires_at)
+  VALUES ('$INV_ADMIN_SESSION', gen_random_uuid(), '$INV_ADMIN', 'pwd+totp', '[]', 'admin-web',
+          sha256(convert_to('inv-admin-refresh', 'UTF8')), sha256(convert_to('$INV_ADMIN_TOKEN', 'UTF8')),
+          now() + interval '30 minutes', now() + interval '12 hours')
+  ON CONFLICT (id) DO UPDATE SET access_hash = EXCLUDED.access_hash, revoked_at = NULL,
+    idle_expires_at = EXCLUDED.idle_expires_at, absolute_expires_at = EXCLUDED.absolute_expires_at;" >/dev/null
 ASE_COLS="subject_type, subject_id, action, from_state, to_state, reason_code, reason_text, actor_account_id, idempotency_key, request_hash"
 reject "a ban needs a proposal to confirm" "account_ban_needs_proposal" \
   "INSERT INTO account_state_event ($ASE_COLS) VALUES
@@ -414,21 +431,23 @@ reject "the application role cannot write the history" "permission denied" \
 reject "the application role cannot change who may take a transition" "permission denied" \
   "SET LOCAL ROLE hg_app;
    INSERT INTO account_state_rule VALUES ('RIDER','REINSTATE','BANNED','ACTIVE','ADMIN','rider.reinstate',NULL);"
-reject "a staff action acts only for the account bound to its transaction" "account_state_actor_unbound" \
+reject "a staff action needs the access token of a live two-step session" "account_state_session_required" \
   "SET LOCAL ROLE hg_app;
-   $APPLY('RIDER','$RIDER_FX','SUSPEND','$INV_ADMIN','OTHER','not bound to anyone','inv-unbound-000001','\x00','{}','{}');"
+   $APPLY('RIDER','$RIDER_FX','SUSPEND','$INV_ADMIN','OTHER','an account id is not a token','inv-no-session-01','\x00','{}','{}');"
+reject "the application role cannot rewrite a session" "permission denied" \
+  "SET LOCAL ROLE hg_app; UPDATE session SET account_id = '$INV_SUPER' WHERE id = '$INV_ADMIN_SESSION';"
 reject "only a super admin lifts a ban" "account_state_actor_not_permitted" \
   "UPDATE rider_profile SET account_status = 'BANNED' WHERE account_id = '$RIDER_FX';
-   SET LOCAL ROLE hg_app; SELECT set_config('hg.actor_id', '$INV_ADMIN', true);
-   $APPLY('RIDER','$RIDER_FX','REINSTATE','$INV_ADMIN','APPEAL_UPHELD','an admin lifts a ban','inv-admin-unban-01','\x00','{}','{}');"
+   SET LOCAL ROLE hg_app;
+   $APPLY('RIDER','$RIDER_FX','REINSTATE','$INV_ADMIN_TOKEN','APPEAL_UPHELD','an admin lifts a ban','inv-admin-unban-01','\x00','{}','{}');"
 reject "listing a restaurant needs a current halal certificate" "account_state_halal_certificate_required" \
   "INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code, location,
                            onboarding_state, account_state)
    VALUES ('13000000-0000-4000-8000-0000000000a1', 'inv-uncertified', 'Uncertified Inc.', 'Uncertified',
            '1 King St', 'Toronto', 'ON', 'M5J0C3', ST_SetSRID(ST_MakePoint(-79.38, 43.65), 4326)::geography,
            'ACTIVE', 'DELISTED');
-   SET LOCAL ROLE hg_app; SELECT set_config('hg.actor_id', '$INV_ADMIN', true);
-   $APPLY('RESTAURANT','13000000-0000-4000-8000-0000000000a1','REINSTATE','$INV_ADMIN','ISSUE_RESOLVED',
+   SET LOCAL ROLE hg_app;
+   $APPLY('RESTAURANT','13000000-0000-4000-8000-0000000000a1','REINSTATE','$INV_ADMIN_TOKEN','ISSUE_RESOLVED',
           'relisting with no certificate','inv-relist-uncert-1','\x00','{}','{}');"
 reject "a system principal's function takes no rider" "account_state_subject_not_found" \
   "SET LOCAL ROLE hg_app; SELECT * FROM account_state_halal_expiry('$RIDER_FX');"

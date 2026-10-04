@@ -11,6 +11,8 @@ package admin
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,6 +36,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
 // ---- harness ----------------------------------------------------------------
@@ -66,7 +69,8 @@ func (r *recordingReleaser) released() []string {
 }
 
 // staff is a signed-in staff member: an account holding role, signed in with
-// two-step sign-in unless amr says otherwise.
+// two-step sign-in unless amr says otherwise, with a live admin-web session and
+// the access token signed for it, as the authentication middleware hands it on.
 func staff(t *testing.T, pool *pgxpool.Pool, role httpx.Role, amr ...string) httpx.Principal {
 	t.Helper()
 	p := principalFor(t, pool, role)
@@ -74,7 +78,44 @@ func staff(t *testing.T, pool *pgxpool.Pool, role httpx.Role, amr ...string) htt
 		amr = []string{"pwd+totp"}
 	}
 	p.AMR = amr
+	p.SessionID, p = signIn(t, pool, p, amr[0], 15*time.Minute)
 	return p
+}
+
+// testIssuer signs the tests' access tokens as the API does (internal/session).
+var testIssuer = func() *session.Issuer {
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	return session.NewIssuer("test", priv, "hg-api")
+}()
+
+// signIn opens a live admin-web session for p signed in with amr, and returns its
+// id and p carrying the access token signed for it (valid for ttl; negative is
+// already expired). The session row carries the token's hash, as internal/auth
+// writes it at sign-in (migration 00035).
+func signIn(t *testing.T, pool *pgxpool.Pool, p httpx.Principal, amr string, ttl time.Duration) (string, httpx.Principal) {
+	t.Helper()
+	sid := uuid.NewString()
+	roles := make([]string, 0, len(p.Roles))
+	for _, r := range p.Roles {
+		roles = append(roles, string(r))
+	}
+	tok, err := testIssuer.Issue(p.AccountID, sid, roles, []string{amr}, ttl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(context.Background(), `
+		INSERT INTO session (id, family_id, account_id, amr, roles_snapshot, client, refresh_hash, access_hash,
+		                     idle_expires_at, absolute_expires_at)
+		VALUES ($1, gen_random_uuid(), $2, $3::auth_method, '[]', 'admin-web', sha256(convert_to($4 || '.refresh', 'UTF8')),
+		        sha256(convert_to($4, 'UTF8')), now() + interval '30 minutes', now() + interval '12 hours')`,
+		sid, p.AccountID, amr, tok); err != nil {
+		t.Fatalf("sign in: %v", err)
+	}
+	p.SessionID = sid
+	return sid, p.WithCredential(tok)
 }
 
 // accountServer serves the admin routes as the given principal, with the real

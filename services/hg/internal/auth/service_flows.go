@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	totp_ "github.com/pquerna/otp/totp"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
@@ -590,17 +591,23 @@ func (s *Service) Refresh(ctx context.Context, token string, client ClientSurfac
 	if sess.AbsExpires.Before(absExp) {
 		absExp = sess.AbsExpires
 	}
-	newSess, err := s.store.RotateSession(ctx, sess, newHash, now.Add(idle), absExp, permitted)
+	// The successor's id is chosen first, so its access token can name it and the
+	// row can carry the token's hash from its first write (migration 00035).
+	newID, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+	access, err := s.issuer.Issue(acct.ID, newID.String(), roleNames, []string{sess.AMR}, AccessTokenTTL)
+	if err != nil {
+		return nil, err
+	}
+	newSess, err := s.store.RotateSession(ctx, sess, newID.String(), newHash, HashAccessToken(access),
+		now.Add(idle), absExp, permitted)
 	if errors.Is(err, ErrRotateRace) {
 		// A concurrent refresh won; treat the loser as reuse to be safe.
 		_ = s.store.RevokeFamily(ctx, sess.FamilyID, "reuse_detected")
 		return nil, errRefreshReuse
 	}
-	if err != nil {
-		return nil, err
-	}
-
-	access, err := s.issuer.Issue(acct.ID, newSess.ID, roleNames, []string{sess.AMR}, AccessTokenTTL)
 	if err != nil {
 		return nil, err
 	}

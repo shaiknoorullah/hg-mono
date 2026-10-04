@@ -2,11 +2,17 @@ package auth
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
 // openTestPool connects to the DSN in HG_TEST_POSTGRES_DSN, skipping with a
@@ -146,6 +152,7 @@ func TestIntegrationSessionRotateAndReuse(t *testing.T) {
 
 	_, hash1, _ := NewRefreshToken()
 	sess, err := s.CreateSession(ctx, NewSessionParams{
+		ID:          uuid.NewString(),
 		AccountID:   acct.ID,
 		AMR:         "otp",
 		Roles:       grants,
@@ -160,7 +167,7 @@ func TestIntegrationSessionRotateAndReuse(t *testing.T) {
 
 	// Rotate once: a fresh session in the same family, old marked rotated.
 	_, hash2, _ := NewRefreshToken()
-	newSess, err := s.RotateSession(ctx, sess, hash2,
+	newSess, err := s.RotateSession(ctx, sess, uuid.NewString(), hash2, HashAccessToken("rotated-"+uuid.NewString()),
 		time.Now().Add(24*time.Hour), time.Now().Add(72*time.Hour), grants)
 	if err != nil {
 		t.Fatalf("RotateSession: %v", err)
@@ -186,4 +193,53 @@ func TestIntegrationSessionRotateAndReuse(t *testing.T) {
 	if after.RevokedAt == nil {
 		t.Fatal("family revocation did not revoke the successor session")
 	}
+}
+
+// TestEachAccessTokenIsHashedOntoItsSession: signing in and refreshing write the
+// SHA-256 of the access token they sign onto the session row the token names, the
+// hash the database computes when a staff account action presents the token
+// (migration 00035, account_state_apply).
+func TestEachAccessTokenIsHashedOntoItsSession(t *testing.T) {
+	pool := openTestPool(t)
+	ctx := context.Background()
+	store := NewStore(pool)
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := NewService(store, NewRateLimiter(nil), NewLogSMSSender(nil, false),
+		session.NewIssuer("k1", priv, "hg-api"), session.NewDenySet(), testSecrets(t), nil)
+	accountID := seedEmailAccount(t, pool, uniqueEmail("access_hash"), "CurrentPass99!!", httpx.RoleAdmin)
+	acct, err := store.AccountByID(ctx, accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hashed := func(what, token, sessionID string) {
+		t.Helper()
+		var ok bool
+		if err := pool.QueryRow(ctx, `
+			SELECT coalesce(access_hash = sha256(convert_to($1, 'UTF8')), false) FROM session WHERE id = $2`,
+			token, sessionID).Scan(&ok); err != nil {
+			t.Fatalf("%s: %v", what, err)
+		}
+		if !ok {
+			t.Errorf("%s: session %s does not carry the hash of the access token signed for it", what, sessionID)
+		}
+	}
+
+	signedIn, err := svc.issueSession(ctx, acct, "pwd+totp", ClientSurface("admin-web"), nil, nil, nil, false)
+	if err != nil {
+		t.Fatalf("sign in: %v", err)
+	}
+	hashed("sign-in", signedIn.grant.AccessToken, signedIn.grant.Principal.SessionID)
+
+	refreshed, err := svc.Refresh(ctx, signedIn.refreshToken, ClientSurface("admin-web"), nil, nil)
+	if err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	if refreshed.grant.Principal.SessionID == signedIn.grant.Principal.SessionID {
+		t.Fatal("refresh kept the session id")
+	}
+	hashed("refresh", refreshed.grant.AccessToken, refreshed.grant.Principal.SessionID)
 }

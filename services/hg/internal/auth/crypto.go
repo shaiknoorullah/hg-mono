@@ -115,6 +115,15 @@ func HashRefreshToken(token string) []byte {
 	return h[:]
 }
 
+// HashAccessToken returns the SHA-256 of a signed access token, written to
+// session.access_hash when the token is issued. The database computes the same
+// hash from the raw token a staff account action presents (migration 00035,
+// account_state_apply), so the token itself is never stored.
+func HashAccessToken(token string) []byte {
+	h := sha256.Sum256([]byte(token))
+	return h[:]
+}
+
 // NewOpaqueToken mints a URL-safe opaque token (email verification, password
 // reset) and returns it with its SHA-256 for storage. The token is at least 32
 // characters, satisfying the contract's minLength.

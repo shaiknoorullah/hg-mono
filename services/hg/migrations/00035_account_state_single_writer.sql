@@ -15,15 +15,24 @@
 --      ACTIVE); and it may not DELETE from those tables, so a banned account cannot
 --      be removed and created again. It keeps UPDATE and INSERT on every other
 --      column. It may not write the history (account_state_event) or the rules.
---   2. account_state_apply(): the one writer for a staff member's action. It reads
---      the actor's grants as they stand (a global, unrevoked grant already in force
---      on an active account), checks the transition against account_state_rule
---      (the same list as accountstate.Transitions() in Go; a test holds them
---      equal), refuses the actor's own account or restaurant and a staff account
---      treated as a customer, enforces the two-person ban, decides a restaurant's
---      listing from its halal certificate itself, and writes the state, the history
---      row and the audit row together. The actor must also be the account the
---      service named for this transaction (SET LOCAL hg.actor_id).
+--   2. account_state_apply(): the one writer for a staff member's action. It takes
+--      the raw access token of the request, not an account id: it hashes the token
+--      itself and finds the session the token was issued for, which must be live
+--      (not revoked, not expired) and signed in with two-step sign-in. That
+--      session's account is the actor. The application role holds only token
+--      hashes (session.access_hash, written when the token is issued) and cannot
+--      rewrite a session's account, sign-in method, expiry or hashes, so it cannot
+--      name an actor of its choosing. The function then reads the actor's grants
+--      as they stand (a global, unrevoked grant already in force, carried by the
+--      token, on an active account whose staff profile is not suspended), checks
+--      the transition against account_state_rule (the same list as
+--      accountstate.Transitions() in Go; a test holds them equal), refuses the
+--      actor's own account or restaurant and a staff account treated as a rider or
+--      a customer, enforces the two-person ban (a different person, who did not
+--      grant the proposer's staff role or receive theirs from the proposer, and
+--      who was a super admin before the proposal), decides a restaurant's listing
+--      from its halal certificate itself, and writes the state, the history row and
+--      the audit row (naming the proven session) together.
 --   3. The system principals take no actor and no action: completing onboarding,
 --      the halal certificate lapsing, a renewal clearing it, and a certifying
 --      body's acceptance withdrawn or given back are each a function that decides
@@ -34,9 +43,11 @@
 -- migrations' role, pins search_path (pg_catalog, public, then pg_temp last, so a
 -- temporary table cannot stand in for a real one) and names every object with its
 -- schema; none is executable by PUBLIC, and hg_app may execute only the five
--- writers. What the database cannot know is who is at the keyboard: it trusts the
--- application's connection to name the actor, and two-step sign-in is checked by
--- ApplyAccountAction from the session.
+-- writers. What the database cannot know is whether the second factor was really
+-- checked: the password (argon2id) and the TOTP secret (sealed with APP_DATA_KEY)
+-- are verified by the application, which also writes the session rows at sign-in.
+-- A connection that can INSERT a whole session row can still mint one; a single
+-- injected query cannot (https://github.com/shaiknoorullah/hg-mono/issues/372).
 
 -- +goose Up
 
@@ -192,6 +203,18 @@ REVOKE INSERT ON account_state_event FROM hg_app;
 REVOKE ALL ON account_state_rule FROM PUBLIC, hg_app;
 GRANT SELECT ON account_state_rule TO hg_readonly;
 
+-- The proof a staff action rides on. When the API signs an access token it writes
+-- the token's SHA-256 onto the session row it signs it for (internal/auth,
+-- issueSession and Refresh); the token itself is stored nowhere, so the
+-- application's role reads only hashes. account_state_apply() takes the raw token
+-- and hashes it itself.
+ALTER TABLE session ADD COLUMN access_hash bytea;
+CREATE UNIQUE INDEX session_access_hash ON session (access_hash) WHERE access_hash IS NOT NULL;
+-- The application role may rotate and end a session, nothing else: it cannot
+-- change whose session it is, how it was signed in, when it expires, or its hashes.
+REVOKE UPDATE ON session FROM hg_app;
+GRANT UPDATE (rotated_at, rotated_to, last_used_at, revoked_at, revoke_reason) ON session TO hg_app;
+
 -- Whether a restaurant's admin-verified halal certificate is current today, in
 -- its timezone: CURRENT, EXPIRED, or UNVERIFIED (none). The same reading as
 -- internal/admin and the order path: APPROVED (or later EXPIRED), verified by an
@@ -254,13 +277,13 @@ $$;
 
 -- The one writer for a staff member's account action. internal/admin's
 -- ApplyAccountAction settles the work in progress, then calls this in the same
--- transaction; this decides and writes the state.
+-- transaction with the request's access token; this decides and writes the state.
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION account_state_apply(
   p_subject_type     account_subject_type,
   p_subject_id       uuid,
   p_action           account_action,
-  p_actor_account_id uuid,
+  p_access_token     text,
   p_reason_code      text,
   p_reason_text      text,
   p_idempotency_key  text,
@@ -273,7 +296,10 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp 
 #variable_conflict use_variable
 DECLARE
   halal       constant text[] := ARRAY['HALAL_CERTIFICATE_EXPIRED', 'HALAL_CERTIFICATE_UNVERIFIED'];
-  bound       text := pg_catalog.current_setting('hg.actor_id', true);
+  claims      jsonb;
+  expires     timestamptz;
+  v_actor     uuid;
+  v_session   uuid;
   is_admin    boolean;
   is_super    boolean;
   roles       jsonb;
@@ -295,30 +321,57 @@ DECLARE
   v_at        timestamptz;
   v_sessions  int := 0;
 BEGIN
-  -- The actor is the account the service named for this transaction.
-  IF p_actor_account_id IS NULL OR coalesce(bound, '') = '' OR bound <> p_actor_account_id::text THEN
-    RAISE EXCEPTION 'account_state_actor_unbound: % is not the account this transaction acts for (hg.actor_id = %)',
-      p_actor_account_id, coalesce(nullif(bound, ''), 'unset')
+  -- The actor is the account whose live two-step session this access token was
+  -- issued for. The token is hashed here: the application's role holds only the
+  -- hashes, so it cannot present a token it did not receive. Its claims (read,
+  -- not verified: the hash already ties this exact token to its session row) must
+  -- name that session, and the token must be unexpired; the roles it carries are
+  -- the most the actor may use.
+  BEGIN
+    claims := pg_catalog.convert_from(pg_catalog.decode(pg_catalog.rpad(
+                pg_catalog.translate(pg_catalog.split_part(p_access_token, '.', 2), '-_', '+/'),
+                ((pg_catalog.length(pg_catalog.split_part(p_access_token, '.', 2)) + 3) / 4) * 4, '='),
+              'base64'), 'UTF8')::jsonb;
+    expires := pg_catalog.to_timestamp((claims ->> 'exp')::double precision);
+  EXCEPTION WHEN data_exception THEN
+    claims := NULL;
+    expires := NULL;
+  END;
+  SELECT s.id, s.account_id INTO v_session, v_actor
+    FROM public.session s
+   WHERE s.access_hash = pg_catalog.sha256(pg_catalog.convert_to(p_access_token, 'UTF8'))
+     AND s.amr = 'pwd+totp'
+     AND s.revoked_at IS NULL
+     AND s.idle_expires_at > pg_catalog.now() AND s.absolute_expires_at > pg_catalog.now()
+     AND expires > pg_catalog.now()
+     AND claims ->> 'sid' = s.id::text
+     FOR SHARE OF s;
+  IF v_actor IS NULL THEN
+    RAISE EXCEPTION 'account_state_session_required: the access token is not one of a live session signed in with two-step sign-in'
       USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  -- Their grants as they stand now: global, not revoked, in force, on an active account.
+  -- Their grants as they stand now: global, not revoked, in force, carried by the
+  -- token, on an active account whose staff profile is not suspended or deactivated.
   SELECT bool_or(ar.role = 'ADMIN'), bool_or(ar.role = 'SUPER_ADMIN'),
          jsonb_agg(DISTINCT ar.role::text)
     INTO is_admin, is_super, roles
     FROM public.account_role ar
     JOIN public.account a ON a.id = ar.account_id
-   WHERE ar.account_id = p_actor_account_id
+   WHERE ar.account_id = v_actor
      AND ar.scope_type = 'GLOBAL' AND ar.revoked_at IS NULL AND ar.granted_at <= pg_catalog.now()
-     AND a.status = 'ACTIVE' AND a.deleted_at IS NULL;
+     AND (claims -> 'roles') ? ar.role::text
+     AND a.status = 'ACTIVE' AND a.deleted_at IS NULL
+     AND NOT EXISTS (SELECT 1 FROM public.staff_profile sp
+                      WHERE sp.account_id = v_actor AND sp.status IN ('SUSPENDED', 'DEACTIVATED'));
   IF NOT (coalesce(is_admin, false) OR coalesce(is_super, false)) THEN
-    RAISE EXCEPTION 'account_state_actor_not_permitted: % holds no admin or super admin grant', p_actor_account_id
+    RAISE EXCEPTION 'account_state_actor_not_permitted: % holds no admin or super admin grant', v_actor
       USING ERRCODE = 'insufficient_privilege';
   END IF;
 
   -- The subject, locked; never the actor's own account or restaurant, never a staff
-  -- account treated as a customer.
-  IF p_subject_type IN ('RIDER', 'CUSTOMER') AND p_subject_id = p_actor_account_id THEN
+  -- account treated as a rider or a customer.
+  IF p_subject_type IN ('RIDER', 'CUSTOMER') AND p_subject_id = v_actor THEN
     RAISE EXCEPTION 'account_state_own_account: staff cannot act on their own account'
       USING ERRCODE = 'insufficient_privilege';
   END IF;
@@ -331,7 +384,7 @@ BEGIN
       RAISE EXCEPTION 'account_state_subject_not_found: no restaurant %', p_subject_id USING ERRCODE = 'no_data_found';
     END IF;
     IF EXISTS (SELECT 1 FROM public.account_role ar
-                WHERE ar.account_id = p_actor_account_id AND ar.scope_type = 'RESTAURANT'
+                WHERE ar.account_id = v_actor AND ar.scope_type = 'RESTAURANT'
                   AND ar.scope_id = p_subject_id AND ar.revoked_at IS NULL) THEN
       RAISE EXCEPTION 'account_state_own_account: staff cannot act on their own restaurant'
         USING ERRCODE = 'insufficient_privilege';
@@ -352,16 +405,22 @@ BEGIN
                                    AND ar.revoked_at IS NULL) THEN
       RAISE EXCEPTION 'account_state_subject_not_found: no customer %', p_subject_id USING ERRCODE = 'no_data_found';
     END IF;
-    IF EXISTS (SELECT 1 FROM public.account_role ar
-                WHERE ar.account_id = p_subject_id AND ar.revoked_at IS NULL
-                  AND ar.role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')) THEN
-      RAISE EXCEPTION 'account_state_staff_subject: a staff account is not changed by a customer action'
-        USING ERRCODE = 'insufficient_privilege';
-    END IF;
+  END IF;
+  -- A rider's ban or a customer's ends every session of the account, staff
+  -- sessions included: a staff account is managed through the staff operations.
+  IF p_subject_type IN ('RIDER', 'CUSTOMER')
+     AND EXISTS (SELECT 1 FROM public.account_role ar
+                  WHERE ar.account_id = p_subject_id AND ar.revoked_at IS NULL
+                    AND ar.role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')) THEN
+    RAISE EXCEPTION 'account_state_staff_subject: a staff account is not changed by a % action',
+      pg_catalog.lower(p_subject_type::text)
+      USING ERRCODE = 'insufficient_privilege';
   END IF;
 
   -- The two-person ban: a confirmation needs a proposal by somebody else, less
-  -- than 7 days old; a proposal is not made twice.
+  -- than 7 days old; a proposal is not made twice. (That the somebody else is
+  -- another person is checked below, once the confirmer is known to be a super
+  -- admin.)
   SELECT e.action::text, e.actor_account_id, e.created_at INTO last_action, last_actor, last_at
     FROM public.account_state_event e
    WHERE e.subject_type = p_subject_type AND e.subject_id = p_subject_id
@@ -372,7 +431,7 @@ BEGIN
     RAISE EXCEPTION 'account_ban_needs_proposal: % % has no ban proposal less than 7 days old', p_subject_type, p_subject_id
       USING ERRCODE = 'check_violation';
   END IF;
-  IF p_action = 'CONFIRM_BAN' AND last_actor = p_actor_account_id THEN
+  IF p_action = 'CONFIRM_BAN' AND last_actor = v_actor THEN
     RAISE EXCEPTION 'account_ban_two_person: the person who proposed a ban cannot confirm it'
       USING ERRCODE = 'check_violation';
   END IF;
@@ -440,6 +499,27 @@ BEGIN
     RAISE EXCEPTION 'account_state_actor_not_permitted: % needs a super admin (permission %)', p_action, permission
       USING ERRCODE = 'insufficient_privilege';
   END IF;
+  -- A ban's confirmer must be another person, not a second account of the
+  -- proposer's: neither made the other staff (a role grant or a staff profile),
+  -- and the confirmer was already a super admin when the ban was proposed.
+  IF p_action = 'CONFIRM_BAN'
+     AND (EXISTS (SELECT 1 FROM public.account_role ar
+                   WHERE ar.role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')
+                     AND ((ar.account_id = v_actor AND ar.granted_by = last_actor)
+                       OR (ar.account_id = last_actor AND ar.granted_by = v_actor)))
+          OR EXISTS (SELECT 1 FROM public.staff_profile sp
+                      WHERE (sp.account_id = v_actor AND sp.created_by = last_actor)
+                         OR (sp.account_id = last_actor AND sp.created_by = v_actor))) THEN
+    RAISE EXCEPTION 'account_ban_two_person: the proposer and the confirmer made one another staff'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  IF p_action = 'CONFIRM_BAN'
+     AND NOT EXISTS (SELECT 1 FROM public.account_role ar
+                      WHERE ar.account_id = v_actor AND ar.role = 'SUPER_ADMIN' AND ar.scope_type = 'GLOBAL'
+                        AND ar.revoked_at IS NULL AND ar.granted_at <= last_at) THEN
+    RAISE EXCEPTION 'account_ban_two_person: the confirmer became a super admin after the ban was proposed'
+      USING ERRCODE = 'check_violation';
+  END IF;
 
   -- The state, the sessions a ban ends, the history and the audit, together.
   IF p_subject_type = 'RESTAURANT' THEN
@@ -473,19 +553,21 @@ BEGIN
     (subject_type, subject_id, action, from_state, to_state, reason_code, reason_text,
      actor_kind, actor_account_id, idempotency_key, request_hash, in_flight, delist_reasons, sessions_revoked)
   VALUES (p_subject_type, p_subject_id, p_action, v_from, v_to, p_reason_code, p_reason_text,
-          'STAFF', p_actor_account_id, p_idempotency_key, p_request_hash,
+          'STAFF', v_actor, p_idempotency_key, p_request_hash,
           coalesce(p_in_flight, '{}'::jsonb),
           CASE WHEN p_subject_type = 'RESTAURANT' THEN v_new ELSE '{}'::text[] END, v_sessions)
   RETURNING id, account_state_event.created_at INTO v_event, v_at;
 
+  -- The audit row names the session proven above, whatever the caller says.
   PERFORM public.account_state_audit(
-    'ACCOUNT', p_actor_account_id, roles, permission, p_subject_type::text, p_subject_id,
+    'ACCOUNT', v_actor, roles, permission, p_subject_type::text, p_subject_id,
     p_reason_code, p_reason_text,
     pg_catalog.jsonb_build_object('state', v_from),
     pg_catalog.jsonb_build_object('state', v_to, 'event_id', v_event,
       'delist_reasons', pg_catalog.to_jsonb(CASE WHEN p_subject_type = 'RESTAURANT' THEN v_new ELSE '{}'::text[] END),
       'in_flight', coalesce(p_in_flight, '{}'::jsonb), 'sessions_revoked', v_sessions),
-    p_request);
+    pg_catalog.jsonb_build_object('request_id', p_request ->> 'request_id', 'ip', p_request ->> 'ip',
+      'user_agent', p_request ->> 'user_agent', 'session_id', v_session::text));
 
   RETURN QUERY SELECT v_event, v_from, v_to,
                       CASE WHEN p_subject_type = 'RESTAURANT' THEN v_new ELSE '{}'::text[] END,
@@ -753,7 +835,7 @@ $$;
 REVOKE ALL ON FUNCTION account_state_grant_app_columns() FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_certificate(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_audit(text, uuid, jsonb, text, text, uuid, text, text, jsonb, jsonb, jsonb) FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_state_apply(account_subject_type, uuid, account_action, uuid, text, text, text, bytea, jsonb, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_apply(account_subject_type, uuid, account_action, text, text, text, text, bytea, jsonb, jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_system_write(uuid, text, text, text, text[], text[], account_action, text, text, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_complete_onboarding(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_halal_expiry(uuid) FROM PUBLIC;
@@ -761,7 +843,7 @@ REVOKE ALL ON FUNCTION account_state_halal_renewal(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_issuer_listing(uuid, boolean) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_event_guard_ban() FROM PUBLIC, hg_app;
 REVOKE ALL ON FUNCTION account_state_event_reject_mutation() FROM PUBLIC, hg_app;
-GRANT EXECUTE ON FUNCTION account_state_apply(account_subject_type, uuid, account_action, uuid, text, text, text, bytea, jsonb, jsonb) TO hg_app;
+GRANT EXECUTE ON FUNCTION account_state_apply(account_subject_type, uuid, account_action, text, text, text, text, bytea, jsonb, jsonb) TO hg_app;
 GRANT EXECUTE ON FUNCTION account_state_complete_onboarding(uuid) TO hg_app;
 GRANT EXECUTE ON FUNCTION account_state_halal_expiry(uuid) TO hg_app;
 GRANT EXECUTE ON FUNCTION account_state_halal_renewal(uuid) TO hg_app;
@@ -773,12 +855,16 @@ DROP FUNCTION IF EXISTS account_state_halal_renewal(uuid);
 DROP FUNCTION IF EXISTS account_state_halal_expiry(uuid);
 DROP FUNCTION IF EXISTS account_state_complete_onboarding(uuid);
 DROP FUNCTION IF EXISTS account_state_system_write(uuid, text, text, text, text[], text[], account_action, text, text, text);
-DROP FUNCTION IF EXISTS account_state_apply(account_subject_type, uuid, account_action, uuid, text, text, text, bytea, jsonb, jsonb);
+DROP FUNCTION IF EXISTS account_state_apply(account_subject_type, uuid, account_action, text, text, text, text, bytea, jsonb, jsonb);
 DROP FUNCTION IF EXISTS account_state_audit(text, uuid, jsonb, text, text, uuid, text, text, jsonb, jsonb, jsonb);
 DROP FUNCTION IF EXISTS account_state_certificate(uuid);
 DROP FUNCTION IF EXISTS account_state_grant_app_columns();
 -- The application role gets back the table rights 00023 gave it.
 GRANT INSERT, UPDATE, DELETE ON restaurant, rider_profile, account TO hg_app;
+REVOKE UPDATE (rotated_at, rotated_to, last_used_at, revoked_at, revoke_reason) ON session FROM hg_app;
+GRANT UPDATE ON session TO hg_app;
+DROP INDEX IF EXISTS session_access_hash;
+ALTER TABLE session DROP COLUMN IF EXISTS access_hash;
 GRANT INSERT ON account_state_event TO hg_app;
 ALTER FUNCTION account_state_event_reject_mutation() RESET search_path;
 ALTER FUNCTION account_state_event_guard_ban() RESET search_path;

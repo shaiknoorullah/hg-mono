@@ -3,7 +3,9 @@ package auth
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -45,6 +47,15 @@ func TestAuthenticateValidToken(t *testing.T) {
 	}
 	if p.Anonymous || p.AccountID != "acct-1" || p.SessionID != "sess-1" {
 		t.Fatalf("principal = %+v", p)
+	}
+	// The verified token travels with the principal for the database's own check
+	// of a staff account action (migration 00035), and printing the principal
+	// does not show it.
+	if p.Credential() != tok {
+		t.Fatal("principal does not carry the token it was proven with")
+	}
+	if strings.Contains(fmt.Sprintf("%+v %v", p, p), tok) {
+		t.Fatal("printing a principal shows its access token")
 	}
 	if !p.HasRole("CUSTOMER") {
 		t.Fatal("principal missing CUSTOMER role")

@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
@@ -80,7 +82,18 @@ func (s *Service) issueSession(ctx context.Context, acct *Account, amr string, c
 	idle, absolute := refreshTTL(roleNames)
 	now := s.now()
 
+	// The session id is chosen first, so the access token can name it and the
+	// row can carry the token's hash from its first write (migration 00035).
+	sid, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+	access, err := s.issuer.Issue(acct.ID, sid.String(), roleNames, []string{amr}, AccessTokenTTL)
+	if err != nil {
+		return nil, err
+	}
 	sess, err := s.store.CreateSession(ctx, NewSessionParams{
+		ID:          sid.String(),
 		AccountID:   acct.ID,
 		AMR:         amr,
 		Roles:       permitted,
@@ -89,14 +102,10 @@ func (s *Service) issueSession(ctx context.Context, acct *Account, amr string, c
 		UserAgent:   userAgent,
 		IP:          ip,
 		RefreshHash: refreshHash,
+		AccessHash:  HashAccessToken(access),
 		IdleExpires: now.Add(idle),
 		AbsExpires:  now.Add(absolute),
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	access, err := s.issuer.Issue(acct.ID, sess.ID, roleNames, []string{amr}, AccessTokenTTL)
 	if err != nil {
 		return nil, err
 	}
