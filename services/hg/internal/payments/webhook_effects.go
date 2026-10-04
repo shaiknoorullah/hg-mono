@@ -33,8 +33,10 @@ const (
 	// exceptionRefundConflict: Stripe reports a refund this database never
 	// sent, or one it holds as declined or cancelled.
 	exceptionRefundConflict = "refund_state_conflict"
-	// exceptionRefundFailed: a refund failed on Stripe after its REFUND batch
-	// was posted, so the ledger says the customer was paid and they were not.
+	// exceptionRefundFailed: a refund failed after its REFUND batch was
+	// posted, so the ledger says the customer was paid and they were not:
+	// Stripe reported it failed, refused to make it, or the refund sender
+	// would not send it (refund_sender.go).
 	exceptionRefundFailed = "refund_failed"
 	// exceptionChargebackLost: a dispute closed against us; Stripe has taken
 	// the money back, and who bears it is a person's call.
@@ -63,7 +65,7 @@ var exceptionMessages = map[string]string{
 	exceptionDatabaseAhead:    "This database holds a payment further along than Stripe does.",
 	exceptionUnrecordedRefund: "Stripe refunded more than the refunds recorded here; decide who bears it.",
 	exceptionRefundConflict:   "Stripe reports a refund this database never sent, or holds as declined.",
-	exceptionRefundFailed:     "A refund failed on Stripe after it was booked; the customer has not been paid.",
+	exceptionRefundFailed:     "A refund failed after it was booked; the customer has not been paid.",
 	exceptionChargebackLost:   "A chargeback was lost; Stripe has taken the money back. Decide who bears it.",
 	exceptionUnknownTransfer:  "Stripe made a transfer no payout here asked for.",
 	exceptionTransferMismatch: "A transfer's amount or id does not match its payout.",

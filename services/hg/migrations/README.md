@@ -15,7 +15,7 @@ migrations/
   0000N_*.sql        the migrations, in order
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 63 assertions about what the DB refuses
+  test/              invariant tests: 67 assertions about what the DB refuses
   tools/             contract-enum generator and checker
 ```
 
@@ -55,6 +55,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 4 | The decomposition invariant is one query returning zero rows. | `SELECT * FROM ledger_order_residual;` — plus `ledger_batch_imbalance`, `ledger_global_residual`, `ledger_charge_identity_breach`, `ledger_tip_passthrough_breach`, and `assert_ledger_invariants()` which raises on any of them. |
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
 | 6 | One canonical location column per entity, `geography(Point,4326)`, with the GiST indexes dispatch needs. | `lint_location_columns()`. A second location column, a `geometry`, a bare `point`, or a column named `coords` all fail the gate. |
+| 7 | A refund moves money only once a named member of staff approved it, and a goodwill refund above CAD 50 only once a second person did. A refund recorded as at Stripe carries Stripe's id. | `refund_money_needs_approver`, `refund_goodwill_second_approver` ([goodwill approval decision](../../../docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)), `refund_at_stripe_has_id` and `refund_approval_names_role` CHECKs on `refund` (`00035`, [#318](https://github.com/shaiknoorullah/hg-mono/issues/318)). A customer's request and an approval request carry no approver, so the refund sender can never send one. |
 
 The two schema lints are also runnable on their own:
 

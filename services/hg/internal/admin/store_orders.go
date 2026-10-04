@@ -613,8 +613,11 @@ SELECT coalesce(sum(amount_cents),0) FROM refund
 		return fmt.Errorf("refusing to post unbalanced cancel-refund batch (residual=%d)", batch.Residual())
 	}
 
-	// Insert the refund row (AUTHORISED, on a clock: deadline required by the
-	// refund_deadline_required CHECK for non-terminal states).
+	// Insert the refund row: AUTHORISED, approved by the member of staff who
+	// cancelled (the schema refuses a refund that moves money with no
+	// approver, refund_money_needs_approver), and due to the payments refund
+	// sender at once, which sends it to Stripe (payments/refund_sender.go,
+	// #318).
 	requestedBy := actor.staffID
 	if requestedBy == "" {
 		// requested_by is NOT NULL; fall back to the system account. This never
@@ -626,15 +629,15 @@ SELECT coalesce(sum(amount_cents),0) FROM refund
 INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
                     amount_cents, tax_cents,
                     restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
-                    state, requested_by, deadline_at, deadline_action)
+                    state, approval_status, requested_by, approved_by, deadline_at, deadline_action)
 VALUES ($1,$2,'FULL','FULL',$3::refund_reason_code,$4,
         $5,$6,$7,$8,$9,
-        'AUTHORISED',$10, now() + interval '2 minutes','SUBMIT_REFUND')
+        'AUTHORISED','APPROVED',$10,$10, now(),$11)
 RETURNING id::text`,
 		orderID, intentID, reversalReason, in.ReasonText,
 		refundCents, taxCents,
 		split.RestaurantChargebackCents, split.RiderChargebackCents, split.PlatformAbsorbedCents,
-		requestedBy).Scan(&refundID); err != nil {
+		requestedBy, payments.RefundActionSubmit).Scan(&refundID); err != nil {
 		return fmt.Errorf("insert cancel refund: %w", err)
 	}
 

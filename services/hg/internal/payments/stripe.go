@@ -12,7 +12,6 @@ import (
 	"github.com/stripe/stripe-go/v79/account"
 	"github.com/stripe/stripe-go/v79/accountlink"
 	"github.com/stripe/stripe-go/v79/client"
-	"github.com/stripe/stripe-go/v79/refund"
 	"github.com/stripe/stripe-go/v79/setupintent"
 	"github.com/stripe/stripe-go/v79/transfer"
 	"github.com/stripe/stripe-go/v79/webhook"
@@ -299,7 +298,10 @@ func (s *liveStripe) CreateRefund(ctx context.Context, in CreateRefundInput) (*S
 	if in.RefundID != "" {
 		params.AddMetadata("refund_id", in.RefundID)
 	}
-	rf, err := refund.New(params)
+	// Through this client, which holds the secret key. The package-level
+	// refund.New reads the global stripe.Key, which nothing sets, so it sent
+	// every refund with no key at all (#318).
+	rf, err := s.api.Refunds.New(params)
 	if err != nil {
 		return nil, fmt.Errorf("stripe create refund: %w", err)
 	}

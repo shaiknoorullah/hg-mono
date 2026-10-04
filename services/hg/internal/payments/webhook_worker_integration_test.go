@@ -700,9 +700,9 @@ func TestWebhookWorker_AnEventIsAppliedOnlyToTheRowsItIsAbout(t *testing.T) {
 	var refund string
 	if err := h.pool.QueryRow(ctx, `
 		INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by,
-		                    deadline_at, deadline_action)
+		                    approved_by, deadline_at, deadline_action)
 		SELECT o.id, p.id, 'FULL', 'PLATFORM_ERROR', 3919, 'AUTHORISED', o.account_id,
-		       now() + interval '2 minutes', 'submit_refund_to_stripe'
+		       o.account_id, now() + interval '2 minutes', 'submit_refund_to_stripe'
 		  FROM "order" o JOIN payment_intent p ON p.order_id = o.id WHERE o.id = $1
 		RETURNING id::text`, order).Scan(&refund); err != nil {
 		t.Fatalf("seed refund: %v", err)
