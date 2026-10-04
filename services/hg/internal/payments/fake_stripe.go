@@ -80,3 +80,8 @@ func (fakeStripe) CreateTransfer(_ context.Context, _ CreateTransferInput) (*Str
 func (fakeStripe) VerifyWebhook(_ []byte, _ string) (StripeEvent, error) {
 	return StripeEvent{}, ErrStripeNotConfigured
 }
+
+// ListEventsSince returns nothing: the fake never emitted an event to replay.
+func (fakeStripe) ListEventsSince(_ context.Context, _ time.Time) ([]StripeEvent, error) {
+	return nil, nil
+}
