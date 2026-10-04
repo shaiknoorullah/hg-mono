@@ -2456,6 +2456,14 @@ export interface paths {
          *     Expiry is server-authoritative. A late accept is `409 OFFER_EXPIRED` with the final
          *     state — never a partial success. Closing the dialog, refreshing, or losing the
          *     socket never rejects an order.
+         *
+         *     `409 RESTAURANT_UNAVAILABLE` when the restaurant cannot take orders **as of this
+         *     request**: it is not listed and live (suspended, banned, delisted), or its halal
+         *     certificate is not current, computed from admin-verified certificate data. Nothing is
+         *     captured; the order stays `RESTAURANT_PENDING` until its deadline cancels it and
+         *     releases the authorisation. The check holds the restaurant row locked until the
+         *     accept commits, so a concurrent suspension either lands first and refuses the accept,
+         *     or waits for it and then treats the order as accepted.
          */
         post: operations["acceptOrder"];
         delete?: never;
@@ -10625,7 +10633,7 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
-            /** @description `OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`. */
+            /** @description `OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`, `RESTAURANT_UNAVAILABLE`. */
             409: {
                 headers: {
                     [name: string]: unknown;
