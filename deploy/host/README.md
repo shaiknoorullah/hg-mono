@@ -183,7 +183,7 @@ What it sets up, each with the least it needs:
 
 - **Postgres:** a `replicator` role with `LOGIN` and `REPLICATION` only (no superuser, no grants, two connections). The standby connects to `10.66.0.1:5432`, a relay on production's host (`hg-postgres-relay`, systemd's `systemd-socket-proxyd`, two connections at most) that carries the connection to Postgres at `172.30.0.10` on `hg-data`: Docker lets the host reach a container on an internal network. The host firewall accepts that port from the standby's WireGuard address alone. Postgres sees the relay's connections come from the host's address on `hg-data`, `172.30.0.1`, so `pg_hba` admits the role for replication from there alone, and rejects every other use of it. While the standby is off, none of this is installed and the firewall drops the port for everyone.
 - **Silo:** one-way bucket replication of `hg-kyc`, `hg-pod` and `hg-media`. Production configures it with a key scoped to those buckets, and replicates with a key that can only write those buckets on the standby. Production's root account is used once, to create its scoped key, and never stored in any replication setting. The standby holds no production credential, so it can't write back.
-  **Not ready yet:** Silo pushes to the standby, and production's Silo is now only on internal networks, so it has no way out to the standby's address. It needs a path before the standby is switched on, for example the same kind of relay in the other direction: listening on the host's address on `hg-storage` (`172.30.5.1:9000`), accepted by the host firewall from Silo's address alone, and forwarding over WireGuard to the standby's Silo, which would then be the replication target. Until then, `standby.yml` sets up the Postgres side and stops before Silo with a message saying so.
+  **Not ready yet** ([#314][i314]): Silo pushes to the standby, and production's Silo is now only on internal networks, so it has no way out to the standby's address. It needs a path before the standby is switched on, for example the same kind of relay in the other direction: listening on the host's address on `hg-storage` (`172.30.5.1:9000`), accepted by the host firewall from Silo's address alone, and forwarding over WireGuard to the standby's Silo, which would then be the replication target. Until then, `standby.yml` sets up the Postgres side and stops before Silo with a message saying so.
 - **The rest:** the standby becomes a WireGuard peer of production, gets the same base, firewall (WireGuard only, no public ports) and SSH settings, and runs a Gatus that watches production. clamd moves there if asked, listening on its WireGuard address for production's API alone. Production is not rebuilt.
 
 ## Routine
@@ -217,6 +217,7 @@ The playbook has **not** yet run in check mode against a disposable Debian conta
 [i225]: https://github.com/shaiknoorullah/hg-mono/issues/225
 [i235]: https://github.com/shaiknoorullah/hg-mono/issues/235
 [i275]: https://github.com/shaiknoorullah/hg-mono/issues/275
+[i314]: https://github.com/shaiknoorullah/hg-mono/issues/314
 [pr278]: https://github.com/shaiknoorullah/hg-mono/pull/278
 [pr296]: https://github.com/shaiknoorullah/hg-mono/pull/296
 [runbook-routine]: ../../docs/ops/runbook.md#routine-work-on-one-server

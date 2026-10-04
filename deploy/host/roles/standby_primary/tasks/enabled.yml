@@ -98,14 +98,14 @@
 #
 # Silo pushes to the standby, and production's Silo is now only on internal networks
 # (hg-storage and the files tier), so it has no way to reach the standby's address. It needs a
-# path of its own first (README, "Next month"); until then this stops here, with the Postgres
-# side above in place.
+# path of its own first (#314, README "Next month"); until then this stops here, with the
+# Postgres side above in place.
 - name: Stop until production's Silo has a way to reach the standby
   ansible.builtin.fail:
     msg: >-
       Postgres replication is set up. Bucket replication is not: production's Silo is only on
-      internal networks, so it cannot reach the standby. Give it a path first
-      (deploy/host/README.md, "Next month: the standby"), and remove this task with it.
+      internal networks, so it cannot reach the standby. Give it a path first (issue #314,
+      deploy/host/README.md "Next month: the standby"), and remove this task with it.
 
 - name: Copy the replication policy for production's Silo
   ansible.builtin.template:
