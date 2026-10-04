@@ -51,7 +51,7 @@ func (a *Authenticator) Authenticate(ctx context.Context, r *http.Request) (http
 		roles = append(roles, httpx.Role(r))
 	}
 	// The verified token travels with the principal for the database's own check
-	// of a staff account action (migration 00035, account_state_apply).
+	// of a staff account action (migration 00045, account_state_apply).
 	return httpx.Principal{
 		AccountID: claims.Subject,
 		SessionID: claims.SessionID,

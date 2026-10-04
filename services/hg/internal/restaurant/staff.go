@@ -99,7 +99,7 @@ func (r *Repo) CreateStaff(ctx context.Context, actorAccountID string, actorRole
 		}
 
 		// A new account starts ACTIVE by default; the API may not name an account's
-		// status (migration 00035).
+		// status (migration 00045).
 		const insAcct = `INSERT INTO account (email) VALUES ($1) RETURNING id, created_at`
 		if err := tx.QueryRow(ctx, insAcct, in.Email).Scan(&out.ID, &out.CreatedAt); err != nil {
 			var pgErr *pgconn.PgError

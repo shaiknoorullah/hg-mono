@@ -1,7 +1,7 @@
 package accountstate
 
 // The reason vocabularies are contracts/openapi.yaml's RestaurantAccountReasonCode,
-// RiderAccountReasonCode and CustomerAccountReasonCode; migration 00034 holds the
+// RiderAccountReasonCode and CustomerAccountReasonCode; migration 00044 holds the
 // stored rows to the same sets. Which reasons fit which action is the rule below:
 // a penalty takes a penalty reason, a voluntary exit takes only the partner's own
 // request, delisting takes a non-punitive cause, and reinstating says why the

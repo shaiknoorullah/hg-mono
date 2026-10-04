@@ -2,7 +2,7 @@ package accountstate
 
 // Who may change an account's state, and which changes each of them may make.
 //
-// The application role cannot write an account's state: migration 00035 takes
+// The application role cannot write an account's state: migration 00045 takes
 // UPDATE on restaurant.account_state and delist_reasons, rider_profile.
 // account_status and account.status away from it, lets it INSERT those rows only
 // in their default state, and lets it DELETE none of them. The only writers are
@@ -109,7 +109,7 @@ var systemTransitions = []Transition{
 // staff edge of the state machine for every state it leaves, and the system
 // principals' transitions. Reinstating a restaurant from anything but DELISTED
 // may land on DELISTED instead of LIVE (ReinstatedState), so both are listed.
-// Migration 00035 holds the same list in account_state_rule.
+// Migration 00045 holds the same list in account_state_rule.
 func Transitions() []Transition {
 	var out []Transition
 	for _, s := range []Subject{Restaurant, Rider, Customer} {

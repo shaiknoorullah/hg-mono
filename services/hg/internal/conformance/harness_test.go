@@ -89,7 +89,7 @@ func (testAuthenticator) Authenticate(_ context.Context, r *http.Request) (httpx
 
 // credentialAuthenticator is testAuthenticator plus X-Test-Credential: the access
 // token of a session the test opened, for the writers that check the session in
-// the database themselves (a staff account action, migration 00035).
+// the database themselves (a staff account action, migration 00045).
 type credentialAuthenticator struct{ testAuthenticator }
 
 func (a credentialAuthenticator) Authenticate(ctx context.Context, r *http.Request) (httpx.Principal, error) {
@@ -179,7 +179,7 @@ type Request struct {
 	IdemKey   string // sets Idempotency-Key when non-nil
 	Query     string // raw query string (without leading ?)
 	// Credential is the caller's access token, for the operations whose database
-	// writer checks the session itself (a staff account action, migration 00035).
+	// writer checks the session itself (a staff account action, migration 00045).
 	Credential string
 }
 

@@ -23,7 +23,7 @@ var onboardingRank = map[string]int{
 //	MENU_PENDING       --≥1 LIVE item (R-17) AND hours set (R-06)--> ACTIVE
 //
 // The last step, to ACTIVE, is the database function
-// account_state_complete_onboarding() (migration 00035): the ONBOARDING system
+// account_state_complete_onboarding() (migration 00045): the ONBOARDING system
 // principal (accountstate.SystemOnboarding), and the only way out of PENDING (the
 // application role cannot write the account state). It checks the three gates and
 // the halal certificate itself, records the step and its audit row, and takes the

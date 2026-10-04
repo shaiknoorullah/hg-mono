@@ -6,15 +6,18 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 152
-- **Validated (covered):** 152
-- **Not yet validated (uncovered):** 0
+- **Total contract operations:** 158
+- **Validated (covered):** 153
+- **Not yet validated (uncovered):** 5
 
-## Covered (152)
+## Covered (153)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
 - `addCartLine` — POST /v1/cart/lines
+- `applyCustomerAccountAction` — POST /v1/admin/customers/{customerAccountId}/account-actions
+- `applyRestaurantAccountAction` — POST /v1/admin/restaurants/{restaurantId}/account-actions
+- `applyRiderAccountAction` — POST /v1/admin/riders/{riderAccountId}/account-actions
 - `attachRestaurantDocument` — POST /v1/restaurant/documents
 - `attachRiderDocument` — POST /v1/riders/me/documents
 - `bindPackageSeal` — POST /v1/orders/{orderId}/handoff/seal
@@ -58,7 +61,6 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getCurrentOffer` — GET /v1/riders/me/offers/current
 - `getCurrentPrincipal` — GET /v1/auth/me
 - `getCustomerProfile` — GET /v1/me/profile
-- `getDependencyStatus` — GET /internal/deps
 - `getHalalCertificate` — GET /v1/admin/halal-certificates/{certificateId}
 - `getHealth` — GET /health
 - `getHomeFeed` — GET /v1/feed
@@ -73,7 +75,6 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getOwnMenu` — GET /v1/restaurant/menu
 - `getPublicConfig` — GET /v1/config/public
 - `getQuote` — GET /v1/quotes/{quoteId}
-- `getReadiness` — GET /health/ready
 - `getRealtimeSchema` — GET /v1/realtime/schema
 - `getRefund` — GET /v1/refunds/{refundId}
 - `getRestaurant` — GET /v1/restaurants/{restaurantId}
@@ -165,8 +166,13 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (0)
+## Uncovered (5)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
+- `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
+- `getDependencyStatus` — GET /internal/deps
+- `getReadiness` — GET /health/ready
+- `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId}
+- `updateMenuItemOnBehalf` — PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}

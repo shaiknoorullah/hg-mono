@@ -151,7 +151,7 @@ func accountActionRequestHash(in accountActionInput) []byte {
 // that applies a staff member's account action, and it holds every gate itself:
 // the caller is an admin or a super admin signed in with two-step sign-in, a ban
 // needs a second (super admin) person, and nobody acts on their own account. The
-// database refuses any other path (migration 00035).
+// database refuses any other path (migration 00045).
 func (r *Repo) ApplyAccountAction(ctx context.Context, deps accountActionDeps, in accountActionInput) (accountStateChangeRow, error) {
 	if err := checkAccountActionCaller(in); err != nil {
 		return accountStateChangeRow{}, err
@@ -218,7 +218,7 @@ func (r *Repo) applyAccountActionTx(ctx context.Context, tx pgx.Tx, deps account
 	}
 
 	// The database clock decides whether a ban proposal has lapsed, the same clock
-	// the two-person trigger in migration 00034 uses.
+	// the two-person trigger in migration 00044 uses.
 	var now time.Time
 	if err := tx.QueryRow(ctx, `SELECT now()`).Scan(&now); err != nil {
 		return accountStateChangeRow{}, err
@@ -312,7 +312,7 @@ SELECT action::text, COALESCE(actor_account_id::text, ''), created_at
 }
 
 // writeAccountStateTx is the state change itself, made by the database function
-// account_state_apply (migration 00035), the only writer of an account's state:
+// account_state_apply (migration 00045), the only writer of an account's state:
 // the application role cannot UPDATE the state columns. It is given the caller's
 // access token, not an account id: it hashes the token, finds the live two-step
 // session it was issued for, and acts as that session's account. It reads the
@@ -532,7 +532,7 @@ SELECT DISTINCT account_id FROM account_role
 // APPROVED, or later moved to EXPIRED, verified by an admin, from an ACCEPTED
 // issuing body, not deleted; an APPROVED one wins over an EXPIRED one, and the
 // later expiry within each. Nothing a request carries, and no pending upload,
-// ever counts. account_state_complete_onboarding() (migration 00035) reads it the
+// ever counts. account_state_complete_onboarding() (migration 00045) reads it the
 // same way when onboarding lists a restaurant.
 func restaurantHalalCertificateTx(ctx context.Context, tx pgx.Tx, restaurantID string) (accountstate.HalalCertificate, error) {
 	var c accountstate.HalalCertificate

@@ -42,7 +42,7 @@ type NewSessionParams struct {
 	RefreshHash []byte
 	// AccessHash is the SHA-256 of the access token signed for this session
 	// (HashAccessToken). The database checks a staff account action against it
-	// (migration 00035, account_state_apply); the token itself is never stored.
+	// (migration 00045, account_state_apply); the token itself is never stored.
 	AccessHash  []byte
 	IdleExpires time.Time
 	AbsExpires  time.Time

@@ -74,7 +74,7 @@ const (
 
 // BanProposalWindow is how long a proposed ban waits for a second person. After
 // it, the proposal lapses and the account stays suspended. The database refuses
-// a confirmation outside it too (migration 00034).
+// a confirmation outside it too (migration 00044).
 const BanProposalWindow = 7 * 24 * time.Hour
 
 // edge is one row of a subject's transition table.

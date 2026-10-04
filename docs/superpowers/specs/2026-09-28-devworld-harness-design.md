@@ -107,7 +107,7 @@ All email-login personas sign in as `<persona>@seed.hg`, password `Seed!2026`, e
 | `paused` | ACTIVE | LIVE | CERTIFIED | PAUSED, with reason | availability toggle + reason |
 | `suspended` | ACTIVE | SUSPENDED | CERTIFIED | CLOSED_SUSPENDED | what a suspended operator sees |
 
-The account states no longer have to be seeded in SQL. Since migration `00034`, an admin session can produce them live: `applyRestaurantAccountAction`, `applyRiderAccountAction` and `applyCustomerAccountAction` suspend, reinstate, delist, deactivate or ban, with their effects on orders in progress, sessions and notices ([admin account actions, #253](https://github.com/shaiknoorullah/hg-mono/issues/253)). A `suspend` or `reinstate` scenario is one such call, made with the seeded admin's two-step sign-in.
+The account states no longer have to be seeded in SQL. Since migration `00044`, an admin session can produce them live: `applyRestaurantAccountAction`, `applyRiderAccountAction` and `applyCustomerAccountAction` suspend, reinstate, delist, deactivate or ban, with their effects on orders in progress, sessions and notices ([admin account actions, #253](https://github.com/shaiknoorullah/hg-mono/issues/253)). A `suspend` or `reinstate` scenario is one such call, made with the seeded admin's two-step sign-in.
 
 ### 5.2 `bismillah-grill` depth
 

@@ -67,7 +67,7 @@ RETURNING id`).Scan(&id); err != nil {
 
 // aaSignIn opens a live admin-web session signed in with two-step sign-in for a
 // staff account and returns the access token signed for it; the session row
-// carries the token's hash, as sign-in writes it (migration 00035).
+// carries the token's hash, as sign-in writes it (migration 00045).
 func aaSignIn(t *testing.T, ctx context.Context, pool *pgxpool.Pool, accountID, role string) string {
 	t.Helper()
 	_, priv, err := ed25519.GenerateKey(rand.Reader)

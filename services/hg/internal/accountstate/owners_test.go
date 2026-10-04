@@ -43,7 +43,7 @@ func writes(sql string) []string {
 }
 
 // TestNoGoCodeWritesAnAccountsState: no Go file writes an account's state or its
-// history. Migration 00035 makes the database functions (account_state_apply and
+// history. Migration 00045 makes the database functions (account_state_apply and
 // the system principals' functions) the only writers and refuses the application
 // role anything else; this names an offending file at review time.
 func TestNoGoCodeWritesAnAccountsState(t *testing.T) {
@@ -82,7 +82,7 @@ func TestNoGoCodeWritesAnAccountsState(t *testing.T) {
 			}
 			if s, err := strconv.Unquote(lit.Value); err == nil {
 				for _, w := range writes(s) {
-					t.Errorf("%s writes %s; only the database functions of migration 00035 may", filepath.ToSlash(rel), w)
+					t.Errorf("%s writes %s; only the database functions of migration 00045 may", filepath.ToSlash(rel), w)
 				}
 			}
 			return true

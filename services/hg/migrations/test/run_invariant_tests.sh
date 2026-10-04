@@ -348,7 +348,7 @@ reject "two idempotency records with the same key collide" "idempotency_unique" 
 
 echo
 echo "11. Account actions (https://github.com/shaiknoorullah/hg-mono/issues/253)"
-# History rows name a staff actor who may take the transition (migration 00035):
+# History rows name a staff actor who may take the transition (migration 00045):
 # an admin and a super admin to act.
 INV_ADMIN='13000000-0000-4000-8000-000000000001'
 INV_SUPER='13000000-0000-4000-8000-000000000002'
@@ -362,7 +362,7 @@ psql "$DSN" -q -v ON_ERROR_STOP=1 -c "
    WHERE NOT EXISTS (SELECT 1 FROM account_role x WHERE x.account_id = v.a::uuid AND x.role = v.r::role_name);" >/dev/null
 # The admin's live two-step session and the access token signed for it: a staff
 # action presents the token, and the database finds the session by its hash
-# (migration 00035). The token's signature is not the database's to check.
+# (migration 00045). The token's signature is not the database's to check.
 INV_ADMIN_SESSION='13000000-0000-4000-8000-0000000000e1'
 INV_ADMIN_TOKEN="$(psql "$DSN" -At -c "
   SELECT 'eyJhbGciOiJFZERTQSJ9.' || rtrim(translate(replace(encode(convert_to(json_build_object(
@@ -389,7 +389,7 @@ reject "the person who proposed a ban cannot confirm it" "account_ban_two_person
    INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('RIDER','22222222-2222-4222-8222-222222222222','CONFIRM_BAN','SUSPENDED','BANNED','SAFETY_RISK',
     'confirming my own proposal','$INV_SUPER','inv-two-person-confirm', '\x00');"
-# The transition guard (00035) runs before the CHECK (00034); either refuses it.
+# The transition guard (00045) runs before the CHECK (00044); either refuses it.
 reject "a ban is reached only by confirming one" "account_state_illegal_transition\\|account_state_event_ban_shape" \
   "INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('CUSTOMER','11111111-1111-4111-8111-111111111111','SUSPEND','ACTIVE','BANNED','OTHER',
@@ -405,7 +405,7 @@ reject "the account history is append-only" "account_state_event_is_append_only"
    UPDATE account_state_event SET to_state = 'ACTIVE' WHERE idempotency_key = 'inv-append-only-history';"
 
 echo
-echo "12. Only the database's writers change an account's state (migration 00035)"
+echo "12. Only the database's writers change an account's state (migration 00045)"
 RIDER_FX='019ffe57-fbd0-7355-ade8-b03ea7943578'
 APPLY="SELECT * FROM account_state_apply"
 reject "the application role cannot change a restaurant's state" "permission denied" \

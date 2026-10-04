@@ -2,7 +2,7 @@
 -- Issue: https://github.com/shaiknoorullah/hg-mono/issues/253 (the security reviews
 -- of https://github.com/shaiknoorullah/hg-mono/pull/335).
 --
--- Migration 00034 gave the admin account actions their gates: an admin or super
+-- Migration 00044 gave the admin account actions their gates: an admin or super
 -- admin, two-step sign-in, a second super admin to confirm a ban, and never your
 -- own account. But the states were plain columns any code could UPDATE. This
 -- migration makes the state columns unwritable by the application role and gives
@@ -159,7 +159,7 @@ ALTER TABLE restaurant
   ADD CONSTRAINT restaurant_live_has_no_delist_reasons
   CHECK (account_state <> 'LIVE' OR cardinality(delist_reasons) = 0);
 
--- 00034's guards read the history by name: pin their search_path.
+-- 00044's guards read the history by name: pin their search_path.
 ALTER FUNCTION account_state_event_guard_ban() SET search_path = pg_catalog, public, pg_temp;
 ALTER FUNCTION account_state_event_reject_mutation() SET search_path = pg_catalog, public, pg_temp;
 

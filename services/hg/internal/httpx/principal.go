@@ -52,7 +52,7 @@ func (p Principal) WithCredential(token string) Principal {
 
 // Credential is the raw access token the principal was proven with, or "" when
 // there is none. It exists for the one check the database makes itself: a staff
-// account action passes it to account_state_apply (migration 00035), which hashes
+// account action passes it to account_state_apply (migration 00045), which hashes
 // it and acts only for the live two-step session it was issued for
 // (https://github.com/shaiknoorullah/hg-mono/pull/335). Never log it.
 func (p Principal) Credential() string {

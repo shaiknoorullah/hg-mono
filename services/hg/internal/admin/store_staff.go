@@ -35,7 +35,7 @@ func (r *Repo) CreateStaff(ctx context.Context, actor auditActor, in staffUserIn
 		}
 
 		// A new account starts ACTIVE by default; the API may not name an account's
-		// status (migration 00035).
+		// status (migration 00045).
 		const insAcct = `
 INSERT INTO account (email) VALUES ($1)
 RETURNING id, created_at`

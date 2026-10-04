@@ -414,11 +414,13 @@ func TestConformance_AdminRiderWrites_InputValidation(t *testing.T) {
 				AccountID: saID,
 				Roles:     []string{roleSuperAdmin},
 				IdemKey:   fmt.Sprintf("arw-decide-rest-%d", time.Now().UnixNano()),
+				// A rejection names no documents to redo: only REQUEST_CHANGES does
+				// (one body shape per decision, issue #163:
+				// https://github.com/shaiknoorullah/hg-mono/issues/163).
 				Body: map[string]any{
-					"decision":          "REJECT",
-					"reason_code":       "DOCUMENTS_INSUFFICIENT",
-					"reason_text":       "One or more documents could not be verified against provided details.",
-					"documents_to_redo": []string{},
+					"decision":    "REJECT",
+					"reason_code": "DOCUMENTS_INSUFFICIENT",
+					"reason_text": "One or more documents could not be verified against provided details.",
 				},
 			},
 		},
@@ -431,10 +433,43 @@ func TestConformance_AdminRiderWrites_InputValidation(t *testing.T) {
 				Roles:     []string{roleSuperAdmin},
 				IdemKey:   fmt.Sprintf("arw-decide-rider-%d", time.Now().UnixNano()),
 				Body: map[string]any{
-					"decision":          "REJECT",
-					"reason_code":       "ILLEGIBLE",
-					"reason_text":       "The supplied government ID image was unreadable.",
-					"documents_to_redo": []string{},
+					"decision":    "REJECT",
+					"reason_code": "ILLEGIBLE",
+					"reason_text": "The supplied government ID image was unreadable.",
+				},
+			},
+		},
+		// An approval carries an approval reason, never a rejection reason
+		// (issue #163). The applications above are already decided, so these
+		// answer 409 ALREADY_DECIDED; what they prove is that the approval body is
+		// contract-valid and the handler does not refuse it as VALIDATION_FAILED.
+		{
+			"decideRestaurantApplication_approve",
+			Request{
+				Method:    "POST",
+				Path:      "/v1/admin/restaurant-applications/" + restaurantID + "/decision",
+				AccountID: saID,
+				Roles:     []string{roleSuperAdmin},
+				IdemKey:   fmt.Sprintf("arw-approve-rest-%d", time.Now().UnixNano()),
+				Body: map[string]any{
+					"decision":    "APPROVE",
+					"reason_code": "ALL_CHECKS_PASSED",
+					"reason_text": "Every document and the halal certificate checked out.",
+				},
+			},
+		},
+		{
+			"decideRiderApplication_approve",
+			Request{
+				Method:    "POST",
+				Path:      "/v1/admin/rider-applications/" + riderAcctID + "/decision",
+				AccountID: saID,
+				Roles:     []string{roleSuperAdmin},
+				IdemKey:   fmt.Sprintf("arw-approve-rider-%d", time.Now().UnixNano()),
+				Body: map[string]any{
+					"decision":    "APPROVE",
+					"reason_code": "ALL_CHECKS_PASSED",
+					"reason_text": "Welcome to HalalGoes. Set up payouts to start delivering.",
 				},
 			},
 		},

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -49,12 +50,8 @@ func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string,
 	}
 	// Rate limits (Redis). Keys rebuild from nothing — a flush costs at most a
 	// window of extra allowance; the OTP attempt counter itself is in Postgres.
-	// rl:otp:phone:{phone} — 5 requests / 15 min.
-	if err := s.rl.Allow(ctx, "rl:otp:phone:"+phone, 5, 15*time.Minute); err != nil {
-		return nil, err
-	}
-	// rl:otp:ip:{ip, or its IPv6 /64} — 20 requests / 15 min.
-	if err := s.rl.Allow(ctx, otpIPLimitKey(ip), 20, 15*time.Minute); err != nil {
+	// rl:otp:phone:{phone} — 5 requests / 15 min; rl:otp:ip:{ip} — 20 / 15 min.
+	if err := s.otpRequestLimits(ctx, phone, ip); err != nil {
 		return nil, err
 	}
 
@@ -135,18 +132,6 @@ func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string,
 	}, nil
 }
 
-// otpIPLimitKey is the per-IP OTP request counter for ip. httpx.RateLimitKey
-// buckets it: an IPv6 caller is counted per /64, not per address, and a request
-// with no resolved address shares one "unknown" budget rather than skipping the
-// limit.
-func otpIPLimitKey(ip *string) string {
-	addr := ""
-	if ip != nil {
-		addr = *ip
-	}
-	return "rl:otp:ip:" + httpx.RateLimitKey(addr)
-}
-
 // requestOTPViaVerifier is the PhoneVerifier (Twilio Verify) variant of
 // RequestOTP. It keeps the same P-02 request throttle, 60 s cooldown and open-
 // challenge re-send scaffolding as the self-hosted path, but the provider owns
@@ -158,10 +143,7 @@ func otpIPLimitKey(ip *string) string {
 // never signals whether the number is known.
 func (s *Service) requestOTPViaVerifier(ctx context.Context, phone, purpose string, deviceID, ip *string) (*wireOtpChallenge, error) {
 	// Local request throttle (Verify layers its own send caps on top).
-	if err := s.rl.Allow(ctx, "rl:otp:phone:"+phone, 5, 15*time.Minute); err != nil {
-		return nil, err
-	}
-	if err := s.rl.Allow(ctx, otpIPLimitKey(ip), 20, 15*time.Minute); err != nil {
+	if err := s.otpRequestLimits(ctx, phone, ip); err != nil {
 		return nil, err
 	}
 
@@ -221,6 +203,29 @@ func (s *Service) requestOTPViaVerifier(ctx context.Context, phone, purpose stri
 		ResendAfterS: 60,
 		ExpiresAt:    httpx.Timestamp(challenge.ExpiresAt),
 	}, nil
+}
+
+// otpRequestLimits applies the per-phone and per-IP OTP request caps. Both fail
+// closed: with Redis down the OTP endpoints answer 503, never fail open
+// (docs/spec/01-platform.md, "P-02 — Phone OTP authentication").
+func (s *Service) otpRequestLimits(ctx context.Context, phone string, ip *string) error {
+	if err := s.rl.Allow(ctx, Limit{Name: "otp:phone", Subject: phone,
+		Max: 5, Window: 15 * time.Minute, OnUnavailable: FailClosed}); err != nil {
+		return err
+	}
+	return s.rl.Allow(ctx, Limit{Name: "otp:ip", Subject: ipSubject(ip),
+		Max: 20, Window: 15 * time.Minute, OnUnavailable: FailClosed})
+}
+
+// ipSubject is what a per-IP limit counts ip under (httpx.RateLimitKey): the
+// IPv4 address, or the IPv6 /64 it is in, because one subscriber can send from
+// any address in its /64. A request with no resolved address counts in one
+// shared "unknown" budget rather than skipping the limit.
+func ipSubject(ip *string) string {
+	if ip == nil {
+		return httpx.RateLimitKey("")
+	}
+	return httpx.RateLimitKey(*ip)
 }
 
 // startVerification asks the provider to send a code, swallowing (only logging,
@@ -327,15 +332,32 @@ func (s *Service) verifyOTPViaVerifier(ctx context.Context, challengeID, code st
 	return s.issueSession(ctx, acct, "otp", client, deviceID, userAgent, ip, isNew)
 }
 
+// canonicalEmail is the one spelling of an email that the limiter, the lockout
+// and the account lookup all see. account.email and login_attempt.email are
+// citext (migrations/00004_identity.sql), so Postgres treats "Owner@x.com" and
+// "owner@x.com" as one account; a Redis key is byte-exact, so without this each
+// case variant would get a fresh per-email budget.
+func canonicalEmail(email string) string { return strings.ToLower(strings.TrimSpace(email)) }
+
 // Login verifies email + password, checks status/lockout/TOTP, and issues a
 // session.
 func (s *Service) Login(ctx context.Context, email, password string, totp *string, client ClientSurface, userAgent, ip *string) (*issuedSession, error) {
+	email = canonicalEmail(email)
 	ipStr := ""
 	if ip != nil {
 		ipStr = *ip
 	}
-	// Redis request-rate limits (advisory; lockout truth is Postgres).
-	if err := s.rl.Allow(ctx, "rl:login:email:"+email, 10, 15*time.Minute); err != nil && errors.Is(err, ErrLimiterUnavailable) {
+	// Redis request-rate limits, per IP then per email (docs/spec/01-platform.md,
+	// "P-03 — Email + password authentication"). An over-the-cap answer stops
+	// the attempt before anything is read or recorded. They fail open: the
+	// lockout below lives in Postgres and survives a Redis outage, and Traefik
+	// keeps its own per-IP limit in front of the app.
+	if err := s.rl.Allow(ctx, Limit{Name: "login:ip", Subject: ipSubject(ip),
+		Max: 30, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		return nil, err
+	}
+	if err := s.rl.Allow(ctx, Limit{Name: "login:email", Subject: email,
+		Max: 10, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
 		return nil, err
 	}
 
@@ -409,7 +431,15 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 
 // RegisterRestaurant creates the account/restaurant/grant/token and enqueues the
 // verification email. No session is issued.
-func (s *Service) RegisterRestaurant(ctx context.Context, email, password, businessName string) (*RegisterRestaurantResult, error) {
+func (s *Service) RegisterRestaurant(ctx context.Context, email, password, businessName string, ip *string) (*RegisterRestaurantResult, error) {
+	// 5 sign-ups per hour per IP (docs/spec/03-restaurant.md, "R-01 — Restaurant
+	// account signup"), checked before the argon2id hash so a flood costs no
+	// CPU. Fails open: a sign-up creates an unverified account and issues no
+	// session, and Traefik keeps its own per-IP limit in front of the app.
+	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: ipSubject(ip),
+		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		return nil, err
+	}
 	if isBreachedPassword(password) {
 		return nil, errBreachedPassword
 	}
@@ -464,8 +494,10 @@ func (s *Service) VerifyEmail(ctx context.Context, token string, client ClientSu
 // ResendEmailVerification issues a fresh EMAIL_VERIFY token when the account
 // exists and is unverified. Identical externally whether or not it exists.
 func (s *Service) ResendEmailVerification(ctx context.Context, email string) error {
-	if err := s.rl.Allow(ctx, "rl:email_verify:"+email, 5, 24*time.Hour); errors.Is(err, ErrRateLimited) {
-		return ErrRateLimited
+	email = canonicalEmail(email)
+	if err := s.rl.Allow(ctx, Limit{Name: "email_verify", Subject: email,
+		Max: 5, Window: 24 * time.Hour, OnUnavailable: FailOpen}); err != nil {
+		return err
 	}
 	acct, err := s.store.AccountByEmail(ctx, email)
 	if errors.Is(err, ErrNotFound) {
@@ -592,7 +624,7 @@ func (s *Service) Refresh(ctx context.Context, token string, client ClientSurfac
 		absExp = sess.AbsExpires
 	}
 	// The successor's id is chosen first, so its access token can name it and the
-	// row can carry the token's hash from its first write (migration 00035).
+	// row can carry the token's hash from its first write (migration 00045).
 	newID, err := uuid.NewV7()
 	if err != nil {
 		return nil, err

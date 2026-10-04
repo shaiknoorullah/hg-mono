@@ -83,7 +83,7 @@ func (s *Service) issueSession(ctx context.Context, acct *Account, amr string, c
 	now := s.now()
 
 	// The session id is chosen first, so the access token can name it and the
-	// row can carry the token's hash from its first write (migration 00035).
+	// row can carry the token's hash from its first write (migration 00045).
 	sid, err := uuid.NewV7()
 	if err != nil {
 		return nil, err

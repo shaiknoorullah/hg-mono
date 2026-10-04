@@ -2,7 +2,7 @@ package admin
 
 // The account actions' gates hold for every path, not only the HTTP operations
 // (the security reviews of https://github.com/shaiknoorullah/hg-mono/pull/335).
-// Migration 00035 makes the state columns unwritable by the application role
+// Migration 00045 makes the state columns unwritable by the application role
 // and its database functions the only writers; account_state_guard_db_test.go
 // tries every other way in as that role. This file holds the shared harness and
 // the tests of the service and of onboarding. They need HG_TEST_POSTGRES_DSN,
@@ -153,7 +153,7 @@ VALUES ('+1647'||lpad((floor(random()*9000000)+1000000)::bigint::text, 7, '0'), 
 // ---- tests ------------------------------------------------------------------
 
 // TestTheDatabaseHoldsTheServicesTransitions: account_state_rule (migration
-// 00035) is exactly accountstate.Transitions(), so the database refuses what the
+// 00045) is exactly accountstate.Transitions(), so the database refuses what the
 // service refuses and nothing more.
 func TestTheDatabaseHoldsTheServicesTransitions(t *testing.T) {
 	pool := dialTestPool(t)

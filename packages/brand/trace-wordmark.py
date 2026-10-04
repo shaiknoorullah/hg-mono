@@ -1,5 +1,5 @@
 """
-Trace the supplied Halalgoes wordmark PNG to SVG paths.
+Trace the supplied HalalGoes wordmark PNG to SVG paths.
 
 No potrace / numpy in this container, so this is a small, purpose-built tracer:
 
@@ -326,7 +326,7 @@ if __name__ == "__main__":
                   f"bytes={len(emitted['monogram'])}")
     print()
     print(f"viewBox 0 0 {W} {H}   gradient y {G0} -> {G1}")
-    print("Paste each `d` into src/components/Wordmark.tsx.")
+    print("Paste each `d` into the matching constant in src/wordmark-art.ts.")
     for name, d in emitted.items():
         with open(f"{name}.path", "w") as fh:
             fh.write(d)

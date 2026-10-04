@@ -1,6 +1,6 @@
 package admin
 
-// Migration 00035, tried as the application role (appPool: SET ROLE hg_app, the
+// Migration 00045, tried as the application role (appPool: SET ROLE hg_app, the
 // API's own rights). The state columns are not the app's to write; the database
 // functions are the only writers, and each holds its own gates. Every test below
 // is one way in, tried and refused, or the one lawful way, shown to work.

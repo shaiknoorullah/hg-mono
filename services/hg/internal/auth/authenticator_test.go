@@ -49,7 +49,7 @@ func TestAuthenticateValidToken(t *testing.T) {
 		t.Fatalf("principal = %+v", p)
 	}
 	// The verified token travels with the principal for the database's own check
-	// of a staff account action (migration 00035), and printing the principal
+	// of a staff account action (migration 00045), and printing the principal
 	// does not show it.
 	if p.Credential() != tok {
 		t.Fatal("principal does not carry the token it was proven with")

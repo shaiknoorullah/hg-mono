@@ -117,7 +117,7 @@ func HashRefreshToken(token string) []byte {
 
 // HashAccessToken returns the SHA-256 of a signed access token, written to
 // session.access_hash when the token is issued. The database computes the same
-// hash from the raw token a staff account action presents (migration 00035,
+// hash from the raw token a staff account action presents (migration 00045,
 // account_state_apply), so the token itself is never stored.
 func HashAccessToken(token string) []byte {
 	h := sha256.Sum256([]byte(token))

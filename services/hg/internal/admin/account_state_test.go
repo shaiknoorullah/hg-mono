@@ -94,7 +94,7 @@ var testIssuer = func() *session.Issuer {
 // signIn opens a live admin-web session for p signed in with amr, and returns its
 // id and p carrying the access token signed for it (valid for ttl; negative is
 // already expired). The session row carries the token's hash, as internal/auth
-// writes it at sign-in (migration 00035).
+// writes it at sign-in (migration 00045).
 func signIn(t *testing.T, pool *pgxpool.Pool, p httpx.Principal, amr string, ttl time.Duration) (string, httpx.Principal) {
 	t.Helper()
 	sid := uuid.NewString()
@@ -641,7 +641,7 @@ func TestABanNeedsTwoPeopleAndEndsEverySession(t *testing.T) {
 	}
 
 	// A proposal lapses after 7 days: confirming it then is refused. The database
-	// stamps history with the transaction's clock (migration 00035), so the
+	// stamps history with the transaction's clock (migration 00045), so the
 	// eight-day-old proposal is a fixture written with the triggers off.
 	stale := seedRider(t, pool, "OFFLINE")
 	bypass(t, pool,

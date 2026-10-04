@@ -198,7 +198,7 @@ func TestIntegrationSessionRotateAndReuse(t *testing.T) {
 // TestEachAccessTokenIsHashedOntoItsSession: signing in and refreshing write the
 // SHA-256 of the access token they sign onto the session row the token names, the
 // hash the database computes when a staff account action presents the token
-// (migration 00035, account_state_apply).
+// (migration 00045, account_state_apply).
 func TestEachAccessTokenIsHashedOntoItsSession(t *testing.T) {
 	pool := openTestPool(t)
 	ctx := context.Background()
@@ -207,7 +207,7 @@ func TestEachAccessTokenIsHashedOntoItsSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc := NewService(store, NewRateLimiter(nil), NewLogSMSSender(nil, false),
+	svc := NewService(store, NewRateLimiter(nil, nil), NewLogSMSSender(nil, false),
 		session.NewIssuer("k1", priv, "hg-api"), session.NewDenySet(), testSecrets(t), nil)
 	accountID := seedEmailAccount(t, pool, uniqueEmail("access_hash"), "CurrentPass99!!", httpx.RoleAdmin)
 	acct, err := store.AccountByID(ctx, accountID)

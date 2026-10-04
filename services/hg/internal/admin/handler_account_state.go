@@ -173,23 +173,23 @@ func (h *Handler) failAccountAction(w http.ResponseWriter, r *http.Request, err 
 		httpx.Fail(w, r, http.StatusConflict, httpx.CodeIdempotencyKeyReuse,
 			"This Idempotency-Key was already used for a different request.", nil)
 	case errors.As(err, &pgErr) && pgErr.Code == "23514" && strings.HasPrefix(pgErr.Message, "account_ban_two_person"):
-		// The database's own two-person check (migration 00035): the confirmer is
+		// The database's own two-person check (migration 00045): the confirmer is
 		// not independent of the proposer.
 		httpx.Fail(w, r, http.StatusForbidden, CodeSelfApprovalNotOK,
 			"A ban needs a second person: a super admin who did not make the proposer staff, was not made staff "+
 				"by them, and was a super admin before the ban was proposed must confirm it.", nil)
 	case errors.As(err, &pgErr) && pgErr.Code == "42501" && strings.HasPrefix(pgErr.Message, "account_state_session_required"):
-		// The database's own session check (migration 00035): the access token is
+		// The database's own session check (migration 00045): the access token is
 		// not one of a live session signed in with two-step sign-in.
 		httpx.Fail(w, r, http.StatusForbidden, CodeMFARequired,
 			"Sign in again with two-step sign-in to change an account's state.", nil)
 	case errors.As(err, &pgErr) && pgErr.Code == "23514":
-		// The database's own two-person and state checks (migration 00034) caught
+		// The database's own two-person and state checks (migration 00044) caught
 		// a race the checks above could not see.
 		httpx.Fail(w, r, http.StatusConflict, CodeIllegalStateTransition,
 			"The account changed while this action was applied. Reload and try again.", nil)
 	case errors.As(err, &pgErr) && pgErr.Code == "42501":
-		// The database's own role and own-account checks (migration 00035): the
+		// The database's own role and own-account checks (migration 00045): the
 		// caller's role was withdrawn while this action was applied.
 		httpx.Fail(w, r, http.StatusForbidden, CodeForbiddenPermission,
 			"You no longer hold the role this action needs.", nil)
