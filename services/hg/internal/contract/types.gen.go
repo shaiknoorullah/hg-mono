@@ -781,6 +781,7 @@ const (
 	ErrorCodeITEMUNAVAILABLE                ErrorCode = "ITEM_UNAVAILABLE"
 	ErrorCodeLASTOWNERREQUIRED              ErrorCode = "LAST_OWNER_REQUIRED"
 	ErrorCodeLEDGERBATCHUNBALANCED          ErrorCode = "LEDGER_BATCH_UNBALANCED"
+	ErrorCodeMENUVERSIONPENDING             ErrorCode = "MENU_VERSION_PENDING"
 	ErrorCodeMETHODNOTALLOWED               ErrorCode = "METHOD_NOT_ALLOWED"
 	ErrorCodeMFAREQUIRED                    ErrorCode = "MFA_REQUIRED"
 	ErrorCodeNOLIVEMENUITEM                 ErrorCode = "NO_LIVE_MENU_ITEM"
@@ -1015,6 +1016,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeLASTOWNERREQUIRED:
 		return true
 	case ErrorCodeLEDGERBATCHUNBALANCED:
+		return true
+	case ErrorCodeMENUVERSIONPENDING:
 		return true
 	case ErrorCodeMETHODNOTALLOWED:
 		return true
@@ -5236,6 +5239,16 @@ type MenuCategoryInput struct {
 	SortOrder   *int32  `json:"sort_order,omitempty"`
 }
 
+// MenuCategoryUpdateInput Partial update of a menu category — every field is optional. All of it is
+// operational and live at once: a category carries no halal claim and is never
+// reviewed.
+type MenuCategoryUpdateInput struct {
+	Description *string `json:"description,omitempty"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	SortOrder   *int32  `json:"sort_order,omitempty"`
+}
+
 // MenuCategoryWithItems defines model for MenuCategoryWithItems.
 type MenuCategoryWithItems struct {
 	Description *string            `json:"description,omitempty"`
@@ -8338,6 +8351,9 @@ type IdempotencyKeyRequired = string
 // Limit defines model for Limit.
 type Limit = int32
 
+// MenuCategoryIdPath defines model for MenuCategoryIdPath.
+type MenuCategoryIdPath = openapi_types.UUID
+
 // MenuItemIdPath defines model for MenuItemIdPath.
 type MenuItemIdPath = openapi_types.UUID
 
@@ -9278,6 +9294,9 @@ type CreateMenuCategoryOnBehalfJSONRequestBody = MenuCategoryInput
 // CreateMenuItemOnBehalfJSONRequestBody defines body for CreateMenuItemOnBehalf for application/json ContentType.
 type CreateMenuItemOnBehalfJSONRequestBody = MenuItemInput
 
+// UpdateMenuItemOnBehalfJSONRequestBody defines body for UpdateMenuItemOnBehalf for application/json ContentType.
+type UpdateMenuItemOnBehalfJSONRequestBody = MenuItemUpdateInput
+
 // DecideRiderApplicationJSONRequestBody defines body for DecideRiderApplication for application/json ContentType.
 type DecideRiderApplicationJSONRequestBody = RiderDecisionInput
 
@@ -9373,6 +9392,9 @@ type SetRestaurantHoursJSONRequestBody = RestaurantHoursInput
 
 // CreateMenuCategoryJSONRequestBody defines body for CreateMenuCategory for application/json ContentType.
 type CreateMenuCategoryJSONRequestBody = MenuCategoryInput
+
+// UpdateMenuCategoryJSONRequestBody defines body for UpdateMenuCategory for application/json ContentType.
+type UpdateMenuCategoryJSONRequestBody = MenuCategoryUpdateInput
 
 // CreateMenuItemJSONRequestBody defines body for CreateMenuItem for application/json ContentType.
 type CreateMenuItemJSONRequestBody = MenuItemInput

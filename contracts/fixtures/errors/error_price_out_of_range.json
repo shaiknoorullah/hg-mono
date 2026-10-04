@@ -1,0 +1,30 @@
+{
+  "scenario": "error_price_out_of_range",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `PRICE_OUT_OF_RANGE`. The catalogue price band. The restaurant sets its own price; it is still never a price a client sends for an order.",
+  "operations": [
+    "createMenuItem",
+    "updateMenuItem",
+    "createMenuItemOnBehalf",
+    "updateMenuItemOnBehalf"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "PRICE_OUT_OF_RANGE",
+      "message": "Price must be between $0.50 and $500.00.",
+      "request_id": "Q5BSTC7DCZZENAQ2519JGVKDHS",
+      "details": [
+        {
+          "field": "price_cents",
+          "code": "range",
+          "message": "Must be between 50 and 50000 cents."
+        }
+      ]
+    }
+  }
+}

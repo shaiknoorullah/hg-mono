@@ -1,0 +1,92 @@
+{
+  "scenario": "menu_review_queue",
+  "domain": "admin",
+  "schema": "array<MenuItemVersion>",
+  "describes": "Three edits waiting, oldest first, from two restaurants. Only the words, the photo and the dietary and allergen tags wait here; price and availability went live on save. Nothing here is ever approved by waiting.",
+  "operations": [
+    "listMenuReviewQueue"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "review-queue"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 3
+  },
+  "payload": [
+    {
+      "id": "5aa2b4c3-3f2a-4347-a380-c3ed2223d226",
+      "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+      "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "version": 4,
+      "name": "Beef Nihari",
+      "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+      "ingredients_text": null,
+      "dietary_tags": [
+        "HALAL_CERTIFIED",
+        "SPICY"
+      ],
+      "allergen_tags": [
+        "WHEAT_TRITICALE"
+      ],
+      "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+      "review_status": "PENDING_REVIEW",
+      "rejection_reason_code": null,
+      "review_note": null,
+      "submitted_at": "2026-08-10T11:42:11.412Z",
+      "reviewed_at": null,
+      "created_at": "2026-08-10T11:38:11.412Z"
+    },
+    {
+      "id": "f0649adb-5a84-4083-a3a6-d87ccfc60868",
+      "menu_item_id": "8ff8b871-6db4-4c3a-a919-b9b59f416445",
+      "restaurant_id": "ba391a6b-b9cb-4dc5-a5f6-c0c6b63993f1",
+      "version": 1,
+      "name": "Lamb Shawarma Platter",
+      "description": "Shaved lamb, garlic toum, pickled turnip, rice and salad.",
+      "ingredients_text": null,
+      "dietary_tags": [
+        "HALAL_CERTIFIED"
+      ],
+      "allergen_tags": [
+        "SESAME",
+        "MILK"
+      ],
+      "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+      "review_status": "PENDING_REVIEW",
+      "rejection_reason_code": null,
+      "review_note": null,
+      "submitted_at": "2026-08-10T15:42:11.412Z",
+      "reviewed_at": null,
+      "created_at": "2026-08-10T15:38:11.412Z"
+    },
+    {
+      "id": "15194ccb-ebc5-4af2-ae07-ca2695afa4ee",
+      "menu_item_id": "4805b072-35f5-4028-a7b7-9af9fb0a273a",
+      "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "version": 2,
+      "name": "Kunefe",
+      "description": "Shredded pastry over stretchy cheese, orange-blossom syrup.",
+      "ingredients_text": null,
+      "dietary_tags": [
+        "VEGETARIAN",
+        "HALAL_CERTIFIED"
+      ],
+      "allergen_tags": [
+        "MILK",
+        "WHEAT_TRITICALE",
+        "TREE_NUTS"
+      ],
+      "image_url": "https://cdn.halalgoes.ca/img/dish/kunefe.webp",
+      "review_status": "PENDING_REVIEW",
+      "rejection_reason_code": null,
+      "review_note": null,
+      "submitted_at": "2026-08-10T17:42:11.412Z",
+      "reviewed_at": null,
+      "created_at": "2026-08-10T17:38:11.412Z"
+    }
+  ]
+}

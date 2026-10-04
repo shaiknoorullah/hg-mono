@@ -1,0 +1,30 @@
+{
+  "scenario": "error_halal_tag_not_writable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `FIELD_NOT_WRITABLE`. Nobody types the halal claim onto a dish, not even an admin: it comes from the restaurant's approved certificate. A missing claim shows no badge, never an optimistic one.",
+  "operations": [
+    "createMenuItem",
+    "updateMenuItem",
+    "createMenuItemOnBehalf",
+    "updateMenuItemOnBehalf"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "FIELD_NOT_WRITABLE",
+      "message": "Halal certified is set by HalalGoes from your approved certificate.",
+      "request_id": "YG6RTKXVFS17AKA3QYV9A9EYXB",
+      "details": [
+        {
+          "field": "dietary_tags[0]",
+          "code": "not_writable",
+          "message": "HALAL_CERTIFIED cannot be set by hand."
+        }
+      ]
+    }
+  }
+}

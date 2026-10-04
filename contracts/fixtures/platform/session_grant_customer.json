@@ -7,8 +7,7 @@
     "verifyOtp",
     "login",
     "refreshSession",
-    "verifyEmail",
-    "changePassword"
+    "verifyEmail"
   ],
   "status": 200,
   "tags": [

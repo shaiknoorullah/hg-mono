@@ -2,25 +2,40 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 336,
+  "count": 364,
   "counts_by_domain": {
-    "admin": 21,
+    "admin": 23,
     "cart": 12,
-    "catalogue": 31,
+    "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 23,
+    "errors": 36,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
     "orders": 44,
     "payments": 12,
-    "platform": 23,
+    "platform": 25,
     "realtime": 8,
     "refunds": 14,
-    "rider": 21
+    "rider": 22
   },
   "fixtures": [
+    {
+      "scenario": "menu_review_queue",
+      "domain": "admin",
+      "schema": "array<MenuItemVersion>",
+      "describes": "Three edits waiting, oldest first, from two restaurants. Only the words, the photo and the dietary and allergen tags wait here; price and availability went live on save. Nothing here is ever approved by waiting.",
+      "operations": [
+        "listMenuReviewQueue"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue"
+      ],
+      "file": "admin/menu_review_queue.json"
+    },
     {
       "scenario": "menu_review_queue_empty",
       "domain": "admin",
@@ -351,10 +366,9 @@
       "scenario": "staff_list",
       "domain": "admin",
       "schema": "array<StaffUser>",
-      "describes": "Platform staff across every `StaffStatus`.",
+      "describes": "Platform staff across every `StaffStatus`. The invitee has never signed in and has no two-step sign-in yet.",
       "operations": [
-        "listStaff",
-        "createStaffUser"
+        "listStaff"
       ],
       "status": 200,
       "tags": [
@@ -362,6 +376,20 @@
         "state-matrix"
       ],
       "file": "admin/staff_list.json"
+    },
+    {
+      "scenario": "staff_user_invited",
+      "domain": "admin",
+      "schema": "StaffUser",
+      "describes": "What `createStaffUser` returns: a new account in `INVITED`. The super admin set no password; it becomes `ACTIVE` once the invitee sets one and enrols two-step sign-in.",
+      "operations": [
+        "createStaffUser"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "admin/staff_user_invited.json"
     },
     {
       "scenario": "cart_at_quantity_cap",
@@ -574,6 +602,37 @@
       "file": "catalogue/feed_sections.json"
     },
     {
+      "scenario": "menu_category_created",
+      "domain": "catalogue",
+      "schema": "MenuCategory",
+      "describes": "A new, empty category. Categories carry no halal claim, so they are live at once and never reviewed.",
+      "operations": [
+        "createMenuCategory",
+        "createMenuCategoryOnBehalf"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_category_created.json"
+    },
+    {
+      "scenario": "menu_category_updated",
+      "domain": "catalogue",
+      "schema": "MenuCategory",
+      "describes": "`updateMenuCategory`: renamed and deactivated in one save, live at once with no review. Customers no longer see the category or its three items; the restaurant still does, flagged `is_active: false`, and each item keeps its own state for when the category is switched back on.",
+      "operations": [
+        "updateMenuCategory"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_category_updated.json"
+    },
+    {
       "scenario": "menu_empty",
       "domain": "catalogue",
       "schema": "Menu",
@@ -625,6 +684,84 @@
       "file": "catalogue/menu_item_blocked.json"
     },
     {
+      "scenario": "menu_item_created_by_admin",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`createMenuItemOnBehalf`: approved on creation, because the reviewer and the author are the same accountable person. Live at once; the note says who added it.",
+      "operations": [
+        "createMenuItemOnBehalf"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_item_created_by_admin.json"
+    },
+    {
+      "scenario": "menu_item_created_pending_review",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`createMenuItem`: the dish exists, version 1 waits for review, and customers see nothing yet (`live_version` is null). Price is set but cannot be ordered until approval.",
+      "operations": [
+        "createMenuItem"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "review-queue"
+      ],
+      "file": "catalogue/menu_item_created_pending_review.json"
+    },
+    {
+      "scenario": "menu_item_edit_pending_review",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`updateMenuItem` changed the description: version 4 waits for review while customers keep seeing version 3. A changed word can carry a halal claim, so it is never live before a person has read it.",
+      "operations": [
+        "updateMenuItem"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "review-queue"
+      ],
+      "file": "catalogue/menu_item_edit_pending_review.json"
+    },
+    {
+      "scenario": "menu_item_edit_price_only",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "Only the price changed ($21.45 to $22.95): live at once, no review, no new version. Orders already placed keep the price they were placed at.",
+      "operations": [
+        "updateMenuItem",
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_item_edit_price_only.json"
+    },
+    {
+      "scenario": "menu_item_edited_by_admin",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`updateMenuItemOnBehalf` renamed the dish: version 4 is approved on save and is already what customers see. The note records that HalalGoes made the change.",
+      "operations": [
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_item_edited_by_admin.json"
+    },
+    {
       "scenario": "menu_item_hidden",
       "domain": "catalogue",
       "schema": "MenuItem",
@@ -662,6 +799,54 @@
         "dense"
       ],
       "file": "catalogue/menu_item_many_variants_and_addons.json"
+    },
+    {
+      "scenario": "menu_item_marked_available",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`setMenuItemAvailability` → `AVAILABLE`. Back on: orderable again at once. Accepted orders and customers' carts are never changed by it.",
+      "operations": [
+        "setMenuItemAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_marked_available.json"
+    },
+    {
+      "scenario": "menu_item_marked_out_of_stock_indefinitely",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`setMenuItemAvailability` → `OUT_OF_STOCK`. Sold out until someone marks it available again. It shows in the weekly reminder of items left out of stock. Accepted orders and customers' carts are never changed by it.",
+      "operations": [
+        "setMenuItemAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_marked_out_of_stock_indefinitely.json"
+    },
+    {
+      "scenario": "menu_item_marked_out_of_stock_until",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`setMenuItemAvailability` → `OUT_OF_STOCK`. Sold out for an hour; it comes back by itself at the time shown. Accepted orders and customers' carts are never changed by it.",
+      "operations": [
+        "setMenuItemAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_marked_out_of_stock_until.json"
     },
     {
       "scenario": "menu_item_out_of_stock",
@@ -1853,6 +2038,21 @@
       "file": "errors/error_below_minimum_order.json"
     },
     {
+      "scenario": "error_breached_password",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `BREACHED_PASSWORD`. The new password is on the breached-password list. Same body on reset and change.",
+      "operations": [
+        "resetPassword",
+        "changePassword"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_breached_password.json"
+    },
+    {
       "scenario": "error_capture_failed",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -1875,6 +2075,36 @@
         "error-envelope"
       ],
       "file": "errors/error_cart_has_unavailable_items.json"
+    },
+    {
+      "scenario": "error_category_name_taken",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case, on create and on rename.",
+      "operations": [
+        "createMenuCategory",
+        "updateMenuCategory",
+        "createMenuCategoryOnBehalf"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_category_name_taken.json"
+    },
+    {
+      "scenario": "error_current_password_incorrect",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry.",
+      "operations": [
+        "changePassword"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_current_password_incorrect.json"
     },
     {
       "scenario": "error_documents_incomplete",
@@ -1901,6 +2131,23 @@
       "file": "errors/error_forbidden.json"
     },
     {
+      "scenario": "error_halal_tag_not_writable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `FIELD_NOT_WRITABLE`. Nobody types the halal claim onto a dish, not even an admin: it comes from the restaurant's approved certificate. A missing claim shows no badge, never an optimistic one.",
+      "operations": [
+        "createMenuItem",
+        "updateMenuItem",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_halal_tag_not_writable.json"
+    },
+    {
       "scenario": "error_idempotency_key_reuse",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -1923,6 +2170,62 @@
         "error-envelope"
       ],
       "file": "errors/error_internal_error.json"
+    },
+    {
+      "scenario": "error_item_blocked_by_admin",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `ITEM_BLOCKED_BY_ADMIN`. `setMenuItemAvailability` on a `BLOCKED` item. The kitchen cannot un-block it; the message carries the admin's reason.",
+      "operations": [
+        "setMenuItemAvailability"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_item_blocked_by_admin.json"
+    },
+    {
+      "scenario": "error_menu_version_already_decided",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. Two reviewers on one version: the second decision is refused, never applied twice.",
+      "operations": [
+        "decideMenuVersion"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_version_already_decided.json"
+    },
+    {
+      "scenario": "error_menu_version_item_deleted",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ITEM_DELETED`. The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review.",
+      "operations": [
+        "decideMenuVersion"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_version_item_deleted.json"
+    },
+    {
+      "scenario": "error_menu_version_pending",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `MENU_VERSION_PENDING`. `updateMenuItemOnBehalf` with a claim-bearing field while the restaurant's own edit is in the review queue. A restaurant's edit is never silently discarded.",
+      "operations": [
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_version_pending.json"
     },
     {
       "scenario": "error_not_found",
@@ -1985,6 +2288,40 @@
       "file": "errors/error_pod_method_mismatch.json"
     },
     {
+      "scenario": "error_price_out_of_range",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `PRICE_OUT_OF_RANGE`. The catalogue price band. The restaurant sets its own price; it is still never a price a client sends for an order.",
+      "operations": [
+        "createMenuItem",
+        "updateMenuItem",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_price_out_of_range.json"
+    },
+    {
+      "scenario": "error_prohibited_ingredient",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `PROHIBITED_INGREDIENT`. Rejected outright, before review. The same check runs for restaurants and for admins editing on their behalf.",
+      "operations": [
+        "createMenuItem",
+        "updateMenuItem",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_prohibited_ingredient.json"
+    },
+    {
       "scenario": "error_province_not_served",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2033,6 +2370,20 @@
       "file": "errors/error_rate_limited.json"
     },
     {
+      "scenario": "error_reset_token_not_valid",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `TOKEN_CONSUMED`. `resetPassword` with a token that expired (30 minutes), was already used, or never existed. One body for all three, so a link cannot be probed. The app offers \"Send a new link\" (`requestPasswordReset`).",
+      "operations": [
+        "resetPassword"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_reset_token_not_valid.json"
+    },
+    {
       "scenario": "error_restaurant_closed",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2067,6 +2418,34 @@
         "error-envelope"
       ],
       "file": "errors/error_review_window_closed.json"
+    },
+    {
+      "scenario": "error_staff_email_in_use",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `EMAIL_IN_USE`. `createStaffUser` for an email that already has a live account. No invite is sent.",
+      "operations": [
+        "createStaffUser"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_staff_email_in_use.json"
+    },
+    {
+      "scenario": "error_totp_code_incorrect",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `INVALID_CREDENTIALS`. `verifyTotpEnrolment` with a code that does not match the authenticator. Enrolment stays open: the person types the next code, they do not start again.",
+      "operations": [
+        "verifyTotpEnrolment"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_totp_code_incorrect.json"
     },
     {
       "scenario": "error_unknown_field",
@@ -4284,8 +4663,7 @@
         "verifyOtp",
         "login",
         "refreshSession",
-        "verifyEmail",
-        "changePassword"
+        "verifyEmail"
       ],
       "status": 200,
       "tags": [
@@ -4293,6 +4671,21 @@
         "auth"
       ],
       "file": "platform/session_grant_customer.json"
+    },
+    {
+      "scenario": "session_grant_password_changed",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`changePassword` from the admin console: every other session was revoked and this one re-issued. Web, so the refresh token is in the `hg_rt` cookie and null here.",
+      "operations": [
+        "changePassword"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth"
+      ],
+      "file": "platform/session_grant_password_changed.json"
     },
     {
       "scenario": "session_next_route_active_delivery",
@@ -4437,6 +4830,21 @@
         "state-matrix"
       ],
       "file": "platform/session_next_route_suspended.json"
+    },
+    {
+      "scenario": "totp_enrolment",
+      "domain": "platform",
+      "schema": "TotpEnrolment",
+      "describes": "Two-step sign-in enrolment, step one: the authenticator URI and ten recovery codes, shown **once**. Step two is `verifyTotpEnrolment` with a live code.",
+      "operations": [
+        "enrollTotp"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth"
+      ],
+      "file": "platform/totp_enrolment.json"
     },
     {
       "scenario": "realtime_control_frames",
@@ -4984,6 +5392,21 @@
       "file": "rider/payout_transferring.json"
     },
     {
+      "scenario": "restaurant_payout_history",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "A restaurant's payout history, newest first: this week still accruing, last week mid-transfer on Monday's run, three paid weeks before it. Weekly, automatic, no minimum.",
+      "operations": [
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "money"
+      ],
+      "file": "rider/restaurant_payout_history.json"
+    },
+    {
       "scenario": "rider_availability_offline",
       "domain": "rider",
       "schema": "RiderAvailability",
@@ -5159,7 +5582,9 @@
       "order_admin_view_completed"
     ],
     "changePassword": [
-      "session_grant_customer"
+      "error_breached_password",
+      "error_current_password_incorrect",
+      "session_grant_password_changed"
     ],
     "clearCart": [
       "cart_empty"
@@ -5196,6 +5621,26 @@
     "createDocumentDownloadUrl": [
       "presigned_download"
     ],
+    "createMenuCategory": [
+      "error_category_name_taken",
+      "menu_category_created"
+    ],
+    "createMenuCategoryOnBehalf": [
+      "error_category_name_taken",
+      "menu_category_created"
+    ],
+    "createMenuItem": [
+      "error_halal_tag_not_writable",
+      "error_price_out_of_range",
+      "error_prohibited_ingredient",
+      "menu_item_created_pending_review"
+    ],
+    "createMenuItemOnBehalf": [
+      "error_halal_tag_not_writable",
+      "error_price_out_of_range",
+      "error_prohibited_ingredient",
+      "menu_item_created_by_admin"
+    ],
     "createPaymentMethodSetupIntent": [
       "setup_intent"
     ],
@@ -5229,7 +5674,8 @@
       "restaurant_staff_list"
     ],
     "createStaffUser": [
-      "staff_list"
+      "error_staff_email_in_use",
+      "staff_user_invited"
     ],
     "createUpload": [
       "presigned_upload"
@@ -5243,6 +5689,8 @@
       "halal_certificate_status_superseded"
     ],
     "decideMenuVersion": [
+      "error_menu_version_already_decided",
+      "error_menu_version_item_deleted",
       "menu_version_approved",
       "menu_version_draft",
       "menu_version_pending_review",
@@ -5262,6 +5710,9 @@
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
       "restaurant_order_restaurant_pending"
+    ],
+    "enrollTotp": [
+      "totp_enrolment"
     ],
     "getActiveOrder": [
       "dispatch_assigned",
@@ -5567,6 +6018,7 @@
       "halal_issuing_body_suspended"
     ],
     "listMenuReviewQueue": [
+      "menu_review_queue",
       "menu_review_queue_empty",
       "menu_version_approved",
       "menu_version_draft",
@@ -5638,7 +6090,8 @@
       "payout_paid",
       "payout_ready",
       "payout_transferred",
-      "payout_transferring"
+      "payout_transferring",
+      "restaurant_payout_history"
     ],
     "listRestaurantStaff": [
       "restaurant_staff_list"
@@ -5737,6 +6190,10 @@
     "requestOtp": [
       "otp_challenge"
     ],
+    "resetPassword": [
+      "error_breached_password",
+      "error_reset_token_not_valid"
+    ],
     "reviewRestaurantDocument": [
       "document_approved",
       "document_expired",
@@ -5784,6 +6241,12 @@
       "halal_issuing_body_rejected",
       "halal_issuing_body_retired",
       "halal_issuing_body_suspended"
+    ],
+    "setMenuItemAvailability": [
+      "error_item_blocked_by_admin",
+      "menu_item_marked_available",
+      "menu_item_marked_out_of_stock_indefinitely",
+      "menu_item_marked_out_of_stock_until"
     ],
     "setRestaurantAcceptingOrders": [
       "restaurant_open_state_closed_holiday",
@@ -5881,6 +6344,25 @@
     "updateCustomerProfile": [
       "customer_profile"
     ],
+    "updateMenuCategory": [
+      "error_category_name_taken",
+      "menu_category_updated"
+    ],
+    "updateMenuItem": [
+      "error_halal_tag_not_writable",
+      "error_price_out_of_range",
+      "error_prohibited_ingredient",
+      "menu_item_edit_pending_review",
+      "menu_item_edit_price_only"
+    ],
+    "updateMenuItemOnBehalf": [
+      "error_halal_tag_not_writable",
+      "error_menu_version_pending",
+      "error_price_out_of_range",
+      "error_prohibited_ingredient",
+      "menu_item_edit_price_only",
+      "menu_item_edited_by_admin"
+    ],
     "verifyEmail": [
       "session_grant_customer"
     ],
@@ -5894,6 +6376,9 @@
       "session_next_route_order_tracking",
       "session_next_route_profile_capture",
       "session_next_route_suspended"
+    ],
+    "verifyTotpEnrolment": [
+      "error_totp_code_incorrect"
     ]
   },
   "defaults": {
@@ -5904,7 +6389,7 @@
     "bindPackageSeal": "seal_bound",
     "cancelOrder": "order_cancelled",
     "cancelOrderAdmin": "order_admin_view_completed",
-    "changePassword": "session_grant_customer",
+    "changePassword": "session_grant_password_changed",
     "clearCart": "cart_empty",
     "confirmUpload": "stored_object_ready",
     "createAddress": "addresses_list",
@@ -5912,19 +6397,24 @@
     "createCertificateViewUrl": "presigned_download",
     "createConnectAccount": "connect_status_complete",
     "createDocumentDownloadUrl": "presigned_download",
+    "createMenuCategory": "menu_category_created",
+    "createMenuCategoryOnBehalf": "menu_category_created",
+    "createMenuItem": "menu_item_created_pending_review",
+    "createMenuItemOnBehalf": "menu_item_created_by_admin",
     "createPaymentMethodSetupIntent": "setup_intent",
     "createPayoutRun": "payout_run_queued",
     "createQuote": "quote_standard",
     "createRealtimeTicket": "realtime_ticket",
     "createRefund": "refund_requested",
     "createRestaurantStaffUser": "restaurant_staff_list",
-    "createStaffUser": "staff_list",
+    "createStaffUser": "staff_user_invited",
     "createUpload": "presigned_upload",
     "decideHalalCertificate": "halal_certificate_status_approved",
     "decideMenuVersion": "menu_version_approved",
     "decideRestaurantApplication": "restaurant_application_pending_review",
     "decideRiderApplication": "rider_application_pending_review",
     "delayOrder": "restaurant_order_preparing",
+    "enrollTotp": "totp_enrolment",
     "getActiveOrder": "order_preparing",
     "getAddress": "addresses_list",
     "getAssignment": "assignment_en_route_to_dropoff",
@@ -5967,7 +6457,7 @@
     "issueRefund": "refund_goodwill_admin",
     "listAddresses": "addresses_list",
     "listHalalIssuingBodies": "halal_issuing_body_accepted",
-    "listMenuReviewQueue": "menu_version_pending_review",
+    "listMenuReviewQueue": "menu_review_queue",
     "listNotifications": "notifications_list",
     "listOrders": "order_list_active",
     "listOrdersAdmin": "order_list_past",
@@ -5977,7 +6467,7 @@
     "listRestaurantApplications": "restaurant_application_queue",
     "listRestaurantDocuments": "restaurant_document_pack_complete",
     "listRestaurantOrders": "restaurant_order_queue_busy",
-    "listRestaurantPayouts": "payout_paid",
+    "listRestaurantPayouts": "restaurant_payout_history",
     "listRestaurantStaff": "restaurant_staff_list",
     "listRestaurants": "restaurant_list_populated",
     "listRiderApplications": "rider_application_queue",
@@ -6004,6 +6494,7 @@
     "setDefaultAddress": "addresses_list",
     "setDefaultPaymentMethod": "payment_methods_list",
     "setHalalIssuingBodyStatus": "halal_issuing_body_accepted",
+    "setMenuItemAvailability": "menu_item_marked_out_of_stock_until",
     "setRestaurantAcceptingOrders": "restaurant_open_state_open",
     "setRestaurantHours": "restaurant_hours_standard",
     "setRiderAvailability": "rider_availability_online_idle",
@@ -6020,6 +6511,9 @@
     "updateAddress": "addresses_list",
     "updateCartLine": "cart_at_quantity_cap",
     "updateCustomerProfile": "customer_profile",
+    "updateMenuCategory": "menu_category_updated",
+    "updateMenuItem": "menu_item_edit_pending_review",
+    "updateMenuItemOnBehalf": "menu_item_edited_by_admin",
     "verifyEmail": "session_grant_customer",
     "verifyOtp": "session_grant_customer"
   }

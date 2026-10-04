@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from content import DAY, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
+from content import DAY, DISHES, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
 from synth import int_for, uuid_for
 from world import certification_panel, public_address, slug
 
@@ -764,18 +764,88 @@ def _applications(reg, synth) -> None:
         tags=["admin", "edge", "empty"],
     )
 
+    # The review queue as `listMenuReviewQueue` returns it: only `PENDING_REVIEW`
+    # versions, oldest first, across restaurants.
+    queue = []
+    for i, (dish, restaurant, waited_hours, version) in enumerate(
+        [(1, "karachi-kitchen", 7, 4), (3, "beirut-shawarma", 3, 1), (14, "karachi-kitchen", 1, 2)]
+    ):
+        name, description, _, _, dietary, allergens = DISHES[dish]
+        item_id = uuid_for(f"item:{restaurant}:{slug(name)}")
+        queue.append(
+            {
+                "id": uuid_for(f"menu-version:queue:{i}"),
+                "menu_item_id": item_id,
+                "restaurant_id": uuid_for(f"restaurant:{restaurant}"),
+                "version": version,
+                "name": name,
+                "description": description,
+                "ingredients_text": None,
+                "dietary_tags": dietary,
+                "allergen_tags": allergens,
+                "image_url": f"{IMAGE_BASE}/dish/{slug(name)}.webp",
+                "review_status": "PENDING_REVIEW",
+                "rejection_reason_code": None,
+                "review_note": None,
+                "submitted_at": ts(-waited_hours * HOUR),
+                "reviewed_at": None,
+                "created_at": ts(-waited_hours * HOUR - 4 * MINUTE),
+            }
+        )
+    reg.add(
+        "menu_review_queue",
+        "admin",
+        "array<MenuItemVersion>",
+        "Three edits waiting, oldest first, from two restaurants. Only the words, the "
+        "photo and the dietary and allergen tags wait here; price and availability went "
+        "live on save. Nothing here is ever approved by waiting.",
+        queue,
+        operations=["listMenuReviewQueue"],
+        meta={"next_cursor": None, "has_more": False, "total": len(queue)},
+        tags=["admin", "review-queue"],
+    )
+
+    staff = []
+    for i, (role, status) in enumerate(
+        [("SUPER_ADMIN", "ACTIVE"), ("ADMIN", "INVITED"), ("SUPPORT_AGENT", "SUSPENDED"), ("ADMIN", "DEACTIVATED")]
+    ):
+        member = {**synth.make("StaffUser", f"staff-{i}"), "role": role, "status": status}
+        if status == "INVITED":
+            # An invitee has not set a password or enrolled two-step sign-in yet.
+            member["mfa_enrolled"] = False
+            member["last_login_at"] = None
+        staff.append(member)
     reg.add(
         "staff_list",
         "admin",
         "array<StaffUser>",
-        "Platform staff across every `StaffStatus`.",
-        [
-            {**synth.make("StaffUser", f"staff-{i}"), "status": status}
-            for i, status in enumerate(["ACTIVE", "INVITED", "SUSPENDED", "DEACTIVATED"])
-        ],
-        operations=["listStaff", "createStaffUser"],
-        meta={"next_cursor": None, "has_more": False, "total": 4},
+        "Platform staff across every `StaffStatus`. The invitee has never signed in and has "
+        "no two-step sign-in yet.",
+        staff,
+        operations=["listStaff"],
+        meta={"next_cursor": None, "has_more": False, "total": len(staff)},
         tags=["admin", "state-matrix"],
+    )
+
+    reg.add(
+        "staff_user_invited",
+        "admin",
+        "StaffUser",
+        "What `createStaffUser` returns: a new account in `INVITED`. The super admin set no "
+        "password; it becomes `ACTIVE` once the invitee sets one and enrols two-step "
+        "sign-in.",
+        {
+            "id": uuid_for("staff:invited:hamza"),
+            "email": "hamza.siddiqui@halalgoes.ca",
+            "full_name": "Hamza Siddiqui",
+            "role": "SUPPORT_AGENT",
+            "status": "INVITED",
+            "mfa_enrolled": False,
+            "last_login_at": None,
+            "created_at": ts(),
+        },
+        operations=["createStaffUser"],
+        tags=["admin"],
     )
 
     reg.add(
@@ -859,7 +929,57 @@ def _auth_and_config(reg, synth) -> None:
         "A customer session issued by phone OTP, with `next_route` telling the app where to "
         "land — the client contains no branching tree of its own (P-04).",
         synth.make("SessionGrant", "session-customer"),
-        operations=["verifyOtp", "login", "refreshSession", "verifyEmail", "changePassword"],
+        operations=["verifyOtp", "login", "refreshSession", "verifyEmail"],
+        tags=["platform", "auth"],
+    )
+
+    staff_grant = synth.make("SessionGrant", "session-password-changed")
+    staff_grant.update(
+        {
+            "refresh_token": None,
+            "expires_in": 900,
+            "is_new_account": False,
+            "principal": {
+                "account_id": uuid_for("account:admin:amina"),
+                "session_id": uuid_for("session:admin:amina:after-password-change"),
+                "roles": [{"role": "ADMIN", "scope_type": "GLOBAL", "scope_id": None}],
+                "amr": "pwd+totp",
+                "status": "ACTIVE",
+                "locale": "en-CA",
+                "timezone": "America/Toronto",
+                "next_route": "HOME",
+            },
+        }
+    )
+    reg.add(
+        "session_grant_password_changed",
+        "platform",
+        "SessionGrant",
+        "`changePassword` from the admin console: every other session was revoked and this "
+        "one re-issued. Web, so the refresh token is in the `hg_rt` cookie and null here.",
+        staff_grant,
+        operations=["changePassword"],
+        tags=["platform", "auth"],
+    )
+
+    reg.add(
+        "totp_enrolment",
+        "platform",
+        "TotpEnrolment",
+        "Two-step sign-in enrolment, step one: the authenticator URI and ten recovery codes, "
+        "shown **once**. Step two is `verifyTotpEnrolment` with a live code.",
+        {
+            "provisioning_uri": (
+                "otpauth://totp/HalalGoes:amina.rahman%40halalgoes.ca"
+                "?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=HalalGoes"
+                "&algorithm=SHA1&digits=6&period=30"
+            ),
+            "recovery_codes": [
+                f"{int_for(f'recovery:{i}:a', 1000, 9999)}-{int_for(f'recovery:{i}:b', 1000, 9999)}"
+                for i in range(10)
+            ],
+        },
+        operations=["enrollTotp"],
         tags=["platform", "auth"],
     )
 
