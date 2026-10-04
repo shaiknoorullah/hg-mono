@@ -1,6 +1,6 @@
 ---
 covers: [deploy/docker-compose.prod.yml]
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Deploy
