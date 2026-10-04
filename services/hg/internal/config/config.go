@@ -49,8 +49,35 @@ type Config struct {
 	Stripe   Stripe
 	SMS      SMS
 	OTP      OTP
+	RiderPay RiderPay
 	Tax      Tax
 	Realtime Realtime
+}
+
+// RiderPay holds the rider-pay rules the owner has not settled yet. Each
+// default is the behaviour the specs document today; the owner's open
+// questions are on https://github.com/shaiknoorullah/hg-mono/issues/164.
+type RiderPay struct {
+	// TipMakeUp: when the tip at delivery is lower than the tip the rider saw
+	// on the offer they accepted, the platform pays the difference as an
+	// adjustment. Default false: riders are paid by pure pass-through, the
+	// tip the customer actually pays and nothing on top
+	// (docs/decisions/README.md, "Settled — reconciliations", rider pay; and
+	// the tip shown before accepting, "Settled — redesign decisions (owner,
+	// 2026-09-28)"). Whether the platform makes up a lowered tip is the
+	// owner's open question, item 15 on #164.
+	TipMakeUp bool
+	// PayReturnedDelivery: a rider who cannot hand an order over and brings
+	// it back to the restaurant is paid the delivery fee, because they did
+	// the work. Default true, as docs/spec/04-rider.md "D-32 — Incident
+	// reporting & mid-delivery exceptions" states. Rider pay on interrupted
+	// deliveries is the owner's open question, item 19 on #164.
+	PayReturnedDelivery bool
+}
+
+// DefaultRiderPay is the documented behaviour, used when nothing is set.
+func DefaultRiderPay() RiderPay {
+	return RiderPay{TipMakeUp: false, PayReturnedDelivery: true}
 }
 
 // Realtime holds the WebSocket gateway's per-replica limits.
@@ -363,6 +390,12 @@ func Load(getenv func(string) string) (*Config, error) {
 			l.errf("HG_OTP_PROVIDER=twilio_verify requires HG_TWILIO_VERIFY_SERVICE_SID, " +
 				"HG_TWILIO_ACCOUNT_SID, and HG_TWILIO_AUTH_TOKEN")
 		}
+	}
+
+	riderPay := DefaultRiderPay()
+	cfg.RiderPay = RiderPay{
+		TipMakeUp:           l.boolVal("HG_RIDER_TIP_MAKEUP", riderPay.TipMakeUp),
+		PayReturnedDelivery: l.boolVal("HG_RIDER_PAY_RETURNED_DELIVERY", riderPay.PayReturnedDelivery),
 	}
 
 	cfg.Tax = Tax{

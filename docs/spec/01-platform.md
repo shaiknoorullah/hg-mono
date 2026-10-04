@@ -954,6 +954,8 @@ CREATE TABLE quote_tax_line (
 
   The customer's $42.28 decomposes to restaurant $27.00 + restaurant tax $3.51 + rider $10.99 (incl. $5.00 tip) + platform tax $0.78 = $42.28. Zero residual; with commission and service fee at zero the platform posts no revenue row. (Stripe fees are posted separately against `PLATFORM_REVENUE` when the balance-transaction webhook arrives, keeping the customer-facing decomposition clean.)
 
+  **When the rider's share is posted.** The rider is not known at capture, so the capture batch leaves the delivery fee and the tip in `PLATFORM_REVENUE`. The transaction that moves the order to `DELIVERED` posts a `SETTLE` batch that moves them to that rider's `RIDER_PAYABLE`, one posting for the delivery fee and one for the tip, and writes one rider earning line per posting ([earnings formula and per-delivery ledger](04-rider.md#d-26--earnings-formula-and-per-delivery-ledger)). The batch is keyed by the order, so a retry posts nothing; a cancelled order posts none. A rider who brings an undeliverable order back is paid the delivery fee the same way when the assignment ends `RETURNED`. Two rules the owner has not settled sit behind configuration, at the documented defaults: `HG_RIDER_TIP_MAKEUP` (off: a tip lowered after the rider accepts is not made up) and `HG_RIDER_PAY_RETURNED_DELIVERY` (on) ([open questions](https://github.com/shaiknoorullah/hg-mono/issues/164)). Issue: [#306](https://github.com/shaiknoorullah/hg-mono/issues/306).
+
 - **Data**:
 
 ```sql

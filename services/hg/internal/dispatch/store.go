@@ -18,10 +18,28 @@ import (
 // with Redis entirely down (D-16 acceptance criterion 4).
 type Store struct {
 	db *pgxpool.Pool
+	// earnings pays a rider whose assignment ends RETURNED. Optional: nil
+	// (tests, minimal wiring) records the return without writing earnings.
+	earnings ReturnedEarnings
 }
 
 // NewStore builds a Store over the shared pool.
 func NewStore(db *pgxpool.Pool) *Store { return &Store{db: db} }
+
+// ReturnedEarnings pays a rider who could not hand an order over and brought
+// it back to the restaurant, inside the transaction tx that records the
+// assignment as RETURNED. It must not commit or roll back tx. The payments
+// module implements it and cmd/hg/main.go injects it, so dispatch never
+// imports payments (https://github.com/shaiknoorullah/hg-mono/issues/306).
+type ReturnedEarnings interface {
+	CreditReturnedTx(ctx context.Context, tx pgx.Tx, assignmentID string) error
+}
+
+// WithEarnings attaches the earnings writer and returns the store.
+func (s *Store) WithEarnings(e ReturnedEarnings) *Store {
+	s.earnings = e
+	return s
+}
 
 // ---------------------------------------------------------------------------
 // Candidate search — PostGIS ST_DWithin on the single rider_position.location

@@ -179,6 +179,16 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 	}
 	_ = geofenceOK // flagged-for-ops signalling is emitted via the outbox in a later slice.
 
+	// A rider who brings the order back did the work and is paid in the same
+	// transaction (docs/spec/04-rider.md, "D-32 — Incident reporting &
+	// mid-delivery exceptions"; the payments module applies the configured
+	// rule, https://github.com/shaiknoorullah/hg-mono/issues/306).
+	if in.ToState == "RETURNED" && s.earnings != nil {
+		if err := s.earnings.CreditReturnedTx(ctx, tx, assignmentID); err != nil {
+			return nil, false, err
+		}
+	}
+
 	// Terminal ⇒ restore availability in the same transaction (D-10). The rider
 	// returns to ONLINE_IDLE, or OFFLINE if they asked to end the shift.
 	if terminalAssignment(in.ToState) {

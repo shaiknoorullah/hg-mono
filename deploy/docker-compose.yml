@@ -60,6 +60,10 @@ x-api-env: &api-env
   HG_AUTH_SIGNING_KID: ${HG_AUTH_SIGNING_KID:-k1}
   HG_AUTH_TERMS_VERSION: ${HG_AUTH_TERMS_VERSION:-2026-01}
   HG_APP_DATA_KEY: ${HG_APP_DATA_KEY:-}
+  # Rider pay the owner has not settled (#164); the defaults are the documented
+  # behaviour.
+  HG_RIDER_TIP_MAKEUP: ${HG_RIDER_TIP_MAKEUP:-false}
+  HG_RIDER_PAY_RETURNED_DELIVERY: ${HG_RIDER_PAY_RETURNED_DELIVERY:-true}
 
 services:
   # ---------------------------------------------------------------------------

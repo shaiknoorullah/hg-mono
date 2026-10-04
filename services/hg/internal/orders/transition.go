@@ -131,6 +131,16 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 		return fmt.Errorf("insert transition: %w", err)
 	}
 
+	// The rider is paid in the same transaction as the delivery: no delivered
+	// order without its earnings, and a failed write rolls the delivery back
+	// (https://github.com/shaiknoorullah/hg-mono/issues/306). DELIVERED is
+	// reachable once per order, so this runs once.
+	if req.To == machine.StateDelivered && s.riderEarnings != nil {
+		if err := s.riderEarnings.CreditDeliveryTx(ctx, tx, req.OrderID, req.ActorAccountID); err != nil {
+			return fmt.Errorf("rider earnings: %w", err)
+		}
+	}
+
 	// Emit a realtime outbox event in the same transaction so the customer's
 	// order channel receives a live update. The emitter is optional (nil when
 	// the realtime module is not wired, e.g. in unit tests).

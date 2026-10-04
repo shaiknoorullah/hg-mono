@@ -611,6 +611,10 @@ func run() error {
 	}
 	paymentsSvc := payments.NewService(payments.NewRepo(st.DB().Pool), stripeClient, cfg.Stripe, log)
 	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
+	// The rider is paid inside the DELIVERED transition, under the rider pay
+	// rules the owner has not settled (issue #306).
+	paymentsSvc.WithRiderPay(cfg.RiderPay)
+	ordersStore.WithRiderEarnings(paymentsSvc)
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
@@ -621,7 +625,9 @@ func run() error {
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
-	dispatchStore := dispatch.NewStore(st.DB().Pool)
+	// A rider who brings an undeliverable order back is paid when the
+	// assignment ends RETURNED (issue #306).
+	dispatchStore := dispatch.NewStore(st.DB().Pool).WithEarnings(paymentsSvc)
 	dispatchLifecycle := &orderLifecycleAdapter{store: ordersStore}
 	dispatchSvc := dispatch.NewService(dispatchStore, dispatchLifecycle)
 	dispatch.Routes(router, dispatch.NewHandler(dispatchSvc))

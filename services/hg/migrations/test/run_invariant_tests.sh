@@ -356,5 +356,24 @@ else
 fi
 
 echo
+echo "12. Rider earnings follow the ledger"
+reject "an earning line that disagrees with its ledger posting is rejected" "earning_entry_ledger_mismatch" \
+  "INSERT INTO ledger_batch (kind, order_id, idempotency_key, posted_by)
+     VALUES ('SETTLE','88888888-8888-4888-8888-888888888888','inv-rider-mismatch','system:test');
+   INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, amount_cents, component)
+     SELECT id, order_id, 'PLATFORM_REVENUE', 'PLATFORM', -419, 'COMMISSION'
+       FROM ledger_batch WHERE idempotency_key = 'inv-rider-mismatch';
+   INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, counterparty_id, amount_cents, component)
+     SELECT id, order_id, 'RIDER_PAYABLE', 'RIDER', '019ffe57-fbd0-7355-ade8-b03ea7943578', 419, 'DELIVERY_FEE'
+       FROM ledger_batch WHERE idempotency_key = 'inv-rider-mismatch';
+   INSERT INTO earning_entry (account_id, order_id, type, base_cents, gross_cents, ledger_entry_id)
+     VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',500,500,
+             currval('ledger_entry_id_seq'));"
+reject "a second DELIVERY line for one order is rejected" "earning_entry_once_per_order" \
+  "INSERT INTO earning_entry (account_id, order_id, type, base_cents, gross_cents)
+   VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',419,419),
+          ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',419,419);"
+
+echo
 printf 'passed %d, failed %d\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
