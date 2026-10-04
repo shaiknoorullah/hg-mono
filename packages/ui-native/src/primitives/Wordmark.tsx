@@ -4,6 +4,20 @@ import { BRAND_NAME, WORDMARK } from '@hg/brand';
 
 import { useTheme } from '../tokens';
 
+/** Props for {@link Wordmark}. */
+export interface WordmarkProps {
+  /** Height in dp. Width follows the artwork's 556:186 ratio. Default 32. */
+  height?: number;
+  /**
+   * Accessible name. Default "HalalGoes". Pass `''` when adjacent text already names the
+   * business, and the mark is hidden from assistive tech.
+   */
+  title?: string;
+  testID?: string;
+}
+
+const { viewBox, ramp } = WORDMARK;
+
 /**
  * `Wordmark` — the HalalGoes logo, drawn from `@hg/brand` with `react-native-svg`.
  *
@@ -21,19 +35,6 @@ import { useTheme } from '../tokens';
  * 337 traced cubics are not something `View` borders can draw, the same reason `Icon` uses it.
  * It certifies nothing and must never stand in for the halal seal or badge.
  */
-export interface WordmarkProps {
-  /** Height in dp. Width follows the artwork's 556:186 ratio. Default 32. */
-  height?: number;
-  /**
-   * Accessible name. Default "HalalGoes". Pass `''` when adjacent text already names the
-   * business, and the mark is hidden from assistive tech.
-   */
-  title?: string;
-  testID?: string;
-}
-
-const { viewBox, ramp } = WORDMARK;
-
 export function Wordmark({ height = 32, title = BRAND_NAME, testID = 'hg-wordmark' }: WordmarkProps) {
   const theme = useTheme();
   const ink = theme.color.text.primary;

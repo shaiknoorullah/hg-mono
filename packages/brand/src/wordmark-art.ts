@@ -12,6 +12,12 @@
 /** The business name, one word. The accessible name of every rendering of the mark. */
 export const BRAND_NAME = 'HalalGoes';
 
+/**
+ * The traced HalalGoes wordmark as data: the artwork's 556×186 `viewBox`, the
+ * measured `ramp` where the swash turns from letterform colour to orange, and
+ * three path strings — `silhouette` (letterforms and swash), `swash` (painted
+ * over it) and `monogram` (the H the app icons are built from).
+ */
 export const WORDMARK = {
   viewBox: { width: 556, height: 186 },
 

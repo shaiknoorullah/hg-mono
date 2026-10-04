@@ -1,6 +1,22 @@
 import { useId } from 'react';
 import { BRAND_NAME, WORDMARK } from '@hg/brand';
 
+/** Props for {@link Wordmark}. */
+export interface WordmarkProps {
+  /** Height in px. Width follows the artwork's 556:186 ratio. Default 32. */
+  height?: number;
+  /**
+   * Accessible name. Default "HalalGoes". Pass `''` when adjacent text already names the
+   * business, and the mark is hidden from assistive tech.
+   */
+  title?: string;
+  className?: string;
+}
+
+const { viewBox, ramp } = WORDMARK;
+const INK = 'var(--hg-text-primary, currentColor)';
+const SWASH = 'var(--hg-action-primary-bg, currentColor)';
+
 /**
  * `Wordmark` — the HalalGoes logo, drawn from `@hg/brand`.
  *
@@ -21,21 +37,6 @@ import { BRAND_NAME, WORDMARK } from '@hg/brand';
  * This is the brand mark, not the halal seal: it certifies nothing and must never stand in
  * for `HalalSeal` / `HalalBadge`.
  */
-export interface WordmarkProps {
-  /** Height in px. Width follows the artwork's 556:186 ratio. Default 32. */
-  height?: number;
-  /**
-   * Accessible name. Default "HalalGoes". Pass `''` when adjacent text already names the
-   * business, and the mark is hidden from assistive tech.
-   */
-  title?: string;
-  className?: string;
-}
-
-const { viewBox, ramp } = WORDMARK;
-const INK = 'var(--hg-text-primary, currentColor)';
-const SWASH = 'var(--hg-action-primary-bg, currentColor)';
-
 export function Wordmark({ height = 32, title = BRAND_NAME, className }: WordmarkProps) {
   // The gradient is a paint server with a document-global id: two wordmarks on one page
   // sharing an id would both resolve to whichever rendered first.

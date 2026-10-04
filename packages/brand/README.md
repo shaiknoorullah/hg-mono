@@ -110,7 +110,7 @@ the mark cannot come out invisible on a surface nobody thought about.
 ## Everything this builds
 
 ```bash
-node packages/brand/build-assets.mjs
+pnpm --filter @hg/brand build:assets   # the same as: node packages/brand/build-assets.mjs
 # Playwright's Chromium renders the PNGs; point CHROME_PATH at another build if
 # the pinned one is not installed:
 CHROME_PATH=~/.cache/ms-playwright/chromium-<n>/chrome-linux64/chrome node packages/brand/build-assets.mjs
