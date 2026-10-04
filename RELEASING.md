@@ -99,7 +99,7 @@ or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly,
 It also refuses a secret still holding a `change-me` placeholder from `.env.example`, a missing or
 all-zero `HG_APP_DATA_KEY`, an `HG_OTP_PEPPER` shorter than 32 bytes, and one key reused as another:
 generate each with `openssl rand`. Any secret can come from a file instead (`NAME_FILE`, mode 0400,
-owned by uid 65532), which keeps it out of `docker inspect`; `deploy/.env.example` lists them.
+owned by user ID 65532), which keeps it out of `docker inspect`; `deploy/.env.example` lists them.
 
 ## 5. Verify the gate (any time)
 
