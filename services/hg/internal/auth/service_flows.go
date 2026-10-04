@@ -212,11 +212,19 @@ func (s *Service) otpRequestLimits(ctx context.Context, phone string, ip *string
 		Max: 5, Window: 15 * time.Minute, OnUnavailable: FailClosed}); err != nil {
 		return err
 	}
-	if ip == nil {
-		return nil
-	}
-	return s.rl.Allow(ctx, Limit{Name: "otp:ip", Subject: *ip,
+	return s.rl.Allow(ctx, Limit{Name: "otp:ip", Subject: ipSubject(ip),
 		Max: 20, Window: 15 * time.Minute, OnUnavailable: FailClosed})
+}
+
+// ipSubject is what a per-IP limit counts ip under (httpx.RateLimitKey): the
+// IPv4 address, or the IPv6 /64 it is in, because one subscriber can send from
+// any address in its /64. A request with no resolved address counts in one
+// shared "unknown" budget rather than skipping the limit.
+func ipSubject(ip *string) string {
+	if ip == nil {
+		return httpx.RateLimitKey("")
+	}
+	return httpx.RateLimitKey(*ip)
 }
 
 // startVerification asks the provider to send a code, swallowing (only logging,
@@ -343,11 +351,9 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	// the attempt before anything is read or recorded. They fail open: the
 	// lockout below lives in Postgres and survives a Redis outage, and Traefik
 	// keeps its own per-IP limit in front of the app.
-	if ip != nil {
-		if err := s.rl.Allow(ctx, Limit{Name: "login:ip", Subject: *ip,
-			Max: 30, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
-			return nil, err
-		}
+	if err := s.rl.Allow(ctx, Limit{Name: "login:ip", Subject: ipSubject(ip),
+		Max: 30, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		return nil, err
 	}
 	if err := s.rl.Allow(ctx, Limit{Name: "login:email", Subject: email,
 		Max: 10, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
@@ -429,11 +435,9 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	// account signup"), checked before the argon2id hash so a flood costs no
 	// CPU. Fails open: a sign-up creates an unverified account and issues no
 	// session, and Traefik keeps its own per-IP limit in front of the app.
-	if ip != nil {
-		if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: *ip,
-			Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
-			return nil, err
-		}
+	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: ipSubject(ip),
+		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		return nil, err
 	}
 	if isBreachedPassword(password) {
 		return nil, errBreachedPassword

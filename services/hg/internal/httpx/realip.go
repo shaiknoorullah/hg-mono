@@ -38,7 +38,8 @@ type clientIPKey struct{}
 
 // ClientIP returns the client's address as a bare literal ("203.0.113.9",
 // "2001:db8::1"): no port, no brackets, no zone, IPv4-mapped IPv6 unmapped, so
-// it fits an inet column and one client always gets the same rate-limit key.
+// it fits an inet column, a log line or an audit row. A per-IP rate limit does
+// not key on it directly: it keys on RateLimitKey(ClientIP(r)).
 // It is the address RealIP resolved, or the TCP peer when RealIP did not run
 // (a handler test). It is "" only when neither is a valid address.
 func ClientIP(r *http.Request) string {
@@ -50,6 +51,32 @@ func ClientIP(r *http.Request) string {
 		return ""
 	}
 	return ip.String()
+}
+
+// RateLimitKey is what a per-IP rate limit counts a caller under, given the
+// address ClientIP returned. Logs, audit rows and inet columns keep the exact
+// address; only the counter is coarser.
+//
+//   - IPv4: the address itself, "203.0.113.7".
+//   - IPv6: the /64 the address is in, "2001:db8:1:2::/64". An ISP or a VPS
+//     host gives one subscriber at least a /64, and the subscriber can send
+//     from any address in it, so counting each address separately would give
+//     one caller 2^64 fresh budgets.
+//   - Unknown ("" or not an address): "unknown". Every such request shares one
+//     budget, so an address that could not be resolved is limited along with
+//     the rest, never waved through.
+func RateLimitKey(clientIP string) string {
+	ip, err := netip.ParseAddr(clientIP)
+	if err != nil {
+		return "unknown"
+	}
+	ip = normalise(ip)
+	if ip.Is4() {
+		return ip.String()
+	}
+	// Cannot fail: ip is a valid IPv6 address and 64 is within its 128 bits.
+	p, _ := ip.Prefix(64)
+	return p.String()
 }
 
 func resolveClientIP(r *http.Request, trusted []netip.Prefix) netip.Addr {

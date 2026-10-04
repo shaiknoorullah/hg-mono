@@ -62,3 +62,30 @@ func TestRealIPBelievesForwardingHeadersOnlyFromTrustedProxies(t *testing.T) {
 		})
 	}
 }
+
+// TestRateLimitKeyCountsAnIPv6CallerPerSlash64 pins what a per-IP limit counts
+// a caller under. One subscriber gets at least an IPv6 /64 and can send from
+// any address in it, so a key per address would let one caller dodge every
+// per-IP limit by changing address. An address that could not be resolved is
+// limited in one shared bucket, never skipped.
+func TestRateLimitKeyCountsAnIPv6CallerPerSlash64(t *testing.T) {
+	cases := []struct {
+		name, ip, want string
+	}{
+		{"IPv4: the address", "203.0.113.7", "203.0.113.7"},
+		{"IPv4-mapped IPv6: the IPv4 address", "::ffff:203.0.113.7", "203.0.113.7"},
+		{"IPv6: its /64", "2001:db8:1:2::7", "2001:db8:1:2::/64"},
+		{"IPv6, another address in the same /64: the same key", "2001:db8:1:2:ffff:ffff:ffff:ffff", "2001:db8:1:2::/64"},
+		{"IPv6, the next /64: a different key", "2001:db8:1:3::7", "2001:db8:1:3::/64"},
+		{"IPv6 with a zone: its /64", "fe80::1%eth0", "fe80::/64"},
+		{"unknown: one shared bucket", "", "unknown"},
+		{"not an address: one shared bucket", "not-an-ip", "unknown"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := RateLimitKey(tc.ip); got != tc.want {
+				t.Errorf("RateLimitKey(%q) = %q, want %q", tc.ip, got, tc.want)
+			}
+		})
+	}
+}
