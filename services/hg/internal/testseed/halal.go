@@ -23,6 +23,21 @@ import (
 // which runs before the cleanup the caller registered for the restaurant.
 func CertifyRestaurant(t testing.TB, pool *pgxpool.Pool, restaurantID string, expiresInDays int) string {
 	t.Helper()
+	var bodyID string
+	if err := pool.QueryRow(context.Background(), `
+		SELECT id FROM halal_issuing_body WHERE status = 'ACCEPTED' ORDER BY name LIMIT 1`).Scan(&bodyID); err != nil {
+		t.Fatalf("certify restaurant: accepted issuing body (is the reference seed loaded?): %v", err)
+	}
+	return CertifyRestaurantBy(t, pool, restaurantID, bodyID, expiresInDays)
+}
+
+// CertifyRestaurantBy is CertifyRestaurant with a certificate from the given
+// issuing body, for a test that changes the body's status without touching the
+// seeded bodies other tests certify with. The body need not be ACCEPTED: a
+// certificate from any other body is written the same way and vouches for
+// nothing (https://github.com/shaiknoorullah/hg-mono/issues/346).
+func CertifyRestaurantBy(t testing.TB, pool *pgxpool.Pool, restaurantID, bodyID string, expiresInDays int) string {
+	t.Helper()
 	ctx := context.Background()
 
 	tx, err := pool.Begin(ctx)
@@ -51,10 +66,9 @@ func CertifyRestaurant(t testing.TB, pool *pgxpool.Pool, restaurantID string, ex
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id,
 		                          halal_issuing_body_id, state, reviewed_by, reviewed_at)
-		SELECT 'RESTAURANT', $1, 'HALAL_CERTIFICATE', $2, b.id, 'APPROVED', $3, now()
-		  FROM halal_issuing_body b WHERE b.status = 'ACCEPTED' ORDER BY b.name LIMIT 1
-		RETURNING id`, restaurantID, objectID, reviewerID).Scan(&documentID); err != nil {
-		t.Fatalf("certify restaurant: document (is the reference seed loaded?): %v", err)
+		VALUES ('RESTAURANT', $1, 'HALAL_CERTIFICATE', $2, $4, 'APPROVED', $3, now())
+		RETURNING id`, restaurantID, objectID, reviewerID, bodyID).Scan(&documentID); err != nil {
+		t.Fatalf("certify restaurant: document: %v", err)
 	}
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO halal_certificate (restaurant_id, document_id, certificate_number, issuing_body_id,

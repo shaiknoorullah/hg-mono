@@ -1831,14 +1831,7 @@ CREATE TABLE realtime_connection (
   | `notification.created` | `{notification_id, kind, title, body, deep_link, created_at}` |
   | `notification.read` | `{notification_id, read_at}` |
 
-  **Admin (channel `admin:ops`)**
-
-  | Type | Payload |
-  |---|---|
-  | `admin.alert` | `{severity, kind, subject_type, subject_id, message, at}` |
-  | `admin.dispatch_failure` | `{order_id, waves, riders_offered, radius_m}` |
-  | `admin.reconciliation_exception` | `{kind, order_id, expected_cents, actual_cents}` |
-  | `admin.queue_depth` | `{pending_restaurant_reviews, pending_rider_reviews, open_disputes, failed_refunds}` |
+  **Admin (channel `admin:ops`)**: `admin.alert`, `admin.dispatch_failure`, `admin.reconciliation_exception` and `admin.queue_depth`. Their payloads, and which alert kinds exist, are listed once, in [the websocket contract's admin section](../../contracts/websocket.md#47-admin--channel-adminops).
 
   Payload schemas are generated from Go structs into a versioned JSON-Schema bundle served at `GET /v1/realtime/schema` and consumed by the generated TypeScript client, so a field rename cannot silently break four apps (which is exactly how the old `CHANNEL_JOIN`-wrapped-in-`order_request` mess arose, §7.16).
 

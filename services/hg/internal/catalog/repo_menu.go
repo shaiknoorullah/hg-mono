@@ -44,7 +44,7 @@ type categoryRow struct {
 // OUT_OF_STOCK/BLOCKED are returned with their state.
 func (rp *Repo) getCustomerMenu(ctx context.Context, restaurantID string) ([]categoryRow, map[string][]menuItemRow, error) {
 	// First gate on visibility: a menu for an invisible restaurant is a 404.
-	const gate = `SELECT 1 FROM restaurant r WHERE r.id = $1::uuid AND ` + visiblePredicate
+	const gate = `SELECT 1 FROM restaurant r` + halalNowJoin + ` WHERE r.id = $1::uuid AND ` + visiblePredicate
 	var one int
 	if err := rp.db.QueryRow(ctx, gate, restaurantID).Scan(&one); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

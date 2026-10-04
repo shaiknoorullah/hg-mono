@@ -272,8 +272,17 @@ export interface paths {
         /**
          * Accept, suspend, retire or reject a certifying body
          * @description A-16. Suspending or retiring a body does **not** auto-revoke certificates already
-         *     approved under it, but no new certificate from that issuer may be approved and a
-         *     case is raised per affected restaurant.
+         *     approved under it, but no new certificate from that issuer may be approved, and a
+         *     certificate vouches for a restaurant only while its issuing body is `ACCEPTED`.
+         *     In the same transaction as the change, every restaurant holding a certificate from
+         *     the body has its halal state derived again: one that no other accepted certificate
+         *     vouches for loses its badge and, if `LIVE`, becomes `DELISTED` (hidden from
+         *     customers, menu not locked); accepting the body again lists it again when that was
+         *     its only reason. Its owners and managers are notified, each change is audited, and
+         *     an `admin.alert` per restaurant goes to `admin:ops`
+         *     ([issue 346](https://github.com/shaiknoorullah/hg-mono/issues/346)).
+         *     Refused with `403 MFA_REQUIRED` unless the session was signed in with an
+         *     authenticator code.
          */
         post: operations["setHalalIssuingBodyStatus"];
         delete?: never;
@@ -5455,8 +5464,9 @@ export interface components {
         /**
          * @description A-2.0. Orthogonal to onboarding. These six words mean exactly this everywhere in the
          *     product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
-         *     `DELISTED` is the non-punitive system state (lapsed certificate, expired document, no
-         *     approved menu) and clears automatically when its cause does.
+         *     `DELISTED` is the non-punitive system state (lapsed certificate, a certificate whose
+         *     issuing body is no longer accepted, expired document, no approved menu) and clears
+         *     automatically when its cause does.
          * @enum {string}
          */
         RestaurantAccountState: "PENDING" | "LIVE" | "DELISTED" | "SUSPENDED" | "BANNED" | "DEACTIVATED" | "CLOSED";
