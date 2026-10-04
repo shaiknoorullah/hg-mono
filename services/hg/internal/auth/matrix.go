@@ -283,9 +283,6 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("auth.password_change"),
 		httpx.Action("auth.totp_enroll"),
 		httpx.Action("auth.totp_verify_enrolment"),
-		// Account actions (https://github.com/shaiknoorullah/hg-mono/issues/253): the
-		// handler narrows confirming a ban and reinstating a banned account to
-		// super admins.
 		httpx.Action("customer.account_state_change"),
 		httpx.Action("document.review"),
 		httpx.Action("halal_certificate.check"),

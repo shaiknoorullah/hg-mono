@@ -29,20 +29,29 @@ import (
 type Subject string
 
 const (
+	// Restaurant is a restaurant; its state is restaurant.account_state.
 	Restaurant Subject = "RESTAURANT"
-	Rider      Subject = "RIDER"
-	Customer   Subject = "CUSTOMER"
+	// Rider is a rider; their state is rider_profile.account_status.
+	Rider Subject = "RIDER"
+	// Customer is a customer; their state is the account's own status.
+	Customer Subject = "CUSTOMER"
 )
 
 // Action is one named account action: the contract's AccountAction.
 type Action string
 
 const (
-	Suspend    Action = "SUSPEND"
-	Reinstate  Action = "REINSTATE"
-	Delist     Action = "DELIST"
+	// Suspend is a reversible penalty: no new orders or offers until reinstated.
+	Suspend Action = "SUSPEND"
+	// Reinstate undoes a suspension, a deactivation, a delisting or a ban.
+	Reinstate Action = "REINSTATE"
+	// Delist takes a restaurant out of customer listings without a penalty.
+	Delist Action = "DELIST"
+	// ProposeBan suspends the account and asks a second person to ban it.
 	ProposeBan Action = "PROPOSE_BAN"
+	// ConfirmBan is the second person's confirmation: the account is banned.
 	ConfirmBan Action = "CONFIRM_BAN"
+	// Deactivate is a voluntary exit at the partner's own request.
 	Deactivate Action = "DEACTIVATE"
 )
 
@@ -150,6 +159,7 @@ type IllegalTransitionError struct {
 	Why string
 }
 
+// Error says which action was refused from which state, and why.
 func (e *IllegalTransitionError) Error() string {
 	return fmt.Sprintf("illegal account action: %s %s from %s: %s", e.Subject, e.Action, e.From, e.Why)
 }
