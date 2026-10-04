@@ -7,16 +7,13 @@ import (
 )
 
 // TestRiderPay pins the rider pay rules and the batch that pays them: the
-// delivery fee after the frozen surge (half up, in cents), the tip in full, a
-// lowered tip made up only when the owner turns it on, a returned order paid
-// the delivery fee only, and a batch that always balances, with every tip
-// cent on RIDER_PAYABLE and none in platform revenue.
+// order's priced delivery fee and tip, exactly; a lowered tip made up only
+// when the owner turns it on; and each earning its own balanced pair, with
+// every tip cent on RIDER_PAYABLE and none in platform revenue.
 func TestRiderPay(t *testing.T) {
 	launch := config.DefaultRiderPay()
 	makeUp := launch
 	makeUp.TipMakeUp = true
-	noReturnPay := launch
-	noReturnPay.PayReturnedDelivery = false
 
 	cases := []struct {
 		name   string
@@ -26,14 +23,11 @@ func TestRiderPay(t *testing.T) {
 		lines  []string
 	}{
 		{"delivery fee plus tip (spec: 799 + 200 = 999)",
-			RiderPayInput{DeliveryFeeCents: 799, SurgeMultiplierBps: 10000, TipCents: 200, OfferedTipCents: 200},
+			RiderPayInput{DeliveryFeeCents: 799, TipCents: 200, OfferedTipCents: 200},
 			launch, RiderPay{DeliveryCents: 799, TipCents: 200}, []string{EarningDelivery, EarningTip}},
 		{"no tip writes no tip line",
-			RiderPayInput{DeliveryFeeCents: 399, TipCents: 0},
+			RiderPayInput{DeliveryFeeCents: 399},
 			launch, RiderPay{DeliveryCents: 399}, []string{EarningDelivery}},
-		{"frozen surge 1.50 rounds half up",
-			RiderPayInput{DeliveryFeeCents: 799, SurgeMultiplierBps: 15000, TipCents: 0},
-			launch, RiderPay{DeliveryCents: 1199}, []string{EarningDelivery}},
 		{"tip lowered after accept: pure pass-through by default",
 			RiderPayInput{DeliveryFeeCents: 599, TipCents: 100, OfferedTipCents: 500},
 			launch, RiderPay{DeliveryCents: 599, TipCents: 100}, []string{EarningDelivery, EarningTip}},
@@ -44,12 +38,8 @@ func TestRiderPay(t *testing.T) {
 		{"tip raised after accept: the rider gets the higher tip",
 			RiderPayInput{DeliveryFeeCents: 599, TipCents: 700, OfferedTipCents: 500},
 			makeUp, RiderPay{DeliveryCents: 599, TipCents: 700}, []string{EarningDelivery, EarningTip}},
-		{"returned order: delivery fee, no tip",
-			RiderPayInput{DeliveryFeeCents: 599, TipCents: 300, OfferedTipCents: 300, Returned: true},
-			launch, RiderPay{DeliveryCents: 599}, []string{EarningDelivery}},
-		{"returned order unpaid when turned off",
-			RiderPayInput{DeliveryFeeCents: 599, TipCents: 300, Returned: true},
-			noReturnPay, RiderPay{}, nil},
+		{"nothing priced, nothing paid",
+			RiderPayInput{}, launch, RiderPay{}, nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -70,13 +60,18 @@ func TestRiderPay(t *testing.T) {
 			if !b.Balanced() {
 				t.Fatalf("batch does not balance: residual %d over %d entries", b.Residual(), len(b.Entries))
 			}
-			var rider, riderTip, platformTip int64
 			for i, l := range lines {
-				e := b.Entries[l.EntryIndex]
-				if l.Type != c.lines[i] || e.Account != AcctRiderPayable || e.CounterpartyID != "rider-1" || e.AmountCents != l.Cents {
-					t.Fatalf("line %d %+v does not mirror its posting %+v", i, l, e)
+				credit, debit := b.Entries[l.EntryIndex], b.Entries[l.EntryIndex+1]
+				if l.Type != c.lines[i] || credit.Account != AcctRiderPayable || credit.CounterpartyID != "rider-1" ||
+					credit.AmountCents != l.Cents {
+					t.Fatalf("line %d %+v does not mirror its posting %+v", i, l, credit)
+				}
+				// Each earning is its own balanced double entry.
+				if debit.Account == AcctRiderPayable || credit.AmountCents+debit.AmountCents != 0 {
+					t.Fatalf("line %d is not a balanced pair: %+v / %+v", i, credit, debit)
 				}
 			}
+			var rider, riderTip, platformTip int64
 			for _, e := range b.Entries {
 				switch {
 				case e.Account == AcctRiderPayable:

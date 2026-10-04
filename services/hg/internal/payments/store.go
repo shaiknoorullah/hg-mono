@@ -451,7 +451,13 @@ func (r *Repo) CreateRefund(ctx context.Context, p CreateRefundParams) (string, 
 		}
 		if p.Ledger != nil {
 			p.Ledger.RefundID = refundID
-			if err := insertBatch(ctx, tx, *p.Ledger); err != nil {
+			posted, err := postBatchTx(ctx, tx, *p.Ledger)
+			if err != nil {
+				return err
+			}
+			// A rider chargeback reverses the rider's earnings with a
+			// CLAWBACK line in the same transaction (rider_earnings.go).
+			if err := writeRiderClawbacksTx(ctx, tx, *p.Ledger, posted); err != nil {
 				return err
 			}
 		}

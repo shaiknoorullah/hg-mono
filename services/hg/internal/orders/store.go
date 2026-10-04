@@ -77,11 +77,14 @@ func NewStore(pool *pgxpool.Pool, emitter ...EventEmitter) *Store {
 }
 
 // RiderEarnings writes a rider's earnings for a delivered order: the ledger
-// posting and the rider's earning lines, inside the transaction tx that moves
-// the order to DELIVERED. It must not commit or roll back tx, and it must
-// write nothing when the order is already paid. The payments module
-// implements it and cmd/hg/main.go injects it, so orders never imports
-// payments (https://github.com/shaiknoorullah/hg-mono/issues/306).
+// postings and the rider's earning lines, inside the transaction tx that
+// moves the order to DELIVERED. The payee comes from the database (the
+// order's DELIVERED assignment with its proof of delivery); riderAccountID,
+// the rider completing the transition, is only checked against it. It must
+// not commit or roll back tx, and it must write nothing when the order is
+// already paid. The payments module implements it and cmd/hg/main.go injects
+// it, so orders never imports payments
+// (https://github.com/shaiknoorullah/hg-mono/issues/306).
 type RiderEarnings interface {
 	CreditDeliveryTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error
 }

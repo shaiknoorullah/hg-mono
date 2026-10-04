@@ -57,6 +57,11 @@ type Config struct {
 // RiderPay holds the rider-pay rules the owner has not settled yet. Each
 // default is the behaviour the specs document today; the owner's open
 // questions are on https://github.com/shaiknoorullah/hg-mono/issues/164.
+//
+// Pay for an interrupted delivery (an order brought back, a reassignment) is
+// not here: nothing pays it automatically, because a rider's own exception
+// step never moves money (docs/spec/04-rider.md, "D-32 — Incident reporting &
+// mid-delivery exceptions"); it waits for a server-side decision.
 type RiderPay struct {
 	// TipMakeUp: when the tip at delivery is lower than the tip the rider saw
 	// on the offer they accepted, the platform pays the difference as an
@@ -67,17 +72,11 @@ type RiderPay struct {
 	// 2026-09-28)"). Whether the platform makes up a lowered tip is the
 	// owner's open question, item 15 on #164.
 	TipMakeUp bool
-	// PayReturnedDelivery: a rider who cannot hand an order over and brings
-	// it back to the restaurant is paid the delivery fee, because they did
-	// the work. Default true, as docs/spec/04-rider.md "D-32 — Incident
-	// reporting & mid-delivery exceptions" states. Rider pay on interrupted
-	// deliveries is the owner's open question, item 19 on #164.
-	PayReturnedDelivery bool
 }
 
 // DefaultRiderPay is the documented behaviour, used when nothing is set.
 func DefaultRiderPay() RiderPay {
-	return RiderPay{TipMakeUp: false, PayReturnedDelivery: true}
+	return RiderPay{TipMakeUp: false}
 }
 
 // Realtime holds the WebSocket gateway's per-replica limits.
@@ -392,10 +391,8 @@ func Load(getenv func(string) string) (*Config, error) {
 		}
 	}
 
-	riderPay := DefaultRiderPay()
 	cfg.RiderPay = RiderPay{
-		TipMakeUp:           l.boolVal("HG_RIDER_TIP_MAKEUP", riderPay.TipMakeUp),
-		PayReturnedDelivery: l.boolVal("HG_RIDER_PAY_RETURNED_DELIVERY", riderPay.PayReturnedDelivery),
+		TipMakeUp: l.boolVal("HG_RIDER_TIP_MAKEUP", DefaultRiderPay().TipMakeUp),
 	}
 
 	cfg.Tax = Tax{
