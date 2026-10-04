@@ -648,12 +648,11 @@ func run() error {
 	// Complete the Seam C wiring: orders.Store now emits realtime outbox events
 	// on every state transition via the transactional outbox (I-15 / §6.1).
 	rtEmitter.store = rtStore
-	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil)
+	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, cfg.Realtime.MaxSockets)
 	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
 	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
-	defer rtGateway.Shutdown()
 
 	// Partition maintenance (docs/spec/01-platform.md, "P-39 — Background
 	// runtime"): at start-up and hourly, keep realtime_event,
@@ -749,6 +748,13 @@ func run() error {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
+
+	// Close the live sockets with 1001 (server going away) first, and wait for
+	// the frames to go out, so clients reconnect with backoff instead of seeing
+	// an abnormal closure (contracts/websocket.md "Close codes"). It must run
+	// before st.Close: each close is recorded in Postgres. http.Server.Shutdown
+	// does not track upgraded sockets, so it cannot do this for us.
+	rtGateway.Shutdown()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Error("graceful shutdown exceeded its budget; forcing close",

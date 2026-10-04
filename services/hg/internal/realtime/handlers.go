@@ -1,7 +1,6 @@
 package realtime
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -132,6 +131,14 @@ func (h *Handler) Upgrade(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Take a socket slot before any Postgres work, so a full replica sheds load
+	// cheaply. The slot is held until the socket closes.
+	if !h.gw.admit() {
+		h.refuseAtCapacity(w, r)
+		return
+	}
+	defer h.gw.release()
+
 	principal, roles, err := h.resolveUpgradeIdentity(w, r)
 	if err != nil {
 		// resolveUpgradeIdentity already wrote the 401 and any audit event.
@@ -160,18 +167,24 @@ func (h *Handler) Upgrade(w http.ResponseWriter, r *http.Request) {
 
 	// The socket outlives the HTTP request context, so it runs under a fresh
 	// context tied to the process, cancelled when the gateway shuts down.
-	conn := &connection{
-		gw:        h.gw,
-		ws:        ws,
-		log:       h.log.With(slog.String("account_id", principal.AccountID)),
-		ctx:       context.Background(),
-		connID:    connID,
-		accountID: principal.AccountID,
-		roles:     roles,
-		sessionID: principal.SessionID,
-		subs:      map[string]Viewer{},
-	}
+	conn := newConnection(h.gw, ws, h.log.With(slog.String("account_id", principal.AccountID)),
+		connID, principal.AccountID, principal.SessionID, roles)
 	conn.serve()
+}
+
+// refuseAtCapacity answers an upgrade this replica has no room for. It completes
+// the handshake and closes with 1013 (try again later), because a browser
+// cannot read the HTTP status of a refused upgrade but can read a close code.
+// The ticket is left unconsumed and nothing else is sent. The client reconnects
+// with backoff, and the load balancer may route it to the other replica.
+func (h *Handler) refuseAtCapacity(w http.ResponseWriter, r *http.Request) {
+	h.log.Warn("realtime replica at capacity; refusing socket", slog.Int64("max_sockets", h.gw.maxSockets))
+	ws, err := upgrade(w, r)
+	if err != nil {
+		h.log.Warn("websocket handshake failed", slog.String("error", err.Error()))
+		return
+	}
+	_ = ws.writeClose(CloseTryAgainLater, reasonAtCapacity)
 }
 
 // resolveUpgradeIdentity consumes the ticket, or falls back to the native bearer
