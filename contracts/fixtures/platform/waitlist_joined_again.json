@@ -1,0 +1,18 @@
+{
+  "scenario": "waitlist_joined_again",
+  "domain": "platform",
+  "schema": "WaitlistSignupReceipt",
+  "describes": "`joinWaitlist` → `202`. The same audience and contact again: the same `202` and nothing new stored. The first consent is kept, never overwritten.",
+  "operations": [
+    "joinWaitlist"
+  ],
+  "status": 202,
+  "tags": [
+    "platform",
+    "public"
+  ],
+  "payload": {
+    "audience": "CUSTOMER",
+    "received": true
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "scenario": "sms_sender_not_checked",
+  "domain": "platform",
+  "schema": "SmsSenderStatus",
+  "describes": "`getSmsSenderStatus` → `NOT_CHECKED`. No replica has run the check yet, in the first seconds of a new deployment. No banner.",
+  "operations": [
+    "getSmsSenderStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "admin",
+    "state-matrix"
+  ],
+  "payload": {
+    "state": "NOT_CHECKED",
+    "checked_at": null,
+    "failing_since": null,
+    "message": null
+  }
+}

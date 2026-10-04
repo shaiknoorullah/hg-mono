@@ -1,0 +1,32 @@
+{
+  "scenario": "error_replace_cart_restaurant_closed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `RESTAURANT_CLOSED`. `replaceCart` while the restaurant is closed: every line fails, and the cart is unchanged.",
+  "operations": [
+    "replaceCart"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RESTAURANT_CLOSED",
+      "message": "The restaurant is closed right now, so nothing was put back in your cart.",
+      "request_id": "PF99V04K8EBVY3DG5PERG6ZEQP",
+      "details": {
+        "lines": [
+          {
+            "index": 0,
+            "code": "RESTAURANT_CLOSED"
+          },
+          {
+            "index": 1,
+            "code": "RESTAURANT_CLOSED"
+          }
+        ]
+      }
+    }
+  }
+}

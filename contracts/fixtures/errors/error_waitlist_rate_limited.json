@@ -1,0 +1,23 @@
+{
+  "scenario": "error_waitlist_rate_limited",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`429` · `RATE_LIMITED`. More than 10 sign-ups from one client address in an hour (rate class `WAITLIST`, burst 5). Nothing is stored.",
+  "operations": [
+    "joinWaitlist"
+  ],
+  "status": 429,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "Too many sign-ups from your connection. Try again later.",
+      "request_id": "BXC0P26719K4K69QMQ9XCKMAB6",
+      "details": {
+        "retry_after_seconds": 1800
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "scenario": "sms_sender_passed",
+  "domain": "platform",
+  "schema": "SmsSenderStatus",
+  "describes": "`getSmsSenderStatus` → `PASSED`. The latest check passed. No banner.",
+  "operations": [
+    "getSmsSenderStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "admin",
+    "state-matrix"
+  ],
+  "payload": {
+    "state": "PASSED",
+    "checked_at": "2026-08-10T16:42:11.412Z",
+    "failing_since": null,
+    "message": null
+  }
+}

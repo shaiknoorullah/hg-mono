@@ -1,0 +1,21 @@
+{
+  "scenario": "sms_sender_failed",
+  "domain": "platform",
+  "schema": "SmsSenderStatus",
+  "describes": "`getSmsSenderStatus` → `FAILED`. The latest check failed, so every admin page shows the sticky banner with `message` and how long it has been failing. New customers and riders cannot sign in.",
+  "operations": [
+    "getSmsSenderStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "admin",
+    "state-matrix"
+  ],
+  "payload": {
+    "state": "FAILED",
+    "checked_at": "2026-08-10T18:17:11.412Z",
+    "failing_since": "2026-08-10T16:42:11.412Z",
+    "message": "Twilio refused our credentials, so sign-in codes cannot be sent."
+  }
+}

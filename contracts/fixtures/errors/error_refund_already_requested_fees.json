@@ -1,0 +1,24 @@
+{
+  "scenario": "error_refund_already_requested_fees",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `REFUND_ALREADY_REQUESTED`. The delivery and service fees are refunded at most once, by `FEES_ONLY` or by `FULL`. A second fee refund on the order is refused; nothing is created.",
+  "operations": [
+    "createRefund"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "REFUND_ALREADY_REQUESTED",
+      "message": "The delivery fees on this order have already been refunded.",
+      "request_id": "JKFXRAZK99EHQB6QK4JTGF2QSE",
+      "details": {
+        "order_line_nos": [],
+        "fees": true
+      }
+    }
+  }
+}

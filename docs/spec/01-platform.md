@@ -1477,6 +1477,7 @@ CREATE TABLE reconciliation_exception (
   | `HALAL_CONCERN` (filed by staff with evidence) | item + its tax | item net, only when substantiated | — | all of it otherwise, as goodwill |
   | `NEVER_DELIVERED` (no POD) | full | — | rider earnings reversed, minus a proven-effort payment | remainder |
   | `LATE_DELIVERY` | fees only | — | — | full |
+  | `WRONG_ADDRESS` (reported before delivery: [wrong address](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) | per support judgement; support redirects the delivery when it can | — | — (if the rider delivered somewhere other than the order's address, staff file `NEVER_DELIVERED`) | all of it |
   | `NO_RIDER_FOUND` | full | — | — | full (restaurant still paid) |
   | `CUSTOMER_CHANGED_MIND` (post-accept) | full or none per policy | — | — | full when refunded |
   | `PLATFORM_ERROR` | full | — | — | full |
@@ -2098,7 +2099,7 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
   - **I-26.1** No provider credentials or message bodies containing OTPs are logged.
   - **I-26.2** A hard bounce suppresses the address and raises the account's `email_verified_at` to NULL for restaurant/admin accounts (they must re-verify).
   - **I-26.3** Both providers are behind interfaces with a `NoopSender` used in tests; no test ever hits a live provider.
-  - **I-26.4** Boot probe verifies SPF/DKIM/DMARC records and the SMS sender identity; failure alerts but does not block boot (except in production, where it blocks).
+  - **I-26.4** Boot probe verifies SPF/DKIM/DMARC records and the SMS sender identity. A failed email DNS check alerts but does not block boot, except in production, where it blocks. A failed SMS sender check never blocks boot, in any environment: it alerts, is recorded in Postgres, and puts a sticky banner on every admin page until a later check passes, for every staff role (`getSmsSenderStatus`; [a failed text-message sender check](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). Blocking boot would take the whole API down, and the banner with it, while staff sign-in, which does not use text messages, still works.
 - **Acceptance criteria**:
   1. Given the templates, When the golden-file test runs, Then every template renders in both locales with no unresolved variables.
   2. Given a hard bounce webhook, Then the address is suppressed and subsequent marketing sends are `SUPPRESSED`.
@@ -2712,6 +2713,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `SEARCH` | 60 / min | 20 | account or ip |
   | `GEO_SUGGEST` (address suggestions as the user types, `suggestAddresses`; forwarded to Mapbox. Sized so one search typed a key at a time stays under it) | 60 / min | 20 | account |
   | `GEO` (place details and reverse geocoding, `getPlaceAddress` and `reverseGeocode`; forwarded to Mapbox, each operation counted separately) | 30 / min | 10 | account |
+  | `WAITLIST` (the marketing site's waitlist form, `joinWaitlist`, public: [#212](https://github.com/shaiknoorullah/hg-mono/issues/212)) | 10 / hour | 5 | ip |
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 

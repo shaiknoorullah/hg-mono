@@ -1,0 +1,27 @@
+{
+  "scenario": "error_waitlist_invalid_contact",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. A malformed contact on `joinWaitlist`. Nothing is stored; the form keeps what the visitor typed.",
+  "operations": [
+    "joinWaitlist"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "That email address doesn't look right.",
+      "request_id": "HPV6TG2AC86XVJ27W22F662KWV",
+      "details": [
+        {
+          "field": "contact",
+          "code": "format",
+          "message": "Enter an email address like name@example.com."
+        }
+      ]
+    }
+  }
+}

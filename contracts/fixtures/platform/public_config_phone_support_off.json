@@ -1,14 +1,15 @@
 {
-  "scenario": "public_config",
+  "scenario": "public_config_phone_support_off",
   "domain": "platform",
   "schema": "PublicConfig",
-  "describes": "Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05). Phone support is on, and the support email is shown beside it.",
+  "describes": "The phone line is closed (`support_enabled: false`): no phone number, so the Call button disappears and the app shows the hours text. The support email is still there, and it is the contact the app offers.",
   "operations": [
     "getPublicConfig"
   ],
   "status": 200,
   "tags": [
-    "platform"
+    "platform",
+    "state-matrix"
   ],
   "payload": {
     "currency": "CAD",
@@ -18,8 +19,8 @@
     "quote_ttl_seconds": 11,
     "restaurant_response_window_seconds": 180,
     "max_tip_cents": 1695,
-    "support_enabled": true,
-    "support_phone_e164": "+18005550199",
+    "support_enabled": false,
+    "support_phone_e164": null,
     "support_hours": "Support Hours",
     "support_email": "support@halalgoes.com",
     "default_map_center": {

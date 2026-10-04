@@ -103,8 +103,17 @@ def _offer(label: str, state: str, **over: Any) -> dict:
             "latitude": 43.6817,
             "longitude": -79.3403,
         },
-        # §5 / websocket.md §4.5: street and neighbourhood only. No unit, no phone alias.
-        "dropoff": {"area": "Harbourfront, Toronto", "latitude": 43.6412, "longitude": -79.3810},
+        # An approximate area only, before accepting: the neighbourhood and city, and the
+        # centre and radius of a ~500 m cell, never the address (the owner's round-2
+        # decision, docs/decisions/README.md "Orders and delivery";
+        # https://github.com/shaiknoorullah/hg-mono/issues/183). The
+        # street, unit, buzzer, name and phone alias arrive on accept.
+        "dropoff": {
+            "area": "Harbourfront, Toronto",
+            "latitude": 43.6405,
+            "longitude": -79.3815,
+            "radius_m": 400,
+        },
         "distance_m": 5240,
         "est_duration_s": 780,
         "earnings": {
@@ -122,6 +131,21 @@ def _offer(label: str, state: str, **over: Any) -> dict:
 
 
 def _offers(reg) -> None:
+    reg.add(
+        "offer_pending_area_without_radius",
+        "dispatch",
+        "DispatchOffer",
+        "A live offer whose approximate drop-off area has no `radius_m`. The map shows the "
+        "area name and the direction from the area's centre, and draws no circle. It never "
+        "shows a street or a pin on a house: the full address comes only on accept.",
+        _offer(
+            "area-only",
+            "PENDING",
+            dropoff={"area": "Riverdale, Toronto", "latitude": 43.6675, "longitude": -79.3500},
+        ),
+        operations=["getCurrentOffer"],
+        tags=["rider", "offer-state-matrix", "privacy"],
+    )
     reg.add(
         "offer_pending",
         "dispatch",
@@ -398,7 +422,15 @@ def _availability(reg, synth) -> None:
             tags=["rider", "state-matrix"],
         )
 
-    dash = synth.make("RiderDashboard", "dashboard-active")
+    def approximate(dashboard: dict) -> dict:
+        # The synthesiser's generic radius is a delivery-zone size; an offer's approximate
+        # drop-off area is a ~500 m cell (https://github.com/shaiknoorullah/hg-mono/issues/183).
+        offer = dashboard.get("current_offer")
+        if isinstance(offer, dict) and isinstance(offer.get("dropoff"), dict):
+            offer["dropoff"]["radius_m"] = 400
+        return dashboard
+
+    dash = approximate(synth.make("RiderDashboard", "dashboard-active"))
     reg.add(
         "rider_dashboard_active",
         "rider",
@@ -409,7 +441,7 @@ def _availability(reg, synth) -> None:
         tags=["rider"],
     )
 
-    zero = synth.make("RiderDashboard", "dashboard-zero")
+    zero = approximate(synth.make("RiderDashboard", "dashboard-zero"))
     for key, value in list(zero.items()):
         if key.endswith("_cents"):
             zero[key] = 0

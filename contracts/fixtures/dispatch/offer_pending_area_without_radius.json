@@ -1,19 +1,19 @@
 {
-  "scenario": "offer_zero_tip_low_value",
+  "scenario": "offer_pending_area_without_radius",
   "domain": "dispatch",
   "schema": "DispatchOffer",
-  "describes": "A 12 km trip with no tip so far — CAD 4.49 estimated. Under pure pass-through earnings (decision R-02) there is no rate-card floor, so this is what the rider sees. The screen must not imply a guarantee.",
+  "describes": "A live offer whose approximate drop-off area has no `radius_m`. The map shows the area name and the direction from the area's centre, and draws no circle. It never shows a street or a pin on a house: the full address comes only on accept.",
   "operations": [
     "getCurrentOffer"
   ],
   "status": 200,
   "tags": [
     "rider",
-    "edge",
-    "money"
+    "offer-state-matrix",
+    "privacy"
   ],
   "payload": {
-    "offer_id": "670cdae2-15b8-4cfe-a0a4-2108bf4dba6a",
+    "offer_id": "acaf1919-15ba-471a-ad9f-c1b6ed463ec7",
     "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
     "state": "PENDING",
     "wave": 2,
@@ -26,21 +26,20 @@
       "longitude": -79.3403
     },
     "dropoff": {
-      "area": "Harbourfront, Toronto",
-      "latitude": 43.6405,
-      "longitude": -79.3815,
-      "radius_m": 400
+      "area": "Riverdale, Toronto",
+      "latitude": 43.6675,
+      "longitude": -79.35
     },
-    "distance_m": 12140,
-    "est_duration_s": 1680,
+    "distance_m": 5240,
+    "est_duration_s": 780,
     "earnings": {
       "base_cents": 449,
       "distance_cents": 0,
       "surge_cents": 0,
-      "tip_so_far_cents": 0,
-      "estimated_total_cents": 449,
+      "tip_so_far_cents": 700,
+      "estimated_total_cents": 1149,
       "currency": "CAD"
     },
-    "items_count": 1
+    "items_count": 3
   }
 }

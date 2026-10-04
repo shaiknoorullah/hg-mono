@@ -29,8 +29,13 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// suggestAddresses/getPlaceAddress/reverseGeocode (address search for the
 	// location picker, forwarded to Mapbox — the round-2 decision on map address
 	// search, docs/decisions/README.md "Launch scope and contract", issue #179;
-	// no handler yet).
-	const wantOps = 158
+	// no handler yet) + replaceCart (put an unpaid order's items back in the cart
+	// in one atomic call, https://github.com/shaiknoorullah/hg-mono/issues/179) +
+	// joinWaitlist (the marketing site's public waitlist form,
+	// https://github.com/shaiknoorullah/hg-mono/issues/212) + getSmsSenderStatus
+	// (the text-message sender check every staff role reads for the admin
+	// banner, docs/decisions/README.md round 2, "Admin"); no handlers yet.
+	const wantOps = 161
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

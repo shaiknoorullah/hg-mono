@@ -2,23 +2,23 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 382,
+  "count": 408,
   "counts_by_domain": {
     "admin": 17,
-    "cart": 12,
+    "cart": 13,
     "catalogue": 41,
-    "dispatch": 31,
+    "dispatch": 32,
     "documents": 23,
-    "errors": 42,
+    "errors": 54,
     "geo": 11,
     "halal": 25,
     "handoff": 13,
-    "onboarding": 35,
+    "onboarding": 36,
     "orders": 50,
     "payments": 12,
-    "platform": 25,
+    "platform": 33,
     "realtime": 9,
-    "refunds": 14,
+    "refunds": 17,
     "rider": 22
   },
   "fixtures": [
@@ -355,6 +355,22 @@
         "dense"
       ],
       "file": "cart/cart_many_lines.json"
+    },
+    {
+      "scenario": "cart_replaced_from_order",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "`replaceCart` rebuilt the cart from a cancelled unpaid order in one call. The second dish costs $1.00 more than it did on the old order: the server priced every line again, and the old order's prices were never sent or reused.",
+      "operations": [
+        "replaceCart",
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "cart",
+        "money"
+      ],
+      "file": "cart/cart_replaced_from_order.json"
     },
     {
       "scenario": "cart_single_line",
@@ -1496,6 +1512,22 @@
       "file": "dispatch/offer_pending.json"
     },
     {
+      "scenario": "offer_pending_area_without_radius",
+      "domain": "dispatch",
+      "schema": "DispatchOffer",
+      "describes": "A live offer whose approximate drop-off area has no `radius_m`. The map shows the area name and the direction from the area's centre, and draws no circle. It never shows a street or a pin on a house: the full address comes only on accept.",
+      "operations": [
+        "getCurrentOffer"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "offer-state-matrix",
+        "privacy"
+      ],
+      "file": "dispatch/offer_pending_area_without_radius.json"
+    },
+    {
       "scenario": "offer_rejected",
       "domain": "dispatch",
       "schema": "DispatchOffer",
@@ -2228,6 +2260,34 @@
       "file": "errors/error_otp_incorrect.json"
     },
     {
+      "scenario": "error_pause_until_closing_outside_hours",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RESTAURANT_CLOSED`. `pause_until_closing: true` outside trading hours. There is no current trading period to pause until the end of; nothing changes.",
+      "operations": [
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_pause_until_closing_outside_hours.json"
+    },
+    {
+      "scenario": "error_pause_with_both_times",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. `pause_until` and `pause_until_closing` together. The pause is unchanged.",
+      "operations": [
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_pause_with_both_times.json"
+    },
+    {
       "scenario": "error_pickup_code_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2364,6 +2424,105 @@
       "file": "errors/error_rate_limited.json"
     },
     {
+      "scenario": "error_refund_already_requested_fees",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REFUND_ALREADY_REQUESTED`. The delivery and service fees are refunded at most once, by `FEES_ONLY` or by `FULL`. A second fee refund on the order is refused; nothing is created.",
+      "operations": [
+        "createRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_already_requested_fees.json"
+    },
+    {
+      "scenario": "error_refund_already_requested_items",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REFUND_ALREADY_REQUESTED`. A second report on the same order is fine; a second claim on the same item is not. Order line 1 is already held by another refund on this order, so nothing is created. A report about a different item, or about the delivery fees, is accepted.",
+      "operations": [
+        "createRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_already_requested_items.json"
+    },
+    {
+      "scenario": "error_refund_exceeds_captured",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. The refunds that hold a claim on an order never add up to more than the captured amount. The server checks it when the report is made and again in the approval transaction, with the order's refund rows locked, so two approvals at once cannot pass it together.",
+      "operations": [
+        "createRefund",
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_exceeds_captured.json"
+    },
+    {
+      "scenario": "error_replace_cart_items_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ITEM_UNAVAILABLE`. `replaceCart` is all or nothing. Two of the lines from the old order can't be added today: the code is the first failure's, and `details.lines` names every failing line by its position in the request. The cart is unchanged; the app can offer to put back the rest by calling again without lines 1 and 2.",
+      "operations": [
+        "replaceCart"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_replace_cart_items_unavailable.json"
+    },
+    {
+      "scenario": "error_replace_cart_quantity_over_cap",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. `replaceCart` merges identical lines first, as `addCartLine` does. Two lines that merge to more than 20 are refused, and the cart is unchanged.",
+      "operations": [
+        "replaceCart"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_replace_cart_quantity_over_cap.json"
+    },
+    {
+      "scenario": "error_replace_cart_restaurant_closed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RESTAURANT_CLOSED`. `replaceCart` while the restaurant is closed: every line fails, and the cart is unchanged.",
+      "operations": [
+        "replaceCart"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_replace_cart_restaurant_closed.json"
+    },
+    {
+      "scenario": "error_replace_cart_two_restaurants",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. `replaceCart` with lines from two restaurants. A cart holds one restaurant, so the request is refused and the cart is unchanged.",
+      "operations": [
+        "replaceCart"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_replace_cart_two_restaurants.json"
+    },
+    {
       "scenario": "error_reset_token_not_valid",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2464,6 +2623,48 @@
         "error-envelope"
       ],
       "file": "errors/error_validation_failed.json"
+    },
+    {
+      "scenario": "error_waitlist_consent_missing",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. Canada's anti-spam law (CASL) needs express consent as an affirmative act, so `consent` must be `true`. Nothing is stored.",
+      "operations": [
+        "joinWaitlist"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_waitlist_consent_missing.json"
+    },
+    {
+      "scenario": "error_waitlist_invalid_contact",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. A malformed contact on `joinWaitlist`. Nothing is stored; the form keeps what the visitor typed.",
+      "operations": [
+        "joinWaitlist"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_waitlist_invalid_contact.json"
+    },
+    {
+      "scenario": "error_waitlist_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED`. More than 10 sign-ups from one client address in an hour (rate class `WAITLIST`, burst 5). Nothing is stored.",
+      "operations": [
+        "joinWaitlist"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_waitlist_rate_limited.json"
     },
     {
       "scenario": "address_suggestions_broad",
@@ -3490,6 +3691,22 @@
         "state-matrix"
       ],
       "file": "onboarding/restaurant_open_state_paused.json"
+    },
+    {
+      "scenario": "restaurant_open_state_paused_until_closing",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "`setRestaurantAcceptingOrders` with `pause_until_closing: true` on a late night that runs past midnight. `pause_until` is the closing time the server chose: 2:00 am the next morning, not midnight.",
+      "operations": [
+        "setRestaurantAcceptingOrders",
+        "getRestaurantAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_paused_until_closing.json"
     },
     {
       "scenario": "restaurant_profile",
@@ -4866,7 +5083,7 @@
       "scenario": "public_config",
       "domain": "platform",
       "schema": "PublicConfig",
-      "describes": "Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05).",
+      "describes": "Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05). Phone support is on, and the support email is shown beside it.",
       "operations": [
         "getPublicConfig"
       ],
@@ -4875,6 +5092,36 @@
         "platform"
       ],
       "file": "platform/public_config.json"
+    },
+    {
+      "scenario": "public_config_phone_support_off",
+      "domain": "platform",
+      "schema": "PublicConfig",
+      "describes": "The phone line is closed (`support_enabled: false`): no phone number, so the Call button disappears and the app shows the hours text. The support email is still there, and it is the contact the app offers.",
+      "operations": [
+        "getPublicConfig"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "state-matrix"
+      ],
+      "file": "platform/public_config_phone_support_off.json"
+    },
+    {
+      "scenario": "public_config_without_support_email",
+      "domain": "platform",
+      "schema": "PublicConfig",
+      "describes": "No support email is configured (`support_email: null`). The app shows no email contact and never falls back to a hardcoded address.",
+      "operations": [
+        "getPublicConfig"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "edge"
+      ],
+      "file": "platform/public_config_without_support_email.json"
     },
     {
       "scenario": "readiness_ok",
@@ -5083,6 +5330,54 @@
       "file": "platform/session_next_route_suspended.json"
     },
     {
+      "scenario": "sms_sender_failed",
+      "domain": "platform",
+      "schema": "SmsSenderStatus",
+      "describes": "`getSmsSenderStatus` → `FAILED`. The latest check failed, so every admin page shows the sticky banner with `message` and how long it has been failing. New customers and riders cannot sign in.",
+      "operations": [
+        "getSmsSenderStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "admin",
+        "state-matrix"
+      ],
+      "file": "platform/sms_sender_failed.json"
+    },
+    {
+      "scenario": "sms_sender_not_checked",
+      "domain": "platform",
+      "schema": "SmsSenderStatus",
+      "describes": "`getSmsSenderStatus` → `NOT_CHECKED`. No replica has run the check yet, in the first seconds of a new deployment. No banner.",
+      "operations": [
+        "getSmsSenderStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "admin",
+        "state-matrix"
+      ],
+      "file": "platform/sms_sender_not_checked.json"
+    },
+    {
+      "scenario": "sms_sender_passed",
+      "domain": "platform",
+      "schema": "SmsSenderStatus",
+      "describes": "`getSmsSenderStatus` → `PASSED`. The latest check passed. No banner.",
+      "operations": [
+        "getSmsSenderStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "admin",
+        "state-matrix"
+      ],
+      "file": "platform/sms_sender_passed.json"
+    },
+    {
       "scenario": "totp_enrolment",
       "domain": "platform",
       "schema": "TotpEnrolment",
@@ -5096,6 +5391,51 @@
         "auth"
       ],
       "file": "platform/totp_enrolment.json"
+    },
+    {
+      "scenario": "waitlist_joined",
+      "domain": "platform",
+      "schema": "WaitlistSignupReceipt",
+      "describes": "`joinWaitlist` → `202`. A new sign-up: the consent record is stored with the time the server received it.",
+      "operations": [
+        "joinWaitlist"
+      ],
+      "status": 202,
+      "tags": [
+        "platform",
+        "public"
+      ],
+      "file": "platform/waitlist_joined.json"
+    },
+    {
+      "scenario": "waitlist_joined_again",
+      "domain": "platform",
+      "schema": "WaitlistSignupReceipt",
+      "describes": "`joinWaitlist` → `202`. The same audience and contact again: the same `202` and nothing new stored. The first consent is kept, never overwritten.",
+      "operations": [
+        "joinWaitlist"
+      ],
+      "status": 202,
+      "tags": [
+        "platform",
+        "public"
+      ],
+      "file": "platform/waitlist_joined_again.json"
+    },
+    {
+      "scenario": "waitlist_joined_as_restaurant",
+      "domain": "platform",
+      "schema": "WaitlistSignupReceipt",
+      "describes": "`joinWaitlist` → `202`. Someone already on the customer list joins as a restaurant too. Audience and contact together are the key, so this is a new sign-up.",
+      "operations": [
+        "joinWaitlist"
+      ],
+      "status": 202,
+      "tags": [
+        "platform",
+        "public"
+      ],
+      "file": "platform/waitlist_joined_as_restaurant.json"
     },
     {
       "scenario": "realtime_control_frames",
@@ -5365,6 +5705,20 @@
       "file": "refunds/refund_list_empty.json"
     },
     {
+      "scenario": "refund_list_several_reports_on_order",
+      "domain": "refunds",
+      "schema": "array<Refund>",
+      "describes": "`listRefunds?order_id=` for an order with two problem reports, newest first: a late delivery waiting for review and a missing item already refunded. They never merge, and together they stay under the captured amount.",
+      "operations": [
+        "listRefunds"
+      ],
+      "status": 200,
+      "tags": [
+        "money"
+      ],
+      "file": "refunds/refund_list_several_reports_on_order.json"
+    },
+    {
       "scenario": "refund_pending_approval",
       "domain": "refunds",
       "schema": "Refund",
@@ -5397,6 +5751,22 @@
         "refund-state-matrix"
       ],
       "file": "refunds/refund_requested.json"
+    },
+    {
+      "scenario": "refund_second_report_on_order",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "A second problem report on an order that already has one: the missing item was refunded, and now the customer reports the delivery was late. It is accepted as its own refund with its own reason, so the platform absorbs the fees while the restaurant was charged for the missing item. It does not claim the item again.",
+      "operations": [
+        "createRefund",
+        "getRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "money",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_second_report_on_order.json"
     },
     {
       "scenario": "refund_settled",
@@ -5448,6 +5818,22 @@
         "refund-state-matrix"
       ],
       "file": "refunds/refund_succeeded.json"
+    },
+    {
+      "scenario": "refund_wrong_address_before_delivery",
+      "domain": "refunds",
+      "schema": "Refund",
+      "describes": "Reported from \"Get help\" before delivery: the order is going to the wrong address. `WRONG_ADDRESS` waits for support, who redirect the delivery when they can. Any refund is per support's judgement and absorbed by the platform: the restaurant cooked the order and the rider carried it to the address on the order.",
+      "operations": [
+        "createRefund",
+        "getRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "money",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_wrong_address_before_delivery.json"
     },
     {
       "scenario": "earning_entries_empty",
@@ -5924,6 +6310,9 @@
       "realtime_ticket"
     ],
     "createRefund": [
+      "error_refund_already_requested_fees",
+      "error_refund_already_requested_items",
+      "error_refund_exceeds_captured",
       "refund_approved",
       "refund_authorised",
       "refund_cancelled",
@@ -5931,9 +6320,11 @@
       "refund_failed",
       "refund_pending_approval",
       "refund_requested",
+      "refund_second_report_on_order",
       "refund_settled",
       "refund_submitted",
-      "refund_succeeded"
+      "refund_succeeded",
+      "refund_wrong_address_before_delivery"
     ],
     "createRestaurantStaffUser": [
       "restaurant_staff_list"
@@ -6033,6 +6424,7 @@
       "cart_empty",
       "cart_has_unavailable_items",
       "cart_many_lines",
+      "cart_replaced_from_order",
       "cart_single_line"
     ],
     "getConnectStatus": [
@@ -6043,6 +6435,7 @@
       "offer_expired",
       "offer_none",
       "offer_pending",
+      "offer_pending_area_without_radius",
       "offer_rejected",
       "offer_taken_by_another",
       "offer_withdrawn",
@@ -6159,7 +6552,9 @@
       "place_address_street_only"
     ],
     "getPublicConfig": [
-      "public_config"
+      "public_config",
+      "public_config_phone_support_off",
+      "public_config_without_support_email"
     ],
     "getQuote": [
       "quote_expired",
@@ -6181,9 +6576,11 @@
       "refund_full_never_delivered",
       "refund_pending_approval",
       "refund_requested",
+      "refund_second_report_on_order",
       "refund_settled",
       "refund_submitted",
-      "refund_succeeded"
+      "refund_succeeded",
+      "refund_wrong_address_before_delivery"
     ],
     "getRestaurant": [
       "restaurant_detail_certified",
@@ -6203,7 +6600,8 @@
       "restaurant_open_state_closed_suspended",
       "restaurant_open_state_closed_toggle",
       "restaurant_open_state_open",
-      "restaurant_open_state_paused"
+      "restaurant_open_state_paused",
+      "restaurant_open_state_paused_until_closing"
     ],
     "getRestaurantCertification": [
       "certification_panel_certified",
@@ -6271,7 +6669,13 @@
     "getRiderPayout": [
       "payout_detail_paid"
     ],
+    "getSmsSenderStatus": [
+      "sms_sender_failed",
+      "sms_sender_not_checked",
+      "sms_sender_passed"
+    ],
     "issueRefund": [
+      "error_refund_exceeds_captured",
       "refund_approval_request_pending",
       "refund_approved",
       "refund_authorised",
@@ -6284,6 +6688,14 @@
       "refund_settled",
       "refund_submitted",
       "refund_succeeded"
+    ],
+    "joinWaitlist": [
+      "error_waitlist_consent_missing",
+      "error_waitlist_invalid_contact",
+      "error_waitlist_rate_limited",
+      "waitlist_joined",
+      "waitlist_joined_again",
+      "waitlist_joined_as_restaurant"
     ],
     "listAddresses": [
       "addresses_empty",
@@ -6333,6 +6745,7 @@
       "refund_declined",
       "refund_failed",
       "refund_list_empty",
+      "refund_list_several_reports_on_order",
       "refund_pending_approval",
       "refund_requested",
       "refund_settled",
@@ -6456,6 +6869,13 @@
       "restaurant_order_rejected",
       "restaurant_order_restaurant_pending"
     ],
+    "replaceCart": [
+      "cart_replaced_from_order",
+      "error_replace_cart_items_unavailable",
+      "error_replace_cart_quantity_over_cap",
+      "error_replace_cart_restaurant_closed",
+      "error_replace_cart_two_restaurants"
+    ],
     "reportRiderPositions": [
       "rider_position_ack"
     ],
@@ -6532,13 +6952,16 @@
       "menu_item_marked_out_of_stock_until"
     ],
     "setRestaurantAcceptingOrders": [
+      "error_pause_until_closing_outside_hours",
+      "error_pause_with_both_times",
       "restaurant_open_state_closed_holiday",
       "restaurant_open_state_closed_hours",
       "restaurant_open_state_closed_offline",
       "restaurant_open_state_closed_suspended",
       "restaurant_open_state_closed_toggle",
       "restaurant_open_state_open",
-      "restaurant_open_state_paused"
+      "restaurant_open_state_paused",
+      "restaurant_open_state_paused_until_closing"
     ],
     "setRestaurantHours": [
       "restaurant_hours_standard"
@@ -6744,7 +7167,9 @@
     "getRiderMe": "rider_me",
     "getRiderOnboardingStatus": "rider_onboarding_active",
     "getRiderPayout": "payout_detail_paid",
+    "getSmsSenderStatus": "sms_sender_failed",
     "issueRefund": "refund_goodwill_admin",
+    "joinWaitlist": "waitlist_joined",
     "listAddresses": "addresses_list",
     "listHalalIssuingBodies": "halal_issuing_body_accepted",
     "listMenuReviewQueue": "menu_review_queue",
@@ -6771,6 +7196,7 @@
     "refreshSession": "session_grant_customer",
     "registerRestaurant": "restaurant_registration",
     "rejectOrder": "restaurant_order_rejected",
+    "replaceCart": "cart_replaced_from_order",
     "reportRiderPositions": "rider_position_ack",
     "reportTamper": "handoff_tamper_report",
     "requestOtp": "otp_challenge",

@@ -140,7 +140,8 @@ header (client-generated UUID or ULID, 16–128 chars), scoped
   idempotency record did not commit" cannot happen.
 
 The header is marked `required: true` on every such operation in `openapi.yaml`, so a generated
-client cannot omit it.
+client cannot omit it. The one exception is `joinWaitlist`: it is public, so there is no account
+to scope a key to, and it is idempotent on its natural key (audience and contact) instead.
 
 ### Enums
 
@@ -161,6 +162,7 @@ operation may be called unauthenticated, and that set is fixed:
 | `requestPasswordReset`, `resetPassword` | Same |
 | `refreshSession` | Authenticated by the refresh token itself |
 | `receiveStripeWebhook` | Authenticated by signature, not by session |
+| `joinWaitlist` | The marketing site's waitlist form: a visitor joins before they have an account. Rate-limited per client address (rate class `WAITLIST`) and idempotent on audience and contact ([#212](https://github.com/shaiknoorullah/hg-mono/issues/212)) |
 
 Four security schemes are declared, matching the four ways identity is established:
 `otpSession` (customer/rider, phone-OTP issued), `passwordSession` (restaurant/admin/support,
@@ -173,7 +175,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **142 V0, 16 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **145 V0, 16 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -239,6 +241,20 @@ default, and a temporary result may not be stored or cached
 cost: [#297](https://github.com/shaiknoorullah/hg-mono/issues/297)). Suggestions may stay
 temporary, and the server never caches them. When the provider is down or nothing matches, the manual form and the
 map pin still work.
+
+The rest of the round-2 answers changed the contract in eight places
+([round-2 decisions](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)):
+
+| What | Where in the contract | Error states |
+|---|---|---|
+| **Replace the whole cart in one call**, for "Put these items back in your cart" after an unpaid order is cancelled, expires or fails payment. Item ids, options and quantities only, never a price; every line is priced again. Clear-then-add in two calls stays prohibited ([#179](https://github.com/shaiknoorullah/hg-mono/issues/179)) | **New:** `replaceCart`, `PUT /v1/cart`, body `CartReplaceInput` | All or nothing: `409` with the first failure's code (`ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`, `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE`) and `details.lines: [{index, code}]`; lines from two restaurants or a merged quantity over 20 is `422 VALIDATION_FAILED`. The cart is unchanged |
+| **Several problem reports on one order.** The rule chosen: each report is its own refund, decided on its own, and reports never merge. A later report is refused only when it claims an item, or the fees, that another refund on the order already holds; a refund holds its claim in every state but `DECLINED` and `CANCELLED` ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)) | `createRefund` | `409 REFUND_ALREADY_REQUESTED` now means "that item or those fees already have a refund", with `details.order_line_nos` and `details.fees`. The refunds that hold a claim never exceed the captured amount, checked again in the approval transaction: `409 REFUND_EXCEEDS_CAPTURED` |
+| **A wrong delivery address** as a reason for a report before delivery; any refund is per support's judgement and the platform absorbs it ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) | `WRONG_ADDRESS` in `RefundReasonCode` | — |
+| **Pause until closing** replaces "rest of today". The server works out the end of the current trading period, late nights past midnight included | `pause_until_closing` on `setRestaurantAcceptingOrders` | Outside trading hours: `409 RESTAURANT_CLOSED`; with `pause_until` as well: `422 VALIDATION_FAILED` |
+| **A support email** for customers and partners, shown while the phone line is off, and how customers ask for account deletion at launch ([#181](https://github.com/shaiknoorullah/hg-mono/issues/181)) | `PublicConfig.support_email` | Null when none is configured: no email contact is shown |
+| **An approximate drop-off area on a rider's offer** before accepting; the full address once accepted ([#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) | `DispatchOffer.dropoff`: `area` is the neighbourhood and city, `latitude`/`longitude` the centre of a ~500 m cell, and the new `radius_m`. Same on the `dispatch.offer` event | — |
+| **The marketing site's waitlist** posts to our API, so the site can be a static export and the sign-ups land in our own database ([#212](https://github.com/shaiknoorullah/hg-mono/issues/212)) | **New:** `joinWaitlist`, `POST /v1/waitlist`, public, rate class `WAITLIST` (10 per client address per hour, burst 5) | `422 VALIDATION_FAILED` for a bad contact or no consent; `429 RATE_LIMITED`. A repeat sign-up gets the same `202` |
+| **The text-message sender check, for every staff role**, so the sticky banner shows on every admin page while sign-in codes cannot be sent | **New:** `getSmsSenderStatus`, `GET /v1/admin/system/sms-sender`, for support agents, admins and super admins | — |
 
 ---
 

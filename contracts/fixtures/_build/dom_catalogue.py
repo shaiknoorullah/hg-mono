@@ -860,6 +860,44 @@ def _cart(reg) -> None:
         tags=["dense"],
     )
 
+    # "Put these items back in your cart" after an unpaid order is cancelled, expires or
+    # fails payment: one atomic `replaceCart` (round-2 decisions, "Orders and delivery";
+    # https://github.com/shaiknoorullah/hg-mono/issues/179). Every line is priced again at today's price, and the cart's selected
+    # address is kept.
+    repriced = items[1]["price_cents"] + 100
+    put_back = [
+        _cart_line(20, items[0], 2),
+        _cart_line(
+            21,
+            items[1],
+            1,
+            unit_price_cents=repriced,
+            line_total_cents=repriced,
+            special_request="Extra spicy, please.",
+        ),
+    ]
+    reg.add(
+        "cart_replaced_from_order",
+        "cart",
+        "Cart",
+        "`replaceCart` rebuilt the cart from a cancelled unpaid order in one call. The second "
+        "dish costs $1.00 more than it did on the old order: the server priced every line "
+        "again, and the old order's prices were never sent or reused.",
+        {
+            "id": uuid_for("cart:put-back"),
+            "restaurant": card,
+            "delivery_address_id": uuid_for("address:home"),
+            "lines": put_back,
+            "item_count": sum(l["quantity"] for l in put_back),
+            "indicative_subtotal_cents": sum(l["line_total_cents"] for l in put_back),
+            "currency": "CAD",
+            "is_quotable": True,
+            "blocking_reasons": [],
+        },
+        operations=["replaceCart", "getCart"],
+        tags=["cart", "money"],
+    )
+
 
 # --------------------------------------------------------------------------- #
 # Quotes

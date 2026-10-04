@@ -1,14 +1,15 @@
 {
-  "scenario": "public_config",
+  "scenario": "public_config_without_support_email",
   "domain": "platform",
   "schema": "PublicConfig",
-  "describes": "Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05). Phone support is on, and the support email is shown beside it.",
+  "describes": "No support email is configured (`support_email: null`). The app shows no email contact and never falls back to a hardcoded address.",
   "operations": [
     "getPublicConfig"
   ],
   "status": 200,
   "tags": [
-    "platform"
+    "platform",
+    "edge"
   ],
   "payload": {
     "currency": "CAD",
@@ -21,7 +22,7 @@
     "support_enabled": true,
     "support_phone_e164": "+18005550199",
     "support_hours": "Support Hours",
-    "support_email": "support@halalgoes.com",
+    "support_email": null,
     "default_map_center": {
       "latitude": 43.6199,
       "longitude": -79.6033

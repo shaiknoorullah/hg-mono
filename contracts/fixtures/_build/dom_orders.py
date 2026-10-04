@@ -1239,6 +1239,93 @@ def _refunds(reg, synth) -> None:
         tags=["admin", "money"],
     )
 
+    # Several problem reports on one order (https://github.com/shaiknoorullah/hg-mono/issues/184):
+    # each report is its own refund, decided on its own, and a later one is refused only
+    # when it claims an item or the fees another refund already holds.
+    item_report = {
+        "id": uuid_for("refund:report-1-item-missing"),
+        "order_id": uuid_for("order:completed"),
+        "kind": "PARTIAL_ITEMS",
+        "scope": "PARTIAL_ITEMS",
+        "reason_code": "ITEM_MISSING",
+        "amount_cents": 1695,
+        "tax_cents": 220,
+        "currency": "CAD",
+        "state": "SUCCEEDED",
+        "liability_split": {"platform_cents": 495, "restaurant_cents": 1200, "rider_cents": 0},
+        "note": "Biryani missing from a three-item bag.",
+        "requested_at": ts(-3 * HOUR),
+        "settled_at": None,
+        "failure_message": None,
+    }
+    late_report = {
+        "id": uuid_for("refund:report-2-late-delivery"),
+        "order_id": uuid_for("order:completed"),
+        "kind": "FEES_ONLY",
+        "scope": "PARTIAL_AMOUNT",
+        "reason_code": "LATE_DELIVERY",
+        "amount_cents": 902,
+        "tax_cents": 104,
+        "currency": "CAD",
+        "state": "REQUESTED",
+        "liability_split": {"platform_cents": 902, "restaurant_cents": 0, "rider_cents": 0},
+        "note": "Arrived 50 minutes after the latest promised time.",
+        "requested_at": ts(-20 * MINUTE),
+        "settled_at": None,
+        "failure_message": None,
+    }
+    reg.add(
+        "refund_second_report_on_order",
+        "refunds",
+        "Refund",
+        "A second problem report on an order that already has one: the missing item was "
+        "refunded, and now the customer reports the delivery was late. It is accepted as "
+        "its own refund with its own reason, so the platform absorbs the fees while the "
+        "restaurant was charged for the missing item. It does not claim the item again.",
+        late_report,
+        operations=["createRefund", "getRefund"],
+        tags=["money", "refund-state-matrix"],
+    )
+    reg.add(
+        "refund_list_several_reports_on_order",
+        "refunds",
+        "array<Refund>",
+        "`listRefunds?order_id=` for an order with two problem reports, newest first: a late "
+        "delivery waiting for review and a missing item already refunded. They never merge, "
+        "and together they stay under the captured amount.",
+        [late_report, item_report],
+        operations=["listRefunds"],
+        meta={"next_cursor": None, "has_more": False, "total": 2},
+        tags=["money"],
+    )
+    reg.add(
+        "refund_wrong_address_before_delivery",
+        "refunds",
+        "Refund",
+        "Reported from \"Get help\" before delivery: the order is going to the wrong address. "
+        "`WRONG_ADDRESS` waits for support, who redirect the delivery when they can. Any "
+        "refund is per support's judgement and absorbed by the platform: the restaurant "
+        "cooked the order and the rider carried it to the address on the order.",
+        {
+            "id": uuid_for("refund:wrong-address"),
+            "order_id": uuid_for("order:picked-up"),
+            "kind": "FULL",
+            "scope": "FULL",
+            "reason_code": "WRONG_ADDRESS",
+            "amount_cents": 6706,
+            "tax_cents": 691,
+            "currency": "CAD",
+            "state": "REQUESTED",
+            "liability_split": {"platform_cents": 6706, "restaurant_cents": 0, "rider_cents": 0},
+            "note": "I picked my old address by mistake; I'm at 22 Wellesley Street East now.",
+            "requested_at": ts(-4 * MINUTE),
+            "settled_at": None,
+            "failure_message": None,
+        },
+        operations=["createRefund", "getRefund"],
+        tags=["money", "refund-state-matrix"],
+    )
+
     reg.add(
         "refund_list_empty",
         "refunds",
