@@ -2,7 +2,7 @@
 covers:
   - deploy/**
   - services/hg/internal/orders/runner*.go
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Incident runbook
@@ -173,6 +173,7 @@ If Twilio is fine but every customer is refused with "too many attempts" at once
 - **Check** [Stripe's status page](https://status.stripe.com/), API errors and webhook deliveries in Stripe's dashboard, and the API logs.
 - **Stripe is down:** [pause new orders](#pause-new-orders). Orders already authorised stay authorised, and nothing is charged until a restaurant accepts ([authorise then capture (invariant 5)](../../AGENTS.md#3-non-negotiable-invariants)). When Stripe is back, run the Stripe catch-up from the start of the outage ([#223][i223]) and work through the reconciliation exceptions.
 - **Stripe shows our endpoint answering 400:** the webhook signing secret doesn't match, usually after a rotation. Put the right `HG_STRIPE_WEBHOOK_SECRET` in the secrets store and restart the replicas one at a time. Stripe retries for up to three days, so the events arrive; run the catch-up anyway.
+- **Monday's payout run left someone unpaid** (the run failed, or Stripe was down at 09:00 Toronto time): an admin starts the run again for that partner or for everyone (`POST /v1/admin/payout-runs`) and reads what each run did (`GET /v1/admin/payout-runs`). A partner is paid at most once a week, so running it again never pays anyone twice.
 - Card declines are not an incident.
 - **Never** write payment states or ledger rows by hand, and never refund outside the admin refund flow: the ledger is append-only ([ledger spec][p13]).
 
