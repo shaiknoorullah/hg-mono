@@ -113,7 +113,7 @@ pnpm --filter @hg/admin build:dev
 APP_VERSION=1.0.0 pnpm --filter @hg/admin build:prod
 ```
 
-Each writes `apps/<app>/dist`. These commands set `VITE_API_BASE_URL` and `VITE_WS_URL` for the
+Each writes the app's `dist` folder. These commands set `VITE_API_BASE_URL` and `VITE_WS_URL` for the
 environment and win over any `.env.local`. The admin's live map needs `VITE_MAPBOX_TOKEN`; in CI
 it comes from the repo secret `MAPBOX_PUBLIC_TOKEN_WEB`
 ([Mapbox tokens, #57](https://github.com/shaiknoorullah/hg-mono/issues/57)). The plain
