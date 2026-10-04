@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Releasing HalalGoes
@@ -96,6 +96,10 @@ curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
 or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
+It also refuses a secret still holding a `change-me` placeholder from `.env.example`, a missing or
+all-zero `HG_APP_DATA_KEY`, an `HG_OTP_PEPPER` shorter than 32 bytes, and one key reused as another:
+generate each with `openssl rand`. Any secret can come from a file instead (`NAME_FILE`, mode 0400,
+owned by uid 65532), which keeps it out of `docker inspect`; `deploy/.env.example` lists them.
 
 ## 5. Verify the gate (any time)
 
