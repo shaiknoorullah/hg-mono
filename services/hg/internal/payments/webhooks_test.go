@@ -41,9 +41,9 @@ func TestReceiveWebhook_LivemodeMismatchRejected(t *testing.T) {
 	}
 }
 
-// ProcessStoredEvent parses a stored payload and dispatches by type. For an
-// unhandled type it returns an "ignored" marker and no error, so the deadline
-// runner marks it processed without retrying.
+// ProcessStoredEvent parses a stored payload and dispatches by type. For a
+// type with no payment_intent effect it returns an "ignored" marker and no
+// error, and touches nothing (the repo is nil).
 func TestProcessStoredEvent_UnhandledTypeIgnored(t *testing.T) {
 	svc := NewService(nil, &mockStripe{}, config.Stripe{}, nil)
 	payload := []byte(`{"id":"evt_x","type":"invoice.created","data":{"object":{}}}`)

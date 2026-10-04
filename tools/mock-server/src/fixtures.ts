@@ -65,7 +65,11 @@ export class FixtureStore {
   defaultFor(operationId: string): string | undefined {
     const explicit = this.manifest.defaults?.[operationId];
     if (explicit && this.byScenario.has(explicit)) return explicit;
-    return this.byOperation.get(operationId)?.[0];
+    // Never fall back to an error: an operation whose only fixtures are errors (a 204 such
+    // as resetPassword) answers with its success status unless an error is asked for.
+    return this.byOperation
+      .get(operationId)
+      ?.find((scenario) => (this.byScenario.get(scenario)?.status ?? 500) < 300);
   }
 
   get(scenario: string): Fixture | undefined {

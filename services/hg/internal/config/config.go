@@ -50,7 +50,16 @@ type Config struct {
 	SMS      SMS
 	OTP      OTP
 	Tax      Tax
+	Realtime Realtime
 	Halal    Halal
+}
+
+// Realtime holds the WebSocket gateway's per-replica limits.
+type Realtime struct {
+	// MaxSockets caps the live sockets one replica holds. An upgrade beyond it
+	// is closed with 1013 (try again later) so the client retries, possibly on
+	// the other replica (contracts/websocket.md "Limits").
+	MaxSockets int
 }
 
 // Halal holds the halal certificate expiry settings (internal/halalexpiry).
@@ -201,6 +210,15 @@ type MinIO struct {
 	// defaults to scheme+host derived from Endpoint when unset, which is correct
 	// for the dev compose stack where MinIO is reached directly.
 	PublicBaseURL string
+	// PresignBaseURL is the scheme+host phones and browsers reach the object
+	// store's S3 API at, without a trailing slash or a path — e.g.
+	// "https://files.halalgoes.com". Every presigned upload and download link is
+	// signed for this host. It cannot be patched in afterwards: the signature
+	// covers the Host header, so a link signed for the internal endpoint
+	// (minio:9000), which no phone can resolve, stays unusable. The reverse proxy
+	// in front of it must forward the Host header unchanged. Locally it defaults
+	// to scheme+host derived from Endpoint; outside local it is required.
+	PresignBaseURL string
 	// Buckets is the P-27 bucket layout. Private buckets are subject to the
 	// boot-time privacy probe.
 	Buckets Buckets
@@ -288,6 +306,19 @@ func Load(getenv func(string) string) (*Config, error) {
 	// resolver can join "/bucket/key" without doubling it.
 	cfg.MinIO.PublicBaseURL = strings.TrimSuffix(
 		l.optional("HG_MINIO_PUBLIC_BASE_URL", defaultPublicBaseURL(cfg.MinIO.Endpoint, cfg.MinIO.UseSSL)), "/")
+	// Presigned links are signed for the host phones reach, never the internal
+	// endpoint. Locally that is the same MinIO the API dials; anywhere else an
+	// unset value would mint links for minio:9000, so it does not boot.
+	presignBase := l.optional("HG_MINIO_PRESIGN_BASE_URL", "")
+	presignSet := presignBase != ""
+	if !presignSet {
+		if cfg.Env != "" && !cfg.Env.IsLocal() {
+			l.errf("HG_MINIO_PRESIGN_BASE_URL is required when HG_ENV is not local: presigned links "+
+				"are signed for this host, and phones cannot reach the internal endpoint %q", cfg.MinIO.Endpoint)
+		}
+		presignBase = defaultPublicBaseURL(cfg.MinIO.Endpoint, cfg.MinIO.UseSSL)
+	}
+	cfg.MinIO.PresignBaseURL = l.baseURL("HG_MINIO_PRESIGN_BASE_URL", presignBase)
 
 	cfg.Stripe = Stripe{
 		SecretKey:         l.optional("HG_STRIPE_SECRET_KEY", ""),
@@ -359,12 +390,36 @@ func Load(getenv func(string) string) (*Config, error) {
 		l.errf("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: %d is negative; 0 means never suspend", cfg.Halal.SuspendAfterExpiredDays)
 	}
 
+	cfg.Realtime = Realtime{
+		MaxSockets: l.intVal("HG_REALTIME_MAX_SOCKETS", 2000),
+	}
+	if cfg.Realtime.MaxSockets < 1 {
+		l.errf("HG_REALTIME_MAX_SOCKETS: %d must be at least 1", cfg.Realtime.MaxSockets)
+	}
+
 	// G-7: outside local, no dependency may point at loopback. This is the
 	// check that would have caught the hardcoded localhost:6379.
 	if cfg.Env != "" && !cfg.Env.IsLocal() {
 		l.denyLoopback("HG_POSTGRES_DSN", cfg.Postgres.Host())
 		l.denyLoopback("HG_REDIS_ADDR", cfg.Redis.Host())
 		l.denyLoopback("HG_MINIO_ENDPOINT", cfg.MinIO.Host())
+		if u, err := url.Parse(cfg.MinIO.PresignBaseURL); err == nil {
+			l.denyLoopback("HG_MINIO_PRESIGN_BASE_URL", u.Host)
+			// Every presigned link is a bearer credential, including the
+			// two-minute KYC and certificate download links, and an upload
+			// link carries the document itself. Over plain http both would
+			// cross the network in cleartext, breaking the rule that KYC and
+			// certificates stay private (AGENTS.md, "Non-negotiable
+			// invariants": ../../../../AGENTS.md#3-non-negotiable-invariants).
+			// iOS App Transport Security and Android 9+ also refuse cleartext
+			// by default, so the links would fail on phones anyway. An unset
+			// value already failed above, so only an explicit http host is
+			// reported here.
+			if presignSet && u.Scheme != "https" {
+				l.errf("HG_MINIO_PRESIGN_BASE_URL must be https when HG_ENV is not local: " +
+					"presigned links are bearer credentials")
+			}
+		}
 
 		// Outside local the API runs behind Traefik. With no trusted proxy,
 		// every request's client address is Traefik's, so each per-IP limit
@@ -508,6 +563,26 @@ func (l *loader) originList(key string) []string {
 		l.errf("%s: no usable origin found", key)
 	}
 	return out
+}
+
+// baseURL validates an absolute http(s) scheme+host value and returns it without
+// a trailing slash. A path, query or fragment is refused: the S3 client takes a
+// host only, so a path would be dropped silently and every link would miss it.
+// An empty value passes through as "" (nothing configured, nothing to check).
+func (l *loader) baseURL(key, raw string) string {
+	if raw == "" {
+		return ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		l.errf("%s: %q is not an absolute http(s) URL (scheme://host[:port])", key, raw)
+		return ""
+	}
+	if (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		l.errf("%s: %q must be scheme://host[:port] only, with no path, query or credentials", key, raw)
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 // prefixList parses a comma-separated list of CIDRs; a bare IP is one address.

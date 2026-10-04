@@ -1,5 +1,8 @@
 // Command hg is the HalalGoes API server.
 //
+// `hg stripe-catchup --since <time>` instead runs the on-demand Stripe
+// catch-up after a failover or restore, and exits (stripe_catchup.go).
+//
 // It is one binary containing every module as a package. The modules are
 // separated by their dependencies and their spec sections, not by a network hop:
 // nothing here is a microservice, and the layout is designed so that extracting
@@ -367,7 +370,15 @@ func (a *orderLifecycleAdapter) OpenDispute(ctx context.Context, orderID, custom
 }
 
 func main() {
-	if err := run(); err != nil {
+	// With no subcommand, hg is the API server. `hg stripe-catchup` is the
+	// one operator command (stripe_catchup.go).
+	var err error
+	if len(os.Args) > 1 && os.Args[1] == "stripe-catchup" {
+		err = runStripeCatchup(os.Args[2:], os.Stdout)
+	} else {
+		err = run()
+	}
+	if err != nil {
 		// Boot failures go to stderr in plain text as well as the structured
 		// log: a container that dies in three seconds is read with `docker logs`,
 		// and a JSON blob is the wrong shape for that moment.
@@ -404,6 +415,7 @@ func run() error {
 		slog.String("postgres", cfg.Postgres.Host()),
 		slog.String("redis", cfg.Redis.Addr),
 		slog.String("minio", cfg.MinIO.Endpoint),
+		slog.String("minio_presign_base", cfg.MinIO.PresignBaseURL),
 		slog.Int("cors_origins", len(cfg.CORSOrigins)))
 
 	// 2. Dependencies. Open dials all three and fails rather than returning a
@@ -648,12 +660,11 @@ func run() error {
 	// Complete the Seam C wiring: orders.Store now emits realtime outbox events
 	// on every state transition via the transactional outbox (I-15 / §6.1).
 	rtEmitter.store = rtStore
-	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil)
+	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, cfg.Realtime.MaxSockets)
 	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
 	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
-	defer rtGateway.Shutdown()
 
 	// Partition maintenance (docs/spec/01-platform.md, "P-39 — Background
 	// runtime"): at start-up and hourly, keep realtime_event,
@@ -697,7 +708,9 @@ func run() error {
 	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
-		st.Objects().Client,
+		// Links are signed for the public host phones reach; server-side
+		// reads and deletes stay on the internal client.
+		st.Objects().Signer,
 		files.NewMinIOObjectStore(st.Objects().Client),
 		files.Buckets{
 			KYC:     cfg.MinIO.Buckets.KYC,
@@ -757,6 +770,13 @@ func run() error {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
+
+	// Close the live sockets with 1001 (server going away) first, and wait for
+	// the frames to go out, so clients reconnect with backoff instead of seeing
+	// an abnormal closure (contracts/websocket.md "Close codes"). It must run
+	// before st.Close: each close is recorded in Postgres. http.Server.Shutdown
+	// does not track upgraded sockets, so it cannot do this for us.
+	rtGateway.Shutdown()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Error("graceful shutdown exceeded its budget; forcing close",
