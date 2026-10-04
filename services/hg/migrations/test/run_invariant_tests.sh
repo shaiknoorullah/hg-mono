@@ -347,7 +347,35 @@ reject "two idempotency records with the same key collide" "idempotency_unique" 
            digest('r2','sha256'),'IN_PROGRESS',now()+interval '24 hours');"
 
 echo
-echo "11. Contract enums"
+echo "11. Account actions (https://github.com/shaiknoorullah/hg-mono/issues/253)"
+ASE_COLS="subject_type, subject_id, action, from_state, to_state, reason_code, reason_text, actor_account_id, idempotency_key, request_hash"
+reject "a ban needs a proposal to confirm" "account_ban_needs_proposal" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','22222222-2222-4222-8222-222222222222','CONFIRM_BAN','SUSPENDED','BANNED','SAFETY_RISK',
+    'nobody proposed this ban','11111111-1111-4111-8111-111111111111','inv-ban-without-proposal', '\x00');"
+reject "the person who proposed a ban cannot confirm it" "account_ban_two_person" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','22222222-2222-4222-8222-222222222222','PROPOSE_BAN','SUSPENDED','SUSPENDED','SAFETY_RISK',
+    'proposing a ban for a test','11111111-1111-4111-8111-111111111111','inv-two-person-propose', '\x00');
+   INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','22222222-2222-4222-8222-222222222222','CONFIRM_BAN','SUSPENDED','BANNED','SAFETY_RISK',
+    'confirming my own proposal','11111111-1111-4111-8111-111111111111','inv-two-person-confirm', '\x00');"
+reject "a ban is reached only by confirming one" "account_state_event_ban_shape" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('CUSTOMER','11111111-1111-4111-8111-111111111111','SUSPEND','ACTIVE','BANNED','OTHER',
+    'a suspension that bans','019ffe57-fbd0-7355-ade8-b03ea7943578','inv-suspend-to-banned', '\x00');"
+reject "a reason from another subject's vocabulary is refused" "account_state_event_reason_code" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','22222222-2222-4222-8222-222222222222','SUSPEND','ACTIVE','SUSPENDED','HALAL_INTEGRITY',
+    'a restaurant reason on a rider','11111111-1111-4111-8111-111111111111','inv-wrong-vocabulary', '\x00');"
+reject "the account history is append-only" "account_state_event_is_append_only" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('CUSTOMER','11111111-1111-4111-8111-111111111111','SUSPEND','ACTIVE','SUSPENDED','OTHER',
+    'suspended, then rewritten','019ffe57-fbd0-7355-ade8-b03ea7943578','inv-append-only-history', '\x00');
+   UPDATE account_state_event SET to_state = 'ACTIVE' WHERE idempotency_key = 'inv-append-only-history';"
+
+echo
+echo "12. Contract enums"
 if python3 "$HERE/../tools/check_enums.py" >/tmp/hg_enum_check.txt 2>&1; then
   pass "every contract enum matches a pg type or is an explained exclusion"
   tail -2 /tmp/hg_enum_check.txt | head -1 | sed 's/^/     /'

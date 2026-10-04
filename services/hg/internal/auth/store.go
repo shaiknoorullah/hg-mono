@@ -93,13 +93,25 @@ func (s *Store) scanAccount(ctx context.Context, q string, args ...any) (*Accoun
 	return &a, nil
 }
 
-// RolesFor returns every un-revoked role grant for an account.
+// RolesFor returns every un-revoked role grant for an account, except the
+// grants of a banned partner: a banned rider holds no RIDER role, and the staff
+// of a banned or closed restaurant hold none of its restaurant roles. Every
+// sign-in and every refresh reads roles here, so a ban takes effect on the next
+// token as well as ending the sessions it revokes
+// (https://github.com/shaiknoorullah/hg-mono/issues/253). The person keeps any
+// other role, such as CUSTOMER.
 func (s *Store) RolesFor(ctx context.Context, accountID string) ([]RoleGrant, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT role, scope_type, scope_id
-		FROM account_role
-		WHERE account_id = $1 AND revoked_at IS NULL
-		ORDER BY role`, accountID)
+		SELECT ar.role, ar.scope_type, ar.scope_id
+		FROM account_role ar
+		WHERE ar.account_id = $1 AND ar.revoked_at IS NULL
+		  AND NOT (ar.role = 'RIDER' AND EXISTS (
+		        SELECT 1 FROM rider_profile rp
+		         WHERE rp.account_id = ar.account_id AND rp.account_status = 'BANNED'))
+		  AND NOT (ar.scope_type = 'RESTAURANT' AND EXISTS (
+		        SELECT 1 FROM restaurant r
+		         WHERE r.id = ar.scope_id AND r.account_state IN ('BANNED', 'CLOSED')))
+		ORDER BY ar.role`, accountID)
 	if err != nil {
 		return nil, err
 	}

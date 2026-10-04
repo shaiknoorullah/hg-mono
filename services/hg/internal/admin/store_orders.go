@@ -511,7 +511,7 @@ VALUES ($1, $2::order_state, 'CANCELLED', $3::order_actor_kind, $4, $5, $6)`,
 		// nothing to refund, the auth is voided by the payments outbox, and no
 		// ledger movement is required (T3/T5/T8: "auth voided").
 		if from == machine.StatePreparing {
-			if err := postCaptureReversal(ctx, tx, orderID, actor, in); err != nil {
+			if err := postCaptureReversal(ctx, tx, orderID, actor, in.ReasonText, "PLATFORM_INITIATED_CANCELLATION"); err != nil {
 				return err
 			}
 		}
@@ -550,11 +550,15 @@ VALUES ($1, $2::order_state, 'CANCELLED', $3::order_actor_kind, $4, $5, $6)`,
 // zero residual it refuses to write — the money-zero-residual invariant is
 // enforced before COMMIT, not merely hoped for.
 //
-// The liability reason is PLATFORM_INITIATED_CANCELLATION: the platform chose to
-// cancel a live order, so the platform absorbs the cost and the restaurant/rider
-// are made whole. This is the safe default; a future refund_kind-driven policy
-// can refine the split without changing the atomicity guarantee.
-func postCaptureReversal(ctx context.Context, tx pgx.Tx, orderID string, actor auditActor, in cancelOrderAdminInput) error {
+// reversalReason is the refund reason, which decides who bears the cost
+// (payments.ComputeLiabilitySplit). An admin cancellation passes
+// PLATFORM_INITIATED_CANCELLATION: the platform chose to cancel a live order, so
+// it absorbs the cost and the restaurant and rider are made whole. A restaurant
+// suspended for halal integrity or food safety passes HALAL_INTEGRITY or
+// FOOD_SAFETY, so the restaurant is not settled for food the platform can no
+// longer stand behind (https://github.com/shaiknoorullah/hg-mono/issues/253).
+// note is the refund's note.
+func postCaptureReversal(ctx context.Context, tx pgx.Tx, orderID string, actor auditActor, note, reversalReason string) error {
 	// Locate the captured ORDER payment_intent. Post-acceptance orders were
 	// captured on acceptance (invariant 5), so exactly one must exist.
 	var intentID string
@@ -601,7 +605,6 @@ SELECT coalesce(sum(amount_cents),0) FROM refund
 
 	// Liability split + balanced batch come entirely from payments (single source
 	// of the money math). itemNet is the refund net of its tax portion.
-	const reversalReason = "PLATFORM_INITIATED_CANCELLATION"
 	itemNet := refundCents - taxCents
 	if itemNet < 0 {
 		itemNet = 0
@@ -631,7 +634,7 @@ VALUES ($1,$2,'FULL','FULL',$3::refund_reason_code,$4,
         $5,$6,$7,$8,$9,
         'AUTHORISED',$10, now() + interval '2 minutes','SUBMIT_REFUND')
 RETURNING id::text`,
-		orderID, intentID, reversalReason, in.ReasonText,
+		orderID, intentID, reversalReason, note,
 		refundCents, taxCents,
 		split.RestaurantChargebackCents, split.RiderChargebackCents, split.PlatformAbsorbedCents,
 		requestedBy).Scan(&refundID); err != nil {

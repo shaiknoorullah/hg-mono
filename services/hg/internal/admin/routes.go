@@ -66,4 +66,12 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Get("/v1/admin/orders", read(ActionOrderReadAny, "listOrdersAdmin"), h.ListOrdersAdmin)
 	r.Get("/v1/admin/orders/{orderId}", read(ActionOrderReadAny, "getOrderAdmin"), h.GetOrderAdmin)
 	r.Post("/v1/admin/orders/{orderId}/cancel", money(ActionOrderCancelSupport, "cancelOrderAdmin"), h.CancelOrderAdmin)
+
+	// Account actions: suspend, reinstate, delist, deactivate or ban a restaurant,
+	// a rider or a customer (https://github.com/shaiknoorullah/hg-mono/issues/253).
+	// Restaurant and customer actions can cancel and refund orders, so they are
+	// MONEY class.
+	r.Post("/v1/admin/restaurants/{restaurantId}/account-actions", money(ActionRestaurantAccountState, "applyRestaurantAccountAction"), h.ApplyRestaurantAccountAction)
+	r.Post("/v1/admin/riders/{riderAccountId}/account-actions", write(ActionRiderAccountState, "applyRiderAccountAction"), h.ApplyRiderAccountAction)
+	r.Post("/v1/admin/customers/{customerAccountId}/account-actions", money(ActionCustomerAccountState, "applyCustomerAccountAction"), h.ApplyCustomerAccountAction)
 }

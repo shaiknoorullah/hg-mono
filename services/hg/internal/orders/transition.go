@@ -58,6 +58,16 @@ func (s *Store) Transition(ctx context.Context, req TransitionRequest, effects .
 	})
 }
 
+// TransitionInTx is Transition inside a transaction the caller already holds, for
+// a change in another module that must commit or roll back together with the
+// order's state, such as an admin suspending a restaurant and cancelling its
+// unaccepted orders (https://github.com/shaiknoorullah/hg-mono/issues/253). The
+// same table, actor and locking rules apply; this function is still the only
+// writer of order.state.
+func (s *Store) TransitionInTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
+	return s.transitionTx(ctx, tx, req, effects...)
+}
+
 func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
 	var fromStr string
 	var acceptedAt *time.Time

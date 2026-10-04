@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // Config holds the settings the admin handlers need that are owned elsewhere.
@@ -36,16 +37,54 @@ type Handler struct {
 	ordersRepo *OrdersRepo
 	cfg        Config
 	now        func() time.Time
+
+	// The account actions' collaborators from other modules (WithAccountActions).
+	accountOrders   OrderTransitioner
+	accountNotify   NotificationEnqueuer
+	accountReleaser AuthorisationReleaser
 }
 
-// NewHandler builds the admin handler.
+// NewHandler builds the admin handler. The account actions start with an order
+// store that emits no realtime events or notices and no payment releaser; the
+// running server attaches the real ones with WithAccountActions.
 func NewHandler(repo *Repo, cfg Config) *Handler {
 	return &Handler{
-		repo:       repo,
-		ordersRepo: NewOrdersRepo(repo.pool),
-		cfg:        cfg,
-		now:        func() time.Time { return time.Now().UTC() },
+		repo:          repo,
+		ordersRepo:    NewOrdersRepo(repo.pool),
+		cfg:           cfg,
+		now:           func() time.Time { return time.Now().UTC() },
+		accountOrders: orders.NewStore(repo.pool),
 	}
+}
+
+// OrderTransitioner moves an order through the order state machine inside the
+// caller's transaction. *orders.Store implements it.
+type OrderTransitioner = orderTransitioner
+
+// NotificationEnqueuer writes a notification and its delivery job in the
+// caller's transaction. *notify.Enqueuer implements it.
+type NotificationEnqueuer = notificationEnqueuer
+
+// AuthorisationReleaser releases the payment authorisation of an order cancelled
+// before the restaurant accepted it.
+type AuthorisationReleaser = authorisationReleaser
+
+// WithAccountActions attaches what the account actions (suspend, reinstate,
+// delist, deactivate, ban: https://github.com/shaiknoorullah/hg-mono/issues/253)
+// need from other modules: the order store that cancels orders in progress (with
+// its realtime events and customer notices), the notification outbox, and the
+// payment authorisation releaser. A nil argument keeps the current one.
+func (h *Handler) WithAccountActions(o OrderTransitioner, n NotificationEnqueuer, rel AuthorisationReleaser) *Handler {
+	if o != nil {
+		h.accountOrders = o
+	}
+	if n != nil {
+		h.accountNotify = n
+	}
+	if rel != nil {
+		h.accountReleaser = rel
+	}
+	return h
 }
 
 // today is the America/Toronto business date used for H5's expiry arithmetic

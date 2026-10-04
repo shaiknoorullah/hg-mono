@@ -47,4 +47,13 @@ const (
 	// ActionOrderCancelSupport guards cancelOrderAdmin: staff can force-cancel via
 	// the support/admin path (machine transition T11).
 	ActionOrderCancelSupport httpx.Action = "order.cancel_support"
+
+	// Account actions: suspend, reinstate, delist, deactivate or ban
+	// (https://github.com/shaiknoorullah/hg-mono/issues/253). Each route action
+	// lets admins and super admins in; the handler then checks the finer
+	// permission the action needs (confirming a ban and reinstating a banned
+	// account are super admin only), per internal/accountstate.
+	ActionRestaurantAccountState httpx.Action = "restaurant.account_state_change"
+	ActionRiderAccountState      httpx.Action = "rider.account_state_change"
+	ActionCustomerAccountState   httpx.Action = "customer.account_state_change"
 )

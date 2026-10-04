@@ -25,8 +25,11 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// updateMenuCategory (a restaurant renames, reorders, deactivates or
 	// reactivates its own menu category — the round-2 decision that restaurants
 	// edit their own menu from launch, docs/decisions/README.md "How restaurants
-	// get their menu onto HalalGoes and change it"; no handler yet).
-	const wantOps = 155
+	// get their menu onto HalalGoes and change it"; no handler yet) +
+	// applyRestaurantAccountAction/applyRiderAccountAction/applyCustomerAccountAction
+	// (an admin suspends, reinstates, delists, deactivates or bans an account:
+	// https://github.com/shaiknoorullah/hg-mono/issues/253).
+	const wantOps = 158
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

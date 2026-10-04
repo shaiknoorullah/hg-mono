@@ -694,7 +694,13 @@ func run() error {
 	rider.Routes(router, rider.NewHandler(rider.NewService(rider.NewRepo(st.DB().Pool))))
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
-	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
+	// The account actions (suspend, reinstate, delist, deactivate, ban:
+	// https://github.com/shaiknoorullah/hg-mono/issues/253)
+	// cancel orders through the order store that emits realtime events and
+	// customer notices, write their own notices through the notification outbox,
+	// and release a cancelled order's payment authorisation after the commit.
+	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()).
+		WithAccountActions(ordersStore, notifyClient.Enqueue, restaurantPay))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
 		// Links are signed for the public host phones reach; server-side

@@ -268,6 +268,20 @@ WHERE id = $1 AND rider_account_id = $2`, offerID, riderAccountID).Scan(&st.Stat
 		return "", err
 	}
 
+	// A rider who is no longer ACTIVE takes no new work. Suspending a rider
+	// withdraws the offers waiting for them in the same transaction; this catches
+	// an offer made by a dispatch wave that was running at that moment
+	// (https://github.com/shaiknoorullah/hg-mono/issues/253). A plain read, not a
+	// lock, so the lock order below is unchanged.
+	var accountStatus string
+	if err := tx.QueryRow(ctx, `
+SELECT account_status::text FROM rider_profile WHERE account_id = $1`, riderAccountID).Scan(&accountStatus); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return "", err
+	}
+	if accountStatus != "ACTIVE" {
+		return "", newError(403, CodeAccountNotActive, "Your account is not active, so you cannot take new deliveries.", nil)
+	}
+
 	// Step 0a: serialise same-order accepts on the order's dispatch row BEFORE
 	// touching any offer row. Every accept for this order now queues on this single
 	// row lock, so lock acquisition is globally ordered (dispatch row, then offer
