@@ -2749,7 +2749,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | Reconciliation | daily 03:00 ET | Stripe balance transactions vs ledger |
   | Payout run | per schedule | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances |
   | Expiry sweeps | hourly | quotes, tickets, OTP challenges, certificates, unconfirmed uploads |
-  | Partition maintenance | daily | create/drop `realtime_event`, `rider_position_history`, `audit_event` partitions |
+  | Partition maintenance | at start-up, then hourly | create `realtime_event`, `rider_position_history`, `audit_event` partitions ahead of the clock, drop the expired ones (`audit_event` never), and alert on any row in a `*_default` partition |
   | Audit chain verification | daily | `verify_audit_chain(yesterday)` |
 
   Every loop exposes `hg_worker_lag_seconds`, `hg_worker_claimed_total`, `hg_worker_failed_total` and a per-loop health entry in `GET /internal/health`. `GET /health` (liveness) and `GET /health/ready` (readiness: Postgres, Redis, Silo, Stripe reachable) exist from day one — the old Dockerfile probed a `/health` that did not exist, so every container was permanently unhealthy (B104).
