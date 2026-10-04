@@ -55,6 +55,13 @@ type StripeClient interface {
 	// CreateTransfer moves platform balance to a connected account (P-19),
 	// keyed by 'po:'||payout_id.
 	CreateTransfer(ctx context.Context, in CreateTransferInput) (*StripeTransfer, error)
+	// FindTransfer returns the transfer made in a transfer group, or nil when
+	// there is none. A payout's transfer is in the group 'payout_'||payout_id,
+	// so a retry after an attempt that may have reached Stripe (a timeout, a
+	// crash) finds the first transfer instead of making a second one: Stripe
+	// forgets an idempotency key after 24 hours, and the next weekly run is
+	// days later.
+	FindTransfer(ctx context.Context, transferGroup string) (*StripeTransfer, error)
 
 	// VerifyWebhook checks the Stripe-Signature header against the signing
 	// secret with a 300-second tolerance (P-17 / I-17.2) and returns the
@@ -383,6 +390,20 @@ func (s *liveStripe) CreateTransfer(ctx context.Context, in CreateTransferInput)
 		return nil, fmt.Errorf("stripe create transfer: %w", err)
 	}
 	return &StripeTransfer{ID: tr.ID}, nil
+}
+
+func (s *liveStripe) FindTransfer(ctx context.Context, transferGroup string) (*StripeTransfer, error) {
+	params := &stripe.TransferListParams{TransferGroup: stripe.String(transferGroup)}
+	params.Context = ctx
+	params.Limit = stripe.Int64(1)
+	it := s.api.Transfers.List(params)
+	if it.Next() {
+		return &StripeTransfer{ID: it.Transfer().ID}, nil
+	}
+	if err := it.Err(); err != nil {
+		return nil, fmt.Errorf("stripe find transfer: %w", err)
+	}
+	return nil, nil
 }
 
 func (s *liveStripe) VerifyWebhook(payload []byte, sig string) (StripeEvent, error) {

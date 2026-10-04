@@ -30,6 +30,7 @@ x-api-env: &api-env
   HG_SHUTDOWN_TIMEOUT: ${HG_SHUTDOWN_TIMEOUT:-20s}
   HG_CORS_ALLOWED_ORIGINS: ${HG_CORS_ALLOWED_ORIGINS:?set HG_CORS_ALLOWED_ORIGINS in .env}
   HG_REALTIME_MAX_SOCKETS: ${HG_REALTIME_MAX_SOCKETS:-2000}
+  HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: ${HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS:-30}
   # Traefik's network, so the API reads the client address Traefik forwards
   # rather than Traefik's own. Required, not defaulted: this stack always runs
   # the API behind Traefik, and an empty list there makes every per-IP limit

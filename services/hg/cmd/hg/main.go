@@ -609,7 +609,20 @@ func run() error {
 	} else {
 		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
 	}
-	paymentsSvc := payments.NewService(payments.NewRepo(st.DB().Pool), stripeClient, cfg.Stripe, log)
+	paymentsRepo := payments.NewRepo(st.DB().Pool)
+	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log)
+	// The weekly payout run (issue #251): Monday 09:00 America/Toronto, for
+	// every rider and restaurant, and on demand through createPayoutRun. It
+	// needs Stripe, so without a client there is no runner and createPayoutRun
+	// answers 503. Started with the other background loops below.
+	var payoutRunner *payments.PayoutRunner
+	if stripeClient != nil {
+		host, _ := os.Hostname()
+		payoutRunner = payments.NewPayoutRunner(paymentsRepo, stripeClient, payments.PayoutPolicy{
+			RestaurantNegativeBlockDays: cfg.Payouts.RestaurantNegativeBalanceBlockDays,
+		}, host, log)
+		paymentsSvc.WithPayoutRunner(payoutRunner)
+	}
 	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
@@ -678,6 +691,13 @@ func run() error {
 	// replica runs it; a job_run claim lets one pass run per hour across the
 	// fleet. It never deletes ledger, order, audit or KYC rows.
 	go retention.New(st.DB().Pool, log).Run(ctx)
+
+	// Payouts: every replica checks each minute for a due payout run; a
+	// session advisory lock lets one run at a time, and a run a replica
+	// abandons is finished by the next (internal/payments/payout_run.go).
+	if payoutRunner != nil {
+		go payoutRunner.Run(ctx)
+	}
 
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works
