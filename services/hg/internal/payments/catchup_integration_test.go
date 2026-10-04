@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,8 +27,14 @@ import (
 // an event for a payment this database never saw (it was created after the
 // backup), and a payment this database voided that Stripe reports captured.
 //
+// Two are routine and must raise nothing: a decline event that arrives after
+// the order's deadline voided the payment (a late event, not a conflict), and
+// a dispute event, which has no handler yet and so must stay pending for the
+// one that will own it rather than be marked done with no effect.
+//
 // The first run must apply each of these exactly once; the second must change
-// nothing. Skips without HG_TEST_POSTGRES_DSN (see testPool).
+// nothing and still list both payments that need a person, because nothing
+// has resolved them. Skips without HG_TEST_POSTGRES_DSN (see testPool).
 func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *testing.T) {
 	pool := testPool(t)
 	t.Cleanup(pool.Close)
@@ -35,31 +42,41 @@ func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *t
 
 	run := strconv.FormatInt(time.Now().UnixNano(), 36)
 	capturedPI, canceledPI, ghostPI := "pi_cu_cap_"+run, "pi_cu_void_"+run, "pi_cu_ghost_"+run
-	voidedHerePI := "pi_cu_voided_here_" + run
+	voidedHerePI, declinedPI := "pi_cu_voided_here_"+run, "pi_cu_declined_"+run
 	capturedEvt, ghostEvt := "evt_cu_cap_"+run, "evt_cu_ghost_"+run
+	declinedEvt, disputeEvt := "evt_cu_declined_"+run, "evt_cu_dispute_"+run
+	pis := []string{capturedPI, canceledPI, voidedHerePI, declinedPI, ghostPI}
 	t.Cleanup(func() {
 		c := context.Background()
-		_, _ = pool.Exec(c, `DELETE FROM webhook_event WHERE stripe_event_id = ANY($1)`, []string{capturedEvt, ghostEvt})
-		_, _ = pool.Exec(c, `DELETE FROM payment_intent WHERE stripe_payment_intent_id = ANY($1)`, []string{capturedPI, canceledPI, voidedHerePI})
+		_, _ = pool.Exec(c, `DELETE FROM webhook_event WHERE stripe_event_id = ANY($1)`,
+			[]string{capturedEvt, ghostEvt, declinedEvt, disputeEvt})
+		_, _ = pool.Exec(c, `DELETE FROM reconciliation_exception WHERE stripe_object_id = ANY($1)`, pis)
+		_, _ = pool.Exec(c, `DELETE FROM payment_intent WHERE stripe_payment_intent_id = ANY($1)`, pis)
 	})
 	capturedOrder := seedAuthorisedOrder(t, pool, capturedPI)
 	seedAuthorisedOrder(t, pool, canceledPI)
 	voidedHereOrder := seedAuthorisedOrder(t, pool, voidedHerePI)
-	if _, err := pool.Exec(ctx, `
-		UPDATE payment_intent SET state = 'CANCELED', canceled_at = now(), deadline_at = NULL, deadline_action = NULL
-		 WHERE stripe_payment_intent_id = $1`, voidedHerePI); err != nil {
-		t.Fatalf("void %s: %v", voidedHerePI, err)
+	seedAuthorisedOrder(t, pool, declinedPI)
+	for _, pi := range []string{voidedHerePI, declinedPI} {
+		if _, err := pool.Exec(ctx, `
+			UPDATE payment_intent SET state = 'CANCELED', canceled_at = now(), deadline_at = NULL, deadline_action = NULL
+			 WHERE stripe_payment_intent_id = $1`, pi); err != nil {
+			t.Fatalf("void %s: %v", pi, err)
+		}
 	}
 
 	since := time.Now().Add(-time.Hour)
 	events := []StripeEvent{
 		paymentIntentEvent(capturedEvt, "payment_intent.succeeded", capturedPI, 3919, since.Add(time.Minute)),
 		paymentIntentEvent(ghostEvt, "payment_intent.amount_capturable_updated", ghostPI, 0, since.Add(2*time.Minute)),
+		paymentIntentEvent(declinedEvt, "payment_intent.payment_failed", declinedPI, 0, since.Add(3*time.Minute)),
+		paymentIntentEvent(disputeEvt, "charge.dispute.created", capturedPI, 0, since.Add(4*time.Minute)),
 	}
 	onStripe := map[string]*StripeIntent{
 		capturedPI:   {ID: capturedPI, Status: "succeeded", AmountReceivedCents: 3919},
 		canceledPI:   {ID: canceledPI, Status: "canceled"},
 		voidedHerePI: {ID: voidedHerePI, Status: "succeeded", AmountReceivedCents: 3919},
+		declinedPI:   {ID: declinedPI, Status: "canceled"},
 	}
 	mock := &mockStripe{
 		ListEventsFn: func(time.Time) ([]StripeEvent, error) { return events, nil },
@@ -77,8 +94,8 @@ func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *t
 	if err != nil {
 		t.Fatalf("first catch-up: %v", err)
 	}
-	if first.EventsNew != 2 {
-		t.Errorf("first run stored %d new events, want 2", first.EventsNew)
+	if first.EventsNew != 4 {
+		t.Errorf("first run stored %d new events, want 4", first.EventsNew)
 	}
 	if got := intentState(t, pool, capturedPI); got != "SUCCEEDED" {
 		t.Errorf("captured payment is %s after the catch-up, want SUCCEEDED", got)
@@ -89,14 +106,17 @@ func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *t
 	if got := intentState(t, pool, voidedHerePI); got != "CANCELED" {
 		t.Errorf("the payment voided here is %s after the catch-up, want it left CANCELED for a person", got)
 	}
-	// Exactly these two need a person: no more (a late event is not a
-	// mismatch), no fewer.
-	wantMismatches := []string{
-		ghostEvt + ": unknown_intent:" + ghostPI,
-		voidedHerePI + ": settled_conflict:CANCELED<-SUCCEEDED",
+	if got := intentState(t, pool, declinedPI); got != "CANCELED" {
+		t.Errorf("the declined-then-voided payment is %s after the catch-up, want CANCELED", got)
 	}
-	if !slices.Equal(first.Mismatches, wantMismatches) {
-		t.Errorf("mismatches for a person = %v, want %v", first.Mismatches, wantMismatches)
+	// Exactly these two need a person: no more (a late decline is not a
+	// conflict), no fewer.
+	wantMismatches := []string{
+		ghostPI + ": unknown_intent",
+		voidedHerePI + ": settled_conflict (order " + voidedHereOrder + ")",
+	}
+	if got := ours(first.Mismatches, run); !slices.Equal(got, wantMismatches) {
+		t.Errorf("mismatches for a person = %v, want %v", got, wantMismatches)
 	}
 	if !first.LeftWork() {
 		t.Error("a run with mismatches reports no work left, so the command would exit zero")
@@ -110,17 +130,45 @@ func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *t
 		t.Errorf("second run changed something: %d new events, %d applied, transitions %v",
 			second.EventsNew, second.EventsProcessed, second.Transitions)
 	}
+	// The ghost payment's event was applied on the first run, so only its
+	// stored exception can still report it: money taken with no order here
+	// must not drop out of the report because the command ran twice.
+	if got := ours(second.Mismatches, run); !slices.Equal(got, wantMismatches) {
+		t.Errorf("second run's mismatches for a person = %v, want the first run's %v", got, wantMismatches)
+	}
+	if !second.LeftWork() {
+		t.Error("a rerun with unresolved mismatches reports no work left, so the command would exit zero")
+	}
 
-	// Exactly once, in the database itself: one row per event, both applied,
-	// and one CAPTURE batch however many times the capture was seen.
+	// Exactly once, in the database itself: one row per event, each
+	// payment_intent event applied, and one CAPTURE batch however many times
+	// the capture was seen. One exception per payment for a person, however
+	// many runs saw it.
 	var rows, processed int
 	if err := pool.QueryRow(ctx, `
 		SELECT count(*), count(processed_at) FROM webhook_event WHERE stripe_event_id = ANY($1)`,
-		[]string{capturedEvt, ghostEvt}).Scan(&rows, &processed); err != nil {
+		[]string{capturedEvt, ghostEvt, declinedEvt}).Scan(&rows, &processed); err != nil {
 		t.Fatalf("count webhook events: %v", err)
 	}
-	if rows != 2 || processed != 2 {
-		t.Errorf("webhook_event: %d rows, %d applied; want 2 and 2", rows, processed)
+	if rows != 3 || processed != 3 {
+		t.Errorf("webhook_event: %d rows, %d applied; want 3 and 3", rows, processed)
+	}
+	var disputePending bool
+	if err := pool.QueryRow(ctx, `SELECT processed_at IS NULL FROM webhook_event WHERE stripe_event_id = $1`,
+		disputeEvt).Scan(&disputePending); err != nil {
+		t.Fatalf("read the dispute event: %v", err)
+	}
+	if !disputePending {
+		t.Error("the dispute event was marked applied, though nothing applies a dispute yet; its handler would never see it")
+	}
+	var exceptions int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*) FROM reconciliation_exception WHERE stripe_object_id = ANY($1) AND resolved_at IS NULL`,
+		pis).Scan(&exceptions); err != nil {
+		t.Fatalf("count reconciliation exceptions: %v", err)
+	}
+	if exceptions != 2 {
+		t.Errorf("%d open reconciliation exceptions for this test's payments, want 2", exceptions)
 	}
 	var batches int
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM ledger_batch WHERE order_id = $1 AND kind = 'CAPTURE'`,
@@ -137,6 +185,18 @@ func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *t
 	if batches != 0 {
 		t.Errorf("the order voided here has %d ledger batches, want none: money was posted against a cancelled authorisation", batches)
 	}
+}
+
+// ours keeps the report lines about this run's payments: the database is
+// shared, and another suite's open exceptions are not this test's to judge.
+func ours(lines []string, run string) []string {
+	var out []string
+	for _, l := range lines {
+		if strings.Contains(l, run) {
+			out = append(out, l)
+		}
+	}
+	return out
 }
 
 // seedAuthorisedOrder adds a delivered order with its card authorised but not

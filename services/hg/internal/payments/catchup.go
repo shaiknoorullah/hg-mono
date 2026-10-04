@@ -2,6 +2,7 @@ package payments
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -26,6 +27,12 @@ import (
 //     24 hours (or since the replay start, if that is earlier) and assert its
 //     state through the same transition code the webhooks use. Nothing here
 //     writes a payment state directly.
+//
+// Whatever either step will not settle by itself is filed as a
+// reconciliation_exception, the table the spec keeps for exactly this, and
+// every open one is listed in the report until a person resolves it. An
+// event is marked applied in the same transaction that files its exception,
+// so a rerun, which no longer sees the event, still reports it.
 
 // stripeEventRetention is how far back Stripe's events API reaches.
 const stripeEventRetention = 30 * 24 * time.Hour
@@ -33,6 +40,30 @@ const stripeEventRetention = 30 * 24 * time.Hour
 // reconcileWindow is how recently a PaymentIntent must have been written for
 // the catch-up to read it back from Stripe.
 const reconcileWindow = 24 * time.Hour
+
+// The kinds of reconciliation_exception the catch-up files. Each is a
+// disagreement with Stripe that a person has to settle.
+const (
+	// exceptionUnknownIntent: Stripe has a payment this database has no row
+	// for, such as one created after the backup a restore came from. If it
+	// was captured, a customer paid for an order that does not exist here.
+	exceptionUnknownIntent = "unknown_intent"
+	// exceptionSettledConflict: a payment this database holds as captured,
+	// Stripe holds as cancelled, or the other way round.
+	exceptionSettledConflict = "settled_conflict"
+	// exceptionUnmappedStatus: Stripe reports a status this code does not
+	// know, so it asserts nothing rather than guess a payment state.
+	exceptionUnmappedStatus = "unmapped_status"
+	// exceptionDatabaseAhead: Stripe's current view of a payment is earlier
+	// in its lifecycle than this database's.
+	exceptionDatabaseAhead = "database_ahead_of_stripe"
+)
+
+// catchUpExceptionKinds is every kind above: the open exceptions the report
+// lists.
+var catchUpExceptionKinds = []string{
+	exceptionUnknownIntent, exceptionSettledConflict, exceptionUnmappedStatus, exceptionDatabaseAhead,
+}
 
 // CatchUpReport is what a catch-up did, for the operator who ran it.
 type CatchUpReport struct {
@@ -52,9 +83,10 @@ type CatchUpReport struct {
 	// Transitions lists every state change or ledger batch written, one
 	// "<event or intent id>: <effect>" line each.
 	Transitions []string
-	// Mismatches lists disagreements the code will not settle by itself: a
-	// payment Stripe knows and this database does not, or one the database
-	// has further along than Stripe. A person has to look at each.
+	// Mismatches lists every open reconciliation_exception the catch-up has
+	// filed, in this run or an earlier one: disagreements with Stripe the
+	// code will not settle by itself (see catchUpExceptionKinds). A person has
+	// to look at each, and it stays listed until they set its resolved_at.
 	Mismatches []string
 	// Failures lists the steps that errored. Re-running the catch-up is safe.
 	Failures []string
@@ -64,18 +96,38 @@ type CatchUpReport struct {
 // not count as clean.
 func (r CatchUpReport) LeftWork() bool { return len(r.Failures)+len(r.Mismatches) > 0 }
 
-// note files one effect under the report's lists. fromStripeNow says whether
-// the asserted state is Stripe's current view of the intent (reconciliation)
-// rather than an event, which may be older than what the database already
-// holds: only the current view being behind the database is a mismatch.
-func (r *CatchUpReport) note(subject string, eff effect, fromStripeNow bool) {
-	line := subject + ": " + eff.String()
-	switch {
-	case eff.kind == effectApplied:
-		r.Transitions = append(r.Transitions, line)
-	case eff.kind == effectMismatch, eff.kind == effectBehind && fromStripeNow:
-		r.Mismatches = append(r.Mismatches, line)
+// note lists an effect that wrote something under the report's transitions.
+func (r *CatchUpReport) note(subject string, eff effect) {
+	if eff.kind == effectApplied {
+		r.Transitions = append(r.Transitions, subject+": "+eff.String())
 	}
+}
+
+// exceptionFor is the exception an effect leaves for a person, or nil.
+// fromStripeNow says whether the asserted state is Stripe's current view of
+// the intent (reconciliation) rather than an event, which may be older than
+// what the database already holds: only the current view being behind the
+// database is a disagreement.
+func exceptionFor(eff effect, fromStripeNow bool) *catchUpException {
+	var kind string
+	switch {
+	case eff.kind == effectMismatch:
+		kind = eff.exception
+	case eff.kind == effectBehind && fromStripeNow:
+		kind = exceptionDatabaseAhead
+	default:
+		return nil
+	}
+	return &catchUpException{Kind: kind, StripeObjectID: eff.stripeID, OrderID: eff.orderID}
+}
+
+// mismatchLine is how an open exception reads in the report.
+func mismatchLine(e catchUpException) string {
+	line := e.StripeObjectID + ": " + e.Kind
+	if e.OrderID != "" {
+		line += " (order " + e.OrderID + ")"
+	}
+	return line
 }
 
 func (r *CatchUpReport) fail(subject string, err error) {
@@ -110,7 +162,15 @@ func (s *Service) CatchUp(ctx context.Context, since time.Time, envIsLive bool) 
 	if err := s.replayEvents(ctx, &rep, envIsLive); err != nil {
 		return rep, err
 	}
-	return rep, s.reconcileIntents(ctx, &rep)
+	reconcileErr := s.reconcileIntents(ctx, &rep)
+	open, err := s.repo.OpenCatchUpExceptions(ctx)
+	if err != nil {
+		return rep, errors.Join(reconcileErr, err)
+	}
+	for _, e := range open {
+		rep.Mismatches = append(rep.Mismatches, mismatchLine(e))
+	}
+	return rep, reconcileErr
 }
 
 func (s *Service) replayEvents(ctx context.Context, rep *CatchUpReport, envIsLive bool) error {
@@ -149,12 +209,12 @@ func (s *Service) replayEvents(ctx context.Context, rep *CatchUpReport, envIsLiv
 			}
 			continue
 		}
-		if err := s.repo.MarkWebhookEventProcessed(ctx, e.ID); err != nil {
+		if err := s.repo.MarkWebhookEventProcessed(ctx, e.ID, exceptionFor(eff, false)); err != nil {
 			rep.fail(e.StripeEventID, err)
 			continue
 		}
 		rep.EventsProcessed++
-		rep.note(e.StripeEventID, eff, false)
+		rep.note(e.StripeEventID, eff)
 	}
 	return nil
 }
@@ -174,17 +234,22 @@ func (s *Service) reconcileIntents(ctx context.Context, rep *CatchUpReport) erro
 			continue
 		}
 		rep.IntentsChecked++
-		target, ok := reconcileTarget(pi)
-		if !ok {
-			rep.note(id, effect{effectMismatch, "unmapped_status:" + pi.Status}, true)
-			continue
+		var eff effect
+		if target, ok := reconcileTarget(pi); ok {
+			if eff, err = s.assertIntentState(ctx, id, target, pi.AmountReceivedCents); err != nil {
+				rep.fail(id, err)
+				continue
+			}
+		} else {
+			eff = effect{kind: effectMismatch, label: exceptionUnmappedStatus + ":" + pi.Status,
+				exception: exceptionUnmappedStatus, stripeID: id}
 		}
-		eff, err := s.assertIntentState(ctx, id, target, pi.AmountReceivedCents)
-		if err != nil {
-			rep.fail(id, err)
-			continue
+		rep.note(id, eff)
+		if exc := exceptionFor(eff, true); exc != nil {
+			if err := s.repo.FileCatchUpException(ctx, *exc); err != nil {
+				rep.fail(id, err)
+			}
 		}
-		rep.note(id, eff, true)
 	}
 	return nil
 }

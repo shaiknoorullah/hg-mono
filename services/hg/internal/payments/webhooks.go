@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 )
 
 // Webhook handling (P-17). The HTTP boundary is store-then-process: verify the
@@ -101,12 +102,45 @@ const (
 )
 
 // effect is the outcome of one state assertion. Its label is the audit line.
+// For a mismatch, exception is the kind of reconciliation_exception it leaves
+// (catchup.go), and stripeID and orderID say which payment a person has to
+// look at; orderID is empty when this database has no row for the payment.
+// stripeID and orderID are set on effectBehind too, which is a mismatch when
+// it comes from Stripe's current view rather than an event.
 type effect struct {
-	kind  effectKind
-	label string
+	kind      effectKind
+	label     string
+	exception string
+	stripeID  string
+	orderID   string
 }
 
 func (e effect) String() string { return e.label }
+
+// intentEventTargets maps each Stripe event type that has a payment_intent
+// effect to the payment state it asserts. It is the whole list of events this
+// file applies: the catch-up applies only these (Repo.UnprocessedWebhookEventsSince),
+// so a refund, dispute, Connect-account or payout event stays pending for the
+// handler that will own it instead of being marked done with no effect. The
+// spec's table of events and their effects is docs/spec/01-platform.md,
+// "P-17 — Webhooks, idempotency and reconciliation".
+var intentEventTargets = map[string]PaymentState{
+	"payment_intent.amount_capturable_updated": StateRequiresCapture,
+	"payment_intent.requires_action":           StateRequiresAction,
+	"payment_intent.succeeded":                 StateSucceeded,
+	"payment_intent.payment_failed":            StateFailed,
+	"payment_intent.canceled":                  StateCanceled,
+}
+
+// intentEventTypes is intentEventTargets' keys, sorted, for a SQL filter.
+func intentEventTypes() []string {
+	types := make([]string, 0, len(intentEventTargets))
+	for t := range intentEventTargets {
+		types = append(types, t)
+	}
+	slices.Sort(types)
+	return types
+}
 
 // ProcessStoredEvent applies a stored webhook event's business effect. It is
 // idempotent: re-running it produces exactly one state change and one ledger
@@ -125,23 +159,13 @@ func (s *Service) processEvent(ctx context.Context, rawPayload []byte) (effect, 
 	if err := json.Unmarshal(rawPayload, &env); err != nil {
 		return effect{}, fmt.Errorf("parse stored event: %w", err)
 	}
-	var target PaymentState
-	switch env.Type {
-	case "payment_intent.amount_capturable_updated":
-		target = StateRequiresCapture
-	case "payment_intent.requires_action":
-		target = StateRequiresAction
-	case "payment_intent.succeeded":
-		target = StateSucceeded
-	case "payment_intent.payment_failed":
-		target = StateFailed
-	case "payment_intent.canceled":
-		target = StateCanceled
-	default:
-		// Events we recognise but do not yet act on (transfers, disputes,
-		// account.updated, payout.*) are marked processed by the runner without
-		// a payment_intent effect. Returning no error keeps them from retrying.
-		return effect{effectUnchanged, "ignored:" + env.Type}, nil
+	target, ok := intentEventTargets[env.Type]
+	if !ok {
+		// An event with no payment_intent effect here. Refunds, disputes,
+		// Connect accounts and payouts have effects in the spec that no
+		// handler applies yet, so a caller must not mark one of those done on
+		// the strength of this: the catch-up never hands them over.
+		return effect{kind: effectUnchanged, label: "ignored:" + env.Type}, nil
 	}
 	var obj stripePIObject
 	if err := json.Unmarshal(env.Data.Object, &obj); err != nil {
@@ -159,21 +183,32 @@ func (s *Service) processEvent(ctx context.Context, rawPayload []byte) (effect, 
 func (s *Service) assertIntentState(ctx context.Context, stripeID string, target PaymentState, amountReceived int64) (effect, error) {
 	cur, err := s.repo.GetIntentByStripeID(ctx, stripeID)
 	if errors.Is(err, ErrNotFound) {
-		return effect{effectMismatch, "unknown_intent:" + stripeID}, nil
+		return effect{kind: effectMismatch, label: exceptionUnknownIntent + ":" + stripeID,
+			exception: exceptionUnknownIntent, stripeID: stripeID}, nil
 	}
 	if err != nil {
 		return effect{}, err
 	}
 	curState := PaymentState(cur.State)
-	if paymentStateRank[target] < paymentStateRank[curState] {
-		return effect{effectBehind, fmt.Sprintf("skipped_backwards:%s<-%s", curState, target)}, nil
+	settled := curState == StateSucceeded || curState == StateCanceled
+	// Stripe never fails an intent it has captured or cancelled, so a FAILED
+	// assertion against a settled payment is always an older event arriving
+	// late: the card was declined, then the customer abandoned the order or
+	// its 15-minute deadline voided the authorisation (transition T3, created
+	// to cancelled, in docs/spec/01-platform.md, "P-14 — Order lifecycle
+	// states and transitions"). FAILED ranks with the final states, so the
+	// rank check alone would not catch it.
+	if paymentStateRank[target] < paymentStateRank[curState] || (settled && target == StateFailed) {
+		return effect{kind: effectBehind, label: fmt.Sprintf("skipped_backwards:%s<-%s", curState, target),
+			stripeID: stripeID, orderID: cur.OrderID}, nil
 	}
-	// A captured or cancelled payment is settled: Stripe never moves one of
-	// those to another final state, so an assertion that it did is a
+	// A captured or cancelled payment is settled: Stripe never moves one
+	// between captured and cancelled, so an assertion that it did is a
 	// disagreement for a person, not a transition. Above all, a cancelled
 	// authorisation never has money captured against it here.
-	if (curState == StateSucceeded || curState == StateCanceled) && target != curState {
-		return effect{effectMismatch, fmt.Sprintf("settled_conflict:%s<-%s", curState, target)}, nil
+	if settled && target != curState {
+		return effect{kind: effectMismatch, label: fmt.Sprintf("%s:%s<-%s", exceptionSettledConflict, curState, target),
+			exception: exceptionSettledConflict, stripeID: stripeID, orderID: cur.OrderID}, nil
 	}
 	if target == StateSucceeded {
 		return s.recordSucceeded(ctx, cur, amountReceived)
@@ -183,9 +218,9 @@ func (s *Service) assertIntentState(ctx context.Context, stripeID string, target
 		return effect{}, err
 	}
 	if !applied {
-		return effect{effectUnchanged, "noop:" + string(target)}, nil
+		return effect{kind: effectUnchanged, label: "noop:" + string(target)}, nil
 	}
-	return effect{effectApplied, "advanced:" + string(target)}, nil
+	return effect{kind: effectApplied, label: "advanced:" + string(target)}, nil
 }
 
 // recordSucceeded records the capture: set the captured amount and, if not
@@ -203,7 +238,7 @@ func (s *Service) recordSucceeded(ctx context.Context, cur IntentRow, amountRece
 			return effect{}, err
 		}
 		if posted {
-			return effect{effectUnchanged, "noop:" + string(StateSucceeded)}, nil
+			return effect{kind: effectUnchanged, label: "noop:" + string(StateSucceeded)}, nil
 		}
 	}
 	money, _, err := s.repo.GetOrderMoney(ctx, cur.OrderID)
@@ -214,5 +249,5 @@ func (s *Service) recordSucceeded(ctx context.Context, cur IntentRow, amountRece
 	if err := s.repo.RecordCapture(ctx, cur.StripePaymentIntentID, captured, batch); err != nil {
 		return effect{}, err
 	}
-	return effect{effectApplied, "captured:" + cur.OrderID}, nil
+	return effect{kind: effectApplied, label: "captured:" + cur.OrderID}, nil
 }

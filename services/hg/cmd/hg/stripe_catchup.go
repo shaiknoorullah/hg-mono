@@ -30,6 +30,11 @@ changes nothing the second time.
 <time> is RFC 3339 (2026-10-01T03:00:00Z) or a duration back from now (90m,
 6h). Stripe keeps events for 30 days.
 
+Each disagreement with Stripe it will not settle by itself is filed as a
+reconciliation_exception and listed on every run until a person resolves it
+(sets its resolved_at). Events with no payment effect yet (refunds, disputes,
+Connect accounts, payouts) are stored but left pending for their handlers.
+
 It needs the server's own environment (HG_POSTGRES_DSN, HG_STRIPE_SECRET_KEY,
 HG_ENV and the rest), which is what keeps it admin-only: there is no HTTP route
 to it. Exits non-zero when anything failed or needs a person.
@@ -100,7 +105,8 @@ func runStripeCatchup(args []string, stdout io.Writer) error {
 		return fmt.Errorf("stripe-catchup: %w", err)
 	}
 	if rep.LeftWork() {
-		return fmt.Errorf("stripe-catchup: %d failure(s) and %d mismatch(es) need a person; re-running is safe",
+		return fmt.Errorf("stripe-catchup: %d failure(s) and %d open mismatch(es) need a person; "+
+			"re-running is safe, and a mismatch stays listed until its reconciliation_exception is resolved",
 			len(rep.Failures), len(rep.Mismatches))
 	}
 	return nil

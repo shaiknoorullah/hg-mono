@@ -614,14 +614,17 @@ type storedEvent struct {
 	Payload       []byte
 }
 
-// UnprocessedWebhookEventsSince lists the stored events created at or after
-// since that have not been applied yet, oldest first.
+// UnprocessedWebhookEventsSince lists the stored payment_intent events
+// created at or after since that have not been applied yet, oldest first.
+// Only the types with an effect here (intentEventTargets) are listed: any
+// other event stays pending for the handler that will own it.
 func (r *Repo) UnprocessedWebhookEventsSince(ctx context.Context, since time.Time) ([]storedEvent, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT id::text, stripe_event_id, payload
 		  FROM webhook_event
 		 WHERE provider = 'stripe' AND processed_at IS NULL AND event_created_at >= $1
-		 ORDER BY event_created_at, received_at`, since)
+		   AND type = ANY($2)
+		 ORDER BY event_created_at, received_at`, since, intentEventTypes())
 	if err != nil {
 		return nil, fmt.Errorf("list unprocessed webhook events: %w", err)
 	}
@@ -638,14 +641,74 @@ func (r *Repo) UnprocessedWebhookEventsSince(ctx context.Context, since time.Tim
 }
 
 // MarkWebhookEventProcessed stamps an applied event. processed_at is what lets
-// the row drop its deadline (webhook_event_deadline_required).
-func (r *Repo) MarkWebhookEventProcessed(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, `
-		UPDATE webhook_event
-		   SET processed_at = now(), attempts = attempts + 1, last_error = NULL,
-		       deadline_at = NULL, deadline_action = NULL, lease_until = NULL, lease_owner = NULL
-		 WHERE id = $1 AND processed_at IS NULL`, id)
-	return err
+// the row drop its deadline (webhook_event_deadline_required). When applying
+// the event found something for a person, exc is filed in the same
+// transaction, so an event is never marked done without its exception.
+func (r *Repo) MarkWebhookEventProcessed(ctx context.Context, id string, exc *catchUpException) error {
+	return r.tx(ctx, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `
+			UPDATE webhook_event
+			   SET processed_at = now(), attempts = attempts + 1, last_error = NULL,
+			       deadline_at = NULL, deadline_action = NULL, lease_until = NULL, lease_owner = NULL
+			 WHERE id = $1 AND processed_at IS NULL`, id); err != nil {
+			return err
+		}
+		if exc == nil {
+			return nil
+		}
+		return fileException(ctx, tx, *exc)
+	})
+}
+
+// catchUpException is a disagreement with Stripe that the catch-up leaves for
+// a person, as a reconciliation_exception row (docs/spec/01-platform.md,
+// "P-17 — Webhooks, idempotency and reconciliation").
+type catchUpException struct {
+	Kind           string // one of catchUpExceptionKinds
+	StripeObjectID string // the PaymentIntent
+	OrderID        string // empty when this database has no row for it
+}
+
+// FileCatchUpException files exc unless the same kind is already open for the
+// same payment.
+func (r *Repo) FileCatchUpException(ctx context.Context, exc catchUpException) error {
+	return r.tx(ctx, func(tx pgx.Tx) error { return fileException(ctx, tx, exc) })
+}
+
+func fileException(ctx context.Context, tx pgx.Tx, exc catchUpException) error {
+	_, err := tx.Exec(ctx, `
+		INSERT INTO reconciliation_exception (kind, stripe_object_id, order_id)
+		SELECT $1, $2, $3::uuid
+		 WHERE NOT EXISTS (SELECT 1 FROM reconciliation_exception
+		                    WHERE kind = $1 AND stripe_object_id = $2 AND resolved_at IS NULL)`,
+		exc.Kind, exc.StripeObjectID, nullUUID(exc.OrderID))
+	if err != nil {
+		return fmt.Errorf("file reconciliation exception %s for %s: %w", exc.Kind, exc.StripeObjectID, err)
+	}
+	return nil
+}
+
+// OpenCatchUpExceptions lists every unresolved exception of a kind the
+// catch-up files, oldest first.
+func (r *Repo) OpenCatchUpExceptions(ctx context.Context) ([]catchUpException, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT kind, coalesce(stripe_object_id, ''), coalesce(order_id::text, '')
+		  FROM reconciliation_exception
+		 WHERE resolved_at IS NULL AND kind = ANY($1)
+		 ORDER BY detected_at, id`, catchUpExceptionKinds)
+	if err != nil {
+		return nil, fmt.Errorf("list open reconciliation exceptions: %w", err)
+	}
+	defer rows.Close()
+	var out []catchUpException
+	for rows.Next() {
+		var e catchUpException
+		if err := rows.Scan(&e.Kind, &e.StripeObjectID, &e.OrderID); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
 }
 
 // RecordWebhookEventFailure counts a failed attempt and keeps the row pending,
