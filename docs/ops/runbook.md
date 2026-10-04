@@ -167,7 +167,7 @@ If only WhatsApp fails, switch to text messages: set `HG_TWILIO_VERIFY_CHANNEL=s
 
 If Twilio itself is down or the account is blocked, there is nothing to switch to: the owner contacts Twilio and support tells customers. Don't change `HG_OTP_PROVIDER` during an incident: the other path sends through Twilio's message sender, which needs its own registered number and has never run in production.
 
-If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0`: the API refuses to start with it ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
+If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7` ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
 
 ## Payments are failing
 
@@ -202,7 +202,7 @@ On-call contains. The privacy officer and the owner decide what is reported, and
 ## Routine work on one server
 
 - **Reboots.** A timer reboots only when a reboot is pending: about 04:30 Toronto time on Sunday, early afternoon during Ramadan. About 2 minutes down. Anything longer waits for that window, with new orders paused and a Contabo snapshot taken first.
-- **Docker updates.** Monthly, by hand: unattended upgrades don't cover Docker's repository. Take a snapshot first, in the quiet window. Afterwards, check the published port still reaches the API: a new Docker once broke an old Traefik ([#228][i228]).
+- **Docker updates.** Monthly, by hand: unattended upgrades don't cover Docker's repository. Take a snapshot first, in the quiet window. Afterwards, check the published port still reaches the API: a new Docker once broke an old Traefik ([#228][i228]). Traefik is pinned by digest in the compose files; `docker compose logs traefik | grep 'Provider connection established'` shows it can read the new Docker. If it can't, move the pin to a Traefik release that supports that Docker's minimum API version.
 - **WireGuard is broken.** Get in through Contabo's rescue system, or switch on the VNC console in the panel for that emergency only. VNC is unencrypted and uses only the first 8 characters of its password. Log in with the local account's long password, then switch VNC off.
 - **Changing plan.** Contabo doesn't resize in place. Until the standby runs, a plan change is a planned rebuild (a fresh backup, new orders paused, then [the rebuild steps](#rebuild-on-a-new-server)) or Contabo's paid live migration. Take the free snapshot first. Never during Ramadan.
 
