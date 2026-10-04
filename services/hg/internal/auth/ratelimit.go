@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"sync"
 	"time"
 
@@ -50,8 +51,9 @@ const (
 	// so an alert can fire (localLimiter). The limit keeps holding while Redis
 	// is down, once per replica: with two replicas a caller gets at most twice
 	// Max. It is the degraded mode, not a second source of truth: its counts
-	// are dropped when their window ends, the next answer from Redis is the
-	// count again, and the local window starts at the first request Redis
+	// are dropped when their window ends (or, when memory is full, the lowest
+	// one is), the next answer from Redis is the count again, and the local
+	// window starts at the first request Redis
 	// could not answer, so a caller can get Max from Redis and then Max here
 	// in the window a Redis outage begins (docs/spec/01-platform.md, "P-38 —
 	// Rate limiting"). For limits whose request must not become a 503 while
@@ -157,26 +159,34 @@ func (rl *RateLimiter) SetCooldown(ctx context.Context, key string, ttl time.Dur
 	return nil
 }
 
-// localMaxEntriesPerLimit caps the subjects the local fallback counts one by
-// one for one limit (one Limit.Name). Subjects come from the caller (an
-// address, an email), so without a cap a flood of made-up emails would grow
-// memory for as long as Redis is down. Names are constants in code, so the
-// fallback holds at most this many counters per limit: under 1 MB per limit
-// at the cap, since a counter keeps its key as a 32-byte hash, however long
-// the email. A window sees hundreds of subjects per limit at launch, not
-// thousands.
-const localMaxEntriesPerLimit = 10_000
+// localMaxEntriesPerLimit caps the counts the local fallback keeps for one
+// limit (one Limit.Name). Subjects come from the caller (an address, an
+// email), so without a cap a flood of made-up emails would grow memory for as
+// long as Redis is down. Names are constants in code, so the fallback holds at
+// most this many counts per limit: a count is a 16-byte key hash and two
+// integers, however long the email, and a limit at the cap measured 5 MB of
+// heap, levelling off at 11 MB under a flood of a million made-up subjects
+// (evictions leave the map's tables partly empty). A window sees hundreds of
+// subjects per limit at launch; the cap is far above that so that a flood,
+// not real traffic, is what fills it.
+const localMaxEntriesPerLimit = 100_000
 
-// localSweepEvery is how often the fallback drops one limit's counters whose
-// window has ended. A sweep walks all of that limit's counters (a fraction of
-// a millisecond at the cap), so it runs at most this often, never on every
-// request.
-const localSweepEvery = time.Second
+// localEvictionSample is how many counts are looked at to choose the one to
+// drop when a limit is full, as Redis samples keys for its LRU and LFU
+// policies: enough that a count-1 entry is almost always among them while
+// any are left, few enough that each eviction costs the same small time.
+const localEvictionSample = 16
+
+// localSweepEvery is how often the fallback drops one limit's counts whose
+// window has ended. A sweep walks all of that limit's counts (a few
+// milliseconds at the cap), so it runs at most this often, never on every
+// request. In between, an ended window is the first choice for eviction.
+const localSweepEvery = time.Minute
 
 // localLimiter is the degraded mode behind FallBackLocally: the same count
 // Redis keeps, held in this replica's memory while Redis cannot answer.
 //
-//   - Same key: a counter is keyed by Limit.key(), the Redis key, built by the
+//   - Same key: a count is keyed by Limit.key(), the Redis key, built by the
 //     caller from the canonical email and the address bucket
 //     (httpx.RateLimitKey: IPv6 per /64, "unknown" when unresolved), so
 //     changing letter case or an IPv6 suffix does not reset a count here
@@ -186,14 +196,16 @@ const localSweepEvery = time.Second
 //     a short time, exactly as with Redis.
 //   - Atomic: one mutex covers the read, the increment and the answer, so
 //     concurrent requests can never take more than Max between them.
-//   - Bounded: each limit keeps at most maxEntries counters, and a counter is
-//     dropped only once its window has ended. A live counter is never evicted
-//     to make room, since that would hand its subject a fresh budget: when a
-//     limit is full of live counters, every new subject is counted in one
-//     overflow window shared by all of them, with the same Max. A flood of
-//     made-up subjects is then limited as one caller, and new subjects are
-//     refused (429), never let through, until counters expire.
-//   - Separate per limit: a flood on one limit cannot fill another's.
+//   - Bounded: each limit keeps at most maxEntries counts. A count is dropped
+//     when its window ends; when a limit is full, a new subject takes the
+//     place of the lowest count among localEvictionSample sampled (an ended
+//     window counting as zero; on a tie, the oldest window). A flood of
+//     made-up subjects creates counts of one, so those are what it evicts:
+//     a subject that is really being tried keeps its count, losing a count of
+//     one gives back at most one attempt, and a new caller always gets a
+//     count of its own, so a flood can neither reset a guesser's budget nor
+//     lock new callers out.
+//   - Separate per limit: a flood on one limit cannot touch another's counts.
 type localLimiter struct {
 	mu         sync.Mutex
 	now        func() time.Time
@@ -201,19 +213,23 @@ type localLimiter struct {
 	limits     map[string]*localCounters // by Limit.Name
 }
 
-// localCounters is one limit's counters.
+// localCounters is one limit's counts.
 type localCounters struct {
-	byKey     map[[sha256.Size]byte]localWindow
-	overflow  localWindow // new subjects, while byKey is full of live windows
+	byKey     map[localKey]localWindow
 	nextSweep time.Time
 	nextLog   time.Time // the next fallback for this limit logs an error
 	unlogged  int64     // fallbacks counted since the last error was logged
 }
 
+// localKey is the first 16 bytes of the SHA-256 of a Redis key: fixed-size
+// whatever the subject's length, and 128 bits, so two subjects never share a
+// count by accident.
+type localKey [16]byte
+
 // localWindow is one fixed-window count.
 type localWindow struct {
 	count   int64
-	resetAt time.Time // the end of the window, as Redis's TTL would be
+	resetAt int64 // UnixNano at the end of the window, as Redis's TTL would be
 }
 
 func newLocalLimiter(maxEntries int, now func() time.Time) *localLimiter {
@@ -228,14 +244,15 @@ func newLocalLimiter(maxEntries int, now func() time.Time) *localLimiter {
 // one error per window per limit, not one per request.
 func (ll *localLimiter) allow(l Limit) (logged int64, verdict error) {
 	now := ll.now()
-	key := sha256.Sum256([]byte(l.key()))
+	sum := sha256.Sum256([]byte(l.key()))
+	key := localKey(sum[:16])
 
 	ll.mu.Lock()
 	defer ll.mu.Unlock()
 
 	cs := ll.limits[l.Name]
 	if cs == nil {
-		cs = &localCounters{byKey: map[[sha256.Size]byte]localWindow{}}
+		cs = &localCounters{byKey: map[localKey]localWindow{}}
 		ll.limits[l.Name] = cs
 	}
 	cs.unlogged++
@@ -245,7 +262,7 @@ func (ll *localLimiter) allow(l Limit) (logged int64, verdict error) {
 	}
 	if !now.Before(cs.nextSweep) {
 		for k, w := range cs.byKey {
-			if !now.Before(w.resetAt) {
+			if w.resetAt <= now.UnixNano() {
 				delete(cs.byKey, k)
 			}
 		}
@@ -254,22 +271,44 @@ func (ll *localLimiter) allow(l Limit) (logged int64, verdict error) {
 
 	w, ok := cs.byKey[key]
 	if !ok && len(cs.byKey) >= ll.maxEntries {
-		return logged, cs.overflow.add(now, l)
+		cs.evictLowest(now.UnixNano())
 	}
 	verdict = w.add(now, l)
 	cs.byKey[key] = w
 	return logged, verdict
 }
 
+// evictLowest drops the lowest of localEvictionSample counts. Go starts every
+// walk over a map at a random place, so the first counts walked are a sample.
+func (cs *localCounters) evictLowest(now int64) {
+	var victim localKey
+	lowest, oldest := int64(math.MaxInt64), int64(math.MaxInt64)
+	n := 0
+	for k, w := range cs.byKey {
+		count := w.count
+		if w.resetAt <= now {
+			count = 0 // the window has ended: nothing is lost by dropping it
+		}
+		if count < lowest || (count == lowest && w.resetAt < oldest) {
+			victim, lowest, oldest = k, count, w.resetAt
+		}
+		if n++; n == localEvictionSample || lowest == 0 {
+			break
+		}
+	}
+	delete(cs.byKey, victim)
+}
+
 // add counts one request in w, opening the next window if the last one has
 // ended, and answers as Redis would.
 func (w *localWindow) add(now time.Time, l Limit) error {
-	if !now.Before(w.resetAt) {
-		w.count, w.resetAt = 0, now.Add(l.Window)
+	t := now.UnixNano()
+	if t >= w.resetAt {
+		w.count, w.resetAt = 0, now.Add(l.Window).UnixNano()
 	}
 	w.count++
 	if w.count > l.Max {
-		return &RateLimitedError{RetryAfter: w.resetAt.Sub(now)}
+		return &RateLimitedError{RetryAfter: time.Duration(w.resetAt - t)}
 	}
 	return nil
 }

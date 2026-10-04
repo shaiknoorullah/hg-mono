@@ -181,57 +181,79 @@ func TestLocalFallbackLogsOncePerWindowPerLimit(t *testing.T) {
 	}
 }
 
-// TestLocalFallbackCapHoldsWithoutEvictingALiveCount: a flood of made-up
-// subjects (random emails, or addresses in fresh IPv6 /64s) can neither grow
-// one limit's counters past the cap nor push a guesser's count out to get a
-// fresh budget. Once the limit is full of live counts, new subjects share one
-// overflow window with the same Max, so the flood is refused, never let
-// through. Another limit's counters are untouched, and counters whose window
-// has ended are dropped.
-func TestLocalFallbackCapHoldsWithoutEvictingALiveCount(t *testing.T) {
-	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
-	ll := newLocalLimiter(localMaxEntriesPerLimit, func() time.Time { return now })
-	target := Limit{Name: "login:email", Subject: "target@example.com", Max: 10, Window: 15 * time.Minute}
-	other := Limit{Name: "login:ip", Subject: "203.0.113.25", Max: 30, Window: 15 * time.Minute}
-	for range target.Max {
-		if _, err := ll.allow(target); err != nil {
-			t.Fatalf("under the limit: %v", err)
-		}
+// TestLocalFallbackFloodEvictsOnlyTheLowestCounts: while Redis is down, a
+// flood of made-up subjects (random emails, or addresses in fresh IPv6 /64s)
+// fills a limit's memory with counts of one. Those are what it evicts: the
+// count of a subject being guessed is never pushed out, so the flood cannot
+// buy a fresh budget; every new caller still gets a count of its own, so the
+// flood cannot lock anyone out; and the number of counts never passes the
+// cap. Another limit's counts are untouched, and ended windows are dropped.
+func TestLocalFallbackFloodEvictsOnlyTheLowestCounts(t *testing.T) {
+	cases := []struct {
+		name          string
+		cap, subjects int
+	}{
+		// The production cap, flooded three times over.
+		{name: "production cap", cap: localMaxEntriesPerLimit, subjects: 3 * localMaxEntriesPerLimit},
+		// A small cap flooded a hundred times over: each count is a candidate
+		// for eviction many times, so a wrong choice would surely be caught.
+		{name: "small cap", cap: 1_000, subjects: 100_000},
 	}
-	if _, err := ll.allow(other); err != nil {
-		t.Fatalf("other limit: %v", err)
-	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+			ll := newLocalLimiter(tc.cap, func() time.Time { return now })
+			guessed := Limit{Name: "login:email", Subject: "target@example.com", Max: 10, Window: 15 * time.Minute}
+			other := Limit{Name: "login:ip", Subject: "203.0.113.25", Max: 30, Window: 15 * time.Minute}
+			for range guessed.Max - 1 { // one attempt left
+				if _, err := ll.allow(guessed); err != nil {
+					t.Fatalf("under the limit: %v", err)
+				}
+			}
+			if _, err := ll.allow(other); err != nil {
+				t.Fatalf("other limit: %v", err)
+			}
 
-	flood, allowed := target, 0
-	for i := range 3 * localMaxEntriesPerLimit {
-		flood.Subject = fmt.Sprintf("made-up-%d@example.com", i)
-		if _, err := ll.allow(flood); err == nil {
-			allowed++
-		} else if !errors.Is(err, ErrRateLimited) {
-			t.Fatalf("made-up subject %d: %v", i, err)
-		}
-	}
-	// Each subject that found room has its own count; after that, all of
-	// them together get one Max.
-	if want := localMaxEntriesPerLimit - 1 + int(target.Max); allowed != want {
-		t.Errorf("%d made-up subjects allowed, want %d", allowed, want)
-	}
-	if n := localEntries(ll, target.Name); n != localMaxEntriesPerLimit {
-		t.Errorf("%d counters after the flood, want the cap, %d", n, localMaxEntriesPerLimit)
-	}
-	if _, err := ll.allow(target); !errors.Is(err, ErrRateLimited) {
-		t.Errorf("after the flood the guesser was allowed again (%v): its count was evicted", err)
-	}
-	if n := localEntries(ll, other.Name); n != 1 {
-		t.Errorf("the flood changed another limit's counters: %d, want 1", n)
-	}
+			flood := guessed
+			for i := range tc.subjects {
+				flood.Subject = fmt.Sprintf("made-up-%d@example.com", i)
+				if _, err := ll.allow(flood); err != nil {
+					t.Fatalf("made-up subject %d was refused: %v", i, err)
+				}
+				if i%(tc.subjects/30) == 0 { // (b) a real new caller arrives mid-flood
+					caller := guessed
+					caller.Subject = fmt.Sprintf("new-owner-%d@example.com", i)
+					if _, err := ll.allow(caller); err != nil {
+						t.Fatalf("a new caller was refused during the flood (%v): the flood locks people out", err)
+					}
+				}
+				if n := localEntries(ll, guessed.Name); n > tc.cap { // (c)
+					t.Fatalf("%d counts after %d made-up subjects, over the cap of %d", n, i+1, tc.cap)
+				}
+			}
+			if n := localEntries(ll, guessed.Name); n != tc.cap {
+				t.Errorf("%d counts after the flood, want the cap, %d", n, tc.cap)
+			}
 
-	now = now.Add(target.Window + localSweepEvery)
-	if _, err := ll.allow(target); err != nil {
-		t.Errorf("a new window still limited: %v", err)
-	}
-	if n := localEntries(ll, target.Name); n != 1 {
-		t.Errorf("%d counters once every window ended, want 1 (the one just counted)", n)
+			// (a) The guessed subject kept its count: one attempt left, then 429.
+			if _, err := ll.allow(guessed); err != nil {
+				t.Errorf("the last attempt was refused: %v", err)
+			}
+			if _, err := ll.allow(guessed); !errors.Is(err, ErrRateLimited) {
+				t.Errorf("after the flood the guessed subject was allowed past its limit (%v): its count was evicted", err)
+			}
+			if n := localEntries(ll, other.Name); n != 1 {
+				t.Errorf("the flood changed another limit's counts: %d, want 1", n)
+			}
+
+			now = now.Add(guessed.Window + localSweepEvery)
+			if _, err := ll.allow(guessed); err != nil {
+				t.Errorf("a new window still limited: %v", err)
+			}
+			if n := localEntries(ll, guessed.Name); n != 1 {
+				t.Errorf("%d counts once every window ended, want 1 (the one just counted)", n)
+			}
+		})
 	}
 }
 
