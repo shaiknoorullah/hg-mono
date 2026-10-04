@@ -321,6 +321,13 @@ func podMethodAccepted(required, method string) bool {
 // before it locks and the order goes to support (handover_codes.go;
 // https://github.com/shaiknoorullah/hg-mono/issues/259).
 // A photo must be a READY object with purpose POD.
+//
+// Only the order's current rider proves the handover: the assignment row is
+// locked, and one that has ended (the order was moved to another rider, or
+// cancelled) is refused before anything is compared. The wrong-code count
+// lives on the order, so an old assignment id must never reach it: that rider
+// could otherwise test guesses, or spend the next rider's five tries and lock
+// the code.
 func (s *Store) RecordPod(ctx context.Context, riderAccountID, assignmentID string, in PodInput) (*Assignment, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -328,18 +335,23 @@ func (s *Store) RecordPod(ctx context.Context, riderAccountID, assignmentID stri
 	}
 	defer tx.Rollback(ctx)
 
-	var requiredPod, orderID string
+	var requiredPod, orderID, state string
 	var podObjectID *string
-	var podRecorded bool
+	var podRecorded, ended bool
 	err = tx.QueryRow(ctx, `
-SELECT COALESCE(required_pod_method::text, ''), order_id, pod_object_id, pod_recorded
+SELECT COALESCE(required_pod_method::text, ''), order_id, pod_object_id, pod_recorded,
+       state::text, terminated_at IS NOT NULL
 FROM assignment WHERE id = $1 AND rider_account_id = $2 FOR UPDATE`,
-		assignmentID, riderAccountID).Scan(&requiredPod, &orderID, &podObjectID, &podRecorded)
+		assignmentID, riderAccountID).Scan(&requiredPod, &orderID, &podObjectID, &podRecorded, &state, &ended)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errAssignmentNotFound
 	}
 	if err != nil {
 		return nil, err
+	}
+	if ended {
+		return nil, newError(409, CodeInvalidTransition, "This assignment has ended.",
+			map[string]any{"current_state": state})
 	}
 
 	if requiredPod == "" {
@@ -356,6 +368,19 @@ FROM assignment WHERE id = $1 AND rider_account_id = $2 FOR UPDATE`,
 
 	switch in.Method {
 	case "OTP":
+		// The customer reads the code out at the door, so it is typed there:
+		// at ARRIVED_AT_DROPOFF, the step a met handover's DELIVERED follows
+		// (proof of delivery gates ARRIVED_AT_DROPOFF → DELIVERED:
+		// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/04-rider.md#d-21--proof-of-delivery)
+		// and the one support's override waits on. Anywhere else nothing is
+		// compared or counted, so a rider cannot spend the five tries, or lock
+		// the code, before reaching the customer (before pickup there is not
+		// even a code to compare).
+		if state != "ARRIVED_AT_DROPOFF" {
+			return nil, newError(409, CodeInvalidTransition,
+				"Enter the customer's code at the drop-off.",
+				map[string]any{"current_state": state})
+		}
 		// A repeat after the code was accepted is a no-op: the code is not
 		// compared again and nothing is counted.
 		if podRecorded {

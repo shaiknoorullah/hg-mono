@@ -10,7 +10,6 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
-	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 )
 
 // OverrideHandoverCode implements overrideHandoverCode.
@@ -25,6 +24,12 @@ import (
 // reached at a met handover, support or an admin confirms the handover here,
 // with a reason and a support case. The transition and the append-only audit
 // record commit in one transaction. The rider has no override of their own.
+//
+// The token admits the request; the store then checks, in the override's own
+// transaction, that the caller still holds a support or admin grant and an
+// active staff account (a token outlives a suspension or a revoked role), and
+// that the caller is not a party to the order: its customer, a rider it was
+// assigned to, or its restaurant's staff, any of whom one account can also be.
 //
 // Step-up: the session must have signed in with two-step sign-in (amr
 // pwd+totp), or the answer is 403 MFA_REQUIRED. Every admin and super-admin
@@ -67,18 +72,31 @@ func (h *Handler) OverrideHandoverCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// SUPPORT for a support agent, ADMIN for an admin or super admin.
-	actorKind := machine.ActorSupport
-	if p.HasRole(httpx.RoleAdmin) || p.HasRole(httpx.RoleSuperAdmin) {
-		actorKind = machine.ActorAdmin
-	}
+	// The actor kind (SUPPORT, or ADMIN for an admin or super admin) comes from
+	// the live grant the store reads, not from the token.
 	idemKey, _ := httpx.IdempotencyKeyFrom(r.Context())
 
-	rec, replayed, err := h.ordersRepo.OverrideHandover(r.Context(), actorFrom(r), actorKind, orderID, kind, in, idemKey)
+	rec, replayed, err := h.ordersRepo.OverrideHandover(r.Context(), actorFrom(r), orderID, kind, in, idemKey)
 	if err != nil {
 		if errors.Is(err, errIdempotencyKeyReuse) {
 			httpx.Fail(w, r, http.StatusConflict, httpx.CodeIdempotencyKeyReuse,
 				"This Idempotency-Key was already used for a different override.", nil)
+			return
+		}
+		if errors.Is(err, errStaffNotActive) {
+			httpx.Fail(w, r, http.StatusForbidden, CodeAccountNotActive,
+				"Your staff account is not active.", nil)
+			return
+		}
+		if errors.Is(err, errStaffRoleRevoked) {
+			httpx.Fail(w, r, http.StatusForbidden, CodeForbidden,
+				"You do not have permission to perform this action.",
+				map[string]any{"required": string(ActionOrderHandoverOverride)})
+			return
+		}
+		if errors.Is(err, errPartyToOrder) {
+			httpx.Fail(w, r, http.StatusForbidden, CodeForbidden,
+				"You cannot confirm a handover on an order you are part of. Ask another member of support.", nil)
 			return
 		}
 		if errors.Is(err, ErrNotFound) {

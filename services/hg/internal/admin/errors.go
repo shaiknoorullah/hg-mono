@@ -9,6 +9,10 @@ const (
 	CodeInvalidEnumValue httpx.ErrorCode = "INVALID_ENUM_VALUE"
 	CodeNotFound         httpx.ErrorCode = "NOT_FOUND"
 	CodeForbidden        httpx.ErrorCode = "FORBIDDEN"
+	// CodeAccountNotActive refuses a staff member whose account or staff
+	// profile is no longer active, though their session's token is still valid
+	// (store_handover.go, overrideActorTx).
+	CodeAccountNotActive httpx.ErrorCode = "ACCOUNT_NOT_ACTIVE"
 
 	// Staff / RBAC.
 	CodeEmailInUse        httpx.ErrorCode = "EMAIL_IN_USE"
