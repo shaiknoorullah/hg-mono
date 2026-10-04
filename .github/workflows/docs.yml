@@ -1,0 +1,349 @@
+name: docs
+
+# The doc and PR checks, as steps of ONE job, so a PR pays for one runner instead of nine
+# (GitHub bills each hosted job rounded up to the minute; issue #287). Each step is the check
+# its old workflow ran, with the same command, scope and messages:
+#
+#   pr-rules      the title's prefix sets the type label, changed paths set the app labels, and
+#                 the description is checked against its type's template (CONTRIBUTING.md
+#                 "Pull requests", issue #40). Script: .github/scripts/pr-rules.mjs.
+#   stale-docs    changing code a doc covers (front matter `covers:`) without changing the doc
+#                 fails, unless the PR has the `no-doc-change` label AND a description line
+#                 `No doc change: <reason>`. Script: tools/stale-docs/check.mjs.
+#   doc-coverage  every public thing has a doc; on a PR only items in changed files fail, on
+#                 main the whole tree is checked. Script: tools/doc-coverage/check.mjs.
+#   doc-links     lychee (lychee.toml) for links and anchors, offline on PRs; doc-refs for repo
+#                 paths, make targets, pnpm scripts, HG_* variables and issues called open that
+#                 are closed (issue #120). Script: tools/doc-refs/check.mjs.
+#   doc-sanitise  Vale wording and bare internal codes on changed docs, gitleaks on the PR's
+#                 commits (issue #121). Script: .github/scripts/doc-sanitise.mjs.
+#   duplication   a copied block touching a changed file fails (issue #122).
+#                 Script: tools/duplication/check.mjs.
+#
+# Findings already in each tool's baseline pass; only new ones fail. Every check runs even when
+# an earlier one failed (`!cancelled()`), so one run shows every result; the step names say
+# which check failed.
+#
+# Path filters: none on this job, on purpose. pr-rules must run on every PR event, so the job
+# always starts, and every check above already limits itself to the files the PR changes.
+#
+# Runners and trust: docs/ci/self-hosted-runners.md. `checks` runs on HG_RUNS_ON with a
+# read-only token and no secrets; the two jobs that need a write token (applying labels,
+# filing weekly issues) stay on GitHub's runners.
+on:
+  pull_request:
+    # edited/labeled/unlabeled: pr-rules reads the title and description, stale-docs reads the
+    # `no-doc-change` label and reason line, so changing them re-runs the checks.
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * 1' # Mondays 06:17 UTC: full scans, one issue per new finding
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A new push to a PR cancels its old run. On main, runs queue instead: a weekly scan
+  # cancelled half-way would leave its issues half-filed.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: doc and PR checks
+    # Trusted PRs only: this repo's branches, pushed by someone in HG_CI_TRUSTED_ACTORS.
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push') &&
+      (github.event_name != 'pull_request' ||
+       (github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor)))
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: read # doc-links: issue state, for "#123 is still open" references
+    outputs:
+      labels-add: ${{ steps.labels.outputs.add }}
+      labels-remove: ${{ steps.labels.outputs.remove }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0 # the checks diff against the PR base; gitleaks reads the PR's commits
+          clean: true
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      # doc-coverage's Go parser (tools/doc-coverage/godoc) is built with `go run`. On GitHub's
+      # runners the build cache is restored from the Actions cache; a self-hosted runner keeps
+      # its own, so nothing it builds is uploaded.
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: tools/doc-coverage/godoc/go.mod
+          cache: ${{ runner.environment == 'github-hosted' }}
+          cache-dependency-path: tools/doc-coverage/godoc/go.mod
+
+      # Vale and gitleaks: pinned, downloaded and SHA-256-checked by doc-sanitise.mjs (TOOLS).
+      # Cached on GitHub's runners; a self-hosted runner keeps them in its own cache folder.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: github.event_name == 'pull_request' && runner.environment == 'github-hosted'
+        with:
+          path: ~/.cache/hg-doc-sanitise
+          key: hg-tools-vale-3.23.0-gitleaks-8.30.1-${{ runner.os }}-${{ runner.arch }}
+
+      # ------------------------------------------------------------------ pr-rules
+      # The label plan only; the hosted `labels` job below applies it with a write token.
+      - name: 'pr-rules: type + app label plan'
+        id: labels
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: |
+          plan=$(node .github/scripts/pr-rules.mjs labels)
+          echo "$plan"
+          node -e 'const p = JSON.parse(process.argv[1]); console.log("add=" + p.add.join(",")); console.log("remove=" + p.remove.join(","))' "$plan" >> "$GITHUB_OUTPUT"
+
+      - name: 'pr-rules: description follows its type''s template'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: node .github/scripts/pr-rules.mjs check
+
+      - name: 'pr-rules: the checker''s own tests'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: node --test .github/scripts/pr-rules.test.mjs
+
+      # ------------------------------------------------------------------ stale-docs
+      # PR labels and body are read from the event JSON file by the script, never
+      # interpolated into a shell.
+      - name: 'stale-docs: covered code changed without its doc'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: node tools/stale-docs/check.mjs pr
+
+      # ------------------------------------------------------------------ doc-coverage
+      - name: 'doc-coverage: install parsers'
+        if: ${{ !cancelled() }}
+        run: npm install --no-save --no-package-lock --no-audit --no-fund --prefix tools/doc-coverage typescript@5.9.3 yaml@2.9.0
+
+      # On a PR only items in changed files fail; on main the whole tree is checked.
+      - name: 'doc-coverage: doc coverage'
+        if: ${{ !cancelled() }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            node tools/doc-coverage/check.mjs --base "origin/$BASE_REF"
+          else
+            node tools/doc-coverage/check.mjs
+          fi
+
+      # ------------------------------------------------------------------ doc-links
+      - name: 'doc-links: the checker''s own tests'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: node --test tools/doc-refs/check.test.mjs
+
+      # Which docs to check: the ones this PR adds or edits. When the PR deletes or renames a
+      # file, or changes what references resolve against (Makefile, package.json, Go config,
+      # the example env, the workflows' repository variables), every doc is checked — the
+      # broken reference is then in a doc the PR did not touch. File names are read
+      # NUL-separated and never interpolated.
+      - name: 'doc-links: scope'
+        id: scope
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          changed="$RUNNER_TEMP/changed-docs.txt"
+          docs="$RUNNER_TEMP/docs.txt"
+          : > "$changed"
+          widen=false
+          while IFS= read -r -d '' status && IFS= read -r -d '' file; do
+            case "$status" in
+              R*|C*) IFS= read -r -d '' file ;;
+            esac
+            case "$status" in D*|R*) widen=true ;; esac
+            case "$file" in
+              services/hg/Makefile|package.json|*/package.json|services/hg/*.go|deploy/.env.example|lychee.toml|tools/doc-refs/*|.github/workflows/*) widen=true ;;
+            esac
+            [ "${status:0:1}" = D ] && continue
+            case "$file" in
+              .claude/skills/*|*/node_modules/*) ;;
+              *.md|docs/*.html) printf '%s\n' "$file" >> "$changed" ;;
+            esac
+          done < <(git diff -z --name-status -M "$BASE_SHA"...HEAD)
+          if [ "$widen" = true ]; then
+            git ls-files -- '*.md' 'docs/**/*.html' | grep -v -e '^\.claude/skills/' -e '/node_modules/' > "$docs" || true
+          else
+            cp "$changed" "$docs"
+          fi
+          echo "widen=$widen" >> "$GITHUB_OUTPUT"
+          echo "count=$(wc -l < "$docs")" >> "$GITHUB_OUTPUT"
+          echo "checking $(wc -l < "$docs") doc(s) (changed: $(wc -l < "$changed"), widened: $widen)"
+
+      - name: 'doc-links: links and anchors (lychee, offline)'
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.scope.outputs.count != '0' }}
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          # The action evals `args`: keep it static. Inputs come from a file, not the command line.
+          args: --config lychee.toml --offline --root-dir ${{ github.workspace }} --files-from ${{ runner.temp }}/docs.txt
+          format: json
+          output: ${{ runner.temp }}/lychee.json
+          checkbox: false
+          fail: false # the baseline decides, below
+          failIfEmpty: false
+          jobSummary: false
+
+      - name: 'doc-links: stale references + baseline'
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.scope.outputs.count != '0' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node tools/doc-refs/check.mjs
+          --files-from "$RUNNER_TEMP/docs.txt"
+          --issue-files-from "$RUNNER_TEMP/changed-docs.txt"
+          --lychee "$RUNNER_TEMP/lychee.json"
+
+      # ------------------------------------------------------------------ doc-sanitise
+      - name: 'doc-sanitise: changed docs and the PR''s commits'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node .github/scripts/doc-sanitise.mjs check --base "origin/$BASE_REF"
+
+      - name: 'doc-sanitise: the checker''s own tests'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: node --test .github/scripts/doc-sanitise.test.mjs
+
+      # ------------------------------------------------------------------ duplication
+      - name: 'duplication: no new copied blocks in changed files'
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node tools/duplication/check.mjs --base "origin/$BASE_REF"
+
+  # Applies the plan from `checks` with a write token. It runs no repository code (no checkout),
+  # so the token never meets PR code, and it stays on GitHub's runners: no write token ever
+  # reaches a self-hosted runner. Skipped when the labels are already right, which is most runs.
+  labels:
+    needs: checks
+    if: >-
+      !cancelled() && github.event_name == 'pull_request' &&
+      (needs.checks.outputs.labels-add != '' || needs.checks.outputs.labels-remove != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - name: apply type + app labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          ADD: ${{ needs.checks.outputs.labels-add }}
+          REMOVE: ${{ needs.checks.outputs.labels-remove }}
+        run: |
+          [ -n "$ADD" ] && gh pr edit "$PR" --add-label "$ADD"
+          [ -n "$REMOVE" ] && gh pr edit "$PR" --remove-label "$REMOVE"
+          true
+
+  # Weekly (and on demand): every check over the whole tree, one issue per new finding. It
+  # files issues, so it needs a write token and stays on GitHub's runners. It runs main's code.
+  weekly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write # one issue per new finding
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0 # stale-docs and gitleaks read history
+          clean: true
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: tools/doc-coverage/godoc/go.mod
+          cache-dependency-path: tools/doc-coverage/godoc/go.mod
+
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/hg-doc-sanitise
+          key: hg-tools-vale-3.23.0-gitleaks-8.30.1-${{ runner.os }}-${{ runner.arch }}
+
+      # ------------------------------------------------------------------ doc-coverage
+      - name: 'doc-coverage: install parsers'
+        if: ${{ !cancelled() }}
+        run: npm install --no-save --no-package-lock --no-audit --no-fund --prefix tools/doc-coverage typescript@5.9.3 yaml@2.9.0
+      # Exit 1 with findings is expected here; a crash leaves no findings file and fails.
+      - name: 'doc-coverage: full scan'
+        id: doccov
+        if: ${{ !cancelled() }}
+        run: node tools/doc-coverage/check.mjs --json "$RUNNER_TEMP/doc-findings.json" || test -s "$RUNNER_TEMP/doc-findings.json"
+      - name: 'doc-coverage: file issues'
+        if: ${{ !cancelled() && steps.doccov.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/doc-coverage/file-issues.mjs "$RUNNER_TEMP/doc-findings.json"
+
+      # ------------------------------------------------------------------ doc-links
+      - name: 'doc-links: every doc'
+        id: alldocs
+        if: ${{ !cancelled() }}
+        run: |
+          git ls-files -- '*.md' 'docs/**/*.html' | grep -v -e '^\.claude/skills/' -e '/node_modules/' > "$RUNNER_TEMP/docs.txt"
+          wc -l < "$RUNNER_TEMP/docs.txt"
+      - name: 'doc-links: links, anchors and external links (lychee)'
+        if: ${{ !cancelled() && steps.alldocs.outcome == 'success' }}
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --config lychee.toml --root-dir ${{ github.workspace }} --files-from ${{ runner.temp }}/docs.txt
+          format: json
+          output: ${{ runner.temp }}/lychee.json
+          checkbox: false
+          fail: false
+          failIfEmpty: false
+          jobSummary: false
+      - name: 'doc-links: stale references, then file an issue per new finding'
+        if: ${{ !cancelled() && steps.alldocs.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node tools/doc-refs/check.mjs
+          --files-from "$RUNNER_TEMP/docs.txt"
+          --lychee "$RUNNER_TEMP/lychee.json"
+          --file-issues
+
+      # ------------------------------------------------------------------ doc-sanitise
+      - name: 'doc-sanitise: full scan'
+        id: sanitise
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: node .github/scripts/doc-sanitise.mjs check --all --json "$RUNNER_TEMP/doc-sanitise.json"
+      - name: 'doc-sanitise: one issue per problem not in the baseline'
+        if: ${{ !cancelled() && steps.sanitise.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -s "$RUNNER_TEMP/doc-sanitise.json" || { echo "scan failed before writing findings"; exit 1; }
+          node .github/scripts/doc-sanitise.mjs issues --json "$RUNNER_TEMP/doc-sanitise.json"
+
+      # ------------------------------------------------------------------ duplication
+      - name: 'duplication: file an issue per new copied block'
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/duplication/check.mjs --all --file-issues
+
+      # ------------------------------------------------------------------ stale-docs
+      - name: 'stale-docs: file an issue per stale doc'
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/stale-docs/check.mjs scan --file-issues
