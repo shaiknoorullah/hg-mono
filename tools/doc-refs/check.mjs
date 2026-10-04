@@ -10,8 +10,8 @@
 //   make   `make <target>` naming a target services/hg/Makefile does not define.
 //   pnpm   `pnpm <script>`, `pnpm -r <script>`, `pnpm --filter X <script>` naming a script
 //          (or a filtered package) that no package.json defines.
-//   env    an HG_* variable that neither services/hg/internal/config/config.go nor
-//          deploy/.env.example knows.
+//   env    an HG_* variable that neither services/hg/internal/config/config.go,
+//          deploy/.env.example nor a workflow's repository variables (`vars.HG_*`) knows.
 //   issue  #123 on a line that calls it pending / open / blocked, when the issue is closed.
 //          Needs the GitHub API, so it runs only in CI with a token (skipped locally).
 //   link   broken relative links and #anchors, found by lychee and merged in with --lychee.
@@ -170,7 +170,8 @@ const PNPM_BUILTINS = new Set(
 const KNOWN_BINS = new Set('tsc tsx vitest jest eslint prettier playwright expo next vite astro turbo storybook node npx wrangler vercel biome oxlint knip'.split(' '));
 
 // HG_* variables: the config loader and the example env, plus any the Go code reads directly
-// (os.Getenv / os.LookupEnv — e.g. HG_TEST_POSTGRES_DSN in the integration tests).
+// (os.Getenv / os.LookupEnv — e.g. HG_TEST_POSTGRES_DSN in the integration tests), plus the
+// repository variables the workflows read.
 const envKnown = new Set();
 for (const f of ['services/hg/internal/config/config.go', 'deploy/.env.example']) {
   const p = path.join(ROOT, f);
@@ -178,6 +179,10 @@ for (const f of ['services/hg/internal/config/config.go', 'deploy/.env.example']
 }
 for (const f of ALL_FILES.filter((f) => f.startsWith('services/hg/') && f.endsWith('.go'))) {
   for (const m of fs.readFileSync(path.join(ROOT, f), 'utf8').matchAll(/os\.(?:Getenv|LookupEnv)\("(HG_[A-Z0-9_]+)"\)/g)) envKnown.add(m[1]);
+}
+// Repository variables a workflow reads (`vars.HG_RUNS_ON`): set in the repo's settings, not in an env file.
+for (const f of ALL_FILES.filter((f) => f.startsWith('.github/workflows/') && /\.ya?ml$/.test(f))) {
+  for (const m of fs.readFileSync(path.join(ROOT, f), 'utf8').matchAll(/\bvars\.(HG_[A-Z0-9_]+)/g)) envKnown.add(m[1]);
 }
 
 // ---------------------------------------------------------------------------
@@ -414,7 +419,7 @@ function scan(doc) {
     for (const m of l.matchAll(/\bHG_[A-Z0-9_]*[A-Z0-9_]\b(\*?)/g)) {
       const name = m[0].replace(/\*$/, '');
       const known = m[1] || name.endsWith('_') ? [...envKnown].some((k) => k.startsWith(name)) : envKnown.has(name);
-      if (!known) add('env', name, 'not in services/hg/internal/config/config.go or deploy/.env.example');
+      if (!known) add('env', name, 'not in services/hg/internal/config/config.go, deploy/.env.example or a workflow\'s `vars.`');
     }
   });
 
