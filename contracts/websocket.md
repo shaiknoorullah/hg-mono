@@ -301,6 +301,8 @@ only while the order is `PICKED_UP` or `ARRIVED`, or dispatch is `ASSIGNED` or l
 | `admin.reconciliation_exception` | `{kind, order_id, expected_cents, actual_cents}` |
 | `admin.queue_depth` | `{pending_restaurant_reviews, pending_rider_reviews, open_disputes, failed_refunds}` |
 
+`admin.alert` kind `HALAL_ISSUER_STATUS_CHANGE`: a super admin changed a certifying body's status and this restaurant (`subject_type: RESTAURANT`) lost or regained its halal badge, or was delisted or listed again. `severity` is `WARNING` when the platform can no longer vouch for it, `INFO` when it can again ([issue 346](https://github.com/shaiknoorullah/hg-mono/issues/346)).
+
 ---
 
 ## 5. Per-role projection rules
