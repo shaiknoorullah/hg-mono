@@ -1,4 +1,12 @@
-# Halal Goes — CUSTOMER Domain Specification
+---
+covers:
+  - apps/customer/**
+  - services/hg/internal/account/**
+  - services/hg/internal/addresses/**
+reviewed: 2026-09-28
+---
+
+# HalalGoes — CUSTOMER Domain Specification
 
 **Target architecture:** Go modular monolith, single binary. PostgreSQL 17 + PostGIS · Redis · MinIO · Traefik. Expo (React Native) customer app.
 **Contract source:** SOW items **9–17** (Customers).
@@ -310,7 +318,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   | Distance | `max_distance_km` | one of `2, 5, 10, 12` | ≤ value, capped by the platform radius |
 
   Sort (single-select, mutually exclusive): `RECOMMENDED` (default — the C-09 ranking), `RATING_DESC`, `ETA_ASC`, `DISTANCE_ASC`, `PRICE_ASC`.
-  **Halal certification is not a filter** — it is a precondition for being listed at all (C-12). The UI states this once, as a header: "Every restaurant on Halal Goes is halal certified."
+  **Halal certification is not a filter** — it is a precondition for being listed at all (C-12). The UI states this once, as a header: "Every restaurant on HalalGoes is halal certified."
 - **Data**: read-only over `restaurants`, `restaurant_cuisines`, `food_items`, `restaurant_offers`, `food_item_offers`, `restaurant_addresses.coords`. A materialised `restaurant_facets(restaurant_id, price_band, median_price_cents, has_veg, min_item_price_cents, offer_count, refreshed_at)` refreshed on menu write and nightly.
 - **States**: none.
 - **Rules**:
@@ -352,7 +360,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. The badge is **never** rendered from a client-side constant, a default, or an optimistic value. If `halal_display_state` is absent from the payload the card renders **no badge** and logs a client error. There is no "assume certified".
   5. Certificate documents are **never** served from a public URL and never cached to disk by the app. Presigned GET TTL 300 s, single use recorded in `certificate_view_audit(id, user_id, certification_id, viewed_at, ip)`.
   6. The certification panel must render the certifying body as free text exactly as verified by the admin. The app does not rank, score, or editorialise certifying bodies.
-  7. Copy is fixed and reviewed: the badge says **"Halal certified"** (not "Halal", not "100% Halal", not "Verified halal"), and the panel carries the standing line: *"Certification verified by Halal Goes on {verified_at}. Halal Goes does not itself certify food."*
+  7. Copy is fixed and reviewed: the badge says **"Halal certified"** (not "Halal", not "100% Halal", not "Verified halal"), and the panel carries the standing line: *"Certification verified by HalalGoes on {verified_at}. HalalGoes does not itself certify food."*
   8. `GET /restaurants/:id/certification` is a separate endpoint from restaurant detail so the panel can refresh without refetching the menu; it is cached 60 s.
 - **Acceptance criteria**:
   1. Given a restaurant whose latest certification is `VERIFIED` with `expires_on` yesterday, when the nightly job runs and any customer requests the feed, search, or that restaurant's detail page, then the restaurant is absent from feed and search and detail returns `404 NOT_FOUND`.
@@ -365,7 +373,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 > **DECISION REQUIRED — restaurants with lapsed certification**: When a certificate expires, should the restaurant be hidden entirely or shown as "certification expired" and blocked from ordering? · **Proposed default**: **hidden entirely** from all customer surfaces. · **Why**: showing a grey "expired" shield teaches customers that non-certified restaurants exist on the platform, which is precisely the confusion the product removes.
 
-> **DECISION REQUIRED — recognised certifying bodies**: Does Halal Goes maintain a whitelist of recognised Canadian certifying bodies, or accept any body an admin approves? · **Proposed default**: no whitelist; `certifying_bodies` is a free reference list, admin judgement is the gate, and the body's name is always displayed to the customer so they can apply their own standard. · **Why**: maintaining an authoritative whitelist is a religious-authority function the vendor cannot assume, and the SOW places legal/compliance measures out of scope.
+> **DECISION REQUIRED — recognised certifying bodies**: Does HalalGoes maintain a whitelist of recognised Canadian certifying bodies, or accept any body an admin approves? · **Proposed default**: no whitelist; `certifying_bodies` is a free reference list, admin judgement is the gate, and the body's name is always displayed to the customer so they can apply their own standard. · **Why**: maintaining an authoritative whitelist is a religious-authority function the vendor cannot assume, and the SOW places legal/compliance measures out of scope.
 
 > **DECISION REQUIRED — certificate document visibility**: Are halal certificates public to any signed-in customer, or gated? · **Proposed default**: viewable by any authenticated customer, presigned 300 s, audited. · **Why**: the SOW says customers "view and verify"; verification is meaningless without the document, and certificates are not confidential business records.
 
@@ -430,7 +438,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Rules — "nutritional information" resolved**:
   1. The current data model has **no nutrition fields at all**. At V1 "nutritional information" means exactly: `ingredients[]`, `allergens[]`, `is_non_veg`, `contains_dairy`, plus **optional** `calories_kcal` + `serving_description`.
   2. All nutrition fields are **entered by the restaurant** in the restaurant portal and are **optional**. The platform does not compute, validate, or verify them.
-  3. When `calories_kcal` is null the nutrition block is **omitted entirely** — no "N/A", no zero. When present it renders as "{n} kcal · {serving_description}" with the fixed disclaimer *"Nutrition information is provided by the restaurant and has not been verified by Halal Goes."*
+  3. When `calories_kcal` is null the nutrition block is **omitted entirely** — no "N/A", no zero. When present it renders as "{n} kcal · {serving_description}" with the fixed disclaimer *"Nutrition information is provided by the restaurant and has not been verified by HalalGoes."*
   4. `ingredients[]` and `allergens[]` render as chips; an empty `allergens[]` renders the line "Allergen information not provided by this restaurant" — **never** "No allergens", which would be an unsafe claim.
   5. Per-item special request: 0–140 chars, plain text, stored on the cart line and copied to the order line; it is advisory and does not change price.
   6. Item images are served through presigned/CDN URLs; missing images render a neutral placeholder — no `via.placeholder.com`, `picsum.photos`, `pexels`, or `unsplash` URL may appear in the shipped bundle (asserted by a bundle grep test).
@@ -859,6 +867,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 > **DECISION REQUIRED — maps & places provider**: Google Maps Platform (Places + Geocoding + Directions) or an alternative (Mapbox)? · **Proposed default**: **Google**, proxied server-side, since the apps already use `react-native-maps` with `PROVIDER_GOOGLE` and the rider app deep-links to Google navigation. · **Why**: it is the shortest path and the SOW names Google Maps as a dependency; the cost is a per-request billing exposure that the proxy + cache must contain.
 
+> **2026-10-01:** Google Maps Platform and Mapbox are SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) now rules out. Choosing a self-hosted provider is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 ---
 
 ### C-32 — Live order tracking
@@ -1114,6 +1124,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Version**: V1 · **Size**: L
 
 > **DECISION REQUIRED — push infrastructure**: Expo Push Service (managed) or direct FCM/APNs? · **Proposed default**: **Expo Push Service** for V1 (one integration, works with EAS builds, no APNs certificate management inside the Go binary), with the server-side sender abstracted so a direct FCM/APNs implementation can replace it without touching call sites. · **Why**: the apps are Expo-managed; direct APNs/FCM adds certificate operations for no launch-critical benefit.
+
+> **2026-10-01:** [The self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) allows Apple and Google push services. Expo Push Service is a hosted relay in front of them and is not on the exception list. Whether it stays is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 
 ---
 

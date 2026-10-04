@@ -236,7 +236,7 @@ function ProfileStep({ onDone }: { onDone: () => void }): React.ReactElement {
       onDone();
     } catch (e) {
       if (isApiError(e) && e.code === 'UNDERAGE') {
-        setError('You must be at least 18 to ride with Halal Goes.');
+        setError('You must be at least 18 to ride with HalalGoes.');
       } else if (isApiError(e) && e.code === 'EMAIL_IN_USE') {
         setError('That email is already in use on another account.');
       } else {

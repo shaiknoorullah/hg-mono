@@ -1,0 +1,26 @@
+# Claims HalalGoes may never make. The platform checks a certificate and shows
+# who issued it; it does not certify food and does not make religious rulings.
+# Sources: apps/marketing/src/lib/claims.ts (the fixed badge label "Halal
+# certified" and the standing disclaimer) and docs/design/01-foundations.md
+# (no red for a halal state; the badge is not "100% Halal", not "Verified halal").
+# Quoting one as a forbidden example? Put it in backticks: Vale skips code.
+extends: existence
+message: "'%s' reads as a guarantee or a religious ruling. Say what was checked instead ('Halal certified', 'we check the certificate')."
+level: error
+ignorecase: true
+tokens:
+  - 'guaranteed[- ]halal'
+  - 'halal[- ]guarantee[ds]?'
+  - '100 ?% halal'
+  - '100 percent halal'
+  - 'fully halal'
+  - 'completely halal'
+  - 'halal[- ]approved'
+  - 'approved as halal'
+  - 'verified halal(?![- ]certified)'
+  - 'halal[- ]verified by (?:us|HalalGoes|Halal Goes)'
+  - 'certified (?:halal )?by (?:us|HalalGoes|Halal Goes)'
+  - '(?:HalalGoes|Halal Goes)[- ]certified'
+  - 'we certify'
+  - '(?:deemed|ruled|pronounced) (?:halal|haram)'
+  - '(?:is|are) haram'

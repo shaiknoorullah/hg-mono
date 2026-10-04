@@ -163,7 +163,7 @@ function AdminSideNav() {
     <SideNav
       groups={[{ key: 'primary', items }]}
       activeKey={activeKey}
-      header={<span className="text-title-sm text-fg-primary adm-brand">Halal Goes — Admin</span>}
+      header={<span className="text-title-sm text-fg-primary adm-brand">HalalGoes — Admin</span>}
       footer={
         <button type="button" className="adm-signout" onClick={() => logout()}>
           <Icon name="close" size={18} />
@@ -177,7 +177,7 @@ function AdminSideNav() {
 function AdminShell() {
   const location = useLocation();
   const activeKey = activeNavKey(location.pathname);
-  const activeLabel = NAV.find((item) => item.to === activeKey)?.label ?? 'Halal Goes — Admin';
+  const activeLabel = NAV.find((item) => item.to === activeKey)?.label ?? 'HalalGoes — Admin';
 
   return (
     <div {...themeAttributes('admin')} className="adm-shell">

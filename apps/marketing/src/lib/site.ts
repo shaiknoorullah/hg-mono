@@ -19,7 +19,7 @@ function resolveOrigin(): string {
   // resolving once that deployment is superseded. Baking it into og:image meant
   // every share card pointed at a host that was first auth-walled and then dead,
   // so the scraper got no image and fell back to whatever it could find — which
-  // is how a Halal Goes link came to unfurl as a Vercel card.
+  // is how a HalalGoes link came to unfurl as a Vercel card.
   //
   // VERCEL_PROJECT_PRODUCTION_URL is the alias that survives the next deploy,
   // which is the only kind of URL that belongs in metadata somebody else caches.
@@ -41,7 +41,7 @@ function resolveOrigin(): string {
 }
 
 export const SITE = {
-  name: 'Halal Goes',
+  name: 'HalalGoes',
   /** en-CA throughout: this is an Ontario product, priced in CAD. */
   locale: 'en_CA',
   origin: resolveOrigin(),
@@ -74,9 +74,9 @@ export function isProductionSite(): boolean {
  *
  * Exists because two things are easy to get wrong page by page and were:
  *
- *  - **Titles doubled.** The root layout sets `template: '%s — Halal Goes'`, so
+ *  - **Titles doubled.** The root layout sets `template: '%s — HalalGoes'`, so
  *    a page title that already carries the brand renders as
- *    "Deliver with Halal Goes — Halal Goes". Pass the bare page title.
+ *    "Deliver with HalalGoes — HalalGoes". Pass the bare page title.
  *  - **og:url pinned to the root.** Next merges Open Graph from the layout and
  *    does NOT derive `url` from the page's canonical, so every page inherited
  *    the homepage's og:url until it was set explicitly. A share of /riders that

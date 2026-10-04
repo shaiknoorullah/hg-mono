@@ -1,4 +1,11 @@
-# Halal Goes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
+---
+covers:
+  - apps/admin/**
+  - services/hg/internal/admin/**
+reviewed: 2026-09-28
+---
+
+# HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
 
 **Status**: constrained specification, derived from `sow.txt` (Super Admin / Admin / Support Agent
 sections), `scope/features-restaurant-admin-backend.md`, `fleet/hg-fe-admin-web.md`.
@@ -1064,7 +1071,7 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   certificate image.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — D-10 · Accepted halal certifying bodies**: Which certifiers does Halal Goes
+> **DECISION REQUIRED — D-10 · Accepted halal certifying bodies**: Which certifiers does HalalGoes
 > recognise for Canada, and does the platform accept any certifier or only a curated list?
 > · **Proposed default**: A curated allow-list, seeded with the major Canadian bodies the client
 > names, plus an `UNDER_REVIEW` tier that blocks approval until a Super Admin promotes the body to
@@ -1592,7 +1599,7 @@ documents lapse cannot go on shift, but is not punished.
   inspection; in-person onboarding; equipment (bag) issuance tracking.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — D-18 · Rider background checks**: Does Halal Goes require a criminal-record
+> **DECISION REQUIRED — D-18 · Rider background checks**: Does HalalGoes require a criminal-record
 > or driving-abstract check before a rider may deliver? · **Proposed default**: Not in V1 — the
 > platform records a rider self-attestation and captures a `background_check_status` field
 > (`NOT_REQUIRED` default) so a vendor can be plugged in later without a schema change.

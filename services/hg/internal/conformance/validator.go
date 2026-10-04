@@ -1,5 +1,5 @@
-// Package conformance is the durable contract-conformance oracle for the Halal
-// Goes Go backend. It closes the loop that every other gate leaves open: it
+// Package conformance is the durable contract-conformance oracle for the
+// HalalGoes Go backend. It closes the loop that every other gate leaves open: it
 // takes bytes the running server actually emits and validates them against
 // contracts/openapi.yaml with kin-openapi.
 //

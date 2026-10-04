@@ -57,7 +57,7 @@ describe('admin login gate', () => {
 
     // Deny by default: nothing from the protected nav/shell is present.
     expect(screen.queryByRole('link', { name: 'Restaurants' })).toBeNull();
-    expect(screen.queryByText('Halal Goes — Admin')).toBeNull();
+    expect(screen.queryByText('HalalGoes — Admin')).toBeNull();
   });
 
   it('opens the shell once email + password + TOTP succeed', async () => {
@@ -87,7 +87,7 @@ describe('admin login gate', () => {
 
     await waitFor(() => expect(isAuthed()).toBe(true));
     await waitFor(() => {
-      expect(screen.queryByText('Halal Goes — Admin')).not.toBeNull();
+      expect(screen.queryByText('HalalGoes — Admin')).not.toBeNull();
     });
     expect(screen.getByRole('link', { name: 'Restaurants' })).not.toBeNull();
   });

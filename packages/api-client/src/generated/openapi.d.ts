@@ -3512,7 +3512,7 @@ export interface components {
         Cents: import('../money.js').Cents;
         /**
          * @description C-12. The platform's core promise, made inspectable. The standing disclaimer is fixed
-         *     copy: "Certification verified by Halal Goes on {date}. Halal Goes does not itself
+         *     copy: "Certification verified by HalalGoes on {date}. HalalGoes does not itself
          *     certify food."
          */
         CertificationPanel: {

@@ -34,7 +34,7 @@
  * -----------------------------------------
  *  - Provenance in `color.halal.*` — the reserved namespace (RULE H-1).
  *  - `color.map.pinRider`, the one registered non-halal use of the reserved green
- *    (foundations §2.6): a rider pin is a Halal Goes rider, it carries no shield, and it
+ *    (foundations §2.6): a rider pin is a HalalGoes rider, it carries no shield, and it
  *    makes no certification claim.
  *  - **Tints.** RULE H-1 explicitly permits "a light background with dark green text", so a
  *    resolved colour lighter than `tintLightness` (default 0.85 HSL L) is a tint, not a

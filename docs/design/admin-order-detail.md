@@ -1,6 +1,6 @@
 # Admin order-detail view (with live tracking)
 
-_Halal Goes — admin console. Opens when an admin clicks an order row in the orders grid
+_HalalGoes — admin console. Opens when an admin clicks an order row in the orders grid
 (LyteNyte). The single place an admin sees everything about one order and can act on it or
 reach any party. Captured Aug 2026 from product direction._
 
@@ -14,11 +14,18 @@ reach any party. Captured Aug 2026 from product direction._
 
 ## The live-tracking map box (the ask)
 
+> **2026-10-01:** Mapbox is SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 - **Engine:** `mapbox-gl-js` (admin web), brand-tinted **hg-light / hg-dark** styles.
 - **On the map:** restaurant pin, **rider live position (moving)**, customer/destination pin, the
-  active route line (**crimson** — brand; the *only* green on the map is the verified-halal
-  restaurant pin, per the halal-green reservation), the current leg (to-pickup vs to-dropoff),
-  heading, and a prominent **ETA + `deadline_at` countdown**.
+  active route line, the current leg (to-pickup vs to-dropoff), heading, and a prominent
+  **ETA + `deadline_at` countdown**. Colours come from the map tokens (`color.map.*`): the
+  restaurant pin is brand orange and the customer pin is forest. The *only* green on the map is
+  the rider pin, the registered exception to
+  [the rule that solid green is reserved for halal status](../../AGENTS.md#3-non-negotiable-invariants):
+  a rider is not a certification claim. The map knows no restaurant's halal state, so the
+  restaurant pin is never green.
 - **Live:** rider location + state stream over the existing **WebSocket** realtime channel;
   falls back to last-known + timestamp if the rider is offline. Redis-flush safe (position is
   ephemeral; last-known persists).

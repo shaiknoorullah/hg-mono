@@ -8,7 +8,7 @@ Read this first. It tells an AI assistant — or a new engineer — what this re
 
 ## 1. What this is
 
-**Halal Goes** — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Customers find and order from **verified halal-certified** restaurants; riders deliver; restaurants manage orders; admins verify certification.
+**HalalGoes** — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Customers find and order from **verified halal-certified** restaurants; riders deliver; restaurants manage orders; admins verify certification.
 
 This repo replaces three older ones (`hg-api`, `halal-goes`, `hg-docker`). It is a **from-scratch rebuild**, not a migration — the previous system was never in production, so there is no data to migrate and no traffic to preserve.
 
@@ -57,7 +57,6 @@ Each exists because it was violated in the previous system and cost real money o
 | `contracts/` | **Single source of truth for every API shape.** OpenAPI + WebSocket + 311 fixtures |
 | `packages/api-client/` | Generated TS client. **Hand-editing generated files is forbidden** |
 | `packages/ui-native/`, `ui-web/` | 81 components, both themes |
-| `apps/gallery-native/`, `gallery-web/` | Component galleries — the visual review surface |
 | `services/hg/` | The Go binary |
 | `deploy/` | docker compose + Traefik |
 
@@ -70,23 +69,27 @@ pnpm install
 pnpm check                              # contract + fixtures + drift + typecheck — the gate
 pnpm -r test
 pnpm mock                               # mock API on :4010, WS on /v1/ws
-pnpm --filter gallery-web dev           # web component gallery
-pnpm --filter @hg/gallery-native web    # native gallery in a browser
 cd services/hg && make up && make migrate && make run
 ```
+
+**Git hooks** ([`lefthook.yml`](lefthook.yml)) install on `pnpm install`; `pnpm exec lefthook install` re-installs them.
+- `commit-msg`: the message starts with `fix|feat|docs|refactor|perf|chore|ci|build|test`, optional `(scope)` and `!`, then `: ` — the same prefixes that label a PR.
+- `pre-commit` (staged files only): `gofmt`, and token / API-client drift when `docs/design/tokens.json` or `contracts/openapi.yaml` is staged.
+- `pre-push`: lint + tests for the workspace packages changed since `origin/main`; `go test ./...` when `services/hg` changed.
+- Emergency skip: `LEFTHOOK=0 git commit …` / `LEFTHOOK=0 git push`. CI runs the same checks, so skipping only moves the failure to the PR.
 
 ## 6. How to work here
 
 - **The contract is authoritative.** If a spec, a prompt or a person contradicts `contracts/openapi.yaml`, the contract wins — or the contract changes first, deliberately, and clients regenerate. Never hand-write a type that the generator emits.
 - **Every screen implements empty, loading and error.** Happy-path-only screens do not merge.
-- **Tests are few and high-value.** Roughly 15–25 that pin invariants — money, auth, the state machine, one end-to-end smoke — not thousands that pin getters. The previous system had more test code than production code and still failed.
+- **Tests are few and high-value.** Roughly 15–25 that pin invariants — money, auth, the state machine, one end-to-end smoke — not thousands that pin getters. The previous system had more test code than production code and still failed. Coverage is measured, not chased: a PR may not lower the coverage of any file it touches, and only money and safety code (pricing, ledger, the order state machine, auth, payments) has a fixed floor — see `coverage/` and [#118](https://github.com/shaiknoorullah/hg-mono/issues/118).
 - **Prefer making a bug unrepresentable over testing for it.** A `CHECK` constraint beats a test; a branded type beats a runtime assert; an unexported brand beats a code review.
 - **Fixtures cover every state**, not the happy one — all 14 order states, all four halal states, empty lists, expired certificates, failed payments.
 - **Issues, PRs and links follow [`CONTRIBUTING.md`](CONTRIBUTING.md).** Everything found, deferred or in progress is a GitHub issue; one PR does one thing; the title prefix sets the label; internal codes are always written out and linked to their definition.
 
 ## 7. State as of the last commit
 
-**Done:** specification (198 features), decisions, design system, API contract (144 operations, 80 enums), generated client, 311 fixtures, mock server, 81 components, both galleries verified.
+**Done:** specification (198 features), decisions, design system, API contract (144 operations, 80 enums), generated client, 311 fixtures, mock server, 81 components. Component review happens in the [UI/UX rework](https://github.com/shaiknoorullah/hg-mono/milestone/16).
 
 **In progress:** the Go backend. Skeleton, compose stack and the 91-table schema have landed. The seven domain modules are **not started** — briefs ready to dispatch in `docs/planning/backend-modules.md`.
 

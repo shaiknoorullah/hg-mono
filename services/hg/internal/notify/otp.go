@@ -43,7 +43,7 @@ func BuildOTP(a OTPArgs) New {
 	if minutes <= 0 {
 		minutes = 5
 	}
-	smsBody := fmt.Sprintf("Your Halal Goes verification code is %s. It expires in %d minutes. Don't share this code.", a.Code, minutes)
+	smsBody := fmt.Sprintf("Your HalalGoes verification code is %s. It expires in %d minutes. Don't share this code.", a.Code, minutes)
 
 	return New{
 		AccountID:   a.AccountID,

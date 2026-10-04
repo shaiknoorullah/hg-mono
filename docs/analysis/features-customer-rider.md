@@ -1,4 +1,4 @@
-# Halal Goes — Exhaustive Feature Inventory: Customer App & Rider App
+# HalalGoes — Exhaustive Feature Inventory: Customer App & Rider App
 
 **Purpose:** scope input for a from-scratch rebuild. Every user-facing capability that exists today (working or not), plus the gaps.
 **Sources:** `/home/user/halal-goes/apps/users`, `/home/user/halal-goes/apps/rider` (read directly), cross-checked against the fleet digests `hg-fe-users-app.md` and `hg-fe-rider-app.md`.

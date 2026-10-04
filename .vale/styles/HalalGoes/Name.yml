@@ -1,0 +1,13 @@
+# The product name is one word. The old repositories' identifiers (halal-goes,
+# hg-api, hg-docker) are lowercase and are not matched; Vale never looks inside
+# code spans or code blocks at all.
+extends: substitution
+message: "The name is one word: use '%s' instead of '%s'."
+level: error
+ignorecase: false
+swap:
+  'Halal[ -]Goes': HalalGoes
+  'HALAL[ -]GOES': HalalGoes
+  'Halal-goes': HalalGoes
+  'Halalgoes': HalalGoes
+  'HalalGOES': HalalGoes
