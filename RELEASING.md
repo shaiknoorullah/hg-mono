@@ -7,7 +7,8 @@ reviewed: 2026-09-28
 # Releasing HalalGoes
 
 The single place the go-live configuration lives. Full engineering status:
-[`docs/planning/v1-status.md`](docs/planning/v1-status.md).
+[`docs/planning/v1-status.md`](docs/planning/v1-status.md). Building, versioning and handing out
+the apps (Android APKs, web bundles): [`docs/release/README.md`](docs/release/README.md).
 
 ## What `v1.0.0-rc1` is
 

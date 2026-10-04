@@ -1,0 +1,370 @@
+name: release-builds
+
+# Builds one HalalGoes app for one environment: the customer and rider Android APKs (expo
+# prebuild + Gradle, on this runner, not a hosted build service), and the restaurant and admin
+# web bundles. How to cut a release, sideload an APK and check its checksum:
+# docs/release/README.md. Goal: release 1.0 (#257).
+#
+#   push a tag customer-v1.0.0 (rider-v…, restaurant-v…, admin-v…)  prod build, attached to a GitHub Release
+#   Run workflow: app, env (dev or prod), version                    that build, as a workflow artifact
+#   a pull request that changes the release config                   its tests only, no build
+#
+# Prod APKs are signed with the release key from repo secrets, which the owner makes once with
+# scripts/release/make-android-keystore.sh (#264). Dev APKs are signed with Android's debug key.
+
+on:
+  push:
+    tags: ['customer-v*', 'rider-v*', 'restaurant-v*', 'admin-v*']
+  workflow_dispatch:
+    inputs:
+      app:
+        description: App to build
+        type: choice
+        options: [customer, rider, restaurant, admin]
+      env:
+        description: 'Environment it talks to: dev (the dev environment) or prod (the production API)'
+        type: choice
+        options: [dev, prod]
+        default: dev
+      version:
+        description: Semantic version, for example 1.0.0 or 1.0.0-rc.1
+        type: string
+        required: true
+  pull_request:
+    paths:
+      - scripts/release/**
+      - apps/customer/app.config.js
+      - apps/rider/app.config.js
+      - .github/workflows/release-builds.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-builds-${{ github.ref }}-${{ inputs.app }}-${{ inputs.env }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Expo's CLI reports usage to Expo unless told not to.
+  EXPO_NO_TELEMETRY: 1
+
+jobs:
+  config-tests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Environments, versions and app identities
+        run: node --test scripts/release/app-env.test.cjs
+      - name: The owner's release-key script, against a stand-in gh
+        run: bash scripts/release/make-android-keystore.test.sh
+
+  plan:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.plan.outputs.app }}
+      env: ${{ steps.plan.outputs.env }}
+      version: ${{ steps.plan.outputs.version }}
+      kind: ${{ steps.plan.outputs.kind }}
+      name: ${{ steps.plan.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read the app, environment and version
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          TAG: ${{ github.ref_name }}
+          IN_APP: ${{ inputs.app }}
+          IN_ENV: ${{ inputs.env }}
+          IN_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT" = push ]; then
+            # A tag is a release, and a release talks to the production API.
+            app="${TAG%%-v*}" version="${TAG#*-v}" env=prod
+          else
+            app="$IN_APP" version="$IN_VERSION" env="$IN_ENV"
+          fi
+          case "$app" in
+            customer|rider) kind=android ;;
+            restaurant|admin) kind=web ;;
+            *) echo "::error::Unknown app \"$app\" (tag $TAG)"; exit 1 ;;
+          esac
+          node -e 'require("./scripts/release/app-env.cjs").versionCode(process.argv[1])' "$version" \
+            || { echo "::error::\"$version\" is not a version this workflow builds. See docs/release/README.md"; exit 1; }
+          if [ "$env" = prod ]; then name="halalgoes-$app-$version"; else name="halalgoes-$app-dev-$version"; fi
+          {
+            echo "app=$app"; echo "env=$env"; echo "version=$version"; echo "kind=$kind"; echo "name=$name"
+          } >>"$GITHUB_OUTPUT"
+          echo "Building **$name** ($kind, $env) from \`${GITHUB_SHA::7}\`." >>"$GITHUB_STEP_SUMMARY"
+
+  android:
+    needs: plan
+    if: needs.plan.outputs.kind == 'android'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      cert: ${{ steps.check.outputs.cert }}
+    env:
+      APP: ${{ needs.plan.outputs.app }}
+      APP_ENV: ${{ needs.plan.outputs.env }}
+      APP_VERSION: ${{ needs.plan.outputs.version }}
+      NAME: ${{ needs.plan.outputs.name }}
+      # Public (pk.) token, read by the maps at run time. Optional: without it there is no map.
+      EXPO_PUBLIC_MAPBOX_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN_MOBILE }}
+    steps:
+      # First, before anything slow: a prod APK without the release key is no release.
+      - name: Check the release key is set
+        if: env.APP_ENV == 'prod'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=""
+          for secret in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            [ -n "${!secret}" ] || missing="$missing $secret"
+          done
+          if [ -n "$missing" ]; then
+            msg="Prod APKs are signed with the HalalGoes release key, and these repo secrets are not set:$missing. Owner task #264: run scripts/release/make-android-keystore.sh once (docs/release/README.md, The release key), then run this build again. Dev builds do not need the key."
+            echo "::error title=Release key missing::$msg"
+            printf '### Release key missing\n\n%s\n\nhttps://github.com/%s/issues/264\n' "$msg" "$GITHUB_REPOSITORY" >>"$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Tags and dispatched runs write the cache too, not only main.
+          cache-read-only: false
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Set the environment
+        run: node scripts/release/app-env.cjs "$APP_ENV" --print | tee -a "$GITHUB_ENV"
+
+      - name: Generate the native project
+        working-directory: apps/${{ env.APP }}
+        run: |
+          pnpm exec expo prebuild --platform android --no-install
+          # Room for Gradle and Kotlin on a small runner.
+          printf '\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError\norg.gradle.workers.max=2\n' \
+            >>android/gradle.properties
+
+      - name: Build the APK
+        working-directory: apps/${{ env.APP }}/android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ "$APP_ENV" = prod ]; then
+            # Real phones only: 64-bit and 32-bit ARM.
+            abis=armeabi-v7a,arm64-v8a
+            store="$RUNNER_TEMP/release.p12"
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d >"$store"
+            store_password="$ANDROID_KEYSTORE_PASSWORD" alias="$ANDROID_KEY_ALIAS" key_password="$ANDROID_KEY_PASSWORD"
+          else
+            # Phones, plus the x86_64 emulators the end-to-end runs use (#77).
+            abis=arm64-v8a,x86_64
+            # Android's well-known debug key, from the generated project.
+            store="$PWD/app/debug.keystore" store_password=android alias=androiddebugkey key_password=android
+          fi
+          # The android.injected.signing.* properties are how Android Studio signs a build; they
+          # override the project's signing config for every variant.
+          ./gradlew assembleRelease --stacktrace \
+            -PreactNativeArchitectures="$abis" \
+            -Pandroid.injected.signing.store.file="$store" \
+            -Pandroid.injected.signing.store.password="$store_password" \
+            -Pandroid.injected.signing.key.alias="$alias" \
+            -Pandroid.injected.signing.key.password="$key_password"
+
+      - name: Check the APK
+        id: check
+        env:
+          EXPECTED_CERT_SHA256: ${{ vars.ANDROID_RELEASE_CERT_SHA256 }}
+        run: |
+          apk="apps/$APP/android/app/build/outputs/apk/release/app-release.apk"
+          tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fail() { echo "::error title=APK check failed::$*"; exit 1; }
+
+          # sed, not head: the shell runs with pipefail, and head would cut aapt2 off mid-write.
+          badging="$("$tools/aapt2" dump badging "$apk" | sed -n 1p)"
+          echo "$badging"
+          package="com.halalgoes.$APP"; [ "$APP_ENV" = prod ] || package="$package.dev"
+          code="$(node -e 'console.log(require("./scripts/release/app-env.cjs").versionCode(process.argv[1]))' "$APP_VERSION")"
+          [[ "$badging" == *"name='$package'"* ]] || fail "expected package $package"
+          [[ "$badging" == *"versionCode='$code'"* ]] || fail "expected versionCode $code"
+          [[ "$badging" == *"versionName='$APP_VERSION'"* ]] || fail "expected versionName $APP_VERSION"
+
+          # The API this build talks to must be baked into the JavaScript bundle.
+          unzip -p "$apk" assets/index.android.bundle >"$RUNNER_TEMP/index.android.bundle"
+          grep -aqF "$EXPO_PUBLIC_API_BASE_URL" "$RUNNER_TEMP/index.android.bundle" \
+            || fail "the bundle does not contain $EXPO_PUBLIC_API_BASE_URL"
+
+          certs="$("$tools/apksigner" verify --print-certs "$apk")"
+          echo "$certs"
+          dn="$(sed -n 's/^Signer #1 certificate DN: //p' <<<"$certs")"
+          cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<<"$certs")"
+          if [ "$APP_ENV" = prod ]; then
+            [[ "$dn" != *"CN=Android Debug"* ]] || fail "a prod APK is signed with the debug key"
+            expected="$(tr -d ':[:space:]' <<<"$EXPECTED_CERT_SHA256" | tr '[:upper:]' '[:lower:]')"
+            if [ -n "$expected" ]; then
+              [ "$cert" = "$expected" ] || fail "signed by $cert, but the release key is $expected (repo variable ANDROID_RELEASE_CERT_SHA256)"
+            else
+              echo "::warning::Repo variable ANDROID_RELEASE_CERT_SHA256 is not set, so the signer was not compared with the release key. make-android-keystore.sh sets it."
+            fi
+          else
+            [[ "$dn" == *"CN=Android Debug"* ]] || fail "a dev APK is expected to carry the debug key, got: $dn"
+          fi
+
+          mkdir -p out
+          cp "$apk" "out/$NAME.apk"
+          (cd out && sha256sum "$NAME.apk" >"$NAME.apk.sha256")
+          sha="$(cut -d' ' -f1 "out/$NAME.apk.sha256")"
+          echo "cert=$cert" >>"$GITHUB_OUTPUT"
+          {
+            echo "| | |"
+            echo "|---|---|"
+            echo "| APK | \`$NAME.apk\` |"
+            echo "| Package | \`$package\`, version $APP_VERSION (code $code) |"
+            echo "| API | $EXPO_PUBLIC_API_BASE_URL |"
+            echo "| Signed by | $dn, certificate SHA-256 \`$cert\` |"
+            echo "| APK SHA-256 | \`$sha\` |"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the release key from the runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.p12"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: out/
+          if-no-files-found: error
+          compression-level: 0
+          # A tag's artifact only carries the files to the release job.
+          retention-days: ${{ github.event_name == 'push' && 1 || 14 }}
+
+  web:
+    needs: plan
+    if: needs.plan.outputs.kind == 'web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      APP: ${{ needs.plan.outputs.app }}
+      APP_ENV: ${{ needs.plan.outputs.env }}
+      APP_VERSION: ${{ needs.plan.outputs.version }}
+      NAME: ${{ needs.plan.outputs.name }}
+      # Public (pk.) token for the admin's live map, restricted to the admin's web address.
+      VITE_MAPBOX_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN_WEB }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build the bundle
+        run: |
+          if [ "$APP" = admin ] && [ -z "$VITE_MAPBOX_TOKEN" ]; then
+            echo "::warning::Secret MAPBOX_PUBLIC_TOKEN_WEB is not set: the admin's live map will show its empty state (#57)."
+          fi
+          pnpm --filter "@hg/$APP" "build:$APP_ENV"
+
+      - name: Check and archive the bundle
+        run: |
+          api="$(node scripts/release/app-env.cjs "$APP_ENV" --print | sed -n 's/^VITE_API_BASE_URL=//p')"
+          grep -rqF "$api" "apps/$APP/dist" \
+            || { echo "::error title=Bundle check failed::the bundle does not contain $api"; exit 1; }
+          mkdir -p out
+          tar -czf "out/$NAME.tar.gz" -C "apps/$APP/dist" .
+          (cd out && sha256sum "$NAME.tar.gz" >"$NAME.tar.gz.sha256")
+          {
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Bundle | \`$NAME.tar.gz\` |"
+            echo "| API | $api |"
+            echo "| SHA-256 | \`$(cut -d' ' -f1 "out/$NAME.tar.gz.sha256")\` |"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: out/
+          if-no-files-found: error
+          retention-days: ${{ github.event_name == 'push' && 1 || 14 }}
+
+  release:
+    needs: [plan, android, web]
+    if: >-
+      always() && github.event_name == 'push' &&
+      (needs.android.result == 'success' || needs.web.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.plan.outputs.name }}
+          path: out
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          APP: ${{ needs.plan.outputs.app }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          CERT: ${{ needs.android.outputs.cert }}
+        run: |
+          title="HalalGoes ${APP^} $VERSION"
+          {
+            echo "$title, built from \`${GITHUB_SHA::7}\`. It talks to the production API, https://api.halalgoes.com."
+            echo
+            echo "| File | SHA-256 |"
+            echo "|---|---|"
+            for f in out/*.sha256; do
+              read -r sum file <"$f"
+              echo "| \`$file\` | \`$sum\` |"
+            done
+            echo
+            if [ -n "$CERT" ]; then
+              echo "Signed with the HalalGoes release key, certificate SHA-256 \`$CERT\`."
+              echo
+            fi
+            echo "How to install it and check the checksum: [docs/release/README.md](https://github.com/$GITHUB_REPOSITORY/blob/$TAG/docs/release/README.md)."
+            echo "Release notes written for users come with [versioned releases](https://github.com/$GITHUB_REPOSITORY/issues/97) and [their PR rule](https://github.com/$GITHUB_REPOSITORY/issues/98)."
+          } >notes.md
+          prerelease=""
+          [[ "$VERSION" != *-* ]] || prerelease="--prerelease"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/* --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --notes-file notes.md --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" out/* --verify-tag --title "$title" --notes-file notes.md $prerelease \
+              --repo "$GITHUB_REPOSITORY"
+          fi
