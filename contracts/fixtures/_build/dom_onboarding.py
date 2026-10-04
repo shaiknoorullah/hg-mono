@@ -929,7 +929,7 @@ def _auth_and_config(reg, synth) -> None:
         "A customer session issued by phone OTP, with `next_route` telling the app where to "
         "land — the client contains no branching tree of its own (P-04).",
         synth.make("SessionGrant", "session-customer"),
-        operations=["verifyOtp", "login", "refreshSession", "verifyEmail"],
+        operations=["verifyOtp", "login", "refreshSession"],
         tags=["platform", "auth"],
     )
 

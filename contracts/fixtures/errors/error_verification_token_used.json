@@ -1,0 +1,20 @@
+{
+  "scenario": "error_verification_token_used",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`410` · `VERIFICATION_TOKEN_USED`. `verifyEmail` with a token that was already used: the email is verified, so the page sends the owner to sign in. Using the link never signs anyone in.",
+  "operations": [
+    "verifyEmail"
+  ],
+  "status": 410,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VERIFICATION_TOKEN_USED",
+      "message": "This verification link has already been used.",
+      "request_id": "MPMKVNS67QVET9X5HZSFCZY6XD"
+    }
+  }
+}

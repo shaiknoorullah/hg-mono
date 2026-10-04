@@ -359,7 +359,8 @@ paths:
       description: |
         P-03 / R-01. Creates one `account` (unverified), one `restaurant` in
         `onboarding_state=REGISTERED`, and one `RESTAURANT_OWNER` grant, then sends a
-        verification email. **No session is issued until the email is verified.**
+        verification email. **No session is issued**, and verifying the email issues none
+        either: the owner signs in with `login` once the email is verified.
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -395,10 +396,15 @@ paths:
     post:
       operationId: verifyEmail
       tags: [auth]
-      summary: Consume an email-verification token and issue a session
+      summary: Consume an email-verification token
       description: |
-        P-03 / R-02. Single-use, consumed atomically. TTL 24 h. Advances the restaurant
-        onboarding state to `PROFILE_PENDING` and issues a session.
+        P-03 / R-02. Single-use, consumed atomically. TTL 24 h. Marks the email verified and
+        advances the restaurant onboarding state to `PROFILE_PENDING`.
+
+        **Issues no session and sets no cookie.** An emailed link must never sign anyone in:
+        otherwise an attacker could send someone the link for the attacker's own account and
+        the victim would land signed in to it (login cross-site request forgery). The owner
+        signs in afterwards with `login`, like any other sign-in.
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -418,17 +424,8 @@ paths:
                   maxLength: 128
                   description: Base64url token from the verification email. Never logged.
       responses:
-        '200':
-          description: Email verified and session issued.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: false
-                required: [data]
-                properties:
-                  data:
-                    $ref: '#/components/schemas/SessionGrant'
+        '204':
+          description: Email verified. No session issued and no cookie set.
         '410':
           $ref: '#/components/responses/Error'
         default:
@@ -703,6 +700,10 @@ paths:
       summary: Set a new password from a reset token
       description: |
         P-03. Revokes **every** session in the account's family and sends a security email.
+
+        **Issues no session and sets no cookie**, also when the link is a staff invitation
+        setting a first password. The user signs in afterwards with `login` (with the
+        authenticator code where the account requires one).
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -724,7 +725,7 @@ paths:
                   $ref: '#/components/schemas/Password'
       responses:
         '204':
-          description: Password set; all sessions revoked.
+          description: Password set; all sessions revoked. No session issued and no cookie set.
         '400':
           $ref: '#/components/responses/Error'
         '422':
