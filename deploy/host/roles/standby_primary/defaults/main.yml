@@ -1,2 +1,1 @@
-hg_standby_host: "{{ groups['standby'][0] }}"
-hg_standby_slot: standby1
+hg_standby_host: "{{ (groups['standby'] | default([]))[0] | default('') }}"

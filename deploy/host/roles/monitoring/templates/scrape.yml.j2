@@ -6,7 +6,7 @@ scrape_configs:
   - job_name: node
     static_configs:
 {% for host in groups['hg_servers'] | default([inventory_hostname]) %}
-{% if hostvars[host].hg_wg_address is defined %}
+{% if hostvars[host].hg_wg_address is defined and (host in groups['prod'] | default([inventory_hostname]) or hg_standby_enabled | bool) %}
       - targets: ["{{ hostvars[host].hg_node_exporter_listen | default(hostvars[host].hg_wg_address ~ ':9100') }}"]
         labels: {host: {{ host }}}
 {% endif %}

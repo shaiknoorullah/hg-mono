@@ -16,10 +16,13 @@ AllowTcpForwarding local
 PermitTunnel no
 ClientAliveInterval 300
 ClientAliveCountMax 2
+{% set pull = [] %}
+{% for source in hg_pull_sources %}{% set _ = pull.append(hg_pull_user ~ '@' ~ source) %}{% endfor %}
 {% if hg_ssh_public %}
 # TEMPORARY, until the owner's WireGuard tunnel works: the admin account from any address.
-AllowUsers {{ hg_admin_user }} {{ hg_pull_user }}@{{ hg_wg_subnet }}
+AllowUsers {{ hg_admin_user }} {{ pull | join(' ') }}
 {% else %}
-# Logins only from WireGuard peers, even if the firewall were gone.
-AllowUsers {{ hg_admin_user }}@{{ hg_wg_subnet }} {{ hg_pull_user }}@{{ hg_wg_subnet }}
+# Logins only from WireGuard peers, even if the firewall were gone. The backup pull account
+# only from the owner's backup machine{{ 's' if pull | length != 1 }}.
+AllowUsers {{ hg_admin_user }}@{{ hg_wg_subnet }} {{ pull | join(' ') }}
 {% endif %}

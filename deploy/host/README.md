@@ -61,16 +61,19 @@ This playbook provisions the server; the production compose override ([#208][i20
 
 | Production compose | Why |
 |---|---|
-| Declares `hg-net` external (this playbook creates it, with the other networks) | the monitoring and backup containers join it |
+| Declares every network below external (this playbook creates them, with fixed subnets) | compose files and these roles agree on names and addresses |
+| Traefik and the API, and nothing else, on `hg-proxy` (`10.88.0.0/29`); the API's label `traefik.docker.network=hg-proxy`; `HG_TRUSTED_PROXY_CIDRS=10.88.0.0/29` | the API trusts forwarded client addresses from that range only, and only Traefik is in it besides the API's own replicas (room for four during a rollout) |
+| The API, Postgres, Valkey and Silo on `hg-net` | the monitoring and backup containers join it to read them |
 | Traefik on `hg-socket` with `--providers.docker.endpoint=tcp://docker-socket-proxy:2375`, no Docker socket mount | Traefik reads Docker only through the read-only proxy |
-| Traefik also on `hg-dev-edge`, with entrypoint `websecure` and certificate resolver `letsencrypt` (or change `hg_traefik_*` to match) | it routes the dev hostnames |
+| Traefik also on `hg-dev-proxy` and `hg-dev-edge`, with entrypoint `websecure` and certificate resolver `letsencrypt` (or change `hg_traefik_*` to match) | it routes the dev hostnames; no dev container ever joins `hg-proxy` |
 | The API on `hg-scan` | clamd listens at `172.30.3.10:3310` there ([#218][i218]) |
 | Postgres mounts `/etc/hg/pgbackrest` at `/etc/pgbackrest` (read-only), `/srv/backup/pgbackrest` at `/var/lib/pgbackrest`, `/var/spool/hg-pgbackrest` at `/var/spool/pgbackrest`, `/var/log/hg/pgbackrest` at `/var/log/pgbackrest`, a named volume at `/var/run/postgresql`, and `env_file: /etc/hg/pgbackrest/cipher.env` | pgBackRest runs inside it for WAL and beside it (`hg-pgbackrest`) for backups |
 | Postgres runs with `archive_mode=on`, `archive_command='pgbackrest --stanza=hg archive-push %p'`, `archive_timeout=60` | WAL reaches the repository within a minute |
 | A `hg_monitor` role in `pg_monitor`, with `hg_monitor_postgres_password` from `host.sops.yaml` ([#215][i215]) | postgres-exporter's login |
 | A read-only Silo account for backups, in `hg_backup_silo_*` ([#203][i203]) | the bucket backups' login |
 | Project name `hg`, so Postgres is `hg-postgres-1`; Silo's service `minio` (or change `hg_silo_endpoint`) | the scripts address them by name |
-| `.env` comes from `prod.sops.env` (see Secrets), with `HG_TRUSTED_PROXY_CIDRS=172.30.0.0/24`; compose files and `acme.json` live in `/srv/hg` | `hg-net`'s subnet is fixed here, so Traefik's address is known; the config backup covers that folder |
+| `.env` comes from `prod.sops.env` (see Secrets); compose files and `acme.json` live in `/srv/hg` | the config backup covers that folder |
+| Postgres published as `10.66.0.1:5432` only once `hg_standby_enabled` is true, and never on any other address | the standby's replica connects over WireGuard; the host firewall drops everyone else on the tunnel |
 
 ## Secrets
 
@@ -120,8 +123,15 @@ All on this server, under `/srv/backup`, apart from the data they protect, and c
 | `/etc`, `/srv/hg` (compose files, `.env`, `acme.json`) | restic snapshot | daily | the same |
 | All of the above, off the server | the owner's machine pulls new restic snapshots over WireGuard (`restic copy`) whenever it is on, at most once every 20 hours | nightly while it's on | 35 days |
 
-- **The server can't erase the off-server copy.** The owner's machine logs in as `hg-pull`: read-only SFTP, locked inside `/srv/backup`. The server holds no credential for that machine.
+- **The server can't erase the off-server copy.** The owner's machine logs in as `hg-pull`: read-only SFTP, locked inside `/srv/backup`, accepted only from that machine's WireGuard address. The server holds no credential for that machine.
 - **Dev is never backed up.** It resets to the seed data: `sudo hg-dev-reset`.
+
+**Who can touch the backups.** Nothing outside the backup jobs can delete or rewrite them:
+
+- The restic password, the pgBackRest passphrase and the bucket-reading key sit only in `/etc/hg/backup` and `/etc/hg/pgbackrest`, readable by root. The jobs run as root; the passphrase also reaches the Postgres container, which encrypts WAL as it archives. The API and every dev container get none of them.
+- The off-server copy is pulled, never pushed, with a read-only account: the server can't reach the owner's machine, and the owner's machine can't change anything on the server.
+- The standby (next month) needs no backup access at all: streaming replication and bucket replication don't use the repositories. No backup credential, env file or pull key is ever written to it, and it can't log in as `hg-pull`.
+- Dev's settings (`dev.sops.env`) hold only dev's own passwords and test-mode keys.
 - **The monthly drill** (`hg-restore-drill`, first Tuesday, 04:00 Toronto) restores Postgres to a random point in the last day in a throwaway container. It checks that the ledger sums to zero and that row counts match production, runs `restic check --read-data-subset=5%`, and round-trips up to 20 objects through a throwaway Silo's S3 API, checking each against its `stored_object` row. Run it by hand on the owner's machine against its copy: `sudo hg-restore-drill --config /etc/hg-offline/backup.conf --no-live` (set `hg_postgres_image` first).
 - **Contabo snapshots** are taken by hand, in the panel, right before a risky change (a Docker update, a migration), and deleted within 7 days ([runbook][runbook-routine]). They sit on the same host as the server, so they are not backups.
 
@@ -140,18 +150,24 @@ A second compose project, `hg-dev`, in `/srv/hg-dev`, beside production for good
 
 - its own Postgres (768 MB), Valkey (64 MB) and Silo (256 MB), on `hg-dev-net`, an internal network nothing of production's joins. So no dev container has a route to production's database, Redis or buckets;
 - its own Silo rather than buckets on production's. Separate keys and bucket policies on one Silo would still leave dev a network path to production's object store; a second small Silo costs about 256 MB and removes the path;
-- its own hostnames through Traefik: `api.dev.`, `files.dev.`, `admin.dev.` and `restaurant.dev.` under the domain;
+- its own hostnames through Traefik: `api.dev.`, `files.dev.`, `admin.dev.` and `restaurant.dev.` under the domain. Traefik reaches the dev API over `hg-dev-proxy`, the only range dev trusts for forwarded addresses; no dev container joins production's `hg-proxy`;
 - its own settings with test-mode keys (`HG_ENV=staging`, so the API refuses a live Stripe key at boot);
 - all of it in `hg-dev.slice`: at most 1.5 GiB of memory and 1.5 of the 6 vCPUs, and a fifth of production's share of CPU and disk when both are busy;
 - the API image is `hg_dev_api_image` (may be newer than production's) and starts once it is set ([#78][i78]).
 
 ## Next month: the standby ([#210][i210])
 
+Everything for the standby is off until `hg_standby_enabled` is true, so tonight's single server exposes none of it: no WireGuard peer, no replication role, no published Postgres, no bucket replication.
+
 1. Order the Cloud VPS for the standby. Add it under `standby` in `inventory/hosts.yml` (the commented block), with `hg_ssh_public: true` until its tunnel works.
-2. Set `hg_postgres_image` (the production Postgres image, by digest), add `hg_prod_silo_root_*` to `host.sops.yaml`, and publish production's Postgres on `10.66.0.1:5432` in the compose file. To move ClamAV, change `hg_clamav_host` to `hg-standby` in `group_vars/all.yml`.
+2. In `group_vars/all.yml`, set `hg_standby_enabled: true` (and `hg_clamav_host: hg-standby` to move ClamAV). Set `hg_postgres_image` (the production Postgres image, by digest) and fill in `hg_prod_silo_root_*` in `host.sops.yaml`. Publish production's Postgres as `10.66.0.1:5432` in the compose file.
 3. `ansible-playbook bootstrap.yml --limit hg-standby -e ansible_host=<its IP> -e ansible_user=root`, then `ansible-playbook standby.yml`.
 
-That adds the standby as a WireGuard peer of production, starts a streaming replica and a Silo replica, sets up bucket replication from production, starts a Gatus there that watches production, and moves clamd (listening on the standby's WireGuard address) if asked. Production is not rebuilt.
+What it sets up, each with the least it needs:
+
+- **Postgres:** a `replicator` role with `LOGIN` and `REPLICATION` only (no superuser, no grants, two connections). `pg_hba` admits it for replication from the standby's WireGuard address alone, and rejects every other use of it. The host firewall lets only that address reach `10.66.0.1:5432`.
+- **Silo:** one-way bucket replication of `hg-kyc`, `hg-pod` and `hg-media`. Production configures it with a key scoped to those buckets, and replicates with a key that can only write those buckets on the standby. Production's root account is used once, to create its scoped key, and never stored in any replication setting. The standby holds no production credential, so it can't write back.
+- **The rest:** the standby becomes a WireGuard peer of production, gets the same base, firewall (WireGuard only, no public ports) and SSH settings, and runs a Gatus that watches production. clamd moves there if asked, listening on its WireGuard address for production's API alone. Production is not rebuilt.
 
 ## Routine
 

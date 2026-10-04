@@ -16,7 +16,9 @@ all:
         standby:
           hosts: {}
     offline:
-      hosts: {}
+      hosts:
+        owner-backup:
+          ansible_host: 10.66.0.11
   vars:
     ansible_user: root
     hg_admin_ssh_keys:

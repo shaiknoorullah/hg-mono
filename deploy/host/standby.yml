@@ -1,15 +1,23 @@
-# Next month (#210): add the warm standby without rebuilding production.
-#   1. Order the standby; add it under "standby" in inventory/hosts.yml.
-#   2. Set hg_postgres_image (the production Postgres image, by digest) and the standby
-#      secrets in host.sops.yaml; to move ClamAV, set hg_clamav_host: hg-standby.
-#   3. Bootstrap it like prod (provision.sh --standby <ip>), then run this playbook.
-# Not applied by site.yml.
+# Next month (#210): add the warm standby without rebuilding production. The steps are in
+# README.md, "Next month: the standby". Not applied by site.yml, and refuses to run until
+# hg_standby_enabled is true in group_vars/all.yml.
 - name: Both servers - the same base, and WireGuard peers of each other
   hosts: hg_servers
   become: true
   vars:
     hg_firewall_public_tcp_ports: "{{ [] if inventory_hostname in groups['standby'] else [80, 443] }}"
     hg_docker_prune: "{{ inventory_hostname not in groups['standby'] }}"
+    # The standby gets no env file: neither production's settings nor dev's, and no backup
+    # credential ever reaches it.
+    hg_secrets_env_files: >-
+      {{ [] if inventory_hostname in groups['standby'] else
+         [{'name': 'prod.sops.env', 'dest': hg_app_dir ~ '/.env'}, {'name': 'dev.sops.env', 'dest': hg_dev_dir ~ '/.env'}] }}
+  pre_tasks:
+    - name: Refuse to run until the standby is switched on
+      ansible.builtin.assert:
+        that: hg_standby_enabled | bool
+        fail_msg: "Set hg_standby_enabled: true in group_vars/all.yml first (README, 'Next month: the standby')."
+        quiet: true
   roles:
     - secrets
     - base

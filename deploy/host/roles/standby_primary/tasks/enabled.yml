@@ -1,0 +1,131 @@
+- name: Refuse to start without a standby and its secrets
+  ansible.builtin.assert:
+    that:
+      - hg_standby_host | length > 0
+      - hg_standby_replication_password | default('') | length >= 20
+      - hg_prod_silo_root_user | default('') | length > 0
+      - hg_prod_silo_root_password | default('') | length > 0
+      - hg_prod_silo_replication_access_key | default('') | length >= 16
+      - hg_prod_silo_replication_secret_key | default('') | length >= 32
+      - hg_standby_silo_replication_access_key | default('') | length >= 16
+      - hg_standby_silo_replication_secret_key | default('') | length >= 32
+    fail_msg: "Add the standby to the inventory and its secrets to host.sops.yaml (README, 'Next month')."
+    quiet: true
+
+- name: Check that production's Postgres is published on the WireGuard address
+  # The production compose file (#208) publishes it as {{ hg_wg_address }}:5432 and nowhere
+  # else; the host firewall lets only the standby's address through (roles/firewall).
+  ansible.builtin.wait_for:
+    host: "{{ hg_wg_address }}"
+    port: 5432
+    timeout: 5
+
+# ---------------------------------------------------------------- Postgres
+- name: Create the replication role, able to stream WAL and nothing else
+  ansible.builtin.command:
+    argv: [docker, exec, -i, -e, PW, "{{ hg_postgres_container }}", psql, -U, "{{ hg_postgres_superuser }}",
+           -d, "{{ hg_postgres_db }}", -v, ON_ERROR_STOP=1, -f, "-"]
+    # The password travels in the environment and stdin, never on a command line.
+    stdin: |
+      \getenv pw PW
+      SELECT format(CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'replicator')
+        THEN 'ALTER ROLE replicator WITH %s PASSWORD %L'
+        ELSE 'CREATE ROLE replicator WITH %s PASSWORD %L' END,
+        'LOGIN REPLICATION NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS CONNECTION LIMIT 2',
+        :'pw') \gexec
+  environment:
+    PW: "{{ hg_standby_replication_password }}"
+  changed_when: false
+  no_log: true
+
+# pg_hba is read top down and the first match wins. The block goes first: replication from
+# the standby's WireGuard address, and a rejection for every other use of the role, ahead
+# of the image's catch-all "host all all all" line.
+- name: Let the replication role in from the standby only, and for replication only
+  ansible.builtin.command:
+    argv: [docker, exec, -i, -e, BLOCK, "{{ hg_postgres_container }}", sh, -s]
+    stdin: |
+      set -eu
+      f="$PGDATA/pg_hba.conf"
+      begin='# BEGIN HalalGoes standby (deploy/host/roles/standby_primary)'
+      end='# END HalalGoes standby'
+      current=$(sed -n "\\|^$begin\$|,\\|^$end\$|p" "$f")
+      wanted=$(printf '%s\n%s\n%s' "$begin" "$BLOCK" "$end")
+      if [ "$current" = "$wanted" ]; then echo unchanged; exit 0; fi
+      { printf '%s\n' "$wanted"; sed "\\|^$begin\$|,\\|^$end\$|d" "$f"; } > "$f.new"
+      cat "$f.new" > "$f" && rm -f "$f.new"
+      echo changed
+  environment:
+    BLOCK: |-
+      host    replication  replicator  {{ hostvars[hg_standby_host].hg_wg_address }}/32  scram-sha-256
+      host    replication  replicator  all          reject
+      host    all          replicator  all          reject
+  register: hg_hba
+  changed_when: "'changed' in hg_hba.stdout"
+  notify: Reload Postgres's access rules
+  no_log: true
+
+# ---------------------------------------------------------------- Silo
+# One-way bucket replication of the named buckets. Production's Silo holds only the
+# standby's scoped replication key, which can write those buckets there and nothing else;
+# the standby holds no production credential, so it can never write back.
+- name: Copy the replication policy for production's Silo
+  ansible.builtin.template:
+    src: replication-admin-policy.json.j2
+    dest: "{{ hg_config_dir }}/silo-replication-admin-policy.json"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create production's scoped replication identity (root is used for this step only)
+  # mc reads every credential from MC_HOST_* or stdin: none is ever an argument.
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - -i
+      - --network
+      - "{{ hg_networks.app.name }}"
+      - -e
+      - MC_HOST_prod
+      - -e
+      - AK
+      - -v
+      - "{{ hg_config_dir }}/silo-replication-admin-policy.json:/policy.json:ro"
+      - --entrypoint
+      - /usr/bin/sh
+      - "{{ hg_images.mc }}"
+      - -s
+    stdin: |
+      set -eu
+      mc admin policy create prod hg-replication-admin /policy.json
+      mc admin user info prod "$AK" >/dev/null 2>&1 || printf '%s\n%s\n' "$AK" "$SK" | mc admin user add prod
+      mc admin policy attach prod hg-replication-admin --user "$AK" 2>/dev/null || true
+  environment:
+    MC_HOST_prod: >-
+      {{ hg_silo_endpoint | urlsplit('scheme') }}://{{ hg_prod_silo_root_user | urlencode }}:{{
+      hg_prod_silo_root_password | urlencode }}@{{ hg_silo_endpoint | urlsplit('netloc') }}
+    AK: "{{ hg_prod_silo_replication_access_key }}"
+  changed_when: false
+  no_log: true
+
+- name: Replicate the named buckets to the standby, with the scoped keys on both sides
+  ansible.builtin.command:
+    argv: [docker, run, --rm, -i, --network, "{{ hg_networks.app.name }}", -e, MC_HOST_prod, -e, MC_HOST_standby,
+           --entrypoint, /usr/bin/sh, "{{ hg_images.mc }}", -s]
+    stdin: |
+      set -eu
+      for b in {{ hg_standby_replicated_buckets | join(' ') }}; do
+        mc replicate ls "prod/$b" --json 2>/dev/null | grep -q "{{ hostvars[hg_standby_host].hg_wg_address }}" && continue
+        mc replicate add "prod/$b" --remote-bucket "standby/$b" --replicate "delete,delete-marker,existing-objects"
+      done
+  environment:
+    MC_HOST_prod: >-
+      {{ hg_silo_endpoint | urlsplit('scheme') }}://{{ hg_prod_silo_replication_access_key | urlencode }}:{{
+      hg_prod_silo_replication_secret_key | urlencode }}@{{ hg_silo_endpoint | urlsplit('netloc') }}
+    MC_HOST_standby: >-
+      http://{{ hg_standby_silo_replication_access_key | urlencode }}:{{
+      hg_standby_silo_replication_secret_key | urlencode }}@{{ hostvars[hg_standby_host].hg_wg_address }}:9000
+  changed_when: false
+  no_log: true

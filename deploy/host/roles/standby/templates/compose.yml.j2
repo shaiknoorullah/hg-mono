@@ -1,7 +1,7 @@
 # Managed by Ansible (deploy/host/roles/standby). The warm standby (#210).
-# The replica pulls from production over WireGuard; production pushes bucket changes to this
-# Silo (site replication, set up from production), which listens only on the WireGuard
-# address ({{ hg_wg_address }}). It must start with no buckets of its own.
+# The replica pulls from production over WireGuard. Production pushes changes to the named
+# buckets into this Silo, one way, with a key scoped to them; it listens only on the
+# WireGuard address ({{ hg_wg_address }}), and the firewall lets only production reach it.
 name: hg-standby
 
 services:

@@ -3,3 +3,15 @@
 hg_firewall_wg_tcp_ports: [22, 9100]
 # Docker containers on the monitoring network may reach node-exporter on the host.
 hg_firewall_from_ops_tcp_ports: [9100]
+
+# Ports published on a WireGuard address, and the only peers allowed to reach each.
+# Everyone else on the tunnel (the owner's devices included) is dropped. An empty list
+# drops the port for every peer: that is the single-server state, standby switched off.
+hg_firewall_prod_wg: "{{ (groups['prod'] | default([])) | map('extract', hostvars, 'hg_wg_address') | list }}"
+hg_firewall_standby_wg: >-
+  {{ (groups['standby'] | default([])) | map('extract', hostvars, 'hg_wg_address') | list
+     if hg_standby_enabled | bool else [] }}
+hg_firewall_wg_restricted:
+  - {port: 5432, sources: "{{ hg_firewall_standby_wg }}"}   # prod's Postgres: the standby's replica only
+  - {port: 9000, sources: "{{ hg_firewall_prod_wg }}"}      # the standby's Silo: prod's replication only
+  - {port: 3310, sources: "{{ hg_firewall_prod_wg }}"}      # clamd on the standby: prod's API only
