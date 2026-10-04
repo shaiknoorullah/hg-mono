@@ -13,6 +13,9 @@ from world import address, restaurant_card
 
 RIDER_ACCOUNT = uuid_for("account:rider:bilal")
 
+# Seconds from 00:00 UTC on the frozen clock's Monday to the frozen clock itself.
+_SINCE_MONDAY_MIDNIGHT = 18 * HOUR + 42 * MINUTE + 11.412
+
 DISPATCH_STATES = {
     "PENDING": "Dispatch has the order but has not started searching — the restaurant has "
     "not accepted yet.",
@@ -557,6 +560,44 @@ def _payouts(reg, synth) -> None:
         synth.make("PayoutDetail", "payout-detail"),
         operations=["getRiderPayout"],
         tags=["rider", "money"],
+    )
+
+    # A restaurant's payout history as the page shows it: newest first, one row per Monday
+    # run. The frozen clock is a Monday, so last week's payout is mid-transfer today.
+    history = []
+    for weeks_ago, state, amount, entries in [
+        (0, "DRAFT", 0, 0),
+        (1, "TRANSFERRING", 184_250, 61),
+        (2, "PAID", 201_475, 67),
+        (3, "PAID", 176_830, 58),
+        (4, "PAID", 193_115, 64),
+    ]:
+        start = -(weeks_ago * 7) * DAY - _SINCE_MONDAY_MIDNIGHT
+        history.append(
+            {
+                "id": uuid_for(f"restaurant-payout:{weeks_ago}"),
+                "period_start": ts(start),
+                "period_end": ts(start + 7 * DAY),
+                "amount_cents": amount,
+                "currency": "CAD",
+                "state": state,
+                "hold_reason": None,
+                "entry_count": entries,
+                "paid_at": ts(start + 7 * DAY + 2 * DAY) if state == "PAID" else None,
+                "failure_message": None,
+            }
+        )
+    reg.add(
+        "restaurant_payout_history",
+        "rider",
+        "array<Payout>",
+        "A restaurant's payout history, newest first: this week still accruing, last week "
+        "mid-transfer on Monday's run, three paid weeks before it. Weekly, automatic, no "
+        "minimum.",
+        history,
+        operations=["listRestaurantPayouts"],
+        meta={"next_cursor": None, "has_more": False, "total": len(history)},
+        tags=["restaurant", "money"],
     )
 
     reg.add(
