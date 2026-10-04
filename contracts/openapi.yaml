@@ -389,6 +389,8 @@ paths:
           $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/email/verify:
@@ -4680,6 +4682,11 @@ paths:
         to the authenticated admin — no code path accepts an `admin_id` from a request body.
         A second decision on a decided application is `409 ALREADY_DECIDED`, never a silent
         overwrite.
+
+        Each decision has its own body (`RestaurantDecisionInput`): an approval carries an
+        approval reason, a rejection or a request for changes carries a rejection reason, and a
+        request for changes names the documents to redo. A missing reason, or a reason that
+        does not fit the decision, is `422 VALIDATION_FAILED`.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5131,6 +5138,11 @@ paths:
         Rejection reason text is sent verbatim to the rider with the specific remediation
         step. A support agent may re-open a rejected application only for a remediable
         reason, and may never approve.
+
+        Each decision has its own body (`RiderDecisionInput`): an approval carries an approval
+        reason, a rejection or a request for changes carries a document rejection reason, and a
+        request for changes names the documents to redo. A missing reason, or a reason that
+        does not fit the decision, is `422 VALIDATION_FAILED`.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5161,7 +5173,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`.'
+          description: '`AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`, `VALIDATION_FAILED`.'
           content:
             application/json:
               schema:
@@ -6980,6 +6992,14 @@ components:
       enum: [APPROVE, REQUEST_CHANGES, REJECT]
     RestaurantApproveReasonCode:
       type: string
+      enum: [ALL_CHECKS_PASSED, APPROVED_WITH_NOTES]
+    RiderApproveReasonCode:
+      type: string
+      description: |
+        Why a rider application was approved. The same two reasons as a restaurant approval
+        (`RestaurantApproveReasonCode`), because the rider review is built the same way
+        ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+        `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
       enum: [ALL_CHECKS_PASSED, APPROVED_WITH_NOTES]
     RestaurantRejectApplicationReasonCode:
       type: string
@@ -11342,30 +11362,98 @@ components:
               type: [string, 'null']
               description: 'Soft warning when the map pin is more than 5 km from the postal-code centroid.'
     RestaurantDecisionInput:
+      description: |
+        The decision on a restaurant application
+        ([restaurant approval or rejection](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-18--restaurant-approval--rejection-decision)).
+        One body shape per `decision`, chosen by the `decision` field, so each decision can
+        carry only the reason codes that fit it:
+
+        - `APPROVE` carries an approval reason (`RestaurantApproveReasonCode`).
+        - `REJECT` carries a rejection reason (`RestaurantRejectApplicationReasonCode`).
+        - `REQUEST_CHANGES` carries a rejection reason and names the documents to redo.
+
+        Every state-changing admin action requires both a `reason_code` from a closed enum and
+        a `reason_text`
+        ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+        missing either, or a code that does not fit the decision, is a `422`. `reason_text` is
+        sent verbatim to the restaurant — internal remarks go in `internal_note`, which is
+        never transmitted. The rider application decision has the same shape
+        (`RiderDecisionInput`).
+      oneOf:
+        - $ref: '#/components/schemas/RestaurantApplicationApproveInput'
+        - $ref: '#/components/schemas/RestaurantApplicationRejectInput'
+        - $ref: '#/components/schemas/RestaurantApplicationRequestChangesInput'
+      discriminator:
+        propertyName: decision
+        mapping:
+          APPROVE: '#/components/schemas/RestaurantApplicationApproveInput'
+          REJECT: '#/components/schemas/RestaurantApplicationRejectInput'
+          REQUEST_CHANGES: '#/components/schemas/RestaurantApplicationRequestChangesInput'
+    RestaurantApplicationApproveInput:
       type: object
       additionalProperties: false
       required: [decision, reason_code, reason_text]
-      description: |
-        Every state-changing admin action requires both a `reason_code` from a closed enum and
-        a `reason_text`; missing either is a `422`. `reason_text` is sent verbatim to the
-        restaurant — internal remarks go in `internal_note`, which is never transmitted.
+      description: 'Approve a restaurant application. Approval does not make the restaurant live.'
       properties:
         decision:
-          $ref: '#/components/schemas/RestaurantDecision'
+          type: string
+          enum: [APPROVE]
         reason_code:
-          oneOf:
-            - $ref: '#/components/schemas/RestaurantApproveReasonCode'
-            - $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+          $ref: '#/components/schemas/RestaurantApproveReasonCode'
         reason_text:
           type: string
           minLength: 10
           maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
         internal_note:
           type: string
           maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
+    RestaurantApplicationRejectInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text]
+      description: 'Reject a restaurant application. Rejection is final for this application.'
+      properties:
+        decision:
+          type: string
+          enum: [REJECT]
+        reason_code:
+          $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
+        internal_note:
+          type: string
+          maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
+    RestaurantApplicationRequestChangesInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text, documents_to_redo]
+      description: 'Send a restaurant application back for changes, naming the documents to redo.'
+      properties:
+        decision:
+          type: string
+          enum: [REQUEST_CHANGES]
+        reason_code:
+          $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
+        internal_note:
+          type: string
+          maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
         documents_to_redo:
           type: array
-          description: 'Required for `REQUEST_CHANGES`: names exactly which documents to redo.'
+          minItems: 1
+          uniqueItems: true
+          description: 'Names exactly which documents to redo.'
           items:
             $ref: '#/components/schemas/RestaurantDocType'
     DocumentReviewInput:
@@ -11678,12 +11766,77 @@ components:
               items:
                 type: string
     RiderDecisionInput:
+      description: |
+        The decision on a rider application
+        ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+        One body shape per `decision`, chosen by the `decision` field, so each decision can
+        carry only the reason codes that fit it:
+
+        - `APPROVE` carries an approval reason (`RiderApproveReasonCode`). Until
+          [#163](https://github.com/shaiknoorullah/hg-mono/issues/163) every decision had to
+          carry a document rejection reason, and none of those fits an approval.
+        - `REJECT` carries a document rejection reason (`DocumentRejectionReasonCode`).
+        - `REQUEST_CHANGES` carries a document rejection reason and names the documents to redo.
+
+        Every state-changing admin action requires both a `reason_code` from a closed enum and
+        a `reason_text`
+        ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+        missing either, or a code that does not fit the decision, is a `422`. The same shape
+        as the restaurant application decision (`RestaurantDecisionInput`).
+      oneOf:
+        - $ref: '#/components/schemas/RiderApplicationApproveInput'
+        - $ref: '#/components/schemas/RiderApplicationRejectInput'
+        - $ref: '#/components/schemas/RiderApplicationRequestChangesInput'
+      discriminator:
+        propertyName: decision
+        mapping:
+          APPROVE: '#/components/schemas/RiderApplicationApproveInput'
+          REJECT: '#/components/schemas/RiderApplicationRejectInput'
+          REQUEST_CHANGES: '#/components/schemas/RiderApplicationRequestChangesInput'
+    RiderApplicationApproveInput:
       type: object
       additionalProperties: false
       required: [decision, reason_code, reason_text]
+      description: |
+        Approve a rider application. A rider under 18 cannot be approved
+        (`422 AGE_REQUIREMENT_NOT_MET`), and approval moves the rider to `PAYOUT_PENDING`, not
+        straight to dispatchable.
       properties:
         decision:
-          $ref: '#/components/schemas/RestaurantDecision'
+          type: string
+          enum: [APPROVE]
+        reason_code:
+          $ref: '#/components/schemas/RiderApproveReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the rider.'
+    RiderApplicationRejectInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text]
+      description: 'Reject a rider application.'
+      properties:
+        decision:
+          type: string
+          enum: [REJECT]
+        reason_code:
+          $ref: '#/components/schemas/DocumentRejectionReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the rider with the specific remediation step.'
+    RiderApplicationRequestChangesInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text, documents_to_redo]
+      description: 'Send a rider application back for changes, naming the documents to redo.'
+      properties:
+        decision:
+          type: string
+          enum: [REQUEST_CHANGES]
         reason_code:
           $ref: '#/components/schemas/DocumentRejectionReasonCode'
         reason_text:
@@ -11693,6 +11846,9 @@ components:
           description: 'Sent verbatim to the rider with the specific remediation step.'
         documents_to_redo:
           type: array
+          minItems: 1
+          uniqueItems: true
+          description: 'Names exactly which documents to redo.'
           items:
             $ref: '#/components/schemas/RiderDocType'
     OrderAdminView:

@@ -5,6 +5,7 @@ package contract
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/oapi-codegen/runtime"
@@ -2876,18 +2877,63 @@ func (e RestaurantAccountState) Valid() bool {
 	}
 }
 
+// Defines values for RestaurantApplicationApproveInputDecision.
+const (
+	RestaurantApplicationApproveInputDecisionAPPROVE RestaurantApplicationApproveInputDecision = "APPROVE"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantApplicationApproveInputDecision enum.
+func (e RestaurantApplicationApproveInputDecision) Valid() bool {
+	switch e {
+	case RestaurantApplicationApproveInputDecisionAPPROVE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RestaurantApplicationRejectInputDecision.
+const (
+	RestaurantApplicationRejectInputDecisionREJECT RestaurantApplicationRejectInputDecision = "REJECT"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantApplicationRejectInputDecision enum.
+func (e RestaurantApplicationRejectInputDecision) Valid() bool {
+	switch e {
+	case RestaurantApplicationRejectInputDecisionREJECT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RestaurantApplicationRequestChangesInputDecision.
+const (
+	RestaurantApplicationRequestChangesInputDecisionREQUESTCHANGES RestaurantApplicationRequestChangesInputDecision = "REQUEST_CHANGES"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantApplicationRequestChangesInputDecision enum.
+func (e RestaurantApplicationRequestChangesInputDecision) Valid() bool {
+	switch e {
+	case RestaurantApplicationRequestChangesInputDecisionREQUESTCHANGES:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RestaurantApproveReasonCode.
 const (
-	ALLCHECKSPASSED   RestaurantApproveReasonCode = "ALL_CHECKS_PASSED"
-	APPROVEDWITHNOTES RestaurantApproveReasonCode = "APPROVED_WITH_NOTES"
+	RestaurantApproveReasonCodeALLCHECKSPASSED   RestaurantApproveReasonCode = "ALL_CHECKS_PASSED"
+	RestaurantApproveReasonCodeAPPROVEDWITHNOTES RestaurantApproveReasonCode = "APPROVED_WITH_NOTES"
 )
 
 // Valid indicates whether the value is a known member of the RestaurantApproveReasonCode enum.
 func (e RestaurantApproveReasonCode) Valid() bool {
 	switch e {
-	case ALLCHECKSPASSED:
+	case RestaurantApproveReasonCodeALLCHECKSPASSED:
 		return true
-	case APPROVEDWITHNOTES:
+	case RestaurantApproveReasonCodeAPPROVEDWITHNOTES:
 		return true
 	default:
 		return false
@@ -3233,6 +3279,69 @@ func (e RiderAccountStatus) Valid() bool {
 	case RiderAccountStatusPENDING:
 		return true
 	case RiderAccountStatusSUSPENDED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderApplicationApproveInputDecision.
+const (
+	RiderApplicationApproveInputDecisionAPPROVE RiderApplicationApproveInputDecision = "APPROVE"
+)
+
+// Valid indicates whether the value is a known member of the RiderApplicationApproveInputDecision enum.
+func (e RiderApplicationApproveInputDecision) Valid() bool {
+	switch e {
+	case RiderApplicationApproveInputDecisionAPPROVE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderApplicationRejectInputDecision.
+const (
+	RiderApplicationRejectInputDecisionREJECT RiderApplicationRejectInputDecision = "REJECT"
+)
+
+// Valid indicates whether the value is a known member of the RiderApplicationRejectInputDecision enum.
+func (e RiderApplicationRejectInputDecision) Valid() bool {
+	switch e {
+	case RiderApplicationRejectInputDecisionREJECT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderApplicationRequestChangesInputDecision.
+const (
+	RiderApplicationRequestChangesInputDecisionREQUESTCHANGES RiderApplicationRequestChangesInputDecision = "REQUEST_CHANGES"
+)
+
+// Valid indicates whether the value is a known member of the RiderApplicationRequestChangesInputDecision enum.
+func (e RiderApplicationRequestChangesInputDecision) Valid() bool {
+	switch e {
+	case RiderApplicationRequestChangesInputDecisionREQUESTCHANGES:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderApproveReasonCode.
+const (
+	RiderApproveReasonCodeALLCHECKSPASSED   RiderApproveReasonCode = "ALL_CHECKS_PASSED"
+	RiderApproveReasonCodeAPPROVEDWITHNOTES RiderApproveReasonCode = "APPROVED_WITH_NOTES"
+)
+
+// Valid indicates whether the value is a known member of the RiderApproveReasonCode enum.
+func (e RiderApproveReasonCode) Valid() bool {
+	switch e {
+	case RiderApproveReasonCodeALLCHECKSPASSED:
+		return true
+	case RiderApproveReasonCodeAPPROVEDWITHNOTES:
 		return true
 	default:
 		return false
@@ -6945,6 +7054,54 @@ type RestaurantApplication struct {
 	SubmittedAt Timestamp `json:"submitted_at"`
 }
 
+// RestaurantApplicationApproveInput Approve a restaurant application. Approval does not make the restaurant live.
+type RestaurantApplicationApproveInput struct {
+	Decision RestaurantApplicationApproveInputDecision `json:"decision"`
+
+	// InternalNote For staff only; never sent to the restaurant.
+	InternalNote *string                     `json:"internal_note,omitempty"`
+	ReasonCode   RestaurantApproveReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the restaurant.
+	ReasonText string `json:"reason_text"`
+}
+
+// RestaurantApplicationApproveInputDecision defines model for RestaurantApplicationApproveInput.Decision.
+type RestaurantApplicationApproveInputDecision string
+
+// RestaurantApplicationRejectInput Reject a restaurant application. Rejection is final for this application.
+type RestaurantApplicationRejectInput struct {
+	Decision RestaurantApplicationRejectInputDecision `json:"decision"`
+
+	// InternalNote For staff only; never sent to the restaurant.
+	InternalNote *string                               `json:"internal_note,omitempty"`
+	ReasonCode   RestaurantRejectApplicationReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the restaurant.
+	ReasonText string `json:"reason_text"`
+}
+
+// RestaurantApplicationRejectInputDecision defines model for RestaurantApplicationRejectInput.Decision.
+type RestaurantApplicationRejectInputDecision string
+
+// RestaurantApplicationRequestChangesInput Send a restaurant application back for changes, naming the documents to redo.
+type RestaurantApplicationRequestChangesInput struct {
+	Decision RestaurantApplicationRequestChangesInputDecision `json:"decision"`
+
+	// DocumentsToRedo Names exactly which documents to redo.
+	DocumentsToRedo []RestaurantDocType `json:"documents_to_redo"`
+
+	// InternalNote For staff only; never sent to the restaurant.
+	InternalNote *string                               `json:"internal_note,omitempty"`
+	ReasonCode   RestaurantRejectApplicationReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the restaurant.
+	ReasonText string `json:"reason_text"`
+}
+
+// RestaurantApplicationRequestChangesInputDecision defines model for RestaurantApplicationRequestChangesInput.Decision.
+type RestaurantApplicationRequestChangesInputDecision string
+
 // RestaurantApplicationSummary defines model for RestaurantApplicationSummary.
 type RestaurantApplicationSummary struct {
 	AssignedAdminId *openapi_types.UUID `json:"assigned_admin_id,omitempty"`
@@ -7052,21 +7209,23 @@ type RestaurantCard struct {
 // RestaurantDecision defines model for RestaurantDecision.
 type RestaurantDecision string
 
-// RestaurantDecisionInput Every state-changing admin action requires both a `reason_code` from a closed enum and
-// a `reason_text`; missing either is a `422`. `reason_text` is sent verbatim to the
-// restaurant — internal remarks go in `internal_note`, which is never transmitted.
+// RestaurantDecisionInput The decision on a restaurant application
+// ([restaurant approval or rejection](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-18--restaurant-approval--rejection-decision)).
+// One body shape per `decision`, chosen by the `decision` field, so each decision can
+// carry only the reason codes that fit it:
+//
+// - `APPROVE` carries an approval reason (`RestaurantApproveReasonCode`).
+// - `REJECT` carries a rejection reason (`RestaurantRejectApplicationReasonCode`).
+// - `REQUEST_CHANGES` carries a rejection reason and names the documents to redo.
+//
+// Every state-changing admin action requires both a `reason_code` from a closed enum and
+// a `reason_text`
+// ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+// missing either, or a code that does not fit the decision, is a `422`. `reason_text` is
+// sent verbatim to the restaurant — internal remarks go in `internal_note`, which is
+// never transmitted. The rider application decision has the same shape
+// (`RiderDecisionInput`).
 type RestaurantDecisionInput struct {
-	Decision RestaurantDecision `json:"decision"`
-
-	// DocumentsToRedo Required for `REQUEST_CHANGES`: names exactly which documents to redo.
-	DocumentsToRedo *[]RestaurantDocType               `json:"documents_to_redo,omitempty"`
-	InternalNote    *string                            `json:"internal_note,omitempty"`
-	ReasonCode      RestaurantDecisionInput_ReasonCode `json:"reason_code"`
-	ReasonText      string                             `json:"reason_text"`
-}
-
-// RestaurantDecisionInput_ReasonCode defines model for RestaurantDecisionInput.ReasonCode.
-type RestaurantDecisionInput_ReasonCode struct {
 	union json.RawMessage
 }
 
@@ -7430,6 +7589,58 @@ type RiderApplication struct {
 	VehicleType *VehicleType `json:"vehicle_type,omitempty"`
 }
 
+// RiderApplicationApproveInput Approve a rider application. A rider under 18 cannot be approved
+// (`422 AGE_REQUIREMENT_NOT_MET`), and approval moves the rider to `PAYOUT_PENDING`, not
+// straight to dispatchable.
+type RiderApplicationApproveInput struct {
+	Decision RiderApplicationApproveInputDecision `json:"decision"`
+
+	// ReasonCode Why a rider application was approved. The same two reasons as a restaurant approval
+	// (`RestaurantApproveReasonCode`), because the rider review is built the same way
+	// ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+	// `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
+	ReasonCode RiderApproveReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the rider.
+	ReasonText string `json:"reason_text"`
+}
+
+// RiderApplicationApproveInputDecision defines model for RiderApplicationApproveInput.Decision.
+type RiderApplicationApproveInputDecision string
+
+// RiderApplicationRejectInput Reject a rider application.
+type RiderApplicationRejectInput struct {
+	Decision RiderApplicationRejectInputDecision `json:"decision"`
+
+	// ReasonCode R-08 / A-13 / D-06. A structured enum with rider- and restaurant-facing copy — never a
+	// browser `prompt()` string. `OTHER` requires a note of at least 20 characters.
+	ReasonCode DocumentRejectionReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the rider with the specific remediation step.
+	ReasonText string `json:"reason_text"`
+}
+
+// RiderApplicationRejectInputDecision defines model for RiderApplicationRejectInput.Decision.
+type RiderApplicationRejectInputDecision string
+
+// RiderApplicationRequestChangesInput Send a rider application back for changes, naming the documents to redo.
+type RiderApplicationRequestChangesInput struct {
+	Decision RiderApplicationRequestChangesInputDecision `json:"decision"`
+
+	// DocumentsToRedo Names exactly which documents to redo.
+	DocumentsToRedo []RiderDocType `json:"documents_to_redo"`
+
+	// ReasonCode R-08 / A-13 / D-06. A structured enum with rider- and restaurant-facing copy — never a
+	// browser `prompt()` string. `OTHER` requires a note of at least 20 characters.
+	ReasonCode DocumentRejectionReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the rider with the specific remediation step.
+	ReasonText string `json:"reason_text"`
+}
+
+// RiderApplicationRequestChangesInputDecision defines model for RiderApplicationRequestChangesInput.Decision.
+type RiderApplicationRequestChangesInputDecision string
+
 // RiderApplicationSummary defines model for RiderApplicationSummary.
 type RiderApplicationSummary struct {
 	AssignedAdminId     *openapi_types.UUID  `json:"assigned_admin_id,omitempty"`
@@ -7449,6 +7660,12 @@ type RiderApplicationSummary struct {
 	// (`driving` / `cycling` / `walking`).
 	VehicleType *VehicleType `json:"vehicle_type,omitempty"`
 }
+
+// RiderApproveReasonCode Why a rider application was approved. The same two reasons as a restaurant approval
+// (`RestaurantApproveReasonCode`), because the rider review is built the same way
+// ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+// `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
+type RiderApproveReasonCode string
 
 // RiderAvailability defines model for RiderAvailability.
 type RiderAvailability struct {
@@ -7514,17 +7731,24 @@ type RiderDashboard struct {
 	TrackingHealth *TrackingHealth `json:"tracking_health,omitempty"`
 }
 
-// RiderDecisionInput defines model for RiderDecisionInput.
+// RiderDecisionInput The decision on a rider application
+// ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+// One body shape per `decision`, chosen by the `decision` field, so each decision can
+// carry only the reason codes that fit it:
+//
+//   - `APPROVE` carries an approval reason (`RiderApproveReasonCode`). Until
+//     [#163](https://github.com/shaiknoorullah/hg-mono/issues/163) every decision had to
+//     carry a document rejection reason, and none of those fits an approval.
+//   - `REJECT` carries a document rejection reason (`DocumentRejectionReasonCode`).
+//   - `REQUEST_CHANGES` carries a document rejection reason and names the documents to redo.
+//
+// Every state-changing admin action requires both a `reason_code` from a closed enum and
+// a `reason_text`
+// ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+// missing either, or a code that does not fit the decision, is a `422`. The same shape
+// as the restaurant application decision (`RestaurantDecisionInput`).
 type RiderDecisionInput struct {
-	Decision        RestaurantDecision `json:"decision"`
-	DocumentsToRedo *[]RiderDocType    `json:"documents_to_redo,omitempty"`
-
-	// ReasonCode R-08 / A-13 / D-06. A structured enum with rider- and restaurant-facing copy — never a
-	// browser `prompt()` string. `OTHER` requires a note of at least 20 characters.
-	ReasonCode DocumentRejectionReasonCode `json:"reason_code"`
-
-	// ReasonText Sent verbatim to the rider with the specific remediation step.
-	ReasonText string `json:"reason_text"`
+	union json.RawMessage
 }
 
 // RiderDocType D-05 / A-23. Motorised riders need licence, registration, insurance and a photo;
@@ -9231,23 +9455,31 @@ func (t *KycDocument_DocType) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-// AsRestaurantApproveReasonCode returns the union data inside the RestaurantDecisionInput_ReasonCode as a RestaurantApproveReasonCode
-func (t RestaurantDecisionInput_ReasonCode) AsRestaurantApproveReasonCode() (RestaurantApproveReasonCode, error) {
-	var body RestaurantApproveReasonCode
+// AsRestaurantApplicationApproveInput returns the union data inside the RestaurantDecisionInput as a RestaurantApplicationApproveInput
+func (t RestaurantDecisionInput) AsRestaurantApplicationApproveInput() (RestaurantApplicationApproveInput, error) {
+	var body RestaurantApplicationApproveInput
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromRestaurantApproveReasonCode overwrites any union data inside the RestaurantDecisionInput_ReasonCode as the provided RestaurantApproveReasonCode
-func (t *RestaurantDecisionInput_ReasonCode) FromRestaurantApproveReasonCode(v RestaurantApproveReasonCode) error {
+// FromRestaurantApplicationApproveInput overwrites any union data inside the RestaurantDecisionInput as the provided RestaurantApplicationApproveInput
+func (t *RestaurantDecisionInput) FromRestaurantApplicationApproveInput(v RestaurantApplicationApproveInput) error {
 	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"APPROVE"}`))
 	t.union = b
 	return err
 }
 
-// MergeRestaurantApproveReasonCode performs a merge with any union data inside the RestaurantDecisionInput_ReasonCode, using the provided RestaurantApproveReasonCode
-func (t *RestaurantDecisionInput_ReasonCode) MergeRestaurantApproveReasonCode(v RestaurantApproveReasonCode) error {
+// MergeRestaurantApplicationApproveInput performs a merge with any union data inside the RestaurantDecisionInput, using the provided RestaurantApplicationApproveInput
+func (t *RestaurantDecisionInput) MergeRestaurantApplicationApproveInput(v RestaurantApplicationApproveInput) error {
 	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"APPROVE"}`))
 	if err != nil {
 		return err
 	}
@@ -9257,23 +9489,31 @@ func (t *RestaurantDecisionInput_ReasonCode) MergeRestaurantApproveReasonCode(v 
 	return err
 }
 
-// AsRestaurantRejectApplicationReasonCode returns the union data inside the RestaurantDecisionInput_ReasonCode as a RestaurantRejectApplicationReasonCode
-func (t RestaurantDecisionInput_ReasonCode) AsRestaurantRejectApplicationReasonCode() (RestaurantRejectApplicationReasonCode, error) {
-	var body RestaurantRejectApplicationReasonCode
+// AsRestaurantApplicationRejectInput returns the union data inside the RestaurantDecisionInput as a RestaurantApplicationRejectInput
+func (t RestaurantDecisionInput) AsRestaurantApplicationRejectInput() (RestaurantApplicationRejectInput, error) {
+	var body RestaurantApplicationRejectInput
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromRestaurantRejectApplicationReasonCode overwrites any union data inside the RestaurantDecisionInput_ReasonCode as the provided RestaurantRejectApplicationReasonCode
-func (t *RestaurantDecisionInput_ReasonCode) FromRestaurantRejectApplicationReasonCode(v RestaurantRejectApplicationReasonCode) error {
+// FromRestaurantApplicationRejectInput overwrites any union data inside the RestaurantDecisionInput as the provided RestaurantApplicationRejectInput
+func (t *RestaurantDecisionInput) FromRestaurantApplicationRejectInput(v RestaurantApplicationRejectInput) error {
 	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REJECT"}`))
 	t.union = b
 	return err
 }
 
-// MergeRestaurantRejectApplicationReasonCode performs a merge with any union data inside the RestaurantDecisionInput_ReasonCode, using the provided RestaurantRejectApplicationReasonCode
-func (t *RestaurantDecisionInput_ReasonCode) MergeRestaurantRejectApplicationReasonCode(v RestaurantRejectApplicationReasonCode) error {
+// MergeRestaurantApplicationRejectInput performs a merge with any union data inside the RestaurantDecisionInput, using the provided RestaurantApplicationRejectInput
+func (t *RestaurantDecisionInput) MergeRestaurantApplicationRejectInput(v RestaurantApplicationRejectInput) error {
 	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REJECT"}`))
 	if err != nil {
 		return err
 	}
@@ -9283,12 +9523,208 @@ func (t *RestaurantDecisionInput_ReasonCode) MergeRestaurantRejectApplicationRea
 	return err
 }
 
-func (t RestaurantDecisionInput_ReasonCode) MarshalJSON() ([]byte, error) {
+// AsRestaurantApplicationRequestChangesInput returns the union data inside the RestaurantDecisionInput as a RestaurantApplicationRequestChangesInput
+func (t RestaurantDecisionInput) AsRestaurantApplicationRequestChangesInput() (RestaurantApplicationRequestChangesInput, error) {
+	var body RestaurantApplicationRequestChangesInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRestaurantApplicationRequestChangesInput overwrites any union data inside the RestaurantDecisionInput as the provided RestaurantApplicationRequestChangesInput
+func (t *RestaurantDecisionInput) FromRestaurantApplicationRequestChangesInput(v RestaurantApplicationRequestChangesInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REQUEST_CHANGES"}`))
+	t.union = b
+	return err
+}
+
+// MergeRestaurantApplicationRequestChangesInput performs a merge with any union data inside the RestaurantDecisionInput, using the provided RestaurantApplicationRequestChangesInput
+func (t *RestaurantDecisionInput) MergeRestaurantApplicationRequestChangesInput(v RestaurantApplicationRequestChangesInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REQUEST_CHANGES"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RestaurantDecisionInput) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"decision"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t RestaurantDecisionInput) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "APPROVE":
+		return t.AsRestaurantApplicationApproveInput()
+	case "REJECT":
+		return t.AsRestaurantApplicationRejectInput()
+	case "REQUEST_CHANGES":
+		return t.AsRestaurantApplicationRequestChangesInput()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t RestaurantDecisionInput) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
 }
 
-func (t *RestaurantDecisionInput_ReasonCode) UnmarshalJSON(b []byte) error {
+func (t *RestaurantDecisionInput) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsRiderApplicationApproveInput returns the union data inside the RiderDecisionInput as a RiderApplicationApproveInput
+func (t RiderDecisionInput) AsRiderApplicationApproveInput() (RiderApplicationApproveInput, error) {
+	var body RiderApplicationApproveInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRiderApplicationApproveInput overwrites any union data inside the RiderDecisionInput as the provided RiderApplicationApproveInput
+func (t *RiderDecisionInput) FromRiderApplicationApproveInput(v RiderApplicationApproveInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"APPROVE"}`))
+	t.union = b
+	return err
+}
+
+// MergeRiderApplicationApproveInput performs a merge with any union data inside the RiderDecisionInput, using the provided RiderApplicationApproveInput
+func (t *RiderDecisionInput) MergeRiderApplicationApproveInput(v RiderApplicationApproveInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"APPROVE"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRiderApplicationRejectInput returns the union data inside the RiderDecisionInput as a RiderApplicationRejectInput
+func (t RiderDecisionInput) AsRiderApplicationRejectInput() (RiderApplicationRejectInput, error) {
+	var body RiderApplicationRejectInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRiderApplicationRejectInput overwrites any union data inside the RiderDecisionInput as the provided RiderApplicationRejectInput
+func (t *RiderDecisionInput) FromRiderApplicationRejectInput(v RiderApplicationRejectInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REJECT"}`))
+	t.union = b
+	return err
+}
+
+// MergeRiderApplicationRejectInput performs a merge with any union data inside the RiderDecisionInput, using the provided RiderApplicationRejectInput
+func (t *RiderDecisionInput) MergeRiderApplicationRejectInput(v RiderApplicationRejectInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REJECT"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRiderApplicationRequestChangesInput returns the union data inside the RiderDecisionInput as a RiderApplicationRequestChangesInput
+func (t RiderDecisionInput) AsRiderApplicationRequestChangesInput() (RiderApplicationRequestChangesInput, error) {
+	var body RiderApplicationRequestChangesInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRiderApplicationRequestChangesInput overwrites any union data inside the RiderDecisionInput as the provided RiderApplicationRequestChangesInput
+func (t *RiderDecisionInput) FromRiderApplicationRequestChangesInput(v RiderApplicationRequestChangesInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REQUEST_CHANGES"}`))
+	t.union = b
+	return err
+}
+
+// MergeRiderApplicationRequestChangesInput performs a merge with any union data inside the RiderDecisionInput, using the provided RiderApplicationRequestChangesInput
+func (t *RiderDecisionInput) MergeRiderApplicationRequestChangesInput(v RiderApplicationRequestChangesInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REQUEST_CHANGES"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RiderDecisionInput) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"decision"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t RiderDecisionInput) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "APPROVE":
+		return t.AsRiderApplicationApproveInput()
+	case "REJECT":
+		return t.AsRiderApplicationRejectInput()
+	case "REQUEST_CHANGES":
+		return t.AsRiderApplicationRequestChangesInput()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t RiderDecisionInput) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *RiderDecisionInput) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
