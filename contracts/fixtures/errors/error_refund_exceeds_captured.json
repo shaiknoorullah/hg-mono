@@ -2,7 +2,7 @@
   "scenario": "error_refund_exceeds_captured",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. The refunds that hold a claim on an order never add up to more than the captured amount. The server checks it when the report is made and again in the approval transaction, with the order's refund rows locked, so two approvals at once cannot pass it together.",
+  "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. The refunds that hold a claim on an order never add up to more than the captured amount. Each request and each approval first locks the order row (`SELECT … FROM \"order\" WHERE id = $1 FOR UPDATE`) and re-checks line quantities, fees and the cap together, so two at once cannot pass it together. A `FULL` refund with nothing left is refused the same way.",
   "operations": [
     "createRefund",
     "issueRefund"

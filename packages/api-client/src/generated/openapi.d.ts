@@ -424,6 +424,25 @@ export interface paths {
          *     `amount_cents` is accepted **only** for `GOODWILL` — this is the single allowlisted
          *     inbound monetary field besides `tip_cents` (G-3).
          *
+         *     **The same claim rules as a customer's report.** Staff cannot refund a line or the
+         *     fees a second time. The rules are written out on `createRefund` under "Several
+         *     problem reports on one order" ([P-18](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation),
+         *     [#184](https://github.com/shaiknoorullah/hg-mono/issues/184)); in short:
+         *
+         *     * A refund holds its claim in every state except `DECLINED` and `CANCELLED`. **A
+         *       pending approval request holds its claim too**, from the `202` until it is
+         *       declined, so a second request cannot take the same lines or fees meanwhile.
+         *     * For each order line, the quantity across the refunds that hold a claim may not
+         *       exceed the quantity ordered.
+         *     * The delivery and service fees and their tax are refunded at most once.
+         *     * A `FULL` refund claims only what no other refund holds, so it never clashes; when
+         *       nothing is left it is `409 REFUND_EXCEEDS_CAPTURED`.
+         *     * The refunds that hold a claim never add up to more than the captured amount.
+         *     * This operation, `createRefund` and the approval transaction each first take
+         *       `SELECT … FROM "order" WHERE id = $1 FOR UPDATE`, then re-check the line
+         *       quantities, the fees and the cap together, so two requests at once cannot both
+         *       pass.
+         *
          *     The customer-facing status never reads "refunded" before the provider confirms.
          */
         post: operations["issueRefund"];
@@ -954,7 +973,8 @@ export interface paths {
          *     authorization.
          *
          *     Fails closed (`503 RATE_LIMITER_UNAVAILABLE`) when Redis is unreachable — this and
-         *     `verifyOtp` are the two endpoints where fail-open is unacceptable.
+         *     `verifyOtp` are the two sign-in endpoints where fail-open is unacceptable
+         *     (`joinWaitlist` fails closed too).
          */
         post: operations["requestOtp"];
         delete?: never;
@@ -2278,20 +2298,31 @@ export interface paths {
          *
          *     * A refund *holds* its claim in every state except `DECLINED` and `CANCELLED`, the
          *       two in which no money moves.
+         *     * A refund waiting for a second approval (`PENDING_APPROVAL`, including the approval
+         *       request `issueRefund` answers `202` with) holds its claim too, until it is declined.
          *     * **Items.** For each order line, the quantity across the refunds that hold a claim
-         *       on it may not exceed the quantity ordered. A `FULL` refund holds every line.
-         *     * **Fees.** The delivery and service fees and their tax are refunded at most once,
-         *       by `FEES_ONLY` or by `FULL`.
+         *       on it may not exceed the quantity ordered. A second report on a line is accepted
+         *       while some of that line's quantity is still unclaimed: with 3 ordered and 1
+         *       claimed, a report on 2 more is accepted and a report on 3 more is refused.
+         *     * **Fees.** The delivery and service fees and their tax are refunded at most once:
+         *       by `FEES_ONLY`, or as part of a `FULL` refund when no other refund holds them.
+         *     * **`FULL` never clashes.** A `FULL` refund claims only the quantities and the fees
+         *       that no other refund holds. It refunds the captured amount minus every refund that
+         *       holds a claim, and is `409 REFUND_EXCEEDS_CAPTURED` when nothing is left.
          *     * A claim another refund already holds is `409 REFUND_ALREADY_REQUESTED`, with
          *       `details.order_line_nos` naming the lines and `details.fees` true when the fees
-         *       were the clash. Nothing is created.
-         *     * A `FULL` refund later on refunds what is left: the captured amount minus every
-         *       refund that holds a claim. When nothing is left, it is `409 REFUND_EXCEEDS_CAPTURED`.
+         *       were the clash. Nothing is created. Only `PARTIAL_ITEMS` and `FEES_ONLY` can
+         *       clash; `GOODWILL` claims no line and no fees, only part of the cap.
          *     * **The cap.** The refunds that hold a claim never add up to more than the captured
-         *       amount. The server checks it when the report is made, and again in the approval
-         *       transaction with the order's refund rows locked, so two approvals at once cannot
-         *       pass it together (`409 REFUND_EXCEEDS_CAPTURED`). Source: [refunds never exceed
-         *       the captured amount](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation).
+         *       amount (`409 REFUND_EXCEEDS_CAPTURED`). Source: [refunds never exceed the captured
+         *       amount](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation).
+         *     * **Two requests at once cannot both pass.** `createRefund`, `issueRefund` and the
+         *       approval transaction each first take `SELECT … FROM "order" WHERE id = $1 FOR
+         *       UPDATE`, and only then re-check the line quantities, the fees and the cap
+         *       together. Locking the order row, not the existing refund rows, is what stops a
+         *       second request inserting a new refund row at the same moment. An approval
+         *       re-checks all three, not only the cap. The fee rule is also made unrepresentable
+         *       by a partial unique index on the refund table ([P-18, Data](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation)).
          *     * Each report keeps its own reason code and therefore its own liability split, so a
          *       missing item charged to the restaurant and a late delivery absorbed by the
          *       platform can sit on the same order.
@@ -3611,7 +3642,10 @@ export interface paths {
          *     The address is the one Traefik forwards, trusted only from Traefik's network
          *     ([middleware chain, client-address step](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)). Over
          *     the limit is `429 RATE_LIMITED`, and nothing is stored. When Redis is down the
-         *     limit fails open with an alert, as every class but sign-in does.
+         *     limit **fails closed**: `503 RATE_LIMITER_UNAVAILABLE`, and nothing is stored; the
+         *     form asks the visitor to try again. Failing open would let anyone store unlimited
+         *     sign-ups by varying the contact, because the idempotency key is a pair the caller
+         *     chooses, and [correctness may never depend on Redis](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#2-architecture-in-one-picture).
          *
          *     **The consent record.** Canada's anti-spam law (CASL) asks what the person agreed
          *     to, not only that they agreed. The server keeps the exact `consent_text` the form
@@ -7993,7 +8027,8 @@ export interface operations {
             };
             /**
              * @description Above the caller's cap: an approval request was created and the case escalated.
-             *     No refund exists yet.
+             *     No money has moved yet. The request already holds its claim on the lines and
+             *     fees it names, until it is declined.
              */
             202: {
                 headers: {
@@ -8015,8 +8050,11 @@ export interface operations {
                 };
             };
             /**
-             * @description `REFUND_EXCEEDS_CAPTURED`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
-             *     `PAYMENT_NOT_REFUNDABLE`.
+             * @description `REFUND_EXCEEDS_CAPTURED` when the refunds that hold a claim would exceed the
+             *     captured amount, `REFUND_ALREADY_REQUESTED` when the request claims a line
+             *     quantity or the fees that another refund or pending approval request on the
+             *     order already holds (with `details.order_line_nos` and `details.fees`),
+             *     `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`, `PAYMENT_NOT_REFUNDABLE`.
              */
             409: {
                 headers: {
@@ -12764,6 +12802,7 @@ export interface operations {
             };
             422: components["responses"]["Error"];
             429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

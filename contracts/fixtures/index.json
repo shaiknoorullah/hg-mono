@@ -2427,9 +2427,10 @@
       "scenario": "error_refund_already_requested_fees",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`409` · `REFUND_ALREADY_REQUESTED`. The delivery and service fees are refunded at most once, by `FEES_ONLY` or by `FULL`. A second fee refund on the order is refused; nothing is created.",
+      "describes": "`409` · `REFUND_ALREADY_REQUESTED`. The delivery and service fees are refunded at most once: by `FEES_ONLY`, or as part of a `FULL` refund when no other refund holds them. A second `FEES_ONLY` refund on the order is refused; nothing is created. (A `FULL` refund never clashes: it takes only what no other refund holds.)",
       "operations": [
-        "createRefund"
+        "createRefund",
+        "issueRefund"
       ],
       "status": 409,
       "tags": [
@@ -2441,9 +2442,10 @@
       "scenario": "error_refund_already_requested_items",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`409` · `REFUND_ALREADY_REQUESTED`. A second report on the same order is fine; a second claim on the same item is not. Order line 1 is already held by another refund on this order, so nothing is created. A report about a different item, or about the delivery fees, is accepted.",
+      "describes": "`409` · `REFUND_ALREADY_REQUESTED`. A second report on the same order is fine; claiming more of a line than was ordered is not. All of order line 1's quantity is already held by another refund on this order, so nothing is created. A report on a line with quantity still unclaimed, or about the delivery fees, is accepted.",
       "operations": [
-        "createRefund"
+        "createRefund",
+        "issueRefund"
       ],
       "status": 409,
       "tags": [
@@ -2455,7 +2457,7 @@
       "scenario": "error_refund_exceeds_captured",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. The refunds that hold a claim on an order never add up to more than the captured amount. The server checks it when the report is made and again in the approval transaction, with the order's refund rows locked, so two approvals at once cannot pass it together.",
+      "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. The refunds that hold a claim on an order never add up to more than the captured amount. Each request and each approval first locks the order row (`SELECT … FROM \"order\" WHERE id = $1 FOR UPDATE`) and re-checks line quantities, fees and the cap together, so two at once cannot pass it together. A `FULL` refund with nothing left is refused the same way.",
       "operations": [
         "createRefund",
         "issueRefund"
@@ -6675,6 +6677,8 @@
       "sms_sender_passed"
     ],
     "issueRefund": [
+      "error_refund_already_requested_fees",
+      "error_refund_already_requested_items",
       "error_refund_exceeds_captured",
       "refund_approval_request_pending",
       "refund_approved",
@@ -7167,7 +7171,7 @@
     "getRiderMe": "rider_me",
     "getRiderOnboardingStatus": "rider_onboarding_active",
     "getRiderPayout": "payout_detail_paid",
-    "getSmsSenderStatus": "sms_sender_failed",
+    "getSmsSenderStatus": "sms_sender_passed",
     "issueRefund": "refund_goodwill_admin",
     "joinWaitlist": "waitlist_joined",
     "listAddresses": "addresses_list",

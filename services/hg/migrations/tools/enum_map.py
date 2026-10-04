@@ -131,6 +131,16 @@ MAPPED = {
     "NotificationChannel":                "notification_channel",
     "NotificationPriority":               "notification_priority",
     "DevicePlatform":                     "device_platform",
+
+    # --- operations ---------------------------------------------------------
+    # Each replica writes its start-up check of the text-message sender to
+    # Postgres, so every admin page reads the same answer (getSmsSenderStatus).
+    "SmsSenderCheckState":                "sms_sender_check_state",
+
+    # --- pre-launch waitlist (#212, https://github.com/shaiknoorullah/hg-mono/issues/212)
+    # Stored on the waitlist_signup row with its consent record (joinWaitlist).
+    "WaitlistAudience":                   "waitlist_audience",
+    "WaitlistContactKind":                "waitlist_contact_kind",
 }
 
 # Contract enums whose Postgres type is created by the feature migration that
@@ -151,6 +161,12 @@ EXCLUSIONS = {
         "Transport-level error vocabulary. Never stored; lives in the Go error registry.",
     "Address/properties/country":
         "Single-value ('CA') constant enforced by a CHECK on address.country, not a type.",
+    "GeocodedAddress/properties/country":
+        "Single-value ('CA') constant on a geocoding answer. The saved address stores it "
+        "as address.country, under that column's CHECK, not a type.",
+    "GeoResultKind":
+        "How precise a Mapbox search result is. Shown to the user and never stored: the "
+        "address search adds no persistent entity (customer spec, C-31).",
     "HealthStatus/properties/status":
         "Liveness probe literal. Not persisted.",
     "ReadinessStatus/properties/dependencies/items/properties/name":

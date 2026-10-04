@@ -91,6 +91,10 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "changePassword": "session_grant_password_changed",
     "getConnectStatus": "connect_status_complete",
     "confirmUpload": "stored_object_ready",
+    # The healthy answer. Without this the three states tie on weight and the name
+    # tie-break picks FAILED, so every admin page in `pnpm mock` showed the sticky
+    # "sign-in codes cannot be sent" banner.
+    "getSmsSenderStatus": "sms_sender_passed",
 }
 
 

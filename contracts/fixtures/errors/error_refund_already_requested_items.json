@@ -2,9 +2,10 @@
   "scenario": "error_refund_already_requested_items",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`409` · `REFUND_ALREADY_REQUESTED`. A second report on the same order is fine; a second claim on the same item is not. Order line 1 is already held by another refund on this order, so nothing is created. A report about a different item, or about the delivery fees, is accepted.",
+  "describes": "`409` · `REFUND_ALREADY_REQUESTED`. A second report on the same order is fine; claiming more of a line than was ordered is not. All of order line 1's quantity is already held by another refund on this order, so nothing is created. A report on a line with quantity still unclaimed, or about the delivery fees, is accepted.",
   "operations": [
-    "createRefund"
+    "createRefund",
+    "issueRefund"
   ],
   "status": 409,
   "tags": [

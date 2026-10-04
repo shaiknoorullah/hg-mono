@@ -524,10 +524,11 @@ ROUND2_ERRORS = [
         "REFUND_ALREADY_REQUESTED",
         "You've already reported a problem with this item.",
         {"order_line_nos": [1], "fees": False},
-        "A second report on the same order is fine; a second claim on the same item is not. "
-        "Order line 1 is already held by another refund on this order, so nothing is "
-        "created. A report about a different item, or about the delivery fees, is accepted.",
-        ["createRefund"],
+        "A second report on the same order is fine; claiming more of a line than was ordered "
+        "is not. All of order line 1's quantity is already held by another refund on this "
+        "order, so nothing is created. A report on a line with quantity still unclaimed, or "
+        "about the delivery fees, is accepted.",
+        ["createRefund", "issueRefund"],
     ),
     (
         "refund_already_requested_fees",
@@ -535,9 +536,11 @@ ROUND2_ERRORS = [
         "REFUND_ALREADY_REQUESTED",
         "The delivery fees on this order have already been refunded.",
         {"order_line_nos": [], "fees": True},
-        "The delivery and service fees are refunded at most once, by `FEES_ONLY` or by "
-        "`FULL`. A second fee refund on the order is refused; nothing is created.",
-        ["createRefund"],
+        "The delivery and service fees are refunded at most once: by `FEES_ONLY`, or as part "
+        "of a `FULL` refund when no other refund holds them. A second `FEES_ONLY` refund on "
+        "the order is refused; nothing is created. (A `FULL` refund never clashes: it takes "
+        "only what no other refund holds.)",
+        ["createRefund", "issueRefund"],
     ),
     (
         "refund_exceeds_captured",
@@ -546,9 +549,10 @@ ROUND2_ERRORS = [
         "This would refund more than was charged for the order.",
         None,
         "The refunds that hold a claim on an order never add up to more than the captured "
-        "amount. The server checks it when the report is made and again in the approval "
-        "transaction, with the order's refund rows locked, so two approvals at once cannot "
-        "pass it together.",
+        "amount. Each request and each approval first locks the order row (`SELECT … FROM "
+        "\"order\" WHERE id = $1 FOR UPDATE`) and re-checks line quantities, fees and the "
+        "cap together, so two at once cannot pass it together. A `FULL` refund with nothing "
+        "left is refused the same way.",
         ["createRefund", "issueRefund"],
     ),
     (

@@ -2,9 +2,10 @@
   "scenario": "error_refund_already_requested_fees",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`409` · `REFUND_ALREADY_REQUESTED`. The delivery and service fees are refunded at most once, by `FEES_ONLY` or by `FULL`. A second fee refund on the order is refused; nothing is created.",
+  "describes": "`409` · `REFUND_ALREADY_REQUESTED`. The delivery and service fees are refunded at most once: by `FEES_ONLY`, or as part of a `FULL` refund when no other refund holds them. A second `FEES_ONLY` refund on the order is refused; nothing is created. (A `FULL` refund never clashes: it takes only what no other refund holds.)",
   "operations": [
-    "createRefund"
+    "createRefund",
+    "issueRefund"
   ],
   "status": 409,
   "tags": [
