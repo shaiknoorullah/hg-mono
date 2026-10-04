@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # Releasing HalalGoes
@@ -40,6 +40,12 @@ files are committed and carry **no real secrets**.
 | Restaurant (`@hg/restaurant`, Vite) | `apps/restaurant/.env.example` → `apps/restaurant/.env.local` | `VITE_API_BASE_URL` |
 | Customer (`@hg/customer`, Expo) | `apps/customer/.env.example` → `apps/customer/.env` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_MAPBOX_TOKEN` |
 | Rider (`@hg/rider`, Expo) | `apps/rider/.env.example` → `apps/rider/.env` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_MAPBOX_TOKEN` |
+
+**Password hashing cap.** Each password hash takes 64 MiB, so each API replica runs at most
+`HG_AUTH_HASH_CONCURRENCY` (default `2`) at once; a sign-up or login that waits longer than
+`HG_AUTH_HASH_WAIT` (default `2s`) is answered `503` with `Retry-After`. Raise the cap only if the
+replica's memory limit has room for another 64 MiB per step
+([#216](https://github.com/shaiknoorullah/hg-mono/issues/216)).
 
 **Mapbox tokens** (create at https://account.mapbox.com/access-tokens):
 - Make **public tokens** (`pk.…`) with **public scopes only** (STYLES:TILES, STYLES:READ,

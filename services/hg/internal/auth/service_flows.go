@@ -352,7 +352,15 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 		_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_PASSWORD")
 		return nil, errInvalidCredentials
 	}
-	ok, verr := VerifyPassword(*acct.PasswordHash, password)
+	// Busy hashing is not a failed attempt: it must not count toward the
+	// lockout. Taking the slot here, apart from the verification, keeps the two
+	// outcomes from ever being confused.
+	slot, err := acquireHashSlot(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ok, verr := slot.verify(*acct.PasswordHash, password)
+	slot.release()
 	if verr != nil || !ok {
 		_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_PASSWORD")
 		return nil, errInvalidCredentials
@@ -404,7 +412,7 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	if isBreachedPassword(password) {
 		return nil, errBreachedPassword
 	}
-	hash, err := HashPassword(password)
+	hash, err := HashPassword(ctx, password)
 	if err != nil {
 		return nil, err
 	}
@@ -502,6 +510,13 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	if isBreachedPassword(newPassword) {
 		return errBreachedPassword
 	}
+	// Take the hashing slot before consuming the single-use token: if hashing
+	// is busy the caller gets 503 and the reset link still works on retry.
+	slot, err := acquireHashSlot(ctx)
+	if err != nil {
+		return err
+	}
+	defer slot.release()
 	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", HashOpaqueToken(token))
 	if err != nil {
 		return err
@@ -514,7 +529,8 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	case res.Expired:
 		return errTokenExpired
 	}
-	hash, err := HashPassword(newPassword)
+	hash, err := slot.hash(newPassword)
+	slot.release() // the writes below need no slot
 	if err != nil {
 		return err
 	}
@@ -646,11 +662,19 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 	if acct.PasswordHash == nil {
 		return nil, errInvalidCredentials
 	}
-	ok, verr := VerifyPassword(*acct.PasswordHash, currentPassword)
+	// One slot covers both the check of the current password and the new hash,
+	// so "busy" never reads as "the current password is incorrect".
+	slot, err := acquireHashSlot(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer slot.release()
+	ok, verr := slot.verify(*acct.PasswordHash, currentPassword)
 	if verr != nil || !ok {
 		return nil, errInvalidCredentials
 	}
-	newHash, err := HashPassword(newPassword)
+	newHash, err := slot.hash(newPassword)
+	slot.release() // the writes below need no slot
 	if err != nil {
 		return nil, err
 	}

@@ -6176,6 +6176,23 @@ export interface components {
                 "application/json": components["schemas"]["ErrorEnvelope"];
             };
         };
+        /**
+         * @description The server is temporarily unable to take this request. The request was **not**
+         *     executed — no partial effect exists. With `error.code` `TIMEOUT`, the work it needs
+         *     (for example argon2id password hashing, which is capped per replica) stayed at
+         *     capacity for the whole wait; retry after `Retry-After` seconds.
+         */
+        ServerBusy: {
+            headers: {
+                "Retry-After"?: number;
+                /** @description ULID correlating this response with the server log and the audit trail. */
+                "X-Request-ID"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
     };
     parameters: {
         AssignmentIdPath: string;
@@ -6478,6 +6495,7 @@ export type SchemaVariantPricingMode = components['schemas']['VariantPricingMode
 export type SchemaVehicleType = components['schemas']['VehicleType'];
 export type ResponseError = components['responses']['Error'];
 export type ResponseRateLimited = components['responses']['RateLimited'];
+export type ResponseServerBusy = components['responses']['ServerBusy'];
 export type ParameterAssignmentIdPath = components['parameters']['AssignmentIdPath'];
 export type ParameterCertificateIdPath = components['parameters']['CertificateIdPath'];
 export type ParameterClientHeader = components['parameters']['ClientHeader'];
@@ -7901,6 +7919,7 @@ export interface operations {
             403: components["responses"]["Error"];
             423: components["responses"]["Error"];
             429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };
     };
@@ -8066,6 +8085,7 @@ export interface operations {
                     };
                 };
             };
+            503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };
     };
@@ -8122,6 +8142,7 @@ export interface operations {
             };
             400: components["responses"]["Error"];
             422: components["responses"]["Error"];
+            503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };
     };
@@ -8198,6 +8219,7 @@ export interface operations {
             };
             409: components["responses"]["Error"];
             422: components["responses"]["Error"];
+            503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };
     };

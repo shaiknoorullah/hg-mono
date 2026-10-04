@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -35,6 +36,12 @@ type Secrets struct {
 	// AppDataKey is the 32-byte AES-256-GCM key used to seal TOTP secrets in the
 	// database (totp_secret_enc). Read from HG_APP_DATA_KEY (hex or base64).
 	AppDataKey [32]byte
+	// HashConcurrency caps how many argon2id password hashes run at once in this
+	// process (hashgate.go). Each one allocates 64 MiB.
+	HashConcurrency int
+	// HashWait is how long a sign-up or login waits for a free hashing slot
+	// before it is answered 503 with Retry-After.
+	HashWait time.Duration
 }
 
 // Getenv is the minimal environment accessor, matching config.Load's shape so a
@@ -47,6 +54,8 @@ type Getenv func(string) string
 //   - HG_AUTH_SIGNING_KEY_SEED (required) base64 32-byte Ed25519 seed
 //   - HG_AUTH_SIGNING_KID      (optional, default "k1")
 //   - HG_AUTH_TERMS_VERSION    (optional, default "2026-01")
+//   - HG_AUTH_HASH_CONCURRENCY (optional, default 2) password hashes at once
+//   - HG_AUTH_HASH_WAIT        (optional, default 2s) wait for a hashing slot
 //
 // secure is passed from the caller (true outside local) because whether the
 // cookie is Secure is an environment property the config package already owns.
@@ -112,6 +121,25 @@ func LoadSecrets(getenv Getenv, secure bool) (*Secrets, error) {
 		}
 	}
 
+	hashConcurrency := DefaultHashConcurrency
+	if raw := strings.TrimSpace(getenv("HG_AUTH_HASH_CONCURRENCY")); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 1 || n > 64 {
+			problems = append(problems, "HG_AUTH_HASH_CONCURRENCY must be a whole number from 1 to 64")
+		} else {
+			hashConcurrency = n
+		}
+	}
+	hashWait := DefaultHashWait
+	if raw := strings.TrimSpace(getenv("HG_AUTH_HASH_WAIT")); raw != "" {
+		d, err := time.ParseDuration(raw)
+		if err != nil || d <= 0 || d > 30*time.Second {
+			problems = append(problems, "HG_AUTH_HASH_WAIT must be a duration above 0 and at most 30s, e.g. 2s")
+		} else {
+			hashWait = d
+		}
+	}
+
 	if len(problems) > 0 {
 		return nil, fmt.Errorf("invalid auth configuration:\n  - %s", strings.Join(problems, "\n  - "))
 	}
@@ -127,6 +155,8 @@ func LoadSecrets(getenv Getenv, secure bool) (*Secrets, error) {
 		RefreshCookieSecure: secure,
 		CurrentTermsVersion: terms,
 		AppDataKey:          appDataKey,
+		HashConcurrency:     hashConcurrency,
+		HashWait:            hashWait,
 	}, nil
 }
 

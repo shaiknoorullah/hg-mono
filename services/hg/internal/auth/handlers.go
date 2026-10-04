@@ -115,6 +115,16 @@ func userAgentPtr(r *http.Request) *string {
 	return &ua
 }
 
+// failHashBusy answers 503 when every password-hashing slot stayed taken for
+// the whole wait (hashgate.go). Nothing was executed, so the client may retry
+// after Retry-After seconds. TIMEOUT is the contract's code for "the server
+// could not do this in time" (contracts/openapi.yaml, ErrorCode).
+func failHashBusy(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Retry-After", strconv.Itoa(passwordHashRetryAfter()))
+	httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeTimeout,
+		"The server is busy. Please try again in a moment.", nil)
+}
+
 // ---- OTP request (P-02) -----------------------------------------------------
 
 // RequestOTP implements requestOtp. Always 200 with an identical body shape and
@@ -265,6 +275,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeRateLimiterUnavailable,
 			"Sign-in is temporarily unavailable. Please try again shortly.", nil)
 		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		failHashBusy(w, r)
+		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
@@ -311,6 +324,9 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, errBreachedPassword):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeBreachedPassword,
 			"This password has appeared in a data breach. Choose another.", nil)
+		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		failHashBusy(w, r)
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
@@ -416,6 +432,9 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, errBreachedPassword):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeBreachedPassword,
 			"This password has appeared in a data breach. Choose another.", nil)
+		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		failHashBusy(w, r)
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,

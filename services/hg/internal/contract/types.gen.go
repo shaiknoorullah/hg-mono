@@ -8034,6 +8034,9 @@ type Error = ErrorEnvelope
 // RateLimited defines model for RateLimited.
 type RateLimited = ErrorEnvelope
 
+// ServerBusy defines model for ServerBusy.
+type ServerBusy = ErrorEnvelope
+
 // ListAddressesParams defines parameters for ListAddresses.
 type ListAddressesParams struct {
 	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.

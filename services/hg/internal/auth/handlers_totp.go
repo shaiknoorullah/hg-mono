@@ -67,6 +67,9 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"new_password must be at least 12 characters.", nil)
 		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		failHashBusy(w, r)
+		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)

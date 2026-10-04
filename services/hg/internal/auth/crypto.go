@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/ed25519"
@@ -28,8 +29,33 @@ const (
 
 // HashPassword produces a PHC-encoded argon2id string suitable for the
 // account.password_hash column. The encoding is self-describing so a future
-// parameter change verifies old hashes without a migration.
-func HashPassword(password string) (string, error) {
+// parameter change verifies old hashes without a migration. It waits for a
+// hashing slot first (hashgate.go) and returns ErrPasswordHashBusy when none
+// frees up in time.
+func HashPassword(ctx context.Context, password string) (string, error) {
+	slot, err := acquireHashSlot(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer slot.release()
+	return slot.hash(password)
+}
+
+// VerifyPassword reports whether password matches the PHC-encoded argon2id hash.
+// It waits for a hashing slot like HashPassword. A caller that must tell "busy"
+// apart from "wrong password" should hold a slot and call slot.verify instead,
+// so the two can never be confused.
+func VerifyPassword(ctx context.Context, encoded, password string) (bool, error) {
+	slot, err := acquireHashSlot(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer slot.release()
+	return slot.verify(encoded, password)
+}
+
+// hash is the argon2id hash itself, run under a held slot.
+func (*hashSlot) hash(password string) (string, error) {
 	salt := make([]byte, argonSaltLen)
 	if _, err := rand.Read(salt); err != nil {
 		return "", fmt.Errorf("argon2id: read salt: %w", err)
@@ -41,10 +67,10 @@ func HashPassword(password string) (string, error) {
 		b64(salt), b64(key)), nil
 }
 
-// VerifyPassword reports whether password matches the PHC-encoded argon2id hash.
-// It is constant time in the comparison and returns false (not an error) on a
+// verify is the argon2id verification itself, run under a held slot. It is
+// constant time in the comparison and returns false (not an error) on a
 // mismatch; a malformed encoding is an error.
-func VerifyPassword(encoded, password string) (bool, error) {
+func (*hashSlot) verify(encoded, password string) (bool, error) {
 	parts := strings.Split(encoded, "$")
 	// ["", "argon2id", "v=19", "m=65536,t=3,p=2", salt, key]
 	if len(parts) != 6 || parts[1] != "argon2id" {

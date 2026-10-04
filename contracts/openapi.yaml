@@ -381,6 +381,8 @@ paths:
           $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/email/verify:
@@ -507,6 +509,8 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/refresh:
@@ -721,6 +725,8 @@ paths:
           $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/password/change:
@@ -757,6 +763,8 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/SessionGrant'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/totp/enroll:
@@ -5874,6 +5882,25 @@ components:
         containing `error` never ships with a 2xx status, and `{"success": false}` is not a
         representable response shape.
       headers:
+        X-Request-ID:
+          description: 'ULID correlating this response with the server log and the audit trail.'
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ServerBusy:
+      description: |
+        The server is temporarily unable to take this request. The request was **not**
+        executed — no partial effect exists. With `error.code` `TIMEOUT`, the work it needs
+        (for example argon2id password hashing, which is capped per replica) stayed at
+        capacity for the whole wait; retry after `Retry-After` seconds.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            format: int32
         X-Request-ID:
           description: 'ULID correlating this response with the server log and the audit trail.'
           schema:
