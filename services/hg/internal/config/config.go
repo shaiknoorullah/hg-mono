@@ -444,9 +444,6 @@ func (l *loader) logLevel(key string, def slog.Level) slog.Level {
 	return lvl
 }
 
-// originList parses the CORS allowlist. A wildcard is rejected outright:
-// invariant I-06.5 forbids Access-Control-Allow-Origin: * on any route that can
-// carry credentials, and every route here can.
 // defaultTrustedProxies is where Docker allocates bridge networks from by
 // default, which is where the compose network that Traefik and the API share
 // (deploy/docker-compose.yml, hg-net) gets its subnet. The API publishes no
@@ -476,6 +473,9 @@ func (l *loader) prefixList(key, def string) []netip.Prefix {
 	return out
 }
 
+// originList parses the CORS allowlist. A wildcard is rejected outright:
+// invariant I-06.5 forbids Access-Control-Allow-Origin: * on any route that can
+// carry credentials, and every route here can.
 func (l *loader) originList(key string) []string {
 	raw := l.required(key)
 	if raw == "" {
