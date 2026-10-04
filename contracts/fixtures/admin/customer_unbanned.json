@@ -1,0 +1,37 @@
+{
+  "scenario": "customer_unbanned",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`REINSTATE`: `BANNED` → `ACTIVE`. Only a super admin can reinstate a banned customer.",
+  "operations": [
+    "applyCustomerAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "0101046e-fef8-48eb-ad4e-4c66f1f2bc1f",
+    "subject_type": "CUSTOMER",
+    "subject_id": "6087e999-1c05-4911-ad7a-7dead9531444",
+    "action": "REINSTATE",
+    "from_state": "BANNED",
+    "to_state": "ACTIVE",
+    "reason_code": "APPEAL_UPHELD",
+    "reason_text": "The recording was of a different account holder.",
+    "actor_account_id": "e34f6191-6d6d-4a96-a8ec-f6ec9485bb75",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

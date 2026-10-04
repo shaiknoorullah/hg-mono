@@ -1,0 +1,37 @@
+{
+  "scenario": "rider_banned",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`CONFIRM_BAN`: `SUSPENDED` → `BANNED`. Banned: every session ends and the rider role is no longer granted at sign-in. Earned money is still paid.",
+  "operations": [
+    "applyRiderAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "90163df9-3776-4637-a709-d0e2f7a6ea6a",
+    "subject_type": "RIDER",
+    "subject_id": "9f99b7f0-abab-4667-a1a6-4f8d9d7dcea1",
+    "action": "CONFIRM_BAN",
+    "from_state": "SUSPENDED",
+    "to_state": "BANNED",
+    "reason_code": "ACCOUNT_SHARING",
+    "reason_text": "Confirmed from the delivery photos and the account-holder's own statement.",
+    "actor_account_id": "e34f6191-6d6d-4a96-a8ec-f6ec9485bb75",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 2,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T19:42:11.412Z"
+  }
+}

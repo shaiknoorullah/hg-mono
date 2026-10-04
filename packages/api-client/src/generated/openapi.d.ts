@@ -135,6 +135,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/customers/{customerAccountId}/account-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend, reinstate or ban a customer
+         * @description Moves a customer's account `status` by one named action, per the
+         *     [customer account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-28--customer-account-state-actions).
+         *     The state change, its audit record, the history row and the notice to the customer
+         *     commit in one transaction.
+         *
+         *     | Action | From | To | Who |
+         *     |---|---|---|---|
+         *     | `SUSPEND` | `ACTIVE` | `SUSPENDED` | admin, super admin |
+         *     | `PROPOSE_BAN` | `ACTIVE`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+         *     | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+         *     | `REINSTATE` | `SUSPENDED` | `ACTIVE` | admin, super admin |
+         *     | `REINSTATE` | `BANNED` | `ACTIVE` | super admin only |
+         *
+         *     One person has one account, so the status is the person's: a suspended or banned
+         *     customer cannot sign in for any role, and their access tokens stop working within
+         *     10 seconds. Staff accounts are not changed here (`FORBIDDEN_PERMISSION`), and nobody
+         *     can act on their own account.
+         *
+         *     **Orders already in progress.** Orders not yet accepted by the restaurant are
+         *     cancelled and their payment authorisation released; accepted orders finish. A ban is
+         *     refused with `409 IN_FLIGHT_ORDERS_PRESENT`, naming the orders, while an accepted order
+         *     is still in progress. **A ban** also revokes every session.
+         *
+         *     A retry with the same `Idempotency-Key` returns the first result with
+         *     `Idempotency-Replayed: true` and changes nothing.
+         */
+        post: operations["applyCustomerAccountAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/halal-certificates/{certificateId}": {
         parameters: {
             query?: never;
@@ -553,6 +597,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/restaurants/{restaurantId}/account-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend, reinstate, delist, deactivate or ban a restaurant
+         * @description Moves a restaurant's `account_state` by one named action, per the
+         *     [restaurant account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist).
+         *     The state change, its audit record, the history row and the notices to the
+         *     restaurant's owners and managers commit in one transaction.
+         *
+         *     | Action | From | To | Who |
+         *     |---|---|---|---|
+         *     | `SUSPEND` | `LIVE`, `DELISTED` | `SUSPENDED` | admin, super admin |
+         *     | `DELIST` | `LIVE` | `DELISTED` | admin, super admin |
+         *     | `PROPOSE_BAN` | `LIVE`, `DELISTED`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+         *     | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+         *     | `DEACTIVATE` | `LIVE`, `DELISTED` | `DEACTIVATED` | admin, super admin, only with `MERCHANT_REQUEST` |
+         *     | `REINSTATE` | `SUSPENDED`, `DEACTIVATED`, `DELISTED` | `LIVE`, or `DELISTED` (below) | admin, super admin |
+         *     | `REINSTATE` | `BANNED` | `LIVE`, or `DELISTED` (below) | super admin only |
+         *
+         *     **Reinstating needs a current halal certificate.** A restaurant goes `LIVE` only with
+         *     an admin-verified certificate that has not expired. Relisting a `DELISTED` restaurant
+         *     without one is `409 HALAL_CERTIFICATE_REQUIRED`. Reinstating a suspended,
+         *     deactivated or banned restaurant whose certificate lapsed, or which still has a
+         *     delisting reason, returns it to `DELISTED`, never `LIVE`.
+         *
+         *     **Orders already in progress.** Orders not yet accepted (`CREATED`, `AUTHORIZED`,
+         *     `RESTAURANT_PENDING`) are cancelled and their payment authorisation released on
+         *     `SUSPEND`, `DELIST`, `PROPOSE_BAN`, `DEACTIVATE` and `CONFIRM_BAN`. Accepted orders
+         *     finish, except: a confirmed ban, or a suspension for `HALAL_INTEGRITY` or
+         *     `FOOD_SAFETY_RISK`, also cancels and fully refunds orders still `PREPARING`. Orders
+         *     that are ready or with a rider finish. Every order touched is listed in `in_flight`.
+         *
+         *     **Menu.** A `SUSPENDED` or `BANNED` restaurant's menu is locked for everyone, admins
+         *     included; a `DELISTED` one is not
+         *     ([menu lock](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *     `menu_locked` in the response says which applies.
+         *
+         *     **A ban** revokes every session of the restaurant's staff, and their restaurant roles
+         *     stop being granted at sign-in. Payouts to a suspended or banned restaurant are held.
+         *
+         *     A retry with the same `Idempotency-Key` returns the first result with
+         *     `Idempotency-Replayed: true` and changes nothing.
+         */
+        post: operations["applyRestaurantAccountAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/restaurants/{restaurantId}/menu/categories": {
         parameters: {
             query?: never;
@@ -743,6 +844,54 @@ export interface paths {
         put?: never;
         /** Approve or reject one rider document */
         post: operations["reviewRiderDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/riders/{riderAccountId}/account-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend, reinstate, deactivate or ban a rider
+         * @description Moves a rider's `account_status` by one named action, per the
+         *     [rider account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-27--rider-account-state-actions).
+         *     The state change, its audit record, the history row and the notice to the rider
+         *     commit in one transaction.
+         *
+         *     | Action | From | To | Who |
+         *     |---|---|---|---|
+         *     | `SUSPEND` | `ACTIVE` | `SUSPENDED` | admin, super admin |
+         *     | `PROPOSE_BAN` | `ACTIVE`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+         *     | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+         *     | `DEACTIVATE` | `ACTIVE`, `SUSPENDED` | `DEACTIVATED` | admin, super admin, only with `RIDER_REQUEST` |
+         *     | `REINSTATE` | `SUSPENDED`, `DEACTIVATED` | `ACTIVE` | admin, super admin |
+         *     | `REINSTATE` | `BANNED` | `ACTIVE` | super admin only |
+         *
+         *     **New offers stop at once; the current delivery finishes.** Offers waiting for the
+         *     rider are withdrawn and no new ones are made. A rider who is online and idle goes
+         *     offline; a rider on a delivery finishes it, is paid for it, and goes offline
+         *     afterwards
+         *     ([rider suspended mid-delivery](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+         *     `in_flight` lists the withdrawn offers and the delivery that continues. Reinstating
+         *     needs a rider whose onboarding finished (`PRECONDITION_NOT_MET` otherwise) and sends
+         *     the rider a notice that they can go online again
+         *     ([reinstatement notice](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *
+         *     **A ban** revokes every session of the rider's account, and the rider role stops being
+         *     granted at sign-in. Earned money is paid; payouts to a banned rider are held.
+         *
+         *     A retry with the same `Idempotency-Key` returns the first result with
+         *     `Idempotency-Replayed: true` and changes nothing.
+         */
+        post: operations["applyRiderAccountAction"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3300,10 +3449,81 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * @description The named actions that move an account's state. `suspend`, `ban`, `deactivate` and
+         *     `delist` are never synonyms: suspending is a reversible penalty; a ban is permanent and
+         *     needs two people (an admin or super admin proposes it, a different super admin confirms
+         *     it within 7 days); deactivating is a voluntary exit at the partner's request; delisting
+         *     takes a restaurant out of customer listings without a penalty. Reinstating undoes any
+         *     of them. Only restaurants can be delisted, and customers cannot be deactivated here.
+         * @enum {string}
+         */
+        AccountAction: "SUSPEND" | "REINSTATE" | "DELIST" | "PROPOSE_BAN" | "CONFIRM_BAN" | "DEACTIVATE";
+        /**
+         * @description What the action did to work already in progress, recorded with the history row so it
+         *     can be reconstructed later. A refunded order is also in `cancelled_order_ids`.
+         */
+        AccountActionInFlight: {
+            cancelled_order_ids: string[];
+            /** @description Orders, or for a rider the delivery, left to finish normally. */
+            continuing_order_ids: string[];
+            refunded_order_ids: string[];
+            /** @description Delivery offers withdrawn from a rider. Always empty for restaurants and customers. */
+            withdrawn_offer_ids: string[];
+        };
+        /**
+         * @description One applied account action: the history row an admin action writes. `reason_code` is
+         *     a `RestaurantAccountReasonCode`, `RiderAccountReasonCode` or
+         *     `CustomerAccountReasonCode`, following `subject_type`.
+         */
+        AccountStateChange: {
+            action: components["schemas"]["AccountAction"];
+            /** Format: uuid */
+            actor_account_id: string;
+            /** @description Set after `PROPOSE_BAN`; null once the ban is confirmed or for any other action. */
+            ban_proposal: components["schemas"]["BanProposal"] | null;
+            created_at: components["schemas"]["Timestamp"];
+            /** @description A restaurant's delisting reasons after the action. Always empty for riders and customers. */
+            delist_reasons: string[];
+            from_state: components["schemas"]["AccountStateName"];
+            /** Format: uuid */
+            id: string;
+            in_flight: components["schemas"]["AccountActionInFlight"];
+            /**
+             * @description For a restaurant, whether its menu is now locked for everyone, admins included
+             *     (`SUSPENDED` or `BANNED`). Null for riders and customers.
+             */
+            menu_locked: boolean | null;
+            reason_code: string;
+            reason_text: string;
+            /**
+             * Format: int32
+             * @description How many sign-in sessions the action ended. Only a confirmed ban ends sessions.
+             */
+            sessions_revoked: number;
+            /**
+             * Format: uuid
+             * @description The restaurant id, or the rider's or customer's account id.
+             */
+            subject_id: string;
+            subject_type: components["schemas"]["AccountSubjectType"];
+            to_state: components["schemas"]["AccountStateName"];
+        };
+        /**
+         * @description A state in a restaurant's `RestaurantAccountState`, a rider's `RiderAccountStatus`
+         *     or a customer's `AccountStatus`, as recorded on an `AccountStateChange`.
+         * @enum {string}
+         */
+        AccountStateName: "PENDING" | "LIVE" | "DELISTED" | "SUSPENDED" | "BANNED" | "DEACTIVATED" | "CLOSED" | "ACTIVE" | "DELETED";
+        /**
          * @description Anything other than `ACTIVE` blocks new sessions and revokes existing ones within 10 s.
          * @enum {string}
          */
         AccountStatus: "ACTIVE" | "SUSPENDED" | "BANNED" | "DELETED";
+        /**
+         * @description Whose account an account action changed: a restaurant, a rider or a customer.
+         * @enum {string}
+         */
+        AccountSubjectType: "RESTAURANT" | "RIDER" | "CUSTOMER";
         AcknowledgementResponse: {
             data: {
                 acknowledged: boolean;
@@ -3512,6 +3732,13 @@ export interface components {
          * @enum {string}
          */
         AuthMethod: "otp" | "pwd" | "pwd+totp";
+        /** @description A ban waiting for a second person. Unconfirmed at `lapses_at`, it lapses and the account stays suspended. */
+        BanProposal: {
+            lapses_at: components["schemas"]["Timestamp"];
+            proposed_at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            proposed_by: string;
+        };
         /**
          * @description C-19. The server holds the single source of truth. Money here is **indicative** and
          *     exists so the badge and the floating bar can render; `createQuote` produces the only
@@ -3656,6 +3883,25 @@ export interface components {
         Currency: "CAD";
         /** @description Opaque keyset cursor encoding the sort tuple. Not an offset. */
         Cursor: string;
+        /**
+         * @description The `AccountAction` values that apply to a customer.
+         * @enum {string}
+         */
+        CustomerAccountAction: "SUSPEND" | "REINSTATE" | "PROPOSE_BAN" | "CONFIRM_BAN";
+        /** @description `reason_text` stays on the audit record and the history; the customer's notice carries fixed wording. */
+        CustomerAccountActionInput: {
+            action: components["schemas"]["CustomerAccountAction"];
+            reason_code: components["schemas"]["CustomerAccountReasonCode"];
+            reason_text: string;
+        };
+        /**
+         * @description Why an admin acted on a customer. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+         *     penalty reason (`PAYMENT_FAILURE_UNRESOLVED` to `LEGAL_ORDER`, or `OTHER`).
+         *     `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`, `ACTIONED_IN_ERROR` or `OTHER`.
+         *     Any other pairing is a `422`.
+         * @enum {string}
+         */
+        CustomerAccountReasonCode: "PAYMENT_FAILURE_UNRESOLVED" | "REFUND_ABUSE" | "FRAUDULENT_CHARGEBACK" | "ABUSIVE_CONDUCT_TO_RIDER" | "ABUSIVE_CONDUCT_TO_RESTAURANT" | "FAKE_REVIEWS" | "ACCOUNT_TAKEOVER_RISK" | "PROMOTION_ABUSE" | "LEGAL_ORDER" | "ISSUE_RESOLVED" | "APPEAL_UPHELD" | "ACTIONED_IN_ERROR" | "OTHER";
         /**
          * @description C-29. `OTHER` requires 5–200 characters of free text.
          * @enum {string}
@@ -3928,7 +4174,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION" | "IN_FLIGHT_ORDERS_PRESENT";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -3944,7 +4190,11 @@ export interface components {
                  *     `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                  *     `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
                  *     `POD_REQUIRED` → `{required_pod_method}`;
-                 *     `RATE_LIMITED` → `{retry_after_seconds}`.
+                 *     `RATE_LIMITED` → `{retry_after_seconds}`;
+                 *     `ILLEGAL_STATE_TRANSITION` → `{from_state, action, allowed_actions: [AccountAction]}`;
+                 *     `FORBIDDEN_PERMISSION` → `{permission}`;
+                 *     `HALAL_CERTIFICATE_REQUIRED` → `{halal_status}` (account actions);
+                 *     `IN_FLIGHT_ORDERS_PRESENT` → `{order_ids: [uuid]}`.
                  */
                 details?: {
                     [key: string]: unknown;
@@ -5433,6 +5683,25 @@ export interface components {
          */
         RemittableBy: "PLATFORM" | "RESTAURANT";
         /**
+         * @description `reason_text` is the staff member's own account of why, kept on the audit record and
+         *     the account's history. It is never sent to the restaurant: notices carry fixed wording.
+         */
+        RestaurantAccountActionInput: {
+            action: components["schemas"]["AccountAction"];
+            reason_code: components["schemas"]["RestaurantAccountReasonCode"];
+            reason_text: string;
+        };
+        /**
+         * @description Why an admin acted on a restaurant. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take
+         *     a penalty reason (`COMPLIANCE_THRESHOLD` to `REPEATED_VIOLATIONS`, or `OTHER`).
+         *     `DELIST` takes `HALAL_CERTIFICATE_EXPIRED`, `DOCUMENT_EXPIRED`, `NO_APPROVED_MENU` or
+         *     `OTHER`, and the code is added to the restaurant's delisting reasons. `DEACTIVATE`
+         *     takes only `MERCHANT_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+         *     `ACTIONED_IN_ERROR`, `MERCHANT_REQUEST` or `OTHER`. Any other pairing is a `422`.
+         * @enum {string}
+         */
+        RestaurantAccountReasonCode: "COMPLIANCE_THRESHOLD" | "HALAL_INTEGRITY" | "FOOD_SAFETY_RISK" | "FRAUD_SUSPECTED" | "PAYMENT_OR_SETTLEMENT_ISSUE" | "ABUSIVE_CONDUCT" | "LEGAL_ORDER" | "REPEATED_VIOLATIONS" | "HALAL_CERTIFICATE_EXPIRED" | "DOCUMENT_EXPIRED" | "NO_APPROVED_MENU" | "MERCHANT_REQUEST" | "ISSUE_RESOLVED" | "APPEAL_UPHELD" | "ACTIONED_IN_ERROR" | "OTHER";
+        /**
          * @description A-2.0. Orthogonal to onboarding. These six words mean exactly this everywhere in the
          *     product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
          *     `DELISTED` is the non-punitive system state (lapsed certificate, expired document, no
@@ -5764,10 +6033,32 @@ export interface components {
             full_name: string;
         };
         /**
-         * @description Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
+         * @description The `AccountAction` values that apply to a rider.
          * @enum {string}
          */
-        RiderAccountStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+        RiderAccountAction: "SUSPEND" | "REINSTATE" | "PROPOSE_BAN" | "CONFIRM_BAN" | "DEACTIVATE";
+        /** @description `reason_text` stays on the audit record and the history; the rider's notice carries fixed wording. */
+        RiderAccountActionInput: {
+            action: components["schemas"]["RiderAccountAction"];
+            reason_code: components["schemas"]["RiderAccountReasonCode"];
+            reason_text: string;
+        };
+        /**
+         * @description Why an admin acted on a rider. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+         *     penalty reason (`DOCUMENT_EXPIRED` to `LEGAL_ORDER`, or `OTHER`). `DEACTIVATE` takes
+         *     only `RIDER_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+         *     `ACTIONED_IN_ERROR`, `RIDER_REQUEST` or `OTHER`. Any other pairing is a `422`.
+         * @enum {string}
+         */
+        RiderAccountReasonCode: "DOCUMENT_EXPIRED" | "INCIDENT_UNDER_INVESTIGATION" | "SAFETY_RISK" | "FRAUD_SUSPECTED" | "REPEATED_CANCELLATIONS" | "ABUSIVE_CONDUCT" | "LOW_PERFORMANCE" | "ACCOUNT_SHARING" | "LEGAL_ORDER" | "RIDER_REQUEST" | "ISSUE_RESOLVED" | "APPEAL_UPHELD" | "ACTIONED_IN_ERROR" | "OTHER";
+        /**
+         * @description Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
+         *     `BANNED` is permanent unless a super admin reinstates the rider; a banned rider holds
+         *     no rider role at sign-in. The admin actions that move this status are
+         *     `applyRiderAccountAction`.
+         * @enum {string}
+         */
+        RiderAccountStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED" | "BANNED";
         RiderApplication: components["schemas"]["RiderApplicationSummary"] & {
             blockers: string[];
             /**
@@ -6289,6 +6580,7 @@ export interface components {
         ClientHeader: components["schemas"]["ClientSurface"];
         /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
         Cursor: components["schemas"]["Cursor"];
+        CustomerAccountIdPath: string;
         DocumentIdPath: string;
         /**
          * @description Client-generated UUID or ULID, 16–128 characters. Scope is
@@ -6312,7 +6604,12 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type SchemaAccountAction = components['schemas']['AccountAction'];
+export type SchemaAccountActionInFlight = components['schemas']['AccountActionInFlight'];
+export type SchemaAccountStateChange = components['schemas']['AccountStateChange'];
+export type SchemaAccountStateName = components['schemas']['AccountStateName'];
 export type SchemaAccountStatus = components['schemas']['AccountStatus'];
+export type SchemaAccountSubjectType = components['schemas']['AccountSubjectType'];
 export type SchemaAcknowledgementResponse = components['schemas']['AcknowledgementResponse'];
 export type SchemaAddon = components['schemas']['Addon'];
 export type SchemaAddonGroup = components['schemas']['AddonGroup'];
@@ -6326,6 +6623,7 @@ export type SchemaAssignment = components['schemas']['Assignment'];
 export type SchemaAssignmentState = components['schemas']['AssignmentState'];
 export type SchemaAssignmentTransitionInput = components['schemas']['AssignmentTransitionInput'];
 export type SchemaAuthMethod = components['schemas']['AuthMethod'];
+export type SchemaBanProposal = components['schemas']['BanProposal'];
 export type SchemaCart = components['schemas']['Cart'];
 export type SchemaCartLine = components['schemas']['CartLine'];
 export type SchemaCartLineAvailability = components['schemas']['CartLineAvailability'];
@@ -6337,6 +6635,9 @@ export type SchemaConnectOnboardingLink = components['schemas']['ConnectOnboardi
 export type SchemaConnectStatus = components['schemas']['ConnectStatus'];
 export type SchemaCurrency = components['schemas']['Currency'];
 export type SchemaCursor = components['schemas']['Cursor'];
+export type SchemaCustomerAccountAction = components['schemas']['CustomerAccountAction'];
+export type SchemaCustomerAccountActionInput = components['schemas']['CustomerAccountActionInput'];
+export type SchemaCustomerAccountReasonCode = components['schemas']['CustomerAccountReasonCode'];
 export type SchemaCustomerCancellationReasonCode = components['schemas']['CustomerCancellationReasonCode'];
 export type SchemaCustomerProfile = components['schemas']['CustomerProfile'];
 export type SchemaCustomerProfileUpdateInput = components['schemas']['CustomerProfileUpdateInput'];
@@ -6497,6 +6798,8 @@ export type SchemaRefundReasonCode = components['schemas']['RefundReasonCode'];
 export type SchemaRefundScope = components['schemas']['RefundScope'];
 export type SchemaRefundState = components['schemas']['RefundState'];
 export type SchemaRemittableBy = components['schemas']['RemittableBy'];
+export type SchemaRestaurantAccountActionInput = components['schemas']['RestaurantAccountActionInput'];
+export type SchemaRestaurantAccountReasonCode = components['schemas']['RestaurantAccountReasonCode'];
 export type SchemaRestaurantAccountState = components['schemas']['RestaurantAccountState'];
 export type SchemaRestaurantApplication = components['schemas']['RestaurantApplication'];
 export type SchemaRestaurantApplicationSummary = components['schemas']['RestaurantApplicationSummary'];
@@ -6527,6 +6830,9 @@ export type SchemaRestaurantRejectReasonCode = components['schemas']['Restaurant
 export type SchemaRestaurantSort = components['schemas']['RestaurantSort'];
 export type SchemaRestaurantStaffUser = components['schemas']['RestaurantStaffUser'];
 export type SchemaRestaurantStaffUserInput = components['schemas']['RestaurantStaffUserInput'];
+export type SchemaRiderAccountAction = components['schemas']['RiderAccountAction'];
+export type SchemaRiderAccountActionInput = components['schemas']['RiderAccountActionInput'];
+export type SchemaRiderAccountReasonCode = components['schemas']['RiderAccountReasonCode'];
 export type SchemaRiderAccountStatus = components['schemas']['RiderAccountStatus'];
 export type SchemaRiderApplication = components['schemas']['RiderApplication'];
 export type SchemaRiderApplicationSummary = components['schemas']['RiderApplicationSummary'];
@@ -6586,6 +6892,7 @@ export type ParameterAssignmentIdPath = components['parameters']['AssignmentIdPa
 export type ParameterCertificateIdPath = components['parameters']['CertificateIdPath'];
 export type ParameterClientHeader = components['parameters']['ClientHeader'];
 export type ParameterCursor = components['parameters']['Cursor'];
+export type ParameterCustomerAccountIdPath = components['parameters']['CustomerAccountIdPath'];
 export type ParameterDocumentIdPath = components['parameters']['DocumentIdPath'];
 export type ParameterIdempotencyKeyRequired = components['parameters']['IdempotencyKeyRequired'];
 export type ParameterLimit = components['parameters']['Limit'];
@@ -6838,6 +7145,65 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    applyCustomerAccountAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                customerAccountId: components["parameters"]["CustomerAccountIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerAccountActionInput"];
+            };
+        };
+        responses: {
+            /** @description The action is applied, or a retry returned the first result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AccountStateChange"];
+                    };
+                };
+            };
+            /** @description `FORBIDDEN_PERMISSION`, `SELF_APPROVAL_FORBIDDEN`, `MFA_REQUIRED`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `ILLEGAL_STATE_TRANSITION`, `IN_FLIGHT_ORDERS_PRESENT` (`details.order_ids`), `IDEMPOTENCY_KEY_REUSE`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };
@@ -7575,6 +7941,74 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    applyRestaurantAccountAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                restaurantId: components["parameters"]["RestaurantIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantAccountActionInput"];
+            };
+        };
+        responses: {
+            /** @description The action is applied, or a retry returned the first result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AccountStateChange"];
+                    };
+                };
+            };
+            /**
+             * @description `FORBIDDEN_PERMISSION` (an admin confirming a ban or reinstating a banned
+             *     restaurant: `details.permission` names the permission), `SELF_APPROVAL_FORBIDDEN`
+             *     (confirming your own ban proposal), `MFA_REQUIRED` (a session without two-step
+             *     sign-in).
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /**
+             * @description `ILLEGAL_STATE_TRANSITION` (`details.from_state`, `details.action`,
+             *     `details.allowed_actions`), `HALAL_CERTIFICATE_REQUIRED`, `PRECONDITION_NOT_MET`,
+             *     `IDEMPOTENCY_KEY_REUSE`.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
     createMenuCategoryOnBehalf: {
         parameters: {
             query?: never;
@@ -7921,6 +8355,65 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    applyRiderAccountAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                riderAccountId: components["parameters"]["RiderAccountIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RiderAccountActionInput"];
+            };
+        };
+        responses: {
+            /** @description The action is applied, or a retry returned the first result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AccountStateChange"];
+                    };
+                };
+            };
+            /** @description `FORBIDDEN_PERMISSION`, `SELF_APPROVAL_FORBIDDEN`, `MFA_REQUIRED`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `ILLEGAL_STATE_TRANSITION`, `PRECONDITION_NOT_MET`, `IDEMPOTENCY_KEY_REUSE`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

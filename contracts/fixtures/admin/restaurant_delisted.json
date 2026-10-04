@@ -1,0 +1,41 @@
+{
+  "scenario": "restaurant_delisted",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`DELIST`: `LIVE` → `DELISTED`. Taken out of listings without a penalty. The menu is **not** locked, so the restaurant can get it ready to be listed again.",
+  "operations": [
+    "applyRestaurantAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "4023216e-f37a-42fe-a477-f767b95954bd",
+    "subject_type": "RESTAURANT",
+    "subject_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "action": "DELIST",
+    "from_state": "LIVE",
+    "to_state": "DELISTED",
+    "reason_code": "NO_APPROVED_MENU",
+    "reason_text": "Every menu item was withdrawn; nothing approved is left to sell.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": null,
+    "delist_reasons": [
+      "NO_APPROVED_MENU"
+    ],
+    "menu_locked": false,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [
+        "89be6370-57d4-4047-af1b-440bf1951c73"
+      ],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

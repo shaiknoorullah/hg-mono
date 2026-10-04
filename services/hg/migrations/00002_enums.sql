@@ -766,7 +766,8 @@ CREATE TYPE rider_account_status AS ENUM (
   'PENDING',
   'ACTIVE',
   'SUSPENDED',
-  'DEACTIVATED'
+  'DEACTIVATED',
+  'BANNED'
 );
 
 -- rider_availability_state  <-  RiderAvailabilityState

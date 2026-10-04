@@ -1,0 +1,42 @@
+{
+  "scenario": "restaurant_suspended",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`SUSPEND`: `LIVE` → `SUSPENDED`. A live restaurant suspended. The order it had not accepted is cancelled and its authorisation released; the order being prepared and the one with a rider finish. The menu is now locked for everyone, admins included.",
+  "operations": [
+    "applyRestaurantAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "caa2d62f-407e-4548-aa03-1a32b20a0e03",
+    "subject_type": "RESTAURANT",
+    "subject_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "action": "SUSPEND",
+    "from_state": "LIVE",
+    "to_state": "SUSPENDED",
+    "reason_code": "COMPLIANCE_THRESHOLD",
+    "reason_text": "Three late-acceptance violations in 30 days after two written warnings.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": true,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [
+        "89be6370-57d4-4047-af1b-440bf1951c73"
+      ],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [
+        "a0668ea7-b278-4048-ac92-0e892db84c8e",
+        "5007c0fe-bd6c-42b4-a57a-866ea339d11d"
+      ],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

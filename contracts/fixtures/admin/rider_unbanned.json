@@ -1,0 +1,37 @@
+{
+  "scenario": "rider_unbanned",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`REINSTATE`: `BANNED` → `ACTIVE`. Only a super admin can reinstate a banned rider.",
+  "operations": [
+    "applyRiderAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "c8206823-e84f-4ced-a056-e59845961c68",
+    "subject_type": "RIDER",
+    "subject_id": "9f99b7f0-abab-4667-a1a6-4f8d9d7dcea1",
+    "action": "REINSTATE",
+    "from_state": "BANNED",
+    "to_state": "ACTIVE",
+    "reason_code": "ACTIONED_IN_ERROR",
+    "reason_text": "The account-sharing finding was a mix-up between two riders with the same name.",
+    "actor_account_id": "e34f6191-6d6d-4a96-a8ec-f6ec9485bb75",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

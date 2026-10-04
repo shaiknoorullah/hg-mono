@@ -20,6 +20,7 @@ sys.path.insert(0, HERE)
 
 import yaml  # noqa: E402
 
+import dom_account_actions  # noqa: E402
 import dom_catalogue  # noqa: E402
 import dom_errors  # noqa: E402
 import dom_handoff  # noqa: E402
@@ -47,6 +48,7 @@ def main() -> int:
     dom_onboarding.build(reg, synth)
     dom_errors.build(reg, synth)
     dom_handoff.build(reg, synth)
+    dom_account_actions.build(reg, synth)
 
     manifest = reg.write()
     write_readme(manifest)

@@ -1,0 +1,41 @@
+{
+  "scenario": "rider_ban_proposed",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`PROPOSE_BAN`: `SUSPENDED` → `SUSPENDED`. A ban proposed; the rider stays suspended until a second person decides.",
+  "operations": [
+    "applyRiderAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "7dd21768-12b3-45fb-a803-d6b855568186",
+    "subject_type": "RIDER",
+    "subject_id": "9f99b7f0-abab-4667-a1a6-4f8d9d7dcea1",
+    "action": "PROPOSE_BAN",
+    "from_state": "SUSPENDED",
+    "to_state": "SUSPENDED",
+    "reason_code": "ACCOUNT_SHARING",
+    "reason_text": "A different person completed three deliveries on this account.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": {
+      "proposed_by": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+      "proposed_at": "2026-08-10T18:42:11.412Z",
+      "lapses_at": "2026-08-17T18:42:11.412Z"
+    },
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

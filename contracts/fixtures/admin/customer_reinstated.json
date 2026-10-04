@@ -1,0 +1,37 @@
+{
+  "scenario": "customer_reinstated",
+  "domain": "admin",
+  "schema": "AccountStateChange",
+  "describes": "`REINSTATE`: `SUSPENDED` → `ACTIVE`. Reinstated; the customer can sign in and order again.",
+  "operations": [
+    "applyCustomerAccountAction"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "account-action",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "14c06b1a-549d-45f2-a6e1-a6e1af9315f7",
+    "subject_type": "CUSTOMER",
+    "subject_id": "6087e999-1c05-4911-ad7a-7dead9531444",
+    "action": "REINSTATE",
+    "from_state": "SUSPENDED",
+    "to_state": "ACTIVE",
+    "reason_code": "ISSUE_RESOLVED",
+    "reason_text": "The bank reversed both chargebacks in our favour; no further action.",
+    "actor_account_id": "6355afc2-21b9-4556-a0fe-16db508f6a3b",
+    "ban_proposal": null,
+    "delist_reasons": [],
+    "menu_locked": null,
+    "sessions_revoked": 0,
+    "in_flight": {
+      "cancelled_order_ids": [],
+      "refunded_order_ids": [],
+      "continuing_order_ids": [],
+      "withdrawn_offer_ids": []
+    },
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

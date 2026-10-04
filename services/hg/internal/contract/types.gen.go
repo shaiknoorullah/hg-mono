@@ -11,6 +11,75 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AccountAction.
+const (
+	AccountActionCONFIRMBAN AccountAction = "CONFIRM_BAN"
+	AccountActionDEACTIVATE AccountAction = "DEACTIVATE"
+	AccountActionDELIST     AccountAction = "DELIST"
+	AccountActionPROPOSEBAN AccountAction = "PROPOSE_BAN"
+	AccountActionREINSTATE  AccountAction = "REINSTATE"
+	AccountActionSUSPEND    AccountAction = "SUSPEND"
+)
+
+// Valid indicates whether the value is a known member of the AccountAction enum.
+func (e AccountAction) Valid() bool {
+	switch e {
+	case AccountActionCONFIRMBAN:
+		return true
+	case AccountActionDEACTIVATE:
+		return true
+	case AccountActionDELIST:
+		return true
+	case AccountActionPROPOSEBAN:
+		return true
+	case AccountActionREINSTATE:
+		return true
+	case AccountActionSUSPEND:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AccountStateName.
+const (
+	AccountStateNameACTIVE      AccountStateName = "ACTIVE"
+	AccountStateNameBANNED      AccountStateName = "BANNED"
+	AccountStateNameCLOSED      AccountStateName = "CLOSED"
+	AccountStateNameDEACTIVATED AccountStateName = "DEACTIVATED"
+	AccountStateNameDELETED     AccountStateName = "DELETED"
+	AccountStateNameDELISTED    AccountStateName = "DELISTED"
+	AccountStateNameLIVE        AccountStateName = "LIVE"
+	AccountStateNamePENDING     AccountStateName = "PENDING"
+	AccountStateNameSUSPENDED   AccountStateName = "SUSPENDED"
+)
+
+// Valid indicates whether the value is a known member of the AccountStateName enum.
+func (e AccountStateName) Valid() bool {
+	switch e {
+	case AccountStateNameACTIVE:
+		return true
+	case AccountStateNameBANNED:
+		return true
+	case AccountStateNameCLOSED:
+		return true
+	case AccountStateNameDEACTIVATED:
+		return true
+	case AccountStateNameDELETED:
+		return true
+	case AccountStateNameDELISTED:
+		return true
+	case AccountStateNameLIVE:
+		return true
+	case AccountStateNamePENDING:
+		return true
+	case AccountStateNameSUSPENDED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AccountStatus.
 const (
 	AccountStatusACTIVE    AccountStatus = "ACTIVE"
@@ -29,6 +98,27 @@ func (e AccountStatus) Valid() bool {
 	case AccountStatusDELETED:
 		return true
 	case AccountStatusSUSPENDED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AccountSubjectType.
+const (
+	AccountSubjectTypeCUSTOMER   AccountSubjectType = "CUSTOMER"
+	AccountSubjectTypeRESTAURANT AccountSubjectType = "RESTAURANT"
+	AccountSubjectTypeRIDER      AccountSubjectType = "RIDER"
+)
+
+// Valid indicates whether the value is a known member of the AccountSubjectType enum.
+func (e AccountSubjectType) Valid() bool {
+	switch e {
+	case AccountSubjectTypeCUSTOMER:
+		return true
+	case AccountSubjectTypeRESTAURANT:
+		return true
+	case AccountSubjectTypeRIDER:
 		return true
 	default:
 		return false
@@ -254,6 +344,81 @@ const (
 func (e Currency) Valid() bool {
 	switch e {
 	case CAD:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomerAccountAction.
+const (
+	CustomerAccountActionCONFIRMBAN CustomerAccountAction = "CONFIRM_BAN"
+	CustomerAccountActionPROPOSEBAN CustomerAccountAction = "PROPOSE_BAN"
+	CustomerAccountActionREINSTATE  CustomerAccountAction = "REINSTATE"
+	CustomerAccountActionSUSPEND    CustomerAccountAction = "SUSPEND"
+)
+
+// Valid indicates whether the value is a known member of the CustomerAccountAction enum.
+func (e CustomerAccountAction) Valid() bool {
+	switch e {
+	case CustomerAccountActionCONFIRMBAN:
+		return true
+	case CustomerAccountActionPROPOSEBAN:
+		return true
+	case CustomerAccountActionREINSTATE:
+		return true
+	case CustomerAccountActionSUSPEND:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomerAccountReasonCode.
+const (
+	CustomerAccountReasonCodeABUSIVECONDUCTTORESTAURANT CustomerAccountReasonCode = "ABUSIVE_CONDUCT_TO_RESTAURANT"
+	CustomerAccountReasonCodeABUSIVECONDUCTTORIDER      CustomerAccountReasonCode = "ABUSIVE_CONDUCT_TO_RIDER"
+	CustomerAccountReasonCodeACCOUNTTAKEOVERRISK        CustomerAccountReasonCode = "ACCOUNT_TAKEOVER_RISK"
+	CustomerAccountReasonCodeACTIONEDINERROR            CustomerAccountReasonCode = "ACTIONED_IN_ERROR"
+	CustomerAccountReasonCodeAPPEALUPHELD               CustomerAccountReasonCode = "APPEAL_UPHELD"
+	CustomerAccountReasonCodeFAKEREVIEWS                CustomerAccountReasonCode = "FAKE_REVIEWS"
+	CustomerAccountReasonCodeFRAUDULENTCHARGEBACK       CustomerAccountReasonCode = "FRAUDULENT_CHARGEBACK"
+	CustomerAccountReasonCodeISSUERESOLVED              CustomerAccountReasonCode = "ISSUE_RESOLVED"
+	CustomerAccountReasonCodeLEGALORDER                 CustomerAccountReasonCode = "LEGAL_ORDER"
+	CustomerAccountReasonCodeOTHER                      CustomerAccountReasonCode = "OTHER"
+	CustomerAccountReasonCodePAYMENTFAILUREUNRESOLVED   CustomerAccountReasonCode = "PAYMENT_FAILURE_UNRESOLVED"
+	CustomerAccountReasonCodePROMOTIONABUSE             CustomerAccountReasonCode = "PROMOTION_ABUSE"
+	CustomerAccountReasonCodeREFUNDABUSE                CustomerAccountReasonCode = "REFUND_ABUSE"
+)
+
+// Valid indicates whether the value is a known member of the CustomerAccountReasonCode enum.
+func (e CustomerAccountReasonCode) Valid() bool {
+	switch e {
+	case CustomerAccountReasonCodeABUSIVECONDUCTTORESTAURANT:
+		return true
+	case CustomerAccountReasonCodeABUSIVECONDUCTTORIDER:
+		return true
+	case CustomerAccountReasonCodeACCOUNTTAKEOVERRISK:
+		return true
+	case CustomerAccountReasonCodeACTIONEDINERROR:
+		return true
+	case CustomerAccountReasonCodeAPPEALUPHELD:
+		return true
+	case CustomerAccountReasonCodeFAKEREVIEWS:
+		return true
+	case CustomerAccountReasonCodeFRAUDULENTCHARGEBACK:
+		return true
+	case CustomerAccountReasonCodeISSUERESOLVED:
+		return true
+	case CustomerAccountReasonCodeLEGALORDER:
+		return true
+	case CustomerAccountReasonCodeOTHER:
+		return true
+	case CustomerAccountReasonCodePAYMENTFAILUREUNRESOLVED:
+		return true
+	case CustomerAccountReasonCodePROMOTIONABUSE:
+		return true
+	case CustomerAccountReasonCodeREFUNDABUSE:
 		return true
 	default:
 		return false
@@ -768,6 +933,7 @@ const (
 	ErrorCodeIMAGETOOSMALL                  ErrorCode = "IMAGE_TOO_SMALL"
 	ErrorCodeIMMUTABLEAFTERAPPROVAL         ErrorCode = "IMMUTABLE_AFTER_APPROVAL"
 	ErrorCodeINCOMPLETEDOCUMENTPACK         ErrorCode = "INCOMPLETE_DOCUMENT_PACK"
+	ErrorCodeINFLIGHTORDERSPRESENT          ErrorCode = "IN_FLIGHT_ORDERS_PRESENT"
 	ErrorCodeINTERNALERROR                  ErrorCode = "INTERNAL_ERROR"
 	ErrorCodeINVALIDADDON                   ErrorCode = "INVALID_ADDON"
 	ErrorCodeINVALIDCREDENTIALS             ErrorCode = "INVALID_CREDENTIALS"
@@ -990,6 +1156,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeIMMUTABLEAFTERAPPROVAL:
 		return true
 	case ErrorCodeINCOMPLETEDOCUMENTPACK:
+		return true
+	case ErrorCodeINFLIGHTORDERSPRESENT:
 		return true
 	case ErrorCodeINTERNALERROR:
 		return true
@@ -2840,6 +3008,66 @@ func (e RemittableBy) Valid() bool {
 	}
 }
 
+// Defines values for RestaurantAccountReasonCode.
+const (
+	RestaurantAccountReasonCodeABUSIVECONDUCT           RestaurantAccountReasonCode = "ABUSIVE_CONDUCT"
+	RestaurantAccountReasonCodeACTIONEDINERROR          RestaurantAccountReasonCode = "ACTIONED_IN_ERROR"
+	RestaurantAccountReasonCodeAPPEALUPHELD             RestaurantAccountReasonCode = "APPEAL_UPHELD"
+	RestaurantAccountReasonCodeCOMPLIANCETHRESHOLD      RestaurantAccountReasonCode = "COMPLIANCE_THRESHOLD"
+	RestaurantAccountReasonCodeDOCUMENTEXPIRED          RestaurantAccountReasonCode = "DOCUMENT_EXPIRED"
+	RestaurantAccountReasonCodeFOODSAFETYRISK           RestaurantAccountReasonCode = "FOOD_SAFETY_RISK"
+	RestaurantAccountReasonCodeFRAUDSUSPECTED           RestaurantAccountReasonCode = "FRAUD_SUSPECTED"
+	RestaurantAccountReasonCodeHALALCERTIFICATEEXPIRED  RestaurantAccountReasonCode = "HALAL_CERTIFICATE_EXPIRED"
+	RestaurantAccountReasonCodeHALALINTEGRITY           RestaurantAccountReasonCode = "HALAL_INTEGRITY"
+	RestaurantAccountReasonCodeISSUERESOLVED            RestaurantAccountReasonCode = "ISSUE_RESOLVED"
+	RestaurantAccountReasonCodeLEGALORDER               RestaurantAccountReasonCode = "LEGAL_ORDER"
+	RestaurantAccountReasonCodeMERCHANTREQUEST          RestaurantAccountReasonCode = "MERCHANT_REQUEST"
+	RestaurantAccountReasonCodeNOAPPROVEDMENU           RestaurantAccountReasonCode = "NO_APPROVED_MENU"
+	RestaurantAccountReasonCodeOTHER                    RestaurantAccountReasonCode = "OTHER"
+	RestaurantAccountReasonCodePAYMENTORSETTLEMENTISSUE RestaurantAccountReasonCode = "PAYMENT_OR_SETTLEMENT_ISSUE"
+	RestaurantAccountReasonCodeREPEATEDVIOLATIONS       RestaurantAccountReasonCode = "REPEATED_VIOLATIONS"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantAccountReasonCode enum.
+func (e RestaurantAccountReasonCode) Valid() bool {
+	switch e {
+	case RestaurantAccountReasonCodeABUSIVECONDUCT:
+		return true
+	case RestaurantAccountReasonCodeACTIONEDINERROR:
+		return true
+	case RestaurantAccountReasonCodeAPPEALUPHELD:
+		return true
+	case RestaurantAccountReasonCodeCOMPLIANCETHRESHOLD:
+		return true
+	case RestaurantAccountReasonCodeDOCUMENTEXPIRED:
+		return true
+	case RestaurantAccountReasonCodeFOODSAFETYRISK:
+		return true
+	case RestaurantAccountReasonCodeFRAUDSUSPECTED:
+		return true
+	case RestaurantAccountReasonCodeHALALCERTIFICATEEXPIRED:
+		return true
+	case RestaurantAccountReasonCodeHALALINTEGRITY:
+		return true
+	case RestaurantAccountReasonCodeISSUERESOLVED:
+		return true
+	case RestaurantAccountReasonCodeLEGALORDER:
+		return true
+	case RestaurantAccountReasonCodeMERCHANTREQUEST:
+		return true
+	case RestaurantAccountReasonCodeNOAPPROVEDMENU:
+		return true
+	case RestaurantAccountReasonCodeOTHER:
+		return true
+	case RestaurantAccountReasonCodePAYMENTORSETTLEMENTISSUE:
+		return true
+	case RestaurantAccountReasonCodeREPEATEDVIOLATIONS:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RestaurantAccountState.
 const (
 	RestaurantAccountStateBANNED      RestaurantAccountState = "BANNED"
@@ -3212,9 +3440,91 @@ func (e RestaurantStaffUserRole) Valid() bool {
 	}
 }
 
+// Defines values for RiderAccountAction.
+const (
+	RiderAccountActionCONFIRMBAN RiderAccountAction = "CONFIRM_BAN"
+	RiderAccountActionDEACTIVATE RiderAccountAction = "DEACTIVATE"
+	RiderAccountActionPROPOSEBAN RiderAccountAction = "PROPOSE_BAN"
+	RiderAccountActionREINSTATE  RiderAccountAction = "REINSTATE"
+	RiderAccountActionSUSPEND    RiderAccountAction = "SUSPEND"
+)
+
+// Valid indicates whether the value is a known member of the RiderAccountAction enum.
+func (e RiderAccountAction) Valid() bool {
+	switch e {
+	case RiderAccountActionCONFIRMBAN:
+		return true
+	case RiderAccountActionDEACTIVATE:
+		return true
+	case RiderAccountActionPROPOSEBAN:
+		return true
+	case RiderAccountActionREINSTATE:
+		return true
+	case RiderAccountActionSUSPEND:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderAccountReasonCode.
+const (
+	RiderAccountReasonCodeABUSIVECONDUCT             RiderAccountReasonCode = "ABUSIVE_CONDUCT"
+	RiderAccountReasonCodeACCOUNTSHARING             RiderAccountReasonCode = "ACCOUNT_SHARING"
+	RiderAccountReasonCodeACTIONEDINERROR            RiderAccountReasonCode = "ACTIONED_IN_ERROR"
+	RiderAccountReasonCodeAPPEALUPHELD               RiderAccountReasonCode = "APPEAL_UPHELD"
+	RiderAccountReasonCodeDOCUMENTEXPIRED            RiderAccountReasonCode = "DOCUMENT_EXPIRED"
+	RiderAccountReasonCodeFRAUDSUSPECTED             RiderAccountReasonCode = "FRAUD_SUSPECTED"
+	RiderAccountReasonCodeINCIDENTUNDERINVESTIGATION RiderAccountReasonCode = "INCIDENT_UNDER_INVESTIGATION"
+	RiderAccountReasonCodeISSUERESOLVED              RiderAccountReasonCode = "ISSUE_RESOLVED"
+	RiderAccountReasonCodeLEGALORDER                 RiderAccountReasonCode = "LEGAL_ORDER"
+	RiderAccountReasonCodeLOWPERFORMANCE             RiderAccountReasonCode = "LOW_PERFORMANCE"
+	RiderAccountReasonCodeOTHER                      RiderAccountReasonCode = "OTHER"
+	RiderAccountReasonCodeREPEATEDCANCELLATIONS      RiderAccountReasonCode = "REPEATED_CANCELLATIONS"
+	RiderAccountReasonCodeRIDERREQUEST               RiderAccountReasonCode = "RIDER_REQUEST"
+	RiderAccountReasonCodeSAFETYRISK                 RiderAccountReasonCode = "SAFETY_RISK"
+)
+
+// Valid indicates whether the value is a known member of the RiderAccountReasonCode enum.
+func (e RiderAccountReasonCode) Valid() bool {
+	switch e {
+	case RiderAccountReasonCodeABUSIVECONDUCT:
+		return true
+	case RiderAccountReasonCodeACCOUNTSHARING:
+		return true
+	case RiderAccountReasonCodeACTIONEDINERROR:
+		return true
+	case RiderAccountReasonCodeAPPEALUPHELD:
+		return true
+	case RiderAccountReasonCodeDOCUMENTEXPIRED:
+		return true
+	case RiderAccountReasonCodeFRAUDSUSPECTED:
+		return true
+	case RiderAccountReasonCodeINCIDENTUNDERINVESTIGATION:
+		return true
+	case RiderAccountReasonCodeISSUERESOLVED:
+		return true
+	case RiderAccountReasonCodeLEGALORDER:
+		return true
+	case RiderAccountReasonCodeLOWPERFORMANCE:
+		return true
+	case RiderAccountReasonCodeOTHER:
+		return true
+	case RiderAccountReasonCodeREPEATEDCANCELLATIONS:
+		return true
+	case RiderAccountReasonCodeRIDERREQUEST:
+		return true
+	case RiderAccountReasonCodeSAFETYRISK:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RiderAccountStatus.
 const (
 	RiderAccountStatusACTIVE      RiderAccountStatus = "ACTIVE"
+	RiderAccountStatusBANNED      RiderAccountStatus = "BANNED"
 	RiderAccountStatusDEACTIVATED RiderAccountStatus = "DEACTIVATED"
 	RiderAccountStatusPENDING     RiderAccountStatus = "PENDING"
 	RiderAccountStatusSUSPENDED   RiderAccountStatus = "SUSPENDED"
@@ -3224,6 +3534,8 @@ const (
 func (e RiderAccountStatus) Valid() bool {
 	switch e {
 	case RiderAccountStatusACTIVE:
+		return true
+	case RiderAccountStatusBANNED:
 		return true
 	case RiderAccountStatusDEACTIVATED:
 		return true
@@ -3776,8 +4088,87 @@ func (e ListRestaurantsParamsMinRating) Valid() bool {
 	}
 }
 
+// AccountAction The named actions that move an account's state. `suspend`, `ban`, `deactivate` and
+// `delist` are never synonyms: suspending is a reversible penalty; a ban is permanent and
+// needs two people (an admin or super admin proposes it, a different super admin confirms
+// it within 7 days); deactivating is a voluntary exit at the partner's request; delisting
+// takes a restaurant out of customer listings without a penalty. Reinstating undoes any
+// of them. Only restaurants can be delisted, and customers cannot be deactivated here.
+type AccountAction string
+
+// AccountActionInFlight What the action did to work already in progress, recorded with the history row so it
+// can be reconstructed later. A refunded order is also in `cancelled_order_ids`.
+type AccountActionInFlight struct {
+	CancelledOrderIds []openapi_types.UUID `json:"cancelled_order_ids"`
+
+	// ContinuingOrderIds Orders, or for a rider the delivery, left to finish normally.
+	ContinuingOrderIds []openapi_types.UUID `json:"continuing_order_ids"`
+	RefundedOrderIds   []openapi_types.UUID `json:"refunded_order_ids"`
+
+	// WithdrawnOfferIds Delivery offers withdrawn from a rider. Always empty for restaurants and customers.
+	WithdrawnOfferIds []openapi_types.UUID `json:"withdrawn_offer_ids"`
+}
+
+// AccountStateChange One applied account action: the history row an admin action writes. `reason_code` is
+// a `RestaurantAccountReasonCode`, `RiderAccountReasonCode` or
+// `CustomerAccountReasonCode`, following `subject_type`.
+type AccountStateChange struct {
+	// Action The named actions that move an account's state. `suspend`, `ban`, `deactivate` and
+	// `delist` are never synonyms: suspending is a reversible penalty; a ban is permanent and
+	// needs two people (an admin or super admin proposes it, a different super admin confirms
+	// it within 7 days); deactivating is a voluntary exit at the partner's request; delisting
+	// takes a restaurant out of customer listings without a penalty. Reinstating undoes any
+	// of them. Only restaurants can be delisted, and customers cannot be deactivated here.
+	Action         AccountAction      `json:"action"`
+	ActorAccountId openapi_types.UUID `json:"actor_account_id"`
+
+	// BanProposal Set after `PROPOSE_BAN`; null once the ban is confirmed or for any other action.
+	BanProposal *BanProposal `json:"ban_proposal"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp `json:"created_at"`
+
+	// DelistReasons A restaurant's delisting reasons after the action. Always empty for riders and customers.
+	DelistReasons []string `json:"delist_reasons"`
+
+	// FromState A state in a restaurant's `RestaurantAccountState`, a rider's `RiderAccountStatus`
+	// or a customer's `AccountStatus`, as recorded on an `AccountStateChange`.
+	FromState AccountStateName   `json:"from_state"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// InFlight What the action did to work already in progress, recorded with the history row so it
+	// can be reconstructed later. A refunded order is also in `cancelled_order_ids`.
+	InFlight AccountActionInFlight `json:"in_flight"`
+
+	// MenuLocked For a restaurant, whether its menu is now locked for everyone, admins included
+	// (`SUSPENDED` or `BANNED`). Null for riders and customers.
+	MenuLocked *bool  `json:"menu_locked"`
+	ReasonCode string `json:"reason_code"`
+	ReasonText string `json:"reason_text"`
+
+	// SessionsRevoked How many sign-in sessions the action ended. Only a confirmed ban ends sessions.
+	SessionsRevoked int32 `json:"sessions_revoked"`
+
+	// SubjectId The restaurant id, or the rider's or customer's account id.
+	SubjectId openapi_types.UUID `json:"subject_id"`
+
+	// SubjectType Whose account an account action changed: a restaurant, a rider or a customer.
+	SubjectType AccountSubjectType `json:"subject_type"`
+
+	// ToState A state in a restaurant's `RestaurantAccountState`, a rider's `RiderAccountStatus`
+	// or a customer's `AccountStatus`, as recorded on an `AccountStateChange`.
+	ToState AccountStateName `json:"to_state"`
+}
+
+// AccountStateName A state in a restaurant's `RestaurantAccountState`, a rider's `RiderAccountStatus`
+// or a customer's `AccountStatus`, as recorded on an `AccountStateChange`.
+type AccountStateName string
+
 // AccountStatus Anything other than `ACTIVE` blocks new sessions and revokes existing ones within 10 s.
 type AccountStatus string
+
+// AccountSubjectType Whose account an account action changed: a restaurant, a rider or a customer.
+type AccountSubjectType string
 
 // AcknowledgementResponse defines model for AcknowledgementResponse.
 type AcknowledgementResponse struct {
@@ -4071,6 +4462,16 @@ type AssignmentTransitionInput struct {
 // phone OTP receives a token carrying `CUSTOMER` only.
 type AuthMethod string
 
+// BanProposal A ban waiting for a second person. Unconfirmed at `lapses_at`, it lapses and the account stays suspended.
+type BanProposal struct {
+	// LapsesAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	LapsesAt Timestamp `json:"lapses_at"`
+
+	// ProposedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	ProposedAt Timestamp          `json:"proposed_at"`
+	ProposedBy openapi_types.UUID `json:"proposed_by"`
+}
+
 // Cart C-19. The server holds the single source of truth. Money here is **indicative** and
 // exists so the badge and the floating bar can render; `createQuote` produces the only
 // binding numbers.
@@ -4242,6 +4643,28 @@ type Currency string
 
 // Cursor Opaque keyset cursor encoding the sort tuple. Not an offset.
 type Cursor = string
+
+// CustomerAccountAction The `AccountAction` values that apply to a customer.
+type CustomerAccountAction string
+
+// CustomerAccountActionInput `reason_text` stays on the audit record and the history; the customer's notice carries fixed wording.
+type CustomerAccountActionInput struct {
+	// Action The `AccountAction` values that apply to a customer.
+	Action CustomerAccountAction `json:"action"`
+
+	// ReasonCode Why an admin acted on a customer. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+	// penalty reason (`PAYMENT_FAILURE_UNRESOLVED` to `LEGAL_ORDER`, or `OTHER`).
+	// `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`, `ACTIONED_IN_ERROR` or `OTHER`.
+	// Any other pairing is a `422`.
+	ReasonCode CustomerAccountReasonCode `json:"reason_code"`
+	ReasonText string                    `json:"reason_text"`
+}
+
+// CustomerAccountReasonCode Why an admin acted on a customer. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+// penalty reason (`PAYMENT_FAILURE_UNRESOLVED` to `LEGAL_ORDER`, or `OTHER`).
+// `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`, `ACTIONED_IN_ERROR` or `OTHER`.
+// Any other pairing is a `422`.
+type CustomerAccountReasonCode string
 
 // CustomerCancellationReasonCode C-29. `OTHER` requires 5–200 characters of free text.
 type CustomerCancellationReasonCode string
@@ -4674,7 +5097,11 @@ type ErrorEnvelope struct {
 		// `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 		// `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
 		// `POD_REQUIRED` → `{required_pod_method}`;
-		// `RATE_LIMITED` → `{retry_after_seconds}`.
+		// `RATE_LIMITED` → `{retry_after_seconds}`;
+		// `ILLEGAL_STATE_TRANSITION` → `{from_state, action, allowed_actions: [AccountAction]}`;
+		// `FORBIDDEN_PERMISSION` → `{permission}`;
+		// `HALAL_CERTIFICATE_REQUIRED` → `{halal_status}` (account actions);
+		// `IN_FLIGHT_ORDERS_PRESENT` → `{order_ids: [uuid]}`.
 		Details *ErrorEnvelope_Error_Details `json:"details,omitempty"`
 
 		// Message Human-readable and log-safe. **Clients branch on `code`, never on `message`.**
@@ -4702,7 +5129,11 @@ type ErrorEnvelopeErrorDetails1 = []FieldError
 // `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 // `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
 // `POD_REQUIRED` → `{required_pod_method}`;
-// `RATE_LIMITED` → `{retry_after_seconds}`.
+// `RATE_LIMITED` → `{retry_after_seconds}`;
+// `ILLEGAL_STATE_TRANSITION` → `{from_state, action, allowed_actions: [AccountAction]}`;
+// `FORBIDDEN_PERMISSION` → `{permission}`;
+// `HALAL_CERTIFICATE_REQUIRED` → `{halal_status}` (account actions);
+// `IN_FLIGHT_ORDERS_PRESENT` → `{order_ids: [uuid]}`.
 type ErrorEnvelope_Error_Details struct {
 	union json.RawMessage
 }
@@ -6901,6 +7332,35 @@ type RefundState string
 // RemittableBy Which party remits this tax line, driven by `restaurant.tax_role`.
 type RemittableBy string
 
+// RestaurantAccountActionInput `reason_text` is the staff member's own account of why, kept on the audit record and
+// the account's history. It is never sent to the restaurant: notices carry fixed wording.
+type RestaurantAccountActionInput struct {
+	// Action The named actions that move an account's state. `suspend`, `ban`, `deactivate` and
+	// `delist` are never synonyms: suspending is a reversible penalty; a ban is permanent and
+	// needs two people (an admin or super admin proposes it, a different super admin confirms
+	// it within 7 days); deactivating is a voluntary exit at the partner's request; delisting
+	// takes a restaurant out of customer listings without a penalty. Reinstating undoes any
+	// of them. Only restaurants can be delisted, and customers cannot be deactivated here.
+	Action AccountAction `json:"action"`
+
+	// ReasonCode Why an admin acted on a restaurant. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take
+	// a penalty reason (`COMPLIANCE_THRESHOLD` to `REPEATED_VIOLATIONS`, or `OTHER`).
+	// `DELIST` takes `HALAL_CERTIFICATE_EXPIRED`, `DOCUMENT_EXPIRED`, `NO_APPROVED_MENU` or
+	// `OTHER`, and the code is added to the restaurant's delisting reasons. `DEACTIVATE`
+	// takes only `MERCHANT_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+	// `ACTIONED_IN_ERROR`, `MERCHANT_REQUEST` or `OTHER`. Any other pairing is a `422`.
+	ReasonCode RestaurantAccountReasonCode `json:"reason_code"`
+	ReasonText string                      `json:"reason_text"`
+}
+
+// RestaurantAccountReasonCode Why an admin acted on a restaurant. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take
+// a penalty reason (`COMPLIANCE_THRESHOLD` to `REPEATED_VIOLATIONS`, or `OTHER`).
+// `DELIST` takes `HALAL_CERTIFICATE_EXPIRED`, `DOCUMENT_EXPIRED`, `NO_APPROVED_MENU` or
+// `OTHER`, and the code is added to the restaurant's delisting reasons. `DEACTIVATE`
+// takes only `MERCHANT_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+// `ACTIONED_IN_ERROR`, `MERCHANT_REQUEST` or `OTHER`. Any other pairing is a `422`.
+type RestaurantAccountReasonCode string
+
 // RestaurantAccountState A-2.0. Orthogonal to onboarding. These six words mean exactly this everywhere in the
 // product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
 // `DELISTED` is the non-punitive system state (lapsed certificate, expired document, no
@@ -7395,7 +7855,32 @@ type RestaurantStaffUserInput struct {
 	FullName string              `json:"full_name"`
 }
 
+// RiderAccountAction The `AccountAction` values that apply to a rider.
+type RiderAccountAction string
+
+// RiderAccountActionInput `reason_text` stays on the audit record and the history; the rider's notice carries fixed wording.
+type RiderAccountActionInput struct {
+	// Action The `AccountAction` values that apply to a rider.
+	Action RiderAccountAction `json:"action"`
+
+	// ReasonCode Why an admin acted on a rider. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+	// penalty reason (`DOCUMENT_EXPIRED` to `LEGAL_ORDER`, or `OTHER`). `DEACTIVATE` takes
+	// only `RIDER_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+	// `ACTIONED_IN_ERROR`, `RIDER_REQUEST` or `OTHER`. Any other pairing is a `422`.
+	ReasonCode RiderAccountReasonCode `json:"reason_code"`
+	ReasonText string                 `json:"reason_text"`
+}
+
+// RiderAccountReasonCode Why an admin acted on a rider. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+// penalty reason (`DOCUMENT_EXPIRED` to `LEGAL_ORDER`, or `OTHER`). `DEACTIVATE` takes
+// only `RIDER_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+// `ACTIONED_IN_ERROR`, `RIDER_REQUEST` or `OTHER`. Any other pairing is a `422`.
+type RiderAccountReasonCode string
+
 // RiderAccountStatus Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
+// `BANNED` is permanent unless a super admin reinstates the rider; a banned rider holds
+// no rider role at sign-in. The admin actions that move this status are
+// `applyRiderAccountAction`.
 type RiderAccountStatus string
 
 // RiderApplication defines model for RiderApplication.
@@ -7559,6 +8044,9 @@ type RiderMe struct {
 	AccountId openapi_types.UUID `json:"account_id"`
 
 	// AccountStatus Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
+	// `BANNED` is permanent unless a super admin reinstates the rider; a banned rider holds
+	// no rider role at sign-in. The admin actions that move this status are
+	// `applyRiderAccountAction`.
 	AccountStatus      RiderAccountStatus  `json:"account_status"`
 	ActiveAssignmentId *openapi_types.UUID `json:"active_assignment_id,omitempty"`
 
@@ -7596,6 +8084,9 @@ type RiderOnboardingState string
 // RiderOnboardingStatus defines model for RiderOnboardingStatus.
 type RiderOnboardingStatus struct {
 	// AccountStatus Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
+	// `BANNED` is permanent unless a super admin reinstates the rider; a banned rider holds
+	// no rider role at sign-in. The admin actions that move this status are
+	// `applyRiderAccountAction`.
 	AccountStatus RiderAccountStatus `json:"account_status"`
 
 	// AttemptNumber Maximum 3 resubmissions; a fourth rejection deactivates the account.
@@ -8017,6 +8508,9 @@ type CertificateIdPath = openapi_types.UUID
 // ClientHeader defines model for ClientHeader.
 type ClientHeader = ClientSurface
 
+// CustomerAccountIdPath defines model for CustomerAccountIdPath.
+type CustomerAccountIdPath = openapi_types.UUID
+
 // DocumentIdPath defines model for DocumentIdPath.
 type DocumentIdPath = openapi_types.UUID
 
@@ -8061,6 +8555,17 @@ type ListAddressesParams struct {
 
 // CreateAddressParams defines parameters for CreateAddress.
 type CreateAddressParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ApplyCustomerAccountActionParams defines parameters for ApplyCustomerAccountAction.
+type ApplyCustomerAccountActionParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
 	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
 	// produce exactly one business effect; a replay returns the original status and body
@@ -8246,6 +8751,17 @@ type ReviewRestaurantDocumentParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// ApplyRestaurantAccountActionParams defines parameters for ApplyRestaurantAccountAction.
+type ApplyRestaurantAccountActionParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // CreateMenuCategoryOnBehalfParams defines parameters for CreateMenuCategoryOnBehalf.
 type CreateMenuCategoryOnBehalfParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
@@ -8302,6 +8818,17 @@ type DecideRiderApplicationParams struct {
 
 // ReviewRiderDocumentParams defines parameters for ReviewRiderDocument.
 type ReviewRiderDocumentParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ApplyRiderAccountActionParams defines parameters for ApplyRiderAccountAction.
+type ApplyRiderAccountActionParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
 	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
 	// produce exactly one business effect; a replay returns the original status and body
@@ -8910,6 +9437,9 @@ type CreateAddressJSONRequestBody = AddressInput
 // UpdateAddressJSONRequestBody defines body for UpdateAddress for application/json ContentType.
 type UpdateAddressJSONRequestBody = AddressUpdateInput
 
+// ApplyCustomerAccountActionJSONRequestBody defines body for ApplyCustomerAccountAction for application/json ContentType.
+type ApplyCustomerAccountActionJSONRequestBody = CustomerAccountActionInput
+
 // RecordHalalChecksJSONRequestBody defines body for RecordHalalChecks for application/json ContentType.
 type RecordHalalChecksJSONRequestBody = HalalChecksInput
 
@@ -8940,6 +9470,9 @@ type DecideRestaurantApplicationJSONRequestBody = RestaurantDecisionInput
 // ReviewRestaurantDocumentJSONRequestBody defines body for ReviewRestaurantDocument for application/json ContentType.
 type ReviewRestaurantDocumentJSONRequestBody = DocumentReviewInput
 
+// ApplyRestaurantAccountActionJSONRequestBody defines body for ApplyRestaurantAccountAction for application/json ContentType.
+type ApplyRestaurantAccountActionJSONRequestBody = RestaurantAccountActionInput
+
 // CreateMenuCategoryOnBehalfJSONRequestBody defines body for CreateMenuCategoryOnBehalf for application/json ContentType.
 type CreateMenuCategoryOnBehalfJSONRequestBody = MenuCategoryInput
 
@@ -8954,6 +9487,9 @@ type DecideRiderApplicationJSONRequestBody = RiderDecisionInput
 
 // ReviewRiderDocumentJSONRequestBody defines body for ReviewRiderDocument for application/json ContentType.
 type ReviewRiderDocumentJSONRequestBody = DocumentReviewInput
+
+// ApplyRiderAccountActionJSONRequestBody defines body for ApplyRiderAccountAction for application/json ContentType.
+type ApplyRiderAccountActionJSONRequestBody = RiderAccountActionInput
 
 // CreateStaffUserJSONRequestBody defines body for CreateStaffUser for application/json ContentType.
 type CreateStaffUserJSONRequestBody = StaffUserInput

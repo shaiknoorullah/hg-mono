@@ -1,0 +1,23 @@
+{
+  "scenario": "error_account_action_needs_two_step_sign_in",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `MFA_REQUIRED`. A session without two-step sign-in. Account actions are destructive.",
+  "operations": [
+    "applyRestaurantAccountAction",
+    "applyRiderAccountAction",
+    "applyCustomerAccountAction"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope",
+    "account-action"
+  ],
+  "payload": {
+    "error": {
+      "code": "MFA_REQUIRED",
+      "message": "Sign in with two-step sign-in to change an account's state.",
+      "request_id": "E0FQCDG3AET60SYYXK8KP0Y49M"
+    }
+  }
+}

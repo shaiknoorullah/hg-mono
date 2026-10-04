@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 358,
+  "count": 389,
   "counts_by_domain": {
-    "admin": 17,
+    "admin": 41,
     "cart": 12,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 36,
+    "errors": 43,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -21,6 +21,86 @@
     "rider": 22
   },
   "fixtures": [
+    {
+      "scenario": "customer_ban_proposed",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`PROPOSE_BAN`: `SUSPENDED` → `SUSPENDED`. A ban proposed; the customer stays suspended.",
+      "operations": [
+        "applyCustomerAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/customer_ban_proposed.json"
+    },
+    {
+      "scenario": "customer_banned",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`CONFIRM_BAN`: `SUSPENDED` → `BANNED`. Banned once no accepted order is in progress. Every session ends; any refund owed is still paid.",
+      "operations": [
+        "applyCustomerAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/customer_banned.json"
+    },
+    {
+      "scenario": "customer_reinstated",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `SUSPENDED` → `ACTIVE`. Reinstated; the customer can sign in and order again.",
+      "operations": [
+        "applyCustomerAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/customer_reinstated.json"
+    },
+    {
+      "scenario": "customer_suspended",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`SUSPEND`: `ACTIVE` → `SUSPENDED`. Suspended: the order the restaurant had not accepted is cancelled; the accepted one finishes. The customer cannot sign in until reinstated.",
+      "operations": [
+        "applyCustomerAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/customer_suspended.json"
+    },
+    {
+      "scenario": "customer_unbanned",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `BANNED` → `ACTIVE`. Only a super admin can reinstate a banned customer.",
+      "operations": [
+        "applyCustomerAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/customer_unbanned.json"
+    },
     {
       "scenario": "menu_review_queue",
       "domain": "admin",
@@ -219,6 +299,198 @@
       "file": "admin/restaurant_application_queue_empty.json"
     },
     {
+      "scenario": "restaurant_ban_proposed",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`PROPOSE_BAN`: `SUSPENDED` → `SUSPENDED`. An admin proposes a ban. The restaurant stays suspended; a different super admin must confirm within 7 days or the proposal lapses.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_ban_proposed.json"
+    },
+    {
+      "scenario": "restaurant_banned",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`CONFIRM_BAN`: `SUSPENDED` → `BANNED`. A super admin confirms the ban. Orders still being prepared are cancelled and refunded; the ready order finishes. Every session of the restaurant's staff ends.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_banned.json"
+    },
+    {
+      "scenario": "restaurant_deactivated",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`DEACTIVATE`: `LIVE` → `DEACTIVATED`. A voluntary exit, only on the restaurant's own request.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_deactivated.json"
+    },
+    {
+      "scenario": "restaurant_delisted",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`DELIST`: `LIVE` → `DELISTED`. Taken out of listings without a penalty. The menu is **not** locked, so the restaurant can get it ready to be listed again.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_delisted.json"
+    },
+    {
+      "scenario": "restaurant_reactivated",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `DEACTIVATED` → `LIVE`. A deactivated restaurant reactivated on request.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_reactivated.json"
+    },
+    {
+      "scenario": "restaurant_reinstated",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `SUSPENDED` → `LIVE`. Back to `LIVE`: the halal certificate is current and no delisting reason is left.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_reinstated.json"
+    },
+    {
+      "scenario": "restaurant_reinstated_still_delisted",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `SUSPENDED` → `DELISTED`. Reinstated, but the halal certificate lapsed meanwhile, so the restaurant returns to `DELISTED`, never `LIVE`.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_reinstated_still_delisted.json"
+    },
+    {
+      "scenario": "restaurant_relisted",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `DELISTED` → `LIVE`. A delisted restaurant relisted. Needs a current, verified halal certificate.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_relisted.json"
+    },
+    {
+      "scenario": "restaurant_suspended",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`SUSPEND`: `LIVE` → `SUSPENDED`. A live restaurant suspended. The order it had not accepted is cancelled and its authorisation released; the order being prepared and the one with a rider finish. The menu is now locked for everyone, admins included.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_suspended.json"
+    },
+    {
+      "scenario": "restaurant_suspended_from_delisted",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`SUSPEND`: `DELISTED` → `SUSPENDED`. A delisted restaurant can still be suspended. Its delisting reason is kept.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_suspended_from_delisted.json"
+    },
+    {
+      "scenario": "restaurant_suspended_halal_integrity",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`SUSPEND`: `LIVE` → `SUSPENDED`. Suspended for halal integrity: the order still being prepared is cancelled and fully refunded too, at the restaurant's cost. The order already with a rider finishes.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_suspended_halal_integrity.json"
+    },
+    {
+      "scenario": "restaurant_unbanned",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `BANNED` → `LIVE`. Only a super admin can reinstate a banned restaurant.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/restaurant_unbanned.json"
+    },
+    {
       "scenario": "rider_application_none_to_take",
       "domain": "admin",
       "schema": "RiderApplication|null",
@@ -265,6 +537,118 @@
         "review-queue"
       ],
       "file": "admin/rider_application_queue.json"
+    },
+    {
+      "scenario": "rider_ban_proposed",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`PROPOSE_BAN`: `SUSPENDED` → `SUSPENDED`. A ban proposed; the rider stays suspended until a second person decides.",
+      "operations": [
+        "applyRiderAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/rider_ban_proposed.json"
+    },
+    {
+      "scenario": "rider_banned",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`CONFIRM_BAN`: `SUSPENDED` → `BANNED`. Banned: every session ends and the rider role is no longer granted at sign-in. Earned money is still paid.",
+      "operations": [
+        "applyRiderAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/rider_banned.json"
+    },
+    {
+      "scenario": "rider_deactivated",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`DEACTIVATE`: `ACTIVE` → `DEACTIVATED`. A voluntary exit, only on the rider's own request.",
+      "operations": [
+        "applyRiderAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/rider_deactivated.json"
+    },
+    {
+      "scenario": "rider_reactivated",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `DEACTIVATED` → `ACTIVE`. A deactivated rider reactivated on request.",
+      "operations": [
+        "applyRiderAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/rider_reactivated.json"
+    },
+    {
+      "scenario": "rider_reinstated",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `SUSPENDED` → `ACTIVE`. Reinstated; the rider is told they can go online again.",
+      "operations": [
+        "applyRiderAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/rider_reinstated.json"
+    },
+    {
+      "scenario": "rider_suspended_mid_delivery",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`SUSPEND`: `ACTIVE` → `SUSPENDED`. Suspended mid-delivery: the waiting offer is withdrawn and no new ones come; the current delivery finishes, is paid, and the rider goes offline afterwards.",
+      "operations": [
+        "applyRiderAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/rider_suspended_mid_delivery.json"
+    },
+    {
+      "scenario": "rider_unbanned",
+      "domain": "admin",
+      "schema": "AccountStateChange",
+      "describes": "`REINSTATE`: `BANNED` → `ACTIVE`. Only a super admin can reinstate a banned rider.",
+      "operations": [
+        "applyRiderAccountAction"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "account-action",
+        "state-matrix"
+      ],
+      "file": "admin/rider_unbanned.json"
     },
     {
       "scenario": "staff_list",
@@ -1906,6 +2290,74 @@
       "file": "documents/stored_object_rejected.json"
     },
     {
+      "scenario": "error_account_action_ban_needs_second_person",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `SELF_APPROVAL_FORBIDDEN`. The person who proposed a ban tried to confirm it.",
+      "operations": [
+        "applyRestaurantAccountAction",
+        "applyRiderAccountAction",
+        "applyCustomerAccountAction"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "account-action"
+      ],
+      "file": "errors/error_account_action_ban_needs_second_person.json"
+    },
+    {
+      "scenario": "error_account_action_illegal",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ILLEGAL_STATE_TRANSITION`. An action that is not legal from the current state, naming the state and the actions that are. Also returned for confirming a ban nobody proposed, or one that lapsed.",
+      "operations": [
+        "applyRestaurantAccountAction",
+        "applyRiderAccountAction",
+        "applyCustomerAccountAction"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "account-action"
+      ],
+      "file": "errors/error_account_action_illegal.json"
+    },
+    {
+      "scenario": "error_account_action_needs_two_step_sign_in",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MFA_REQUIRED`. A session without two-step sign-in. Account actions are destructive.",
+      "operations": [
+        "applyRestaurantAccountAction",
+        "applyRiderAccountAction",
+        "applyCustomerAccountAction"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "account-action"
+      ],
+      "file": "errors/error_account_action_needs_two_step_sign_in.json"
+    },
+    {
+      "scenario": "error_account_action_super_admin_only",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `FORBIDDEN_PERMISSION`. An admin confirming a ban, or reinstating a banned account. `details.permission` names what is missing.",
+      "operations": [
+        "applyRestaurantAccountAction",
+        "applyRiderAccountAction",
+        "applyCustomerAccountAction"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "account-action"
+      ],
+      "file": "errors/error_account_action_super_admin_only.json"
+    },
+    {
       "scenario": "error_active_order_exists",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2009,6 +2461,21 @@
         "error-envelope"
       ],
       "file": "errors/error_current_password_incorrect.json"
+    },
+    {
+      "scenario": "error_customer_ban_orders_in_progress",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `IN_FLIGHT_ORDERS_PRESENT`. Confirming a customer's ban while a restaurant is preparing their order.",
+      "operations": [
+        "applyCustomerAccountAction"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "account-action"
+      ],
+      "file": "errors/error_customer_ban_orders_in_progress.json"
     },
     {
       "scenario": "error_documents_incomplete",
@@ -2272,6 +2739,37 @@
         "error-envelope"
       ],
       "file": "errors/error_rate_limited.json"
+    },
+    {
+      "scenario": "error_reinstate_precondition_not_met",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `PRECONDITION_NOT_MET`. Reinstating a partner who never finished onboarding.",
+      "operations": [
+        "applyRestaurantAccountAction",
+        "applyRiderAccountAction"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "account-action"
+      ],
+      "file": "errors/error_reinstate_precondition_not_met.json"
+    },
+    {
+      "scenario": "error_relist_needs_halal_certificate",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `HALAL_CERTIFICATE_REQUIRED`. Relisting a delisted restaurant whose certificate expired. Verify a renewed certificate first.",
+      "operations": [
+        "applyRestaurantAccountAction"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "account-action"
+      ],
+      "file": "errors/error_relist_needs_halal_certificate.json"
     },
     {
       "scenario": "error_reset_token_not_valid",
@@ -5455,6 +5953,52 @@
     "addCartLine": [
       "cart_single_line"
     ],
+    "applyCustomerAccountAction": [
+      "customer_ban_proposed",
+      "customer_banned",
+      "customer_reinstated",
+      "customer_suspended",
+      "customer_unbanned",
+      "error_account_action_ban_needs_second_person",
+      "error_account_action_illegal",
+      "error_account_action_needs_two_step_sign_in",
+      "error_account_action_super_admin_only",
+      "error_customer_ban_orders_in_progress"
+    ],
+    "applyRestaurantAccountAction": [
+      "error_account_action_ban_needs_second_person",
+      "error_account_action_illegal",
+      "error_account_action_needs_two_step_sign_in",
+      "error_account_action_super_admin_only",
+      "error_reinstate_precondition_not_met",
+      "error_relist_needs_halal_certificate",
+      "restaurant_ban_proposed",
+      "restaurant_banned",
+      "restaurant_deactivated",
+      "restaurant_delisted",
+      "restaurant_reactivated",
+      "restaurant_reinstated",
+      "restaurant_reinstated_still_delisted",
+      "restaurant_relisted",
+      "restaurant_suspended",
+      "restaurant_suspended_from_delisted",
+      "restaurant_suspended_halal_integrity",
+      "restaurant_unbanned"
+    ],
+    "applyRiderAccountAction": [
+      "error_account_action_ban_needs_second_person",
+      "error_account_action_illegal",
+      "error_account_action_needs_two_step_sign_in",
+      "error_account_action_super_admin_only",
+      "error_reinstate_precondition_not_met",
+      "rider_ban_proposed",
+      "rider_banned",
+      "rider_deactivated",
+      "rider_reactivated",
+      "rider_reinstated",
+      "rider_suspended_mid_delivery",
+      "rider_unbanned"
+    ],
     "attachRestaurantDocument": [
       "document_approved",
       "document_expired",
@@ -6277,6 +6821,9 @@
     "acceptOffer": "assignment_assigned",
     "acceptOrder": "restaurant_order_preparing",
     "addCartLine": "cart_single_line",
+    "applyCustomerAccountAction": "customer_ban_proposed",
+    "applyRestaurantAccountAction": "restaurant_ban_proposed",
+    "applyRiderAccountAction": "rider_ban_proposed",
     "attachRestaurantDocument": "document_submitted",
     "bindPackageSeal": "seal_bound",
     "cancelOrder": "order_cancelled",

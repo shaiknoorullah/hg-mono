@@ -5177,6 +5177,248 @@ paths:
           $ref: '#/components/responses/Error'
         default:
           $ref: '#/components/responses/Error'
+  /v1/admin/restaurants/{restaurantId}/account-actions:
+    post:
+      operationId: applyRestaurantAccountAction
+      tags: [admin]
+      summary: Suspend, reinstate, delist, deactivate or ban a restaurant
+      description: |
+        Moves a restaurant's `account_state` by one named action, per the
+        [restaurant account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist).
+        The state change, its audit record, the history row and the notices to the
+        restaurant's owners and managers commit in one transaction.
+
+        | Action | From | To | Who |
+        |---|---|---|---|
+        | `SUSPEND` | `LIVE`, `DELISTED` | `SUSPENDED` | admin, super admin |
+        | `DELIST` | `LIVE` | `DELISTED` | admin, super admin |
+        | `PROPOSE_BAN` | `LIVE`, `DELISTED`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+        | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+        | `DEACTIVATE` | `LIVE`, `DELISTED` | `DEACTIVATED` | admin, super admin, only with `MERCHANT_REQUEST` |
+        | `REINSTATE` | `SUSPENDED`, `DEACTIVATED`, `DELISTED` | `LIVE`, or `DELISTED` (below) | admin, super admin |
+        | `REINSTATE` | `BANNED` | `LIVE`, or `DELISTED` (below) | super admin only |
+
+        **Reinstating needs a current halal certificate.** A restaurant goes `LIVE` only with
+        an admin-verified certificate that has not expired. Relisting a `DELISTED` restaurant
+        without one is `409 HALAL_CERTIFICATE_REQUIRED`. Reinstating a suspended,
+        deactivated or banned restaurant whose certificate lapsed, or which still has a
+        delisting reason, returns it to `DELISTED`, never `LIVE`.
+
+        **Orders already in progress.** Orders not yet accepted (`CREATED`, `AUTHORIZED`,
+        `RESTAURANT_PENDING`) are cancelled and their payment authorisation released on
+        `SUSPEND`, `DELIST`, `PROPOSE_BAN`, `DEACTIVATE` and `CONFIRM_BAN`. Accepted orders
+        finish, except: a confirmed ban, or a suspension for `HALAL_INTEGRITY` or
+        `FOOD_SAFETY_RISK`, also cancels and fully refunds orders still `PREPARING`. Orders
+        that are ready or with a rider finish. Every order touched is listed in `in_flight`.
+
+        **Menu.** A `SUSPENDED` or `BANNED` restaurant's menu is locked for everyone, admins
+        included; a `DELISTED` one is not
+        ([menu lock](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+        `menu_locked` in the response says which applies.
+
+        **A ban** revokes every session of the restaurant's staff, and their restaurant roles
+        stop being granted at sign-in. Payouts to a suspended or banned restaurant are held.
+
+        A retry with the same `Idempotency-Key` returns the first result with
+        `Idempotency-Replayed: true` and changes nothing.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V0
+      x-rate-class: MONEY
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestaurantAccountActionInput'
+      responses:
+        '200':
+          description: The action is applied, or a retry returned the first result.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AccountStateChange'
+        '403':
+          description: |
+            `FORBIDDEN_PERMISSION` (an admin confirming a ban or reinstating a banned
+            restaurant: `details.permission` names the permission), `SELF_APPROVAL_FORBIDDEN`
+            (confirming your own ban proposal), `MFA_REQUIRED` (a session without two-step
+            sign-in).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          description: |
+            `ILLEGAL_STATE_TRANSITION` (`details.from_state`, `details.action`,
+            `details.allowed_actions`), `HALAL_CERTIFICATE_REQUIRED`, `PRECONDITION_NOT_MET`,
+            `IDEMPOTENCY_KEY_REUSE`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/admin/riders/{riderAccountId}/account-actions:
+    post:
+      operationId: applyRiderAccountAction
+      tags: [admin]
+      summary: Suspend, reinstate, deactivate or ban a rider
+      description: |
+        Moves a rider's `account_status` by one named action, per the
+        [rider account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-27--rider-account-state-actions).
+        The state change, its audit record, the history row and the notice to the rider
+        commit in one transaction.
+
+        | Action | From | To | Who |
+        |---|---|---|---|
+        | `SUSPEND` | `ACTIVE` | `SUSPENDED` | admin, super admin |
+        | `PROPOSE_BAN` | `ACTIVE`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+        | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+        | `DEACTIVATE` | `ACTIVE`, `SUSPENDED` | `DEACTIVATED` | admin, super admin, only with `RIDER_REQUEST` |
+        | `REINSTATE` | `SUSPENDED`, `DEACTIVATED` | `ACTIVE` | admin, super admin |
+        | `REINSTATE` | `BANNED` | `ACTIVE` | super admin only |
+
+        **New offers stop at once; the current delivery finishes.** Offers waiting for the
+        rider are withdrawn and no new ones are made. A rider who is online and idle goes
+        offline; a rider on a delivery finishes it, is paid for it, and goes offline
+        afterwards
+        ([rider suspended mid-delivery](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+        `in_flight` lists the withdrawn offers and the delivery that continues. Reinstating
+        needs a rider whose onboarding finished (`PRECONDITION_NOT_MET` otherwise) and sends
+        the rider a notice that they can go online again
+        ([reinstatement notice](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+
+        **A ban** revokes every session of the rider's account, and the rider role stops being
+        granted at sign-in. Earned money is paid; payouts to a banned rider are held.
+
+        A retry with the same `Idempotency-Key` returns the first result with
+        `Idempotency-Replayed: true` and changes nothing.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/RiderAccountIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiderAccountActionInput'
+      responses:
+        '200':
+          description: The action is applied, or a retry returned the first result.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AccountStateChange'
+        '403':
+          description: '`FORBIDDEN_PERMISSION`, `SELF_APPROVAL_FORBIDDEN`, `MFA_REQUIRED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          description: '`ILLEGAL_STATE_TRANSITION`, `PRECONDITION_NOT_MET`, `IDEMPOTENCY_KEY_REUSE`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/admin/customers/{customerAccountId}/account-actions:
+    post:
+      operationId: applyCustomerAccountAction
+      tags: [admin]
+      summary: Suspend, reinstate or ban a customer
+      description: |
+        Moves a customer's account `status` by one named action, per the
+        [customer account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-28--customer-account-state-actions).
+        The state change, its audit record, the history row and the notice to the customer
+        commit in one transaction.
+
+        | Action | From | To | Who |
+        |---|---|---|---|
+        | `SUSPEND` | `ACTIVE` | `SUSPENDED` | admin, super admin |
+        | `PROPOSE_BAN` | `ACTIVE`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+        | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+        | `REINSTATE` | `SUSPENDED` | `ACTIVE` | admin, super admin |
+        | `REINSTATE` | `BANNED` | `ACTIVE` | super admin only |
+
+        One person has one account, so the status is the person's: a suspended or banned
+        customer cannot sign in for any role, and their access tokens stop working within
+        10 seconds. Staff accounts are not changed here (`FORBIDDEN_PERMISSION`), and nobody
+        can act on their own account.
+
+        **Orders already in progress.** Orders not yet accepted by the restaurant are
+        cancelled and their payment authorisation released; accepted orders finish. A ban is
+        refused with `409 IN_FLIGHT_ORDERS_PRESENT`, naming the orders, while an accepted order
+        is still in progress. **A ban** also revokes every session.
+
+        A retry with the same `Idempotency-Key` returns the first result with
+        `Idempotency-Replayed: true` and changes nothing.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V0
+      x-rate-class: MONEY
+      parameters:
+        - $ref: '#/components/parameters/CustomerAccountIdPath'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerAccountActionInput'
+      responses:
+        '200':
+          description: The action is applied, or a retry returned the first result.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AccountStateChange'
+        '403':
+          description: '`FORBIDDEN_PERMISSION`, `SELF_APPROVAL_FORBIDDEN`, `MFA_REQUIRED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          description: '`ILLEGAL_STATE_TRANSITION`, `IN_FLIGHT_ORDERS_PRESENT` (`details.order_ids`), `IDEMPOTENCY_KEY_REUSE`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
   /v1/admin/restaurants/{restaurantId}/menu/categories:
     post:
       operationId: createMenuCategoryOnBehalf
@@ -6037,6 +6279,13 @@ components:
       schema:
         type: string
         format: uuid
+    CustomerAccountIdPath:
+      name: customerAccountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     Error:
       description: |
@@ -6197,7 +6446,11 @@ components:
                 `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                 `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
                 `POD_REQUIRED` → `{required_pod_method}`;
-                `RATE_LIMITED` → `{retry_after_seconds}`.
+                `RATE_LIMITED` → `{retry_after_seconds}`;
+                `ILLEGAL_STATE_TRANSITION` → `{from_state, action, allowed_actions: [AccountAction]}`;
+                `FORBIDDEN_PERMISSION` → `{permission}`;
+                `HALAL_CERTIFICATE_REQUIRED` → `{halal_status}` (account actions);
+                `IN_FLIGHT_ORDERS_PRESENT` → `{order_ids: [uuid]}`.
               oneOf:
                 - type: object
                   additionalProperties: true
@@ -6403,6 +6656,7 @@ components:
         - CASE_REQUIRED
         - ETA_EXTENSION_LIMIT
         - FORBIDDEN_PERMISSION
+        - IN_FLIGHT_ORDERS_PRESENT
     Role:
       type: string
       description: |
@@ -6724,8 +6978,12 @@ components:
         - ACTIVE
     RiderAccountStatus:
       type: string
-      enum: [PENDING, ACTIVE, SUSPENDED, DEACTIVATED]
-      description: 'Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.'
+      enum: [PENDING, ACTIVE, SUSPENDED, DEACTIVATED, BANNED]
+      description: |
+        Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
+        `BANNED` is permanent unless a super admin reinstates the rider; a banned rider holds
+        no rider role at sign-in. The admin actions that move this status are
+        `applyRiderAccountAction`.
     VehicleType:
       type: string
       enum: [CAR, SCOOTER, MOTORCYCLE, BICYCLE, ON_FOOT]
@@ -11288,6 +11546,261 @@ components:
           description: 'Required for `REQUEST_CHANGES`: names exactly which documents to redo.'
           items:
             $ref: '#/components/schemas/RestaurantDocType'
+    AccountSubjectType:
+      type: string
+      description: 'Whose account an account action changed: a restaurant, a rider or a customer.'
+      enum: [RESTAURANT, RIDER, CUSTOMER]
+    AccountAction:
+      type: string
+      description: |
+        The named actions that move an account's state. `suspend`, `ban`, `deactivate` and
+        `delist` are never synonyms: suspending is a reversible penalty; a ban is permanent and
+        needs two people (an admin or super admin proposes it, a different super admin confirms
+        it within 7 days); deactivating is a voluntary exit at the partner's request; delisting
+        takes a restaurant out of customer listings without a penalty. Reinstating undoes any
+        of them. Only restaurants can be delisted, and customers cannot be deactivated here.
+      enum: [SUSPEND, REINSTATE, DELIST, PROPOSE_BAN, CONFIRM_BAN, DEACTIVATE]
+    RiderAccountAction:
+      type: string
+      description: 'The `AccountAction` values that apply to a rider.'
+      enum: [SUSPEND, REINSTATE, PROPOSE_BAN, CONFIRM_BAN, DEACTIVATE]
+    CustomerAccountAction:
+      type: string
+      description: 'The `AccountAction` values that apply to a customer.'
+      enum: [SUSPEND, REINSTATE, PROPOSE_BAN, CONFIRM_BAN]
+    AccountStateName:
+      type: string
+      description: |
+        A state in a restaurant's `RestaurantAccountState`, a rider's `RiderAccountStatus`
+        or a customer's `AccountStatus`, as recorded on an `AccountStateChange`.
+      enum: [PENDING, LIVE, DELISTED, SUSPENDED, BANNED, DEACTIVATED, CLOSED, ACTIVE, DELETED]
+    RestaurantAccountReasonCode:
+      type: string
+      description: |
+        Why an admin acted on a restaurant. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take
+        a penalty reason (`COMPLIANCE_THRESHOLD` to `REPEATED_VIOLATIONS`, or `OTHER`).
+        `DELIST` takes `HALAL_CERTIFICATE_EXPIRED`, `DOCUMENT_EXPIRED`, `NO_APPROVED_MENU` or
+        `OTHER`, and the code is added to the restaurant's delisting reasons. `DEACTIVATE`
+        takes only `MERCHANT_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+        `ACTIONED_IN_ERROR`, `MERCHANT_REQUEST` or `OTHER`. Any other pairing is a `422`.
+      enum:
+        - COMPLIANCE_THRESHOLD
+        - HALAL_INTEGRITY
+        - FOOD_SAFETY_RISK
+        - FRAUD_SUSPECTED
+        - PAYMENT_OR_SETTLEMENT_ISSUE
+        - ABUSIVE_CONDUCT
+        - LEGAL_ORDER
+        - REPEATED_VIOLATIONS
+        - HALAL_CERTIFICATE_EXPIRED
+        - DOCUMENT_EXPIRED
+        - NO_APPROVED_MENU
+        - MERCHANT_REQUEST
+        - ISSUE_RESOLVED
+        - APPEAL_UPHELD
+        - ACTIONED_IN_ERROR
+        - OTHER
+    RiderAccountReasonCode:
+      type: string
+      description: |
+        Why an admin acted on a rider. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+        penalty reason (`DOCUMENT_EXPIRED` to `LEGAL_ORDER`, or `OTHER`). `DEACTIVATE` takes
+        only `RIDER_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+        `ACTIONED_IN_ERROR`, `RIDER_REQUEST` or `OTHER`. Any other pairing is a `422`.
+      enum:
+        - DOCUMENT_EXPIRED
+        - INCIDENT_UNDER_INVESTIGATION
+        - SAFETY_RISK
+        - FRAUD_SUSPECTED
+        - REPEATED_CANCELLATIONS
+        - ABUSIVE_CONDUCT
+        - LOW_PERFORMANCE
+        - ACCOUNT_SHARING
+        - LEGAL_ORDER
+        - RIDER_REQUEST
+        - ISSUE_RESOLVED
+        - APPEAL_UPHELD
+        - ACTIONED_IN_ERROR
+        - OTHER
+    CustomerAccountReasonCode:
+      type: string
+      description: |
+        Why an admin acted on a customer. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+        penalty reason (`PAYMENT_FAILURE_UNRESOLVED` to `LEGAL_ORDER`, or `OTHER`).
+        `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`, `ACTIONED_IN_ERROR` or `OTHER`.
+        Any other pairing is a `422`.
+      enum:
+        - PAYMENT_FAILURE_UNRESOLVED
+        - REFUND_ABUSE
+        - FRAUDULENT_CHARGEBACK
+        - ABUSIVE_CONDUCT_TO_RIDER
+        - ABUSIVE_CONDUCT_TO_RESTAURANT
+        - FAKE_REVIEWS
+        - ACCOUNT_TAKEOVER_RISK
+        - PROMOTION_ABUSE
+        - LEGAL_ORDER
+        - ISSUE_RESOLVED
+        - APPEAL_UPHELD
+        - ACTIONED_IN_ERROR
+        - OTHER
+    RestaurantAccountActionInput:
+      type: object
+      additionalProperties: false
+      required: [action, reason_code, reason_text]
+      description: |
+        `reason_text` is the staff member's own account of why, kept on the audit record and
+        the account's history. It is never sent to the restaurant: notices carry fixed wording.
+      properties:
+        action:
+          $ref: '#/components/schemas/AccountAction'
+        reason_code:
+          $ref: '#/components/schemas/RestaurantAccountReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+    RiderAccountActionInput:
+      type: object
+      additionalProperties: false
+      required: [action, reason_code, reason_text]
+      description: '`reason_text` stays on the audit record and the history; the rider''s notice carries fixed wording.'
+      properties:
+        action:
+          $ref: '#/components/schemas/RiderAccountAction'
+        reason_code:
+          $ref: '#/components/schemas/RiderAccountReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+    CustomerAccountActionInput:
+      type: object
+      additionalProperties: false
+      required: [action, reason_code, reason_text]
+      description: '`reason_text` stays on the audit record and the history; the customer''s notice carries fixed wording.'
+      properties:
+        action:
+          $ref: '#/components/schemas/CustomerAccountAction'
+        reason_code:
+          $ref: '#/components/schemas/CustomerAccountReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+    BanProposal:
+      type: object
+      additionalProperties: false
+      required: [proposed_by, proposed_at, lapses_at]
+      description: 'A ban waiting for a second person. Unconfirmed at `lapses_at`, it lapses and the account stays suspended.'
+      properties:
+        proposed_by:
+          type: string
+          format: uuid
+        proposed_at:
+          $ref: '#/components/schemas/Timestamp'
+        lapses_at:
+          $ref: '#/components/schemas/Timestamp'
+    AccountActionInFlight:
+      type: object
+      additionalProperties: false
+      required: [cancelled_order_ids, refunded_order_ids, continuing_order_ids, withdrawn_offer_ids]
+      description: |
+        What the action did to work already in progress, recorded with the history row so it
+        can be reconstructed later. A refunded order is also in `cancelled_order_ids`.
+      properties:
+        cancelled_order_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        refunded_order_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        continuing_order_ids:
+          type: array
+          description: 'Orders, or for a rider the delivery, left to finish normally.'
+          items:
+            type: string
+            format: uuid
+        withdrawn_offer_ids:
+          type: array
+          description: 'Delivery offers withdrawn from a rider. Always empty for restaurants and customers.'
+          items:
+            type: string
+            format: uuid
+    AccountStateChange:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - subject_type
+        - subject_id
+        - action
+        - from_state
+        - to_state
+        - reason_code
+        - reason_text
+        - actor_account_id
+        - ban_proposal
+        - delist_reasons
+        - menu_locked
+        - sessions_revoked
+        - in_flight
+        - created_at
+      description: |
+        One applied account action: the history row an admin action writes. `reason_code` is
+        a `RestaurantAccountReasonCode`, `RiderAccountReasonCode` or
+        `CustomerAccountReasonCode`, following `subject_type`.
+      properties:
+        id:
+          type: string
+          format: uuid
+        subject_type:
+          $ref: '#/components/schemas/AccountSubjectType'
+        subject_id:
+          type: string
+          format: uuid
+          description: 'The restaurant id, or the rider''s or customer''s account id.'
+        action:
+          $ref: '#/components/schemas/AccountAction'
+        from_state:
+          $ref: '#/components/schemas/AccountStateName'
+        to_state:
+          $ref: '#/components/schemas/AccountStateName'
+        reason_code:
+          type: string
+          pattern: '^[A-Z][A-Z_]*$'
+        reason_text:
+          type: string
+        actor_account_id:
+          type: string
+          format: uuid
+        ban_proposal:
+          description: 'Set after `PROPOSE_BAN`; null once the ban is confirmed or for any other action.'
+          oneOf:
+            - $ref: '#/components/schemas/BanProposal'
+            - type: 'null'
+        delist_reasons:
+          type: array
+          description: 'A restaurant''s delisting reasons after the action. Always empty for riders and customers.'
+          items:
+            type: string
+        menu_locked:
+          type: [boolean, 'null']
+          description: |
+            For a restaurant, whether its menu is now locked for everyone, admins included
+            (`SUSPENDED` or `BANNED`). Null for riders and customers.
+        sessions_revoked:
+          type: integer
+          format: int32
+          minimum: 0
+          description: 'How many sign-in sessions the action ended. Only a confirmed ban ends sessions.'
+        in_flight:
+          $ref: '#/components/schemas/AccountActionInFlight'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
     DocumentReviewInput:
       type: object
       additionalProperties: false
