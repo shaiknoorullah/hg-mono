@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { AppShell, Icon, SideNav, cx, type IconName, type SideNavItem } from '@hg/ui-web';
+import { AppShell, Icon, SideNav, Wordmark, cx, type IconName, type SideNavItem } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
 import { IconMenuBook, IconWallet, IconUsers, IconSettings, IconLogout } from '../lib/icons';
 
@@ -73,14 +73,9 @@ export function Shell() {
               groups={[{ key: 'main', items }]}
               activeKey={activeKey}
               header={
-                <div className="flex items-center gap-2 px-1 py-1">
-                  <div className="grid size-9 place-items-center rounded-md bg-action-primary-bg text-action-primary-fg shadow-e1">
-                    <Icon name="check" weight="bold" size={18} />
-                  </div>
-                  <div>
-                    <p className="text-label-lg font-extrabold leading-tight text-fg-primary">HalalGoes</p>
-                    <p className="text-label-sm text-fg-tertiary">for restaurants</p>
-                  </div>
+                <div className="flex flex-col items-start gap-0.5 px-1 py-1">
+                  <Wordmark height={34} />
+                  <p className="text-label-sm text-fg-tertiary">for restaurants</p>
                 </div>
               }
               footer={

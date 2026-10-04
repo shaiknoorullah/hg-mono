@@ -1,0 +1,236 @@
+{
+  "scenario": "restaurant_application_approved",
+  "domain": "admin",
+  "schema": "RestaurantApplication",
+  "describes": "`decideRestaurantApplication` with `restaurant_decision_input_approve`: approved and moved to `PAYOUT_PENDING`. **Approval does not make the restaurant live**: `account_state` stays `PENDING` until payouts are enabled and a menu is approved.",
+  "operations": [
+    "decideRestaurantApplication",
+    "getRestaurantApplication"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "restaurant"
+  ],
+  "payload": {
+    "restaurant_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+    "display_name": "Al-Noor Shawarma House",
+    "city": "Scarborough",
+    "province": "ON",
+    "onboarding_state": "PAYOUT_PENDING",
+    "submission_count": 1,
+    "assigned_admin_id": "138fa339-791b-4547-ae91-5fb049a39a3c",
+    "review_lock_expires_at": null,
+    "submitted_at": "2026-08-04T18:42:11.412Z",
+    "sla_due_at": "2026-08-10T18:32:11.412Z",
+    "profile": {
+      "id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+      "legal_name": "Al-Noor Shawarma House Inc.",
+      "display_name": "Al-Noor Shawarma House",
+      "description": "Charcoal-grilled, hand-cut and cooked to order. Halal certified.",
+      "owner_first_name": "Owner First Name",
+      "owner_last_name": "Owner Last Name",
+      "phone_e164": "+14165558084",
+      "public_phone_e164": "+14165559983",
+      "gst_hst_number": "812345678RT0001",
+      "address": {
+        "line1": "275 Bank Street",
+        "line2": null,
+        "city": "Kitchener",
+        "province": "ON",
+        "postal_code": "K2P 1X7",
+        "latitude": 43.6199,
+        "longitude": -79.6212
+      },
+      "timezone": "America/Toronto",
+      "cuisine_ids": [
+        "8970c0cd-71b0-4085-acb9-7a18754f4c6b",
+        "1664a28a-3e2e-4ed7-a69a-338214d9bc06"
+      ],
+      "avg_prep_minutes": 46,
+      "delivery_radius_m": 11,
+      "account_state": "PENDING",
+      "onboarding_state": "PAYOUT_PENDING",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-08"
+      },
+      "commission_rate_bps": 0
+    },
+    "documents": [
+      {
+        "id": "80a1acb2-d219-4ace-a089-20cdd4b8adc0",
+        "subject_type": "RESTAURANT",
+        "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+        "doc_type": "BUSINESS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "1d3cccab-74e4-4d1f-a3ec-fea31dd6e81b",
+        "subject_type": "RESTAURANT",
+        "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+        "doc_type": "HALAL_CERTIFICATE",
+        "state": "APPROVED",
+        "issuer": "Halal Monitoring Authority (HMA Canada)",
+        "certificate_number": "HMA-ON-40182",
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "5a48b374-2fec-43a2-aac5-56dab6327900",
+        "subject_type": "RESTAURANT",
+        "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+        "doc_type": "FOOD_SAFETY",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "4484574d-edb5-40ec-a960-d761d06be7f1",
+        "subject_type": "RESTAURANT",
+        "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+        "doc_type": "OWNER_ID",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "ea792b6b-6410-4515-a289-a5f9bd73d176",
+        "subject_type": "RESTAURANT",
+        "subject_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+        "doc_type": "LIABILITY_INSURANCE",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      }
+    ],
+    "halal_certificate": {
+      "id": "d0f9addb-e1ea-4033-adee-54218d471aae",
+      "restaurant_id": "8a817ba1-35a1-4fa7-af04-5bcb3c6ffe41",
+      "document_id": "753d3907-f232-4185-a164-39cb79a9261c",
+      "certificate_number": "HMA-ON-41596",
+      "issuing_body": {
+        "id": "26484eaa-64d5-4ac4-a09d-64c9e4c6a417",
+        "name": "Halal Munchies Scarborough",
+        "aliases": [
+          "Aliases",
+          "Aliases"
+        ],
+        "country": "Country",
+        "region": "ca-central-1",
+        "website": "https://cdn.halalgoes.ca/img/asset/5dabf2de.webp",
+        "accreditation_ref": "Accreditation Ref",
+        "requires_issuer_confirmation": true,
+        "status": "ACCEPTED",
+        "notes": "Notes"
+      },
+      "certified_legal_name": "Karachi Kitchen Inc.",
+      "certified_address": "1245 Danforth Avenue, Toronto, ON M4J 1M4",
+      "scope": "WHOLE_ESTABLISHMENT",
+      "issued_on": "2026-03-09",
+      "expires_on": "2027-03-09",
+      "status": "APPROVED",
+      "checklist_version": 1,
+      "checks": [
+        {
+          "check_key": "H1_LEGIBLE_COMPLETE",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": false,
+          "note": null,
+          "checked_at": "2026-03-11T18:42:11.412Z"
+        },
+        {
+          "check_key": "H2_ISSUER_ACCEPTED",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": false,
+          "note": null,
+          "checked_at": "2026-03-11T18:42:11.412Z"
+        },
+        {
+          "check_key": "H3_NAME_MATCH",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": false,
+          "note": null,
+          "checked_at": "2026-03-11T18:42:11.412Z"
+        },
+        {
+          "check_key": "H4_ADDRESS_MATCH",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": false,
+          "note": null,
+          "checked_at": "2026-03-11T18:42:11.412Z"
+        },
+        {
+          "check_key": "H5_DATES_VALID",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": false,
+          "note": null,
+          "checked_at": "2026-03-11T18:42:11.412Z"
+        },
+        {
+          "check_key": "H6_SCOPE_SUFFICIENT",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": false,
+          "note": null,
+          "checked_at": "2026-03-11T18:42:11.412Z"
+        },
+        {
+          "check_key": "H7_UNIQUE_NOT_REUSED",
+          "result": "PASS",
+          "computed_result": "PASS",
+          "overridable": false,
+          "note": null,
+          "checked_at": "2026-03-11T18:42:11.412Z"
+        }
+      ],
+      "rejection_reason_code": null,
+      "rejection_reason_text": null,
+      "verified_by": "138fa339-791b-4547-ae91-5fb049a39a3c",
+      "verified_at": "2026-03-11T18:42:11.412Z"
+    },
+    "blockers": [],
+    "address_pin_warning": null
+  }
+}
