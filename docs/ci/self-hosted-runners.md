@@ -49,9 +49,10 @@ Jobs that hold a secret or a write token never run on our machines.
 
 | Workflow | On `HG_RUNS_ON` (read-only token, no secrets) | Always on GitHub's runners, and why |
 |---|---|---|
-| [`ci`](../../.github/workflows/ci.yml) | `changes`, `contract-kit`, `js`, `go`, `coverage`, `gate` | `coverage-comment`, `coverage-baseline`, `coverage-issues`: write tokens. The `gate` for an untrusted PR, which only fails |
+| [`ci`](../../.github/workflows/ci.yml) | `changes`, `contract-kit`, `js`, `go`, `coverage`, `gate` | `coverage-comment`, `coverage-baseline`, `coverage-issues`: write tokens |
 | [`docs`](../../.github/workflows/docs.yml) | `doc and PR checks` | `labels` and `weekly`: write tokens |
 | [`migrations`](../../.github/workflows/migrations.yml) | `schema` | |
+| any of the above, for an untrusted run | | `gate`, `doc and PR checks` and `schema` run only their first step, which fails (see below) |
 | [`release-builds`](../../.github/workflows/release-builds.yml) | | every job: the release signing secrets never reach our machines |
 | [`Claude Code`](../../.github/workflows/claude.yml), [`Claude Code Review`](../../.github/workflows/claude-code-review.yml) | | they need the Claude token |
 
@@ -62,18 +63,38 @@ the `gate` does not wait for them.
 
 ## Who can run CI
 
-A job runs on a pull request only when both hold, and is skipped otherwise:
+A run is trusted when all of these are in the repository variable `HG_CI_TRUSTED_ACTORS` (a JSON
+list, default `["shaiknoorullah"]`; the owner and the owner's agents act as that account):
 
-- the PR's branch is in this repository, not a fork, and
-- the person who triggered it is in the repository variable `HG_CI_TRUSTED_ACTORS`, a JSON list
-  that defaults to `["shaiknoorullah"]`. The owner and the owner's agents push as that account.
+- `github.actor`, who caused the event (pushed, edited, labelled, merged, ran the workflow);
+- `github.triggering_actor`, who started this attempt (differs on a re-run);
+- for a pull request, its author, and its branch must be in this repository, not a fork.
 
-For any other PR, `ci`'s `gate` fails with a message saying so, rather than passing with every
-job skipped. Pushes to `main`, the weekly schedule and manual runs are not PRs and always run.
+Nothing else counts: not the branch name, the title, or a label. A label (`claude-review`) or an
+`@claude` mention is only a trigger; the person behind it must still be trusted. Scheduled runs
+use `main`'s code and are always trusted.
+
+An untrusted run never reaches our runners. The jobs that check code (`changes`, `contract-kit`,
+`js`, `go`, `coverage`) are skipped. The jobs a PR shows as its result, `gate`, `doc and PR
+checks` and `schema`, run on GitHub's runners instead, check out nothing, and fail at their first
+step with a message saying why. So an untrusted PR is red, never green with every check skipped.
 
 ```bash
 gh variable set HG_CI_TRUSTED_ACTORS --body '["shaiknoorullah","someone-else"]'
 ```
+
+The coverage baseline PR is opened by `github-actions[bot]`, so its checks fail as untrusted. Read
+its one-line diff and merge it by hand.
+
+### What happens when
+
+| Case | Expected result |
+|---|---|
+| The owner pushes to a branch of this repository with an open PR the owner opened | every check whose paths changed runs on `HG_RUNS_ON`; `gate` and `doc and PR checks` pass or fail on the results |
+| A PR from a fork | does not run at all while "Run workflows from fork pull requests" is off (it is, and must stay off). If it were on: nothing is checked out on our runners, the code-checking jobs are skipped, and `gate`, `doc and PR checks` and `schema` fail on GitHub's runners |
+| The owner re-runs a run that an untrusted person started, or pushes to an untrusted person's PR | still untrusted (the original actor, or the PR's author, is not in the list): fails as above. To run CI on that code, the owner opens a PR of their own from it |
+| Someone outside the list adds a label (any label, `claude-review` included) to the owner's PR | `docs` runs for the label event and `doc and PR checks` fails as untrusted, until a trusted event (a push, an edit, a label by the owner) runs it again; the Claude review does not run. `ci` does not react to labels, so `gate` keeps its result |
+| Someone outside the list comments `@claude` | the Claude job is skipped; nothing runs |
 
 ## Add a runner
 
@@ -128,8 +149,10 @@ that:
 
 - `runs-on` is the switch above, unless the job needs a secret or a write token: then
   `ubuntu-latest`, with no checkout of repository code if it holds a write token.
-- Every job that can run on our runners carries the trust check from "Who can run CI" in its `if:`.
-  Never use `pull_request_target`.
+- Every job that can run on our runners carries the trust check from "Who can run CI" in its `if:`,
+  or, if it reports a PR's result, picks GitHub's runners for an untrusted run and fails at its
+  first step. Never use `pull_request_target` or `workflow_run` to run PR code.
+- No `${{ }}` of PR or event fields inside `run:`: pass them through `env:`.
 - `permissions:` read-only (`contents: read`, plus `issues: read` or `pull-requests: read` where a
   check reads them). No `secrets.` in a job on `HG_RUNS_ON`.
 - Every job has `timeout-minutes`.

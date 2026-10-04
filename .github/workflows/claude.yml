@@ -15,11 +15,14 @@ on:
 
 jobs:
   claude:
+    # An @claude mention is the trigger, never the authorisation: the commenter (and whoever
+    # re-runs it) must be in HG_CI_TRUSTED_ACTORS. GitHub's runners only, never ours.
     if: |
+      contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor) && (
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

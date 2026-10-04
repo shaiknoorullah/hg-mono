@@ -10,9 +10,14 @@ on:
 
 jobs:
   claude-review:
+    # The label is the trigger, never the authorisation: whoever added it (and whoever re-runs
+    # it) and the PR's author must all be in HG_CI_TRUSTED_ACTORS, on a branch of this repo.
     if: >-
       github.event.label.name == 'claude-review' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+      contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor) &&
+      contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login)
     # Job-level, so a run for some other label (whose job is skipped) never cancels a review.
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}

@@ -43,9 +43,12 @@ jobs:
   # What changed. Each check below runs only when a path it checks changed, or this file did.
   changes:
     if: >-
-      github.event_name != 'pull_request' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-       contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor))
+      (github.event_name == 'schedule' ||
+       (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+      (github.event_name != 'pull_request' ||
+       (github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login)))
     runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 5
     permissions:
@@ -100,9 +103,13 @@ jobs:
     if: >-
       (github.event_name == 'pull_request' || github.event_name == 'push') &&
       needs.changes.outputs.js == 'true' &&
-      (github.event_name != 'pull_request' ||
-       (github.event.pull_request.head.repo.full_name == github.repository &&
-        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor)))
+      (
+       (github.event_name == 'schedule' ||
+        (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+       (github.event_name != 'pull_request' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
     runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 20
     steps:
@@ -197,9 +204,13 @@ jobs:
     if: >-
       (github.event_name == 'pull_request' || github.event_name == 'push') &&
       needs.changes.outputs.js == 'true' &&
-      (github.event_name != 'pull_request' ||
-       (github.event.pull_request.head.repo.full_name == github.repository &&
-        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor)))
+      (
+       (github.event_name == 'schedule' ||
+        (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+       (github.event_name != 'pull_request' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
     runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 30
     steps:
@@ -232,9 +243,13 @@ jobs:
     if: >-
       (github.event_name == 'pull_request' || github.event_name == 'push') &&
       needs.changes.outputs.go == 'true' &&
-      (github.event_name != 'pull_request' ||
-       (github.event.pull_request.head.repo.full_name == github.repository &&
-        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor)))
+      (
+       (github.event_name == 'schedule' ||
+        (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+       (github.event_name != 'pull_request' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
     runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 30
     env:
@@ -272,9 +287,13 @@ jobs:
     if: >-
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
        needs.changes.outputs.coverage == 'true') &&
-      (github.event_name != 'pull_request' ||
-       (github.event.pull_request.head.repo.full_name == github.repository &&
-        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor)))
+      (
+       (github.event_name == 'schedule' ||
+        (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+       (github.event_name != 'pull_request' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
     runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 30
     permissions:
@@ -497,17 +516,29 @@ jobs:
           done
 
   # --------------------------------------------------------------------------------- gate
+  # The one check to require. It always runs, and passes only when the run is trusted AND every
+  # job above passed or was skipped because nothing it checks changed. An untrusted PR (every job
+  # above skipped by its trust check) runs this on GitHub's runners, where it fails.
   gate:
     name: gate
     needs: [changes, contracts, js, go, coverage]
-    if: >-
-      always() && (github.event_name == 'pull_request' || github.event_name == 'push') &&
-      (github.event_name != 'pull_request' ||
-       (github.event.pull_request.head.repo.full_name == github.repository &&
-        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor)))
-    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    if: always() && (github.event_name == 'pull_request' || github.event_name == 'push')
+    runs-on: ${{ ((github.event_name == 'schedule' || (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login)))) && fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') || 'ubuntu-latest' }}
     timeout-minutes: 5
+    permissions: {}
     steps:
+      # Every run starts here. An untrusted run (see "Who can run CI" in
+      # docs/ci/self-hosted-runners.md) runs on GitHub's runners, checks out nothing and fails.
+      - name: trusted author, actor and branch
+        id: trust
+        env:
+          TRUSTED: ${{ (github.event_name == 'schedule' || (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))) }}
+        run: |
+          if [ "$TRUSTED" != true ]; then
+            echo "::error::Not run: CI runs only for this repository's branches, when the PR's author, the actor and whoever re-ran it are all in the HG_CI_TRUSTED_ACTORS repository variable (docs/ci/self-hosted-runners.md)."
+            exit 1
+          fi
+
       - name: results
         env:
           CHANGES: ${{ needs.changes.result }}
@@ -518,25 +549,13 @@ jobs:
         run: |
           printf '%-14s %s\n' changes "$CHANGES" contract-kit "$CONTRACTS" js "$JS" go "$GO" coverage "$COVERAGE"
           echo "skipped = nothing that job checks changed"
-      - name: every check passed or was skipped
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
-        run: |
-          echo "::error::a check failed or was cancelled; see its job above"
-          exit 1
-
-  # A PR from a fork or from an author outside HG_CI_TRUSTED_ACTORS runs nothing on our
-  # runners. This job takes the gate's name so such a PR fails the gate instead of passing it
-  # with every job skipped. It runs no code and holds no token.
-  untrusted:
-    name: gate
-    if: >-
-      github.event_name == 'pull_request' &&
-      !(github.event.pull_request.head.repo.full_name == github.repository &&
-        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor))
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions: {}
-    steps:
-      - run: |
-          echo "::error::CI does not run PRs from forks or from authors outside the HG_CI_TRUSTED_ACTORS repository variable (docs/ci/self-hosted-runners.md). A maintainer can push the branch to this repository to run it."
-          exit 1
+          if [ "$CHANGES" != success ]; then
+            echo "::error::the changes job did not succeed, so the checks were not decided"
+            exit 1
+          fi
+          for r in "$CONTRACTS" "$JS" "$GO" "$COVERAGE"; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::a check failed or was cancelled; see its job above"; exit 1 ;;
+            esac
+          done

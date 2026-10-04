@@ -27,12 +27,9 @@ defaults:
 
 jobs:
   schema:
-    # Trusted PRs only: this repo's branches, pushed by someone in HG_CI_TRUSTED_ACTORS.
-    if: >-
-      github.event_name != 'pull_request' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-       contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor))
-    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    # Trusted runs go to HG_RUNS_ON. Anything else goes to GitHub's runners, where the first step
+    # fails and nothing is checked out.
+    runs-on: ${{ ((github.event_name == 'schedule' || (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login)))) && fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') || 'ubuntu-latest' }}
     timeout-minutes: 20
 
     services:
@@ -55,6 +52,19 @@ jobs:
       HG_CI_JOB: ${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
 
     steps:
+      # Every run starts here. An untrusted run (see "Who can run CI" in
+      # docs/ci/self-hosted-runners.md) runs on GitHub's runners, checks out nothing and fails.
+      - name: trusted author, actor and branch
+        id: trust
+        env:
+          TRUSTED: ${{ (github.event_name == 'schedule' || (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))) }}
+        working-directory: .
+        run: |
+          if [ "$TRUSTED" != true ]; then
+            echo "::error::Not run: CI runs only for this repository's branches, when the PR's author, the actor and whoever re-ran it are all in the HG_CI_TRUSTED_ACTORS repository variable (docs/ci/self-hosted-runners.md)."
+            exit 1
+          fi
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           clean: true
