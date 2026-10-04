@@ -103,9 +103,9 @@ edit a menu while orders are in flight" — see R-15.
 |---|---|---|---|---|
 | `PENDING` | system on signup | no | n/a | yes |
 | `ACTIVE` | admin approval + payout account ready | yes (subject to hours/toggle) | continue | yes |
-| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours; the menu is locked ([a suspended restaurant's menu](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours; the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | `REJECTED` | admin at onboarding review | no | n/a | yes, to re-submit documents |
-| `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no |
+| `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no; the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | `CLOSED` | restaurant self-service offboarding | no | continue to completion | yes for 90 days |
 
 Full transition and in-flight-order semantics are specified in **R-36**.
@@ -969,11 +969,11 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   content lives on a version and, when changed, is reviewed by an admin before it reaches customers
   (R-17). Customers always read the item's `live_version_id`; the restaurant reads live + pending.
 
-  **Editing the menu while orders are in flight is always allowed.** Order lines snapshot
+  **Orders in flight never block a menu edit.** Order lines snapshot
   `item_version_id`, `name_snapshot` and `unit_price_cents` at order creation (§1.2), so no menu edit
   can retroactively change what a customer bought, what the restaurant must cook, or what either
-  party pays. There is no menu lock, no "orders in flight" guard, and no version pinning beyond the
-  snapshot.
+  party pays. There is no "orders in flight" guard and no version pinning beyond the snapshot. Only the
+  account state locks the menu: nobody edits it while the restaurant is suspended or banned ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 - **Data**:
   ```
@@ -1094,7 +1094,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   | From | To | Trigger |
   |---|---|---|
   | — | `PENDING_REVIEW` | restaurant saves a reviewed field; no drafts at launch ([menu drafts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
-  | — | `APPROVED` | an admin creates the item on the restaurant's behalf; the creator is the reviewer ([menu approval](../decisions/README.md#settled--reconciliations)) |
+  | — | `APPROVED` | an admin creates the item on the restaurant's behalf; the creator is the reviewer ([menu approval](../decisions/README.md#settled--reconciliations)). Never while the restaurant is suspended or banned ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
   | `PENDING_REVIEW` | `APPROVED` | admin approves |
   | `PENDING_REVIEW` | `REJECTED` | admin rejects with a reason code |
   | `PENDING_REVIEW` | `WITHDRAWN` | restaurant saves again (creates a newer pending version) or cancels |
@@ -2297,7 +2297,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      to open and reply to tickets (specifically to appeal, R-33 category
      `ACCOUNT_SUSPENSION_APPEAL`). It cannot accept orders. It may still edit its opening hours,
      which become read-only once it is deactivated ([opening hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
-     It cannot change its menu until the suspension is lifted ([a suspended restaurant's menu](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+     Nobody can change its menu until the suspension is lifted, admins acting on its behalf included;
+     the same holds while it is banned. The lock follows the account state: a restaurant that is
+     delisted rather than suspended can still edit its menu ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   5. Funds accrued before suspension are preserved; payouts pause (R-32) and resume on reinstatement.
      Offboarding (`CLOSED`) triggers a final payout after the last order's hold period elapses.
   6. Reinstatement from an automatic suspension is automatic when the cause clears **and** no manual

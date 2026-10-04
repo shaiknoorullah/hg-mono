@@ -134,6 +134,8 @@ services:
       HG_MINIO_USE_SSL: "false"
       HG_MINIO_REGION: {{ hg_silo_region }}
       HG_MINIO_PUBLIC_BASE_URL: https://{{ hg_dev_hosts.files }}
+      # Traefik reaches the dev API over {{ hg_networks.dev_edge.name }}: trust forwarded client addresses from there only.
+      HG_TRUSTED_PROXY_CIDRS: {{ hg_networks.dev_edge.subnet }}
       GOMEMLIMIT: 256MiB
     depends_on:
       postgres: {condition: service_healthy}

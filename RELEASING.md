@@ -74,6 +74,10 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
    self-declared halal (default hide), O-04 refund liability.
 6. **Production hosting** — one Contabo server ([the owner's decision](https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570)) + domain/DNS + TLS for Traefik. Set the server up with one command: [deploy/host](deploy/host/README.md), "Day 1".
+7. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
+   (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
+   address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
+   Never `0.0.0.0/0` (refused at boot).
 
 ## 4. Deploy the stack (on your host)
 

@@ -416,7 +416,7 @@ func (r *Router) Handle(method, path string, p Policy, h Handler)
   |---|---|---|---|
   | 1 | `RequestID` | read/generate `X-Request-ID` (ULID), put in ctx + response header | — |
   | 2 | `Recover` | catch panics, log with stack, alert | 500 `internal_error` |
-  | 3 | `RealIP` | trust `X-Forwarded-For` **only** from Traefik's IP | — |
+  | 3 | `RealIP` | trust `X-Forwarded-For` **only** from Traefik's IP: when the peer is in `HG_TRUSTED_PROXY_CIDRS` (required outside `HG_ENV=local`, where an empty list would give every caller Traefik's address; `/0` refused at boot), the client is the right-most address in the header that is not a trusted proxy; otherwise the peer, and the header is ignored. Every reader of the client address uses this one result. A per-IP rate limit counts an IPv4 caller by address and an IPv6 caller by its /64 (a subscriber can send from any address in its /64), and a request with no resolved address in one shared bucket, never unlimited; logs and audit rows keep the exact address | — |
   | 4 | `AccessLog` | structured log, PII-redacted, sampled for 2xx reads | — |
   | 5 | `Timeout` | ctx deadline by `Class` (READ 5 s, WRITE 15 s, MONEY 20 s, UPLOAD 60 s) | 503 `timeout` |
   | 6 | `BodyLimit` | `Policy.MaxBody` (default 1 MiB, AUTH 16 KiB) | 413 `payload_too_large` |
@@ -2749,7 +2749,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | Reconciliation | daily 03:00 ET | Stripe balance transactions vs ledger |
   | Payout run | per schedule | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances |
   | Expiry sweeps | hourly | quotes, tickets, OTP challenges, certificates, unconfirmed uploads |
-  | Partition maintenance | daily | create/drop `realtime_event`, `rider_position_history`, `audit_event` partitions |
+  | Partition maintenance | at start-up, then hourly | create `realtime_event`, `rider_position_history`, `audit_event` partitions ahead of the clock, drop the expired ones (`audit_event` never), and alert on any row in a `*_default` partition |
   | Audit chain verification | daily | `verify_audit_chain(yesterday)` |
 
   Every loop exposes `hg_worker_lag_seconds`, `hg_worker_claimed_total`, `hg_worker_failed_total` and a per-loop health entry in `GET /internal/health`. `GET /health` (liveness) and `GET /health/ready` (readiness: Postgres, Redis, Silo, Stripe reachable) exist from day one — the old Dockerfile probed a `/health` that did not exist, so every container was permanently unhealthy (B104).

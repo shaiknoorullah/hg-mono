@@ -70,7 +70,7 @@ This playbook provisions the server; the production compose override ([#208][i20
 | A `hg_monitor` role in `pg_monitor`, with `hg_monitor_postgres_password` from `host.sops.yaml` ([#215][i215]) | postgres-exporter's login |
 | A read-only Silo account for backups, in `hg_backup_silo_*` ([#203][i203]) | the bucket backups' login |
 | Project name `hg`, so Postgres is `hg-postgres-1`; Silo's service `minio` (or change `hg_silo_endpoint`) | the scripts address them by name |
-| `.env` comes from `prod.sops.env` (see Secrets); compose files and `acme.json` live in `/srv/hg` | the config backup covers that folder |
+| `.env` comes from `prod.sops.env` (see Secrets), with `HG_TRUSTED_PROXY_CIDRS=172.30.0.0/24`; compose files and `acme.json` live in `/srv/hg` | `hg-net`'s subnet is fixed here, so Traefik's address is known; the config backup covers that folder |
 
 ## Secrets
 
