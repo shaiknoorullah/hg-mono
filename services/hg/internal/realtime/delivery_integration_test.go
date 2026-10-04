@@ -283,22 +283,34 @@ func TestIntegrationOrderChannelIsForParticipantsOnly(t *testing.T) {
 		{"the restaurant's staff", a.staffID, []string{"RESTAURANT_STAFF"}, SubAllowed, ViewRestaurant},
 		{"the assigned rider", a.riderID, []string{"RIDER"}, SubAllowed, ViewRider},
 		{"support", stranger, []string{"SUPPORT_AGENT"}, SubAllowed, ViewSupport},
+		// Several roles: the ONE relationship that authorised the subscription,
+		// never support's fuller view because the account also holds it.
+		{"the customer, who is also support", a.customerID, []string{"CUSTOMER", "SUPPORT_AGENT"}, SubAllowed, ViewCustomer},
+		{"the staff member, who is also an admin", a.staffID, []string{"RESTAURANT_STAFF", "ADMIN"}, SubAllowed, ViewRestaurant},
+		{"the rider, who is also support", a.riderID, []string{"RIDER", "SUPPORT_AGENT"}, SubAllowed, ViewRider},
 		// Not found, never forbidden: a stranger must not learn the order exists.
-		{"another order's customer", b.customerID, []string{"CUSTOMER"}, SubNotFound, 0},
-		{"another restaurant's staff", b.staffID, []string{"RESTAURANT_STAFF"}, SubNotFound, 0},
-		{"another order's rider", b.riderID, []string{"RIDER"}, SubNotFound, 0},
-		{"a stranger", stranger, []string{"CUSTOMER", "RIDER"}, SubNotFound, 0},
+		{"another order's customer", b.customerID, []string{"CUSTOMER"}, SubNotFound, ViewNone},
+		{"another restaurant's staff", b.staffID, []string{"RESTAURANT_STAFF"}, SubNotFound, ViewNone},
+		{"another order's rider", b.riderID, []string{"RIDER"}, SubNotFound, ViewNone},
+		{"a stranger", stranger, []string{"CUSTOMER", "RIDER"}, SubNotFound, ViewNone},
+		{"a stranger with no role", stranger, nil, SubNotFound, ViewNone},
+		{"a stranger with an unknown role", stranger, []string{"WIZARD"}, SubNotFound, ViewNone},
 	}
 	for _, c := range cases {
-		res, err := store.AuthorizeSubscribe(ctx, c.acct, c.roles, ch)
-		if err != nil || res != c.want {
-			t.Errorf("%s: AuthorizeSubscribe = %v (err %v), want %v", c.who, res, err, c.want)
+		g, err := store.AuthorizeSubscribe(ctx, c.acct, c.roles, ch)
+		if err != nil || g.Result != c.want || g.Viewer != c.view {
+			t.Errorf("%s: AuthorizeSubscribe = %+v (err %v), want %v as %s", c.who, g, err, c.want, c.view)
 		}
-		if c.want == SubAllowed && c.view != ViewSupport {
-			if v, err := store.OrderViewer(ctx, c.acct, a.orderID); err != nil || v != c.view {
-				t.Errorf("%s: OrderViewer = %v (err %v), want %v", c.who, v, err, c.view)
-			}
-		}
+	}
+
+	// The rider's own channel is the rider's, as a rider: an account without
+	// the RIDER role is not granted it.
+	riderCh, _ := ParseChannel(RiderChannel(a.riderID))
+	if g, err := store.AuthorizeSubscribe(ctx, a.riderID, []string{"RIDER"}, riderCh); err != nil || g.Viewer != ViewRiderSelf {
+		t.Errorf("rider on own channel = %+v (err %v), want rider_self", g, err)
+	}
+	if g, err := store.AuthorizeSubscribe(ctx, a.riderID, []string{"CUSTOMER"}, riderCh); err != nil || g.Result != SubNotFound {
+		t.Errorf("a non-rider on rider:{self} = %+v (err %v), want not found", g, err)
 	}
 }
 
@@ -328,6 +340,93 @@ func TestIntegrationACustomerNeverReceivesAnotherCustomersOrder(t *testing.T) {
 	}
 	if e, ok := bob.next(300 * time.Millisecond); ok {
 		t.Fatalf("bob received %s on %s: a customer must never receive another customer's order", e.Type, e.Channel)
+	}
+}
+
+func TestIntegrationAnUnknownRoleReceivesNothing(t *testing.T) {
+	pool := testPool(t)
+	gw := testGateway(pool)
+	a := seedRealtimeOrder(t, pool)
+	ch := OrderChannel(a.orderID)
+
+	customer := newTestClient(t, gw, a.customerID, []string{"CUSTOMER"})
+	if e := customer.subscribe(t, ch); e.Type != CtrlSubscribed {
+		t.Fatalf("customer subscribe: %s %s", e.Type, e.Data)
+	}
+	// Subscriptions whose role is missing or outside the closed set. The
+	// subscribe path never records one (it refuses a grant without a known
+	// role); these are planted directly, as a bug elsewhere might.
+	var strays []*testClient
+	for _, v := range []Viewer{ViewNone, Viewer(99), Viewer(-3)} {
+		tc := newTestClient(t, gw, a.customerID, []string{"CUSTOMER"})
+		tc.c.mu.Lock()
+		tc.c.subs[ch] = v
+		tc.c.mu.Unlock()
+		gw.indexSubscribe(tc.c, ch)
+		strays = append(strays, tc)
+	}
+
+	emitAndFanOut(t, pool, gw, a.orderID,
+		stateChanged(a.orderID, contract.OrderStateARRIVED),
+		OrderNoteAdded{OrderID: a.orderID, AuthorKind: contract.OrderActorKindSUPPORT, Text: "Call on arrival", At: At(time.Now())},
+	)
+	if got := customer.until(t, "order.state_changed"); got[len(got)-1].Channel != ch {
+		t.Fatalf("customer's event on the wrong channel")
+	}
+	for i, tc := range strays {
+		if e, ok := tc.next(300 * time.Millisecond); ok {
+			t.Errorf("a subscription with an unknown role (%d) received %s %s", i, e.Type, e.Data)
+		}
+	}
+}
+
+func TestIntegrationSeveralRolesAreProjectedForTheOneThatAuthorised(t *testing.T) {
+	pool := testPool(t)
+	gw := testGateway(pool)
+	a := seedRealtimeOrder(t, pool)
+	ch := OrderChannel(a.orderID)
+
+	// The order's customer also holds SUPPORT_AGENT. On their own order they
+	// are its customer: support's fuller view is not theirs here.
+	both := newTestClient(t, gw, a.customerID, []string{"CUSTOMER", "SUPPORT_AGENT"})
+	if e := both.subscribe(t, ch); e.Type != CtrlSubscribed {
+		t.Fatalf("subscribe: %s %s", e.Type, e.Data)
+	}
+	if v, _ := both.c.viewerFor(ch); v != ViewCustomer {
+		t.Fatalf("the subscription was granted as %s, want customer", v)
+	}
+
+	// order.note_added goes to the restaurant, the rider and support — not the
+	// customer — and rider.location is precise for support, coarse for a
+	// customer before pickup.
+	emitAndFanOut(t, pool, gw, a.orderID,
+		OrderNoteAdded{OrderID: a.orderID, AuthorKind: contract.OrderActorKindSUPPORT, Text: "Internal note", At: At(time.Now())},
+	)
+	ctx := context.Background()
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accuracy := 4.0
+	if _, err := EmitRiderLocation(ctx, tx, RiderLocation{
+		OrderID: a.orderID, Lat: 43.6532157, Lng: -79.3831846, AccuracyM: &accuracy, RecordedAt: At(time.Now()),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	fanOutPending(t, pool, gw, ch)
+	emitAndFanOut(t, pool, gw, a.orderID, stateChanged(a.orderID, contract.OrderStateARRIVED))
+
+	got := both.until(t, "order.state_changed")
+	if want := []string{"rider.location", "order.state_changed"}; !slices.Equal(typesOf(got), want) {
+		t.Errorf("a customer who is also support received %v, want %v", typesOf(got), want)
+	}
+	for _, e := range got {
+		if e.Type == "rider.location" && !strings.Contains(string(e.Data), `"accuracy_m":null`) {
+			t.Errorf("a customer who is also support got support's precise position before pickup: %s", e.Data)
+		}
 	}
 }
 

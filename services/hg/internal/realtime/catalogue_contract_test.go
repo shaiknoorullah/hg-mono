@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// These tests hold the Go catalogue (events.go, catalogue.go, schema.go) to the
+// These tests hold the Go catalogue (events.go, wire.go, catalogue.go, schema.go) to the
 // contract it implements, so neither can drift without a failing test
 // (https://github.com/shaiknoorullah/hg-mono/issues/247):
 //
@@ -324,7 +324,7 @@ func TestCatalogueAudiencesMatchContract(t *testing.T) {
 		}
 		if strings.Contains(aud, "rider") {
 			if s.kind == KindRider {
-				want[ViewSelf] = true
+				want[ViewRiderSelf] = true
 			} else {
 				want[ViewRider] = true
 			}
@@ -333,25 +333,32 @@ func TestCatalogueAudiencesMatchContract(t *testing.T) {
 			want[ViewSupport] = true
 		}
 		if aud == "self" {
-			want[ViewSelf] = true
+			want[ViewAccountOwner] = true
 		}
 		if _, ok := audienceExceptions[ev.typ]; ok {
 			continue
 		}
 		for v := range want {
-			if _, ok := s.views[v]; !ok {
-				t.Errorf("%s: the contract's audience %q includes viewer %d, which has no serializer", ev.typ, ev.audience, v)
+			if _, ok := allowList[v][ev.typ]; !ok {
+				t.Errorf("%s: the contract's audience %q includes %s, whose allow-list has no serializer for it", ev.typ, ev.audience, v)
 			}
 		}
-		for v := range s.views {
-			if !want[v] && v != ViewSupport {
-				t.Errorf("%s: viewer %d has a serializer but is not in the contract's audience %q", ev.typ, v, ev.audience)
+		for v, serializers := range allowList {
+			if _, ok := serializers[ev.typ]; ok && !want[v] && v != ViewSupport {
+				t.Errorf("%s: %s has a serializer but is not in the contract's audience %q", ev.typ, v, ev.audience)
 			}
+		}
+		// Support sees the order, restaurant, rider and admin channels; the
+		// account channel is its owner's alone.
+		if _, ok := allowList[ViewSupport][ev.typ]; ok && s.kind == KindAccount {
+			t.Errorf("%s: support has a serializer for an account-channel event", ev.typ)
 		}
 	}
 	// A client secret is a token: only the paying customer receives it.
-	if _, ok := byType["payment.action_required"].views[ViewSupport]; ok {
-		t.Error("payment.action_required must not reach support: it carries a client secret")
+	for v, serializers := range allowList {
+		if _, ok := serializers["payment.action_required"]; ok && v != ViewCustomer {
+			t.Errorf("payment.action_required must reach only the customer; %s has a serializer: it carries a client secret", v)
+		}
 	}
 }
 
@@ -459,20 +466,34 @@ func schemaHasField(s map[string]any, names []string) (string, bool) {
 }
 
 func TestNoHandoverCodeReachesARider(t *testing.T) {
+	riderRoles := []Viewer{ViewRider, ViewRiderSelf}
 	for _, s := range catalogue {
-		_, toRider := s.views[ViewRider]
-		if s.kind == KindRider {
-			toRider = true
+		toRider := s.kind == KindOrder || s.kind == KindRider
+		for _, v := range riderRoles {
+			if _, ok := allowList[v][s.typ]; ok {
+				toRider = true
+			}
 		}
-		if !toRider && s.kind != KindOrder {
+		if !toRider {
 			continue
 		}
 		if name, ok := schemaHasField(schemaFor(s.wire), handoverCodeFields); ok {
 			t.Errorf("%s carries %s, and reaches a rider or order:{id}", s.typ, name)
 		}
-		// The role types the serializers return must not carry one either.
+		// Nor may the source a rider's serializer reads hold one: a code that
+		// is never stored on these channels cannot be sent on them.
 		if name, ok := schemaHasField(schemaFor(s.source), handoverCodeFields); ok {
 			t.Errorf("%s stores %s in a payload a rider's serializer reads", s.typ, name)
+		}
+	}
+	// Every type a rider's serializer can return, too.
+	for _, v := range riderRoles {
+		for typ, p := range allowList[v] {
+			for _, out := range p.outs {
+				if name, ok := schemaHasField(schemaFor(out), handoverCodeFields); ok {
+					t.Errorf("the %s serializer for %s returns %s, which carries %s", v, typ, out, name)
+				}
+			}
 		}
 	}
 }

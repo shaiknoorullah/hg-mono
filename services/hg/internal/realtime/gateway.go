@@ -178,16 +178,19 @@ func (g *Gateway) dispatch(redisChannel string, payload []byte) {
 	}
 	g.mu.RUnlock()
 
-	// Each subscriber gets the §5 projection for its viewer relation, and only if
-	// it is in the event's audience. A principal can never receive an event for a
-	// channel it is not subscribed to (index gate) nor one it is not an audience
-	// of (audience gate).
+	// Each subscriber gets the per-role projection (contracts/websocket.md
+	// section 5) for the one role its subscription was granted as, and only if
+	// that role's allow-list has a serializer for the event (projection.go). A
+	// principal can never receive an event for a channel it is not subscribed
+	// to (index gate) nor one its role may not see (allow-list gate); anything
+	// the projection cannot place is dropped and logged, never forwarded as
+	// stored.
 	for _, c := range targets {
 		viewer, ok := c.viewerFor(channel)
 		if !ok {
 			continue
 		}
-		projected, deliver := Project(env.Type, viewer, msg.Audience, env.Data)
+		projected, deliver := c.project(channel, env.Type, viewer, msg.Audience, env.Data)
 		if !deliver {
 			continue
 		}

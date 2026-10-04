@@ -316,7 +316,8 @@ func emitOrderCancelled(ctx context.Context, tx pgx.Tx, f transitionFacts, o ord
 
 // emitOfferEnded takes a cancelled offer off the restaurant's tablets. Only the
 // system (the 180-second deadline, a failed payment) and the customer can
-// cancel an order the restaurant has not answered (machine.go, T8/T9), so the
+// cancel an order the restaurant has not answered (the RESTAURANT_PENDING to
+// CANCELLED row of the transition table in machine/machine.go), so the
 // three reasons below are every way here; any other reason is not one the
 // contract's closed sets can name, and no event is sent for it.
 func emitOfferEnded(ctx context.Context, tx pgx.Tx, f transitionFacts, o orderFacts) error {

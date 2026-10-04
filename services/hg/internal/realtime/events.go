@@ -9,22 +9,20 @@ import (
 )
 
 // This file is the event catalogue of contracts/websocket.md, section 4 ("Event
-// catalogue"), as Go types: one struct per event type, with exactly the
-// contract's field names. A producer (the orders, dispatch and catalog modules)
-// builds one of these inside the transaction that changes the state, and Emit
-// writes it to the transactional outbox (emit.go).
+// catalogue"), as the records producers emit: one struct per event type. A
+// producer (the orders, dispatch and catalog modules) builds one of these
+// inside the transaction that changes the state, and Emit writes it to the
+// transactional outbox (emit.go).
 //
 // What a producer builds is the event's SOURCE record. It is what
-// realtime_event.payload stores, and it is never sent as is: at send time the
-// gateway runs the one serializer registered for (event, viewer role) in
-// catalogue.go, which builds the payload that role may see (contracts/websocket.md
-// section 5, "Per-role projection rules"). For most events every role sees the
-// same contract payload, so the source is that payload; where roles differ, the
-// source carries what the fullest audience sees, and the narrower roles get
-// their own types in which a withheld field is the Withheld type and cannot
-// hold a value.
+// realtime_event.payload stores, and it is never sent. At send time the
+// gateway runs the one serializer the allow-list in catalogue.go names for
+// (role, event type), which builds that role's payload, a separate wire type
+// in wire.go, field by field (contracts/websocket.md section 5, "Per-role
+// projection rules"). A field added here reaches no one until a serializer
+// names it.
 //
-// The schema GET /v1/realtime/schema serves is generated from these types
+// The schema GET /v1/realtime/schema serves is generated from the wire types
 // (schema.go), and catalogue_contract_test.go checks every field name against
 // the tables in contracts/websocket.md and every enum against
 // contracts/openapi.yaml, so a rename on either side fails the build.
@@ -73,8 +71,8 @@ func (ts *Timestamp) UnmarshalJSON(b []byte) error {
 
 // Withheld is a field a role's serializer may not fill (contracts/websocket.md
 // section 5). It has no value to set and always encodes as JSON null, so a
-// withheld field cannot leak by a forgotten branch: the role's type has nowhere
-// to put the value.
+// withheld field cannot leak by a forgotten branch: the role's wire type
+// (wire.go) has nowhere to put the value.
 type Withheld struct{}
 
 // MarshalJSON always writes null.
@@ -381,7 +379,7 @@ type RestaurantStatusChanged struct {
 	IsAcceptingOrders bool                         `json:"is_accepting_orders"`
 	OpenState         contract.RestaurantOpenState `json:"open_state"`
 	Reason            *string                      `json:"reason"`
-	ChangedBy         *string                      `json:"changed_by"`
+	ChangedBy         string                       `json:"changed_by"`
 }
 
 // RestaurantPayoutUpdated is restaurant.payout_updated.
@@ -414,7 +412,7 @@ type DispatchOffer struct {
 	Pickup           OfferPickup  `json:"pickup"`
 	Dropoff          OfferDropoff `json:"dropoff"`
 	DistanceM        int          `json:"distance_m"`
-	EstDurationS     *int         `json:"est_duration_s"`
+	EstDurationS     int          `json:"est_duration_s"`
 	EarningsCents    int64        `json:"earnings_cents"`
 	TipCentsEstimate int64        `json:"tip_cents_estimate"`
 	ItemsCount       int          `json:"items_count"`
@@ -430,9 +428,9 @@ type OfferPickup struct {
 
 // OfferDropoff is the drop-off area only: no street number, no unit.
 type OfferDropoff struct {
-	Area string   `json:"area"`
-	Lat  *float64 `json:"lat"`
-	Lng  *float64 `json:"lng"`
+	Area string  `json:"area"`
+	Lat  float64 `json:"lat"`
+	Lng  float64 `json:"lng"`
 }
 
 // DispatchOfferWithdrawn is dispatch.offer_withdrawn.
@@ -472,8 +470,8 @@ type DispatchStateChanged struct {
 }
 
 // RiderLocation is rider.location's source. PickedUp is not on the wire: it
-// tells the customer's serializer whether the precise position may be shown
-// yet (the customer never sees the rider's exact pre-pickup position).
+// picks the customer's serializer, precise or coarse (the customer never sees
+// the rider's exact pre-pickup position; catalogue.go).
 type RiderLocation struct {
 	OrderID    string    `json:"order_id"`
 	Lat        float64   `json:"lat"`
@@ -483,17 +481,6 @@ type RiderLocation struct {
 	AccuracyM  *float64  `json:"accuracy_m"`
 	RecordedAt Timestamp `json:"recorded_at"`
 	PickedUp   bool      `json:"source_picked_up"`
-}
-
-// riderLocationWire is rider.location as the contract defines it.
-type riderLocationWire struct {
-	OrderID    string    `json:"order_id"`
-	Lat        float64   `json:"lat"`
-	Lng        float64   `json:"lng"`
-	HeadingDeg *float64  `json:"heading_deg"`
-	SpeedMps   *float64  `json:"speed_mps"`
-	AccuracyM  *float64  `json:"accuracy_m"`
-	RecordedAt Timestamp `json:"recorded_at"`
 }
 
 // RiderAvailabilityChanged is rider.availability_changed.

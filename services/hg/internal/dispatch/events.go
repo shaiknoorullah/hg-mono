@@ -79,7 +79,13 @@ WHERE o.id = $1`, in.OfferID).Scan(
 		}
 		ev.ExpiresAt = realtime.At(expires)
 		ev.ServerTime = realtime.At(serverTime)
-		ev.EstDurationS = est
+		// The wave stores its estimate; an offer without one gets the same
+		// distance-based estimate the wave would have made.
+		if est != nil {
+			ev.EstDurationS = *est
+		} else {
+			ev.EstDurationS = etaSeconds(float64(ev.DistanceM))
+		}
 		if err := realtime.EmitRider(ctx, tx, in.RiderAccountID, ev); err != nil {
 			return err
 		}
@@ -171,7 +177,8 @@ SELECT is_online, availability_state::text, availability_changed_at
 }
 
 // emitNoRiderFound tells the customer, the restaurant and ops that no rider
-// accepted any wave. The order's escalation ladder then runs (P-15).
+// accepted any wave. The order's deadline and timeout actions then run
+// (docs/spec/01-platform.md, "Deadlines and timeout actions").
 func emitNoRiderFound(ctx context.Context, tx pgx.Tx, orderID, from string, waves, radiusM int, at time.Time) error {
 	if err := emitDispatchState(ctx, tx, orderID, from, "NO_RIDER_FOUND", at); err != nil {
 		return err

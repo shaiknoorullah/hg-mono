@@ -39,19 +39,21 @@ func (g *Gateway) revalidateRiders(channel string, conns []*connection) {
 	}
 	for _, c := range conns {
 		if v, ok := c.viewerFor(channel); ok && v == ViewRider {
-			go c.recheck(ch)
+			go c.recheck(ch, v)
 		}
 	}
 }
 
-// recheck evicts the connection from an order channel it may no longer read.
-// It fails closed: if the check cannot run, the rider is unsubscribed and may
-// subscribe again, which re-runs the check.
-func (c *connection) recheck(ch Channel) {
+// recheck evicts the connection from an order channel it may no longer read
+// as the role it subscribed as. It fails closed: if the check cannot run, or
+// it now names a different role, the subscriber is unsubscribed and may
+// subscribe again, which re-runs the check and projects for the role it names
+// then.
+func (c *connection) recheck(ch Channel, was Viewer) {
 	ctx, cancel := context.WithTimeout(c.ctx, recheckBudget)
 	defer cancel()
-	res, err := c.gw.store.AuthorizeSubscribe(ctx, c.accountID, c.roles, ch)
-	if err == nil && res == SubAllowed {
+	grant, err := c.gw.store.AuthorizeSubscribe(ctx, c.accountID, c.roles, ch)
+	if err == nil && grant.Result == SubAllowed && grant.Viewer == was {
 		return
 	}
 	if err != nil {

@@ -79,13 +79,10 @@ func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, acc
 		return availabilityRow{}, err
 	}
 	verdict := deriveOpenState(a, now, true, false)
-	var by *string
-	if changedBy != "" {
-		name, err := realtime.StaffName(ctx, tx, changedBy)
-		if err != nil {
-			return availabilityRow{}, err
-		}
-		by = &name
+	// The staff member who flipped the switch, by display name ("Hamza K.").
+	by, err := realtime.StaffName(ctx, tx, changedBy)
+	if err != nil {
+		return availabilityRow{}, err
 	}
 	reason := verdict.reason
 	if err := realtime.EmitRestaurant(ctx, tx, restaurantID, nil, realtime.RestaurantStatusChanged{

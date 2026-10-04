@@ -11,7 +11,7 @@ import (
 // (contracts/websocket.md section 2: "Schemas are served at GET
 // /v1/realtime/schema, keyed {type}@v{version}"). Each value is a JSON Schema
 // (draft 2020-12 style: a nullable field is a type array with "null") for one
-// event's payload, generated from the contract payload type in events.go:
+// event's payload, generated from the contract payload type in wire.go:
 // every field is required, no other field is allowed, and an enum field lists
 // the values of the openapi.yaml enum it names.
 //

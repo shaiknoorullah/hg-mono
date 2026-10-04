@@ -48,7 +48,7 @@ func validateEvent(t *testing.T, e realtime.StoredEvent) {
 		t.Fatalf("compile %s schema: %v", e.Type, err)
 	}
 	delivered := 0
-	for _, v := range []realtime.Viewer{realtime.ViewCustomer, realtime.ViewRestaurant, realtime.ViewRider, realtime.ViewSupport, realtime.ViewSelf} {
+	for _, v := range realtime.Viewers() {
 		out, ok := realtime.Project(e.Type, v, e.Audience, e.Payload)
 		if !ok {
 			continue
@@ -59,7 +59,7 @@ func validateEvent(t *testing.T, e realtime.StoredEvent) {
 			t.Fatal(err)
 		}
 		if err := schema.VisitJSON(val); err != nil {
-			t.Errorf("%s (seq %d) for viewer %d violates its contract schema: %v\n%s", e.Type, e.Seq, v, err, out)
+			t.Errorf("%s (seq %d) for %s violates its contract schema: %v\n%s", e.Type, e.Seq, v, err, out)
 		}
 	}
 	if delivered == 0 {

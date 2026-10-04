@@ -186,7 +186,7 @@ func TestRealtime_CheckoutToCompletedEmitsTheContractsEvents(t *testing.T) {
 	for _, ch := range []string{orderCh, restaurantCh, riderCh} {
 		for _, e := range read(ch) {
 			schema := compileEventSchema(t, e.Type)
-			for _, v := range []realtime.Viewer{realtime.ViewCustomer, realtime.ViewRestaurant, realtime.ViewRider, realtime.ViewSupport, realtime.ViewSelf} {
+			for _, v := range realtime.Viewers() {
 				out, ok := realtime.Project(e.Type, v, e.Audience, e.Payload)
 				if !ok {
 					continue
@@ -196,9 +196,9 @@ func TestRealtime_CheckoutToCompletedEmitsTheContractsEvents(t *testing.T) {
 					t.Fatal(err)
 				}
 				if err := schema.VisitJSON(val); err != nil {
-					t.Errorf("%s seq %d for viewer %d violates its schema: %v\n%s", e.Type, e.Seq, v, err, out)
+					t.Errorf("%s seq %d for %s violates its schema: %v\n%s", e.Type, e.Seq, v, err, out)
 				}
-				if v == realtime.ViewRider || (ch == riderCh && v == realtime.ViewSelf) {
+				if v == realtime.ViewRider || v == realtime.ViewRiderSelf {
 					riderSees[e.Type] = true
 					for _, code := range []string{"pickup_code", "delivery_code", "otp_code"} {
 						if strings.Contains(string(out), `"`+code+`"`) {
