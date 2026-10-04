@@ -4,10 +4,6 @@ Your application is approved
 
 We checked the documents and halal certificate for {{.RestaurantName}}, and your application is approved.
 
-Note from the HalalGoes team
-
-{{.ReasonText}}
-
 Approval does not put you live yet. Sign in to see what is left before customers can order from you, starting with setting up payouts.
 
 See your next steps {{.ActionURL}}

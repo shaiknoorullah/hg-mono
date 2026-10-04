@@ -184,6 +184,15 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
      `410 INVITATION_EXPIRED` and the account remains `INVITED`.
 - **Out of scope**: SSO/SAML/OIDC; SCIM provisioning; per-user custom permission overrides (V3, see
   A-02); staff org-chart/manager hierarchy; hard deletion of staff rows.
+- **As built (Oct 2026)**: the invitation is a 72-hour single-use token stored like a password-reset
+  token and emailed through the notification outbox in the transaction that creates the account. The
+  address is read from the invited account itself, the email quotes nothing the inviter typed (only
+  the role, from a fixed list), and one account gets at most 3 invitations a day and one inviter
+  sends at most 20. The invitee sets a first password through the reset-password operation, which
+  also marks the email verified, then enrols two-step sign-in. `staff_invitation` is not written yet,
+  and an expired link answers with the reset operation's expired-token error rather than
+  `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170),
+  and the web pages the link opens are [#329](https://github.com/shaiknoorullah/hg-mono/issues/329).
 - **Version**: V1 · **Size**: M
 
 > **Decided:** no warning above 25 active staff accounts at launch ([staff account warning](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
@@ -1207,6 +1216,9 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   becomes `READY` and `account_state = LIVE` only when a menu version is approved (A-19). `REJECT` is
   terminal for that application (re-application per A-13 R7) and requires a reason code plus text that
   is sent verbatim to the restaurant. `REQUEST_CHANGES` names the specific documents to redo.
+  The decision notifies the restaurant's owners and managers by email and in-app inbox, in the same
+  transaction. The reason text goes in the inbox row the restaurant app shows; the email only says
+  there is a decision and links to it, so no text typed outside HalalGoes's templates is ever emailed.
 - **Data**: `restaurant_application` (A-13); `restaurant { id, ..., onboarding_state, account_state, halal_status, delist_reasons[], approved_by, approved_at, rejected_by, rejected_at, rejection_reason_code, rejection_reason_text }`.
   Decision reason codes — approve: `ALL_CHECKS_PASSED`, `APPROVED_WITH_NOTES`; reject:
   `HALAL_CERTIFICATION_INVALID`, `DOCUMENTS_INSUFFICIENT`, `IDENTITY_UNVERIFIED`,
@@ -1586,6 +1598,7 @@ documents lapse cannot go on shift, but is not punished.
   - R6 Rejection reason text is sent verbatim to the rider along with the specific remediation step —
     this is the SOW's "Support: Get support on verification rejections".
   - R7 Rejecting a single document does not notify the rider; only the application decision does
+    (push, inbox and email; the email carries no reason text, which the rider app shows)
     ([rider document rejection](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
   - R8 After a rider's third resubmission the only decisions are approve or reject; requesting changes
     is no longer offered ([third resubmission](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).

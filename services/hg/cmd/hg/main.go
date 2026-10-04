@@ -477,12 +477,16 @@ func run() error {
 		emailSender = &notify.ResendSender{APIKey: cfg.Email.ResendAPIKey, From: cfg.Email.From, ReplyTo: cfg.Email.ReplyTo}
 		log.Info("email provider: resend")
 	case cfg.Email.Configured():
+		allow, err := notify.NewAllowList(cfg.Email.AllowList)
+		if err != nil {
+			return fmt.Errorf("HG_EMAIL_ALLOWLIST: %w", err)
+		}
 		emailSender = notify.AllowListSender{
 			Next:  &notify.ResendSender{APIKey: cfg.Email.ResendAPIKey, From: cfg.Email.From, ReplyTo: cfg.Email.ReplyTo},
-			Allow: notify.AllowList(cfg.Email.AllowList), Log: log, Capture: captureEmail,
+			Allow: allow, Log: log, Capture: captureEmail,
 		}
 		log.Info("email provider: resend, limited to the non-production allow-list",
-			slog.Int("allow_list_entries", len(cfg.Email.AllowList)))
+			slog.Int("allow_list_entries", allow.Len()))
 	default:
 		emailSender = notify.LogEmailSender{Log: log, Capture: captureEmail}
 		if cfg.Env == config.EnvProduction {
@@ -680,7 +684,10 @@ func run() error {
 	// restaurantPay bridges restaurant.PaymentActions to the payments sibling so
 	// AcceptOrder captures (T6) and RejectOrder voids (T7) without importing the
 	// payments package from the restaurant package (modular-monolith seam).
-	restaurantRepo := restaurant.NewRepo(st.DB().Pool).WithStaffInviter(authModule.StaffInviter())
+	// Restaurant staff get no invitation email in 1.0: restaurant accounts are
+	// owner-only at launch (docs/decisions/README.md, "Staff accounts").
+	// Staff invitations are for HalalGoes's own admin staff (issue #170).
+	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
 	restaurantPay := restaurantPayAdapter{svc: paymentsSvc}
 	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil, restaurantPay))
 

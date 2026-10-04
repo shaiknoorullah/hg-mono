@@ -86,7 +86,6 @@ func TestValuesAreEscaped(t *testing.T) {
 	set := MustLoad()
 	out, err := set.Render("restaurant_application_rejected", map[string]string{
 		"RestaurantName": "<script>alert(1)</script>\r\nBcc: someone@example.com",
-		"ReasonText":     "Line one",
 		"ActionURL":      "javascript:alert(1)",
 	})
 	if err != nil {

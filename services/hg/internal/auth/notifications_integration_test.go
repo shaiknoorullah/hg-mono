@@ -6,7 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"strings"
 	"sync"
@@ -20,6 +23,7 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivertype"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify/emailtmpl"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
@@ -41,6 +45,40 @@ func (c *captureSender) SendEmail(_ context.Context, to string, msg notify.Messa
 	defer c.mu.Unlock()
 	c.sent = append(c.sent, capturedEmail{to: to, msg: msg})
 	return fmt.Sprintf("captured-%d", len(c.sent)), nil
+}
+
+// testClient stands in for httpx.RateLimitKey(httpx.ClientIP(r)).
+const testClient = "203.0.113.7"
+
+// emailTestService is an auth service wired to the real notification outbox,
+// with a worker that captures emails instead of sending them.
+func emailTestService(t *testing.T, pool *pgxpool.Pool, inserter *river.Client[pgx.Tx], rl *RateLimiter) (*Service, *captureSender, *notify.DeliveryWorker) {
+	t.Helper()
+	_, priv, _ := ed25519.GenerateKey(rand.Reader)
+	svc := NewService(NewStore(pool), rl, NewLogSMSSender(nil, false),
+		session.NewIssuer("k1", priv, "hg-api"), session.NewDenySet(), testSecrets(t), nil)
+	svc.UseNotifications(notify.NewEnqueuer(notify.NewRepo(), inserter))
+	svc.linkEmailDelay = 0
+	captured := &captureSender{}
+	worker := &notify.DeliveryWorker{
+		DB: pool, Repo: notify.NewRepo(),
+		Notifier: notify.NewNotifier().Register(notify.ChannelEmail, notify.EmailAdapter{EmailSender: captured}),
+		Emails: &notify.EmailRenderer{
+			Templates: emailtmpl.MustLoad(),
+			Links:     notify.Links{Restaurant: "https://partners.halalgoes.test", Admin: "https://admin.halalgoes.test"},
+		},
+	}
+	return svc, captured, worker
+}
+
+func countNotifications(t *testing.T, pool *pgxpool.Pool, accountID string, kind notify.Kind) int {
+	t.Helper()
+	var n int
+	if err := pool.QueryRow(context.Background(),
+		`SELECT count(*) FROM notification WHERE account_id = $1 AND kind = $2`, accountID, string(kind)).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
 }
 
 // deliverQueued runs the delivery worker on the queued job of every
@@ -92,30 +130,17 @@ func TestIntegrationPasswordResetEmailHasAWorkingLinkAndNoOtherSecret(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, priv, _ := ed25519.GenerateKey(rand.Reader)
-	svc := NewService(NewStore(pool), NewRateLimiter(nil), NewLogSMSSender(nil, false),
-		session.NewIssuer("k1", priv, "hg-api"), session.NewDenySet(), testSecrets(t), nil)
-	svc.UseNotifications(notify.NewEnqueuer(notify.NewRepo(), inserter))
-
-	captured := &captureSender{}
-	worker := &notify.DeliveryWorker{
-		DB: pool, Repo: notify.NewRepo(),
-		Notifier: notify.NewNotifier().Register(notify.ChannelEmail, notify.EmailAdapter{EmailSender: captured}),
-		Emails: &notify.EmailRenderer{
-			Templates: emailtmpl.MustLoad(),
-			Links:     notify.Links{Restaurant: "https://partners.halalgoes.test", Admin: "https://admin.halalgoes.test"},
-		},
-	}
+	svc, captured, worker := emailTestService(t, pool, inserter, NewRateLimiter(nil))
 
 	email := fmt.Sprintf("owner-%s@halalgoes.test", uuid.NewString()[:8])
-	reg, err := svc.RegisterRestaurant(ctx, email, "a long first password for tests", "Reset Test Kitchen")
+	reg, err := svc.RegisterRestaurant(ctx, email, "a long first password for tests", "Reset Test Kitchen", testClient)
 	if err != nil {
 		t.Fatalf("RegisterRestaurant: %v", err)
 	}
 	// Sign-up queued its verification email in the same transaction.
 	deliverQueued(t, pool, reg.AccountID, notify.KindEmailVerification, worker)
 
-	if err := svc.RequestPasswordReset(ctx, email); err != nil {
+	if err := svc.RequestPasswordReset(ctx, email, testClient); err != nil {
 		t.Fatalf("RequestPasswordReset: %v", err)
 	}
 	deliverQueued(t, pool, reg.AccountID, notify.KindPasswordReset, worker)
@@ -191,5 +216,204 @@ func TestIntegrationPasswordResetEmailHasAWorkingLinkAndNoOtherSecret(t *testing
 	}
 	if verified == nil {
 		t.Error("resetting the password did not mark the email verified")
+	}
+}
+
+// TestIntegrationResetEmailsStopAtTheLimit: one mailbox gets at most three
+// reset emails an hour, and changing the case or adding a +tag does not buy
+// more; one client address gets at most ten requests' worth, whichever
+// addresses it names.
+func TestIntegrationResetEmailsStopAtTheLimit(t *testing.T) {
+	pool := openTestPool(t)
+	ctx := context.Background()
+	inserter, err := river.NewClient(riverpgxv5.New(pool), &river.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc, _, _ := emailTestService(t, pool, inserter, NewMemoryRateLimiter())
+
+	local := "limit-" + uuid.NewString()[:8]
+	email := local + "@halalgoes.test"
+	reg, err := svc.RegisterRestaurant(ctx, email, "a long first password for tests", "Limit Test Kitchen", "198.51.100.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Two tagged spellings use up two of the address's three; the third
+	// request is the real address in capitals and sends; the fourth is over.
+	for _, variant := range []string{
+		local + "+1@halalgoes.test", strings.ToUpper(local) + "+2@HalalGoes.test",
+		strings.ToUpper(email), email, email,
+	} {
+		if err := svc.RequestPasswordReset(ctx, variant, "198.51.100.2"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := countNotifications(t, pool, reg.AccountID, notify.KindPasswordReset); n != 1 {
+		t.Fatalf("%d reset emails queued, want 1: case and +tag variants share the address's limit of 3", n)
+	}
+
+	// Per client: ten requests from one address (to strangers) use its hour;
+	// the eleventh, for a real account, queues nothing.
+	other := "client-" + uuid.NewString()[:8] + "@halalgoes.test"
+	reg2, err := svc.RegisterRestaurant(ctx, other, "a long first password for tests", "Client Test Kitchen", "198.51.100.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < linkEmailsPerClient; i++ {
+		_ = svc.RequestPasswordReset(ctx, fmt.Sprintf("stranger%d-%s@example.test", i, uuid.NewString()[:4]),
+			httpx.RateLimitKey("2001:db8:1:2::10"))
+	}
+	// Same /64, different host: still the same client.
+	_ = svc.RequestPasswordReset(ctx, other, httpx.RateLimitKey("2001:db8:1:2::99"))
+	if n := countNotifications(t, pool, reg2.AccountID, notify.KindPasswordReset); n != 0 {
+		t.Fatalf("%d reset emails queued past the client's limit, want 0", n)
+	}
+}
+
+// TestIntegrationForgotPasswordAnswersTheSameForUnknownEmails: the response,
+// and the time it takes, are the same whether or not the address has an
+// account, so the form cannot be used to find out who has one.
+func TestIntegrationForgotPasswordAnswersTheSameForUnknownEmails(t *testing.T) {
+	pool := openTestPool(t)
+	ctx := context.Background()
+	inserter, err := river.NewClient(riverpgxv5.New(pool), &river.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc, _, _ := emailTestService(t, pool, inserter, NewMemoryRateLimiter())
+	svc.linkEmailDelay = 200 * time.Millisecond
+
+	known := "known-" + uuid.NewString()[:8] + "@halalgoes.test"
+	if _, err := svc.RegisterRestaurant(ctx, known, "a long first password for tests", "Known Kitchen", "198.51.100.4"); err != nil {
+		t.Fatal(err)
+	}
+	unknown := "nobody-" + uuid.NewString()[:8] + "@halalgoes.test"
+
+	h := NewHandler(svc, svc.store, svc.deny, svc.secrets)
+	router := httpx.NewRouter(httpx.Options{Env: "local", Authenticator: httpx.AnonymousAuthenticator{}, Authorizer: Matrix{}})
+	Routes(router, h)
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+
+	type answer struct {
+		status int
+		body   string
+		took   time.Duration
+	}
+	ask := func(path, email string) answer {
+		start := time.Now()
+		resp, err := http.Post(srv.URL+path, "application/json", strings.NewReader(`{"email":"`+email+`"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		var body map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&body)
+		delete(body, "meta") // request ids differ per call
+		b, _ := json.Marshal(body)
+		return answer{resp.StatusCode, string(b), time.Since(start)}
+	}
+	for _, path := range []string{"/v1/auth/password/forgot", "/v1/auth/email/resend"} {
+		a, b := ask(path, known), ask(path, unknown)
+		if a.status != b.status || a.body != b.body {
+			t.Errorf("%s: known %d %s, unknown %d %s; want the same answer", path, a.status, a.body, b.status, b.body)
+		}
+		for _, x := range []answer{a, b} {
+			if x.took < svc.linkEmailDelay {
+				t.Errorf("%s answered in %v, under the uniform %v", path, x.took, svc.linkEmailDelay)
+			}
+		}
+	}
+}
+
+// TestIntegrationStaffInviteGoesOnlyToTheInvitedAccount: the invitation
+// email's address comes from the invited account's own row, the email quotes
+// nothing the inviter typed, and one account gets at most three invitations a
+// day.
+func TestIntegrationStaffInviteGoesOnlyToTheInvitedAccount(t *testing.T) {
+	pool := openTestPool(t)
+	ctx := context.Background()
+	inserter, err := river.NewClient(riverpgxv5.New(pool), &river.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc, captured, worker := emailTestService(t, pool, inserter, NewRateLimiter(nil))
+
+	email := "new-staff-" + uuid.NewString()[:8] + "@halalgoes.test"
+	var id uuid.UUID
+	if err := pool.QueryRow(ctx, `INSERT INTO account (email, status) VALUES ($1, 'ACTIVE') RETURNING id`, email).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO staff_profile (account_id, full_name, status) VALUES ($1, 'Visit https://evil.example', 'INVITED')`, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO account_role (account_id, role, scope_type) VALUES ($1, 'ADMIN', 'GLOBAL')`, id); err != nil {
+		t.Fatal(err)
+	}
+	// Other suites list staff on this database; leave nothing behind.
+	t.Cleanup(func() {
+		for _, q := range []string{
+			`DELETE FROM notification_delivery WHERE notification_id IN (SELECT id FROM notification WHERE account_id = $1)`,
+			`DELETE FROM notification WHERE account_id = $1`,
+			`DELETE FROM credential_token WHERE account_id = $1`,
+			`DELETE FROM account_role WHERE account_id = $1`,
+			`DELETE FROM staff_profile WHERE account_id = $1`,
+			`DELETE FROM account WHERE id = $1`,
+		} {
+			if _, err := pool.Exec(context.Background(), q, id); err != nil {
+				t.Logf("cleanup: %v", err)
+			}
+		}
+	})
+	invite := func() error {
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = tx.Rollback(ctx) }()
+		if err := svc.InviteStaff(ctx, tx, notify.StaffInvitation{AccountID: id, PlatformRole: "ADMIN"}); err != nil {
+			return err
+		}
+		return tx.Commit(ctx)
+	}
+	for i := 0; i < staffInvitesPerTarget; i++ {
+		if err := invite(); err != nil {
+			t.Fatalf("invitation %d: %v", i+1, err)
+		}
+	}
+	if err := invite(); !errors.Is(err, notify.ErrInviteLimited) {
+		t.Fatalf("invitation %d: err = %v, want notify.ErrInviteLimited", staffInvitesPerTarget+1, err)
+	}
+
+	rows, err := pool.Query(ctx, `
+		SELECT j.args FROM notification n
+		  JOIN river_job j ON j.kind = 'notify_deliver' AND j.args->>'notification_id' = n.id::text
+		 WHERE n.account_id = $1 AND n.kind = $2 ORDER BY n.created_at LIMIT 1`, id, string(notify.KindStaffInvite))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := pgx.CollectRows(rows, pgx.RowTo[[]byte])
+	if err != nil || len(raw) != 1 {
+		t.Fatalf("queued invitation jobs: %d, %v", len(raw), err)
+	}
+	var args notify.DeliverArgs
+	if err := json.Unmarshal(raw[0], &args); err != nil {
+		t.Fatal(err)
+	}
+	if err := worker.Work(ctx, &river.Job[notify.DeliverArgs]{
+		JobRow: &rivertype.JobRow{ID: 1, Kind: args.Kind(), Attempt: 1, State: rivertype.JobStateRunning}, Args: args,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(captured.sent) != 1 || captured.sent[0].to != email {
+		t.Fatalf("invitation went to %v, want only %s", captured.sent, email)
+	}
+	e := captured.sent[0].msg.Email
+	if strings.Contains(e.HTML+e.Text+e.Subject, "evil.example") {
+		t.Error("the invitee's name, typed by the inviter, reached the email")
+	}
+	if !strings.Contains(e.Text, "https://admin.halalgoes.test/accept-invite?token=") {
+		t.Errorf("no invitation link to the admin app:\n%s", e.Text)
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -409,10 +408,16 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 }
 
 // RegisterRestaurant creates the account/restaurant/grant/token and enqueues the
-// verification email. No session is issued.
-func (s *Service) RegisterRestaurant(ctx context.Context, email, password, businessName string) (*RegisterRestaurantResult, error) {
+// verification email. No session is issued. clientKey is the caller's
+// httpx.RateLimitKey: the verification email counts towards the per-client
+// and per-address email limits (email_limits.go), checked before anything is
+// created; over either it returns ErrRateLimited.
+func (s *Service) RegisterRestaurant(ctx context.Context, email, password, businessName, clientKey string) (*RegisterRestaurantResult, error) {
 	if isBreachedPassword(password) {
 		return nil, errBreachedPassword
+	}
+	if err := s.allowLinkEmail(ctx, emailKindVerify, email, clientKey); err != nil {
+		return nil, err
 	}
 	hash, err := HashPassword(password)
 	if err != nil {
@@ -461,19 +466,24 @@ func (s *Service) VerifyEmail(ctx context.Context, token string, client ClientSu
 }
 
 // ResendEmailVerification issues a fresh EMAIL_VERIFY token when the account
-// exists and is unverified. Identical externally whether or not it exists.
-func (s *Service) ResendEmailVerification(ctx context.Context, email string) error {
-	if err := s.rl.Allow(ctx, "rl:email_verify:"+email, 5, 24*time.Hour); errors.Is(err, ErrRateLimited) {
+// exists and is unverified. It answers the same way, in the same time, whether
+// or not the account exists: ErrRateLimited (a 429) only when the client or the
+// address is over its email limit, which is keyed on the address as typed and
+// so says nothing about the account; nil otherwise. clientKey is the caller's
+// httpx.RateLimitKey.
+func (s *Service) ResendEmailVerification(ctx context.Context, email, clientKey string) error {
+	defer s.answerUniformly(ctx, time.Now())
+	if err := s.rl.Allow(ctx, "rl:email_verify:"+rateLimitAddress(email), 5, 24*time.Hour); limited(err) {
 		return ErrRateLimited
 	}
+	if err := s.allowLinkEmail(ctx, emailKindVerify, email, clientKey); limited(err) {
+		return ErrRateLimited
+	} else if err != nil {
+		s.log.WarnContext(ctx, "verification email not sent: rate limiter unavailable", "error", err.Error())
+		return nil
+	}
 	acct, err := s.store.AccountByEmail(ctx, email)
-	if errors.Is(err, ErrNotFound) {
-		return nil
-	}
-	if err != nil || acct.EmailVerifiedAt != nil {
-		return nil
-	}
-	if acct.Email == nil {
+	if err != nil || acct.EmailVerifiedAt != nil || acct.Email == nil {
 		return nil
 	}
 	surface, err := s.store.PasswordSurface(ctx, acct.ID)
@@ -492,15 +502,18 @@ func (s *Service) ResendEmailVerification(ctx context.Context, email string) err
 	return nil
 }
 
-// RequestPasswordReset issues a PASSWORD_RESET token when the account exists.
-// Always succeeds externally (no enumeration).
-//
-// Now that the link really leaves by email, one address gets at most five
-// reset emails an hour (rebuild source: none needed — a flushed counter only
-// allows a few extra emails), so the form cannot be used to flood a mailbox.
-// The cap is silent, like every other outcome here.
-func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
-	if err := s.rl.Allow(ctx, "rl:password_reset:"+strings.ToLower(email), 5, time.Hour); errors.Is(err, ErrRateLimited) {
+// RequestPasswordReset issues a PASSWORD_RESET token and emails it when the
+// account exists and signs in with a password. It always returns nil and
+// always takes the same time (uniformLinkDelay), so the answer says nothing
+// about whether the account exists. The per-client and per-address email
+// limits (email_limits.go) are checked first and silently stop the email;
+// clientKey is the caller's httpx.RateLimitKey.
+func (s *Service) RequestPasswordReset(ctx context.Context, email, clientKey string) error {
+	defer s.answerUniformly(ctx, time.Now())
+	if err := s.allowLinkEmail(ctx, emailKindReset, email, clientKey); err != nil {
+		if !limited(err) {
+			s.log.WarnContext(ctx, "password reset email not sent: rate limiter unavailable", "error", err.Error())
+		}
 		return nil
 	}
 	acct, err := s.store.AccountByEmail(ctx, email)

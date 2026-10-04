@@ -149,6 +149,9 @@ type Email struct {
 	AdminWebURL      string
 }
 
+// EmailLinkDomain is the only domain an email may link to outside local.
+const EmailLinkDomain = "halalgoes.com"
+
 // Configured reports whether real email can be sent.
 func (e Email) Configured() bool { return e.Provider == "resend" && e.ResendAPIKey != "" }
 
@@ -481,19 +484,22 @@ func Load(getenv func(string) string) (*Config, error) {
 				"makes every per-IP limit global")
 		}
 
-		// A real email's button must open the deployed web app over TLS,
-		// never a developer's localhost.
+		// A real email's button must open one of our own web apps over TLS:
+		// never a developer's localhost, never another domain.
 		if cfg.Email.Provider == "resend" {
-			for key, raw := range map[string]string{
-				"HG_RESTAURANT_WEB_URL": cfg.Email.RestaurantWebURL,
-				"HG_ADMIN_WEB_URL":      cfg.Email.AdminWebURL,
-			} {
+			for _, key := range []string{"HG_RESTAURANT_WEB_URL", "HG_ADMIN_WEB_URL"} {
+				raw := map[string]string{
+					"HG_RESTAURANT_WEB_URL": cfg.Email.RestaurantWebURL,
+					"HG_ADMIN_WEB_URL":      cfg.Email.AdminWebURL,
+				}[key]
 				u, err := url.Parse(raw)
 				if err != nil || u.Scheme != "https" {
 					l.errf("%s must be an https URL when HG_ENV is not local and email is sent", key)
 					continue
 				}
-				l.denyLoopback(key, u.Host)
+				if host := strings.ToLower(u.Hostname()); host != EmailLinkDomain && !strings.HasSuffix(host, "."+EmailLinkDomain) {
+					l.errf("%s: %q is not on %s; emails link only to our own domain", key, raw, EmailLinkDomain)
+				}
 			}
 		}
 	}

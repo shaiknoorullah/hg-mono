@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -23,6 +24,22 @@ var ErrRateLimited = errors.New("auth: rate limited")
 // counter and the login lockout both live in Postgres, not here (G-1).
 type RateLimiter struct {
 	rdb *redis.Client
+	mem *memoryCounts
+}
+
+// memoryCounts is NewMemoryRateLimiter's store: fixed windows in process
+// memory. For tests, which have no Redis.
+type memoryCounts struct {
+	mu     sync.Mutex
+	counts map[string]int64
+	until  map[string]time.Time
+}
+
+// NewMemoryRateLimiter is a RateLimiter that counts in process memory, for
+// tests that need limits to bite without a Redis. Production always uses
+// NewRateLimiter: two replicas must share one count.
+func NewMemoryRateLimiter() *RateLimiter {
+	return &RateLimiter{mem: &memoryCounts{counts: map[string]int64{}, until: map[string]time.Time{}}}
 }
 
 // NewRateLimiter builds a RateLimiter over the shared client.
@@ -35,6 +52,19 @@ func NewRateLimiter(rdb *redis.Client) *RateLimiter {
 // ErrLimiterUnavailable so the caller can fail closed. When the limiter is
 // nil or rdb is nil (test / no-op mode) every call is allowed.
 func (rl *RateLimiter) Allow(ctx context.Context, key string, limit int64, window time.Duration) error {
+	if rl != nil && rl.mem != nil {
+		m := rl.mem
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if time.Now().After(m.until[key]) {
+			m.counts[key], m.until[key] = 0, time.Now().Add(window)
+		}
+		m.counts[key]++
+		if m.counts[key] > limit {
+			return ErrRateLimited
+		}
+		return nil
+	}
 	if rl == nil || rl.rdb == nil {
 		return nil // no-op: allow everything in test/local mode without Redis
 	}

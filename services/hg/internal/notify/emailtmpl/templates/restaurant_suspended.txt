@@ -2,11 +2,7 @@ HalalGoes
 
 {{.RestaurantName}} is suspended
 
-An admin suspended {{.RestaurantName}} on HalalGoes. While it is suspended, customers cannot order from you and you do not receive new orders.
-
-Why
-
-{{.ReasonText}}
+An admin suspended {{.RestaurantName}} on HalalGoes. While it is suspended, customers cannot order from you and you do not receive new orders. Sign in to see why.
 
 Orders you had already accepted still complete as normal. You can still sign in to see your orders, your earnings and your payouts, and to contact us to appeal. Payouts pause until the suspension is lifted; nothing you have earned is lost.
 

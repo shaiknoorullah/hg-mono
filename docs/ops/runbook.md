@@ -167,6 +167,16 @@ If Twilio itself is down or the account is blocked, there is nothing to switch t
 
 If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0`: the API refuses to start with it ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
 
+## Emails are not arriving
+
+Sign-up confirmations, password resets, staff invitations, application decisions, payouts and halal certificate reminders go out by email through Resend ([SMS and email spec](../spec/01-platform.md#p-26--sms-and-email)).
+
+- **What breaks:** restaurants can't confirm their email or reset a password, and invited staff can't set one. Orders are unaffected; every message is also in the in-app inbox.
+- **Signs:** the API logs `email provider: log` at start-up (no `HG_RESEND_API_KEY`), or email deliveries fail: `SELECT state, error_code, count(*) FROM notification_delivery WHERE channel = 'EMAIL' AND queued_at > now() - interval '1 hour' GROUP BY 1, 2;`
+- **Check** [Resend's status page](https://resend-status.com/) and the Resend dashboard: the API key, the sending domain's verification, and the account's sending limits.
+- A failed email retries by itself with backoff, up to 12 tries. A refused address (`PROVIDER_REJECTED`) is not retried. After fixing the key, put it in the secrets store and restart the replicas one at a time; emails still waiting for a retry go out.
+- Never set `HG_EMAIL_ALLOWLIST` in production: the API refuses to start with it, because it would stop email to everyone not on it.
+
 ## Payments are failing
 
 - **Signs:** checkout errors; `/health/ready` names Stripe; failed deliveries under the webhook endpoint in Stripe's dashboard; reconciliation exceptions on the System page.

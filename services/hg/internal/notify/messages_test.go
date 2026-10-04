@@ -39,6 +39,8 @@ func TestEveryBuilderFillsItsTemplate(t *testing.T) {
 	acct, rest, cert := uuid.New(), uuid.New(), uuid.New()
 	link := LinkEmail{AccountID: acct, Role: RoleRestaurant, To: "owner@halalgoes.test",
 		Token: "TOKEN-abc123", TokenID: uuid.NewString(), ExpiresAt: when}
+	adminLink := link
+	adminLink.Role = RoleAdmin
 	must := func(n New, err error) New {
 		t.Helper()
 		if err != nil {
@@ -48,14 +50,11 @@ func TestEveryBuilderFillsItsTemplate(t *testing.T) {
 	}
 	certificate := Certificate{AccountID: acct, RestaurantID: rest, CertificateID: cert,
 		RestaurantName: "Al-Noor Grill", IssuerName: "HMA Canada", ExpiresOn: time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC)}
-	adminLink := link
-	adminLink.Role = RoleAdmin
 
 	built := map[string]New{
 		"verification": must(EmailVerification(link)),
 		"reset":        must(PasswordReset(adminLink)),
-		"invite": must(StaffInviteEmail(StaffInvite{LinkEmail: link, InviteeName: "Sara",
-			TeamName: "Al-Noor Grill", RoleLabel: StaffRoleLabel("RESTAURANT_STAFF")})),
+		"invite":       must(StaffInviteEmail(StaffInvite{LinkEmail: adminLink, PlatformRole: "SUPPORT_AGENT"})),
 		"payout": must(PayoutSent(Payout{AccountID: acct, Role: RoleRider, PayeeName: "Omar", PayoutID: uuid.New(),
 			AmountCents: 123456, PeriodStart: when.AddDate(0, 0, -7), PeriodEnd: when, SentAt: when})),
 		"reminder": CertificateRenewalReminder(certificate, 7, 7),
@@ -140,5 +139,60 @@ func TestFormatting(t *testing.T) {
 	}
 	if got := FormatClock(time.Date(2026, 1, 1, 5, 5, 0, 0, time.UTC), toronto); got != "12:05 am" {
 		t.Errorf("FormatClock = %q, want 12:05 am", got)
+	}
+}
+
+// TestEmailsCarryNoTextOrLinkFromOutside: names someone typed are cut down to
+// plain names, an admin's free text stays out of the email, restaurant staff
+// are never invited, and an email that would link off our web apps is refused.
+func TestEmailsCarryNoTextOrLinkFromOutside(t *testing.T) {
+	for in, want := range map[string]string{
+		"Al-Noor Grill": "Al-Noor Grill",
+		"Free food at https://evil.example/claim now": "Free food at now",
+		"Visit www.evil.example\r\nBcc: x@y.example":  "Visit Bcc: x@",
+		"Grill evil.example/login":                    "Grill",
+		"Kebab 203.0.113.9/pay":                       "Kebab",
+		"\u2028\u2029":                                "fallback",
+		strings.Repeat("A", 100):                      strings.Repeat("A", 59) + "…",
+		"javascript:alert(1)":                         "fallback",
+	} {
+		if got := SafeName(in, "fallback"); got != want {
+			t.Errorf("SafeName(%q) = %q, want %q", in, got, want)
+		}
+	}
+
+	n, err := RestaurantApplicationDecided(RestaurantApplicationDecision{
+		AccountID: uuid.New(), RestaurantID: uuid.New(),
+		RestaurantName: "Grill https://evil.example/x", Decision: DecisionReject,
+		ReasonText: "Call 555-0100 or visit https://evil.example to appeal", DecidedAt: time.Now(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, _ := asStored(t, n)
+	out, err := testRenderer().Render(stored, "")
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	for _, part := range []string{out.Subject, out.HTML, out.Text} {
+		if strings.Contains(part, "evil.example") || strings.Contains(part, "555-0100") {
+			t.Fatalf("outside text reached the email:\n%s", part)
+		}
+	}
+
+	if _, err := StaffInviteEmail(StaffInvite{LinkEmail: LinkEmail{AccountID: uuid.New(), Role: RoleRestaurant,
+		To: "cook@halalgoes.test", Token: "t", TokenID: "1", ExpiresAt: time.Now()}, PlatformRole: "RESTAURANT_STAFF"}); err != ErrNotInvitable {
+		t.Errorf("restaurant staff invitation: err = %v, want ErrNotInvitable", err)
+	}
+
+	links := Links{Restaurant: "https://partners.halalgoes.test"}
+	if err := links.onlyOurs(RenderedEmail{HTML: `<a href="https://evil.example/x">x</a>`}); err == nil {
+		t.Error("an HTML link to another site passed")
+	}
+	if err := links.onlyOurs(RenderedEmail{Text: "go to http://evil.example now"}); err == nil {
+		t.Error("a text link to another site passed")
+	}
+	if err := links.onlyOurs(RenderedEmail{HTML: `<a href="https://partners.halalgoes.test/x?a=1&amp;b=2">x</a>`}); err != nil {
+		t.Errorf("our own link was refused: %v", err)
 	}
 }

@@ -1,9 +1,12 @@
 package notify
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 	// The zone database is embedded so "America/Toronto" resolves in a
 	// container image that ships no /usr/share/zoneinfo.
 	_ "time/tzdata"
@@ -94,4 +97,44 @@ func FormatDateOnly(d time.Time) string {
 // FormatDateTime is "7:42 pm on 20 Oct 2026".
 func FormatDateTime(t time.Time, loc *time.Location) string {
 	return FormatClock(t, loc) + " on " + FormatDate(t, loc)
+}
+
+// linkLike matches anything a mail client could turn into a link: a URL with
+// a scheme (including scheme-only ones like javascript: and mailto:), a www.
+// host, a bare domain name, or an IPv4 address.
+var linkLike = regexp.MustCompile(`(?i)(?:\b[a-z][a-z0-9+.-]*://\S*|\b(?:javascript|vbscript|data|file|mailto|tel|sms):\S*|\bwww\.\S*|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,24}\b\S*|\b\d{1,3}(?:\.\d{1,3}){3}\b\S*)`)
+
+// Name length caps for SafeName.
+const (
+	maxNameRunes = 60
+	maxTextRunes = 600
+)
+
+// SafeName makes a name someone else typed (a restaurant's display name, a
+// rider's first name, a certifying body) safe to print in an email: control
+// characters and line breaks become spaces, anything that could become a link
+// is removed, runs of space collapse, and it is cut to 60 characters. An
+// empty result becomes fallback. html/template escapes it on top of this.
+// The point is that an email from HalalGoes never carries a link, or a line
+// that reads like one, that HalalGoes did not write.
+func SafeName(s, fallback string) string {
+	return safeText(s, fallback, maxNameRunes)
+}
+
+func safeText(s, fallback string, max int) string {
+	s = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || r == '\u2028' || r == '\u2029' {
+			return ' '
+		}
+		return r
+	}, s)
+	s = linkLike.ReplaceAllString(s, "")
+	s = strings.Join(strings.Fields(s), " ")
+	if utf8.RuneCountInString(s) > max {
+		s = strings.TrimSpace(string([]rune(s)[:max-1])) + "…"
+	}
+	if s == "" {
+		return fallback
+	}
+	return s
 }

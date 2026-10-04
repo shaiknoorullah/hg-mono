@@ -87,6 +87,16 @@
 // logged and recorded SUPPRESSED, never sent (issue #235). With no Resend key
 // the LogEmailSender records each email in the log instead.
 //
+// What an email may contain is narrow on purpose. Every recipient is parsed
+// once (CanonicalEmail) and that one canonical address is both checked
+// against the allow-list and sent, so no display name, comment, list or line
+// break can make the two disagree. Names someone typed (a restaurant, a
+// rider, a certifying body) pass through SafeName, which strips anything
+// link-like and caps the length; free text typed by staff (an admin's reason,
+// an invitee's name) never goes into an email at all, only into the in-app
+// inbox. The renderer refuses an email that links anywhere but the configured
+// web apps (Links.onlyOurs).
+//
 // EMAIL is not part of the failover chain: it is always attempted for the
 // kinds that plan it, beside push and SMS (P-24's fallback ladder: "EMAIL is
 // always sent for its listed events regardless of socket state").

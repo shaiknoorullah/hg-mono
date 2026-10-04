@@ -7,13 +7,13 @@
  * the present) and the decision that reinstating a paused rider notifies them
  * (docs/decisions/README.md, "Notifying a paused rider who is reinstated").
  */
-import { Action, Layout, Note, P } from '../components/Layout.js';
+import { Action, Layout, P } from '../components/Layout.js';
 import { defineTemplate } from '../define.js';
 
 /** A restaurant was suspended. */
 export const restaurantSuspended = defineTemplate({
   name: 'restaurant_suspended',
-  vars: ['RestaurantName', 'ReasonText', 'ActionURL'] as const,
+  vars: ['RestaurantName', 'ActionURL'] as const,
   subject: (v) => `${v.RestaurantName} is suspended on HalalGoes`,
   render: (v) => (
     <Layout
@@ -22,9 +22,8 @@ export const restaurantSuspended = defineTemplate({
     >
       <P>
         An admin suspended {v.RestaurantName} on HalalGoes. While it is suspended, customers cannot
-        order from you and you do not receive new orders.
+        order from you and you do not receive new orders. Sign in to see why.
       </P>
-      <Note label="Why">{v.ReasonText}</Note>
       <P>
         Orders you had already accepted still complete as normal. You can still sign in to see your
         orders, your earnings and your payouts, and to contact us to appeal. Payouts pause until the
@@ -57,7 +56,7 @@ export const restaurantReinstated = defineTemplate({
 /** A rider's account was paused. */
 export const riderSuspended = defineTemplate({
   name: 'rider_suspended',
-  vars: ['FirstName', 'ReasonText'] as const,
+  vars: ['FirstName'] as const,
   subject: () => 'Your HalalGoes rider account is paused',
   render: (v) => (
     <Layout
@@ -67,9 +66,8 @@ export const riderSuspended = defineTemplate({
       <P>Hi {v.FirstName},</P>
       <P>
         An admin paused your HalalGoes rider account. While it is paused, you cannot go online or
-        take new deliveries.
+        take new deliveries. Open the rider app to see why.
       </P>
-      <Note label="Why">{v.ReasonText}</Note>
       <P>
         You can still open the rider app to see your earnings and payouts, and to contact us if you
         think this is a mistake.

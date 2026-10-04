@@ -62,6 +62,12 @@ func (r *ResendSender) SendEmail(ctx context.Context, to string, msg Message) (s
 	if msg.Email == nil {
 		return "", Permanent(errors.New("notify: resend: message has no rendered email"))
 	}
+	// The worker already canonicalised the address; doing it again here means
+	// no caller can hand Resend a list or a display name by mistake.
+	to, err := CanonicalEmail(to)
+	if err != nil {
+		return "", Permanent(err)
+	}
 	body, err := json.Marshal(resendRequest{
 		From: r.From, To: []string{to}, Subject: msg.Email.Subject,
 		HTML: msg.Email.HTML, Text: msg.Email.Text, ReplyTo: r.ReplyTo,
@@ -166,38 +172,6 @@ func (l LogEmailSender) SendEmail(ctx context.Context, to string, msg Message) (
 	return "", Suppressed("NO_EMAIL_PROVIDER")
 }
 
-// AllowList is the set of addresses a non-production environment may really
-// email. An entry is either a full address ("owner@example.com") or a whole
-// domain ("@halalgoes.com"). Matching ignores case.
-type AllowList []string
-
-// ParseAllowList splits a comma-separated HG_EMAIL_ALLOWLIST value.
-func ParseAllowList(raw string) AllowList {
-	var out AllowList
-	for _, part := range strings.Split(raw, ",") {
-		if p := strings.ToLower(strings.TrimSpace(part)); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
-// Permits reports whether addr is on the list.
-func (a AllowList) Permits(addr string) bool {
-	addr = strings.ToLower(strings.TrimSpace(addr))
-	at := strings.LastIndexByte(addr, '@')
-	if at <= 0 {
-		return false
-	}
-	domain := addr[at:]
-	for _, entry := range a {
-		if entry == addr || (strings.HasPrefix(entry, "@") && entry == domain) {
-			return true
-		}
-	}
-	return false
-}
-
 // AllowListSender is the rule that dev never emails a real person (issue #235:
 // the dev environment beside production uses test-mode integrations). Outside
 // production every email passes through it: an address on the allow-list goes
@@ -220,13 +194,20 @@ func (a AllowListSender) Provider() string {
 	return ""
 }
 
-// SendEmail implements EmailSender.
+// SendEmail implements EmailSender. The address is parsed once
+// (CanonicalEmail), and that one canonical form is both checked against the
+// list and handed to the provider, so no second parser can read it
+// differently.
 func (a AllowListSender) SendEmail(ctx context.Context, to string, msg Message) (string, error) {
-	if !a.Allow.Permits(to) {
-		captureEmail(ctx, a.Log, a.Capture, "email not sent: recipient is not on the non-production allow-list", to, msg)
+	canonical, err := CanonicalEmail(to)
+	if err != nil {
+		return "", Permanent(err)
+	}
+	if !a.Allow.Permits(canonical) {
+		captureEmail(ctx, a.Log, a.Capture, "email not sent: recipient is not on the non-production allow-list", canonical, msg)
 		return "", Suppressed("NOT_ON_ALLOW_LIST")
 	}
-	return a.Next.SendEmail(ctx, to, msg)
+	return a.Next.SendEmail(ctx, canonical, msg)
 }
 
 func captureEmail(ctx context.Context, log *slog.Logger, capture bool, what, to string, msg Message) {

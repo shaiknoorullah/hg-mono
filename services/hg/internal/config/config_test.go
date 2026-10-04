@@ -352,6 +352,10 @@ func TestLoadEmailSettings(t *testing.T) {
 		t.Errorf("production sent email with links to localhost (err: %v)", err)
 	}
 	env["HG_RESTAURANT_WEB_URL"] = "https://partners.halalgoes.com"
+	env["HG_ADMIN_WEB_URL"] = "https://halalgoes-admin.example.com"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_ADMIN_WEB_URL") {
+		t.Errorf("production emails linked to another domain (err: %v)", err)
+	}
 	env["HG_ADMIN_WEB_URL"] = "https://admin.halalgoes.com"
 	if _, err := Load(getenvFrom(env)); err != nil {
 		t.Errorf("a valid production email setup was refused: %v", err)

@@ -27,10 +27,8 @@
     },
     {
       "name": "staff_invite",
-      "subject": "You're invited to join {{.TeamName}} on HalalGoes",
+      "subject": "You're invited to join the HalalGoes team",
       "vars": [
-        "InviteeName",
-        "TeamName",
         "RoleLabel",
         "ActionURL",
         "ExpiresAt"
@@ -41,7 +39,6 @@
       "subject": "{{.RestaurantName}} is approved on HalalGoes",
       "vars": [
         "RestaurantName",
-        "ReasonText",
         "ActionURL"
       ]
     },
@@ -50,7 +47,6 @@
       "subject": "{{.RestaurantName}}: changes needed on your HalalGoes application",
       "vars": [
         "RestaurantName",
-        "ReasonText",
         "ActionURL"
       ]
     },
@@ -59,7 +55,6 @@
       "subject": "Your HalalGoes application for {{.RestaurantName}}",
       "vars": [
         "RestaurantName",
-        "ReasonText",
         "ActionURL"
       ]
     },
@@ -67,24 +62,21 @@
       "name": "rider_application_approved",
       "subject": "You are approved to deliver with HalalGoes",
       "vars": [
-        "FirstName",
-        "ReasonText"
+        "FirstName"
       ]
     },
     {
       "name": "rider_application_changes_requested",
       "subject": "Changes needed on your HalalGoes rider application",
       "vars": [
-        "FirstName",
-        "ReasonText"
+        "FirstName"
       ]
     },
     {
       "name": "rider_application_rejected",
       "subject": "Your HalalGoes rider application",
       "vars": [
-        "FirstName",
-        "ReasonText"
+        "FirstName"
       ]
     },
     {
@@ -92,7 +84,6 @@
       "subject": "{{.RestaurantName}} is suspended on HalalGoes",
       "vars": [
         "RestaurantName",
-        "ReasonText",
         "ActionURL"
       ]
     },
@@ -108,8 +99,7 @@
       "name": "rider_suspended",
       "subject": "Your HalalGoes rider account is paused",
       "vars": [
-        "FirstName",
-        "ReasonText"
+        "FirstName"
       ]
     },
     {

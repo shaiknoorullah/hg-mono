@@ -52,21 +52,23 @@ export const passwordReset = defineTemplate({
   ),
 });
 
-/** The invitation to a new staff account to set its password. */
+/**
+ * The invitation to a new HalalGoes staff account to set its password. It holds
+ * nothing the inviter typed: only the role, from a fixed list.
+ */
 export const staffInvite = defineTemplate({
   name: 'staff_invite',
-  vars: ['InviteeName', 'TeamName', 'RoleLabel', 'ActionURL', 'ExpiresAt'] as const,
-  subject: (v) => `You're invited to join ${v.TeamName} on HalalGoes`,
+  vars: ['RoleLabel', 'ActionURL', 'ExpiresAt'] as const,
+  subject: () => "You're invited to join the HalalGoes team",
   render: (v) => (
     <Layout
-      preview={`Set your password to join ${v.TeamName} on HalalGoes.`}
+      preview="Set your password to join the HalalGoes team."
       heading="You're invited to HalalGoes"
       footer="You are receiving this because someone at HalalGoes invited this address. If you were not expecting it, you can ignore it."
     >
-      <P>Hi {v.InviteeName},</P>
       <P>
-        You have been invited to join {v.TeamName} on HalalGoes as {v.RoleLabel}. Set a password
-        to accept the invitation.
+        You have been invited to join the HalalGoes team as {v.RoleLabel}. Set a password to accept
+        the invitation.
       </P>
       <Action href={v.ActionURL}>Set your password</Action>
       <P muted>

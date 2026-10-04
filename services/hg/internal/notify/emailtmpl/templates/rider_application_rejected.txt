@@ -6,9 +6,7 @@ Hi {{.FirstName}},
 
 We reviewed your application to deliver with HalalGoes, and we cannot approve it.
 
-Why
-
-{{.ReasonText}}
+Open the HalalGoes rider app to see why.
 
 ----------------------------------------
 

@@ -4,11 +4,7 @@ Your rider account is paused
 
 Hi {{.FirstName}},
 
-An admin paused your HalalGoes rider account. While it is paused, you cannot go online or take new deliveries.
-
-Why
-
-{{.ReasonText}}
+An admin paused your HalalGoes rider account. While it is paused, you cannot go online or take new deliveries. Open the rider app to see why.
 
 You can still open the rider app to see your earnings and payouts, and to contact us if you think this is a mistake.
 

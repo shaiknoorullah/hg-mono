@@ -2,6 +2,7 @@ package notify
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -150,60 +151,74 @@ func PasswordReset(a LinkEmail) (New, error) {
 		"password_reset", PathResetPassword, nil)
 }
 
-// StaffInvite is the input to the staff invitation email.
+// StaffInvite is the input to the staff invitation email. It carries no text
+// the inviter typed: the email names only the HalalGoes team and a role from
+// a fixed list, so an invitation cannot be turned into a message of someone
+// else's choosing.
 type StaffInvite struct {
 	LinkEmail
-	InviteeName string
-	// TeamName is who they join: "the HalalGoes team" for platform staff,
-	// the restaurant's name for restaurant staff.
-	TeamName  string
-	RoleLabel string // "an admin", "a support agent", "staff"
+	// PlatformRole is the role granted: SUPPORT_AGENT, ADMIN or SUPER_ADMIN.
+	PlatformRole string
 }
 
-// StaffInviteEmail invites a new staff account to set its password
-// (docs/spec/05-admin.md, staff accounts; contract: createStaffUser and
-// createRestaurantStaffUser). The link consumes the token through the reset
-// password operation, which sets the first password.
+// ErrNotInvitable is returned for an invitation HalalGoes does not send:
+// anything but HalalGoes's own admin staff. Restaurant accounts are
+// owner-only at launch (docs/decisions/README.md, "Staff accounts"), so
+// restaurant staff get no invitation email in 1.0.
+var ErrNotInvitable = errors.New("notify: only HalalGoes admin staff are invited by email")
+
+// ErrInviteLimited is returned when an invitation would pass a daily limit
+// per invited account or per inviter.
+var ErrInviteLimited = errors.New("notify: too many staff invitations today")
+
+// StaffInviteEmail invites a new HalalGoes staff account to set its password
+// (docs/spec/05-admin.md, "A-01 — Staff account provisioning"; contract:
+// createStaffUser). The link consumes the token through the reset-password
+// operation, which sets the first password, until the invitation acceptance
+// flow of issue #170 exists.
 func StaffInviteEmail(a StaffInvite) (New, error) {
+	label, ok := staffRoleLabel(a.PlatformRole)
+	if a.Role != RoleAdmin || !ok {
+		return New{}, ErrNotInvitable
+	}
 	return linkEmail(a.LinkEmail, KindStaffInvite,
 		"You're invited to HalalGoes",
-		fmt.Sprintf("You are invited to join %s on HalalGoes. Set your password from the link we emailed to %s.", a.TeamName, maskEmail(a.To)),
+		fmt.Sprintf("You are invited to join the HalalGoes team. Set your password from the link we emailed to %s.", maskEmail(a.To)),
 		"staff_invite", PathAcceptInvite,
-		map[string]string{"InviteeName": a.InviteeName, "TeamName": a.TeamName, "RoleLabel": a.RoleLabel})
+		map[string]string{"RoleLabel": label})
 }
 
-// StaffInvitation is a new INVITED staff account to send an invitation to.
+// StaffInvitation is a new INVITED HalalGoes staff account to send an
+// invitation to. The address is not part of it: the inviter reads it from the
+// invited account's own row, so the email can only go to the account being
+// invited.
 type StaffInvitation struct {
-	AccountID   uuid.UUID
-	Role        RoleContext // ADMIN for platform staff, RESTAURANT for restaurant staff
-	Email       string
-	InviteeName string
-	TeamName    string
-	RoleLabel   string
+	AccountID    uuid.UUID
+	PlatformRole string    // SUPPORT_AGENT, ADMIN or SUPER_ADMIN
+	InvitedBy    uuid.UUID // the inviting staff member; uuid.Nil when unknown
 }
 
 // StaffInviter mints a staff invitation inside the caller's transaction: the
 // single-use token and the email that carries it. The auth module implements
 // it (auth.Service.InviteStaff), because the token is a sign-in credential;
-// the admin and restaurant modules call it from the transaction that creates
-// the invited account.
+// the admin module calls it from the transaction that creates the invited
+// account.
 type StaffInviter interface {
 	InviteStaff(ctx context.Context, tx pgx.Tx, inv StaffInvitation) error
 }
 
-// StaffRoleLabel words a staff role for the invitation.
-func StaffRoleLabel(role string) string {
+// staffRoleLabel words a platform staff role for the invitation; any other
+// role is not invitable.
+func staffRoleLabel(role string) (string, bool) {
 	switch role {
 	case "SUPER_ADMIN":
-		return "a super admin"
+		return "a super admin", true
 	case "ADMIN":
-		return "an admin"
+		return "an admin", true
 	case "SUPPORT_AGENT":
-		return "a support agent"
-	case "RESTAURANT_MANAGER":
-		return "a manager"
+		return "a support agent", true
 	default:
-		return "a member of staff"
+		return "", false
 	}
 }
 
@@ -230,16 +245,20 @@ type RestaurantApplicationDecision struct {
 	RestaurantID   uuid.UUID
 	RestaurantName string
 	Decision       Decision
-	// ReasonText is the admin's reason, sent verbatim (contract:
-	// RestaurantDecisionInput.reason_text). The internal note is never passed.
+	// ReasonText is the admin's reason (contract:
+	// RestaurantDecisionInput.reason_text), shown verbatim in the inbox row
+	// and never in the email. The internal note is never passed.
 	ReasonText string
 	DecidedAt  time.Time
 }
 
 // RestaurantApplicationDecided tells a restaurant's owner the outcome of its
 // application review (router matrix row onboarding.state_changed: email and
-// inbox).
+// inbox). The admin's reason goes in the inbox row, where the restaurant app
+// shows it; the email says only that there is a decision and links to it, so
+// no text typed by anyone but HalalGoes's templates reaches an inbox.
 func RestaurantApplicationDecided(a RestaurantApplicationDecision) (New, error) {
+	a.RestaurantName = SafeName(a.RestaurantName, "your restaurant")
 	var kind Kind
 	var template, title, body string
 	switch a.Decision {
@@ -271,7 +290,7 @@ func RestaurantApplicationDecided(a RestaurantApplicationDecision) (New, error) 
 		GroupKey:    "restaurant_application:" + a.RestaurantID.String(),
 		Data:        map[string]any{"restaurant_id": a.RestaurantID.String(), "decision": string(a.Decision)},
 		Email: &EmailSpec{Template: template, LinkPath: PathOnboarding, Vars: map[string]string{
-			"RestaurantName": a.RestaurantName, "ReasonText": a.ReasonText,
+			"RestaurantName": a.RestaurantName,
 		}},
 	}, nil
 }
@@ -281,13 +300,15 @@ type RiderApplicationDecision struct {
 	AccountID  uuid.UUID
 	FirstName  string
 	Decision   Decision
-	ReasonText string // sent verbatim (contract: RiderDecisionInput.reason_text)
+	ReasonText string // shown in the inbox row, never the email (contract: RiderDecisionInput.reason_text)
 	DecidedAt  time.Time
 }
 
 // RiderApplicationDecided tells a rider the outcome of their application
-// (router matrix: push and inbox; email goes beside push as a record).
+// (router matrix: push and inbox; email goes beside push as a record). As for
+// restaurants, the admin's reason is in the inbox row, not the email.
 func RiderApplicationDecided(a RiderApplicationDecision) (New, error) {
+	a.FirstName = SafeName(a.FirstName, "there")
 	var kind Kind
 	var template, title, body string
 	switch a.Decision {
@@ -319,7 +340,7 @@ func RiderApplicationDecided(a RiderApplicationDecision) (New, error) {
 		GroupKey:    "rider_application:" + a.AccountID.String(),
 		Data:        map[string]any{"decision": string(a.Decision)},
 		Email: &EmailSpec{Template: template, Vars: map[string]string{
-			"FirstName": a.FirstName, "ReasonText": a.ReasonText,
+			"FirstName": a.FirstName,
 		}},
 	}, nil
 }
@@ -344,6 +365,7 @@ type RestaurantStanding struct {
 // reinstatement and in-flight orders": ACCOUNT_SUSPENDED and
 // ACCOUNT_REINSTATED go by inbox and email).
 func RestaurantStandingChanged(a RestaurantStanding) (New, error) {
+	a.RestaurantName = SafeName(a.RestaurantName, "your restaurant")
 	n := New{
 		AccountID:   a.AccountID,
 		RoleContext: RoleRestaurant,
@@ -361,7 +383,7 @@ func RestaurantStandingChanged(a RestaurantStanding) (New, error) {
 		n.Body = fmt.Sprintf("%s is not taking new orders for now. Orders you already accepted still complete. Reason: %s", a.RestaurantName, a.ReasonText)
 		n.DedupeKey = fmt.Sprintf("restaurant_suspended:%s:%d", a.RestaurantID, a.ChangedAt.UnixMicro())
 		n.Email = &EmailSpec{Template: "restaurant_suspended", LinkPath: PathSignIn, Vars: map[string]string{
-			"RestaurantName": a.RestaurantName, "ReasonText": a.ReasonText,
+			"RestaurantName": a.RestaurantName,
 		}}
 		return n, nil
 	}
@@ -387,6 +409,7 @@ type RiderStanding struct {
 // RiderStandingChanged reports a rider's pause or reinstatement
 // (docs/decisions/README.md, "Notifying a paused rider who is reinstated").
 func RiderStandingChanged(a RiderStanding) (New, error) {
+	a.FirstName = SafeName(a.FirstName, "there")
 	n := New{
 		AccountID:   a.AccountID,
 		RoleContext: RoleRider,
@@ -403,7 +426,7 @@ func RiderStandingChanged(a RiderStanding) (New, error) {
 		n.Body = "You cannot go online for now. Reason: " + a.ReasonText
 		n.DedupeKey = fmt.Sprintf("rider_suspended:%s:%d", a.AccountID, a.ChangedAt.UnixMicro())
 		n.Email = &EmailSpec{Template: "rider_suspended", Vars: map[string]string{
-			"FirstName": a.FirstName, "ReasonText": a.ReasonText,
+			"FirstName": a.FirstName,
 		}}
 		return n, nil
 	}
@@ -440,6 +463,7 @@ func PayoutSent(a Payout) (New, error) {
 	if a.Role != RoleRestaurant && a.Role != RoleRider {
 		return New{}, fmt.Errorf("notify: payouts go to restaurants and riders, not %s", a.Role)
 	}
+	a.PayeeName = SafeName(a.PayeeName, "you")
 	amount := FormatCents(a.AmountCents)
 	period := periodText(a.PeriodStart, a.PeriodEnd, a.Zone)
 	channels := []Channel{ChannelEmail, ChannelInApp}
@@ -491,6 +515,12 @@ type Certificate struct {
 	ExpiresOn      time.Time // a calendar date
 }
 
+func (c Certificate) safe() Certificate {
+	c.RestaurantName = SafeName(c.RestaurantName, "your restaurant")
+	c.IssuerName = SafeName(c.IssuerName, "your certifying body")
+	return c
+}
+
 // CertificateRenewalReminder is the reminder sent 30, 14, 7 and 1 days before
 // a halal certificate expires (docs/decisions/README.md, "Certificate renewal
 // reminders to restaurants"). daysBefore is the reminder threshold (it makes
@@ -500,6 +530,7 @@ type Certificate struct {
 // It states dates, never a halal status, and carries no colour: the email's
 // "expiring" tint is the design system's own (packages/emails/src/palette.ts).
 func CertificateRenewalReminder(c Certificate, daysBefore, daysLeft int) New {
+	c = c.safe()
 	timeLeft := fmt.Sprintf("in %d days", daysLeft)
 	switch daysLeft {
 	case 0:
@@ -542,6 +573,7 @@ func CertificateRenewalReminder(c Certificate, daysBefore, daysLeft int) New {
 // state is told as "we can't currently vouch", never as a verdict on the food
 // (AGENTS.md "Non-negotiable invariants" #9).
 func CertificateLapsed(c Certificate) New {
+	c = c.safe()
 	expired := FormatDateOnly(c.ExpiresOn)
 	return New{
 		AccountID:   c.AccountID,

@@ -2,9 +2,7 @@ HalalGoes
 
 You're invited to HalalGoes
 
-Hi {{.InviteeName}},
-
-You have been invited to join {{.TeamName}} on HalalGoes as {{.RoleLabel}}. Set a password to accept the invitation.
+You have been invited to join the HalalGoes team as {{.RoleLabel}}. Set a password to accept the invitation.
 
 Set your password {{.ActionURL}}
 

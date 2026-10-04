@@ -302,8 +302,18 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName)
+	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName,
+		httpx.RateLimitKey(httpx.ClientIP(r)))
 	switch {
+	case errors.Is(err, ErrRateLimited):
+		w.Header().Set("Retry-After", "3600")
+		httpx.Fail(w, r, http.StatusTooManyRequests, httpx.CodeRateLimited,
+			"Too many sign-ups from here. Please try again later.", nil)
+		return
+	case errors.Is(err, ErrLimiterUnavailable):
+		httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeRateLimiterUnavailable,
+			"Sign-up is briefly unavailable. Please try again shortly.", nil)
+		return
 	case errors.Is(err, ErrEmailInUse):
 		httpx.Fail(w, r, http.StatusConflict, CodeEmailAlreadyRegistered,
 			"An account with this email already exists.", nil)
@@ -371,7 +381,7 @@ func (h *Handler) ResendEmailVerification(w http.ResponseWriter, r *http.Request
 			"A valid email is required.", nil)
 		return
 	}
-	if err := h.svc.ResendEmailVerification(r.Context(), in.Email); errors.Is(err, ErrRateLimited) {
+	if err := h.svc.ResendEmailVerification(r.Context(), in.Email, httpx.RateLimitKey(httpx.ClientIP(r))); errors.Is(err, ErrRateLimited) {
 		w.Header().Set("Retry-After", "60")
 		httpx.Fail(w, r, http.StatusTooManyRequests, httpx.CodeRateLimited,
 			"Please wait before requesting another email.", nil)
@@ -389,7 +399,7 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 			"A valid email is required.", nil)
 		return
 	}
-	_ = h.svc.RequestPasswordReset(r.Context(), in.Email)
+	_ = h.svc.RequestPasswordReset(r.Context(), in.Email, httpx.RateLimitKey(httpx.ClientIP(r)))
 	httpx.Respond(w, r, http.StatusOK, wireAcknowledgement{Acknowledged: true})
 }
 

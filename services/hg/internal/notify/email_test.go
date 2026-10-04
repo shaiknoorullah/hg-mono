@@ -119,7 +119,7 @@ func TestAllowListBlocksARealAddressOutsideProduction(t *testing.T) {
 	pool := setupTestDB(t)
 	ctx := context.Background()
 	resend := newFakeResend(t)
-	guard := AllowListSender{Next: resend.sender(), Allow: ParseAllowList("@halalgoes.test, owner@example.com")}
+	guard := AllowListSender{Next: resend.sender(), Allow: MustAllowList("@halalgoes.test", "owner@example.com")}
 	w := emailWorker(pool, guard, NoAccountLookup{})
 
 	send := func(to string) uuid.UUID {
@@ -287,5 +287,73 @@ func TestAProviderRejectionIsNotRetried(t *testing.T) {
 	d := deliveriesOn(t, pool, id, ChannelEmail)
 	if len(d) != 1 || d[0].State != DeliveryFailed || d[0].ErrorCode != "PROVIDER_REJECTED" {
 		t.Fatalf("delivery = %+v, want one FAILED PROVIDER_REJECTED row", d)
+	}
+}
+
+// recordingSender is an EmailSender that only remembers who it was asked to
+// email.
+type recordingSender struct {
+	mu sync.Mutex
+	to []string
+}
+
+func (r *recordingSender) SendEmail(_ context.Context, to string, _ Message) (string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.to = append(r.to, to)
+	return "sent", nil
+}
+
+// TestAllowListRejectsADisplayNameTrick: an address is parsed once, and the
+// allow-list and the provider see the same canonical string. A value that one
+// parser reads as the allowed address and another reads as someone else's —
+// a display name, a comment, a list, a header injection — is refused outright
+// and never reaches the provider.
+func TestAllowListRejectsADisplayNameTrick(t *testing.T) {
+	next := &recordingSender{}
+	guard := AllowListSender{Next: next, Allow: MustAllowList("ok@halalgoes.test")}
+	msg := Message{Email: &RenderedEmail{Subject: "s", Text: "t"}}
+
+	for _, trick := range []string{
+		"victim@evil.example <ok@halalgoes.test>",
+		"ok@halalgoes.test <victim@evil.example>",
+		`"ok@halalgoes.test" <victim@evil.example>`,
+		"victim@evil.example (ok@halalgoes.test)",
+		"ok@halalgoes.test, victim@evil.example",
+		"ok@halalgoes.test\r\nBcc: victim@evil.example",
+		"ok@halalgoes.test\nvictim@evil.example",
+		"<ok@halalgoes.test>",
+		`"victim@evil.example"@halalgoes.test`,
+		"ök@halalgoes.test",
+	} {
+		_, err := guard.SendEmail(context.Background(), trick, msg)
+		if err == nil || !IsPermanent(err) {
+			t.Errorf("%q: err = %v, want a permanent invalid-address error", trick, err)
+		}
+	}
+	if len(next.to) != 0 {
+		t.Fatalf("tricks reached the provider: %v", next.to)
+	}
+
+	// The canonical form is what gets checked and what gets sent: case and
+	// IDNA differences in the domain do not matter.
+	if _, err := guard.SendEmail(context.Background(), "  ok@HalalGoes.TEST ", msg); err != nil {
+		t.Fatalf("allowed address: %v", err)
+	}
+	if len(next.to) != 1 || next.to[0] != "ok@halalgoes.test" {
+		t.Fatalf("provider got %v, want the canonical ok@halalgoes.test", next.to)
+	}
+	if _, err := guard.SendEmail(context.Background(), "someone@else.test", msg); err == nil {
+		t.Fatal("an address off the list was sent")
+	} else if reason, ok := suppressedReason(err); !ok || reason != "NOT_ON_ALLOW_LIST" {
+		t.Fatalf("off-list address: err = %v, want SUPPRESSED NOT_ON_ALLOW_LIST", err)
+	}
+
+	if got, err := CanonicalEmail("user@Bücher.Example"); err != nil || got != "user@xn--bcher-kva.example" {
+		t.Errorf("CanonicalEmail IDNA = %q, %v; want user@xn--bcher-kva.example", got, err)
+	}
+	idn := MustAllowList("@bücher.example")
+	if c, _ := CanonicalEmail("a@XN--BCHER-KVA.example"); !idn.Permits(c) {
+		t.Error("the allow-list did not match the same domain written in punycode")
 	}
 }

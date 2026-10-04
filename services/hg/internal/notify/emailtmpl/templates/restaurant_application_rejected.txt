@@ -4,11 +4,7 @@ We could not approve your application
 
 We reviewed the application for {{.RestaurantName}}, and we cannot approve it.
 
-Why
-
-{{.ReasonText}}
-
-You can still sign in to see your application and its documents.
+Sign in to see why, and to see your application and its documents.
 
 Open your application {{.ActionURL}}
 

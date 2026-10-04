@@ -70,10 +70,14 @@ VALUES ($1, $2, 'GLOBAL', $3)`
 			if err != nil {
 				return err
 			}
-			if err := r.inviter.InviteStaff(ctx, tx, notify.StaffInvitation{
-				AccountID: id, Role: notify.RoleAdmin, Email: in.Email, InviteeName: in.FullName,
-				TeamName: "the HalalGoes team", RoleLabel: notify.StaffRoleLabel(in.Role),
-			}); err != nil {
+			// The invitation names no one and quotes nothing the inviter
+			// typed; the address is read from the account just created, and
+			// the inviter is held to a daily limit (auth.Service.InviteStaff).
+			inv := notify.StaffInvitation{AccountID: id, PlatformRole: in.Role}
+			if by, err := uuid.Parse(actor.staffID); err == nil {
+				inv.InvitedBy = by
+			}
+			if err := r.inviter.InviteStaff(ctx, tx, inv); err != nil {
 				return err
 			}
 		}

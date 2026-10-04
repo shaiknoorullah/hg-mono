@@ -2382,6 +2382,7 @@ Aggressive exclusions that apply across every feature above:
 3. **Staff sub-accounts and roles.** The `role` column exists (`OWNER|MANAGER|STAFF`) but only
    `OWNER` is issued at launch and the Staff screen is hidden; restaurant staff come in a later
    version ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+   Creating a restaurant staff account through the API sends no invitation email in 1.0.
 4. **Pickup / dine-in / table ordering.** Delivery only.
 5. **Scheduled and pre-orders.** Immediate orders only.
 6. **Inventory quantities, recipes, food-cost accounting, supplier integration.**

@@ -3,7 +3,9 @@ package notify
 import (
 	"errors"
 	"fmt"
+	"html"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify/emailtmpl"
@@ -94,7 +96,12 @@ func (r *EmailRenderer) Render(n Notification, linkToken string) (RenderedEmail,
 		return RenderedEmail{}, Permanent(err)
 	}
 	if spec == nil {
-		spec = &EmailSpec{Template: genericTemplate, Vars: map[string]string{"Title": n.Title, "Body": n.Body}}
+		// The inbox title and body were written by a builder, but may quote
+		// a name someone typed: strip anything link-like all the same.
+		spec = &EmailSpec{Template: genericTemplate, Vars: map[string]string{
+			"Title": safeText(n.Title, "HalalGoes", maxNameRunes*2),
+			"Body":  safeText(n.Body, "You have a new message on HalalGoes.", maxTextRunes),
+		}}
 	}
 	vars := make(map[string]string, len(spec.Vars)+1)
 	for k, v := range spec.Vars {
@@ -113,7 +120,47 @@ func (r *EmailRenderer) Render(n Notification, linkToken string) (RenderedEmail,
 	if err != nil {
 		return RenderedEmail{}, Permanent(err)
 	}
+	if err := r.Links.onlyOurs(out); err != nil {
+		return RenderedEmail{}, Permanent(err)
+	}
 	return out, nil
+}
+
+var (
+	hrefAttr = regexp.MustCompile(`(?i)\bhref\s*=\s*"([^"]*)"`)
+	textURL  = regexp.MustCompile(`(?i)\b(?:[a-z][a-z0-9+.-]*://|www\.)\S+`)
+)
+
+// onlyOurs refuses an email that links anywhere but our own web apps: every
+// href in the HTML and every URL in the plain text must start with one of the
+// configured bases. Templates link only through ActionURL and names are
+// stripped of links (SafeName), so this is the last line, not the first.
+func (l Links) onlyOurs(e RenderedEmail) error {
+	var bases []string
+	for _, b := range []string{l.Restaurant, l.Admin} {
+		if b != "" {
+			bases = append(bases, strings.TrimSuffix(b, "/")+"/")
+		}
+	}
+	ours := func(u string) bool {
+		for _, b := range bases {
+			if strings.HasPrefix(u, b) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, m := range hrefAttr.FindAllStringSubmatch(e.HTML, -1) {
+		if u := html.UnescapeString(m[1]); !ours(u) {
+			return fmt.Errorf("notify: email links to %q, which is not a HalalGoes web app", u)
+		}
+	}
+	for _, u := range textURL.FindAllString(e.Text+" "+e.Subject, -1) {
+		if !ours(u) {
+			return fmt.Errorf("notify: email text links to %q, which is not a HalalGoes web app", u)
+		}
+	}
+	return nil
 }
 
 // emailSpecFrom reads the EmailSpec back out of notification.data.

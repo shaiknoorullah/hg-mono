@@ -262,6 +262,17 @@ func (w *DeliveryWorker) attempt(ctx context.Context, log *slog.Logger, n Notifi
 	if target == "" {
 		target = resolveTarget(ch, targets)
 	}
+	var badTarget error
+	if ch == ChannelEmail && target != "" {
+		// One parse, one canonical address for every later decision
+		// (address.go): the allow-list and the provider see the same string.
+		canonical, err := CanonicalEmail(target)
+		if err != nil {
+			badTarget = Permanent(err)
+		} else {
+			target = canonical
+		}
+	}
 	attempt := 1
 	for _, d := range prior {
 		if d.Channel == ch && d.Attempts >= attempt {
@@ -287,9 +298,9 @@ func (w *DeliveryWorker) attempt(ctx context.Context, log *slog.Logger, n Notifi
 	}
 	msg.IdempotencyKey = n.ID.String() + ":" + string(ch)
 
-	var sendErr error
+	sendErr := badTarget
 	var providerMsgID string
-	if ch == ChannelEmail {
+	if ch == ChannelEmail && sendErr == nil {
 		var email RenderedEmail
 		email, sendErr = w.renderEmail(n, override.LinkToken)
 		if sendErr == nil {

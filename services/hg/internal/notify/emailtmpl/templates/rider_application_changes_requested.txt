@@ -6,11 +6,7 @@ Hi {{.FirstName}},
 
 We reviewed your application to deliver with HalalGoes. Before we can approve it, we need you to change a few things.
 
-What to change
-
-{{.ReasonText}}
-
-Open the HalalGoes rider app to make the changes. We review your application again when you send them.
+Open the HalalGoes rider app to see what to change and to make the changes. We review your application again when you send them.
 
 ----------------------------------------
 
