@@ -21,7 +21,7 @@ permissions:
 jobs:
   pr:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     permissions:
       contents: read
       issues: read # issue state, for "#123 is still open" references
@@ -99,7 +99,7 @@ jobs:
 
   weekly:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     permissions:
       contents: read
       issues: write # one issue per new finding

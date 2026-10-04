@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   js:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +43,7 @@ jobs:
         run: pnpm -r --no-bail test
 
   go:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     defaults:
       run:
         working-directory: services/hg
