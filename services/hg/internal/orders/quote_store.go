@@ -34,20 +34,13 @@ type QuoteRequest struct {
 func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resolvedContext, error) {
 	var rc resolvedContext
 
-	// Cart header + restaurant, owned by the account.
-	var restaurantID, province, taxRole string
-	var commissionBps int
-	var acceptingOrders bool
-	var gate restaurantGate
+	// The cart, owned by the account. A cart never changes restaurant: adding
+	// from another restaurant deletes it and starts a new one.
+	var restaurantID string
 	err := tx.QueryRow(ctx, `
-		SELECT c.restaurant_id, r.is_accepting_orders,
-		       COALESCE(r.province::text, ''), r.commission_rate_bps, r.tax_role,
-		       `+restaurantGateColumns+`
-		  FROM cart c
-		  JOIN restaurant r ON r.id = c.restaurant_id
-		 WHERE c.id = $1 AND c.account_id = $2 AND c.deleted_at IS NULL`,
-		req.CartID, req.AccountID).Scan(append([]any{&restaurantID, &acceptingOrders, &province, &commissionBps, &taxRole},
-		gate.scanTargets()...)...)
+		SELECT restaurant_id FROM cart
+		 WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL`,
+		req.CartID, req.AccountID).Scan(&restaurantID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return rc, ErrCartNotFound
 	}
@@ -56,10 +49,38 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	}
 	// Quoting and createOrder both resolve here, inside their own transaction,
 	// so a restaurant that cannot take orders is refused in the transaction
-	// that would create the order (orderable.go). Unavailable outranks closed.
+	// that would create the order, and its row stays locked FOR SHARE until
+	// that transaction commits: a concurrent suspension either came first and
+	// is refused here, or waits for the order and then settles it
+	// (orderable.go). Unavailable outranks closed.
 	// https://github.com/shaiknoorullah/hg-mono/issues/292
-	if err := gate.refuseUnorderable(); err != nil {
+	// https://github.com/shaiknoorullah/hg-mono/issues/328
+	//
+	// The cart's menu items are locked FOR SHARE before the restaurant (they
+	// are read again below). An admin approving a menu item updates the item
+	// and then locks the restaurant row FOR UPDATE (restaurant.RecomputeOnboarding);
+	// taking the two in the same order here means the two cannot deadlock.
+	if _, err := tx.Exec(ctx, `
+		SELECT 1 FROM cart_line cl JOIN menu_item mi ON mi.id = cl.menu_item_id
+		 WHERE cl.cart_id = $1
+		 ORDER BY mi.id
+		 FOR SHARE OF mi`, req.CartID); err != nil {
+		return rc, fmt.Errorf("lock cart items: %w", err)
+	}
+	if err := LockOrderableRestaurant(ctx, tx, restaurantID); err != nil {
 		return rc, err
+	}
+
+	// The restaurant, read under that lock.
+	var province, taxRole string
+	var commissionBps int
+	var acceptingOrders bool
+	err = tx.QueryRow(ctx, `
+		SELECT is_accepting_orders, COALESCE(province::text, ''), commission_rate_bps, tax_role
+		  FROM restaurant WHERE id = $1`,
+		restaurantID).Scan(&acceptingOrders, &province, &commissionBps, &taxRole)
+	if err != nil {
+		return rc, fmt.Errorf("resolve restaurant: %w", err)
 	}
 	if !acceptingOrders {
 		return rc, ErrRestaurantClosed

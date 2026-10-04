@@ -361,23 +361,23 @@ func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string,
 		// The menu item's restaurant is authoritative; the caller passes it but
 		// we re-read it to avoid trusting a client-supplied restaurant. A client
 		// that still knows an item id (an old cart, a cached menu) cannot add it
-		// once the restaurant cannot take orders (orderable.go).
+		// once the restaurant cannot take orders (orderable.go), and the
+		// restaurant row stays locked until the line is written.
 		// https://github.com/shaiknoorullah/hg-mono/issues/292
+		// https://github.com/shaiknoorullah/hg-mono/issues/328
 		var itemRestaurant, availability string
-		var gate restaurantGate
 		err := tx.QueryRow(ctx, `
-			SELECT mi.restaurant_id, mi.availability_state::text, `+restaurantGateColumns+`
-			  FROM menu_item mi
-			  JOIN restaurant r ON r.id = mi.restaurant_id
-			 WHERE mi.id = $1 AND mi.deleted_at IS NULL`,
-			in.MenuItemID).Scan(append([]any{&itemRestaurant, &availability}, gate.scanTargets()...)...)
+			SELECT restaurant_id, availability_state::text
+			  FROM menu_item
+			 WHERE id = $1 AND deleted_at IS NULL`,
+			in.MenuItemID).Scan(&itemRestaurant, &availability)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrItemUnavailable
 		}
 		if err != nil {
 			return err
 		}
-		if err := gate.refuseUnorderable(); err != nil {
+		if err := LockOrderableRestaurant(ctx, tx, itemRestaurant); err != nil {
 			return err
 		}
 		if availability != "AVAILABLE" {

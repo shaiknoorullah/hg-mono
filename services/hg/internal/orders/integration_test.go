@@ -61,14 +61,16 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 		t.Fatalf("seed account: %v", err)
 	}
 
-	// restaurant: LIVE + accepting + Ontario + a Toronto location.
+	// restaurant: LIVE + accepting + Ontario + a Toronto location. The slug is
+	// random: a UUIDv7's first eight characters are its timestamp and repeat
+	// for about a minute, so two restaurants seeded in that minute collided.
 	err = pool.QueryRow(ctx, `
 		INSERT INTO restaurant (
 			slug, legal_name, display_name, province, city, line1, postal_code,
 			location, onboarding_state, account_state, is_accepting_orders,
 			commission_rate_bps, tax_role, minimum_order_cents
 		) VALUES (
-			'it-'||substr(uuid_generate_v7()::text,1,8), 'Test Co', 'Test Kitchen', 'ON', 'Toronto', '1 King St', 'M5J0C3',
+			'it-'||substr(md5(random()::text),1,12), 'Test Co', 'Test Kitchen', 'ON', 'Toronto', '1 King St', 'M5J0C3',
 			ST_SetSRID(ST_MakePoint(-79.3810, 43.6412), 4326)::geography,
 			'ACTIVE', 'LIVE', true, 0, 'RESTAURANT_IS_SUPPLIER', 0
 		) RETURNING id`).Scan(&b.restaurantID)

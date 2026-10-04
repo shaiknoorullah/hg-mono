@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // ErrNotFound is returned when a queried entity does not exist or belongs to
@@ -1322,14 +1324,27 @@ func maskPhone(p *string) string {
 }
 
 // AcceptOrder transitions RESTAURANT_PENDING → PREPARING.
-// Returns ErrOfferExpired if the deadline has passed; ErrIllegalTransition if
-// the order is not in RESTAURANT_PENDING.
+// Returns orders.ErrRestaurantUnavailable if the restaurant cannot take orders
+// now; ErrOfferExpired if the deadline has passed; ErrIllegalTransition if the
+// order is not in RESTAURANT_PENDING.
 func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAccountID string, promisedReadyMinutes *int) (*OrderRestaurantView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	// A restaurant that is not LIVE, or whose halal certificate is not current
+	// now, cannot take an order by accepting one either. The order stays
+	// RESTAURANT_PENDING until its deadline cancels it and releases the
+	// authorisation, so nothing is captured. The restaurant row is locked FOR
+	// SHARE before the order is locked FOR UPDATE, the same order an
+	// account-state action takes, so a suspension either committed first and
+	// is refused here, or waits for this accept and then settles the PREPARING
+	// order. https://github.com/shaiknoorullah/hg-mono/issues/328
+	if err := orders.LockOrderableRestaurant(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 
 	var state string
 	var deadlineAt *time.Time
