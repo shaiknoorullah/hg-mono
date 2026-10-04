@@ -2,32 +2,43 @@ package riderview
 
 import "testing"
 
-func TestApproximateAreaRoundsToAboutAKilometre(t *testing.T) {
-	lat, lng := ApproximateArea(43.6532157, -79.3831846)
-	if lat != 43.65 || lng != -79.38 {
-		t.Fatalf("ApproximateArea = %v,%v, want 43.65,-79.38", lat, lng)
+func TestAreaOfRoundsToAboutAKilometre(t *testing.T) {
+	a := AreaOf(43.6532157, -79.3831846)
+	if a.Lat() != 43.65 || a.Lng() != -79.38 {
+		t.Fatalf("AreaOf = %v,%v, want 43.65,-79.38", a.Lat(), a.Lng())
 	}
 	// A point already on the grid stays where it is.
-	if lat, lng := ApproximateArea(43.65, -79.38); lat != 43.65 || lng != -79.38 {
-		t.Fatalf("ApproximateArea of a grid point = %v,%v", lat, lng)
+	if a := AreaOf(43.65, -79.38); a.Lat() != 43.65 || a.Lng() != -79.38 {
+		t.Fatalf("AreaOf a grid point = %v,%v", a.Lat(), a.Lng())
 	}
 }
 
-func TestStreetLevelDropsTheCivicNumber(t *testing.T) {
-	for in, want := range map[string]string{
-		"88 Harbour St":   "Harbour St",
-		"12A King St W":   "King St W",
-		"1203-45 Bay St":  "Bay St",
-		"45 1/2 Main St":  "Main St",
-		"123 4th Ave":     "4th Ave",
-		"  7 Queen St E ": "Queen St E",
-		"88":              "",
-		"Harbour St":      "Harbour St",
-		"RR 2 Highway 7":  "RR 2 Highway 7",
-		"":                "",
+func TestStageOfReleasesTheDoorDetailsOnlyWhileCarrying(t *testing.T) {
+	for _, c := range []struct {
+		state      string
+		terminated bool
+		want       Stage
+	}{
+		{"ASSIGNED", false, Accepted},
+		{"EN_ROUTE_TO_PICKUP", false, Accepted},
+		{"ARRIVED_AT_PICKUP", false, Accepted},
+		{"PICKED_UP", false, Carrying},
+		{"EN_ROUTE_TO_DROPOFF", false, Carrying},
+		{"ARRIVED_AT_DROPOFF", false, Carrying},
+		{"UNDELIVERABLE", false, Accepted},
+		{"RETURNING", false, Accepted},
+		{"DELIVERED", true, Finished},
+		{"RETURNED", true, Finished},
+		{"CANCELLED_BY_PLATFORM", true, Finished},
+		{"REASSIGNED", true, Finished},
+		// Terminated wins over a carrying state, and an unknown state shows
+		// the least.
+		{"ARRIVED_AT_DROPOFF", true, Finished},
+		{"SOME_STATE_ADDED_LATER", false, Finished},
+		{"", false, Finished},
 	} {
-		if got := StreetLevel(in); got != want {
-			t.Errorf("StreetLevel(%q) = %q, want %q", in, got, want)
+		if got := StageOf(c.state, c.terminated); got != c.want {
+			t.Errorf("StageOf(%q, %v) = %d, want %d", c.state, c.terminated, got, c.want)
 		}
 	}
 }
