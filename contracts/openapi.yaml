@@ -56,6 +56,9 @@ info:
     added admin edits and removals of a menu item on a restaurant's behalf. Source:
     `docs/decisions/README.md`, "Settled — redesign decisions, round 2", "Launch scope
     and contract".
+
+    The same decisions added three V0 address search operations that our API forwards to
+    Mapbox: `suggestAddresses`, `getPlaceAddress` and `reverseGeocode` (tag `geo`).
   contact:
     name: HalalGoes platform team
     email: shaiknooru247@gmail.com
@@ -83,6 +86,15 @@ tags:
     description: Customer profile, push-notification devices, and the persisted notification inbox.
   - name: addresses
     description: Customer delivery addresses. One resolved `geography(Point,4326)` per address.
+  - name: geo
+    description: |
+      Address search for the location picker: suggestions as you type, the address of a
+      picked suggestion, and the address under a map pin. Our API forwards each call to
+      Mapbox, so the secret key stays on the server and there is one place to rate-limit,
+      cache and change provider. Nothing here is stored; `createAddress` and
+      `submitRestaurantProfile` save the address the user confirms. Source: the owner's
+      decision of 2026-10-01 (`docs/decisions/README.md`, "Settled — redesign decisions,
+      round 2", "Launch scope and contract", map address search; issue #179).
   - name: discovery
     description: |
       Halal-gated restaurant discovery, search, restaurant detail, menu and the halal
@@ -1258,6 +1270,202 @@ paths:
                   data:
                     $ref: '#/components/schemas/Address'
         '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/geo/autocomplete:
+    get:
+      operationId: suggestAddresses
+      tags: [geo]
+      summary: Suggest Canadian addresses as the user types
+      description: |
+        Search-as-you-type for the location picker (customer spec C-31, "Address entry:
+        autocomplete, geocoding and map pin"). The server forwards the query to Mapbox with
+        the secret key, which never reaches a client. Suggestions carry **no coordinates**:
+        picking one calls `getPlaceAddress` with its `place_id` and the same
+        `session_token`.
+
+        **Canada only.** The server always asks the provider for Canadian results and drops
+        any non-Canadian result the provider returns anyway. Results are ranked towards
+        `latitude`/`longitude` when sent (the device's location or the map's centre), else
+        towards the customer's default address or the restaurant's saved location, else
+        towards `default_map_center` from `getPublicConfig`. A result in a province HalalGoes does not serve yet is still
+        suggested; saving it is refused later with `PROVINCE_NOT_SERVED`, and the client can
+        warn first by comparing with `getPublicConfig.served_provinces`.
+
+        **Session token.** The client makes a UUID when the search field opens and sends it
+        on every suggestion request and on the one `getPlaceAddress` call that ends the
+        session; after that call it makes a new one. The provider bills per session, not
+        per keystroke, so a missing or reused token is a cost bug, not a correctness bug.
+        The client should also wait for a pause in typing (about 250 ms) before calling.
+
+        **No match is not an error:** `200` with an empty `data` array. The client keeps
+        "Enter address manually" and the map pin available.
+
+        **Provider unavailable:** `503 GEOCODER_UNAVAILABLE`, also when Mapbox times out
+        or refuses our key. The client falls back to the manual form and the map pin with a
+        visible notice, so address entry never becomes impossible (C-31 rule 5).
+
+        **Rate limit:** rate class `GEO`, 30 requests per account per minute with a burst of
+        10, counted separately for each of the three address search operations
+        (`docs/spec/01-platform.md`, "P-38 — Rate limiting"). Nothing here is stored.
+      x-roles: [CUSTOMER, RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V0
+      x-rate-class: GEO
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: 'What the user has typed. 1–256 characters after trimming (the provider''s limit).'
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 256
+        - $ref: '#/components/parameters/GeoSessionToken'
+        - name: latitude
+          in: query
+          required: false
+          description: 'Ranks results near this point. Send both `latitude` and `longitude` or neither; one alone is `422 VALIDATION_FAILED`.'
+          schema:
+            $ref: '#/components/schemas/Latitude'
+        - name: longitude
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Longitude'
+      responses:
+        '200':
+          description: Up to 5 suggestions, best first. An empty array means nothing matched.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    maxItems: 5
+                    items:
+                      $ref: '#/components/schemas/AddressSuggestion'
+        '422':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/geo/places/{placeId}:
+    get:
+      operationId: getPlaceAddress
+      tags: [geo]
+      summary: Turn a picked suggestion into an address and a point
+      description: |
+        Called once, when the user picks a suggestion from `suggestAddresses`; it ends the
+        search session, so the client makes a new `session_token` for the next search. The
+        result fills the address form and places the map pin. The user can then drag the
+        pin, and **the pin's final position is what `createAddress` or
+        `submitRestaurantProfile` stores**, even when it differs from this point (C-31
+        rule 7). This operation stores nothing; the save operations validate the address
+        themselves.
+
+        Fields the provider does not know are `null`, never guessed: a street without a
+        number has a `line1` but no `postal_code`, and a postcode has no `line1`. The user
+        types what is missing.
+
+        **No match:** `404 GEOCODE_NO_MATCH` when the provider no longer recognises the
+        `place_id` (suggestions are short-lived) or the place resolves outside Canada. The
+        client searches again or offers the map pin. **Provider unavailable:** `503
+        GEOCODER_UNAVAILABLE`, handled as for `suggestAddresses`.
+
+        **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10.
+      x-roles: [CUSTOMER, RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V0
+      x-rate-class: GEO
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          description: 'The `place_id` of a suggestion, exactly as `suggestAddresses` returned it. Opaque; a client never builds one.'
+          schema:
+            $ref: '#/components/schemas/PlaceId'
+        - $ref: '#/components/parameters/GeoSessionToken'
+      responses:
+        '200':
+          description: The resolved address.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GeocodedAddress'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/geo/reverse:
+    get:
+      operationId: reverseGeocode
+      tags: [geo]
+      summary: Turn a map pin into the nearest Canadian address
+      description: |
+        Fills the address form when the user drops or drags the pin without searching
+        (C-31 rule 4). The client calls it when a drag **ends**, not while the pin moves.
+        Takes no session token: each call stands alone.
+
+        The returned `latitude`/`longitude` are the address's own point, which can be a few
+        metres from the pin. The client keeps its pin, because the pin's position is what
+        is saved (C-31 rule 7).
+
+        **No match:** `404 GEOCODE_NO_MATCH` when no Canadian address is near the pin: in a
+        lake, a field, or across the border. The pin stays where it is and the user types
+        the address. **Provider unavailable:** `503 GEOCODER_UNAVAILABLE`, handled as for
+        `suggestAddresses`.
+
+        **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10.
+      x-roles: [CUSTOMER, RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V0
+      x-rate-class: GEO
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Latitude'
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Longitude'
+      responses:
+        '200':
+          description: The nearest Canadian address to the pin.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GeocodedAddress'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
           $ref: '#/components/responses/Error'
         default:
           $ref: '#/components/responses/Error'
@@ -6031,6 +6239,18 @@ components:
       description: 'Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.'
       schema:
         $ref: '#/components/schemas/Cursor'
+    GeoSessionToken:
+      name: session_token
+      in: query
+      required: true
+      description: |
+        A UUID the client makes when the address search field opens. It groups the
+        suggestion requests and the one `getPlaceAddress` call that ends them into one
+        provider session, which is how the provider bills. Make a new one after
+        `getPlaceAddress`, and never share one between two searches open at once.
+      schema:
+        type: string
+        format: uuid
     IdempotencyKeyRequired:
       name: Idempotency-Key
       in: header
@@ -6385,6 +6605,9 @@ components:
         - ADDRESS_IN_USE
         - PROVINCE_NOT_SERVED
         - FAVOURITES_LIMIT
+        # --- address search (suggestAddresses, getPlaceAddress, reverseGeocode) ---
+        - GEOCODE_NO_MATCH
+        - GEOCODER_UNAVAILABLE
         # --- pricing / money ------------------------------------------------------
         - QUOTE_STALE
         - QUOTE_EXPIRED
@@ -9148,6 +9371,103 @@ components:
           $ref: '#/components/schemas/Latitude'
         longitude:
           $ref: '#/components/schemas/Longitude'
+    PlaceId:
+      type: string
+      minLength: 1
+      maxLength: 512
+      pattern: '^[A-Za-z0-9._~:=-]+$'
+      description: |
+        The server's opaque, URL-safe handle for a suggestion. It names no provider, so the
+        provider can change without a contract change. Short-lived: use it in the same
+        search session, and never store it.
+    GeoResultKind:
+      type: string
+      enum: [ADDRESS, STREET, POSTCODE, NEIGHBOURHOOD, PLACE, POI]
+      description: |
+        How precise a search result is. `ADDRESS`: a street number on a street. `STREET`:
+        a street without a number. `POSTCODE`: a postal code area. `NEIGHBOURHOOD`: a
+        neighbourhood or locality. `PLACE`: a city or town. `POI`: a named place such as a
+        building, with its street address. Only `ADDRESS` and `POI` usually fill every
+        field the address form needs; for the rest the user adds what is missing.
+    AddressSuggestion:
+      type: object
+      additionalProperties: false
+      required: [place_id, kind, title, subtitle, distance_m]
+      description: 'One row in the search list. Carries no coordinates: picking it calls `getPlaceAddress`.'
+      properties:
+        place_id:
+          $ref: '#/components/schemas/PlaceId'
+        kind:
+          $ref: '#/components/schemas/GeoResultKind'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: 'The first line of the row, e.g. `88 Harbour Street` or `CN Tower`.'
+          examples: ['88 Harbour Street']
+        subtitle:
+          type: [string, 'null']
+          maxLength: 256
+          description: 'The second line, e.g. `Toronto, Ontario M5J 0C3`. Null when the title says it all, such as a province-wide result.'
+          examples: ['Toronto, Ontario M5J 0C3']
+        distance_m:
+          type: [integer, 'null']
+          format: int32
+          minimum: 0
+          description: 'Straight-line metres from the `latitude`/`longitude` the request sent. Null when the request sent no location.'
+    GeocodedAddress:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - name
+        - line1
+        - city
+        - province
+        - postal_code
+        - country
+        - latitude
+        - longitude
+        - formatted
+      description: |
+        A Canadian address that **prefills** the address form; it is not a saved address.
+        Its field names match `AddressInput` and `RestaurantProfileInput` so the form copies
+        them across. A field the provider does not know is `null`, never guessed. `unit`,
+        `buzzer` and delivery notes are never returned: the user types them.
+      properties:
+        kind:
+          $ref: '#/components/schemas/GeoResultKind'
+        name:
+          type: [string, 'null']
+          maxLength: 256
+          description: 'The place''s name when `kind` is `POI` (e.g. `CN Tower`); null otherwise.'
+        line1:
+          type: [string, 'null']
+          maxLength: 200
+          description: 'Street number and street, or the street alone for `STREET`. Null for `POSTCODE`, `NEIGHBOURHOOD` and `PLACE`.'
+        city:
+          type: [string, 'null']
+          maxLength: 100
+        province:
+          $ref: '#/components/schemas/Province'
+        postal_code:
+          oneOf:
+            - $ref: '#/components/schemas/PostalCode'
+            - type: 'null'
+          description: 'Uppercased with a single space. Null when the provider has none, as for a whole street.'
+        country:
+          type: string
+          enum: [CA]
+          description: 'Always `CA`. A result outside Canada is never returned.'
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        longitude:
+          $ref: '#/components/schemas/Longitude'
+        formatted:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: 'One line for display, e.g. `88 Harbour Street, Toronto, Ontario M5J 0C3`.'
     RiderLocation:
       allOf:
         - $ref: '#/components/schemas/GeoPoint'

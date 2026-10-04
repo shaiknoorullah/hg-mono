@@ -850,15 +850,15 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-31 — Address entry: autocomplete, geocoding and map pin
 - **SOW trace**: enabling requirement for *"Delivery Address Management"* — without it, every address is seven manual fields plus a mandatory map pin, which the current app requires.
-- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /geo/autocomplete?q&session_token&lat&lng`), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /geo/place/:id` which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
+- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /v1/geo/autocomplete?q&session_token&latitude&longitude`, `suggestAddresses` in [the contract](../../contracts/openapi.yaml)), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /v1/geo/places/{placeId}` (`getPlaceAddress`) which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
 - **Data**: no new persistent entity; writes into `delivery_addresses` (C-30). Redis cache `geo:auto:{sha256(q|geohash5)}` TTL 3600 s; `geo:place:{placeId}` TTL 30 days.
 - **States**: none.
 - **Rules**:
   1. The provider key lives **server-side only**. The app never holds a places/geocoding key; map tiles use a public Mapbox token ([#57](https://github.com/shaiknoorullah/hg-mono/issues/57)). (Today two Google keys are committed into the repo.)
-  2. Requests are proxied and rate-limited to **30 autocomplete calls per user per minute**; session tokens are used to keep provider billing on the session model.
+  2. Requests are proxied and rate-limited to **30 calls per user per minute** for each of the three operations ([rate class `GEO`](01-platform.md#p-38--rate-limiting)); session tokens are used to keep provider billing on the session model.
   3. Results are restricted to Canada in the provider request (`country=ca`); non-Canadian results are filtered server-side even if the provider returns them.
-  4. Reverse geocoding (`GET /geo/reverse?lat&lng`) fills the form when the customer drops a pin without searching.
-  5. If the provider is unavailable, the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
+  4. Reverse geocoding (`GET /v1/geo/reverse?latitude&longitude`, `reverseGeocode`) fills the form when the customer drops a pin without searching.
+  5. If the provider is unavailable (`503 GEOCODER_UNAVAILABLE`), the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
   6. The map picker's initial camera is: the customer's current GPS fix if permitted, else the current default address, else the launch city centre from `platform_config.default_map_center`. **No hardcoded Dubai or Hyderabad fallback.**
   7. The pin's final coordinates are what is stored, even if they differ from the geocoded result — the customer's pin wins.
 - **Acceptance criteria**:

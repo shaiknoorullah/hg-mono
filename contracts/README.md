@@ -173,7 +173,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **139 V0, 16 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **142 V0, 16 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -210,6 +210,28 @@ seal scan gates any order transition.
 | **Delivery code** | The customer, on `OrderCustomerView.delivery_code`, `OrderTracking.delivery_code` and the `order.rider_arrived` event (a push without the code also goes out), while a met handover is out for delivery | The rider, as `otp_code` on `submitProofOfDelivery`. Five wrong codes lock it and the rider falls back to a photo with a statement ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) |
 
 The rider is never sent either code; each one is heard from the person holding it.
+
+The same day the owner decided where the location picker's address search comes from: our
+API, which forwards to Mapbox
+([round-2 decisions, "Launch scope and contract", map address search](../docs/decisions/README.md#launch-scope-and-contract),
+issue [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). The secret key stays on
+the server, and the provider can change without a client release. Three launch operations,
+tag `geo`, for customers and for restaurant owners and managers:
+
+| Operation | What it does | No match | Provider down |
+|---|---|---|---|
+| `suggestAddresses` — `GET /v1/geo/autocomplete` | Up to 5 Canadian suggestions as the user types, ranked towards the location sent, else the default address or restaurant location, else `default_map_center`. Needs a client-made `session_token` | `200` with an empty list | `503 GEOCODER_UNAVAILABLE` |
+| `getPlaceAddress` — `GET /v1/geo/places/{placeId}` | The address and point of a picked suggestion; ends the search session | `404 GEOCODE_NO_MATCH` | `503 GEOCODER_UNAVAILABLE` |
+| `reverseGeocode` — `GET /v1/geo/reverse` | The nearest Canadian address to a map pin | `404 GEOCODE_NO_MATCH` | `503 GEOCODER_UNAVAILABLE` |
+
+All three are rate class `GEO`: 30 requests per account per minute, burst 10, each operation
+counted separately ([rate limiting](../docs/spec/01-platform.md#p-38--rate-limiting)); over
+the limit is `429 RATE_LIMITED`. Results are Canada-only: the server asks the provider for
+Canadian results and drops any other. A result outside the served provinces is still
+returned, and saving it is `PROVINCE_NOT_SERVED`. Nothing is stored: the result prefills the
+form, and `createAddress` or `submitRestaurantProfile` saves what the user confirms, at the
+pin's final position. When the provider is down or nothing matches, the manual form and the
+map pin still work.
 
 ---
 

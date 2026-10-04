@@ -1416,6 +1416,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/geo/autocomplete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggest Canadian addresses as the user types
+         * @description Search-as-you-type for the location picker (customer spec C-31, "Address entry:
+         *     autocomplete, geocoding and map pin"). The server forwards the query to Mapbox with
+         *     the secret key, which never reaches a client. Suggestions carry **no coordinates**:
+         *     picking one calls `getPlaceAddress` with its `place_id` and the same
+         *     `session_token`.
+         *
+         *     **Canada only.** The server always asks the provider for Canadian results and drops
+         *     any non-Canadian result the provider returns anyway. Results are ranked towards
+         *     `latitude`/`longitude` when sent (the device's location or the map's centre), else
+         *     towards the customer's default address or the restaurant's saved location, else
+         *     towards `default_map_center` from `getPublicConfig`. A result in a province HalalGoes does not serve yet is still
+         *     suggested; saving it is refused later with `PROVINCE_NOT_SERVED`, and the client can
+         *     warn first by comparing with `getPublicConfig.served_provinces`.
+         *
+         *     **Session token.** The client makes a UUID when the search field opens and sends it
+         *     on every suggestion request and on the one `getPlaceAddress` call that ends the
+         *     session; after that call it makes a new one. The provider bills per session, not
+         *     per keystroke, so a missing or reused token is a cost bug, not a correctness bug.
+         *     The client should also wait for a pause in typing (about 250 ms) before calling.
+         *
+         *     **No match is not an error:** `200` with an empty `data` array. The client keeps
+         *     "Enter address manually" and the map pin available.
+         *
+         *     **Provider unavailable:** `503 GEOCODER_UNAVAILABLE`, also when Mapbox times out
+         *     or refuses our key. The client falls back to the manual form and the map pin with a
+         *     visible notice, so address entry never becomes impossible (C-31 rule 5).
+         *
+         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute with a burst of
+         *     10, counted separately for each of the three address search operations
+         *     (`docs/spec/01-platform.md`, "P-38 — Rate limiting"). Nothing here is stored.
+         */
+        get: operations["suggestAddresses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/geo/places/{placeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Turn a picked suggestion into an address and a point
+         * @description Called once, when the user picks a suggestion from `suggestAddresses`; it ends the
+         *     search session, so the client makes a new `session_token` for the next search. The
+         *     result fills the address form and places the map pin. The user can then drag the
+         *     pin, and **the pin's final position is what `createAddress` or
+         *     `submitRestaurantProfile` stores**, even when it differs from this point (C-31
+         *     rule 7). This operation stores nothing; the save operations validate the address
+         *     themselves.
+         *
+         *     Fields the provider does not know are `null`, never guessed: a street without a
+         *     number has a `line1` but no `postal_code`, and a postcode has no `line1`. The user
+         *     types what is missing.
+         *
+         *     **No match:** `404 GEOCODE_NO_MATCH` when the provider no longer recognises the
+         *     `place_id` (suggestions are short-lived) or the place resolves outside Canada. The
+         *     client searches again or offers the map pin. **Provider unavailable:** `503
+         *     GEOCODER_UNAVAILABLE`, handled as for `suggestAddresses`.
+         *
+         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10.
+         */
+        get: operations["getPlaceAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/geo/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Turn a map pin into the nearest Canadian address
+         * @description Fills the address form when the user drops or drags the pin without searching
+         *     (C-31 rule 4). The client calls it when a drag **ends**, not while the pin moves.
+         *     Takes no session token: each call stands alone.
+         *
+         *     The returned `latitude`/`longitude` are the address's own point, which can be a few
+         *     metres from the pin. The client keeps its pin, because the pin's position is what
+         *     is saved (C-31 rule 7).
+         *
+         *     **No match:** `404 GEOCODE_NO_MATCH` when no Canadian address is near the pin: in a
+         *     lake, a field, or across the border. The pin stays where it is and the user types
+         *     the address. **Provider unavailable:** `503 GEOCODER_UNAVAILABLE`, handled as for
+         *     `suggestAddresses`.
+         *
+         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10.
+         */
+        get: operations["reverseGeocode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/profile": {
         parameters: {
             query?: never;
@@ -3426,6 +3545,26 @@ export interface components {
             province: components["schemas"]["Province"];
             unit?: string;
         };
+        /** @description One row in the search list. Carries no coordinates: picking it calls `getPlaceAddress`. */
+        AddressSuggestion: {
+            /**
+             * Format: int32
+             * @description Straight-line metres from the `latitude`/`longitude` the request sent. Null when the request sent no location.
+             */
+            distance_m: number | null;
+            kind: components["schemas"]["GeoResultKind"];
+            place_id: components["schemas"]["PlaceId"];
+            /**
+             * @description The second line, e.g. `Toronto, Ontario M5J 0C3`. Null when the title says it all, such as a province-wide result.
+             * @example Toronto, Ontario M5J 0C3
+             */
+            subtitle: string | null;
+            /**
+             * @description The first line of the row, e.g. `88 Harbour Street` or `CN Tower`.
+             * @example 88 Harbour Street
+             */
+            title: string;
+        };
         /**
          * @description Partial update — every field is optional, but the **merged** row must still satisfy
          *     `AddressInput`'s required set. `country` and `timezone` remain server-controlled and are
@@ -4002,7 +4141,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "PICKUP_CODE_REQUIRED" | "PICKUP_CODE_INCORRECT" | "PICKUP_CODE_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "GEOCODE_NO_MATCH" | "GEOCODER_UNAVAILABLE" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "PICKUP_CODE_REQUIRED" | "PICKUP_CODE_INCORRECT" | "PICKUP_CODE_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -4063,10 +4202,45 @@ export interface components {
          * @enum {string}
          */
         Fulfilment: "DELIVERY" | "PICKUP";
+        /**
+         * @description A Canadian address that **prefills** the address form; it is not a saved address.
+         *     Its field names match `AddressInput` and `RestaurantProfileInput` so the form copies
+         *     them across. A field the provider does not know is `null`, never guessed. `unit`,
+         *     `buzzer` and delivery notes are never returned: the user types them.
+         */
+        GeocodedAddress: {
+            city: string | null;
+            /**
+             * @description Always `CA`. A result outside Canada is never returned.
+             * @enum {string}
+             */
+            country: "CA";
+            /** @description One line for display, e.g. `88 Harbour Street, Toronto, Ontario M5J 0C3`. */
+            formatted: string;
+            kind: components["schemas"]["GeoResultKind"];
+            latitude: components["schemas"]["Latitude"];
+            /** @description Street number and street, or the street alone for `STREET`. Null for `POSTCODE`, `NEIGHBOURHOOD` and `PLACE`. */
+            line1: string | null;
+            longitude: components["schemas"]["Longitude"];
+            /** @description The place's name when `kind` is `POI` (e.g. `CN Tower`); null otherwise. */
+            name: string | null;
+            /** @description Uppercased with a single space. Null when the provider has none, as for a whole street. */
+            postal_code: components["schemas"]["PostalCode"] | null;
+            province: components["schemas"]["Province"];
+        };
         GeoPoint: {
             latitude: components["schemas"]["Latitude"];
             longitude: components["schemas"]["Longitude"];
         };
+        /**
+         * @description How precise a search result is. `ADDRESS`: a street number on a street. `STREET`:
+         *     a street without a number. `POSTCODE`: a postal code area. `NEIGHBOURHOOD`: a
+         *     neighbourhood or locality. `PLACE`: a city or town. `POI`: a named place such as a
+         *     building, with its street address. Only `ADDRESS` and `POI` usually fill every
+         *     field the address form needs; for the rest the user adds what is missing.
+         * @enum {string}
+         */
+        GeoResultKind: "ADDRESS" | "STREET" | "POSTCODE" | "NEIGHBOURHOOD" | "PLACE" | "POI";
         /**
          * @description C-12. When this object is absent from a payload the client renders **no badge** and
          *     reports a client error — there is no "assume certified" path. The label is fixed
@@ -5138,6 +5312,12 @@ export interface components {
             /** @description Visual check at the point of scan. `false` is recorded as tamper evidence; it never blocks the transition. */
             seal_intact: boolean;
         };
+        /**
+         * @description The server's opaque, URL-safe handle for a suggestion. It names no provider, so the
+         *     provider can change without a contract change. Short-lived: use it in the same
+         *     search session, and never store it.
+         */
+        PlaceId: string;
         /**
          * @description D-21. Derived from the order's delivery instruction and returned to the rider as
          *     `required_pod_method`. `DELIVERED` cannot commit without the artefact in the **same
@@ -6413,6 +6593,13 @@ export interface components {
         Cursor: components["schemas"]["Cursor"];
         DocumentIdPath: string;
         /**
+         * @description A UUID the client makes when the address search field opens. It groups the
+         *     suggestion requests and the one `getPlaceAddress` call that ends them into one
+         *     provider session, which is how the provider bills. Make a new one after
+         *     `getPlaceAddress`, and never share one between two searches open at once.
+         */
+        GeoSessionToken: string;
+        /**
          * @description Client-generated UUID or ULID, 16–128 characters. Scope is
          *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
          *     produce exactly one business effect; a replay returns the original status and body
@@ -6440,6 +6627,7 @@ export type SchemaAddon = components['schemas']['Addon'];
 export type SchemaAddonGroup = components['schemas']['AddonGroup'];
 export type SchemaAddress = components['schemas']['Address'];
 export type SchemaAddressInput = components['schemas']['AddressInput'];
+export type SchemaAddressSuggestion = components['schemas']['AddressSuggestion'];
 export type SchemaAddressUpdateInput = components['schemas']['AddressUpdateInput'];
 export type SchemaAdminOrderCancellationInput = components['schemas']['AdminOrderCancellationInput'];
 export type SchemaAdminRefundInput = components['schemas']['AdminRefundInput'];
@@ -6490,7 +6678,9 @@ export type SchemaFeedSection = components['schemas']['FeedSection'];
 export type SchemaFieldError = components['schemas']['FieldError'];
 export type SchemaFoodRating = components['schemas']['FoodRating'];
 export type SchemaFulfilment = components['schemas']['Fulfilment'];
+export type SchemaGeocodedAddress = components['schemas']['GeocodedAddress'];
 export type SchemaGeoPoint = components['schemas']['GeoPoint'];
+export type SchemaGeoResultKind = components['schemas']['GeoResultKind'];
 export type SchemaHalalBadge = components['schemas']['HalalBadge'];
 export type SchemaHalalCertificate = components['schemas']['HalalCertificate'];
 export type SchemaHalalCertificateScope = components['schemas']['HalalCertificateScope'];
@@ -6588,6 +6778,7 @@ export type SchemaPayoutInterval = components['schemas']['PayoutInterval'];
 export type SchemaPayoutState = components['schemas']['PayoutState'];
 export type SchemaPhoneE164 = components['schemas']['PhoneE164'];
 export type SchemaPickupScanInput = components['schemas']['PickupScanInput'];
+export type SchemaPlaceId = components['schemas']['PlaceId'];
 export type SchemaPodMethod = components['schemas']['PodMethod'];
 export type SchemaPostalCode = components['schemas']['PostalCode'];
 export type SchemaPresignedDownload = components['schemas']['PresignedDownload'];
@@ -6709,6 +6900,7 @@ export type ParameterCertificateIdPath = components['parameters']['CertificateId
 export type ParameterClientHeader = components['parameters']['ClientHeader'];
 export type ParameterCursor = components['parameters']['Cursor'];
 export type ParameterDocumentIdPath = components['parameters']['DocumentIdPath'];
+export type ParameterGeoSessionToken = components['parameters']['GeoSessionToken'];
 export type ParameterIdempotencyKeyRequired = components['parameters']['IdempotencyKeyRequired'];
 export type ParameterLimit = components['parameters']['Limit'];
 export type ParameterMenuCategoryIdPath = components['parameters']['MenuCategoryIdPath'];
@@ -9009,6 +9201,113 @@ export interface operations {
                     };
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    suggestAddresses: {
+        parameters: {
+            query: {
+                /** @description Ranks results near this point. Send both `latitude` and `longitude` or neither; one alone is `422 VALIDATION_FAILED`. */
+                latitude?: components["schemas"]["Latitude"];
+                longitude?: components["schemas"]["Longitude"];
+                /** @description What the user has typed. 1–256 characters after trimming (the provider's limit). */
+                q: string;
+                /**
+                 * @description A UUID the client makes when the address search field opens. It groups the
+                 *     suggestion requests and the one `getPlaceAddress` call that ends them into one
+                 *     provider session, which is how the provider bills. Make a new one after
+                 *     `getPlaceAddress`, and never share one between two searches open at once.
+                 */
+                session_token: components["parameters"]["GeoSessionToken"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Up to 5 suggestions, best first. An empty array means nothing matched. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AddressSuggestion"][];
+                    };
+                };
+            };
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getPlaceAddress: {
+        parameters: {
+            query: {
+                /**
+                 * @description A UUID the client makes when the address search field opens. It groups the
+                 *     suggestion requests and the one `getPlaceAddress` call that ends them into one
+                 *     provider session, which is how the provider bills. Make a new one after
+                 *     `getPlaceAddress`, and never share one between two searches open at once.
+                 */
+                session_token: components["parameters"]["GeoSessionToken"];
+            };
+            header?: never;
+            path: {
+                /** @description The `place_id` of a suggestion, exactly as `suggestAddresses` returned it. Opaque; a client never builds one. */
+                placeId: components["schemas"]["PlaceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The resolved address. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GeocodedAddress"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    reverseGeocode: {
+        parameters: {
+            query: {
+                latitude: components["schemas"]["Latitude"];
+                longitude: components["schemas"]["Longitude"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The nearest Canadian address to the pin. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GeocodedAddress"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

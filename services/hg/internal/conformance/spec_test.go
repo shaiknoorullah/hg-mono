@@ -25,8 +25,12 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// updateMenuCategory (a restaurant renames, reorders, deactivates or
 	// reactivates its own menu category — the round-2 decision that restaurants
 	// edit their own menu from launch, docs/decisions/README.md "How restaurants
-	// get their menu onto HalalGoes and change it"; no handler yet).
-	const wantOps = 155
+	// get their menu onto HalalGoes and change it"; no handler yet) +
+	// suggestAddresses/getPlaceAddress/reverseGeocode (address search for the
+	// location picker, forwarded to Mapbox — the round-2 decision on map address
+	// search, docs/decisions/README.md "Launch scope and contract", issue #179;
+	// no handler yet).
+	const wantOps = 158
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

@@ -404,13 +404,55 @@ HANDOVER_ERRORS = [
 ]
 
 
+# Address search's error states (the owner's round-2 decision of 2026-10-01, map address
+# search: docs/decisions/README.md, "Launch scope and contract"; #179). Our API forwards to
+# Mapbox. No match on a search list is an empty 200 (`address_suggestions_empty`), not an
+# error; the provider being down is never a dead end, because the manual form and the map
+# pin still work.
+GEO_ERRORS = [
+    (
+        "geocode_no_match",
+        404,
+        "GEOCODE_NO_MATCH",
+        "We couldn't find an address there. Type it in, or move the pin.",
+        None,
+        "No Canadian address for the picked suggestion (its `place_id` is short-lived and "
+        "may have expired) or near the pin (a lake, a field, across the border). The pin "
+        "stays where it is and the user types the address.",
+        ["getPlaceAddress", "reverseGeocode"],
+    ),
+    (
+        "geocoder_unavailable",
+        503,
+        "GEOCODER_UNAVAILABLE",
+        "Address search isn't working right now. You can still type your address and place the pin.",
+        None,
+        "Mapbox is down, timed out or refused our key. The client shows the manual address "
+        "form and the map pin with a notice, so address entry never becomes impossible.",
+        ["suggestAddresses", "getPlaceAddress", "reverseGeocode"],
+    ),
+    (
+        "geocode_rate_limited",
+        429,
+        "RATE_LIMITED",
+        "Too many address searches. Try again in 20 seconds.",
+        {"retry_after_seconds": 20},
+        "More than 30 address search requests in a minute from one account (rate class "
+        "`GEO`, counted per operation). Nothing was sent to the provider. The client stops "
+        "searching as the user types until `Retry-After` passes, and the manual form still "
+        "works.",
+        ["suggestAddresses", "getPlaceAddress", "reverseGeocode"],
+    ),
+]
+
+
 def build(reg, synth) -> None:
     _errors(reg)
     _realtime(reg)
 
 
 def _errors(reg) -> None:
-    entries = [(*entry, []) for entry in ERRORS] + LAUNCH_ERRORS + HANDOVER_ERRORS
+    entries = [(*entry, []) for entry in ERRORS] + LAUNCH_ERRORS + HANDOVER_ERRORS + GEO_ERRORS
     for suffix, status, code, message, details, note, operations in entries:
         envelope = {
             "error": {

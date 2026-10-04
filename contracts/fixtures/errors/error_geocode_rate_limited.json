@@ -1,0 +1,25 @@
+{
+  "scenario": "error_geocode_rate_limited",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`429` · `RATE_LIMITED`. More than 30 address search requests in a minute from one account (rate class `GEO`, counted per operation). Nothing was sent to the provider. The client stops searching as the user types until `Retry-After` passes, and the manual form still works.",
+  "operations": [
+    "suggestAddresses",
+    "getPlaceAddress",
+    "reverseGeocode"
+  ],
+  "status": 429,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "Too many address searches. Try again in 20 seconds.",
+      "request_id": "5VS2RQV2VNPN3205BTGFY62K6P",
+      "details": {
+        "retry_after_seconds": 20
+      }
+    }
+  }
+}
