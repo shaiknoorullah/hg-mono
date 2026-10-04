@@ -1,6 +1,6 @@
 ---
 name: run-restaurant
-description: Run, start, launch, drive, smoke-test or screenshot the Halal Goes restaurant operator web app (apps/restaurant, Vite on :5183) against the contract mock API (:4010) — sign in, view the live order queue, accept an order, open Menu/Hours/Payouts, capture screenshots and console errors.
+description: Run, start, launch, drive, smoke-test or screenshot the HalalGoes restaurant operator web app (apps/restaurant, Vite on :5183) against the contract mock API (:4010) — sign in, view the live order queue, accept an order, open Menu/Hours/Payouts, capture screenshots and console errors.
 ---
 
 # run-restaurant
