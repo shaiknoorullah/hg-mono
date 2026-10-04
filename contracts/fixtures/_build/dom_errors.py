@@ -363,7 +363,31 @@ LAUNCH_ERRORS = [
 
 def build(reg, synth) -> None:
     _errors(reg)
+    _operation_errors(reg)
     _realtime(reg)
+
+
+def _operation_errors(reg) -> None:
+    """Error answers pinned to the one operation that gives them."""
+    reg.add(
+        "error_register_restaurant_rate_limited",
+        "errors",
+        "ErrorEnvelope",
+        "`429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups "
+        "from one client address in an hour (docs/spec/03-restaurant.md, \"R-01 — Restaurant "
+        "account signup\"). Checked before the password is hashed, "
+        "so nothing was created; the response carries `Retry-After` in seconds.",
+        {
+            "error": {
+                "code": "RATE_LIMITED",
+                "message": "Too many sign-ups from this network. Please wait before trying again.",
+                "request_id": ulid_for("request:register_restaurant_rate_limited"),
+            }
+        },
+        operations=["registerRestaurant"],
+        status=429,
+        tags=["error-envelope", "error-path"],
+    )
 
 
 def _errors(reg) -> None:
