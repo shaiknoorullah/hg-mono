@@ -206,9 +206,15 @@ const localSweepEvery = time.Minute
 //     count of its own, so a flood can neither reset a guesser's budget nor
 //     lock new callers out.
 //   - Separate per limit: a flood on one limit cannot touch another's counts.
+//   - Per process: each replica counts on its own, so during an outage a
+//     caller gets Max from each replica running (two, or four while a deploy
+//     runs old and new side by side), and a replica that restarts starts with
+//     no counts. The Postgres login lockout, which stops password guessing,
+//     holds throughout.
 type localLimiter struct {
 	mu         sync.Mutex
 	now        func() time.Time
+	epoch      time.Time // windows are kept as offsets from here (see localWindow)
 	maxEntries int
 	limits     map[string]*localCounters // by Limit.Name
 }
@@ -228,12 +234,16 @@ type localKey [16]byte
 
 // localWindow is one fixed-window count.
 type localWindow struct {
-	count   int64
-	resetAt int64 // UnixNano at the end of the window, as Redis's TTL would be
+	count int64
+	// resetAt is the end of the window, as Redis's TTL would be, in
+	// nanoseconds since the limiter's epoch. An offset from a time.Now()
+	// reading follows the monotonic clock, so a step of the wall clock can
+	// neither end a window early nor stretch it.
+	resetAt int64
 }
 
 func newLocalLimiter(maxEntries int, now func() time.Time) *localLimiter {
-	return &localLimiter{now: now, maxEntries: maxEntries, limits: map[string]*localCounters{}}
+	return &localLimiter{now: now, epoch: now(), maxEntries: maxEntries, limits: map[string]*localCounters{}}
 }
 
 // allow counts one request against l and answers as Redis would: a
@@ -244,6 +254,7 @@ func newLocalLimiter(maxEntries int, now func() time.Time) *localLimiter {
 // one error per window per limit, not one per request.
 func (ll *localLimiter) allow(l Limit) (logged int64, verdict error) {
 	now := ll.now()
+	t := int64(now.Sub(ll.epoch))
 	sum := sha256.Sum256([]byte(l.key()))
 	key := localKey(sum[:16])
 
@@ -262,7 +273,7 @@ func (ll *localLimiter) allow(l Limit) (logged int64, verdict error) {
 	}
 	if !now.Before(cs.nextSweep) {
 		for k, w := range cs.byKey {
-			if w.resetAt <= now.UnixNano() {
+			if w.resetAt <= t {
 				delete(cs.byKey, k)
 			}
 		}
@@ -271,15 +282,18 @@ func (ll *localLimiter) allow(l Limit) (logged int64, verdict error) {
 
 	w, ok := cs.byKey[key]
 	if !ok && len(cs.byKey) >= ll.maxEntries {
-		cs.evictLowest(now.UnixNano())
+		cs.evictLowest(t)
 	}
-	verdict = w.add(now, l)
+	verdict = w.add(t, l)
 	cs.byKey[key] = w
 	return logged, verdict
 }
 
 // evictLowest drops the lowest of localEvictionSample counts. Go starts every
-// walk over a map at a random place, so the first counts walked are a sample.
+// walk over a map at a random place, and seeds each map's hash at random, so
+// the first counts walked are a sample no caller can steer. An ended window
+// counts as zero. On a tie the oldest window goes: it ends soonest, so
+// dropping it hands back the least time.
 func (cs *localCounters) evictLowest(now int64) {
 	var victim localKey
 	lowest, oldest := int64(math.MaxInt64), int64(math.MaxInt64)
@@ -301,10 +315,9 @@ func (cs *localCounters) evictLowest(now int64) {
 
 // add counts one request in w, opening the next window if the last one has
 // ended, and answers as Redis would.
-func (w *localWindow) add(now time.Time, l Limit) error {
-	t := now.UnixNano()
+func (w *localWindow) add(t int64, l Limit) error {
 	if t >= w.resetAt {
-		w.count, w.resetAt = 0, now.Add(l.Window).UnixNano()
+		w.count, w.resetAt = 0, t+int64(l.Window)
 	}
 	w.count++
 	if w.count > l.Max {
