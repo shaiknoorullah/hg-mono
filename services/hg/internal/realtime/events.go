@@ -86,8 +86,13 @@ func (Withheld) MarshalJSON() ([]byte, error) { return []byte("null"), nil }
 type EtaSource string
 
 const (
-	EtaRouted   EtaSource = "ROUTED"
-	EtaCached   EtaSource = "CACHED"
+	// EtaRouted: the routes came from the routing engine.
+	EtaRouted EtaSource = "ROUTED"
+	// EtaCached: the routes came from a stored route estimate between the same
+	// two places.
+	EtaCached EtaSource = "CACHED"
+	// EtaFallback: the routing engine was unavailable, so the distances are
+	// straight-line ones with a detour factor.
 	EtaFallback EtaSource = "FALLBACK"
 )
 
@@ -97,6 +102,7 @@ func (e EtaSource) Valid() bool { return e == EtaRouted || e == EtaCached || e =
 // OfferExpiredReason is restaurant.order_offer_expired's reason: "timeout".
 type OfferExpiredReason string
 
+// OfferExpiredTimeout: the restaurant did not answer within its window.
 const OfferExpiredTimeout OfferExpiredReason = "timeout"
 
 // Valid reports membership of the closed set.
@@ -107,8 +113,10 @@ func (r OfferExpiredReason) Valid() bool { return r == OfferExpiredTimeout }
 type OfferWithdrawnReason string
 
 const (
+	// OfferWithdrawnCustomerCancelled: the customer cancelled the order.
 	OfferWithdrawnCustomerCancelled OfferWithdrawnReason = "customer_cancelled"
-	OfferWithdrawnPaymentFailed     OfferWithdrawnReason = "payment_failed"
+	// OfferWithdrawnPaymentFailed: the order's payment failed.
+	OfferWithdrawnPaymentFailed OfferWithdrawnReason = "payment_failed"
 )
 
 // Valid reports membership of the closed set.
@@ -121,8 +129,11 @@ func (r OfferWithdrawnReason) Valid() bool {
 type DispatchWithdrawnReason string
 
 const (
-	DispatchWithdrawnTaken     DispatchWithdrawnReason = "taken"
-	DispatchWithdrawnExpired   DispatchWithdrawnReason = "expired"
+	// DispatchWithdrawnTaken: another rider accepted the order first.
+	DispatchWithdrawnTaken DispatchWithdrawnReason = "taken"
+	// DispatchWithdrawnExpired: the offer's time ran out.
+	DispatchWithdrawnExpired DispatchWithdrawnReason = "expired"
+	// DispatchWithdrawnCancelled: the order was cancelled.
 	DispatchWithdrawnCancelled DispatchWithdrawnReason = "cancelled"
 )
 
@@ -135,9 +146,13 @@ func (r DispatchWithdrawnReason) Valid() bool {
 type SecurityEventKind string
 
 const (
-	SecurityNewDeviceLogin  SecurityEventKind = "new_device_login"
+	// SecurityNewDeviceLogin: the account signed in on a device it had not
+	// used before.
+	SecurityNewDeviceLogin SecurityEventKind = "new_device_login"
+	// SecurityPasswordChanged: the account's password was changed.
 	SecurityPasswordChanged SecurityEventKind = "password_changed"
-	SecuritySessionRevoked  SecurityEventKind = "session_revoked"
+	// SecuritySessionRevoked: one of the account's sessions was revoked.
+	SecuritySessionRevoked SecurityEventKind = "session_revoked"
 )
 
 // Valid reports membership of the closed set.
@@ -149,8 +164,10 @@ func (k SecurityEventKind) Valid() bool {
 type OnboardingSubject string
 
 const (
+	// OnboardingRestaurant: a restaurant's onboarding changed state.
 	OnboardingRestaurant OnboardingSubject = "RESTAURANT"
-	OnboardingRider      OnboardingSubject = "RIDER"
+	// OnboardingRider: a rider's onboarding changed state.
+	OnboardingRider OnboardingSubject = "RIDER"
 )
 
 // Valid reports membership of the closed set.
