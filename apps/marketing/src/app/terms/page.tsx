@@ -24,7 +24,7 @@ const EFFECTIVE = '19 September 2026';
 export const metadata = pageMetadata({
   title: 'Website and waitlist terms',
   description:
-    'The terms that apply to the Halal Goes website and its pre-launch waitlist. Ontario, Canada.',
+    'The terms that apply to the HalalGoes website and its pre-launch waitlist. Ontario, Canada.',
   path: '/terms',
 });
 
@@ -38,7 +38,7 @@ export default function TermsPage() {
     >
       <DocSection n="01" title="What this site is">
         <p>
-          This website is operated by Halal Goes, a business based in {PLACE.province}, {PLACE.country}. It
+          This website is operated by HalalGoes, a business based in {PLACE.province}, {PLACE.country}. It
           describes a halal food-delivery service we are building and lets you join a waitlist to hear when it
           opens.
         </p>
@@ -128,7 +128,7 @@ export default function TermsPage() {
 
       <DocSection n="06" title="Our content">
         <p>
-          The text, design, photography and the Halal Goes name on this site are ours or licensed to us, and
+          The text, design, photography and the HalalGoes name on this site are ours or licensed to us, and
           stay that way. Quoting and linking is fine; wholesale copying is not.
         </p>
       </DocSection>

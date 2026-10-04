@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -17,10 +18,19 @@ var ErrNotFound = errors.New("files: not found")
 // Presigner is the narrow slice of the MinIO client this module needs. Keeping
 // it an interface means the key/DB logic is unit-testable without a live MinIO,
 // and the presign call itself is a thin, mockable seam.
+//
+// The implementation is store.MinIO.Signer, configured for the public host
+// phones reach — never the internal client, whose links name minio:9000.
+// Uploads are signed with PresignHeader only: PresignedPutObject signs the Host
+// header alone, which lets one link upload any bytes of any size and type.
 type Presigner interface {
-	PresignedPutObject(ctx context.Context, bucket, object string, expires time.Duration) (*url.URL, error)
+	PresignHeader(ctx context.Context, method, bucket, object string, expires time.Duration, reqParams url.Values, extraHeaders http.Header) (*url.URL, error)
 	PresignedGetObject(ctx context.Context, bucket, object string, expires time.Duration, reqParams url.Values) (*url.URL, error)
 }
+
+// uploadTTL is how long a presigned upload link lives (docs/spec/01-platform.md,
+// "P-28 — Presigned upload and download").
+const uploadTTL = 300 * time.Second
 
 // Repo is the files module's data access plus the object presigner and the
 // object-store seam confirmUpload needs. It never opens its own pool or client —
@@ -50,7 +60,8 @@ type storedObjectRow struct {
 
 // AllocateUpload inserts a PENDING stored_object with a server-generated key and
 // a one-hour deadline, then returns a presigned PUT whose TTL is 300 s (P-28).
-// The signature binds the object key; the client controls only the bytes.
+// The signature binds the object key, the content type, the length and the
+// checksum; the client supplies only the bytes, and only the declared ones.
 func (r *Repo) AllocateUpload(ctx context.Context, actor Actor, p Purpose, in keyInputs, contentType string, byteSize int64, sha256hex string) (uploadResult, error) {
 	var out uploadResult
 	bucket, ok := bucketFor(p, r.buckets)
@@ -99,21 +110,41 @@ RETURNING id`
 		return out, err
 	}
 
-	u, err := r.presigner.PresignedPutObject(ctx, bucket, key, 300*time.Second)
+	u, headers, err := presignUpload(ctx, r.presigner, bucket, key, contentType, byteSize, sha)
 	if err != nil {
 		return out, err
 	}
 	out.URL = u.String()
-	out.ExpiresAt = time.Now().UTC().Add(300 * time.Second)
-	// x-amz-checksum-sha256 binds the content checksum into the presigned
-	// signature: a signature minted for a 1 MiB JPEG cannot be reused to
-	// push a 9 MiB PDF (contract openapi.yaml PresignedUpload.required_headers).
-	out.RequiredHeaders = map[string]string{
+	out.ExpiresAt = time.Now().UTC().Add(uploadTTL)
+	out.RequiredHeaders = headers
+	return out, nil
+}
+
+// presignUpload signs a PUT that only succeeds with exactly the declared
+// Content-Type, Content-Length and SHA-256: each is a signed header, so changing
+// any one of them fails the signature, and the store checks the bytes against
+// the signed checksum. A link minted for a 1 MiB JPEG cannot push a 9 MiB PDF
+// (docs/spec/01-platform.md, "P-28 — Presigned upload and download", the first
+// rule and the first acceptance criterion; contract openapi.yaml
+// PresignedUpload.required_headers).
+//
+// The headers the client is told to send and the headers that are signed are
+// the same map, so the two cannot drift apart.
+func presignUpload(ctx context.Context, p Presigner, bucket, key, contentType string, byteSize int64, sha []byte) (*url.URL, map[string]string, error) {
+	required := map[string]string{
 		"Content-Type":          contentType,
 		"Content-Length":        itoa(byteSize),
 		"x-amz-checksum-sha256": base64.StdEncoding.EncodeToString(sha),
 	}
-	return out, nil
+	signed := make(http.Header, len(required))
+	for k, v := range required {
+		signed.Set(k, v)
+	}
+	u, err := p.PresignHeader(ctx, http.MethodPut, bucket, key, uploadTTL, nil, signed)
+	if err != nil {
+		return nil, nil, err
+	}
+	return u, required, nil
 }
 
 // uploadResult is the internal shape the handler renders as PresignedUpload.

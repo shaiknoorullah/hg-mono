@@ -39,7 +39,7 @@ d.polygon([(sx + s * .5, sy), (sx + s * .06, sy + s * .19), (sx + s * .06, sy + 
            (sx + s * .5, sy + s), (sx + s * .94, sy + s * .56), (sx + s * .94, sy + s * .19)], fill='#FFFFFF')
 d.line([(sx + s * .3, sy + s * .5), (sx + s * .45, sy + s * .66), (sx + s * .72, sy + s * .34)],
        fill='#0F7A43', width=8)
-d.text((140, 620), 'Halal Goes does not itself', font=font(40), fill='#1B3B31')
+d.text((140, 620), 'HalalGoes does not itself', font=font(40), fill='#1B3B31')
 d.text((140, 680), 'certify food.', font=font(40), fill='#1B3B31')
 d.text((140, 780), 'ISSUED BY', font=font(30, True), fill='#4A4E48')
 d.text((140, 826), 'Halal Monitoring Authority (HMA Canada)', font=font(34), fill='#232323')

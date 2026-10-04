@@ -33,10 +33,16 @@ afterAll(() => {
   fetchSpy.mockRestore();
 });
 
+// Loaded at module scope, right after the spy (so the api client captures it), and NOT inside
+// the test body: the first require transforms the screen's whole module graph — this app,
+// @hg/ui-native's TypeScript source, react-native, react-native-svg — which on a cold jest
+// transform cache (every CI run) takes several seconds. Inside the test that cost was charged
+// against the 5 s test timeout and made the suite time out on CI; file evaluation has none.
+const { RestaurantScreen } = require('../RestaurantScreen') as typeof import('../RestaurantScreen');
+const { ThemeProvider } = require('@hg/ui-native') as typeof import('@hg/ui-native');
+const stack = require('../../navigation/stack') as typeof import('../../navigation/stack');
+
 function renderRestaurant(push: (route: unknown) => void) {
-  const { RestaurantScreen } = require('../RestaurantScreen');
-  const { ThemeProvider } = require('@hg/ui-native');
-  const stack = require('../../navigation/stack');
   const restaurantId = restaurantDetail.payload.id;
 
   // `useNavigation` requires a `NavigationProvider` in the tree; substitute its context value

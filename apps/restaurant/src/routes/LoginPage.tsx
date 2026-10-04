@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Card, Icon, Input } from '@hg/ui-web';
+import { Button, Card, Input, Wordmark } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
 import { IconLock, IconMail } from '../lib/icons';
 
@@ -34,14 +34,12 @@ export function LoginPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-surface-sunken px-4">
       <div className="hg-fade-up w-full max-w-[400px]">
-        <div className="mb-7 flex flex-col items-center gap-3 text-center">
-          <div className="grid size-12 place-items-center rounded-lg bg-action-primary-bg text-action-primary-fg shadow-e2">
-            <Icon name="check" weight="bold" size={22} />
-          </div>
-          <div>
-            <h1 className="text-heading-md font-extrabold text-fg-primary">Halal Goes for restaurants</h1>
-            <p className="text-body-sm text-fg-secondary">Sign in to manage orders, menu and hours.</p>
-          </div>
+        <div className="mb-7 flex flex-col items-center gap-2 text-center">
+          <h1 className="flex flex-col items-center gap-1 text-heading-sm font-extrabold text-fg-primary">
+            <Wordmark height={64} />
+            <span>for restaurants</span>
+          </h1>
+          <p className="text-body-sm text-fg-secondary">Sign in to manage orders, menu and hours.</p>
         </div>
 
         <Card>
@@ -110,7 +108,7 @@ export function LoginPage() {
         </Card>
 
         <p className="mt-5 text-center text-body-sm text-fg-secondary">
-          New to Halal Goes?{' '}
+          New to HalalGoes?{' '}
           <Link to="/register" className="font-bold text-action-primary-bg">
             Register your restaurant
           </Link>

@@ -1,0 +1,81 @@
+{
+  "scenario": "restaurant_payout_history",
+  "domain": "rider",
+  "schema": "array<Payout>",
+  "describes": "A restaurant's payout history, newest first: this week still accruing, last week mid-transfer on Monday's run, three paid weeks before it. Weekly, automatic, no minimum.",
+  "operations": [
+    "listRestaurantPayouts"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "money"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 5
+  },
+  "payload": [
+    {
+      "id": "ead05246-9478-497b-a425-61055d495ccb",
+      "period_start": "2026-08-10T00:00:00.000Z",
+      "period_end": "2026-08-17T00:00:00.000Z",
+      "amount_cents": 0,
+      "currency": "CAD",
+      "state": "DRAFT",
+      "hold_reason": null,
+      "entry_count": 0,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "9cc3f734-f637-4f88-a480-b12ae8c0a098",
+      "period_start": "2026-08-03T00:00:00.000Z",
+      "period_end": "2026-08-10T00:00:00.000Z",
+      "amount_cents": 184250,
+      "currency": "CAD",
+      "state": "TRANSFERRING",
+      "hold_reason": null,
+      "entry_count": 61,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "eac331f1-85f8-4a63-a2ef-140b30c6348f",
+      "period_start": "2026-07-27T00:00:00.000Z",
+      "period_end": "2026-08-03T00:00:00.000Z",
+      "amount_cents": 201475,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 67,
+      "paid_at": "2026-08-05T00:00:00.000Z",
+      "failure_message": null
+    },
+    {
+      "id": "adaa4ce2-6f15-417e-abcc-f704c70b2238",
+      "period_start": "2026-07-20T00:00:00.000Z",
+      "period_end": "2026-07-27T00:00:00.000Z",
+      "amount_cents": 176830,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 58,
+      "paid_at": "2026-07-29T00:00:00.000Z",
+      "failure_message": null
+    },
+    {
+      "id": "307cbcfd-8df8-4cc8-ac83-7337b2110955",
+      "period_start": "2026-07-13T00:00:00.000Z",
+      "period_end": "2026-07-20T00:00:00.000Z",
+      "amount_cents": 193115,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 64,
+      "paid_at": "2026-07-22T00:00:00.000Z",
+      "failure_message": null
+    }
+  ]
+}

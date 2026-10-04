@@ -1,0 +1,20 @@
+{
+  "scenario": "error_menu_version_item_deleted",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ITEM_DELETED`. The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review.",
+  "operations": [
+    "decideMenuVersion"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ITEM_DELETED",
+      "message": "This item was removed from the menu.",
+      "request_id": "40J0HKDZT905WSP9TAHVJG102A"
+    }
+  }
+}

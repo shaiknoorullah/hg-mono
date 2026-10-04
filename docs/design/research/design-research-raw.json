@@ -1,11 +1,11 @@
 {
-  "summary": "Deep design research: flows, journeys, UI/UX references for all 4 Halal Goes apps + palette/icon/map directions, anchored on HungerStation-but-cleaner",
+  "summary": "Deep design research: flows, journeys, UI/UX references for all 4 HalalGoes apps + palette/icon/map directions, anchored on HungerStation-but-cleaner",
   "agentCount": 7,
   "logs": [],
   "result": {
     "apps": [
       {
-        "app": "Halal Goes — Customer App",
+        "app": "HalalGoes — Customer App",
         "primary_references": [
           {
             "name": "Revyl Atlas — DoorDash Screen Map",
@@ -298,7 +298,7 @@
         ]
       },
       {
-        "app": "Halal Goes — Rider (Courier) App",
+        "app": "HalalGoes — Rider (Courier) App",
         "primary_references": [
           {
             "name": "Uber Design — \"Uber Navigation: Designing for Drivers\" (Cady Wachsman)",
@@ -622,7 +622,7 @@
           {
             "name": "Stripe Dashboard — Disputes (evidence workflow)",
             "url": "https://docs.stripe.com/disputes",
-            "why": "A refund/dispute case in Halal Goes (A-33, A-35) needs the same shape: a reason code, an evidence/notes trail, a staged-then-submitted two-step commit, and automation (Smart Disputes) that pre-fills but still requires a human to not-object before an SLA deadline. Good model for the refund_approval_request second-approver flow.",
+            "why": "A refund/dispute case in HalalGoes (A-33, A-35) needs the same shape: a reason code, an evidence/notes trail, a staged-then-submitted two-step commit, and automation (Smart Disputes) that pre-fills but still requires a human to not-object before an SLA deadline. Good model for the refund_approval_request second-approver flow.",
             "key_screens": [
               "Dispute detail — reason, amount, respond-by countdown",
               "Evidence form split into text fields vs file-upload fields",
@@ -754,7 +754,7 @@
           },
           {
             "pattern": "Status badge token contract",
-            "detail": "One Badge component, five semantic variants (success/error/warning/info/neutral) mapped to color tokens, Title Case text ≤2 words matching the canonical API enum value verbatim (e.g. render 'Under Review' not 'Pending'), never icon-only without a `title` attribute for screen readers. In Halal Goes, 'success' variant must resolve to the tint-only semantic-success token — solid green stays reserved to color.halal.* per the house rule, so the admin app needs its own success color distinct from the halal seal's green.",
+            "detail": "One Badge component, five semantic variants (success/error/warning/info/neutral) mapped to color tokens, Title Case text ≤2 words matching the canonical API enum value verbatim (e.g. render 'Under Review' not 'Pending'), never icon-only without a `title` attribute for screen readers. In HalalGoes, 'success' variant must resolve to the tint-only semantic-success token — solid green stays reserved to color.halal.* per the house rule, so the admin app needs its own success color distinct from the halal seal's green.",
             "seen_in": "Vercel Geist Badge spec"
           },
           {
@@ -784,7 +784,7 @@
           },
           {
             "pattern": "Depth via surface ladder, not shadows; single reserved accent",
-            "detail": "For the cleaner/sleeker direction: build 3-4 flat surface tokens (canvas → surface-1 → surface-2 → surface-3) instead of box-shadows for panel/card elevation, hairline 1px dividers on tables, and reserve exactly one accent color for primary actionable elements. In Halal Goes this reserved accent should be the brand gold — leave green completely untouched by the admin app's generic UI (buttons, links, focus rings) so it stays a halal-only signal even inside the admin console.",
+            "detail": "For the cleaner/sleeker direction: build 3-4 flat surface tokens (canvas → surface-1 → surface-2 → surface-3) instead of box-shadows for panel/card elevation, hairline 1px dividers on tables, and reserve exactly one accent color for primary actionable elements. In HalalGoes this reserved accent should be the brand gold — leave green completely untouched by the admin app's generic UI (buttons, links, focus rings) so it stays a halal-only signal even inside the admin console.",
             "seen_in": "Linear design system"
           },
           {
@@ -1025,7 +1025,7 @@
         },
         {
           "name": "C — Gold + Maroon Duotone (premium/editorial, warmest)",
-          "rationale": "The 'cleaner, more modern, sleeker' reading of HungerStation: keep gold for action, but swap the operational chrome from cool Midnight-blue toward the HS maroon #5E2D20 as a warm secondary brand color, over the old-brand cream #FFFAEA as the app canvas. Gold CTA + deep maroon chrome + cream surface is a warm, confident, premium duotone that also quietly honors the OLD Halal Goes cream — a brand-continuity nod — while abandoning its now-forbidden forest green. Deals use a softer coral-magenta so the maroon chrome and the pink promos share a warm family. Primary CTA #FFC220 dark text 10.58:1 (AAA). Maroon chrome #5E2D20 carries white nav labels at ~11:1. Use this if the brand should feel less 'delivery-app loud' and more 'trusted halal marketplace'.",
+          "rationale": "The 'cleaner, more modern, sleeker' reading of HungerStation: keep gold for action, but swap the operational chrome from cool Midnight-blue toward the HS maroon #5E2D20 as a warm secondary brand color, over the old-brand cream #FFFAEA as the app canvas. Gold CTA + deep maroon chrome + cream surface is a warm, confident, premium duotone that also quietly honors the OLD HalalGoes cream — a brand-continuity nod — while abandoning its now-forbidden forest green. Deals use a softer coral-magenta so the maroon chrome and the pink promos share a warm family. Primary CTA #FFC220 dark text 10.58:1 (AAA). Maroon chrome #5E2D20 carries white nav labels at ~11:1. Use this if the brand should feel less 'delivery-app loud' and more 'trusted halal marketplace'.",
           "respects_invariants": "Maroon is a warm brown-red at hue ~12 but is used ONLY as chrome/secondary brand, never as a state — so it cannot be read as danger, and danger stays the true red #D92D20 reserved to semantic use (never halal). Green still reserved to halal. Cream is a neutral surface, not a success signal. Halal-expired stays slate; halal seal green is the only solid green. Success tint-only.",
           "tokens": [
             {
@@ -1304,7 +1304,7 @@
       ]
     },
     "report": {
-      "executive_summary": "Halal Goes should read as \"HungerStation's energy, made cleaner.\" The client's reference app gets its life not from yellow alone but from a division of labor most delivery apps miss: gold is the frame (logo, active nav, \"Add\"/\"Apply\" CTAs, location pin), magenta/maroon is a dedicated PROMO register, and blue carries \"free delivery\" links. hg's existing gold baseline (#FFC220) already passes every contrast gate; the single missing ingredient is that promo/discount accent layer. Adding it — as an isolated namespace that never touches semantic or halal roles — is the lowest-risk way to import HungerStation's punch without recalibrating anything.\n\nThe product's one load-bearing claim is halal verification, and the research repeatedly surfaces the same structural lesson from competitors: dietary/allergen trust is almost always reduced to a generic free-text box (an independent audit found 80% of DoorDash/Uber Eats restaurants expose nothing better). hg wins by making halal a first-class, queryable field with its own filter row, its own card badge slot, and — on the restaurant page — a full certification PANEL (certifying body, expiry, seven-check summary), not a corner icon. Three invariants must be visible in every mock: a missing halal field renders NO badge (never optimistic, never a flash of green while data loads); expired/can't-vouch is cool slate, never red (red reads as a haram ruling the platform must not make); solid green is reserved to the halal seal, so generic success is tint-only.\n\nRecommended visual direction is \"Saffron Sharpened\" (Direction A): keep the calibrated gold ramp and warm neutrals verbatim, add a promo family (magenta #E5157E / discount #C31B6B / HS-verified maroon #5E2D20) and a formalized link-blue (#0959B8). Icons: Phosphor (one family, matched outline+fill weights — solving the HungerStation inactive-outline/active-fill nav pattern from a single source). Maps: two published Mapbox Studio styles (hg-light forked from warm Monochrome, hg-dark from Midnight), deliberately desaturated so gold routes and pins are the only saturated thing on screen; verified-halal pins are the sole place halal green appears on the map.\n\nResearch coverage note: Customer and Rider apps are fully sourced below. The Admin ops console has strong references (Stripe Identity, Linear, shadcn Data Table, Trust & Safety queues) centered on the seven-check verification instrument. The Restaurant/merchant operator app was not covered in the source research — flagged in \"apply to hg\" as the top open gap to close before the client walkthrough.",
+      "executive_summary": "HalalGoes should read as \"HungerStation's energy, made cleaner.\" The client's reference app gets its life not from yellow alone but from a division of labor most delivery apps miss: gold is the frame (logo, active nav, \"Add\"/\"Apply\" CTAs, location pin), magenta/maroon is a dedicated PROMO register, and blue carries \"free delivery\" links. hg's existing gold baseline (#FFC220) already passes every contrast gate; the single missing ingredient is that promo/discount accent layer. Adding it — as an isolated namespace that never touches semantic or halal roles — is the lowest-risk way to import HungerStation's punch without recalibrating anything.\n\nThe product's one load-bearing claim is halal verification, and the research repeatedly surfaces the same structural lesson from competitors: dietary/allergen trust is almost always reduced to a generic free-text box (an independent audit found 80% of DoorDash/Uber Eats restaurants expose nothing better). hg wins by making halal a first-class, queryable field with its own filter row, its own card badge slot, and — on the restaurant page — a full certification PANEL (certifying body, expiry, seven-check summary), not a corner icon. Three invariants must be visible in every mock: a missing halal field renders NO badge (never optimistic, never a flash of green while data loads); expired/can't-vouch is cool slate, never red (red reads as a haram ruling the platform must not make); solid green is reserved to the halal seal, so generic success is tint-only.\n\nRecommended visual direction is \"Saffron Sharpened\" (Direction A): keep the calibrated gold ramp and warm neutrals verbatim, add a promo family (magenta #E5157E / discount #C31B6B / HS-verified maroon #5E2D20) and a formalized link-blue (#0959B8). Icons: Phosphor (one family, matched outline+fill weights — solving the HungerStation inactive-outline/active-fill nav pattern from a single source). Maps: two published Mapbox Studio styles (hg-light forked from warm Monochrome, hg-dark from Midnight), deliberately desaturated so gold routes and pins are the only saturated thing on screen; verified-halal pins are the sole place halal green appears on the map.\n\nResearch coverage note: Customer and Rider apps are fully sourced below. The Admin ops console has strong references (Stripe Identity, Linear, shadcn Data Table, Trust & Safety queues) centered on the seven-check verification instrument. The Restaurant/merchant operator app was not covered in the source research — flagged in \"apply to hg\" as the top open gap to close before the client walkthrough.",
       "per_app": [
         {
           "app": "Customer (mobile / Expo)",
@@ -1420,14 +1420,14 @@
           ]
         }
       ],
-      "palette_recommendation": "RECOMMENDED: Direction A — 'Saffron Sharpened' (lowest-risk blend). Keep hg's already-contrast-calibrated gold ramp and warm neutrals verbatim (they pass every gate) and add the one thing HungerStation has that hg lacks: a dedicated PROMO register plus a formalized link-blue. Primary CTA stays brand.500 #FFC220 with dark onBrand text #1F1B17 at 10.58:1 (AAA); white-on-gold stays banned (1.62:1). New promo namespace: promo.500 #E5157E (icon/large-badge only, ~4.0:1 white), promo.600 #C31B6B (discount pill, white ~5.4:1 AA), HS-verified maroon #5E2D20 (deep 'save %' pill, white ~11:1), promo.50 #FDE9F3 tint; link/info.600 #0959B8 for 'free delivery' + links. Nothing recalibrates — HungerStation's energy arrives as an accent layer. Respects every invariant: green stays halal-only, success is tint-only emerald (#067A55, no fill), halal-expired is cool slate #4E5862 (never red), promo pink/maroon are forbidden from halal and semantic roles so pink is never mistaken for a state, missing halal field still renders no badge.\n\nTwo alternatives for the walkthrough:\nDirection B — 'HungerStation Bright': lift the CTA to a brighter signal-gold brand.500 #FFD400 (hue ~50, nudged AWAY from the halal-green hue; dark text ~11.8:1, actually higher contrast than today) with a hotter promo shelf. Choose if the client wants the app visibly louder/younger. Deliberately avoids HS's true #FBEF00 acid lemon, which leans chartreuse toward green and is unusable next to a green seal.\n\nDirection C — 'Gold + Maroon Duotone' (premium/editorial): gold for action, HS maroon #5E2D20 as warm secondary chrome/AppBar (white labels ~11:1) over old-HG cream #FFFAEA canvas — a warm 'trusted marketplace' feel that quietly honors the old brand's cream while abandoning its now-forbidden forest green. Maroon is used ONLY as chrome, never as a state, so danger stays true red #D92D20 (semantic only, never halal). Choose if the brand should feel less 'delivery-app loud.'\n\nNote for the client: the OLD Halal Goes was forest-green-forward (#1B3B31 + cream). That green now COLLIDES with invariant #10 — reviving it as chrome would break the halal signal. The pivot to gold isn't just aesthetic; it freed green to mean 'halal-verified' exclusively. Reuse the old logo only if re-colored to gold; do not reintroduce #1B3B31 or the old orange #FD5000.",
+      "palette_recommendation": "RECOMMENDED: Direction A — 'Saffron Sharpened' (lowest-risk blend). Keep hg's already-contrast-calibrated gold ramp and warm neutrals verbatim (they pass every gate) and add the one thing HungerStation has that hg lacks: a dedicated PROMO register plus a formalized link-blue. Primary CTA stays brand.500 #FFC220 with dark onBrand text #1F1B17 at 10.58:1 (AAA); white-on-gold stays banned (1.62:1). New promo namespace: promo.500 #E5157E (icon/large-badge only, ~4.0:1 white), promo.600 #C31B6B (discount pill, white ~5.4:1 AA), HS-verified maroon #5E2D20 (deep 'save %' pill, white ~11:1), promo.50 #FDE9F3 tint; link/info.600 #0959B8 for 'free delivery' + links. Nothing recalibrates — HungerStation's energy arrives as an accent layer. Respects every invariant: green stays halal-only, success is tint-only emerald (#067A55, no fill), halal-expired is cool slate #4E5862 (never red), promo pink/maroon are forbidden from halal and semantic roles so pink is never mistaken for a state, missing halal field still renders no badge.\n\nTwo alternatives for the walkthrough:\nDirection B — 'HungerStation Bright': lift the CTA to a brighter signal-gold brand.500 #FFD400 (hue ~50, nudged AWAY from the halal-green hue; dark text ~11.8:1, actually higher contrast than today) with a hotter promo shelf. Choose if the client wants the app visibly louder/younger. Deliberately avoids HS's true #FBEF00 acid lemon, which leans chartreuse toward green and is unusable next to a green seal.\n\nDirection C — 'Gold + Maroon Duotone' (premium/editorial): gold for action, HS maroon #5E2D20 as warm secondary chrome/AppBar (white labels ~11:1) over old-HG cream #FFFAEA canvas — a warm 'trusted marketplace' feel that quietly honors the old brand's cream while abandoning its now-forbidden forest green. Maroon is used ONLY as chrome, never as a state, so danger stays true red #D92D20 (semantic only, never halal). Choose if the brand should feel less 'delivery-app loud.'\n\nNote for the client: the OLD HalalGoes was forest-green-forward (#1B3B31 + cream). That green now COLLIDES with invariant #10 — reviving it as chrome would break the halal signal. The pivot to gold isn't just aesthetic; it freed green to mean 'halal-verified' exclusively. Reuse the old logo only if re-colored to gold; do not reintroduce #1B3B31 or the old orange #FD5000.",
       "icon_and_map": "ICONS — Phosphor Icons. HungerStation (and most modern delivery apps) uses outline icons for inactive tabs and FILLED icons for the active tab. Phosphor ships all ~9,000 icons in 6 matched weights (Thin/Light/Regular/Bold/Fill/Duotone) from ONE family, so inactive=Regular and active=Fill share identical geometry — no second library, no compositing hacks. Duotone suits the category tiles and menu-modifier illustrations. First-class React + React Native packages (@phosphor-icons/react, phosphor-react-native) cover both Expo apps and both web consoles; MIT, tree-shakeable. The active-fill capability is the deciding factor — it's exactly the HS nav energy, solved in one consistent family. Alternatives: Lucide (cleanest outline-only set — pick if the client wants maximum minimalism and accepts background-fill active states); Iconsax (very delivery-app-modern but looser stroke consistency and non-MIT free tier); SF Symbols EXCLUDED (Apple-only, breaks cross-platform parity).\n\nMAPS — Mapbox on the client's existing single account. Use @rnmapbox/maps for the Expo apps (requires an Expo DEV BUILD, not Expo Go) and mapbox-gl-js for admin web. Ship TWO published Mapbox Studio styles, hg-light and hg-dark, switched by color-scheme. Fork Mapbox 'Monochrome' via the Studio Style Generator: seed hg-light from warm neutral #FAF9F7 (start from the 'Golden' preset, pull saturation down to a warm greige), seed hg-dark from Midnight #080F1C so night matches the rider offer chrome. Keep the basemap deliberately DESATURATED and mute POI/road labels to neutral 500-600 — that restraint is what reads 'cleaner than HungerStation.' Route line = gold #FFC220 core with a #DFA400 casing on light (step up to #FFDB69 on dark for ≥3:1). Customer location + delivery pins = gold; rider live marker = the operational Midnight #24406F (Dir A/B) or maroon #5E2D20 (Dir C), kept distinct from the gold route; destination pin = neutral #1F1B17 teardrop. Verified-halal restaurant markers are the ONE place halal seal green (#04482A light / #0F7A46 dark, brass ring) appears on the map — the registered map-pin exception; non-verified restaurants get a neutral #4A443B pin with NO green (invariant #8). Never red for any halal or unavailable-restaurant map state — use neutral/slate. For ETA, use the Mapbox Matrix API (traffic- and courier-mode-aware, validated by Wolt's switchback experiments) plus Static Maps for lightweight tracking images — not a flat average. On the rider side, hook Mapbox Navigation SDK's built-in Day/Night theme classes (auto-switch on time-of-day/tunnel) into the same custom styles.",
       "apply_to_hg": [
         "1. Close the Restaurant/merchant operator research gap BEFORE the client walkthrough — it is the one app with zero source coverage. Mine FoodMagic (dribbble 22162296), Shopify Polaris (table/empty-state/voice), and Uber Base; storyboard the order-accept queue (it is the authorise→capture trigger, invariant #5) and a non-green availability toggle. This is the top open blocker.",
         "2. Add the promo/link accent layer to tokens.json now (Direction A): promo.500 #E5157E, promo.600 #C31B6B, promo.maroon #5E2D20, promo.50 #FDE9F3, link/info.600 #0959B8. Wire lint so promo.* is forbidden from halal.* and from semantic success/danger roles — this is what safely imports HungerStation's energy without recalibration.",
         "3. Build the halal certification PANEL component (restaurant page) with its OWN loading skeleton distinct from generic content skeletons, plus the card-level badge SLOT that renders nothing on null/loading. Prove invariant #8 (no optimistic badge, no green flash) and invariant #9 (expired = slate #4E5862) in a real mock, both themes. Highest-trust surface in the product.",
         "4. Make 'Halal Certified' a first-class filter section pinned at the top of the filter bottom sheet (not alphabetized among vegan/gluten-free) and a distinct home-screen category tile — signals platform guarantee vs per-user preference.",
-        "5. Ship the two Mapbox Studio styles (hg-light from warm Monochrome, hg-dark from Midnight), desaturated, with the gold route + halal-green verified pin exception. Confirm the Expo apps move to a DEV BUILD (rnmapbox needs it — not Expo Go); note this against the known gallery-native Expo Go constraint. Adopt Matrix API for ETA, not a static average.",
+        "5. Ship the two Mapbox Studio styles (hg-light from warm Monochrome, hg-dark from Midnight), desaturated, with the gold route + halal-green verified pin exception. Confirm the Expo apps move to a DEV BUILD (rnmapbox needs it — not Expo Go); note this against the known Expo Go constraint of the (since removed) native component gallery. Adopt Matrix API for ETA, not a static average.",
         "6. Adopt Phosphor across all four apps; standardize the nav pattern as Regular (inactive) + Fill (active) from the single family, and the delivery-time shield glyph on restaurant cards.",
         "7. Bake the anti-dark-pattern stances into the design spec as hard rules: tip defaults UNSELECTED with 'No tip' at equal weight (counter DoorDash); fee breakdown EXPANDED by default (no fees hidden in tax); payment + place-order in ONE step (no Glovo-style late round-trip); reorder RE-PRICES server-side (invariant #1); 'Order Again' rail in the homepage first viewport (Baymard).",
         "8. Rider: implement P0/P1/P2 comms tiering and a differentiated 'looking for offers' state (not a spinner) around a map-first home; use the 3-foot/1-second rule as the active-trip design constraint; keep the offer countdown but make the decline flow non-punitive (disclose any acceptance metric plainly). Enforce the KYC document flow as private-bucket + presigned (invariant #7) with an explicit 'under review up to 48h' state.",
@@ -1461,7 +1461,7 @@
       "queuedAt": 1786741397446,
       "attempt": 1,
       "lastToolName": "StructuredOutput",
-      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "promptPreview": "PROJECT: HalalGoes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
       "lastProgressAt": 1786741748954,
       "tokens": 58044,
       "toolCalls": 22,
@@ -1481,7 +1481,7 @@
       "queuedAt": 1786741397447,
       "attempt": 1,
       "lastToolName": "StructuredOutput",
-      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "promptPreview": "PROJECT: HalalGoes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
       "lastProgressAt": 1786741489125,
       "tokens": 48367,
       "toolCalls": 13,
@@ -1501,13 +1501,13 @@
       "queuedAt": 1786741398190,
       "attempt": 1,
       "lastToolName": "StructuredOutput",
-      "lastToolSummary": "Halal Goes — Customer App",
-      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "lastToolSummary": "HalalGoes — Customer App",
+      "promptPreview": "PROJECT: HalalGoes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
       "lastProgressAt": 1786741639115,
       "tokens": 65152,
       "toolCalls": 30,
       "durationMs": 240784,
-      "resultPreview": "{\"app\":\"Halal Goes — Customer App\",\"primary_references\":[{\"name\":\"Revyl Atlas — DoorDash Screen Map\",\"url\":\"https://revyl.com/atlas/doordash/\",\"why\":\"The single most useful reference found: an exhaustive, structured map of 98 real DoorDash iOS screens, 112 transitions, 37 named user paths and a 651-element UI inventory, organized exactly by the flow categories this task needs (home/discovery, stor…"
+      "resultPreview": "{\"app\":\"HalalGoes — Customer App\",\"primary_references\":[{\"name\":\"Revyl Atlas — DoorDash Screen Map\",\"url\":\"https://revyl.com/atlas/doordash/\",\"why\":\"The single most useful reference found: an exhaustive, structured map of 98 real DoorDash iOS screens, 112 transitions, 37 named user paths and a 651-element UI inventory, organized exactly by the flow categories this task needs (home/discovery, stor…"
     },
     {
       "type": "workflow_agent",
@@ -1522,13 +1522,13 @@
       "queuedAt": 1786741398191,
       "attempt": 1,
       "lastToolName": "StructuredOutput",
-      "lastToolSummary": "Halal Goes — Rider (Courier) App",
-      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "lastToolSummary": "HalalGoes — Rider (Courier) App",
+      "promptPreview": "PROJECT: HalalGoes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
       "lastProgressAt": 1786741635992,
       "tokens": 63781,
       "toolCalls": 31,
       "durationMs": 235751,
-      "resultPreview": "{\"app\":\"Halal Goes — Rider (Courier) App\",\"primary_references\":[{\"name\":\"Uber Design — \\\"Uber Navigation: Designing for Drivers\\\" (Cady Wachsman)\",\"url\":\"https://medium.com/uber-design/uber-navigation-f662e7611f3\",\"why\":\"The single best primary source on map-heavy driver UX. Defines the \\\"3-foot, 1-second rule\\\" that should govern every active-delivery screen decision, plus night-mode methodology …"
+      "resultPreview": "{\"app\":\"HalalGoes — Rider (Courier) App\",\"primary_references\":[{\"name\":\"Uber Design — \\\"Uber Navigation: Designing for Drivers\\\" (Cady Wachsman)\",\"url\":\"https://medium.com/uber-design/uber-navigation-f662e7611f3\",\"why\":\"The single best primary source on map-heavy driver UX. Defines the \\\"3-foot, 1-second rule\\\" that should govern every active-delivery screen decision, plus night-mode methodology …"
     },
     {
       "type": "workflow_agent",
@@ -1544,7 +1544,7 @@
       "attempt": 1,
       "lastToolName": "StructuredOutput",
       "lastToolSummary": "placeholder",
-      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "promptPreview": "PROJECT: HalalGoes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
       "lastProgressAt": 1786741511905,
       "tokens": 64212,
       "toolCalls": 32,
@@ -1565,7 +1565,7 @@
       "attempt": 1,
       "lastToolName": "StructuredOutput",
       "lastToolSummary": "admin",
-      "promptPreview": "PROJECT: Halal Goes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
+      "promptPreview": "PROJECT: HalalGoes — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Four apps: customer (mobile/Expo), rider (mobile/Expo), restaurant (web/tablet operator), admin (web ops console). The product's single load-bearing claim is HALAL VERIFICATION.\n\nDESIGN DIRECTION (from the client): emulate the HungerStation customer app's energy but make it CLEANER, more MODERN, SLEEKER, wit…",
       "lastProgressAt": 1786741665955,
       "tokens": 86274,
       "toolCalls": 37,
@@ -1585,13 +1585,13 @@
       "queuedAt": 1786741749201,
       "attempt": 1,
       "lastToolName": "StructuredOutput",
-      "lastToolSummary": "Halal Goes should read as \"HungerStation's energy, made cle…",
-      "promptPreview": "Synthesize a single design-research report for Halal Goes from the research below. Keep it concrete and client-facing.\n\nPER-APP RESEARCH:\n[{\"app\":\"Halal Goes — Customer App\",\"primary_references\":[{\"name\":\"Revyl Atlas — DoorDash Screen Map\",\"url\":\"https://revyl.com/atlas/doordash/\",\"why\":\"The single most useful reference found: an exhaustive, structured map of 98 real DoorDash iOS screens, 112 tran…",
+      "lastToolSummary": "HalalGoes should read as \"HungerStation's energy, made cle…",
+      "promptPreview": "Synthesize a single design-research report for HalalGoes from the research below. Keep it concrete and client-facing.\n\nPER-APP RESEARCH:\n[{\"app\":\"HalalGoes — Customer App\",\"primary_references\":[{\"name\":\"Revyl Atlas — DoorDash Screen Map\",\"url\":\"https://revyl.com/atlas/doordash/\",\"why\":\"The single most useful reference found: an exhaustive, structured map of 98 real DoorDash iOS screens, 112 tran…",
       "lastProgressAt": 1786741899884,
       "tokens": 59420,
       "toolCalls": 1,
       "durationMs": 149776,
-      "resultPreview": "{\"executive_summary\":\"Halal Goes should read as \\\"HungerStation's energy, made cleaner.\\\" The client's reference app gets its life not from yellow alone but from a division of labor most delivery apps miss: gold is the frame (logo, active nav, \\\"Add\\\"/\\\"Apply\\\" CTAs, location pin), magenta/maroon is a dedicated PROMO register, and blue carries \\\"free delivery\\\" links. hg's existing gold baseline (…"
+      "resultPreview": "{\"executive_summary\":\"HalalGoes should read as \\\"HungerStation's energy, made cleaner.\\\" The client's reference app gets its life not from yellow alone but from a division of labor most delivery apps miss: gold is the frame (logo, active nav, \\\"Add\\\"/\\\"Apply\\\" CTAs, location pin), magenta/maroon is a dedicated PROMO register, and blue carries \\\"free delivery\\\" links. hg's existing gold baseline (…"
     }
   ],
   "totalTokens": 445250,

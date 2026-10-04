@@ -215,8 +215,8 @@ export function HalalCertificationPanel(
       <p className="text-caption text-fg-secondary" data-testid="HalalCertificationPanel-disclaimer">
         {certification.disclaimer ||
           (verifiedAt
-            ? `Certification verified by Halal Goes on ${verifiedAt}. Halal Goes does not itself certify food.`
-            : 'Halal Goes does not itself certify food.')}
+            ? `Certification verified by HalalGoes on ${verifiedAt}. HalalGoes does not itself certify food.`
+            : 'HalalGoes does not itself certify food.')}
       </p>
 
       {/* 8. Report a halal concern — server-assigned CRITICAL, 4 h acknowledge SLA. */}

@@ -1,59 +1,64 @@
 /**
- * Dynamic app config — a plain `app.json` cannot read `process.env`, and the `@rnmapbox/maps`
- * config plugin needs a Mapbox token at prebuild time (Android's `build.gradle` bakes it in as
- * a Maven credential, iOS reads it too). Everything else here is unchanged from the old static
- * `app.json`.
+ * The customer app's Expo config, per environment.
  *
- * Two DIFFERENT Mapbox tokens are in play, and conflating them is a real footgun:
- *   - `RNMapboxMapsDownloadToken` — a SECRET (`sk.…`) used only during native build to download
- *     the Mapbox SDK itself. Never `EXPO_PUBLIC_*` (that prefix ships to the client bundle).
- *   - `EXPO_PUBLIC_MAPBOX_TOKEN` — the PUBLIC runtime token (`pk.…`) `MapView` calls read at
- *     render time (see `.env.example`).
+ * `APP_ENV` (dev or prod) picks the app's name, package and version; the API it talks to comes
+ * from `EXPO_PUBLIC_API_BASE_URL`, which `scripts/release/app-env.cjs` sets for the same
+ * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
+ * API but production's. How to build each: docs/release/README.md.
  *
- * This app has no download-token secret configured yet (O-05-adjacent: blocked on Mapbox
- * account setup, not tracked as a numbered decision). Falling back to the public token for the
- * plugin config keeps `expo config` and `prebuild` resolving without a secret in this repo, but
- * it is a placeholder — a real dev/production build needs `MAPBOX_DOWNLOAD_TOKEN` (a secret,
- * deliberately NOT `EXPO_PUBLIC_*`) set in the EAS project's environment before it will actually
- * fetch the native SDK.
+ * Mapbox: the runtime token is the PUBLIC `EXPO_PUBLIC_MAPBOX_TOKEN` (`pk.…`), read at render
+ * time (see `.env.example`). The native SDK no longer needs a download token: Mapbox serves it
+ * without one, and the `@rnmapbox/maps` plugin only adds credentials when
+ * `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` is set. Never pass the public token as a download token: the
+ * download server rejects a `pk.` token and the native build fails.
  */
-module.exports = ({ config }) => ({
-  ...config,
-  expo: {
-    name: 'Halal Goes — Customer',
-    slug: 'hg-customer',
-    version: '0.0.0',
-    orientation: 'portrait',
-    scheme: 'hgcustomer',
-    userInterfaceStyle: 'light',
-    newArchEnabled: true,
-    platforms: ['ios', 'android', 'web'],
-    web: {
-      bundler: 'metro',
-      output: 'single',
-    },
-    ios: {
-      supportsTablet: true,
-      bundleIdentifier: 'com.halalgoes.customer',
-    },
-    android: {
-      edgeToEdgeEnabled: true,
-      package: 'com.halalgoes.customer',
-    },
-    plugins: [
-      [
-        '@rnmapbox/maps',
-        {
-          RNMapboxMapsDownloadToken:
-            process.env.MAPBOX_DOWNLOAD_TOKEN || process.env.EXPO_PUBLIC_MAPBOX_TOKEN || '',
+const { expoAppEnv } = require('../../scripts/release/app-env.cjs');
+
+module.exports = () => {
+  const env = expoAppEnv(process.env);
+  return {
+    expo: {
+      name: `HalalGoes — Customer${env.nameSuffix}`,
+      slug: 'hg-customer',
+      version: env.version,
+      orientation: 'portrait',
+      scheme: 'hgcustomer',
+      userInterfaceStyle: 'light',
+      newArchEnabled: true,
+      // The HalalGoes logo. Every file under assets/ is written by
+      // `pnpm --filter @hg/brand build:assets` from the one traced geometry; do
+      // not edit them by hand. #FFFAEA is the light theme's surface.base.
+      icon: './assets/icon.png',
+      splash: {
+        image: './assets/splash.png',
+        resizeMode: 'contain',
+        backgroundColor: '#FFFAEA',
+      },
+      platforms: ['ios', 'android', 'web'],
+      web: {
+        bundler: 'metro',
+        output: 'single',
+        favicon: './assets/favicon.png',
+      },
+      ios: {
+        supportsTablet: true,
+        bundleIdentifier: `com.halalgoes.customer${env.idSuffix}`,
+      },
+      android: {
+        edgeToEdgeEnabled: true,
+        package: `com.halalgoes.customer${env.idSuffix}`,
+        versionCode: env.versionCode,
+        adaptiveIcon: {
+          foregroundImage: './assets/adaptive-icon.png',
+          backgroundColor: '#FFFAEA',
         },
-      ],
-      'expo-dev-client',
-    ],
-    extra: {
-      // Surfaced here (in addition to the plain `EXPO_PUBLIC_MAPBOX_TOKEN` read at call sites)
-      // so `npx expo config --type public` shows a resolved value to sanity-check against.
-      mapboxPublicTokenConfigured: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
+      },
+      plugins: ['@rnmapbox/maps', 'expo-dev-client'],
+      extra: {
+        appEnv: env.name,
+        // So `npx expo config --type public` shows whether a map token was present at build time.
+        mapboxPublicTokenConfigured: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
+      },
     },
-  },
-});
+  };
+};

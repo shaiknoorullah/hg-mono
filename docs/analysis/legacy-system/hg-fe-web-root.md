@@ -1,4 +1,4 @@
-# Halal Goes Frontend — `apps/web`, `apps/docs`, and Monorepo Root (`/home/user/halal-goes`)
+# HalalGoes Frontend — `apps/web`, `apps/docs`, and Monorepo Root (`/home/user/halal-goes`)
 
 Fleet analysis area: **halal-goes: web + docs apps and monorepo root**
 Scope: `/home/user/halal-goes/apps/web`, `/home/user/halal-goes/apps/docs`, and repo-root files (`App.tsx`, `app.json`, `eas.json`, `turbo.json`, `package.json`, `tailwind.config.js`, `postcss.config.js`, `tsconfig.json`, commitlint, `.husky`, `.vscode`, `test/`, `README.md`, plus `.github`, `.prettierrc`, `.yarnrc.yml`, `.gitignore`, `.gitattributes`).
@@ -8,7 +8,7 @@ Scope: `/home/user/halal-goes/apps/web`, `/home/user/halal-goes/apps/docs`, and 
 ## 1. Purpose & Role in the Platform
 
 - **Monorepo root**: The `halal-goes` repo is a **Turborepo + Yarn 4 workspaces** monorepo hosting the platform's entire frontend surface: three Expo mobile apps (`users`, `rider`, `restaurant`), two production Next.js webs (`admin-web`, `restaurant-web`), two scaffold Next.js apps (`web`, `docs`), and shared packages (`@repo/ui`, `@repo/eslint-config`, `@repo/typescript-config`, `@repo/tailwind-config`, `auth`). The root wires the developer workflow: turbo task graph, husky git hooks, commitlint/commitizen conventional commits, prettier, a root-level mocha test harness, and a GitHub Actions PR-validation pipeline.
-- **`apps/web` and `apps/docs`**: Both are **completely unmodified `create-turbo` / `create-next-app` starter templates** (Next.js 15 + React 19, App Router). Neither contains a single line of Halal Goes business logic. They render the stock Turborepo landing page (Turborepo logo, "Deploy now" Vercel CTA, `@repo/ui` demo Button that fires `alert()`). They exist because the monorepo was bootstrapped with `npx create-turbo@latest` and the starter apps were never deleted. The root `README.md` is likewise the verbatim Turborepo starter README (it even says "maintained by the Turborepo core team" and uses `pnpm` in examples, while the repo actually uses Yarn 4).
+- **`apps/web` and `apps/docs`**: Both are **completely unmodified `create-turbo` / `create-next-app` starter templates** (Next.js 15 + React 19, App Router). Neither contains a single line of HalalGoes business logic. They render the stock Turborepo landing page (Turborepo logo, "Deploy now" Vercel CTA, `@repo/ui` demo Button that fires `alert()`). They exist because the monorepo was bootstrapped with `npx create-turbo@latest` and the starter apps were never deleted. The root `README.md` is likewise the verbatim Turborepo starter README (it even says "maintained by the Turborepo core team" and uses `pnpm` in examples, while the repo actually uses Yarn 4).
 - Practical role today: `web` and `docs` are **dead weight / placeholders** (a customer-facing marketing web and a docs site were presumably intended), but they still participate in `turbo run build/lint/check-types`, i.e. they cost CI time and can fail validation.
 
 ---
@@ -32,7 +32,7 @@ Scope: `/home/user/halal-goes/apps/web`, `/home/user/halal-goes/apps/docs`, and 
 | `/home/user/halal-goes/.husky/commit-msg` | Git hook | `yarn commitlint --edit $1` |
 | `/home/user/halal-goes/.vscode/settings.json` | Editor config | `eslint.workingDirectories: [{ mode: "auto" }]` only. (`.gitignore` ignores `.vscode/` yet this file is checked in) |
 | `/home/user/halal-goes/test/example.test.js` | Root mocha test | Toy `add(a,b)` suite demonstrating chai + sinon spies/stubs on `console.log`. No connection to any product code. Run via `yarn test:root` (`mocha`) |
-| `/home/user/halal-goes/README.md` | Root README | Verbatim Turborepo starter README; references pnpm, `@repo/ui` stub, remote caching via Vercel. No Halal Goes content |
+| `/home/user/halal-goes/README.md` | Root README | Verbatim Turborepo starter README; references pnpm, `@repo/ui` stub, remote caching via Vercel. No HalalGoes content |
 | `/home/user/halal-goes/.prettierrc` | Prettier | `endOfLine: lf`, `semi: true`, `singleQuote: true`, `tabWidth: 2`, `trailingComma: es5` |
 | `/home/user/halal-goes/.yarnrc.yml` | Yarn 4 config | `compressionLevel: mixed`, `enableGlobalCache: true`, `nodeLinker: node-modules`, `yarnPath: .yarn/releases/yarn-4.9.2.cjs` (vendored binary present) |
 | `/home/user/halal-goes/.gitattributes` | Line endings | `* text=auto eol=lf`; explicit `eol=lf` for js/jsx/ts/tsx/json/md/yml/yaml |

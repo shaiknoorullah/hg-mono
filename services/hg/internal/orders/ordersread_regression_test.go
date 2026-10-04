@@ -102,7 +102,7 @@ func buildTestReceiptSnapshotJSON() []byte {
 		"order_code":                         "HG-REG-01",
 		"receipt_number":                     "HG-2026-000000999",
 		"issued_at":                          time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
-		"platform_legal_name":                "Halal Goes Technologies Inc.",
+		"platform_legal_name":                "HalalGoes Technologies Inc.",
 		"platform_tax_registration_number":   nil,
 		"restaurant_legal_name":              "Test Co",
 		"restaurant_tax_registration_number": nil,

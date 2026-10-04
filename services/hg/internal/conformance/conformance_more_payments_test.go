@@ -226,7 +226,7 @@ func mpReceiptSnapshot(orderID string) []byte {
 		"order_code":                         "HG-RCPT01",
 		"receipt_number":                     "R-2026-000001",
 		"issued_at":                          "2026-08-14T12:00:00.000Z",
-		"platform_legal_name":                "Halal Goes Inc.",
+		"platform_legal_name":                "HalalGoes Inc.",
 		"platform_tax_registration_number":   nil,
 		"restaurant_legal_name":              "CR Kitchen Inc.",
 		"restaurant_tax_registration_number": nil,

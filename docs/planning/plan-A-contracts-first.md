@@ -27,7 +27,7 @@ First deliverable is not a feature: the thinnest slice through the *real* target
 - **Hallucination** → contracts-first + generated code + CI drift gate; tests-first means invented behavior has no green test to hide behind.
 - **Blind spots** → independent adversarial verification + integration tests vs real Postgres/Redis + per-milestone "what's missing?" completeness critic.
 - **Mis-design** → design frozen in reviewed spec before code; every reversible decision behind a small port/adapter.
-- **Big bugs/rewrites** → small reversible PRs + delivery-first + **every Halal Goes bug encoded as a permanent regression test** (server-authoritative pricing, auth required, private KYC buckets).
+- **Big bugs/rewrites** → small reversible PRs + delivery-first + **every HalalGoes bug encoded as a permanent regression test** (server-authoritative pricing, auth required, private KYC buckets).
 
 ## 5. Orchestration (Temporal replacement)
 Do not adopt another heavy engine. Put orchestration behind an internal `Saga`/`Orchestrator` **port**; implement with the simplest Go-native durable primitive: **transactional outbox + explicit saga state machine in Postgres + River (Go-native Postgres-backed queue) for retries/timers/async steps.** Zero new infra, pure Go, trivially unit-testable. If outgrown, **Restate** swaps in behind the port. Default: outbox + River.
@@ -36,7 +36,7 @@ Do not adopt another heavy engine. Put orchestration behind an internal `Saga`/`
 compose + Traefik from the walking skeleton onward; routing/LB/TLS via labels; one compose service per service. e2e tests run against the *composed* stack in CI, so "it deploys" is proven continuously.
 
 ## 7. UI/UX overhaul
-Design as an upstream frozen spec: design-system + user-flows + wireframes reviewed *before* implementation. Build the design-system package first (tokens + primitives); every screen consumes it. Prevents the divergence seen in Halal Goes (four regional configs, mock screens).
+Design as an upstream frozen spec: design-system + user-flows + wireframes reviewed *before* implementation. Build the design-system package first (tokens + primitives); every screen consumes it. Prevents the divergence seen in HalalGoes (four regional configs, mock screens).
 
 ## 8. Start sequence
 1. Spec-of-record (bounded contexts + event catalog + first protos + encoded-invariants list) — one hard human review.

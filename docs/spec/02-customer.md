@@ -1,6 +1,14 @@
-# Halal Goes — CUSTOMER Domain Specification
+---
+covers:
+  - apps/customer/**
+  - services/hg/internal/account/**
+  - services/hg/internal/addresses/**
+reviewed: 2026-10-04
+---
 
-**Target architecture:** Go modular monolith, single binary. PostgreSQL 17 + PostGIS · Redis · MinIO · Traefik. Expo (React Native) customer app.
+# HalalGoes — CUSTOMER Domain Specification
+
+**Target architecture:** Go modular monolith, single binary. PostgreSQL 17 + PostGIS · Redis · [Silo](https://github.com/pgsty/silo), the maintained MinIO fork ([object storage](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) · Traefik. Expo (React Native) customer app.
 **Contract source:** SOW items **9–17** (Customers).
 **Ground truth for "what exists":** `scope/features-customer-rider.md`, `fleet/hg-fe-users-app.md`, `fleet/hg-api-*.md`, `fleet/crosscut-order-flow.md`.
 **Date:** 2026-08-10 · **Status:** implementable spec, pending the decisions in §Decisions required.
@@ -21,7 +29,9 @@ These exist so that individual features do not have to re-litigate them. Anythin
 | Money representation | **Integer minor units (cents), `int64`, everywhere in Go.** DB columns are `numeric(12,2)`. The existing `@db.Money` columns and all JS-float arithmetic in the current pricing activities are replaced. No `float64` may appear in any pricing, order, payment, or refund code path. |
 | Rounding | A single helper `money.Round(cents int64) int64` = identity. Percentage discounts round **half-down to the cent** (`floor(x + 0.5)` on cents, ties toward the customer). The existing `roundPrice` (nearest 5¢) is deleted. |
 | Locale | `en-CA` only at V1. No i18n layer; all copy is English. |
-| Time | All timestamps stored UTC (`timestamptz`). Restaurant opening/closing hours evaluated in the restaurant's own `restaurants.timezone` (IANA string, e.g. `America/Toronto`). Customer-facing times rendered in the device timezone. |
+| Time | All timestamps stored UTC (`timestamptz`). Restaurant opening/closing hours evaluated in the restaurant's own `restaurants.timezone` (IANA string, e.g. `America/Toronto`). Customer-facing times rendered in the device timezone, always in 12-hour form ("7:42 pm") ([time format](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). |
+| Theme | The app follows the phone's light or dark setting ([dark theme](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). |
+| Navigation | Bottom tabs: Home · Search · Orders · Account. The alerts bell stays hidden until Alerts ships ([bottom navigation](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). |
 
 ### 0.2 API shape
 
@@ -34,7 +44,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### 0.3 Authorization (non-negotiable)
 
-- Every `/api/v1/**` customer endpoint requires `Authorization: Bearer <access JWT>`. There are **no unauthenticated customer endpoints** other than `/auth/otp/request` and `/auth/otp/verify`.
+- Every `/api/v1/**` customer endpoint requires `Authorization: Bearer <access JWT>`. There are **no unauthenticated customer endpoints** other than `/auth/otp/request` and `/auth/otp/verify`. Customers sign in before they can browse ([browsing before sign-in](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 - Where a path contains `:userId`, the server asserts `jwt.sub == :userId` **and** `jwt.role == "customer"`, else `403 FORBIDDEN`. Where a path contains `:orderId`/`:cartId`/`:addressId`, the server asserts the resource's owner column equals `jwt.sub`, else `404 NOT_FOUND` (not 403 — do not leak existence).
 - Access token TTL 15 min, refresh token TTL 30 days, refresh rotates (old refresh is single-use, reuse ⇒ revoke the whole family). Tokens are stored client-side in **expo-secure-store**, never AsyncStorage.
 - The realtime socket authenticates with the access JWT in the connect frame. A client-supplied `userId` is never trusted (the current gateway does exactly that).
@@ -73,7 +83,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. OTP code is stored only as `bcrypt(code)`; the plaintext never persists and is never logged.
   2. Rate limits: **3 OTP requests per phone per rolling 15 min**, **10 per IP per rolling hour**. Exceeding ⇒ `429 OTP_RATE_LIMITED` with `details.retry_after_seconds`.
   3. **5 verify attempts** per challenge; on the 5th failure the challenge is consumed and a new request is required. Response is a constant-time generic `OTP_INVALID` — never distinguish "wrong code" from "expired".
-  4. Resend is allowed after a **30 s** client-enforced and server-enforced cooldown; a resend invalidates the previous challenge.
+  4. Resend is allowed after a **60 s** cooldown, enforced by server and client, with at most 3 sends per challenge; a resend sends the same code again and does not rotate it (as the contract's `requestOtp` states).
   5. A phone already attached to a `SUSPENDED` user returns `403 ACCOUNT_SUSPENDED` at verify time (not at request time).
   6. `+1` is the only accepted country code; any other returns `400 UNSUPPORTED_COUNTRY`.
   7. SMS-send failure returns `502 OTP_DELIVERY_FAILED` and does **not** consume the rate-limit budget.
@@ -85,9 +95,9 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Out of scope**: email/password login; Google/Apple/Facebook sign-in; WhatsApp OTP; voice-call OTP; any country other than Canada; phone-number *change* (see out-of-scope note in C-03); CAPTCHA; device fingerprinting.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — SMS provider**: Which SMS provider sends OTP in Canada, and who owns the account and the A2P/short-code registration? · **Proposed default**: Twilio Programmable Messaging with a Canadian long code, credentials owned by the client, provider abstracted behind an `SMSSender` interface with a `LogSender` implementation for dev. · **Why**: the SOW names Twilio as a dependency and Canadian A2P registration is a client-side legal obligation with a multi-week lead time.
+> **Decided:** the carrier is Twilio Verify ([self-hosted rule and its exceptions](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). Still open: the A2P/SMS registration and who owns that account ([SMS registration](../decisions/README.md#open--blocking)).
 
-> **DECISION REQUIRED — Supabase retirement**: OTP is currently sent via Supabase inside `@halal-goes/auth`. Does the rebuild keep Supabase or move OTP fully in-house? · **Proposed default**: remove Supabase entirely; the Go monolith owns `otp_challenges` and calls the SMS provider directly. · **Why**: a single binary with Postgres/Redis/MinIO is the stated architecture; a second identity system is a second failure and audit surface.
+> **Decided:** Supabase is retired; the Go binary owns sign-in codes ([authentication location](../decisions/README.md#settled--client-decisions)).
 
 ---
 
@@ -116,14 +126,14 @@ These exist so that individual features do not have to re-litigate them. Anythin
 ### C-03 — Profile management (personal information)
 - **SOW trace**: *"Profile Management: … Update personal information"*
 - **Behaviour**: After phone verification the customer supplies `first_name`, `last_name`, `email`, `date_of_birth`; submitting completes onboarding and moves the account to `ACTIVE`. Thereafter the same four fields (minus phone) are editable from Account → Personal details. `email` changes require re-verification by emailed link before `email_verified` flips.
-- **Data**: `users.first_name`, `users.last_name`, `users.email`, `users.email_verified`, `users.date_of_birth`, `users.avatar_object_key` (MinIO), `users.onboarding_state`, `users.last_modified_at`.
+- **Data**: `users.first_name`, `users.last_name`, `users.email`, `users.email_verified`, `users.date_of_birth`, `users.avatar_object_key` (Silo), `users.onboarding_state`, `users.last_modified_at`.
 - **States**: `users.email_verified ∈ {false,true}`; setting a new email sets it to `false` and creates `email_verifications(id, user_id, email, token_hash, expires_at, consumed_at)` with a 24 h TTL.
 - **Rules**:
   1. Validation: `first_name`/`last_name` 1–50 chars, letters/space/hyphen/apostrophe only. `email` RFC 5322 + ≤320 chars, lowercased on write. `date_of_birth` ⇒ age **≥ 13** on the day of submission (matches today's zod rule).
   2. The request/response field names are **`first_name` / `last_name`** in snake_case. There is no `name` field anywhere (the current app sends `{name,...}` against a `first_name/last_name` contract).
   3. `phone` is read-only on this endpoint; sending it returns `400 FIELD_NOT_EDITABLE`.
   4. Email is **not unique** (matches the existing schema — phone is the identity). Two accounts may share an email.
-  5. Avatar upload uses a MinIO presigned PUT (`POST /users/:id/avatar/upload-url` → PUT → `POST /users/:id/avatar/confirm`); max 5 MB, `image/jpeg|png|webp` only, server re-encodes to 512×512 webp.
+  5. Avatar upload uses a Silo presigned PUT (`POST /users/:id/avatar/upload-url` → PUT → `POST /users/:id/avatar/confirm`); max 5 MB, `image/jpeg|png|webp` only, server re-encodes to 512×512 webp.
   6. Profile completion is required before any cart or order endpoint will accept a request: those return `409 PROFILE_INCOMPLETE`.
 - **Acceptance criteria**:
   1. Given a user in `PROFILE_PENDING`, when a valid profile is submitted, then `onboarding_state='ACTIVE'` and the onboarding token is consumed and rejected on reuse.
@@ -146,6 +156,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   3. `excluded_allergens` accepts only codes present in `allergens`; unknown codes ⇒ `400 VALIDATION_FAILED`, whole request rejected.
   4. Preferences pre-fill discovery filters on app cold start only; if the customer clears a filter in-session it stays cleared for that session.
   5. Dietary preferences **never** hide an item from a restaurant menu — items matching an excluded allergen render with a red allergen chip and an "Contains {allergen}" warning instead.
+  6. Marketing consent given before the email is confirmed is recorded, but no marketing email is sent until `email_verified=true` ([marketing consent](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 - **Acceptance criteria**:
   1. Given `veg_only=true`, when the customer opens Search after a cold start, then the veg-only filter chip is active and results contain no item with `is_non_veg=true`.
   2. Given `excluded_allergens=['peanuts']`, when the customer opens a menu containing a peanut item, then the item is visible and carries a "Contains peanuts" warning chip.
@@ -173,7 +184,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   2. Given a deletion request 3 days old, when the customer completes OTP login with the same phone, then the account returns to `ACTIVE` with cart empty and addresses intact.
   3. Given a deletion request 8 days old, when the purge job runs, then `users.first_name/last_name/email/date_of_birth` are `NULL`, `phone` no longer matches the original, and `orders` rows for that customer still exist with their totals.
 - **Out of scope**: data-export ("download my data"); selective deletion of individual orders or reviews; deletion initiated from the web.
-- **Version**: V1 · **Size**: M
+- **Version**: not at launch: in-app deletion ships before the store release ([#67](https://github.com/shaiknoorullah/hg-mono/issues/67)); at launch, staff delete an account by hand on request ([account deletion](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) · **Size**: M
 
 ---
 
@@ -199,7 +210,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-07 — Call support
 - **SOW trace**: *"Support and Help: … Call support"*
-- **Behaviour**: A "Call support" button that opens the device dialler (`tel:`) with a single platform support number fetched from `GET /config/public` (never hardcoded). The button is shown only inside the support hours configured on that config object; outside hours it is replaced by "Support is closed — message us instead" routing to C-08.
+- **Behaviour**: A "Call support" button that opens the device dialler (`tel:`) with a single platform support number fetched from `GET /config/public` (never hardcoded). The server turns support on during the set hours only; outside them the button disappears and the screen shows the support hours plus the self-serve actions: cancel before acceptance, report a problem ([support channel](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [line closed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 - **Data**: `platform_config` row keys `support_phone_e164`, `support_hours_open_local`, `support_hours_close_local`, `support_timezone`, `support_enabled`.
 - **States**: derived only: `OPEN` / `CLOSED` computed from the config and current time.
 - **Rules**:
@@ -209,12 +220,12 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. The customer's `user_id` and any in-context `order_id` are copied to the clipboard and shown on screen before dialling, so the agent can be given a reference.
 - **Acceptance criteria**:
   1. Given `support_enabled=true` and the current time inside support hours, when "Call support" is tapped, then the OS dialler opens pre-filled with the configured E.164 number and no exception is thrown.
-  2. Given the current time outside support hours, when the Help screen renders, then no dial button is present and the "message us" affordance is shown instead.
+  2. Given the server has turned support off outside its hours, when the Help screen renders, then no dial button is present and the support hours text is shown instead.
   3. Given a support call initiated from an order screen, when the dialler opens, then the on-screen reference string contains the order's short code.
 - **Out of scope**: in-app VoIP; call queueing/IVR; masked numbers for support; callback requests; call transcripts.
-- **Version**: V2 · **Size**: S
+- **Version**: launch ([support channel](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) · **Size**: S
 
-> **DECISION REQUIRED — support staffing & hours**: Is there a staffed phone line, and what are its hours and timezone? · **Proposed default**: no phone line at V1; ship C-08 (async ticket) as the only channel and set `support_enabled=false`. · **Why**: a dial button to an unstaffed number is worse than no button, and the SOW puts "Helpdesk" explicitly **out of scope**.
+> **Decided:** a staffed phone line during set hours only; outside them the server turns support off ([support channel](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 
 ---
 
@@ -231,7 +242,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   - `RESOLVED → CLOSED` — automatic 7 days after resolution; a closed ticket cannot be reopened, only referenced by a new one.
 - **Rules**:
   1. Category codes (fixed enum): `ORDER_ISSUE`, `PAYMENT_ISSUE`, `REFUND`, `DELIVERY_ISSUE`, `RIDER_CONDUCT`, `RESTAURANT_ISSUE`, `HALAL_CONCERN`, `ACCOUNT`, `OTHER`. `HALAL_CONCERN` is auto-set `priority='HIGH'`.
-  2. Message body 1–4000 chars. Max **3 attachments** per message, each ≤ 10 MB, `image/jpeg|png|webp` or `application/pdf`, uploaded by MinIO presigned PUT.
+  2. Message body 1–4000 chars. Max **3 attachments** per message, each ≤ 10 MB, `image/jpeg|png|webp` or `application/pdf`, uploaded by Silo presigned PUT.
   3. A customer may hold at most **5 non-closed tickets**; a 6th returns `409 TOO_MANY_OPEN_TICKETS`.
   4. Rate limit: 20 messages per ticket per hour.
   5. The UI states the expected response time from `platform_config.support_first_response_target_hours` (default 24) and shows the actual elapsed time. **No message claims a live agent is present.**
@@ -250,7 +261,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-09 — Home feed
 - **SOW trace**: implied by *"Restaurant and Food Discovery"* and the Month-1 milestone *"Customer App (Mobile): Basic features like registration, restaurant search, and order placement."*
-- **Behaviour**: On the home screen the app calls `GET /feed?lat&lng` (no `:userId` in the path — the user comes from the JWT) and renders a fixed, ordered list of sections. **Exactly these sections, in this order**, each omitted entirely when empty (never rendered as an empty shell): `order_again` (max 6), `restaurants_near_you` (max 20), `trending_in_your_area` (max 8), `your_favourite_restaurants` (max 10), `popular_items` (max 10), `you_might_like` (max 10). Each restaurant card shows: name, hero image, **halal badge (C-12)**, cuisine list (max 2 + "+n"), `rating_avg` to 1 dp with review count, distance in km to 1 dp, ETA range (C-14), price band, and an "Closed" / "Not accepting orders" overlay when applicable.
+- **Behaviour**: On the home screen the app calls `GET /feed?lat&lng` (no `:userId` in the path — the user comes from the JWT) and renders a fixed, ordered list of sections. **Exactly these sections, in this order**, each omitted entirely when empty (never rendered as an empty shell): `order_again` (max 6), `restaurants_near_you` (max 20), `trending_in_your_area` (max 8), `your_favourite_restaurants` (max 10), `popular_items` (max 10), `you_might_like` (max 10). Each restaurant card shows: name, hero image, **halal badge (C-12)**, cuisine list (max 2 + "+n"), `rating_avg` to 1 dp with review count, distance in km to 1 dp, ETA range (C-14), price band, and an "Closed" / "Not accepting orders" overlay when applicable. At launch the home mixes vertical sections of compact cards with two horizontal rows, "Open now, closest first" and a second such as "Quickest delivery"; `order_again` and `trending_in_your_area` wait for the sectioned home feed ([#157](https://github.com/shaiknoorullah/hg-mono/issues/157)) ([Discover home](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [its rows](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 - **Data**: `restaurants.*`, `restaurant_addresses.coords`, `orders` (for `order_again`/trending), `user_favorite_restaurant`, `food_items.rating_avg`, `restaurant_cuisines`. Response cached in Redis `feed:{userId}:{geohash7}` for **120 s**.
 - **States**: none.
 - **Rules**:
@@ -310,7 +321,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   | Distance | `max_distance_km` | one of `2, 5, 10, 12` | ≤ value, capped by the platform radius |
 
   Sort (single-select, mutually exclusive): `RECOMMENDED` (default — the C-09 ranking), `RATING_DESC`, `ETA_ASC`, `DISTANCE_ASC`, `PRICE_ASC`.
-  **Halal certification is not a filter** — it is a precondition for being listed at all (C-12). The UI states this once, as a header: "Every restaurant on Halal Goes is halal certified."
+  **Halal certification is not a filter** — it is a precondition for being listed at all (C-12). The UI states this once, as a header: "Every restaurant on HalalGoes is halal certified."
 - **Data**: read-only over `restaurants`, `restaurant_cuisines`, `food_items`, `restaurant_offers`, `food_item_offers`, `restaurant_addresses.coords`. A materialised `restaurant_facets(restaurant_id, price_band, median_price_cents, has_veg, min_item_price_cents, offer_count, refreshed_at)` refreshed on menu write and nightly.
 - **States**: none.
 - **Rules**:
@@ -333,15 +344,15 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **SOW trace**: *"Halal Certification: View and verify Halal certifications for restaurants."* · Project goal: *"build a platform where users could easily find restaurants around them that provide halal certified food."* · Definition: *"Halal Certification: Official certification provided by recognized authorities confirming that food products comply with Islamic dietary laws."*
 - **Behaviour**: This is the product's reason to exist and is currently rendered **nowhere**. Three surfaces:
   1. **Badge** — on every restaurant card (feed, search, favourites, order history, receipt) and in the restaurant detail header. One of exactly four visual states, defined below. Badge = shield glyph + one-word label; never a bare tick.
-  2. **Certification panel** — a dedicated, always-reachable section on the restaurant detail page, above the menu, showing: certifying body name, certificate number, issue date, **expiry date in absolute form** ("Valid until 14 March 2027"), verification status, the date the platform admin verified it, and a "View certificate" action.
-  3. **Certificate viewer** — opens the admin-verified certificate document from MinIO through a **short-lived presigned GET (TTL 300 s)** issued per request, rendered in-app (image) or in the system PDF viewer.
+  2. **Certification sheet** — a "View certification" link button beside the compact badge in the restaurant detail header opens a bottom sheet showing: certifying body name, certificate number, scope, issue date, **expiry date in absolute form** ("Valid until 14 March 2027"), verification status, the date the platform admin verified it, the disclaimer, and a "View certificate" action. It replaces the inline panel above the menu; with no halal data there is no badge and no button ([certificate on the restaurant page](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+  3. **Certificate viewer** — opens the admin-verified certificate document from Silo through a **short-lived presigned GET (TTL 300 s)** issued per request, rendered in-app (image) or in the system PDF viewer.
 - **Data**: `restaurants.is_halal_certified`, `restaurants.halal_certification_expiry`, `restaurants.is_approved`, `restaurants.approved_at`, `restaurants.approved_by_admin_id`, `restaurants.is_banned`. Replacing the untyped `halal_certification_docs Json[]`: new `halal_certifications(id, restaurant_id, certifying_body_name, certifying_body_id NULL, certificate_number, issued_on, expires_on, document_object_key, document_content_type, status, verified_by_admin_id, verified_at, rejection_reason, created_at)`. Optional reference table `certifying_bodies(id, name, country, website_url, is_recognised)`.
 - **States**: `halal_certifications.status ∈ {PENDING, VERIFIED, REJECTED, EXPIRED, REVOKED}` (admin-driven; the customer app is read-only).
   Derived, **customer-visible** `halal_display_state` — computed, never stored:
   | State | Condition | Badge | Orderable? |
   |---|---|---|---|
   | `CERTIFIED` | latest cert `status=VERIFIED` AND `expires_on > today + 30d` | green shield "Halal certified" | yes |
-  | `EXPIRING_SOON` | `status=VERIFIED` AND `today < expires_on ≤ today + 30d` | green shield + amber "Certificate renews {date}" note on the detail panel only (card badge unchanged) | yes |
+  | `EXPIRING_SOON` | `status=VERIFIED` AND `today < expires_on ≤ today + 30d` | amber-tinted shield "Halal certified · expires {date}" (e.g. "expires 20 Oct") on every badge, card and detail alike, never red ([expiring-soon badge](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [its label](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | yes |
   | `EXPIRED` | `status=VERIFIED` AND `expires_on ≤ today`, **or** `status=EXPIRED` | grey shield "Certification expired" | **no** |
   | `UNVERIFIED` | no cert row, or latest is `PENDING`/`REJECTED`/`REVOKED` | none | **no** |
   Transitions are triggered exclusively by the admin domain (verify/reject/revoke) and by a nightly job flipping `VERIFIED → EXPIRED` at `expires_on`.
@@ -352,20 +363,21 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. The badge is **never** rendered from a client-side constant, a default, or an optimistic value. If `halal_display_state` is absent from the payload the card renders **no badge** and logs a client error. There is no "assume certified".
   5. Certificate documents are **never** served from a public URL and never cached to disk by the app. Presigned GET TTL 300 s, single use recorded in `certificate_view_audit(id, user_id, certification_id, viewed_at, ip)`.
   6. The certification panel must render the certifying body as free text exactly as verified by the admin. The app does not rank, score, or editorialise certifying bodies.
-  7. Copy is fixed and reviewed: the badge says **"Halal certified"** (not "Halal", not "100% Halal", not "Verified halal"), and the panel carries the standing line: *"Certification verified by Halal Goes on {verified_at}. Halal Goes does not itself certify food."*
+  7. Copy is fixed and reviewed: the badge says **"Halal certified"** (not "Halal", not "100% Halal", not "Verified halal"), and the panel carries the standing line: *"Certification verified by HalalGoes on {verified_at}. HalalGoes does not itself certify food."*
   8. `GET /restaurants/:id/certification` is a separate endpoint from restaurant detail so the panel can refresh without refetching the menu; it is cached 60 s.
+  9. If the certification details fail to load or the certificate record is partial, items can still be added: no badge shows, and the sheet shows the neutral line "Certificate details unavailable". Offline, a cached halal status older than 15 minutes renders no badge ([halal and trust](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 - **Acceptance criteria**:
   1. Given a restaurant whose latest certification is `VERIFIED` with `expires_on` yesterday, when the nightly job runs and any customer requests the feed, search, or that restaurant's detail page, then the restaurant is absent from feed and search and detail returns `404 NOT_FOUND`.
   2. Given a `CERTIFIED` restaurant, when any customer-facing surface renders a card for it, then a badge element with accessible label "Halal certified" is present — asserted by a snapshot test across all six card surfaces.
-  3. Given a customer taps "View certificate", when the request is made, then the response is a presigned URL whose expiry is ≤ 300 s from now, an audit row is written, and re-using the URL after 300 s returns HTTP 403 from MinIO.
-  4. Given a restaurant with `expires_on` in 14 days, when the detail page renders, then the card badge is the standard green "Halal certified" and the panel additionally shows "Certificate renews {date}".
+  3. Given a customer taps "View certificate", when the request is made, then the response is a presigned URL whose expiry is ≤ 300 s from now, an audit row is written, and re-using the URL after 300 s returns HTTP 403 from Silo.
+  4. Given a restaurant with `expires_on` in 14 days, when its card and detail page render, then both badges are amber-tinted and read "Halal certified · expires {date}".
   5. Given an API response missing `halal_display_state`, when a card renders, then no badge is drawn and a client error is reported (asserted by a component test with the field deleted).
 - **Out of scope**: customer-submitted certification challenges (that is C-39 `HALAL_CONCERN`); certifying-body directory browsing; per-dish halal status (certification is restaurant-level only); ingredient-level halal analysis; showing certification for riders or for the platform itself; automatic certificate OCR/validation.
 - **Version**: V1 · **Size**: M
 
 > **DECISION REQUIRED — restaurants with lapsed certification**: When a certificate expires, should the restaurant be hidden entirely or shown as "certification expired" and blocked from ordering? · **Proposed default**: **hidden entirely** from all customer surfaces. · **Why**: showing a grey "expired" shield teaches customers that non-certified restaurants exist on the platform, which is precisely the confusion the product removes.
 
-> **DECISION REQUIRED — recognised certifying bodies**: Does Halal Goes maintain a whitelist of recognised Canadian certifying bodies, or accept any body an admin approves? · **Proposed default**: no whitelist; `certifying_bodies` is a free reference list, admin judgement is the gate, and the body's name is always displayed to the customer so they can apply their own standard. · **Why**: maintaining an authoritative whitelist is a religious-authority function the vendor cannot assume, and the SOW places legal/compliance measures out of scope.
+> **Decided:** an accepted list of three certifying bodies, which a super admin can extend ([accepted certifying bodies](../decisions/README.md#settled--client-decisions)).
 
 > **DECISION REQUIRED — certificate document visibility**: Are halal certificates public to any signed-in customer, or gated? · **Proposed default**: viewable by any authenticated customer, presigned 300 s, audited. · **Why**: the SOW says customers "view and verify"; verification is meaningless without the document, and certificates are not confidential business records.
 
@@ -373,7 +385,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-13 — Restaurant detail page
 - **SOW trace**: *"Restaurant Details: View detailed information about restaurants, including menus, ratings, reviews, and delivery options."*
-- **Behaviour**: One screen composed of: hero image (the restaurant's **own** `restaurants.hero_object_key`, never a bundled asset), name, cuisine chips, `rating_avg` + review count (tappable → C-18), **halal certification panel (C-12)**, availability strip (C-14: open/closed, today's hours, ETA range, delivery fee, minimum order), address + distance, "delivery options" = the delivery fee/ETA/minimum-order triple for **the customer's selected address**, then the menu: category tabs derived from `food_categories`, item rows with image, name, truncated description (2 lines), price, veg/non-veg marker, allergen chips, and an add control. An in-menu search overlay filters the loaded menu client-side.
+- **Behaviour**: One screen composed of: hero image (the restaurant's **own** `restaurants.hero_object_key`, never a bundled asset), name, cuisine chips, `rating_avg` + review count (tappable → C-18), **compact halal badge and "View certification" button (C-12)**, availability strip (C-14: open/closed, today's hours, ETA range, delivery fee, minimum order), address + distance, "delivery options" = the delivery fee/ETA/minimum-order triple for **the customer's selected address**, then the menu: category tabs derived from `food_categories`, item rows with image, name, truncated description (2 lines), price, veg/non-veg marker, allergen chips, and an add control. An in-menu search overlay filters the loaded menu client-side.
 - **Data**: `restaurants.*`, `restaurant_addresses`, `restaurant_menus.is_active`, `food_items.*`, `food_categories`, `cuisines`, `restaurant_offers`. Two endpoints: `GET /restaurants/:id` and `GET /restaurants/:id/menu`.
 - **States**: none beyond C-14 availability and C-12 certification.
 - **Rules**:
@@ -430,7 +442,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Rules — "nutritional information" resolved**:
   1. The current data model has **no nutrition fields at all**. At V1 "nutritional information" means exactly: `ingredients[]`, `allergens[]`, `is_non_veg`, `contains_dairy`, plus **optional** `calories_kcal` + `serving_description`.
   2. All nutrition fields are **entered by the restaurant** in the restaurant portal and are **optional**. The platform does not compute, validate, or verify them.
-  3. When `calories_kcal` is null the nutrition block is **omitted entirely** — no "N/A", no zero. When present it renders as "{n} kcal · {serving_description}" with the fixed disclaimer *"Nutrition information is provided by the restaurant and has not been verified by Halal Goes."*
+  3. When `calories_kcal` is null the nutrition block is **omitted entirely** — no "N/A", no zero. When present it renders as "{n} kcal · {serving_description}" with the fixed disclaimer *"Nutrition information is provided by the restaurant and has not been verified by HalalGoes."*
   4. `ingredients[]` and `allergens[]` render as chips; an empty `allergens[]` renders the line "Allergen information not provided by this restaurant" — **never** "No allergens", which would be an unsafe claim.
   5. Per-item special request: 0–140 chars, plain text, stored on the cart line and copied to the order line; it is advisory and does not change price.
   6. Item images are served through presigned/CDN URLs; missing images render a neutral placeholder — no `via.placeholder.com`, `picsum.photos`, `pexels`, or `unsplash` URL may appear in the shipped bundle (asserted by a bundle grep test).
@@ -524,7 +536,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. Every mutation re-validates: item exists, `is_currently_available`, belongs to the cart's restaurant, variant/add-on valid and available, restaurant still visible and `OPEN`. Failure returns a typed error and the **unchanged** cart, so the client can reconcile.
   5. Prices are snapshotted onto `cart_lines.unit_price_cents` at add time, and **re-validated at checkout**: if any unit price changed, checkout returns `409 PRICE_CHANGED` with the diff, and the client shows a "Prices updated" confirmation before retrying.
   6. Carts idle for **7 days** are deleted by a nightly job.
-  7. The tab-bar badge shows `Σ quantity`, not the line count.
+  7. The cart badge shows `Σ quantity`, not the line count; there is no cart tab in the bottom navigation.
   8. Cart survives logout only in the sense that it is server-side: after logout the local copy is cleared and re-fetched on next login.
 - **Acceptance criteria**:
   1. Given a cart with lines A(2) and B(3), when the badge renders, then it shows `5`.
@@ -581,19 +593,19 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Out of scope**: stacking multiple coupons; referral codes; loyalty points; free-item coupons; delivery-fee-waiver coupons (use `free_delivery` restaurant offers instead); auto-applied best-coupon selection; personalised coupon targeting; coupon creation from the customer app.
 - **Version**: V2 · **Size**: M
 
-> **DECISION REQUIRED — who funds discounts**: Is a coupon's cost borne by the platform or the restaurant, and does it affect restaurant settlement? · **Proposed default**: platform-funded at V1/V2; the restaurant is settled on the full pre-discount item subtotal, and `coupon_redemptions.discount_cents` is a platform expense line. · **Why**: restaurant-funded discounts require a settlement negotiation and a restaurant-portal opt-in, neither of which is specified.
+> **Decided:** discounts are restaurant-funded ([discount funding](../decisions/README.md#settled--reconciliations)).
 
 ---
 
 ### C-22 — Price breakdown (pricing authority)
 - **SOW trace**: *"Order Placement: Place orders with selected items, delivery address, and payment method."* — the price the customer agrees to is the core of that.
-- **Behaviour**: One server-computed pricing object is attached to every cart response and re-derived at checkout. The client renders it verbatim. The breakdown lines, in fixed order: **Item subtotal**, **Discount** (negative, only if non-zero), **Delivery fee**, **Platform fee**, **Tax**, **Tip** (only if non-zero), **Total to pay**.
+- **Behaviour**: One server-computed pricing object is attached to every cart response and re-derived at checkout. The client renders it verbatim. The breakdown lines, in fixed order: **Item subtotal**, **Discount** (negative, only if non-zero), **Delivery fee**, **Service fee**, **Tax**, **Tip** (only if non-zero), **Total to pay**.
 - **Data**: computed object `{item_total_cents, discount_cents, delivery_fee_cents, platform_fee_cents, tax_cents, tip_cents, amount_to_pay_cents, currency:"CAD", pricing_version, computed_at, signature}`. Persisted on the order as `orders.item_total_cents`, `orders.discount_cents`, `orders.delivery_fee_cents`, `orders.platform_fee_cents`, `orders.tax_cents`, `orders.tip_cents`, `orders.total_cents`.
 - **States**: none; a pricing snapshot is valid for **10 minutes** from `computed_at`.
 - **Rules**:
   1. **The client never computes, defaults, or displays a hardcoded fee.** A lint rule bans numeric fee literals in the app; a test asserts the cart screen and the checkout screen render from the same object (today cart shows platform fee 3, checkout shows 2, and the server's real number is sent silently — the amount agreed is not the amount submitted).
-  2. Delivery fee = `base_fee_cents + ceil(distance_km) × per_km_cents`, clamped to `[min_fee_cents, max_fee_cents]`, all from `platform_config` (defaults: base 299, per-km 150, min 299, max 1200). Distance is **road-agnostic great-circle via PostGIS `ST_Distance` on `geography`** between the restaurant address and **the order's delivery address** — not the customer's primary address (the current activity uses the wrong address and a degrees×111 conversion).
-  3. Platform fee = `platform_config.platform_fee_cents` (default 499), a flat amount.
+  2. Delivery fee = `base_fee_cents + ceil(distance_km) × per_km_cents`, clamped to `[min_fee_cents, max_fee_cents]`, all from `platform_config` (base 299 and per-km 100, per the [delivery fee decision](../decisions/README.md#settled--client-decisions); defaults min 299, max 1200). Distance is **road-agnostic great-circle via PostGIS `ST_Distance` on `geography`** between the restaurant address and **the order's delivery address** — not the customer's primary address (the current activity uses the wrong address and a degrees×111 conversion).
+  3. Service fee: the mechanism is built but set to $0.00, and checkout still shows the line as "Service fee $0.00", never as "platform fee" ([service fee](../decisions/README.md#settled--reconciliations)).
   4. Tax: see the decision below. Implementation applies `tax_cents = round(taxable_base × rate)` where `taxable_base = item_total − discount + delivery_fee + platform_fee` and `rate` comes from `tax_rates(province_code, rate, effective_from)` keyed on the delivery address province.
   5. The snapshot is **signed** (HMAC over the field set with a server key) and echoed by the client at checkout. The server **recomputes** and compares; a mismatch or an expired snapshot returns `409 PRICING_STALE` and the client re-fetches and re-confirms. (Today the server does not recompute at all — it trusts the client's echoed snapshot.)
   6. Every arithmetic operation is on `int64` cents. Any use of floating point in this path fails a static check.
@@ -602,13 +614,13 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. Given a cart, when the cart screen and the checkout screen both render, then every displayed line is byte-identical between the two screens (asserted by a UI test comparing rendered strings).
   2. Given a pricing snapshot 11 minutes old, when checkout is submitted, then `409 PRICING_STALE` and no payment is attempted.
   3. Given a tampered snapshot (client sends `amount_to_pay_cents` reduced by 1000), when checkout is submitted, then `409 PRICING_STALE` (signature mismatch) and the incident is logged with the user id.
-  4. Given a restaurant 4.2 km away with defaults, then `delivery_fee_cents = 299 + 5×150 = 1049`.
+  4. Given a restaurant 4.2 km away with defaults, then `delivery_fee_cents = 299 + 5×100 = 799`.
 - **Out of scope**: surge/dynamic pricing; small-order surcharge; distance-tiered platform fees; service fee split by restaurant; currency conversion; tax-exempt handling; price display excluding tax.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — sales tax**: Which taxes apply to prepared food delivery in the launch province(s), who is the registrant, and is tax charged on fees as well as food? · **Proposed default**: Ontario-only launch; 13% HST applied to the full taxable base (food + delivery fee + platform fee); the client is the registrant; rates held in a `tax_rates` table so other provinces can be added without a release. · **Why**: the SOW puts legal compliance on the client, but a Canadian food-delivery app that charges no tax cannot go live; a table-driven rate is the smallest correct implementation.
+> **Decided:** Ontario only, at 13% HST ([launch decisions](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)). Still open: the HST registration and who is the supplier of record ([HST registration](../decisions/README.md#open--blocking)).
 
-> **DECISION REQUIRED — launch province(s)**: Which Canadian province(s) are in scope for launch? · **Proposed default**: Ontario (GTA) only; addresses outside Ontario are rejected at address creation. · **Why**: tax rate, support hours, and delivery radius all key off this, and a single province removes an entire class of ambiguity.
+> **Decided:** Ontario only ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
 ---
 
@@ -631,8 +643,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
   | `RIDER_ASSIGNED` | `PICKED_UP` | rider confirms collection |
   | `PICKED_UP` | `ON_THE_WAY` | rider departs |
   | `ON_THE_WAY` | `DELIVERED` | rider marks delivered |
-  | `AWAITING_RESTAURANT`\|`CONFIRMED` | `CANCELLED` | customer cancels (C-29) or admin cancels |
-  | `PREPARING`…`ON_THE_WAY` | `CANCELLED` | admin/support only |
+  | `AWAITING_RESTAURANT` | `CANCELLED` | customer cancels (C-29) or staff cancel |
+  | `CONFIRMED`…`ON_THE_WAY` | `CANCELLED` | staff only, without needing a support case ([cancellation policy](../decisions/README.md#settled--client-decisions)) |
   | `AWAITING_RESTAURANT`…`ON_THE_WAY` | `NO_RIDER_FOUND` → `CANCELLED` | dispatch exhausts the search |
 
   Terminal: `DELIVERED`, `CANCELLED`, `REJECTED`, `PAYMENT_FAILED`. Every transition is validated against this table **in the database write path**, not only inside a workflow's in-memory copy, and every transition writes an `order_status_events(id, order_id, from_status, to_status, actor_type, actor_id, reason_code, created_at)` row.
@@ -640,20 +652,21 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. Order creation is a **single database transaction**: validate cart → re-price → validate coupon with row lock → insert `orders` + `order_food_items` (snapshotting name, unit price, variant, add-ons, special request) → insert `coupon_redemptions` → delete cart. Payment authorisation happens **after** commit, keyed by `orders.id`.
   2. `Idempotency-Key` is required. A replayed key returns the original order.
   3. Pre-flight validations, each with its own code and none of them client-side-only: `PROFILE_INCOMPLETE`, `CART_EMPTY`, `RESTAURANT_UNAVAILABLE` (C-14), `BELOW_MINIMUM_ORDER`, `ADDRESS_OUT_OF_RANGE`, `ITEM_UNAVAILABLE`, `PRICE_CHANGED`, `PRICING_STALE`, `PAYMENT_METHOD_INVALID`.
-  4. **Restaurant acceptance window: 5 minutes.** On expiry the order auto-transitions to `REJECTED` with `reason_code='RESTAURANT_TIMEOUT'` and the payment authorisation is voided. (Today there is no restaurant timeout at all; the only bound is a 15-minute workflow timeout that kills the saga without running compensation or refunding.)
+  4. **Restaurant acceptance window: 180 seconds** ([acceptance window](../decisions/README.md#settled--reconciliations)). On expiry the order auto-transitions to `REJECTED` with `reason_code='RESTAURANT_TIMEOUT'` and the payment authorisation is voided. (Today there is no restaurant timeout at all; the only bound is a 15-minute workflow timeout that kills the saga without running compensation or refunding.) While the window runs, the customer sees a neutral progress bar and "Restaurant replies by 7:42 pm", never a countdown ([reply window](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
   5. **Compensation is unconditional**: if the order fails after authorisation for any reason, the void/refund runs and its result is recorded; a failed compensation raises an operational alert and creates a `refund_requests` row in `UNDER_REVIEW` — it never silently continues. (Today a rejected order continues to rider assignment when compensation returns false.)
   6. The success screen is reached only on a server response of `AWAITING_RESTAURANT` or later. On any error the customer stays on checkout with the specific reason.
   7. `orders.short_code` = 6-character Crockford base-32, unique per day, shown to the customer and used in support.
+  8. When an unpaid order is cancelled, expires or fails payment, the app offers "Put these items back in your cart": it re-adds the lines through the cart operations, and the server prices them again ([cart after an unpaid order](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 - **Acceptance criteria**:
   1. Given a valid cart and a working payment method, when Place order is pressed, then exactly one `orders` row exists, the cart row is deleted, and the app shows the pending screen only after the server responds.
-  2. Given the payment authorisation fails, when the response returns, then `orders.status='PAYMENT_FAILED'`, no cart was deleted, and the customer remains on checkout with a retry affordance.
+  2. Given the payment authorisation fails, when the response returns, then `orders.status='PAYMENT_FAILED'`, the customer remains on checkout with a retry affordance, and the app offers "Put these items back in your cart".
   3. Given the same `Idempotency-Key` submitted twice within 24 h, then exactly one order exists and the second response carries `meta.idempotent_replay=true`.
-  4. Given a restaurant that does not respond, when 5 minutes elapse, then the order is `REJECTED` with `reason_code='RESTAURANT_TIMEOUT'`, the authorisation is voided, and the customer receives a notification.
+  4. Given a restaurant that does not respond, when 180 seconds elapse, then the order is `REJECTED` with `reason_code='RESTAURANT_TIMEOUT'`, the authorisation is voided, and the customer receives a notification.
   5. Given an attempted transition `DELIVERED → PREPARING`, when written by any path, then the write is rejected by the transition validator (asserted directly against the repository layer, not only the workflow).
 - **Out of scope**: scheduled/future orders; group ordering; order splitting; editing an order after placement (see below); pickup orders; guest checkout; multi-address delivery.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — restaurant acceptance window**: How long does a restaurant have to accept before auto-rejection? · **Proposed default**: **5 minutes**, then auto-reject with full void. · **Why**: today there is no timeout, and the internal integration guide claims 2 minutes while the code implements none; 5 minutes balances kitchen reality against customer patience, and must be agreed because it is visible in the UI countdown.
+> **Decided:** 180 seconds, then auto-reject with a full void ([acceptance window](../decisions/README.md#settled--reconciliations)).
 
 > **DECISION REQUIRED — order modification after placement**: The current in-app FAQ promises customers can add items after ordering. Is that in scope? · **Proposed default**: **No, at any version.** The FAQ copy is corrected and the customer is directed to cancel-and-reorder (C-29) within the cancellation window. · **Why**: order amendment requires re-pricing, re-authorisation, and a restaurant-side ticket amendment — a large feature the SOW never asks for.
 
@@ -680,7 +693,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Out of scope**: wallets (Apple Pay / Google Pay) at V1; in-app wallet balance; PayPal; Interac; gift cards; storing billing addresses; 3DS challenge UI customisation.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — payment provider**: Which PSP? · **Proposed default**: **Stripe** — Payment Intents + Payment Element/Payment Sheet for cards, Stripe Connect for restaurant and rider payouts. · **Why**: the schema already carries `payment_log.stripe_payment_id`, the rider onboarding state machine already has a `STRIPE_PENDING` state, and the restaurant portal already redirects to Stripe Connect.
+> **Decided:** Stripe, for card payments and partner payouts ([self-hosted rule and its exceptions](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
 
 > **DECISION REQUIRED — cash on delivery**: Is COD offered at launch? · **Proposed default**: **No.** `cod_enabled=false` at V1. · **Why**: COD requires rider cash handling, a float, and a reconciliation ledger — none of which exists on the rider side — and the enum value alone (`CASH_ON_DELIVERY` in the current type union) is not an implementation.
 
@@ -725,7 +738,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. `GET /orders?status_group=active|past&limit&cursor`. `active` = status ∉ terminal set. Default page size 20, max 50.
   2. Every customer-facing surface that today lacks an `onPress` (Account → "Your Orders") must route; a UI test asserts every rendered menu row navigates somewhere or is not rendered.
   3. The resume banner is driven by a single lightweight `GET /orders/active` (returns 0 or 1 order — see rule 4) polled on app foreground and updated over the socket.
-  4. **At most one active order per customer at a time.** A second checkout while an order is active returns `409 ACTIVE_ORDER_EXISTS` with the active order's id.
+  4. **At most one active order per customer at a time.** A second checkout while an order is active returns `409 ACTIVE_ORDER_EXISTS` with the active order's id. An order under review after a problem report does not count as active ([new order while one is under review](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   5. Past orders are retained and visible for 7 years (C-05 rule 3).
   6. Each row exposes: Reorder (C-28, V3), View receipt (C-27), Get help (C-08/C-39), Request refund (C-37, only within the eligibility window).
 - **Acceptance criteria**:
@@ -736,7 +749,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Out of scope**: filtering/searching order history; exporting history; per-restaurant history views; order history on web; hiding/deleting an order from history.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — concurrent orders**: May a customer have more than one active order at once? · **Proposed default**: **No** — one active order at a time. · **Why**: it removes an entire class of tracking, notification-routing and refund ambiguity for launch, and can be relaxed later without a data migration.
+> **Decided:** one active order at a time for launch ([second order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)); an order under review is not counted, as rule 4 says.
 
 ---
 
@@ -748,14 +761,14 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Rules**:
   1. `receipt_number` format `HG-{YYYY}-{sequential 8 digits}`, gapless per calendar year (allocated from a Postgres sequence inside the capture transaction).
   2. The receipt is generated from `snapshot`, not by re-querying live data — a later price, menu, or restaurant-name change must not alter an issued receipt.
-  3. PDF generation is on-demand and cached to MinIO under `receipts/{year}/{receipt_number}.pdf`; the share link is a presigned GET with a **15 min** TTL.
+  3. PDF generation is on-demand and cached to Silo under `receipts/{year}/{receipt_number}.pdf`; the share link is a presigned GET with a **15 min** TTL.
   4. The receipt is available for orders that were cancelled after capture (showing the charge and the refund), and is **not** issued for orders that never captured.
   5. Tax registration number comes from `platform_config.tax_registration_number`; if it is empty the receipt renders without a tax line and the build emits a warning — it never prints a placeholder.
 - **Acceptance criteria**:
   1. Given a delivered order, when the receipt is opened, then every C-22 line and the payment method's last4 are present and the totals sum exactly to `amount charged`.
   2. Given the restaurant later renames itself, when the old receipt is reopened, then it shows the original name from `snapshot`.
   3. Given an order refunded in full, when the receipt is opened, then a refund section shows the refund amount and date, and the original charge line is unchanged.
-  4. Given a PDF share link, when used after 15 minutes, then MinIO returns 403.
+  4. Given a PDF share link, when used after 15 minutes, then Silo returns 403.
 - **Out of scope**: emailing receipts automatically (V2); invoices with a customer's business details; per-item tax breakdown; multi-currency receipts; editing a receipt.
 - **Version**: V1 · **Size**: M
 
@@ -783,27 +796,26 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-29 — Order cancellation by the customer
 - **SOW trace**: not in SOW 9–17 explicitly, but *"Refund Requests: Request refunds for canceled or unsatisfactory orders"* (SOW 13) and *"Refund Requests: Submit refund requests for canceled, incorrect, or unsatisfactory orders"* (SOW 17) both presuppose customer cancellation. The current in-app FAQ instructs customers to use a cancel flow that does not exist.
-- **Behaviour**: A **Cancel order** action is available on the tracking screen while the order is in `AWAITING_RESTAURANT` or `CONFIRMED`. It requires selecting a reason from a fixed list and confirming in a modal that states the refund outcome in plain words before the customer commits. After `PREPARING` the action is replaced by "Get help" (C-08/C-39) — the customer cannot self-cancel.
+- **Behaviour**: A **Cancel order** action is available on the tracking screen while the order is in `AWAITING_RESTAURANT`, which is when the server's `can_cancel` is true. It requires selecting a reason from a fixed list and confirming in a modal that states the refund outcome in plain words before the customer commits. Once the restaurant accepts, the action is replaced by "Get help" (C-08/C-39), with reasons that fit before delivery: very late, wrong address, want to cancel ([problem before delivery](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). The customer cannot self-cancel after acceptance; staff may cancel without a support case ([cancellation policy](../decisions/README.md#settled--client-decisions)).
 - **Data**: `orders.status`, `orders.cancelled_at`, `orders.cancellation_reason_code`, `orders.cancelled_by ENUM(CUSTOMER,RESTAURANT,ADMIN,SYSTEM)`, `order_status_events`, `payments`, `refunds`.
-- **States**: `AWAITING_RESTAURANT → CANCELLED` and `CONFIRMED → CANCELLED`, actor `CUSTOMER`. No other customer-triggered transition exists.
+- **States**: `AWAITING_RESTAURANT → CANCELLED`, actor `CUSTOMER`. No other customer-triggered transition exists.
 - **Rules**:
   1. Reason codes (fixed): `ORDERED_BY_MISTAKE`, `TOO_LONG_WAIT`, `WRONG_ADDRESS`, `CHANGED_MIND`, `DUPLICATE_ORDER`, `OTHER` (requires 5–200 chars of free text).
   2. Refund outcome, stated in the confirmation modal and enforced by the server:
      - Cancelled in `AWAITING_RESTAURANT` (not yet captured) ⇒ **authorisation voided, no charge**.
-     - Cancelled in `CONFIRMED` (captured) ⇒ **full refund** of `total_cents`, auto-approved, no review.
-  3. Cancellation is racy by nature: it is applied with a conditional update (`UPDATE orders SET status='CANCELLED' WHERE id=? AND status IN ('AWAITING_RESTAURANT','CONFIRMED')`). Zero rows affected ⇒ `409 CANCELLATION_WINDOW_CLOSED` with the current status, and the UI refreshes.
+  3. Cancellation is racy by nature: it is applied with a conditional update (`UPDATE orders SET status='CANCELLED' WHERE id=? AND status='AWAITING_RESTAURANT'`). Zero rows affected ⇒ `409 CANCELLATION_WINDOW_CLOSED` with the current status, and the UI refreshes.
   4. Cancellation notifies the restaurant and (if assigned) the rider immediately over their channels.
   5. Abuse guard: **3 customer cancellations in a rolling 7 days** flags the account for review (`users.risk_flag`); a 4th still succeeds but creates an admin task. Cancellation is never silently blocked.
   6. The FAQ copy (C-06) must match this behaviour exactly; the CI check in C-06 rule 3 covers it.
 - **Acceptance criteria**:
   1. Given an order in `AWAITING_RESTAURANT`, when the customer cancels, then `orders.status='CANCELLED'`, `cancelled_by='CUSTOMER'`, `payments.status='VOIDED'`, and no `refunds` row is created.
-  2. Given an order in `CONFIRMED` with a captured payment, when the customer cancels, then a `refunds` row for the full `total_cents` is created in `PENDING` and auto-submitted to the provider.
-  3. Given an order that transitions to `PREPARING` between the UI render and the tap, when cancel is submitted, then `409 CANCELLATION_WINDOW_CLOSED` and the screen updates to show "Get help" instead.
-  4. Given an order in `PREPARING`, when the tracking screen renders, then no cancel affordance exists anywhere on it.
-- **Out of scope**: partial cancellation (removing one item); cancellation fees; cancellation after `PREPARING` by the customer; re-instating a cancelled order.
+  2. Given an order in `CONFIRMED`, when the customer tries to cancel, then `409 CANCELLATION_WINDOW_CLOSED` and no `refunds` row is created.
+  3. Given an order that transitions to `CONFIRMED` between the UI render and the tap, when cancel is submitted, then `409 CANCELLATION_WINDOW_CLOSED` and the screen updates to show "Get help" instead.
+  4. Given an order in `CONFIRMED`, when the tracking screen renders, then no cancel affordance exists anywhere on it.
+- **Out of scope**: partial cancellation (removing one item); cancellation fees; cancellation by the customer after restaurant acceptance; re-instating a cancelled order.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — cancellation cutoff**: Is `CONFIRMED` (restaurant accepted but not yet cooking) really cancellable with a full refund? · **Proposed default**: yes, full refund up to and including `CONFIRMED`; nothing after. · **Why**: `PREPARING` is the first point at which the restaurant has incurred food cost, so it is the defensible boundary, and it is a boundary the restaurant itself controls by pressing "start preparing".
+> **Decided:** free cancellation ends at restaurant acceptance; after that, staff may cancel without a support case ([cancellation policy](../decisions/README.md#settled--client-decisions)).
 
 ---
 
@@ -838,32 +850,32 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-31 — Address entry: autocomplete, geocoding and map pin
 - **SOW trace**: enabling requirement for *"Delivery Address Management"* — without it, every address is seven manual fields plus a mandatory map pin, which the current app requires.
-- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from a places provider, proxied through our backend (`GET /geo/autocomplete?q&session_token&lat&lng`), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /geo/place/:id` which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin.
+- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /geo/autocomplete?q&session_token&lat&lng`), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /geo/place/:id` which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
 - **Data**: no new persistent entity; writes into `delivery_addresses` (C-30). Redis cache `geo:auto:{sha256(q|geohash5)}` TTL 3600 s; `geo:place:{placeId}` TTL 30 days.
 - **States**: none.
 - **Rules**:
-  1. The provider key lives **server-side only**. The app never holds a places/geocoding key. (Today two Google keys are committed into the repo.)
+  1. The provider key lives **server-side only**. The app never holds a places/geocoding key; map tiles use a public Mapbox token ([#57](https://github.com/shaiknoorullah/hg-mono/issues/57)). (Today two Google keys are committed into the repo.)
   2. Requests are proxied and rate-limited to **30 autocomplete calls per user per minute**; session tokens are used to keep provider billing on the session model.
-  3. Results are restricted to `components=country:ca`; non-Canadian results are filtered server-side even if the provider returns them.
+  3. Results are restricted to Canada in the provider request (`country=ca`); non-Canadian results are filtered server-side even if the provider returns them.
   4. Reverse geocoding (`GET /geo/reverse?lat&lng`) fills the form when the customer drops a pin without searching.
   5. If the provider is unavailable, the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
   6. The map picker's initial camera is: the customer's current GPS fix if permitted, else the current default address, else the launch city centre from `platform_config.default_map_center`. **No hardcoded Dubai or Hyderabad fallback.**
   7. The pin's final coordinates are what is stored, even if they differ from the geocoded result — the customer's pin wins.
 - **Acceptance criteria**:
-  1. Given the repository and built bundle, when scanned for the pattern `AIza[0-9A-Za-z_\-]{35}`, then zero matches are found.
+  1. Given the repository and built bundle, when scanned for a Mapbox secret token (prefix `sk.`) or the old Google key pattern `AIza[0-9A-Za-z_\-]{35}`, then zero matches are found.
   2. Given the query "221B Baker", when typed, then suggestions are Canadian-only and selecting one pre-fills street, city, province, and postal code with ≥1 field non-empty in each.
   3. Given the provider returns HTTP 500, when the customer opens address entry, then the manual form with a map picker is shown with a notice, and an address can still be saved.
   4. Given location permission is denied and no saved address, when the map picker opens, then the camera is at `platform_config.default_map_center` and not at coordinates `25.2048,55.2708` or `17.385,78.487`.
 - **Out of scope**: what3words or plus codes; unit-level (apartment) validation; building-entrance routing hints; saving pins without an address; offline geocoding.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — maps & places provider**: Google Maps Platform (Places + Geocoding + Directions) or an alternative (Mapbox)? · **Proposed default**: **Google**, proxied server-side, since the apps already use `react-native-maps` with `PROVIDER_GOOGLE` and the rider app deep-links to Google navigation. · **Why**: it is the shortest path and the SOW names Google Maps as a dependency; the cost is a per-request billing exposure that the proxy + cache must contain.
+> **Decided:** Mapbox, through our API, for search, place details and reverse geocoding; map tiles also come from Mapbox ([map address search](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 ---
 
 ### C-32 — Live order tracking
 - **SOW trace**: *"Live Order Tracking: Track orders in real-time with a map interface, showing the rider's location and estimated delivery time."*
-- **Behaviour**: One tracking screen per order, reachable from the resume banner (C-26), the post-checkout flow, and order history. It shows: a status stepper, a map, the ETA, the rider card (once assigned), the delivery address, delivery instructions, an order summary, and contextual actions (cancel → C-29 while eligible; call rider → C-34; get help → C-08).
+- **Behaviour**: One tracking screen per order, reachable from the resume banner (C-26), the post-checkout flow, and order history. It shows: a status stepper, a map, the ETA, the rider card (once assigned), the delivery address, delivery instructions, an order summary, and contextual actions (cancel → C-29 while eligible; call rider → C-34; get help → C-08). The order view and this screen also show the 4-digit delivery code, with a push when the rider arrives; the rider is never shown it (needs a new contract field; [delivery code](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   The stepper has **five** steps, mapped from `orders.status`: **Confirmed** (`AWAITING_RESTAURANT`, `CONFIRMED`) → **Preparing** (`PREPARING`) → **Ready / Rider assigned** (`READY_FOR_PICKUP`, `RIDER_ASSIGNED`) → **On the way** (`PICKED_UP`, `ON_THE_WAY`) → **Delivered** (`DELIVERED`). Terminal failures (`REJECTED`, `CANCELLED`, `NO_RIDER_FOUND`, `PAYMENT_FAILED`) replace the stepper with a full-screen outcome state.
   The map shows the restaurant marker, the delivery marker, and the rider marker once `RIDER_ASSIGNED`; a route polyline is drawn from the rider to the current leg's destination.
 - **Data**: `orders`, `order_status_events`, `riders` (via the slim projection in C-18 rule 3), Redis `rider:{id}:location`, socket topic `order:{orderId}`.
@@ -871,7 +883,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Rules**:
   1. Subscription authorisation is server-side: the socket verifies `jwt.sub == orders.customer_id` before joining the topic. A client-supplied user id is never trusted, and a customer cannot subscribe to another customer's order.
   2. Event delivery meets the §0.4 latency budget; when the socket is down the client polls `GET /orders/:orderId` every 15 s and the UI is identical.
-  3. **ETA is always present.** `eta_at` is computed at order creation and recomputed on each status change and each rider location update; the UI shows "Arriving {HH:MM}–{HH:MM}" (a ±5 min window). There is no "Calculating…" terminal state; if computation fails the last known ETA is shown with a "estimate" qualifier.
+  3. **ETA is always present.** `eta_at` is computed at order creation and recomputed on each status change and each rider location update; the UI shows "Arriving {time}–{time}" in 12-hour form, e.g. "Arriving 7:40–7:50 pm" (a ±5 min window). There is no "Calculating…" terminal state; if computation fails the last known ETA is shown with a "estimate" qualifier.
   4. Rider location is shown only while status ∈ `{PICKED_UP, ON_THE_WAY}`. Before pickup the map shows restaurant + destination only — the rider's position en route to the restaurant is **not** exposed to the customer.
   5. Marker updates are interpolated over 10 s to avoid teleporting; stale >45 s ⇒ the banner from §0.4.
   6. The screen retains no unbounded message history; events are reduced into a single state object. (Today every WS message is appended to an unbounded array.)
@@ -896,6 +908,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
   | `LEAVE_AT_DOOR` | Leave at my door |
   | `DO_NOT_RING_BELL` | Don't ring the bell |
   | `DO_NOT_CALL` | Don't call me |
+  | `MEET_AT_DOOR` | Meet me at the door |
+  | `MEET_IN_LOBBY` | Meet me in the lobby |
   Free text: `special_instructions`, 0–200 chars. Both are shown to the rider on the delivery screen and printed on the order ticket.
 - **Data**: `orders.delivery_instructions delivery_instruction[]`, `orders.special_instructions varchar(200)`, `delivery_addresses.delivery_note` (a per-address default that pre-fills the free text).
 - **States**: none.
@@ -910,7 +924,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   2. Given a request containing `"door"`, then `400 VALIDATION_FAILED` naming `delivery_instructions`.
   3. Given an order in `PREPARING`, when the instructions field is rendered, then it is read-only.
   4. Given an address with a `delivery_note`, when checkout opens, then the free-text field is pre-filled with it and editing does not modify the saved address.
-- **Out of scope**: photo-on-delivery requests (needs rider-side capture, not in the customer scope); "meet at lobby / meet outside" options (not in the backend enum — adding them is a schema change requiring rider-app support); per-item instructions (that is C-15's special request); voice instructions.
+- **Out of scope**: photo-on-delivery requests (needs rider-side capture, not in the customer scope); a "meet outside" option (not in the contract's five values); per-item instructions (that is C-15's special request); voice instructions.
 - **Version**: V1 · **Size**: S
 
 ---
@@ -1001,12 +1015,12 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. **Eligibility window**: a customer-requested refund may be opened while the order is in any status **from `CONFIRMED` up to 48 hours after `DELIVERED`**. Outside that ⇒ `409 REFUND_WINDOW_CLOSED` with a link to C-08.
   2. Reason codes (fixed): `NEVER_DELIVERED`, `MISSING_ITEMS`, `WRONG_ITEMS`, `FOOD_QUALITY`, `LATE_DELIVERY`, `DAMAGED_SPILLED`, `HALAL_CONCERN`, `CHARGED_INCORRECTLY`, `OTHER` (description required). `HALAL_CONCERN` also auto-creates a linked grievance (C-39) at `HIGH` priority.
   3. **The customer never proposes an amount.** For `FULL` scope the amount is `orders.total_cents` minus any prior refunds. For `PARTIAL` the amount is `Σ(selected line unit_price × quantity)` plus a proportional share of tax, **excluding** delivery and platform fees unless the reason is `NEVER_DELIVERED` (which refunds everything including fees and tip).
-  4. One open refund request per order (`REQUESTED`/`UNDER_REVIEW`); a second returns `409 REFUND_ALREADY_REQUESTED`. Total refunds against an order may never exceed the captured amount (enforced by a check inside the approval transaction).
+  4. A customer may report more than one problem on the same order, as the owner approved on 1 Oct; the contract still refuses a second request until [#184](https://github.com/shaiknoorullah/hg-mono/issues/184) lands. Total refunds against an order may never exceed the captured amount (enforced by a check inside the approval transaction).
   5. Automatic refunds are never queued for human review and are submitted to the provider immediately.
   6. Refunds go **back to the original payment method** only. No store credit, no alternative destination.
   7. Expected settlement time is displayed as "5–10 business days" from `platform_config.refund_settlement_days_copy`, and the status timeline shows the actual `completed_at` when the webhook lands.
   8. The customer receives a notification on every status change (C-40).
-  9. Evidence images: ≤3, ≤10 MB each, jpeg/png/webp, MinIO presigned upload, retained 2 years.
+  9. Evidence images: ≤3, ≤10 MB each, jpeg/png/webp, Silo presigned upload, retained 2 years.
 - **Acceptance criteria**:
   1. Given a delivered order 47 hours old, when a refund is requested, then a `refunds` row in `REQUESTED` is created; at 49 hours, `409 REFUND_WINDOW_CLOSED`.
   2. Given a partial refund for 1 of 3 items with reason `MISSING_ITEMS`, then `requested_amount_cents` equals that item's line total plus its proportional tax, and excludes delivery and platform fees.
@@ -1053,7 +1067,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-39 — Grievances and dispute escalation
 - **SOW trace**: *"Grievances: Submit grievances or complaints regarding orders, restaurants, or riders."* (14) · *"Dispute Resolution: Escalate unresolved issues to customer support for further assistance."* (17)
-- **Behaviour — distinguished from C-08 and C-37**: A **grievance** is a formal complaint about a *party* (restaurant, rider) or about the platform's handling of an issue, with a tracked outcome and an SLA. It is not a general question (C-08) and not a money claim (C-37), though it may reference either. Entry points: order detail → "Report a problem"; review flow → "Report this restaurant/rider"; refund denial → "Appeal this decision"; certification panel → "Report a halal concern".
+- **Behaviour — distinguished from C-08 and C-37**: A **grievance** is a formal complaint about a *party* (restaurant, rider) or about the platform's handling of an issue, with a tracked outcome and an SLA. It is not a general question (C-08) and not a money claim (C-37), though it may reference either. Entry points: order detail → "Report a problem"; review flow → "Report this restaurant/rider"; refund denial → "Appeal this decision"; certification sheet → "Report a halal concern".
 - **Data**: `grievances(id, user_id, subject_type ENUM(ORDER,RESTAURANT,RIDER,PLATFORM,REFUND_DECISION), subject_id, order_id NULL, refund_id NULL, category_code, severity, description, evidence_object_keys text[], status, assigned_agent_id, resolution_code, resolution_note, created_at, acknowledged_at, resolved_at, sla_due_at)`; `grievance_events(id, grievance_id, actor_type, actor_id, event_type, note, created_at)`.
 - **States**: `grievances.status ∈ {SUBMITTED, ACKNOWLEDGED, INVESTIGATING, RESOLVED, REJECTED, ESCALATED}`.
   - `(new) → SUBMITTED` — customer submits.
@@ -1090,7 +1104,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Behaviour**: Three delivery channels and one inbox.
   - **Push (FCM/APNs via Expo Notifications)** for the events listed below.
   - **In-app realtime** when the app is foregrounded (the socket already carries the event; the app renders a toast instead of a system notification).
-  - **In-app inbox** — a persisted, cursor-paginated list of every notification ever sent to the customer, with read/unread state and a tab-bar/header unread badge.
+  - **In-app inbox** — a persisted, cursor-paginated list of every notification ever sent to the customer, with read/unread state and a tab-bar/header unread badge. The inbox and its bell stay hidden at launch, until Alerts ships ([bottom navigation](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [later-version operations](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   Permission is requested **contextually**, immediately after the first successful order placement ("Get updates on your order?"), never at app launch.
 - **Data**: `push_tokens(id, user_id, token, platform ENUM(IOS,ANDROID), device_id, app_version, is_active, last_seen_at, created_at)`; `notifications(id, user_id, type, title, body, data jsonb, order_id NULL, created_at, read_at, push_sent_at, push_status)`; `user_preferences` (C-04) for the promotional opt-outs.
 - **States**: `notifications.read_at` null/set. `push_tokens.is_active` flips to false on a provider `DeviceNotRegistered` error.
@@ -1114,6 +1128,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Version**: V1 · **Size**: L
 
 > **DECISION REQUIRED — push infrastructure**: Expo Push Service (managed) or direct FCM/APNs? · **Proposed default**: **Expo Push Service** for V1 (one integration, works with EAS builds, no APNs certificate management inside the Go binary), with the server-side sender abstracted so a direct FCM/APNs implementation can replace it without touching call sites. · **Why**: the apps are Expo-managed; direct APNs/FCM adds certificate operations for no launch-critical benefit.
+
+> **2026-10-01:** [The self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) allows Apple and Google push services. Expo Push Service is a hosted relay in front of them and is not on the exception list. Whether it stays is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 
 ---
 
@@ -1142,9 +1158,9 @@ These are not features, but any of them missing invalidates the features above. 
 | C-02 | Login, logout, session lifecycle | V1 | M |
 | C-03 | Profile management | V1 | M |
 | C-04 | Preferences | V3 | M |
-| C-05 | Account deletion | V1 | M |
+| C-05 | Account deletion | not at launch ([#67](https://github.com/shaiknoorullah/hg-mono/issues/67)) | M |
 | C-06 | Help centre & FAQ | V1 | M |
-| C-07 | Call support | V2 | S |
+| C-07 | Call support | launch | S |
 | C-08 | Customer support message thread | V2 | L |
 | C-09 | Home feed | V1 | L |
 | C-10 | Search | V1 | M |
@@ -1179,7 +1195,7 @@ These are not features, but any of them missing invalidates the features above. 
 | C-39 | Grievances and dispute escalation | V2 | L |
 | C-40 | Notifications: push, inbox, alerts | V1 | L |
 
-**Counts** — V1: **28** · V2: **8** · V3: **4** · total **40**.
+**Counts** — V1: **27** · V2: **7** · V3: **4** · launch (call support): **1** · not at launch (account deletion): **1** · total **40**.
 **Sizes** — S: 6 · M: 24 · L: 10.
 
 ---
@@ -1188,25 +1204,25 @@ These are not features, but any of them missing invalidates the features above. 
 
 Each is blocking only for the feature named. Every one has a proposed default that this specification already assumes; if a default is accepted no further work is needed, and if it is rejected only the named feature changes.
 
-1. **SMS provider (C-01)** — Which provider sends OTP in Canada, and who owns the A2P registration? *Default: Twilio, client-owned account, abstracted behind an `SMSSender` interface.*
-2. **Supabase retirement (C-01)** — Keep Supabase for OTP or move fully in-house? *Default: remove Supabase; the Go binary owns OTP.*
+1. **SMS provider (C-01)** — Which provider sends OTP in Canada, and who owns the A2P registration? *Decided: Twilio Verify ([exceptions to the self-hosted rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)); the A2P/SMS registration is still open ([SMS registration](../decisions/README.md#open--blocking)).*
+2. **Supabase retirement (C-01)** — Keep Supabase for OTP or move fully in-house? *Decided: Supabase goes; sign-in lives in the binary ([authentication location](../decisions/README.md#settled--client-decisions)).*
 3. **Halal strictness preferences (C-04)** — Filter by certifying body or school of thought? *Default: no, at any version; show the body's name as text.*
-4. **Support staffing & hours (C-07)** — Is there a staffed phone line, with what hours? *Default: none at V1; `support_enabled=false`.*
+4. **Support staffing & hours (C-07)** — Is there a staffed phone line, with what hours? *Decided: a phone line during set hours only ([support channel](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).*
 5. **Restaurants with lapsed certification (C-12)** — Hide entirely, or show as expired and unorderable? *Default: hide entirely from every customer surface.*
-6. **Recognised certifying bodies (C-12)** — Maintain a whitelist, or admin judgement per restaurant? *Default: no whitelist; admin judgement; body name always displayed.*
+6. **Recognised certifying bodies (C-12)** — Maintain a whitelist, or admin judgement per restaurant? *Decided: three accepted bodies, extensible by a super admin ([accepted certifying bodies](../decisions/README.md#settled--client-decisions)).*
 7. **Certificate document visibility (C-12)** — Who may view the certificate file? *Default: any authenticated customer, presigned 300 s, audited.*
 8. **Per-day opening hours (C-14)** — Extend the single open/close pair to a weekly schedule? *Default: single pair at V1, weekly table at V2.*
 9. **Nutrition data ownership (C-15)** — Who supplies calories, and is it mandatory? *Default: optional, restaurant-entered, unverified, shown with a disclaimer.*
-10. **Who funds discounts (C-21)** — Platform-funded or restaurant-funded coupons? *Default: platform-funded; restaurants settled on the pre-discount subtotal.*
-11. **Sales tax (C-22)** — Which taxes, on which base, and who is the registrant? *Default: 13% HST on food + delivery fee + platform fee, client is the registrant, rates table-driven.*
-12. **Launch province(s) (C-22)** — Which province(s) at launch? *Default: Ontario (GTA) only; other provinces rejected at address creation.*
-13. **Restaurant acceptance window (C-23)** — How long before auto-rejection? *Default: 5 minutes, then auto-reject with a full void.*
+10. **Who funds discounts (C-21)** — Platform-funded or restaurant-funded coupons? *Decided: restaurant-funded ([discount funding](../decisions/README.md#settled--reconciliations)).*
+11. **Sales tax (C-22)** — Which taxes, on which base, and who is the registrant? *Partly decided: 13% HST in Ontario ([launch decisions](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)); registration and supplier position still open ([HST registration](../decisions/README.md#open--blocking)).*
+12. **Launch province(s) (C-22)** — Which province(s) at launch? *Decided: Ontario only ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).*
+13. **Restaurant acceptance window (C-23)** — How long before auto-rejection? *Decided: 180 seconds ([acceptance window](../decisions/README.md#settled--reconciliations)).*
 14. **Order modification after placement (C-23)** — In scope, given the FAQ promises it today? *Default: no, at any version; correct the FAQ and direct customers to cancel-and-reorder.*
-15. **Payment provider (C-24)** — Which PSP? *Default: Stripe (Payment Intents + Payment Sheet + Connect).*
+15. **Payment provider (C-24)** — Which PSP? *Decided: Stripe ([exceptions to the self-hosted rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)).*
 16. **Cash on delivery (C-24)** — Offered at launch? *Default: no; `cod_enabled=false` until a rider cash ledger exists.*
-17. **Concurrent orders (C-26)** — May a customer have more than one active order? *Default: no, one at a time.*
-18. **Cancellation cutoff (C-29)** — Is `CONFIRMED` cancellable with a full refund? *Default: yes up to and including `CONFIRMED`; nothing after.*
-19. **Maps & places provider (C-31)** — Google or Mapbox? *Default: Google, proxied server-side and cached.*
+17. **Concurrent orders (C-26)** — May a customer have more than one active order? *Decided: no, one at a time; an order under review does not count ([under review](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).*
+18. **Cancellation cutoff (C-29)** — Is `CONFIRMED` cancellable with a full refund? *Decided: no; free cancellation stops once the restaurant accepts ([cancellation policy](../decisions/README.md#settled--client-decisions)).*
+19. **Maps & places provider (C-31)** — Google or Mapbox? *Decided: Mapbox, through our API ([map address search](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).*
 20. **Number-masking provider (C-34)** — Is masked calling funded? *Default: Twilio Proxy; if unfunded, ship with no customer↔rider channel rather than exposing real numbers.*
 21. **Refund approval policy (C-37)** — Auto-approve below a threshold, or always review? *Default: always human-reviewed at V1, 24 h target.*
 22. **Refund window (C-37)** — How long after delivery? *Default: 48 hours.*

@@ -1,7 +1,7 @@
 /*
  * The admin console's only stylesheet.
  *
- * Like the gallery, this app never names a colour. Every value below is a design-system
+ * This app never names a colour. Every value below is a design-system
  * custom property that `@hg/ui-web/styles.css` wrote out of the tokens. The admin theme
  * and comfortable density are applied as attributes on a wrapper in App.tsx.
  */
@@ -32,7 +32,16 @@
   }
 
   .adm-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--hg-space-1);
+    padding: var(--hg-space-1);
     text-decoration: none;
+  }
+
+  .adm-login-mark {
+    align-self: center;
   }
 
   /* Still used by in-screen toolbar controls that aren't a full `Button` (e.g. the orders
@@ -215,12 +224,6 @@
     flex-wrap: wrap;
     align-items: end;
     gap: var(--hg-space-3);
-  }
-
-  .adm-grid-box {
-    border: 1px solid var(--hg-border-decorative);
-    border-radius: var(--hg-radius-sm);
-    overflow: hidden;
   }
 
   .adm-form-grid {

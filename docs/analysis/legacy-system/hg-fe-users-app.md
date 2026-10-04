@@ -1,4 +1,4 @@
-# Halal Goes — Users (Customer) Mobile App — Exhaustive Analysis
+# HalalGoes — Users (Customer) Mobile App — Exhaustive Analysis
 
 **Path:** `/home/user/halal-goes/apps/users`
 **Type:** Expo (SDK ~53) React Native app, expo-router v5 file-based routing, inside the `halal-goes` Turborepo (yarn workspaces, `installConfig.hoistingLimits: workspaces`).
@@ -7,7 +7,7 @@
 
 ## 1. Purpose & Role in the Platform
 
-This is the **customer-facing food-delivery app** of the Halal Goes platform. It implements the entire consumer journey: onboarding carousel → phone OTP auth → profile completion → personalized restaurant feed → restaurant menu browsing → server-synced cart → checkout (address, delivery instructions, tips, promos) → payment → real-time order lifecycle (restaurant acceptance → rider assignment → live map tracking) → delivery rating. It talks to the `hg-api` backend over REST (`EXPO_PUBLIC_BASE_API_URL`) and to a raw WebSocket gateway (`EXPO_PUBLIC_WEBSOCKET`, port 9080) for order/checkout status pushed from the backend's Temporal-driven order workflows. Auth is phone-OTP based via the shared workspace package `@halal-goes/auth` (which wraps Supabase for OTP sending plus custom backend `/auth/*` endpoints for token issuance).
+This is the **customer-facing food-delivery app** of the HalalGoes platform. It implements the entire consumer journey: onboarding carousel → phone OTP auth → profile completion → personalized restaurant feed → restaurant menu browsing → server-synced cart → checkout (address, delivery instructions, tips, promos) → payment → real-time order lifecycle (restaurant acceptance → rider assignment → live map tracking) → delivery rating. It talks to the `hg-api` backend over REST (`EXPO_PUBLIC_BASE_API_URL`) and to a raw WebSocket gateway (`EXPO_PUBLIC_WEBSOCKET`, port 9080) for order/checkout status pushed from the backend's Temporal-driven order workflows. Auth is phone-OTP based via the shared workspace package `@halal-goes/auth` (which wraps Supabase for OTP sending plus custom backend `/auth/*` endpoints for token issuance).
 
 - App display name: **HalalGoes**, slug `users`, version 1.0.0, EAS project `4694cd1f-a200-4edd-8e7e-33298bbbb580`, owner `aaqeb11`.
 - Bundle IDs: iOS `com.aaqeb11.users`, Android `com.aaqeb11.users`.
@@ -153,7 +153,7 @@ Exposes: orderStatus (21-value union), orderId, checkoutId, isProcessing, isFail
 - JWT payload: `sub` = userId, `role`; expiry checked locally in `utils/getUserFromToken.ts`, proactive refresh through `POST /auth/refresh`, differentiated cleanup on refresh failure classes.
 - zustand `user-auth-storage` also persists the whole session object (partialize includes `session`).
 - Several money-adjacent endpoints called **without** auth header (checkout, payment-method creation, rider lookup) — relies entirely on backend enforcement.
-- **Hardcoded Google Maps Android API key in app.json**: `AIzaSyD614SHSgC6FnrGsIj00_8SZJF5WznveSU` (committed). Directions API key comes from `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (public by Expo convention).
+- **Hardcoded Google Maps Android API key in app.json**: [REDACTED: Google Maps key, see [#130](https://github.com/shaiknoorullah/hg-mono/issues/130)] (committed). Directions API key comes from `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (public by Expo convention).
 - `usesCleartextTraffic: true` on Android (needed for `ws://` and the commented http:// API URL) — weakens transport security.
 - Heavy console logging of token previews (first 20 chars) and full WS payloads.
 

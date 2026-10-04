@@ -6,7 +6,7 @@
 
 ## 1. Purpose & Role in the Platform
 
-These services form the **entire commerce spine** of the Halal Goes food-delivery platform: browsing/discovery (feed), cart building (carts), price computation (pricing), the checkout saga (checkout), payment ledger (payments), order lifecycle + rider assignment + live tracking (orders), and post-delivery ratings (ratings).
+These services form the **entire commerce spine** of the HalalGoes food-delivery platform: browsing/discovery (feed), cart building (carts), price computation (pricing), the checkout saga (checkout), payment ledger (payments), order lifecycle + rider assignment + live tracking (orders), and post-delivery ratings (ratings).
 
 The dominant architectural pattern is **"everything is a Temporal workflow"**: even trivial DB reads (get cart, feed generation) round-trip through a Temporal workflow started on a per-module task queue. The checkout is a **saga orchestration**: an in-process event (`orders.checkout.initiated` via `@nestjs/event-emitter`) starts `initiateCheckoutWorkflow` on `checkouts-queue`, which coordinates payment → order creation → restaurant acceptance → rider assignment → live tracking → cart clearing, with signal-based responses from child workflows and from external actors (restaurant-web/rider apps hitting REST endpoints that translate to Temporal signals, correlated via short-lived Redis mapping keys).
 

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Seal — Halal Goes</title>
-<meta name="description" content="The Halal Goes seal, struck onto the certificate it vouches for, rendered live. Seven checks on every restaurant, before it reaches you.">
+<title>The Seal — HalalGoes</title>
+<meta name="description" content="The HalalGoes seal, struck onto the certificate it vouches for, rendered live. Seven checks on every restaurant, before it reaches you.">
 <meta name="theme-color" content="#FFFAEA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -151,7 +151,7 @@
 </div>
 
 <header class="masthead">
-  <a href="#the-mark">Halal Goes</a>
+  <a href="#the-mark">HalalGoes</a>
   <span class="mono">Ontario · Launching soon</span>
 </header>
 
@@ -196,14 +196,14 @@
       <p class="eyebrow mono">04 · What we don't</p>
       <h2 id="h-dont">We don't certify food. We don't make rulings.</h2>
       <p class="body">We do the clerical work. We get the certificate, we read it, we check it's real and still in force, and we put our name against the date we checked.</p>
-      <p class="standing">Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.</p>
+      <p class="standing">Certification verified by HalalGoes on the date shown on each listing. HalalGoes does not itself certify food.</p>
     </div>
   </section>
 
 </main>
 
 <footer>
-  <a class="wordmark" href="#the-mark">Halal Goes</a>
+  <a class="wordmark" href="#the-mark">HalalGoes</a>
   <span class="mono">Ontario · Launching soon</span>
   <a class="back" href="#the-mark">Back to the seal ↑</a>
 </footer>
@@ -448,7 +448,7 @@ async function boot(THREE) {
 
     // header
     text('RECORD OF VERIFICATION', -6.6, L.headerY, mono(0.5), '#232323');
-    text('Halal Goes', 6.6, L.headerY, sans(0.62, 700), '#232323', 'right');
+    text('HalalGoes', 6.6, L.headerY, sans(0.62, 700), '#232323', 'right');
     text('SPECIMEN — THE FIELDS WE FILL IN BEFORE A KITCHEN IS LISTED.', -6.6, L.captionY, mono(0.3), '#4A4E48');
     rule(-6.6, 6.6, L.rule1Y, '#4A4E48', 0.025, 0.8);
 
@@ -479,7 +479,7 @@ async function boot(THREE) {
     text('VERIFIED BY', L.verified.labelX, L.verified.y1, mono(0.34), '#4A4E48'); blank(L.verified.blankX, L.verified.blankEnd, L.verified.y1);
     text('ON', L.verified.labelX, L.verified.y2, mono(0.34), '#4A4E48'); blank(L.verified.blankX, L.verified.blankEnd, L.verified.y2);
     g.font = mono(0.24, 400);
-    wrapText(g, 'Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.', S(L.disclaimerW))
+    wrapText(g, 'Certification verified by HalalGoes on the date shown on each listing. HalalGoes does not itself certify food.', S(L.disclaimerW))
       .forEach((line, i) => text(line, -6.6, L.disclaimerY - i * L.disclaimerLine, mono(0.24, 400), '#4A4E48'));
 
     // bump: tooth, a soft plate-mark groove, and the impression left around the seal

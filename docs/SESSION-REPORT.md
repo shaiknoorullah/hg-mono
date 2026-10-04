@@ -17,7 +17,7 @@ Order of work:
 5. **Contract** — OpenAPI 3.1, 144 operations, 80 enums → `contracts/`
 6. **Contract kit** — generated client, 311 fixtures, mock server
 7. **Design system** — tokens, 41 components, patterns, accessibility → `docs/design/`
-8. **Component libraries** — 81 components across native and web, plus two galleries
+8. **Component libraries** — 81 components across native and web, plus two galleries (since removed — component review happens in the [UI/UX rework](https://github.com/shaiknoorullah/hg-mono/milestone/16))
 9. **Backend foundation** — Go skeleton, compose stack, 91-table schema
 
 ## 2. The findings that shaped everything
@@ -68,7 +68,6 @@ Recorded because the corrections are more instructive than the successes.
 | Contract | 144 operations, 249 schemas, 80 enums, all refs resolving |
 | Contract kit | Generated client, **311 fixtures**, mock server with scripted WebSocket |
 | Components | 81 across native + web, both themes, every declared state |
-| Galleries | Both verified rendering; native runs in a browser via react-native-web |
 | Backend | Go skeleton + compose stack; **91-table schema, 59 invariant assertions** |
 
 **Not started:** seven backend domain modules (briefs in `docs/planning/backend-modules.md`); four client apps.
@@ -91,7 +90,6 @@ From `docs/decisions/README.md`. Two of these gate taking real money:
 git clone https://github.com/shaiknoorullah/hg-mono && cd hg-mono
 corepack enable && pnpm install
 pnpm check                              # must be green before you change anything
-pnpm --filter gallery-web dev           # see the design system
 cd services/hg && make up && make migrate   # the first real test of the stack
 ```
 

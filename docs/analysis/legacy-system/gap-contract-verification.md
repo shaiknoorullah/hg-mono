@@ -1,4 +1,4 @@
-# Halal Goes — Gap & Contract Verification Report
+# HalalGoes — Gap & Contract Verification Report
 
 Follow-up fleet analysis resolving 10 open questions/contradictions against the hg-api source
 (`/home/user/hg-api/api/src`), the Prisma schema (`/home/user/hg-api/api/prisma/schema.prisma`),
