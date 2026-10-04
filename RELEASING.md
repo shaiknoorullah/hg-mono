@@ -42,8 +42,11 @@ files are committed and carry **no real secrets**.
 | Rider (`@hg/rider`, Expo) | `apps/rider/.env.example` → `apps/rider/.env` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_MAPBOX_TOKEN` |
 
 **Password hashing cap.** Each password hash takes 64 MiB, so each API replica runs at most
-`HG_AUTH_HASH_CONCURRENCY` (default `2`) at once; a sign-up or login that waits longer than
-`HG_AUTH_HASH_WAIT` (default `2s`) is answered `503` with `Retry-After`. Raise the cap only if the
+`HG_AUTH_HASH_CONCURRENCY` (default `3`, minimum `3`) at once, split into separate sign-up, login
+and staff gates so a sign-up flood cannot lock admins out. A sign-up or login that waits longer than
+`HG_AUTH_HASH_WAIT` (default `2s`, at most `5s`), or finds more than `HG_AUTH_HASH_MAX_WAITERS`
+(default 4 per slot) already waiting, is answered `503` with `Retry-After`, and the server logs a
+`password hashing at capacity` warning with the gate name: alert on it. Raise the cap only if the
 replica's memory limit has room for another 64 MiB per step
 ([#216](https://github.com/shaiknoorullah/hg-mono/issues/216)).
 

@@ -29,11 +29,12 @@ const (
 
 // HashPassword produces a PHC-encoded argon2id string suitable for the
 // account.password_hash column. The encoding is self-describing so a future
-// parameter change verifies old hashes without a migration. It waits for a
-// hashing slot first (hashgate.go) and returns ErrPasswordHashBusy when none
-// frees up in time.
+// parameter change verifies old hashes without a migration. It waits for a slot
+// on the sign-up gate first (hashgate.go) and returns an error matching
+// ErrPasswordHashBusy when none frees up in time. Request flows take the slot
+// for their own audience instead; this is for tools such as cmd/seedpw.
 func HashPassword(ctx context.Context, password string) (string, error) {
-	slot, err := acquireHashSlot(ctx)
+	slot, err := acquireHashSlot(ctx, audienceSignup)
 	if err != nil {
 		return "", err
 	}
@@ -42,17 +43,37 @@ func HashPassword(ctx context.Context, password string) (string, error) {
 }
 
 // VerifyPassword reports whether password matches the PHC-encoded argon2id hash.
-// It waits for a hashing slot like HashPassword. A caller that must tell "busy"
-// apart from "wrong password" should hold a slot and call slot.verify instead,
-// so the two can never be confused.
+// It waits for a slot like HashPassword. A caller that must tell "busy" apart
+// from "wrong password" should hold a slot and call slot.verify instead, so the
+// two can never be confused.
 func VerifyPassword(ctx context.Context, encoded, password string) (bool, error) {
-	slot, err := acquireHashSlot(ctx)
+	slot, err := acquireHashSlot(ctx, audienceSignup)
 	if err != nil {
 		return false, err
 	}
 	defer slot.release()
 	return slot.verify(encoded, password)
 }
+
+// dummyPasswordHash is what Login verifies against when the email has no
+// account or the account has no password, so that answer costs the same
+// argon2id work as a wrong password and its timing does not reveal which
+// emails are registered. It is built from the same parameter constants as a
+// real hash, so it cannot drift to a cheaper cost, and its key is random bytes
+// that no password derives to. Nothing is hashed to build it.
+var dummyPasswordHash = func() string {
+	salt := make([]byte, argonSaltLen)
+	key := make([]byte, argonKeyLen)
+	if _, err := rand.Read(salt); err != nil {
+		panic("argon2id: read dummy salt: " + err.Error())
+	}
+	if _, err := rand.Read(key); err != nil {
+		panic("argon2id: read dummy key: " + err.Error())
+	}
+	b64 := base64.RawStdEncoding.EncodeToString
+	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
+		argon2.Version, argonMemory, argonTime, argonThreads, b64(salt), b64(key))
+}()
 
 // hash is the argon2id hash itself, run under a held slot.
 func (*hashSlot) hash(password string) (string, error) {

@@ -128,12 +128,29 @@ func userAgentPtr(r *http.Request) *string {
 	return &ua
 }
 
-// failHashBusy answers 503 when every password-hashing slot stayed taken for
-// the whole wait (hashgate.go). Nothing was executed, so the client may retry
-// after Retry-After seconds. TIMEOUT is the contract's code for "the server
-// could not do this in time" (contracts/openapi.yaml, ErrorCode).
-func failHashBusy(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Retry-After", strconv.Itoa(passwordHashRetryAfter()))
+// failHashBusy answers 503 when every password-hashing slot of the request's
+// gate stayed taken (hashgate.go). Nothing was executed, so the client may
+// retry after Retry-After seconds. TIMEOUT is the contract's code for "the
+// server could not do this in time" (contracts/openapi.yaml, ErrorCode).
+//
+// Every rejection writes one WARN line naming the gate and the operation, with
+// the gate's running total, so ops can see a flood and which form it targets
+// rather than a bare 503 in the request log (#216).
+func (h *Handler) failHashBusy(w http.ResponseWriter, r *http.Request, err error, operationID string) {
+	retry := DefaultHashWait
+	gate, reason := "unknown", "unknown"
+	var busy *HashBusyError
+	if errors.As(err, &busy) {
+		retry, gate, reason = busy.RetryAfter, busy.Gate, busy.Reason
+	}
+	secs := int64((retry + time.Second - 1) / time.Second)
+	if secs < 1 {
+		secs = 1
+	}
+	h.svc.log.WarnContext(r.Context(), "password hashing at capacity",
+		"gate", gate, "reason", reason, "operation_id", operationID,
+		"retry_after_s", secs, "rejected_total", PasswordHashingRejections()[gate])
+	w.Header().Set("Retry-After", strconv.FormatInt(secs, 10))
 	httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeTimeout,
 		"The server is busy. Please try again in a moment.", nil)
 }
@@ -238,7 +255,8 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 // Login implements login. Argon2id verification, status check, TOTP where
 // enrolled, Postgres-backed lockout. Per-IP and per-email request limits answer
 // 429 with Retry-After; they fail open when Redis is down (the lockout does not
-// live in Redis), so login never answers 503.
+// live in Redis), so the limiter never makes login answer 503. The only 503 is
+// password hashing at capacity, which is reached only after the limits pass.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	client, ok := clientSurface(r)
 	if !ok {
@@ -288,7 +306,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		failRateLimited(w, r, err, "Too many sign-in attempts. Please wait before trying again.")
 		return
 	case errors.Is(err, ErrPasswordHashBusy):
-		failHashBusy(w, r)
+		h.failHashBusy(w, r, err, "login")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
@@ -341,7 +359,7 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 			"This password has appeared in a data breach. Choose another.", nil)
 		return
 	case errors.Is(err, ErrPasswordHashBusy):
-		failHashBusy(w, r)
+		h.failHashBusy(w, r, err, "registerRestaurant")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
@@ -436,8 +454,11 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			"Password must be between 12 and 256 characters.", nil)
 		return
 	}
-	err := h.svc.ResetPassword(r.Context(), in.Token, in.NewPassword)
+	err := h.svc.ResetPassword(r.Context(), in.Token, in.NewPassword, clientIPPtr(r))
 	switch {
+	case errors.Is(err, ErrRateLimited):
+		failRateLimited(w, r, err, "Too many password resets from this network. Please wait before trying again.")
+		return
 	case errors.Is(err, errTokenExpired), errors.Is(err, errTokenUsed), errors.Is(err, ErrNotFound):
 		httpx.Fail(w, r, http.StatusBadRequest, CodeTokenConsumed,
 			"This reset link is not valid.", nil)
@@ -447,7 +468,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			"This password has appeared in a data breach. Choose another.", nil)
 		return
 	case errors.Is(err, ErrPasswordHashBusy):
-		failHashBusy(w, r)
+		h.failHashBusy(w, r, err, "resetPassword")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
