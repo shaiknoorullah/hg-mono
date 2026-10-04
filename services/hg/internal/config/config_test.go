@@ -40,6 +40,9 @@ func TestLoadAcceptsACompleteEnvironment(t *testing.T) {
 	if len(cfg.MinIO.Buckets.Private()) != 4 {
 		t.Errorf("expected 4 private buckets, got %d", len(cfg.MinIO.Buckets.Private()))
 	}
+	if cfg.Realtime.MaxSockets != 2000 {
+		t.Errorf("Realtime.MaxSockets = %d, want the 2000 default", cfg.Realtime.MaxSockets)
+	}
 }
 
 // TestLoadFailsLoudlyOnEachMissingRequiredVar is the G-7 test.
@@ -168,6 +171,7 @@ func TestLoadRejectsMalformedValues(t *testing.T) {
 		"bad integer":           {"HG_REDIS_DB", "two", "HG_REDIS_DB"},
 		"bad boolean":           {"HG_MINIO_USE_SSL", "sometimes", "HG_MINIO_USE_SSL"},
 		"origin without scheme": {"HG_CORS_ALLOWED_ORIGINS", "app.halalgoes.com", "HG_CORS_ALLOWED_ORIGINS"},
+		"zero socket cap":       {"HG_REALTIME_MAX_SOCKETS", "0", "HG_REALTIME_MAX_SOCKETS"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
