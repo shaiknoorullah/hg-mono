@@ -236,20 +236,45 @@ type RunWaveResult struct {
 // top wave_size. It returns how many offers went out. The caller (the deadline
 // runner) sequences waves with the inter-wave gap and widens the radius ladder.
 //
+// When nobody qualifies, the wave is still written, empty, and holds the search
+// for emptyWaveHold (Exhausted is set). That creates the order's dispatch row
+// on the first wave, so the search goes on to the wider radii and ends in
+// NO_RIDER_FOUND at its wave or time budget, instead of retrying the first
+// radius forever (https://github.com/shaiknoorullah/hg-mono/issues/294).
+// errWaveNotOpen means another replica already ran this wave.
+//
 // This is the single Postgres candidate query plus a deterministic Go ranking —
 // no Redis GEO, per the seam resolution. ETA and score use the haversine fallback
 // (the routing provider integration is a later slice).
 func (s *Service) RunWave(ctx context.Context, orderID string, waveNo, radiusM int) (*RunWaveResult, error) {
+	return s.runWave(ctx, orderID, waveNo, []int{radiusM})
+}
+
+// runWave runs wave waveNo over radii, nearest first: it offers the order at
+// the first radius anyone qualifies within, or, when none of them has anyone,
+// writes the wave empty at the last (widest) one.
+func (s *Service) runWave(ctx context.Context, orderID string, waveNo int, radii []int) (*RunWaveResult, error) {
 	now := s.now()
 	info, err := s.store.LoadOrderDispatchInfo(ctx, orderID)
 	if err != nil {
 		return nil, err
 	}
-	cands, err := s.store.FindCandidates(ctx, orderID, info.PickupLng, info.PickupLat, radiusM, candidateLimit)
-	if err != nil {
-		return nil, err
+	var cands []Candidate
+	radiusM := radii[len(radii)-1]
+	for _, r := range radii {
+		cands, err = s.store.FindCandidates(ctx, orderID, info.PickupLng, info.PickupLat, r, candidateLimit)
+		if err != nil {
+			return nil, err
+		}
+		if len(cands) > 0 {
+			radiusM = r
+			break
+		}
 	}
 	if len(cands) == 0 {
+		if _, err := s.store.CreateWave(ctx, info, waveNo, radiusM, nil, nil, now.Add(emptyWaveHold)); err != nil {
+			return nil, err
+		}
 		return &RunWaveResult{Offered: 0, RadiusM: radiusM, Exhausted: true}, nil
 	}
 
