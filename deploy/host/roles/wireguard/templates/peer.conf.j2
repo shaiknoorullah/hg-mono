@@ -1,0 +1,18 @@
+# WireGuard config for {{ item.name }}, written by deploy/host/roles/wireguard.
+# 1. Replace the PrivateKey line with this device's private key (the one whose public key
+#    is in the inventory). 2. Bring it up: sudo wg-quick up ./{{ item.name }}.conf, or
+#    import it into the WireGuard app. 3. Check: ssh {{ hg_admin_user }}@{{ hg_wg_address }}
+[Interface]
+Address = {{ item.address }}/32
+PrivateKey = <this device's WireGuard private key>
+{% for host in groups['hg_servers'] | default([]) %}
+{% if hostvars[host].hg_public_ipv4 is defined and hg_wg_private_keys[host] | default('') | length > 0 %}
+
+# {{ host }}
+[Peer]
+PublicKey = {{ hg_wg_private_keys[host] | hg_wg_pubkey }}
+Endpoint = {{ hostvars[host].hg_public_ipv4 }}:{{ hg_wg_port }}
+AllowedIPs = {{ hostvars[host].hg_wg_address }}/32
+PersistentKeepalive = 25
+{% endif %}
+{% endfor %}

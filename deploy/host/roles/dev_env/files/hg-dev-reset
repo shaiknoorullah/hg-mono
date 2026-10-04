@@ -1,0 +1,33 @@
+#!/bin/bash
+# hg-dev-reset [--yes]: wipe the dev environment's data and bring it back to the seed data.
+# Production is never touched: dev has its own project, containers, volumes and networks.
+# Managed by Ansible (deploy/host/roles/dev_env).
+set -euo pipefail
+cd /srv/hg-dev
+if [ "${1:-}" != --yes ]; then
+  read -r -p "This deletes every dev database row and bucket object. Type 'reset dev': " answer
+  [ "$answer" = "reset dev" ] || { echo "nothing done"; exit 1; }
+fi
+set -a
+# shellcheck source=/dev/null
+source .env
+set +a
+
+docker compose down --volumes --remove-orphans
+docker compose up -d --wait postgres redis silo
+docker compose run --rm createbuckets
+
+migrate_image=$(cat /srv/hg-dev/migrate-image 2>/dev/null || true)
+if [ -n "$migrate_image" ]; then
+  docker run --rm --network hg-dev-net --cgroup-parent hg-dev.slice \
+    -v /srv/hg-dev/migrations:/migrations:ro \
+    -e GOOSE_DRIVER=postgres -e GOOSE_MIGRATION_DIR=/migrations \
+    -e GOOSE_DBSTRING="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB?sslmode=disable" \
+    "$migrate_image" up
+  docker compose cp migrations/seed postgres:/tmp/seed
+  docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /tmp/seed/seed.sql
+else
+  echo "no migrate image set (hg_dev_migrate_image): the database is empty"
+fi
+docker compose up -d
+echo "dev reset to the seed data"

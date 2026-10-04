@@ -1,0 +1,29 @@
+# Managed by Ansible (deploy/host/roles/backup). Read by the hg-backup scripts.
+# shellcheck shell=bash disable=SC2034
+export RESTIC_REPOSITORY={{ hg_backup_restic_repo }}
+export RESTIC_PASSWORD_FILE={{ hg_config_dir }}/backup/restic.pass
+export RESTIC_CACHE_DIR=/var/cache/restic
+export GOMEMLIMIT=200MiB
+export TEXTFILE_DIR={{ hg_textfile_dir }}
+BACKUP_HOST={{ inventory_hostname }}
+
+PG_CONTAINER={{ hg_postgres_container }}
+PG_USER={{ hg_postgres_superuser }}
+PG_DB={{ hg_postgres_db }}
+PG_UID={{ hg_postgres_uid }}
+PGBR_STANZA={{ hg_pgbackrest_stanza }}
+PGBR_REPO={{ hg_backup_pgbackrest_repo }}
+PGBR_LOG_DIR={{ hg_backup_pgbackrest_logs }}
+PGBR_CIPHER_ENV={{ hg_config_dir }}/pgbackrest/cipher.env
+
+STAGING={{ hg_backup_staging }}
+APP_NETWORK={{ hg_networks.app.name }}
+RCLONE_CONF={{ hg_config_dir }}/backup/rclone.conf
+RCLONE_IMAGE={{ hg_images.rclone }}
+SILO_IMAGE={{ hg_images.silo }}
+CONFIG_PATHS=({% for p in hg_backup_config_paths %}{{ p | quote }} {% endfor %})
+CONFIG_EXCLUDES=({% for p in hg_backup_config_excludes %}{{ p | quote }} {% endfor %})
+PG_DUMPS=({% for d in hg_backup_pg_dumps %}{{ (d.name ~ ' ' ~ d.container ~ ' ' ~ d.user ~ ' ' ~ d.db) | quote }} {% endfor %})
+KEEP=({{ hg_backup_keep | map('quote') | join(' ') }})
+PULL_USER={{ hg_pull_user }}
+DRILL_PARENT={{ hg_backup_root }}

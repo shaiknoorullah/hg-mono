@@ -1,0 +1,6 @@
+hg_docker_log_max_size: 20m
+hg_docker_log_max_file: 5
+# Weekly removal of images no container uses. The standby keeps its pulled images for a
+# failover, so it sets this to false.
+hg_docker_prune: true
+hg_docker_prune_window: "Sun *-*-* 05:00:00 {{ hg_ops_timezone }}"

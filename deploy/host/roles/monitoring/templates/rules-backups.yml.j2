@@ -1,0 +1,40 @@
+# Managed by Ansible (deploy/host/roles/backup and roles/monitoring). Backups (#64).
+groups:
+  - name: backups
+    rules:
+{% raw %}
+      - alert: BackupFailed
+        expr: hg_backup_last_run_success == 0
+        for: 20m
+        annotations:
+          summary: "Backup job {{ $labels.backup }} failed on {{ $labels.host }}"
+          description: "journalctl -u hg-backup@{{ $labels.backup }} shows why (the drill: -u hg-restore-drill)."
+      - alert: BackupOverdue
+        expr: (time() - hg_backup_last_success_timestamp_seconds) > hg_backup_max_age_seconds
+        annotations:
+          summary: "Backup job {{ $labels.backup }} has not succeeded in time on {{ $labels.host }}"
+          description: "Its last success was {{ $value | humanizeDuration }} ago."
+      - alert: WalArchiveStale
+        expr: hg_pgbackrest_wal_segments_waiting > 0 and hg_pgbackrest_wal_newest_age_seconds > 300
+        for: 5m
+        annotations:
+          summary: "WAL is not reaching the backup repository: point-in-time recovery is falling behind"
+          description: "hg-pgbackrest check says why. Runbook: 'The disk is full', step 4."
+      - alert: WalDropped
+        expr: increase(hg_pgbackrest_wal_dropped_total[1h]) > 0
+        annotations:
+          summary: "pgBackRest dropped WAL: point-in-time recovery is broken until the next backup"
+          description: "Fix archiving, then take a full backup at once: systemctl start hg-backup@pg-full"
+      - alert: OffsiteCopyStale
+        expr: time() - hg_backup_offline_pull_last_timestamp_seconds > 3 * 86400
+        for: 1h
+        annotations:
+          summary: "The owner's machine has not pulled the off-server copy for 3 days"
+          description: "Until it does, the server holds the only copy of the backups."
+      - alert: OffsiteCopyNeverPulled
+        expr: absent(hg_backup_offline_pull_last_timestamp_seconds)
+        for: 3d
+        annotations:
+          summary: "The owner's machine has never pulled the off-server copy"
+          description: "Set it up with offline.yml (deploy/host/README.md)."
+{% endraw %}

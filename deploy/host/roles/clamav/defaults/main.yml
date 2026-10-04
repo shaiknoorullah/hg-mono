@@ -1,0 +1,9 @@
+# ClamAV runs on hg_clamav_host only (group_vars/all.yml). Moving it to the standby is that
+# one setting plus standby.yml: it starts there, on the WireGuard address, and stops here.
+hg_clamav_enabled: "{{ hg_clamav_host == inventory_hostname }}"
+hg_clamav_on_standby: "{{ inventory_hostname in groups['standby'] | default([]) }}"
+hg_clamav_memory: 4g
+hg_clamav_max_threads: 2
+# KYC files can be up to 15 MiB; anything larger is flagged, never passed (AlertExceedsMax).
+hg_clamav_max_size: 16M
+hg_clamav_signature_checks_per_day: 4

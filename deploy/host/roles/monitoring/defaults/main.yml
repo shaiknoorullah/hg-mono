@@ -1,0 +1,44 @@
+hg_monitoring_dir: "{{ hg_ops_dir }}/monitoring"
+hg_metrics_retention: 90d
+# What this host runs. The standby (#210) runs only Gatus, watching prod from outside it.
+hg_monitoring_components: [victoriametrics, vmalert, alertmanager, gatus, postgres_exporter]
+
+# Gatus checks, from this server. The machine that pulls the off-server copy runs a second
+# Gatus (roles/offline_copy): the only watcher that can say this whole server is down.
+hg_gatus_endpoints:
+  - name: api
+    group: production
+    url: "https://api.{{ hg_domain }}/health/ready"
+    conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"]
+    alert: true
+  - name: website
+    group: production
+    url: "https://{{ hg_domain }}/"
+    conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"]
+    alert: true
+  - name: files
+    group: production
+    # Silo's host answers only object paths (#200); this checks TLS and that Traefik answers.
+    url: "https://files.{{ hg_domain }}/"
+    conditions: ["[CONNECTED] == true", "[CERTIFICATE_EXPIRATION] > 336h"]
+    alert: true
+  - name: dev-api
+    group: dev
+    url: "https://api.dev.{{ hg_domain }}/health"
+    conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"]
+    alert: false
+  - name: alertmanager
+    group: monitoring
+    url: "http://alertmanager:9093/-/healthy"
+    conditions: ["[STATUS] == 200"]
+    alert: true
+  - name: victoriametrics
+    group: monitoring
+    url: "http://victoriametrics:8428/health"
+    conditions: ["[STATUS] == 200"]
+    alert: true
+  - name: vmalert
+    group: monitoring
+    url: "http://vmalert:8880/health"
+    conditions: ["[STATUS] == 200"]
+    alert: true

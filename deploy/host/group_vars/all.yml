@@ -1,0 +1,102 @@
+# Settings shared by every host and role. Per-owner values (addresses, keys, email) go in
+# inventory/hosts.yml, written by provision.sh from inventory/hosts.example.yml.
+# Secrets never go here: see the README, "Secrets".
+
+hg_domain: halalgoes.com
+# Every operational schedule (backups, reboots, drills) is in Toronto time; the OS clock stays UTC.
+hg_ops_timezone: America/Toronto
+
+# true only in the disposable-container test (tests/): a container must not change the host
+# kernel's swap or vm.* settings, set the hostname, or bring up WireGuard.
+hg_in_container: false
+
+# ---------------------------------------------------------------------------- access
+hg_admin_user: ops
+# Set in the inventory, never here (these group_vars outrank the inventory's): hg_admin_ssh_keys,
+# hg_wg_peers (the owner's laptop and backup machine) and hg_alert_email_to.
+hg_pull_user: hg-pull
+hg_wg_interface: wg0
+hg_wg_port: 51820
+hg_wg_prefix: 10.66.0
+hg_wg_subnet: "{{ hg_wg_prefix }}.0/24"
+# true only while a new server is reachable by its public address and nobody's tunnel is up
+# yet. provision.sh sets it; the next run over WireGuard closes public SSH.
+hg_ssh_public: false
+# The internet-facing interfaces (the DOCKER-USER guard and the traffic alert watch them).
+hg_public_interfaces: "{{ [ansible_default_ipv4.interface | default(''), ansible_default_ipv6.interface | default('')] | select | unique | list }}"
+# Inbound from the internet: Traefik. The standby sets [] (WireGuard only).
+hg_firewall_public_tcp_ports: [80, 443]
+
+# ---------------------------------------------------------------------------- secrets
+# Where secrets come from. "sops": age-encrypted files decrypted on the machine that runs
+# Ansible (README, "Secrets"). A self-hosted vault (#235) is pending the owner's approval and
+# would plug in here as another backend; no other role reads secrets from anywhere else.
+hg_secrets_backend: sops
+hg_secrets_dir: >-
+  {{ lookup('ansible.builtin.env', 'HALALGOES_SECRETS_DIR')
+     | default(lookup('ansible.builtin.env', 'HOME') ~ '/.config/halalgoes/secrets', true) }}
+
+# ---------------------------------------------------------------------------- layout on the server
+hg_app_dir: /srv/hg            # the production compose files, .env and acme.json (#208)
+hg_dev_dir: /srv/hg-dev        # the dev environment (never backed up)
+hg_ops_dir: /srv/hg-ops        # compose projects this playbook owns
+hg_backup_root: /srv/backup    # backup repositories, apart from all data
+hg_config_dir: /etc/hg
+hg_textfile_dir: /var/lib/prometheus/node-exporter
+
+# The production stack (#208) runs as compose project "hg", so its containers are hg-<service>-1.
+hg_postgres_container: hg-postgres-1
+hg_postgres_superuser: hg
+hg_postgres_db: hg
+hg_pgbackrest_stanza: hg
+# Silo's S3 endpoint inside the production network. The service is still called "minio" in
+# deploy/docker-compose.yml; change this if #202 renames it.
+hg_silo_endpoint: http://minio:9000
+hg_silo_region: ca-central-1
+hg_buckets: [hg-kyc, hg-pod, hg-media, hg-exports, hg-tmp]
+
+# ---------------------------------------------------------------------------- Docker networks
+# Created by the docker role so every compose project can declare them external.
+hg_networks:
+  app: {name: hg-net, subnet: 172.30.0.0/24, internal: false}              # production stack
+  ops: {name: hg-ops, subnet: 172.30.1.0/24, internal: false, bridge: br-hg-ops}  # monitoring, logging
+  socket: {name: hg-socket, subnet: 172.30.2.0/24, internal: true}         # Traefik to the socket proxy
+  scan: {name: hg-scan, subnet: 172.30.3.0/24, internal: true}             # hg to clamd
+  dev: {name: hg-dev-net, subnet: 172.30.10.0/24, internal: true}          # dev data services
+  dev_edge: {name: hg-dev-edge, subnet: 172.30.11.0/24, internal: false}   # Traefik to the dev API
+hg_clamd_address: 172.30.3.10
+
+# ---------------------------------------------------------------------------- ClamAV
+# The inventory host that runs clamd. Next month, set it to the standby and run standby.yml:
+# clamd starts there, listening on its WireGuard address, and stops here.
+hg_clamav_host: hg-prod
+
+# ---------------------------------------------------------------------------- Traefik (#208, #51)
+# Names the production Traefik uses; the dev environment's routes refer to them.
+hg_traefik_entrypoint: websecure
+hg_traefik_certresolver: letsencrypt
+
+# ---------------------------------------------------------------------------- alerts
+hg_alert_email_from: HalalGoes alerts <alerts@mail.halalgoes.com>
+hg_alert_smtp_host: smtp.resend.com
+hg_alert_smtp_port: 587
+hg_alert_smtp_user: resend
+
+# ---------------------------------------------------------------------------- images
+# Pinned by tag and digest. Update them in one reviewed PR, never on the server.
+hg_images:
+  socket_proxy: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+  clamav: clamav/clamav:1.5.4@sha256:ebec5bc138401b36ae987caa1a3fa3c3b2a21ed3d51f0bfa5852825e663e67b0
+  victoriametrics: victoriametrics/victoria-metrics:v1.153.0@sha256:5eff7af5341e401471002f58d106d399e614a62f3d240f2dbc21901e49eed5dd
+  vmalert: victoriametrics/vmalert:v1.153.0@sha256:0c1c7718b54b03e8559d0f257f31f1bd79ef7fa32ac6e9ed90d7b92a74a4fe76
+  victorialogs: victoriametrics/victoria-logs:v1.53.0@sha256:251121fa882af99b95ba0c230a4a2f412ea602d2698c64a96c58dc9842bb755d
+  alertmanager: prom/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a
+  gatus: twinproduction/gatus:v5.37.0@sha256:094eb186e55235db367e90e9d56140e5897b7044c41de23cde4cc18e6da1242e
+  fluent_bit: fluent/fluent-bit:5.1.3@sha256:c5542543523c9678398dd78d927c05e8425ec15b038f226b67b3b019b1a70845
+  rclone: rclone/rclone:1.75.1@sha256:45401ad7410db1d67ffdb58e19059ad20b0d8e0285a60e38bbec55cc1019c7a5
+  postgres_exporter: quay.io/prometheuscommunity/postgres-exporter:v0.20.1@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
+  silo: pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
+  mc: pgsty/mc:RELEASE.2026-09-16T00-00-00Z@sha256:cfc83108c3abb371f8fb84d99c1fdc88f8c237e022409b0081fb7c0a3be634dd
+  postgis: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+  valkey: valkey/valkey:9.0.6-alpine@sha256:187679e3bd4036959631e3f03983ab2ba503ab21e6fd0454d508e909db2ee989
+  nginx: nginx:1.30.5-alpine-slim@sha256:32463212baf0e7d91aded2e9b843a4f2b9e017804b8c9d5bae7b51dcef64389c

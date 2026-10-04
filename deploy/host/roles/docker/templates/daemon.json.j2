@@ -1,0 +1,9 @@
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "{{ hg_docker_log_max_size }}",
+    "max-file": "{{ hg_docker_log_max_file }}",
+    "labels": "com.docker.compose.project,com.docker.compose.service"
+  },
+  "live-restore": true
+}

@@ -1,0 +1,10 @@
+# ansible-lint settings for deploy/host. Run from this directory: ansible-lint
+profile: production
+exclude_paths:
+  - .collections/
+  - out/
+  - secrets/
+skip_list:
+  # Every variable lives in one hg_ namespace on purpose: many are shared by several roles
+  # (addresses, paths, images), and group_vars/all.yml is their single home.
+  - var-naming[no-role-prefix]

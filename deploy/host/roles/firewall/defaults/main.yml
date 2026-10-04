@@ -1,0 +1,5 @@
+# Inbound over WireGuard, to the host itself: SSH and node-exporter. Ports Docker publishes
+# on the WireGuard address (dashboards) pass through Docker's own chains instead.
+hg_firewall_wg_tcp_ports: [22, 9100]
+# Docker containers on the monitoring network may reach node-exporter on the host.
+hg_firewall_from_ops_tcp_ports: [9100]

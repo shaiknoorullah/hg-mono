@@ -1,0 +1,35 @@
+# Managed by Ansible (deploy/host/roles/standby). The warm standby (#210).
+# The replica pulls from production over WireGuard; production pushes bucket changes to this
+# Silo, which listens only on the WireGuard address ({{ hg_wg_address }}).
+name: hg-standby
+
+services:
+  postgres:
+    image: "{{ hg_postgres_image }}"
+    restart: unless-stopped
+    # The same settings as production, so a promoted replica behaves the same.
+    command: [postgres, -c, hot_standby=on, -c, shared_buffers=512MB, -c, effective_cache_size=1280MB,
+              -c, work_mem=8MB, -c, max_connections=60, -c, jit=off]
+    shm_size: 256m
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    mem_limit: 2048m
+    memswap_limit: 2048m
+
+  silo:
+    image: "{{ hg_images.silo }}"
+    restart: unless-stopped
+    command: [server, /data]
+    env_file: .env
+    environment:
+      MINIO_REGION: {{ hg_silo_region }}
+      GOMEMLIMIT: 400MiB
+    volumes:
+      - silodata:/data
+    ports: ["{{ hg_wg_address }}:9000:9000"]
+    mem_limit: 512m
+    memswap_limit: 512m
+
+volumes:
+  pgdata:
+  silodata:

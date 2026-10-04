@@ -1,0 +1,218 @@
+#!/bin/bash
+# hg-restore-drill: the monthly restore drill (docs/ops/runbook.md, "Monthly restore drill").
+#
+# Restores from the restic repository (the copy a rebuild uses) into a scratch folder, then:
+#   1. restores Postgres to a point in time in a throwaway container;
+#   2. checks the ledger: every batch sums to zero, and no order has a residual;
+#   3. compares row counts of "order", ledger_entry and stored_object with production
+#      (rows created up to 5 minutes before the restore point);
+#   4. runs restic check --read-data-subset=5%;
+#   5. restores up to 20 objects, uploads them to a throwaway Silo and downloads them again
+#      through the S3 API, and checks each one's size and SHA-256 against its stored_object row.
+# Every container it starts is --rm, and the scratch folder is deleted at the end.
+#
+#   hg-restore-drill [--config FILE] [--target 'YYYY-MM-DD HH:MM:SS+00'] [--no-live]
+#                    [--postgres-image IMAGE]
+#
+# On the server it reads /etc/hg/backup/backup.conf. On the owner's machine
+# (roles/offline_copy) it reads /etc/hg-offline/backup.conf, uses the offline copy, and
+# compares with production only if --no-live is not given and production is reachable.
+# Managed by Ansible (deploy/host/roles/backup).
+set -euo pipefail
+
+conf=/etc/hg/backup/backup.conf
+target=""
+live=auto
+pg_image_arg=""
+while [ $# -gt 0 ]; do
+  case $1 in
+    --config) conf=$2; shift 2 ;;
+    --target) target=$2; shift 2 ;;
+    --no-live) live=no; shift ;;
+    --postgres-image) pg_image_arg=$2; shift 2 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+# shellcheck source=/dev/null
+source "$conf"
+
+run=hg-drill-$$
+started=$(date +%s)
+step_started=$started
+steps=()
+scratch=$(mktemp -d "${DRILL_PARENT:-/var/tmp}/hg-drill.XXXXXX")
+
+finish() {
+  local rc=$?
+  docker stop "$run-pg" "$run-silo" >/dev/null 2>&1 || true
+  rm -rf "$scratch"
+  if [ "$rc" -eq 0 ]; then echo "DRILL PASSED in $(( $(date +%s) - started )) s"; else echo "DRILL FAILED (exit $rc)" >&2; fi
+  if [ -n "${TEXTFILE_DIR:-}" ] && command -v hg-backup-status >/dev/null 2>&1; then
+    hg-backup-status drill "$([ "$rc" -eq 0 ] && echo 1 || echo 0)" "$(( $(date +%s) - started ))" || true
+    {
+      echo "# HELP hg_drill_step_seconds How long each step of the last restore drill took."
+      echo "# TYPE hg_drill_step_seconds gauge"
+      for s in "${steps[@]}"; do echo "$s"; done
+    } > "$TEXTFILE_DIR/hg_drill_steps.prom.tmp" && mv "$TEXTFILE_DIR/hg_drill_steps.prom.tmp" "$TEXTFILE_DIR/hg_drill_steps.prom"
+  fi
+  exit "$rc"
+}
+trap finish EXIT
+
+step() { # step <name>: closes the previous step's timer and announces the next
+  local now
+  now=$(date +%s)
+  [ -n "${current_step:-}" ] && steps+=("hg_drill_step_seconds{step=\"$current_step\"} $(( now - step_started ))")
+  current_step=$1
+  step_started=$now
+  echo "== $(date -u '+%H:%M:%S') $1"
+}
+fail() { echo "FAIL: $*" >&2; exit 1; }
+
+pg_image=${pg_image_arg:-${PG_IMAGE:-}}
+if [ -z "$pg_image" ] && docker inspect "$PG_CONTAINER" >/dev/null 2>&1; then
+  pg_image=$(docker inspect -f '{{.Config.Image}}' "$PG_CONTAINER")
+fi
+[ -n "$pg_image" ] || fail "no Postgres image: pass --postgres-image (the production image, with pgBackRest)"
+
+# ---------------------------------------------------------------- 1. the database
+step restore-pgbackrest-repository
+size=$(restic stats latest --tag pgbackrest-repo --json | jq -r '.total_size')
+avail=$(df --output=avail -B1 "$scratch" | tail -n 1)
+[ "$avail" -gt $(( size * 3 + (1 << 30) )) ] || fail "not enough disk: need about $(( (size * 3 + (1 << 30)) >> 20 )) MiB free, have $(( avail >> 20 )) MiB"
+snap_time=$(restic snapshots latest --tag pgbackrest-repo --json | jq -r '.[0].time')
+restic restore latest --tag pgbackrest-repo --target "$scratch/r" >/dev/null
+repo="$scratch/r$PGBR_REPO"
+[ -d "$repo/backup" ] || fail "the snapshot has no pgBackRest repository at $PGBR_REPO"
+
+mkdir -p "$scratch/conf" "$scratch/pgdata"
+cat > "$scratch/conf/pgbackrest.conf" <<CONF
+[global]
+repo1-path=/var/lib/pgbackrest
+repo1-cipher-type=aes-256-cbc
+log-level-console=warn
+log-level-file=off
+lock-path=/tmp/pgbackrest
+
+[$PGBR_STANZA]
+pg1-path=/var/lib/postgresql/data
+pg1-user=$PG_USER
+CONF
+chown -R "$PG_UID:$PG_UID" "$repo" "$scratch/pgdata"
+chmod 700 "$scratch/pgdata"
+pgbr=(docker run --rm --network none --user "$PG_UID:$PG_UID" --memory 512m --memory-swap 512m
+  -v "$repo:/var/lib/pgbackrest" -v "$scratch/conf:/etc/pgbackrest:ro"
+  -v "$scratch/pgdata:/var/lib/postgresql/data" --env-file "$PGBR_CIPHER_ENV"
+  --entrypoint pgbackrest "$pg_image" --stanza="$PGBR_STANZA")
+
+if [ -z "$target" ]; then
+  # A random point between the oldest restorable time and 15 minutes before the snapshot,
+  # at most a day back.
+  oldest=$("${pgbr[@]}" info --output=json | jq '[.[0].backup[].timestamp.stop] | min')
+  newest=$(( $(date -d "$snap_time" +%s) - 900 ))
+  earliest=$(( newest - 86400 ))
+  [ "$earliest" -lt $(( oldest + 60 )) ] && earliest=$(( oldest + 60 ))
+  [ "$newest" -gt "$earliest" ] || fail "the backups do not span 15 minutes yet; try again later"
+  target_epoch=$(( earliest + ((RANDOM << 15) | RANDOM) % (newest - earliest + 1) ))
+  target=$(date -u -d "@$target_epoch" '+%Y-%m-%d %H:%M:%S+00')
+else
+  target_epoch=$(date -u -d "${target%+00}" +%s)
+fi
+echo "restore point: $target"
+
+step restore-postgres
+"${pgbr[@]}" --type=time "--target=$target" --target-action=promote restore
+docker run -d --rm --name "$run-pg" --network none --user "$PG_UID:$PG_UID" \
+  --memory 768m --memory-swap 768m --cpus 2 --shm-size 256m \
+  -v "$repo:/var/lib/pgbackrest" -v "$scratch/conf:/etc/pgbackrest:ro" \
+  -v "$scratch/pgdata:/var/lib/postgresql/data" --env-file "$PGBR_CIPHER_ENV" \
+  "$pg_image" postgres -c archive_mode=off -c max_connections=20 -c shared_buffers=128MB >/dev/null
+docker logs -f "$run-pg" > "$scratch/postgres.log" 2>&1 &
+q() { docker exec "$run-pg" psql -U "$PG_USER" -d "$PG_DB" -v ON_ERROR_STOP=1 -XAtc "$1"; }
+deadline=$(( $(date +%s) + 3600 ))
+until [ "$(q 'select pg_is_in_recovery()' 2>/dev/null || true)" = f ]; do
+  docker inspect "$run-pg" >/dev/null 2>&1 || { tail -n 30 "$scratch/postgres.log" >&2; fail "Postgres exited during recovery"; }
+  [ "$(date +%s)" -lt "$deadline" ] || fail "recovery did not finish within an hour"
+  sleep 5
+done
+grep -i "recovery stopping\|archive recovery complete" "$scratch/postgres.log" | tail -n 2 || true
+
+# ---------------------------------------------------------------- 2. the ledger
+step check-ledger
+unbalanced=$(q "select count(*) from (select batch_id from ledger_entry group by batch_id having sum(amount_cents) <> 0) b")
+residual=$(q "select count(*) from ledger_order_residual")
+echo "unbalanced ledger batches: $unbalanced; orders with a residual: $residual"
+[ "$unbalanced" = 0 ] && [ "$residual" = 0 ] || fail "the restored ledger does not sum to zero"
+
+# ---------------------------------------------------------------- 3. row counts
+step compare-row-counts
+cutoff=$(date -u -d "@$(( target_epoch - 300 ))" '+%Y-%m-%d %H:%M:%S+00')
+compare=no
+if [ "$live" != no ] && docker inspect "$PG_CONTAINER" >/dev/null 2>&1; then compare=yes; fi
+for table in '"order"' ledger_entry stored_object; do
+  sql="select count(*) from $table where created_at <= '$cutoff'"
+  restored=$(q "$sql")
+  if [ "$compare" = yes ]; then
+    prod=$(docker exec "$PG_CONTAINER" psql -U "$PG_USER" -d "$PG_DB" -XAtc "$sql")
+    echo "$table: restored $restored, production $prod (created up to $cutoff)"
+    [ "$restored" = "$prod" ] || fail "$table row counts differ"
+  else
+    echo "$table: restored $restored (created up to $cutoff); run on production to compare: $sql"
+  fi
+done
+
+# ---------------------------------------------------------------- 4. restic reads its data
+step restic-read-check
+restic check --read-data-subset=5%
+
+# ---------------------------------------------------------------- 5. objects through the S3 API
+step restore-objects
+mapfile -t rows < <(q "select bucket || E'\t' || object_key || E'\t' || byte_size || E'\t' || encode(sha256, 'hex')
+  from stored_object where state = 'READY' and deleted_at is null and created_at <= '$cutoff'
+  order by random() limit 100")
+if [ "${#rows[@]}" -eq 0 ]; then
+  echo "no stored objects yet: nothing to round-trip"
+else
+  objects="$scratch/objects"
+  for bucket in $(printf '%s\n' "${rows[@]}" | cut -f1 | sort -u); do
+    includes=()
+    while IFS=$'\t' read -r b key _ _; do
+      [ "$b" = "$bucket" ] && includes+=(--include "$STAGING/silo/$bucket/$key")
+    done < <(printf '%s\n' "${rows[@]}")
+    restic restore latest --tag "silo-$bucket" --target "$objects" "${includes[@]}" >/dev/null || true
+  done
+  picked=()
+  for row in "${rows[@]}"; do
+    IFS=$'\t' read -r bucket key _ _ <<<"$row"
+    [ -f "$objects$STAGING/silo/$bucket/$key" ] && picked+=("$row")
+    [ "${#picked[@]}" -ge 20 ] && break
+  done
+  [ "${#picked[@]}" -gt 0 ] || fail "none of the stored objects are in the bucket snapshots"
+  echo "round-tripping ${#picked[@]} objects"
+
+  secret=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')
+  docker run -d --rm --name "$run-silo" --network none --memory 512m --memory-swap 512m \
+    -e MINIO_ROOT_USER=drill -e MINIO_ROOT_PASSWORD="$secret" \
+    "$SILO_IMAGE" server /data >/dev/null
+  mkdir -p "$scratch/roundtrip"
+  docker run --rm --network "container:$run-silo" --memory 256m --memory-swap 256m \
+    -v "$objects$STAGING/silo:/in:ro" -v "$scratch/roundtrip:/out" \
+    -e RCLONE_CONFIG_D_TYPE=s3 -e RCLONE_CONFIG_D_PROVIDER=Minio \
+    -e RCLONE_CONFIG_D_ENDPOINT=http://127.0.0.1:9000 \
+    -e RCLONE_CONFIG_D_ACCESS_KEY_ID=drill -e RCLONE_CONFIG_D_SECRET_ACCESS_KEY="$secret" \
+    --entrypoint sh "$RCLONE_IMAGE" -c '
+      i=0; until rclone lsd d: >/dev/null 2>&1; do i=$((i+1)); [ $i -gt 60 ] && exit 1; sleep 1; done
+      rclone copy /in d: && rclone copy d: /out'
+
+  for row in "${picked[@]}"; do
+    IFS=$'\t' read -r bucket key want_size want_sha <<<"$row"
+    f="$scratch/roundtrip/$bucket/$key"
+    [ -f "$f" ] || fail "$bucket/$key did not come back through the S3 API"
+    [ "$(stat -c %s "$f")" = "$want_size" ] || fail "$bucket/$key: size differs from its stored_object row"
+    [ "$(sha256sum "$f" | cut -d' ' -f1)" = "$want_sha" ] || fail "$bucket/$key: SHA-256 differs from its stored_object row"
+  done
+  echo "all ${#picked[@]} objects match their stored_object rows"
+fi
+
+step finished

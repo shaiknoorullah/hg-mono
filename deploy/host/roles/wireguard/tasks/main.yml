@@ -1,0 +1,69 @@
+- name: Install WireGuard
+  ansible.builtin.apt:
+    name: wireguard-tools
+    state: present
+
+- name: Refuse to continue without this server's WireGuard key
+  ansible.builtin.assert:
+    that: hg_wg_private_keys[inventory_hostname] | default('') | length > 0
+    fail_msg: "host.sops.yaml has no hg_wg_private_keys entry for {{ inventory_hostname }}."
+    quiet: true
+
+- name: Create the WireGuard folder
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Write the private key, readable by root only
+  ansible.builtin.copy:
+    content: "{{ hg_wg_private_keys[inventory_hostname] }}\n"
+    dest: "/etc/wireguard/{{ hg_wg_interface }}.key"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+  notify: Apply the WireGuard config
+
+- name: Write the WireGuard config
+  ansible.builtin.template:
+    src: wg.conf.j2
+    dest: "/etc/wireguard/{{ hg_wg_interface }}.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Apply the WireGuard config
+
+- name: Bring the tunnel up now and at every boot
+  ansible.builtin.systemd_service:
+    name: "wg-quick@{{ hg_wg_interface }}"
+    enabled: true
+    state: started
+  when: not hg_in_container
+  # On a fresh server in check mode the unit is not installed yet.
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Create the folder for the owner's device configs, on this machine
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/out"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when: hg_wg_write_peer_configs
+
+- name: Write a WireGuard config for each of the owner's devices (public keys only)
+  ansible.builtin.template:
+    src: peer.conf.j2
+    dest: "{{ playbook_dir }}/out/{{ item.name }}.conf"
+    mode: "0600"
+  loop: "{{ hg_wg_peers | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  delegate_to: localhost
+  become: false
+  when: hg_wg_write_peer_configs and hg_public_ipv4 is defined

@@ -1,0 +1,72 @@
+- name: Turn on unattended upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install security updates only, and never reboot from them
+  ansible.builtin.template:
+    src: 52hg-unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/52hg-unattended-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create needrestart's drop-in folder
+  ansible.builtin.file:
+    path: /etc/needrestart/conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Restart services after library updates, except Docker and WireGuard
+  ansible.builtin.copy:
+    dest: /etc/needrestart/conf.d/50-hg.conf
+    content: |
+      # Managed by Ansible (deploy/host/roles/base).
+      # Restart services whose libraries an update replaced. Docker, containerd and WireGuard
+      # are restarted only by a person or by the weekly reboot.
+      $nrconf{restart} = 'a';
+      $nrconf{override_rc}{qr(^docker)} = 0;
+      $nrconf{override_rc}{qr(^containerd)} = 0;
+      $nrconf{override_rc}{qr(^wg-quick)} = 0;
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the reboot-when-needed script
+  ansible.builtin.copy:
+    src: hg-reboot-if-needed
+    dest: /usr/local/sbin/hg-reboot-if-needed
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the reboot-when-needed service and its weekly timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - hg-reboot-if-needed.service
+    - hg-reboot-if-needed.timer
+  notify: Reload systemd
+
+- name: Apply systemd changes before enabling timers
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the weekly reboot window
+  ansible.builtin.systemd_service:
+    name: hg-reboot-if-needed.timer
+    enabled: true
+    state: started
+  # On a fresh server in check mode the unit is not installed yet.
+  ignore_errors: "{{ ansible_check_mode }}"

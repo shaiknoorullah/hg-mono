@@ -1,0 +1,29 @@
+# Managed by Ansible (deploy/host/roles/socket_proxy).
+#
+# Traefik faces the internet, so it never gets the Docker socket: mounting it read-only does
+# not make Docker's API read-only. Traefik reads container labels through this proxy, which
+# answers only reads of containers, events, ping and version, and refuses every POST.
+# The production compose file (#208) points Traefik at it:
+#   --providers.docker.endpoint=tcp://docker-socket-proxy:2375, on the {{ hg_networks.socket.name }} network.
+name: hg-socket-proxy
+
+services:
+  docker-socket-proxy:
+    image: "{{ hg_images.socket_proxy }}"
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      PING: "1"
+      VERSION: "1"
+      POST: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [{{ hg_networks.socket.name }}]
+    mem_limit: 32m
+    memswap_limit: 32m
+    cpus: 0.25
+
+networks:
+  {{ hg_networks.socket.name }}:
+    external: true

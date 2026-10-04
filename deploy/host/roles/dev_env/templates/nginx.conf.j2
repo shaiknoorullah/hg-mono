@@ -1,0 +1,14 @@
+# Managed by Ansible (deploy/host/roles/dev_env). Dev builds of the admin and restaurant web
+# apps, deployed into {{ hg_dev_dir }}/web/<app>/ (#52).
+server {
+    listen 8080;
+    server_name {{ hg_dev_hosts.admin }};
+    root /srv/web/admin;
+    location / { try_files $uri $uri/ /index.html; }
+}
+server {
+    listen 8080;
+    server_name {{ hg_dev_hosts.restaurant }};
+    root /srv/web/restaurant;
+    location / { try_files $uri $uri/ /index.html; }
+}

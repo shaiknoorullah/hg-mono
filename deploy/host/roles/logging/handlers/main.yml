@@ -1,0 +1,5 @@
+- name: Restart the logging stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_logging_dir }}"
+    state: restarted
+  when: hg_docker_ready

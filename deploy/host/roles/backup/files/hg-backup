@@ -1,0 +1,85 @@
+#!/bin/bash
+# hg-backup <job>: one backup job, run by hg-backup@<job>.service on its timer.
+#   pg-full, pg-diff  pgBackRest full (weekly) or differential (daily) backup
+#   pg-verify         pgBackRest reads and checks every file in its repository
+#   silo-<bucket>     copy a bucket through the S3 API with rclone, then a restic snapshot
+#   pgrepo            restic snapshot of the pgBackRest repository, so the off-server copy has it
+#   config            restic snapshot of /etc and the production compose folder (.env, acme.json)
+#   dumps             pg_dump of the extra databases listed in the inventory, into restic
+#   forget, prune     restic retention: every snapshot for 48 hours, then one a day for 35 days
+#   check             restic's structural check (the monthly drill also reads 5% of the data)
+# Managed by Ansible (deploy/host/roles/backup).
+set -euo pipefail
+# shellcheck source=/dev/null
+source /etc/hg/backup/backup.conf
+job=${1:?usage: hg-backup <job>}
+started=$(date +%s)
+names=("$job")
+
+finish() {
+  local rc=$? ok=0 n
+  [ "$rc" -eq 0 ] && ok=1
+  for n in "${names[@]}"; do
+    hg-backup-status "$n" "$ok" "$(( $(date +%s) - started ))" || true
+  done
+  exit "$rc"
+}
+trap finish EXIT
+
+snapshot() { restic backup --retry-lock 30m --host "$BACKUP_HOST" --one-file-system "$@"; }
+
+case $job in
+  pg-full)
+    names=(pgbackrest pgbackrest-full)
+    # Idempotent: says the stanza exists and is valid, or creates it on a new server.
+    hg-pgbackrest stanza-create
+    hg-pgbackrest --type=full backup
+    ;;
+  pg-diff)
+    names=(pgbackrest)
+    hg-pgbackrest stanza-create
+    hg-pgbackrest --type=diff backup
+    ;;
+  pg-verify)
+    hg-pgbackrest verify
+    ;;
+  silo-*)
+    bucket=${job#silo-}
+    mkdir -p "$STAGING/silo/$bucket"
+    docker run --rm --name "hg-rclone-$$" \
+      --network "$APP_NETWORK" --memory 256m --memory-swap 256m --cpus 1 \
+      -v "$STAGING/silo:/data" -v "$RCLONE_CONF:/config/rclone/rclone.conf:ro" \
+      "$RCLONE_IMAGE" sync "silo:$bucket" "/data/$bucket" \
+      --fast-list --checkers 4 --transfers 2 --retries 3
+    snapshot --tag silo --tag "silo-$bucket" "$STAGING/silo/$bucket"
+    ;;
+  pgrepo)
+    snapshot --tag pgbackrest-repo "$PGBR_REPO"
+    ;;
+  config)
+    excludes=()
+    for e in "${CONFIG_EXCLUDES[@]}"; do excludes+=(--exclude "$e"); done
+    snapshot --tag config "${excludes[@]}" "${CONFIG_PATHS[@]}"
+    ;;
+  dumps)
+    for spec in "${PG_DUMPS[@]}"; do
+      read -r name container user db <<<"$spec"
+      docker exec "$container" pg_dump -U "$user" -d "$db" -Fc \
+        | restic backup --retry-lock 30m --host "$BACKUP_HOST" --tag "dump-$name" \
+            --stdin --stdin-filename "$name.dump"
+    done
+    ;;
+  forget)
+    restic forget --retry-lock 30m --group-by host,tags "${KEEP[@]}"
+    ;;
+  prune)
+    restic prune --retry-lock 30m --max-unused 5%
+    ;;
+  check)
+    restic check --retry-lock 30m
+    ;;
+  *)
+    echo "hg-backup: unknown job $job" >&2
+    exit 2
+    ;;
+esac

@@ -1,0 +1,49 @@
+- name: Check that Docker is here for the watcher
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: hg_offline_docker
+
+- name: Create the watcher's folder
+  ansible.builtin.file:
+    path: "{{ hg_offline_dir }}/watcher"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  when: hg_offline_docker.stat.exists
+
+- name: Write the watcher's compose file and checks
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ hg_offline_dir }}/watcher/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - compose.yml
+    - gatus.yaml
+  when: hg_offline_docker.stat.exists
+  notify: Restart the watcher
+
+- name: Write the watcher's email password, readable by root only
+  ansible.builtin.copy:
+    content: "GATUS_SMTP_PASSWORD={{ hg_alert_smtp_password | default('') }}\n"
+    dest: "{{ hg_offline_dir }}/watcher/gatus.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+  when: hg_offline_docker.stat.exists
+
+- name: Run the watcher
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_offline_dir }}/watcher"
+    state: present
+    pull: missing
+  when: hg_offline_docker.stat.exists
+
+- name: Say so when there is no Docker for the watcher
+  ansible.builtin.debug:
+    msg: "No Docker on {{ inventory_hostname }}: the outside watcher is not running. Install Docker and run offline.yml again."
+  when: not hg_offline_docker.stat.exists

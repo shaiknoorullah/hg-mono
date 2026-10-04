@@ -1,0 +1,42 @@
+# Next month (#210): add the warm standby without rebuilding production.
+#   1. Order the standby; add it under "standby" in inventory/hosts.yml.
+#   2. Set hg_postgres_image (the production Postgres image, by digest) and the standby
+#      secrets in host.sops.yaml; to move ClamAV, set hg_clamav_host: hg-standby.
+#   3. Bootstrap it like prod (provision.sh --standby <ip>), then run this playbook.
+# Not applied by site.yml.
+- name: Both servers - the same base, and WireGuard peers of each other
+  hosts: hg_servers
+  become: true
+  vars:
+    hg_firewall_public_tcp_ports: "{{ [] if inventory_hostname in groups['standby'] else [80, 443] }}"
+    hg_docker_prune: "{{ inventory_hostname not in groups['standby'] }}"
+  roles:
+    - secrets
+    - base
+    - wireguard
+    - firewall
+    - ssh
+    - docker
+    - node_exporter
+    - clamav
+
+- name: The standby - Postgres replica, Silo replica, and a watcher on production
+  hosts: standby
+  become: true
+  vars:
+    hg_monitoring_components: [gatus]
+    hg_gatus_endpoints:
+      - {name: api, group: production, url: "https://api.{{ hg_domain }}/health/ready",
+         conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
+      - {name: prod-alerting, group: production, url: "http://{{ hostvars[groups['prod'][0]].hg_wg_address }}:9093/-/healthy",
+         conditions: ["[STATUS] == 200"], alert: true}
+  roles:
+    - standby
+    - monitoring
+
+- name: Production - replicate to the standby, and watch it
+  hosts: prod
+  become: true
+  roles:
+    - standby_primary
+    - monitoring

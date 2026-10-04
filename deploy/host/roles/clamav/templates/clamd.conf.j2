@@ -1,0 +1,27 @@
+# Managed by Ansible (deploy/host/roles/clamav).
+LogFile /var/log/clamav/clamd.log
+LogTime yes
+LogFileMaxSize 10M
+LogRotate yes
+User clamav
+# The image's start script and health check use these two.
+LocalSocket /tmp/clamd.sock
+TCPSocket 3310
+TCPAddr 127.0.0.1
+{% if hg_clamav_on_standby %}
+TCPAddr 0.0.0.0
+{% else %}
+TCPAddr {{ hg_clamd_address }}
+{% endif %}
+
+# 4 GiB container: two scans at a time, and no second copy of the signatures in memory
+# while they reload.
+MaxThreads {{ hg_clamav_max_threads }}
+ConcurrentDatabaseReload no
+
+# KYC uploads are at most 15 MiB. Anything over these limits is reported as found
+# (Heuristics.Limits.Exceeded), never as clean.
+StreamMaxLength {{ hg_clamav_max_size }}
+MaxFileSize {{ hg_clamav_max_size }}
+MaxScanSize {{ hg_clamav_max_size }}
+AlertExceedsMax yes

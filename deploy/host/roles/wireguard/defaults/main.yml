@@ -1,0 +1,2 @@
+# Write a ready-to-fill WireGuard config for each peer (owner's devices) into deploy/host/out/.
+hg_wg_write_peer_configs: true

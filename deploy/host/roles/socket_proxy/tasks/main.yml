@@ -1,0 +1,23 @@
+- name: Create the socket proxy's folder
+  ansible.builtin.file:
+    path: "{{ hg_ops_dir }}/socket-proxy"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Write the socket proxy's compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ hg_ops_dir }}/socket-proxy/compose.yml"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Run the socket proxy
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_ops_dir }}/socket-proxy"
+    state: present
+    pull: missing
+    remove_orphans: true
+  when: hg_docker_ready
