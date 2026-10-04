@@ -207,7 +207,7 @@ seal scan gates any order transition.
 | Code | Who sees it | Who types it in | Where in the contract |
 |---|---|---|---|
 | **Pickup code** | The kitchen, on `OrderRestaurantView.pickup_code` and `restaurant.order_accepted`, from acceptance until pickup | The rider, as `pickup_code` on the `PICKED_UP` transition of `createAssignmentTransition`. Wrong code: `PICKUP_CODE_INCORRECT` with the attempts left; five wrong codes: `PICKUP_CODE_LOCKED`, then pickup needs an `override_reason` and is flagged for operations ([#178](https://github.com/shaiknoorullah/hg-mono/issues/178), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) |
-| **Delivery code** | The customer, on `OrderCustomerView.delivery_code`, `OrderTracking.delivery_code` and the `order.rider_arrived` event (also a push), while a met handover is out for delivery | The rider, as `otp_code` on `submitProofOfDelivery`. Five wrong codes lock it and the rider falls back to a photo with a statement ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) |
+| **Delivery code** | The customer, on `OrderCustomerView.delivery_code`, `OrderTracking.delivery_code` and the `order.rider_arrived` event (a push without the code also goes out), while a met handover is out for delivery | The rider, as `otp_code` on `submitProofOfDelivery`. Five wrong codes lock it and the rider falls back to a photo with a statement ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) |
 
 The rider is never sent either code; each one is heard from the person holding it.
 

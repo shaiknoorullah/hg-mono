@@ -4071,8 +4071,9 @@ type AssignmentTransitionInput struct {
 	// and repeated overrides trigger a review.
 	OverrideReason *string `json:"override_reason,omitempty"`
 
-	// PickupCode Required when `to_state` is `PICKED_UP`; on any other `to_state` it is
-	// `422 VALIDATION_FAILED`. The 4-digit code the kitchen reads out from its order
+	// PickupCode Required when `to_state` is `PICKED_UP`, unless the code has locked
+	// (`PICKUP_CODE_LOCKED`); then omit it and send `override_reason`. On any other
+	// `to_state` it is `422 VALIDATION_FAILED`. The 4-digit code the kitchen reads out from its order
 	// screen (`OrderRestaurantView.pickup_code`); the rider is never shown it. Five wrong
 	// codes lock it — see `createAssignmentTransition`.
 	PickupCode *string `json:"pickup_code,omitempty"`
@@ -5483,6 +5484,9 @@ type OrderAdminView struct {
 	// projections carry it: the support projection (`OrderAdminView`, which extends the
 	// customer view) always leaves it out, and the rider is never sent it
 	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+	// Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+	// not as a hash, because the server shows it again
+	// ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
 	//
 	//
 	// Examples: 4827
@@ -5617,6 +5621,9 @@ type OrderCustomerView struct {
 	// projections carry it: the support projection (`OrderAdminView`, which extends the
 	// customer view) always leaves it out, and the rider is never sent it
 	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+	// Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+	// not as a hash, because the server shows it again
+	// ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
 	//
 	//
 	// Examples: 4827
@@ -5962,6 +5969,9 @@ type OrderRestaurantView struct {
 	// the rider is never sent it
 	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
 	// [#178](https://github.com/shaiknoorullah/hg-mono/issues/178)).
+	// Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+	// not as a hash, because the server shows it again
+	// ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
 	//
 	//
 	// Examples: 3051
@@ -6064,6 +6074,9 @@ type OrderTracking struct {
 	// (the rider then falls back to a photo with a statement). Only the customer's own
 	// projections carry it, and the rider is never sent it
 	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+	// Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+	// not as a hash, because the server shows it again
+	// ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
 	//
 	//
 	// Examples: 4827

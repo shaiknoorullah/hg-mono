@@ -372,8 +372,9 @@ HANDOVER_ERRORS = [
         "PICKUP_CODE_REQUIRED",
         "Ask the kitchen for the 4-digit pickup code.",
         None,
-        "`PICKED_UP` sent without `pickup_code`. Nothing is recorded; the rider app asks for "
-        "the code the kitchen reads out.",
+        "`PICKED_UP` sent without `pickup_code` before the code has locked. Nothing is "
+        "recorded; the rider app asks for the code the kitchen reads out. Once locked, the "
+        "same request is `PICKUP_CODE_LOCKED`, never this.",
         ["createAssignmentTransition"],
     ),
     (
@@ -382,8 +383,9 @@ HANDOVER_ERRORS = [
         "PICKUP_CODE_INCORRECT",
         "That pickup code is not right. 3 attempts remaining.",
         {"attempts_remaining": 3},
-        "A wrong pickup code. The assignment stays where it was; `details.attempts_remaining` "
-        "drives the counter on the rider's screen.",
+        "A wrong pickup code. The attempt is counted and committed in Postgres; the "
+        "assignment's state does not change. `details.attempts_remaining` drives the counter "
+        "on the rider's screen.",
         ["createAssignmentTransition"],
     ),
     (
@@ -392,9 +394,11 @@ HANDOVER_ERRORS = [
         "PICKUP_CODE_LOCKED",
         "Too many wrong codes. Confirm pickup with a reason instead.",
         None,
-        "The fifth wrong pickup code locks it for this assignment. The rider is never trapped "
-        "at the counter: `PICKED_UP` with an `override_reason` and no code is accepted and "
-        "flagged for operations.",
+        "The fifth wrong pickup code locks it for this order, so a reassignment does not "
+        "reset the count. Every later `PICKED_UP` without an `override_reason` gets this "
+        "answer, with or without a code. The rider is never trapped at the counter: "
+        "`PICKED_UP` with an `override_reason` and no code is accepted and flagged for "
+        "operations.",
         ["createAssignmentTransition"],
     ),
 ]

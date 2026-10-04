@@ -2821,10 +2821,14 @@ export interface paths {
          *
          *     The customer reads the OTP from their own screen: it is `delivery_code` on
          *     `OrderCustomerView` and `OrderTracking` while the order is out for delivery, and on
-         *     the `order.rider_arrived` realtime event, which is also sent as a push
-         *     (`contracts/websocket.md` §4.2;
+         *     the `order.rider_arrived` realtime event
+         *     ([`contracts/websocket.md`, "4.2 Order"](https://github.com/shaiknoorullah/hg-mono/blob/main/contracts/websocket.md);
          *     [round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery),
          *     [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+         *
+         *     The push is an ordinary `Notification` ("Your rider has arrived") that deep-links to
+         *     the order. Like every notification body it never contains the code; the app shows
+         *     the code from `OrderCustomerView`/`OrderTracking` or the socket event.
          */
         post: operations["submitProofOfDelivery"];
         delete?: never;
@@ -2871,14 +2875,26 @@ export interface paths {
          *     [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). The rider is never
          *     sent the code: no assignment, offer or realtime event carries it.
          *
-         *     - No `pickup_code` on `PICKED_UP`: `422 PICKUP_CODE_REQUIRED`.
+         *     - No `pickup_code` on `PICKED_UP`, before the code has locked:
+         *       `422 PICKUP_CODE_REQUIRED`.
          *     - A wrong code: `422 PICKUP_CODE_INCORRECT` with `details.attempts_remaining`.
-         *       Nothing is recorded and the assignment stays where it was.
-         *     - The fifth wrong code locks the code for this assignment: that answer and every
-         *       later attempt with a code is `423 PICKUP_CODE_LOCKED`. The rider is never trapped
-         *       at the counter: once locked, `PICKED_UP` is accepted without a code when it
-         *       carries an `override_reason`, and the pickup is flagged for operations, the same
-         *       way a failed geofence check is.
+         *       The wrong attempt is counted and committed in Postgres even though the transition
+         *       is refused, using one atomic conditional increment
+         *       (`UPDATE ... SET pickup_code_attempts = pickup_code_attempts + 1 WHERE
+         *       pickup_code_attempts < 5 RETURNING ...`), so concurrent attempts can never exceed
+         *       five and a Redis flush cannot reset the lock
+         *       ([AGENTS.md, "Architecture in one picture"](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#2-architecture-in-one-picture):
+         *       Redis is disposable; [#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
+         *       The assignment's state does not change.
+         *     - The fifth wrong code locks the code for this order, so a reassignment does not
+         *       reset the count: that answer and every later attempt with a code is
+         *       `423 PICKUP_CODE_LOCKED`. The rider is never trapped at the counter: once locked,
+         *       `PICKED_UP` is accepted without a code when it carries an `override_reason`, and
+         *       the pickup is flagged for operations, the same way a failed geofence check is.
+         *     - Once locked, `PICKED_UP` without an `override_reason` is `423 PICKUP_CODE_LOCKED`,
+         *       with or without a code. It is never `PICKUP_CODE_REQUIRED`, so a rider app that
+         *       restarted or replays a queued offline transition is told to show the override
+         *       form.
          *     - Repeating `PICKED_UP` after it has committed is the usual 200 no-op and needs no
          *       code.
          */
@@ -3554,8 +3570,9 @@ export interface components {
              */
             override_reason?: string;
             /**
-             * @description Required when `to_state` is `PICKED_UP`; on any other `to_state` it is
-             *     `422 VALIDATION_FAILED`. The 4-digit code the kitchen reads out from its order
+             * @description Required when `to_state` is `PICKED_UP`, unless the code has locked
+             *     (`PICKUP_CODE_LOCKED`); then omit it and send `override_reason`. On any other
+             *     `to_state` it is `422 VALIDATION_FAILED`. The 4-digit code the kitchen reads out from its order
              *     screen (`OrderRestaurantView.pickup_code`); the rider is never shown it. Five wrong
              *     codes lock it — see `createAssignmentTransition`.
              */
@@ -4671,6 +4688,9 @@ export interface components {
              *     projections carry it: the support projection (`OrderAdminView`, which extends the
              *     customer view) always leaves it out, and the rider is never sent it
              *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+             *     Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+             *     not as a hash, because the server shows it again
+             *     ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
              * @example 4827
              */
             delivery_code?: string | null;
@@ -4870,6 +4890,9 @@ export interface components {
              *     the rider is never sent it
              *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
              *     [#178](https://github.com/shaiknoorullah/hg-mono/issues/178)).
+             *     Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+             *     not as a hash, because the server shows it again
+             *     ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
              * @example 3051
              */
             pickup_code?: string | null;
@@ -4939,6 +4962,9 @@ export interface components {
              *     (the rider then falls back to a photo with a statement). Only the customer's own
              *     projections carry it, and the rider is never sent it
              *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+             *     Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+             *     not as a hash, because the server shows it again
+             *     ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
              * @example 4827
              */
             delivery_code?: string | null;
@@ -11325,7 +11351,9 @@ export interface operations {
                 };
             };
             /**
-             * @description `PICKUP_CODE_LOCKED`: five wrong pickup codes. Confirm pickup with an
+             * @description `PICKUP_CODE_LOCKED`: five wrong pickup codes have locked the code for this
+             *     order. Every `PICKED_UP` without an `override_reason` gets this answer, with or
+             *     without a code; it is never `PICKUP_CODE_REQUIRED`. Confirm pickup with an
              *     `override_reason` and no code instead; the pickup is flagged for operations.
              */
             423: {

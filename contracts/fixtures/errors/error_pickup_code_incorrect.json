@@ -2,7 +2,7 @@
   "scenario": "error_pickup_code_incorrect",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`422` · `PICKUP_CODE_INCORRECT`. A wrong pickup code. The assignment stays where it was; `details.attempts_remaining` drives the counter on the rider's screen.",
+  "describes": "`422` · `PICKUP_CODE_INCORRECT`. A wrong pickup code. The attempt is counted and committed in Postgres; the assignment's state does not change. `details.attempts_remaining` drives the counter on the rider's screen.",
   "operations": [
     "createAssignmentTransition"
   ],

@@ -2183,7 +2183,7 @@
       "scenario": "error_pickup_code_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`422` · `PICKUP_CODE_INCORRECT`. A wrong pickup code. The assignment stays where it was; `details.attempts_remaining` drives the counter on the rider's screen.",
+      "describes": "`422` · `PICKUP_CODE_INCORRECT`. A wrong pickup code. The attempt is counted and committed in Postgres; the assignment's state does not change. `details.attempts_remaining` drives the counter on the rider's screen.",
       "operations": [
         "createAssignmentTransition"
       ],
@@ -2197,7 +2197,7 @@
       "scenario": "error_pickup_code_locked",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`423` · `PICKUP_CODE_LOCKED`. The fifth wrong pickup code locks it for this assignment. The rider is never trapped at the counter: `PICKED_UP` with an `override_reason` and no code is accepted and flagged for operations.",
+      "describes": "`423` · `PICKUP_CODE_LOCKED`. The fifth wrong pickup code locks it for this order, so a reassignment does not reset the count. Every later `PICKED_UP` without an `override_reason` gets this answer, with or without a code. The rider is never trapped at the counter: `PICKED_UP` with an `override_reason` and no code is accepted and flagged for operations.",
       "operations": [
         "createAssignmentTransition"
       ],
@@ -2211,7 +2211,7 @@
       "scenario": "error_pickup_code_required",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`422` · `PICKUP_CODE_REQUIRED`. `PICKED_UP` sent without `pickup_code`. Nothing is recorded; the rider app asks for the code the kitchen reads out.",
+      "describes": "`422` · `PICKUP_CODE_REQUIRED`. `PICKED_UP` sent without `pickup_code` before the code has locked. Nothing is recorded; the rider app asks for the code the kitchen reads out. Once locked, the same request is `PICKUP_CODE_LOCKED`, never this.",
       "operations": [
         "createAssignmentTransition"
       ],

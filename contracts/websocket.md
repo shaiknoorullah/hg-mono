@@ -229,9 +229,12 @@ from `deadline_at` minus `server_time`, never from a local constant.
 
 `order.rider_arrived` is the arrival event: it is emitted in the same transaction as
 `order.state_changed` to `ARRIVED`, and it is also sent as a push, because the customer has to
-act on it. `delivery_code` is the 4-digit code the customer reads to the rider at a met
-handover (`MEET_AT_DOOR` or `MEET_IN_LOBBY`), so the rider can record proof of delivery. It is
-`null` for an unattended drop, where proof is a photo, and once five wrong codes have locked it.
+act on it. The push is an ordinary `Notification` ("Your rider has arrived") that deep-links to
+the order. Like every notification body it never contains the code; the app shows the code from
+`OrderCustomerView`/`OrderTracking` or the socket event.
+
+`delivery_code` is the 4-digit code the customer reads to the rider at a met handover
+(`MEET_AT_DOOR` or `MEET_IN_LOBBY`), so the rider can record proof of delivery. It is `null` for an unattended drop, where proof is a photo, and once five wrong codes have locked it.
 The same value is `delivery_code` on `OrderCustomerView` and `OrderTracking` over REST, so a
 client on the polling path still shows it. **No serializer for the rider, the restaurant or
 support carries this event:** the rider is never shown the delivery code

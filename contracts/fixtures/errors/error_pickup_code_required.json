@@ -2,7 +2,7 @@
   "scenario": "error_pickup_code_required",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`422` · `PICKUP_CODE_REQUIRED`. `PICKED_UP` sent without `pickup_code`. Nothing is recorded; the rider app asks for the code the kitchen reads out.",
+  "describes": "`422` · `PICKUP_CODE_REQUIRED`. `PICKED_UP` sent without `pickup_code` before the code has locked. Nothing is recorded; the rider app asks for the code the kitchen reads out. Once locked, the same request is `PICKUP_CODE_LOCKED`, never this.",
   "operations": [
     "createAssignmentTransition"
   ],

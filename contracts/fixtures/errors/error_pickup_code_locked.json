@@ -2,7 +2,7 @@
   "scenario": "error_pickup_code_locked",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`423` · `PICKUP_CODE_LOCKED`. The fifth wrong pickup code locks it for this assignment. The rider is never trapped at the counter: `PICKED_UP` with an `override_reason` and no code is accepted and flagged for operations.",
+  "describes": "`423` · `PICKUP_CODE_LOCKED`. The fifth wrong pickup code locks it for this order, so a reassignment does not reset the count. Every later `PICKED_UP` without an `override_reason` gets this answer, with or without a code. The rider is never trapped at the counter: `PICKED_UP` with an `override_reason` and no code is accepted and flagged for operations.",
   "operations": [
     "createAssignmentTransition"
   ],
