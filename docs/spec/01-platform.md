@@ -2218,7 +2218,7 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   - **I-28.3** Presigned download URLs expire in ≤120 s for KYC documents and ≤300 s for a halal certificate view, and every issuance is audited with actor, subject and request id.
   - **I-28.4** A rider may upload a POD only for their own in-flight dispatch.
   - **I-28.5** EXIF GPS is stripped from every image before it enters `hg-media`.
-  - **I-28.6** No caller can attach someone else's upload, or an upload made for another use; a download link goes to whoever owns the document, so attaching another's file would hand over its bytes.
+  - **I-28.6** No caller can attach an upload another account made, or one made for another use; a download link goes to whoever owns the document, so attaching a file another account uploaded would hand over its bytes.
 - **Acceptance criteria**:
   1. Given an upload URL issued for `image/jpeg` at 1 MiB, When the client PUTs a 9 MiB PDF, Then Silo rejects the request on signature mismatch and `stored_object` stays `PENDING`.
   2. Given a confirmed upload whose bytes do not match the declared SHA-256, Then confirm returns 422 and the object is marked `REJECTED` and deleted.
