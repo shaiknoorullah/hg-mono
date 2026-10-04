@@ -2,6 +2,7 @@ package payments
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -59,11 +60,16 @@ type WebhookWorker struct {
 	// batch is how many due events one query claims; maxBatches bounds one
 	// pass, so the lease changes hands now and then.
 	batch, maxBatches int
+	// envIsLive is whether this environment takes live-mode events
+	// (production) or test-mode ones (every other environment).
+	envIsLive bool
 }
 
-// NewWebhookWorker builds the worker over the payments service.
-func NewWebhookWorker(svc *Service) *WebhookWorker {
-	return &WebhookWorker{svc: svc, log: svc.log, tick: time.Second, batch: 50, maxBatches: 20}
+// NewWebhookWorker builds the worker over the payments service. envIsLive is
+// the same flag the webhook route checks each event's livemode against; the
+// worker checks it again before it applies a stored event.
+func NewWebhookWorker(svc *Service, envIsLive bool) *WebhookWorker {
+	return &WebhookWorker{svc: svc, log: svc.log, tick: time.Second, batch: 50, maxBatches: 20, envIsLive: envIsLive}
 }
 
 // Run makes a pass every tick until ctx is cancelled.
@@ -125,7 +131,7 @@ func (w *WebhookWorker) RunOnce(ctx context.Context) (pass WebhookPass, ran bool
 			if err := ctx.Err(); err != nil {
 				return pass, true, err
 			}
-			res := w.svc.applyStoredEvent(ctx, id)
+			res := w.svc.applyStoredEvent(ctx, id, w.envIsLive)
 			switch res.outcome {
 			case outcomeApplied:
 				pass.Applied++
@@ -163,8 +169,10 @@ type applyResult struct {
 // same transaction, with the row locked: processed_at is set only once the
 // effect has committed, and a second call on the same row is a no-op. A
 // failed attempt is rolled back whole and then counted, in a transaction of
-// its own, with its backoff, or dead-lettered on the eighth.
-func (s *Service) applyStoredEvent(ctx context.Context, id string) applyResult {
+// its own, with its backoff, or dead-lettered on the eighth. An event whose
+// livemode is not this environment's is refused, not applied, even though
+// the route already refused such events when they arrived.
+func (s *Service) applyStoredEvent(ctx context.Context, id string, envIsLive bool) applyResult {
 	var (
 		eff           effect
 		stripeEventID string
@@ -172,10 +180,11 @@ func (s *Service) applyStoredEvent(ctx context.Context, id string) applyResult {
 	)
 	err := s.repo.tx(ctx, func(tx pgx.Tx) error {
 		var payload []byte
+		var live bool
 		err := tx.QueryRow(ctx, `
-			SELECT stripe_event_id, payload FROM webhook_event
+			SELECT stripe_event_id, payload, livemode FROM webhook_event
 			 WHERE id = $1 AND processed_at IS NULL
-			 FOR UPDATE SKIP LOCKED`, id).Scan(&stripeEventID, &payload)
+			 FOR UPDATE SKIP LOCKED`, id).Scan(&stripeEventID, &payload, &live)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -183,6 +192,15 @@ func (s *Service) applyStoredEvent(ctx context.Context, id string) applyResult {
 			return err
 		}
 		found = true
+		if live != envIsLive {
+			ev := stripeEventEnvelope{ID: stripeEventID}
+			_ = json.Unmarshal(payload, &ev)
+			if eff, err = s.refuse(ctx, tx, ev, stripeEventID,
+				fmt.Sprintf("its livemode is %t and this environment's is %t", live, envIsLive)); err != nil {
+				return err
+			}
+			return markEventProcessed(ctx, tx, id)
+		}
 		if eff, err = s.applyEventSafely(ctx, tx, payload); err != nil {
 			return err
 		}

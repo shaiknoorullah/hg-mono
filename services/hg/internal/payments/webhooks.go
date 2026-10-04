@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -74,13 +75,16 @@ func (s *Service) storeEvent(ctx context.Context, ev StripeEvent, envIsLive bool
 // ---------------------------------------------------------------------------
 
 // stripeEventEnvelope is the part of a stored event payload every handler
-// reads. Account is set on events from a connected account (bank payouts).
+// reads. Account is set on an event about an object on a partner's
+// connected account (its account.updated, its bank payouts) and on nothing
+// else.
 type stripeEventEnvelope struct {
-	ID      string `json:"id"`
-	Type    string `json:"type"`
-	Created int64  `json:"created"`
-	Account string `json:"account"`
-	Data    struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Created  int64  `json:"created"`
+	Account  string `json:"account"`
+	LiveMode bool   `json:"livemode"`
+	Data     struct {
 		Object json.RawMessage `json:"object"`
 	} `json:"data"`
 }
@@ -186,8 +190,52 @@ func (s *Service) applyEvent(ctx context.Context, tx pgx.Tx, payload []byte) (ef
 	if !ok {
 		return effect{kind: effectUnchanged, label: "ignored:" + ev.Type}, nil
 	}
+	// Whose object is it? A partner's account and bank payouts come with
+	// the event's account set; every other handled object lives on the
+	// platform account and comes without one.
+	switch {
+	case connectEventTypes[ev.Type] && ev.Account == "":
+		// The platform's own account or its own bank payouts: not a
+		// partner's, nothing here to keep current.
+		return effect{kind: effectUnchanged, label: "ignored:platform_" + ev.Type}, nil
+	case !connectEventTypes[ev.Type] && ev.Account != "":
+		// A connected account's own payment, refund, dispute or transfer.
+		// Partners never take payments here, and such an object is never
+		// one of ours, whatever ids it carries.
+		return s.refuse(ctx, tx, ev, ev.Account, "it is about an object on connected account "+ev.Account+
+			", and only the platform's own payments, refunds, disputes and transfers are applied")
+	}
 	return h(s, ctx, tx, ev)
 }
+
+// connectEventTypes are the handled events about an object on a partner's
+// connected account.
+var connectEventTypes = map[string]bool{
+	"account.updated": true,
+	"payout.paid":     true, "payout.failed": true, "payout.canceled": true, "payout.updated": true,
+}
+
+// refuse leaves an event unapplied because it is not genuinely about the row
+// it points at: the Stripe object it names is not the one this database
+// recorded for that row, or its amount, currency or account does not match
+// ours. Such an event changes nothing; it is logged and pages on-call in the
+// transaction that marks it processed, since applying it again would only
+// refuse it again.
+func (s *Service) refuse(ctx context.Context, tx pgx.Tx, ev stripeEventEnvelope, stripeID, reason string) (effect, error) {
+	s.log.WarnContext(ctx, "stripe webhook refused: not applied",
+		"event_id", ev.ID, "type", ev.Type, "account", ev.Account, "object", stripeID, "reason", reason)
+	if err := raiseOpsAlert(ctx, tx, opsAlert{
+		Severity: "high", Kind: "webhook_refused", SubjectType: "stripe_event", SubjectID: ev.ID,
+		Message: fmt.Sprintf("Stripe event %s (%s) was not applied: %s.", ev.ID, ev.Type, reason),
+	}); err != nil {
+		return effect{}, err
+	}
+	return effect{kind: effectMismatch, label: "refused:" + stripeID, stripeID: stripeID}, nil
+}
+
+// ourCurrency is the one currency money moves in (CAD; amounts are int64
+// cents). A Stripe object in any other currency is not one of ours.
+func ourCurrency(c string) bool { return c == "" || strings.EqualFold(c, "cad") }
 
 // applyEventSafely is applyEvent with a panicking handler turned into a
 // failed attempt, so the event is retried and, in the end, set aside for a
@@ -222,6 +270,7 @@ type stripePIObject struct {
 	Status           string              `json:"status"`
 	AmountReceived   int64               `json:"amount_received"`
 	AmountCapturable int64               `json:"amount_capturable"`
+	Currency         string              `json:"currency"`
 	LastPaymentError *stripePaymentError `json:"last_payment_error"`
 }
 
@@ -270,6 +319,9 @@ func (s *Service) applyIntentEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 	}
 	if obj.ID == "" {
 		return effect{}, fmt.Errorf("%s %s carries no payment intent id", ev.Type, ev.ID)
+	}
+	if !ourCurrency(obj.Currency) {
+		return s.refuse(ctx, tx, ev, obj.ID, "the payment is in "+obj.Currency+", not CAD")
 	}
 	target := intentEventTargets[ev.Type]
 	if t, ok := stripeIntentTarget(obj.Status, obj.LastPaymentError != nil); ok {
@@ -368,6 +420,19 @@ func (s *Service) recordSucceeded(ctx context.Context, tx pgx.Tx, cur IntentRow,
 	captured := amountReceived
 	if captured == 0 {
 		captured = cur.AmountAuthorizedCents
+	}
+	if captured > cur.AmountAuthorizedCents {
+		// Stripe never captures more than it authorised, and the amount we
+		// authorised is the server-priced order total. A larger figure is
+		// not this payment's capture: record nothing and page on-call.
+		if err := raiseOpsAlert(ctx, tx, opsAlert{Severity: "high", Kind: "webhook_refused",
+			SubjectType: "payment_intent", SubjectID: cur.ID,
+			Message: fmt.Sprintf("Stripe reports %d cents captured on %s, more than the %d authorised; nothing was recorded.",
+				captured, cur.StripePaymentIntentID, cur.AmountAuthorizedCents)}); err != nil {
+			return effect{}, err
+		}
+		return effect{kind: effectMismatch, label: "refused:capture_above_authorisation",
+			stripeID: cur.StripePaymentIntentID, orderID: cur.OrderID}, nil
 	}
 	key := "capture:" + cur.OrderID
 	if PaymentState(cur.State) == StateSucceeded && cur.AmountCapturedCents == captured {

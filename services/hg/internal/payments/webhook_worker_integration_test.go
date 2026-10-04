@@ -53,7 +53,7 @@ func newWebhookHarness(t *testing.T) *webhookHarness {
 	rt := httpx.NewRouter(httpx.Options{Logger: quiet, Env: string(config.EnvLocal)})
 	// A development environment takes test-mode events (livemode false).
 	Routes(rt, NewHandler(svc, &config.Config{Env: config.EnvLocal}))
-	h := &webhookHarness{t: t, pool: pool, svc: svc, router: rt, worker: NewWebhookWorker(svc),
+	h := &webhookHarness{t: t, pool: pool, svc: svc, router: rt, worker: NewWebhookWorker(svc, false),
 		run: strconv.FormatInt(time.Now().UnixNano(), 36)}
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM webhook_event WHERE stripe_event_id = ANY($1)`, h.events)
@@ -64,13 +64,23 @@ func newWebhookHarness(t *testing.T) *webhookHarness {
 // id is a Stripe-style id unique to this run.
 func (h *webhookHarness) id(prefix string) string { return prefix + "_wh_" + h.run }
 
-// eventPayload is a webhook body as Stripe sends it.
+// eventPayload is a webhook body as Stripe sends it about a platform object.
 func eventPayload(id, typ string, created time.Time, object map[string]any) []byte {
-	raw, _ := json.Marshal(map[string]any{
+	return eventPayloadFrom("", id, typ, created, object)
+}
+
+// eventPayloadFrom is a webhook body as Stripe sends it from a connected
+// account: the event's account names it.
+func eventPayloadFrom(account, id, typ string, created time.Time, object map[string]any) []byte {
+	ev := map[string]any{
 		"id": id, "object": "event", "api_version": stripe.APIVersion, "type": typ,
 		"created": created.Unix(), "livemode": false, "pending_webhooks": 1,
 		"data": map[string]any{"object": object},
-	})
+	}
+	if account != "" {
+		ev["account"] = account
+	}
+	raw, _ := json.Marshal(ev)
 	return raw
 }
 
@@ -92,11 +102,18 @@ func (h *webhookHarness) post(body []byte, sig string) int {
 	return rec.Code
 }
 
-// send delivers a correctly signed event and requires the 200.
+// send delivers a correctly signed event about a platform object and
+// requires the 200.
 func (h *webhookHarness) send(id, typ string, created time.Time, object map[string]any) {
 	h.t.Helper()
+	h.sendFrom("", id, typ, created, object)
+}
+
+// sendFrom is send for an event from a connected account.
+func (h *webhookHarness) sendFrom(account, id, typ string, created time.Time, object map[string]any) {
+	h.t.Helper()
 	h.events = append(h.events, id)
-	payload := eventPayload(id, typ, created, object)
+	payload := eventPayloadFrom(account, id, typ, created, object)
 	if code := h.post(payload, signature(payload, testWebhookSecret, time.Now())); code != http.StatusOK {
 		h.t.Fatalf("deliver %s (%s): status %d, want 200", id, typ, code)
 	}
@@ -195,6 +212,37 @@ func (h *webhookHarness) assertLedgerZeroSum(orderIDs ...string) {
 	}
 }
 
+// seedRider adds a rider's payout account; the rider needs no other row.
+func (h *webhookHarness) seedRider(stripeAccountID string, payoutsEnabled bool) string {
+	h.t.Helper()
+	rider := h.text(`SELECT uuid_generate_v7()::text`)
+	if _, err := h.pool.Exec(context.Background(), `
+		INSERT INTO connect_account (owner_type, owner_id, stripe_account_id, payouts_enabled, details_submitted)
+		VALUES ('RIDER', $1, $2, $3, $3)`, rider, stripeAccountID, payoutsEnabled); err != nil {
+		h.t.Fatalf("seed connect account: %v", err)
+	}
+	return rider
+}
+
+// seedPayout owes the rider cents and makes the weekly payout for them.
+func (h *webhookHarness) seedPayout(rider string, cents int64) string {
+	h.t.Helper()
+	ctx := context.Background()
+	repo := NewRepo(h.pool)
+	if err := repo.PostBatch(ctx, LedgerBatch{Kind: BatchAdjustment, IdempotencyKey: h.id("adj_" + rider), PostedBy: "system:test",
+		Entries: []LedgerEntry{
+			{Account: AcctRiderPayable, CounterpartyType: CPRider, CounterpartyID: rider, AmountCents: cents, Component: CompDeliveryFee},
+			{Account: AcctPlatformAbsorbed, CounterpartyType: CPPlatform, AmountCents: -cents, Component: CompDeliveryFee},
+		}}); err != nil {
+		h.t.Fatalf("post the rider's earning: %v", err)
+	}
+	payout, _, err := repo.RunPayout(ctx, "RIDER", rider, time.Now().Add(-7*24*time.Hour), time.Now().Add(time.Minute))
+	if err != nil || payout == "" {
+		h.t.Fatalf("make the payout: id %q, err %v", payout, err)
+	}
+	return payout
+}
+
 func piObject(id, status string, amountReceived int64) map[string]any {
 	return map[string]any{"id": id, "object": "payment_intent", "status": status,
 		"amount": 3919, "amount_received": amountReceived}
@@ -289,7 +337,7 @@ func TestWebhookWorker_ADuplicatedEventIsAppliedOnce(t *testing.T) {
 	if err != nil || !res.Duplicate {
 		t.Errorf("replayed capture: duplicate=%t err=%v; want a duplicate", res.Duplicate, err)
 	}
-	if out := h.svc.applyStoredEvent(ctx, h.stored(captured).ID); out.outcome != outcomeSkipped {
+	if out := h.svc.applyStoredEvent(ctx, h.stored(captured).ID, false); out.outcome != outcomeSkipped {
 		t.Errorf("applying the processed capture again: outcome %d, want skipped", out.outcome)
 	}
 	if r := h.stored(captured); r.Rows != 1 || !r.Processed || r.Attempts != 1 {
@@ -519,43 +567,27 @@ func TestWebhookWorker_AFailingEventBacksOffThenIsDeadLettered(t *testing.T) {
 func TestWebhookWorker_ConnectTransferAndPayoutEventsMoveTheirRowsOnce(t *testing.T) {
 	h := newWebhookHarness(t)
 	ctx := context.Background()
-	repo := NewRepo(h.pool)
 	acct, tr, po := h.id("acct"), h.id("tr"), h.id("po")
 	t.Cleanup(func() {
 		_, _ = h.pool.Exec(ctx, `DELETE FROM reconciliation_exception WHERE stripe_object_id = ANY($1)`, []string{tr, po})
 	})
-	rider := h.text(`SELECT uuid_generate_v7()::text`)
-	if _, err := h.pool.Exec(ctx, `
-		INSERT INTO connect_account (owner_type, owner_id, stripe_account_id) VALUES ('RIDER', $1, $2)`,
-		rider, acct); err != nil {
-		t.Fatalf("seed connect account: %v", err)
-	}
+	rider := h.seedRider(acct, false)
 	t0 := time.Now().Add(-10 * time.Minute)
 	account := func(payouts bool, due []string) map[string]any {
 		return map[string]any{"id": acct, "object": "account", "charges_enabled": false, "payouts_enabled": payouts,
 			"details_submitted": payouts, "requirements": map[string]any{"currently_due": due}}
 	}
-	h.send(h.id("evt_acct_new"), "account.updated", t0.Add(2*time.Minute), account(true, []string{}))
+	h.sendFrom(acct, h.id("evt_acct_new"), "account.updated", t0.Add(2*time.Minute), account(true, []string{}))
 	h.process()
-	h.send(h.id("evt_acct_old"), "account.updated", t0.Add(time.Minute), account(false, []string{"external_account"}))
+	h.sendFrom(acct, h.id("evt_acct_old"), "account.updated", t0.Add(time.Minute), account(false, []string{"external_account"}))
 	h.process()
 	if got := h.text(`SELECT payouts_enabled::text FROM connect_account WHERE stripe_account_id = $1`, acct); got != "true" {
 		t.Fatalf("payouts_enabled = %s after a newer and then an older snapshot, want true", got)
 	}
 
 	// The rider is owed $12.00, and the weekly run makes their payout.
-	if err := repo.PostBatch(ctx, LedgerBatch{Kind: BatchAdjustment, IdempotencyKey: h.id("adj"), PostedBy: "system:test",
-		Entries: []LedgerEntry{
-			{Account: AcctRiderPayable, CounterpartyType: CPRider, CounterpartyID: rider, AmountCents: 1200, Component: CompDeliveryFee},
-			{Account: AcctPlatformAbsorbed, CounterpartyType: CPPlatform, AmountCents: -1200, Component: CompDeliveryFee},
-		}}); err != nil {
-		t.Fatalf("post the rider's earning: %v", err)
-	}
-	payout, _, err := repo.RunPayout(ctx, "RIDER", rider, time.Now().Add(-7*24*time.Hour), time.Now().Add(time.Minute))
-	if err != nil || payout == "" {
-		t.Fatalf("make the payout: id %q, err %v", payout, err)
-	}
-	transfer := map[string]any{"id": tr, "object": "transfer", "amount": 1200, "destination": acct,
+	payout := h.seedPayout(rider, 1200)
+	transfer := map[string]any{"id": tr, "object": "transfer", "amount": 1200, "currency": "cad", "destination": acct,
 		"metadata": map[string]any{"payout_id": payout}}
 	h.send(h.id("evt_tr"), "transfer.created", t0.Add(3*time.Minute), transfer)
 	h.send(h.id("evt_tr"), "transfer.created", t0.Add(3*time.Minute), transfer)
@@ -565,12 +597,12 @@ func TestWebhookWorker_ConnectTransferAndPayoutEventsMoveTheirRowsOnce(t *testin
 	}
 
 	bankPayout := func(status string) map[string]any {
-		return map[string]any{"id": po, "object": "payout", "amount": 1200, "status": status,
+		return map[string]any{"id": po, "object": "payout", "amount": 1200, "currency": "cad", "status": status,
 			"failure_code": "account_closed", "metadata": map[string]any{"payout_id": payout}}
 	}
-	h.send(h.id("evt_po_failed"), "payout.failed", t0.Add(5*time.Minute), bankPayout("failed"))
+	h.sendFrom(acct, h.id("evt_po_failed"), "payout.failed", t0.Add(5*time.Minute), bankPayout("failed"))
 	h.process()
-	h.send(h.id("evt_po_paid"), "payout.paid", t0.Add(4*time.Minute), bankPayout("paid"))
+	h.sendFrom(acct, h.id("evt_po_paid"), "payout.paid", t0.Add(4*time.Minute), bankPayout("paid"))
 	h.process()
 	if got := h.text(`SELECT state::text || '/' || coalesce(stripe_payout_id, '') FROM payout WHERE id = $1`, payout); got != "FAILED/"+po {
 		t.Errorf("payout after the bank returned it: %s, want FAILED/%s", got, po)
@@ -596,4 +628,100 @@ func TestWebhookWorker_ConnectTransferAndPayoutEventsMoveTheirRowsOnce(t *testin
 		t.Errorf("payout audit trail %v, want %v", trail, want)
 	}
 	h.assertLedgerZeroSum()
+}
+
+// An event changes only the row it is genuinely about. Metadata (a
+// payout_id, a refund_id) names a row but proves nothing, since anyone with
+// API access to the object can set it; the row is accepted only when the
+// Stripe ids this database recorded for it match the event: the transfer's
+// destination, the account a bank payout or account update came from, the
+// payment a refund is against. Anything else changes nothing and pages
+// on-call. So does a payment event from a connected account, which is never
+// about one of the platform's payments.
+func TestWebhookWorker_AnEventIsAppliedOnlyToTheRowsItIsAbout(t *testing.T) {
+	h := newWebhookHarness(t)
+	ctx := context.Background()
+	victimAcct, otherAcct, unknownAcct := h.id("acct_victim"), h.id("acct_other"), h.id("acct_unknown")
+	victim := h.seedRider(victimAcct, true)
+	h.seedRider(otherAcct, true)
+	payout := h.seedPayout(victim, 1500)
+	t0 := time.Now().Add(-10 * time.Minute)
+	refused := func(eventID string) {
+		t.Helper()
+		if r := h.stored(eventID); !r.Processed {
+			t.Errorf("%s was not recorded as processed: %+v", eventID, r)
+		}
+		if got := h.opsAlerts(eventID); !slices.Equal(got, []string{"webhook_refused"}) {
+			t.Errorf("ops alerts about %s: %v, want one webhook_refused", eventID, got)
+		}
+	}
+
+	// Another rider's account, pointed at the victim's payout by metadata.
+	toOther := h.id("evt_tr_other")
+	h.send(toOther, "transfer.created", t0, map[string]any{"id": h.id("tr_other"), "object": "transfer",
+		"amount": 1500, "currency": "cad", "destination": otherAcct, "metadata": map[string]any{"payout_id": payout}})
+	fromOther := h.id("evt_po_other")
+	h.sendFrom(otherAcct, fromOther, "payout.paid", t0, map[string]any{"id": h.id("po_other"), "object": "payout",
+		"amount": 1500, "currency": "cad", "status": "paid", "metadata": map[string]any{"payout_id": payout}})
+	h.process()
+	if got := h.text(`SELECT state::text || '/' || coalesce(stripe_transfer_id, '-') || '/' || coalesce(stripe_payout_id, '-')
+		FROM payout WHERE id = $1`, payout); got != "READY/-/-" {
+		t.Errorf("the victim's payout after events naming it from another account: %s, want READY/-/-", got)
+	}
+	refused(toOther)
+	refused(fromOther)
+
+	// Account updates: one sent by another account about the victim's, and
+	// one about an account that is no one's.
+	about := func(id string) map[string]any {
+		return map[string]any{"id": id, "object": "account", "payouts_enabled": false, "details_submitted": false,
+			"requirements": map[string]any{"currently_due": []string{"external_account"}}}
+	}
+	mismatched, unknown := h.id("evt_acct_mismatched"), h.id("evt_acct_unknown")
+	h.sendFrom(otherAcct, mismatched, "account.updated", t0, about(victimAcct))
+	h.sendFrom(unknownAcct, unknown, "account.updated", t0, about(unknownAcct))
+	h.process()
+	if got := h.text(`SELECT payouts_enabled::text FROM connect_account WHERE stripe_account_id = $1`, victimAcct); got != "true" {
+		t.Errorf("the victim's payouts_enabled = %s after another account's update, want true", got)
+	}
+	if n := h.count(`SELECT count(*) FROM connect_account WHERE stripe_account_id = $1`, unknownAcct); n != 0 {
+		t.Errorf("an update about an unknown account created %d rows", n)
+	}
+	refused(mismatched)
+	refused(unknown)
+
+	// A refund on another payment, pointed at this order's refund by
+	// metadata; and a payment event from a connected account naming this
+	// order's payment.
+	pi := h.id("pi_victim")
+	order := seedOrderWithIntent(t, h.pool, pi, "COMPLETED", "REQUIRES_CAPTURE")
+	h.send(h.id("evt_victim_cap"), "payment_intent.succeeded", t0, piObject(pi, "succeeded", 3919))
+	h.process()
+	var refund string
+	if err := h.pool.QueryRow(ctx, `
+		INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by,
+		                    deadline_at, deadline_action)
+		SELECT o.id, p.id, 'FULL', 'PLATFORM_ERROR', 3919, 'AUTHORISED', o.account_id,
+		       now() + interval '2 minutes', 'submit_refund_to_stripe'
+		  FROM "order" o JOIN payment_intent p ON p.order_id = o.id WHERE o.id = $1
+		RETURNING id::text`, order).Scan(&refund); err != nil {
+		t.Fatalf("seed refund: %v", err)
+	}
+	t.Cleanup(func() { cleanupRefund(t, h.pool, refund) })
+	elsewhere := h.id("evt_re_elsewhere")
+	h.send(elsewhere, "refund.updated", t0.Add(time.Minute), map[string]any{"id": h.id("re_elsewhere"), "object": "refund",
+		"amount": 3919, "currency": "cad", "status": "succeeded", "payment_intent": h.id("pi_someone_else"),
+		"metadata": map[string]any{"refund_id": refund}})
+	fromConnected := h.id("evt_pi_connected")
+	h.sendFrom(otherAcct, fromConnected, "payment_intent.canceled", t0.Add(time.Minute), piObject(pi, "canceled", 0))
+	h.process()
+	if got := h.text(`SELECT state::text || '/' || coalesce(stripe_refund_id, '-') FROM refund WHERE id = $1`, refund); got != "AUTHORISED/-" {
+		t.Errorf("this order's refund after a refund of another payment named it: %s, want AUTHORISED/-", got)
+	}
+	if got := intentState(t, h.pool, pi); got != "SUCCEEDED" {
+		t.Errorf("payment is %s after a connected account's event named it, want SUCCEEDED", got)
+	}
+	refused(elsewhere)
+	refused(fromConnected)
+	h.assertLedgerZeroSum(order)
 }

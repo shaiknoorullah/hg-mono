@@ -214,7 +214,7 @@ func (s *Service) replayEvents(ctx context.Context, rep *CatchUpReport, envIsLiv
 		}
 		// The same step the webhook worker takes: apply and mark processed in
 		// one transaction, or count a failed attempt with its backoff.
-		res := s.applyStoredEvent(ctx, e.ID)
+		res := s.applyStoredEvent(ctx, e.ID, envIsLive)
 		switch res.outcome {
 		case outcomeApplied:
 			rep.EventsProcessed++

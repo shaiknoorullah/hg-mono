@@ -126,27 +126,34 @@ func recordCapture(ctx context.Context, tx pgx.Tx, stripeID string, capturedCent
 // refund.
 // ---------------------------------------------------------------------------
 
-// refundForStripe is the refund row a Stripe refund object is about.
+// refundForStripe is the refund row a Stripe refund object is about, with
+// the Stripe payment intent this database recorded for it: the caller checks
+// the refund object names that same payment before it touches the row.
 type refundForStripe struct {
 	ID, OrderID, State, StripeRefundID string
+	StripePaymentIntentID              string
 	AmountCents                        int64
 	Split                              LiabilitySplit
 }
 
 // findRefundForUpdate finds our refund for a Stripe refund: by the Stripe id
 // once it is recorded, else by the refund_id the create call put in the
-// metadata. found is false when neither matches.
+// metadata. Metadata alone proves nothing (anyone with API access can set
+// it), which is why the row comes back with its own payment intent to check
+// against. found is false when neither matches.
 func findRefundForUpdate(ctx context.Context, tx pgx.Tx, stripeRefundID, metadataRefundID string) (refundForStripe, bool, error) {
 	var rf refundForStripe
 	err := tx.QueryRow(ctx, `
-		SELECT id::text, order_id::text, state::text, coalesce(stripe_refund_id, ''), amount_cents,
-		       restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents
-		  FROM refund
-		 WHERE stripe_refund_id = $1 OR id = $2::uuid
-		 ORDER BY (stripe_refund_id = $1) DESC NULLS LAST
+		SELECT r.id::text, r.order_id::text, r.state::text, coalesce(r.stripe_refund_id, ''),
+		       pi.stripe_payment_intent_id, r.amount_cents,
+		       r.restaurant_chargeback_cents, r.rider_chargeback_cents, r.platform_absorbed_cents
+		  FROM refund r
+		  JOIN payment_intent pi ON pi.id = r.payment_intent_id
+		 WHERE r.stripe_refund_id = $1 OR r.id = $2::uuid
+		 ORDER BY (r.stripe_refund_id = $1) DESC NULLS LAST
 		 LIMIT 1
-		 FOR UPDATE`, stripeRefundID, uuidOrNil(metadataRefundID)).Scan(
-		&rf.ID, &rf.OrderID, &rf.State, &rf.StripeRefundID, &rf.AmountCents,
+		 FOR UPDATE OF r`, stripeRefundID, uuidOrNil(metadataRefundID)).Scan(
+		&rf.ID, &rf.OrderID, &rf.State, &rf.StripeRefundID, &rf.StripePaymentIntentID, &rf.AmountCents,
 		&rf.Split.RestaurantChargebackCents, &rf.Split.RiderChargebackCents, &rf.Split.PlatformAbsorbedCents)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return rf, false, nil
@@ -159,9 +166,12 @@ func findRefundForUpdate(ctx context.Context, tx pgx.Tx, stripeRefundID, metadat
 // terminal) because it is an alerting condition a person has to close
 // (docs/spec/01-platform.md, "P-18 — Refunds, cancellations and
 // compensation": a failed refund is an alerting condition with a deadline).
-func moveRefund(ctx context.Context, tx pgx.Tx, refundID, stripeRefundID string, to RefundState, failure string) error {
+//
+// from is the state the caller read under its lock; the update is refused
+// if the row is no longer in it.
+func moveRefund(ctx context.Context, tx pgx.Tx, refundID, stripeRefundID string, from, to RefundState, failure string) error {
 	set := "state = $2, stripe_refund_id = coalesce(stripe_refund_id, $3)"
-	args := []any{refundID, string(to), stripeRefundID}
+	args := []any{refundID, string(to), stripeRefundID, string(from)}
 	switch to {
 	case RefundSubmitted:
 		set += `, deadline_at = coalesce(deadline_at, now() + interval '7 days'),
@@ -170,11 +180,17 @@ func moveRefund(ctx context.Context, tx pgx.Tx, refundID, stripeRefundID string,
 		set += ", settled_at = coalesce(settled_at, now()), failure_message = NULL, deadline_at = NULL, deadline_action = NULL"
 	case RefundFailed:
 		args = append(args, failure)
-		set += `, failure_message = $4, last_error = $4,
+		set += `, failure_message = $5, last_error = $5,
 		        deadline_at = now() + interval '24 hours', deadline_action = 'review_failed_refund'`
 	}
-	_, err := tx.Exec(ctx, `UPDATE refund SET `+set+` WHERE id = $1`, args...)
-	return err
+	tag, err := tx.Exec(ctx, `UPDATE refund SET `+set+` WHERE id = $1 AND state = $4`, args...)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return fmt.Errorf("refund %s is no longer %s", refundID, from)
+	}
+	return nil
 }
 
 // refundBatchPosted reports whether a refund already has its REFUND batch.
@@ -274,29 +290,36 @@ func updateChargeback(ctx context.Context, tx pgx.Tx, id string, c chargebackSna
 // payout.
 // ---------------------------------------------------------------------------
 
-// payoutForStripe is the payout row a Stripe transfer or bank payout is about.
+// payoutForStripe is the payout row a Stripe transfer or bank payout is
+// about, with the partner's connected account this database recorded for it:
+// the caller checks the transfer's destination, or the bank payout's
+// account, against that before it touches the row.
 type payoutForStripe struct {
 	ID, State, StripeTransferID, StripePayoutID string
+	StripeAccountID, Currency                   string
 	AmountCents                                 int64
 }
 
 // findPayoutForUpdate finds our payout for a Stripe transfer or bank payout:
 // by the Stripe id once it is recorded, else by the payout_id the create call
 // put in the metadata (every Stripe transfer and payout call is keyed by the
-// payout id).
+// payout id). Metadata alone proves nothing, which is why the row comes back
+// with its partner's account to check against.
 func findPayoutForUpdate(ctx context.Context, tx pgx.Tx, column, stripeID, metadataPayoutID string) (payoutForStripe, bool, error) {
 	if column != "stripe_transfer_id" && column != "stripe_payout_id" {
 		return payoutForStripe{}, false, fmt.Errorf("find payout by %q: not a Stripe id column", column)
 	}
 	var p payoutForStripe
 	err := tx.QueryRow(ctx, `
-		SELECT id::text, state::text, coalesce(stripe_transfer_id, ''), coalesce(stripe_payout_id, ''), amount_cents
-		  FROM payout
-		 WHERE `+column+` = $1 OR id = $2::uuid
-		 ORDER BY (`+column+` = $1) DESC NULLS LAST
+		SELECT p.id::text, p.state::text, coalesce(p.stripe_transfer_id, ''), coalesce(p.stripe_payout_id, ''),
+		       ca.stripe_account_id, p.currency::text, p.amount_cents
+		  FROM payout p
+		  JOIN connect_account ca ON ca.id = p.connect_account_id
+		 WHERE p.`+column+` = $1 OR p.id = $2::uuid
+		 ORDER BY (p.`+column+` = $1) DESC NULLS LAST
 		 LIMIT 1
-		 FOR UPDATE`, stripeID, uuidOrNil(metadataPayoutID)).Scan(
-		&p.ID, &p.State, &p.StripeTransferID, &p.StripePayoutID, &p.AmountCents)
+		 FOR UPDATE OF p`, stripeID, uuidOrNil(metadataPayoutID)).Scan(
+		&p.ID, &p.State, &p.StripeTransferID, &p.StripePayoutID, &p.StripeAccountID, &p.Currency, &p.AmountCents)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return p, false, nil
 	}
@@ -315,26 +338,38 @@ func setPayoutStripeIDs(ctx context.Context, tx pgx.Tx, payoutID string, ids pay
 	return err
 }
 
-// markPayoutPaidTx records that Stripe holds the money as paid to the partner.
-func markPayoutPaidTx(ctx context.Context, tx pgx.Tx, payoutID string, ids payoutStripeIDs) error {
-	_, err := tx.Exec(ctx, `
+// markPayoutPaidTx records that Stripe holds the money as paid to the
+// partner. Neither it nor markPayoutFailedTx touches the amount or the
+// ledger entries the payout claimed: a webhook never changes what a partner
+// is owed. from is the state the caller read under its lock.
+func markPayoutPaidTx(ctx context.Context, tx pgx.Tx, payoutID, from string, ids payoutStripeIDs) error {
+	return movePayout(ctx, tx, payoutID, from, `
 		UPDATE payout
-		   SET state = 'PAID', stripe_transfer_id = coalesce(stripe_transfer_id, $2),
-		       stripe_payout_id = coalesce(stripe_payout_id, $3), paid_at = coalesce(paid_at, now()),
+		   SET state = 'PAID', stripe_transfer_id = coalesce(stripe_transfer_id, $3),
+		       stripe_payout_id = coalesce(stripe_payout_id, $4), paid_at = coalesce(paid_at, now()),
 		       failure_message = NULL, deadline_at = NULL, deadline_action = NULL
-		 WHERE id = $1`, payoutID, nullStr(ids.Transfer), nullStr(ids.Payout))
-	return err
+		 WHERE id = $1 AND state = $2`, nullStr(ids.Transfer), nullStr(ids.Payout))
 }
 
 // markPayoutFailedTx records that the money did not reach the partner.
-func markPayoutFailedTx(ctx context.Context, tx pgx.Tx, payoutID string, ids payoutStripeIDs, msg string) error {
-	_, err := tx.Exec(ctx, `
+func markPayoutFailedTx(ctx context.Context, tx pgx.Tx, payoutID, from string, ids payoutStripeIDs, msg string) error {
+	return movePayout(ctx, tx, payoutID, from, `
 		UPDATE payout
-		   SET state = 'FAILED', stripe_transfer_id = coalesce(stripe_transfer_id, $2),
-		       stripe_payout_id = coalesce(stripe_payout_id, $3), failure_message = $4, last_error = $4,
+		   SET state = 'FAILED', stripe_transfer_id = coalesce(stripe_transfer_id, $3),
+		       stripe_payout_id = coalesce(stripe_payout_id, $4), failure_message = $5, last_error = $5,
 		       deadline_at = NULL, deadline_action = NULL
-		 WHERE id = $1`, payoutID, nullStr(ids.Transfer), nullStr(ids.Payout), msg)
-	return err
+		 WHERE id = $1 AND state = $2`, nullStr(ids.Transfer), nullStr(ids.Payout), msg)
+}
+
+func movePayout(ctx context.Context, tx pgx.Tx, payoutID, from, sql string, args ...any) error {
+	tag, err := tx.Exec(ctx, sql, append([]any{payoutID, from}, args...)...)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return fmt.Errorf("payout %s is no longer %s", payoutID, from)
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------

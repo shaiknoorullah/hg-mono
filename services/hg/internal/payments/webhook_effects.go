@@ -79,6 +79,7 @@ var exceptionMessages = map[string]string{
 type stripeRefundObject struct {
 	ID            string            `json:"id"`
 	Amount        int64             `json:"amount"`
+	Currency      string            `json:"currency"`
 	Status        string            `json:"status"`
 	PaymentIntent string            `json:"payment_intent"`
 	FailureReason string            `json:"failure_reason"`
@@ -89,6 +90,7 @@ type stripeChargeObject struct {
 	ID             string `json:"id"`
 	PaymentIntent  string `json:"payment_intent"`
 	AmountRefunded int64  `json:"amount_refunded"`
+	Currency       string `json:"currency"`
 	// Refunds is only present on API versions before 2022-11-15, or when the
 	// webhook endpoint expands it; each refund also has its own events.
 	Refunds *struct {
@@ -96,11 +98,11 @@ type stripeChargeObject struct {
 	} `json:"refunds"`
 }
 
-// errCaptureNotRecorded makes a refund event wait, through the worker's
-// backoff, for the capture it refunds: events arrive out of order, and a
-// refund of money this database has not yet seen captured is not something
-// to judge yet.
-var errCaptureNotRecorded = errors.New("the refunded payment's capture is not recorded yet; retrying")
+// errCaptureNotRecorded makes a refund or dispute event wait, through the
+// worker's backoff, for the capture it is about: events arrive out of order,
+// and money this database has not yet seen captured is not something to
+// judge yet.
+var errCaptureNotRecorded = errors.New("the payment's capture is not recorded yet; retrying")
 
 // applyChargeRefunded reconciles a charge's refunded total against the
 // refunds this database holds (the handled-events table: "reconcile refund
@@ -113,6 +115,11 @@ func (s *Service) applyChargeRefunded(ctx context.Context, tx pgx.Tx, ev stripeE
 	if ch.PaymentIntent == "" {
 		return effect{}, fmt.Errorf("%s %s: charge %s carries no payment intent", ev.Type, ev.ID, ch.ID)
 	}
+	if !ourCurrency(ch.Currency) {
+		return s.refuse(ctx, tx, ev, ch.ID, "the charge is in "+ch.Currency+", not CAD")
+	}
+	// The payment is found by the Stripe id this database recorded when it
+	// created it; nothing in the event's free fields picks the row.
 	pi, err := getIntentForUpdate(ctx, tx, ch.PaymentIntent)
 	if errors.Is(err, ErrNotFound) {
 		filed, err := fileException(ctx, tx, catchUpException{Kind: exceptionUnknownIntent, StripeObjectID: ch.PaymentIntent,
@@ -212,9 +219,19 @@ func (s *Service) applyRefundObject(ctx context.Context, tx pgx.Tx, ev stripeEve
 		// charge's refunded total with the refunds held here and files it.
 		return effect{kind: effectUnchanged, label: "refund_unmatched:" + rf.ID, stripeID: rf.ID}, nil
 	}
+	// A refund_id in the metadata names a row; it does not prove the refund
+	// is that row's. Stripe's refund must be against the payment this
+	// database recorded for the refund, in CAD.
+	if rf.PaymentIntent != row.StripePaymentIntentID {
+		return s.refuse(ctx, tx, ev, rf.ID, fmt.Sprintf("it names refund %s, which this database holds against payment %s, "+
+			"but Stripe's refund is against payment %q", row.ID, row.StripePaymentIntentID, rf.PaymentIntent))
+	}
+	if !ourCurrency(rf.Currency) {
+		return s.refuse(ctx, tx, ev, rf.ID, "the refund is in "+rf.Currency+", not CAD")
+	}
 	cur := RefundState(row.State)
 	curRank, sendable := refundRank[cur]
-	if !sendable || (row.StripeRefundID != "" && row.StripeRefundID != rf.ID) {
+	if !sendable || (row.StripeRefundID != "" && row.StripeRefundID != rf.ID) || rf.Amount != row.AmountCents {
 		filed, err := fileException(ctx, tx, catchUpException{Kind: exceptionRefundConflict, StripeObjectID: rf.ID,
 			OrderID: row.OrderID, ExpectedCents: int64Ptr(row.AmountCents), ActualCents: int64Ptr(rf.Amount)})
 		return filedEffect(filed, exceptionRefundConflict, rf.ID), err
@@ -235,7 +252,7 @@ func (s *Service) applyRefundObject(ctx context.Context, tx pgx.Tx, ev stripeEve
 	if failure == "" {
 		failure = "Stripe reported the refund " + rf.Status
 	}
-	if err := moveRefund(ctx, tx, row.ID, rf.ID, target, failure); err != nil {
+	if err := moveRefund(ctx, tx, row.ID, rf.ID, cur, target, failure); err != nil {
 		return effect{}, err
 	}
 	// The REFUND batch is normally posted when the refund is authorised
@@ -282,6 +299,7 @@ func (s *Service) applyRefundObject(ctx context.Context, tx pgx.Tx, ev stripeEve
 type stripeDisputeObject struct {
 	ID              string `json:"id"`
 	Amount          int64  `json:"amount"`
+	Currency        string `json:"currency"`
 	Charge          string `json:"charge"`
 	PaymentIntent   string `json:"payment_intent"`
 	Reason          string `json:"reason"`
@@ -302,12 +320,13 @@ func disputeClosed(status string) bool {
 
 // applyDisputeEvent keeps the chargeback row for a Stripe dispute current
 // ("P-18 — Refunds, cancellations and compensation": "open a chargeback
-// row with the evidence-due deadline … and notify ops"). Opening it alerts ops, who own the review; the order's own state is
-// left alone, because the order machine gives the system no edge into
-// DISPUTED ("P-14 — Order lifecycle states and transitions": a customer,
-// the restaurant or support opens a dispute). A
-// closed dispute never reopens, and an older snapshot of an open one never
-// overwrites a newer one.
+// row with the evidence-due deadline … and notify ops"). Opening it alerts
+// ops, who own the review. The order's own state is left alone, because the
+// order machine gives the system no edge into DISPUTED ("P-14 — Order
+// lifecycle states and transitions": a customer, the restaurant or support
+// opens a dispute). The payment is found by the Stripe id this database
+// recorded for it. A closed dispute never reopens, and an older snapshot of
+// an open one never overwrites a newer one.
 func (s *Service) applyDisputeEvent(ctx context.Context, tx pgx.Tx, ev stripeEventEnvelope) (effect, error) {
 	var d stripeDisputeObject
 	if err := ev.object(&d); err != nil {
@@ -329,6 +348,14 @@ func (s *Service) applyDisputeEvent(ctx context.Context, tx pgx.Tx, ev stripeEve
 	}
 	if err != nil {
 		return effect{}, err
+	}
+	// A dispute is only ever of money captured here, and never of more.
+	if PaymentState(pi.State) != StateSucceeded {
+		return effect{}, errCaptureNotRecorded
+	}
+	if !ourCurrency(d.Currency) || d.Amount > pi.AmountCapturedCents {
+		return s.refuse(ctx, tx, ev, d.ID, fmt.Sprintf("it disputes %d %s on payment %s, which captured %d cents CAD",
+			d.Amount, d.Currency, d.PaymentIntent, pi.AmountCapturedCents))
 	}
 	snap := chargebackSnapshot{
 		OrderID: pi.OrderID, StripeDisputeID: d.ID, AmountCents: d.Amount, Reason: d.Reason,
@@ -372,7 +399,7 @@ func (s *Service) applyDisputeEvent(ctx context.Context, tx pgx.Tx, ev stripeEve
 		// order in DISPUTED, but a chargeback leaves the order's state alone
 		// (see above), so that run must also withhold an order with an open
 		// chargeback (chargeback.outcome IS NULL). This row is the hold's
-		// record until then.
+		// record until then. Tracked in #319, with gathering the evidence.
 		if snap.Outcome != "" {
 			return s.closeChargeback(ctx, tx, id, snap, audit, "opened_closed:"+d.ID)
 		}
@@ -446,6 +473,12 @@ func (s *Service) applyAccountUpdated(ctx context.Context, tx pgx.Tx, ev stripeE
 	if a.ID == "" {
 		return effect{}, fmt.Errorf("%s %s carries no account id", ev.Type, ev.ID)
 	}
+	// Stripe sends a connected account's account.updated from that account.
+	// One sent from account A about account B is not B's to apply: account A
+	// must never change another partner's payout account.
+	if ev.Account != a.ID {
+		return s.refuse(ctx, tx, ev, a.ID, "connected account "+ev.Account+" sent an update about account "+a.ID)
+	}
 	acct := &StripeAccount{ID: a.ID, ChargesEnabled: a.ChargesEnabled, PayoutsEnabled: a.PayoutsEnabled,
 		DetailsSubmitted: a.DetailsSubmitted}
 	if r := a.Requirements; r != nil {
@@ -467,10 +500,10 @@ func (s *Service) applyAccountUpdated(ctx context.Context, tx pgx.Tx, ev stripeE
 	case connectStale:
 		return effect{kind: effectBehind, label: "connect_account_skipped:" + a.ID, stripeID: a.ID}, nil
 	}
-	// Not one of ours: an account created by a request whose own write
-	// failed, or another platform's. Nothing here to keep current.
-	s.log.WarnContext(ctx, "account.updated for a Stripe account with no connect_account row", "account", a.ID)
-	return effect{kind: effectUnchanged, label: "connect_account_unmatched:" + a.ID, stripeID: a.ID}, nil
+	// No partner's payout account has this Stripe id: an account created by
+	// a request whose own write failed, or not ours at all. It changes
+	// nothing, and a person is told.
+	return s.refuse(ctx, tx, ev, a.ID, "no restaurant's or rider's payout account is "+a.ID)
 }
 
 // ---------------------------------------------------------------------------
@@ -481,6 +514,7 @@ type stripeTransferObject struct {
 	ID             string            `json:"id"`
 	Amount         int64             `json:"amount"`
 	AmountReversed int64             `json:"amount_reversed"`
+	Currency       string            `json:"currency"`
 	Reversed       bool              `json:"reversed"`
 	Destination    string            `json:"destination"`
 	Metadata       map[string]string `json:"metadata"`
@@ -520,6 +554,16 @@ func (s *Service) applyTransferEvent(ctx context.Context, tx pgx.Tx, ev stripeEv
 			ActualCents: int64Ptr(tr.Amount)})
 		return filedEffect(filed, exceptionUnknownTransfer, tr.ID), err
 	}
+	// A payout_id in the metadata names a row; it does not prove the
+	// transfer is that payout's. It must go to the partner's own connected
+	// account, recorded here when they onboarded, in CAD.
+	if tr.Destination != p.StripeAccountID {
+		return s.refuse(ctx, tx, ev, tr.ID, fmt.Sprintf("it names payout %s, which is owed to account %s, "+
+			"but the transfer went to %q", p.ID, p.StripeAccountID, tr.Destination))
+	}
+	if !ourCurrency(tr.Currency) {
+		return s.refuse(ctx, tx, ev, tr.ID, "the transfer is in "+tr.Currency+", not CAD")
+	}
 	if (p.StripeTransferID != "" && p.StripeTransferID != tr.ID) || tr.Amount != p.AmountCents {
 		filed, err := fileException(ctx, tx, catchUpException{Kind: exceptionTransferMismatch, StripeObjectID: tr.ID,
 			PayoutID: p.ID, ExpectedCents: int64Ptr(p.AmountCents), ActualCents: int64Ptr(tr.Amount)})
@@ -537,7 +581,7 @@ func (s *Service) applyTransferEvent(ctx context.Context, tx pgx.Tx, ev stripeEv
 		if p.State == "FAILED" && p.StripeTransferID == tr.ID {
 			return effect{kind: effectUnchanged, label: "noop:payout_failed", stripeID: tr.ID}, nil
 		}
-		if err := markPayoutFailedTx(ctx, tx, p.ID, ids, msg); err != nil {
+		if err := markPayoutFailedTx(ctx, tx, p.ID, p.State, ids, msg); err != nil {
 			return effect{}, err
 		}
 		if err := s.auditPayout(ctx, tx, ev, p, "FAILED", tr.ID); err != nil {
@@ -577,7 +621,7 @@ func (s *Service) applyTransferEvent(ctx context.Context, tx pgx.Tx, ev stripeEv
 		}
 		return effect{kind: effectUnchanged, label: "noop:payout_" + p.State, stripeID: tr.ID}, nil
 	}
-	if err := markPayoutPaidTx(ctx, tx, p.ID, ids); err != nil {
+	if err := markPayoutPaidTx(ctx, tx, p.ID, p.State, ids); err != nil {
 		return effect{}, err
 	}
 	if err := s.auditPayout(ctx, tx, ev, p, "PAID", tr.ID); err != nil {
@@ -589,6 +633,7 @@ func (s *Service) applyTransferEvent(ctx context.Context, tx pgx.Tx, ev stripeEv
 type stripePayoutObject struct {
 	ID             string            `json:"id"`
 	Amount         int64             `json:"amount"`
+	Currency       string            `json:"currency"`
 	Status         string            `json:"status"`
 	FailureCode    string            `json:"failure_code"`
 	FailureMessage string            `json:"failure_message"`
@@ -615,9 +660,20 @@ func (s *Service) applyPayoutEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 	if !found {
 		// Accounts are on a manual schedule, so only a payout made by hand in
 		// the partner's Stripe dashboard lands here: their own balance, not a
-		// payout of ours.
-		s.log.WarnContext(ctx, "bank payout with no payout row", "payout", po.ID, "account", ev.Account, "status", po.Status)
-		return effect{kind: effectUnchanged, label: "bank_payout_unmatched:" + po.ID, stripeID: po.ID}, nil
+		// payout of ours. It changes nothing, and a person is told.
+		return s.refuse(ctx, tx, ev, po.ID, "no payout here is bank payout "+po.ID)
+	}
+	// The bank payout must come from the account of the partner the payout
+	// is owed to: an event from account A never moves partner B's payout,
+	// whatever payout_id A put in the metadata. It must be for the payout's
+	// amount, in CAD.
+	if ev.Account != p.StripeAccountID {
+		return s.refuse(ctx, tx, ev, po.ID, fmt.Sprintf("connected account %s sent it about payout %s, which is owed to account %s",
+			ev.Account, p.ID, p.StripeAccountID))
+	}
+	if !ourCurrency(po.Currency) || po.Amount != p.AmountCents {
+		return s.refuse(ctx, tx, ev, po.ID, fmt.Sprintf("it pays out %d %s against payout %s of %d cents CAD",
+			po.Amount, po.Currency, p.ID, p.AmountCents))
 	}
 	ids := payoutStripeIDs{Payout: po.ID}
 	var target string
@@ -647,7 +703,7 @@ func (s *Service) applyPayoutEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 		return effect{kind: kind, label: fmt.Sprintf("bank_payout_skipped:%s<-%s", p.State, target), stripeID: po.ID}, nil
 	}
 	if target == "PAID" {
-		if err := markPayoutPaidTx(ctx, tx, p.ID, ids); err != nil {
+		if err := markPayoutPaidTx(ctx, tx, p.ID, p.State, ids); err != nil {
 			return effect{}, err
 		}
 	} else {
@@ -655,7 +711,7 @@ func (s *Service) applyPayoutEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 		if msg == "" {
 			msg = "The bank payout " + po.Status + " (" + po.FailureCode + ")."
 		}
-		if err := markPayoutFailedTx(ctx, tx, p.ID, ids, msg); err != nil {
+		if err := markPayoutFailedTx(ctx, tx, p.ID, p.State, ids, msg); err != nil {
 			return effect{}, err
 		}
 		if _, err := fileException(ctx, tx, catchUpException{Kind: exceptionPayoutFailed, StripeObjectID: po.ID,

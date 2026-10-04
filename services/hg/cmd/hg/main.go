@@ -618,7 +618,7 @@ func run() error {
 	// dead-lettered with an ops alert after eight failures (#231, #249). An
 	// authorisation event moves its order through the orders store
 	// (orders.Store.PaymentAuthorised) in that same transaction.
-	go payments.NewWebhookWorker(paymentsSvc).Run(ctx)
+	go payments.NewWebhookWorker(paymentsSvc, cfg.Env == config.EnvProduction).Run(ctx)
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
