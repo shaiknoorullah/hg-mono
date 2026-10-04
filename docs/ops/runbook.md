@@ -165,6 +165,14 @@ If only WhatsApp fails, switch to text messages: set `HG_TWILIO_VERIFY_CHANNEL=s
 
 If Twilio itself is down or the account is blocked, there is nothing to switch to: the owner contacts Twilio and support tells customers. Don't change `HG_OTP_PROVIDER` during an incident: the other path sends through Twilio's message sender, which needs its own registered number and has never run in production.
 
+## Everyone is getting "too many attempts"
+
+Login, restaurant sign-up and sign-in codes have per-IP limits ([rate limiting spec][p38]). The API reads the caller's address from Traefik's `X-Forwarded-For` only when the request comes from an address in `HG_TRUSTED_PROXIES` (default: Docker's bridge pools, `172.16.0.0/12,192.168.0.0/16`).
+
+- **Signs:** many unrelated people get 429 on sign-in or sign-up at once; the API access log shows the same client address on every request, and it is Traefik's.
+- **Cause:** Traefik's address is outside `HG_TRUSTED_PROXIES`, usually after a network change, so every caller counts in Traefik's one bucket.
+- **Fix:** find Traefik's address on the API's network (`docker network inspect hg-net`), add its range to `HG_TRUSTED_PROXIES` in the secrets store, and restart the API replicas one at a time. Never add `0.0.0.0/0`: anyone could then pick their own address and skip the limits.
+
 ## Payments are failing
 
 - **Signs:** checkout errors; `/health/ready` names Stripe; failed deliveries under the webhook endpoint in Stripe's dashboard; reconciliation exceptions on the System page.
@@ -253,6 +261,7 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [p15]: ../spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable
 [p13]: ../spec/01-platform.md#p-13--the-ledger-and-the-zero-residual-invariant
 [p17]: ../spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation
+[p38]: ../spec/01-platform.md#p-38--rate-limiting
 [dec-support]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
 [dec-sms]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
 [dec-recon]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
