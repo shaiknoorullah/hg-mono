@@ -2,7 +2,7 @@
 covers:
   - deploy/**
   - services/hg/internal/orders/runner*.go
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Incident runbook
@@ -181,6 +181,25 @@ If Twilio is fine but every customer is refused with "too many attempts" at once
 1. Open the order.
 2. Follow this runbook before changing anything: compare the order with its payment in Stripe's dashboard. If Stripe has events the order hasn't seen, run the catch-up for that window.
 3. Call on-call if the customer was overcharged or the order can't be matched.
+
+## Live updates stop or are refused
+
+Order screens get their live updates over a WebSocket to one API replica. Each replica caps how many it holds, in total and per caller, so one caller can't fill it and lock everyone else out ([websocket contract, limits](../../contracts/websocket.md#14-limits)). The caps are set in the secrets store, with these defaults:
+
+| Setting | Default | Over it |
+|---|---|---|
+| `HG_REALTIME_MAX_SOCKETS` | 2000 per replica | new sockets closed with `1013 at_capacity` |
+| `HG_REALTIME_MAX_SOCKETS_PER_ACCOUNT` | 10 per account, per replica | socket closed with `1013 connection_limit` |
+| `HG_REALTIME_MAX_SOCKETS_PER_SESSION` | 4 per session, per replica | socket closed with `1013 connection_limit` |
+| `HG_REALTIME_UPGRADES_PER_ADDRESS_PER_MINUTE` | 120 per client address (IPv6 per /64) | `429` with `Retry-After` |
+| `HG_REALTIME_TICKETS_PER_SESSION_PER_MINUTE` | 30 per session | `429` with `Retry-After` |
+
+- **What breaks:** live updates lag. An app refused with `1013` reconnects with backoff, possibly to the other replica, and catches up on every channel when it gets back in; one refused with `429` waits for `Retry-After`. Orders still move, and no update is lost.
+- **One account or device refused:** it is holding more sockets than its cap, usually an app stuck reconnecting, or many open tabs. The cap is doing its job: leave it, and find out why that app keeps reconnecting.
+- **Everyone refused with `429` at once:** the API is probably taking Traefik's address as everyone's, so all callers share one per-address budget. Fix the trusted proxy setting exactly as in [the sign-in section](#the-sign-in-code-sender-is-down).
+- **A replica is genuinely full:** raise `HG_REALTIME_MAX_SOCKETS` only if the server has memory to spare, then restart the replicas one at a time.
+
+The per-socket caps are counted in each replica's memory, so they hold even when Redis is down; the two per-minute limits are counted in Redis and let requests through while it is down.
 
 ## A suspected breach
 
