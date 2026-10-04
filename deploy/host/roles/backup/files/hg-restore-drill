@@ -191,16 +191,19 @@ else
   [ "${#picked[@]}" -gt 0 ] || fail "none of the stored objects are in the bucket snapshots"
   echo "round-tripping ${#picked[@]} objects"
 
-  secret=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')
+  # The throwaway Silo's password travels by name, never as an argument.
+  MINIO_ROOT_PASSWORD=$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')
+  RCLONE_CONFIG_D_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
+  export MINIO_ROOT_PASSWORD RCLONE_CONFIG_D_SECRET_ACCESS_KEY
   docker run -d --rm --name "$run-silo" --network none --memory 512m --memory-swap 512m \
-    -e MINIO_ROOT_USER=drill -e MINIO_ROOT_PASSWORD="$secret" \
+    -e MINIO_ROOT_USER=drill -e MINIO_ROOT_PASSWORD \
     "$SILO_IMAGE" server /data >/dev/null
   mkdir -p "$scratch/roundtrip"
   docker run --rm --network "container:$run-silo" --memory 256m --memory-swap 256m \
     -v "$objects$STAGING/silo:/in:ro" -v "$scratch/roundtrip:/out" \
     -e RCLONE_CONFIG_D_TYPE=s3 -e RCLONE_CONFIG_D_PROVIDER=Minio \
     -e RCLONE_CONFIG_D_ENDPOINT=http://127.0.0.1:9000 \
-    -e RCLONE_CONFIG_D_ACCESS_KEY_ID=drill -e RCLONE_CONFIG_D_SECRET_ACCESS_KEY="$secret" \
+    -e RCLONE_CONFIG_D_ACCESS_KEY_ID=drill -e RCLONE_CONFIG_D_SECRET_ACCESS_KEY \
     --entrypoint sh "$RCLONE_IMAGE" -c '
       i=0; until rclone lsd d: >/dev/null 2>&1; do i=$((i+1)); [ $i -gt 60 ] && exit 1; sleep 1; done
       rclone copy /in d: && rclone copy d: /out'

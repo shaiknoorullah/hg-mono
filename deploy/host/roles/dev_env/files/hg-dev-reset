@@ -19,10 +19,11 @@ docker compose run --rm createbuckets
 
 migrate_image=$(cat /srv/hg-dev/migrate-image 2>/dev/null || true)
 if [ -n "$migrate_image" ]; then
+  # Passed by name: the connection string, which holds the password, is never an argument.
+  export GOOSE_DBSTRING="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB?sslmode=disable"
   docker run --rm --network hg-dev-net --cgroup-parent hg-dev.slice \
     -v /srv/hg-dev/migrations:/migrations:ro \
-    -e GOOSE_DRIVER=postgres -e GOOSE_MIGRATION_DIR=/migrations \
-    -e GOOSE_DBSTRING="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB?sslmode=disable" \
+    -e GOOSE_DRIVER=postgres -e GOOSE_MIGRATION_DIR=/migrations -e GOOSE_DBSTRING \
     "$migrate_image" up
   docker compose cp migrations/seed postgres:/tmp/seed
   docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /tmp/seed/seed.sql

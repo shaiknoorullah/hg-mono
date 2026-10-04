@@ -66,15 +66,3 @@
     state: present
     pull: missing
   when: hg_docker_ready
-
-- name: Create the buckets, versioned, for production to replicate into
-  ansible.builtin.command: >-
-    docker run --rm --network hg-standby_default -e U -e P --entrypoint /usr/bin/sh {{ hg_images.mc }} -c
-    'mc alias set s http://silo:9000 "$U" "$P" >/dev/null &&
-     for b in {{ hg_buckets | join(" ") }}; do mc mb --ignore-existing "s/$b" && mc version enable "s/$b"; done'
-  environment:
-    U: "{{ hg_standby_silo_root_user }}"
-    P: "{{ hg_standby_silo_root_password }}"
-  when: not ansible_check_mode
-  changed_when: false
-  no_log: true

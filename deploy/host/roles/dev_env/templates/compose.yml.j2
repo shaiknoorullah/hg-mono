@@ -44,10 +44,15 @@ services:
     <<: *dev
     image: "{{ hg_images.valkey }}"
     # Disposable, like production's: no persistence.
-    command: [valkey-server, --save, "", --appendonly, "no", --maxmemory, 48mb,
-              --maxmemory-policy, allkeys-lru, --requirepass, "${REDIS_PASSWORD:?set in .env}"]
+    # The password is fed to valkey-server on stdin, never as an argument ps could show.
+    user: valkey
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        printf 'requirepass %s\n' "$$REDISCLI_AUTH" | exec valkey-server - --save "" --appendonly no
+        --maxmemory 48mb --maxmemory-policy allkeys-lru
     environment:
-      REDISCLI_AUTH: ${REDIS_PASSWORD}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?set in .env}
     networks: [{{ hg_networks.dev.name }}]
     mem_limit: 64m
     memswap_limit: 64m
@@ -100,16 +105,15 @@ services:
       - -c
       - |
         set -e
-        mc alias set dev http://silo:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
         for b in {{ hg_buckets | join(' ') }}; do mc mb --ignore-existing "dev/$$b"; mc anonymous set none "dev/$$b"; done
         mc anonymous set download dev/hg-media
         expire() { mc --json ilm rule ls "dev/$$1" 2>/dev/null | grep -Eq "\"Days\": *$$2[,}]" || mc ilm rule add --expire-days "$$2" "dev/$$1"; }
         expire hg-pod 90
         expire hg-exports 30
         expire hg-tmp 1
+    # mc reads the alias "dev" from this variable: no credential is ever an argument.
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MC_HOST_dev: http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@silo:9000
 {% if hg_dev_api_image %}
 
   api:

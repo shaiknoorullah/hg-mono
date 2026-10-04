@@ -77,7 +77,7 @@ if [ ! -f "$secrets/host.sops.yaml" ]; then
   console=$(rand 24 | tr -dc 'A-Za-z0-9' | head -c 28)
   encrypt_new "$secrets/host.sops.yaml" yaml <<YAML
 hg_admin_console_password: "$console"
-hg_admin_password_hash: '$(openssl passwd -6 "$console")'
+hg_admin_password_hash: '$(openssl passwd -6 -stdin <<<"$console")'
 hg_wg_private_keys:
   hg-prod: "$(rand 32)"
   hg-standby: "$(rand 32)"

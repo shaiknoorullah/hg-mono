@@ -27,7 +27,7 @@
 
 - name: Write the watcher's email password, readable by root only
   ansible.builtin.copy:
-    content: "GATUS_SMTP_PASSWORD={{ hg_alert_smtp_password | default('') }}\n"
+    content: "GATUS_SMTP_PASSWORD={{ hg_alert_smtp_password }}\n"
     dest: "{{ hg_offline_dir }}/watcher/gatus.env"
     owner: root
     group: root

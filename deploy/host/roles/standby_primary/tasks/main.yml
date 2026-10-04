@@ -48,6 +48,7 @@
         grep -qxF "$line" "$f" && echo unchanged || { echo "$line" >> "$f" && echo added; }
   register: hg_hba
   changed_when: "'added' in hg_hba.stdout"
+  no_log: true
   when: not ansible_check_mode
 
 - name: Reload Postgres's access rules
@@ -57,21 +58,22 @@
   when: not ansible_check_mode and hg_hba is changed
   changed_when: true
 
-- name: Replicate every bucket to the standby's Silo
+- name: Replicate every bucket to the standby's Silo (site replication)
+  # mc reads both servers' credentials from MC_HOST_* in its environment, so no secret is
+  # ever an argument that ps could show. Site replication creates the buckets on the
+  # standby, versioned, and keeps them in step; the standby must start with none.
   ansible.builtin.command: >-
-    docker run --rm --network {{ hg_networks.app.name }} -e PU -e PP -e SU -e SP --entrypoint /usr/bin/sh {{ hg_images.mc }} -c
-    'mc alias set p {{ hg_silo_endpoint }} "$PU" "$PP" >/dev/null &&
-     for b in {{ hg_buckets | join(" ") }}; do
-       mc version enable "p/$b" &&
-       { mc replicate ls "p/$b" --json | grep -q "{{ hostvars[hg_standby_host].hg_wg_address }}" ||
-         mc replicate add "p/$b" --remote-bucket "http://$SU:$SP@{{ hostvars[hg_standby_host].hg_wg_address }}:9000/$b"
-           --replicate "delete,delete-marker,existing-objects"; };
-     done'
+    docker run --rm --network {{ hg_networks.app.name }} -e MC_HOST_prod -e MC_HOST_standby
+    --entrypoint /usr/bin/sh {{ hg_images.mc }} -c
+    'mc admin replicate info prod --json | grep -q "{{ hostvars[hg_standby_host].hg_wg_address }}"
+     || mc admin replicate add prod standby'
   environment:
-    PU: "{{ hg_prod_silo_root_user }}"
-    PP: "{{ hg_prod_silo_root_password }}"
-    SU: "{{ hg_standby_silo_root_user }}"
-    SP: "{{ hg_standby_silo_root_password }}"
+    MC_HOST_prod: >-
+      {{ hg_silo_endpoint | urlsplit('scheme') }}://{{ hg_prod_silo_root_user | urlencode }}:{{
+      hg_prod_silo_root_password | urlencode }}@{{ hg_silo_endpoint | urlsplit('netloc') }}
+    MC_HOST_standby: >-
+      http://{{ hg_standby_silo_root_user | urlencode }}:{{ hg_standby_silo_root_password | urlencode }}@{{
+      hostvars[hg_standby_host].hg_wg_address }}:9000
   changed_when: false
   no_log: true
   when: not ansible_check_mode

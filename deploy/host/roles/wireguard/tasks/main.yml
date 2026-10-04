@@ -35,6 +35,8 @@
     owner: root
     group: root
     mode: "0600"
+  # Only public keys end up in the file, but they are derived from the private ones.
+  no_log: true
   notify: Apply the WireGuard config
 
 - name: Bring the tunnel up now and at every boot
@@ -61,6 +63,7 @@
     src: peer.conf.j2
     dest: "{{ playbook_dir }}/out/{{ item.name }}.conf"
     mode: "0600"
+  no_log: true
   loop: "{{ hg_wg_peers | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
