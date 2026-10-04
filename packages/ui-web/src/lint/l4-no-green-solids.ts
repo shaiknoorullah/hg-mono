@@ -153,7 +153,7 @@ export const HALAL_HEXES: ReadonlySet<string> = (() => {
 
 /**
  * Registered exceptions to RULE H-1:
- *  - `color.map.pinRider` (01-foundations.md §2.6): the rider map pin is a Halal Goes
+ *  - `color.map.pinRider` (01-foundations.md §2.6): the rider map pin is a HalalGoes
  *    rider, not a certification claim. It carries no shield.
  *  - `color.accent.*` — the forest brand chrome. The amended invariant #10
  *    (docs/decisions/palette-and-invariant-10.md) classifies the deep forest as a dark,

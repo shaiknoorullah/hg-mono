@@ -1,4 +1,11 @@
-# Halal Goes — RIDER Domain Specification
+---
+covers:
+  - apps/rider/**
+  - services/hg/internal/rider/**
+reviewed: 2026-09-28
+---
+
+# HalalGoes — RIDER Domain Specification
 
 **Status:** implementation-ready draft · **Date:** 2026-08-10
 **Target architecture:** Go modular monolith (`rider`, `dispatch`, `delivery`, `earnings`, `payouts` modules) + Postgres 16 w/ PostGIS + Redis 7 + MinIO + Traefik. Expo (React Native) rider app.
@@ -240,7 +247,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Out of scope**: OCR/auto-extraction of expiry dates, police/background checks, provincial licence-database lookups, Supabase storage (deleted).
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — background checks**: does Halal Goes require a criminal-record / driving-abstract check before a rider handles food and money? · **Proposed default**: not in V1; a `BACKGROUND_CHECK` document type and `background_check_status` column are provisioned but unused, so adding the vendor later is not a migration. · **Why**: the SOW does not mention it and it is a per-province legal question for the client's counsel.
+> **DECISION REQUIRED — background checks**: does HalalGoes require a criminal-record / driving-abstract check before a rider handles food and money? · **Proposed default**: not in V1; a `BACKGROUND_CHECK` document type and `background_check_status` column are provisioned but unused, so adding the vendor later is not a migration. · **Why**: the SOW does not mention it and it is a per-province legal question for the client's counsel.
 
 ---
 
@@ -385,7 +392,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 ### D-12 — Background location during an active delivery
 
 - **SOW trace**: *"Order Status Updates… in real-time"* · *"Distance Tracking: Track distance traveled for accurate payment calculations."*
-- **Behaviour**: On entering `ON_DELIVERY` the app starts a **background** location task (`expo-location` `startLocationUpdatesAsync` + `expo-task-manager`): Android — a **foreground service** with a persistent notification ("Delivery in progress — Halal Goes"), `foregroundService.killServiceOnDestroy=false`; iOS — `allowsBackgroundLocationUpdates=true`, `pausesUpdatesAutomatically=false`, `activityType=AutomotiveNavigation`, requires **Always** authorization. Cadence: every `5 s` or `25 m`, High accuracy. Points are queued locally (SQLite/AsyncStorage ring buffer) and flushed every 10 s in batches of ≤ 20; on network failure the buffer holds up to **500 points or 30 minutes**, whichever is smaller, and flushes on reconnect. The task stops when the assignment reaches a terminal state.
+- **Behaviour**: On entering `ON_DELIVERY` the app starts a **background** location task (`expo-location` `startLocationUpdatesAsync` + `expo-task-manager`): Android — a **foreground service** with a persistent notification ("Delivery in progress — HalalGoes"), `foregroundService.killServiceOnDestroy=false`; iOS — `allowsBackgroundLocationUpdates=true`, `pausesUpdatesAutomatically=false`, `activityType=AutomotiveNavigation`, requires **Always** authorization. Cadence: every `5 s` or `25 m`, High accuracy. Points are queued locally (SQLite/AsyncStorage ring buffer) and flushed every 10 s in batches of ≤ 20; on network failure the buffer holds up to **500 points or 30 minutes**, whichever is smaller, and flushes on reconnect. The task stops when the assignment reaches a terminal state.
 - **Data**: as D-11 with `assignment_id` set; `assignment.last_location_at`; `rider_device(id, rider_id, platform, os_version, app_version, push_token, background_permission_status, battery_optimisation_exempt, last_seen_at)`.
 - **States**: introduces `assignment.tracking_health ∈ {HEALTHY, DEGRADED, LOST}` — `HEALTHY` < 60 s since last point, `DEGRADED` 60–300 s, `LOST` > 300 s.
 - **Rules**:
@@ -715,6 +722,8 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Version**: V1 · **Size**: M
 
 > **DECISION REQUIRED — maps/routing provider**: Google Maps Platform (Directions + Distance Matrix + Roads) or an OSM-based stack (Mapbox / self-hosted Valhalla + OSRM)? · **Proposed default**: Google Directions/Matrix server-side for launch, behind a `RoutingProvider` interface so a swap is one adapter. · **Why**: the client's SOW names Google and the team already has keys; the interface keeps the per-request cost negotiable later.
+
+> **2026-10-01:** Google Maps Platform and Mapbox are SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) now rules out. Self-hosted Valhalla or OSRM fit it. The choice is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 
 ---
 

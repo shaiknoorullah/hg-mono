@@ -2,13 +2,13 @@
 
 _Gate B input. Built Sep 2026. **Read the sample caveat at the bottom before using this to
 justify anything.** These are category objections from published journalism, not verbatims from
-Halal Goes customers — we have none, because we have no customers yet._
+HalalGoes customers — we have none, because we have no customers yet._
 
 ---
 
 ## Where this came from, and what it is not
 
-Halal Goes is pre-launch: no reviews, no support tickets, no lost-deal log, no ad comments, no
+HalalGoes is pre-launch: no reviews, no support tickets, no lost-deal log, no ad comments, no
 waitlist. An objection map invented from our own page would be our assumptions with a table
 around them, so this is not that.
 
@@ -90,7 +90,7 @@ Priority order for the sources still missing, per the skill's own ranking:
    than twice are objections in the prospect's own words. Fastest source, already exists.
 2. **The last five conversations with restaurant owners**, written in their phrasing not ours.
    The only route to restaurant-side objections, which are wholly unevidenced.
-3. **Comments and DMs** on any post about Halal Goes.
+3. **Comments and DMs** on any post about HalalGoes.
 4. ~~Competitor/category reviews~~ — done, this document.
 5. **A one-question message to ten people who signed up and never ordered** — only available
    post-launch.
@@ -98,8 +98,8 @@ Priority order for the sources still missing, per the skill's own ranking:
 ## Sample caveat
 
 **Nine quotes and five findings, from one investigation of ten locations, published October
-2024.** That is a very small sample and it is about the restaurant category, not about Halal
-Goes, not about food delivery, and not about our waitlist. Frequency counts are meaningless at
+2024.** That is a very small sample and it is about the restaurant category, not about
+HalalGoes, not about food delivery, and not about our waitlist. Frequency counts are meaningless at
 this size and none are claimed. This supports *direction* — what register to write in, which
 fears are real, that the seven checks correspond to documented failures. It does not support any
 claim about how our prospects will behave, and it must not be cited as though it did.

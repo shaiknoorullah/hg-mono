@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Halal Goes \u2014 Rider",
+    "name": "HalalGoes \u2014 Rider",
     "slug": "hg-rider",
     "version": "0.0.0",
     "orientation": "portrait",
@@ -26,9 +26,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Halal Goes needs the camera to scan the handoff QR code at pickup and drop-off.",
-        "NSLocationWhenInUseUsageDescription": "Halal Goes uses your location to route you to pickups and drop-offs.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Halal Goes uses your location in the background so dispatch can find you while you're online."
+        "NSCameraUsageDescription": "HalalGoes needs the camera to scan the handoff QR code at pickup and drop-off.",
+        "NSLocationWhenInUseUsageDescription": "HalalGoes uses your location to route you to pickups and drop-offs.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "HalalGoes uses your location in the background so dispatch can find you while you're online."
       }
     },
     "android": {
@@ -52,13 +52,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Halal Goes needs the camera to scan the handoff QR code at pickup and drop-off."
+          "cameraPermission": "HalalGoes needs the camera to scan the handoff QR code at pickup and drop-off."
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Halal Goes uses your location so dispatch can route you and find you while you're online."
+          "locationAlwaysAndWhenInUsePermission": "HalalGoes uses your location so dispatch can route you and find you while you're online."
         }
       ],
       [

@@ -1,5 +1,5 @@
 /**
- * `@hg/api-client` — the only way a Halal Goes frontend talks to the API.
+ * `@hg/api-client` — the only way a HalalGoes frontend talks to the API.
  *
  * Nothing in this package is hand-written except `client.ts` and `money.ts`.
  * `src/generated/**` is produced by `pnpm generate` from `contracts/openapi.yaml`

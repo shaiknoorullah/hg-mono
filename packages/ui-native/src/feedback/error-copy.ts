@@ -26,7 +26,7 @@ export interface ErrorCopy {
 export const OFFLINE_COPY: ErrorCopy = {
   title: 'You are offline',
   description:
-    'We could not reach Halal Goes. Check your connection — anything you have entered is kept.',
+    'We could not reach HalalGoes. Check your connection — anything you have entered is kept.',
   retryable: true,
 };
 

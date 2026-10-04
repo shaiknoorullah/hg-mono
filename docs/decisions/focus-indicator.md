@@ -1,3 +1,14 @@
+---
+covers:
+  - packages/ui-web/src/styles/globals.css
+  - packages/ui-web/src/primitives/Input.tsx
+  - packages/ui-web/src/primitives/Select.tsx
+  - packages/ui-web/src/primitives/Textarea.tsx
+  - packages/ui-native/src/primitives/Input.tsx
+  - packages/ui-native/src/primitives/Select.tsx
+reviewed: 2026-09-28
+---
+
 # Decision: one focus indicator, in the theme's colour
 
 _Sep 2026, owner-confirmed after reviewing a live prototype in the restaurant app. Amends `docs/design/04-accessibility.md` §4.1 and `02-components.md` rule 3 and §3 `Input`._

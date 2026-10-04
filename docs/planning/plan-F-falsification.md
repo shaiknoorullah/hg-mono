@@ -8,7 +8,7 @@
 
 Plan A's diagnosis: *unverified work accumulates faster than anyone catches it.* Its cure: machine checks — contracts, coverage gates, drift detection, adversarial review as a step in the pipeline.
 
-Plan F's diagnosis is narrower and, I claim, closer to the actual failure mode we can observe in the existing Halal Goes codebase: **every one of the real bugs passed every machine check that existed.**
+Plan F's diagnosis is narrower and, I claim, closer to the actual failure mode we can observe in the existing HalalGoes codebase: **every one of the real bugs passed every machine check that existed.**
 
 Look at the evidence in `fleet/hg-api-core.md`:
 
@@ -463,7 +463,7 @@ Same philosophy, applied to interfaces: **an interface you cannot explain in pla
 
 ---
 
-## 8. Migration from the existing Halal Goes system
+## 8. Migration from the existing HalalGoes system
 
 Strangler fig, framed as falsification of one over-arching claim: **"hg-mono behaves like the existing system, except where we deliberately chose otherwise, and we have written down every exception."**
 

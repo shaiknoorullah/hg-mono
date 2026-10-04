@@ -58,7 +58,7 @@ func TestHalalDisplayStatesMatchContractEnum(t *testing.T) {
 
 func TestCertificationDisclaimerIsFixedCopy(t *testing.T) {
 	got := certificationDisclaimer("14 March 2027")
-	want := "Certification verified by Halal Goes on 14 March 2027. Halal Goes does not itself certify food."
+	want := "Certification verified by HalalGoes on 14 March 2027. HalalGoes does not itself certify food."
 	if got != want {
 		t.Errorf("disclaimer = %q, want %q", got, want)
 	}

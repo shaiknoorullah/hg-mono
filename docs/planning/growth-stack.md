@@ -1,6 +1,6 @@
 # Marketing-intelligence plane (v2) — self-hosted, best-of-breed
 
-_Halal Goes. **Scope: v2, plan-and-document now, build later.** This plane is **user + platform
+_HalalGoes. **Scope: v2, plan-and-document now, build later.** This plane is **user + platform
 data for marketing intelligence** — Martech, Adtech, CDP, engagement, flags/experiments. It is
 **not** the transactional OLTP plane (orders/ledger) and **not** the technical telemetry plane
 (see `telemetry-stack.md`). Researched Aug 2026._
@@ -38,6 +38,9 @@ data for marketing intelligence** — Martech, Adtech, CDP, engagement, flags/ex
 | **In-app tours / coach-marks** | *build in-app* (RN libs) driven by **GrowthBook** targeting + **Dittofeed** onboarding | No separate tour platform — avoids overlap with flags + engagement. |
 
 ## Adtech (the ad-ROI layer you called out)
+
+> **2026-10-01:** Branch is SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 
 Goal: attribute users and revenue across paid channels (Google, Meta, TikTok, etc.) and measure ROAS.
 - **Install / deep-link attribution:** OpenAttribution (OSS, young — watch-item) or Branch (free tier) for deferred deep links + SKAdNetwork/Privacy-Sandbox handling. Deep links also power referrals + shared restaurant links.

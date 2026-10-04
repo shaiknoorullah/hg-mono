@@ -1,6 +1,6 @@
 # Technical telemetry plane — OpenTelemetry + ClickStack
 
-_Halal Goes. **Scope: technical/operational telemetry** — metrics, logs, traces (+ session replay)
+_HalalGoes. **Scope: technical/operational telemetry** — metrics, logs, traces (+ session replay)
 for running the system. Distinct from the **marketing-intelligence plane**
 (`growth-stack.md`) and from the **OLTP source of truth**. This plane can and should land
 **earlier than the v2 marketing plane** — it's launch/ops infrastructure, not growth._

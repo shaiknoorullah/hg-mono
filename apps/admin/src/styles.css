@@ -1,7 +1,7 @@
 /*
  * The admin console's only stylesheet.
  *
- * Like the gallery, this app never names a colour. Every value below is a design-system
+ * This app never names a colour. Every value below is a design-system
  * custom property that `@hg/ui-web/styles.css` wrote out of the tokens. The admin theme
  * and comfortable density are applied as attributes on a wrapper in App.tsx.
  */
