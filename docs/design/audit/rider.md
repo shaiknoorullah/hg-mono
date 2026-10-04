@@ -1,4 +1,31 @@
+---
+covers: []
+reviewed: 2026-10-04
+---
+
 # Rider app — design audit and redesign brief
+
+> **Historical.** This audit predates the September 2026 redesign: it describes the rider app as
+> committed on 27 September. Where it disagrees with the [decision log](../../decisions/README.md)
+> or the owner-approved [Claude Design canvases](../design-surface.md#1-where-the-screens-are),
+> they win. See [reading the audits](../redesign-constitution.md#7-reading-the-pre-redesign-audits).
+>
+> **Recommendations here that the owner decided differently:**
+>
+> - The redesigned seal scan and "No seal on this package" control → **no tamper seals at
+>   launch**: the rider types a pickup code the kitchen reads out, and delivery proof stays the
+>   code plus a photo ([tamper seals](../../decisions/README.md#halal-and-trust),
+>   [pickup](../../decisions/README.md#orders-and-delivery)).
+> - Shift, History and Profile tabs → **Home, Earnings (with a Deliveries view), Account**
+>   ([rider navigation](../../decisions/README.md#rider-app)).
+> - Treating dark as the rider's default → **the theme follows the phone's setting**, with dark-mode map pin
+>   tokens ([dark theme](../../decisions/README.md#customer-app),
+>   [map pins](../../decisions/README.md#rider-app)).
+> - A photo with attestation only after five failed codes → **when the customer chose "leave at
+>   door", a photo and a statement straight away**, and the customer's app shows the delivery code
+>   ([orders and delivery](../../decisions/README.md#orders-and-delivery)).
+> - Composing the offer countdown inside the app → **Countdown is a design-system composite**,
+>   designed in Claude Design and built from library parts.
 
 **Status:** audit · **Date:** 2026-09-27 · **Scope:** `apps/rider/` as committed
 **Auditor's remit:** design only. No code was changed.

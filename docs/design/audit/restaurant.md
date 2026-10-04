@@ -1,4 +1,47 @@
+---
+covers: []
+reviewed: 2026-10-04
+---
+
 # Design audit — `apps/restaurant` (restaurant operator web)
+
+> **Historical.** Written on 27 September 2026 about the restaurant web app as it was before its
+> redesign. Superseded by the [decision log](../../decisions/README.md) and the [Claude Design
+> canvases](../design-surface.md#1-where-the-screens-are) the owner approved;
+> [reading the audits](../redesign-constitution.md#7-reading-the-pre-redesign-audits) explains
+> what still holds.
+>
+> **Recommendations here that the owner decided differently:**
+>
+> - The three-column order board → **no Kanban board**: a live strip directly under the app bar,
+>   on every page, lists every order awaiting acceptance with its countdown, and order detail opens
+>   in side-by-side panes ([desktop working pages](../../decisions/README.md#design-system-and-desktop-layout),
+>   [strip position](../../decisions/README.md#restaurant-1)).
+> - One breakpoint with phone and portrait layouts below it → **desktop and landscape tablets from
+>   1024×768 only**, on pages that fit the screen and never scroll
+>   ([devices](../../decisions/README.md#restaurant-1)).
+> - Reject and menu editing in dialogs and side sheets → **no overlay sheets or modals for working
+>   tasks**; detail opens in in-page panels
+>   ([desktop working pages](../../decisions/README.md#design-system-and-desktop-layout)).
+> - Restoring the dark scheme → **light only**
+>   ([dark theme](../../decisions/README.md#customer-app)).
+> - Staff moved behind Settings → **owner-only accounts at launch**, the Staff screen hidden, one
+>   restaurant per login ([staff accounts](../../decisions/README.md#restaurant)).
+> - Drafts with "Submit for approval" → **no drafts**: restaurants edit their own menu from
+>   launch and every save goes straight to review ([menu drafts](../../decisions/README.md#restaurant),
+>   [menu editing](../../decisions/README.md#launch-scope-and-contract)).
+> - Seal binding before "Mark ready" → **no tamper seals at launch**; the kitchen reads a pickup
+>   code to the rider ([pickup](../../decisions/README.md#orders-and-delivery)).
+> - A local Countdown in the app → **Countdown is a design-system composite**; apps define no
+>   components.
+> - 24-hour times such as "This clears at 11:00" → **12-hour times everywhere**
+>   ([time format](../../decisions/README.md#every-app)).
+>
+> Its open questions are settled: claim-bearing menu fields never auto-approve
+> ([menu approval](../../decisions/README.md#settled--reconciliations)), document review is quoted
+> as "within 3 business days" ([restaurant](../../decisions/README.md#restaurant)), and locations
+> come from a Mapbox map search through our API
+> ([map address search](../../decisions/README.md#launch-scope-and-contract)).
 
 **Auditor:** product design review · **Date:** 2026-09-27 · **Scope:** every file under
 `apps/restaurant/src/` (9 routes, 4 onboarding steps, Shell, 8 components, 5 lib modules)
@@ -1222,7 +1265,7 @@ countdown and both buttons.
   (`03-patterns.md:334`). Remove `window.alert()`.
 - Replace raw Radix `Tabs` with `@hg/ui-web`'s `Tabs`.
 
-**Visible without scrolling:** the halal guarantee line, search, the category list, and the first
+**Visible without scrolling:** the halal status line, search, the category list, and the first
 four item rows with their availability switches and review states.
 
 ### 4.4 `/hours`

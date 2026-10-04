@@ -1,6 +1,32 @@
+---
+covers: []
+reviewed: 2026-10-04
+---
+
 # Admin console — design audit and redesign brief
 
-_Halal Goes admin web (`apps/admin`). Audit performed Sep 2026 against `docs/design/*`,
+> **Historical.** An audit of the admin web app before the September 2026 redesign, written on
+> 27 September. Both the [Claude Design canvases](../design-surface.md#1-where-the-screens-are)
+> approved by the owner and the [decision log](../../decisions/README.md) supersede it, as
+> [reading the audits](../redesign-constitution.md#7-reading-the-pre-redesign-audits) explains.
+>
+> **Recommendations here that the owner decided differently:**
+>
+> - Refunds, cancellations, document review and row detail in dialogs and side sheets → **no
+>   overlay sheets or modals for working tasks**: queues, verification, orders and refunds are
+>   side-by-side in-page panes, and an order opens in the three-pane workspace (list, order,
+>   timeline) ([desktop working pages](../../decisions/README.md#design-system-and-desktop-layout),
+>   [opening an order](../../decisions/README.md#admin-1)).
+> - The design system's `DataTable` instead of the LyteNyte grid → **every data table uses
+>   LyteNyte Grid** with rich cell components
+>   ([#141](https://github.com/shaiknoorullah/hg-mono/issues/141),
+>   [the table decision](../research/component-libraries.md#data-tables--decided-lytenyte-grid)).
+> - A seal and chain-of-custody block on order detail → **no tamper seals at launch**
+>   ([tamper seals](../../decisions/README.md#halal-and-trust)).
+> - Checking the console in light and dark → **light only for release 1.0**
+>   ([admin dark theme](../../decisions/README.md#admin-1)).
+
+_HalalGoes admin web (`apps/admin`). Audit performed Sep 2026 against `docs/design/*`,
 `docs/spec/05-admin.md`, `contracts/openapi.yaml` and every file under `apps/admin/src`.
 No code was changed._
 
@@ -912,7 +938,7 @@ has a gap a typo fits through.
 
 **What this console is for.** Nine of these ten screens are ordinary operations software and
 should be boring, dense and fast. One is not. The halal verification screen is the only place
-in the entire product where a human being decides whether Halal Goes will vouch, publicly and
+in the entire product where a human being decides whether HalalGoes will vouch, publicly and
 in a religious register, for food it has not seen. Everything else — orders, refunds, riders,
 staff — is furniture around that act. The current app treats all ten as the same kind of
 thing: the same `.adm-stack` column, the same 72rem measure, the same card rhythm, the same

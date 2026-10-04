@@ -1,4 +1,41 @@
+---
+covers: []
+reviewed: 2026-10-04
+---
+
 # Customer app — design audit and redesign brief
+
+> **Historical: the customer app as audited on 27 September 2026, before the redesign.** The
+> owner's approved [Claude Design canvases](../design-surface.md#1-where-the-screens-are) and the
+> [decision log](../../decisions/README.md) supersede this audit;
+> [reading the audits](../redesign-constitution.md#7-reading-the-pre-redesign-audits) says what
+> still holds.
+>
+> **Recommendations here that the owner decided differently:**
+>
+> - Browsing before sign-in → **sign in first**
+>   ([browsing before sign-in](../../decisions/README.md#customer-app)).
+> - Five tabs, with Favourites → **Home, Search, Orders, Account**, and the alerts bell hidden
+>   ([bottom navigation](../../decisions/README.md#customer-app)).
+> - The certification panel above the menu → **a compact badge and a "View certification" button**
+>   that opens the details in a bottom sheet
+>   ([certificate on the restaurant page](../../decisions/README.md#halal-and-trust)).
+> - A standing "every restaurant is halal certified" strip → **approved wording that names the
+>   certifier and the check date**, never a blanket claim
+>   ([trust and halal wording](../../decisions/README.md#halal-and-trust)).
+> - A countdown on tracking for the restaurant's 180-second reply → **a neutral progress bar and
+>   the time**, "Restaurant replies by 7:42 pm"
+>   ([reply window](../../decisions/README.md#customer-app)).
+> - A feed led by "Order again", mostly carousels → **vertical sections of compact cards plus two
+>   rows**, "Open now, closest first" and one such as "Quickest delivery"; "Order again" waits for
+>   the sectioned home feed ([Discover home](../../decisions/README.md#customer-app),
+>   [horizontal rows](../../decisions/README.md#customer-app-1)).
+> - The tamper report card → **no tamper seals at launch**; seal screens and copy come out
+>   ([tamper seals](../../decisions/README.md#halal-and-trust)).
+> - Dark mode as an open question → **the theme follows the phone's setting**
+>   ([dark theme](../../decisions/README.md#customer-app)).
+> - 24-hour times such as "Opens 17:00" → **12-hour times everywhere**
+>   ([time format](../../decisions/README.md#every-app)).
 
 **Surface:** `apps/customer` (Expo / React Native) · **Register:** `consumer` theme, `comfortable` density
 **Date:** 2026-09-27 · **Status:** audit + brief. Step 1 and 2 of `redesign-constitution.md` §8. No code changed.
@@ -69,7 +106,7 @@ Each entry: **what it is for → what the customer is trying to do → what it r
 ### 1.0 `LoginGate` — `App.tsx:40–206`
 
 **For.** Phone-OTP sign-in (C-01/C-02).
-**The customer is trying to.** Get in. This is the first thing anyone ever sees of Halal Goes.
+**The customer is trying to.** Get in. This is the first thing anyone ever sees of HalalGoes.
 **Renders today.** A centred white page, hand-built from bare `View` / `Text` / `TextInput` / `Pressable`, with its own `StyleSheet` (`App.tsx:152–206`). It mounts **outside** `ThemeProvider` (`App.tsx:240–247` vs `App.tsx:251`), so not one token reaches it.
 
 **Problems.**
@@ -100,7 +137,7 @@ This screen is the origin of *"the mobile app looks really really bad as it has 
 2. **Roughly two cards fit on a phone.** A 390pt-wide screen with 16 gutters gives a 358pt card; the 16:9 hero is 201 tall, and the body (seal 24 + name 24 + cuisines 19 + meta 18 + `cardPadding` 32 + gaps) adds ~120. Call it 320pt per card. Usable height after the AppBar (~100 with inset) and the nav (~128) is ~615. **1.9 cards.** Discovery is a magazine you scroll two posters at a time — the opposite of `01-foundations.md` §1.3: *"Dense, information-rich cards over generous whitespace: a food-delivery home is a list of options, not a magazine."*
 3. **No search field.** `03-patterns.md` §1.1 requires a *"persistent `Input variant="search"` pinned below the AppBar, always visible, never a magnifier that expands"*, and `01-foundations.md` §1.3 lists it as an adopted HungerStation pattern. `GET /v1/search` exists (`openapi.yaml:1399`). There is no search anywhere in this app, and no `search` route in `stack.tsx:17–28`.
 4. **No address selector.** §1.1 requires `AppBar variant="large"` carrying the address as its title — location-first, because the catalogue is meaningless without an address. The app uses `variant="default"` with a static subtitle. The customer cannot see, or change, the address every distance, ETA and fee on the screen is computed from. They must go Profile → Saved addresses → Edit.
-5. **The standing certification header is missing.** C-11 and §1.1 require one strip on `halal.certified.tint` with the seal glyph and the fixed line **"Every restaurant on Halal Goes is halal certified."** — stated once, at the top. `grep` across `apps/customer/` finds no such string. This is the sentence that explains why there is no halal filter. Without it the product's single claim is carried entirely by a badge repeated on every card, which is proof without a premise.
+5. **The standing certification header is missing.** C-11 and §1.1 require one strip on `halal.certified.tint` with the seal glyph and the fixed line **"Every restaurant on HalalGoes is halal certified."** — stated once, at the top. `grep` across `apps/customer/` finds no such string. This is the sentence that explains why there is no halal filter. Without it the product's single claim is carried entirely by a badge repeated on every card, which is proof without a premise.
 6. **Every hero is an empty grey plate.** `tools/verify/customer-discovery-tabbar.png` (commit `824ba56`) shows two cards, each more than half blank `border.decorative` rectangle, because `hero_image_url` does not resolve. The component behaves correctly (`RestaurantCard.tsx:106–116` — *"Every image sits on a `neutral.200` plate so a failed load is a visible empty plate"*), but the *screen* has chosen a layout in which a missing image costs 200 vertical points twice per viewport. `variant="compact"` (96pt thumb) exists for exactly this.
 7. **Loading shows a spinner and skeletons at once.** `DiscoveryScreen.tsx:118–126` renders `Spinner label="Loading restaurants"` *above* three `RestaurantCardSkeleton`s. `03-patterns.md` §0 rule 1: skeletons match the real layout; a spinner is permitted only where the geometry is unknown. Here it is known — that is what the skeletons are. Two loading signals stacked reads as a stall.
 8. **One empty state where the spec requires two.** `DiscoveryScreen.tsx:137–147` renders one "No restaurants nearby". §1.1 and `03-patterns.md` §0 rule 3 require *no address set* (feed not fetched at all; "Set your delivery address to see restaurants near you" + "Add address") to be a different screen from *address set, nothing in range* ("No restaurants deliver to {address} yet" + "Try a different address"). Conflating them is named a defect in the patterns doc. The customer cannot tell whether the problem is coverage or their own address.
@@ -449,7 +486,7 @@ That reframes the whole surface. A generic delivery app's home screen sells appe
 An undifferentiated list makes the customer do the sorting. Sections do the sorting for them: *Order again* is the fastest path for a returning customer and should be first; *Near you* is the default answer; *Trending* is the answer when they have no answer. The contract already returns exactly these, in order, with empty ones omitted. Nothing needs inventing — it needs calling.
 
 **2. Prove it once, then stop apologising.**
-The standing header states the guarantee once — *"Every restaurant on Halal Goes is halal certified."* — and the seal on each card is its per-listing evidence. That relationship is why there is no halal filter (D5: *"a filter implies non-certified listings exist"*). And the proof must be **followable**: the certifying body's name in the panel, the certificate one tap behind it. A badge you cannot look behind is a logo.
+The standing header states the guarantee once — *"Every restaurant on HalalGoes is halal certified."* — and the seal on each card is its per-listing evidence. That relationship is why there is no halal filter (D5: *"a filter implies non-certified listings exist"*). And the proof must be **followable**: the certifying body's name in the panel, the certificate one tap behind it. A badge you cannot look behind is a logo.
 
 **3. Design for one thumb, and put the decision in the bottom half.**
 A 6.1" phone held one-handed reaches comfortably to about 60% of the screen height. Today the primary action on four screens is a hug-left pill in a footer; on tracking it is a secondary button below a receipt. Every screen should have exactly one full-width primary action in the sticky footer, sized to `target.min` 44 minimum, and the information needed to press it should be above it without scrolling.
@@ -520,7 +557,7 @@ AppBar variant="large"
 Input variant="search", size="md", pinned, always visible        (§1.1, C-10)
 Standing certification strip                                      (C-11, §1.1)
   View on color.halal.certified.tint + shield glyph + caption:
-  "Every restaurant on Halal Goes is halal certified."
+  "Every restaurant on HalalGoes is halal certified."
 Banner variant="info" — active-order resume, when one exists      (C-26 R3)
   title = ORDER_STATE_LABELS[state], description = ETA,
   action = { label: 'Track order', onPress: → tracking }
@@ -599,7 +636,7 @@ Sticky footer: Button primary fullWidth "View cart · N · {Price}"
 
 **Loading.** Hero skeleton at 16:9 → **certification panel skeleton reserving the seal at `lg` and three metadata lines, never a spinner in the seal's slot** → availability skeleton → tab-strip skeleton → 4 `MenuItemCardSkeleton`.
 
-**Error.** 404 (an `EXPIRED`/`UNVERIFIED` restaurant) → full-page "This restaurant isn't available on Halal Goes right now." **Never** "certification expired" on a customer surface. Certification endpoint fails but detail succeeds → panel shows `ErrorState variant="inline"` + Retry and **draws no seal**; the seal is never rendered from the list payload or from cache.
+**Error.** 404 (an `EXPIRED`/`UNVERIFIED` restaurant) → full-page "This restaurant isn't available on HalalGoes right now." **Never** "certification expired" on a customer surface. Certification endpoint fails but detail succeeds → panel shows `ErrorState variant="inline"` + Retry and **draws no seal**; the seal is never rendered from the list payload or from cache.
 
 ---
 
