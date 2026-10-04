@@ -103,7 +103,7 @@ edit a menu while orders are in flight" — see R-15.
 |---|---|---|---|---|
 | `PENDING` | system on signup | no | n/a | yes |
 | `ACTIVE` | admin approval + payout account ready | yes (subject to hours/toggle) | continue | yes |
-| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours (menu: [undecided](https://github.com/shaiknoorullah/hg-mono/issues/205)) |
+| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours; the menu is locked ([a suspended restaurant's menu](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | `REJECTED` | admin at onboarding review | no | n/a | yes, to re-submit documents |
 | `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no |
 | `CLOSED` | restaurant self-service offboarding | no | continue to completion | yes for 90 days |
@@ -2296,8 +2296,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   4. A suspended restaurant retains full read access, its order history, its ledger, and the ability
      to open and reply to tickets (specifically to appeal, R-33 category
      `ACCOUNT_SUSPENSION_APPEAL`). It cannot accept orders. It may still edit its opening hours,
-     which become read-only once it is deactivated ([opening hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01));
-     whether it may edit its menu is undecided ([#205](https://github.com/shaiknoorullah/hg-mono/issues/205)).
+     which become read-only once it is deactivated ([opening hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+     It cannot change its menu until the suspension is lifted ([a suspended restaurant's menu](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   5. Funds accrued before suspension are preserved; payouts pause (R-32) and resume on reinstatement.
      Offboarding (`CLOSED`) triggers a final payout after the last order's hold period elapses.
   6. Reinstatement from an automatic suspension is automatic when the cause clears **and** no manual
