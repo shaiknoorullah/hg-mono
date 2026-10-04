@@ -415,21 +415,41 @@ type offerPickupWire struct {
 	Lng            float64 `json:"lng"`
 }
 
-// offerDropoffWire is the drop-off area only: no street number, no unit.
+// offerDropoffWire is the drop-off's approximate area only: no street number,
+// no unit, and a point about a kilometre across, never the address's own.
 type offerDropoffWire struct {
 	Area string  `json:"area"`
 	Lat  float64 `json:"lat"`
 	Lng  float64 `json:"lng"`
 }
 
+// areaDegrees rounds a coordinate to two decimals: a cell about 1.1 km
+// north–south and 0.8 km east–west at Ontario's latitudes. That is a
+// neighbourhood, enough for a rider to judge the trip's distance and
+// direction, and many streets wide, so it does not point at a home.
+func areaDegrees(f float64) float64 { return math.Round(f*100) / 100 }
+
+// ApproximateArea is the drop-off point a rider is shown before accepting an
+// offer: the delivery address's coordinates rounded to about a kilometre. The
+// exact point identifies the customer's home, and the owner decided a rider
+// sees only the approximate area until accepting (the customer's address on a
+// rider's offer,
+// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01).
+// dispatch.offer's producer stores only this point and its serializer rounds
+// again, so neither the outbox nor the wire ever holds the exact one.
+func ApproximateArea(lat, lng float64) (float64, float64) {
+	return areaDegrees(lat), areaDegrees(lng)
+}
+
 func dispatchOfferPayload(s DispatchOffer) dispatchOfferWire {
+	lat, lng := ApproximateArea(s.Dropoff.Lat, s.Dropoff.Lng)
 	return dispatchOfferWire{
 		OrderID: s.OrderID, OfferID: s.OfferID, ExpiresAt: s.ExpiresAt, ServerTime: s.ServerTime,
 		Pickup: offerPickupWire{
 			RestaurantName: s.Pickup.RestaurantName, AddressShort: s.Pickup.AddressShort,
 			Lat: s.Pickup.Lat, Lng: s.Pickup.Lng,
 		},
-		Dropoff:   offerDropoffWire{Area: s.Dropoff.Area, Lat: s.Dropoff.Lat, Lng: s.Dropoff.Lng},
+		Dropoff:   offerDropoffWire{Area: s.Dropoff.Area, Lat: lat, Lng: lng},
 		DistanceM: s.DistanceM, EstDurationS: s.EstDurationS,
 		EarningsCents: s.EarningsCents, TipCentsEstimate: s.TipCentsEstimate, ItemsCount: s.ItemsCount,
 	}

@@ -433,3 +433,61 @@ func TestViewerNamesAreDistinct(t *testing.T) {
 		t.Errorf("Viewer(99).String() = %q", got)
 	}
 }
+
+// TestDispatchOfferCarriesOnlyTheDropoffArea: dispatch.offer goes to every
+// rider in a wave, and most of them never accept, so no role's copy may carry
+// the delivery address's own coordinates — only the approximate area, a point
+// rounded to about a kilometre (the owner's decision on the customer's address
+// on a rider's offer,
+// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01).
+// Each role that receives it gets exactly the contract's fields; the
+// restaurant's point is a business address and stays exact.
+func TestDispatchOfferCarriesOnlyTheDropoffArea(t *testing.T) {
+	src := json.RawMessage(`{"order_id":"o","offer_id":"f",` +
+		`"expires_at":"2026-10-05T12:00:30.000Z","server_time":"2026-10-05T12:00:00.000Z",` +
+		`"pickup":{"restaurant_name":"Karachi Grill","address_short":"1 King St W, Toronto","lat":43.6487213,"lng":-79.3786402},` +
+		`"dropoff":{"area":"Toronto","lat":43.6532157,"lng":-79.3831846},` +
+		`"distance_m":900,"est_duration_s":180,"earnings_cents":649,"tip_cents_estimate":200,"items_count":2}`)
+	receives := map[Viewer]bool{ViewRiderSelf: true, ViewSupport: true}
+	fields := map[string][]string{
+		"": {"distance_m", "dropoff", "earnings_cents", "est_duration_s", "expires_at", "items_count",
+			"offer_id", "order_id", "pickup", "server_time", "tip_cents_estimate"},
+		"dropoff": {"area", "lat", "lng"},
+		"pickup":  {"address_short", "lat", "lng", "restaurant_name"},
+	}
+	keys := func(m map[string]any) []string {
+		out := make([]string, 0, len(m))
+		for k := range m {
+			out = append(out, k)
+		}
+		sort.Strings(out)
+		return out
+	}
+	for _, v := range Viewers() {
+		out, ok := Project("dispatch.offer", v, nil, src)
+		if ok != receives[v] {
+			t.Errorf("%s: dispatch.offer projected %v, want %v", v, ok, receives[v])
+			continue
+		}
+		if !ok {
+			continue
+		}
+		var got map[string]any
+		if err := json.Unmarshal(out, &got); err != nil {
+			t.Fatalf("%s: %v", v, err)
+		}
+		dropoff, _ := got["dropoff"].(map[string]any)
+		pickup, _ := got["pickup"].(map[string]any)
+		for path, m := range map[string]map[string]any{"": got, "dropoff": dropoff, "pickup": pickup} {
+			if !slices.Equal(keys(m), fields[path]) {
+				t.Errorf("%s: dispatch.offer %q fields = %v, want exactly %v", v, path, keys(m), fields[path])
+			}
+		}
+		if dropoff["lat"] != 43.65 || dropoff["lng"] != -79.38 || dropoff["area"] != "Toronto" {
+			t.Errorf("%s: drop-off = %v, want the area rounded to about a kilometre (43.65, -79.38), never the address's own point", v, dropoff)
+		}
+		if pickup["lat"] != 43.6487213 || pickup["lng"] != -79.3786402 {
+			t.Errorf("%s: pickup = %v, want the restaurant's exact point", v, pickup)
+		}
+	}
+}

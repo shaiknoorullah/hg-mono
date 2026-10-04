@@ -443,7 +443,12 @@ type OfferPickup struct {
 	Lng            float64 `json:"lng"`
 }
 
-// OfferDropoff is the drop-off area only: no street number, no unit.
+// OfferDropoff is the drop-off's approximate area, for a rider who has not
+// accepted: the area's name and a point rounded to about a kilometre
+// (ApproximateArea). Never the address's own coordinates, street number or
+// unit: the full address comes only once the rider accepts (the owner's
+// decision on the customer's address on a rider's offer,
+// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01).
 type OfferDropoff struct {
 	Area string  `json:"area"`
 	Lat  float64 `json:"lat"`

@@ -26,9 +26,9 @@ import (
 //     to NO_RIDER_FOUND, and admin.dispatch_failure on admin:ops, once, by the
 //     call that ends the search (MarkNoRiderFound);
 //   - delivery: dispatch.state_changed to COMPLETED;
-//   - a position report: rider.location to the order's customer and
-//     restaurant (the realtime catalogue coarsens it per role), at most every
-//     5 seconds per order;
+//   - a position report: rider.location to the customer and restaurant of each
+//     order the rider is still carrying out (the realtime catalogue coarsens
+//     it per role), at most every 5 seconds per order;
 //   - availability changes: rider.availability_changed on rider:{id}.
 //
 // The dispatch row's state changes only at those points today: it is not moved
@@ -47,16 +47,22 @@ func emitDispatchState(ctx context.Context, tx pgx.Tx, orderID, from, to string,
 }
 
 // emitOffers writes dispatch.offer for each new offer, to its rider only. The
-// payload is the rider's pre-accept view, read the way the rider's REST
-// getCurrentOffer reads it (store_reads.go): the restaurant, the drop-off area
-// and the money the rider earns — never the customer's address, phone or the
-// order's prices.
+// payload is the rider's pre-accept view: the restaurant, the drop-off's
+// approximate area and the money the rider earns — never the customer's
+// address, the address's own coordinates, the phone or the order's prices.
+// Every rider in a wave gets one, and most never accept, so the drop-off point
+// is rounded to about a kilometre (realtime.ApproximateArea) before it is
+// stored: the outbox row, the 7-day replay on rider:{id} and the wire all hold
+// the area, never the customer's home (the owner's decision on the customer's
+// address on a rider's offer,
+// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01).
 func emitOffers(ctx context.Context, tx pgx.Tx, offers []InsertedOffer, serverTime time.Time) error {
 	for _, in := range offers {
 		var (
-			ev      realtime.DispatchOffer
-			expires time.Time
-			est     *int
+			ev               realtime.DispatchOffer
+			expires          time.Time
+			est              *int
+			dropLat, dropLng float64
 		)
 		err := tx.QueryRow(ctx, `
 SELECT o.order_id::text, o.id::text, o.expires_at, o.distance_m, o.est_duration_s,
@@ -74,10 +80,11 @@ WHERE o.id = $1`, in.OfferID).Scan(
 			&ev.OrderID, &ev.OfferID, &expires, &ev.DistanceM, &est,
 			&ev.EarningsCents, &ev.TipCentsEstimate,
 			&ev.Pickup.RestaurantName, &ev.Pickup.AddressShort, &ev.Pickup.Lat, &ev.Pickup.Lng,
-			&ev.Dropoff.Area, &ev.Dropoff.Lat, &ev.Dropoff.Lng, &ev.ItemsCount)
+			&ev.Dropoff.Area, &dropLat, &dropLng, &ev.ItemsCount)
 		if err != nil {
 			return fmt.Errorf("load offer for events: %w", err)
 		}
+		ev.Dropoff.Lat, ev.Dropoff.Lng = realtime.ApproximateArea(dropLat, dropLng)
 		ev.ExpiresAt = realtime.At(expires)
 		ev.ServerTime = realtime.At(serverTime)
 		// The wave stores its estimate; an offer without one gets the same
@@ -196,16 +203,28 @@ SELECT count(DISTINCT rider_account_id)::int FROM dispatch_offer WHERE order_id 
 }
 
 // emitRiderLocation sends the rider's newest accepted fix to each order the
-// rider is carrying out: while the dispatch is ASSIGNED or later and not yet
-// COMPLETED (contracts/websocket.md section 4.5). The customer's copy stays
+// rider is carrying out (contracts/websocket.md section 4.5), and to no other.
+// That is an order whose dispatch names this rider, whose assignment this rider
+// still holds on the way to the restaurant or the customer, and which is still
+// being prepared or delivered. The dispatch row alone is not enough: it moves
+// to COMPLETED only on delivery, so after an assignment that ends any other way
+// (undeliverable, returned, cancelled by the platform, reassigned) or an order
+// cancelled under a live assignment it still names the rider, and every fix
+// the rider reports afterwards, on later jobs too, would reach that order's
+// customer and restaurant. The lists are the states that qualify, so a state
+// added later sends nothing until it is named here. The customer's copy stays
 // coarse until the order is picked up (internal/realtime/catalogue.go).
 func emitRiderLocation(ctx context.Context, tx pgx.Tx, riderAccountID string, p PositionPoint) error {
 	rows, err := tx.Query(ctx, `
 SELECT d.order_id::text, o.state IN ('PICKED_UP', 'ARRIVED')
   FROM dispatch d
   JOIN "order" o ON o.id = d.order_id
+  JOIN assignment asn ON asn.order_id = d.order_id AND asn.rider_account_id = d.rider_account_id
  WHERE d.rider_account_id = $1
-   AND d.state IN ('ASSIGNED', 'AT_RESTAURANT', 'CARRYING', 'AT_CUSTOMER')`, riderAccountID)
+   AND d.state IN ('ASSIGNED', 'AT_RESTAURANT', 'CARRYING', 'AT_CUSTOMER')
+   AND asn.state IN ('ASSIGNED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP',
+                     'PICKED_UP', 'EN_ROUTE_TO_DROPOFF', 'ARRIVED_AT_DROPOFF')
+   AND o.state IN ('PREPARING', 'READY_FOR_PICKUP', 'PICKED_UP', 'ARRIVED')`, riderAccountID)
 	if err != nil {
 		return fmt.Errorf("load live orders for rider.location: %w", err)
 	}
