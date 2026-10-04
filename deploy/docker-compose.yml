@@ -241,8 +241,10 @@ services:
   # waits for this job to complete successfully, so a failed step keeps the API
   # down. Never silence a step with `|| true`: that hid failed expiry rules.
   #
-  # Every bucket is versioned, so an overwrite or a delete can be undone. Old
-  # versions are deleted 35 days after they stop being current. Lifecycle rules
+  # Every bucket is versioned, so an overwrite or a delete made by hand can be
+  # undone. Old versions are deleted 35 days after they stop being current. When
+  # the API deletes an object it removes every version of the key at once
+  # (services/hg/internal/files/objects.go). Lifecycle rules
   # are imported, not added: an import replaces the bucket's whole rule set, so
   # running this job again leaves the same rules instead of duplicates.
   createbuckets:
@@ -277,7 +279,17 @@ services:
         mc anonymous set none hg/hg-tmp
         # Media stays public-read until the owner decides otherwise in issue
         # #200: https://github.com/shaiknoorullah/hg-mono/issues/200
-        mc anonymous set download hg/hg-media
+        #
+        # Anonymous readers get s3:GetObject on hg-media and nothing else. Do
+        # not use `mc anonymous set download`: that preset also grants
+        # s3:ListBucket, and Silo accepts ListBucket for `?versions`, so anyone
+        # could list every old version and delete marker and then download
+        # deleted or overwritten media for 35 days. Without ListBucket, old
+        # version IDs (random UUIDs) cannot be discovered. Do not add a Deny on
+        # s3:GetObjectVersion either: Silo checks it on a plain GET too, so it
+        # would hide current media as well.
+        printf '%s' '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::hg-media/*"]}]}' > /tmp/media.json
+        mc anonymous set-json /tmp/media.json hg/hg-media
 
         lifecycle hg-kyc
         lifecycle hg-media
@@ -285,7 +297,7 @@ services:
         lifecycle hg-exports 30
         lifecycle hg-tmp 1
 
-        echo 'buckets ready: all five versioned; hg-kyc, hg-pod, hg-exports, hg-tmp private; hg-media public-read'
+        echo 'buckets ready: all five versioned; hg-kyc, hg-pod, hg-exports, hg-tmp private; hg-media public-read, objects only'
 
   # ---------------------------------------------------------------------------
   # Migrations — profile-gated, run on demand:

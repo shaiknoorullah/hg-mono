@@ -2121,7 +2121,7 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
   | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | on, old versions kept 35 days | 30 days |
   | `hg-tmp` | **private** | unconfirmed uploads | on, old versions kept 35 days | 24 h lifecycle rule |
 
-  Every bucket is versioned so an overwrite or a delete can be undone; a version that is no longer current is deleted 35 days later. The retention column applies to the current version ([object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
+  Every bucket is versioned so an overwrite or a delete made by hand in the console can be undone; a version that is no longer current is deleted 35 days later. When the API deletes an object (a rejected upload, or a deletion under the [document lifecycle and retention rules](#p-29--document-lifecycle-review-and-retention)), it deletes every version of that key, so the bytes are gone at once rather than kept for 35 days. The retention column applies to the current version ([object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). Until `hg-media` is private ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)), the compose file serves it public-read, and an anonymous reader may fetch an object by its key and nothing else: no bucket listing and no version listing, so an old or deleted version cannot be found or downloaded.
 
   Object keys are server-generated and unguessable:
   ```
