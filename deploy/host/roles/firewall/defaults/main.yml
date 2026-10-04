@@ -12,6 +12,14 @@ hg_firewall_standby_wg: >-
   {{ (groups['standby'] | default([])) | map('extract', hostvars, 'hg_wg_address') | list
      if hg_standby_enabled | bool else [] }}
 hg_firewall_wg_restricted:
-  - {port: 5432, sources: "{{ hg_firewall_standby_wg }}"}   # prod's Postgres: the standby's replica only
+  - {port: 5432, sources: "{{ hg_firewall_standby_wg }}"}   # prod's Postgres, if ever published: the standby only
   - {port: 9000, sources: "{{ hg_firewall_prod_wg }}"}      # the standby's Silo: prod's replication only
   - {port: 3310, sources: "{{ hg_firewall_prod_wg }}"}      # clamd on the standby: prod's API only
+
+# Relays on this host that listen on its WireGuard address (not Docker-published ports, so
+# they pass through the input chain), and the only peers allowed in. Today the one relay is the
+# standby's way to production's Postgres (roles/standby_primary): until the standby is
+# switched on, its list of sources is empty and the port is dropped for everyone.
+hg_firewall_wg_relays:
+  - port: 5432
+    sources: "{{ hg_firewall_standby_wg if inventory_hostname in (groups['prod'] | default([])) else [] }}"

@@ -17,7 +17,7 @@ PGBR_LOG_DIR={{ hg_backup_pgbackrest_logs }}
 PGBR_CIPHER_ENV={{ hg_config_dir }}/pgbackrest/cipher.env
 
 STAGING={{ hg_backup_staging }}
-APP_NETWORK={{ hg_networks.app.name }}
+SILO_NETWORK={{ hg_networks.storage.name }}
 RCLONE_CONF={{ hg_config_dir }}/backup/rclone.conf
 RCLONE_IMAGE={{ hg_images.rclone }}
 SILO_IMAGE={{ hg_images.silo }}

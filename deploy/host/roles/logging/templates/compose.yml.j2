@@ -15,7 +15,9 @@ services:
     volumes:
       - vldata:/vlogs
     ports: ["{{ hg_wg_address }}:9428:9428"]
-    networks: [{{ hg_networks.ops.name }}]
+    # {{ hg_networks.monitoring.name }} (internal): Fluent Bit and VictoriaMetrics reach it there.
+    # {{ hg_networks.ops.name }}: only for the search page's port on the WireGuard address.
+    networks: [{{ hg_networks.ops.name }}, {{ hg_networks.monitoring.name }}]
     mem_limit: 128m
     memswap_limit: 128m
 
@@ -28,7 +30,8 @@ services:
       - ./fluent-bit.conf:/fluent-bit/etc/hg/fluent-bit.conf:ro
       - ./redact.lua:/fluent-bit/etc/hg/redact.lua:ro
       - fbstate:/fluent-bit/state
-    networks: [{{ hg_networks.ops.name }}]
+    # Internal only: it reads every container's log, and has no way off the box.
+    networks: [{{ hg_networks.monitoring.name }}]
     depends_on: [victorialogs]
     mem_limit: 48m
     memswap_limit: 48m
@@ -39,4 +42,6 @@ volumes:
 
 networks:
   {{ hg_networks.ops.name }}:
+    external: true
+  {{ hg_networks.monitoring.name }}:
     external: true

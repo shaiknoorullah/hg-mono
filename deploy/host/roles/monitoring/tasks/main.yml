@@ -60,7 +60,7 @@
       content: "GATUS_SMTP_PASSWORD={{ hg_alert_smtp_password }}\n"
     - dest: postgres-exporter.env
       content: >-
-        DATA_SOURCE_NAME=postgresql://hg_monitor:{{ hg_monitor_postgres_password | urlencode }}@postgres:5432/{{ hg_postgres_db }}?sslmode=disable
+        DATA_SOURCE_NAME=postgresql://hg_monitor:{{ hg_monitor_postgres_password | urlencode }}@{{ hg_postgres_host }}:5432/{{ hg_postgres_db }}?sslmode=disable
   loop_control:
     label: "{{ item.dest }}"
   no_log: true

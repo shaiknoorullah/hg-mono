@@ -41,6 +41,10 @@ table inet host {
     # From WireGuard peers only.
     iifname "{{ hg_wg_interface }}" meta l4proto { icmp, ipv6-icmp } accept
     iifname "{{ hg_wg_interface }}" tcp dport { {{ hg_firewall_wg_tcp_ports | join(', ') }} } accept
+{% for r in hg_firewall_wg_relays if r.sources | length > 0 %}
+    # A relay on this host, from the named peers alone.
+    iifname "{{ hg_wg_interface }}" ip saddr { {{ r.sources | join(', ') }} } tcp dport {{ r.port }} accept
+{% endfor %}
 
     # From the monitoring containers (VictoriaMetrics scraping node-exporter).
     iifname "{{ hg_networks.ops.bridge }}" tcp dport { {{ hg_firewall_from_ops_tcp_ports | join(', ') }} } accept

@@ -1,5 +1,10 @@
 # Managed by Ansible (deploy/host/roles/monitoring). Metrics, alert rules and uptime checks
 # (#65). Dashboards are published only on the WireGuard address ({{ hg_wg_address }}).
+#
+# Networks: {{ hg_networks.monitoring.name }} (internal) carries scraping, so postgres-exporter, which holds a
+# database login, has no route off the box. {{ hg_networks.ops.name }} is the way out, for Alertmanager's email
+# and Gatus's public checks, and carries the dashboards' published ports, which an internal
+# network cannot.
 name: hg-monitoring
 
 services:
@@ -16,7 +21,7 @@ services:
       - vmdata:/storage
       - ./scrape.yml:/etc/vm/scrape.yml:ro
     ports: ["{{ hg_wg_address }}:8428:8428"]
-    networks: [{{ hg_networks.ops.name }}]
+    networks: [{{ hg_networks.ops.name }}, {{ hg_networks.monitoring.name }}]
     mem_limit: 128m
     memswap_limit: 128m
 {% endif %}
@@ -77,9 +82,10 @@ services:
   postgres-exporter:
     image: "{{ hg_images.postgres_exporter }}"
     restart: unless-stopped
-    # Connects as hg_monitor, a member of pg_monitor (#215), on the production network.
+    # Connects as hg_monitor, a member of pg_monitor (#215), to {{ hg_postgres_host }} on {{ hg_networks.data.name }}.
+    # Scraped on {{ hg_networks.monitoring.name }}. Both are internal: no way out.
     env_file: ./postgres-exporter.env
-    networks: [{{ hg_networks.ops.name }}, {{ hg_networks.app.name }}]
+    networks: [{{ hg_networks.monitoring.name }}, {{ hg_networks.data.name }}]
     mem_limit: 32m
     memswap_limit: 32m
 {% endif %}
@@ -92,5 +98,7 @@ volumes:
 networks:
   {{ hg_networks.ops.name }}:
     external: true
-  {{ hg_networks.app.name }}:
+  {{ hg_networks.monitoring.name }}:
+    external: true
+  {{ hg_networks.data.name }}:
     external: true

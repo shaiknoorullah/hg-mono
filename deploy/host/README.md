@@ -49,6 +49,8 @@ It creates your age key and the encrypted secrets the first time (it says which 
 | `sudo docker run --rm -d --name stray -p 8099:80 nginx:alpine`, then `curl -m 5 http://<public IP>:8099` from outside, then `sudo docker stop stray` | the curl times out: the DOCKER-USER guard drops stray published ports |
 | `sudo nft list table inet host` and `sudo iptables -S DOCKER-USER` | the rules in `roles/firewall` and `roles/docker` |
 | `systemctl list-timers 'hg-*'` | backups, metrics, the monthly drill, the reboot window, image clean-up |
+| `sudo docker version --format '{{.Server.Version}}'` | 29.x: Engine 28 or later, held on major version 29 by `/etc/apt/preferences.d/docker` |
+| `sudo ls -ln /srv/hg/secrets`, once `prod.sops.env` exists | four files, each `-r--------`, owned by 0 except `redis_password` (999) |
 | `free -m`, `swapon --show` | about 11.7 GiB and a 2 GiB swapfile |
 | [Gatus](http://10.66.0.1:8080), [VictoriaMetrics](http://10.66.0.1:8428/vmui), [vmalert](http://10.66.0.1:8880), [Alertmanager](http://10.66.0.1:9093), [logs](http://10.66.0.1:9428/select/vmui) | each answers, over WireGuard only |
 | `curl -XPOST http://10.66.0.1:9093/api/v2/alerts -H 'Content-Type: application/json' -d '[{"labels":{"alertname":"TestAlert"}}]'` | an email within two minutes |
@@ -57,23 +59,26 @@ Until the production stack runs ([#208][i208]), the Postgres and backup alerts f
 
 ## What production's compose file must do
 
-This playbook provisions the server; the production compose override ([#208][i208]) runs the app on it. These are the seams between the two:
+This playbook provisions the server; the production compose override (`deploy/docker-compose.prod.yml`, [#208][i208], [#296][pr296]) runs the app on it. These are the seams between the two, and the two must agree:
 
 | Production compose | Why |
 |---|---|
-| Declares every network below external (this playbook creates them, with fixed subnets) | compose files and these roles agree on names and addresses |
+| Declares every network below external (this playbook creates them, with fixed subnets). The networks it creates itself (`hg-edge`, `hg-files`, `hg-egress`, `hg-analytics-proxy`, Umami's) stay on the `/29`s inside `10.88.0.0/24` listed in `hg_compose_networks` | compose files and these roles agree on names and addresses; the docker role refuses to create a network that overlaps another or one of those |
 | Traefik and the API, and nothing else, on `hg-proxy` (`10.88.0.0/29`); the API's label `traefik.docker.network=hg-proxy`; `HG_TRUSTED_PROXY_CIDRS=10.88.0.0/29` | the API trusts forwarded client addresses from that range only, and only Traefik is in it besides the API's own replicas (room for four during a rollout) |
-| The API, Postgres, Valkey and Silo on `hg-net` | the monitoring and backup containers join it to read them |
-| Traefik on `hg-socket` with `--providers.docker.endpoint=tcp://docker-socket-proxy:2375`, no Docker socket mount | Traefik reads Docker only through the read-only proxy |
+| The API, Postgres, Valkey and migrations on `hg-data` (`172.30.0.0/24`, internal). The API, Silo and the bucket job on `hg-storage` (`172.30.5.0/24`, internal), with Silo at `172.30.5.10` | postgres-exporter joins `hg-data` and the bucket backups join `hg-storage` to read them. Containers draw addresses from the upper half of each (`.128/25`), so fixed addresses below it stay free |
+| No production service on `hg-monitoring` (`172.30.6.0/24`, internal) | scraping and log shipping only; the exporters reach Postgres and Silo on their own tiers |
+| Clients reach Postgres, Valkey and Silo by the aliases `hg-prod-postgres`, `hg-prod-valkey` and `hg-prod-silo` | postgres-exporter and the bucket backups use them (`hg_postgres_host`, `hg_silo_endpoint`): Docker's DNS answers a plain service name for any container on the network that claims it |
+| Traefik on `hg-socket` with `--providers.docker.endpoint=tcp://docker-socket-proxy:2375`, no Docker socket mount | Traefik reads Docker only through the proxy, which allows the container list, a container's inspect, events, version and ping, and nothing else: no container's files (so no `/run/secrets`), no logs, no exec, no writes |
 | Traefik also on `hg-dev-proxy` and `hg-dev-edge`, with entrypoint `websecure` and certificate resolver `letsencrypt` (or change `hg_traefik_*` to match) | it routes the dev hostnames; no dev container ever joins `hg-proxy` |
 | The API on `hg-scan` | clamd listens at `172.30.3.10:3310` there ([#218][i218]) |
+| Traefik's networks use `gw_priority` | it needs Docker Engine 28 and compose 2.33.1 or later. The docker role keeps Engine on major version 29 (`hg_docker_engine_major`) and refuses anything older than either |
 | Postgres mounts `/etc/hg/pgbackrest` at `/etc/pgbackrest` (read-only), `/srv/backup/pgbackrest` at `/var/lib/pgbackrest`, `/var/spool/hg-pgbackrest` at `/var/spool/pgbackrest`, `/var/log/hg/pgbackrest` at `/var/log/pgbackrest`, a named volume at `/var/run/postgresql`, and `env_file: /etc/hg/pgbackrest/cipher.env` | pgBackRest runs inside it for WAL and beside it (`hg-pgbackrest`) for backups |
 | Postgres runs with `archive_mode=on`, `archive_command='pgbackrest --stanza=hg archive-push %p'`, `archive_timeout=60` | WAL reaches the repository within a minute |
 | A `hg_monitor` role in `pg_monitor`, with `hg_monitor_postgres_password` from `host.sops.yaml` ([#215][i215]) | postgres-exporter's login |
 | A read-only Silo account for backups, in `hg_backup_silo_*` ([#203][i203]) | the bucket backups' login |
-| Project name `hg`, so Postgres is `hg-postgres-1`; Silo's service `minio` (or change `hg_silo_endpoint`) | the scripts address them by name |
-| `.env` comes from `prod.sops.env` (see Secrets); compose files and `acme.json` live in `/srv/hg` | the config backup covers that folder |
-| Postgres published as `10.66.0.1:5432` only once `hg_standby_enabled` is true, and never on any other address | the standby's replica connects over WireGuard; the host firewall drops everyone else on the tunnel |
+| Project name `hg`, so Postgres is `hg-postgres-1` | the backups and the standby's set-up use `docker exec` by container name |
+| `.env` and the four secret files come from `prod.sops.env` (see Secrets): Postgres, Valkey, Silo and the bucket job read theirs from `$HG_SECRETS_DIR`, `/srv/hg/secrets` unless set. Compose files and `acme.json` live in `/srv/hg` | the config backup covers that folder |
+| Once `hg_standby_enabled` is true, Postgres at the fixed address `172.30.0.10` on `hg-data` (`ipv4_address`, beside its alias), and still no published port | the standby's replica comes in through a relay on this host, on `10.66.0.1:5432` (see "Next month") |
 
 ## Secrets
 
@@ -82,8 +87,19 @@ Secrets come from one place, chosen by `hg_secrets_backend`. Today that is `sops
 | File | Holds | Becomes |
 |---|---|---|
 | `host.sops.yaml` | the server's own secrets: console password, WireGuard keys, backup passwords, the alert email key | variables for the roles ([shape](secrets/host.example.yaml)) |
-| `prod.sops.env` | production's settings ([#208][i208]) | `/srv/hg/.env` |
+| `prod.sops.env` | production's settings ([#208][i208]) | `/srv/hg/.env`, and the secret files in `/srv/hg/secrets` |
 | `dev.sops.env` | dev's settings and test-mode keys | `/srv/hg-dev/.env` ([shape](secrets/dev.example.env)) |
+
+**Production's secret files.** Postgres, Valkey, Silo and the bucket job read their passwords from files, never from the environment (`deploy/docker-compose.prod.yml`, "Secrets"). The secrets role writes them from the same `prod.sops.env` entries as `.env`, so the two copies can't differ, into `/srv/hg/secrets` (mode 0700, root). Compose bind-mounts each file as it is on the host, ignoring a secret's uid and mode, so each is mode 0400 and owned by the uid that reads it inside its container:
+
+| File | From | Owner |
+|---|---|---|
+| `postgres_password` | `POSTGRES_PASSWORD` | root: Postgres's entrypoint reads it before switching to the `postgres` user |
+| `redis_password` | `REDIS_PASSWORD` | uid 999: Valkey runs as its image's `valkey` user |
+| `minio_root_user` | `MINIO_ROOT_USER` | root: Silo and the bucket job |
+| `minio_root_password` | `MINIO_ROOT_PASSWORD` | root: Silo and the bucket job |
+
+A run stops if any of the four is missing from `prod.sops.env`, or if the Valkey password isn't one word (Valkey reads it from a config line; `openssl rand -hex 32` fits). A changed value reaches a container when the container is recreated.
 
 **Pending:** a self-hosted vault (OpenBao is the likely choice) is being planned with the dev environment and needs the owner's approval ([#235][i235]). Nothing here installs one or assumes which. When it comes, it is a second backend in `roles/secrets` that produces the same variables and files; no other role changes. Ansible Vault is not used.
 
@@ -99,7 +115,7 @@ Limits are ceilings, not use. Real use at launch is about 6 GB.
 | Postgres + PostGIS + pgBackRest | 2,048 MB | [#208][i208] |
 | Valkey, Silo, nginx | 128 + 512 + 256 MB | [#208][i208] |
 | GlitchTip, Umami and their database, when they run here | 384 + 320 + 256 MB | [#208][i208] |
-| Docker socket proxy | 32 MB | this playbook |
+| Docker socket proxy | 48 MB | this playbook |
 | **ClamAV** | **4,096 MB** | this playbook, until it moves to the standby |
 | VictoriaMetrics, vmalert, Alertmanager | 128 + 32 + 32 MB | this playbook |
 | Gatus, postgres-exporter | 48 + 32 MB | this playbook |
@@ -120,7 +136,7 @@ All on this server, under `/srv/backup`, apart from the data they protect, and c
 | `hg-kyc`, `hg-pod` | rclone copies each bucket through the S3 API; restic snapshots the copy | every 15 minutes | every snapshot for 48 hours, then one a day for 35 days |
 | `hg-media`, `hg-exports` | the same | hourly | the same |
 | The pgBackRest repository | restic snapshot, so the off-server copy carries the database too | hourly | the same |
-| `/etc`, `/srv/hg` (compose files, `.env`, `acme.json`) | restic snapshot | daily | the same |
+| `/etc`, `/srv/hg` (compose files, `.env`, the secret files, `acme.json`) | restic snapshot | daily | the same |
 | All of the above, off the server | the owner's machine pulls new restic snapshots over WireGuard (`restic copy`) whenever it is on, at most once every 20 hours | nightly while it's on | 35 days |
 
 - **The server can't erase the off-server copy.** The owner's machine logs in as `hg-pull`: read-only SFTP, locked inside `/srv/backup`, accepted only from that machine's WireGuard address. The server holds no credential for that machine.
@@ -157,16 +173,17 @@ A second compose project, `hg-dev`, in `/srv/hg-dev`, beside production for good
 
 ## Next month: the standby ([#210][i210])
 
-Everything for the standby is off until `hg_standby_enabled` is true, so tonight's single server exposes none of it: no WireGuard peer, no replication role, no published Postgres, no bucket replication.
+Everything for the standby is off until `hg_standby_enabled` is true, so tonight's single server exposes none of it: no WireGuard peer, no replication role, no Postgres relay, no bucket replication.
 
 1. Order the Cloud VPS for the standby. Add it under `standby` in `inventory/hosts.yml` (the commented block), with `hg_ssh_public: true` until its tunnel works.
-2. In `group_vars/all.yml`, set `hg_standby_enabled: true` (and `hg_clamav_host: hg-standby` to move ClamAV). Set `hg_postgres_image` (the production Postgres image, by digest) and fill in `hg_prod_silo_root_*` in `host.sops.yaml`. Publish production's Postgres as `10.66.0.1:5432` in the compose file.
+2. In `group_vars/all.yml`, set `hg_standby_enabled: true` (and `hg_clamav_host: hg-standby` to move ClamAV). Set `hg_postgres_image` (the production Postgres image, by digest) and fill in `hg_prod_silo_root_*` in `host.sops.yaml`. In the production compose file, give Postgres the fixed address `172.30.0.10` on `hg-data` (`ipv4_address`, beside its alias). Don't publish its port: Postgres is only on internal networks, which can't have one, and the relay below takes its place.
 3. `ansible-playbook bootstrap.yml --limit hg-standby -e ansible_host=<its IP> -e ansible_user=root`, then `ansible-playbook standby.yml`.
 
 What it sets up, each with the least it needs:
 
-- **Postgres:** a `replicator` role with `LOGIN` and `REPLICATION` only (no superuser, no grants, two connections). `pg_hba` admits it for replication from the standby's WireGuard address alone, and rejects every other use of it. The host firewall lets only that address reach `10.66.0.1:5432`.
+- **Postgres:** a `replicator` role with `LOGIN` and `REPLICATION` only (no superuser, no grants, two connections). The standby connects to `10.66.0.1:5432`, a relay on production's host (`hg-postgres-relay`, systemd's `systemd-socket-proxyd`, two connections at most) that carries the connection to Postgres at `172.30.0.10` on `hg-data`: Docker lets the host reach a container on an internal network. The host firewall accepts that port from the standby's WireGuard address alone. Postgres sees the relay's connections come from the host's address on `hg-data`, `172.30.0.1`, so `pg_hba` admits the role for replication from there alone, and rejects every other use of it. While the standby is off, none of this is installed and the firewall drops the port for everyone.
 - **Silo:** one-way bucket replication of `hg-kyc`, `hg-pod` and `hg-media`. Production configures it with a key scoped to those buckets, and replicates with a key that can only write those buckets on the standby. Production's root account is used once, to create its scoped key, and never stored in any replication setting. The standby holds no production credential, so it can't write back.
+  **Not ready yet:** Silo pushes to the standby, and production's Silo is now only on internal networks, so it has no way out to the standby's address. It needs a path before the standby is switched on, for example the same kind of relay in the other direction: listening on the host's address on `hg-storage` (`172.30.5.1:9000`), accepted by the host firewall from Silo's address alone, and forwarding over WireGuard to the standby's Silo, which would then be the replication target. Until then, `standby.yml` sets up the Postgres side and stops before Silo with a message saying so.
 - **The rest:** the standby becomes a WireGuard peer of production, gets the same base, firewall (WireGuard only, no public ports) and SSH settings, and runs a Gatus that watches production. clamd moves there if asked, listening on its WireGuard address for production's API alone. Production is not rebuilt.
 
 ## Routine
@@ -179,7 +196,14 @@ What it sets up, each with the least it needs:
 
 ## How this was checked
 
-`tests/check.sh` passes: every playbook's syntax, ansible-lint on its production profile, and shellcheck on every script. Every template was rendered with the test inventory, and the results checked with each tool's own validator: `docker compose config` for every compose file, `amtool check-config` for Alertmanager, `vmalert -dryRun` for the 18 alert rules, VictoriaMetrics' scrape-config dry run, `sshd -t` and `sshd -T` for the SSH drop-ins, and VictoriaLogs' flags. The playbook has **not** yet run in check mode against a disposable Debian container: Docker on the machine that built this could not start containers. That run is [#275][i275].
+`tests/check.sh` passes: every playbook's syntax, ansible-lint on its production profile, and shellcheck on every script. Every template was rendered with the test inventory, and the results checked with each tool's own validator: `docker compose config` for every compose file, `amtool check-config` for Alertmanager, `vmalert -dryRun` for the 18 alert rules, VictoriaMetrics' scrape-config dry run, `sshd -t` and `sshd -T` for the SSH drop-ins, and VictoriaLogs' flags. Matching the production compose file ([#296][pr296]) was checked too:
+
+- a script compared `hg_networks`, `hg_compose_networks`, the aliases and the secret file names with `deploy/docker-compose.prod.yml`: every external network it declares exists here with its subnet and `internal` setting, Silo's fixed address and Postgres's reserved one sit outside their networks' ranges, and nothing overlaps;
+- the pinned socket proxy binary, run with the role's flags against a real Docker socket, answered ping, version, events, the container list and a container's inspect, and refused a container's archive, export and logs, `/info`, images, volumes, networks and every write;
+- the secrets role, run against a test `prod.sops.env`, wrote the four files with the right values, mode 0400 and no trailing newline, changed nothing on a second run, and stopped on a missing value and on a Valkey password with a space;
+- `docker_network` created networks with the configured range and gateway (Docker otherwise puts the gateway at the start of the range); `nft -c` accepts the firewall with the standby off and on (less its conntrack and rate-limit lines, which an unprivileged check can't load); `systemd-analyze verify` accepts the relay's units, and `systemd-socket-proxyd` with the same flags carried a connection.
+
+The playbook has **not** yet run in check mode against a disposable Debian container: Docker on the machine that built this could not start containers. That run is [#275][i275].
 
 [i207-oneserver]: https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570
 [i64]: https://github.com/shaiknoorullah/hg-mono/issues/64
@@ -194,5 +218,6 @@ What it sets up, each with the least it needs:
 [i235]: https://github.com/shaiknoorullah/hg-mono/issues/235
 [i275]: https://github.com/shaiknoorullah/hg-mono/issues/275
 [pr278]: https://github.com/shaiknoorullah/hg-mono/pull/278
+[pr296]: https://github.com/shaiknoorullah/hg-mono/pull/296
 [runbook-routine]: ../../docs/ops/runbook.md#routine-work-on-one-server
 [runbook-rebuild]: ../../docs/ops/runbook.md#rebuild-on-a-new-server

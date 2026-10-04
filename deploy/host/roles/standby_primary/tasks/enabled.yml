@@ -12,15 +12,39 @@
     fail_msg: "Add the standby to the inventory and its secrets to host.sops.yaml (README, 'Next month')."
     quiet: true
 
-- name: Check that production's Postgres is published on the WireGuard address
-  # The production compose file (#208) publishes it as {{ hg_wg_address }}:5432 and nowhere
-  # else; the host firewall lets only the standby's address through (roles/firewall).
+# ---------------------------------------------------------------- Postgres
+# Postgres is only on internal networks, which cannot publish a port, so the standby's replica
+# comes in through a relay on this host (defaults/main.yml): systemd-socket-proxyd, on the
+# WireGuard address, forwarding to Postgres's fixed address on hg-data.
+- name: Check that production's Postgres is at its fixed address on hg-data
+  # The production compose file must give it hg_postgres_address (172.30.0.10) there (README,
+  # "What production's compose file must do"). The host can reach containers on hg-data.
   ansible.builtin.wait_for:
-    host: "{{ hg_wg_address }}"
+    host: "{{ hg_postgres_address }}"
     port: 5432
     timeout: 5
 
-# ---------------------------------------------------------------- Postgres
+- name: Install the relay that carries the standby's replica to Postgres
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - hg-postgres-relay.socket
+    - hg-postgres-relay.service
+  register: hg_postgres_relay_units
+
+- name: Listen for the standby on the WireGuard address only
+  # The host firewall accepts the port from the standby's WireGuard address alone
+  # (roles/firewall, hg_firewall_wg_relays).
+  ansible.builtin.systemd_service:
+    name: hg-postgres-relay.socket
+    enabled: true
+    state: "{{ 'restarted' if hg_postgres_relay_units is changed else 'started' }}"
+    daemon_reload: "{{ hg_postgres_relay_units is changed }}"
+
 - name: Create the replication role, able to stream WAL and nothing else
   ansible.builtin.command:
     argv: [docker, exec, -i, -e, PW, "{{ hg_postgres_container }}", psql, -U, "{{ hg_postgres_superuser }}",
@@ -39,8 +63,10 @@
   no_log: true
 
 # pg_hba is read top down and the first match wins. The block goes first: replication from
-# the standby's WireGuard address, and a rejection for every other use of the role, ahead
-# of the image's catch-all "host all all all" line.
+# the relay, and a rejection for every other use of the role, ahead of the image's catch-all
+# "host all all all" line. Postgres sees the relay's connections come from this host's address
+# on hg-data (hg_postgres_relay_source), not the standby's: the host firewall is what admits
+# the standby alone.
 - name: Let the replication role in from the standby only, and for replication only
   ansible.builtin.command:
     argv: [docker, exec, -i, -e, BLOCK, "{{ hg_postgres_container }}", sh, -s]
@@ -57,7 +83,7 @@
       echo changed
   environment:
     BLOCK: |-
-      host    replication  replicator  {{ hostvars[hg_standby_host].hg_wg_address }}/32  scram-sha-256
+      host    replication  replicator  {{ hg_postgres_relay_source }}/32  scram-sha-256
       host    replication  replicator  all          reject
       host    all          replicator  all          reject
   register: hg_hba
@@ -69,6 +95,18 @@
 # One-way bucket replication of the named buckets. Production's Silo holds only the
 # standby's scoped replication key, which can write those buckets there and nothing else;
 # the standby holds no production credential, so it can never write back.
+#
+# Silo pushes to the standby, and production's Silo is now only on internal networks
+# (hg-storage and the files tier), so it has no way to reach the standby's address. It needs a
+# path of its own first (README, "Next month"); until then this stops here, with the Postgres
+# side above in place.
+- name: Stop until production's Silo has a way to reach the standby
+  ansible.builtin.fail:
+    msg: >-
+      Postgres replication is set up. Bucket replication is not: production's Silo is only on
+      internal networks, so it cannot reach the standby. Give it a path first
+      (deploy/host/README.md, "Next month: the standby"), and remove this task with it.
+
 - name: Copy the replication policy for production's Silo
   ansible.builtin.template:
     src: replication-admin-policy.json.j2
@@ -86,7 +124,7 @@
       - --rm
       - -i
       - --network
-      - "{{ hg_networks.app.name }}"
+      - "{{ hg_networks.storage.name }}"
       - -e
       - MC_HOST_prod
       - -e
@@ -112,7 +150,7 @@
 
 - name: Replicate the named buckets to the standby, with the scoped keys on both sides
   ansible.builtin.command:
-    argv: [docker, run, --rm, -i, --network, "{{ hg_networks.app.name }}", -e, MC_HOST_prod, -e, MC_HOST_standby,
+    argv: [docker, run, --rm, -i, --network, "{{ hg_networks.storage.name }}", -e, MC_HOST_prod, -e, MC_HOST_standby,
            --entrypoint, /usr/bin/sh, "{{ hg_images.mc }}", -s]
     stdin: |
       set -eu

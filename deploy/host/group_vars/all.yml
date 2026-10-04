@@ -51,33 +51,63 @@ hg_postgres_container: hg-postgres-1
 hg_postgres_superuser: hg
 hg_postgres_db: hg
 hg_pgbackrest_stanza: hg
-# Silo's S3 endpoint inside the production network. The service is still called "minio" in
-# deploy/docker-compose.yml; change this if #202 renames it.
-hg_silo_endpoint: http://minio:9000
+# Production's services by the production-only aliases the production compose file gives them
+# (deploy/docker-compose.prod.yml, "Names"), never by service name: Docker's DNS answers a name
+# for every container on a network that claims it, so a stray container calling itself
+# "postgres" would receive some of the connections.
+hg_postgres_host: hg-prod-postgres
+hg_silo_endpoint: http://hg-prod-silo:9000
 hg_silo_region: ca-central-1
 hg_buckets: [hg-kyc, hg-pod, hg-media, hg-exports, hg-tmp]
 
 # ---------------------------------------------------------------------------- Docker networks
-# Created by the docker role so every compose project can declare them external.
+# Created by the docker role so every compose project can declare them external. The names
+# and subnets are the network table in deploy/docker-compose.prod.yml ("Networks, in tiers");
+# change the two together. Every network that needs no way out is internal: no route off the
+# box, and no published port.
 hg_networks:
   # Traefik and the production API only: the one range the API trusts for forwarded client
   # addresses (HG_TRUSTED_PROXY_CIDRS). /29: Traefik plus four API replicas during a rollout.
   proxy: {name: hg-proxy, subnet: 10.88.0.0/29, internal: true}
   # The same for dev: Traefik and the dev API only. Dev never joins hg-proxy.
   dev_proxy: {name: hg-dev-proxy, subnet: 10.88.0.8/29, internal: true}
-  app: {name: hg-net, subnet: 172.30.0.0/24, internal: false}              # production stack
-  ops: {name: hg-ops, subnet: 172.30.1.0/24, internal: false, bridge: br-hg-ops}  # monitoring, logging
+  # The API, Postgres, Valkey and migrations; postgres-exporter. Containers get addresses from
+  # the upper half only, so 172.30.0.10 stays free for Postgres's fixed address, which the
+  # standby's relay will need (README, "Next month"). The gateway is set because Docker
+  # otherwise takes the first address of the range.
+  data: {name: hg-data, subnet: 172.30.0.0/24, ip_range: 172.30.0.128/25, gateway: 172.30.0.1, internal: true}
+  # The API, Silo and the bucket job; the bucket backups. Silo sits at 172.30.5.10, outside the
+  # range containers draw from, so the console can be reached by an SSH tunnel.
+  storage: {name: hg-storage, subnet: 172.30.5.0/24, ip_range: 172.30.5.128/25, gateway: 172.30.5.1, internal: true}
+  # Scraping and log shipping: VictoriaMetrics, postgres-exporter, VictoriaLogs and Fluent Bit.
+  monitoring: {name: hg-monitoring, subnet: 172.30.6.0/24, internal: true}
+  # The way out, for Alertmanager (email through Resend), Gatus (the public checks) and
+  # freshclam. The dashboards join it too: a port published on the WireGuard address needs a
+  # network that is not internal.
+  ops: {name: hg-ops, subnet: 172.30.1.0/24, internal: false, bridge: br-hg-ops}
   socket: {name: hg-socket, subnet: 172.30.2.0/24, internal: true}         # Traefik to the socket proxy
   scan: {name: hg-scan, subnet: 172.30.3.0/24, internal: true}             # hg to clamd
   dev: {name: hg-dev-net, subnet: 172.30.10.0/24, internal: true}          # dev data services
   dev_edge: {name: hg-dev-edge, subnet: 172.30.11.0/24, internal: false}   # Traefik to the dev API
+# Networks the production compose project creates itself, all inside 10.88.0.0/24. Nothing in
+# hg_networks may overlap them, or each other; the docker role checks before creating any.
+hg_compose_networks:
+  hg-analytics-proxy: 10.88.0.16/29
+  hg-files: 10.88.0.24/29
+  hg-egress: 10.88.0.32/29
+  hg-edge: 10.88.0.40/29
+  umami-net: 10.88.0.48/29      # Umami's own (deploy/umami/docker-compose.tls.yml)
 hg_clamd_address: 172.30.3.10
+# Silo's fixed address on hg-storage (the console's SSH tunnel), and the one Postgres will
+# have on hg-data once the standby is switched on (the relay's target).
+hg_silo_address: 172.30.5.10
+hg_postgres_address: 172.30.0.10
 # What the production API trusts for X-Forwarded-For: exactly the proxy network.
 hg_trusted_proxy_cidrs: "{{ hg_networks.proxy.subnet }}"
 
 # ---------------------------------------------------------------------------- the standby (#210)
 # Off until next month. While false, nothing standby-related is configured or opened:
-# no WireGuard peer, no replication role, no published Postgres, no Silo replication.
+# no WireGuard peer, no replication role, no Postgres relay, no Silo replication.
 hg_standby_enabled: false
 # Buckets the standby's Silo receives. hg-exports are regenerated reports and hg-tmp is
 # scratch, so neither is copied.
@@ -104,7 +134,7 @@ hg_alert_smtp_user: resend
 # The object-storage decision asks for Silo in a registry HalalGoes controls; these come
 # from Docker Hub, by digest, the same as #278. Mirroring them is the open question there.
 hg_images:
-  socket_proxy: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+  socket_proxy: wollomatic/socket-proxy:1.13.1@sha256:3935b709275e4ec35d6ed5a5c4a1f0d01ed31eec5e7234efc3357ecd47689002
   clamav: clamav/clamav:1.5.4@sha256:ebec5bc138401b36ae987caa1a3fa3c3b2a21ed3d51f0bfa5852825e663e67b0
   victoriametrics: victoriametrics/victoria-metrics:v1.153.0@sha256:5eff7af5341e401471002f58d106d399e614a62f3d240f2dbc21901e49eed5dd
   vmalert: victoriametrics/vmalert:v1.153.0@sha256:0c1c7718b54b03e8559d0f257f31f1bd79ef7fa32ac6e9ed90d7b92a74a4fe76

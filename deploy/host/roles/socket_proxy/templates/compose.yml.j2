@@ -1,8 +1,14 @@
 # Managed by Ansible (deploy/host/roles/socket_proxy).
 #
 # Traefik faces the internet, so it never gets the Docker socket: mounting it read-only does
-# not make Docker's API read-only. Traefik reads container labels through this proxy, which
-# answers only reads of containers, events, ping and version, and refuses every POST.
+# not make Docker's API read-only. Traefik reads container labels through this proxy
+# (wollomatic/socket-proxy), which passes on only the requests Traefik's Docker provider
+# makes, each matched by method and whole path, with or without an API version prefix:
+#   HEAD and GET /_ping, GET /version, GET /events,
+#   GET /containers/json (the list) and GET /containers/<id>/json (one container's inspect).
+# It refuses everything else with 403: a container's files (/containers/<id>/archive and
+# /export, which would read /run/secrets), its logs, exec, images, volumes, and every POST,
+# PUT and DELETE. Only hg-socket's addresses may connect; Traefik is the only other member.
 # The production compose file (#208) points Traefik at it:
 #   --providers.docker.endpoint=tcp://docker-socket-proxy:2375, on the {{ hg_networks.socket.name }} network.
 name: hg-socket-proxy
@@ -11,17 +17,35 @@ services:
   docker-socket-proxy:
     image: "{{ hg_images.socket_proxy }}"
     restart: unless-stopped
-    environment:
-      CONTAINERS: "1"
-      EVENTS: "1"
-      PING: "1"
-      VERSION: "1"
-      POST: "0"
+    command:
+      - -listenip=0.0.0.0
+      - -allowfrom={{ hg_networks.socket.subnet }}
+      # The proxy anchors each pattern at both ends (^...$).
+      - '-allowHEAD=(/v[0-9]+\.[0-9]+)?/_ping'
+      - '-allowGET=(/v[0-9]+\.[0-9]+)?/(_ping|version|events|containers/json|containers/[a-zA-Z0-9][a-zA-Z0-9_.-]*/json)'
+      # Updating Docker restarts the daemon, which replaces its socket, and live-restore keeps
+      # this container running on the old one. The watchdog notices within a minute and stops
+      # the proxy; Docker starts it again on the new socket.
+      - -watchdoginterval=60
+      - -stoponwatchdog
+      - -shutdowngracetime=5
+      - -allowhealthcheck
+    healthcheck:
+      test: ["CMD", "./healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 2
+    # Not root: the image's nobody user, in the group that owns the socket on this host.
+    user: "65534:{{ hg_socket_proxy_gid }}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks: [{{ hg_networks.socket.name }}]
-    mem_limit: 32m
-    memswap_limit: 32m
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    # The memory budget's figure (deploy/README.md, "Memory budget"); the Go proxy uses far less.
+    mem_limit: 48m
+    memswap_limit: 48m
     cpus: 0.25
 
 networks:

@@ -47,7 +47,7 @@ case $job in
     bucket=${job#silo-}
     mkdir -p "$STAGING/silo/$bucket"
     docker run --rm --name "hg-rclone-$$" \
-      --network "$APP_NETWORK" --memory 256m --memory-swap 256m --cpus 1 \
+      --network "$SILO_NETWORK" --memory 256m --memory-swap 256m --cpus 1 \
       -v "$STAGING/silo:/data" -v "$RCLONE_CONF:/config/rclone/rclone.conf:ro" \
       "$RCLONE_IMAGE" sync "silo:$bucket" "/data/$bucket" \
       --fast-list --checkers 4 --transfers 2 --retries 3
