@@ -203,6 +203,25 @@ REVOKE INSERT ON account_state_event FROM hg_app;
 REVOKE ALL ON account_state_rule FROM PUBLIC, hg_app;
 GRANT SELECT ON account_state_rule TO hg_readonly;
 
+-- Close the back door the column REVOKEs above would otherwise leave open: an
+-- updatable view onto a guarded table. A view runs its reads and writes with
+-- the view owner's rights, not the caller's, unless it is told to use the
+-- caller's (security_invoker). halal_status_inconsistency (00009) is a simple,
+-- therefore auto-updatable, view SELECTing from restaurant, and 00023 granted
+-- hg_app INSERT/UPDATE/DELETE on every table in the schema, views included. So
+-- hg_app, which the REVOKEs above forbid from writing restaurant directly,
+-- could still DELETE a restaurant through this view (deleting and recreating a
+-- banned one -- the very thing the no-DELETE rule exists to stop) or rewrite
+-- its primary key, none of it touching restaurant by name. Two locks, either
+-- of which alone is enough: the view now runs with the caller's own rights, so
+-- a write through it is the app role's write on restaurant and the column
+-- REVOKEs catch it; and the app role is granted no write on the view at all.
+-- It is the only updatable view onto any guarded table (restaurant,
+-- rider_profile, account, session); a test in internal/admin holds that true,
+-- so a later updatable view onto one of them is caught.
+ALTER VIEW halal_status_inconsistency SET (security_invoker = on);
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON halal_status_inconsistency FROM hg_app;
+
 -- The proof a staff action rides on. When the API signs an access token it writes
 -- the token's SHA-256 onto the session row it signs it for (internal/auth,
 -- issueSession and Refresh); the token itself is stored nowhere, so the
@@ -861,6 +880,9 @@ DROP FUNCTION IF EXISTS account_state_certificate(uuid);
 DROP FUNCTION IF EXISTS account_state_grant_app_columns();
 -- The application role gets back the table rights 00023 gave it.
 GRANT INSERT, UPDATE, DELETE ON restaurant, rider_profile, account TO hg_app;
+-- And the view goes back to the owner's rights with the app's write on it.
+ALTER VIEW IF EXISTS halal_status_inconsistency RESET (security_invoker);
+GRANT INSERT, UPDATE, DELETE ON halal_status_inconsistency TO hg_app;
 REVOKE UPDATE (rotated_at, rotated_to, last_used_at, revoked_at, revoke_reason) ON session FROM hg_app;
 GRANT UPDATE ON session TO hg_app;
 DROP INDEX IF EXISTS session_access_hash;

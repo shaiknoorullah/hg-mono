@@ -420,6 +420,12 @@ reject "the application role cannot change a customer's status" "permission deni
   "SET LOCAL ROLE hg_app; UPDATE account SET status = 'BANNED' WHERE id = '11111111-1111-4111-8111-111111111111';"
 reject "the application role cannot delete a rider to create them again" "permission denied" \
   "SET LOCAL ROLE hg_app; DELETE FROM rider_profile WHERE account_id = '$RIDER_FX';"
+# A view onto restaurant would otherwise run its writes with the owner's rights
+# and hand the write block straight back; 00045 shuts that door too.
+reject "the application role cannot delete a restaurant through a view either" "permission denied" \
+  "SET LOCAL ROLE hg_app; DELETE FROM halal_status_inconsistency WHERE restaurant_id = '33333333-3333-4333-8333-333333333333';"
+reject "the application role cannot re-key a restaurant through a view either" "permission denied" \
+  "SET LOCAL ROLE hg_app; UPDATE halal_status_inconsistency SET restaurant_id = gen_random_uuid() WHERE restaurant_id = '33333333-3333-4333-8333-333333333333';"
 reject "the application role cannot create an account in another state" "permission denied" \
   "SET LOCAL ROLE hg_app; INSERT INTO account (phone_e164, status) VALUES ('+16475550142', 'BANNED');"
 reject "the application role cannot write the history" "permission denied" \

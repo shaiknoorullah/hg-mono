@@ -127,6 +127,67 @@ func TestTheAppRoleCannotWriteAnAccountsState(t *testing.T) {
 	}
 }
 
+// TestNoViewReopensTheAppsWriteBlock: the column privileges make restaurant,
+// rider_profile, account and session unwritable by the app role, but a view
+// onto one of them runs with its owner's rights by default and so would hand
+// that write straight back. The monitoring view halal_status_inconsistency
+// (00009) SELECTs from restaurant and is auto-updatable; 00023 grants hg_app
+// write on every table, views included. Through it the app role could delete a
+// restaurant (deleting and recreating a banned one) or rewrite its key, none of
+// it naming restaurant. 00045 closes it (security_invoker + no write grant).
+// This holds the fix, and holds that this is still the only updatable view onto
+// a guarded table, so a later one is caught here rather than in production.
+func TestNoViewReopensTheAppsWriteBlock(t *testing.T) {
+	pool := dialTestPool(t)
+	app := appPool(t)
+	restaurant := guardRestaurant(t, pool, "ACTIVE", "BANNED")
+	// Make the restaurant visible in the view (a CERTIFIED badge with no valid
+	// certificate), so the write below matches a real row rather than none.
+	if _, err := pool.Exec(context.Background(),
+		`UPDATE restaurant SET halal_status = 'CERTIFIED', halal_certificate_id = NULL WHERE id = $1`, restaurant); err != nil {
+		t.Fatal(err)
+	}
+	if n := scalar[int](t, pool, `SELECT count(*)::int FROM halal_status_inconsistency WHERE restaurant_id = $1`, restaurant); n != 1 {
+		t.Fatalf("the banned restaurant is not visible in halal_status_inconsistency (%d rows), the probe would hit nothing", n)
+	}
+
+	denied := func(what string, s stmt) {
+		t.Helper()
+		refused(t, what, direct(app, s), "42501", "permission denied")
+	}
+	denied("delete a restaurant through the view",
+		q(`DELETE FROM halal_status_inconsistency WHERE restaurant_id = $1`, restaurant))
+	denied("rewrite a restaurant's key through the view",
+		q(`UPDATE halal_status_inconsistency SET restaurant_id = $2 WHERE restaurant_id = $1`, restaurant, uuid.NewString()))
+	denied("repoint a restaurant's certificate through the view",
+		q(`UPDATE halal_status_inconsistency SET halal_certificate_id = $2 WHERE restaurant_id = $1`, restaurant, uuid.NewString()))
+	if got := stateOf(t, pool, "RESTAURANT", restaurant); got != "BANNED " {
+		t.Errorf("restaurant is %q after the refusals, want BANNED", got)
+	}
+	// The view is still readable by the app role (security_invoker runs the read
+	// with the app's own SELECT on the base tables, which it has).
+	accepted(t, "read the view as the app role",
+		direct(app, q(`SELECT 1 FROM halal_status_inconsistency WHERE restaurant_id = $1`, restaurant)))
+
+	// No other updatable view onto a guarded table exists. 28 is the UPDATE,
+	// INSERT and DELETE bits of pg_relation_is_updatable.
+	leaks := scalar[int](t, pool, `
+		SELECT count(*)::int
+		  FROM pg_class v
+		  JOIN pg_rewrite rw ON rw.ev_class = v.oid
+		  JOIN pg_depend d ON d.objid = rw.oid
+		                  AND d.refclassid = 'pg_class'::regclass AND d.refobjid <> v.oid
+		 WHERE v.relkind = 'v' AND v.relnamespace = 'public'::regnamespace
+		   AND v.relname <> 'halal_status_inconsistency'
+		   AND (pg_relation_is_updatable(v.oid, false) & 28) <> 0
+		   AND d.refobjid IN ('restaurant'::regclass, 'rider_profile'::regclass,
+		                      'account'::regclass, 'session'::regclass)
+		   AND has_table_privilege('hg_app', v.oid, 'UPDATE,DELETE,INSERT')`)
+	if leaks != 0 {
+		t.Errorf("found %d other updatable view(s) the app role may write onto a guarded table; each needs security_invoker and no write grant", leaks)
+	}
+}
+
 // TestAStaffActionWorksOnlyThroughItsFunction: account_state_apply is the one
 // writer of a staff action. It acts only as the account whose live session the
 // access token proves, only with that account's grants as they stand, and holds
