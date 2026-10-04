@@ -61,6 +61,8 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("order.create"):                      {},
 		httpx.Action("order.read"):                        {},
 		httpx.Action("order.read_any"):                    {},
+		httpx.Action("ordering_pause.read"):               {},
+		httpx.Action("ordering_pause.set"):                {},
 		httpx.Action("order.receipt.read"):                {},
 		httpx.Action("order.rating.read"):                 {},
 		httpx.Action("order.rating.write"):                {},

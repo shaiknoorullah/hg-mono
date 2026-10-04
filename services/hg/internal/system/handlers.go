@@ -1,7 +1,9 @@
 package system
 
 import (
+	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,6 +34,24 @@ type Handler struct {
 	// served by getOpenApiDocument. Nil if the file was not found at boot (the
 	// handler answers 501 in that case rather than crashing).
 	openAPIDocJSON []byte
+	// orderingStatus reads the platform-wide pause on new orders for
+	// getPublicConfig.ordering (https://github.com/shaiknoorullah/hg-mono/issues/244).
+	// The orders module owns the switch; cmd/hg wires its reader in with
+	// WithOrderingStatus.
+	orderingStatus OrderingStatusFunc
+}
+
+// OrderingStatusFunc reports whether staff have paused new orders
+// platform-wide, and since when (nil while ordering is open). It reads
+// Postgres, never a cache: orders.Store.OrderingStatus is the implementation.
+type OrderingStatusFunc func(ctx context.Context) (paused bool, since *time.Time, err error)
+
+// WithOrderingStatus sets the reader getPublicConfig uses for its `ordering`
+// object. Without one, getPublicConfig answers 500 rather than claim ordering
+// is open when nothing asked.
+func (h *Handler) WithOrderingStatus(fn OrderingStatusFunc) *Handler {
+	h.orderingStatus = fn
+	return h
 }
 
 // NewHandler builds the system handler. It attempts to load contracts/openapi.yaml
@@ -306,7 +326,7 @@ type publicMapCenter struct {
 // required: currency, served_provinces, quote_ttl_seconds,
 //
 //	restaurant_response_window_seconds, max_tip_cents,
-//	support_enabled, default_map_center.
+//	support_enabled, default_map_center, ordering.
 //
 // optional: support_phone_e164, support_hours, terms_version.
 type publicConfig struct {
@@ -320,6 +340,14 @@ type publicConfig struct {
 	SupportHours                    *string         `json:"support_hours,omitempty"`
 	DefaultMapCenter                publicMapCenter `json:"default_map_center"`
 	TermsVersion                    *string         `json:"terms_version,omitempty"`
+	Ordering                        orderingStatus  `json:"ordering"`
+}
+
+// orderingStatus is the contract's OrderingStatus: the customer-facing half of
+// the platform-wide pause on new orders. No reason: that is for staff.
+type orderingStatus struct {
+	Paused      bool    `json:"paused"`
+	PausedSince *string `json:"paused_since"`
 }
 
 // PublicConfig implements getPublicConfig (GET /v1/config/public).
@@ -338,7 +366,29 @@ type publicConfig struct {
 //   - max_tip_cents: 5000 ($50 CAD tip ceiling)
 //   - support_enabled: false (not yet configured — no A2P registration)
 //   - default_map_center: downtown Toronto (WGS84)
+//
+// `ordering` is not a constant: it is the platform-wide pause on new orders,
+// read from Postgres on every request so it is never older than the request
+// (https://github.com/shaiknoorullah/hg-mono/issues/244).
 func (h *Handler) PublicConfig(w http.ResponseWriter, r *http.Request) {
+	if h.orderingStatus == nil {
+		slog.ErrorContext(r.Context(), "getPublicConfig: no ordering-status reader is wired")
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+			"The server failed to process this request.", nil)
+		return
+	}
+	paused, since, err := h.orderingStatus(r.Context())
+	if err != nil {
+		slog.ErrorContext(r.Context(), "getPublicConfig: read the ordering pause", slog.Any("err", err))
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+			"The server failed to process this request.", nil)
+		return
+	}
+	ordering := orderingStatus{Paused: paused}
+	if since != nil {
+		ts := httpx.Timestamp(*since)
+		ordering.PausedSince = &ts
+	}
 	httpx.Respond(w, r, http.StatusOK, publicConfig{
 		Currency:                        "CAD",
 		ServedProvinces:                 []string{"ON"},
@@ -350,6 +400,7 @@ func (h *Handler) PublicConfig(w http.ResponseWriter, r *http.Request) {
 			Latitude:  43.6532,
 			Longitude: -79.3832,
 		},
+		Ordering: ordering,
 	})
 }
 

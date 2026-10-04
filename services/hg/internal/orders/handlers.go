@@ -40,6 +40,10 @@ const (
 	codeIllegalTransition   httpx.ErrorCode = "ILLEGAL_TRANSITION"
 	codeNotFound            httpx.ErrorCode = "NOT_FOUND"
 	codeReceiptNotReady     httpx.ErrorCode = "RECEIPT_NOT_READY"
+	// codeOrderingPaused: staff paused new orders platform-wide
+	// (https://github.com/shaiknoorullah/hg-mono/issues/244). Always 409, the
+	// same as RESTAURANT_CLOSED; the contract's createOrder says why not 503.
+	codeOrderingPaused httpx.ErrorCode = "ORDERING_PAUSED"
 )
 
 // P-05 actions this module guards its routes with. The auth sibling's matrix
@@ -442,6 +446,9 @@ func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 			"Your cart contains items from a different restaurant. Start a new cart to add this item.", nil)
 	case errors.Is(err, ErrItemUnavailable):
 		httpx.Fail(w, r, http.StatusConflict, codeItemUnavailable, "An item is no longer available.", nil)
+	case errors.Is(err, ErrOrderingPaused):
+		httpx.Fail(w, r, http.StatusConflict, codeOrderingPaused,
+			"Ordering is paused on HalalGoes right now. Nothing was charged; please try again later.", nil)
 	case errors.Is(err, ErrRestaurantClosed):
 		httpx.Fail(w, r, http.StatusConflict, codeRestaurantClosed, "The restaurant is not accepting orders right now.", nil)
 	case errors.Is(err, ErrCartEmpty):

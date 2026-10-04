@@ -50,6 +50,15 @@ type PreparedOrder struct {
 func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quote) (*PreparedOrder, error) {
 	var prepared *PreparedOrder
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
+		// No new orders while staff have paused them platform-wide
+		// (https://github.com/shaiknoorullah/hg-mono/issues/244). First, and
+		// FOR SHARE: the lock lasts until this transaction ends, so a pause
+		// committing meanwhile waits for this order or makes it refuse here;
+		// an order is never created after the pause committed.
+		if err := requireOrderingOpen(ctx, tx, true); err != nil {
+			return err
+		}
+
 		// Load the stored quote, owned by the account, FOR UPDATE so a concurrent
 		// order for the same quote serialises.
 		stored, err := s.loadQuoteTx(ctx, tx, in.QuoteID, in.AccountID)

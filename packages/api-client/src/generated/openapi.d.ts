@@ -328,6 +328,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/ordering-pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether new orders are paused platform-wide, and why
+         * @description The platform-wide pause on new orders, for use during an incident such as payments
+         *     failing or a restore under way
+         *     ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244); the
+         *     [incident runbook](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/ops/runbook.md#pause-new-orders)
+         *     says when to use it). Read from Postgres on every request.
+         *
+         *     Support agents can read it, so they can tell a customer why checkout is refused;
+         *     only `ADMIN` and `SUPER_ADMIN` can change it (`setOrderingPause`).
+         */
+        get: operations["getOrderingPause"];
+        /**
+         * Pause or resume new orders platform-wide, with a reason
+         * @description Turns the platform-wide pause on new orders on (`paused: true`) or off
+         *     (`paused: false`) ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+         *     Both directions need a `reason`, and both write one row to the audit log in the
+         *     same transaction as the change: action `ordering.pause` or `ordering.resume`,
+         *     subject type `PLATFORM`, with the reason and the before and after state
+         *     ([the audit log](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-04--audit-log-append-only-hash-chained)).
+         *
+         *     **While paused,** `createQuote` and `createOrder` answer `409 ORDERING_PAUSED`, the
+         *     cart reports `is_quotable: false` with `ORDERING_PAUSED` in `blocking_reasons`, and
+         *     `getPublicConfig.ordering.paused` is `true`. Everything about orders already placed
+         *     carries on to the end: state changes, tracking, riders, payments, refunds and the
+         *     staff tools. Every API replica reads the switch from Postgres, so it applies on the
+         *     next request, with nothing to flush.
+         *
+         *     **Who may change it:** `ADMIN` and `SUPER_ADMIN`. It is an operations control,
+         *     like pausing a promotion or suspending a restaurant, which both roles hold
+         *     ([permission matrix](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#71-staff-access-and-platform-configuration));
+         *     it is not a platform setting, so it needs no second approver and no waiting period.
+         *     `SUPPORT_AGENT` is refused with `403 FORBIDDEN`: a support agent changes almost
+         *     nothing, and stopping every new order on the platform is not a support action.
+         *
+         *     Setting the value it already has is allowed: it records the new reason (for example
+         *     an updated estimate) and writes an audit row, and a pause keeps its original
+         *     `paused_since`.
+         */
+        put: operations["setOrderingPause"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/orders": {
         parameters: {
             query?: never;
@@ -1252,6 +1306,11 @@ export interface paths {
          * @description Values the clients must never hardcode: support contact and hours, the default map
          *     centre, the served provinces, tip bounds, and the quote TTL. No secret, no fee
          *     parameter that could let a client compute a price.
+         *
+         *     `ordering` says whether staff have paused new orders platform-wide during an
+         *     incident ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). It is read
+         *     from Postgres on every request, so it is never older than the request: the customer
+         *     app shows "ordering is paused" from it instead of letting a checkout fail.
          */
         get: operations["getPublicConfig"];
         put?: never;
@@ -1529,6 +1588,18 @@ export interface paths {
          *
          *     `requires_action` (3-D Secure) is a normal path: the order stays `CREATED` under its
          *     15-minute deadline and the client is handed the action.
+         *
+         *     **Paused ordering.** While staff have paused new orders platform-wide
+         *     (`setOrderingPause`), this answers `409 ORDERING_PAUSED`: no order row, no
+         *     PaymentIntent. The switch is read under a row lock in the same transaction that
+         *     inserts the order, so a pause that commits while an order is being created either
+         *     waits for that order to commit first or refuses it; an order never appears after the
+         *     pause took effect. Orders placed before the pause carry on to the end.
+         *
+         *     It is a 409, not a 503: like `RESTAURANT_CLOSED`, it is a state staff chose, not a
+         *     failing server, and a 503 would read as an outage to monitoring and to clients that
+         *     retry server errors. The refusal rolls its transaction back, so the same
+         *     `Idempotency-Key` can be sent again once ordering resumes.
          */
         post: operations["createOrder"];
         delete?: never;
@@ -1942,6 +2013,10 @@ export interface paths {
          *     A quote referencing an unavailable item, a closed restaurant, an address outside the
          *     delivery radius, or a province with no effective tax rate fails loudly with a typed
          *     error listing the offending lines. It never silently zeroes a component.
+         *
+         *     While staff have paused new orders platform-wide (`setOrderingPause`), this answers
+         *     `409 ORDERING_PAUSED` and stores nothing. `getPublicConfig.ordering` says so before
+         *     the customer reaches checkout.
          */
         post: operations["createQuote"];
         delete?: never;
@@ -3529,7 +3604,11 @@ export interface components {
             /** Format: uuid */
             id: string;
             indicative_subtotal_cents: components["schemas"]["Cents"];
-            /** @description False when any line is unavailable, the restaurant is closed, or no address is selected. */
+            /**
+             * @description False when any line is unavailable, the restaurant is closed, no address is
+             *     selected, or staff have paused new orders platform-wide (`ORDERING_PAUSED` in
+             *     `blocking_reasons`).
+             */
             is_quotable: boolean;
             /**
              * Format: int32
@@ -3928,7 +4007,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "ORDERING_PAUSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -4634,6 +4713,55 @@ export interface components {
             reason_code: components["schemas"]["DelayReasonCode"];
         };
         /**
+         * @description The staff view of the platform-wide pause on new orders (`getOrderingPause`,
+         *     `setOrderingPause`; [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+         *     The full history of changes is in the audit log, actions `ordering.pause` and
+         *     `ordering.resume`.
+         */
+        OrderingPause: {
+            /**
+             * Format: date-time
+             * @description When it was last changed. Null if nobody has changed it yet.
+             */
+            changed_at: string | null;
+            /**
+             * Format: uuid
+             * @description The staff account that made the latest change. Null if nobody has changed it yet.
+             */
+            changed_by: string | null;
+            paused: boolean;
+            /**
+             * Format: date-time
+             * @description When the current pause began. Null while ordering is open.
+             */
+            paused_since: string | null;
+            /** @description The reason given with the latest change, pause or resume. Null if nobody has changed it yet. */
+            reason: string | null;
+        };
+        OrderingPauseInput: {
+            /** @description `true` pauses new orders platform-wide; `false` resumes them. */
+            paused: boolean;
+            /**
+             * @description Why, in words the next person on call understands. Recorded with the change and in the audit log.
+             * @example Stripe is refusing authorisations; pausing until their incident clears.
+             */
+            reason: string;
+        };
+        /**
+         * @description The customer-facing view of the platform-wide pause on new orders
+         *     ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+         *     the reason staff typed is for staff, and the app shows its own fixed copy.
+         */
+        OrderingStatus: {
+            /** @description True while staff have paused new orders: quotes and orders answer `409 ORDERING_PAUSED`. */
+            paused: boolean;
+            /**
+             * Format: date-time
+             * @description When the current pause began. Null while ordering is open.
+             */
+            paused_since: string | null;
+        };
+        /**
          * @description **No amount, total, fee or price field exists on this DTO.** A body containing one is
          *     `422 UNKNOWN_FIELD`, and no order, quote or PaymentIntent is created.
          */
@@ -5099,6 +5227,7 @@ export interface components {
                 longitude: components["schemas"]["Longitude"];
             };
             max_tip_cents: components["schemas"]["Cents"];
+            ordering: components["schemas"]["OrderingStatus"];
             /**
              * Format: int32
              * @description 600. How long a quoted price is honoured before re-confirmation is required.
@@ -6433,6 +6562,9 @@ export type SchemaOrderCreated = components['schemas']['OrderCreated'];
 export type SchemaOrderCustomerRef = components['schemas']['OrderCustomerRef'];
 export type SchemaOrderCustomerView = components['schemas']['OrderCustomerView'];
 export type SchemaOrderDelayInput = components['schemas']['OrderDelayInput'];
+export type SchemaOrderingPause = components['schemas']['OrderingPause'];
+export type SchemaOrderingPauseInput = components['schemas']['OrderingPauseInput'];
+export type SchemaOrderingStatus = components['schemas']['OrderingStatus'];
 export type SchemaOrderInput = components['schemas']['OrderInput'];
 export type SchemaOrderInternalMoney = components['schemas']['OrderInternalMoney'];
 export type SchemaOrderLine = components['schemas']['OrderLine'];
@@ -7189,6 +7321,77 @@ export interface operations {
             };
             /** @description `ITEM_DELETED`, `ALREADY_DECIDED`. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getOrderingPause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The switch as it stands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["OrderingPause"];
+                    };
+                };
+            };
+            403: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    setOrderingPause: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderingPauseInput"];
+            };
+        };
+        responses: {
+            /** @description The switch after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["OrderingPause"];
+                    };
+                };
+            };
+            403: components["responses"]["Error"];
+            /** @description `VALIDATION_FAILED`: `reason` missing, shorter than 10 or longer than 500 characters. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9094,7 +9297,7 @@ export interface operations {
             /**
              * @description `QUOTE_STALE` (with `details.quote`), `QUOTE_EXPIRED`,
              *     `CART_HAS_UNAVAILABLE_ITEMS`, `ACTIVE_ORDER_EXISTS`, `RESTAURANT_UNAVAILABLE`,
-             *     `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`.
+             *     `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
              */
             409: {
                 headers: {
@@ -9801,7 +10004,7 @@ export interface operations {
             };
             /**
              * @description `CART_HAS_UNAVAILABLE_ITEMS`, `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE`,
-             *     `BELOW_MINIMUM_ORDER` or `ADDRESS_OUT_OF_RANGE`.
+             *     `BELOW_MINIMUM_ORDER`, `ADDRESS_OUT_OF_RANGE` or `ORDERING_PAUSED`.
              */
             409: {
                 headers: {

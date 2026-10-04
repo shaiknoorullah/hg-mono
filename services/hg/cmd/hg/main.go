@@ -535,7 +535,10 @@ func run() error {
 		Authorizer:     authModule.Authorizer,
 	})
 
-	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
+	// getPublicConfig reports the platform-wide pause on new orders, which the
+	// orders module owns (https://github.com/shaiknoorullah/hg-mono/issues/244).
+	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes).
+		WithOrderingStatus(orders.NewStore(st.DB().Pool).OrderingStatus), cfg)
 	auth.Routes(router, authModule.Handler)
 
 	// B2 — Customer delivery addresses (internal/addresses, P-30).

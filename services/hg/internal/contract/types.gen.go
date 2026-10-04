@@ -793,6 +793,7 @@ const (
 	ErrorCodeOFFERWITHDRAWN                 ErrorCode = "OFFER_WITHDRAWN"
 	ErrorCodeONBOARDINGINCOMPLETE           ErrorCode = "ONBOARDING_INCOMPLETE"
 	ErrorCodeORDERCANCELLED                 ErrorCode = "ORDER_CANCELLED"
+	ErrorCodeORDERINGPAUSED                 ErrorCode = "ORDERING_PAUSED"
 	ErrorCodeORIGINNOTALLOWED               ErrorCode = "ORIGIN_NOT_ALLOWED"
 	ErrorCodeOTPINCORRECT                   ErrorCode = "OTP_INCORRECT"
 	ErrorCodeOTPINVALIDOREXPIRED            ErrorCode = "OTP_INVALID_OR_EXPIRED"
@@ -1040,6 +1041,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeONBOARDINGINCOMPLETE:
 		return true
 	case ErrorCodeORDERCANCELLED:
+		return true
+	case ErrorCodeORDERINGPAUSED:
 		return true
 	case ErrorCodeORIGINNOTALLOWED:
 		return true
@@ -4093,7 +4096,9 @@ type Cart struct {
 	// Examples: 4696
 	IndicativeSubtotalCents Cents `json:"indicative_subtotal_cents"`
 
-	// IsQuotable False when any line is unavailable, the restaurant is closed, or no address is selected.
+	// IsQuotable False when any line is unavailable, the restaurant is closed, no address is
+	// selected, or staff have paused new orders platform-wide (`ORDERING_PAUSED` in
+	// `blocking_reasons`).
 	IsQuotable bool `json:"is_quotable"`
 
 	// ItemCount Sum of quantities, not the number of distinct lines.
@@ -6045,6 +6050,47 @@ type OrderTransition struct {
 	ToState OrderState `json:"to_state"`
 }
 
+// OrderingPause The staff view of the platform-wide pause on new orders (`getOrderingPause`,
+// `setOrderingPause`; [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+// The full history of changes is in the audit log, actions `ordering.pause` and
+// `ordering.resume`.
+type OrderingPause struct {
+	// ChangedAt When it was last changed. Null if nobody has changed it yet.
+	ChangedAt *time.Time `json:"changed_at"`
+
+	// ChangedBy The staff account that made the latest change. Null if nobody has changed it yet.
+	ChangedBy *openapi_types.UUID `json:"changed_by"`
+	Paused    bool                `json:"paused"`
+
+	// PausedSince When the current pause began. Null while ordering is open.
+	PausedSince *time.Time `json:"paused_since"`
+
+	// Reason The reason given with the latest change, pause or resume. Null if nobody has changed it yet.
+	Reason *string `json:"reason"`
+}
+
+// OrderingPauseInput defines model for OrderingPauseInput.
+type OrderingPauseInput struct {
+	// Paused `true` pauses new orders platform-wide; `false` resumes them.
+	Paused bool `json:"paused"`
+
+	// Reason Why, in words the next person on call understands. Recorded with the change and in the audit log.
+	//
+	// Examples: Stripe is refusing authorisations; pausing until their incident clears.
+	Reason string `json:"reason"`
+}
+
+// OrderingStatus The customer-facing view of the platform-wide pause on new orders
+// ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+// the reason staff typed is for staff, and the app shows its own fixed copy.
+type OrderingStatus struct {
+	// Paused True while staff have paused new orders: quotes and orders answer `409 ORDERING_PAUSED`.
+	Paused bool `json:"paused"`
+
+	// PausedSince When the current pause began. Null while ordering is open.
+	PausedSince *time.Time `json:"paused_since"`
+}
+
 // OtpChallenge defines model for OtpChallenge.
 type OtpChallenge struct {
 	ChallengeId openapi_types.UUID `json:"challenge_id"`
@@ -6360,6 +6406,11 @@ type PublicConfig struct {
 	//
 	// Examples: 4696
 	MaxTipCents Cents `json:"max_tip_cents"`
+
+	// Ordering The customer-facing view of the platform-wide pause on new orders
+	// ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+	// the reason staff typed is for staff, and the app shows its own fixed copy.
+	Ordering OrderingStatus `json:"ordering"`
 
 	// QuoteTtlSeconds 600. How long a quoted price is honoured before re-confirmation is required.
 	QuoteTtlSeconds int32 `json:"quote_ttl_seconds"`
@@ -8156,6 +8207,17 @@ type DecideMenuVersionParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// SetOrderingPauseParams defines parameters for SetOrderingPause.
+type SetOrderingPauseParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // ListOrdersAdminParams defines parameters for ListOrdersAdmin.
 type ListOrdersAdminParams struct {
 	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
@@ -8927,6 +8989,9 @@ type SetHalalIssuingBodyStatusJSONRequestBody = HalalIssuingBodyStatusInput
 
 // DecideMenuVersionJSONRequestBody defines body for DecideMenuVersion for application/json ContentType.
 type DecideMenuVersionJSONRequestBody = MenuVersionDecisionInput
+
+// SetOrderingPauseJSONRequestBody defines body for SetOrderingPause for application/json ContentType.
+type SetOrderingPauseJSONRequestBody = OrderingPauseInput
 
 // CancelOrderAdminJSONRequestBody defines body for CancelOrderAdmin for application/json ContentType.
 type CancelOrderAdminJSONRequestBody = AdminOrderCancellationInput

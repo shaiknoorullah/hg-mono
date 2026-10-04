@@ -2,20 +2,20 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 358,
+  "count": 364,
   "counts_by_domain": {
-    "admin": 17,
-    "cart": 12,
+    "admin": 20,
+    "cart": 13,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 36,
+    "errors": 37,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
     "orders": 44,
     "payments": 12,
-    "platform": 25,
+    "platform": 26,
     "realtime": 8,
     "refunds": 14,
     "rider": 22
@@ -153,6 +153,54 @@
         "review-queue"
       ],
       "file": "admin/menu_version_withdrawn.json"
+    },
+    {
+      "scenario": "ordering_pause_never_changed",
+      "domain": "admin",
+      "schema": "OrderingPause",
+      "describes": "Ordering is open and nobody has ever paused it: every field but `paused` is null.",
+      "operations": [
+        "getOrderingPause"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "empty"
+      ],
+      "file": "admin/ordering_pause_never_changed.json"
+    },
+    {
+      "scenario": "ordering_pause_on",
+      "domain": "admin",
+      "schema": "OrderingPause",
+      "describes": "New orders are paused platform-wide during an incident. Orders already placed carry on; `createQuote` and `createOrder` answer `error_ordering_paused`.",
+      "operations": [
+        "getOrderingPause",
+        "setOrderingPause"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix",
+        "degraded"
+      ],
+      "file": "admin/ordering_pause_on.json"
+    },
+    {
+      "scenario": "ordering_pause_open",
+      "domain": "admin",
+      "schema": "OrderingPause",
+      "describes": "Ordering is open again: the on-call admin resumed it 20 minutes ago, with a reason. `paused_since` is null once ordering resumes; the audit log keeps the pause.",
+      "operations": [
+        "getOrderingPause",
+        "setOrderingPause"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix"
+      ],
+      "file": "admin/ordering_pause_open.json"
     },
     {
       "scenario": "restaurant_application_none_to_take",
@@ -354,6 +402,21 @@
         "dense"
       ],
       "file": "cart/cart_many_lines.json"
+    },
+    {
+      "scenario": "cart_ordering_paused",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "A cart that would be quotable, while staff have paused new orders platform-wide: `is_quotable` is false and `blocking_reasons` names `ORDERING_PAUSED`.",
+      "operations": [
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "degraded"
+      ],
+      "file": "cart/cart_ordering_paused.json"
     },
     {
       "scenario": "cart_single_line",
@@ -2166,6 +2229,21 @@
         "error-envelope"
       ],
       "file": "errors/error_offer_expired.json"
+    },
+    {
+      "scenario": "error_ordering_paused",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ORDERING_PAUSED`. Staff have paused new orders platform-wide during an incident. Nothing was stored and nothing was charged; the same Idempotency-Key can be sent again once ordering resumes. A 409 like `RESTAURANT_CLOSED`, not a 503: the server is fine.",
+      "operations": [
+        "createQuote",
+        "createOrder"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_ordering_paused.json"
     },
     {
       "scenario": "error_otp_incorrect",
@@ -4530,6 +4608,21 @@
       "file": "platform/public_config.json"
     },
     {
+      "scenario": "public_config_ordering_paused",
+      "domain": "platform",
+      "schema": "PublicConfig",
+      "describes": "Staff have paused new orders platform-wide. The customer app says ordering is paused instead of letting checkout fail; `ordering` carries no reason, which is for staff.",
+      "operations": [
+        "getPublicConfig"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "degraded"
+      ],
+      "file": "platform/public_config_ordering_paused.json"
+    },
+    {
       "scenario": "readiness_ok",
       "domain": "platform",
       "schema": "ReadinessStatus",
@@ -5545,10 +5638,14 @@
       "error_prohibited_ingredient",
       "menu_item_created_by_admin"
     ],
+    "createOrder": [
+      "error_ordering_paused"
+    ],
     "createPaymentMethodSetupIntent": [
       "setup_intent"
     ],
     "createQuote": [
+      "error_ordering_paused",
       "quote_large_tip",
       "quote_pickup",
       "quote_single_line_minimum",
@@ -5666,6 +5763,7 @@
       "cart_empty",
       "cart_has_unavailable_items",
       "cart_many_lines",
+      "cart_ordering_paused",
       "cart_single_line"
     ],
     "getConnectStatus": [
@@ -5772,11 +5870,17 @@
       "tracking_preparing",
       "tracking_ready_for_pickup"
     ],
+    "getOrderingPause": [
+      "ordering_pause_never_changed",
+      "ordering_pause_on",
+      "ordering_pause_open"
+    ],
     "getOwnMenu": [
       "owned_menu_with_pending_version"
     ],
     "getPublicConfig": [
-      "public_config"
+      "public_config",
+      "public_config_ordering_paused"
     ],
     "getQuote": [
       "quote_expired",
@@ -6140,6 +6244,10 @@
       "menu_item_marked_out_of_stock_indefinitely",
       "menu_item_marked_out_of_stock_until"
     ],
+    "setOrderingPause": [
+      "ordering_pause_on",
+      "ordering_pause_open"
+    ],
     "setRestaurantAcceptingOrders": [
       "restaurant_open_state_closed_holiday",
       "restaurant_open_state_closed_hours",
@@ -6324,6 +6432,7 @@
     "getOrderRating": "order_rating_food_and_rider",
     "getOrderReceipt": "receipt_standard",
     "getOrderTracking": "tracking_picked_up",
+    "getOrderingPause": "ordering_pause_open",
     "getOwnMenu": "owned_menu_with_pending_version",
     "getPublicConfig": "public_config",
     "getQuote": "quote_standard",
@@ -6384,6 +6493,7 @@
     "setDefaultPaymentMethod": "payment_methods_list",
     "setHalalIssuingBodyStatus": "halal_issuing_body_accepted",
     "setMenuItemAvailability": "menu_item_marked_out_of_stock_until",
+    "setOrderingPause": "ordering_pause_open",
     "setRestaurantAcceptingOrders": "restaurant_open_state_open",
     "setRestaurantHours": "restaurant_hours_standard",
     "setRiderAvailability": "rider_availability_online_idle",

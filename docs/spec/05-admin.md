@@ -2707,6 +2707,8 @@ is enforced server-side. `Deny` = `403 FORBIDDEN_PERMISSION`.
 | `setting.propose_pricing` / `setting.propose_payout` | A-06 | Allow | Deny | Deny |
 | `setting.propose_operational` | A-06 | Allow | Limited — `SLA`, `COMPLIANCE` classes | Deny |
 | `setting.approve` | A-06 | Limited — never own proposal | Deny | Deny |
+| `ordering_pause.read` (whether new orders are paused platform-wide, [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) | — | Allow | Allow | Allow — to tell a customer why checkout is refused |
+| `ordering_pause.set` (pause or resume new orders platform-wide during an incident, with a reason, audited; [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) | — | Allow | Allow — an operations control like `promotion.pause`, not a platform setting: no second approver, applies at once | **Deny** — stopping every new order is not a support action |
 | `promotion.read` | A-07 | Allow | Allow | Limited — terms + a named customer's redemptions |
 | `promotion.create` / `promotion.edit` / `promotion.resume` | A-07 | Allow | Deny | Deny |
 | `promotion.pause` | A-07 | Allow | Allow | Deny |
