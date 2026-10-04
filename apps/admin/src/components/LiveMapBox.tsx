@@ -2,12 +2,13 @@
  * The order-detail live-tracking map box — `docs/design/admin-order-detail.md`.
  *
  * Engine: `mapbox-gl-js`, brand-tinted styles. The **only** green on the map is the
- * rider pin — the registered exception to rule 10, because a Halal Goes rider is not a
- * certification claim. The restaurant pin is action orange: this box knows a
- * restaurant's coordinates, never its halal state, so it cannot and does not
- * make a verification claim. The active route line is brand crimson. Rider position is live over the realtime
- * channel where available; this box takes whatever coordinates the caller can give it and
- * degrades honestly when it can't.
+ * rider pin, the registered exception to the rule that solid green is reserved for halal
+ * status (AGENTS.md "Non-negotiable invariants"), because a HalalGoes rider is not a
+ * certification claim. The restaurant pin is the brand orange: this box knows a
+ * restaurant's coordinates, never its halal state, so it cannot and does not make a
+ * verification claim. Rider position is live over the realtime channel where available;
+ * this box takes whatever coordinates the caller can give it and degrades honestly when
+ * it can't.
  *
  * `OrderAdminView` was widened to carry `restaurant_location` / `destination_location` /
  * `rider_location` directly (the admin-scoped counterpart to the customer-only
@@ -42,9 +43,9 @@ export interface LiveMapBoxProps {
  * This used to paint every restaurant pin with
  * `var(--hg-color-halal-verified, #067A55)`. That custom property does not
  * exist, so the fallback painted unconditionally: a solid green dot on every
- * restaurant whatever its certification state, including expired ones. Invariant
- * 8 says a missing halal field renders no badge rather than an optimistic one,
- * and `MapPin` carries no halal state at all — `kind`, `label`, and a
+ * restaurant whatever its certification state, including expired ones. A
+ * missing halal field renders no badge, never an optimistic one (AGENTS.md
+ * "Non-negotiable invariants"), and `MapPin` carries no halal state at all — `kind`, `label`, and a
  * coordinate. A dot on a map cannot know the thing it was claiming, so it must
  * not claim it.
  *

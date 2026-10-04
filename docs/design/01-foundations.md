@@ -7,7 +7,7 @@ covers:
   - packages/ui-web/src/styles/**
   - packages/ui-web/src/lint/**
   - packages/ui-native/src/lint/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # HalalGoes — Design Foundations (token system)
@@ -419,7 +419,7 @@ tokens.json  (W3C DTCG, single source)
 1. **L-1 no raw colour.** No hex, `rgb()`, `hsl()` or named colour literal in any `apps/**` file. Only token references.
 2. **L-2 no ramp steps in components.** Components reference *roles* (`text.primary`), never steps (`neutral.700`). Only the theme files map steps to roles.
 3. **L-3 halal namespace.** `color.halal.*` may only be imported by `HalalBadge`, `HalalCertificationPanel`, `HalalChecklist` (admin), and the map-pin module (registered exception, §2.6).
-4. **L-4 no green solids.** No filled background may resolve to a colour whose hue is 100°–180° unless it comes from `color.halal.*`. This is RULE H-1 in executable form. Implemented in `packages/ui-web/src/lint/l4-no-green-solids.ts` and run by `pnpm lint` (part of `pnpm check`) over `@hg/ui-web`, `@hg/ui-native` (ESLint), marketing and all four apps. A `var()` is exempt only if it resolves to a real `color.halal.*`, map-pin or chrome token; a misspelt name is not, and its fallback colour is judged instead. Colours applied from script (`el.style.background = …`) are checked too.
+4. **L-4 no green solids.** No filled background may resolve to a colour whose hue is 100°–180° unless it comes from `color.halal.*`. This is RULE H-1 in executable form. Implemented in `packages/ui-web/src/lint/l4-no-green-solids.ts` and run by `pnpm lint` (part of `pnpm check`) over `@hg/ui-web`, `@hg/ui-native` (ESLint), marketing and all four apps. A `var()` is exempt only if it resolves to a real `color.halal.*`, map-pin or chrome token; a name that matches no token is not, and its fallback colour is judged instead. Colours applied from script (`el.style.background = …`) are checked too.
 5. **L-5 no float money.** Any `Price`/`Money` prop typed as `number` must be documented `int64 cents`; a `.toFixed(` or `parseFloat(` in a pricing path is a failure (mirrors the platform migration linter that bans `money`/`double precision`/`real`).
 6. **L-6 contrast.** `contrast.check.mjs` walks every `{fg, bg}` pair declared in `tokens.json`'s `_pairs` block and fails below target.
 7. **L-7 no physical properties.** `marginLeft`/`paddingRight`/`left`/`right`/`textAlign: 'left'` are banned in favour of `marginStart`/`paddingEnd`/`start`/`end`/`textAlign: 'start'`. This is what makes D8 (RTL readiness) real rather than aspirational.
