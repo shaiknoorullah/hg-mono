@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // Config holds the settings the admin handlers need that are owned elsewhere.
@@ -46,6 +47,19 @@ func NewHandler(repo *Repo, cfg Config) *Handler {
 		cfg:        cfg,
 		now:        func() time.Time { return time.Now().UTC() },
 	}
+}
+
+// WithOrderStore makes the admin order operations move orders through the
+// running server's orders store — the one carrying the realtime emitter — so a
+// support override sends the usual order.state_changed event
+// (contracts/openapi.yaml, overrideHandoverCode). Without it the handler uses
+// a plain store and no realtime event goes out, which is what the tests that
+// do not provision realtime want.
+func (h *Handler) WithOrderStore(st *orders.Store) *Handler {
+	if st != nil {
+		h.ordersRepo.st = st
+	}
+	return h
 }
 
 // today is the America/Toronto business date used for H5's expiry arithmetic

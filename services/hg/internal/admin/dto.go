@@ -423,6 +423,15 @@ type adminOrderView struct {
 	Rider                any     `json:"rider"`
 	DispatchState        *string `json:"dispatch_state"`
 
+	// DeliveryCode is always null for support and admin: the delivery code is
+	// shown only to the customer, so nobody at HalalGoes can read one out to a
+	// rider, and a handover that cannot use its code is confirmed with
+	// overrideHandoverCode instead (contracts/openapi.yaml,
+	// OrderAdminView.delivery_code; security review on
+	// https://github.com/shaiknoorullah/hg-mono/issues/183). The type can only
+	// ever render null.
+	DeliveryCode alwaysNull `json:"delivery_code"`
+
 	// OrderAdminView additional optional fields.
 	DispatchHistory []adminDispatchHistoryEntry `json:"dispatch_history"`
 
@@ -602,6 +611,35 @@ type menuDecisionInput struct {
 	Decision   string  `json:"decision"`
 	ReasonCode *string `json:"reason_code"`
 	ReviewNote *string `json:"review_note"`
+}
+
+// alwaysNull is a field that can only ever be rendered as JSON null. It holds
+// no value, so no code path can put a handover code in it.
+type alwaysNull struct{}
+
+// MarshalJSON renders null.
+func (alwaysNull) MarshalJSON() ([]byte, error) { return []byte("null"), nil }
+
+// handoverOverrideInput is the contract's HandoverOverrideInput.
+type handoverOverrideInput struct {
+	Handover string `json:"handover"`
+	Reason   string `json:"reason"`
+	CaseID   string `json:"case_id"`
+}
+
+// handoverOverrideView is the contract's HandoverOverride: the append-only
+// audit record overrideHandoverCode writes. It never contains either code.
+type handoverOverrideView struct {
+	ID                string `json:"id"`
+	OrderID           string `json:"order_id"`
+	Handover          string `json:"handover"`
+	Reason            string `json:"reason"`
+	CaseID            string `json:"case_id"`
+	ActorAccountID    string `json:"actor_account_id"`
+	ActorKind         string `json:"actor_kind"`
+	WrongCodeAttempts int    `json:"wrong_code_attempts"`
+	OrderState        string `json:"order_state"`
+	CreatedAt         string `json:"created_at"`
 }
 
 // cancelOrderAdminInput is the body for cancelOrderAdmin (contract:

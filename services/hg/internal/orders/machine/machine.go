@@ -83,6 +83,16 @@ type Transition struct {
 // T17/T19/T21), they are merged into one edge whose Actors is the union — the
 // legality of the pair is what this package answers, and the runner distinguishes
 // the trigger by the deadline action or the calling handler.
+//
+// Support and an admin may also take T12 (READY_FOR_PICKUP →
+// PICKED_UP) and T15/T16 (→ DELIVERED). These are the moves
+// overrideHandoverCode makes when a pickup or a met handover cannot use its
+// code — the only way past a handover code, with a reason, a support case and
+// an audit record, recorded on the timeline with actor_kind SUPPORT or ADMIN
+// (contracts/openapi.yaml, overrideHandoverCode; security review on
+// https://github.com/shaiknoorullah/hg-mono/issues/183; backend
+// https://github.com/shaiknoorullah/hg-mono/issues/310). The rider's own path
+// still needs the code (internal/dispatch).
 var table = []Transition{
 	{From: StateCreated, To: StateAuthorized, Actors: []ActorKind{ActorSystem}, MoneyFX: "funds held"},                                                                       // T1
 	{From: StateCreated, To: StateFailed, Actors: []ActorKind{ActorSystem}, MoneyFX: "none"},                                                                                 // T2
@@ -94,11 +104,11 @@ var table = []Transition{
 	{From: StateRestaurantPending, To: StateCancelled, Actors: []ActorKind{ActorSystem, ActorCustomer}, Action: ActionCancel, MoneyFX: "auth voided"},                        // T8/T9
 	{From: StatePreparing, To: StateReadyForPickup, Actors: []ActorKind{ActorRestaurant}, Action: ActionMarkReady, MoneyFX: "none"},                                          // T10
 	{From: StatePreparing, To: StateCancelled, Actors: []ActorKind{ActorSupport, ActorAdmin, ActorSystem}, Action: ActionCancelSupport, MoneyFX: "refund per policy"},        // T11
-	{From: StateReadyForPickup, To: StatePickedUp, Actors: []ActorKind{ActorRider}, Action: ActionConfirmPickup, MoneyFX: "none"},                                            // T12
+	{From: StateReadyForPickup, To: StatePickedUp, Actors: []ActorKind{ActorRider, ActorSupport, ActorAdmin}, Action: ActionConfirmPickup, MoneyFX: "none"},                  // T12 (support: see above)
 	{From: StateReadyForPickup, To: StateCancelled, Actors: []ActorKind{ActorSystem}, MoneyFX: "refund customer, pay restaurant"},                                            // T13
 	{From: StatePickedUp, To: StateArrived, Actors: []ActorKind{ActorRider, ActorSystem}, Action: ActionAdvanceDelivery, MoneyFX: "none"},                                    // T14
-	{From: StatePickedUp, To: StateDelivered, Actors: []ActorKind{ActorRider}, Action: ActionCompleteDelivery, MoneyFX: "none"},                                              // T15
-	{From: StateArrived, To: StateDelivered, Actors: []ActorKind{ActorRider}, Action: ActionCompleteDelivery, MoneyFX: "none"},                                               // T16
+	{From: StatePickedUp, To: StateDelivered, Actors: []ActorKind{ActorRider, ActorSupport, ActorAdmin}, Action: ActionCompleteDelivery, MoneyFX: "none"},                    // T15 (support: see above)
+	{From: StateArrived, To: StateDelivered, Actors: []ActorKind{ActorRider, ActorSupport, ActorAdmin}, Action: ActionCompleteDelivery, MoneyFX: "none"},                     // T16 (support: see above)
 	{From: StatePickedUp, To: StateDisputed, Actors: []ActorKind{ActorSupport, ActorAdmin}, Action: ActionOpenDispute, MoneyFX: "none yet"},                                  // T17
 	{From: StateArrived, To: StateDisputed, Actors: []ActorKind{ActorSupport, ActorAdmin}, Action: ActionOpenDispute, MoneyFX: "none yet"},                                   // T17
 	{From: StateDelivered, To: StateCompleted, Actors: []ActorKind{ActorSystem}, MoneyFX: "settle"},                                                                          // T18

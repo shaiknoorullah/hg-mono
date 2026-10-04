@@ -30,6 +30,9 @@ const (
 
 	// Order oversight (A-38).
 	CodeIllegalTransition httpx.ErrorCode = "ILLEGAL_TRANSITION"
+	// CodeMFARequired refuses a handover override from a session that did not
+	// sign in with two-step sign-in (handler_handover.go).
+	CodeMFARequired httpx.ErrorCode = "MFA_REQUIRED"
 
 	// Menu (A-19).
 	CodeCategoryNameTaken httpx.ErrorCode = "CATEGORY_NAME_TAKEN"

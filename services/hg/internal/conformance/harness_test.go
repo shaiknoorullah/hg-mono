@@ -74,6 +74,13 @@ func (testAuthenticator) Authenticate(_ context.Context, r *http.Request) (httpx
 			roles = append(roles, httpx.Role(part))
 		}
 	}
+	// The session's sign-in method: two-step sign-in unless a test says
+	// otherwise (X-Test-AMR), e.g. a support agent who signed in with a
+	// password alone.
+	amr := []string{"pwd+totp"}
+	if v := r.Header.Get("X-Test-AMR"); v != "" {
+		amr = []string{v}
+	}
 	return httpx.Principal{
 		AccountID: acct,
 		// A valid UUID: the audit trail persists session_id into a `uuid` column,
@@ -83,7 +90,7 @@ func (testAuthenticator) Authenticate(_ context.Context, r *http.Request) (httpx
 		// real UUID session, so a fixed valid UUID here mirrors that.
 		SessionID: "00000000-0000-4000-8000-0000c0f0face",
 		Roles:     roles,
-		AMR:       []string{"pwd+totp"},
+		AMR:       amr,
 	}, nil
 }
 
@@ -165,6 +172,7 @@ type Request struct {
 	Body      any    // marshaled to JSON when non-nil
 	IdemKey   string // sets Idempotency-Key when non-nil
 	Query     string // raw query string (without leading ?)
+	AMR       string // the session's sign-in method; "" → pwd+totp
 }
 
 // Do issues the request against the live server and returns the outgoing
@@ -220,6 +228,9 @@ func (h *Harness) Build(t *testing.T, rq Request) *http.Request {
 	}
 	if rq.IdemKey != "" {
 		req.Header.Set("Idempotency-Key", rq.IdemKey)
+	}
+	if rq.AMR != "" {
+		req.Header.Set("X-Test-AMR", rq.AMR)
 	}
 	return req
 }
