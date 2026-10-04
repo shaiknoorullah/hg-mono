@@ -60,6 +60,12 @@ jobs:
       - name: typecheck
         run: pnpm -r typecheck
 
+      # The email templates the Go service embeds are exactly what packages/emails
+      # exports. A hand edit to services/hg/internal/notify/emailtmpl/templates/**,
+      # or a template changed without re-exporting, fails here.
+      - name: email templates are not hand-edited
+        run: pnpm emails:check
+
       # 5. The mock actually boots and serves the contract.
       - name: mock server smoke test
         run: |

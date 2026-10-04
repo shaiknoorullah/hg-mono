@@ -1,0 +1,17 @@
+HalalGoes
+
+You're invited to HalalGoes
+
+Hi {{.InviteeName}},
+
+You have been invited to join {{.TeamName}} on HalalGoes as {{.RoleLabel}}. Set a password to accept the invitation.
+
+Set your password {{.ActionURL}}
+
+The link works once, until {{.ExpiresAt}}. After you set your password you will be asked to turn on two-step sign-in.
+
+----------------------------------------
+
+You are receiving this because someone at HalalGoes invited this address. If you were not expecting it, you can ignore it.
+
+HalalGoes · Halal food delivery in Ontario

@@ -59,6 +59,7 @@ Each exists because it was violated in the previous system and cost real money o
 | `contracts/` | **Single source of truth for every API shape.** OpenAPI + WebSocket + 311 fixtures |
 | `packages/api-client/` | Generated TS client. **Hand-editing generated files is forbidden** |
 | `packages/ui-native/`, `ui-web/` | 81 components, both themes |
+| `packages/emails/` | Transactional email templates (React Email), exported to static HTML and text that `services/hg` embeds |
 | `services/hg/` | The Go binary |
 | `deploy/` | docker compose + Traefik |
 
@@ -71,6 +72,8 @@ pnpm install
 pnpm check                              # contract + fixtures + drift + typecheck — the gate
 pnpm -r test
 pnpm mock                               # mock API on :4010, WS on /v1/ws
+pnpm emails:build                       # re-export the email templates (packages/emails) the Go service embeds
+pnpm emails:check                       # fail if that export is stale (also: pnpm --filter @hg/emails build:check)
 cd services/hg && make up && make migrate && make run
 ```
 

@@ -1,0 +1,17 @@
+HalalGoes
+
+We could not approve your application
+
+Hi {{.FirstName}},
+
+We reviewed your application to deliver with HalalGoes, and we cannot approve it.
+
+Why
+
+{{.ReasonText}}
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

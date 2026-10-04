@@ -1,0 +1,19 @@
+HalalGoes
+
+{{.RestaurantName}} is suspended
+
+An admin suspended {{.RestaurantName}} on HalalGoes. While it is suspended, customers cannot order from you and you do not receive new orders.
+
+Why
+
+{{.ReasonText}}
+
+Orders you had already accepted still complete as normal. You can still sign in to see your orders, your earnings and your payouts, and to contact us to appeal. Payouts pause until the suspension is lifted; nothing you have earned is lost.
+
+Sign in to HalalGoes {{.ActionURL}}
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

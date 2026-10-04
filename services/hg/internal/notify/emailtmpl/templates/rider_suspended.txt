@@ -1,0 +1,19 @@
+HalalGoes
+
+Your rider account is paused
+
+Hi {{.FirstName}},
+
+An admin paused your HalalGoes rider account. While it is paused, you cannot go online or take new deliveries.
+
+Why
+
+{{.ReasonText}}
+
+You can still open the rider app to see your earnings and payouts, and to contact us if you think this is a mistake.
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario
