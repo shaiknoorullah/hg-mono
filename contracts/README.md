@@ -306,5 +306,6 @@ either way, but the **values** need a human before launch:
 | Error-code casing | Any `ErrorCode` member is not `SCREAMING_SNAKE_CASE`, or the enum contains a duplicate |
 | YAML 1.1 truthy scalars | An unquoted `ON`/`OFF`/`YES`/`NO` appears in an `enum`, `examples` or `default` — see §"Two contract defects" |
 | Unsatisfiable `allOf` | An `allOf` extends a base that sets `additionalProperties: false` |
+| Menu lock declared | A write under a menu path (`/menu`, `/menu/…`, `/menu-reviews/…`) has no `403` naming `MENU_LOCKED`, the refusal while the restaurant is suspended or banned ([menu lock](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#256](https://github.com/shaiknoorullah/hg-mono/issues/256)) |
 | Generated-client drift | `pnpm generate` changes `packages/api-client/src/generated/**` (`git diff --exit-code`) |
 | Fixture drift | `pnpm fixtures:build` changes anything under `contracts/fixtures/` (`git diff --exit-code`) |

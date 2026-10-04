@@ -159,6 +159,30 @@ function main(): number {
     });
   }
 
+  // ------------------------------------------------------ menu lock declared
+  // While a restaurant is suspended or banned its menu is locked for everyone, admins
+  // included (docs/decisions/README.md, round 2, "A suspended or banned restaurant's menu";
+  // https://github.com/shaiknoorullah/hg-mono/issues/256). Every write under a menu path
+  // must declare that refusal, so a menu write added later cannot leave it out.
+  let menuWrites = 0;
+  for (const [route, methods] of Object.entries(spec.paths ?? {})) {
+    if (!/\/menu(?:[/-]|$)/.test(route)) continue;
+    for (const [method, op] of Object.entries(methods as Record<string, any>)) {
+      if (!HTTP_METHODS.includes(method) || ['get', 'head', 'options'].includes(method)) continue;
+      menuWrites += 1;
+      const forbidden: string = op.responses?.['403']?.description ?? '';
+      if (!forbidden.includes('`MENU_LOCKED`')) {
+        fail(
+          `${method.toUpperCase()} ${route}: a menu write must declare \`403 MENU_LOCKED\` — ` +
+            'the refusal while the restaurant is suspended or banned',
+        );
+      }
+    }
+  }
+  if (menuWrites > 0 && !errorCodes.includes('MENU_LOCKED')) {
+    fail('ErrorCode is missing `MENU_LOCKED`, which every menu write declares');
+  }
+
   // ------------------------------------------------- YAML 1.1 truthy landmines
   // `ON` unquoted in a flow sequence is boolean `true` to every YAML 1.1 parser (PyYAML,
   // libyaml, Go's gopkg.in/yaml.v2) while YAML 1.2 reads it as the string "ON". Ontario is

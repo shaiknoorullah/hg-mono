@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // validMenuDecision is the closed set of allowed decision values.
@@ -59,6 +60,9 @@ func (h *Handler) CreateMenuCategoryOnBehalf(w http.ResponseWriter, r *http.Requ
 	row, err := h.repo.CreateMenuCategoryOnBehalf(r.Context(), actorFrom(r),
 		restaurantID, in.Name, in.Description, sortOrder)
 	if err != nil {
+		if restaurant.RespondMenuLocked(w, r, err) {
+			return
+		}
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Restaurant not found.", nil)
@@ -182,6 +186,9 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 			taxCategory:       taxCategory,
 		})
 	if err != nil {
+		if restaurant.RespondMenuLocked(w, r, err) {
+			return
+		}
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Restaurant or category not found.", nil)
@@ -352,6 +359,9 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 	result, err := h.repo.DecideMenuVersion(r.Context(), actorFrom(r),
 		versionID, in.Decision, in.ReasonCode, in.ReviewNote)
 	if err != nil {
+		if restaurant.RespondMenuLocked(w, r, err) {
+			return
+		}
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Menu version not found.", nil)

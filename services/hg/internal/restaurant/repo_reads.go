@@ -869,14 +869,25 @@ func (r *Repo) loadItemVersion(ctx context.Context, versionID string) (*MenuItem
 }
 
 // CreateCategory creates a new menu category and returns its view.
-// Returns ErrCategoryNameTaken if a category with the same name exists.
+// Returns ErrCategoryNameTaken if a category with the same name exists, and
+// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go).
 func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categoryInputDTO) (*MenuCategoryView, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
 	var id string
 	sortOrder := 0
 	if in.SortOrder != nil {
 		sortOrder = *in.SortOrder
 	}
-	err := r.db.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO menu_category (restaurant_id, name, description, sort_order)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id::text`,
@@ -886,6 +897,9 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 			return nil, ErrCategoryNameTaken
 		}
 		return nil, fmt.Errorf("create category: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 	return &MenuCategoryView{
 		ID:          id,
@@ -899,12 +913,17 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 
 // CreateMenuItem creates a new menu item + initial DRAFT version.
 // The version is always DRAFT (never auto-approved per R-05 / halal gate).
+// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go).
 func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 
 	// IDOR guard: the target category must belong to THIS restaurant. The FK on
 	// menu_item.category_id references menu_category(id) globally, so without this
@@ -980,12 +999,18 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 
 // UpdateMenuItem creates a new PENDING_REVIEW version for an existing item
 // (or DRAFT when carrying halal-bearing tags). Validates ownership.
+// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go): no
+// price, photo or other field changes, and a version waiting for review stays.
 func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, in menuItemUpdateDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 
 	// Load current item (ownership check in WHERE clause).
 	var currentCategoryID string
@@ -1092,6 +1117,8 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 }
 
 // SetMenuItemAvailability sets a menu item's availability state. Validates ownership.
+// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go): an item
+// cannot be marked out of stock or back in stock.
 func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID string, in availabilityInputDTO) (*MenuItemView, error) {
 	// availability_state is the contract enum [AVAILABLE, OUT_OF_STOCK]; the
 	// handler validates it before we reach the ::menu_item_availability_state cast.
@@ -1105,7 +1132,17 @@ func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID
 		}
 	}
 
-	tag, err := r.db.Exec(ctx, `
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
+	tag, err := tx.Exec(ctx, `
 		UPDATE menu_item SET availability_state=$2::menu_item_availability_state,
 		       out_of_stock_until=$3, updated_at=now()
 		 WHERE id=$1 AND restaurant_id=$4 AND deleted_at IS NULL`,
@@ -1115,6 +1152,9 @@ func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID
 	}
 	if tag.RowsAffected() == 0 {
 		return nil, ErrNotFound
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 	return r.getMenuItemByID(ctx, restaurantID, itemID)
 }
