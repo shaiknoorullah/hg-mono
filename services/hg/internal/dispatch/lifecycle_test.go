@@ -1,9 +1,11 @@
 package dispatch
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -21,6 +23,7 @@ type fakeLifecycle struct {
 	arrivalCalls  []lifecycleCall
 	deliveryCalls []lifecycleCall
 	pickupErr     error
+	arrivalErr    error
 	deliveryErr   error
 }
 
@@ -40,7 +43,7 @@ func (f *fakeLifecycle) MarkArrived(_ context.Context, orderID, riderAccountID s
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.arrivalCalls = append(f.arrivalCalls, lifecycleCall{orderID: orderID, riderAccountID: riderAccountID})
-	return nil
+	return f.arrivalErr
 }
 
 func (f *fakeLifecycle) CompleteDelivery(_ context.Context, orderID, riderAccountID string) error {
@@ -72,6 +75,59 @@ func (f *fakeLifecycle) deliveries() []lifecycleCall {
 	out := make([]lifecycleCall, len(f.deliveryCalls))
 	copy(out, f.deliveryCalls)
 	return out
+}
+
+// TestBridgeMovesOrderOnlyOnThreeSteps needs no database, so unlike the
+// tests below it runs in CI. Dispatch may move the order forward only from
+// carrying to picked up, at the customer to arrived, and completed to delivered
+// (docs/spec/01-platform.md, "P-14 — Order lifecycle states and transitions").
+// Every assignment state is fed to the bridge: exactly those three call the
+// orders module, once each, for the order and rider given; the rest leave the
+// order alone. A failing call is logged at WARN, never swallowed silently.
+func TestBridgeMovesOrderOnlyOnThreeSteps(t *testing.T) {
+	states := map[string]bool{}
+	for from, tos := range assignmentForward {
+		states[from] = true
+		for _, to := range tos {
+			states[to] = true
+		}
+	}
+	moves := map[string]string{"PICKED_UP": "pickup", "ARRIVED_AT_DROPOFF": "arrival", "DELIVERED": "delivery"}
+	want := lifecycleCall{orderID: "order-1", riderAccountID: "rider-1"}
+
+	for st := range states {
+		t.Run(st, func(t *testing.T) {
+			lc := &fakeLifecycle{}
+			NewService(nil, lc).advanceOrder(context.Background(), st, want.orderID, want.riderAccountID)
+			got := map[string][]lifecycleCall{"pickup": lc.pickups(), "arrival": lc.arrivals(), "delivery": lc.deliveries()}
+			for kind, calls := range got {
+				n := 0
+				if moves[st] == kind {
+					n = 1
+				}
+				if len(calls) != n {
+					t.Errorf("assignment %s: %d %s calls to the orders module, want %d", st, len(calls), kind, n)
+				}
+				for _, c := range calls {
+					if c != want {
+						t.Errorf("assignment %s: %s call for %+v, want %+v", st, kind, c, want)
+					}
+				}
+			}
+		})
+	}
+
+	t.Run("failure is logged", func(t *testing.T) {
+		var buf bytes.Buffer
+		svc := NewService(nil, &fakeLifecycle{arrivalErr: errors.New("orders module unavailable (simulated)")})
+		svc.log = slog.New(slog.NewTextHandler(&buf, nil))
+		svc.advanceOrder(context.Background(), "ARRIVED_AT_DROPOFF", want.orderID, want.riderAccountID)
+		for _, frag := range []string{"level=WARN", "step=mark_arrived", "order_id=order-1", "rider_account_id=rider-1"} {
+			if !strings.Contains(buf.String(), frag) {
+				t.Errorf("bridge failure log %q is missing %q", buf.String(), frag)
+			}
+		}
+	})
 }
 
 // ---------------------------------------------------------------------------

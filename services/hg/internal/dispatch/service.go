@@ -159,32 +159,46 @@ func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID s
 	// advance the assignment): re-firing it would attempt an already-applied
 	// order transition, which the orders machine rejects as illegal and which
 	// would otherwise log a spurious bridge failure on a normal retry.
-	if s.lifecycle != nil && transitioned {
-		switch in.ToState {
-		case "PICKED_UP":
-			if lcErr := s.lifecycle.ConfirmPickup(ctx, asn.OrderID, riderAccountID); lcErr != nil {
-				// Log-and-swallow: the dispatch assignment is committed and must not
-				// roll back on an orders-module failure. But the order is now stranded
-				// (assignment PICKED_UP, order.state not advanced) and there is no
-				// automatic retry for an already-dispatched order, so this is an
-				// operational incident that must be visible, never silent.
-				s.logBridgeFailure(asn.OrderID, riderAccountID, "confirm_pickup", lcErr)
-			}
-		case "ARRIVED_AT_DROPOFF":
-			// The rider is at the customer: PICKED_UP -> ARRIVED. Without this the
-			// order skipped straight to DELIVERED, so "your rider is here", the
-			// delivery-code reveal and the handover-overdue deadline never
-			// happened (issue #250). Same log-and-swallow rule as above.
-			if lcErr := s.lifecycle.MarkArrived(ctx, asn.OrderID, riderAccountID); lcErr != nil {
-				s.logBridgeFailure(asn.OrderID, riderAccountID, "mark_arrived", lcErr)
-			}
-		case "DELIVERED":
-			if lcErr := s.lifecycle.CompleteDelivery(ctx, asn.OrderID, riderAccountID); lcErr != nil {
-				s.logBridgeFailure(asn.OrderID, riderAccountID, "complete_delivery", lcErr)
-			}
-		}
+	if transitioned {
+		s.advanceOrder(ctx, in.ToState, asn.OrderID, riderAccountID)
 	}
 	return asn, nil
+}
+
+// advanceOrder is the bridge itself: it maps the assignment step the rider just
+// committed to the one order transition it implies, if any. Only three steps
+// move the order; every other step (setting off, arriving at the restaurant,
+// leaving it, the undeliverable/return path, platform cancel or reassign)
+// leaves order.state alone.
+//
+// Each call is log-and-swallow: the dispatch assignment is committed and must
+// not roll back on an orders-module failure. But the order is then stranded
+// (assignment advanced, order.state not) and there is no automatic retry for an
+// already-dispatched order, so a failure is an operational incident that must
+// be visible, never silent.
+func (s *Service) advanceOrder(ctx context.Context, assignmentState, orderID, riderAccountID string) {
+	if s.lifecycle == nil {
+		return
+	}
+	var step string
+	var err error
+	switch assignmentState {
+	case "PICKED_UP":
+		step, err = "confirm_pickup", s.lifecycle.ConfirmPickup(ctx, orderID, riderAccountID)
+	case "ARRIVED_AT_DROPOFF":
+		// The rider is at the customer: PICKED_UP -> ARRIVED. Without this the
+		// order skipped straight to DELIVERED, so "your rider is here", the
+		// delivery-code reveal and the handover-overdue deadline never happened
+		// (issue #250).
+		step, err = "mark_arrived", s.lifecycle.MarkArrived(ctx, orderID, riderAccountID)
+	case "DELIVERED":
+		step, err = "complete_delivery", s.lifecycle.CompleteDelivery(ctx, orderID, riderAccountID)
+	default:
+		return
+	}
+	if err != nil {
+		s.logBridgeFailure(orderID, riderAccountID, step, err)
+	}
 }
 
 // logBridgeFailure records a swallowed OrderLifecycle error. The dispatch side
