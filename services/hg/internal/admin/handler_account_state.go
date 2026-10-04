@@ -42,13 +42,13 @@ func (h *Handler) ApplyCustomerAccountAction(w http.ResponseWriter, r *http.Requ
 
 // applyAccountAction is the one path behind the three operations
 // (https://github.com/shaiknoorullah/hg-mono/issues/253). The route already lets
-// only admins and super admins in; the service checks again, from the verified
+// only admins and super admins in; the handler checks again, from the verified
 // principal, before reading the body, so a route registered wrongly can never
-// let anyone else change an account.
+// let anyone else change an account. ApplyAccountAction checks the same a third
+// time, for callers that are not this handler.
 func (h *Handler) applyAccountAction(w http.ResponseWriter, r *http.Request, subject accountstate.Subject, subjectID string) {
 	p := httpx.PrincipalFrom(r.Context())
-	superAdmin := p.HasRole(httpx.RoleSuperAdmin)
-	if !superAdmin && !p.HasRole(httpx.RoleAdmin) {
+	if !p.HasRole(httpx.RoleSuperAdmin) && !p.HasRole(httpx.RoleAdmin) {
 		httpx.Fail(w, r, http.StatusForbidden, CodeForbiddenPermission,
 			"Only admins and super admins can change an account's state.",
 			map[string]any{"permission": string(subject) + ".account_state_change"})
@@ -94,7 +94,7 @@ func (h *Handler) applyAccountAction(w http.ResponseWriter, r *http.Request, sub
 		accountActionInput{
 			Subject: subject, SubjectID: subjectID, Action: action,
 			ReasonCode: in.ReasonCode, ReasonText: in.ReasonText,
-			IdemKey: key, SuperAdmin: superAdmin, Actor: actorFrom(r),
+			IdemKey: key, Principal: p, Actor: actorFrom(r),
 		})
 	if err != nil {
 		h.failAccountAction(w, r, err)
@@ -145,6 +145,9 @@ func (h *Handler) failAccountAction(w http.ResponseWriter, r *http.Request, err 
 	case errors.As(err, &perm):
 		httpx.Fail(w, r, http.StatusForbidden, CodeForbiddenPermission,
 			"Only a super admin can do this.", map[string]any{"permission": perm.permission})
+	case errors.Is(err, errMFARequired):
+		httpx.Fail(w, r, http.StatusForbidden, CodeMFARequired,
+			"Sign in with two-step sign-in to change an account's state.", nil)
 	case errors.Is(err, errConfirmOwnProposal):
 		httpx.Fail(w, r, http.StatusForbidden, CodeSelfApprovalNotOK,
 			"A ban needs a second person: a different super admin must confirm it.", nil)
@@ -173,6 +176,11 @@ func (h *Handler) failAccountAction(w http.ResponseWriter, r *http.Request, err 
 		// a race the checks above could not see.
 		httpx.Fail(w, r, http.StatusConflict, CodeIllegalStateTransition,
 			"The account changed while this action was applied. Reload and try again.", nil)
+	case errors.As(err, &pgErr) && pgErr.Code == "42501":
+		// The database's own role and own-account checks (migration 00035): the
+		// caller's role was withdrawn while this action was applied.
+		httpx.Fail(w, r, http.StatusForbidden, CodeForbiddenPermission,
+			"You no longer hold the role this action needs.", nil)
 	default:
 		h.failInternal(w, r, err)
 	}

@@ -599,18 +599,17 @@ func TestABanNeedsTwoPeopleAndEndsEverySession(t *testing.T) {
 		t.Errorf("a proposer's own confirmation written directly: err = %v, want a check violation", err)
 	}
 
-	// A proposal lapses after 7 days: confirming it then is refused.
+	// A proposal lapses after 7 days: confirming it then is refused. The database
+	// stamps history with the transaction's clock (migration 00035), so the
+	// eight-day-old proposal is a fixture written with the triggers off.
 	stale := seedRider(t, pool, "OFFLINE")
-	if _, err := pool.Exec(ctx, `UPDATE rider_profile SET account_status='SUSPENDED' WHERE account_id=$1`, stale); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := pool.Exec(ctx, `
+	bypass(t, pool,
+		setRider(stale, "SUSPENDED"),
+		q(`
 		INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
 		                                 reason_text, actor_account_id, idempotency_key, request_hash, created_at)
 		VALUES ('RIDER', $1, 'PROPOSE_BAN', 'SUSPENDED', 'SUSPENDED', 'SAFETY_RISK', 'proposed and never confirmed',
-		        $2, $3, '\x00', now() - interval '8 days')`, stale, admin.AccountID, uuid.NewString()); err != nil {
-		t.Fatal(err)
-	}
+		        $2, $3, '\x00', now() - interval '8 days')`, stale, admin.AccountID, uuid.NewString()))
 	mustStatus(t, "confirm a lapsed proposal", act(t, asSuper2, "RIDER", stale, "CONFIRM_BAN", "SAFETY_RISK", ""), 409, "ILLEGAL_STATE_TRANSITION")
 
 	// A customer's ban waits for an accepted order to finish.

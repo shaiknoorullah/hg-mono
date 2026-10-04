@@ -348,34 +348,87 @@ reject "two idempotency records with the same key collide" "idempotency_unique" 
 
 echo
 echo "11. Account actions (https://github.com/shaiknoorullah/hg-mono/issues/253)"
+# History rows name a staff actor who may take the transition (migration 00035):
+# an admin and a super admin to act.
+INV_ADMIN='13000000-0000-4000-8000-000000000001'
+INV_SUPER='13000000-0000-4000-8000-000000000002'
+psql "$DSN" -q -v ON_ERROR_STOP=1 -c "
+  INSERT INTO account (id, email, status) VALUES
+    ('$INV_ADMIN', 'inv-admin@hg.test', 'ACTIVE'), ('$INV_SUPER', 'inv-super@hg.test', 'ACTIVE')
+  ON CONFLICT (id) DO NOTHING;
+  INSERT INTO account_role (account_id, role, scope_type)
+  SELECT v.a::uuid, v.r::role_name, 'GLOBAL'
+    FROM (VALUES ('$INV_ADMIN', 'ADMIN'), ('$INV_SUPER', 'SUPER_ADMIN')) AS v(a, r)
+   WHERE NOT EXISTS (SELECT 1 FROM account_role x WHERE x.account_id = v.a::uuid AND x.role = v.r::role_name);" >/dev/null
 ASE_COLS="subject_type, subject_id, action, from_state, to_state, reason_code, reason_text, actor_account_id, idempotency_key, request_hash"
 reject "a ban needs a proposal to confirm" "account_ban_needs_proposal" \
   "INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('RIDER','22222222-2222-4222-8222-222222222222','CONFIRM_BAN','SUSPENDED','BANNED','SAFETY_RISK',
-    'nobody proposed this ban','11111111-1111-4111-8111-111111111111','inv-ban-without-proposal', '\x00');"
+    'nobody proposed this ban','$INV_SUPER','inv-ban-without-proposal', '\x00');"
 reject "the person who proposed a ban cannot confirm it" "account_ban_two_person" \
   "INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('RIDER','22222222-2222-4222-8222-222222222222','PROPOSE_BAN','SUSPENDED','SUSPENDED','SAFETY_RISK',
-    'proposing a ban for a test','11111111-1111-4111-8111-111111111111','inv-two-person-propose', '\x00');
+    'proposing a ban for a test','$INV_SUPER','inv-two-person-propose', '\x00');
    INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('RIDER','22222222-2222-4222-8222-222222222222','CONFIRM_BAN','SUSPENDED','BANNED','SAFETY_RISK',
-    'confirming my own proposal','11111111-1111-4111-8111-111111111111','inv-two-person-confirm', '\x00');"
-reject "a ban is reached only by confirming one" "account_state_event_ban_shape" \
+    'confirming my own proposal','$INV_SUPER','inv-two-person-confirm', '\x00');"
+# The transition guard (00035) runs before the CHECK (00034); either refuses it.
+reject "a ban is reached only by confirming one" "account_state_illegal_transition\\|account_state_event_ban_shape" \
   "INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('CUSTOMER','11111111-1111-4111-8111-111111111111','SUSPEND','ACTIVE','BANNED','OTHER',
-    'a suspension that bans','019ffe57-fbd0-7355-ade8-b03ea7943578','inv-suspend-to-banned', '\x00');"
+    'a suspension that bans','$INV_ADMIN','inv-suspend-to-banned', '\x00');"
 reject "a reason from another subject's vocabulary is refused" "account_state_event_reason_code" \
   "INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('RIDER','22222222-2222-4222-8222-222222222222','SUSPEND','ACTIVE','SUSPENDED','HALAL_INTEGRITY',
-    'a restaurant reason on a rider','11111111-1111-4111-8111-111111111111','inv-wrong-vocabulary', '\x00');"
+    'a restaurant reason on a rider','$INV_ADMIN','inv-wrong-vocabulary', '\x00');"
 reject "the account history is append-only" "account_state_event_is_append_only" \
   "INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('CUSTOMER','11111111-1111-4111-8111-111111111111','SUSPEND','ACTIVE','SUSPENDED','OTHER',
-    'suspended, then rewritten','019ffe57-fbd0-7355-ade8-b03ea7943578','inv-append-only-history', '\x00');
+    'suspended, then rewritten','$INV_ADMIN','inv-append-only-history', '\x00');
    UPDATE account_state_event SET to_state = 'ACTIVE' WHERE idempotency_key = 'inv-append-only-history';"
 
 echo
-echo "12. Contract enums"
+echo "12. One owner for every account-state change (migration 00035)"
+reject "a restaurant's state changes only with its history row" "account_state_change_unrecorded" \
+  "UPDATE restaurant SET account_state = 'SUSPENDED' WHERE id = '33333333-3333-4333-8333-333333333333';"
+reject "a rider's status changes only with its history row" "account_state_change_unrecorded" \
+  "UPDATE rider_profile SET account_status = 'BANNED' WHERE account_id = '019ffe57-fbd0-7355-ade8-b03ea7943578';"
+reject "a customer's status changes only with its history row" "account_state_change_unrecorded" \
+  "UPDATE account SET status = 'BANNED' WHERE id = '11111111-1111-4111-8111-111111111111';"
+reject "a history row by someone who is not staff is refused" "account_state_actor_not_permitted" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','SUSPEND','ACTIVE','SUSPENDED','OTHER',
+    'a customer suspends a rider','11111111-1111-4111-8111-111111111111','inv-not-staff', '\x00');"
+reject "only a super admin lifts a ban" "account_state_actor_not_permitted" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','REINSTATE','BANNED','ACTIVE','APPEAL_UPHELD',
+    'an admin lifts a ban','$INV_ADMIN','inv-admin-unban', '\x00');"
+reject "the halal expiry principal only delists" "account_state_system_not_allowed" \
+  "INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
+                                    reason_text, actor_kind, system_actor)
+   VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','SUSPEND','DELISTED','SUSPENDED',
+           'COMPLIANCE_THRESHOLD','the expiry suspends','SYSTEM','HALAL_EXPIRY');"
+reject "listing a restaurant needs a current halal certificate" "account_state_live_needs_halal_certificate" \
+  "INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code, location,
+                           onboarding_state, account_state)
+   VALUES ('13000000-0000-4000-8000-0000000000a1', 'inv-uncertified', 'Uncertified Inc.', 'Uncertified',
+           '1 King St', 'Toronto', 'ON', 'M5J0C3', ST_SetSRID(ST_MakePoint(-79.38, 43.65), 4326)::geography,
+           'ACTIVE', 'DELISTED');
+   UPDATE restaurant SET account_state = 'LIVE' WHERE id = '13000000-0000-4000-8000-0000000000a1';
+   INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RESTAURANT','13000000-0000-4000-8000-0000000000a1','REINSTATE','DELISTED','LIVE','ISSUE_RESOLVED',
+    'relisting with no certificate','$INV_ADMIN','inv-relist-uncertified', '\x00');"
+reject "completing onboarding never lifts a penalty" "account_state_change_unrecorded" \
+  "INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code, location,
+                           onboarding_state, account_state)
+   VALUES ('13000000-0000-4000-8000-0000000000a2', 'inv-suspended-onboarding', 'Suspended Inc.', 'Suspended',
+           '1 King St', 'Toronto', 'ON', 'M5J0C3', ST_SetSRID(ST_MakePoint(-79.38, 43.65), 4326)::geography,
+           'MENU_PENDING', 'SUSPENDED');
+   UPDATE restaurant SET onboarding_state = 'ACTIVE', account_state = 'DELISTED'
+    WHERE id = '13000000-0000-4000-8000-0000000000a2';"
+
+echo
+echo "13. Contract enums"
 if python3 "$HERE/../tools/check_enums.py" >/tmp/hg_enum_check.txt 2>&1; then
   pass "every contract enum matches a pg type or is an explained exclusion"
   tail -2 /tmp/hg_enum_check.txt | head -1 | sed 's/^/     /'

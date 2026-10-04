@@ -15,7 +15,7 @@ migrations/
   0000N_*.sql        the migrations, in order
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 64 assertions about what the DB refuses
+  test/              invariant tests: 72 assertions about what the DB refuses
   tools/             contract-enum generator and checker
 ```
 
@@ -56,6 +56,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
 | 6 | One canonical location column per entity, `geography(Point,4326)`, with the GiST indexes dispatch needs. | `lint_location_columns()`. A second location column, a `geometry`, a bare `point`, or a column named `coords` all fail the gate. |
 | 7 | A ban needs two people, and an account's history of suspensions, reinstatements and bans is never rewritten ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)). | `00034`: a `BEFORE INSERT` trigger refuses a `CONFIRM_BAN` unless the account's latest row is a `PROPOSE_BAN` by somebody else less than 7 days old; CHECKs make `BANNED` reachable only by confirming a ban and hold each reason to its subject's vocabulary; `account_state_event` is append-only (trigger + `REVOKE`). |
+| 8 | An account's state changes only through its owner, with that owner's gates, and leaves a history row ([#335](https://github.com/shaiknoorullah/hg-mono/pull/335) security review). | `00035`: deferred constraint triggers on `restaurant.account_state`/`delist_reasons`, `rider_profile.account_status` and `account.status` refuse, at COMMIT, any change without a history row for exactly that change in the same transaction (the one exception is leaving `PENDING` as onboarding completes, in the same row update). A `BEFORE INSERT` trigger on `account_state_event` refuses a transition missing from `account_state_rule` (the same list as `accountstate.Transitions()` in Go), a staff actor without the role it needs (super admin to confirm or lift a ban), acting on their own account or restaurant, or a staff account changed as a customer; a system principal may take only its own transitions (the halal expiry only delists); history is stamped with the transaction's clock, never backdated. Listing a restaurant needs a current halal certificate, whichever path lists it. |
 
 The two schema lints are also runnable on their own:
 
