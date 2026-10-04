@@ -34,7 +34,7 @@ The only copy outside the server is the nightly one the owner's machine pulls ([
 
 | Role | Who | Does |
 |---|---|---|
-| On-call | *Name, phone and hours: [#169][i169]* | First response. Runs this runbook, over WireGuard and SSH. Calls the owner for anything in the next paragraph |
+| On-call | Mr. Sufiyan ([#169][i169]). His phone number is kept in the secrets store (the vault from [#235][i235], or the encrypted env file until then), never in this repository | First response. Runs this runbook, over WireGuard and SSH. Calls the owner for anything in the next paragraph |
 | Owner | HalalGoes's owner | Holds the Contabo account (with 2FA), DNS, the Stripe, Twilio and Resend accounts, the machine with the off-server copy and the offline password manager. Orders a new server. Speaks to restaurants and the public |
 | Privacy officer | *To be named: [#214][i214]* | Keeps the breach log. Decides with the owner whether a breach is reported |
 | Support agents | Admin support staff | Answer customers from the support version of the System page ([decision][dec-support]) |
