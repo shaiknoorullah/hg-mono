@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -310,6 +310,9 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
     prev_hash bytea not null     hash bytea not null
   audit_chain_seal { seal_date date pk, terminal_hash bytea, event_count int, sealed_at timestamptz }
   ```
+  `actor_ip` is the staff member's own address as the router resolves it behind Traefik
+  ([`01-platform.md`, "P-06 — Deny-by-default routing and the middleware chain"](01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain),
+  stage 3), never the proxy's.
 - **Role**: **Super Admin** — read all events, export, run chain verification. **Admin** — read events
   whose `target_type` is an operational entity (`RESTAURANT`, `RIDER`, `CUSTOMER`, `ORDER`,
   `MENU_VERSION`, `CASE`, `HALAL_CERTIFICATE`), i.e. the compliance trail they are accountable for;

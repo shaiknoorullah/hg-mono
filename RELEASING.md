@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # Releasing HalalGoes
@@ -87,6 +87,13 @@ curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, or if
 `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
+
+Per-IP rate limits (sign-in, restaurant sign-up, phone codes) key on the client address Traefik
+forwards, which the API believes only from `HG_TRUSTED_PROXIES`. The default covers the Docker
+bridge pools that `hg-net` is allocated from. If the host's Docker daemon uses custom
+`default-address-pools`, set `HG_TRUSTED_PROXIES` to the `hg-net` subnet
+(`docker network inspect hg-net`); otherwise every client shares Traefik's address and one
+client's limit becomes everyone's.
 
 ## 5. Verify the gate (any time)
 
