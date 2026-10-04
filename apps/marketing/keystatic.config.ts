@@ -41,7 +41,7 @@ export default config({
     : { kind: 'local' },
 
   ui: {
-    brand: { name: 'Halal Goes' },
+    brand: { name: 'HalalGoes' },
   },
 
   collections: {

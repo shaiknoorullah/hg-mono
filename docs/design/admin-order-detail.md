@@ -1,6 +1,6 @@
 # Admin order-detail view (with live tracking)
 
-_Halal Goes — admin console. Opens when an admin clicks an order row in the orders grid
+_HalalGoes — admin console. Opens when an admin clicks an order row in the orders grid
 (LyteNyte). The single place an admin sees everything about one order and can act on it or
 reach any party. Captured Aug 2026 from product direction._
 
@@ -13,6 +13,9 @@ reach any party. Captured Aug 2026 from product direction._
 - Ships **empty / loading / error** states (repo rule).
 
 ## The live-tracking map box (the ask)
+
+> **2026-10-01:** Mapbox is SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 
 - **Engine:** `mapbox-gl-js` (admin web), brand-tinted **hg-light / hg-dark** styles.
 - **On the map:** restaurant pin, **rider live position (moving)**, customer/destination pin, the

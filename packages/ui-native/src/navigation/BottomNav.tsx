@@ -26,8 +26,8 @@
  * Icon convention (shared with `@hg/ui-native`'s `Icon` primitive, `../primitives/Icon`):
  * **linear = inactive, bold = active.** `items[].icon`/`activeIcon` and `action.icon` stay
  * `ReactNode` — this component does not import `Icon` itself, the same way it never imported
- * `lucide-react-native` — but every call site in this repo's galleries passes
- * `<Icon name="..." weight={selected ? 'bold' : 'linear'} />`, and app call sites should too.
+ * `lucide-react-native` — but every call site should pass
+ * `<Icon name="..." weight={selected ? 'bold' : 'linear'} />`.
  */
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { ReactNode } from 'react';

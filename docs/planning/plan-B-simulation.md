@@ -2,13 +2,13 @@
 
 > Competing plan. Philosophy: **process discipline does not prevent bugs; executable verification does.**
 > The primary product artifact is not the services — it is `hgsim`, a deterministic simulator of the whole
-> Halal Goes platform, plus a catalog of executable invariants that every build must survive.
+> HalalGoes platform, plus a catalog of executable invariants that every build must survive.
 
 ---
 
 ## 0. Thesis, in one paragraph
 
-Every bug in the existing Halal Goes system is a *concurrency, ordering, failure, or bookkeeping* bug that no
+Every bug in the existing HalalGoes system is a *concurrency, ordering, failure, or bookkeeping* bug that no
 amount of code review would have caught: the checkout saga continues to rider assignment on a rejected order
 because a compensation returned `false`; `failed_notifications:restaurant:{id}` is written and never read;
 losing one 30-minute Redis key leaves the DB saying `RIDER_ASSIGNED` while the assignment workflow hangs until
@@ -42,7 +42,7 @@ There is no frozen spec pyramid. There are three artifacts, all in-repo, all ver
 
 **(a) `model/INVARIANTS.md` — the invariant catalog.** Numbered, one English line each, each bound to an
 executable checker `INV_xx` in `model/checkers/`. This is the spec that matters. It is written *before* the
-code it constrains. Initial catalog, derived directly from the observed Halal Goes failures:
+code it constrains. Initial catalog, derived directly from the observed HalalGoes failures:
 
 | ID | English statement | Kills which real bug |
 |---|---|---|
@@ -139,7 +139,7 @@ filed automatically as a work order (§4).
    mid-checkout")`, `sim.Sometimes("rider disconnects between PICKED_UP and DELIVERED")`. If a sometimes-assertion
    never fires across the nightly sweep, **CI fails**: the harness is blind there. This is a coverage metric that
    measures *interesting states reached*, not lines executed — and it is the plan's primary anti-blind-spot device.
-2. **The bug museum** (mutation testing with a real corpus). Every bug found in the existing Halal Goes system —
+2. **The bug museum** (mutation testing with a real corpus). Every bug found in the existing HalalGoes system —
    all ~30 catalogued in the fleet reports — is encoded as a *mutant*: a patch that reintroduces it. `make museum`
    applies each mutant and asserts the sweep catches it within N seeds. A harness that stops catching the
    compensation-nesting bug has rotted. New bugs found in production join the museum permanently.

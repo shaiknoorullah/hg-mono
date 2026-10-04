@@ -6,7 +6,7 @@ Area: `/home/user/hg-api` — Prisma schema/migrations/seed, docker-compose stac
 
 ## 1. Purpose & Role in the Platform
 
-This area is the persistence and infrastructure backbone of the Halal Goes food-delivery platform. It defines:
+This area is the persistence and infrastructure backbone of the HalalGoes food-delivery platform. It defines:
 
 - The **entire relational data model** (PostgreSQL 17 + PostGIS 3.6 via Prisma 6.16) for users, riders, restaurants, menus, carts, orders, payments, coupons, reviews, and admin approvals.
 - The **local/production docker-compose deployment**: Postgres, PgBouncer, pgAdmin, a Redis master + 2 replicas + 2 Sentinels HA cluster, RedisInsight, MinIO object storage, a full Temporal server stack (server + admin-tools + UI), and the NestJS API container itself.

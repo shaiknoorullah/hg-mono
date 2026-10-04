@@ -52,8 +52,8 @@ var halalDisplayStates = []string{
 // per restaurant; the sentence is never reworded by the client.
 func certificationDisclaimer(verifiedOn string) string {
 	if verifiedOn == "" {
-		return "Halal Goes does not itself certify food."
+		return "HalalGoes does not itself certify food."
 	}
-	return "Certification verified by Halal Goes on " + verifiedOn +
-		". Halal Goes does not itself certify food."
+	return "Certification verified by HalalGoes on " + verifiedOn +
+		". HalalGoes does not itself certify food."
 }

@@ -1,4 +1,4 @@
-# Halal Goes — Growth & Marketing Toolkit
+# HalalGoes — Growth & Marketing Toolkit
 
 _Synthesis of 7 research lanes (landing inspiration · copywriting · CRO · SEO/GEO+analytics ·
 marketing MCPs · design/creative MCPs · awesome-repos). Ranked, deduped, and wired **onto** the
@@ -9,6 +9,10 @@ system in `docs/design/`. Researched Aug–Sep 2026._
 > **Read `growth-stack.md` first.** This toolkit does not choose analytics/experiment/messaging
 > vendors — those are locked. It chooses the **inspiration, copy patterns, CRO tactics, SEO/GEO
 > plumbing, and AI tooling** to build a marketing/landing surface on top of that plane.
+
+> **2026-10-01:** Vercel (the deploy target here) and Branch (attribution) are SaaS, which
+> [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing them is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 
 ---
 

@@ -1,5 +1,5 @@
 /**
- * The Halal Goes mock server.
+ * The HalalGoes mock server.
  *
  *     pnpm mock            # http://localhost:4010, ws://localhost:4010/v1/ws
  *
@@ -245,7 +245,7 @@ attachRealtime(server, {
 server.listen(PORT, HOST, () => {
   const origin = `http://localhost:${PORT}`;
   console.log('');
-  console.log('Halal Goes mock server');
+  console.log('HalalGoes mock server');
   console.log(`  REST         ${origin}${basePath || '/v1'}`);
   console.log(`  WebSocket    ws://localhost:${PORT}${WS_PATH}?ticket=dev`);
   console.log(`  operations   ${routes.length} from contracts/openapi.yaml`);

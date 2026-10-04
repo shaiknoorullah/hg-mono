@@ -45,7 +45,7 @@ describe('restaurant app — login gate', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Halal Goes for restaurants' })).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'HalalGoes for restaurants' })).not.toBeNull();
     // `exact: false`: the required-field marker (`Input`'s trailing " *") makes the
     // computed accessible name "Business email *", not the bare label text.
     expect(screen.getByLabelText('Business email', { exact: false })).not.toBeNull();

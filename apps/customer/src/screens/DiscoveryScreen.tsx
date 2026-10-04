@@ -60,8 +60,7 @@ export function DiscoveryScreen(): React.ReactElement {
       const body = await unwrap(api.GET('/v1/restaurants', { params: { query } }));
       // `body.data` is the contract's `RestaurantCard[]`; `@hg/ui-native` re-exports the identical
       // generated shape as `Restaurant`. The two are structurally equal but nominally distinct
-      // across the module boundary (the branded `Cents` fields), so one cast bridges them — the
-      // same single-widening the gallery does in its fixtures loader.
+      // across the module boundary (the branded `Cents` fields), so one cast bridges them.
       setStatus({ kind: 'ready', restaurants: body.data as unknown as Restaurant[] });
     } catch (e) {
       setStatus({ kind: 'error', code: isApiError(e) ? String(e.code) : null });

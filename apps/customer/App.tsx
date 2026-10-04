@@ -1,5 +1,5 @@
 /**
- * Halal Goes — customer app entry.
+ * HalalGoes — customer app entry.
  *
  * It wraps the tree in the design system's `ThemeProvider` under this app's register (`customer`,
  * `light` scheme) and a `SafeAreaProvider`, then mounts the customer journey behind a small

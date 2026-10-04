@@ -78,7 +78,7 @@ export function Shell() {
                     <Icon name="check" weight="bold" size={18} />
                   </div>
                   <div>
-                    <p className="text-label-lg font-extrabold leading-tight text-fg-primary">Halal Goes</p>
+                    <p className="text-label-lg font-extrabold leading-tight text-fg-primary">HalalGoes</p>
                     <p className="text-label-sm text-fg-tertiary">for restaurants</p>
                   </div>
                 </div>

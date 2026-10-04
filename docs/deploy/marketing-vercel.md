@@ -7,6 +7,11 @@ first deploy; the section headings are the order the work has to happen in.
 repo. What is left is project settings, environment variables and one open
 decision — and that is what this file is.
 
+> **2026-10-01:** Vercel, and the hosted waitlist endpoints suggested below, are
+> SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing them is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+> This runbook stands until then.
+
 > Supersedes `apps/marketing/DEPLOY.md`, which is the earlier draft of the same
 > procedure and is missing `KEYSTATIC_SECRET`. Delete it once this has been
 > through a real deploy; two runbooks is how one of them goes stale.
@@ -204,7 +209,7 @@ Body — the `Signup` type in `src/lib/waitlist-store.ts:20`:
   "audience": "customer",
   "contact": "someone@example.com",
   "kind": "email",
-  "consentText": "I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.",
+  "consentText": "I agree to receive one launch email from HalalGoes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.",
   "consentedAt": "2026-09-21T14:03:11.427Z",
   "context": "hero",
   "utm": { "utm_source": "instagram", "utm_campaign": "launch" }

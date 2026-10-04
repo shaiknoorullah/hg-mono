@@ -70,7 +70,7 @@ export const TRACKS: Record<Audience, AudienceTrack> = {
       submit: 'Notify me',
       reassurance: 'No spam. One email, the day we open in your area.',
       consent:
-        'I agree to receive one launch email from Halal Goes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.',
+        'I agree to receive one launch email from HalalGoes, and news of newly verified kitchens near me afterwards. Unsubscribe any time.',
     },
     steps: {
       heading: 'How ordering works',
@@ -206,7 +206,7 @@ export const TRACKS: Record<Audience, AudienceTrack> = {
       autoComplete: 'email',
       submit: 'Start delivering',
       reassurance: 'No minimum payout. No waiting for a threshold.',
-      consent: 'I agree to receive one launch email from Halal Goes. Unsubscribe any time.',
+      consent: 'I agree to receive one launch email from HalalGoes. Unsubscribe any time.',
     },
     steps: {
       heading: 'How the money works',
