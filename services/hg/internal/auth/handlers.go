@@ -92,12 +92,12 @@ func clientSurface(r *http.Request) (ClientSurface, bool) {
 	return c, c.valid()
 }
 
+// clientIPPtr is the client address as the router's RealIP stage resolved it
+// (the forwarded address when the peer is a trusted proxy), or nil when it is
+// unknown. It keys the per-IP OTP limit, so behind Traefik it must not be the
+// proxy's own address.
 func clientIPPtr(r *http.Request) *string {
-	host := r.RemoteAddr
-	if i := strings.LastIndex(host, ":"); i > 0 {
-		host = host[:i]
-	}
-	host = strings.Trim(host, "[]")
+	host := httpx.ClientIP(r)
 	if host == "" {
 		return nil
 	}

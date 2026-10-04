@@ -17,8 +17,10 @@ import { getToken } from './token';
 
 const DEFAULT_BASE_URL = 'http://localhost:4010';
 
-export const API_BASE_URL =
-  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_BASE_URL) || DEFAULT_BASE_URL;
+// Written as plain `process.env.EXPO_PUBLIC_…` on purpose: Expo swaps that exact expression for
+// the build's value. Optional chaining (`process.env?.…`) is not swapped, so a release build
+// read nothing at run time and fell back to the mock.
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || DEFAULT_BASE_URL;
 
 /**
  * Are we pointed at the local Prism mock, or a real backend? The demo scenario switchers and the

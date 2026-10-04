@@ -455,6 +455,8 @@ export type RealtimeEvent = {
 export const REALTIME_CLOSE = {
   NORMAL: 1000,
   GOING_AWAY: 1001,
+  /** `slow_consumer` or `at_capacity`: reconnect with backoff, then resume every channel. */
+  TRY_AGAIN_LATER: 1013,
   MALFORMED_FRAME: 4400,
   UNAUTHENTICATED: 4401,
   ORIGIN_NOT_ALLOWED: 4403,
