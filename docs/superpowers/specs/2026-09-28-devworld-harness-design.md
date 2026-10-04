@@ -3,7 +3,7 @@ covers:
   - services/hg/cmd/**
   - services/hg/migrations/**
   - apps/restaurant/.claude/skills/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -47,6 +47,7 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 - **Things that exist → SQL. Things that happen → API.** Static world state (accounts, restaurants at a lifecycle stage, menus, hours, staff, certificates, payouts) is idempotent SQL. Anything with a clock or a ledger consequence (orders, dispatch, delivery, admin decisions) is produced by calling the real API.
 - **Purpose is declared, then checked.** Each persona declares the state it lands in; a verifier asserts it after every seed. The coverage tables (see [personas and coverage](#5-personas-and-coverage)) are data the verifier reads, so they cannot silently drift.
 - **Time-relative, not calendar-fixed.** "Expires in 10 days" is `now() + interval '10 days'` at seed time, so states stay true after any reset.
+- **Seeded history stays inside retention.** The API binary runs the hourly retention sweep ([`services/hg/internal/retention`](../../../services/hg/internal/retention/rules.go)) in every environment, local included. A seeded row older than its table's retention period (a notification over 90 days old, a quote expired over 30 days ago with no order, a sign-in attempt over 90 days old) is deleted within the hour, so a persona that depends on one would silently drift out of its declared state.
 - **Auth is exercised, not bypassed.** Personas sign in with real password + TOTP. The only dev accommodation is a fixed OTP for a reserved fictional phone range, local-only (see [scenario sign-in](#64-scenario-sign-in)).
 
 ## 4. Architecture
