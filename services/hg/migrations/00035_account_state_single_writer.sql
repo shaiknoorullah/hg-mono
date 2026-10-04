@@ -1,515 +1,555 @@
--- One owner for every change of an account's state, held by the database.
+-- One owner for every change of an account's state, held by privileges.
 -- Issue: https://github.com/shaiknoorullah/hg-mono/issues/253 (the security reviews
 -- of https://github.com/shaiknoorullah/hg-mono/pull/335).
 --
 -- Migration 00034 gave the admin account actions their gates: an admin or super
 -- admin, two-step sign-in, a second super admin to confirm a ban, and never your
--- own account. But the states are plain columns (restaurant.account_state and
--- delist_reasons, rider_profile.account_status, account.status), so any other code
--- that can UPDATE them could suspend, list, ban or lift a ban with none of those
--- gates and leave no history. This migration closes that:
+-- own account. But the states were plain columns any code could UPDATE. This
+-- migration makes the state columns unwritable by the application role and gives
+-- it, instead, a handful of functions that are the only writers:
 --
---   1. account_state_rule lists every transition the account's history may record
---      and who may take it: an admin (or super admin), a super admin only, or a
---      named system principal with the one reason it gives. It is the same list as
---      accountstate.Transitions() in Go; internal/admin's tests hold them equal.
---      The application role may read it, never change it.
---   2. account_state_event names its actor: a staff member (actor_kind STAFF and
---      actor_account_id) or a system principal (actor_kind SYSTEM and
---      system_actor). A BEFORE INSERT trigger refuses a row whose transition is not
---      in account_state_rule; whose staff actor does not hold, now, an unrevoked
---      global grant of the role it needs on an active account; who acts on their
---      own account or their own restaurant; or who acts on a staff account as if it
---      were a customer's. Only the schema owner writes a system row, so the
---      application role cannot pose as a system principal: a system path reaches it
---      through an owner-defined SECURITY DEFINER function that decides the change
---      from the data itself. Each row is stamped with its transaction's id and
---      clock: it cannot be backdated into a ban proposal's 7-day window.
---   3. A deferred constraint trigger on each subject table refuses, at commit, any
---      change of the state with no authority for exactly that change: a history
---      row of the same transaction with the same subject, from state and to state
---      (and, for a restaurant, the same delisting reasons) that no other change has
---      used. Each accepted change is recorded in account_state_change, which only
---      the guards write, and which is what makes a history row usable once.
---   4. The one change with no history row is completing a restaurant's onboarding
---      (the ONBOARDING principal): account_state_complete_onboarding() checks the
---      onboarding gates and the halal certificate itself, records its authority in
---      account_state_change, and leaves PENDING for LIVE, or for DELISTED when the
---      certificate is not current. The application role can call it, never write
---      its authority, and no UPDATE of its own can take a restaurant out of PENDING.
---   5. A restaurant moves into LIVE only with a current halal certificate
---      (halal_status CERTIFIED or EXPIRING_SOON) and no delisting reason: "a
---      restaurant may never reach account_state = LIVE without an approved,
---      non-expired halal certificate"
---      (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling,
---      rule R4 and acceptance criterion 4), whichever path lists it.
---   6. Delisting reasons only clear when something entitled to clear them does: a
---      staff reinstatement clears any; the halal renewal and onboarding clear only
---      the certificate's own; with no state change, only the certificate's own and
---      only while the certificate is current. Adding a reason needs nothing.
---   7. A subject's key never changes, and a deleted subject that has a history
---      comes back only in the state its history left it in, so deleting and
---      re-inserting a banned rider does not lift the ban.
+--   1. Privileges. hg_app may not UPDATE restaurant.account_state or
+--      delist_reasons, rider_profile.account_status, or account.status and
+--      status_reason, nor any of those tables' keys; it may not name a state column
+--      in an INSERT (a new row starts in its default state: PENDING, PENDING,
+--      ACTIVE); and it may not DELETE from those tables, so a banned account cannot
+--      be removed and created again. It keeps UPDATE and INSERT on every other
+--      column. It may not write the history (account_state_event) or the rules.
+--   2. account_state_apply(): the one writer for a staff member's action. It reads
+--      the actor's grants as they stand (a global, unrevoked grant already in force
+--      on an active account), checks the transition against account_state_rule
+--      (the same list as accountstate.Transitions() in Go; a test holds them
+--      equal), refuses the actor's own account or restaurant and a staff account
+--      treated as a customer, enforces the two-person ban, decides a restaurant's
+--      listing from its halal certificate itself, and writes the state, the history
+--      row and the audit row together. The actor must also be the account the
+--      service named for this transaction (SET LOCAL hg.actor_id).
+--   3. The system principals take no actor and no action: completing onboarding,
+--      the halal certificate lapsing, a renewal clearing it, and a certifying
+--      body's acceptance withdrawn or given back are each a function that decides
+--      the change from the data and can make only that change.
+--   4. A listed restaurant carries no delisting reason (CHECK).
 --
--- Every guard function pins search_path (public, then pg_temp), so the
--- application role cannot shadow a table with a temporary one; the guards that
--- write account_state_change are SECURITY DEFINER; and none of them is executable
--- by the application role. Two-step sign-in is a property of the caller's
--- session, which the database cannot see; ApplyAccountAction checks it, and a test
--- in internal/accountstate fails if any other Go file writes these columns or the
--- history. A superuser can still switch triggers off
--- (session_replication_role = replica); the application never connects as one.
+-- No trigger guards the state: the privileges do. Every function is owned by the
+-- migrations' role, pins search_path (pg_catalog, public, then pg_temp last, so a
+-- temporary table cannot stand in for a real one) and names every object with its
+-- schema; none is executable by PUBLIC, and hg_app may execute only the five
+-- writers. What the database cannot know is who is at the keyboard: it trusts the
+-- application's connection to name the actor, and two-step sign-in is checked by
+-- ApplyAccountAction from the session.
 
 -- +goose Up
 
--- 1. Who may take which transition.
+-- Who may take which transition. ADMIN: an admin or a super admin. SUPER_ADMIN: a
+-- super admin only. SYSTEM:<name>: the system principal accountstate.System names.
 CREATE TABLE account_state_rule (
   subject_type account_subject_type NOT NULL,
   action       account_action NOT NULL,
   from_state   text NOT NULL,
   to_state     text NOT NULL,
-  -- ADMIN: an admin or a super admin. SUPER_ADMIN: a super admin only.
-  -- SYSTEM:<name>: the system principal accountstate.System names.
   principal    text NOT NULL,
-  -- The one reason a system principal gives; NULL for staff, whose reasons the
-  -- event's own CHECK and the API hold to each action.
+  -- The permission the admin spec names for the transition; also the audit action.
+  permission   text NOT NULL,
+  -- The one reason a system principal gives; NULL for staff.
   reason_code  text,
-  PRIMARY KEY (subject_type, action, from_state, to_state, principal),
   CONSTRAINT account_state_rule_principal
-    CHECK (principal IN ('ADMIN', 'SUPER_ADMIN', 'SYSTEM:HALAL_EXPIRY', 'SYSTEM:HALAL_RENEWAL')),
+    CHECK (principal IN ('ADMIN', 'SUPER_ADMIN', 'SYSTEM:HALAL_EXPIRY', 'SYSTEM:HALAL_RENEWAL',
+                         'SYSTEM:HALAL_ISSUER')),
   CONSTRAINT account_state_rule_system_reason
     CHECK ((principal LIKE 'SYSTEM:%') = (reason_code IS NOT NULL))
 );
+CREATE UNIQUE INDEX account_state_rule_unique
+  ON account_state_rule (subject_type, action, from_state, to_state, principal, coalesce(reason_code, ''));
 
-INSERT INTO account_state_rule (subject_type, action, from_state, to_state, principal, reason_code) VALUES
+INSERT INTO account_state_rule (subject_type, action, from_state, to_state, principal, permission, reason_code) VALUES
   -- Restaurants (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist).
-  ('RESTAURANT', 'SUSPEND',     'LIVE',        'SUSPENDED',   'ADMIN', NULL),
-  ('RESTAURANT', 'SUSPEND',     'DELISTED',    'SUSPENDED',   'ADMIN', NULL),
-  ('RESTAURANT', 'DELIST',      'LIVE',        'DELISTED',    'ADMIN', NULL),
-  ('RESTAURANT', 'PROPOSE_BAN', 'LIVE',        'SUSPENDED',   'ADMIN', NULL),
-  ('RESTAURANT', 'PROPOSE_BAN', 'DELISTED',    'SUSPENDED',   'ADMIN', NULL),
-  ('RESTAURANT', 'PROPOSE_BAN', 'SUSPENDED',   'SUSPENDED',   'ADMIN', NULL),
-  ('RESTAURANT', 'CONFIRM_BAN', 'SUSPENDED',   'BANNED',      'SUPER_ADMIN', NULL),
-  ('RESTAURANT', 'DEACTIVATE',  'LIVE',        'DEACTIVATED', 'ADMIN', NULL),
-  ('RESTAURANT', 'DEACTIVATE',  'DELISTED',    'DEACTIVATED', 'ADMIN', NULL),
+  ('RESTAURANT', 'SUSPEND',     'LIVE',        'SUSPENDED',   'ADMIN',       'restaurant.suspend', NULL),
+  ('RESTAURANT', 'SUSPEND',     'DELISTED',    'SUSPENDED',   'ADMIN',       'restaurant.suspend', NULL),
+  ('RESTAURANT', 'DELIST',      'LIVE',        'DELISTED',    'ADMIN',       'restaurant.delist', NULL),
+  ('RESTAURANT', 'PROPOSE_BAN', 'LIVE',        'SUSPENDED',   'ADMIN',       'restaurant.propose_ban', NULL),
+  ('RESTAURANT', 'PROPOSE_BAN', 'DELISTED',    'SUSPENDED',   'ADMIN',       'restaurant.propose_ban', NULL),
+  ('RESTAURANT', 'PROPOSE_BAN', 'SUSPENDED',   'SUSPENDED',   'ADMIN',       'restaurant.propose_ban', NULL),
+  ('RESTAURANT', 'CONFIRM_BAN', 'SUSPENDED',   'BANNED',      'SUPER_ADMIN', 'restaurant.confirm_ban', NULL),
+  ('RESTAURANT', 'DEACTIVATE',  'LIVE',        'DEACTIVATED', 'ADMIN',       'restaurant.deactivate_on_request', NULL),
+  ('RESTAURANT', 'DEACTIVATE',  'DELISTED',    'DEACTIVATED', 'ADMIN',       'restaurant.deactivate_on_request', NULL),
   -- Reinstating lands on DELISTED instead of LIVE while a delisting reason
   -- remains or the halal certificate is not current.
-  ('RESTAURANT', 'REINSTATE',   'SUSPENDED',   'LIVE',        'ADMIN', NULL),
-  ('RESTAURANT', 'REINSTATE',   'SUSPENDED',   'DELISTED',    'ADMIN', NULL),
-  ('RESTAURANT', 'REINSTATE',   'DEACTIVATED', 'LIVE',        'ADMIN', NULL),
-  ('RESTAURANT', 'REINSTATE',   'DEACTIVATED', 'DELISTED',    'ADMIN', NULL),
-  ('RESTAURANT', 'REINSTATE',   'DELISTED',    'LIVE',        'ADMIN', NULL),
-  ('RESTAURANT', 'REINSTATE',   'BANNED',      'LIVE',        'SUPER_ADMIN', NULL),
-  ('RESTAURANT', 'REINSTATE',   'BANNED',      'DELISTED',    'SUPER_ADMIN', NULL),
+  ('RESTAURANT', 'REINSTATE',   'SUSPENDED',   'LIVE',        'ADMIN',       'restaurant.reinstate', NULL),
+  ('RESTAURANT', 'REINSTATE',   'SUSPENDED',   'DELISTED',    'ADMIN',       'restaurant.reinstate', NULL),
+  ('RESTAURANT', 'REINSTATE',   'DEACTIVATED', 'LIVE',        'ADMIN',       'restaurant.reinstate', NULL),
+  ('RESTAURANT', 'REINSTATE',   'DEACTIVATED', 'DELISTED',    'ADMIN',       'restaurant.reinstate', NULL),
+  ('RESTAURANT', 'REINSTATE',   'DELISTED',    'LIVE',        'ADMIN',       'restaurant.reinstate', NULL),
+  ('RESTAURANT', 'REINSTATE',   'BANNED',      'LIVE',        'SUPER_ADMIN', 'restaurant.unban', NULL),
+  ('RESTAURANT', 'REINSTATE',   'BANNED',      'DELISTED',    'SUPER_ADMIN', 'restaurant.unban', NULL),
   -- Riders (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-27--rider-account-state-actions).
-  ('RIDER',      'SUSPEND',     'ACTIVE',      'SUSPENDED',   'ADMIN', NULL),
-  ('RIDER',      'PROPOSE_BAN', 'ACTIVE',      'SUSPENDED',   'ADMIN', NULL),
-  ('RIDER',      'PROPOSE_BAN', 'SUSPENDED',   'SUSPENDED',   'ADMIN', NULL),
-  ('RIDER',      'CONFIRM_BAN', 'SUSPENDED',   'BANNED',      'SUPER_ADMIN', NULL),
-  ('RIDER',      'DEACTIVATE',  'ACTIVE',      'DEACTIVATED', 'ADMIN', NULL),
-  ('RIDER',      'DEACTIVATE',  'SUSPENDED',   'DEACTIVATED', 'ADMIN', NULL),
-  ('RIDER',      'REINSTATE',   'SUSPENDED',   'ACTIVE',      'ADMIN', NULL),
-  ('RIDER',      'REINSTATE',   'DEACTIVATED', 'ACTIVE',      'ADMIN', NULL),
-  ('RIDER',      'REINSTATE',   'BANNED',      'ACTIVE',      'SUPER_ADMIN', NULL),
+  ('RIDER',      'SUSPEND',     'ACTIVE',      'SUSPENDED',   'ADMIN',       'rider.suspend', NULL),
+  ('RIDER',      'PROPOSE_BAN', 'ACTIVE',      'SUSPENDED',   'ADMIN',       'rider.propose_ban', NULL),
+  ('RIDER',      'PROPOSE_BAN', 'SUSPENDED',   'SUSPENDED',   'ADMIN',       'rider.propose_ban', NULL),
+  ('RIDER',      'CONFIRM_BAN', 'SUSPENDED',   'BANNED',      'SUPER_ADMIN', 'rider.confirm_ban', NULL),
+  ('RIDER',      'DEACTIVATE',  'ACTIVE',      'DEACTIVATED', 'ADMIN',       'rider.deactivate_on_request', NULL),
+  ('RIDER',      'DEACTIVATE',  'SUSPENDED',   'DEACTIVATED', 'ADMIN',       'rider.deactivate_on_request', NULL),
+  ('RIDER',      'REINSTATE',   'SUSPENDED',   'ACTIVE',      'ADMIN',       'rider.reinstate', NULL),
+  ('RIDER',      'REINSTATE',   'DEACTIVATED', 'ACTIVE',      'ADMIN',       'rider.reinstate', NULL),
+  ('RIDER',      'REINSTATE',   'BANNED',      'ACTIVE',      'SUPER_ADMIN', 'rider.unban', NULL),
   -- Customers (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-28--customer-account-state-actions).
-  ('CUSTOMER',   'SUSPEND',     'ACTIVE',      'SUSPENDED',   'ADMIN', NULL),
-  ('CUSTOMER',   'PROPOSE_BAN', 'ACTIVE',      'SUSPENDED',   'ADMIN', NULL),
-  ('CUSTOMER',   'PROPOSE_BAN', 'SUSPENDED',   'SUSPENDED',   'ADMIN', NULL),
-  ('CUSTOMER',   'CONFIRM_BAN', 'SUSPENDED',   'BANNED',      'SUPER_ADMIN', NULL),
-  ('CUSTOMER',   'REINSTATE',   'SUSPENDED',   'ACTIVE',      'ADMIN', NULL),
-  ('CUSTOMER',   'REINSTATE',   'BANNED',      'ACTIVE',      'SUPER_ADMIN', NULL),
+  ('CUSTOMER',   'SUSPEND',     'ACTIVE',      'SUSPENDED',   'ADMIN',       'customer.suspend', NULL),
+  ('CUSTOMER',   'PROPOSE_BAN', 'ACTIVE',      'SUSPENDED',   'ADMIN',       'customer.propose_ban', NULL),
+  ('CUSTOMER',   'PROPOSE_BAN', 'SUSPENDED',   'SUSPENDED',   'ADMIN',       'customer.propose_ban', NULL),
+  ('CUSTOMER',   'CONFIRM_BAN', 'SUSPENDED',   'BANNED',      'SUPER_ADMIN', 'customer.confirm_ban', NULL),
+  ('CUSTOMER',   'REINSTATE',   'SUSPENDED',   'ACTIVE',      'ADMIN',       'customer.reinstate', NULL),
+  ('CUSTOMER',   'REINSTATE',   'BANNED',      'ACTIVE',      'SUPER_ADMIN', 'customer.unban', NULL),
   -- System principals (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling):
   -- the expiry only delists; the renewal only lists a delisted restaurant again.
-  ('RESTAURANT', 'DELIST',      'LIVE',        'DELISTED',    'SYSTEM:HALAL_EXPIRY',  'HALAL_CERTIFICATE_EXPIRED'),
-  ('RESTAURANT', 'REINSTATE',   'DELISTED',    'LIVE',        'SYSTEM:HALAL_RENEWAL', 'ISSUE_RESOLVED');
+  ('RESTAURANT', 'DELIST',      'LIVE',        'DELISTED',    'SYSTEM:HALAL_EXPIRY',  'restaurant.delisted', 'HALAL_CERTIFICATE_EXPIRED'),
+  ('RESTAURANT', 'REINSTATE',   'DELISTED',    'LIVE',        'SYSTEM:HALAL_RENEWAL', 'restaurant.relisted', 'ISSUE_RESOLVED'),
+  -- A certifying body's acceptance withdrawn or given back
+  -- (https://github.com/shaiknoorullah/hg-mono/issues/355): delist when no
+  -- certificate from an accepted body vouches any more, relist when one does.
+  ('RESTAURANT', 'DELIST',      'LIVE',        'DELISTED',    'SYSTEM:HALAL_ISSUER',  'restaurant.delisted', 'HALAL_CERTIFICATE_UNVERIFIED'),
+  ('RESTAURANT', 'DELIST',      'LIVE',        'DELISTED',    'SYSTEM:HALAL_ISSUER',  'restaurant.delisted', 'HALAL_CERTIFICATE_EXPIRED'),
+  ('RESTAURANT', 'REINSTATE',   'DELISTED',    'LIVE',        'SYSTEM:HALAL_ISSUER',  'restaurant.relisted', 'ISSUE_RESOLVED');
 
-REVOKE ALL ON account_state_rule FROM PUBLIC, hg_app;
-GRANT SELECT ON account_state_rule TO hg_app, hg_readonly;
-
--- 2. The history names its actor and its transaction.
+-- The history names its actor: a staff member, or a system principal.
 ALTER TABLE account_state_event
   ADD COLUMN actor_kind   text NOT NULL DEFAULT 'STAFF',
   ADD COLUMN system_actor text,
-  -- The writing transaction (top level, so savepoints share it), stamped by the
-  -- guard: a history row authorises a change only in its own transaction.
-  ADD COLUMN xact_id      xid8,
   ALTER COLUMN actor_account_id DROP NOT NULL,
   ALTER COLUMN idempotency_key DROP NOT NULL,
   ALTER COLUMN request_hash DROP NOT NULL,
-  -- A staff row names the person and carries the request's idempotency key; a
-  -- system row names the principal and no person.
   ADD CONSTRAINT account_state_event_actor CHECK (
     (actor_kind = 'STAFF' AND actor_account_id IS NOT NULL AND system_actor IS NULL
        AND idempotency_key IS NOT NULL AND request_hash IS NOT NULL)
     OR (actor_kind = 'SYSTEM' AND actor_account_id IS NULL
-       AND system_actor IN ('HALAL_EXPIRY', 'HALAL_RENEWAL'))
-  );
+       AND system_actor IN ('HALAL_EXPIRY', 'HALAL_RENEWAL', 'HALAL_ISSUER'))
+  ),
+  -- A restaurant can also be delisted because no certificate counts at all.
+  DROP CONSTRAINT account_state_event_reason_code,
+  ADD CONSTRAINT account_state_event_reason_code CHECK (CASE subject_type
+    WHEN 'RESTAURANT' THEN reason_code IN (
+      'COMPLIANCE_THRESHOLD', 'HALAL_INTEGRITY', 'FOOD_SAFETY_RISK', 'FRAUD_SUSPECTED',
+      'PAYMENT_OR_SETTLEMENT_ISSUE', 'ABUSIVE_CONDUCT', 'LEGAL_ORDER', 'REPEATED_VIOLATIONS',
+      'HALAL_CERTIFICATE_EXPIRED', 'HALAL_CERTIFICATE_UNVERIFIED', 'DOCUMENT_EXPIRED',
+      'NO_APPROVED_MENU', 'MERCHANT_REQUEST', 'ISSUE_RESOLVED', 'APPEAL_UPHELD',
+      'ACTIONED_IN_ERROR', 'OTHER')
+    WHEN 'RIDER' THEN reason_code IN (
+      'DOCUMENT_EXPIRED', 'INCIDENT_UNDER_INVESTIGATION', 'SAFETY_RISK', 'FRAUD_SUSPECTED',
+      'REPEATED_CANCELLATIONS', 'ABUSIVE_CONDUCT', 'LOW_PERFORMANCE', 'ACCOUNT_SHARING',
+      'LEGAL_ORDER', 'RIDER_REQUEST', 'ISSUE_RESOLVED', 'APPEAL_UPHELD', 'ACTIONED_IN_ERROR',
+      'OTHER')
+    WHEN 'CUSTOMER' THEN reason_code IN (
+      'PAYMENT_FAILURE_UNRESOLVED', 'REFUND_ABUSE', 'FRAUDULENT_CHARGEBACK',
+      'ABUSIVE_CONDUCT_TO_RIDER', 'ABUSIVE_CONDUCT_TO_RESTAURANT', 'FAKE_REVIEWS',
+      'ACCOUNT_TAKEOVER_RISK', 'PROMOTION_ABUSE', 'LEGAL_ORDER', 'ISSUE_RESOLVED',
+      'APPEAL_UPHELD', 'ACTIONED_IN_ERROR', 'OTHER')
+  END);
 
--- 3. Every accepted change of an account's state, and what authorised it: the one
--- history row it used (each is used at most once), or completing onboarding.
--- Written only by the guards and account_state_complete_onboarding().
-CREATE TABLE account_state_change (
-  id            uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-  subject_type  account_subject_type NOT NULL,
-  subject_id    uuid NOT NULL,
-  from_state    text NOT NULL,
-  to_state      text NOT NULL,
-  event_id      uuid UNIQUE REFERENCES account_state_event(id),
-  -- STAFF, or SYSTEM:<name> as account_state_rule spells it, or SYSTEM:ONBOARDING.
-  principal     text NOT NULL,
-  xact_id       xid8 NOT NULL,
-  created_at    timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT account_state_change_authority
-    CHECK ((event_id IS NULL) = (principal = 'SYSTEM:ONBOARDING'))
-);
-CREATE INDEX account_state_change_subject
-  ON account_state_change (subject_type, subject_id, created_at DESC, id DESC);
+-- A listed restaurant carries no delisting reason.
+ALTER TABLE restaurant
+  ADD CONSTRAINT restaurant_live_has_no_delist_reasons
+  CHECK (account_state <> 'LIVE' OR cardinality(delist_reasons) = 0);
 
-REVOKE ALL ON account_state_change FROM PUBLIC, hg_app;
-GRANT SELECT ON account_state_change TO hg_readonly;
+-- 00034's guards read the history by name: pin their search_path.
+ALTER FUNCTION account_state_event_guard_ban() SET search_path = pg_catalog, public, pg_temp;
+ALTER FUNCTION account_state_event_reject_mutation() SET search_path = pg_catalog, public, pg_temp;
 
+-- The application role's rights on the account tables: UPDATE on every column but
+-- the state and the key, INSERT on every column but the state, no DELETE. A
+-- migration that adds a column to restaurant, rider_profile or account calls this
+-- again, or the column is not writable by the API (a test in internal/admin fails).
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_state_change_reject_mutation() RETURNS trigger
-LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+CREATE OR REPLACE FUNCTION account_state_grant_app_columns() RETURNS void
+LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  t       record;
+  upd     text;
+  ins     text;
 BEGIN
-  RAISE EXCEPTION 'account_state_change_is_append_only: % on account_state_change is never permitted', TG_OP
-    USING ERRCODE = 'insufficient_privilege';
+  FOR t IN SELECT * FROM (VALUES
+      ('restaurant',    ARRAY['account_state', 'delist_reasons'], ARRAY['id']),
+      ('rider_profile', ARRAY['account_status'],                 ARRAY['account_id']),
+      ('account',       ARRAY['status', 'status_reason'],         ARRAY['id'])
+    ) AS v(tbl, state_cols, key_cols)
+  LOOP
+    EXECUTE format('REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.%I FROM hg_app', t.tbl);
+    SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY a.attnum)
+             FILTER (WHERE NOT (a.attname = ANY (t.state_cols || t.key_cols))),
+           string_agg(quote_ident(a.attname), ', ' ORDER BY a.attnum)
+             FILTER (WHERE NOT (a.attname = ANY (t.state_cols)))
+      INTO upd, ins
+      FROM pg_catalog.pg_attribute a
+     WHERE a.attrelid = ('public.' || t.tbl)::pg_catalog.regclass
+       AND a.attnum > 0 AND NOT a.attisdropped;
+    EXECUTE format('GRANT UPDATE (%s) ON public.%I TO hg_app', upd, t.tbl);
+    EXECUTE format('GRANT INSERT (%s) ON public.%I TO hg_app', ins, t.tbl);
+  END LOOP;
 END
 $$;
 -- +goose StatementEnd
 
-CREATE TRIGGER account_state_change_append_only
-  BEFORE UPDATE OR DELETE ON account_state_change
-  FOR EACH ROW EXECUTE FUNCTION account_state_change_reject_mutation();
+SELECT account_state_grant_app_columns();
+-- The history and the rules are written only by the functions below.
+REVOKE INSERT ON account_state_event FROM hg_app;
+REVOKE ALL ON account_state_rule FROM PUBLIC, hg_app;
+GRANT SELECT ON account_state_rule TO hg_readonly;
 
--- The schema owner: the only role that may write a system principal's history.
+-- Whether a restaurant's admin-verified halal certificate is current today, in
+-- its timezone: CURRENT, EXPIRED, or UNVERIFIED (none). The same reading as
+-- internal/admin and the order path: APPROVED (or later EXPIRED), verified by an
+-- admin, from an ACCEPTED issuing body; valid through its last day (grace_until
+-- when a super admin granted one); an unknown zone takes the latest date anywhere.
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_state_owner() RETURNS name
-LANGUAGE sql STABLE SET search_path = public, pg_temp AS $$
-  SELECT pg_catalog.pg_get_userbyid(c.relowner)
-    FROM pg_catalog.pg_class c
-   WHERE c.oid = 'public.account_state_event'::pg_catalog.regclass
-$$;
--- +goose StatementEnd
-
--- The history guard. SECURITY INVOKER on purpose: it must see who is writing
--- (current_user) to keep system rows to the owner. Its search_path is pinned.
--- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_state_event_guard_actor() RETURNS trigger
-LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+CREATE OR REPLACE FUNCTION account_state_certificate(p_restaurant_id uuid) RETURNS text
+LANGUAGE plpgsql STABLE SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
-  needs_super boolean;
+  c     record;
+  tz    text;
+  today date;
 BEGIN
-  -- History is written when it happens, in the transaction that makes the change.
-  NEW.created_at := now();
-  NEW.xact_id := pg_catalog.pg_current_xact_id();
-
-  IF NEW.actor_kind = 'SYSTEM' THEN
-    IF current_user <> public.account_state_owner() THEN
-      RAISE EXCEPTION 'account_state_system_actor_forged: % may not write history as the % principal; system paths write it through an owner-defined function',
-        current_user, NEW.system_actor
-        USING ERRCODE = 'insufficient_privilege';
-    END IF;
-    IF NOT EXISTS (
-      SELECT 1 FROM public.account_state_rule k
-       WHERE k.subject_type = NEW.subject_type AND k.action = NEW.action
-         AND k.from_state = NEW.from_state AND k.to_state = NEW.to_state
-         AND k.principal = 'SYSTEM:' || NEW.system_actor
-         AND k.reason_code = NEW.reason_code) THEN
-      RAISE EXCEPTION 'account_state_system_not_allowed: the % principal may not % a % from % to % with reason %',
-        NEW.system_actor, NEW.action, NEW.subject_type, NEW.from_state, NEW.to_state, NEW.reason_code
-        USING ERRCODE = 'insufficient_privilege';
-    END IF;
-    RETURN NEW;
-  END IF;
-
-  -- A staff member: the transition must be one staff may take ...
-  SELECT bool_and(k.principal = 'SUPER_ADMIN')
-    INTO needs_super
-    FROM public.account_state_rule k
-   WHERE k.subject_type = NEW.subject_type AND k.action = NEW.action
-     AND k.from_state = NEW.from_state AND k.to_state = NEW.to_state
-     AND k.principal IN ('ADMIN', 'SUPER_ADMIN');
-  IF needs_super IS NULL THEN
-    RAISE EXCEPTION 'account_state_illegal_transition: staff cannot % a % from % to %',
-      NEW.action, NEW.subject_type, NEW.from_state, NEW.to_state
-      USING ERRCODE = 'check_violation';
-  END IF;
-
-  -- ... and they must hold the role it needs now: a global grant, already in
-  -- force and not revoked, on an account that is active and not deleted. Nothing
-  -- the row carries counts.
-  IF NOT EXISTS (
-    SELECT 1
-      FROM public.account_role ar
-      JOIN public.account a ON a.id = ar.account_id
-     WHERE ar.account_id = NEW.actor_account_id
-       AND ar.scope_type = 'GLOBAL'
-       AND ar.revoked_at IS NULL
-       AND ar.granted_at <= now()
-       AND a.status = 'ACTIVE' AND a.deleted_at IS NULL
-       AND (ar.role = 'SUPER_ADMIN' OR (ar.role = 'ADMIN' AND NOT needs_super))) THEN
-    RAISE EXCEPTION 'account_state_actor_not_permitted: % % a % from % to % needs %',
-      NEW.actor_account_id, NEW.action, NEW.subject_type, NEW.from_state, NEW.to_state,
-      CASE WHEN needs_super THEN 'a super admin' ELSE 'an admin or a super admin' END
-      USING ERRCODE = 'insufficient_privilege';
-  END IF;
-
-  -- Staff never act on their own account, nor on a restaurant they work for.
-  IF (NEW.subject_type IN ('RIDER', 'CUSTOMER') AND NEW.subject_id = NEW.actor_account_id)
-     OR (NEW.subject_type = 'RESTAURANT' AND EXISTS (
-          SELECT 1 FROM public.account_role ar
-           WHERE ar.account_id = NEW.actor_account_id AND ar.scope_type = 'RESTAURANT'
-             AND ar.scope_id = NEW.subject_id AND ar.revoked_at IS NULL)) THEN
-    RAISE EXCEPTION 'account_state_own_account: staff cannot act on their own account or their own restaurant'
-      USING ERRCODE = 'insufficient_privilege';
-  END IF;
-
-  -- A staff account is never suspended or banned as a customer: that would let an
-  -- admin lock a super admin out.
-  IF NEW.subject_type = 'CUSTOMER' AND EXISTS (
-       SELECT 1 FROM public.account_role ar
-        WHERE ar.account_id = NEW.subject_id AND ar.revoked_at IS NULL
-          AND ar.role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')) THEN
-    RAISE EXCEPTION 'account_state_staff_subject: a staff account is not changed by a customer action'
-      USING ERRCODE = 'insufficient_privilege';
-  END IF;
-  RETURN NEW;
-END
-$$;
--- +goose StatementEnd
-
--- Named to sort before account_state_event_ban_two_person, so the ban guard sees
--- the stamped created_at.
-CREATE TRIGGER account_state_event_actor_guard
-  BEFORE INSERT ON account_state_event
-  FOR EACH ROW EXECUTE FUNCTION account_state_event_guard_actor();
-
--- 00034's guards read the history by name: pin their search_path too, so a
--- temporary table cannot stand in for it.
-ALTER FUNCTION account_state_event_guard_ban() SET search_path = public, pg_temp;
-ALTER FUNCTION account_state_event_reject_mutation() SET search_path = public, pg_temp;
-
--- Uses one unused history row of this transaction for exactly this change, records
--- the change, and returns the row (NULL when there is none).
--- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_state_use_event(
-  p_subject account_subject_type, p_subject_id uuid, p_from text, p_to text, p_delist text[])
-RETURNS public.account_state_event
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
-DECLARE
-  ev public.account_state_event;
-BEGIN
-  SELECT e.* INTO ev
-    FROM public.account_state_event e
-   WHERE e.subject_type = p_subject AND e.subject_id = p_subject_id
-     AND e.from_state = p_from AND e.to_state = p_to
-     AND e.xact_id = pg_catalog.pg_current_xact_id()
-     AND (p_delist IS NULL OR e.delist_reasons = p_delist)
-     AND NOT EXISTS (SELECT 1 FROM public.account_state_change c WHERE c.event_id = e.id)
-   ORDER BY e.created_at, e.id
+  SELECT x.timezone INTO tz FROM public.restaurant x WHERE x.id = p_restaurant_id;
+  SELECT hc.status::text AS status, hc.expires_on, hc.grace_until INTO c
+    FROM public.halal_certificate hc
+    JOIN public.halal_issuing_body b ON b.id = hc.issuing_body_id
+   WHERE hc.restaurant_id = p_restaurant_id
+     AND hc.status IN ('APPROVED', 'EXPIRED')
+     AND hc.verified_by IS NOT NULL AND hc.verified_at IS NOT NULL
+     AND b.status = 'ACCEPTED' AND hc.deleted_at IS NULL
+   ORDER BY (hc.status = 'APPROVED') DESC, hc.expires_on DESC, hc.id DESC
    LIMIT 1;
   IF NOT FOUND THEN
-    RETURN NULL;
+    RETURN 'UNVERIFIED';
   END IF;
-  INSERT INTO public.account_state_change (subject_type, subject_id, from_state, to_state, event_id, principal, xact_id)
-  VALUES (p_subject, p_subject_id, p_from, p_to, ev.id,
-          CASE ev.actor_kind WHEN 'STAFF' THEN 'STAFF' ELSE 'SYSTEM:' || ev.system_actor END,
-          pg_catalog.pg_current_xact_id());
-  RETURN ev;
+  BEGIN
+    today := (pg_catalog.now() AT TIME ZONE tz)::date;
+  EXCEPTION WHEN invalid_parameter_value THEN
+    today := NULL;
+  END;
+  IF today IS NULL THEN
+    today := ((pg_catalog.now() AT TIME ZONE 'UTC') + interval '14 hours')::date;
+  END IF;
+  RETURN CASE WHEN c.status = 'APPROVED' AND coalesce(c.grace_until, c.expires_on) >= today
+              THEN 'CURRENT' ELSE 'EXPIRED' END;
 END
 $$;
 -- +goose StatementEnd
 
+-- One audit row, as internal/admin's writeAudit writes it; the audit trigger
+-- computes the day, the sequence and the hash chain.
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION restaurant_account_state_guard() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+CREATE OR REPLACE FUNCTION account_state_audit(
+  p_actor_kind text, p_actor uuid, p_roles jsonb, p_action text, p_subject_type text,
+  p_subject_id uuid, p_reason_code text, p_reason text, p_before jsonb, p_after jsonb, p_request jsonb)
+RETURNS void LANGUAGE sql SET search_path = pg_catalog, public, pg_temp AS $$
+  INSERT INTO public.audit_event
+    (actor_kind, actor_account_id, actor_roles, action, subject_type, subject_id, outcome,
+     reason_code, reason, before, after, request_id, session_id, ip, user_agent,
+     day, seq, prev_hash, hash)
+  VALUES
+    (p_actor_kind, p_actor, p_roles, p_action, p_subject_type, p_subject_id, 'SUCCESS',
+     p_reason_code, p_reason, p_before, p_after,
+     nullif(p_request ->> 'request_id', ''), nullif(p_request ->> 'session_id', '')::uuid,
+     nullif(p_request ->> 'ip', '')::inet, nullif(p_request ->> 'user_agent', ''),
+     current_date, 0, '\x00'::bytea, '\x00'::bytea)
+$$;
+-- +goose StatementEnd
+
+-- The one writer for a staff member's account action. internal/admin's
+-- ApplyAccountAction settles the work in progress, then calls this in the same
+-- transaction; this decides and writes the state.
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION account_state_apply(
+  p_subject_type     account_subject_type,
+  p_subject_id       uuid,
+  p_action           account_action,
+  p_actor_account_id uuid,
+  p_reason_code      text,
+  p_reason_text      text,
+  p_idempotency_key  text,
+  p_request_hash     bytea,
+  p_in_flight        jsonb,
+  p_request          jsonb)
+RETURNS TABLE (event_id uuid, from_state text, to_state text, delist_reasons text[],
+               sessions_revoked int, created_at timestamptz)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+#variable_conflict use_variable
 DECLARE
-  halal_reasons constant text[] := ARRAY['HALAL_CERTIFICATE_EXPIRED', 'HALAL_CERTIFICATE_UNVERIFIED'];
-  lost text[];
-  ev   public.account_state_event;
+  halal       constant text[] := ARRAY['HALAL_CERTIFICATE_EXPIRED', 'HALAL_CERTIFICATE_UNVERIFIED'];
+  bound       text := pg_catalog.current_setting('hg.actor_id', true);
+  is_admin    boolean;
+  is_super    boolean;
+  roles       jsonb;
+  v_from      text;
+  v_to        text;
+  v_reasons   text[] := '{}';
+  v_new       text[];
+  v_onboard   text;
+  v_located   boolean;
+  last_action text;
+  last_actor  uuid;
+  last_at     timestamptz;
+  proposed    boolean;
+  rule_super  boolean;
+  permission  text;
+  cert        text;
+  lapse       text;
+  v_event     uuid;
+  v_at        timestamptz;
+  v_sessions  int := 0;
 BEGIN
-  IF NEW.id IS DISTINCT FROM OLD.id THEN
-    RAISE EXCEPTION 'account_state_subject_key_changed: restaurant % cannot change its id', OLD.id
-      USING ERRCODE = 'integrity_constraint_violation';
-  END IF;
-  SELECT coalesce(array_agg(r), '{}') INTO lost
-    FROM unnest(OLD.delist_reasons) AS r
-   WHERE NOT (r = ANY (NEW.delist_reasons));
-
-  IF OLD.account_state IS DISTINCT FROM NEW.account_state THEN
-    ev := public.account_state_use_event('RESTAURANT', NEW.id, OLD.account_state::text,
-                                         NEW.account_state::text, NEW.delist_reasons);
-    IF ev.id IS NOT NULL THEN
-      -- Only a reinstatement clears reasons: any, by staff; the certificate's own,
-      -- by the halal renewal.
-      IF cardinality(lost) > 0
-         AND NOT (ev.action = 'REINSTATE' AND (ev.actor_kind = 'STAFF' OR lost <@ halal_reasons)) THEN
-        RAISE EXCEPTION 'account_state_delist_reason_unrecorded: % cannot clear the delisting reasons % of restaurant %',
-          ev.action, lost, NEW.id
-          USING ERRCODE = 'integrity_constraint_violation';
-      END IF;
-    ELSIF NOT (OLD.account_state = 'PENDING' AND NEW.account_state IN ('LIVE', 'DELISTED')
-               AND OLD.onboarding_state <> 'ACTIVE' AND NEW.onboarding_state = 'ACTIVE'
-               AND lost <@ halal_reasons
-               AND EXISTS (
-                 SELECT 1 FROM public.account_state_change c
-                  WHERE c.subject_type = 'RESTAURANT' AND c.subject_id = NEW.id
-                    AND c.from_state = 'PENDING' AND c.to_state = NEW.account_state::text
-                    AND c.principal = 'SYSTEM:ONBOARDING'
-                    AND c.xact_id = pg_catalog.pg_current_xact_id())) THEN
-      RAISE EXCEPTION 'account_state_change_unrecorded: restaurant % moved from % to % with no history row of this transaction for exactly that change; only internal/admin ApplyAccountAction, account_state_complete_onboarding() and the halal principals change it',
-        NEW.id, OLD.account_state, NEW.account_state
-        USING ERRCODE = 'integrity_constraint_violation';
-    END IF;
-    IF NEW.account_state = 'LIVE' AND NEW.halal_status NOT IN ('CERTIFIED', 'EXPIRING_SOON') THEN
-      RAISE EXCEPTION 'account_state_live_needs_halal_certificate: restaurant % cannot be listed with halal status %',
-        NEW.id, NEW.halal_status
-        USING ERRCODE = 'check_violation';
-    END IF;
-  ELSIF cardinality(lost) > 0
-        AND NOT (lost <@ halal_reasons AND NEW.halal_status IN ('CERTIFIED', 'EXPIRING_SOON')) THEN
-    RAISE EXCEPTION 'account_state_delist_reason_unrecorded: restaurant % lost the delisting reasons % with no reinstatement',
-      NEW.id, lost
-      USING ERRCODE = 'integrity_constraint_violation';
+  -- The actor is the account the service named for this transaction.
+  IF p_actor_account_id IS NULL OR coalesce(bound, '') = '' OR bound <> p_actor_account_id::text THEN
+    RAISE EXCEPTION 'account_state_actor_unbound: % is not the account this transaction acts for (hg.actor_id = %)',
+      p_actor_account_id, coalesce(nullif(bound, ''), 'unset')
+      USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  IF NEW.account_state = 'LIVE' AND cardinality(NEW.delist_reasons) > 0 THEN
-    RAISE EXCEPTION 'account_state_live_with_delist_reasons: restaurant % cannot be listed while delisted for %',
-      NEW.id, NEW.delist_reasons
+  -- Their grants as they stand now: global, not revoked, in force, on an active account.
+  SELECT bool_or(ar.role = 'ADMIN'), bool_or(ar.role = 'SUPER_ADMIN'),
+         jsonb_agg(DISTINCT ar.role::text)
+    INTO is_admin, is_super, roles
+    FROM public.account_role ar
+    JOIN public.account a ON a.id = ar.account_id
+   WHERE ar.account_id = p_actor_account_id
+     AND ar.scope_type = 'GLOBAL' AND ar.revoked_at IS NULL AND ar.granted_at <= pg_catalog.now()
+     AND a.status = 'ACTIVE' AND a.deleted_at IS NULL;
+  IF NOT (coalesce(is_admin, false) OR coalesce(is_super, false)) THEN
+    RAISE EXCEPTION 'account_state_actor_not_permitted: % holds no admin or super admin grant', p_actor_account_id
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  -- The subject, locked; never the actor's own account or restaurant, never a staff
+  -- account treated as a customer.
+  IF p_subject_type IN ('RIDER', 'CUSTOMER') AND p_subject_id = p_actor_account_id THEN
+    RAISE EXCEPTION 'account_state_own_account: staff cannot act on their own account'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  IF p_subject_type = 'RESTAURANT' THEN
+    SELECT x.account_state::text, x.delist_reasons, x.onboarding_state::text, x.location IS NOT NULL
+      INTO v_from, v_reasons, v_onboard, v_located
+      FROM public.restaurant x WHERE x.id = p_subject_id AND x.deleted_at IS NULL
+       FOR UPDATE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'account_state_subject_not_found: no restaurant %', p_subject_id USING ERRCODE = 'no_data_found';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.account_role ar
+                WHERE ar.account_id = p_actor_account_id AND ar.scope_type = 'RESTAURANT'
+                  AND ar.scope_id = p_subject_id AND ar.revoked_at IS NULL) THEN
+      RAISE EXCEPTION 'account_state_own_account: staff cannot act on their own restaurant'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  ELSIF p_subject_type = 'RIDER' THEN
+    SELECT x.account_status::text, x.onboarding_state::text INTO v_from, v_onboard
+      FROM public.rider_profile x WHERE x.account_id = p_subject_id AND x.deleted_at IS NULL
+       FOR UPDATE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'account_state_subject_not_found: no rider %', p_subject_id USING ERRCODE = 'no_data_found';
+    END IF;
+  ELSE
+    SELECT x.status::text INTO v_from
+      FROM public.account x WHERE x.id = p_subject_id AND x.deleted_at IS NULL
+       FOR UPDATE;
+    IF NOT FOUND OR NOT EXISTS (SELECT 1 FROM public.account_role ar
+                                 WHERE ar.account_id = p_subject_id AND ar.role = 'CUSTOMER'
+                                   AND ar.revoked_at IS NULL) THEN
+      RAISE EXCEPTION 'account_state_subject_not_found: no customer %', p_subject_id USING ERRCODE = 'no_data_found';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.account_role ar
+                WHERE ar.account_id = p_subject_id AND ar.revoked_at IS NULL
+                  AND ar.role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')) THEN
+      RAISE EXCEPTION 'account_state_staff_subject: a staff account is not changed by a customer action'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  END IF;
+
+  -- The two-person ban: a confirmation needs a proposal by somebody else, less
+  -- than 7 days old; a proposal is not made twice.
+  SELECT e.action::text, e.actor_account_id, e.created_at INTO last_action, last_actor, last_at
+    FROM public.account_state_event e
+   WHERE e.subject_type = p_subject_type AND e.subject_id = p_subject_id
+   ORDER BY e.created_at DESC, e.id DESC
+   LIMIT 1;
+  proposed := coalesce(last_action = 'PROPOSE_BAN' AND last_at > pg_catalog.now() - interval '7 days', false);
+  IF p_action = 'CONFIRM_BAN' AND NOT proposed THEN
+    RAISE EXCEPTION 'account_ban_needs_proposal: % % has no ban proposal less than 7 days old', p_subject_type, p_subject_id
       USING ERRCODE = 'check_violation';
   END IF;
-  RETURN NULL;
+  IF p_action = 'CONFIRM_BAN' AND last_actor = p_actor_account_id THEN
+    RAISE EXCEPTION 'account_ban_two_person: the person who proposed a ban cannot confirm it'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  IF p_action = 'PROPOSE_BAN' AND proposed THEN
+    RAISE EXCEPTION 'account_state_illegal_transition: a ban is already proposed for % %', p_subject_type, p_subject_id
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  -- Where the action leads. A restaurant's listing is decided here from its own
+  -- halal certificate and delisting reasons, never by the caller.
+  v_new := v_reasons;
+  IF p_subject_type = 'RESTAURANT' AND p_action = 'DELIST' THEN
+    v_to := 'DELISTED';
+    IF NOT (p_reason_code = ANY (v_reasons)) THEN
+      v_new := v_reasons || p_reason_code;
+    END IF;
+  ELSIF p_subject_type = 'RESTAURANT' AND p_action = 'REINSTATE' THEN
+    IF v_onboard <> 'ACTIVE' OR NOT v_located THEN
+      RAISE EXCEPTION 'account_state_precondition_not_met: restaurant % has not finished onboarding', p_subject_id
+        USING ERRCODE = 'check_violation';
+    END IF;
+    cert := public.account_state_certificate(p_subject_id);
+    IF v_from = 'DELISTED' THEN
+      IF cert <> 'CURRENT' THEN
+        RAISE EXCEPTION 'account_state_halal_certificate_required: restaurant % has no current halal certificate (%)', p_subject_id, cert
+          USING ERRCODE = 'check_violation';
+      END IF;
+      v_new := '{}';
+    ELSE
+      v_new := ARRAY(SELECT x FROM pg_catalog.unnest(v_reasons) AS x
+                      WHERE NOT (cert = 'CURRENT' AND x = ANY (halal)));
+      IF cert <> 'CURRENT' THEN
+        lapse := CASE cert WHEN 'UNVERIFIED' THEN 'HALAL_CERTIFICATE_UNVERIFIED' ELSE 'HALAL_CERTIFICATE_EXPIRED' END;
+        IF NOT (lapse = ANY (v_new)) THEN
+          v_new := v_new || lapse;
+        END IF;
+      END IF;
+    END IF;
+    v_to := CASE WHEN pg_catalog.cardinality(v_new) = 0 THEN 'LIVE' ELSE 'DELISTED' END;
+  ELSE
+    IF p_subject_type = 'RIDER' AND p_action = 'REINSTATE' AND v_onboard <> 'ACTIVE' THEN
+      RAISE EXCEPTION 'account_state_precondition_not_met: rider % has not finished onboarding', p_subject_id
+        USING ERRCODE = 'check_violation';
+    END IF;
+    SELECT k.to_state INTO v_to
+      FROM public.account_state_rule k
+     WHERE k.subject_type = p_subject_type AND k.action = p_action AND k.from_state = v_from
+       AND k.principal IN ('ADMIN', 'SUPER_ADMIN')
+     LIMIT 1;
+  END IF;
+
+  -- The transition must be one staff may take, and the actor must hold its role.
+  SELECT bool_and(k.principal = 'SUPER_ADMIN'), min(k.permission)
+    INTO rule_super, permission
+    FROM public.account_state_rule k
+   WHERE k.subject_type = p_subject_type AND k.action = p_action
+     AND k.from_state = v_from AND k.to_state = v_to
+     AND k.principal IN ('ADMIN', 'SUPER_ADMIN');
+  IF rule_super IS NULL THEN
+    RAISE EXCEPTION 'account_state_illegal_transition: staff cannot % a % from % (to %)',
+      p_action, p_subject_type, v_from, coalesce(v_to, 'nothing')
+      USING ERRCODE = 'check_violation';
+  END IF;
+  IF rule_super AND NOT coalesce(is_super, false) THEN
+    RAISE EXCEPTION 'account_state_actor_not_permitted: % needs a super admin (permission %)', p_action, permission
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  -- The state, the sessions a ban ends, the history and the audit, together.
+  IF p_subject_type = 'RESTAURANT' THEN
+    UPDATE public.restaurant
+       SET account_state = v_to::public.restaurant_account_state, delist_reasons = v_new
+     WHERE id = p_subject_id;
+  ELSIF p_subject_type = 'RIDER' THEN
+    UPDATE public.rider_profile SET account_status = v_to::public.rider_account_status
+     WHERE account_id = p_subject_id;
+  ELSE
+    UPDATE public.account SET status = v_to::public.account_status, status_reason = p_reason_code
+     WHERE id = p_subject_id;
+  END IF;
+
+  IF p_action = 'CONFIRM_BAN' THEN
+    IF p_subject_type = 'RESTAURANT' THEN
+      UPDATE public.session s SET revoked_at = pg_catalog.now(), revoke_reason = 'restaurant_banned'
+       WHERE s.revoked_at IS NULL
+         AND s.account_id IN (SELECT ar.account_id FROM public.account_role ar
+                               WHERE ar.scope_type = 'RESTAURANT' AND ar.scope_id = p_subject_id
+                                 AND ar.revoked_at IS NULL);
+    ELSE
+      UPDATE public.session s SET revoked_at = pg_catalog.now(),
+             revoke_reason = pg_catalog.lower(p_subject_type::text) || '_banned'
+       WHERE s.account_id = p_subject_id AND s.revoked_at IS NULL;
+    END IF;
+    GET DIAGNOSTICS v_sessions = ROW_COUNT;
+  END IF;
+
+  INSERT INTO public.account_state_event
+    (subject_type, subject_id, action, from_state, to_state, reason_code, reason_text,
+     actor_kind, actor_account_id, idempotency_key, request_hash, in_flight, delist_reasons, sessions_revoked)
+  VALUES (p_subject_type, p_subject_id, p_action, v_from, v_to, p_reason_code, p_reason_text,
+          'STAFF', p_actor_account_id, p_idempotency_key, p_request_hash,
+          coalesce(p_in_flight, '{}'::jsonb),
+          CASE WHEN p_subject_type = 'RESTAURANT' THEN v_new ELSE '{}'::text[] END, v_sessions)
+  RETURNING id, account_state_event.created_at INTO v_event, v_at;
+
+  PERFORM public.account_state_audit(
+    'ACCOUNT', p_actor_account_id, roles, permission, p_subject_type::text, p_subject_id,
+    p_reason_code, p_reason_text,
+    pg_catalog.jsonb_build_object('state', v_from),
+    pg_catalog.jsonb_build_object('state', v_to, 'event_id', v_event,
+      'delist_reasons', pg_catalog.to_jsonb(CASE WHEN p_subject_type = 'RESTAURANT' THEN v_new ELSE '{}'::text[] END),
+      'in_flight', coalesce(p_in_flight, '{}'::jsonb), 'sessions_revoked', v_sessions),
+    p_request);
+
+  RETURN QUERY SELECT v_event, v_from, v_to,
+                      CASE WHEN p_subject_type = 'RESTAURANT' THEN v_new ELSE '{}'::text[] END,
+                      v_sessions, v_at;
 END
 $$;
 -- +goose StatementEnd
 
--- No column list: a column list would miss a value set by another BEFORE trigger.
-CREATE CONSTRAINT TRIGGER restaurant_account_state_owned
-  AFTER UPDATE ON restaurant
-  DEFERRABLE INITIALLY DEFERRED
-  FOR EACH ROW
-  WHEN (OLD.account_state IS DISTINCT FROM NEW.account_state
-        OR OLD.delist_reasons IS DISTINCT FROM NEW.delist_reasons
-        OR OLD.id IS DISTINCT FROM NEW.id)
-  EXECUTE FUNCTION restaurant_account_state_guard();
-
+-- A system principal's change of a restaurant: the state, the history row when
+-- the state changes, and the audit row. Called only by the three functions below.
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION rider_account_status_guard() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
-DECLARE
-  ev public.account_state_event;
+CREATE OR REPLACE FUNCTION account_state_system_write(
+  p_restaurant_id uuid, p_system text, p_from text, p_to text, p_before text[], p_after text[],
+  p_action account_action, p_reason_code text, p_reason_text text, p_audit_action text)
+RETURNS void LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
 BEGIN
-  IF NEW.account_id IS DISTINCT FROM OLD.account_id THEN
-    RAISE EXCEPTION 'account_state_subject_key_changed: rider % cannot change its account', OLD.account_id
-      USING ERRCODE = 'integrity_constraint_violation';
+  UPDATE public.restaurant
+     SET account_state = p_to::public.restaurant_account_state, delist_reasons = p_after
+   WHERE id = p_restaurant_id;
+  IF p_to IS DISTINCT FROM p_from AND p_action IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM public.account_state_rule k
+                    WHERE k.subject_type = 'RESTAURANT' AND k.action = p_action
+                      AND k.from_state = p_from AND k.to_state = p_to
+                      AND k.principal = 'SYSTEM:' || p_system AND k.reason_code = p_reason_code) THEN
+      RAISE EXCEPTION 'account_state_system_not_allowed: % may not % a restaurant from % to %', p_system, p_action, p_from, p_to
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    INSERT INTO public.account_state_event
+      (subject_type, subject_id, action, from_state, to_state, reason_code, reason_text,
+       actor_kind, system_actor, delist_reasons)
+    VALUES ('RESTAURANT', p_restaurant_id, p_action, p_from, p_to, p_reason_code, p_reason_text,
+            'SYSTEM', p_system, p_after);
   END IF;
-  ev := public.account_state_use_event('RIDER', NEW.account_id, OLD.account_status::text,
-                                       NEW.account_status::text, NULL);
-  IF ev.id IS NULL THEN
-    RAISE EXCEPTION 'account_state_change_unrecorded: rider % moved from % to % with no history row of this transaction for exactly that change; only internal/admin ApplyAccountAction changes it',
-      NEW.account_id, OLD.account_status, NEW.account_status
-      USING ERRCODE = 'integrity_constraint_violation';
-  END IF;
-  RETURN NULL;
+  PERFORM public.account_state_audit(
+    'SYSTEM', NULL, pg_catalog.jsonb_build_array('SYSTEM:' || p_system), p_audit_action, 'RESTAURANT',
+    p_restaurant_id, p_reason_code, p_reason_text,
+    pg_catalog.jsonb_build_object('account_state', p_from, 'delist_reasons', pg_catalog.to_jsonb(p_before)),
+    pg_catalog.jsonb_build_object('account_state', p_to, 'delist_reasons', pg_catalog.to_jsonb(p_after)),
+    NULL);
 END
 $$;
 -- +goose StatementEnd
 
-CREATE CONSTRAINT TRIGGER rider_account_status_owned
-  AFTER UPDATE ON rider_profile
-  DEFERRABLE INITIALLY DEFERRED
-  FOR EACH ROW
-  WHEN (OLD.account_status IS DISTINCT FROM NEW.account_status
-        OR OLD.account_id IS DISTINCT FROM NEW.account_id)
-  EXECUTE FUNCTION rider_account_status_guard();
-
--- account.status is one person's status. Only a customer action changes it today;
--- erasing an account (DELETED) needs its own principal and rule when it ships.
--- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_status_guard() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
-DECLARE
-  ev public.account_state_event;
-BEGIN
-  IF NEW.id IS DISTINCT FROM OLD.id THEN
-    RAISE EXCEPTION 'account_state_subject_key_changed: account % cannot change its id', OLD.id
-      USING ERRCODE = 'integrity_constraint_violation';
-  END IF;
-  ev := public.account_state_use_event('CUSTOMER', NEW.id, OLD.status::text, NEW.status::text, NULL);
-  IF ev.id IS NULL THEN
-    RAISE EXCEPTION 'account_state_change_unrecorded: account % moved from % to % with no history row of this transaction for exactly that change; only internal/admin ApplyAccountAction changes it',
-      NEW.id, OLD.status, NEW.status
-      USING ERRCODE = 'integrity_constraint_violation';
-  END IF;
-  RETURN NULL;
-END
-$$;
--- +goose StatementEnd
-
-CREATE CONSTRAINT TRIGGER account_status_owned
-  AFTER UPDATE ON account
-  DEFERRABLE INITIALLY DEFERRED
-  FOR EACH ROW
-  WHEN (OLD.status IS DISTINCT FROM NEW.status OR OLD.id IS DISTINCT FROM NEW.id)
-  EXECUTE FUNCTION account_status_guard();
-
--- 7. A subject that has a history comes back, after a delete, only in the state
--- that history left it in. TG_ARGV: subject type, key column, state column.
--- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_state_reinsert_guard() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
-DECLARE
-  v_id    uuid := (to_jsonb(NEW) ->> TG_ARGV[1])::uuid;
-  v_state text := to_jsonb(NEW) ->> TG_ARGV[2];
-  last    text;
-BEGIN
-  SELECT c.to_state INTO last
-    FROM public.account_state_change c
-   WHERE c.subject_type = TG_ARGV[0]::public.account_subject_type AND c.subject_id = v_id
-   ORDER BY c.created_at DESC, c.id DESC
-   LIMIT 1;
-  IF FOUND AND last IS DISTINCT FROM v_state THEN
-    RAISE EXCEPTION 'account_state_reinsert: % % was % when it was removed and cannot come back %',
-      TG_ARGV[0], v_id, last, v_state
-      USING ERRCODE = 'integrity_constraint_violation';
-  END IF;
-  RETURN NEW;
-END
-$$;
--- +goose StatementEnd
-
-CREATE TRIGGER restaurant_account_state_reinsert
-  BEFORE INSERT ON restaurant
-  FOR EACH ROW EXECUTE FUNCTION account_state_reinsert_guard('RESTAURANT', 'id', 'account_state');
-CREATE TRIGGER rider_account_status_reinsert
-  BEFORE INSERT ON rider_profile
-  FOR EACH ROW EXECUTE FUNCTION account_state_reinsert_guard('RIDER', 'account_id', 'account_status');
-CREATE TRIGGER account_status_reinsert
-  BEFORE INSERT ON account
-  FOR EACH ROW EXECUTE FUNCTION account_state_reinsert_guard('CUSTOMER', 'id', 'status');
-
--- 4. Completing a restaurant's onboarding: the ONBOARDING principal. The function
--- decides everything from the data (the onboarding gates, the account state, the
--- halal certificate), so the application role may call it but cannot steer it.
--- It lists the restaurant only with a current, admin-verified certificate and no
--- other delisting reason, the rule an admin reinstating it follows
--- (accountstate.ReinstatedState); otherwise it is DELISTED with the certificate's
--- reason. A restaurant that is not PENDING keeps its account state.
+-- The ONBOARDING principal: completing a restaurant's onboarding takes it out of
+-- PENDING, to LIVE only with a current certificate and no delisting reason (the
+-- rule an admin reinstating it follows, accountstate.ReinstatedState), otherwise
+-- to DELISTED with the certificate's reason. It checks the gates itself; a
+-- restaurant that is not PENDING keeps its state. It also records the onboarding
+-- step, so it is the whole of the last step.
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION account_state_complete_onboarding(p_restaurant_id uuid)
 RETURNS TABLE (from_state text, to_state text, delist_before text[], delist_after text[], halal_status text)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+#variable_conflict use_variable
 DECLARE
-  r        record;
-  c        record;
-  today    date;
-  is_current boolean;
-  lapse    text;
-  reasons  text[];
-  v_to     text;
+  halal   constant text[] := ARRAY['HALAL_CERTIFICATE_EXPIRED', 'HALAL_CERTIFICATE_UNVERIFIED'];
+  r       record;
+  cert    text;
+  reasons text[];
+  lapse   text;
+  v_to    text;
 BEGIN
-  SELECT x.id, x.onboarding_state, x.account_state, x.delist_reasons, x.timezone, x.halal_status,
+  SELECT x.onboarding_state::text AS onboarding, x.account_state::text AS state, x.delist_reasons AS reasons,
+         x.halal_status::text AS halal,
          EXISTS (SELECT 1 FROM public.connect_account ca
                   WHERE ca.owner_type = 'RESTAURANT' AND ca.owner_id = x.id
                     AND ca.payouts_enabled AND ca.details_submitted) AS payout_ready,
@@ -522,112 +562,254 @@ BEGIN
    WHERE x.id = p_restaurant_id
      FOR UPDATE OF x;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'account_state_complete_onboarding: no restaurant %', p_restaurant_id
-      USING ERRCODE = 'no_data_found';
+    RAISE EXCEPTION 'account_state_subject_not_found: no restaurant %', p_restaurant_id USING ERRCODE = 'no_data_found';
   END IF;
-  IF r.onboarding_state NOT IN ('DOCUMENTS_APPROVED', 'PAYOUT_PENDING', 'MENU_PENDING')
+  IF NOT (r.onboarding IN ('DOCUMENTS_APPROVED', 'PAYOUT_PENDING', 'MENU_PENDING')
+          OR (r.onboarding = 'ACTIVE' AND r.state = 'PENDING'))
      OR NOT (r.payout_ready AND r.has_live_item AND r.has_hours) THEN
     RAISE EXCEPTION 'account_state_onboarding_incomplete: restaurant % is %, payout ready %, live item %, hours %',
-      p_restaurant_id, r.onboarding_state, r.payout_ready, r.has_live_item, r.has_hours
+      p_restaurant_id, r.onboarding, r.payout_ready, r.has_live_item, r.has_hours
       USING ERRCODE = 'check_violation';
   END IF;
 
-  IF r.account_state <> 'PENDING' THEN
-    UPDATE public.restaurant SET onboarding_state = 'ACTIVE', updated_at = now() WHERE id = p_restaurant_id;
-    RETURN QUERY SELECT r.account_state::text, r.account_state::text, r.delist_reasons, r.delist_reasons,
-                        r.halal_status::text;
+  IF r.onboarding <> 'ACTIVE' THEN
+    UPDATE public.restaurant SET onboarding_state = 'ACTIVE', updated_at = pg_catalog.now() WHERE id = p_restaurant_id;
+    INSERT INTO public.restaurant_onboarding_transition (restaurant_id, from_state, to_state, actor_kind, reason)
+    VALUES (p_restaurant_id, r.onboarding::public.restaurant_onboarding_state, 'ACTIVE', 'SYSTEM', 'auto-advance');
+  END IF;
+  IF r.state <> 'PENDING' THEN
+    RETURN QUERY SELECT r.state, r.state, r.reasons, r.reasons, r.halal;
     RETURN;
   END IF;
 
-  -- The certificate, as internal/admin and the order path read it: APPROVED (or
-  -- later EXPIRED), verified by an admin, from an ACCEPTED issuing body.
-  SELECT hc.status, hc.expires_on, hc.grace_until INTO c
-    FROM public.halal_certificate hc
-    JOIN public.halal_issuing_body b ON b.id = hc.issuing_body_id
-   WHERE hc.restaurant_id = p_restaurant_id
-     AND hc.status IN ('APPROVED', 'EXPIRED')
-     AND hc.verified_by IS NOT NULL AND hc.verified_at IS NOT NULL
-     AND b.status = 'ACCEPTED' AND hc.deleted_at IS NULL
-   ORDER BY (hc.status = 'APPROVED') DESC, hc.expires_on DESC, hc.id DESC
-   LIMIT 1;
-  -- Valid through its last day in the restaurant's timezone; an unknown zone
-  -- takes the latest date anywhere (UTC+14), as accountstate.LocalDate does.
-  BEGIN
-    today := (now() AT TIME ZONE r.timezone)::date;
-  EXCEPTION WHEN invalid_parameter_value THEN
-    today := ((now() AT TIME ZONE 'UTC') + interval '14 hours')::date;
-  END;
-  is_current := coalesce(c.status = 'APPROVED' AND coalesce(c.grace_until, c.expires_on) >= today, false);
-
-  reasons := ARRAY(SELECT x FROM unnest(r.delist_reasons) AS x
-                    WHERE NOT (is_current AND x IN ('HALAL_CERTIFICATE_EXPIRED', 'HALAL_CERTIFICATE_UNVERIFIED')));
-  IF NOT is_current THEN
-    lapse := CASE WHEN c.status IS NULL THEN 'HALAL_CERTIFICATE_UNVERIFIED' ELSE 'HALAL_CERTIFICATE_EXPIRED' END;
+  cert := public.account_state_certificate(p_restaurant_id);
+  reasons := ARRAY(SELECT x FROM pg_catalog.unnest(r.reasons) AS x
+                    WHERE NOT (cert = 'CURRENT' AND x = ANY (halal)));
+  IF cert <> 'CURRENT' THEN
+    lapse := CASE cert WHEN 'UNVERIFIED' THEN 'HALAL_CERTIFICATE_UNVERIFIED' ELSE 'HALAL_CERTIFICATE_EXPIRED' END;
     IF NOT (lapse = ANY (reasons)) THEN
       reasons := reasons || lapse;
     END IF;
   END IF;
-  v_to := CASE WHEN cardinality(reasons) = 0 THEN 'LIVE' ELSE 'DELISTED' END;
-
-  INSERT INTO public.account_state_change (subject_type, subject_id, from_state, to_state, principal, xact_id)
-  VALUES ('RESTAURANT', p_restaurant_id, 'PENDING', v_to, 'SYSTEM:ONBOARDING', pg_catalog.pg_current_xact_id());
-  UPDATE public.restaurant
-     SET onboarding_state = 'ACTIVE', account_state = v_to::public.restaurant_account_state,
-         delist_reasons = reasons, updated_at = now()
-   WHERE id = p_restaurant_id;
-  RETURN QUERY SELECT 'PENDING'::text, v_to, r.delist_reasons, reasons, r.halal_status::text;
+  v_to := CASE WHEN pg_catalog.cardinality(reasons) = 0 THEN 'LIVE' ELSE 'DELISTED' END;
+  PERFORM public.account_state_system_write(
+    p_restaurant_id, 'ONBOARDING', 'PENDING', v_to, r.reasons, reasons, NULL, NULL, 'onboarding completed',
+    CASE v_to WHEN 'LIVE' THEN 'restaurant.listed' ELSE 'restaurant.delisted' END);
+  RETURN QUERY SELECT 'PENDING'::text, v_to, r.reasons, reasons, r.halal;
 END
 $$;
 -- +goose StatementEnd
 
--- Privileges: the application role calls the onboarding function and nothing else
--- here directly; trigger functions run without EXECUTE.
-REVOKE ALL ON FUNCTION account_state_owner() FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_state_event_guard_actor() FROM PUBLIC;
+-- The HALAL_EXPIRY principal: when a restaurant's certificate has lapsed, the
+-- lapse is recorded as a delisting reason and a LIVE restaurant is delisted. A
+-- suspended, banned or deactivated one keeps its state and gains the reason, so
+-- reinstating it cannot skip the lapse. Nothing happens while the certificate is
+-- current, or when there is none to lapse. It never suspends, bans or lists.
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION account_state_halal_expiry(p_restaurant_id uuid)
+RETURNS TABLE (from_state text, to_state text, delist_reasons text[], changed boolean)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+#variable_conflict use_variable
+DECLARE
+  v_from    text;
+  v_reasons text[];
+  v_new     text[];
+  v_to      text;
+BEGIN
+  SELECT x.account_state::text, x.delist_reasons INTO v_from, v_reasons
+    FROM public.restaurant x WHERE x.id = p_restaurant_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'account_state_subject_not_found: no restaurant %', p_restaurant_id USING ERRCODE = 'no_data_found';
+  END IF;
+  v_new := v_reasons;
+  IF public.account_state_certificate(p_restaurant_id) = 'EXPIRED'
+     AND NOT ('HALAL_CERTIFICATE_EXPIRED' = ANY (v_reasons)) THEN
+    v_new := v_reasons || 'HALAL_CERTIFICATE_EXPIRED'::text;
+  END IF;
+  v_to := CASE WHEN v_from = 'LIVE' AND v_new <> v_reasons THEN 'DELISTED' ELSE v_from END;
+  IF v_new = v_reasons THEN
+    RETURN QUERY SELECT v_from, v_from, v_reasons, false;
+    RETURN;
+  END IF;
+  PERFORM public.account_state_system_write(
+    p_restaurant_id, 'HALAL_EXPIRY', v_from, v_to, v_reasons, v_new,
+    CASE WHEN v_to <> v_from THEN 'DELIST'::public.account_action END, 'HALAL_CERTIFICATE_EXPIRED',
+    'The halal certificate expired.', 'restaurant.delisted');
+  RETURN QUERY SELECT v_from, v_to, v_new, true;
+END
+$$;
+-- +goose StatementEnd
+
+-- The HALAL_RENEWAL principal: once the certificate is current again, its lapse
+-- reasons are cleared, and a DELISTED restaurant with no other reason is listed
+-- again. It never lifts a suspension, a ban or a deactivation, and never clears
+-- another reason.
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION account_state_halal_renewal(p_restaurant_id uuid)
+RETURNS TABLE (from_state text, to_state text, delist_reasons text[], changed boolean)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+#variable_conflict use_variable
+DECLARE
+  halal     constant text[] := ARRAY['HALAL_CERTIFICATE_EXPIRED', 'HALAL_CERTIFICATE_UNVERIFIED'];
+  v_from    text;
+  v_reasons text[];
+  v_new     text[];
+  v_to      text;
+  v_ready   boolean;
+BEGIN
+  SELECT x.account_state::text, x.delist_reasons, x.onboarding_state = 'ACTIVE' AND x.location IS NOT NULL
+    INTO v_from, v_reasons, v_ready
+    FROM public.restaurant x WHERE x.id = p_restaurant_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'account_state_subject_not_found: no restaurant %', p_restaurant_id USING ERRCODE = 'no_data_found';
+  END IF;
+  IF public.account_state_certificate(p_restaurant_id) <> 'CURRENT' THEN
+    RETURN QUERY SELECT v_from, v_from, v_reasons, false;
+    RETURN;
+  END IF;
+  v_new := ARRAY(SELECT x FROM pg_catalog.unnest(v_reasons) AS x WHERE NOT (x = ANY (halal)));
+  IF v_new = v_reasons THEN
+    RETURN QUERY SELECT v_from, v_from, v_reasons, false;
+    RETURN;
+  END IF;
+  v_to := CASE WHEN v_from = 'DELISTED' AND pg_catalog.cardinality(v_new) = 0 AND v_ready
+               THEN 'LIVE' ELSE v_from END;
+  PERFORM public.account_state_system_write(
+    p_restaurant_id, 'HALAL_RENEWAL', v_from, v_to, v_reasons, v_new,
+    CASE WHEN v_to <> v_from THEN 'REINSTATE'::public.account_action END, 'ISSUE_RESOLVED',
+    'A renewed halal certificate is current.', 'restaurant.relisted');
+  RETURN QUERY SELECT v_from, v_to, v_new, true;
+END
+$$;
+-- +goose StatementEnd
+
+-- The HALAL_ISSUER principal: a certifying body's acceptance was withdrawn
+-- (p_accepted false) or given back (true), or a certificate was approved. Only a
+-- LIVE or DELISTED restaurant moves. Withdrawn: when no current certificate from an
+-- accepted body vouches any more, the certificate's reason is added
+-- (HALAL_CERTIFICATE_UNVERIFIED with no certificate, HALAL_CERTIFICATE_EXPIRED when
+-- the one that counts has lapsed) and a LIVE restaurant is delisted. Accepted: when
+-- a current certificate from an accepted body exists, those reasons are cleared
+-- and a DELISTED restaurant with no other reason is listed again. Nothing else:
+-- the flag only says which way it may move, and the data decides whether it does.
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION account_state_issuer_listing(p_restaurant_id uuid, p_accepted boolean)
+RETURNS TABLE (from_state text, to_state text, delist_reasons text[], changed boolean)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+#variable_conflict use_variable
+DECLARE
+  halal     constant text[] := ARRAY['HALAL_CERTIFICATE_EXPIRED', 'HALAL_CERTIFICATE_UNVERIFIED'];
+  v_from    text;
+  v_reasons text[];
+  v_new     text[];
+  v_to      text;
+  v_ready   boolean;
+  cert      text;
+  lapse     text;
+BEGIN
+  IF p_accepted IS NULL THEN
+    RAISE EXCEPTION 'account_state_issuer_listing: say whether the body was accepted or withdrawn'
+      USING ERRCODE = 'null_value_not_allowed';
+  END IF;
+  SELECT x.account_state::text, x.delist_reasons, x.onboarding_state = 'ACTIVE' AND x.location IS NOT NULL
+    INTO v_from, v_reasons, v_ready
+    FROM public.restaurant x WHERE x.id = p_restaurant_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'account_state_subject_not_found: no restaurant %', p_restaurant_id USING ERRCODE = 'no_data_found';
+  END IF;
+  cert := public.account_state_certificate(p_restaurant_id);
+  v_new := v_reasons;
+  v_to := v_from;
+  IF v_from IN ('LIVE', 'DELISTED') AND NOT p_accepted AND cert <> 'CURRENT' THEN
+    lapse := CASE cert WHEN 'UNVERIFIED' THEN 'HALAL_CERTIFICATE_UNVERIFIED' ELSE 'HALAL_CERTIFICATE_EXPIRED' END;
+    IF NOT (lapse = ANY (v_reasons)) THEN
+      v_new := v_reasons || lapse;
+    END IF;
+    v_to := 'DELISTED';
+  ELSIF v_from IN ('LIVE', 'DELISTED') AND p_accepted AND cert = 'CURRENT' THEN
+    v_new := ARRAY(SELECT x FROM pg_catalog.unnest(v_reasons) AS x WHERE NOT (x = ANY (halal)));
+    IF v_from = 'DELISTED' AND v_new <> v_reasons AND pg_catalog.cardinality(v_new) = 0 AND v_ready THEN
+      v_to := 'LIVE';
+    END IF;
+  END IF;
+  IF v_new = v_reasons AND v_to = v_from THEN
+    RETURN QUERY SELECT v_from, v_from, v_reasons, false;
+    RETURN;
+  END IF;
+  PERFORM public.account_state_system_write(
+    p_restaurant_id, 'HALAL_ISSUER', v_from, v_to, v_reasons, v_new,
+    CASE WHEN v_to = v_from THEN NULL WHEN p_accepted THEN 'REINSTATE'::public.account_action
+         ELSE 'DELIST'::public.account_action END,
+    CASE WHEN p_accepted THEN 'ISSUE_RESOLVED' ELSE lapse END,
+    CASE WHEN p_accepted THEN 'A current certificate from an accepted certifying body vouches again.'
+         ELSE 'No current certificate from an accepted certifying body vouches any more.' END,
+    CASE WHEN p_accepted THEN 'restaurant.relisted' ELSE 'restaurant.delisted' END);
+  RETURN QUERY SELECT v_from, v_to, v_new, true;
+END
+$$;
+-- +goose StatementEnd
+
+-- Nothing here is executable by PUBLIC; hg_app may execute the five writers only.
+REVOKE ALL ON FUNCTION account_state_grant_app_columns() FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_certificate(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_audit(text, uuid, jsonb, text, text, uuid, text, text, jsonb, jsonb, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_apply(account_subject_type, uuid, account_action, uuid, text, text, text, bytea, jsonb, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_system_write(uuid, text, text, text, text[], text[], account_action, text, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_complete_onboarding(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_halal_expiry(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_halal_renewal(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_issuer_listing(uuid, boolean) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_event_guard_ban() FROM PUBLIC, hg_app;
 REVOKE ALL ON FUNCTION account_state_event_reject_mutation() FROM PUBLIC, hg_app;
-REVOKE ALL ON FUNCTION account_state_change_reject_mutation() FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_state_use_event(account_subject_type, uuid, text, text, text[]) FROM PUBLIC;
-REVOKE ALL ON FUNCTION restaurant_account_state_guard() FROM PUBLIC;
-REVOKE ALL ON FUNCTION rider_account_status_guard() FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_status_guard() FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_state_reinsert_guard() FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_state_complete_onboarding(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION account_state_apply(account_subject_type, uuid, account_action, uuid, text, text, text, bytea, jsonb, jsonb) TO hg_app;
 GRANT EXECUTE ON FUNCTION account_state_complete_onboarding(uuid) TO hg_app;
--- The history guard runs as its caller and asks who the owner is.
-GRANT EXECUTE ON FUNCTION account_state_owner() TO hg_app;
+GRANT EXECUTE ON FUNCTION account_state_halal_expiry(uuid) TO hg_app;
+GRANT EXECUTE ON FUNCTION account_state_halal_renewal(uuid) TO hg_app;
+GRANT EXECUTE ON FUNCTION account_state_issuer_listing(uuid, boolean) TO hg_app;
 
 -- +goose Down
-REVOKE ALL ON FUNCTION account_state_owner() FROM hg_app;
+DROP FUNCTION IF EXISTS account_state_issuer_listing(uuid, boolean);
+DROP FUNCTION IF EXISTS account_state_halal_renewal(uuid);
+DROP FUNCTION IF EXISTS account_state_halal_expiry(uuid);
 DROP FUNCTION IF EXISTS account_state_complete_onboarding(uuid);
-DROP TRIGGER IF EXISTS account_status_reinsert ON account;
-DROP TRIGGER IF EXISTS rider_account_status_reinsert ON rider_profile;
-DROP TRIGGER IF EXISTS restaurant_account_state_reinsert ON restaurant;
-DROP FUNCTION IF EXISTS account_state_reinsert_guard();
-DROP TRIGGER IF EXISTS account_status_owned ON account;
-DROP FUNCTION IF EXISTS account_status_guard();
-DROP TRIGGER IF EXISTS rider_account_status_owned ON rider_profile;
-DROP FUNCTION IF EXISTS rider_account_status_guard();
-DROP TRIGGER IF EXISTS restaurant_account_state_owned ON restaurant;
-DROP FUNCTION IF EXISTS restaurant_account_state_guard();
-DROP FUNCTION IF EXISTS account_state_use_event(account_subject_type, uuid, text, text, text[]);
+DROP FUNCTION IF EXISTS account_state_system_write(uuid, text, text, text, text[], text[], account_action, text, text, text);
+DROP FUNCTION IF EXISTS account_state_apply(account_subject_type, uuid, account_action, uuid, text, text, text, bytea, jsonb, jsonb);
+DROP FUNCTION IF EXISTS account_state_audit(text, uuid, jsonb, text, text, uuid, text, text, jsonb, jsonb, jsonb);
+DROP FUNCTION IF EXISTS account_state_certificate(uuid);
+DROP FUNCTION IF EXISTS account_state_grant_app_columns();
+-- The application role gets back the table rights 00023 gave it.
+GRANT INSERT, UPDATE, DELETE ON restaurant, rider_profile, account TO hg_app;
+GRANT INSERT ON account_state_event TO hg_app;
 ALTER FUNCTION account_state_event_reject_mutation() RESET search_path;
 ALTER FUNCTION account_state_event_guard_ban() RESET search_path;
 GRANT EXECUTE ON FUNCTION account_state_event_guard_ban() TO PUBLIC;
 GRANT EXECUTE ON FUNCTION account_state_event_reject_mutation() TO PUBLIC;
-DROP TRIGGER IF EXISTS account_state_event_actor_guard ON account_state_event;
-DROP FUNCTION IF EXISTS account_state_event_guard_actor();
-DROP FUNCTION IF EXISTS account_state_owner();
-DROP TABLE IF EXISTS account_state_change;
-DROP FUNCTION IF EXISTS account_state_change_reject_mutation();
+ALTER TABLE restaurant DROP CONSTRAINT IF EXISTS restaurant_live_has_no_delist_reasons;
 -- A system row has no person to restore NOT NULL with. Rolling back is a
 -- development reset, so those rows go (the append-only trigger is lifted for it).
 ALTER TABLE account_state_event DISABLE TRIGGER account_state_event_append_only;
 DELETE FROM account_state_event WHERE actor_kind = 'SYSTEM';
 ALTER TABLE account_state_event ENABLE TRIGGER account_state_event_append_only;
 ALTER TABLE account_state_event
+  DROP CONSTRAINT IF EXISTS account_state_event_reason_code,
+  ADD CONSTRAINT account_state_event_reason_code CHECK (CASE subject_type
+    WHEN 'RESTAURANT' THEN reason_code IN (
+      'COMPLIANCE_THRESHOLD', 'HALAL_INTEGRITY', 'FOOD_SAFETY_RISK', 'FRAUD_SUSPECTED',
+      'PAYMENT_OR_SETTLEMENT_ISSUE', 'ABUSIVE_CONDUCT', 'LEGAL_ORDER', 'REPEATED_VIOLATIONS',
+      'HALAL_CERTIFICATE_EXPIRED', 'DOCUMENT_EXPIRED', 'NO_APPROVED_MENU', 'MERCHANT_REQUEST',
+      'ISSUE_RESOLVED', 'APPEAL_UPHELD', 'ACTIONED_IN_ERROR', 'OTHER')
+    WHEN 'RIDER' THEN reason_code IN (
+      'DOCUMENT_EXPIRED', 'INCIDENT_UNDER_INVESTIGATION', 'SAFETY_RISK', 'FRAUD_SUSPECTED',
+      'REPEATED_CANCELLATIONS', 'ABUSIVE_CONDUCT', 'LOW_PERFORMANCE', 'ACCOUNT_SHARING',
+      'LEGAL_ORDER', 'RIDER_REQUEST', 'ISSUE_RESOLVED', 'APPEAL_UPHELD', 'ACTIONED_IN_ERROR',
+      'OTHER')
+    WHEN 'CUSTOMER' THEN reason_code IN (
+      'PAYMENT_FAILURE_UNRESOLVED', 'REFUND_ABUSE', 'FRAUDULENT_CHARGEBACK',
+      'ABUSIVE_CONDUCT_TO_RIDER', 'ABUSIVE_CONDUCT_TO_RESTAURANT', 'FAKE_REVIEWS',
+      'ACCOUNT_TAKEOVER_RISK', 'PROMOTION_ABUSE', 'LEGAL_ORDER', 'ISSUE_RESOLVED',
+      'APPEAL_UPHELD', 'ACTIONED_IN_ERROR', 'OTHER')
+  END),
   DROP CONSTRAINT IF EXISTS account_state_event_actor,
-  DROP COLUMN IF EXISTS xact_id,
   DROP COLUMN IF EXISTS system_actor,
   DROP COLUMN IF EXISTS actor_kind,
   ALTER COLUMN actor_account_id SET NOT NULL,

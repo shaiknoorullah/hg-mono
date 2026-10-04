@@ -12,26 +12,57 @@ import (
 	"testing"
 )
 
-// TestOnlyTheOwnersWriteAnAccountsState: in the Go code, only the owners named in
-// principals.go write an account's state or its history. Migration 00035 refuses
-// any other path when it runs; this names the file at review time, and catches a
-// path that would write a history row itself and so skip the two-step sign-in
-// check, which only ApplyAccountAction can make.
-func TestOnlyTheOwnersWriteAnAccountsState(t *testing.T) {
-	const admin = "internal/admin/store_account_state.go"
-	owners := map[string][]string{
-		"restaurant.account_state":     {admin},
-		"restaurant.delist_reasons":    {admin},
-		"rider_profile.account_status": {admin},
-		"account.status":               {admin},
-		"account_state_event":          {admin},
-	}
+// writes names the SQL that writes an account's state or its history: an UPDATE
+// of restaurant.account_state or delist_reasons, rider_profile.account_status or
+// account.status, an INSERT naming one of those columns, or an INSERT into
+// account_state_event.
+func writes(sql string) []string {
+	var out []string
 	update := regexp.MustCompile(`(?is)\bUPDATE\s+"?(restaurant|rider_profile|account)"?(?:\s+(?:AS\s+)?\w+)?\s+SET\s+(.*?)(?:\bWHERE\b|\bRETURNING\b|\bFROM\b|$)`)
-	column := regexp.MustCompile(`(?i)(?:^|[\s,(])(account_state|delist_reasons|account_status|status)\s*=`)
-	insert := regexp.MustCompile(`(?is)\bINSERT\s+INTO\s+account_state_event\b`)
+	insert := regexp.MustCompile(`(?is)\bINSERT\s+INTO\s+"?(restaurant|rider_profile|account)"?\s*\(([^)]*)\)`)
+	column := regexp.MustCompile(`(?i)(?:^|[\s,(])(account_state|delist_reasons|account_status|status|status_reason)\s*(?:=|,|$)`)
+	state := map[string]map[string]bool{
+		"restaurant":    {"account_state": true, "delist_reasons": true},
+		"rider_profile": {"account_status": true},
+		"account":       {"status": true, "status_reason": true},
+	}
+	for _, re := range []*regexp.Regexp{update, insert} {
+		for _, m := range re.FindAllStringSubmatch(sql, -1) {
+			table := strings.ToLower(m[1])
+			for _, c := range column.FindAllStringSubmatch(m[2], -1) {
+				if col := strings.ToLower(c[1]); state[table][col] {
+					out = append(out, table+"."+col)
+				}
+			}
+		}
+	}
+	if regexp.MustCompile(`(?is)\bINSERT\s+INTO\s+account_state_event\b`).MatchString(sql) {
+		out = append(out, "account_state_event")
+	}
+	return out
+}
+
+// TestNoGoCodeWritesAnAccountsState: no Go file writes an account's state or its
+// history. Migration 00035 makes the database functions (account_state_apply and
+// the system principals' functions) the only writers and refuses the application
+// role anything else; this names an offending file at review time.
+func TestNoGoCodeWritesAnAccountsState(t *testing.T) {
+	// The scan still sees a write.
+	for _, sql := range []string{
+		`UPDATE restaurant r SET is_accepting_orders = false, account_state = 'SUSPENDED' WHERE r.id = $1`,
+		`UPDATE account SET status='BANNED' WHERE id=$1`,
+		`INSERT INTO rider_profile (account_id, account_status) VALUES ($1, 'ACTIVE')`,
+		`INSERT INTO account_state_event (subject_type) VALUES ('RIDER')`,
+	} {
+		if len(writes(sql)) == 0 {
+			t.Fatalf("the scan no longer sees a write in %q", sql)
+		}
+	}
+	if w := writes(`UPDATE account SET email = $2, status_note = $3 WHERE id = $1`); len(w) != 0 {
+		t.Fatalf("the scan sees a write where there is none: %v", w)
+	}
 
 	root := filepath.Join("..", "..")
-	found := map[string][]string{}
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -44,30 +75,15 @@ func TestOnlyTheOwnersWriteAnAccountsState(t *testing.T) {
 			return err
 		}
 		rel, _ := filepath.Rel(root, path)
-		rel = filepath.ToSlash(rel)
 		ast.Inspect(f, func(n ast.Node) bool {
 			lit, ok := n.(*ast.BasicLit)
 			if !ok || lit.Kind != token.STRING {
 				return true
 			}
-			s, err := strconv.Unquote(lit.Value)
-			if err != nil {
-				return true
-			}
-			for _, m := range update.FindAllStringSubmatch(s, -1) {
-				for _, c := range column.FindAllStringSubmatch(m[2], -1) {
-					col := strings.ToLower(c[1])
-					table := strings.ToLower(m[1])
-					switch {
-					case table == "restaurant" && (col == "account_state" || col == "delist_reasons"),
-						table == "rider_profile" && col == "account_status",
-						table == "account" && col == "status":
-						found[table+"."+col] = append(found[table+"."+col], rel)
-					}
+			if s, err := strconv.Unquote(lit.Value); err == nil {
+				for _, w := range writes(s) {
+					t.Errorf("%s writes %s; only the database functions of migration 00035 may", filepath.ToSlash(rel), w)
 				}
-			}
-			if insert.MatchString(s) {
-				found["account_state_event"] = append(found["account_state_event"], rel)
 			}
 			return true
 		})
@@ -75,29 +91,5 @@ func TestOnlyTheOwnersWriteAnAccountsState(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	for what, files := range found {
-		for _, file := range files {
-			allowed := false
-			for _, o := range owners[what] {
-				allowed = allowed || o == file
-			}
-			if !allowed {
-				t.Errorf("%s writes %s; only %v may (see principals.go, and migration 00035 refuses it at run time)",
-					file, what, owners[what])
-			}
-		}
-	}
-	// The scan must still see the owners, or it has stopped working.
-	for what, want := range owners {
-		for _, o := range want {
-			seen := false
-			for _, f := range found[what] {
-				seen = seen || f == o
-			}
-			if !seen {
-				t.Errorf("the scan no longer finds %s writing %s; fix the scan or the owner list", o, what)
-			}
-		}
 	}
 }

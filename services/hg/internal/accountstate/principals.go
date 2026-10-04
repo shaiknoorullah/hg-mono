@@ -2,24 +2,29 @@ package accountstate
 
 // Who may change an account's state, and which changes each of them may make.
 //
-// Exactly one function owns each kind of change:
-//   - a staff member's action is internal/admin's ApplyAccountAction, which checks
-//     the caller's role and two-step sign-in itself, then this package's state
-//     machine, the two-person ban and the own-account rule;
-//   - completing a restaurant's onboarding is the database function
-//     account_state_complete_onboarding(), which internal/restaurant's
-//     RecomputeOnboarding calls, as the ONBOARDING system principal;
-//   - the halal certificate expiry and renewal are the HALAL_EXPIRY and
-//     HALAL_RENEWAL system principals
-//     (https://github.com/shaiknoorullah/hg-mono/pull/274 implements them).
+// The application role cannot write an account's state: migration 00035 takes
+// UPDATE on restaurant.account_state and delist_reasons, rider_profile.
+// account_status and account.status away from it, lets it INSERT those rows only
+// in their default state, and lets it DELETE none of them. The only writers are
+// database functions owned by the migrations' role, one per kind of change:
+//   - a staff member's action is account_state_apply(), which internal/admin's
+//     ApplyAccountAction calls after checking the caller's role and two-step
+//     sign-in and settling the work in progress; the function reads the actor's
+//     grants as they stand, checks the transition against account_state_rule,
+//     the two-person ban and the own-account rule, and writes the state, the
+//     history row and the audit row together;
+//   - completing a restaurant's onboarding is account_state_complete_onboarding(),
+//     which internal/restaurant's RecomputeOnboarding calls (SystemOnboarding);
+//   - the halal certificate lapsing and a renewal clearing it are
+//     account_state_halal_expiry() and account_state_halal_renewal()
+//     (SystemHalalExpiry, SystemHalalRenewal;
+//     https://github.com/shaiknoorullah/hg-mono/pull/274 calls them);
+//   - a certifying body's acceptance withdrawn or given back is
+//     account_state_issuer_listing() (SystemHalalIssuer;
+//     https://github.com/shaiknoorullah/hg-mono/issues/355).
 //
-// Migration 00035 makes the same list a database fact, so no other code can
-// change a state with weaker gates: every change of restaurant.account_state,
-// rider_profile.account_status or account.status needs an unused history row of
-// the same transaction for exactly that change, and the history row is refused
-// unless its transition is in account_state_rule and its actor holds, now, the
-// role it needs. Only the schema owner writes a system principal's row, so the
-// application cannot pose as one. A test holds account_state_rule equal to
+// A system function takes no actor and no action: it decides the change from the
+// data and can make only its own. A test holds account_state_rule equal to
 // Transitions().
 
 // System is a system principal: a part of the platform, not a person, that
@@ -35,22 +40,25 @@ const (
 	// onboarding can never lift a suspension or a ban. The specification: "LIVE —
 	// initiated by the system, on READY"
 	// (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#20-the-restaurant-lifecycle-normative-referenced-by-a-13a-22).
-	// It is the database function account_state_complete_onboarding(), which
-	// checks the onboarding gates and the certificate itself and records its
-	// authority where the application cannot write; it writes no
-	// account_state_event row, and the onboarding transition row and the audit log
-	// record it.
+	// It writes no account_state_event row (leaving PENDING is no account action);
+	// the onboarding transition row and the audit log record it.
 	SystemOnboarding System = "ONBOARDING"
-	// SystemHalalExpiry delists a LIVE restaurant whose halal certificate has
-	// lapsed, with the reason HALAL_CERTIFICATE_EXPIRED. It only delists: it never
-	// suspends, bans or lists a restaurant
+	// SystemHalalExpiry records a lapsed halal certificate: it delists a LIVE
+	// restaurant with the reason HALAL_CERTIFICATE_EXPIRED, and adds the reason to
+	// a restaurant in any other state. It never suspends, bans or lists one
 	// (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling).
 	SystemHalalExpiry System = "HALAL_EXPIRY"
-	// SystemHalalRenewal lists a DELISTED restaurant again once a renewed
-	// certificate is approved and no delisting reason is left ("no manual
-	// reinstatement step, because the lapse was not a punishment", same section).
-	// Only from DELISTED: never out of a suspension, a deactivation or a ban.
+	// SystemHalalRenewal clears a lapse once the certificate is current again, and
+	// lists a DELISTED restaurant with no other reason ("no manual reinstatement
+	// step, because the lapse was not a punishment", same section). Never out of a
+	// suspension, a deactivation or a ban.
 	SystemHalalRenewal System = "HALAL_RENEWAL"
+	// SystemHalalIssuer follows a certifying body's acceptance: withdrawn, it
+	// delists a LIVE restaurant no current certificate from an accepted body
+	// vouches for any more; given back, it lists a DELISTED one such a certificate
+	// vouches for again. Only LIVE and DELISTED move
+	// (https://github.com/shaiknoorullah/hg-mono/issues/355).
+	SystemHalalIssuer System = "HALAL_ISSUER"
 )
 
 // Principal is who may take a transition: a staff role, or a system principal.
@@ -75,6 +83,8 @@ type Transition struct {
 	From      string
 	To        string
 	Principal Principal
+	// Permission is the admin spec's permission name, and the audit action.
+	Permission string
 	// ReasonCode is the one reason a system principal gives. It is empty for
 	// staff, whose reasons are the ones ReasonAllowed accepts.
 	ReasonCode string
@@ -84,9 +94,15 @@ type Transition struct {
 // account's history. SystemOnboarding has none (see its comment).
 var systemTransitions = []Transition{
 	{Subject: Restaurant, Action: Delist, From: StateLive, To: StateDelisted,
-		Principal: SystemPrincipal(SystemHalalExpiry), ReasonCode: "HALAL_CERTIFICATE_EXPIRED"},
+		Principal: SystemPrincipal(SystemHalalExpiry), Permission: "restaurant.delisted", ReasonCode: "HALAL_CERTIFICATE_EXPIRED"},
 	{Subject: Restaurant, Action: Reinstate, From: StateDelisted, To: StateLive,
-		Principal: SystemPrincipal(SystemHalalRenewal), ReasonCode: "ISSUE_RESOLVED"},
+		Principal: SystemPrincipal(SystemHalalRenewal), Permission: "restaurant.relisted", ReasonCode: "ISSUE_RESOLVED"},
+	{Subject: Restaurant, Action: Delist, From: StateLive, To: StateDelisted,
+		Principal: SystemPrincipal(SystemHalalIssuer), Permission: "restaurant.delisted", ReasonCode: "HALAL_CERTIFICATE_UNVERIFIED"},
+	{Subject: Restaurant, Action: Delist, From: StateLive, To: StateDelisted,
+		Principal: SystemPrincipal(SystemHalalIssuer), Permission: "restaurant.delisted", ReasonCode: "HALAL_CERTIFICATE_EXPIRED"},
+	{Subject: Restaurant, Action: Reinstate, From: StateDelisted, To: StateLive,
+		Principal: SystemPrincipal(SystemHalalIssuer), Permission: "restaurant.relisted", ReasonCode: "ISSUE_RESOLVED"},
 }
 
 // Transitions lists every transition the account's history may record: each
@@ -104,9 +120,9 @@ func Transitions() []Transition {
 					p = PrincipalSuperAdmin
 				}
 				for _, from := range e.from {
-					out = append(out, Transition{Subject: s, Action: a, From: from, To: e.to, Principal: p})
+					out = append(out, Transition{Subject: s, Action: a, From: from, To: e.to, Principal: p, Permission: e.permission})
 					if s == Restaurant && a == Reinstate && from != StateDelisted {
-						out = append(out, Transition{Subject: s, Action: a, From: from, To: StateDelisted, Principal: p})
+						out = append(out, Transition{Subject: s, Action: a, From: from, To: StateDelisted, Principal: p, Permission: e.permission})
 					}
 				}
 			}

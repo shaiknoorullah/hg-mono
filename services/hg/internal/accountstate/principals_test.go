@@ -8,7 +8,8 @@ import (
 
 // TestSystemPrincipalsTakeOnlyTheirOwnTransitions pins what each system
 // principal may record: the expiry only delists a LIVE restaurant for a lapsed
-// certificate, and the renewal only lists a DELISTED one again. None of them may
+// certificate, the renewal only lists a DELISTED one again, and a certifying
+// body's withdrawal or acceptance only delists or lists again. None of them may
 // suspend, ban, deactivate, lift a penalty, or touch a rider or a customer.
 // (Onboarding records no history row; internal/admin's
 // TestCompletingOnboardingIsTheOnboardingPrincipal pins it.)
@@ -21,9 +22,15 @@ func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 	}
 	want := []Transition{
 		{Subject: Restaurant, Action: Delist, From: StateLive, To: StateDelisted,
-			Principal: "SYSTEM:HALAL_EXPIRY", ReasonCode: "HALAL_CERTIFICATE_EXPIRED"},
+			Principal: "SYSTEM:HALAL_EXPIRY", Permission: "restaurant.delisted", ReasonCode: "HALAL_CERTIFICATE_EXPIRED"},
 		{Subject: Restaurant, Action: Reinstate, From: StateDelisted, To: StateLive,
-			Principal: "SYSTEM:HALAL_RENEWAL", ReasonCode: "ISSUE_RESOLVED"},
+			Principal: "SYSTEM:HALAL_RENEWAL", Permission: "restaurant.relisted", ReasonCode: "ISSUE_RESOLVED"},
+		{Subject: Restaurant, Action: Delist, From: StateLive, To: StateDelisted,
+			Principal: "SYSTEM:HALAL_ISSUER", Permission: "restaurant.delisted", ReasonCode: "HALAL_CERTIFICATE_UNVERIFIED"},
+		{Subject: Restaurant, Action: Delist, From: StateLive, To: StateDelisted,
+			Principal: "SYSTEM:HALAL_ISSUER", Permission: "restaurant.delisted", ReasonCode: "HALAL_CERTIFICATE_EXPIRED"},
+		{Subject: Restaurant, Action: Reinstate, From: StateDelisted, To: StateLive,
+			Principal: "SYSTEM:HALAL_ISSUER", Permission: "restaurant.relisted", ReasonCode: "ISSUE_RESOLVED"},
 	}
 	if !reflect.DeepEqual(system, want) {
 		t.Fatalf("system transitions:\n got %+v\nwant %+v", system, want)
@@ -35,7 +42,9 @@ func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 		if tr.From == StateSuspended || tr.From == StateBanned || tr.From == StateDeactivated {
 			t.Errorf("%s may lift a penalty or a deactivation: %+v", tr.Principal, tr)
 		}
-		if !ReasonAllowed(tr.Subject, tr.Action, tr.ReasonCode) {
+		// HALAL_CERTIFICATE_UNVERIFIED (no certificate counts at all) is a delisting
+		// reason only the system gives; staff never choose it.
+		if !ReasonAllowed(tr.Subject, tr.Action, tr.ReasonCode) && tr.ReasonCode != "HALAL_CERTIFICATE_UNVERIFIED" {
 			t.Errorf("%s gives a reason that does not fit %s: %s", tr.Principal, tr.Action, tr.ReasonCode)
 		}
 	}

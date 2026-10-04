@@ -1,12 +1,12 @@
 package admin
 
 // The account actions' gates hold for every path, not only the HTTP operations
-// (the security review of https://github.com/shaiknoorullah/hg-mono/pull/335).
-// Each test below is some other code path trying to change an account's state:
-// a direct UPDATE, a history row it writes itself, a caller of the service that
-// is not its HTTP handler, or a system principal reaching past its one job.
-// Migration 00035 and ApplyAccountAction refuse them. They need
-// HG_TEST_POSTGRES_DSN, like the rest of this package's integration tests.
+// (the security reviews of https://github.com/shaiknoorullah/hg-mono/pull/335).
+// Migration 00035 makes the state columns unwritable by the application role
+// and its database functions the only writers; account_state_guard_db_test.go
+// tries every other way in as that role. This file holds the shared harness and
+// the tests of the service and of onboarding. They need HG_TEST_POSTGRES_DSN,
+// like the rest of this package's integration tests.
 
 import (
 	"context"
@@ -86,32 +86,6 @@ func accepted(t *testing.T, what string, err error) {
 	}
 }
 
-// staffEvent is a history row a path writes itself, naming a staff actor. For a
-// restaurant, reasons are the delisting reasons the change leaves (the guard
-// matches them to the row it updates).
-func staffEvent(subject, id, action, from, to, reason, actor string, reasons ...string) stmt {
-	if reasons == nil {
-		reasons = []string{}
-	}
-	return q(`
-INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
-                                 reason_text, actor_account_id, idempotency_key, request_hash, delist_reasons)
-VALUES ($1::account_subject_type, $2, $3::account_action, $4, $5, $6, 'a direct write in a test', $7, $8, '\x00', $9)`,
-		subject, id, action, from, to, reason, actor, uuid.NewString(), reasons)
-}
-
-// systemEvent is a history row naming a system principal.
-func systemEvent(subject, id, action, from, to, reason, principal string, reasons ...string) stmt {
-	if reasons == nil {
-		reasons = []string{}
-	}
-	return q(`
-INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
-                                 reason_text, actor_kind, system_actor, delist_reasons)
-VALUES ($1::account_subject_type, $2, $3::account_action, $4, $5, $6, 'a system principal in a test', 'SYSTEM', $7, $8)`,
-		subject, id, action, from, to, reason, principal, reasons)
-}
-
 // appPool connects as the application role (hg_app), with exactly the rights
 // the API has in production, rather than as the migrations' owner the other
 // tests use.
@@ -184,7 +158,7 @@ VALUES ('+1647'||lpad((floor(random()*9000000)+1000000)::bigint::text, 7, '0'), 
 func TestTheDatabaseHoldsTheServicesTransitions(t *testing.T) {
 	pool := dialTestPool(t)
 	rows, err := pool.Query(context.Background(), `
-SELECT subject_type::text, action::text, from_state, to_state, principal, coalesce(reason_code, '')
+SELECT subject_type::text, action::text, from_state, to_state, principal, permission, coalesce(reason_code, '')
   FROM account_state_rule`)
 	if err != nil {
 		t.Fatal(err)
@@ -192,11 +166,11 @@ SELECT subject_type::text, action::text, from_state, to_state, principal, coales
 	defer rows.Close()
 	var db []string
 	for rows.Next() {
-		var s, a, f, to, p, r string
-		if err := rows.Scan(&s, &a, &f, &to, &p, &r); err != nil {
+		var s, a, f, to, p, perm, r string
+		if err := rows.Scan(&s, &a, &f, &to, &p, &perm, &r); err != nil {
 			t.Fatal(err)
 		}
-		db = append(db, strings.Join([]string{s, a, f, to, p, r}, " "))
+		db = append(db, strings.Join([]string{s, a, f, to, p, perm, r}, " "))
 	}
 	if err := rows.Err(); err != nil {
 		t.Fatal(err)
@@ -204,166 +178,13 @@ SELECT subject_type::text, action::text, from_state, to_state, principal, coales
 	var code []string
 	for _, tr := range accountstate.Transitions() {
 		code = append(code, strings.Join([]string{string(tr.Subject), string(tr.Action), tr.From, tr.To,
-			string(tr.Principal), tr.ReasonCode}, " "))
+			string(tr.Principal), tr.Permission, tr.ReasonCode}, " "))
 	}
 	sort.Strings(db)
 	sort.Strings(code)
 	if strings.Join(db, "\n") != strings.Join(code, "\n") {
 		t.Fatalf("account_state_rule differs from accountstate.Transitions():\n database:\n  %s\n code:\n  %s",
 			strings.Join(db, "\n  "), strings.Join(code, "\n  "))
-	}
-}
-
-// TestSiblingPathsCannotChangeARestaurantsState: a path other than the admin
-// actions cannot list, suspend, ban or lift a ban on a restaurant, nor clear its
-// delisting reasons, whether it writes the column alone or writes a history row
-// its actor may not.
-func TestSiblingPathsCannotChangeARestaurantsState(t *testing.T) {
-	pool := dialTestPool(t)
-	admin := staff(t, pool, httpx.RoleAdmin)
-	super := staff(t, pool, httpx.RoleSuperAdmin)
-
-	live := guardRestaurant(t, pool, "ACTIVE", "LIVE")
-	certify(t, pool, live, 300)
-	refused(t, "ban a live restaurant with an UPDATE alone", direct(pool, setRestaurant(live, "BANNED")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "suspend a live restaurant with an UPDATE alone", direct(pool, setRestaurant(live, "SUSPENDED")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "a history row for a different change does not cover this one",
-		direct(pool, staffEvent("RESTAURANT", live, "SUSPEND", "LIVE", "SUSPENDED", "OTHER", admin.AccountID),
-			setRestaurant(live, "BANNED")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "ban a live restaurant in one step, even as a super admin",
-		direct(pool, setRestaurant(live, "BANNED"),
-			staffEvent("RESTAURANT", live, "CONFIRM_BAN", "LIVE", "BANNED", "OTHER", super.AccountID)),
-		"23514", "account_state_illegal_transition")
-
-	suspended := guardRestaurant(t, pool, "ACTIVE", "SUSPENDED")
-	refused(t, "confirm a ban nobody proposed",
-		direct(pool, setRestaurant(suspended, "BANNED"),
-			staffEvent("RESTAURANT", suspended, "CONFIRM_BAN", "SUSPENDED", "BANNED", "OTHER", super.AccountID)),
-		"23514", "account_ban_needs_proposal")
-	refused(t, "an admin confirms a ban",
-		direct(pool, setRestaurant(suspended, "BANNED"),
-			staffEvent("RESTAURANT", suspended, "CONFIRM_BAN", "SUSPENDED", "BANNED", "OTHER", admin.AccountID)),
-		"42501", "account_state_actor_not_permitted")
-
-	banned := guardRestaurant(t, pool, "ACTIVE", "BANNED")
-	certify(t, pool, banned, 300)
-	refused(t, "lift a ban with an UPDATE alone", direct(pool, setRestaurant(banned, "LIVE")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "an admin lifts a ban",
-		direct(pool, setRestaurant(banned, "LIVE"),
-			staffEvent("RESTAURANT", banned, "REINSTATE", "BANNED", "LIVE", "APPEAL_UPHELD", admin.AccountID)),
-		"42501", "account_state_actor_not_permitted")
-	customer := guardCustomer(t, pool)
-	refused(t, "a customer writes the history row",
-		direct(pool, setRestaurant(banned, "LIVE"),
-			staffEvent("RESTAURANT", banned, "REINSTATE", "BANNED", "LIVE", "APPEAL_UPHELD", customer)),
-		"42501", "account_state_actor_not_permitted")
-
-	// Staff who also work for the restaurant do not judge it.
-	ownSuper := staff(t, pool, httpx.RoleSuperAdmin)
-	if _, err := pool.Exec(context.Background(), `
-		INSERT INTO account_role (account_id, role, scope_type, scope_id) VALUES ($1, 'RESTAURANT_OWNER', 'RESTAURANT', $2)`,
-		ownSuper.AccountID, banned); err != nil {
-		t.Fatal(err)
-	}
-	refused(t, "a super admin lifts the ban on their own restaurant",
-		direct(pool, setRestaurant(banned, "LIVE"),
-			staffEvent("RESTAURANT", banned, "REINSTATE", "BANNED", "LIVE", "APPEAL_UPHELD", ownSuper.AccountID)),
-		"42501", "account_state_own_account")
-
-	// Listing needs a current halal certificate, whoever lists.
-	uncertified := guardRestaurant(t, pool, "ACTIVE", "DELISTED")
-	refused(t, "list a restaurant with no current halal certificate",
-		direct(pool, setRestaurant(uncertified, "LIVE"),
-			staffEvent("RESTAURANT", uncertified, "REINSTATE", "DELISTED", "LIVE", "ISSUE_RESOLVED", admin.AccountID)),
-		"23514", "account_state_live_needs_halal_certificate")
-
-	// A delisting reason is cleared only with a history row, or by the halal
-	// certificate being current again.
-	reasons := guardRestaurant(t, pool, "ACTIVE", "SUSPENDED")
-	certify(t, pool, reasons, 300)
-	bypass(t, pool, q(`UPDATE restaurant SET delist_reasons = '{NO_APPROVED_MENU,HALAL_CERTIFICATE_EXPIRED}' WHERE id = $1`, reasons))
-	refused(t, "clear a delisting reason with an UPDATE alone",
-		direct(pool, setRestaurant(reasons, "SUSPENDED", "HALAL_CERTIFICATE_EXPIRED")),
-		"23000", "account_state_delist_reason_unrecorded")
-	accepted(t, "the halal reason clears once the certificate is current",
-		direct(pool, setRestaurant(reasons, "SUSPENDED", "NO_APPROVED_MENU")))
-	accepted(t, "adding a reason only restricts",
-		direct(pool, setRestaurant(reasons, "SUSPENDED", "NO_APPROVED_MENU", "DOCUMENT_EXPIRED")))
-}
-
-// TestSiblingPathsCannotChangeARidersOrACustomersState: the same for riders and
-// customers, including an admin trying to lock a super admin out through the
-// customer actions.
-func TestSiblingPathsCannotChangeARidersOrACustomersState(t *testing.T) {
-	pool := dialTestPool(t)
-	admin := staff(t, pool, httpx.RoleAdmin)
-	super := staff(t, pool, httpx.RoleSuperAdmin)
-
-	rider := seedRider(t, pool, "OFFLINE")
-	refused(t, "ban a rider with an UPDATE alone", direct(pool, setRider(rider, "BANNED")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "suspend a rider with an UPDATE alone", direct(pool, setRider(rider, "SUSPENDED")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "a rider suspends themself with a history row",
-		direct(pool, setRider(rider, "SUSPENDED"),
-			staffEvent("RIDER", rider, "SUSPEND", "ACTIVE", "SUSPENDED", "LOW_PERFORMANCE", rider)),
-		"42501", "account_state_actor_not_permitted")
-	bypass(t, pool, setRider(rider, "BANNED"))
-	refused(t, "lift a rider's ban with an UPDATE alone", direct(pool, setRider(rider, "ACTIVE")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "an admin lifts a rider's ban",
-		direct(pool, setRider(rider, "ACTIVE"),
-			staffEvent("RIDER", rider, "REINSTATE", "BANNED", "ACTIVE", "APPEAL_UPHELD", admin.AccountID)),
-		"42501", "account_state_actor_not_permitted")
-	refused(t, "a rider's ban cannot be lifted to anything but ACTIVE",
-		direct(pool, setRider(rider, "SUSPENDED"),
-			staffEvent("RIDER", rider, "REINSTATE", "BANNED", "SUSPENDED", "APPEAL_UPHELD", super.AccountID)),
-		"23514", "account_state_illegal_transition")
-
-	customer := guardCustomer(t, pool)
-	refused(t, "ban a customer with an UPDATE alone", direct(pool, setCustomer(customer, "BANNED")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "suspend a customer with an UPDATE alone", direct(pool, setCustomer(customer, "SUSPENDED")),
-		"23000", "account_state_change_unrecorded")
-	bypass(t, pool, setCustomer(customer, "BANNED"))
-	refused(t, "lift a customer's ban with an UPDATE alone", direct(pool, setCustomer(customer, "ACTIVE")),
-		"23000", "account_state_change_unrecorded")
-	refused(t, "an admin lifts a customer's ban",
-		direct(pool, setCustomer(customer, "ACTIVE"),
-			staffEvent("CUSTOMER", customer, "REINSTATE", "BANNED", "ACTIVE", "APPEAL_UPHELD", admin.AccountID)),
-		"42501", "account_state_actor_not_permitted")
-	refused(t, "an admin suspends a super admin as a customer",
-		direct(pool, setCustomer(super.AccountID, "SUSPENDED"),
-			staffEvent("CUSTOMER", super.AccountID, "SUSPEND", "ACTIVE", "SUSPENDED", "OTHER", admin.AccountID)),
-		"42501", "account_state_staff_subject")
-	refused(t, "a super admin suspends their own account",
-		direct(pool, staffEvent("CUSTOMER", super.AccountID, "SUSPEND", "ACTIVE", "SUSPENDED", "OTHER", super.AccountID),
-			setCustomer(super.AccountID, "SUSPENDED")),
-		"42501", "account_state_own_account")
-	if s := scalar[string](t, pool, `SELECT status::text FROM account WHERE id = $1`, super.AccountID); s != "ACTIVE" {
-		t.Errorf("the super admin's account is %s, want ACTIVE", s)
-	}
-
-	// A history row is written when it happens: a backdated one gets the
-	// transaction's clock, so it cannot be slid into a ban proposal's window.
-	other := guardCustomer(t, pool)
-	accepted(t, "a lawful suspension", direct(pool, setCustomer(other, "SUSPENDED"),
-		staffEvent("CUSTOMER", other, "SUSPEND", "ACTIVE", "SUSPENDED", "OTHER", admin.AccountID)))
-	if err := direct(pool, q(`
-INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
-                                 reason_text, actor_account_id, idempotency_key, request_hash, created_at)
-VALUES ('CUSTOMER', $1, 'PROPOSE_BAN', 'SUSPENDED', 'SUSPENDED', 'OTHER', 'backdated by eight days',
-        $2, $3, '\x00', now() - interval '8 days')`, other, admin.AccountID, uuid.NewString())); err != nil {
-		t.Fatal(err)
-	}
-	if n := scalar[int](t, pool, `
-		SELECT count(*)::int FROM account_state_event
-		 WHERE subject_id = $1 AND action = 'PROPOSE_BAN' AND created_at > now() - interval '1 minute'`, other); n != 1 {
-		t.Errorf("the backdated proposal kept its backdated time")
 	}
 }
 
@@ -414,78 +235,6 @@ func TestTheServiceHoldsTheCallerGatesItself(t *testing.T) {
 	if s := scalar[string](t, pool, `SELECT status::text FROM account WHERE id = $1`, customer); s != "SUSPENDED" {
 		t.Errorf("customer is %s after the refusals, want SUSPENDED (proposed, not banned)", s)
 	}
-}
-
-// TestSystemPrincipalsTakeOnlyTheirOwnTransitions: the halal expiry only delists
-// a LIVE restaurant for a lapsed certificate (never suspends: the shape of
-// https://github.com/shaiknoorullah/hg-mono/pull/274's optional suspension is
-// refused), the renewal only lists a DELISTED one again with a current
-// certificate, and completing onboarding only takes a restaurant out of PENDING.
-func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
-	pool := dialTestPool(t)
-	const lapse = "HALAL_CERTIFICATE_EXPIRED"
-
-	live := guardRestaurant(t, pool, "ACTIVE", "LIVE")
-	accepted(t, "the expiry delists a live restaurant",
-		direct(pool, setRestaurant(live, "DELISTED", lapse),
-			systemEvent("RESTAURANT", live, "DELIST", "LIVE", "DELISTED", lapse, "HALAL_EXPIRY", lapse)))
-	if n := scalar[int](t, pool, `
-		SELECT count(*)::int FROM account_state_event
-		 WHERE subject_id = $1 AND actor_kind = 'SYSTEM' AND system_actor = 'HALAL_EXPIRY' AND actor_account_id IS NULL`, live); n != 1 {
-		t.Errorf("history rows naming the expiry principal = %d, want 1", n)
-	}
-	refused(t, "the expiry suspends a delisted restaurant",
-		direct(pool, setRestaurant(live, "SUSPENDED", lapse),
-			systemEvent("RESTAURANT", live, "SUSPEND", "DELISTED", "SUSPENDED", "COMPLIANCE_THRESHOLD", "HALAL_EXPIRY", lapse)),
-		"42501", "account_state_system_not_allowed")
-	refused(t, "the expiry suspends with no history row",
-		direct(pool, setRestaurant(live, "SUSPENDED", lapse)), "23000", "account_state_change_unrecorded")
-	refused(t, "the expiry lists a restaurant",
-		direct(pool, setRestaurant(live, "LIVE"),
-			systemEvent("RESTAURANT", live, "REINSTATE", "DELISTED", "LIVE", "ISSUE_RESOLVED", "HALAL_EXPIRY")),
-		"42501", "account_state_system_not_allowed")
-	other := guardRestaurant(t, pool, "ACTIVE", "LIVE")
-	refused(t, "the expiry delists for a reason that is not its own",
-		direct(pool, setRestaurant(other, "DELISTED", "NO_APPROVED_MENU"),
-			systemEvent("RESTAURANT", other, "DELIST", "LIVE", "DELISTED", "NO_APPROVED_MENU", "HALAL_EXPIRY", "NO_APPROVED_MENU")),
-		"42501", "account_state_system_not_allowed")
-	rider := seedRider(t, pool, "OFFLINE")
-	refused(t, "the expiry suspends a rider",
-		direct(pool, setRider(rider, "SUSPENDED"),
-			systemEvent("RIDER", rider, "SUSPEND", "ACTIVE", "SUSPENDED", "DOCUMENT_EXPIRED", "HALAL_EXPIRY")),
-		"42501", "account_state_system_not_allowed")
-	refused(t, "an unknown principal",
-		direct(pool, setRestaurant(other, "DELISTED", lapse),
-			systemEvent("RESTAURANT", other, "DELIST", "LIVE", "DELISTED", lapse, "NIGHTLY_CLEANUP", lapse)),
-		"42501", "account_state_system_not_allowed")
-
-	refused(t, "the renewal lists a restaurant whose certificate is not current",
-		direct(pool, setRestaurant(live, "LIVE"),
-			systemEvent("RESTAURANT", live, "REINSTATE", "DELISTED", "LIVE", "ISSUE_RESOLVED", "HALAL_RENEWAL")),
-		"23514", "account_state_live_needs_halal_certificate")
-	certify(t, pool, live, 300)
-	accepted(t, "the renewal lists a delisted restaurant once its certificate is current",
-		direct(pool, setRestaurant(live, "LIVE"),
-			systemEvent("RESTAURANT", live, "REINSTATE", "DELISTED", "LIVE", "ISSUE_RESOLVED", "HALAL_RENEWAL")))
-	for _, from := range []string{"SUSPENDED", "BANNED", "DEACTIVATED"} {
-		r := guardRestaurant(t, pool, "ACTIVE", from)
-		certify(t, pool, r, 300)
-		refused(t, "the renewal lifts "+from,
-			direct(pool, setRestaurant(r, "LIVE"),
-				systemEvent("RESTAURANT", r, "REINSTATE", from, "LIVE", "ISSUE_RESOLVED", "HALAL_RENEWAL")),
-			"42501", "account_state_system_not_allowed")
-	}
-
-	// Onboarding: leaving PENDING only as onboarding completes, in the same row.
-	pending := guardRestaurant(t, pool, "ACTIVE", "PENDING")
-	certify(t, pool, pending, 300)
-	refused(t, "list a pending restaurant without completing onboarding in the same update",
-		direct(pool, setRestaurant(pending, "LIVE")), "23000", "account_state_change_unrecorded")
-	suspended := guardRestaurant(t, pool, "MENU_PENDING", "SUSPENDED")
-	certify(t, pool, suspended, 300)
-	refused(t, "completing onboarding lifts a suspension",
-		direct(pool, q(`UPDATE restaurant SET onboarding_state = 'ACTIVE', account_state = 'LIVE' WHERE id = $1`, suspended)),
-		"23000", "account_state_change_unrecorded")
 }
 
 // TestCompletingOnboardingIsTheOnboardingPrincipal: RecomputeOnboarding lists a
@@ -556,8 +305,7 @@ func TestCompletingOnboardingIsTheOnboardingPrincipal(t *testing.T) {
 	}
 
 	// The app role can call the onboarding principal but not steer it: with a gate
-	// unmet it refuses, and no UPDATE of the app's own takes a restaurant out of
-	// PENDING, even shaped like completing onboarding.
+	// unmet it refuses, and the app cannot write the account state itself.
 	unready := guardRestaurant(t, pool, "MENU_PENDING", "PENDING")
 	certify(t, pool, unready, 300)
 	refused(t, "complete onboarding with the gates unmet",
@@ -565,7 +313,7 @@ func TestCompletingOnboardingIsTheOnboardingPrincipal(t *testing.T) {
 		"23514", "account_state_onboarding_incomplete")
 	refused(t, "the app takes a restaurant out of PENDING itself, shaped like onboarding",
 		direct(app, q(`UPDATE restaurant SET onboarding_state = 'ACTIVE', account_state = 'LIVE' WHERE id = $1`, unready)),
-		"23000", "account_state_change_unrecorded")
+		"42501", "permission denied")
 }
 
 // menuFor gives a restaurant one live, approved menu item, which onboarding needs

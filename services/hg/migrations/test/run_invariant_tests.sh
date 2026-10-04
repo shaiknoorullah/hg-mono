@@ -388,63 +388,52 @@ reject "the account history is append-only" "account_state_event_is_append_only"
    UPDATE account_state_event SET to_state = 'ACTIVE' WHERE idempotency_key = 'inv-append-only-history';"
 
 echo
-echo "12. One owner for every account-state change (migration 00035)"
-reject "a restaurant's state changes only with its history row" "account_state_change_unrecorded" \
-  "UPDATE restaurant SET account_state = 'SUSPENDED' WHERE id = '33333333-3333-4333-8333-333333333333';"
-reject "a rider's status changes only with its history row" "account_state_change_unrecorded" \
-  "UPDATE rider_profile SET account_status = 'BANNED' WHERE account_id = '019ffe57-fbd0-7355-ade8-b03ea7943578';"
-reject "a customer's status changes only with its history row" "account_state_change_unrecorded" \
-  "UPDATE account SET status = 'BANNED' WHERE id = '11111111-1111-4111-8111-111111111111';"
-reject "a history row by someone who is not staff is refused" "account_state_actor_not_permitted" \
-  "INSERT INTO account_state_event ($ASE_COLS) VALUES
-   ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','SUSPEND','ACTIVE','SUSPENDED','OTHER',
-    'a customer suspends a rider','11111111-1111-4111-8111-111111111111','inv-not-staff', '\x00');"
-reject "only a super admin lifts a ban" "account_state_actor_not_permitted" \
-  "INSERT INTO account_state_event ($ASE_COLS) VALUES
-   ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','REINSTATE','BANNED','ACTIVE','APPEAL_UPHELD',
-    'an admin lifts a ban','$INV_ADMIN','inv-admin-unban', '\x00');"
-reject "the halal expiry principal only delists" "account_state_system_not_allowed" \
-  "INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
+echo "12. Only the database's writers change an account's state (migration 00035)"
+RIDER_FX='019ffe57-fbd0-7355-ade8-b03ea7943578'
+APPLY="SELECT * FROM account_state_apply"
+reject "the application role cannot change a restaurant's state" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   UPDATE restaurant SET account_state = 'SUSPENDED' WHERE id = '33333333-3333-4333-8333-333333333333';"
+reject "the application role cannot clear a restaurant's delisting reasons" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   UPDATE restaurant SET delist_reasons = '{}' WHERE id = '33333333-3333-4333-8333-333333333333';"
+reject "the application role cannot change a rider's status" "permission denied" \
+  "SET LOCAL ROLE hg_app; UPDATE rider_profile SET account_status = 'BANNED' WHERE account_id = '$RIDER_FX';"
+reject "the application role cannot change a customer's status" "permission denied" \
+  "SET LOCAL ROLE hg_app; UPDATE account SET status = 'BANNED' WHERE id = '11111111-1111-4111-8111-111111111111';"
+reject "the application role cannot delete a rider to create them again" "permission denied" \
+  "SET LOCAL ROLE hg_app; DELETE FROM rider_profile WHERE account_id = '$RIDER_FX';"
+reject "the application role cannot create an account in another state" "permission denied" \
+  "SET LOCAL ROLE hg_app; INSERT INTO account (phone_e164, status) VALUES ('+16475550142', 'BANNED');"
+reject "the application role cannot write the history" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
                                     reason_text, actor_kind, system_actor)
-   VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','SUSPEND','DELISTED','SUSPENDED',
-           'COMPLIANCE_THRESHOLD','the expiry suspends','SYSTEM','HALAL_EXPIRY');"
-reject "listing a restaurant needs a current halal certificate" "account_state_live_needs_halal_certificate" \
+   VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','DELIST','LIVE','DELISTED',
+           'HALAL_CERTIFICATE_EXPIRED','posing as the expiry','SYSTEM','HALAL_EXPIRY');"
+reject "the application role cannot change who may take a transition" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   INSERT INTO account_state_rule VALUES ('RIDER','REINSTATE','BANNED','ACTIVE','ADMIN','rider.reinstate',NULL);"
+reject "a staff action acts only for the account bound to its transaction" "account_state_actor_unbound" \
+  "SET LOCAL ROLE hg_app;
+   $APPLY('RIDER','$RIDER_FX','SUSPEND','$INV_ADMIN','OTHER','not bound to anyone','inv-unbound-000001','\x00','{}','{}');"
+reject "only a super admin lifts a ban" "account_state_actor_not_permitted" \
+  "UPDATE rider_profile SET account_status = 'BANNED' WHERE account_id = '$RIDER_FX';
+   SET LOCAL ROLE hg_app; SELECT set_config('hg.actor_id', '$INV_ADMIN', true);
+   $APPLY('RIDER','$RIDER_FX','REINSTATE','$INV_ADMIN','APPEAL_UPHELD','an admin lifts a ban','inv-admin-unban-01','\x00','{}','{}');"
+reject "listing a restaurant needs a current halal certificate" "account_state_halal_certificate_required" \
   "INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code, location,
                            onboarding_state, account_state)
    VALUES ('13000000-0000-4000-8000-0000000000a1', 'inv-uncertified', 'Uncertified Inc.', 'Uncertified',
            '1 King St', 'Toronto', 'ON', 'M5J0C3', ST_SetSRID(ST_MakePoint(-79.38, 43.65), 4326)::geography,
            'ACTIVE', 'DELISTED');
-   UPDATE restaurant SET account_state = 'LIVE' WHERE id = '13000000-0000-4000-8000-0000000000a1';
-   INSERT INTO account_state_event ($ASE_COLS) VALUES
-   ('RESTAURANT','13000000-0000-4000-8000-0000000000a1','REINSTATE','DELISTED','LIVE','ISSUE_RESOLVED',
-    'relisting with no certificate','$INV_ADMIN','inv-relist-uncertified', '\x00');"
-reject "a history row authorises one change, once" "account_state_change_unrecorded" \
-  "INSERT INTO account_state_event ($ASE_COLS) VALUES
-   ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','SUSPEND','ACTIVE','SUSPENDED','OTHER',
-    'suspended once','$INV_ADMIN','inv-once-suspend', '\x00');
-   UPDATE rider_profile SET account_status = 'SUSPENDED' WHERE account_id = '019ffe57-fbd0-7355-ade8-b03ea7943578';
-   INSERT INTO account_state_event ($ASE_COLS) VALUES
-   ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','REINSTATE','SUSPENDED','ACTIVE','ISSUE_RESOLVED',
-    'reinstated once','$INV_ADMIN','inv-once-reinstate', '\x00');
-   UPDATE rider_profile SET account_status = 'ACTIVE' WHERE account_id = '019ffe57-fbd0-7355-ade8-b03ea7943578';
-   UPDATE rider_profile SET account_status = 'SUSPENDED' WHERE account_id = '019ffe57-fbd0-7355-ade8-b03ea7943578';"
-reject "the application role cannot write a system principal's history" "account_state_system_actor_forged" \
-  "SET LOCAL ROLE hg_app;
-   INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
-                                    reason_text, actor_kind, system_actor, delist_reasons)
-   VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','DELIST','LIVE','DELISTED',
-           'HALAL_CERTIFICATE_EXPIRED','posing as the expiry','SYSTEM','HALAL_EXPIRY','{HALAL_CERTIFICATE_EXPIRED}');"
-reject "the application role cannot change who may take a transition" "permission denied" \
-  "SET LOCAL ROLE hg_app;
-   INSERT INTO account_state_rule VALUES ('RIDER','REINSTATE','BANNED','ACTIVE','ADMIN',NULL);"
-reject "completing onboarding never lifts a penalty" "account_state_change_unrecorded" \
-  "INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code, location,
-                           onboarding_state, account_state)
-   VALUES ('13000000-0000-4000-8000-0000000000a2', 'inv-suspended-onboarding', 'Suspended Inc.', 'Suspended',
-           '1 King St', 'Toronto', 'ON', 'M5J0C3', ST_SetSRID(ST_MakePoint(-79.38, 43.65), 4326)::geography,
-           'MENU_PENDING', 'SUSPENDED');
-   UPDATE restaurant SET onboarding_state = 'ACTIVE', account_state = 'DELISTED'
-    WHERE id = '13000000-0000-4000-8000-0000000000a2';"
+   SET LOCAL ROLE hg_app; SELECT set_config('hg.actor_id', '$INV_ADMIN', true);
+   $APPLY('RESTAURANT','13000000-0000-4000-8000-0000000000a1','REINSTATE','$INV_ADMIN','ISSUE_RESOLVED',
+          'relisting with no certificate','inv-relist-uncert-1','\x00','{}','{}');"
+reject "a system principal's function takes no rider" "account_state_subject_not_found" \
+  "SET LOCAL ROLE hg_app; SELECT * FROM account_state_halal_expiry('$RIDER_FX');"
+reject "a listed restaurant carries no delisting reason" "restaurant_live_has_no_delist_reasons" \
+  "UPDATE restaurant SET delist_reasons = '{OTHER}' WHERE id = '33333333-3333-4333-8333-333333333333';"
 
 echo
 echo "13. Contract enums"

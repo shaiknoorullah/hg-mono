@@ -278,53 +278,11 @@ SELECT action::text, COALESCE(actor_account_id::text, ''), created_at
 		ActorAccountID: in.Actor.staffID, InFlight: newInFlight(), DelistReasons: []string{},
 		requestHash: hash,
 	}
+	// Work in progress first: orders, offers, a rider going offline. Then the state.
 	if err := a.apply(ctx, tx, deps, in, now, &out); err != nil {
 		return accountStateChangeRow{}, err
 	}
-
-	// A confirmed ban ends every session of the people it affects. Their access
-	// tokens stop working within 10 seconds (the revocation deny set refreshes from
-	// Postgres), and their refresh tokens are dead at once.
-	if accountstate.RevokesSessions(in.Action) {
-		n, err := a.revokeSessions(ctx, tx, in.SubjectID)
-		if err != nil {
-			return accountStateChangeRow{}, err
-		}
-		out.SessionsRevoked = n
-	}
-
-	inFlightJSON, err := json.Marshal(out.InFlight)
-	if err != nil {
-		return accountStateChangeRow{}, err
-	}
-	err = tx.QueryRow(ctx, `
-INSERT INTO account_state_event
-  (subject_type, subject_id, action, from_state, to_state, reason_code, reason_text,
-   actor_kind, actor_account_id, idempotency_key, request_hash, in_flight, delist_reasons, sessions_revoked)
-VALUES ($1::account_subject_type, $2, $3::account_action, $4, $5, $6, $7, 'STAFF', $8, $9, $10, $11, $12, $13)
-RETURNING id::text, created_at`,
-		out.SubjectType, out.SubjectID, out.Action, out.FromState, out.ToState, out.ReasonCode,
-		out.ReasonText, out.ActorAccountID, in.IdemKey, hash, string(inFlightJSON),
-		out.DelistReasons, out.SessionsRevoked).Scan(&out.ID, &out.CreatedAt)
-	if err != nil {
-		return accountStateChangeRow{}, err
-	}
-
-	subjectID := in.SubjectID
-	if err := writeAudit(ctx, tx, auditEntry{
-		actor:       in.Actor,
-		action:      d.Permission,
-		subjectType: string(in.Subject),
-		subjectID:   &subjectID,
-		outcome:     "SUCCESS",
-		reasonCode:  &in.ReasonCode,
-		reason:      &in.ReasonText,
-		before:      map[string]any{"state": out.FromState},
-		after: map[string]any{
-			"state": out.ToState, "event_id": out.ID, "delist_reasons": out.DelistReasons,
-			"in_flight": out.InFlight, "sessions_revoked": out.SessionsRevoked,
-		},
-	}); err != nil {
+	if err := r.writeAccountStateTx(ctx, tx, in, hash, &out); err != nil {
 		return accountStateChangeRow{}, err
 	}
 
@@ -351,6 +309,37 @@ RETURNING id::text, created_at`,
 		}
 	}
 	return out, nil
+}
+
+// writeAccountStateTx is the state change itself, made by the database function
+// account_state_apply (migration 00035), the only writer of an account's state:
+// the application role cannot UPDATE the state columns. The function reads the
+// actor's grants as they stand, checks the transition, the two-person ban and the
+// own-account rule again, decides a restaurant's listing from its certificate,
+// ends the sessions a confirmed ban ends, and writes the state, the history row and
+// the audit row together. The actor is bound to this transaction first
+// (hg.actor_id), and the function refuses any other.
+func (r *Repo) writeAccountStateTx(ctx context.Context, tx pgx.Tx, in accountActionInput, hash []byte, out *accountStateChangeRow) error {
+	inFlightJSON, err := json.Marshal(out.InFlight)
+	if err != nil {
+		return err
+	}
+	request, err := json.Marshal(map[string]string{
+		"request_id": in.Actor.requestID, "session_id": in.Actor.sessionID,
+		"ip": in.Actor.ip, "user_agent": in.Actor.userAgent,
+	})
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `SELECT set_config('hg.actor_id', $1, true)`, in.Actor.staffID); err != nil {
+		return err
+	}
+	return tx.QueryRow(ctx, `
+SELECT event_id::text, from_state, to_state, delist_reasons, sessions_revoked, created_at
+  FROM account_state_apply($1::account_subject_type, $2, $3::account_action, $4, $5, $6, $7, $8, $9, $10)`,
+		string(in.Subject), in.SubjectID, string(in.Action), in.Actor.staffID, in.ReasonCode, in.ReasonText,
+		in.IdemKey, hash, string(inFlightJSON), string(request)).Scan(
+		&out.ID, &out.FromState, &out.ToState, &out.DelistReasons, &out.SessionsRevoked, &out.CreatedAt)
 }
 
 // loadAccountEventByKeyTx finds the result a caller's earlier request with this
@@ -388,12 +377,9 @@ type accountApplier interface {
 	// lock locks the account row, checks the caller may act on it, and returns its
 	// current state. A missing account is ErrNotFound.
 	lock(ctx context.Context, tx pgx.Tx, in accountActionInput) (string, error)
-	// apply checks the subject's own preconditions, settles work in progress and
-	// writes the new state. It may change out.ToState (a reinstated restaurant
-	// that cannot be listed stays DELISTED).
+	// apply checks the subject's own preconditions, for a clear refusal, and
+	// settles work in progress. It never writes the state: account_state_apply does.
 	apply(ctx context.Context, tx pgx.Tx, deps accountActionDeps, in accountActionInput, now time.Time, out *accountStateChangeRow) error
-	// revokeSessions ends every live session of the people the account belongs to.
-	revokeSessions(ctx context.Context, tx pgx.Tx, subjectID string) (int, error)
 	// recipients are the accounts the notice goes to.
 	recipients(ctx context.Context, tx pgx.Tx, subjectID string) ([]uuid.UUID, error)
 	roleContext() notify.RoleContext
@@ -419,15 +405,6 @@ func cancelOrderTx(ctx context.Context, tx pgx.Tx, deps accountActionDeps, in ac
 		return postCaptureReversal(ctx, tx, orderID, in.Actor, in.ReasonText, refundReason)
 	}
 	return nil
-}
-
-// revokeSessionsTx ends every live session of the given accounts.
-func revokeSessionsTx(ctx context.Context, tx pgx.Tx, query string, arg string) (int, error) {
-	ct, err := tx.Exec(ctx, query, arg)
-	if err != nil {
-		return 0, fmt.Errorf("revoke sessions: %w", err)
-	}
-	return int(ct.RowsAffected()), nil
 }
 
 // --- restaurants -------------------------------------------------------------
@@ -465,57 +442,33 @@ SELECT EXISTS (SELECT 1 FROM account_role
 }
 
 func (a *restaurantApplier) apply(ctx context.Context, tx pgx.Tx, deps accountActionDeps, in accountActionInput, now time.Time, out *accountStateChangeRow) error {
+	if in.Action != accountstate.Reinstate {
+		return a.settleOrders(ctx, tx, deps, in, out)
+	}
+	// The clear refusals for a reinstatement; account_state_apply decides the
+	// listing itself and refuses the same.
 	var onboarding, timezone string
-	var delist []string
 	var hasLocation bool
 	if err := tx.QueryRow(ctx, `
-SELECT onboarding_state::text, delist_reasons, timezone, location IS NOT NULL
-  FROM restaurant WHERE id = $1`, in.SubjectID).Scan(&onboarding, &delist, &timezone, &hasLocation); err != nil {
+SELECT onboarding_state::text, timezone, location IS NOT NULL
+  FROM restaurant WHERE id = $1`, in.SubjectID).Scan(&onboarding, &timezone, &hasLocation); err != nil {
 		return err
 	}
-	if delist == nil {
-		delist = []string{}
+	if onboarding != "ACTIVE" || !hasLocation {
+		return preconditionError{Blockers: []string{
+			"The restaurant has not finished onboarding, so it cannot be listed."}}
 	}
-
-	switch in.Action {
-	case accountstate.Delist:
-		if !containsString(delist, in.ReasonCode) {
-			delist = append(delist, in.ReasonCode)
-		}
-	case accountstate.Reinstate:
-		if onboarding != "ACTIVE" || !hasLocation {
-			return preconditionError{Blockers: []string{
-				"The restaurant has not finished onboarding, so it cannot be listed."}}
-		}
+	if out.FromState == accountstate.StateDelisted {
+		// Relisting is the admin saying the causes are fixed, but never without a
+		// current, admin-verified halal certificate.
 		cert, err := restaurantHalalCertificateTx(ctx, tx, in.SubjectID)
 		if err != nil {
 			return err
 		}
-		certState := accountstate.CertificationState(cert, accountstate.LocalDate(timezone, now))
-		if out.FromState == accountstate.StateDelisted {
-			// Relisting is the admin saying the causes are fixed, but never without a
-			// current, admin-verified halal certificate.
-			if !accountstate.CertificateCurrent(certState) {
-				return halalCertificateRequiredError{state: certState}
-			}
-			out.ToState, delist = accountstate.StateLive, []string{}
-		} else {
-			out.ToState, delist = accountstate.ReinstatedState(certState, delist)
+		if certState := accountstate.CertificationState(cert, accountstate.LocalDate(timezone, now)); !accountstate.CertificateCurrent(certState) {
+			return halalCertificateRequiredError{state: certState}
 		}
 	}
-
-	if in.Action != accountstate.Reinstate {
-		if err := a.settleOrders(ctx, tx, deps, in, out); err != nil {
-			return err
-		}
-	}
-
-	if _, err := tx.Exec(ctx, `
-UPDATE restaurant SET account_state = $2::restaurant_account_state, delist_reasons = $3
- WHERE id = $1`, in.SubjectID, out.ToState, delist); err != nil {
-		return fmt.Errorf("update restaurant account state: %w", err)
-	}
-	out.DelistReasons = delist
 	return nil
 }
 
@@ -564,15 +517,6 @@ SELECT id::text, state::text FROM "order"
 		out.InFlight.Cancelled = append(out.InFlight.Cancelled, o.id)
 	}
 	return nil
-}
-
-func (a *restaurantApplier) revokeSessions(ctx context.Context, tx pgx.Tx, restaurantID string) (int, error) {
-	return revokeSessionsTx(ctx, tx, `
-UPDATE session SET revoked_at = now(), revoke_reason = 'restaurant_banned'
- WHERE revoked_at IS NULL
-   AND account_id IN (SELECT account_id FROM account_role
-                       WHERE scope_type = 'RESTAURANT' AND scope_id = $1 AND revoked_at IS NULL)`,
-		restaurantID)
 }
 
 // recipients are the restaurant's owners and managers. Front-of-house staff run
@@ -703,19 +647,7 @@ SELECT order_id::text FROM dispatch
 		}
 		out.InFlight.Continuing = append(out.InFlight.Continuing, ids...)
 	}
-
-	if _, err := tx.Exec(ctx, `
-UPDATE rider_profile SET account_status = $2::rider_account_status WHERE account_id = $1`,
-		in.SubjectID, out.ToState); err != nil {
-		return fmt.Errorf("update rider account status: %w", err)
-	}
 	return nil
-}
-
-func (a *riderApplier) revokeSessions(ctx context.Context, tx pgx.Tx, riderID string) (int, error) {
-	return revokeSessionsTx(ctx, tx, `
-UPDATE session SET revoked_at = now(), revoke_reason = 'rider_banned'
- WHERE account_id = $1 AND revoked_at IS NULL`, riderID)
 }
 
 func (a *riderApplier) recipients(_ context.Context, _ pgx.Tx, riderID string) ([]uuid.UUID, error) {
@@ -814,21 +746,10 @@ SELECT id::text, state::text FROM "order"
 			out.releaseOrderIDs = append(out.releaseOrderIDs, o.id)
 		}
 	}
-
-	// One person has one account: this status is the person's. Anything other than
-	// ACTIVE refuses new sessions and stops their access tokens within 10 seconds.
-	if _, err := tx.Exec(ctx, `
-UPDATE account SET status = $2::account_status, status_reason = $3 WHERE id = $1`,
-		in.SubjectID, out.ToState, in.ReasonCode); err != nil {
-		return fmt.Errorf("update account status: %w", err)
-	}
+	// One person has one account: account_state_apply sets this status, the
+	// person's. Anything other than ACTIVE refuses new sessions and stops their
+	// access tokens within 10 seconds.
 	return nil
-}
-
-func (a *customerApplier) revokeSessions(ctx context.Context, tx pgx.Tx, customerID string) (int, error) {
-	return revokeSessionsTx(ctx, tx, `
-UPDATE session SET revoked_at = now(), revoke_reason = 'customer_banned'
- WHERE account_id = $1 AND revoked_at IS NULL`, customerID)
 }
 
 func (a *customerApplier) recipients(_ context.Context, _ pgx.Tx, customerID string) ([]uuid.UUID, error) {
