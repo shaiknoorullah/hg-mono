@@ -1462,14 +1462,18 @@ func (r *Repo) MarkOrderReady(ctx context.Context, restaurantID, orderID, actorA
 		return nil, ErrIllegalTransition
 	}
 
-	// READY_FOR_PICKUP: rider pickup expected within 15 minutes.
-	newDeadline := time.Now().UTC().Add(15 * time.Minute)
+	// The deadline and its action come from the deadline table (readyDeadline).
+	// The escalation count and the runner's lease start afresh with the new
+	// state, as in the orders module's transition function; that this path
+	// writes the state itself is https://github.com/shaiknoorullah/hg-mono/issues/337.
+	newDeadline, deadlineAction := readyDeadline(time.Now().UTC())
 	_, err = tx.Exec(ctx, `
 		UPDATE "order" SET
 			state='READY_FOR_PICKUP', state_since=now(),
-			deadline_at=$2, deadline_action='RIDER_NO_SHOW',
+			deadline_at=$2, deadline_action=$3, deadline_escalations=0,
+			lease_until=NULL, lease_owner=NULL,
 			ready_at=now(), updated_at=now()
-		WHERE id=$1`, orderID, newDeadline)
+		WHERE id=$1`, orderID, newDeadline, deadlineAction)
 	if err != nil {
 		return nil, fmt.Errorf("mark ready: %w", err)
 	}

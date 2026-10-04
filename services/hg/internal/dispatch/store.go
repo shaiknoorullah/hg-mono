@@ -156,12 +156,15 @@ func (s *Store) CreateWave(ctx context.Context, o *OrderDispatchInfo, waveNo, ra
 	// ON CONFLICT bumps wave/radius on a re-run while the order is still being
 	// searched, but never disturbs a row that has already been ASSIGNED (or is
 	// otherwise past SEARCHING/OFFERED/PENDING): the WHERE guard leaves it intact.
+	// It leaves state_since alone: the state does not change, and state_since is
+	// where the search's wave and time budget is counted from
+	// (FindWavesToEscalate).
 	if _, err := tx.Exec(ctx, `
 INSERT INTO dispatch (order_id, state, state_since, wave, radius_m, deadline_at, deadline_action)
 VALUES ($1, 'SEARCHING', now(), $2, $3, $4, 'NEXT_WAVE')
 ON CONFLICT (order_id) DO UPDATE
    SET wave = EXCLUDED.wave, radius_m = EXCLUDED.radius_m,
-       state_since = now(), deadline_at = EXCLUDED.deadline_at, deadline_action = 'NEXT_WAVE'
+       deadline_at = EXCLUDED.deadline_at, deadline_action = 'NEXT_WAVE'
  WHERE dispatch.state IN ('PENDING', 'SEARCHING', 'OFFERED')
    AND dispatch.rider_account_id IS NULL`,
 		o.OrderID, waveNo, radiusM, expiresAt); err != nil {

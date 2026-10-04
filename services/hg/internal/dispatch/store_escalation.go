@@ -8,10 +8,16 @@ import (
 // waveToEscalate is a dispatch whose current offer wave has lapsed and which is
 // still searching for a rider.
 type waveToEscalate struct {
-	OrderID  string
-	Wave     int
-	RadiusM  int
-	ElapsedS int // seconds since the dispatch row was created (D-15 max_total_seconds)
+	OrderID string
+	Wave    int // the last wave's number; the next wave is Wave+1
+	RadiusM int
+	// RoundWaves and ElapsedS measure the search against its wave and time
+	// budget (docs/spec/04-rider.md, "D-15 — Offer expiry, wave escalation,
+	// and the no-rider-found path") since it last entered SEARCHING: from the
+	// first wave, or from ResumeSearchTx re-opening a search that found no
+	// rider.
+	RoundWaves int
+	ElapsedS   int
 }
 
 // FindWavesToEscalate returns dispatches still SEARCHING/OFFERED (no rider yet)
@@ -21,7 +27,9 @@ type waveToEscalate struct {
 func (s *Store) FindWavesToEscalate(ctx context.Context, now time.Time, gap time.Duration) ([]waveToEscalate, error) {
 	rows, err := s.db.Query(ctx, `
 SELECT order_id::text, wave, radius_m,
-       GREATEST(0, EXTRACT(EPOCH FROM ($1::timestamptz - created_at))::int)
+       (SELECT count(*)::int FROM dispatch_wave w
+         WHERE w.order_id = dispatch.order_id AND w.started_at >= dispatch.state_since),
+       GREATEST(0, EXTRACT(EPOCH FROM ($1::timestamptz - state_since))::int)
   FROM dispatch
  WHERE state IN ('SEARCHING', 'OFFERED')
    AND rider_account_id IS NULL
@@ -37,7 +45,7 @@ SELECT order_id::text, wave, radius_m,
 	var out []waveToEscalate
 	for rows.Next() {
 		var w waveToEscalate
-		if err := rows.Scan(&w.OrderID, &w.Wave, &w.RadiusM, &w.ElapsedS); err != nil {
+		if err := rows.Scan(&w.OrderID, &w.Wave, &w.RadiusM, &w.RoundWaves, &w.ElapsedS); err != nil {
 			return nil, err
 		}
 		out = append(out, w)

@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // OrderLifecycle is the seam from dispatch to the orders module. Dispatch calls
@@ -13,8 +15,12 @@ import (
 // is the only writer of it. Keeping this as an interface (not a direct import)
 // keeps the dependency direction clean and lets tests inject a fake.
 type OrderLifecycle interface {
-	// ConfirmPickup advances the order from READY_FOR_PICKUP to PICKED_UP (T12).
-	ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error
+	// ConfirmPickupTx moves the order to PICKED_UP (T12) inside the rider's
+	// PICKED_UP step's own transaction, so the two commit together or not at
+	// all (pickup.go). An order the kitchen has not marked ready yet is marked
+	// ready first, in the same transaction. A state the pickup cannot move the
+	// order out of is *OrderNotCollectableError, and the step is refused.
+	ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error
 	// CompleteDelivery advances the order from PICKED_UP (or ARRIVED) to DELIVERED (T15/T16).
 	CompleteDelivery(ctx context.Context, orderID, riderAccountID string) error
 }
@@ -133,12 +139,13 @@ func (s *Service) GetAssignment(ctx context.Context, riderAccountID, assignmentI
 	return s.store.LoadAssignment(ctx, riderAccountID, assignmentID)
 }
 
-// Transition advances an assignment one step. After the dispatch transaction
-// commits, it calls the OrderLifecycle bridge for PICKED_UP and DELIVERED to
-// keep the order state machine in sync (P-14: only the orders module writes
-// order.state; dispatch calls it via the interface, never directly).
+// Transition advances an assignment one step, keeping the order state machine
+// in sync through the OrderLifecycle bridge (P-14: only the orders module
+// writes order.state; dispatch calls it via the interface, never directly).
+// PICKED_UP moves the order inside the step's own transaction (pickup.go);
+// DELIVERED calls the bridge after the dispatch transaction commits.
 func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput) (*Assignment, error) {
-	asn, transitioned, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now())
+	asn, transitioned, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now(), s.pickupStepFor(riderAccountID))
 	if err != nil {
 		return nil, err
 	}
@@ -150,16 +157,12 @@ func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID s
 	// would otherwise log a spurious bridge failure on a normal retry.
 	if s.lifecycle != nil && transitioned {
 		switch in.ToState {
-		case "PICKED_UP":
-			if lcErr := s.lifecycle.ConfirmPickup(ctx, asn.OrderID, riderAccountID); lcErr != nil {
-				// Log-and-swallow: the dispatch assignment is committed and must not
-				// roll back on an orders-module failure. But the order is now stranded
-				// (assignment PICKED_UP, order.state not advanced) and there is no
-				// automatic retry for an already-dispatched order, so this is an
-				// operational incident that must be visible, never silent.
-				s.logBridgeFailure(asn.OrderID, riderAccountID, "confirm_pickup", lcErr)
-			}
 		case "DELIVERED":
+			// Log-and-swallow: the dispatch assignment is committed and must not
+			// roll back on an orders-module failure. But the order is then
+			// stranded (assignment DELIVERED, order.state not advanced) and there
+			// is no automatic retry for an already-dispatched order, so this is
+			// an operational incident that must be visible, never silent.
 			if lcErr := s.lifecycle.CompleteDelivery(ctx, asn.OrderID, riderAccountID); lcErr != nil {
 				s.logBridgeFailure(asn.OrderID, riderAccountID, "complete_delivery", lcErr)
 			}

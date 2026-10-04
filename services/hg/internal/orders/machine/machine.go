@@ -92,7 +92,7 @@ var table = []Transition{
 	{From: StateRestaurantPending, To: StatePreparing, Actors: []ActorKind{ActorRestaurant}, Action: ActionAccept, MoneyFX: "capture"},                                       // T6
 	{From: StateRestaurantPending, To: StateRejected, Actors: []ActorKind{ActorRestaurant}, Action: ActionReject, MoneyFX: "auth voided"},                                    // T7
 	{From: StateRestaurantPending, To: StateCancelled, Actors: []ActorKind{ActorSystem, ActorCustomer}, Action: ActionCancel, MoneyFX: "auth voided"},                        // T8/T9
-	{From: StatePreparing, To: StateReadyForPickup, Actors: []ActorKind{ActorRestaurant}, Action: ActionMarkReady, MoneyFX: "none"},                                          // T10
+	{From: StatePreparing, To: StateReadyForPickup, Actors: []ActorKind{ActorRestaurant, ActorSystem}, Action: ActionMarkReady, MoneyFX: "none"},                             // T10 (system: a pickup before the kitchen taps ready, orders.PickUpTx)
 	{From: StatePreparing, To: StateCancelled, Actors: []ActorKind{ActorSupport, ActorAdmin, ActorSystem}, Action: ActionCancelSupport, MoneyFX: "refund per policy"},        // T11
 	{From: StateReadyForPickup, To: StatePickedUp, Actors: []ActorKind{ActorRider}, Action: ActionConfirmPickup, MoneyFX: "none"},                                            // T12
 	{From: StateReadyForPickup, To: StateCancelled, Actors: []ActorKind{ActorSystem}, MoneyFX: "refund customer, pay restaurant"},                                            // T13
