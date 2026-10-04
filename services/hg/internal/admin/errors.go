@@ -9,6 +9,8 @@ const (
 	CodeInvalidEnumValue httpx.ErrorCode = "INVALID_ENUM_VALUE"
 	CodeNotFound         httpx.ErrorCode = "NOT_FOUND"
 	CodeForbidden        httpx.ErrorCode = "FORBIDDEN"
+	// CodeMFARequired: the session was not signed in with an authenticator code.
+	CodeMFARequired httpx.ErrorCode = "MFA_REQUIRED"
 
 	// Staff / RBAC.
 	CodeEmailInUse        httpx.ErrorCode = "EMAIL_IN_USE"

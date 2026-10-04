@@ -407,6 +407,20 @@ func (r *Repo) Decide(ctx context.Context, actor auditActor, id, decision string
 			if cert.Status != "PENDING" {
 				return ErrAlreadyDecided
 			}
+			// Hold the issuing body FOR SHARE until this approval commits. A
+			// status change locks the body FOR UPDATE and then re-derives every
+			// restaurant holding its certificates, so the approval either commits
+			// first and is re-derived by it, or waits and reads the new status
+			// below. Without the lock an approval that read ACCEPTED could commit
+			// a badge after a withdrawal had passed its restaurant. The body is
+			// locked before the certificate write reaches the restaurant row, the
+			// order the status change takes them in.
+			// Issue: https://github.com/shaiknoorullah/hg-mono/issues/346
+			if cert.IssuingBodyID != nil {
+				if _, err := tx.Exec(ctx, `SELECT 1 FROM halal_issuing_body WHERE id = $1 FOR SHARE`, *cert.IssuingBodyID); err != nil {
+					return fmt.Errorf("lock issuing body: %w", err)
+				}
+			}
 			// Recompute the non-overridable checks fresh so a stale recorded PASS
 			// can never carry an approval.
 			facts, err := r.certFactsFor(ctx, tx, cert, minRemainingDays, at)
