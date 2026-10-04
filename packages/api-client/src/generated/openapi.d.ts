@@ -8219,6 +8219,7 @@ export interface operations {
             };
             409: components["responses"]["Error"];
             422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
             503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };

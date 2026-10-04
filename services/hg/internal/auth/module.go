@@ -37,7 +37,7 @@ func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSS
 		sms = NewLogSMSSender(log, echoOTP)
 	}
 	store := NewStore(pool)
-	rl := NewRateLimiter(rdb)
+	rl := NewRateLimiter(rdb, log)
 	deny := session.NewDenySet()
 
 	issuer := session.NewIssuer(secrets.SigningKID, secrets.SigningPriv, "hg-api")

@@ -504,11 +504,12 @@ func run() error {
 		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
 
 	router := httpx.NewRouter(httpx.Options{
-		Logger:        log,
-		Env:           string(cfg.Env),
-		CORSOrigins:   cfg.CORSOrigins,
-		Authenticator: authModule.Authenticator,
-		Authorizer:    authModule.Authorizer,
+		Logger:         log,
+		Env:            string(cfg.Env),
+		CORSOrigins:    cfg.CORSOrigins,
+		TrustedProxies: cfg.TrustedProxies,
+		Authenticator:  authModule.Authenticator,
+		Authorizer:     authModule.Authorizer,
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)

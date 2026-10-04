@@ -48,7 +48,7 @@ func buildTOTPTestServer(t *testing.T, pool *pgxpool.Pool, principal httpx.Princ
 	t.Helper()
 	secrets := testSecrets(t)
 	store := NewStore(pool)
-	rl := NewRateLimiter(nil) // nil redis — rate limiter no-ops
+	rl := NewRateLimiter(nil, nil) // nil redis — rate limiter no-ops
 	deny := session.NewDenySet()
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -74,7 +74,7 @@ func buildTOTPTestServerAnon(t *testing.T, pool *pgxpool.Pool) *httptest.Server 
 	t.Helper()
 	secrets := testSecrets(t)
 	store := NewStore(pool)
-	rl := NewRateLimiter(nil)
+	rl := NewRateLimiter(nil, nil)
 	deny := session.NewDenySet()
 	_, priv, _ := ed25519.GenerateKey(rand.Reader)
 	issuer := session.NewIssuer("k1", priv, "hg-api")

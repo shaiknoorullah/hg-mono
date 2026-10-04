@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/netip"
 	"net/url"
 	"os"
 	"sort"
@@ -35,6 +36,13 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	LogLevel        slog.Level
 	CORSOrigins     []string
+	// TrustedProxies are the peers whose X-Forwarded-For / X-Real-Ip headers
+	// name the real client (HG_TRUSTED_PROXIES, comma-separated CIDRs or bare
+	// addresses). Every public request arrives through Traefik, so without
+	// this every client would share Traefik's address and a per-IP limit would
+	// be one platform-wide limit (docs/spec/01-platform.md, "P-06 —
+	// Deny-by-default routing and the middleware chain", stage 3 RealIP).
+	TrustedProxies []netip.Prefix
 
 	Postgres Postgres
 	Redis    Redis
@@ -233,6 +241,7 @@ func Load(getenv func(string) string) (*Config, error) {
 
 	cfg.LogLevel = l.logLevel("HG_LOG_LEVEL", slog.LevelInfo)
 	cfg.CORSOrigins = l.originList("HG_CORS_ALLOWED_ORIGINS")
+	cfg.TrustedProxies = l.prefixList("HG_TRUSTED_PROXIES", defaultTrustedProxies)
 
 	cfg.Postgres = Postgres{
 		DSN:         l.required("HG_POSTGRES_DSN"),
@@ -433,6 +442,35 @@ func (l *loader) logLevel(key string, def slog.Level) slog.Level {
 		return def
 	}
 	return lvl
+}
+
+// defaultTrustedProxies is where Docker allocates bridge networks from by
+// default, which is where the compose network that Traefik and the API share
+// (deploy/docker-compose.yml, hg-net) gets its subnet. The API publishes no
+// port, so only a container on that network can be its peer. Loopback is
+// deliberately absent: a developer's direct request is its own client.
+const defaultTrustedProxies = "172.16.0.0/12,192.168.0.0/16"
+
+// prefixList parses comma-separated CIDRs; a bare address is its own /32 or
+// /128.
+func (l *loader) prefixList(key, def string) []netip.Prefix {
+	var out []netip.Prefix
+	for _, part := range strings.Split(l.optional(key, def), ",") {
+		s := strings.TrimSpace(part)
+		if s == "" {
+			continue
+		}
+		if p, err := netip.ParsePrefix(s); err == nil {
+			out = append(out, p.Masked())
+			continue
+		}
+		if a, err := netip.ParseAddr(s); err == nil {
+			out = append(out, netip.PrefixFrom(a.Unmap(), a.Unmap().BitLen()))
+			continue
+		}
+		l.errf("%s: %q is not a CIDR or an IP address", key, s)
+	}
+	return out
 }
 
 // originList parses the CORS allowlist. A wildcard is rejected outright:
