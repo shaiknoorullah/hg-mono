@@ -450,6 +450,27 @@
     "HalalGoes.Spelling: simulable": 1,
     "HalalGoes.Spelling: templatable": 1
   },
+  "docs/design/audit/admin.md": {
+    "HalalGoes.Spelling: Hn": 1,
+    "HalalGoes.Spelling: glanceability": 1,
+    "HalalGoes.Spelling: undestructive": 1
+  },
+  "docs/design/audit/customer.md": {
+    "HalalGoes.Spelling: fixtured": 2,
+    "HalalGoes.Spelling: followable": 1,
+    "HalalGoes.Spelling: unwired": 1
+  },
+  "docs/design/audit/restaurant.md": {
+    "HalalGoes.Spelling: unrepresentability": 1,
+    "HalalGoes.Spelling: unsubmittable": 1
+  },
+  "docs/design/audit/rider.md": {
+    "HalalGoes.Spelling: Amina": 1,
+    "HalalGoes.Spelling: Untokened": 1,
+    "HalalGoes.Spelling: authed": 1,
+    "HalalGoes.Spelling: dismissibility": 2,
+    "HalalGoes.Spelling: untokened": 3
+  },
   "docs/design/handoff-verification.md": {
     "HalalGoes.Spelling: untampered": 1
   },

@@ -2,10 +2,13 @@
  * The order-detail live-tracking map box — `docs/design/admin-order-detail.md`.
  *
  * Engine: `mapbox-gl-js`, brand-tinted styles. The **only** green on the map is the
- * verified-halal restaurant pin (the halal-green reservation, rule 10); the active route
- * line is brand crimson, never a halal colour. Rider position is live over the realtime
- * channel where available; this box takes whatever coordinates the caller can give it and
- * degrades honestly when it can't.
+ * rider pin, the registered exception to the rule that solid green is reserved for halal
+ * status (AGENTS.md "Non-negotiable invariants"), because a HalalGoes rider is not a
+ * certification claim. The restaurant pin is the brand orange: this box knows a
+ * restaurant's coordinates, never its halal state, so it cannot and does not make a
+ * verification claim. Rider position is live over the realtime channel where available;
+ * this box takes whatever coordinates the caller can give it and degrades honestly when
+ * it can't.
  *
  * `OrderAdminView` was widened to carry `restaurant_location` / `destination_location` /
  * `rider_location` directly (the admin-scoped counterpart to the customer-only
@@ -34,6 +37,29 @@ export interface LiveMapBoxProps {
   missingLabel: string | null;
 }
 
+/**
+ * Pin colours, from `color.map.*` — the tokens that exist for exactly this.
+ *
+ * This used to paint every restaurant pin with
+ * `var(--hg-color-halal-verified, #067A55)`. That custom property does not
+ * exist, so the fallback painted unconditionally: a solid green dot on every
+ * restaurant whatever its certification state, including expired ones. A
+ * missing halal field renders no badge, never an optimistic one (AGENTS.md
+ * "Non-negotiable invariants"), and `MapPin` carries no halal state at all — `kind`, `label`, and a
+ * coordinate. A dot on a map cannot know the thing it was claiming, so it must
+ * not claim it.
+ *
+ * Green on this map belongs to the RIDER pin, the one registered exception to
+ * the no-green lint (docs/design/01-foundations.md "Data-visualisation and map
+ * colours": a rider is not a certification claim, and carries no shield). The
+ * restaurant pin is the action orange.
+ */
+const PIN_COLOUR: Record<MapPin['kind'], string> = {
+  restaurant: 'var(--hg-color-map-pin-restaurant, #F1521E)',
+  customer: 'var(--hg-color-map-pin-customer, #1B3B31)',
+  rider: 'var(--hg-color-map-pin-rider, #0F7A43)',
+};
+
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
 export function LiveMapBox({ pins, etaLabel, countdownLabel, missingLabel }: LiveMapBoxProps) {
@@ -61,9 +87,7 @@ export function LiveMapBox({ pins, etaLabel, countdownLabel, missingLabel }: Liv
 
       const bounds = new mapboxgl.default.LngLatBounds();
       for (const pin of pins) {
-        // Rule 10: the halal-green pin is the only solid green on the map. Everything else
-        // (customer, rider, the route) is brand crimson or neutral — never halal green.
-        const color = pin.kind === 'restaurant' ? 'var(--hg-color-halal-verified, #067A55)' : '#B42318';
+        const color = PIN_COLOUR[pin.kind];
         const el = document.createElement('div');
         el.style.width = '14px';
         el.style.height = '14px';

@@ -46,9 +46,11 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/partitions"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/retention"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
@@ -642,6 +644,20 @@ func run() error {
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
 	defer rtGateway.Shutdown()
+
+	// Partition maintenance (docs/spec/01-platform.md, "P-39 — Background
+	// runtime"): at start-up and hourly, keep realtime_event,
+	// rider_position_history and audit_event partitioned ahead of the clock and
+	// drop the ones past retention. Every replica runs the loop; a lease lets
+	// one work at a time.
+	go partitions.New(st.DB().Pool, log).Run(ctx)
+
+	// Retention: the hourly sweep that deletes rows past their retention period
+	// from the tables that otherwise only grow — published outbox rows, sockets,
+	// sign-in records, dead sessions, old notifications, unused quotes. Every
+	// replica runs it; a job_run claim lets one pass run per hour across the
+	// fleet. It never deletes ledger, order, audit or KYC rows.
+	go retention.New(st.DB().Pool, log).Run(ctx)
 
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works
