@@ -25,7 +25,7 @@ DOMAIN_BLURB = {
     "payments": "The 8 `PaymentState` values, saved cards and setup intents.",
     "platform": "Auth, config, addresses, notifications, Connect and health.",
     "realtime": "Scripted WebSocket sequences that drive a screen through a whole lifecycle.",
-    "refunds": "The 10 `RefundState` values, liability splits and approval requests.",
+    "refunds": "The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks.",
     "rider": "Availability, dashboard, earnings and payouts.",
 }
 

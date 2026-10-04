@@ -173,7 +173,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **143 V0, 12 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **149 V0, 12 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -192,6 +192,14 @@ issue [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)):
 | **New:** a restaurant renames, reorders, deactivates or reactivates its own category | `updateMenuCategory` |
 | The menu review queue | `listMenuReviewQueue`, `decideMenuVersion` |
 | **New:** an admin updates or removes a menu item on a restaurant's behalf | `updateMenuItemOnBehalf`, `deleteMenuItemOnBehalf` |
+
+Then, for launch, staff review refunds and see chargebacks ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)):
+
+| What | Operations |
+|---|---|
+| **New:** the refund review queue; approve a refund (within the approver's 24-hour limit, or sent up for a second person) or decline it with a reason | `listRefundsAdmin`, `approveRefund`, `declineRefund` |
+| **New:** chargebacks (disputes raised with the customer's bank) and the evidence notes staff keep for them | `listChargebacks`, `getChargeback`, `addChargebackEvidenceNote` |
+| **Widened:** the admin order view carries the order's money timeline and its chargebacks | `getOrderAdmin` |
 
 Still later-version: turning two-step sign-in off, listing and ending single sessions,
 dependency status, the in-app inbox, restaurant staff, ratings, the home feed and a restaurant

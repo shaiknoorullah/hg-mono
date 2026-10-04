@@ -151,6 +151,17 @@ reject "a refund approval request that names no approving role is rejected" "ref
    VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'GOODWILL',
            'GOODWILL', 100, 'PENDING_APPROVAL', 'PENDING', '11111111-1111-4111-8111-111111111111',
            now(), 'await_refund_approval');"
+reject "a refund approved by the person who sent it up for a second person is rejected" "refund_second_person" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by,
+                       escalated_by, escalated_at, approved_by, approved_at, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'AUTHORISED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), '11111111-1111-4111-8111-111111111111', now(),
+           now(), 'submit_refund_to_stripe');"
+reject "a declined refund that does not say who declined it and why is rejected" "refund_decline_recorded" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'DECLINED', '11111111-1111-4111-8111-111111111111');"
 zero_rows "no live order lacks a deadline" "SELECT * FROM order_without_deadline"
 zero_rows "no live dispatch lacks a deadline" "SELECT * FROM dispatch_without_deadline"
 

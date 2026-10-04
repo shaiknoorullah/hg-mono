@@ -113,4 +113,7 @@ var expectedCovered = []string{
 	"createQuote", "createOrder", "cancelOrder",
 	"acceptOffer", "getAssignment",
 	"createRealtimeTicket", "receiveStripeWebhook",
+	// refund review and chargebacks (#172; conformance_refund_review_test.go)
+	"listRefundsAdmin", "approveRefund", "declineRefund",
+	"listChargebacks", "getChargeback", "addChargebackEvidenceNote",
 }

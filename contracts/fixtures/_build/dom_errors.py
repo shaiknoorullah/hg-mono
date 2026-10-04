@@ -231,6 +231,63 @@ ERRORS = [
 # services/hg returns today.
 LAUNCH_ERRORS = [
     (
+        "refund_self_approval_forbidden",
+        409,
+        "SELF_APPROVAL_FORBIDDEN",
+        "Nobody may approve their own refund request.",
+        None,
+        "The person who asked for a refund, or who sent it up for a second person, tried to "
+        "approve it. A goodwill refund above CAD 50.00 always needs someone else.",
+        ["approveRefund", "issueRefund"],
+    ),
+    (
+        "refund_already_decided",
+        409,
+        "ALREADY_DECIDED",
+        "This refund is not waiting for a decision; it is AUTHORISED.",
+        None,
+        "Someone else decided it first, or it was never waiting. Reload the queue.",
+        ["approveRefund", "declineRefund"],
+    ),
+    (
+        "refund_approver_over_daily_limit",
+        409,
+        "DAILY_CAP_EXCEEDED",
+        "Approving this would take you past your 24-hour refund limit; a super admin can approve it.",
+        None,
+        "A second approver's own rolling 24-hour limit counts too. The request stays in the "
+        "queue for someone with room.",
+        ["approveRefund"],
+    ),
+    (
+        "refund_mfa_required",
+        403,
+        "MFA_REQUIRED",
+        "Refunds need a session signed in with your authenticator code. Sign in again with it.",
+        None,
+        "Money actions need a session signed in with an authenticator code (staff MFA for money "
+        "actions).",
+        ["approveRefund", "issueRefund"],
+    ),
+    (
+        "refund_needs_higher_role",
+        403,
+        "FORBIDDEN",
+        "This refund needs approval from someone with the ADMIN role.",
+        None,
+        "An approval request is decided by the role it was sent up to, or a super admin.",
+        ["approveRefund", "declineRefund"],
+    ),
+    (
+        "chargeback_closed",
+        409,
+        "ALREADY_DECIDED",
+        "Stripe has closed this chargeback (lost); it takes no more evidence.",
+        None,
+        "Evidence notes are for open chargebacks only.",
+        ["addChargebackEvidenceNote"],
+    ),
+    (
         "reset_token_not_valid",
         400,
         "TOKEN_CONSUMED",
