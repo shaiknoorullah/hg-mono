@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <!-- Every request (our own assets, the API, fonts, map tiles) carries the origin only,
+         never the path or query, so an emailed link's ?token= reaches no third party and no
+         access log as a referrer (issue #329). The origin itself stays, which Mapbox's
+         URL-restricted token needs. -->
+    <meta name="referrer" content="strict-origin" />
     <title>HalalGoes for Restaurants</title>
   </head>
   <body>
