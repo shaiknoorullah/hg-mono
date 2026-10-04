@@ -1,5 +1,5 @@
 """
-Trace the supplied Halalgoes wordmark PNG to SVG paths.
+Trace the supplied HalalGoes wordmark PNG to SVG paths.
 
 No potrace / numpy in this container, so this is a small, purpose-built tracer:
 

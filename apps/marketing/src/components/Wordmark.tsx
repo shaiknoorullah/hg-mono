@@ -1,5 +1,5 @@
 /**
- * The Halalgoes wordmark.
+ * The HalalGoes wordmark.
  *
  * Traced from the supplied artwork rather than shipped as a raster: the source
  * is 556x186, which is under 2x the size the footer renders it at, so a PNG
