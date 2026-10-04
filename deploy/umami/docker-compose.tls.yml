@@ -14,22 +14,27 @@
 #
 # Networks. The analytics stack shares nothing with HalalGoes but Traefik:
 #
-#   * umami-net, its own internal network, holds Umami and its database. The
-#     database is on no other network, and is never HalalGoes's Postgres.
-#   * hg-edge, which the production override creates, is where Traefik meets
-#     the web containers of other stacks. Only Umami's web container joins it.
-#     Neither container is on hg-net, so neither can reach HalalGoes's
+#   * umami-net, its own internal network (no route out, subnet fixed),
+#     holds Umami and its database. The database is on no other network, and
+#     is never HalalGoes's Postgres.
+#   * hg-analytics-proxy, which the production override creates (internal,
+#     10.88.0.16/29), is where Traefik meets Umami's web container, and
+#     nothing else. Umami is not on hg-edge, Traefik's own edge network.
+#     Neither container is on a HalalGoes network, so neither can reach its
 #     Postgres, Valkey, Silo or API, and nothing of HalalGoes's can reach
 #     Umami's database.
 #
+# Neither network has a way out: with telemetry off, Umami calls nothing. If
+# that changes, give the web container an egress network of its own.
+#
 # `!override` replaces the base file's `[hg-net]`; a plain list would be
-# appended to it. Start the product stack first: it owns hg-edge.
+# appended to it. Start the product stack first: it owns hg-analytics-proxy.
 services:
   umami:
-    networks: !override [umami-net, hg-edge]
+    networks: !override [umami-net, hg-analytics-proxy]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=hg-edge
+      - traefik.docker.network=hg-analytics-proxy
       - traefik.http.routers.umami.rule=Host(`${UMAMI_HOST:?set UMAMI_HOST in .env}`)
       - traefik.http.routers.umami.entrypoints=websecure
       - traefik.http.routers.umami.tls=true
@@ -49,9 +54,11 @@ services:
     networks: !override [umami-net]
 
 networks:
-  # internal: no route out. Umami's own way out, if it needs one, is hg-edge.
   umami-net:
     internal: true
-  hg-edge:
+    ipam:
+      config:
+        - subnet: 10.88.0.48/29
+  hg-analytics-proxy:
     external: true
-    name: hg-edge
+    name: hg-analytics-proxy

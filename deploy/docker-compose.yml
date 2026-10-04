@@ -264,7 +264,9 @@ services:
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
-        mc alias set hg http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        # MINIO_URL lets the production override name Silo by its
+        # production-only alias; here it is the service name.
+        mc alias set hg "$${MINIO_URL:-http://minio:9000}" "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
 
         # lifecycle BUCKET [DAYS]: old versions expire 35 days after they stop
         # being current. With DAYS, the current version also expires DAYS days

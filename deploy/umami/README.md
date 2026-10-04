@@ -127,8 +127,8 @@ Remove that line and delete `acme.json` once a staging cert is issued.
 
 ```bash
 # the product stack first — it owns the network this one joins: hg-net with
-# the base file alone, hg-edge on the production box (docker-compose.tls.yml
-# keeps Umami and its database off hg-net)
+# the base file alone, hg-analytics-proxy on the production box
+# (docker-compose.tls.yml keeps Umami and its database off every HalalGoes network)
 cd deploy && docker compose --env-file .env up -d
 
 cd umami

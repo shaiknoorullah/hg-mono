@@ -22,8 +22,9 @@
 #     work (5432, 6379, 9000, 9001, 8081) is open to the internet whatever
 #     nftables says (issue #200:
 #     https://github.com/shaiknoorullah/hg-mono/issues/200). `!override`
-#     replaces the base file's list; a plain list would be appended to it. The
-#     one exception is the Silo console, on the host's loopback only.
+#     replaces the base file's list; a plain list would be appended to it.
+#     The Silo console is published nowhere; reach it through an SSH tunnel
+#     to Silo's fixed address (below).
 #   * No `build:`. CI builds the images and pushes them to GHCR; the box pulls
 #     them by digest. A digest cannot be retagged, so what was tested is what
 #     runs. The `@` is written here and only the digest is a variable, so a tag
@@ -50,7 +51,8 @@
 # https://github.com/shaiknoorullah/hg-mono/pull/276; its README, "What
 # production's compose file must do") provisions what this file assumes:
 #
-#   * the Docker networks marked `external` below, with fixed subnets;
+#   * the Docker networks marked `external` below, with the subnets in the
+#     table that follows;
 #   * the Docker socket proxy (`docker-socket-proxy` on hg-socket), the only
 #     container on the box that mounts /var/run/docker.sock. It answers reads
 #     of containers, events, ping and version, and refuses every POST, so no
@@ -63,27 +65,55 @@
 #     it over;
 #   * .env and the secret files (below), decrypted from sops.
 #
-# Networks. Each service joins only the networks it needs:
+# Networks, in tiers. Each service joins only its tiers. Every subnet is
+# fixed, small where only a pair meets, so nothing joins with an address a
+# peer expects, and every tier that needs no way out is internal (no route
+# off the box). "Owner" is who creates the network: this compose project
+# (prod) or the playbook (host), whose group_vars/all.yml hg_networks must
+# carry the same names and subnets.
 #
-#   network       subnet          internal  who joins it
-#   hg-proxy      10.88.0.0/29    yes       Traefik and the API, nothing else
-#   hg-net        172.30.0.0/24   no        the API, Postgres, Valkey, Silo,
-#                                           the bucket and migration jobs, and
-#                                           the playbook's monitoring and backups
-#   hg-files      172.30.5.0/24   yes       Traefik and Silo, nothing else
-#   hg-edge       172.30.4.0/24   no        Traefik and the web containers of
-#                                           other stacks (Umami's, deploy/umami)
-#   hg-socket     172.30.2.0/24   yes       Traefik and the socket proxy
-#   hg-scan       172.30.3.0/24   yes       the API and ClamAV
-#   hg-dev-proxy  10.88.0.8/29    yes       Traefik and the dev API (#235)
-#   hg-dev-edge   172.30.11.0/24  no        Traefik and dev's other public
-#                                           containers
+#   tier        network             subnet          int.  owner  members
+#   edge        hg-edge             10.88.0.40/29   no    prod   Traefik
+#   proxy       hg-proxy            10.88.0.0/29    yes   host   Traefik, API
+#   files       hg-files            10.88.0.24/29   yes   prod   Traefik, Silo
+#   analytics   hg-analytics-proxy  10.88.0.16/29   yes   prod   Traefik, Umami
+#   app-data    hg-data             172.30.0.0/24   yes   host   API, Postgres,
+#                                                                Valkey, migrate;
+#                                                                postgres-exporter
+#   storage     hg-storage          172.30.5.0/24   yes   host   API, Silo, bucket
+#                                                                job; backups
+#   scan        hg-scan             172.30.3.0/24   yes   host   API, ClamAV
+#   egress      hg-egress           10.88.0.32/29   no    prod   API
+#   socket      hg-socket           172.30.2.0/24   yes   host   Traefik, proxy
+#   monitoring  hg-monitoring       (host)          yes   host   exporters,
+#                                                                VictoriaMetrics
+#   dev proxy   hg-dev-proxy        10.88.0.8/29    yes   host   Traefik, dev API
+#   dev edge    hg-dev-edge         172.30.11.0/24  no    host   Traefik, dev's
+#                                                                other public
+#                                                                containers
 #
-# Traefik is not on hg-net, and nothing on hg-edge or the dev networks is on
-# hg-net or hg-files, so neither the edge nor dev can reach Postgres, Valkey or
-# Silo's S3 API. Traefik reaches Silo only on hg-files, for the narrow files
-# route below. hg-files and hg-edge belong to this project; the others are the
-# playbook's.
+# What the layout guarantees:
+#   * Traefik is on no data tier. It reaches the API only on hg-proxy, and
+#     Silo only on hg-files, a separate hop for the narrow files route below.
+#     Nothing on the edge, analytics or dev tiers can reach Postgres, Valkey
+#     or Silo's S3 API.
+#   * Postgres, Valkey and Silo are on internal tiers only: no route out, and
+#     no published port. The API's only way out is hg-egress, which nothing
+#     else joins.
+#   * Dev is its own compose project, with its own networks, names and
+#     subnets (hg-dev-*, set up by the playbook). No dev container joins a
+#     production network; only Traefik is on both.
+#   * No production service is on hg-monitoring yet; the playbook's exporters
+#     reach Postgres on hg-data and Silo on hg-storage.
+#
+# Names. Docker's DNS answers a service name or alias for every container on
+# the network that claims it, so a container that joined a shared network
+# under the name `postgres` would receive some of production's connections.
+# Clients therefore connect by production-only aliases: hg-prod-postgres,
+# hg-prod-valkey and hg-prod-silo (the API, the bucket job, migrations, and
+# the playbook's exporters and backups). Nothing connects to Traefik or the
+# API by name: Traefik reads container addresses from Docker, and ClamAV is
+# at a fixed address.
 #
 # Client addresses. The API believes X-Forwarded-For only from hg-proxy
 # (HG_TRUSTED_PROXY_CIDRS below), where Traefik is the only other member. Its
@@ -92,10 +122,11 @@
 # forwardedHeaders.trustedIPs: nothing sits in front of Traefik on this box, so
 # it must delete any X-Forwarded-For or X-Real-Ip a client sends and write the
 # address it saw (services/hg/internal/httpx/realip.go). No dev container ever
-# joins hg-proxy; dev's API trusts hg-dev-proxy alone. Check both after every
-# change; each must list only what the table says:
-#   docker network inspect hg-proxy -f '{{range .Containers}}{{.Name}} {{end}}'
-#   docker network inspect hg-files -f '{{range .Containers}}{{.Name}} {{end}}'
+# joins hg-proxy; dev's API trusts hg-dev-proxy alone. After every change,
+# each network must list only the members in the table:
+#   for n in hg-edge hg-proxy hg-files hg-data hg-storage hg-egress; do
+#     docker network inspect "$n" -f '{{.Name}}: {{range .Containers}}{{.Name}} {{end}}'
+#   done
 #
 # ---------------------------------------------------------------------------
 # Secrets
@@ -243,11 +274,13 @@ services:
       - letsencrypt:/letsencrypt
     networks: !override
       # Traefik's way out (to Let's Encrypt) and in (the published ports):
-      # this project's own edge network, not dev's.
+      # the edge tier, which only Traefik joins, not dev's edge.
       hg-edge:
         gw_priority: 1
+      # One network per upstream, each shared with that upstream alone.
       hg-proxy: {}
       hg-files: {}
+      hg-analytics-proxy: {}
       hg-socket: {}
       hg-dev-proxy: {}
       hg-dev-edge: {}
@@ -287,7 +320,13 @@ services:
       # a link signed for minio:9000 could not be fixed up afterwards.
       HG_MINIO_PUBLIC_BASE_URL: https://${HG_FILES_HOST:?set HG_FILES_HOST in .env, e.g. files.halalgoes.com}
       HG_MINIO_PRESIGN_BASE_URL: https://${HG_FILES_HOST}
-      # Exactly hg-proxy's subnet, and never all of hg-net or Docker's private
+      # Dependencies by their production-only aliases, never by the service
+      # names compose also registers (see "Names", above). The password is
+      # the same .env value the base file uses.
+      HG_POSTGRES_DSN: postgres://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@hg-prod-postgres:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}?sslmode=disable
+      HG_REDIS_ADDR: hg-prod-valkey:6379
+      HG_MINIO_ENDPOINT: hg-prod-silo:9000
+      # Exactly hg-proxy's subnet, and never a data tier or Docker's private
       # ranges: only Traefik shares hg-proxy with the API, so only Traefik can
       # name a client address the per-IP limits count
       # (services/hg/internal/httpx/realip.go). The playbook's
@@ -326,10 +365,11 @@ services:
       - traefik.http.services.hg-api.loadbalancer.healthcheck.path=/health/ready
       - traefik.http.services.hg-api.loadbalancer.healthcheck.interval=10s
       - traefik.http.services.hg-api.loadbalancer.healthcheck.timeout=3s
-    # hg-proxy: Traefik in. hg-net: Postgres, Valkey, Silo, and the way out to
-    # Stripe, Twilio and the rest. hg-scan: ClamAV, once the API scans KYC
-    # documents (#218).
-    networks: !override [hg-proxy, hg-net, hg-scan]
+    # hg-proxy: Traefik in. hg-data: Postgres and Valkey. hg-storage: Silo.
+    # hg-scan: ClamAV, once the API scans KYC documents (#218). hg-egress: its
+    # only way out, to Stripe, Twilio and the rest; the other four are
+    # internal.
+    networks: !override [hg-proxy, hg-data, hg-storage, hg-scan, hg-egress]
     # Longer than HG_SHUTDOWN_TIMEOUT (20 s), so in-flight requests finish
     # before Docker's SIGKILL rather than at Docker's default 10 s.
     stop_grace_period: 30s
@@ -389,7 +429,11 @@ services:
       PGTZ: UTC
     secrets: [postgres_password]
     ports: !reset []
-    networks: !override [hg-net]
+    # app-data only: internal, no route out. WAL goes to pgBackRest's local
+    # repository, not over the network.
+    networks: !override
+      hg-data:
+        aliases: [hg-prod-postgres]
     # The entrypoint starts as root to prepare its directories, then switches
     # to the postgres user: it walks and chowns the data directory
     # (DAC_READ_SEARCH, CHOWN), sets its mode (FOWNER) and switches user
@@ -444,7 +488,10 @@ services:
       test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" valkey-cli ping | grep -q PONG"]
     ports: !reset []
     volumes: !reset []
-    networks: !override [hg-net]
+    # app-data only: internal, no route out.
+    networks: !override
+      hg-data:
+        aliases: [hg-prod-valkey]
     read_only: true
     # /data is the image's working directory; nothing is written there.
     tmpfs:
@@ -475,13 +522,19 @@ services:
       # MINIO_SERVER_URL stays unset, so the console talks to Silo directly
       # instead of through the public files host.
     secrets: [minio_root_user, minio_root_password]
-    # The console, on the host's loopback only. Reach it with
-    #   ssh -L 9001:127.0.0.1:9001 prod
-    ports: !override
-      - "127.0.0.1:9001:9001"
-    # hg-net: the API, the bucket job and the playbook's backups. hg-files:
-    # Traefik, for the files route, and nothing else.
-    networks: !override [hg-net, hg-files]
+    # No published port: Silo is on internal tiers only, which cannot publish
+    # one. The host can still reach a container on an internal network, so the
+    # console is a tunnel to Silo's fixed address on hg-storage:
+    #   ssh -L 9001:172.30.5.10:9001 prod
+    ports: !reset []
+    # hg-storage: the API, the bucket job and the playbook's backups, at a
+    # fixed address the playbook keeps out of its dynamic range. hg-files:
+    # Traefik, for the files route, and nothing else. Both internal.
+    networks: !override
+      hg-storage:
+        aliases: [hg-prod-silo]
+        ipv4_address: 172.30.5.10
+      hg-files: {}
     labels:
       - traefik.enable=true
       - traefik.docker.network=hg-files
@@ -554,8 +607,11 @@ services:
     environment: !override
       # The client keeps its alias config here, on tmpfs.
       MC_CONFIG_DIR: /tmp/.mc
+      # Silo by its production-only alias (the base script's default is the
+      # service name).
+      MINIO_URL: http://hg-prod-silo:9000
     secrets: [minio_root_user, minio_root_password]
-    networks: !override [hg-net]
+    networks: !override [hg-storage]
     read_only: true
     tmpfs:
       - /tmp
@@ -572,7 +628,9 @@ services:
   migrate:
     build: !reset null
     image: ${HG_IMAGE_REPO:-ghcr.io/shaiknoorullah}/hg-migrate@${HG_MIGRATE_DIGEST:?set HG_MIGRATE_DIGEST in .env to sha256:...}
-    networks: !override [hg-net]
+    environment:
+      GOOSE_DBSTRING: postgres://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@hg-prod-postgres:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}?sslmode=disable
+    networks: !override [hg-data]
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
@@ -595,17 +653,20 @@ networks:
   # Created by the playbook (deploy/host, group_vars/all.yml, hg_networks),
   # with the subnets in the table above. External, so compose neither creates
   # them with other settings nor removes them on `down`.
-  hg-net:
-    external: true
-    driver: !reset null
   hg-proxy:
     name: hg-proxy
     external: true
-  hg-socket:
-    name: hg-socket
+  hg-data:
+    name: hg-data
+    external: true
+  hg-storage:
+    name: hg-storage
     external: true
   hg-scan:
     name: hg-scan
+    external: true
+  hg-socket:
+    name: hg-socket
     external: true
   hg-dev-proxy:
     name: hg-dev-proxy
@@ -613,26 +674,45 @@ networks:
   hg-dev-edge:
     name: hg-dev-edge
     external: true
+  # The base file's catch-all network. No production service joins it; marked
+  # external so compose can never create it here by accident.
+  hg-net:
+    external: true
+    driver: !reset null
 
-  # This project's own. Fixed subnets, outside every range the playbook
-  # creates, so neither side can take the other's.
+  # This project's own: only production's containers join them. Fixed /29s
+  # inside 10.88.0.0/24, outside every range the playbook creates, so neither
+  # side can take the other's and no stray container fits in unnoticed.
   #
-  # Traefik and Silo only. internal: no route out.
+  # The edge tier: Traefik alone. Its published ports and its way out.
+  hg-edge:
+    name: hg-edge
+    ipam:
+      config:
+        - subnet: 10.88.0.40/29
+  # Traefik and Silo only, for the files route. internal: no route out.
   hg-files:
     name: hg-files
     internal: true
     ipam:
       config:
-        - subnet: 172.30.5.0/24
-  # Where Traefik meets the web containers of other stacks on the box: Umami's
-  # (deploy/umami/docker-compose.tls.yml), and GlitchTip's when it comes.
-  # Production's services are not on it, so a container here can reach Traefik
-  # but not the API, Postgres, Valkey or Silo.
-  hg-edge:
-    name: hg-edge
+        - subnet: 10.88.0.24/29
+  # Traefik and Umami's web container (deploy/umami/docker-compose.tls.yml,
+  # whose own umami-net is 10.88.0.48/29). GlitchTip gets a network of its
+  # own when it comes, not this one.
+  hg-analytics-proxy:
+    name: hg-analytics-proxy
+    internal: true
     ipam:
       config:
-        - subnet: 172.30.4.0/24
+        - subnet: 10.88.0.16/29
+  # The API's way out to Stripe, Twilio, Resend and Mapbox. The API alone, up
+  # to four replicas during a rollout.
+  hg-egress:
+    name: hg-egress
+    ipam:
+      config:
+        - subnet: 10.88.0.32/29
 
 volumes:
   letsencrypt:
