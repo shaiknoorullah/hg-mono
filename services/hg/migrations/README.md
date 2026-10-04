@@ -13,21 +13,45 @@ managed by [goose](https://github.com/pressly/goose).
 ```
 migrations/
   0000N_*.sql        the migrations, in order
+  roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 59 assertions about what the DB refuses
+  test/              invariant tests: 106 assertions about what the DB refuses
   tools/             contract-enum generator and checker
 ```
 
 ## Running
 
 ```sh
-export DATABASE_URL='postgres://hg:hg@localhost:5432/hg?sslmode=disable'
+export DATABASE_URL='postgres://hg:hg@localhost:5432/hg?sslmode=disable'   # the superuser
+export HG_DB_MIGRATOR_PASSWORD=migrator HG_DB_APP_PASSWORD=app
 
-goose -dir . postgres "$DATABASE_URL" up
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f roles/roles.sql    # as the superuser
+goose -dir . postgres 'postgres://hg_migrator:migrator@localhost:5432/hg?sslmode=disable' up
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f seed/seed.sql
 ./test/run_invariant_tests.sh
 ```
+
+`make up` and `make migrate` in `services/hg` do the same through compose: the
+`pgroles` service runs [`roles/roles.sql`](roles/roles.sql) first.
+
+### Who connects as whom
+
+| Role | Logs in | May |
+|---|---|---|
+| the Postgres superuser (`POSTGRES_USER`) | only to run [`roles/roles.sql`](roles/roles.sql), the seed and the tests | everything |
+| `hg_migrator` | goose | own schema `public` and everything in it; no superuser, no roles, no databases |
+| `hg_app` | the API (`HG_POSTGRES_DSN`) | read and write rows. No DDL, no `TRUNCATE`, no `TRIGGER`, owns nothing, cannot set `session_replication_role`. Partition upkeep only through `hg_partition_ensure` and `hg_partition_drop_before` (below) |
+
+Two roles because an owner or a superuser can switch the ledger's append-only
+trigger and its zero-sum check off with one `ALTER TABLE … DISABLE TRIGGER`.
+The API is neither, so it cannot. Roles live in the cluster, not the database,
+and creating them takes a superuser, so `roles/roles.sql` is a plain `psql`
+script and not a goose migration; the in-database half is
+[`00032_least_privilege.sql`](00032_least_privilege.sql).
+
+A full rollback (`goose … reset`) runs as the superuser: `00001`'s down drops
+extensions and the roles' grants, which `hg_migrator` may not do.
 
 Rollback works too: `goose … down` per step, `goose … reset` all the way to
 zero. A full `up → reset → up` cycle leaves no tables, types, views or
@@ -56,6 +80,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
 | 6 | One canonical location column per entity, `geography(Point,4326)`, with the GiST indexes dispatch needs. | `lint_location_columns()`. A second location column, a `geometry`, a bare `point`, or a column named `coords` all fail the gate. |
 | 7 | A KYC document is approved only while its file is virus-scanned clean. | `00031_virus_scan`. `virus_scan_passed(stored_object)` is true only for a `CLEAN` verdict about the file's current bytes; every other verdict, and NULL, is false. `stored_object_clean_is_bound` refuses a `CLEAN` verdict whose `virus_scan_sha256` and `virus_scan_version` are not the object's `sha256` and `content_version`. `kyc_document_virus_scan_clean` locks the file's row and refuses an approval that does not pass. `stored_object_content_changed` resets the verdict to `PENDING` on any new upload or overwrite. `stored_object_verdict_write_once` refuses changing a recorded verdict outside a recorded re-scan, and `stored_object_scan_regressed` sends every approved document back to `IN_REVIEW`, with an audit row, when its file stops passing. |
+| 8 | The API cannot switch any of the above off. | The API logs in as `hg_app`, which owns nothing and holds no `TRUNCATE`, `TRIGGER`, `CREATE` or `TEMPORARY` privilege (a temp table named `ledger_entry` would otherwise hide the real one from the zero-sum check); the ledger and audit trigger functions search `public` before the temporary schema; `hg_migrator` owns the schema ([`roles/roles.sql`](roles/roles.sql), `00032`). The hourly partition upkeep, the API's only DDL, goes through two `SECURITY DEFINER` functions owned by `hg_migrator` (`hg_partition_ensure`, `hg_partition_drop_before`, also `00032`): only the three partitioned tables, one whole UTC period per call, at most 400 days ahead, never a drop inside a table's retention by the database's clock, and never an `audit_event` partition. Section 12 of the invariant tests tries each way out as `hg_app`. |
 
 The two schema lints are also runnable on their own:
 
@@ -104,7 +129,7 @@ unaccounted for, and `gen_enums.py` refuses to generate.
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
-- **Tested**: 59 invariant assertions pass (`test/run_invariant_tests.sh`).
+- **Tested**: 106 invariant assertions pass (`test/run_invariant_tests.sh`).
 - **Environment caveat**: Docker was not available, so this was verified
   against a locally installed **Postgres 16.13 with PostGIS 3.4.2**, not the
   spec's Postgres 17 + PostGIS 3.6. Nothing here uses a 17-only or 3.6-only
