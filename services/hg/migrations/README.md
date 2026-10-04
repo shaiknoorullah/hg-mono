@@ -15,7 +15,7 @@ migrations/
   0000N_*.sql        the migrations, in order
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 59 assertions about what the DB refuses
+  test/              invariant tests: 60 assertions about what the DB refuses
   tools/             contract-enum generator and checker
 ```
 
@@ -55,6 +55,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 4 | The decomposition invariant is one query returning zero rows. | `SELECT * FROM ledger_order_residual;` — plus `ledger_batch_imbalance`, `ledger_global_residual`, `ledger_charge_identity_breach`, `ledger_tip_passthrough_breach`, and `assert_ledger_invariants()` which raises on any of them. |
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
 | 6 | One canonical location column per entity, `geography(Point,4326)`, with the GiST indexes dispatch needs. | `lint_location_columns()`. A second location column, a `geometry`, a bare `point`, or a column named `coords` all fail the gate. |
+| 7 | A restaurant's uploaded file is attached once per document type, so two attaches of one file at once cannot make two review items or two halal certificates ([#360](https://github.com/shaiknoorullah/hg-mono/issues/360)). | `kyc_document_restaurant_file_once` unique index (`00040`) on restaurant, document type and file, over rows that are not soft-deleted. The attach inserts with `ON CONFLICT` on it and returns the existing row. |
 
 The two schema lints are also runnable on their own:
 

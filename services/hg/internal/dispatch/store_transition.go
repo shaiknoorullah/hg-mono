@@ -327,13 +327,18 @@ FROM assignment WHERE id = $1 AND rider_account_id = $2 FOR UPDATE`,
 		if in.PhotoObjectID == nil {
 			return nil, newError(422, CodePodRequired, "A proof photo is required.", nil)
 		}
-		// The object must be READY, purpose POD, uploaded by this rider.
+		// The object must be READY, purpose POD, uploaded by this rider for
+		// this delivery's order: never another account's photo. Every other
+		// object gets the same answer, so it says nothing about whether the
+		// object exists (https://github.com/shaiknoorullah/hg-mono/issues/359).
 		var ok bool
 		if err := tx.QueryRow(ctx, `
 SELECT EXISTS (
   SELECT 1 FROM stored_object so
-   WHERE so.id = $1 AND so.state = 'READY' AND so.purpose = 'POD')`,
-			*in.PhotoObjectID).Scan(&ok); err != nil {
+   WHERE so.id = $1 AND so.state = 'READY' AND so.purpose = 'POD' AND so.deleted_at IS NULL
+     AND so.uploaded_by = $2
+     AND so.order_id = (SELECT order_id FROM assignment WHERE id = $3))`,
+			*in.PhotoObjectID, riderAccountID, assignmentID).Scan(&ok); err != nil {
 			return nil, err
 		}
 		if !ok {

@@ -538,6 +538,19 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   9. Uploads are permitted only in `onboarding_state ∈ {DOCUMENTS_PENDING, DOCUMENTS_REJECTED}` or,
      post-activation, for renewal (R-10). Otherwise `409 step_not_available`.
   10. Rate limit 20 `upload-url` calls per hour per restaurant.
+  11. A document is attached only from the caller's own confirmed compliance upload: uploaded by
+      the owner or manager attaching it, `READY`, not deleted, uploaded as a `KYC_DOCUMENT`, and
+      not attached to another restaurant's or rider's documents. Anything else is `404`, the same
+      answer as a file that does not exist, and nothing is written. A download link goes to whoever
+      owns the document, so attaching someone else's file would hand over its bytes
+      ([#359](https://github.com/shaiknoorullah/hg-mono/issues/359)). The download link is also
+      refused when a document's file is not its restaurant's own upload, and restaurant staff, who
+      cannot list the documents, cannot download them either.
+  12. Attaching a file that is already attached as that type, including two attaches of it at once,
+      returns the existing document and adds nothing: no second review item, and for a halal
+      certificate no second certificate superseding the first. The database refuses a second
+      document for one file ([#360](https://github.com/shaiknoorullah/hg-mono/issues/360)). A
+      different file is a re-upload, as in rule 8.
 
 - **Acceptance criteria**:
   1. **Given** a presigned URL minted for `HALAL_CERTIFICATE` with a 10 MB limit, **when** the client `PUT`s an 11 MB file, **then** Silo rejects the upload with `EntityTooLarge` and `confirm` subsequently returns `409 upload_not_found`.

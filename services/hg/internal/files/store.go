@@ -176,9 +176,12 @@ SELECT so.bucket, so.object_key, kd.subject_type::text, kd.subject_id::text
 		if err != nil {
 			return err
 		}
-		// Ownership: a partner may only fetch their own document. The global
-		// kyc_document.download action (admins) bypasses the ownership check.
-		if !canReadAny && !r.ownsSubject(ctx, tx, actor.AccountID, subjectType, subjectID) {
+		// Ownership: a partner may only fetch their own document, and only when
+		// the document's file is that subject's own upload. The global
+		// kyc_document.download action (admins) bypasses both checks, so an
+		// admin can still open a wrongly attached file to reject it.
+		if !canReadAny && (!r.ownsSubject(ctx, tx, actor.AccountID, subjectType, subjectID) ||
+			!r.fileBelongsToSubject(ctx, tx, documentID)) {
 			return ErrNotFound
 		}
 		return writeAudit(ctx, tx, auditEntry{
@@ -211,7 +214,10 @@ type downloadResult struct {
 
 // ownsSubject reports whether the account is the owner of the KYC subject. For a
 // RIDER the subject_id is the rider's account_id; for a RESTAURANT it is the
-// restaurant_id, which the account must hold a live RESTAURANT_* grant scoped to.
+// restaurant_id, which the account must hold a live owner or manager grant
+// scoped to. Restaurant staff cannot list the compliance documents
+// (listRestaurantDocuments is owner and manager only), so they cannot fetch
+// one either (https://github.com/shaiknoorullah/hg-mono/issues/359).
 func (r *Repo) ownsSubject(ctx context.Context, tx pgx.Tx, accountID, subjectType, subjectID string) bool {
 	if accountID == "" {
 		return false
@@ -224,10 +230,38 @@ func (r *Repo) ownsSubject(ctx context.Context, tx pgx.Tx, accountID, subjectTyp
 		err := tx.QueryRow(ctx, `
 SELECT true FROM account_role
  WHERE account_id=$1 AND scope_type='RESTAURANT' AND scope_id=$2::uuid AND revoked_at IS NULL
+   AND role::text IN ('RESTAURANT_OWNER', 'RESTAURANT_MANAGER')
  LIMIT 1`, accountID, subjectID).Scan(&ok)
 		return err == nil && ok
 	}
 	return false
+}
+
+// fileBelongsToSubject reports whether a document's file is its subject's own
+// compliance upload: a KYC_DOCUMENT uploaded by the rider, or by someone who
+// holds or held a grant at the restaurant. The attach paths already refuse any
+// other file; this is the second lock on the same door, so a document that
+// points at another account's file never yields a link to its owner
+// (https://github.com/shaiknoorullah/hg-mono/issues/359). A grant revoked since
+// the upload still counts: a manager who left does not orphan their uploads.
+func (r *Repo) fileBelongsToSubject(ctx context.Context, tx pgx.Tx, documentID string) bool {
+	var ok bool
+	err := tx.QueryRow(ctx, `
+SELECT EXISTS (
+  SELECT 1
+    FROM kyc_document kd
+    JOIN stored_object so ON so.id = kd.stored_object_id
+   WHERE kd.id = $1
+     AND so.purpose = 'KYC_DOCUMENT'
+     AND CASE kd.subject_type
+           WHEN 'RIDER' THEN so.uploaded_by = kd.subject_id
+           WHEN 'RESTAURANT' THEN so.restaurant_id = kd.subject_id
+             OR EXISTS (SELECT 1 FROM account_role ar
+                         WHERE ar.account_id = so.uploaded_by
+                           AND ar.scope_type = 'RESTAURANT' AND ar.scope_id = kd.subject_id)
+           ELSE false
+         END)`, documentID).Scan(&ok)
+	return err == nil && ok
 }
 
 // inTx runs fn in a transaction.

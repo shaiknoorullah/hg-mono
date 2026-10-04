@@ -48,6 +48,13 @@ var ErrDocumentAlreadyExpired = errors.New("document already expired")
 // issuing body that is not in the registry (contract R-07, UNRECOGNISED_CERTIFIER).
 var ErrUnrecognisedCertifier = errors.New("unrecognised certifier")
 
+// ErrUploadNotFound is returned when an attach names a file the caller may not
+// use: no such upload, or one that is not the caller's own, not confirmed, not
+// uploaded for this use, or already attached somewhere else. All of these are
+// the same 404, so the answer says nothing about whether the file exists
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+var ErrUploadNotFound = errors.New("upload not found")
+
 // GetOnboardingStatus returns the onboarding state and a coarse progress
 // percentage for the restaurant the account is scoped to.
 func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*OnboardingStatus, error) {
@@ -420,15 +427,35 @@ func (r *Repo) SetHours(ctx context.Context, restaurantID string, in hoursInputD
 	return r.GetHours(ctx, restaurantID)
 }
 
-// ListDocuments returns all KYC documents for the restaurant.
-func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]DocumentRow, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT d.id::text, d.subject_type::text, d.subject_id::text,
+// documentColumns is the KycDocument projection of a kyc_document row aliased d,
+// read by scanDocument.
+const documentColumns = `
+		       d.id::text, d.subject_type::text, d.subject_id::text,
 		       d.restaurant_doc_type::text, d.state::text,
 		       d.issuer, d.certificate_number,
 		       d.issued_on::text, d.valid_until::text, d.version,
 		       d.rejection_reason_code::text, d.review_note, d.reviewed_at,
-		       d.created_at
+		       d.created_at`
+
+// scanDocument reads one row of documentColumns.
+func scanDocument(row pgx.Row) (DocumentRow, error) {
+	var d DocumentRow
+	var reviewedAt *time.Time
+	var createdAt time.Time
+	if err := row.Scan(&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State,
+		&d.Issuer, &d.CertificateNumber, &d.IssuedOn, &d.ValidUntil, &d.Version,
+		&d.RejectionReasonCode, &d.ReviewNote, &reviewedAt, &createdAt); err != nil {
+		return DocumentRow{}, err
+	}
+	d.ReviewedAt = tsStrPtr(reviewedAt)
+	d.CreatedAt = tsStr(createdAt)
+	return d, nil
+}
+
+// ListDocuments returns all KYC documents for the restaurant.
+func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]DocumentRow, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+documentColumns+`
 		  FROM kyc_document d
 		 WHERE d.subject_id = $1 AND d.subject_type = 'RESTAURANT'
 		   AND d.deleted_at IS NULL
@@ -439,16 +466,10 @@ func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]Docume
 	defer rows.Close()
 	var out []DocumentRow
 	for rows.Next() {
-		var d DocumentRow
-		var reviewedAt *time.Time
-		var createdAt time.Time
-		if err := rows.Scan(&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State,
-			&d.Issuer, &d.CertificateNumber, &d.IssuedOn, &d.ValidUntil, &d.Version,
-			&d.RejectionReasonCode, &d.ReviewNote, &reviewedAt, &createdAt); err != nil {
+		d, err := scanDocument(rows)
+		if err != nil {
 			return nil, err
 		}
-		d.ReviewedAt = tsStrPtr(reviewedAt)
-		d.CreatedAt = tsStr(createdAt)
 		out = append(out, d)
 	}
 	if out == nil {
@@ -470,7 +491,22 @@ func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]Docume
 //
 // Re-attaching HALAL_CERTIFICATE supersedes the prior PENDING certificate rather
 // than mutating it; full history is retained.
-func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in documentInputDTO) (*DocumentRow, error) {
+//
+// The file must be the caller's own confirmed compliance upload, not yet
+// attached to anyone else (claimComplianceUpload); anything else is
+// ErrUploadNotFound and nothing is written. A download link is granted to
+// whoever owns the document, so attaching another account's file would hand
+// its bytes to this restaurant
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+//
+// One file is attached once per document type. When a live row for the same
+// (restaurant, doc_type, file) exists, that row is returned and nothing is
+// written: no second review item, and no second halal certificate superseding
+// the first. The database holds the rule (unique index
+// kyc_document_restaurant_file_once, migration 00040), so two attaches of the
+// same file at once cannot both insert
+// (https://github.com/shaiknoorullah/hg-mono/issues/360).
+func (r *Repo) AttachDocument(ctx context.Context, accountID, restaurantID string, in documentInputDTO) (*DocumentRow, error) {
 	isHalal := in.DocType == "HALAL_CERTIFICATE"
 
 	// A halal certificate must name a registry issuing body, a certificate number
@@ -498,9 +534,13 @@ func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in docum
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
+	if err := claimComplianceUpload(ctx, tx, accountID, restaurantID, in.StoredObjectID); err != nil {
+		return nil, err
+	}
+
+	// The conflict target names the partial index's predicate so Postgres
+	// matches kyc_document_restaurant_file_once.
 	var id string
-	var version int
-	var createdAt time.Time
 	err = tx.QueryRow(ctx, `
 		INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id,
 			issuer, halal_issuing_body_id, certificate_number, issued_on, valid_until,
@@ -508,36 +548,88 @@ func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in docum
 		VALUES ('RESTAURANT', $1, $2::restaurant_doc_type, $3,
 			$4, $5::uuid, $6, $7::date, $8::date,
 			'SUBMITTED', now()+interval '72h', 'ESCALATE')
-		RETURNING id::text, version, created_at`,
+		ON CONFLICT (subject_id, restaurant_doc_type, stored_object_id)
+		   WHERE subject_type = 'RESTAURANT' AND deleted_at IS NULL
+		   DO NOTHING
+		RETURNING id::text`,
 		restaurantID, in.DocType, in.StoredObjectID,
-		in.Issuer, in.IssuerBodyID, in.CertificateNumber, in.IssuedOn, in.ValidUntil).Scan(&id, &version, &createdAt)
-	if err != nil {
+		in.Issuer, in.IssuerBodyID, in.CertificateNumber, in.IssuedOn, in.ValidUntil).Scan(&id)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		// Already attached as this type: hand back that document. A separate
+		// statement, so it sees a row a concurrent attach committed after the
+		// INSERT began.
+		if err := tx.QueryRow(ctx, `
+			SELECT id::text FROM kyc_document
+			 WHERE subject_type = 'RESTAURANT' AND subject_id = $1
+			   AND restaurant_doc_type = $2::restaurant_doc_type AND stored_object_id = $3
+			   AND deleted_at IS NULL`,
+			restaurantID, in.DocType, in.StoredObjectID).Scan(&id); err != nil {
+			return nil, fmt.Errorf("read attached document: %w", err)
+		}
+	case err != nil:
 		return nil, fmt.Errorf("attach document: %w", err)
-	}
-
-	if isHalal {
+	case isHalal:
 		if err := r.createHalalCertificateTx(ctx, tx, restaurantID, id, in); err != nil {
 			return nil, err
 		}
 	}
 
+	doc, err := scanDocument(tx.QueryRow(ctx, `SELECT `+documentColumns+` FROM kyc_document d WHERE d.id = $1`, id))
+	if err != nil {
+		return nil, fmt.Errorf("read attached document: %w", err)
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+	return &doc, nil
+}
 
-	return &DocumentRow{
-		ID:                id,
-		SubjectType:       "RESTAURANT",
-		SubjectID:         restaurantID,
-		DocType:           in.DocType,
-		State:             "SUBMITTED",
-		Issuer:            in.Issuer,
-		CertificateNumber: in.CertificateNumber,
-		IssuedOn:          in.IssuedOn,
-		ValidUntil:        in.ValidUntil,
-		Version:           version,
-		CreatedAt:         tsStr(createdAt),
-	}, nil
+// claimComplianceUpload checks that objectID is a file the caller may attach as
+// one of this restaurant's compliance documents, and locks it for the rest of
+// the attach transaction. The file must be:
+//
+//   - uploaded by the caller. A compliance upload records no restaurant (the
+//     upload keys it under the account), so the uploader is the one fact that
+//     ties it to this attach, and the rule matches the rider attach;
+//   - confirmed (READY) and not deleted, so an unverified upload never reaches
+//     review;
+//   - uploaded as a KYC_DOCUMENT, into the private compliance bucket;
+//   - not attached to another subject's documents. One upload backs one
+//     subject's documents; attaching it again to this restaurant is the
+//     idempotent case the caller handles.
+//
+// Anything else is ErrUploadNotFound
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+func claimComplianceUpload(ctx context.Context, tx pgx.Tx, accountID, restaurantID, objectID string) error {
+	// The row lock makes two attaches of one file take turns, so the check
+	// below sees the other attach's committed row.
+	var ok bool
+	err := tx.QueryRow(ctx, `
+		SELECT true FROM stored_object
+		 WHERE id = $1 AND uploaded_by = $2
+		   AND purpose = 'KYC_DOCUMENT' AND state = 'READY' AND deleted_at IS NULL
+		   FOR NO KEY UPDATE`, objectID, accountID).Scan(&ok)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrUploadNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("check upload: %w", err)
+	}
+	// A separate statement, so its snapshot is taken after the lock is held.
+	var elsewhere bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+		  SELECT 1 FROM kyc_document
+		   WHERE stored_object_id = $1 AND deleted_at IS NULL
+		     AND (subject_type <> 'RESTAURANT' OR subject_id <> $2))`,
+		objectID, restaurantID).Scan(&elsewhere); err != nil {
+		return fmt.Errorf("check upload is unattached: %w", err)
+	}
+	if elsewhere {
+		return ErrUploadNotFound
+	}
+	return nil
 }
 
 // halalChecklistVersion is the closed seven-check list version at V0 (A-15). It
@@ -630,6 +722,39 @@ func composeAddress(line1, line2, city, province, postal *string) string {
 		return "Address not transcribed"
 	}
 	return out
+}
+
+// checkMenuImage checks that objectID, when given, may be the photo of one of
+// this restaurant's menu items. The file must be a confirmed (READY), live
+// MENU_IMAGE upload, and it must belong to this restaurant: uploaded by the
+// caller, or by someone who holds or held a grant here, or already the photo of
+// one of this restaurant's menu items (an update re-sends the current photo,
+// which an admin may have uploaded). Anything else is ErrUploadNotFound, so a
+// menu item can never carry another account's upload
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+func checkMenuImage(ctx context.Context, tx pgx.Tx, accountID, restaurantID string, objectID *string) error {
+	if objectID == nil {
+		return nil
+	}
+	var ok bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+		  SELECT 1 FROM stored_object so
+		   WHERE so.id = $1 AND so.purpose = 'MENU_IMAGE' AND so.state = 'READY' AND so.deleted_at IS NULL
+		     AND (so.uploaded_by = $2
+		          OR so.restaurant_id = $3
+		          OR EXISTS (SELECT 1 FROM account_role ar
+		                      WHERE ar.account_id = so.uploaded_by
+		                        AND ar.scope_type = 'RESTAURANT' AND ar.scope_id = $3)
+		          OR EXISTS (SELECT 1 FROM menu_item_version v
+		                      WHERE v.image_object_id = so.id AND v.restaurant_id = $3)))`,
+		*objectID, accountID, restaurantID).Scan(&ok); err != nil {
+		return fmt.Errorf("check menu image: %w", err)
+	}
+	if !ok {
+		return ErrUploadNotFound
+	}
+	return nil
 }
 
 // CheckDocumentPack verifies all required document types are present.
@@ -899,12 +1024,16 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 
 // CreateMenuItem creates a new menu item + initial DRAFT version.
 // The version is always DRAFT (never auto-approved per R-05 / halal gate).
-func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {
+func (r *Repo) CreateMenuItem(ctx context.Context, accountID, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := checkMenuImage(ctx, tx, accountID, restaurantID, in.ImageObjectID); err != nil {
+		return nil, err
+	}
 
 	// IDOR guard: the target category must belong to THIS restaurant. The FK on
 	// menu_item.category_id references menu_category(id) globally, so without this
@@ -980,12 +1109,16 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 
 // UpdateMenuItem creates a new PENDING_REVIEW version for an existing item
 // (or DRAFT when carrying halal-bearing tags). Validates ownership.
-func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, in menuItemUpdateDTO) (*MenuItemView, error) {
+func (r *Repo) UpdateMenuItem(ctx context.Context, accountID, restaurantID, itemID string, in menuItemUpdateDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := checkMenuImage(ctx, tx, accountID, restaurantID, in.ImageObjectID); err != nil {
+		return nil, err
+	}
 
 	// Load current item (ownership check in WHERE clause).
 	var currentCategoryID string
