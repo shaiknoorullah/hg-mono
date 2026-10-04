@@ -43,6 +43,20 @@ func TestClientIPBelievesForwardedForOnlyFromATrustedProxy(t *testing.T) {
 			traefik, "[fd00::5%eth0]:41000", []string{"[2001:db8::7]:443"}, "2001:db8::7"},
 		{"IPv4-mapped peer still matches an IPv4 range",
 			traefik, "[::ffff:172.18.0.5]:41000", []string{"203.0.113.7"}, "203.0.113.7"},
+
+		// The ways a caller might try to choose its own address.
+		{"untrusted peer: several forged lines, one naming a trusted proxy, all ignored",
+			traefik, "198.51.100.9:5000", []string{"203.0.113.7", "172.18.0.9"}, "198.51.100.9"},
+		{"trusted peer: a forged line before the one Traefik wrote is never read",
+			traefik, "172.18.0.5:41000", []string{"10.9.9.9", "203.0.113.7"}, "203.0.113.7"},
+		{"trusted peer: garbage where Traefik's entry should be gives the peer, not the client's pick",
+			traefik, "172.18.0.5:41000", []string{"203.0.113.66, garbage"}, "172.18.0.5"},
+		{"trusted peer: an empty header gives the peer",
+			traefik, "172.18.0.5:41000", []string{""}, "172.18.0.5"},
+		{"IPv4-mapped client is unmapped, so it shares its IPv4 key",
+			traefik, "172.18.0.5:41000", []string{"::ffff:203.0.113.7"}, "203.0.113.7"},
+		{"a zone on a forwarded entry is dropped",
+			traefik, "172.18.0.5:41000", []string{"2001:db8::7%eth0"}, "2001:db8::7"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -62,6 +76,33 @@ func TestClientIPBelievesForwardedForOnlyFromATrustedProxy(t *testing.T) {
 
 			if got != tc.want {
 				t.Errorf("ClientIP = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestRateLimitKeyCountsAnIPv6CallerPerSlash64 pins what a per-IP limit counts
+// a caller under. One subscriber gets at least an IPv6 /64 and can send from
+// any address in it, so a key per address would let one caller dodge every
+// per-IP limit by changing address. An address that could not be resolved is
+// limited in one shared bucket, never skipped.
+func TestRateLimitKeyCountsAnIPv6CallerPerSlash64(t *testing.T) {
+	cases := []struct {
+		name, ip, want string
+	}{
+		{"IPv4: the address", "203.0.113.7", "203.0.113.7"},
+		{"IPv4-mapped IPv6: the IPv4 address", "::ffff:203.0.113.7", "203.0.113.7"},
+		{"IPv6: its /64", "2001:db8:1:2::7", "2001:db8:1:2::/64"},
+		{"IPv6, another address in the same /64: the same key", "2001:db8:1:2:ffff:ffff:ffff:ffff", "2001:db8:1:2::/64"},
+		{"IPv6, the next /64: a different key", "2001:db8:1:3::7", "2001:db8:1:3::/64"},
+		{"IPv6 with a zone: its /64", "fe80::1%eth0", "fe80::/64"},
+		{"unknown: one shared bucket", "", "unknown"},
+		{"not an address: one shared bucket", "not-an-ip", "unknown"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := RateLimitKey(tc.ip); got != tc.want {
+				t.Errorf("RateLimitKey(%q) = %q, want %q", tc.ip, got, tc.want)
 			}
 		})
 	}

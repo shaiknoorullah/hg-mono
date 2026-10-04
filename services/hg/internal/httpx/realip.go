@@ -9,8 +9,9 @@ import (
 
 // RealIP is stage 3 of the middleware chain: it settles, once per request, which
 // address the request came from. Every reader of the client address — the
-// access log, the per-IP rate-limit keys, audit rows, realtime tickets — gets it
-// from ClientIP, so there is one answer and one place that decides it.
+// access log, the per-IP rate-limit keys (through RateLimitKey), audit rows,
+// realtime tickets — gets it from ClientIP, so there is one answer and one place
+// that decides it.
 //
 // Behind Traefik the socket peer is always Traefik, so the peer alone would make
 // every customer look like one address and turn a per-IP limit into a global
@@ -29,6 +30,12 @@ import (
 //     left-most trusted address walked is the answer. It is an address one of
 //     our proxies vouched for, never a value a client chose.
 //
+// What Traefik sends: with no forwardedHeaders settings on its entrypoints (the
+// deploy compose files set none), Traefik deletes any X-Forwarded-For and
+// X-Real-Ip a client sends, then appends the address of its own socket peer. So
+// the API sees one entry, written by Traefik, and a client cannot put anything
+// to its right.
+//
 // trusted is empty by default (config HG_TRUSTED_PROXY_CIDRS), which makes the
 // header inert: the peer is reported, as before this stage existed.
 func RealIP(trusted []netip.Prefix) Middleware {
@@ -44,8 +51,9 @@ func RealIP(trusted []netip.Prefix) Middleware {
 type clientIPCtx struct{}
 
 // ClientIP returns the request's client address as RealIP resolved it: a bare
-// IP literal with no port, brackets or IPv6 zone, ready for an inet column or a
-// rate-limit key. It is "" when the address is unknown.
+// IP literal with no port, brackets or IPv6 zone, ready for an inet column, a
+// log line or an audit row. It is "" when the address is unknown. A per-IP rate
+// limit does not key on it directly: it keys on RateLimitKey(ClientIP(r)).
 //
 // A request that did not pass through the router (a handler unit test) falls
 // back to the socket peer, which is what RealIP reports with no trusted proxies.
@@ -58,6 +66,32 @@ func ClientIP(r *http.Request) string {
 		return ""
 	}
 	return ip.String()
+}
+
+// RateLimitKey is what a per-IP rate limit counts a caller under, given the
+// address ClientIP returned. Logs, audit rows and inet columns keep the exact
+// address; only the counter is coarser.
+//
+//   - IPv4: the address itself, "203.0.113.7".
+//   - IPv6: the /64 the address is in, "2001:db8:1:2::/64". An ISP or a VPS
+//     host gives one subscriber at least a /64, and the subscriber can send
+//     from any address in it, so counting each address separately would give
+//     one caller 2^64 fresh budgets.
+//   - Unknown ("" or not an address): "unknown". Every such request shares one
+//     budget, so an address that could not be resolved is limited along with
+//     the rest, never waved through.
+func RateLimitKey(clientIP string) string {
+	ip, err := netip.ParseAddr(clientIP)
+	if err != nil {
+		return "unknown"
+	}
+	ip = normalise(ip)
+	if ip.Is4() {
+		return ip.String()
+	}
+	// Cannot fail: ip is a valid IPv6 address and 64 is within its 128 bits.
+	p, _ := ip.Prefix(64)
+	return p.String()
 }
 
 type trustedProxies []netip.Prefix
