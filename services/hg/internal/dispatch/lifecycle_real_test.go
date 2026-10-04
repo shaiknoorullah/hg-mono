@@ -84,6 +84,7 @@ func TestLifecycleBridgeDrivesRealOrderStore(t *testing.T) {
 	for _, step := range []string{"EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "PICKED_UP"} {
 		if _, err := svc.Transition(ctx, o.riderAccountID, assignmentID, TransitionInput{
 			ToState:        step,
+			PickupCode:     pickupCodeFor(step),
 			OccurredAt:     time.Now().UTC(),
 			OverrideReason: &override,
 		}); err != nil {
@@ -116,6 +117,7 @@ SELECT count(*) FROM order_transition
 	for _, step := range []string{"EN_ROUTE_TO_DROPOFF", "ARRIVED_AT_DROPOFF", "DELIVERED"} {
 		if _, err := svc.Transition(ctx, o.riderAccountID, assignmentID, TransitionInput{
 			ToState:        step,
+			PickupCode:     pickupCodeFor(step),
 			OccurredAt:     time.Now().UTC(),
 			OverrideReason: &override,
 		}); err != nil {
@@ -162,6 +164,7 @@ func TestLifecycleBridgeSkippedOnIdempotentRepeat(t *testing.T) {
 	for _, step := range []string{"EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "PICKED_UP"} {
 		if _, err := svc.Transition(ctx, o.riderAccountID, assignmentID, TransitionInput{
 			ToState:        step,
+			PickupCode:     pickupCodeFor(step),
 			OccurredAt:     time.Now().UTC(),
 			OverrideReason: &override,
 		}); err != nil {
@@ -175,6 +178,7 @@ func TestLifecycleBridgeSkippedOnIdempotentRepeat(t *testing.T) {
 	// Re-POST PICKED_UP: idempotent no-op, must NOT fire the bridge again.
 	asn, err := svc.Transition(ctx, o.riderAccountID, assignmentID, TransitionInput{
 		ToState:    "PICKED_UP",
+		PickupCode: pickupCodeFor("PICKED_UP"),
 		OccurredAt: time.Now().UTC(),
 	})
 	if err != nil {

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 )
 
 // dsn returns the integration DSN, or skips with a clear message when unset.
@@ -47,6 +49,20 @@ type seededOffer struct {
 // account_has_identifier and account_phone_e164_shape constraints. It is
 // embedded directly in the INSERT so each seeded account gets a valid
 // identifier without touching the race-free accept logic under test.
+// testPickupCode is the pickup code seedFixture stores on its order: the code
+// the kitchen would read to the rider.
+const testPickupCode = "3051"
+
+// pickupCodeFor returns the code the rider types for a step: the seeded pickup
+// code for PICKED_UP, nothing for every other step.
+func pickupCodeFor(step string) *string {
+	if step != "PICKED_UP" {
+		return nil
+	}
+	c := testPickupCode
+	return &c
+}
+
 const e164SQL = `'+1' || lpad((floor(random() * 1000000000))::bigint::text, 9, '0')`
 
 func seedFixture(t *testing.T, pool *pgxpool.Pool, n int) (orderID string, offers []seededOffer) {
@@ -95,6 +111,12 @@ INSERT INTO "order" (id, code, quote_id, account_id, restaurant_id, delivery_add
 VALUES (uuid_generate_v7(), 'IT-'||substr(md5(random()::text),1,8), $1, $2, $3, $4, 'READY_FOR_PICKUP',
         now()+interval '15 min', 'PICKUP_OVERDUE', 1000, 449, 0, 1449)
 RETURNING id`, &orderID, quoteID, custAccount, restaurantID, addressID)
+	// The order was inserted straight into READY_FOR_PICKUP, past the
+	// acceptance that mints the pickup code, so store a known one for the rider
+	// to type (testPickupCode).
+	if err := handover.SetCodeTx(ctx, pool, orderID, handover.Pickup, testPickupCode); err != nil {
+		t.Fatalf("seed pickup code: %v", err)
+	}
 
 	mustExec(t, pool, `
 INSERT INTO dispatch (order_id, state, deadline_at, deadline_action)

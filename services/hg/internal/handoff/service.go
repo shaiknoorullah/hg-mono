@@ -10,25 +10,24 @@ import (
 )
 
 // OrderLifecycle is the seam from handoff to the orders module (P-14: orders is
-// the only writer of order.state). It is the same shape internal/dispatch
-// already declares for its own PICKED_UP/DELIVERED bridge, plus OpenDispute for
-// the tamper-report path — kept as an interface, not a direct import, for the
-// same reason dispatch's is: it keeps the dependency direction clean and lets
-// tests inject a fake. cmd/hg/main.go wires one concrete adapter that satisfies
-// both this interface and dispatch.OrderLifecycle.
+// the only writer of order.state). Since seals left the launch scope, the one
+// order move handoff can make is opening a dispute from a customer's tamper
+// report. It deliberately has no pickup or delivery method: a seal scan is
+// custody evidence and never moves an order, so a scan can never stand in for
+// the pickup code or a met handover's delivery code (contracts/openapi.yaml,
+// scanPickup and scanDelivery; https://github.com/shaiknoorullah/hg-mono/issues/310;
+// seals at v1.1: https://github.com/shaiknoorullah/hg-mono/issues/47).
+// cmd/hg/main.go wires the orders adapter, which also satisfies
+// dispatch.OrderLifecycle.
 type OrderLifecycle interface {
-	// ConfirmPickup advances the order from READY_FOR_PICKUP to PICKED_UP (T12).
-	ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error
-	// CompleteDelivery advances the order from PICKED_UP/ARRIVED to DELIVERED (T15/T16).
-	CompleteDelivery(ctx context.Context, orderID, riderAccountID string) error
 	// OpenDispute advances DELIVERED/COMPLETED to DISPUTED (T19), actor CUSTOMER —
 	// the only actor a customer-filed tamper report can trigger this edge as.
 	OpenDispute(ctx context.Context, orderID, customerAccountID, reason string) error
 }
 
 // Service is the module's use-case layer: identity/ownership checks, seal-token
-// mint/verify, the store call, and — on a proof that gates one — the
-// OrderLifecycle bridge call. Handlers hold a *Service and nothing else.
+// mint/verify, the store call, and — for a tamper report — the OrderLifecycle
+// call that opens the dispute. Handlers hold a *Service and nothing else.
 type Service struct {
 	store     *Store
 	lifecycle OrderLifecycle // nil is safe: bridge calls are skipped, logged at WARN
@@ -135,7 +134,10 @@ type scanInput struct {
 	PhotoObjectID *string
 }
 
-// PickupScan verifies the rider's QR proof and gates READY_FOR_PICKUP → PICKED_UP.
+// PickupScan verifies the rider's QR proof and records it as custody evidence.
+// It does not gate or perform READY_FOR_PICKUP → PICKED_UP: the rider confirms
+// pickup with the kitchen's pickup code (internal/dispatch), so order_state is
+// the order's state as it stands, unchanged by this scan.
 func (s *Service) PickupScan(ctx context.Context, riderAccountID, orderID string, in scanInput) (HandoffScanResult, error) {
 	claims, err := s.verifyProof(ctx, riderAccountID, orderID, in)
 	if err != nil {
@@ -146,15 +148,17 @@ func (s *Service) PickupScan(ctx context.Context, riderAccountID, orderID string
 	if err != nil {
 		return HandoffScanResult{}, translateScanErr(err)
 	}
-	if s.lifecycle != nil {
-		if lcErr := s.lifecycle.ConfirmPickup(ctx, orderID, riderAccountID); lcErr != nil {
-			return HandoffScanResult{}, translateLifecycleErr(lcErr)
-		}
+	state, err := s.store.OrderState(ctx, orderID)
+	if err != nil {
+		return HandoffScanResult{}, err
 	}
-	return HandoffScanResult{Seal: seal, Event: event, OrderState: "PICKED_UP"}, nil
+	return HandoffScanResult{Seal: seal, Event: event, OrderState: state}, nil
 }
 
-// DeliveryScan is PickupScan's delivery-time twin, gating PICKED_UP/ARRIVED → DELIVERED.
+// DeliveryScan is PickupScan's delivery-time twin. It does not gate or perform
+// DELIVERED either: delivery is gated only by the customer's proof of delivery
+// (internal/dispatch, submitProofOfDelivery), which at a met handover is the
+// delivery code and nothing else.
 func (s *Service) DeliveryScan(ctx context.Context, riderAccountID, orderID string, in scanInput) (HandoffScanResult, error) {
 	claims, err := s.verifyProof(ctx, riderAccountID, orderID, in)
 	if err != nil {
@@ -165,12 +169,11 @@ func (s *Service) DeliveryScan(ctx context.Context, riderAccountID, orderID stri
 	if err != nil {
 		return HandoffScanResult{}, translateScanErr(err)
 	}
-	if s.lifecycle != nil {
-		if lcErr := s.lifecycle.CompleteDelivery(ctx, orderID, riderAccountID); lcErr != nil {
-			return HandoffScanResult{}, translateLifecycleErr(lcErr)
-		}
+	state, err := s.store.OrderState(ctx, orderID)
+	if err != nil {
+		return HandoffScanResult{}, err
 	}
-	return HandoffScanResult{Seal: seal, Event: event, OrderState: "DELIVERED"}, nil
+	return HandoffScanResult{Seal: seal, Event: event, OrderState: state}, nil
 }
 
 // verifyProof runs the checks shared by both scans: the rider holds the live

@@ -23,9 +23,17 @@ const (
 	CodeGeofenceRequired        httpx.ErrorCode = "GEOFENCE_REQUIRED"
 	CodePodRequired             httpx.ErrorCode = "POD_REQUIRED"
 	CodePodMethodMismatch       httpx.ErrorCode = "POD_METHOD_MISMATCH"
-	CodeOtpIncorrect            httpx.ErrorCode = "OTP_INCORRECT"
-	CodeOtpLocked               httpx.ErrorCode = "OTP_LOCKED"
 	CodeStalePoint              httpx.ErrorCode = "STALE_POINT"
+
+	// The handover codes (contracts/README.md, "Neither code can be bypassed";
+	// https://github.com/shaiknoorullah/hg-mono/issues/310). A wrong code
+	// carries details.attempts_remaining; the fifth wrong code locks the code
+	// and the order goes to support. No error body ever carries a code.
+	CodePickupCodeRequired    httpx.ErrorCode = "PICKUP_CODE_REQUIRED"
+	CodePickupCodeIncorrect   httpx.ErrorCode = "PICKUP_CODE_INCORRECT"
+	CodePickupCodeLocked      httpx.ErrorCode = "PICKUP_CODE_LOCKED"
+	CodeDeliveryCodeIncorrect httpx.ErrorCode = "DELIVERY_CODE_INCORRECT"
+	CodeDeliveryCodeLocked    httpx.ErrorCode = "DELIVERY_CODE_LOCKED"
 )
 
 // Actions this module owns. P-05: constants live beside the module that owns the
@@ -52,7 +60,6 @@ const (
 	interWaveGap      = 2 * time.Second
 	locationFreshness = 90 * time.Second
 	geoArrivalRadiusM = 150
-	otpMaxFailures    = 5
 	candidateLimit    = 50
 )
 

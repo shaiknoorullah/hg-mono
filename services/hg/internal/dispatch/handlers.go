@@ -5,9 +5,12 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
@@ -33,6 +36,11 @@ func riderID(r *http.Request) (string, bool) {
 
 // decodeJSON reads a JSON body with unknown-field rejection. It also refuses any
 // inbound price field defensively (the server computes every price).
+//
+// The error names an unknown field but never quotes the body: a syntax error's
+// text can carry a character of what was sent, and these bodies carry the
+// handover codes, which no error body may echo (contracts/openapi.yaml,
+// ErrorEnvelope: "Never a handover code").
 func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -41,10 +49,21 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
 			httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed, "A request body is required.", nil)
 			return false
 		}
-		httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed, "The request body is malformed: "+err.Error(), nil)
+		msg := "The request body is malformed."
+		if field, ok := strings.CutPrefix(err.Error(), "json: unknown field "); ok {
+			msg = "The request body has an unknown field: " + field + "."
+		}
+		httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed, msg, nil)
 		return false
 	}
 	return true
+}
+
+// codeFieldFail rejects a malformed handover-code field. It names the field
+// and never repeats the value.
+func codeFieldFail(w http.ResponseWriter, r *http.Request, field, message string) {
+	httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed, message,
+		[]httpx.FieldError{{Field: field, Code: "invalid", Message: message}})
 }
 
 // fail translates a service error into the error envelope, or 500 on an
@@ -214,6 +233,11 @@ func (h *Handler) GetAssignment(w http.ResponseWriter, r *http.Request) {
 // POST /v1/riders/me/assignments/{assignmentId}/transitions — createAssignmentTransition
 // ---------------------------------------------------------------------------
 
+// transitionInput is the union of the contract's two transition shapes:
+// AssignmentStepInput (every step but PICKED_UP, with override_reason for a
+// failed geofence) and PickupTransitionInput (PICKED_UP, with the required
+// pickup_code and no override_reason). CreateTransition enforces which fields
+// each shape may carry.
 type transitionInput struct {
 	ToState        string   `json:"to_state"`
 	Latitude       *float64 `json:"latitude"`
@@ -221,6 +245,7 @@ type transitionInput struct {
 	AccuracyM      *float64 `json:"accuracy_m"`
 	OccurredAt     string   `json:"occurred_at"`
 	OverrideReason *string  `json:"override_reason"`
+	PickupCode     *string  `json:"pickup_code"`
 }
 
 var assignmentStates = map[string]bool{
@@ -257,6 +282,25 @@ func (h *Handler) CreateTransition(w http.ResponseWriter, r *http.Request) {
 			[]httpx.FieldError{{Field: "occurred_at", Code: "invalid", Message: "RFC3339 required"}})
 		return
 	}
+	// The pickup code belongs to PICKED_UP alone, and PICKED_UP takes no
+	// override_reason: a matching code is the proof, and when it cannot be used
+	// only support can confirm the pickup (contracts/openapi.yaml,
+	// AssignmentTransitionInput). A missing code is answered by the store,
+	// after the lock check, because a locked code wins over a missing one.
+	if in.ToState == "PICKED_UP" {
+		if in.OverrideReason != nil {
+			codeFieldFail(w, r, "override_reason",
+				"PICKED_UP takes no override_reason: confirm pickup with the code the kitchen reads out.")
+			return
+		}
+		if in.PickupCode != nil && !handover.WellFormed(*in.PickupCode) {
+			codeFieldFail(w, r, "pickup_code", "pickup_code must be 4 digits.")
+			return
+		}
+	} else if in.PickupCode != nil {
+		codeFieldFail(w, r, "pickup_code", "Only PICKED_UP carries a pickup_code.")
+		return
+	}
 	asn, serr := h.svc.Transition(r.Context(), rid, aid, TransitionInput{
 		ToState:        in.ToState,
 		Lat:            in.Latitude,
@@ -264,6 +308,7 @@ func (h *Handler) CreateTransition(w http.ResponseWriter, r *http.Request) {
 		AccuracyM:      in.AccuracyM,
 		OccurredAt:     occurred,
 		OverrideReason: in.OverrideReason,
+		PickupCode:     in.PickupCode,
 	})
 	if serr != nil {
 		fail(w, r, serr)
@@ -286,6 +331,46 @@ type podInput struct {
 
 var podMethods = map[string]bool{"OTP": true, "PHOTO": true, "PHOTO_WITH_ATTESTATION": true}
 
+// podShapeProblem checks the body against the contract's three proof shapes,
+// chosen by method: OtpProofInput (otp_code; a missing one is answered by the
+// store, after the lock check), PhotoProofInput (photo_object_id) and
+// PhotoWithAttestationProofInput (photo_object_id and a 5–500 character
+// attestation_reason). A field from another shape is refused. It returns the
+// offending field and a message that never repeats a code.
+func podShapeProblem(in podInput) (field, message string) {
+	switch in.Method {
+	case "OTP":
+		if in.PhotoObjectID != nil {
+			return "photo_object_id", "A met handover is proved with the customer's code, not a photo."
+		}
+		if in.AttestationReason != nil {
+			return "attestation_reason", "A met handover is proved with the customer's code, not a statement."
+		}
+		if in.OtpCode != nil && !handover.WellFormed(*in.OtpCode) {
+			return "otp_code", "otp_code must be 4 digits."
+		}
+	case "PHOTO", "PHOTO_WITH_ATTESTATION":
+		if in.OtpCode != nil {
+			return "otp_code", "Only an OTP proof carries otp_code."
+		}
+		if in.PhotoObjectID == nil || !validUUID(*in.PhotoObjectID) {
+			return "photo_object_id", "photo_object_id must be the id of the uploaded photo."
+		}
+		if in.Method == "PHOTO" && in.AttestationReason != nil {
+			return "attestation_reason", "A statement goes with method PHOTO_WITH_ATTESTATION."
+		}
+		if in.Method == "PHOTO_WITH_ATTESTATION" {
+			if in.AttestationReason == nil {
+				return "attestation_reason", "attestation_reason is required with a photo and a statement."
+			}
+			if n := utf8.RuneCountInString(*in.AttestationReason); n < 5 || n > 500 {
+				return "attestation_reason", "attestation_reason must be 5 to 500 characters."
+			}
+		}
+	}
+	return "", ""
+}
+
 // SubmitPod handles submitProofOfDelivery.
 func (h *Handler) SubmitPod(w http.ResponseWriter, r *http.Request) {
 	rid, ok := riderID(r)
@@ -305,6 +390,10 @@ func (h *Handler) SubmitPod(w http.ResponseWriter, r *http.Request) {
 	if !podMethods[in.Method] {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed, "A valid method is required.",
 			[]httpx.FieldError{{Field: "method", Code: "invalid", Message: "not a known POD method"}})
+		return
+	}
+	if field, msg := podShapeProblem(in); field != "" {
+		codeFieldFail(w, r, field, msg)
 		return
 	}
 	asn, err := h.svc.SubmitPod(r.Context(), rid, aid, PodInput{

@@ -22,13 +22,17 @@
 // appends the scan-and-photo trail and opens the existing dispute flow
 // (A-33/A-35), which decides the money outcome.
 //
-// This package never writes order.state directly (P-14): a valid proof calls
-// through the OrderLifecycle seam to the orders module, exactly the pattern
-// internal/dispatch already uses for its own PICKED_UP/DELIVERED bridge. Unlike
-// that bridge, a lifecycle failure here is surfaced to the caller rather than
-// swallowed — advancing the order *is* the point of these four endpoints, so a
-// caller must know when it did not happen, even though the handoff evidence
-// itself (the scan, the photo) is already durably recorded either way.
+// Seals are not used at launch and these four operations are later-version
+// (https://github.com/shaiknoorullah/hg-mono/issues/47). At launch the rider
+// proves pickup with the kitchen's pickup code and a met handover with the
+// customer's delivery code (internal/handover, internal/dispatch), and the
+// contract leaves no other way past either code
+// (https://github.com/shaiknoorullah/hg-mono/issues/310). So a scan is custody
+// evidence only: it never moves the order to PICKED_UP or DELIVERED, and the
+// OrderLifecycle seam here has no method that could. This package never writes
+// order.state directly (the orders module is its only writer,
+// docs/spec/01-platform.md "P-14"); the one order move it makes is opening a
+// dispute from a tamper report, through that seam.
 //
 // Handoff photo and geo evidence travel through internal/files exactly like
 // proof of delivery does: the client presigns and confirms an upload with
