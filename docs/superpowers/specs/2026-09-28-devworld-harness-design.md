@@ -3,7 +3,7 @@ covers:
   - services/hg/cmd/**
   - services/hg/migrations/**
   - apps/restaurant/.claude/skills/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -218,3 +218,4 @@ The harness produces real realtime events (order state changes, offers, `rider.l
 - **Dispatch reach.** The journey assumes dispatch offers to an online rider within range of the restaurant. `rider-sim` starts at the route's origin inside that radius; planning confirms the radius and offer loop in `internal/dispatch`.
 - **Drift.** The world SQL must follow schema migrations. Mitigated by the world verify in CI (see [verification](#8-verification)) — a migration that breaks the world fails the build.
 - **CORS.** `HG_CORS_ALLOWED_ORIGINS` must include each app's dev origin (restaurant `http://localhost:5183`); `.env.example` has them, and `devworld reset` warns when the running config lacks one.
+- **Trusted proxy.** The compose stack refuses to start without `HG_TRUSTED_PROXY_CIDRS`, the networks whose forwarded client address the API believes (see the client-address step of the [middleware chain](../../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)). A `deploy/.env` copied before the setting existed needs the line from `.env.example`. Without it every request would carry Traefik's address, and the per-address sign-in limit would throttle every persona as one caller.

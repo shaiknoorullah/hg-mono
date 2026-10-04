@@ -301,6 +301,8 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
     actor_type text not null     -- STAFF | SYSTEM
     actor_staff_id uuid null     actor_role text null
     actor_ip inet null           actor_user_agent text null
+    -- actor_ip is the client address the middleware chain works out (docs/spec/01-platform.md,
+    -- "Deny-by-default routing and the middleware chain"): the one Traefik forwards, not Traefik's own
     action text not null         -- e.g. restaurant.approve, halal_certificate.reject, refund.issue
     target_type text not null    -- RESTAURANT|RIDER|CUSTOMER|ORDER|MENU_VERSION|CASE|STAFF_USER|SETTING|...
     target_id uuid not null
