@@ -9,12 +9,22 @@ import (
 
 // OrderLifecycle is the seam from dispatch to the orders module. Dispatch calls
 // through this interface to advance the order state machine when the assignment
-// reaches PICKED_UP or DELIVERED; the orders module owns order.state (P-14) and
-// is the only writer of it. Keeping this as an interface (not a direct import)
+// reaches PICKED_UP, ARRIVED_AT_DROPOFF or DELIVERED; the orders module owns
+// order.state (P-14) and is the only writer of it. These are the only three
+// pushes dispatch may make (docs/spec/01-platform.md, "P-14 — Order lifecycle
+// states and transitions": carrying ⇒ picked up, at the customer ⇒ arrived,
+// completed ⇒ delivered). Keeping this as an interface (not a direct import)
 // keeps the dependency direction clean and lets tests inject a fake.
 type OrderLifecycle interface {
 	// ConfirmPickup advances the order from READY_FOR_PICKUP to PICKED_UP (T12).
 	ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error
+	// MarkArrived advances the order from PICKED_UP to ARRIVED (row T14 of the
+	// transition table in that spec section) when the rider taps "I'm here" at
+	// the drop-off: the assignment's ARRIVED_AT_DROPOFF, the dispatch
+	// sub-machine's AT_CUSTOMER. Entering ARRIVED arms the 15-minute
+	// handover-overdue deadline (docs/spec/01-platform.md, "P-15 — Deadlines
+	// and timeout actions"; issue #250).
+	MarkArrived(ctx context.Context, orderID, riderAccountID string) error
 	// CompleteDelivery advances the order from PICKED_UP (or ARRIVED) to DELIVERED (T15/T16).
 	CompleteDelivery(ctx context.Context, orderID, riderAccountID string) error
 }
@@ -134,9 +144,10 @@ func (s *Service) GetAssignment(ctx context.Context, riderAccountID, assignmentI
 }
 
 // Transition advances an assignment one step. After the dispatch transaction
-// commits, it calls the OrderLifecycle bridge for PICKED_UP and DELIVERED to
-// keep the order state machine in sync (P-14: only the orders module writes
-// order.state; dispatch calls it via the interface, never directly).
+// commits, it calls the OrderLifecycle bridge for PICKED_UP, ARRIVED_AT_DROPOFF
+// and DELIVERED to keep the order state machine in sync (P-14: only the orders
+// module writes order.state; dispatch calls it via the interface, never
+// directly). Every other assignment step leaves the order where it is.
 func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput) (*Assignment, error) {
 	asn, transitioned, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now())
 	if err != nil {
@@ -158,6 +169,14 @@ func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID s
 				// automatic retry for an already-dispatched order, so this is an
 				// operational incident that must be visible, never silent.
 				s.logBridgeFailure(asn.OrderID, riderAccountID, "confirm_pickup", lcErr)
+			}
+		case "ARRIVED_AT_DROPOFF":
+			// The rider is at the customer: PICKED_UP -> ARRIVED. Without this the
+			// order skipped straight to DELIVERED, so "your rider is here", the
+			// delivery-code reveal and the handover-overdue deadline never
+			// happened (issue #250). Same log-and-swallow rule as above.
+			if lcErr := s.lifecycle.MarkArrived(ctx, asn.OrderID, riderAccountID); lcErr != nil {
+				s.logBridgeFailure(asn.OrderID, riderAccountID, "mark_arrived", lcErr)
 			}
 		case "DELIVERED":
 			if lcErr := s.lifecycle.CompleteDelivery(ctx, asn.OrderID, riderAccountID); lcErr != nil {

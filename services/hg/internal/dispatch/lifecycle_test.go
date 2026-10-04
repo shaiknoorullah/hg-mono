@@ -13,11 +13,12 @@ import (
 // Fake OrderLifecycle for unit/integration tests.
 // ---------------------------------------------------------------------------
 
-// fakeLifecycle records ConfirmPickup and CompleteDelivery calls so tests can
-// assert the bridge fires at the right dispatch state transitions.
+// fakeLifecycle records ConfirmPickup, MarkArrived and CompleteDelivery calls
+// so tests can assert the bridge fires at the right dispatch state transitions.
 type fakeLifecycle struct {
 	mu            sync.Mutex
 	pickupCalls   []lifecycleCall
+	arrivalCalls  []lifecycleCall
 	deliveryCalls []lifecycleCall
 	pickupErr     error
 	deliveryErr   error
@@ -35,6 +36,13 @@ func (f *fakeLifecycle) ConfirmPickup(_ context.Context, orderID, riderAccountID
 	return f.pickupErr
 }
 
+func (f *fakeLifecycle) MarkArrived(_ context.Context, orderID, riderAccountID string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.arrivalCalls = append(f.arrivalCalls, lifecycleCall{orderID: orderID, riderAccountID: riderAccountID})
+	return nil
+}
+
 func (f *fakeLifecycle) CompleteDelivery(_ context.Context, orderID, riderAccountID string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -47,6 +55,14 @@ func (f *fakeLifecycle) pickups() []lifecycleCall {
 	defer f.mu.Unlock()
 	out := make([]lifecycleCall, len(f.pickupCalls))
 	copy(out, f.pickupCalls)
+	return out
+}
+
+func (f *fakeLifecycle) arrivals() []lifecycleCall {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]lifecycleCall, len(f.arrivalCalls))
+	copy(out, f.arrivalCalls)
 	return out
 }
 
@@ -173,7 +189,11 @@ func TestLifecycleCompleteDeliveryCalled(t *testing.T) {
 		}
 	}
 
+	// Arriving at the drop-off fires the arrival step exactly once (issue #250);
 	// CompleteDelivery should not have been called yet.
+	if acalls := lc.arrivals(); len(acalls) != 1 || acalls[0].orderID != orderID {
+		t.Fatalf("expected 1 MarkArrived call for order %s at ARRIVED_AT_DROPOFF, got %v", orderID, acalls)
+	}
 	if len(lc.deliveries()) != 0 {
 		t.Fatalf("CompleteDelivery called too early: %d calls", len(lc.deliveries()))
 	}
