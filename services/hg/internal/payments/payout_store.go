@@ -45,20 +45,42 @@ const (
 // enum, and the contract's PayoutRunOutcome.
 type PayoutRunOutcome string
 
+// The outcomes, as the contract's PayoutRunOutcome describes them.
 const (
-	OutcomePaid             PayoutRunOutcome = "PAID"
-	OutcomeHeld             PayoutRunOutcome = "HELD"
-	OutcomeStillHeld        PayoutRunOutcome = "STILL_HELD"
-	OutcomeReleased         PayoutRunOutcome = "RELEASED"
-	OutcomeTransferFailed   PayoutRunOutcome = "TRANSFER_FAILED"
-	OutcomeAlreadyPaid      PayoutRunOutcome = "ALREADY_PAID"
-	OutcomeNothingDue       PayoutRunOutcome = "NOTHING_DUE"
-	OutcomeCarriedNegative  PayoutRunOutcome = "CARRIED_NEGATIVE"
-	OutcomeNoPayoutAccount  PayoutRunOutcome = "NO_PAYOUT_ACCOUNT"
+	// OutcomePaid: a payout for this period was created and transferred.
+	OutcomePaid PayoutRunOutcome = "PAID"
+	// OutcomeHeld: a payout was created, but Stripe has payouts turned off for
+	// the partner, so no transfer was made.
+	OutcomeHeld PayoutRunOutcome = "HELD"
+	// OutcomeStillHeld: an earlier held payout is still blocked.
+	OutcomeStillHeld PayoutRunOutcome = "STILL_HELD"
+	// OutcomeReleased: an earlier held or unfinished payout was transferred.
+	OutcomeReleased PayoutRunOutcome = "RELEASED"
+	// OutcomeTransferFailed: Stripe refused the transfer; the payout stays owed
+	// for the next run.
+	OutcomeTransferFailed PayoutRunOutcome = "TRANSFER_FAILED"
+	// OutcomeAlreadyPaid: the partner already has a payout for this period.
+	OutcomeAlreadyPaid PayoutRunOutcome = "ALREADY_PAID"
+	// OutcomeNothingDue: no unpaid earnings before the cutoff.
+	OutcomeNothingDue PayoutRunOutcome = "NOTHING_DUE"
+	// OutcomeCarriedNegative: the unpaid balance is zero or below, so it is
+	// carried and netted against later earnings.
+	OutcomeCarriedNegative PayoutRunOutcome = "CARRIED_NEGATIVE"
+	// OutcomeNoPayoutAccount: no Stripe account yet; the balance waits for
+	// onboarding.
+	OutcomeNoPayoutAccount PayoutRunOutcome = "NO_PAYOUT_ACCOUNT"
+	// OutcomePartnerSuspended: a suspended or banned restaurant is not paid
+	// until it is reinstated.
 	OutcomePartnerSuspended PayoutRunOutcome = "PARTNER_SUSPENDED"
-	OutcomeOrdersBlocked    PayoutRunOutcome = "ORDERS_BLOCKED"
-	OutcomeOrdersUnblocked  PayoutRunOutcome = "ORDERS_UNBLOCKED"
-	OutcomeError            PayoutRunOutcome = "ERROR"
+	// OutcomeOrdersBlocked: the restaurant's balance has been below zero for
+	// longer than the configured limit, so it takes no new orders.
+	OutcomeOrdersBlocked PayoutRunOutcome = "ORDERS_BLOCKED"
+	// OutcomeOrdersUnblocked: a blocked restaurant's balance has recovered, so
+	// it takes orders again.
+	OutcomeOrdersUnblocked PayoutRunOutcome = "ORDERS_UNBLOCKED"
+	// OutcomeError: the server failed for this partner; the run's detail says
+	// how.
+	OutcomeError PayoutRunOutcome = "ERROR"
 )
 
 // PayoutRunRow is one payout_run row.
