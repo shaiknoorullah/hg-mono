@@ -90,9 +90,17 @@ tags:
     description: |
       Address search for the location picker: suggestions as you type, the address of a
       picked suggestion, and the address under a map pin. Our API forwards each call to
-      Mapbox, so the secret key stays on the server and there is one place to rate-limit,
-      cache and change provider. Nothing here is stored; `createAddress` and
-      `submitRestaurantProfile` save the address the user confirms. Source: the owner's
+      Mapbox, so the secret key stays on the server and there is one place to rate-limit
+      and change provider. These operations store nothing themselves, but `createAddress`
+      and `submitRestaurantProfile` store the address and point the user confirms, which
+      come from `getPlaceAddress` and `reverseGeocode`.
+
+      **Mapbox licence.** Mapbox results are temporary by default, and temporary results
+      may not be stored or cached. So the server resolves every address and point that
+      `getPlaceAddress` and `reverseGeocode` return with Mapbox Geocoding v6 and
+      `permanent=true`, which allows storing them; a permanent request costs more than a
+      temporary one (issue #297). Suggestions from `suggestAddresses` are never stored,
+      so they may stay temporary, and the server never caches them. Source: the owner's
       decision of 2026-10-01 (`docs/decisions/README.md`, "Settled — redesign decisions,
       round 2", "Launch scope and contract", map address search; issue #179).
   - name: discovery
@@ -1306,12 +1314,17 @@ paths:
         or refuses our key. The client falls back to the manual form and the map pin with a
         visible notice, so address entry never becomes impossible (C-31 rule 5).
 
-        **Rate limit:** rate class `GEO`, 30 requests per account per minute with a burst of
-        10, counted separately for each of the three address search operations
-        (`docs/spec/01-platform.md`, "P-38 — Rate limiting"). Nothing here is stored.
+        **Rate limit:** rate class `GEO_SUGGEST`, 60 requests per account per minute with a
+        burst of 20, so one search typed a key at a time stays under it
+        (`docs/spec/01-platform.md`, "P-38 — Rate limiting"). It is counted apart from
+        `getPlaceAddress` and `reverseGeocode`.
+
+        **Not stored.** Suggestions are temporary Mapbox results, which Mapbox's terms do
+        not allow to be stored or cached; the server keeps none of them, not even in Redis.
+        The address that gets saved comes from `getPlaceAddress`.
       x-roles: [CUSTOMER, RESTAURANT_OWNER, RESTAURANT_MANAGER]
       x-version: V0
-      x-rate-class: GEO
+      x-rate-class: GEO_SUGGEST
       parameters:
         - name: q
           in: query
@@ -1370,6 +1383,12 @@ paths:
         rule 7). This operation stores nothing; the save operations validate the address
         themselves.
 
+        **Permanent geocoding.** Because the save operations store this address and, when
+        the user does not move the pin, this point, the server resolves the picked
+        suggestion with Mapbox Geocoding v6 and `permanent=true`. Mapbox allows a permanent
+        result to be stored; a temporary one, the default, may not be stored or cached
+        (issue #297).
+
         Fields the provider does not know are `null`, never guessed: a street without a
         number has a `line1` but no `postal_code`, and a postcode has no `line1`. The user
         types what is missing.
@@ -1379,7 +1398,8 @@ paths:
         client searches again or offers the map pin. **Provider unavailable:** `503
         GEOCODER_UNAVAILABLE`, handled as for `suggestAddresses`.
 
-        **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10.
+        **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10,
+        counted separately for `getPlaceAddress` and `reverseGeocode`.
       x-roles: [CUSTOMER, RESTAURANT_OWNER, RESTAURANT_MANAGER]
       x-version: V0
       x-rate-class: GEO
@@ -1427,12 +1447,17 @@ paths:
         metres from the pin. The client keeps its pin, because the pin's position is what
         is saved (C-31 rule 7).
 
+        **Permanent geocoding.** The save operations store the address fields returned
+        here, so the server asks Mapbox Geocoding v6 for them with `permanent=true`, which
+        Mapbox requires before a result may be stored or cached (issue #297).
+
         **No match:** `404 GEOCODE_NO_MATCH` when no Canadian address is near the pin: in a
         lake, a field, or across the border. The pin stays where it is and the user types
         the address. **Provider unavailable:** `503 GEOCODER_UNAVAILABLE`, handled as for
         `suggestAddresses`.
 
-        **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10.
+        **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10,
+        counted separately for `getPlaceAddress` and `reverseGeocode`.
       x-roles: [CUSTOMER, RESTAURANT_OWNER, RESTAURANT_MANAGER]
       x-version: V0
       x-rate-class: GEO

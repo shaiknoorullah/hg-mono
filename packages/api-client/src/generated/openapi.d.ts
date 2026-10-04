@@ -1452,9 +1452,14 @@ export interface paths {
          *     or refuses our key. The client falls back to the manual form and the map pin with a
          *     visible notice, so address entry never becomes impossible (C-31 rule 5).
          *
-         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute with a burst of
-         *     10, counted separately for each of the three address search operations
-         *     (`docs/spec/01-platform.md`, "P-38 — Rate limiting"). Nothing here is stored.
+         *     **Rate limit:** rate class `GEO_SUGGEST`, 60 requests per account per minute with a
+         *     burst of 20, so one search typed a key at a time stays under it
+         *     (`docs/spec/01-platform.md`, "P-38 — Rate limiting"). It is counted apart from
+         *     `getPlaceAddress` and `reverseGeocode`.
+         *
+         *     **Not stored.** Suggestions are temporary Mapbox results, which Mapbox's terms do
+         *     not allow to be stored or cached; the server keeps none of them, not even in Redis.
+         *     The address that gets saved comes from `getPlaceAddress`.
          */
         get: operations["suggestAddresses"];
         put?: never;
@@ -1482,6 +1487,12 @@ export interface paths {
          *     rule 7). This operation stores nothing; the save operations validate the address
          *     themselves.
          *
+         *     **Permanent geocoding.** Because the save operations store this address and, when
+         *     the user does not move the pin, this point, the server resolves the picked
+         *     suggestion with Mapbox Geocoding v6 and `permanent=true`. Mapbox allows a permanent
+         *     result to be stored; a temporary one, the default, may not be stored or cached
+         *     (issue #297).
+         *
          *     Fields the provider does not know are `null`, never guessed: a street without a
          *     number has a `line1` but no `postal_code`, and a postcode has no `line1`. The user
          *     types what is missing.
@@ -1491,7 +1502,8 @@ export interface paths {
          *     client searches again or offers the map pin. **Provider unavailable:** `503
          *     GEOCODER_UNAVAILABLE`, handled as for `suggestAddresses`.
          *
-         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10.
+         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10,
+         *     counted separately for `getPlaceAddress` and `reverseGeocode`.
          */
         get: operations["getPlaceAddress"];
         put?: never;
@@ -1519,12 +1531,17 @@ export interface paths {
          *     metres from the pin. The client keeps its pin, because the pin's position is what
          *     is saved (C-31 rule 7).
          *
+         *     **Permanent geocoding.** The save operations store the address fields returned
+         *     here, so the server asks Mapbox Geocoding v6 for them with `permanent=true`, which
+         *     Mapbox requires before a result may be stored or cached (issue #297).
+         *
          *     **No match:** `404 GEOCODE_NO_MATCH` when no Canadian address is near the pin: in a
          *     lake, a field, or across the border. The pin stays where it is and the user types
          *     the address. **Provider unavailable:** `503 GEOCODER_UNAVAILABLE`, handled as for
          *     `suggestAddresses`.
          *
-         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10.
+         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10,
+         *     counted separately for `getPlaceAddress` and `reverseGeocode`.
          */
         get: operations["reverseGeocode"];
         put?: never;

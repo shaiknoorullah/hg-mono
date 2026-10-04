@@ -224,13 +224,20 @@ tag `geo`, for customers and for restaurant owners and managers:
 | `getPlaceAddress` — `GET /v1/geo/places/{placeId}` | The address and point of a picked suggestion; ends the search session | `404 GEOCODE_NO_MATCH` | `503 GEOCODER_UNAVAILABLE` |
 | `reverseGeocode` — `GET /v1/geo/reverse` | The nearest Canadian address to a map pin | `404 GEOCODE_NO_MATCH` | `503 GEOCODER_UNAVAILABLE` |
 
-All three are rate class `GEO`: 30 requests per account per minute, burst 10, each operation
-counted separately ([rate limiting](../docs/spec/01-platform.md#p-38--rate-limiting)); over
-the limit is `429 RATE_LIMITED`. Results are Canada-only: the server asks the provider for
+`suggestAddresses` is rate class `GEO_SUGGEST`: 60 requests per account per minute, burst 20,
+so one search typed a key at a time stays under it. `getPlaceAddress` and `reverseGeocode` are
+rate class `GEO`: 30 requests per account per minute, burst 10, each counted separately
+([rate limiting](../docs/spec/01-platform.md#p-38--rate-limiting)). Over the limit is
+`429 RATE_LIMITED`. Results are Canada-only: the server asks the provider for
 Canadian results and drops any other. A result outside the served provinces is still
-returned, and saving it is `PROVINCE_NOT_SERVED`. Nothing is stored: the result prefills the
-form, and `createAddress` or `submitRestaurantProfile` saves what the user confirms, at the
-pin's final position. When the provider is down or nothing matches, the manual form and the
+returned, and saving it is `PROVINCE_NOT_SERVED`. The operations store nothing: the result
+prefills the form, and `createAddress` or `submitRestaurantProfile` saves what the user
+confirms, at the pin's final position. Because that saved address comes from Mapbox, the
+server gets it from Mapbox Geocoding v6 with `permanent=true`: Mapbox results are temporary by
+default, and a temporary result may not be stored or cached
+([Mapbox: storing geocoding results](https://docs.mapbox.com/api/search/geocoding/#storing-geocoding-results);
+cost: [#297](https://github.com/shaiknoorullah/hg-mono/issues/297)). Suggestions may stay
+temporary, and the server never caches them. When the provider is down or nothing matches, the manual form and the
 map pin still work.
 
 ---

@@ -2710,7 +2710,8 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `UPLOAD` | 20 / hour | 5 | account |
   | `REALTIME` (ticket issue) | 30 / min | 10 | account |
   | `SEARCH` | 60 / min | 20 | account or ip |
-  | `GEO` (address suggestions, place details, reverse geocoding; forwarded to Mapbox, each operation counted separately) | 30 / min | 10 | account |
+  | `GEO_SUGGEST` (address suggestions as the user types, `suggestAddresses`; forwarded to Mapbox. Sized so one search typed a key at a time stays under it) | 60 / min | 20 | account |
+  | `GEO` (place details and reverse geocoding, `getPlaceAddress` and `reverseGeocode`; forwarded to Mapbox, each operation counted separately) | 30 / min | 10 | account |
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 

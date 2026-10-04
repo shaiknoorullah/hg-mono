@@ -2,7 +2,7 @@
   "scenario": "error_geocode_rate_limited",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`429` · `RATE_LIMITED`. More than 30 address search requests in a minute from one account (rate class `GEO`, counted per operation). Nothing was sent to the provider. The client stops searching as the user types until `Retry-After` passes, and the manual form still works.",
+  "describes": "`429` · `RATE_LIMITED`. One account went over an address search limit: more than 60 suggestion requests in a minute (rate class `GEO_SUGGEST`, burst 20, which one search typed a key at a time stays under), or more than 30 place or pin lookups in a minute for one operation (rate class `GEO`, burst 10). Nothing was sent to the provider. The client stops searching as the user types until `Retry-After` passes, and the manual form still works.",
   "operations": [
     "suggestAddresses",
     "getPlaceAddress",

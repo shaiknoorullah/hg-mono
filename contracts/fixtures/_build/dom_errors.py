@@ -437,10 +437,12 @@ GEO_ERRORS = [
         "RATE_LIMITED",
         "Too many address searches. Try again in 20 seconds.",
         {"retry_after_seconds": 20},
-        "More than 30 address search requests in a minute from one account (rate class "
-        "`GEO`, counted per operation). Nothing was sent to the provider. The client stops "
-        "searching as the user types until `Retry-After` passes, and the manual form still "
-        "works.",
+        "One account went over an address search limit: more than 60 suggestion requests "
+        "in a minute (rate class `GEO_SUGGEST`, burst 20, which one search typed a key at a "
+        "time stays under), or more than 30 place or pin lookups in a minute for one "
+        "operation (rate class `GEO`, burst 10). Nothing was sent to the provider. The client "
+        "stops searching as the user types until `Retry-After` passes, and the manual form "
+        "still works.",
         ["suggestAddresses", "getPlaceAddress", "reverseGeocode"],
     ),
 ]
