@@ -1534,7 +1534,16 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   sign-in and ends their sessions. Not at launch: timed suspensions (rule 1), `CLOSE`, the
   re-registration flag (rule 5) and the case for a lapsed proposal
   ([#325](https://github.com/shaiknoorullah/hg-mono/issues/325)); reading the history and the
-  pending bans ([#327](https://github.com/shaiknoorullah/hg-mono/issues/327)).
+  pending bans ([#327](https://github.com/shaiknoorullah/hg-mono/issues/327)). No other path
+  changes an account's state with weaker gates ([#335](https://github.com/shaiknoorullah/hg-mono/pull/335)):
+  the database refuses any change of a restaurant's, rider's or customer's state without a history
+  row whose actor may take that transition, so only the admin actions, the system completing
+  onboarding (out of `PENDING` only), the halal expiry (it only delists) and the halal renewal (it
+  only lists a `DELISTED` restaurant again) change it
+  ([certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling)). Completing
+  onboarding lists a restaurant only with a current halal certificate; without one it is `DELISTED`
+  (rule R4 of [certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling):
+  never `LIVE` without an approved, unexpired certificate).
 - **Version**: V1 · **Size**: M
 
 > **DECISION REQUIRED — D-17 · Payouts to a banned merchant**: When a restaurant is banned, are funds
