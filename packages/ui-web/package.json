@@ -17,7 +17,8 @@
     "./lint": "./src/lint/index.ts",
     "./styles.css": "./src/styles/globals.css",
     "./tokens.css": "./src/tokens/tokens.css",
-    "./theme.css": "./src/tokens/theme.css"
+    "./theme.css": "./src/tokens/theme.css",
+    "./grid-theme.css": "./src/tokens/grid-theme.css"
   },
   "scripts": {
     "generate:tokens": "node scripts/generate-tokens.mjs",
