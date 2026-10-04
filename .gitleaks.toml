@@ -36,3 +36,13 @@ regexes = [
   '''^f3c2a1d0e9b8a7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2$''',
   '''^hgseal\.[0-9a-f-]+\.[0-9a-f-]+$''',
 ]
+
+# The conformance harness sends a Request's IdemKey as the Idempotency-Key
+# header, so its values are the same made-up request ids that the Idempotency-Key
+# entry allows. Only in the conformance tests.
+[[allowlists]]
+description = "IdemKey values in the conformance tests are Idempotency-Key header values"
+condition = "AND"
+paths = ['''^services/hg/internal/conformance/''']
+regexTarget = "line"
+regexes = ['''\bIdemKey:\s*"''']
