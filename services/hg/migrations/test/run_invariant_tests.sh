@@ -356,7 +356,7 @@ else
 fi
 
 echo
-echo "12. The API's role cannot switch the invariants off (00028, roles/roles.sql)"
+echo "12. The API's role cannot switch the invariants off (00029, roles/roles.sql)"
 # The API logs in as hg_app. SET LOCAL ROLE gives this superuser session exactly
 # hg_app's rights for one transaction, so each case is what a compromised API
 # could try.

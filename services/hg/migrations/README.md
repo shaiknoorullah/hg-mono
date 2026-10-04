@@ -48,7 +48,7 @@ trigger and its zero-sum check off with one `ALTER TABLE … DISABLE TRIGGER`.
 The API is neither, so it cannot. Roles live in the cluster, not the database,
 and creating them takes a superuser, so `roles/roles.sql` is a plain `psql`
 script and not a goose migration; the in-database half is
-[`00028_least_privilege.sql`](00028_least_privilege.sql).
+[`00029_least_privilege.sql`](00029_least_privilege.sql).
 
 A full rollback (`goose … reset`) runs as the superuser: `00001`'s down drops
 extensions and the roles' grants, which `hg_migrator` may not do.
@@ -79,13 +79,34 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 4 | The decomposition invariant is one query returning zero rows. | `SELECT * FROM ledger_order_residual;` — plus `ledger_batch_imbalance`, `ledger_global_residual`, `ledger_charge_identity_breach`, `ledger_tip_passthrough_breach`, and `assert_ledger_invariants()` which raises on any of them. |
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
 | 6 | One canonical location column per entity, `geography(Point,4326)`, with the GiST indexes dispatch needs. | `lint_location_columns()`. A second location column, a `geometry`, a bare `point`, or a column named `coords` all fail the gate. |
-| 7 | The API cannot switch any of the above off. | The API logs in as `hg_app`, which owns nothing and holds no `TRUNCATE`, `TRIGGER`, `CREATE` or `TEMPORARY` privilege (a temp table named `ledger_entry` would otherwise hide the real one from the zero-sum check); the ledger and audit trigger functions search `public` before the temporary schema; `hg_migrator` owns the schema ([`roles/roles.sql`](roles/roles.sql), `00028`). Section 12 of the invariant tests tries each way out as `hg_app`. |
+| 7 | The API cannot switch any of the above off. | The API logs in as `hg_app`, which owns nothing and holds no `TRUNCATE`, `TRIGGER`, `CREATE` or `TEMPORARY` privilege (a temp table named `ledger_entry` would otherwise hide the real one from the zero-sum check); the ledger and audit trigger functions search `public` before the temporary schema; `hg_migrator` owns the schema ([`roles/roles.sql`](roles/roles.sql), `00029`). Section 12 of the invariant tests tries each way out as `hg_app`. |
 
 The two schema lints are also runnable on their own:
 
 ```sh
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f lint/schema_lint.sql
 ```
+
+## Retention: what is deleted, and what never is
+
+Some tables only grow: the outbox, socket and ticket records, sign-in records,
+idempotency records, sessions, Stripe webhooks, the search log, notifications
+and quotes. The hourly retention sweep in
+[`internal/retention`](../internal/retention/rules.go) deletes their rows once
+they are past a retention period, in batches of 2,000, on one replica at a time.
+Each table's period, and the spec section it comes from, sits next to its rule
+in `rules.go` and in the
+[retention periods decision](../../../docs/decisions/data-retention-periods.md). `00028_retention_indexes.sql` adds the indexes the sweep needs:
+one on each age column a rule filters by, and one on every column that holds a
+foreign key to `session`, so deleting a session does not scan the tables that
+point at it.
+
+The sweep never deletes from the ledger, orders, the audit trail, KYC records,
+or payments, refunds and payouts. Those are kept for years by law, and the
+ledger and audit tables refuse `DELETE` to `hg_app` outright (`00023`); a test
+in `internal/retention/rules_test.go` fails if a rule ever names one of them. A
+quote an order was placed from is part of that order's record and is never
+deleted either.
 
 ## Contract enums
 

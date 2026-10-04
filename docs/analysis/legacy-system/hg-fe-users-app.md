@@ -153,7 +153,7 @@ Exposes: orderStatus (21-value union), orderId, checkoutId, isProcessing, isFail
 - JWT payload: `sub` = userId, `role`; expiry checked locally in `utils/getUserFromToken.ts`, proactive refresh through `POST /auth/refresh`, differentiated cleanup on refresh failure classes.
 - zustand `user-auth-storage` also persists the whole session object (partialize includes `session`).
 - Several money-adjacent endpoints called **without** auth header (checkout, payment-method creation, rider lookup) — relies entirely on backend enforcement.
-- **Hardcoded Google Maps Android API key in app.json**: `AIzaSyD614SHSgC6FnrGsIj00_8SZJF5WznveSU` (committed). Directions API key comes from `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (public by Expo convention).
+- **Hardcoded Google Maps Android API key in app.json**: [REDACTED: Google Maps key, see [#130](https://github.com/shaiknoorullah/hg-mono/issues/130)] (committed). Directions API key comes from `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (public by Expo convention).
 - `usesCleartextTraffic: true` on Android (needed for `ws://` and the commented http:// API URL) — weakens transport security.
 - Heavy console logging of token previews (first 20 chars) and full WS payloads.
 

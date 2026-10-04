@@ -7,7 +7,8 @@ reviewed: 2026-10-04
 # Releasing HalalGoes
 
 The single place the go-live configuration lives. Full engineering status:
-[`docs/planning/v1-status.md`](docs/planning/v1-status.md).
+[`docs/planning/v1-status.md`](docs/planning/v1-status.md). Building, versioning and handing out
+the apps (Android APKs, web bundles): [`docs/release/README.md`](docs/release/README.md).
 
 ## What `v1.0.0-rc1` is
 
@@ -73,7 +74,14 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 4. **Mapbox token(s)** — §2.
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
    self-declared halal (default hide), O-04 refund liability.
-6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik.
+6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik, including the public
+   host for file links: `HG_MINIO_PRESIGN_BASE_URL` (e.g. `https://files.halalgoes.com`), routed
+   by Traefik to the object store with the Host header unchanged. Upload and download links are
+   signed for that host, so phones can use them.
+7. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
+   (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
+   address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
+   Never `0.0.0.0/0` (refused at boot).
 
 ## 4. Deploy the stack (on your host)
 
@@ -93,8 +101,9 @@ ledger's triggers off. `make up` and `make migrate` create and update the roles 
 [`services/hg/migrations/roles/roles.sql`](services/hg/migrations/roles/roles.sql); the reasons
 are in [the migrations README](services/hg/migrations/README.md#who-connects-as-whom).
 
-Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, or if
-`HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
+Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
+`HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
+or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
 
 ## 5. Verify the gate (any time)
 
