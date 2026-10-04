@@ -29,6 +29,7 @@ The full list of journeys still to cover is the harness plan in
 | **Run workflow** on the Actions tab (`workflow_dispatch`) | Every flow, or only the web flows (input `flows`), on the branch picked |
 | **Nightly**, 05:30 UTC | Every flow, on `main`. Skipped when `main` has not changed since the last nightly run, passed or failed: a failure is retried by hand or by the next change |
 | A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those cost the most minutes ([below](#what-it-costs)). Without the label no job starts, so it costs nothing |
+| A pull request with the **`e2e-full` label** | Every flow, emulator included, on every push while the label is on. The by-hand run for a pull request: a workflow can only be started from the Actions tab once it is on `main`. Remove the label when done |
 
 A run on a pull request reads no secret. No run needs one: the API runs with `HG_ENV=local`, so it
 uses its fake payment client (no Stripe keys) and writes phone sign-in codes to its own log
@@ -127,6 +128,7 @@ the first runs measure them; every job has a timeout:
 | Nightly, apps unchanged (the APKs come from the cache) | plan 1, APKs 2 × 1, flows 30 | 35 |
 | Nightly, `main` unchanged since the last nightly | plan 1 | 1 |
 | A push to a PR labelled `e2e` (web flows) | plan 1, flows 15 | 16 |
+| A push to a PR labelled `e2e-full` | as a nightly run | 35 to 60 |
 | Run workflow, `flows: web` | plan 1, flows 15 | 16 |
 
 A month of nightly runs on a busy `main` is about 1,000 to 1,800 minutes, most of a Free

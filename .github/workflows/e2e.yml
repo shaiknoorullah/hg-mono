@@ -11,9 +11,11 @@ name: e2e
 #   nightly at 05:30 UTC                  every flow, on main; skipped when main has not changed
 #                                         since the last nightly run
 #   a pull request labelled e2e           the web flows only: no APK build, no emulator
+#   a pull request labelled e2e-full      every flow: the by-hand run for a PR, since a workflow
+#                                         can only be dispatched once it is on main
 #
 # The emulator runs cost the most runner minutes (tools/e2e/README.md, "What it costs"), so they
-# run only nightly and by hand.
+# run only nightly and by hand (Run workflow, or the e2e-full label).
 #
 # Trust rules:
 # - Read-only token (contents: read; the plan job also reads past runs). No job reads a secret:
@@ -45,7 +47,7 @@ concurrency:
   # gets a group of its own.
   group: >-
     e2e-${{ github.event.pull_request.number || github.ref }}-${{
-    github.event.action == 'labeled' && github.event.label.name != 'e2e' && github.run_id || 'run' }}
+    github.event.action == 'labeled' && !startsWith(github.event.label.name, 'e2e') && github.run_id || 'run' }}
   cancel-in-progress: true
 
 env:
@@ -57,13 +59,14 @@ env:
 
 jobs:
   # Decides what this run does: all (APKs, emulator and browser), web (browser only) or none.
-  # On a pull request without the e2e label nothing runs at all, so it costs no minutes; nor
+  # On a pull request without an e2e label nothing runs at all, so it costs no minutes; nor
   # when some other label is added to a labelled one.
   plan:
     if: >-
       github.event_name != 'pull_request' ||
-      (contains(github.event.pull_request.labels.*.name, 'e2e') &&
-      (github.event.action != 'labeled' || github.event.label.name == 'e2e'))
+      ((contains(github.event.pull_request.labels.*.name, 'e2e') ||
+      contains(github.event.pull_request.labels.*.name, 'e2e-full')) &&
+      (github.event.action != 'labeled' || startsWith(github.event.label.name, 'e2e')))
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -77,13 +80,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
           IN_FLOWS: ${{ inputs.flows }}
+          FULL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'e2e-full') }}
         run: |
           mode=none
           case "$EVENT" in
             workflow_dispatch)
               case "$IN_FLOWS" in all|web) mode="$IN_FLOWS" ;; *) echo "::error::flows must be all or web"; exit 1 ;; esac ;;
             pull_request)
-              mode=web ;;
+              if [ "$FULL_LABEL" = true ]; then mode=all; else mode=web; fi ;;
             schedule)
               # The last nightly that finished, this one excepted. A failure is not retried every
               # night on the same commit: run it by hand, or push a fix.
