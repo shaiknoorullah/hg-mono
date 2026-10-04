@@ -43,6 +43,17 @@ type Config struct {
 	SMS      SMS
 	OTP      OTP
 	Tax      Tax
+
+	DeadlineRunner DeadlineRunner
+}
+
+// DeadlineRunner holds the order deadline runner's start-up switch.
+type DeadlineRunner struct {
+	// Hold starts the runner held: no heartbeat and no deadline fires until ops
+	// inserts a deadline_runner_release row. A failover sets it so the Stripe
+	// catch-up runs before any deadline does; the gap is then handled as an
+	// outage (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions").
+	Hold bool
 }
 
 // OTP holds the phone-verification provider selection. It is orthogonal to SMS
@@ -330,6 +341,8 @@ func Load(getenv func(string) string) (*Config, error) {
 		HSTRegistrationNumber: l.optional("HG_TAX_HST_REGISTRATION_NUMBER", ""),
 		PlatformLegalName:     l.optional("HG_TAX_PLATFORM_LEGAL_NAME", ""),
 	}
+
+	cfg.DeadlineRunner = DeadlineRunner{Hold: l.boolVal("HG_DEADLINE_RUNNER_HOLD", false)}
 
 	// G-7: outside local, no dependency may point at loopback. This is the
 	// check that would have caught the hardcoded localhost:6379.

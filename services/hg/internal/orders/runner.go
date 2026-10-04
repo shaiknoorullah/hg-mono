@@ -21,6 +21,12 @@ import (
 //
 // Scheduling lives entirely in Postgres so a Redis flush cannot lose a timeout
 // (P-15). There is no external orchestrator.
+//
+// Every tick starts with a heartbeat. A gap of more than OutageThreshold since
+// the last heartbeat of any runner is recorded as an outage, and the deadlines
+// that fell inside it are handled as outage actions rather than as misses
+// (runner_outage.go; docs/spec/01-platform.md, "P-15 — Deadlines and timeout
+// actions", "Outages").
 type DeadlineRunner struct {
 	store   *Store
 	log     *slog.Logger
@@ -28,6 +34,15 @@ type DeadlineRunner struct {
 	batch   int
 	tick    time.Duration
 	gateway PaymentGateway
+
+	// hold makes Run wait for a deadline_runner_release row before its first
+	// heartbeat (HG_DEADLINE_RUNNER_HOLD, for failover).
+	hold bool
+	// alerter raises admin.alert on admin:ops when an outage is recorded. Nil
+	// means the outage is logged only.
+	alerter OpsAlerter
+	// outageAfter is OutageThreshold; a field so it is visible next to tick.
+	outageAfter time.Duration
 }
 
 // NewDeadlineRunner builds a runner. owner names this worker in the lease.
@@ -35,25 +50,46 @@ func NewDeadlineRunner(store *Store, gw PaymentGateway, log *slog.Logger, owner 
 	if owner == "" {
 		owner = "hg"
 	}
-	return &DeadlineRunner{store: store, gateway: gw, log: log, owner: owner, batch: 50, tick: time.Second}
+	return &DeadlineRunner{store: store, gateway: gw, log: log, owner: owner, batch: 50, tick: time.Second,
+		outageAfter: OutageThreshold}
 }
 
-// Run loops until ctx is cancelled, sweeping due deadlines each tick.
+// Run loops until ctx is cancelled. When the runner was built with WithHold it
+// first waits for a release. Each tick then writes the heartbeat (recording an
+// outage if the gap since the last one is too long) and sweeps due deadlines.
+// A tick whose heartbeat fails does not sweep: a sweep must never run before
+// the gap it may be closing has been recorded.
 func (r *DeadlineRunner) Run(ctx context.Context) {
+	if r.hold && !r.waitForRelease(ctx) {
+		return
+	}
+	r.log.Info("deadline runner started", slog.String("owner", r.owner))
 	t := time.NewTicker(r.tick)
 	defer t.Stop()
 	for {
+		r.step(ctx)
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			n, err := r.Sweep(ctx)
-			if err != nil {
-				r.log.Warn("deadline sweep failed", slog.String("error", err.Error()))
-			} else if n > 0 {
-				r.log.Info("deadline sweep", slog.Int("fired", n))
-			}
 		}
+	}
+}
+
+// step is one tick: heartbeat, then sweep.
+func (r *DeadlineRunner) step(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
+	if err := r.beat(ctx); err != nil {
+		r.log.Warn("deadline runner heartbeat failed; not sweeping this tick", slog.String("error", err.Error()))
+		return
+	}
+	n, err := r.Sweep(ctx)
+	if err != nil {
+		r.log.Warn("deadline sweep failed", slog.String("error", err.Error()))
+	} else if n > 0 {
+		r.log.Info("deadline sweep", slog.Int("fired", n))
 	}
 }
 
@@ -67,6 +103,9 @@ type claimedOrder struct {
 	prepEtaMinutes int
 	acceptedAt     *time.Time
 	restaurantID   string
+	// outageID is set when deadlineAt fell inside a recorded outage; the row
+	// then takes the outage path instead of its normal action.
+	outageID *string
 }
 
 // Sweep claims and fires one batch of due deadlines. It returns the number of
@@ -104,7 +143,9 @@ func (r *DeadlineRunner) claim(ctx context.Context) ([]claimedOrder, error) {
 				 FOR UPDATE SKIP LOCKED
 				 LIMIT $2)
 			RETURNING id, state::text, deadline_action, deadline_escalations, deadline_at,
-			          COALESCE(prep_eta_minutes, 0), accepted_at, restaurant_id`,
+			          COALESCE(prep_eta_minutes, 0), accepted_at, restaurant_id,
+			          (SELECT w.id::text FROM deadline_outage w
+			            WHERE tstzrange(w.gap_start, w.gap_end, '(]') @> "order".deadline_at)`,
 			r.owner, r.batch)
 		if err != nil {
 			return err
@@ -114,7 +155,7 @@ func (r *DeadlineRunner) claim(ctx context.Context) ([]claimedOrder, error) {
 			var c claimedOrder
 			var stateStr string
 			if err := rows.Scan(&c.id, &stateStr, &c.action, &c.escalations, &c.deadlineAt,
-				&c.prepEtaMinutes, &c.acceptedAt, &c.restaurantID); err != nil {
+				&c.prepEtaMinutes, &c.acceptedAt, &c.restaurantID, &c.outageID); err != nil {
 				return err
 			}
 			c.state = machine.State(stateStr)
@@ -133,6 +174,9 @@ func (r *DeadlineRunner) claim(ctx context.Context) ([]claimedOrder, error) {
 // (OFFER_RESTAURANT → dispatch, SETTLE → ledger) re-arm the deadline and record
 // the audit rather than fabricating the sibling's work.
 func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
+	if c.outageID != nil {
+		return r.fireOutage(ctx, c)
+	}
 	start := time.Now()
 	switch c.action {
 	case machine.ActionExpirePayment:
@@ -162,9 +206,15 @@ func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
 // transitionExpire runs a system transition to a terminal state with a cancel
 // reason, recording the deadline audit in the same transaction (exactly once).
 func (r *DeadlineRunner) transitionExpire(ctx context.Context, c claimedOrder, to machine.State, reason, action string) error {
-	cancelReason := reason
+	return r.transitionWithAudit(ctx, c, to, reason, reason, action, "TRANSITIONED")
+}
+
+// transitionWithAudit is one system transition plus its deadline_audit row, in
+// one transaction.
+func (r *DeadlineRunner) transitionWithAudit(ctx context.Context, c claimedOrder, to machine.State,
+	cancelReason, reason, action, outcome string) error {
 	return r.store.inTx(ctx, func(tx pgx.Tx) error {
-		if err := r.recordAudit(ctx, tx, c, action, "TRANSITIONED"); err != nil {
+		if err := r.recordAudit(ctx, tx, c, action, outcome); err != nil {
 			return err
 		}
 		return r.store.transitionTx(ctx, tx, TransitionRequest{
@@ -206,15 +256,18 @@ func (r *DeadlineRunner) reArm(ctx context.Context, c claimedOrder, start time.T
 }
 
 // recordAudit inserts the exactly-once deadline_audit row. A duplicate insert
-// (a re-run after a crash) is a no-op via ON CONFLICT DO NOTHING, which is the
-// I-15.3 exactly-once assertion made a database fact.
+// (a re-run after a crash) is a no-op via ON CONFLICT DO NOTHING on the
+// deadline_audit_once index, which makes "every deadline action runs exactly
+// once" (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions",
+// rules) a database fact. A row handled by the outage path carries its outage_id; the
+// schema refuses an OUTAGE_* outcome without one (migrations/00028).
 func (r *DeadlineRunner) recordAudit(ctx context.Context, tx pgx.Tx, c claimedOrder, action, outcome string) error {
 	lagMs := int(time.Since(c.deadlineAt).Milliseconds())
 	_, err := tx.Exec(ctx, `
-		INSERT INTO deadline_audit (subject_type, subject_id, action, escalation_no, lag_ms, outcome)
-		VALUES ('order', $1, $2, $3, $4, $5)
-		ON CONFLICT (subject_type, subject_id, action, escalation_no) DO NOTHING`,
-		c.id, action, c.escalations, lagMs, outcome)
+		INSERT INTO deadline_audit (subject_type, subject_id, action, escalation_no, lag_ms, outcome, outage_id)
+		VALUES ('order', $1, $2, $3, $4, $5, $6)
+		ON CONFLICT DO NOTHING`,
+		c.id, action, c.escalations, lagMs, outcome, c.outageID)
 	return err
 }
 

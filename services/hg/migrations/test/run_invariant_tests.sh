@@ -116,6 +116,13 @@ reject "a non-terminal dispatch with no deadline is rejected" "dispatch_deadline
   "INSERT INTO dispatch (order_id, state) VALUES ('88888888-8888-4888-8888-888888888888','SEARCHING');"
 zero_rows "no live order lacks a deadline" "SELECT * FROM order_without_deadline"
 zero_rows "no live dispatch lacks a deadline" "SELECT * FROM dispatch_without_deadline"
+reject "an outage outcome without its outage is rejected" "deadline_audit_outage_tagged" \
+  "INSERT INTO deadline_audit (subject_type, subject_id, action, escalation_no, outcome)
+   VALUES ('order','88888888-8888-4888-8888-888888888888','RESTAURANT_TIMEOUT',0,'OUTAGE_VOIDED');"
+reject "two outage windows cannot cover the same moment" "deadline_outage_no_overlap" \
+  "INSERT INTO deadline_outage (gap_start, gap_end, detected_by)
+   VALUES (now()-interval '10 minutes', now()-interval '5 minutes', 'a'),
+          (now()-interval '6 minutes', now(), 'b');"
 
 echo
 echo "4. Double-entry ledger"

@@ -96,6 +96,26 @@ func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.T
 	return e.enqueueLifecycleNotification(ctx, tx, orderID, newState)
 }
 
+// AlertOps implements orders.OpsAlerter: it writes an admin.alert event on the
+// admin:ops channel (contracts/websocket.md, "Admin — channel admin:ops")
+// inside the caller's transaction, so the alert commits with the record it
+// describes. The deadline runner raises one when it records an outage.
+func (e *orderRealtimeEmitter) AlertOps(ctx context.Context, tx pgx.Tx, a orders.OpsAlert) error {
+	payload, err := json.Marshal(struct {
+		Severity    string `json:"severity"`
+		Kind        string `json:"kind"`
+		SubjectType string `json:"subject_type"`
+		SubjectID   string `json:"subject_id"`
+		Message     string `json:"message"`
+		At          string `json:"at"`
+	}{a.Severity, a.Kind, a.SubjectType, a.SubjectID, a.Message, a.At.UTC().Format(time.RFC3339)})
+	if err != nil {
+		return fmt.Errorf("marshal ops alert: %w", err)
+	}
+	_, _, err = realtime.EmitInTx(ctx, tx, realtime.AdminOpsChannel, "admin.alert", 1, nil, payload, nil, nil)
+	return err
+}
+
 // enqueueLifecycleNotification maps an order state transition to its notify
 // builder(s) and enqueues them inside the transition tx. Order details (code,
 // customer account, restaurant id/name, deadline_at) are read from the SAME
@@ -592,7 +612,12 @@ func run() error {
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
 	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
-	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr)
+	// HG_DEADLINE_RUNNER_HOLD starts the runner held until ops releases it, so
+	// a failover can catch up first; deadlines that fell in the gap are then
+	// handled as outage actions (internal/orders/runner_outage.go).
+	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr).
+		WithHold(cfg.DeadlineRunner.Hold).
+		WithOpsAlerter(rtEmitter)
 	go deadlineRunner.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),

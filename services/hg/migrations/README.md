@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # HalalGoes — database schema
@@ -15,7 +15,7 @@ migrations/
   0000N_*.sql        the migrations, in order
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 59 assertions about what the DB refuses
+  test/              invariant tests: 61 assertions about what the DB refuses
   tools/             contract-enum generator and checker
 ```
 
@@ -55,6 +55,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 4 | The decomposition invariant is one query returning zero rows. | `SELECT * FROM ledger_order_residual;` — plus `ledger_batch_imbalance`, `ledger_global_residual`, `ledger_charge_identity_breach`, `ledger_tip_passthrough_breach`, and `assert_ledger_invariants()` which raises on any of them. |
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
 | 6 | One canonical location column per entity, `geography(Point,4326)`, with the GiST indexes dispatch needs. | `lint_location_columns()`. A second location column, a `geometry`, a bare `point`, or a column named `coords` all fail the gate. |
+| 7 | A deadline action taken because the deadline fell during an outage says which outage, and outage windows never overlap. | `deadline_audit_outage_tagged` CHECK: an `OUTAGE_*` outcome requires `outage_id`, and `outage_id` requires an `OUTAGE_*` outcome. `deadline_outage_no_overlap` EXCLUDE on the `(gap_start, gap_end]` range, so two replicas that come back together record one window. `deadline_outage` and `deadline_runner_release` are append-only for `hg_app`. See [the outages paragraph of the deadlines spec](../../../docs/spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable). |
 
 The two schema lints are also runnable on their own:
 
@@ -78,11 +79,11 @@ unaccounted for, and `gen_enums.py` refuses to generate.
 
 ## Verification
 
-- **Applied**: `goose up` runs all 23 migrations against a real
+- **Applied**: `goose up` runs all 28 migrations against a real
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
-- **Tested**: 59 invariant assertions pass (`test/run_invariant_tests.sh`).
+- **Tested**: 61 invariant assertions pass (`test/run_invariant_tests.sh`).
 - **Environment caveat**: Docker was not available, so this was verified
   against a locally installed **Postgres 16.13 with PostGIS 3.4.2**, not the
   spec's Postgres 17 + PostGIS 3.6. Nothing here uses a 17-only or 3.6-only

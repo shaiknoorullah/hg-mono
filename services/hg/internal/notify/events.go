@@ -170,9 +170,18 @@ func NotifyOrderDelivered(e OrderEvent) New {
 }
 
 // NotifyOrderCancelled tells the customer their order was cancelled.
+//
+// PLATFORM_ERROR gets its own wording because it is the outage notice: the
+// deadline runner cancels an order that was not yet accepted with this reason
+// when its deadline fell while the platform was down
+// (internal/orders/runner_outage.go). The customer is told it was our fault,
+// not the restaurant's.
 func NotifyOrderCancelled(e OrderEvent, reason string) New {
 	body := fmt.Sprintf("Order %s was cancelled.", e.OrderShortCode)
-	if reason != "" {
+	if reason == "PLATFORM_ERROR" {
+		body = fmt.Sprintf("Order %s was cancelled because of a technical problem on our side, "+
+			"not the restaurant's. Sorry about that.", e.OrderShortCode)
+	} else if reason != "" {
 		body = fmt.Sprintf("%s Reason: %s.", body, reason)
 	}
 	return New{

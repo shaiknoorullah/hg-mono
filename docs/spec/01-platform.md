@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -1238,7 +1238,14 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   ```
   Each claimed row's action runs in its own transaction; the transaction ends by either transitioning (which sets a new deadline or NULLs it for terminal) or re-arming. A crash mid-action releases the lease after 30 s and the action re-runs — so **every deadline action must be idempotent**, keyed by `(order_id, state, escalation_no)` in `ledger_batch.idempotency_key` and in any outbound side effect.
 
-- **Data**: `deadline_at`, `deadline_action`, `deadline_escalations`, `lease_until`, `lease_owner` on `order`, `dispatch`, `payment_intent`, `payout`, `kyc_document`, `stored_object`. A `deadline_audit` table records every fired action `(subject_type, subject_id, action, escalation_no, fired_at, outcome, duration_ms)` for SLA reporting.
+  **Outages.** A deadline that fell while no runner was running (a failover, a restore, a reboot, a crash) is not a miss by the restaurant or the rider, and must not be fired as one. So:
+  - every runner tick first writes a heartbeat row (`deadline_runner_heartbeat`, once a second);
+  - a runner that finds the newest heartbeat of any runner more than **2 minutes** old records the gap `(last heartbeat, now]` as a `deadline_outage` window and alerts ops (`admin.alert` on `admin:ops`, kind `DEADLINE_OUTAGE`), in the same transaction. A shorter gap (one replica restarting, a rolling deploy) is not an outage: its deadlines fire normally;
+  - a due row whose `deadline_at` lies inside a window takes the **outage path**. An order not yet accepted (`CREATED`, `AUTHORIZED`, `RESTAURANT_PENDING`) is cancelled with `PLATFORM_ERROR` — its authorisation is voided, the customer is told it was a problem on our side, and nothing counts against the restaurant's acceptance rate. An accepted, paid order fires its action once **without using up an escalation** and re-arms from now;
+  - each outage action is written to `deadline_audit` with outcome `OUTAGE_VOIDED` or `OUTAGE_RE_ARMED` and the `outage_id` of its window; the schema refuses one without the other;
+  - `HG_DEADLINE_RUNNER_HOLD=true` starts the runner **held** — no heartbeat, no fires — until ops inserts a `deadline_runner_release` row, so a failover can finish its catch-up first. Nobody edits `deadline_at` by hand: the gap is handled by the outage path.
+
+- **Data**: `deadline_at`, `deadline_action`, `deadline_escalations`, `lease_until`, `lease_owner` on `order`, `dispatch`, `payment_intent`, `payout`, `kyc_document`, `stored_object`. A `deadline_audit` table records every fired action `(subject_type, subject_id, action, escalation_no, fired_at, outcome, duration_ms)` for SLA reporting. Outages add `deadline_runner_heartbeat` (one row per runner), `deadline_outage` (one row per gap, windows may not overlap) and `deadline_runner_release`, and tag `deadline_audit.outage_id`.
 
   Redis: none. Scheduling is entirely in Postgres — this is deliberate, so a Redis flush cannot lose a timeout (the old system's timeouts lived in Temporal + Redis TTLs and the 30-minute mapping key was the only thing holding a checkout together).
 
@@ -1256,6 +1263,8 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   4. Given two runner replicas, When 1000 orders come due simultaneously, Then each action executes exactly once (assert via `deadline_audit` uniqueness on `(subject_id, action, escalation_no)`).
   5. Given `READY_FOR_PICKUP` with no rider for 45 minutes, Then after 3 escalations the order is `CANCELLED`, the customer is fully refunded, the restaurant's payable is credited in full, and the difference lands in `PLATFORM_ABSORBED`.
   6. Given Redis is flushed while 200 orders are mid-flight, Then every deadline still fires and every order reaches a terminal state.
+  7. Given the runner stopped more than 2 minutes ago and deadlines fell in the gap, When it restarts, Then each unaccepted order is `CANCELLED` with `PLATFORM_ERROR`, each paid order is re-armed from now with `deadline_escalations` unchanged, each action has exactly one `deadline_audit` row tagged with the outage, and exactly one ops alert is raised.
+  8. Given a gap under 2 minutes, When the runner restarts, Then the deadlines in it fire normally and no outage is recorded.
 - **Version**: V1 · **Size**: L
 
 > **DECISION REQUIRED — restaurant acceptance window**: How long does a restaurant have to accept? · **Proposed default**: 180 s, with a visible countdown; expiry cancels and voids the authorisation. Closing the tablet dialog does **not** reject (the old popup auto-rejected on dismissal and on expiry, losing paid orders — R26). · **Why**: 60 s is too short for a busy kitchen; an accidental dismissal must never destroy an order.
