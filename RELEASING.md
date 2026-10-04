@@ -80,7 +80,7 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    signed for that host, so phones can use them.
 7. **Email (Resend).** Verify the sending domain in Resend (SPF, DKIM and DMARC on
    `mail.halalgoes.com`), then set `HG_RESEND_API_KEY`, `HG_EMAIL_FROM`, and the web apps the
-   emails link to: `HG_RESTAURANT_WEB_URL` and `HG_ADMIN_WEB_URL` (https; the stack refuses to
+   emails link to: `HG_RESTAURANT_WEB_URL` and `HG_ADMIN_WEB_URL` (`https`; the stack refuses to
    start with a key and localhost links). With no key the API logs each email instead of sending
    it. Outside production only the addresses in `HG_EMAIL_ALLOWLIST` are ever really emailed;
    that list is refused in production.
