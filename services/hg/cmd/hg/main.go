@@ -620,6 +620,7 @@ func run() error {
 		host, _ := os.Hostname()
 		payoutRunner = payments.NewPayoutRunner(paymentsRepo, stripeClient, payments.PayoutPolicy{
 			RestaurantNegativeBlockDays: cfg.Payouts.RestaurantNegativeBalanceBlockDays,
+			RestaurantHold:              time.Duration(cfg.Payouts.RestaurantHoldHours) * time.Hour,
 		}, host, log)
 		paymentsSvc.WithPayoutRunner(payoutRunner)
 	}

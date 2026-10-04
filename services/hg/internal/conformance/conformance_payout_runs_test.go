@@ -25,7 +25,8 @@ func TestConformance_PayoutRuns(t *testing.T) {
 	rq := Request{Method: "POST", Path: "/v1/admin/payout-runs",
 		AccountID: fxSuperAdminID, Roles: []string{roleSuperAdmin},
 		IdemKey: fmt.Sprintf("conf-payout-run-%d", time.Now().UnixNano()),
-		Body:    map[string]any{"payee": map[string]any{"type": "RIDER", "id": fxRiderID}}}
+		Body: map[string]any{"reason": "conformance probe: queue a run for one rider",
+			"payee": map[string]any{"type": "RIDER", "id": fxRiderID}}}
 	req := h.Build(t, rq)
 	if _, verr := ValidateRequest(t, h.Spec, req); verr != nil {
 		t.Fatalf("createPayoutRun body is not contract-valid (fix the test, not the server): %v", verr)

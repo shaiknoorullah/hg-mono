@@ -64,6 +64,13 @@ type Payouts struct {
 	// still the owner's open question:
 	// https://github.com/shaiknoorullah/hg-mono/issues/164.
 	RestaurantNegativeBalanceBlockDays int
+	// RestaurantHoldHours: a restaurant's earning from an order is paid once
+	// the order has been settled this long, so a dispute raised inside the
+	// window is netted before the money leaves. The default, 72, is the
+	// proposed three-day hold that stands until the owner decides
+	// (docs/spec/03-restaurant.md, "R-32 — Payout schedule, preferences and
+	// payout requests").
+	RestaurantHoldHours int
 }
 
 // Realtime holds the WebSocket gateway's per-replica limits.
@@ -392,6 +399,10 @@ func Load(getenv func(string) string) (*Config, error) {
 
 	cfg.Payouts = Payouts{
 		RestaurantNegativeBalanceBlockDays: l.intVal("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS", 30),
+		RestaurantHoldHours:                l.intVal("HG_PAYOUT_RESTAURANT_HOLD_HOURS", 72),
+	}
+	if cfg.Payouts.RestaurantHoldHours < 0 {
+		l.errf("HG_PAYOUT_RESTAURANT_HOLD_HOURS: %d must be 0 or more", cfg.Payouts.RestaurantHoldHours)
 	}
 	if cfg.Payouts.RestaurantNegativeBalanceBlockDays < 0 {
 		l.errf("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: %d must be 0 (off) or more",

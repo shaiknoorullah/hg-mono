@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -127,20 +128,27 @@ func TestPayoutRun_NeverPaysTwice(t *testing.T) {
 	}
 
 	// An admin runs the same period again: everyone is already paid.
-	run, replayed, err := r1.Request(ctx, PayoutRunRequest{Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001"})
+	run, replayed, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001"})
 	if err != nil || replayed {
 		t.Fatalf("request: replayed=%v err=%v", replayed, err)
 	}
-	if again, replayed, err := r1.Request(ctx, PayoutRunRequest{Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001"}); err != nil || !replayed || again.ID != run.ID {
+	if again, replayed, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001"}); err != nil || !replayed || again.ID != run.ID {
 		t.Fatalf("a retried request must return the first run: replayed=%v err=%v", replayed, err)
 	}
 	other := addPartner(t, db, PayeeRestaurant, true)
-	if _, _, err := r1.Request(ctx, PayoutRunRequest{Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001", Payee: &other}); !errors.Is(err, ErrIdempotencyReuse) {
+	if _, _, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001", Payee: &other}); !errors.Is(err, ErrIdempotencyReuse) {
 		t.Fatalf("the same key with another body: err=%v, want ErrIdempotencyReuse", err)
 	}
 	future := monday.Add(time.Hour)
-	if _, _, err := r1.Request(ctx, PayoutRunRequest{Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000002", AsOf: &future}); !errors.Is(err, ErrAsOfInFuture) {
+	if _, _, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000002", AsOf: &future}); !errors.Is(err, ErrAsOfInFuture) {
 		t.Fatalf("as_of in the future: err=%v, want ErrAsOfInFuture", err)
+	}
+	// An admin who belongs to a restaurant may not run its payout.
+	mustExec(t, db, `INSERT INTO account_role (account_id, role, scope_type, scope_id) VALUES ($1, 'RESTAURANT_OWNER', 'RESTAURANT', $2)`,
+		admin, other.ID)
+	if _, _, err := r1.Request(ctx, PayoutRunRequest{Reason: "pay my own restaurant early", Actor: adminActor{AccountID: admin},
+		IdempotencyKey: "rerun-0000000000005", Payee: &other}); !errors.Is(err, ErrOwnPayout) {
+		t.Fatalf("an admin running their own restaurant's payout: err=%v, want ErrOwnPayout", err)
 	}
 	if _, err := r1.RunDue(ctx); err != nil {
 		t.Fatal(err)
@@ -161,11 +169,11 @@ func TestPayoutRun_NeverPaysTwice(t *testing.T) {
 	// entry that committed after the first run (dated before its cutoff).
 	late := addPartner(t, db, PayeeRider, true)
 	earn(t, db, late, 800, toronto(2026, 8, 14, 12, 0))
-	runA, _, err := r1.Request(ctx, PayoutRunRequest{Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000003"})
+	runA, _, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000003"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	runB, _, err := r2.Request(ctx, PayoutRunRequest{Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000004"})
+	runB, _, err := r2.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000004"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,6 +251,100 @@ func TestPayoutRun_CutoffBoundary(t *testing.T) {
 	assertLedgerAtZero(t, db)
 }
 
+// TestPayoutRun_CrashAfterTransferBeforeRecord: Stripe made the transfer and
+// the replica died before recording it. The payout was recorded as
+// TRANSFERRING before the call, so the next run finds Stripe's transfer by
+// its group and records it — a week later, when Stripe has long forgotten
+// the idempotency key — and never makes a second one.
+func TestPayoutRun_CrashAfterTransferBeforeRecord(t *testing.T) {
+	db := payoutTestDB(t)
+	stripe := newStripeTransfers()
+	runner := newTestRunner(db, stripe, 30)
+	rider := addPartner(t, db, PayeeRider, true)
+	earn(t, db, rider, 900, toronto(2026, 8, 12, 12, 0))
+	period := toronto(2026, 8, 17, 0, 0)
+
+	stripe.crashAfterCreate(rider.ID)
+	runner.now = fixed(toronto(2026, 8, 17, 10, 0))
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _ = runner.RunDue(context.Background())
+	}()
+	<-done
+	assertPayouts(t, db, rider, want{end: period, cents: 900, state: "TRANSFERRING"})
+
+	// The transfer lease has lapsed, and Stripe no longer knows the key.
+	mustExec(t, db, `UPDATE payout SET lease_until = now() - interval '1 second' WHERE state = 'TRANSFERRING'`)
+	stripe.forgetKeys()
+	runAt(t, runner, toronto(2026, 8, 24, 10, 0))
+	assertPayouts(t, db, rider, want{end: period, cents: 900, state: "PAID"})
+	if n := stripe.madeFor(rider.ID); n != 1 {
+		t.Fatalf("Stripe made %d transfers for one payout, want 1", n)
+	}
+	var transfer string
+	queryRow(t, db, `SELECT stripe_transfer_id FROM payout WHERE state = 'PAID'`, &transfer)
+	if transfer != "tr_1" {
+		t.Fatalf("the payout recorded transfer %q, want Stripe's first and only transfer tr_1", transfer)
+	}
+	// The abandoned run was finished by the next tick.
+	assertOutcomes(t, db, lastRun(t, db, period), rider, OutcomePaid, OutcomeAlreadyPaid)
+	assertLedgerAtZero(t, db)
+}
+
+// TestPayoutRun_PaysOnlySettledOrdersPastTheirHold: an earning tied to an
+// order waits until the order is settled and its hold has passed (three days
+// after delivery for a restaurant, an hour for a rider); an order in progress
+// or under dispute waits; a refund is netted at once. An order whose hold
+// ends exactly at the cutoff is paid the next week, once.
+func TestPayoutRun_PaysOnlySettledOrdersPastTheirHold(t *testing.T) {
+	db := payoutTestDB(t)
+	seedPricing(t, db)
+	runner := newTestRunner(db, newStripeTransfers(), 30)
+	restaurant := addPartner(t, db, PayeeRestaurant, true)
+	rider := addPartner(t, db, PayeeRider, true)
+	cutoff := toronto(2026, 8, 17, 0, 0)
+	restaurantHoldEnds := cutoff.Add(-72 * time.Hour)
+
+	settled := addOrder(t, db, restaurant, "COMPLETED", restaurantHoldEnds.Add(-time.Microsecond))
+	atTheLine := addOrder(t, db, restaurant, "COMPLETED", restaurantHoldEnds)
+	inProgress := addOrder(t, db, restaurant, "PICKED_UP", time.Time{})
+	disputed := addOrder(t, db, restaurant, "DISPUTED", toronto(2026, 8, 11, 19, 0))
+	earnFor(t, db, restaurant, settled, 1000, toronto(2026, 8, 10, 18, 0))
+	earnFor(t, db, restaurant, atTheLine, 2000, toronto(2026, 8, 13, 18, 0))
+	earnFor(t, db, restaurant, inProgress, 4000, toronto(2026, 8, 16, 18, 0))
+	earnFor(t, db, restaurant, disputed, 3000, toronto(2026, 8, 11, 18, 0))
+	earnFor(t, db, restaurant, disputed, -500, toronto(2026, 8, 12, 9, 0)) // partial refund charged back
+
+	riderLate := addOrder(t, db, restaurant, "COMPLETED", cutoff.Add(-59*time.Minute))
+	riderOnTime := addOrder(t, db, restaurant, "COMPLETED", cutoff.Add(-61*time.Minute))
+	earnFor(t, db, rider, riderLate, 500, cutoff.Add(-2*time.Hour))
+	earnFor(t, db, rider, riderOnTime, 700, cutoff.Add(-2*time.Hour))
+
+	runAt(t, runner, toronto(2026, 8, 17, 10, 0))
+	assertPayouts(t, db, restaurant, want{end: cutoff, cents: 500, state: "PAID"}) // 1000 settled, less the 500 refund
+	assertPayouts(t, db, rider, want{end: cutoff, cents: 700, state: "PAID"})
+
+	// The order in progress is delivered; the dispute is resolved.
+	mustExec(t, db, `UPDATE "order" SET state = 'COMPLETED', delivered_at = $2, completed_at = $2,
+	                     deadline_at = NULL, deadline_action = NULL WHERE id = $1`, inProgress, toronto(2026, 8, 18, 12, 0))
+	mustExec(t, db, `UPDATE "order" SET state = 'RESOLVED', deadline_at = NULL, deadline_action = NULL WHERE id = $1`, disputed)
+	runAt(t, runner, toronto(2026, 8, 24, 10, 0))
+	next := toronto(2026, 8, 24, 0, 0)
+	assertPayouts(t, db, restaurant,
+		want{end: cutoff, cents: 500, state: "PAID"},
+		want{end: next, cents: 2000 + 4000 + 3000, state: "PAID"})
+	assertPayouts(t, db, rider,
+		want{end: cutoff, cents: 700, state: "PAID"},
+		want{end: next, cents: 500, state: "PAID"})
+	var unpaid int
+	queryRow(t, db, `SELECT count(*) FROM ledger_entry WHERE payout_id IS NULL AND account IN ('RESTAURANT_PAYABLE', 'RIDER_PAYABLE')`, &unpaid)
+	if unpaid != 0 {
+		t.Fatalf("%d earning(s) never paid", unpaid)
+	}
+	assertLedgerAtZero(t, db)
+}
+
 // TestPayoutRun_NegativeBalance: a balance below zero is carried and netted
 // against later earnings; a restaurant below zero for more than the limit
 // takes no new orders until it recovers; a rider is never blocked.
@@ -293,7 +395,8 @@ func fixed(t time.Time) func() time.Time { return func() time.Time { return t } 
 
 func newTestRunner(db *pgxpool.Pool, s *stripeTransfers, blockDays int) *PayoutRunner {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewPayoutRunner(NewRepo(db), s.client(), PayoutPolicy{RestaurantNegativeBlockDays: blockDays}, "test", log)
+	policy := PayoutPolicy{RestaurantNegativeBlockDays: blockDays, RestaurantHold: 72 * time.Hour}
+	return NewPayoutRunner(NewRepo(db), s.client(), policy, "test", log)
 }
 
 // runAt ticks the runner as if the clock read at.
@@ -349,8 +452,15 @@ func addAdmin(t *testing.T, db *pgxpool.Pool) string {
 }
 
 // earn posts a balanced batch moving cents into (or, negative, out of) a
-// partner's payable account, dated at.
+// partner's payable account, dated at, tied to no order (an adjustment).
 func earn(t *testing.T, db *pgxpool.Pool, p PayeeRef, cents int64, at time.Time) {
+	t.Helper()
+	earnFor(t, db, p, "", cents, at)
+}
+
+// earnFor is earn for an order's earning or refund: both entries carry the
+// order, so the order's own money still sums to zero.
+func earnFor(t *testing.T, db *pgxpool.Pool, p PayeeRef, orderID string, cents int64, at time.Time) {
 	t.Helper()
 	ctx := context.Background()
 	err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
@@ -360,20 +470,78 @@ func earn(t *testing.T, db *pgxpool.Pool, p PayeeRef, cents int64, at time.Time)
 			kind, counter, component = "REFUND", "REFUNDS", "REFUND"
 		}
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO ledger_batch (kind, idempotency_key, posted_by, posted_at)
-			VALUES ($1, $2, 'test', $3) RETURNING id::text`, kind, uuid.NewString(), at).Scan(&batch); err != nil {
+			INSERT INTO ledger_batch (kind, order_id, idempotency_key, posted_by, posted_at)
+			VALUES ($1, $2, $3, 'test', $4) RETURNING id::text`, kind, nullUUID(orderID), uuid.NewString(), at).Scan(&batch); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `
-			INSERT INTO ledger_entry (batch_id, account, counterparty_type, counterparty_id, amount_cents, component, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $8),
-			       ($1, $7, NULL, NULL, -$5::bigint, $6, $8)`,
-			batch, string(payableAccount(p.Type)), p.Type, p.ID, cents, component, counter, at)
+			INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, counterparty_id, amount_cents, component, created_at)
+			VALUES ($1, $9, $2, $3, $4, $5, $6, $8),
+			       ($1, $9, $7, NULL, NULL, -$5::bigint, $6, $8)`,
+			batch, string(payableAccount(p.Type)), p.Type, p.ID, cents, component, counter, at, nullUUID(orderID))
 		return err
 	})
 	if err != nil {
 		t.Fatalf("earn %d for %s: %v", cents, p.ID, err)
 	}
+}
+
+// seedPricing loads the tax and pricing seed an order's quote refers to.
+func seedPricing(t *testing.T, db *pgxpool.Pool) {
+	t.Helper()
+	for _, f := range []string{"001_tax.sql", "003_pricing_and_settings.sql"} {
+		sql, err := os.ReadFile(filepath.Join("../../migrations/seed", f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(context.Background(), string(sql)); err != nil {
+			t.Fatalf("seed %s: %v", f, err)
+		}
+	}
+}
+
+// addOrder makes a pickup order at the restaurant in the given state; a
+// settled order was delivered at settledAt.
+func addOrder(t *testing.T, db *pgxpool.Pool, restaurant PayeeRef, state string, settledAt time.Time) string {
+	t.Helper()
+	ctx := context.Background()
+	var account, cart, quote, order string
+	if err := db.QueryRow(ctx, `
+		INSERT INTO account (email, status) VALUES ('customer-' || gen_random_uuid()::text || '@test.local', 'ACTIVE')
+		RETURNING id::text`).Scan(&account); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(ctx, `INSERT INTO cart (account_id, restaurant_id) VALUES ($1, $2) RETURNING id::text`,
+		account, restaurant.ID).Scan(&cart); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(ctx, `
+		INSERT INTO quote (account_id, cart_id, restaurant_id, fulfilment, pricing_config_id, tax_jurisdiction_code,
+		                   subtotal_cents, total_cents, input_hash, state_hash, expires_at)
+		SELECT $1, $2, $3, 'PICKUP', pc.id, 'CA-ON', 1000, 1000, digest($4::text, 'sha256'), digest($4::text, 'sha256'),
+		       now() + interval '10 minutes'
+		  FROM pricing_config pc ORDER BY pc.version LIMIT 1
+		RETURNING id::text`, account, cart, restaurant.ID, cart).Scan(&quote); err != nil {
+		t.Fatalf("seed quote: %v", err)
+	}
+	var delivered, completed, deadline, action any
+	switch state {
+	case "COMPLETED":
+		delivered, completed = settledAt, settledAt
+	case "DISPUTED":
+		delivered = settledAt
+	}
+	if state != "COMPLETED" {
+		deadline, action = time.Now().Add(time.Hour), "TEST"
+	}
+	if err := db.QueryRow(ctx, `
+		INSERT INTO "order" (code, quote_id, account_id, restaurant_id, fulfilment, state, subtotal_cents, total_cents,
+		                     delivered_at, completed_at, deadline_at, deadline_action)
+		VALUES ('HG-' || upper(substr(md5($9::text), 1, 8)), $1, $2, $3, 'PICKUP', $4, 1000, 1000, $5, $6, $7, $8)
+		RETURNING id::text`, quote, account, restaurant.ID, state, delivered, completed, deadline, action, quote).Scan(&order); err != nil {
+		t.Fatalf("seed %s order: %v", state, err)
+	}
+	return order
 }
 
 type want struct {
@@ -506,10 +674,12 @@ type stripeTransfers struct {
 	transfers []CreateTransferInput
 	forget    bool
 	timeoutTo map[string]bool // destination accounts whose next transfer times out after Stripe made it
+	crashTo   map[string]bool // destination accounts whose next transfer kills the caller after Stripe made it
 }
 
 func newStripeTransfers() *stripeTransfers {
-	return &stripeTransfers{byKey: map[string]*StripeTransfer{}, byGroup: map[string]*StripeTransfer{}, timeoutTo: map[string]bool{}}
+	return &stripeTransfers{byKey: map[string]*StripeTransfer{}, byGroup: map[string]*StripeTransfer{},
+		timeoutTo: map[string]bool{}, crashTo: map[string]bool{}}
 }
 
 func (s *stripeTransfers) client() *mockStripe {
@@ -529,7 +699,17 @@ func (s *stripeTransfers) create(in CreateTransferInput) (*StripeTransfer, error
 		delete(s.timeoutTo, in.DestinationAcct)
 		return nil, errors.New("stripe create transfer: context deadline exceeded")
 	}
+	if s.crashTo[in.DestinationAcct] {
+		delete(s.crashTo, in.DestinationAcct)
+		runtime.Goexit() // the replica dies before the transfer is recorded
+	}
 	return tr, nil
+}
+
+func (s *stripeTransfers) crashAfterCreate(ownerID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.crashTo["acct_"+ownerID] = true
 }
 
 func (s *stripeTransfers) find(group string) (*StripeTransfer, error) {

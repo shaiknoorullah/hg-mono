@@ -52,6 +52,8 @@ CREATE TABLE payout_run (
   payee_id         uuid,
   requested_by     uuid REFERENCES account(id),
   idempotency_key  text,
+  -- Why the admin asked, for the audit trail.
+  request_reason   text,
   -- The request body in canonical form, so a replayed key with a different
   -- body is refused rather than answered with the wrong run.
   request_fingerprint text,
@@ -75,7 +77,8 @@ CREATE TABLE payout_run (
     kind <> 'SCHEDULED' OR (payee_type IS NULL AND requested_by IS NULL AND idempotency_key IS NULL)),
   CONSTRAINT payout_run_admin_shape CHECK (
     kind <> 'ADMIN'
-    OR (requested_by IS NOT NULL AND idempotency_key IS NOT NULL AND request_fingerprint IS NOT NULL)),
+    OR (requested_by IS NOT NULL AND idempotency_key IS NOT NULL AND request_fingerprint IS NOT NULL
+        AND COALESCE(length(request_reason), 0) >= 10)),
   CONSTRAINT payout_run_finished CHECK ((state IN ('SUCCEEDED', 'FAILED')) = (finished_at IS NOT NULL))
 );
 SELECT attach_updated_at('payout_run');
@@ -109,6 +112,10 @@ REVOKE UPDATE, DELETE, TRUNCATE ON payout_run_line FROM hg_app;
 -- finds this one instead of paying again.
 CREATE UNIQUE INDEX payout_once_per_period ON payout (connect_account_id, period_end);
 
+-- A payout is never zero or negative: a balance at or below zero is carried,
+-- not paid. DRAFT is exempt, as it is from the amount-matches-entries check.
+ALTER TABLE payout ADD CONSTRAINT payout_amount_positive CHECK (state = 'DRAFT' OR amount_cents > 0);
+
 -- A restaurant whose balance has been below zero for longer than the
 -- configured limit takes no new orders until the balance recovers. Whether
 -- the platform blocks at all is still the owner's open question (#164); the
@@ -131,6 +138,7 @@ CREATE UNIQUE INDEX restaurant_collection_open ON restaurant_collection (restaur
 
 -- +goose Down
 DROP TABLE IF EXISTS restaurant_collection;
+ALTER TABLE payout DROP CONSTRAINT IF EXISTS payout_amount_positive;
 DROP INDEX IF EXISTS payout_once_per_period;
 DROP TABLE IF EXISTS payout_run_line;
 DROP TABLE IF EXISTS payout_run;

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +17,9 @@ import (
 // The admin payout-run operations: createPayoutRun, listPayoutRuns and
 // getPayoutRun in contracts/openapi.yaml (issue #251).
 
+// codeMFARequired is the contract's MFA_REQUIRED error code.
+const codeMFARequired httpx.ErrorCode = "MFA_REQUIRED"
+
 // PayoutPayeeDTO is the contract PayoutPayee schema.
 type PayoutPayeeDTO struct {
 	Type string `json:"type"`
@@ -23,8 +28,9 @@ type PayoutPayeeDTO struct {
 
 // PayoutRunInput is the contract PayoutRunInput schema. It carries no money.
 type PayoutRunInput struct {
-	Payee *PayoutPayeeDTO `json:"payee,omitempty"`
-	AsOf  *string         `json:"as_of,omitempty"`
+	Reason string          `json:"reason"`
+	Payee  *PayoutPayeeDTO `json:"payee,omitempty"`
+	AsOf   *string         `json:"as_of,omitempty"`
 }
 
 // PayoutRunDTO is the contract PayoutRun schema.
@@ -38,6 +44,7 @@ type PayoutRunDTO struct {
 	AsOf        string          `json:"as_of"`
 	DueAt       string          `json:"due_at"`
 	RequestedBy *string         `json:"requested_by"`
+	Reason      *string         `json:"reason"`
 	StartedAt   *string         `json:"started_at"`
 	FinishedAt  *string         `json:"finished_at"`
 	Attempts    int32           `json:"attempts"`
@@ -73,7 +80,7 @@ func payoutRunToDTO(r PayoutRunRow) PayoutRunDTO {
 	dto := PayoutRunDTO{
 		ID: r.ID, Kind: r.Kind, State: r.State,
 		PeriodStart: tsFor(r.PeriodStart), PeriodEnd: tsFor(r.PeriodEnd),
-		AsOf: tsFor(r.AsOf), DueAt: tsFor(r.DueAt), RequestedBy: r.RequestedBy,
+		AsOf: tsFor(r.AsOf), DueAt: tsFor(r.DueAt), RequestedBy: r.RequestedBy, Reason: r.Reason,
 		StartedAt: tsPtr(r.StartedAt), FinishedAt: tsPtr(r.FinishedAt), Attempts: r.Attempts,
 		Partners: r.Partners, Paid: r.Paid, Held: r.Held, Released: r.Released, Carried: r.Carried,
 		Failed: r.Failed, PaidCents: r.PaidCents, HeldCents: r.HeldCents, Error: r.Error,
@@ -90,7 +97,7 @@ func payoutRunToDTO(r PayoutRunRow) PayoutRunDTO {
 func asQueued(r PayoutRunRow) PayoutRunRow {
 	return PayoutRunRow{
 		ID: r.ID, Kind: r.Kind, State: RunQueued, PeriodStart: r.PeriodStart, PeriodEnd: r.PeriodEnd,
-		AsOf: r.AsOf, DueAt: r.DueAt, Payee: r.Payee, RequestedBy: r.RequestedBy,
+		AsOf: r.AsOf, DueAt: r.DueAt, Payee: r.Payee, RequestedBy: r.RequestedBy, Reason: r.Reason,
 		Fingerprint: r.Fingerprint, CreatedAt: r.CreatedAt,
 	}
 }
@@ -115,6 +122,9 @@ func (s *Service) RequestPayoutRun(ctx context.Context, req PayoutRunRequest) (P
 	case errors.Is(err, ErrAsOfInFuture):
 		return PayoutRunDTO{}, false, domainErr(string(httpx.CodeValidationFailed), http.StatusUnprocessableEntity,
 			"as_of may not be in the future: a run never pays a week before it has closed.")
+	case errors.Is(err, ErrOwnPayout):
+		return PayoutRunDTO{}, false, domainErr(string(httpx.CodeForbidden), http.StatusForbidden,
+			"You may not run a payout for yourself or for a restaurant you belong to.")
 	case errors.Is(err, ErrIdempotencyReuse):
 		return PayoutRunDTO{}, false, domainErr(string(httpx.CodeIdempotencyKeyReuse), http.StatusConflict,
 			"This Idempotency-Key was already used with a different body.")
@@ -179,13 +189,29 @@ func (s *Service) ListPayoutRuns(ctx context.Context, limit int, cursor string) 
 // CreatePayoutRun implements POST /v1/admin/payout-runs (createPayoutRun).
 func (h *Handler) CreatePayoutRun(w http.ResponseWriter, r *http.Request) {
 	p := httpx.PrincipalFrom(r.Context())
+	// Moving money needs a session that signed in with two-step sign-in
+	// (docs/spec/05-admin.md, "A-02 — Role-based access control model":
+	// money permissions need a verified second factor). Admin roles are only
+	// granted to such sessions; this states it where the money moves, before
+	// the body is read.
+	if !slices.Contains(p.AMR, "pwd+totp") {
+		httpx.Fail(w, r, http.StatusForbidden, codeMFARequired,
+			"Running a payout needs a session signed in with two-step sign-in.", nil)
+		return
+	}
 	var in PayoutRunInput
 	if err := decodeJSON(r, &in); err != nil {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"The request body is not valid.", []httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
 		return
 	}
-	req := PayoutRunRequest{Actor: adminActor{
+	if n := len([]rune(strings.TrimSpace(in.Reason))); n < 10 || n > 500 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"reason must be 10–500 characters: say why the run is needed now.",
+			[]httpx.FieldError{{Field: "reason", Code: "length", Message: "must be 10–500 characters"}})
+		return
+	}
+	req := PayoutRunRequest{Reason: strings.TrimSpace(in.Reason), Actor: adminActor{
 		AccountID: p.AccountID, SessionID: p.SessionID, RequestID: httpx.RequestIDFrom(r.Context()),
 	}}
 	for _, role := range p.Roles {

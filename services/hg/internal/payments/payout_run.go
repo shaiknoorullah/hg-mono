@@ -52,6 +52,22 @@ type PayoutPolicy struct {
 	// (decision log, "Settled — redesign decisions, round 2", a rider whose
 	// balance stays below zero).
 	RestaurantNegativeBlockDays int
+	// RestaurantHold is how long after its order settles a restaurant's
+	// earning waits before a run pays it. 0 pays it as soon as it settles.
+	RestaurantHold time.Duration
+}
+
+// riderHold is how long after delivery a rider's earning waits: an earning is
+// PENDING "until the assignment is 60 min old and dispute-free"
+// (docs/spec/04-rider.md, "D-26 — Earnings formula and per-delivery ledger").
+const riderHold = time.Hour
+
+// hold is the wait for one partner type's order earnings.
+func (p PayoutPolicy) hold(payeeType string) time.Duration {
+	if payeeType == PayeeRider {
+		return riderHold
+	}
+	return p.RestaurantHold
 }
 
 // PayoutRunner runs the weekly payout. Every replica runs one; the lease
@@ -250,7 +266,7 @@ func (r *PayoutRunner) payPayee(ctx context.Context, run PayoutRunRow, attempt i
 	// 3. This period's payout.
 	now := r.now()
 	pp, err := r.repo.createPeriodPayout(ctx, p, PayoutPeriod{Start: run.PeriodStart, End: run.PeriodEnd},
-		now.Add(10*time.Minute), nextScheduledRun(now), run.ID)
+		r.policy.hold(p.Type), now.Add(10*time.Minute), nextScheduledRun(now), run.ID)
 	if err != nil {
 		fail("build payout", err)
 		return
@@ -354,6 +370,11 @@ func (r *PayoutRunner) transfer(ctx context.Context, run PayoutRunRow, payoutID 
 		return // paid already, or another worker is transferring it right now
 	}
 
+	if claim.AmountCents <= 0 {
+		// Unreachable while payout_amount_positive holds; never send it.
+		line(OutcomeError, payoutID, claim.AmountCents, "refused to transfer an amount that is not positive")
+		return
+	}
 	group := "payout_" + payoutID
 	var tr *StripeTransfer
 	if claim.PriorAttempts > 0 {
@@ -404,10 +425,12 @@ func (r *PayoutRunner) transferFailed(ctx context.Context, run PayoutRunRow, pay
 // Admin requests.
 // ---------------------------------------------------------------------------
 
-// PayoutRunRequest is an admin's request to run the payout now.
+// PayoutRunRequest is an admin's request to run the payout now. It names who
+// and as of when, never an amount: every amount comes from the ledger.
 type PayoutRunRequest struct {
 	Payee          *PayeeRef
 	AsOf           *time.Time
+	Reason         string
 	Actor          adminActor
 	IdempotencyKey string
 }
@@ -433,10 +456,19 @@ func (r *PayoutRunner) Request(ctx context.Context, req PayoutRunRequest) (run P
 		if !ok {
 			return run, false, ErrNotFound
 		}
+		// Nobody runs their own payout: not a rider admin for themselves, not
+		// an admin who holds a role at the restaurant.
+		own, err := r.repo.isOwnPayee(ctx, req.Actor.AccountID, *req.Payee)
+		if err != nil {
+			return run, false, err
+		}
+		if own {
+			return run, false, ErrOwnPayout
+		}
 	}
 	fp := requestFingerprint(req)
 	run, inserted, err := r.repo.insertAdminRun(ctx, closedPeriodAt(asOf), asOf, now, req.Payee,
-		req.Actor.AccountID, req.IdempotencyKey, fp, req.Actor)
+		req.Reason, req.Actor.AccountID, req.IdempotencyKey, fp, req.Actor)
 	if err != nil {
 		return run, false, err
 	}
@@ -460,11 +492,12 @@ func requestFingerprint(req PayoutRunRequest) string {
 	if req.AsOf != nil {
 		fp += req.AsOf.UTC().Format(time.RFC3339Nano)
 	}
-	return fp
+	return fp + ";reason=" + req.Reason
 }
 
 // Errors an admin request can return.
 var (
 	ErrAsOfInFuture     = errors.New("as_of is in the future")
 	ErrIdempotencyReuse = errors.New("idempotency key reused with a different body")
+	ErrOwnPayout        = errors.New("an admin may not run their own payout")
 )

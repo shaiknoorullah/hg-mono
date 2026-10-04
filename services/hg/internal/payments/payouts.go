@@ -41,20 +41,40 @@ func payableAccount(ownerType string) LedgerAccount {
 	return AcctRestaurantPayable
 }
 
-// previewPayout sums a partner's unpaid payable entries created before the
-// cutoff, negative ones included, so a chargeback is netted against earnings.
-func (r *Repo) previewPayout(ctx context.Context, tx pgx.Tx, c ConnectRow, ownerType, ownerID string, cutoff time.Time) (PayoutPreview, error) {
+// previewPayout sums what is due to a partner for the period that ends at
+// cutoff: their unpaid payable entries created before the cutoff that are
+//
+//   - deductions (refunds and chargebacks charged to them), netted at once;
+//   - not tied to an order (an adjustment); or
+//   - tied to an order that is settled — completed, resolved after a dispute,
+//     or ended (cancelled, rejected, failed) — at least hold before the cutoff.
+//
+// An order still in progress, delivered but not yet settled, or under dispute
+// pays nothing yet; its earnings wait for a later run. Ledger entries exist
+// only for captured money (the capture posts them), so an authorisation that
+// was never captured, or was voided, pays nothing. Because every deduction is
+// counted and only earnings wait, the sum is never more than the partner's
+// unpaid balance. Both boundaries are exclusive: an entry created at the
+// cutoff, or an order whose hold ends at the cutoff, belongs to the next week.
+func (r *Repo) previewPayout(ctx context.Context, tx pgx.Tx, c ConnectRow, ownerType, ownerID string,
+	cutoff time.Time, hold time.Duration) (PayoutPreview, error) {
 	p := PayoutPreview{ConnectAccountID: c.ID, StripeAccountID: c.StripeAccountID, PayoutsEnabled: c.PayoutsEnabled}
 	rows, err := tx.Query(ctx, `
 		SELECT le.id, le.amount_cents
 		  FROM ledger_entry le
+		  LEFT JOIN "order" o ON o.id = le.order_id
 		 WHERE le.account = $1
 		   AND le.counterparty_type = $2
 		   AND le.counterparty_id = $3
 		   AND le.payout_id IS NULL
 		   AND le.created_at < $4
-		 FOR UPDATE`,
-		string(payableAccount(ownerType)), ownerType, ownerID, cutoff)
+		   AND (le.amount_cents < 0
+		        OR le.order_id IS NULL
+		        OR (o.state IN ('COMPLETED', 'RESOLVED', 'CANCELLED', 'REJECTED', 'FAILED')
+		            AND COALESCE(o.delivered_at, o.cancelled_at, o.completed_at, o.updated_at)
+		                + $5::bigint * interval '1 second' < $4))
+		 FOR UPDATE OF le`,
+		string(payableAccount(ownerType)), ownerType, ownerID, cutoff, int64(hold/time.Second))
 	if err != nil {
 		return p, err
 	}

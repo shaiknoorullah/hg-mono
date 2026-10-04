@@ -72,6 +72,7 @@ type PayoutRunRow struct {
 	DueAt       time.Time
 	Payee       *PayeeRef
 	RequestedBy *string
+	Reason      *string
 	Fingerprint *string
 	Attempts    int32
 	StartedAt   *time.Time
@@ -100,7 +101,7 @@ type PayoutRunLineRow struct {
 
 const payoutRunColumns = `
 	id::text, kind::text, state::text, period_start, period_end, as_of, due_at,
-	payee_type, payee_id::text, requested_by::text, request_fingerprint, attempts,
+	payee_type, payee_id::text, requested_by::text, request_reason, request_fingerprint, attempts,
 	started_at, finished_at, partners, paid, held, released, carried, failed,
 	paid_cents, held_cents, error, created_at`
 
@@ -108,7 +109,7 @@ func scanPayoutRun(row pgx.Row) (PayoutRunRow, error) {
 	var r PayoutRunRow
 	var payeeType, payeeID *string
 	err := row.Scan(&r.ID, &r.Kind, &r.State, &r.PeriodStart, &r.PeriodEnd, &r.AsOf, &r.DueAt,
-		&payeeType, &payeeID, &r.RequestedBy, &r.Fingerprint, &r.Attempts,
+		&payeeType, &payeeID, &r.RequestedBy, &r.Reason, &r.Fingerprint, &r.Attempts,
 		&r.StartedAt, &r.FinishedAt, &r.Partners, &r.Paid, &r.Held, &r.Released, &r.Carried, &r.Failed,
 		&r.PaidCents, &r.HeldCents, &r.Error, &r.CreatedAt)
 	if err != nil {
@@ -263,6 +264,20 @@ func (r *Repo) runPayees(ctx context.Context, cutoff time.Time) ([]PayeeRef, err
 	return out, nil
 }
 
+// isOwnPayee reports whether the account is the payee: the rider themselves,
+// or anyone holding a live role at the restaurant.
+func (r *Repo) isOwnPayee(ctx context.Context, accountID string, p PayeeRef) (bool, error) {
+	if p.Type == PayeeRider {
+		return accountID == p.ID, nil
+	}
+	var own bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (SELECT 1 FROM account_role
+		                WHERE account_id = $1 AND scope_id = $2 AND revoked_at IS NULL)`,
+		accountID, p.ID).Scan(&own)
+	return own, err
+}
+
 // payeeExists reports whether the id names a restaurant or a rider.
 func (r *Repo) payeeExists(ctx context.Context, p PayeeRef) (bool, error) {
 	q := `SELECT EXISTS (SELECT 1 FROM restaurant WHERE id = $1)`
@@ -347,7 +362,7 @@ type periodPayout struct {
 // 00018_payouts_earnings.sql); a partner with payouts turned off gets a HELD
 // payout with the reason and no transfer; a negative balance is carried and
 // netted against later earnings.
-func (r *Repo) createPeriodPayout(ctx context.Context, payee PayeeRef, period PayoutPeriod,
+func (r *Repo) createPeriodPayout(ctx context.Context, payee PayeeRef, period PayoutPeriod, hold time.Duration,
 	readyBy, heldUntil time.Time, runID string) (periodPayout, error) {
 	var out periodPayout
 	err := r.tx(ctx, func(tx pgx.Tx) error {
@@ -385,7 +400,7 @@ func (r *Repo) createPeriodPayout(ctx context.Context, payee PayeeRef, period Pa
 			return err
 		}
 
-		p, err := r.previewPayout(ctx, tx, c, payee.Type, payee.ID, period.End)
+		p, err := r.previewPayout(ctx, tx, c, payee.Type, payee.ID, period.End, hold)
 		if err != nil {
 			return err
 		}
@@ -700,7 +715,7 @@ func (r *Repo) closeCollection(ctx context.Context, restaurantID, runID, reason 
 // one transaction. A retried request (same admin, same Idempotency-Key)
 // returns the first run and inserted=false.
 func (r *Repo) insertAdminRun(ctx context.Context, period PayoutPeriod, asOf, due time.Time, payee *PayeeRef,
-	requestedBy, key, fingerprint string, actor adminActor) (PayoutRunRow, bool, error) {
+	reason, requestedBy, key, fingerprint string, actor adminActor) (PayoutRunRow, bool, error) {
 	var run PayoutRunRow
 	inserted := false
 	err := r.tx(ctx, func(tx pgx.Tx) error {
@@ -710,11 +725,11 @@ func (r *Repo) insertAdminRun(ctx context.Context, period PayoutPeriod, asOf, du
 		}
 		row, err := scanPayoutRun(tx.QueryRow(ctx, `
 			INSERT INTO payout_run (kind, period_start, period_end, as_of, due_at, payee_type, payee_id,
-			                        requested_by, idempotency_key, request_fingerprint)
-			VALUES ('ADMIN', $1, $2, $3, $4, $5, $6, $7, $8, $9)
+			                        requested_by, request_reason, idempotency_key, request_fingerprint)
+			VALUES ('ADMIN', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 			ON CONFLICT (requested_by, idempotency_key) WHERE kind = 'ADMIN' DO NOTHING
 			RETURNING `+payoutRunColumns,
-			period.Start, period.End, asOf, due, payeeType, payeeID, requestedBy, key, fingerprint))
+			period.Start, period.End, asOf, due, payeeType, payeeID, requestedBy, reason, key, fingerprint))
 		if errors.Is(err, pgx.ErrNoRows) {
 			run, err = scanPayoutRun(tx.QueryRow(ctx, `
 				SELECT `+payoutRunColumns+` FROM payout_run
@@ -729,7 +744,7 @@ func (r *Repo) insertAdminRun(ctx context.Context, period PayoutPeriod, asOf, du
 		if payee != nil {
 			after["payee_type"], after["payee_id"] = payee.Type, payee.ID
 		}
-		return writeAdminAudit(ctx, tx, actor, "payout_run.request", "payout_run", run.ID, after)
+		return writeAdminAudit(ctx, tx, actor, "payout_run.request", "payout_run", run.ID, reason, after)
 	})
 	return run, inserted, err
 }
@@ -845,7 +860,7 @@ func writeJobAudit(ctx context.Context, tx pgx.Tx, a jobAudit) error {
 	return err
 }
 
-func writeAdminAudit(ctx context.Context, tx pgx.Tx, actor adminActor, action, subjectType, subjectID string,
+func writeAdminAudit(ctx context.Context, tx pgx.Tx, actor adminActor, action, subjectType, subjectID, reason string,
 	after map[string]any) error {
 	afterJSON, err := jsonOrNil(after)
 	if err != nil {
@@ -860,7 +875,7 @@ func writeAdminAudit(ctx context.Context, tx pgx.Tx, actor adminActor, action, s
 		roles = string(b)
 	}
 	_, err = tx.Exec(ctx, auditInsert, "ACCOUNT", nullUUID(actor.AccountID), roles, action, subjectType,
-		nullUUID(subjectID), "SUCCESS", nil, nil, afterJSON, nil, nullStr(actor.RequestID), nullUUID(actor.SessionID))
+		nullUUID(subjectID), "SUCCESS", nil, nullStr(reason), afterJSON, nil, nullStr(actor.RequestID), nullUUID(actor.SessionID))
 	return err
 }
 

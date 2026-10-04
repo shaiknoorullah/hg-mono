@@ -6,9 +6,9 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 155
+- **Total contract operations:** 158
 - **Validated (covered):** 155
-- **Not yet validated (uncovered):** 0
+- **Not yet validated (uncovered):** 3
 
 ## Covered (155)
 
@@ -168,8 +168,11 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (0)
+## Uncovered (3)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
+- `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
+- `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId}
+- `updateMenuItemOnBehalf` — PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
