@@ -184,11 +184,11 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 	_ = geofenceOK // flagged-for-ops signalling is emitted via the outbox in a later slice.
 
 	// PICKED_UP moves the order in this transaction, after the assignment row:
-	// the lock order every pickup path uses. The step reaches here only past
-	// the pickup proof at the counter (the kitchen's pickup code once
-	// https://github.com/shaiknoorullah/hg-mono/pull/315 lands, which refuses a
-	// wrong code before this point), so an order still PREPARING is one the
-	// kitchen handed over before tapping ready, and it moves too (pickup.go).
+	// the lock order every pickup path uses. The orders module checks that this
+	// rider holds the order's delivery and that the kitchen marked it ready; an
+	// order still PREPARING is refused until the kitchen's pickup code is
+	// checked (https://github.com/shaiknoorullah/hg-mono/issues/413). A refusal
+	// rolls the step back (pickup.go).
 	if in.ToState == "PICKED_UP" && pickup != nil {
 		if err := pickup(ctx, tx, orderID); err != nil {
 			return nil, false, pickupRefusal(err, cur)

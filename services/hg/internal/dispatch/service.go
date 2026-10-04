@@ -20,9 +20,10 @@ import (
 type OrderLifecycle interface {
 	// ConfirmPickupTx moves the order to PICKED_UP (T12) inside the rider's
 	// PICKED_UP step's own transaction, so the two commit together or not at
-	// all (pickup.go). An order the kitchen has not marked ready yet is marked
-	// ready first, in the same transaction. A state the pickup cannot move the
-	// order out of is *OrderNotCollectableError, and the step is refused.
+	// all (pickup.go). A state the pickup cannot move the order out of,
+	// PREPARING included, is *OrderNotCollectableError, and a rider who does
+	// not hold the order's delivery is ErrRiderDoesNotHoldOrder; either
+	// refuses the step.
 	ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error
 	// MarkArrived advances the order from PICKED_UP to ARRIVED (row T14 of the
 	// transition table in that spec section) when the rider taps "I'm here" at

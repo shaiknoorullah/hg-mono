@@ -2,6 +2,9 @@ package dispatch
 
 import (
 	"context"
+	"errors"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,80 +13,230 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
-// atTheCounter seeds a ready order with one offer, puts the order in state,
-// and walks the rider's accepted assignment to ARRIVED_AT_PICKUP through the
-// service, which is wired to the real orders store as cmd/hg wires it.
+// atTheCounter seeds a ready order with one offer, walks the rider's accepted
+// assignment to ARRIVED_AT_PICKUP through the service, which is wired to the
+// real orders store as cmd/hg wires it, and then puts the order in state.
 func atTheCounter(t *testing.T, pool *pgxpool.Pool, state, deadlineAction string) (svc *Service, orderID, riderID, assignmentID string) {
 	t.Helper()
-	svc = NewService(NewStore(pool), &realOrderLifecycle{store: orders.NewStore(pool)})
-	orderID, offers := seedFixture(t, pool, 1)
-	riderID = offers[0].riderAccountID
+	svc, orderID, riders, assignmentID := counterFixture(t, pool, orders.NewStore(pool), 1, state, deadlineAction)
+	return svc, orderID, riders[0], assignmentID
+}
+
+// counterFixture is atTheCounter with the orders store to wire and the number
+// of riders offered the order; the first accepts. An empty deadlineAction
+// leaves the order with no deadline, as a terminal state must.
+func counterFixture(t *testing.T, pool *pgxpool.Pool, st *orders.Store, riders int, state, deadlineAction string) (svc *Service, orderID string, riderIDs []string, assignmentID string) {
+	t.Helper()
+	svc = NewService(NewStore(pool), &realOrderLifecycle{store: st})
+	orderID, offers := seedFixture(t, pool, riders)
+	for _, o := range offers {
+		riderIDs = append(riderIDs, o.riderAccountID)
+	}
 	// order_transition rows reference the order; delete them before
 	// seedFixture's cleanup deletes the order (cleanups run last-in first-out).
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM order_transition WHERE order_id=$1`, orderID)
 	})
-	mustExec(t, pool, `
-UPDATE "order" SET state = $2, deadline_action = $3, deadline_at = now() + interval '10 minutes',
-                   ready_at = NULL
- WHERE id = $1`, orderID, state, deadlineAction)
 
 	var err error
-	assignmentID, err = svc.store.AcceptOffer(context.Background(), riderID, offers[0].offerID, time.Now().UTC())
+	assignmentID, err = svc.store.AcceptOffer(context.Background(), riderIDs[0], offers[0].offerID, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AcceptOffer: %v", err)
 	}
 	override := "test override"
 	for _, step := range []string{"EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP"} {
-		if _, err := svc.Transition(context.Background(), riderID, assignmentID, TransitionInput{
+		if _, err := svc.Transition(context.Background(), riderIDs[0], assignmentID, TransitionInput{
 			ToState: step, OccurredAt: time.Now().UTC(), OverrideReason: &override,
 		}); err != nil {
 			t.Fatalf("Transition to %s: %v", step, err)
 		}
 	}
-	return svc, orderID, riderID, assignmentID
+
+	if deadlineAction == "" {
+		// A terminal order. A cancelled or rejected one carries its reason.
+		mustExec(t, pool, `
+UPDATE "order" SET state = $2::order_state, deadline_action = NULL, deadline_at = NULL, ready_at = NULL,
+                   cancel_reason = CASE WHEN $2::order_state = 'CANCELLED' THEN 'CUSTOMER_CANCELLED'::order_cancellation_reason_code END,
+                   reject_reason = CASE WHEN $2::order_state = 'REJECTED' THEN 'ITEM_UNAVAILABLE'::restaurant_reject_reason_code END
+ WHERE id = $1`, orderID, state)
+	} else {
+		mustExec(t, pool, `
+UPDATE "order" SET state = $2, deadline_action = $3, deadline_at = now() + interval '10 minutes',
+                   ready_at = NULL
+ WHERE id = $1`, orderID, state, deadlineAction)
+	}
+	return svc, orderID, riderIDs, assignmentID
 }
 
-// TestEarlyPickupMovesTheOrderThroughReady: the kitchen handed the food over
-// before tapping ready, and the rider confirms pickup at the counter. The
-// order goes PREPARING → READY_FOR_PICKUP (as the system) → PICKED_UP (as the
-// rider) in the step's own transaction, so the assignment and the order both
-// end PICKED_UP, with one timeline row for each move
+// pickupLeftNothingMoved checks a refused pickup moved nothing: the assignment
+// is still at the counter with no PICKED_UP row, and the order is still in
+// orderState with no timeline row.
+func pickupLeftNothingMoved(t *testing.T, pool *pgxpool.Pool, orderID, assignmentID, orderState string) {
+	t.Helper()
+	var asnState, gotOrder string
+	var pickedRows, orderRows int
+	mustQueryRow(t, pool, `
+SELECT a.state::text, o.state::text,
+       (SELECT count(*) FROM assignment_transition t WHERE t.assignment_id = a.id AND t.to_state = 'PICKED_UP'),
+       (SELECT count(*) FROM order_transition t WHERE t.order_id = o.id)
+  FROM assignment a JOIN "order" o ON o.id = a.order_id WHERE a.id = $1`,
+		[]any{assignmentID}, &asnState, &gotOrder, &pickedRows, &orderRows)
+	if asnState != "ARRIVED_AT_PICKUP" || pickedRows != 0 || gotOrder != orderState || orderRows != 0 {
+		t.Errorf("after the refusal: assignment %s with %d PICKED_UP row(s), order %s with %d timeline row(s); want ARRIVED_AT_PICKUP with none, %s with none",
+			asnState, pickedRows, gotOrder, orderRows, orderState)
+	}
+}
+
+// TestEarlyPickupIsRefusedWhileTheKitchenIsPreparing: a rider at the counter
+// cannot declare an order picked up while the kitchen has not marked it
+// ready. The rider spec allows an early handover only when the rider types
+// the pickup code the kitchen reads out (docs/spec/04-rider.md, "D-20 —
+// Delivery status updates"), and nothing checks that code yet
+// (https://github.com/shaiknoorullah/hg-mono/pull/315). Marking the order
+// ready on the rider's word would let a rider do the restaurant's step. So
+// the pickup is refused with 409 INVALID_TRANSITION, with or without an
+// override reason, and neither the assignment nor the order moves
 // (https://github.com/shaiknoorullah/hg-mono/issues/317).
-func TestEarlyPickupMovesTheOrderThroughReady(t *testing.T) {
+func TestEarlyPickupIsRefusedWhileTheKitchenIsPreparing(t *testing.T) {
 	pool := openPool(t)
 	svc, orderID, riderID, assignmentID := atTheCounter(t, pool, "PREPARING", "PREP_OVERDUE")
 
-	asn, err := svc.Transition(context.Background(), riderID, assignmentID, TransitionInput{
-		ToState: "PICKED_UP", OccurredAt: time.Now().UTC(),
+	reason := "the kitchen handed it over"
+	for _, override := range []*string{nil, &reason} {
+		_, err := svc.Transition(context.Background(), riderID, assignmentID, TransitionInput{
+			ToState: "PICKED_UP", OccurredAt: time.Now().UTC(), OverrideReason: override,
+		})
+		se, ok := asServiceError(err)
+		if !ok || se.Status != 409 || se.Code != CodeInvalidTransition {
+			t.Fatalf("PICKED_UP while the order is PREPARING (override %v): err = %v, want 409 %s",
+				override != nil, err, CodeInvalidTransition)
+		}
+		if !strings.Contains(se.Message, "kitchen") {
+			t.Errorf("refusal message %q does not tell the rider to wait for the kitchen", se.Message)
+		}
+	}
+	pickupLeftNothingMoved(t, pool, orderID, assignmentID, "PREPARING")
+}
+
+// TestPickupOnlyByTheRiderWhoHoldsTheOrder: only the rider who holds the
+// order's live dispatch can move the order to PICKED_UP. The orders module
+// checks it itself, in the statement that locks the order and its dispatch
+// row, so no caller can move an order for a rider who does not hold it.
+func TestPickupOnlyByTheRiderWhoHoldsTheOrder(t *testing.T) {
+	pool := openPool(t)
+
+	t.Run("another rider's assignment is not found", func(t *testing.T) {
+		svc, orderID, riders, assignmentID := counterFixture(t, pool, orders.NewStore(pool), 2, "READY_FOR_PICKUP", "PICKUP_OVERDUE")
+		_, err := svc.Transition(context.Background(), riders[1], assignmentID, TransitionInput{
+			ToState: "PICKED_UP", OccurredAt: time.Now().UTC(),
+		})
+		if se, ok := asServiceError(err); !ok || se.Status != 404 {
+			t.Fatalf("another rider's PICKED_UP: err = %v, want 404", err)
+		}
+		pickupLeftNothingMoved(t, pool, orderID, assignmentID, "READY_FOR_PICKUP")
 	})
-	if err != nil {
-		t.Fatalf("PICKED_UP while the order is PREPARING: %v", err)
-	}
-	if asn.State != "PICKED_UP" {
-		t.Errorf("assignment = %s, want PICKED_UP", asn.State)
-	}
 
-	var orderState, action string
-	var readySet, pickedSet bool
-	mustQueryRow(t, pool, `
-SELECT state::text, deadline_action, ready_at IS NOT NULL, picked_up_at IS NOT NULL
-  FROM "order" WHERE id = $1`, []any{orderID}, &orderState, &action, &readySet, &pickedSet)
-	if orderState != "PICKED_UP" || action != "DELIVERY_OVERDUE" || !readySet || !pickedSet {
-		t.Errorf("order = %s (deadline %s, ready_at set %v, picked_up_at set %v), want PICKED_UP with DELIVERY_OVERDUE and both times set",
-			orderState, action, readySet, pickedSet)
-	}
+	t.Run("a rider the order was taken from is refused", func(t *testing.T) {
+		svc, orderID, riders, assignmentID := counterFixture(t, pool, orders.NewStore(pool), 2, "READY_FOR_PICKUP", "PICKUP_OVERDUE")
+		// The order's delivery now belongs to the second rider; the first
+		// still has an assignment at the counter.
+		mustExec(t, pool, `UPDATE dispatch SET rider_account_id = $2 WHERE order_id = $1`, orderID, riders[1])
+		t.Cleanup(func() {
+			_, _ = pool.Exec(context.Background(), `UPDATE dispatch SET rider_account_id = $2 WHERE order_id = $1`, orderID, riders[0])
+		})
+		_, err := svc.Transition(context.Background(), riders[0], assignmentID, TransitionInput{
+			ToState: "PICKED_UP", OccurredAt: time.Now().UTC(),
+		})
+		if se, ok := asServiceError(err); !ok || se.Status != 404 {
+			t.Fatalf("PICKED_UP by a rider who no longer holds the order: err = %v, want 404", err)
+		}
+		pickupLeftNothingMoved(t, pool, orderID, assignmentID, "READY_FOR_PICKUP")
+	})
 
-	var ready, picked int
-	mustQueryRow(t, pool, `
-SELECT count(*) FILTER (WHERE from_state = 'PREPARING' AND to_state = 'READY_FOR_PICKUP'
-                          AND actor_kind = 'SYSTEM' AND actor_account_id IS NULL),
-       count(*) FILTER (WHERE from_state = 'READY_FOR_PICKUP' AND to_state = 'PICKED_UP'
-                          AND actor_kind = 'RIDER' AND actor_account_id = $2)
-  FROM order_transition WHERE order_id = $1`, []any{orderID, riderID}, &ready, &picked)
-	if ready != 1 || picked != 1 {
-		t.Errorf("timeline: %d system ready row(s) and %d rider pickup row(s), want 1 and 1", ready, picked)
+	t.Run("the orders module refuses a rider who does not hold the order", func(t *testing.T) {
+		for _, c := range []struct{ state, action string }{
+			{"READY_FOR_PICKUP", "PICKUP_OVERDUE"}, {"PICKED_UP", "DELIVERY_OVERDUE"},
+		} {
+			state := c.state
+			_, orderID, riders, _ := counterFixture(t, pool, orders.NewStore(pool), 2, state, c.action)
+			lc := &realOrderLifecycle{store: orders.NewStore(pool)}
+			ctx := context.Background()
+			tx, err := pool.Begin(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = lc.ConfirmPickupTx(ctx, tx, orderID, riders[1])
+			_ = tx.Rollback(ctx)
+			if !errors.Is(err, ErrRiderDoesNotHoldOrder) {
+				t.Errorf("order %s, pickup for a rider who does not hold it: err = %v, want %v", state, err, ErrRiderDoesNotHoldOrder)
+			}
+		}
+	})
+}
+
+// TestPickupRefusesAnOrderThatCannotBeCollected: a cancelled, rejected,
+// failed, disputed, resolved, delivered or completed order, or one the
+// restaurant has not accepted, is never collected. The pickup is refused with
+// 409 INVALID_TRANSITION and nothing moves.
+func TestPickupRefusesAnOrderThatCannotBeCollected(t *testing.T) {
+	pool := openPool(t)
+	for _, c := range []struct{ state, action string }{
+		{"CANCELLED", ""}, {"REJECTED", ""}, {"FAILED", ""}, {"RESOLVED", ""}, {"COMPLETED", ""},
+		{"DISPUTED", "DISPUTE_SLA_BREACH"}, {"DELIVERED", "SETTLE"}, {"ARRIVED", "HANDOVER_OVERDUE"},
+		{"RESTAURANT_PENDING", "RESTAURANT_TIMEOUT"},
+	} {
+		t.Run(c.state, func(t *testing.T) {
+			svc, orderID, riders, assignmentID := counterFixture(t, pool, orders.NewStore(pool), 1, c.state, c.action)
+			_, err := svc.Transition(context.Background(), riders[0], assignmentID, TransitionInput{
+				ToState: "PICKED_UP", OccurredAt: time.Now().UTC(),
+			})
+			if se, ok := asServiceError(err); !ok || se.Status != 409 || se.Code != CodeInvalidTransition {
+				t.Fatalf("PICKED_UP of a %s order: err = %v, want 409 %s", c.state, err, CodeInvalidTransition)
+			}
+			pickupLeftNothingMoved(t, pool, orderID, assignmentID, c.state)
+		})
 	}
+}
+
+// TestPickupIsIdempotent: repeating the pickup moves the order once and says
+// so once. An order the seal scan already moved to PICKED_UP for the rider
+// who holds it lets the rider's own step catch up without moving it again.
+func TestPickupIsIdempotent(t *testing.T) {
+	pool := openPool(t)
+
+	t.Run("a repeated step", func(t *testing.T) {
+		emitter := &recordingEmitter{}
+		svc, orderID, riders, assignmentID := counterFixture(t, pool, orders.NewStore(pool, emitter), 1, "READY_FOR_PICKUP", "PICKUP_OVERDUE")
+		for i := 0; i < 2; i++ {
+			if _, err := svc.Transition(context.Background(), riders[0], assignmentID, TransitionInput{
+				ToState: "PICKED_UP", OccurredAt: time.Now().UTC(),
+			}); err != nil {
+				t.Fatalf("PICKED_UP #%d: %v", i+1, err)
+			}
+		}
+		var picked int
+		mustQueryRow(t, pool, `SELECT count(*) FROM order_transition WHERE order_id = $1 AND to_state = 'PICKED_UP'`,
+			[]any{orderID}, &picked)
+		if got := emitter.emitted(); picked != 1 || !slices.Equal(got, []string{"PICKED_UP"}) {
+			t.Errorf("after two pickups: %d PICKED_UP timeline row(s), events %v; want 1 and [PICKED_UP]", picked, got)
+		}
+	})
+
+	t.Run("after the seal scan moved the order", func(t *testing.T) {
+		emitter := &recordingEmitter{}
+		svc, orderID, riders, assignmentID := counterFixture(t, pool, orders.NewStore(pool, emitter), 1, "PICKED_UP", "DELIVERY_OVERDUE")
+		asn, err := svc.Transition(context.Background(), riders[0], assignmentID, TransitionInput{
+			ToState: "PICKED_UP", OccurredAt: time.Now().UTC(),
+		})
+		if err != nil || asn.State != "PICKED_UP" {
+			t.Fatalf("PICKED_UP of an order already picked up by its rider = %+v, %v; want the assignment to catch up", asn, err)
+		}
+		var rows int
+		mustQueryRow(t, pool, `SELECT count(*) FROM order_transition WHERE order_id = $1`, []any{orderID}, &rows)
+		if rows != 0 || len(emitter.emitted()) != 0 {
+			t.Errorf("the catch-up wrote %d timeline row(s) and events %v, want none", rows, emitter.emitted())
+		}
+	})
 }
 
 // TestPickupOfAnOrderWithSupportIsRefused: the restaurant reported a problem

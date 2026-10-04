@@ -27,12 +27,16 @@ import (
 // ConfirmPickupTx implements dispatch.OrderLifecycle: the order moves to
 // PICKED_UP in the rider's step's own transaction (orders.Store.PickUpTx). An
 // order in a state the pickup cannot move it out of comes back as
-// dispatch.OrderNotCollectableError, which refuses the step.
+// dispatch.OrderNotCollectableError, and a rider who does not hold the
+// order's delivery as dispatch.ErrRiderDoesNotHoldOrder; both refuse the step.
 func (a *orderLifecycleAdapter) ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error {
 	err := a.store.PickUpTx(ctx, tx, orderID, riderAccountID)
 	var illegal *orders.IllegalTransitionError
-	if errors.As(err, &illegal) {
+	switch {
+	case errors.As(err, &illegal):
 		return &dispatch.OrderNotCollectableError{OrderState: string(illegal.From)}
+	case errors.Is(err, orders.ErrRiderDoesNotHoldOrder):
+		return dispatch.ErrRiderDoesNotHoldOrder
 	}
 	return err
 }

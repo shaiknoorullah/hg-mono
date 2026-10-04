@@ -50,8 +50,11 @@ type realOrderLifecycle struct {
 func (a *realOrderLifecycle) ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error {
 	err := a.store.PickUpTx(ctx, tx, orderID, riderAccountID)
 	var illegal *orders.IllegalTransitionError
-	if errors.As(err, &illegal) {
+	switch {
+	case errors.As(err, &illegal):
 		return &OrderNotCollectableError{OrderState: string(illegal.From)}
+	case errors.Is(err, orders.ErrRiderDoesNotHoldOrder):
+		return ErrRiderDoesNotHoldOrder
 	}
 	return err
 }
