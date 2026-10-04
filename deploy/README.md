@@ -22,7 +22,7 @@ One Contabo Cloud VPS 6 (6 vCPU, 12 GB) in US-East, and at launch the only serve
 - **Docker socket.** Traefik reads container labels through [Tecnativa's docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy), which answers only reads, on a network nothing else joins.
 - **Files host.** `files.<domain>` reaches Silo only for an object in one of the five buckets, with GET, HEAD, PUT or OPTIONS, and never with a copy-source, streaming-upload or replication header. `/minio/`, bucket listings and everything else get 404. Signed upload and download links are signed for this host (`HG_MINIO_PRESIGN_BASE_URL`, set by the override).
 - **Client addresses.** `hg-net` has a fixed subnet, 172.30.0.0/24, and the override sets `HG_TRUSTED_PROXY_CIDRS` to it, so the API reads the client's address from Traefik's `X-Forwarded-For` and believes no one else's.
-- **Virus scanning.** ClamAV runs on this box until the standby takes it over: a 4 GiB limit, two scan threads, signature reloads one at a time, and files over 16 MiB reported as found, never as clean. It is on `hg-scan`, a network it shares with the API alone, and is neither published nor routed. Nothing calls it yet: the API's scanning worker is [#218](https://github.com/shaiknoorullah/hg-mono/issues/218).
+- **Virus scanning.** ClamAV runs on this box until the standby takes it over: a 4 GiB limit, two scan threads, signature reloads one at a time, and nothing passed unscanned: an upload over 16 MiB is refused with an `INSTREAM size limit exceeded` error, which the scanning worker must treat as not clean, and content that unpacks past 100 MiB is reported as found. The unpacking limits are 100 MiB rather than 16 because a clean scanned PDF can decompress past 16 MiB and would otherwise be reported as infected. It is on `hg-scan`, a network it shares with the API alone, and is neither published nor routed. Nothing calls it yet: the API's scanning worker is [#218](https://github.com/shaiknoorullah/hg-mono/issues/218).
 - **Images.** No `build:`. The API, migration and Postgres images come from GHCR by digest; the rest are pinned by digest in the files.
 - **Limits.** Every container has a memory limit and no swap on top of it; logs rotate at 20 MB × 5.
 - **Valkey** keeps nothing on disk and requires a password. Flushing it costs latency, never correctness ([platform spec, ground rules](../docs/spec/01-platform.md#0-ground-rules-that-bind-every-section)).
@@ -62,8 +62,22 @@ The dev environment's limits must fit its 976 MiB. One shape that does, for #235
 
 Dev is its own compose project with its own network, database, cache, buckets, volumes and secrets ([#235](https://github.com/shaiknoorullah/hg-mono/issues/235)). It touches this stack only through:
 
-- **`hg-edge`** (172.30.1.0/24), a network Traefik joins and production's services do not. Dev's public containers join it and carry `hg-dev-*` routers on dev hosts; Traefik finds them through the socket proxy without a change to this file. Dev's own `HG_TRUSTED_PROXY_CIDRS` is that subnet.
+- **`hg-edge`** (172.30.1.0/24), a network Traefik joins and production's services do not. Dev's public containers join it and serve dev hosts; Traefik finds them through the socket proxy without a change to this file, but only names keep the two apart (below). Dev's own `HG_TRUSTED_PROXY_CIDRS` is that subnet.
 - **ClamAV**, if dev scans with it: the scanner keeps no data. Dev reaches it on a network of its own, never on `hg-scan`, which would put dev's API beside production's.
+
+Traefik reads the labels of every container on the box and merges routers, services and middlewares **by name** across them. A dev stack built from the base [`docker-compose.yml`](docker-compose.yml) inherits its `hg-api` and `hg-internal` labels, and compose merges list-form labels key by key, so adding `hg-dev-*` labels in an override does not remove them. Router `hg-api` would then be defined twice with different rules, and Traefik drops it: production's API answers 404. Service `hg-api` has the same load-balancer settings in both, so Traefik merges the two and sends production requests to dev's API and dev's database. Dev's override must therefore:
+
+- use `labels: !override` on every service that carries labels in the base file (`api`), and on `minio` if dev routes it;
+- start every router, service and middleware name with `hg-dev-`;
+- carry `traefik.docker.network=hg-edge` on each container: Traefik's default network is `hg-net`, which dev's containers are not on.
+
+Before dev's `up`, this must print nothing:
+
+```sh
+docker compose -p hg-dev <files> config \
+  | grep -E 'traefik\.http\.(routers|services|middlewares)\.hg-' \
+  | grep -v '\.hg-dev-'
+```
 
 Set these in `.env` beside the ones in [`.env.example`](.env.example). The stack refuses to start without them:
 

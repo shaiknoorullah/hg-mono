@@ -42,9 +42,29 @@
 # The seam for the dev environment (#235), which this file does not build:
 # dev is its own compose project with its own network, database, cache,
 # buckets, volumes and secrets. It shares Traefik, which holds no data: dev
-# puts its public containers on hg-edge and labels them with hg-dev-* routers
-# on dev hosts. If dev also scans with this ClamAV, it reaches it on a network
-# of its own, never on hg-scan, which would put it beside production's API.
+# puts its public containers on hg-edge, on dev hosts. If dev also scans with
+# this ClamAV, it reaches it on a network of its own, never on hg-scan, which
+# would put it beside production's API.
+#
+# Traefik reads the labels of every container on the box and merges routers,
+# services and middlewares by name across them. A dev stack built from the
+# base docker-compose.yml inherits its hg-api and hg-internal names, and
+# compose merges list-form labels key by key, so adding hg-dev-* labels does
+# not remove them. Production's router hg-api would then be defined twice with
+# different rules, and Traefik drops it (production answers 404); service
+# hg-api would merge dev's API into production's load balancer. So dev's
+# override must:
+#   - use `labels: !override` on every service that carries labels in the base
+#     file (api), and on any it borrows from this file (minio, if dev routes
+#     it);
+#   - start every router, service and middleware name with hg-dev-;
+#   - carry traefik.docker.network=hg-edge on each container, since Traefik's
+#     default network is hg-net, which dev is not on.
+# Before dev's `up`, this must print nothing:
+#   docker compose -p hg-dev <files> config \
+#     | grep -E 'traefik\.http\.(routers|services|middlewares)\.hg-' \
+#     | grep -v '\.hg-dev-'
+#
 # Dev's memory comes out of the "Left for dev" row of the budget, and when the
 # box runs short, dev stops first (docs/ops/runbook.md).
 
@@ -375,12 +395,21 @@ services:
       # one copy fits the 4 GiB limit, and scans wait during each reload.
       CLAMD_CONF_ConcurrentDatabaseReload: "no"
       CLAMD_CONF_MaxThreads: "2"
-      # KYC files are up to 15 MiB (services/hg/internal/files/keys.go). A file
-      # past these limits is reported as found, never as clean: a scan that
-      # stopped early is not a clean scan.
-      CLAMD_CONF_MaxFileSize: 16M
-      CLAMD_CONF_MaxScanSize: 16M
+      # KYC files are up to 15 MiB (services/hg/internal/files/keys.go). An
+      # upload over 16 MiB is refused by clamd with an INSTREAM size-limit
+      # ERROR, which the worker (#218) must treat as not clean; extracted
+      # content over 100 MiB is reported as FOUND. A scan that stopped early
+      # is never a clean scan.
+      #
+      # MaxFileSize and MaxScanSize count what clamd extracts and
+      # decompresses, not the upload: a clean 15 MiB scanned PDF with
+      # compressed page images can unpack past 16 MiB, and at 16M it would be
+      # reported as FOUND (Heuristics.Limits.Exceeded) and rejected as
+      # infected. Extraction goes to temporary files, not memory, so 100M
+      # stays inside the 4 GiB limit.
       CLAMD_CONF_StreamMaxLength: 16M
+      CLAMD_CONF_MaxFileSize: 100M
+      CLAMD_CONF_MaxScanSize: 100M
       CLAMD_CONF_AlertExceedsMax: "yes"
       # The image logs to files inside the container. Rotate them so they
       # neither fill the disk nor stop at clamd's 1 MB default.
