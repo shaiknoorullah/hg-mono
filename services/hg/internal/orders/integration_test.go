@@ -104,23 +104,7 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 		t.Fatalf("seed address: %v", err)
 	}
 
-	t.Cleanup(func() {
-		// Order matters for FKs; delete the leaf rows first.
-		_, _ = pool.Exec(ctx, `DELETE FROM order_line_addon WHERE order_id IN (SELECT id FROM "order" WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM order_line WHERE order_id IN (SELECT id FROM "order" WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM order_transition WHERE order_id IN (SELECT id FROM "order" WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM deadline_audit WHERE subject_id IN (SELECT id FROM "order" WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM "order" WHERE account_id=$1`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM quote WHERE account_id=$1`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM cart_line_addon WHERE cart_line_id IN (SELECT cl.id FROM cart_line cl JOIN cart c ON c.id=cl.cart_id WHERE c.account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM cart_line WHERE cart_id IN (SELECT id FROM cart WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM cart WHERE account_id=$1`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM address WHERE account_id=$1`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM menu_item WHERE restaurant_id=$1`, b.restaurantID)
-		_, _ = pool.Exec(ctx, `DELETE FROM menu_category WHERE restaurant_id=$1`, b.restaurantID)
-		_, _ = pool.Exec(ctx, `DELETE FROM restaurant WHERE id=$1`, b.restaurantID)
-		_, _ = pool.Exec(ctx, `DELETE FROM account WHERE id=$1`, b.accountID)
-	})
+	testseed.CleanUpOrderFixtures(t, pool, b.accountID, b.restaurantID)
 	// Certified through the real chain (an admin-verified certificate): the
 	// order path refuses a restaurant the platform cannot vouch for.
 	// https://github.com/shaiknoorullah/hg-mono/issues/292

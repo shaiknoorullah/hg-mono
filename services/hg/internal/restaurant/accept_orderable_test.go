@@ -20,6 +20,8 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // assertAcceptRefused checks that accepting the order was refused with 409
@@ -114,7 +116,7 @@ func TestIntegration_AcceptOrder_RefusedWhenRestaurantCannotTakeOrders(t *testin
 		h := restaurant.NewHandler(restaurant.NewRepo(pool), nil, pay)
 		done := make(chan *httptest.ResponseRecorder, 1)
 		go func() { done <- acceptOnce(t, h, orderID, f.ownerAccountID, httpx.RoleRestaurantOwner) }()
-		if !waitBlockedBy(t, pool, conn.Conn().PgConn().PID(), time.Second) {
+		if !testseed.WaitBlockedBy(t, pool, conn.Conn().PgConn().PID(), time.Second) {
 			t.Errorf("the accept did not wait for the suspension's lock on the restaurant row")
 		}
 		if _, err := suspension.Exec(ctx, `UPDATE restaurant SET account_state = 'SUSPENDED' WHERE id = $1`, f.restaurantID); err != nil {
@@ -125,24 +127,4 @@ func TestIntegration_AcceptOrder_RefusedWhenRestaurantCannotTakeOrders(t *testin
 		}
 		assertAcceptRefused(t, pool, <-done, pay, orderID)
 	})
-}
-
-// waitBlockedBy waits until some backend is waiting for a lock that the
-// backend pid holds, and reports whether that happened within the timeout.
-func waitBlockedBy(t *testing.T, pool *pgxpool.Pool, pid uint32, timeout time.Duration) bool {
-	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		var n int
-		if err := pool.QueryRow(context.Background(), `
-			SELECT count(*) FROM pg_stat_activity WHERE $1::int = ANY(pg_blocking_pids(pid))`,
-			int(pid)).Scan(&n); err != nil {
-			t.Fatalf("read lock waits: %v", err)
-		}
-		if n > 0 {
-			return true
-		}
-		time.Sleep(2 * time.Millisecond)
-	}
-	return false
 }

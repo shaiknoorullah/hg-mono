@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // An order placed at the moment its restaurant is suspended must not slip
@@ -79,26 +81,6 @@ func (s *suspender) suspend(ctx context.Context, restaurantID string, afterLock 
 		return nil, fmt.Errorf("suspend: %w", err)
 	}
 	return cancelled, tx.Commit(ctx)
-}
-
-// waitBlockedBy waits until some backend is waiting for a lock that the
-// backend pid holds, and reports whether that happened within the timeout.
-func waitBlockedBy(t *testing.T, pool *pgxpool.Pool, pid uint32, timeout time.Duration) bool {
-	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		var n int
-		if err := pool.QueryRow(context.Background(), `
-			SELECT count(*) FROM pg_stat_activity WHERE $1::int = ANY(pg_blocking_pids(pid))`,
-			int(pid)).Scan(&n); err != nil {
-			t.Fatalf("read lock waits: %v", err)
-		}
-		if n > 0 {
-			return true
-		}
-		time.Sleep(2 * time.Millisecond)
-	}
-	return false
 }
 
 // waitBlocked waits until the backend pid is waiting for a lock, and reports
@@ -225,7 +207,7 @@ func TestIntegrationSuspensionRacingAnOrder(t *testing.T) {
 		orderDone := make(chan orderResult, 1)
 		cancelled, err := sp.suspend(ctx, pc.restaurantID, func() {
 			go func() { orderDone <- placeOrder(ctx, st, pc) }()
-			if !waitBlockedBy(t, pool, sp.pid, wait) {
+			if !testseed.WaitBlockedBy(t, pool, sp.pid, wait) {
 				t.Errorf("placing the order did not wait for the suspension's lock on the restaurant row")
 			}
 		})
@@ -259,7 +241,7 @@ func TestIntegrationSuspensionRacingAnOrder(t *testing.T) {
 		}
 		orderDone := make(chan orderResult, 1)
 		go func() { orderDone <- placeOrder(ctx, st, pc) }()
-		if !waitBlockedBy(t, pool, blocker.pid, wait) {
+		if !testseed.WaitBlockedBy(t, pool, blocker.pid, wait) {
 			t.Fatalf("placing the order never reached the write of the order row")
 		}
 
@@ -361,7 +343,7 @@ func TestIntegrationOrderAndMenuApprovalDoNotDeadlock(t *testing.T) {
 
 	orderDone := make(chan orderResult, 1)
 	go func() { orderDone <- placeOrder(ctx, st, pc) }()
-	if !waitBlockedBy(t, pool, approval.pid, 5*time.Second) {
+	if !testseed.WaitBlockedBy(t, pool, approval.pid, 5*time.Second) {
 		t.Fatalf("placing the order never reached the menu item")
 	}
 	// The approval goes on to lock the restaurant. The order must not be
