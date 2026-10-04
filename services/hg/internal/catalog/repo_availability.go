@@ -104,8 +104,8 @@ type storedObjectRef struct {
 func (rp *Repo) getCertificateObject(ctx context.Context, restaurantID string) (storedObjectRef, error) {
 	const q = `
 		SELECT so.bucket, so.object_key
-		  FROM restaurant r
-		  JOIN halal_certificate c ON c.id = r.halal_certificate_id
+		  FROM restaurant r` + halalNowJoin + `
+		  JOIN halal_certificate c ON c.id = hn.certificate_id
 		  JOIN kyc_document d ON d.id = c.document_id
 		  JOIN stored_object so ON so.id = d.stored_object_id
 		 WHERE r.id = $1::uuid AND ` + visiblePredicate

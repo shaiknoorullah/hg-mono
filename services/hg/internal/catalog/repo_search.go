@@ -108,8 +108,8 @@ func (rp *Repo) searchDishes(ctx context.Context, q string, lat, lng *float64, c
 		` + cardColumns + geoExpr + distanceExpr + `
 		  FROM menu_item mi
 		  JOIN menu_item_version mv ON mv.id = mi.live_version_id
-		  JOIN restaurant r ON r.id = mi.restaurant_id
-		  LEFT JOIN halal_certificate c ON c.id = r.halal_certificate_id
+		  JOIN restaurant r ON r.id = mi.restaurant_id` + halalNowJoin + `
+		  LEFT JOIN halal_certificate c ON c.id = hn.certificate_id
 		  LEFT JOIN halal_issuing_body b ON b.id = c.issuing_body_id
 		  LEFT JOIN stored_object so_logo ON so_logo.id = r.logo_object_id AND so_logo.state = 'READY'
 		  LEFT JOIN stored_object so_cover ON so_cover.id = r.cover_object_id AND so_cover.state = 'READY'
