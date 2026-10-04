@@ -6,10 +6,15 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/riderview"
 )
 
 // CurrentOffer returns the rider's single outstanding PENDING offer, or nil.
-// The projection is pre-accept: street-level dropoff, no phone alias.
+// The projection is pre-accept: the drop-off's area name and a point rounded to
+// about a kilometre (riderview.ApproximateArea), never the delivery address's
+// own coordinates, street or unit, and no phone alias. Every rider in a wave
+// can read it, and most never accept.
 func (s *Store) CurrentOffer(ctx context.Context, riderAccountID string, now time.Time) (*DispatchOffer, error) {
 	const q = `
 SELECT o.id, o.order_id, o.state::text, o.wave, o.expires_at,
@@ -34,12 +39,13 @@ LIMIT 1`
 	var distanceM, estDuration *int32
 	var earningsCents, tipCents int64
 	var dropoffArea string
+	var dropLat, dropLng float64
 	err := s.db.QueryRow(ctx, q, riderAccountID, now).Scan(
 		&d.OfferID, &d.OrderID, &d.State, &d.Wave, &expiresAt,
 		&distanceM, &estDuration, &earningsCents, &tipCents,
 		&d.Pickup.RestaurantName, &d.Pickup.AddressShort,
 		&d.Pickup.Latitude, &d.Pickup.Longitude,
-		&dropoffArea, &d.Dropoff.Latitude, &d.Dropoff.Longitude, &d.ItemsCount)
+		&dropoffArea, &dropLat, &dropLng, &d.ItemsCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -51,14 +57,19 @@ LIMIT 1`
 	d.DistanceM = distanceM
 	d.EstDuration = estDuration
 	d.Dropoff.Area = dropoffArea
+	d.Dropoff.Latitude, d.Dropoff.Longitude = riderview.ApproximateArea(dropLat, dropLng)
 	d.Earnings = buildEarnings(earningsCents, tipCents)
 	return &d, nil
 }
 
 // LoadAssignment builds the full post-accept Assignment projection for a rider's
-// assignment. Progressive disclosure (D-19): the full address, unit, buzzer and
-// phone aliases are present only while the assignment is non-terminal; after a
-// terminal state the dropoff address is redacted to street level.
+// assignment. Progressive disclosure (the rider spec's assignment view): the
+// full address, the exact drop-off point, unit, buzzer, special instructions
+// and phone aliases are present only while the assignment is non-terminal.
+// Once it is over, the rider's history keeps the street without its number
+// (riderview.StreetLevel) and the area's point (riderview.ApproximateArea),
+// never the customer's home (contracts/websocket.md section 5, "Per-role
+// projection rules").
 func (s *Store) LoadAssignment(ctx context.Context, riderAccountID, assignmentID string) (*Assignment, error) {
 	const q = `
 SELECT asn.id, asn.order_id, ord.code, asn.state::text,
@@ -72,8 +83,7 @@ SELECT asn.id, asn.order_id, ord.code, asn.state::text,
          || CASE WHEN r.city IS NOT NULL THEN ', ' || r.city ELSE '' END,
        ST_Y(r.location::geometry), ST_X(r.location::geometry),
        r.public_phone_e164, ord.state::text,
-       COALESCE(a.line1, '')
-         || CASE WHEN a.city IS NOT NULL THEN ', ' || a.city ELSE '' END,
+       COALESCE(a.line1, ''), a.city,
        a.unit, a.buzzer,
        ST_Y(a.location::geometry), ST_X(a.location::geometry),
        ord.delivery_instructions, ord.special_instructions,
@@ -85,7 +95,8 @@ LEFT JOIN address a ON a.id = ord.delivery_address_id
 WHERE asn.id = $1 AND asn.rider_account_id = $2`
 
 	var a Assignment
-	var handover, dropAddr *string
+	var handover, dropCity *string
+	var dropLine1 string
 	var restaurantAddr string
 	var trackingHealth, podMethod string
 	var billable, pickupWait *int32
@@ -106,7 +117,7 @@ WHERE asn.id = $1 AND asn.rider_account_id = $2`
 		&assignedAt, &arrivedPickup, &pickedUp, &arrivedDrop, &delivered, &terminated,
 		&a.Pickup.RestaurantName, &restaurantAddr, &a.Pickup.Latitude, &a.Pickup.Longitude,
 		&pickupPhone, &orderState,
-		&dropAddr, &unit, &buzzer, &dropLat, &dropLng,
+		&dropLine1, &dropCity, &unit, &buzzer, &dropLat, &dropLng,
 		&instructions, &special, &deliveryFeeCents, &tipCents)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errAssignmentNotFound
@@ -135,22 +146,19 @@ WHERE asn.id = $1 AND asn.rider_account_id = $2`
 		a.Pickup.PhoneAlias = pickupPhone
 	}
 
-	if dropLat != nil {
-		a.Dropoff.Latitude = *dropLat
-	}
-	if dropLng != nil {
-		a.Dropoff.Longitude = *dropLng
-	}
 	a.Dropoff.CustomerDisplayName = customerDisplayName(ctx, s, a.OrderID)
 	a.Dropoff.DeliveryInstructions = instructions
 	if terminal {
-		// Redact dropoff to street level; no unit, buzzer, phone or notes.
-		if dropAddr != nil {
-			a.Dropoff.Address = *dropAddr
+		// The assignment is over: street level and the area's point only; no
+		// civic number, exact point, unit, buzzer, phone or notes.
+		a.Dropoff.Address = addressLine(riderview.StreetLevel(dropLine1), dropCity)
+		if dropLat != nil && dropLng != nil {
+			a.Dropoff.Latitude, a.Dropoff.Longitude = riderview.ApproximateArea(*dropLat, *dropLng)
 		}
 	} else {
-		if dropAddr != nil {
-			a.Dropoff.Address = *dropAddr
+		a.Dropoff.Address = addressLine(dropLine1, dropCity)
+		if dropLat != nil && dropLng != nil {
+			a.Dropoff.Latitude, a.Dropoff.Longitude = *dropLat, *dropLng
 		}
 		a.Dropoff.Unit = unit
 		a.Dropoff.Buzzer = buzzer
@@ -209,6 +217,15 @@ WHERE order_id = $1 AND terminated_at IS NULL`, orderID).Scan(&id, &rider)
 		return "", "", nil
 	}
 	return id, rider, err
+}
+
+// addressLine joins an address line and its city the way the rider's views
+// print them: "88 Harbour St, Toronto".
+func addressLine(line string, city *string) string {
+	if city == nil {
+		return line
+	}
+	return line + ", " + *city
 }
 
 func customerDisplayName(ctx context.Context, s *Store, orderID string) string {
