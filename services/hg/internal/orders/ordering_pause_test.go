@@ -122,6 +122,21 @@ func errorCode(t *testing.T, accountID string, handle http.HandlerFunc, path, bo
 	return rec.Code, env.Error.Code
 }
 
+// The refusal's wire shape, with no database: 409 and the contract's code.
+func TestOrderingPause_RefusalIs409OrderingPaused(t *testing.T) {
+	rec := httptest.NewRecorder()
+	NewHandler(nil, nil, slog.Default()).fail(rec, httptest.NewRequest(http.MethodPost, "/v1/orders", nil), ErrOrderingPaused)
+	var env struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &env)
+	if rec.Code != http.StatusConflict || env.Error.Code != "ORDERING_PAUSED" {
+		t.Errorf("refusal = %d %s, want 409 ORDERING_PAUSED", rec.Code, env.Error.Code)
+	}
+}
+
 // While paused, a new quote and a new order are refused with 409
 // ORDERING_PAUSED and nothing is stored; the cart says it cannot be quoted.
 // Turning the switch off restores ordering.
