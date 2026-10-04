@@ -2,21 +2,21 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 358,
+  "count": 368,
   "counts_by_domain": {
     "admin": 17,
     "cart": 12,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 36,
+    "errors": 39,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
-    "orders": 44,
+    "orders": 50,
     "payments": 12,
     "platform": 25,
-    "realtime": 8,
+    "realtime": 9,
     "refunds": 14,
     "rider": 22
   },
@@ -2180,6 +2180,48 @@
       "file": "errors/error_otp_incorrect.json"
     },
     {
+      "scenario": "error_pickup_code_incorrect",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `PICKUP_CODE_INCORRECT`. A wrong pickup code. The assignment stays where it was; `details.attempts_remaining` drives the counter on the rider's screen.",
+      "operations": [
+        "createAssignmentTransition"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_pickup_code_incorrect.json"
+    },
+    {
+      "scenario": "error_pickup_code_locked",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`423` · `PICKUP_CODE_LOCKED`. The fifth wrong pickup code locks it for this assignment. The rider is never trapped at the counter: `PICKED_UP` with an `override_reason` and no code is accepted and flagged for operations.",
+      "operations": [
+        "createAssignmentTransition"
+      ],
+      "status": 423,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_pickup_code_locked.json"
+    },
+    {
+      "scenario": "error_pickup_code_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `PICKUP_CODE_REQUIRED`. `PICKED_UP` sent without `pickup_code`. Nothing is recorded; the rider app asks for the code the kitchen reads out.",
+      "operations": [
+        "createAssignmentTransition"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_pickup_code_required.json"
+    },
+    {
       "scenario": "error_pod_method_mismatch",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2840,7 +2882,7 @@
       "scenario": "handoff_scan_delivery",
       "domain": "handoff",
       "schema": "HandoffScanResult",
-      "describes": "scanDelivery's 200: PICKED_UP → DELIVERED, gated on the same physical token scoped to the DELIVERY proof.",
+      "describes": "scanDelivery's 200 (later version): the same physical token scanned for the DELIVERY proof. `order_state` is the order's current state; delivery was gated only by proof of delivery.",
       "operations": [
         "scanDelivery"
       ],
@@ -2852,7 +2894,7 @@
       "scenario": "handoff_scan_pickup",
       "domain": "handoff",
       "schema": "HandoffScanResult",
-      "describes": "scanPickup's 200: the proof and its effect together — the order has already advanced to PICKED_UP.",
+      "describes": "scanPickup's 200 (later version): the scan recorded as custody evidence. `order_state` is the order's current state; the rider already confirmed pickup with the pickup code, and the scan changed nothing.",
       "operations": [
         "scanPickup"
       ],
@@ -2864,7 +2906,7 @@
       "scenario": "handoff_tamper_report",
       "domain": "handoff",
       "schema": "HandoffScanResult",
-      "describes": "reportTamper's 200: DELIVERED → DISPUTED. Never a money decision by itself — it hands the scan-and-photo trail to the dispute flow (A-33/A-35).",
+      "describes": "reportTamper's 200 (later version): DELIVERED → DISPUTED. Never a money decision by itself — it hands the scan-and-photo trail to the dispute flow.",
       "operations": [
         "reportTamper"
       ],
@@ -3548,6 +3590,39 @@
       "file": "orders/order_arrived.json"
     },
     {
+      "scenario": "order_arrived_delivery_code_locked",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "A met handover where five wrong codes have **locked** the delivery code: `delivery_code` is null, so the screen stops asking the customer to read it out. The rider falls back to a photo with a statement.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "delivery-code",
+        "edge",
+        "error-path"
+      ],
+      "file": "orders/order_arrived_delivery_code_locked.json"
+    },
+    {
+      "scenario": "order_arrived_meet_in_lobby",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen leads with the code. The same moment sends `order.rider_arrived` and a push.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "delivery-code",
+        "edge"
+      ],
+      "file": "orders/order_arrived_meet_in_lobby.json"
+    },
+    {
       "scenario": "order_authorized",
       "domain": "orders",
       "schema": "OrderCustomerView",
@@ -3626,6 +3701,21 @@
         "order-state-matrix"
       ],
       "file": "orders/order_delivered.json"
+    },
+    {
+      "scenario": "order_delivered_meet_at_door",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "The met handover is done: `delivery_code` is null again once the order is `DELIVERED`, so an old code is never left on screen.",
+      "operations": [
+        "getOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "delivery-code",
+        "edge"
+      ],
+      "file": "orders/order_delivered_meet_at_door.json"
     },
     {
       "scenario": "order_disputed",
@@ -3746,6 +3836,22 @@
         "order-state-matrix"
       ],
       "file": "orders/order_picked_up.json"
+    },
+    {
+      "scenario": "order_picked_up_meet_at_door",
+      "domain": "orders",
+      "schema": "OrderCustomerView",
+      "describes": "Out for delivery to a **met handover** (`MEET_AT_DOOR`): `delivery_code` is set. The customer reads these 4 digits to the rider at the door; the rider is never shown them.",
+      "operations": [
+        "getOrder",
+        "getActiveOrder"
+      ],
+      "status": 200,
+      "tags": [
+        "delivery-code",
+        "edge"
+      ],
+      "file": "orders/order_picked_up_meet_at_door.json"
     },
     {
       "scenario": "order_pickup_no_address",
@@ -3961,7 +4067,7 @@
       "scenario": "restaurant_order_picked_up",
       "domain": "orders",
       "schema": "OrderRestaurantView",
-      "describes": "Collected. The tablet's job is done.",
+      "describes": "Collected: the rider typed the right pickup code, so `pickup_code` is null again. The tablet's job is done.",
       "operations": [
         "getRestaurantOrder",
         "listRestaurantOrders",
@@ -3981,7 +4087,7 @@
       "scenario": "restaurant_order_preparing",
       "domain": "orders",
       "schema": "OrderRestaurantView",
-      "describes": "Accepted and overdue (`is_late: true`). The address is now present.",
+      "describes": "Accepted and overdue (`is_late: true`). The address is now present, and so is the 4-digit `pickup_code` the kitchen will read to the rider.",
       "operations": [
         "getRestaurantOrder",
         "listRestaurantOrders",
@@ -4032,7 +4138,7 @@
       "scenario": "restaurant_order_ready_for_pickup",
       "domain": "orders",
       "schema": "OrderRestaurantView",
-      "describes": "On the pass, rider assigned with an ETA to the restaurant.",
+      "describes": "On the pass, rider assigned with an ETA to the restaurant. The screen shows `pickup_code` large, for the kitchen to read out.",
       "operations": [
         "getRestaurantOrder",
         "listRestaurantOrders",
@@ -4052,7 +4158,7 @@
       "scenario": "restaurant_order_rejected",
       "domain": "orders",
       "schema": "OrderRestaurantView",
-      "describes": "Rejected by the kitchen for ITEM_UNAVAILABLE.",
+      "describes": "Rejected by the kitchen for ITEM_UNAVAILABLE. Never a pickup code.",
       "operations": [
         "getRestaurantOrder",
         "listRestaurantOrders",
@@ -4072,7 +4178,7 @@
       "scenario": "restaurant_order_restaurant_pending",
       "domain": "orders",
       "schema": "OrderRestaurantView",
-      "describes": "The incoming-order card with 80 s left on the 180 s window. **No delivery address yet** — §5 withholds it until acceptance.",
+      "describes": "The incoming-order card with 80 s left on the 180 s window. **No delivery address and no pickup code yet** — both are withheld until acceptance.",
       "operations": [
         "getRestaurantOrder",
         "listRestaurantOrders",
@@ -4102,6 +4208,21 @@
         "order-state-matrix"
       ],
       "file": "orders/tracking_arrived.json"
+    },
+    {
+      "scenario": "tracking_arrived_delivery_code",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "The rider is in the lobby for a met handover. The screen leads with `delivery_code`; the customer reads it out.",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "delivery-code"
+      ],
+      "file": "orders/tracking_arrived_delivery_code.json"
     },
     {
       "scenario": "tracking_degraded_gps",
@@ -4148,6 +4269,21 @@
         "order-state-matrix"
       ],
       "file": "orders/tracking_picked_up.json"
+    },
+    {
+      "scenario": "tracking_picked_up_delivery_code",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "Out for delivery to a met handover: the tracking screen shows the 4-digit `delivery_code` under the map, ready for the door.",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "delivery-code"
+      ],
+      "file": "orders/tracking_picked_up_delivery_code.json"
     },
     {
       "scenario": "tracking_preparing",
@@ -4782,7 +4918,7 @@
       "scenario": "realtime_order_happy_path",
       "domain": "realtime",
       "schema": "RealtimeEvent[]",
-      "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 24 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived → delivered → completed. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
+      "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 25 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted (with the kitchen's pickup code) → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived (with `order.rider_arrived`; left at the door, so no delivery code) → delivered → completed. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
       "operations": [],
       "status": 200,
       "tags": [
@@ -4790,6 +4926,20 @@
         "script"
       ],
       "file": "realtime/realtime_order_happy_path.json"
+    },
+    {
+      "scenario": "realtime_order_met_handover",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "A **met handover** (`MEET_IN_LOBBY`) from pickup to delivery. On arrival the customer receives `order.rider_arrived` carrying the 4-digit `delivery_code` (also sent as a push) and reads it to the rider, who records it as proof of delivery. The rider is never sent the code.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "delivery-code"
+      ],
+      "file": "realtime/realtime_order_met_handover.json"
     },
     {
       "scenario": "realtime_order_restaurant_rejects",
@@ -5514,7 +5664,10 @@
       "assignment_reassigned",
       "assignment_returned",
       "assignment_returning",
-      "assignment_undeliverable"
+      "assignment_undeliverable",
+      "error_pickup_code_incorrect",
+      "error_pickup_code_locked",
+      "error_pickup_code_required"
     ],
     "createCertificateViewUrl": [
       "presigned_download"
@@ -5627,6 +5780,8 @@
       "dispatch_searching",
       "dispatch_unassigned",
       "order_arrived",
+      "order_arrived_delivery_code_locked",
+      "order_arrived_meet_in_lobby",
       "order_authorized",
       "order_cancelled",
       "order_completed",
@@ -5636,6 +5791,7 @@
       "order_failed",
       "order_no_active",
       "order_picked_up",
+      "order_picked_up_meet_at_door",
       "order_preparing",
       "order_ready_for_pickup",
       "order_rejected",
@@ -5721,15 +5877,19 @@
       "dispatch_searching",
       "dispatch_unassigned",
       "order_arrived",
+      "order_arrived_delivery_code_locked",
+      "order_arrived_meet_in_lobby",
       "order_authorized",
       "order_cancelled",
       "order_completed",
       "order_created",
       "order_delivered",
+      "order_delivered_meet_at_door",
       "order_disputed",
       "order_failed",
       "order_large_tip",
       "order_picked_up",
+      "order_picked_up_meet_at_door",
       "order_pickup_no_address",
       "order_preparing",
       "order_ready_for_pickup",
@@ -5766,9 +5926,11 @@
     ],
     "getOrderTracking": [
       "tracking_arrived",
+      "tracking_arrived_delivery_code",
       "tracking_degraded_gps",
       "tracking_delivered",
       "tracking_picked_up",
+      "tracking_picked_up_delivery_code",
       "tracking_preparing",
       "tracking_ready_for_pickup"
     ],

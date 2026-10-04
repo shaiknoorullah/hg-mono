@@ -1599,13 +1599,16 @@ export interface paths {
         put?: never;
         /**
          * Rider scans the seal at delivery
-         * @description The one proof that gates `PICKED_UP`/`ARRIVED` → `DELIVERED` (T15/T16) on the handoff
-         *     side — the customer's own proof of delivery (OTP or photo, D-21) is a separate,
-         *     unrelated requirement and both must clear. Same signature, order-binding and
-         *     single-use-nonce checks as `scanPickup`, scoped to the `DELIVERY` proof so the same
-         *     physical QR can legally be scanned once at pickup and once at delivery without either
-         *     scan being treated as a replay of the other. `seal_intact: false` never blocks
-         *     delivery; it is recorded as tamper evidence for support to act on.
+         * @description **Later version: seals are not used at launch**
+         *     ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). This scan
+         *     **does not gate and does not perform** `DELIVERED`: delivery is gated only by the
+         *     customer's proof of delivery (`submitProofOfDelivery`, a code or a photo).
+         *
+         *     When seals return: same signature, order-binding and single-use-nonce checks as
+         *     `scanPickup`, scoped to the `DELIVERY` proof so the same physical QR can legally be
+         *     scanned once at pickup and once at delivery without either scan being treated as a
+         *     replay of the other. `seal_intact: false` is recorded as tamper evidence for support
+         *     to act on and blocks nothing.
          */
         post: operations["scanDelivery"];
         delete?: never;
@@ -1625,13 +1628,19 @@ export interface paths {
         put?: never;
         /**
          * Rider scans the seal at pickup
-         * @description The one proof that gates `READY_FOR_PICKUP` → `PICKED_UP` (T12). The rider scans the
-         *     QR on the package; the server verifies the EdDSA signature, that the token's
-         *     `order_id` matches this order, and that its `nonce` has never been consumed for a
-         *     `PICKUP` proof on this seal (single-use — `UNIQUE(seal_id, nonce)` makes a replay a
-         *     constraint violation, not a check that might be skipped). A failed `seal_intact` check
-         *     does **not** block the pickup — the physical handoff still happened — but it is
-         *     recorded on the seal and the event trail as tamper evidence.
+         * @description **Later version: seals are not used at launch**
+         *     ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). This scan
+         *     **does not gate and does not perform** `READY_FOR_PICKUP` → `PICKED_UP`: the rider
+         *     confirms pickup with the kitchen's `pickup_code` on `createAssignmentTransition`, as
+         *     the owner decided on 2026-10-01
+         *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+         *
+         *     When seals return, the rider scans the QR on the package as custody evidence; the
+         *     server verifies the EdDSA signature, that the token's `order_id` matches this order,
+         *     and that its `nonce` has never been consumed for a `PICKUP` proof on this seal
+         *     (single-use — `UNIQUE(seal_id, nonce)` makes a replay a constraint violation, not a
+         *     check that might be skipped). A failed `seal_intact` check is recorded on the seal
+         *     and the event trail as tamper evidence and blocks nothing.
          */
         post: operations["scanPickup"];
         delete?: never;
@@ -1651,12 +1660,17 @@ export interface paths {
         put?: never;
         /**
          * Bind a physical seal to this order at packing
-         * @description Restaurant staff scan or key in the pre-coded `seal_code` printed on the physical
+         * @description **Later version: seals are not used at launch**
+         *     ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). Nothing at
+         *     launch requires a bound seal; the kitchen proves the handover to the rider with the
+         *     order's `pickup_code` instead.
+         *
+         *     Restaurant staff scan or key in the pre-coded `seal_code` printed on the physical
          *     tamper-evident label as they finish packing. The seal must be `ISSUED` (platform-known
          *     stock, not yet bound) and is bound to exactly this order for its lifetime — a seal
          *     never moves between orders. Binding mints the EdDSA-signed `{order_id, seal_id, nonce}`
-         *     token (P-04 signing keys) that the client renders as the QR code affixed to the
-         *     package; that same code is what the rider scans at pickup and at delivery.
+         *     token that the client renders as the QR code affixed to the package; that same code
+         *     is what the rider scans at pickup and at delivery.
          */
         post: operations["bindPackageSeal"];
         delete?: never;
@@ -1676,11 +1690,17 @@ export interface paths {
         put?: never;
         /**
          * Customer reports the seal was tampered with
-         * @description Filed by the customer after delivery — the rider never files this; their only
-         *     tamper-adjacent signal is `seal_intact` on their own scan. This never auto-fails the
-         *     order or the payment: it appends a `TAMPER_REPORT` event carrying the photo trail and
-         *     opens the existing dispute flow (A-33/A-35, `DELIVERED`/`COMPLETED` → `DISPUTED`),
-         *     which decides the money outcome from the full scan-and-photo chain of custody.
+         * @description **Later version: seals are not used at launch**
+         *     ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)), so there is no
+         *     seal to report on; a customer reports a problem with a delivered order through a
+         *     refund request (`createRefund`).
+         *
+         *     When seals return, this is filed by the customer after delivery — the rider never
+         *     files this; their only tamper-adjacent signal is `seal_intact` on their own scan. It
+         *     never auto-fails the order or the payment: it appends a `TAMPER_REPORT` event carrying
+         *     the photo trail and opens the existing dispute flow (`DELIVERED`/`COMPLETED` →
+         *     `DISPUTED`), which decides the money outcome from the full scan-and-photo chain of
+         *     custody.
          */
         post: operations["reportTamper"];
         delete?: never;
@@ -2798,6 +2818,13 @@ export interface paths {
          *     unattended drops require a photo, uploaded to the private `hg-pod` bucket before
          *     `DELIVERED` commits. Five wrong OTP attempts lock the code and fall back to
          *     photo-with-attestation, and the event is flagged.
+         *
+         *     The customer reads the OTP from their own screen: it is `delivery_code` on
+         *     `OrderCustomerView` and `OrderTracking` while the order is out for delivery, and on
+         *     the `order.rider_arrived` realtime event, which is also sent as a push
+         *     (`contracts/websocket.md` §4.2;
+         *     [round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery),
+         *     [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
          */
         post: operations["submitProofOfDelivery"];
         delete?: never;
@@ -2834,6 +2861,26 @@ export interface paths {
          *
          *     `DELIVERED` cannot commit without the proof-of-delivery artefact recorded in the
          *     **same transaction** — there is no "mark delivered, upload later".
+         *
+         *     **`PICKED_UP` requires the pickup code.** At the counter the kitchen reads the
+         *     order's 4-digit `pickup_code` (shown on `OrderRestaurantView`) to the rider, who
+         *     types it in. A matching code proves the rider and the kitchen were both there, and
+         *     it replaces the seal scan, which no longer gates pickup
+         *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#178](https://github.com/shaiknoorullah/hg-mono/issues/178),
+         *     [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). The rider is never
+         *     sent the code: no assignment, offer or realtime event carries it.
+         *
+         *     - No `pickup_code` on `PICKED_UP`: `422 PICKUP_CODE_REQUIRED`.
+         *     - A wrong code: `422 PICKUP_CODE_INCORRECT` with `details.attempts_remaining`.
+         *       Nothing is recorded and the assignment stays where it was.
+         *     - The fifth wrong code locks the code for this assignment: that answer and every
+         *       later attempt with a code is `423 PICKUP_CODE_LOCKED`. The rider is never trapped
+         *       at the counter: once locked, `PICKED_UP` is accepted without a code when it
+         *       carries an `override_reason`, and the pickup is flagged for operations, the same
+         *       way a failed geofence check is.
+         *     - Repeating `PICKED_UP` after it has committed is the usual 200 no-op and needs no
+         *       code.
          */
         post: operations["createAssignmentTransition"];
         delete?: never;
@@ -3422,6 +3469,8 @@ export interface components {
          * @description D-19. The **post-accept** projection: full address, unit, buzzer and the proxied phone
          *     alias. Item prices and order totals are never present — the order is prepaid and the
          *     basket value is none of the rider's business, which removes a whole class of dispute.
+         *     Neither handover code is ever present: the rider hears the pickup code from the
+         *     kitchen and the delivery code from the customer, and types each one in.
          */
         Assignment: {
             /** Format: date-time */
@@ -3498,11 +3547,19 @@ export interface components {
             longitude?: components["schemas"]["Longitude"];
             occurred_at: components["schemas"]["Timestamp"];
             /**
-             * @description Mandatory when the geofence check fails. The transition is still allowed — a rider
-             *     is never trapped by GPS — but it is flagged for ops, and repeated overrides trigger
-             *     a review.
+             * @description Mandatory when the geofence check fails, and when `PICKED_UP` is confirmed after
+             *     the pickup code has locked (`PICKUP_CODE_LOCKED`). The transition is still allowed
+             *     — a rider is never trapped by GPS or by a code — but it is flagged for operations,
+             *     and repeated overrides trigger a review.
              */
             override_reason?: string;
+            /**
+             * @description Required when `to_state` is `PICKED_UP`; on any other `to_state` it is
+             *     `422 VALIDATION_FAILED`. The 4-digit code the kitchen reads out from its order
+             *     screen (`OrderRestaurantView.pickup_code`); the rider is never shown it. Five wrong
+             *     codes lock it — see `createAssignmentTransition`.
+             */
+            pickup_code?: string;
             to_state: components["schemas"]["AssignmentState"];
         };
         /**
@@ -3928,7 +3985,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "PICKUP_CODE_REQUIRED" | "PICKUP_CODE_INCORRECT" | "PICKUP_CODE_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -3944,6 +4001,7 @@ export interface components {
                  *     `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                  *     `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
                  *     `POD_REQUIRED` → `{required_pod_method}`;
+                 *     `PICKUP_CODE_INCORRECT` → `{attempts_remaining}`;
                  *     `RATE_LIMITED` → `{retry_after_seconds}`.
                  */
                 details?: {
@@ -4603,6 +4661,19 @@ export interface components {
             /** Format: date-time */
             delivered_at?: string | null;
             delivery_address?: components["schemas"]["Address"] | null;
+            /**
+             * @description The 4-digit code the customer reads to the rider at a met handover, so the rider can
+             *     record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+             *     `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+             *     (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+             *     for an unattended drop (proof is a photo), and once five wrong codes have locked it
+             *     (the rider then falls back to a photo with a statement). Only the customer's own
+             *     projections carry it: the support projection (`OrderAdminView`, which extends the
+             *     customer view) always leaves it out, and the rider is never sent it
+             *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+             * @example 4827
+             */
+            delivery_code?: string | null;
             delivery_instructions?: components["schemas"]["DeliveryInstruction"][];
             dispatch_state?: components["schemas"]["DispatchState"] | null;
             /** Format: date-time */
@@ -4789,6 +4860,19 @@ export interface components {
             is_late?: boolean;
             lines: components["schemas"]["OrderLine"][];
             money: components["schemas"]["RestaurantOrderMoney"];
+            /**
+             * @description The 4-digit code the kitchen reads to the rider at the counter. The rider types it
+             *     in to confirm pickup (`pickup_code` on `createAssignmentTransition`), which proves
+             *     the rider and the kitchen were both there and replaces the seal scan. Set from
+             *     acceptance while the order is `PREPARING` or `READY_FOR_PICKUP` and a rider will
+             *     collect it; null before acceptance, after pickup, for an order the customer
+             *     collects, and in every terminal state. Only the restaurant's projection carries it;
+             *     the rider is never sent it
+             *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+             *     [#178](https://github.com/shaiknoorullah/hg-mono/issues/178)).
+             * @example 3051
+             */
+            pickup_code?: string | null;
             placed_at: components["schemas"]["Timestamp"];
             /** Format: date-time */
             promised_ready_at?: string | null;
@@ -4846,6 +4930,18 @@ export interface components {
             total_cents: components["schemas"]["Cents"];
         };
         OrderTracking: {
+            /**
+             * @description The 4-digit code the customer reads to the rider at a met handover, so the rider can
+             *     record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+             *     `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+             *     (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+             *     for an unattended drop (proof is a photo), and once five wrong codes have locked it
+             *     (the rider then falls back to a photo with a statement). Only the customer's own
+             *     projections carry it, and the rider is never sent it
+             *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+             * @example 4827
+             */
+            delivery_code?: string | null;
             destination_location?: components["schemas"]["GeoPoint"] | null;
             dispatch_state?: components["schemas"]["DispatchState"] | null;
             /** Format: date-time */
@@ -9217,7 +9313,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Delivery verified; the order has advanced to `DELIVERED`. */
+            /** @description Delivery scan recorded; `order_state` is the order's state, which this scan did not change. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -9283,7 +9379,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Pickup verified; the order has advanced to `PICKED_UP`. */
+            /** @description Pickup scan recorded; `order_state` is the order's state, which this scan did not change. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -11216,8 +11312,23 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description `GEOFENCE_REQUIRED`, `POD_REQUIRED` with `details.required_pod_method`. */
+            /**
+             * @description `GEOFENCE_REQUIRED`; `POD_REQUIRED` with `details.required_pod_method`;
+             *     `PICKUP_CODE_REQUIRED`; `PICKUP_CODE_INCORRECT` with `details.attempts_remaining`.
+             */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /**
+             * @description `PICKUP_CODE_LOCKED`: five wrong pickup codes. Confirm pickup with an
+             *     `override_reason` and no code instead; the pickup is flagged for operations.
+             */
+            423: {
                 headers: {
                     [name: string]: unknown;
                 };

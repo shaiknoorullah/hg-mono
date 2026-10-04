@@ -117,12 +117,18 @@ tags:
       rider approval, menu creation on behalf, order lookup and refund issuance.
   - name: handoff
     description: |
-      Package-seal chain of custody (P-14 layered guarantee). An EdDSA-signed QR token
-      `{order_id, seal_id, nonce}` binds one tamper-evident seal to one order at the kitchen;
-      the rider's scan at pickup and at delivery are the only proofs that gate the order's
-      `PICKED_UP`/`DELIVERED` transitions — `orders` remains the sole writer of `order.state`.
-      A tamper report never auto-fails the order; it hands the scan-and-photo trail to the
-      dispute flow (A-33/A-35).
+      Package-seal chain of custody. **Later version: physical tamper seals are not used at
+      launch** and move to v1.1 ([seal decision, #47](https://github.com/shaiknoorullah/hg-mono/issues/47)).
+      No seal scan gates any order transition. At launch the rider proves pickup with the
+      4-digit **pickup code** the kitchen reads out (`pickup_code` on
+      `createAssignmentTransition`) and proves delivery with proof of delivery
+      (`submitProofOfDelivery`), as the owner decided on 2026-10-01
+      ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+
+      When seals return, an EdDSA-signed QR token `{order_id, seal_id, nonce}` binds one
+      tamper-evident seal to one order at the kitchen, and each scan is custody evidence
+      recorded next to the order, not a gate on it. A tamper report never auto-fails the
+      order; it hands the scan-and-photo trail to the dispute flow.
 security:
   - otpSession: []
   - passwordSession: []
@@ -4205,6 +4211,26 @@ paths:
 
         `DELIVERED` cannot commit without the proof-of-delivery artefact recorded in the
         **same transaction** — there is no "mark delivered, upload later".
+
+        **`PICKED_UP` requires the pickup code.** At the counter the kitchen reads the
+        order's 4-digit `pickup_code` (shown on `OrderRestaurantView`) to the rider, who
+        types it in. A matching code proves the rider and the kitchen were both there, and
+        it replaces the seal scan, which no longer gates pickup
+        ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+        [#178](https://github.com/shaiknoorullah/hg-mono/issues/178),
+        [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). The rider is never
+        sent the code: no assignment, offer or realtime event carries it.
+
+        - No `pickup_code` on `PICKED_UP`: `422 PICKUP_CODE_REQUIRED`.
+        - A wrong code: `422 PICKUP_CODE_INCORRECT` with `details.attempts_remaining`.
+          Nothing is recorded and the assignment stays where it was.
+        - The fifth wrong code locks the code for this assignment: that answer and every
+          later attempt with a code is `423 PICKUP_CODE_LOCKED`. The rider is never trapped
+          at the counter: once locked, `PICKED_UP` is accepted without a code when it
+          carries an `override_reason`, and the pickup is flagged for operations, the same
+          way a failed geofence check is.
+        - Repeating `PICKED_UP` after it has committed is the usual 200 no-op and needs no
+          code.
       x-roles: [RIDER]
       x-version: V0
       parameters:
@@ -4235,7 +4261,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`GEOFENCE_REQUIRED`, `POD_REQUIRED` with `details.required_pod_method`.'
+          description: |
+            `GEOFENCE_REQUIRED`; `POD_REQUIRED` with `details.required_pod_method`;
+            `PICKUP_CODE_REQUIRED`; `PICKUP_CODE_INCORRECT` with `details.attempts_remaining`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '423':
+          description: |
+            `PICKUP_CODE_LOCKED`: five wrong pickup codes. Confirm pickup with an
+            `override_reason` and no code instead; the pickup is flagged for operations.
           content:
             application/json:
               schema:
@@ -4254,6 +4290,13 @@ paths:
         unattended drops require a photo, uploaded to the private `hg-pod` bucket before
         `DELIVERED` commits. Five wrong OTP attempts lock the code and fall back to
         photo-with-attestation, and the event is flagged.
+
+        The customer reads the OTP from their own screen: it is `delivery_code` on
+        `OrderCustomerView` and `OrderTracking` while the order is out for delivery, and on
+        the `order.rider_arrived` realtime event, which is also sent as a push
+        (`contracts/websocket.md` §4.2;
+        [round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery),
+        [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
       x-roles: [RIDER]
       x-version: V0
       parameters:
@@ -5680,14 +5723,19 @@ paths:
       tags: [handoff]
       summary: Bind a physical seal to this order at packing
       description: |
+        **Later version: seals are not used at launch**
+        ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). Nothing at
+        launch requires a bound seal; the kitchen proves the handover to the rider with the
+        order's `pickup_code` instead.
+
         Restaurant staff scan or key in the pre-coded `seal_code` printed on the physical
         tamper-evident label as they finish packing. The seal must be `ISSUED` (platform-known
         stock, not yet bound) and is bound to exactly this order for its lifetime — a seal
         never moves between orders. Binding mints the EdDSA-signed `{order_id, seal_id, nonce}`
-        token (P-04 signing keys) that the client renders as the QR code affixed to the
-        package; that same code is what the rider scans at pickup and at delivery.
+        token that the client renders as the QR code affixed to the package; that same code
+        is what the rider scans at pickup and at delivery.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
-      x-version: V0
+      x-version: V1
       parameters:
         - $ref: '#/components/parameters/OrderIdPath'
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
@@ -5729,15 +5777,21 @@ paths:
       tags: [handoff]
       summary: Rider scans the seal at pickup
       description: |
-        The one proof that gates `READY_FOR_PICKUP` → `PICKED_UP` (T12). The rider scans the
-        QR on the package; the server verifies the EdDSA signature, that the token's
-        `order_id` matches this order, and that its `nonce` has never been consumed for a
-        `PICKUP` proof on this seal (single-use — `UNIQUE(seal_id, nonce)` makes a replay a
-        constraint violation, not a check that might be skipped). A failed `seal_intact` check
-        does **not** block the pickup — the physical handoff still happened — but it is
-        recorded on the seal and the event trail as tamper evidence.
+        **Later version: seals are not used at launch**
+        ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). This scan
+        **does not gate and does not perform** `READY_FOR_PICKUP` → `PICKED_UP`: the rider
+        confirms pickup with the kitchen's `pickup_code` on `createAssignmentTransition`, as
+        the owner decided on 2026-10-01
+        ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+
+        When seals return, the rider scans the QR on the package as custody evidence; the
+        server verifies the EdDSA signature, that the token's `order_id` matches this order,
+        and that its `nonce` has never been consumed for a `PICKUP` proof on this seal
+        (single-use — `UNIQUE(seal_id, nonce)` makes a replay a constraint violation, not a
+        check that might be skipped). A failed `seal_intact` check is recorded on the seal
+        and the event trail as tamper evidence and blocks nothing.
       x-roles: [RIDER]
-      x-version: V0
+      x-version: V1
       parameters:
         - $ref: '#/components/parameters/OrderIdPath'
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
@@ -5749,7 +5803,7 @@ paths:
               $ref: '#/components/schemas/PickupScanInput'
       responses:
         '200':
-          description: Pickup verified; the order has advanced to `PICKED_UP`.
+          description: Pickup scan recorded; `order_state` is the order's state, which this scan did not change.
           content:
             application/json:
               schema:
@@ -5785,15 +5839,18 @@ paths:
       tags: [handoff]
       summary: Rider scans the seal at delivery
       description: |
-        The one proof that gates `PICKED_UP`/`ARRIVED` → `DELIVERED` (T15/T16) on the handoff
-        side — the customer's own proof of delivery (OTP or photo, D-21) is a separate,
-        unrelated requirement and both must clear. Same signature, order-binding and
-        single-use-nonce checks as `scanPickup`, scoped to the `DELIVERY` proof so the same
-        physical QR can legally be scanned once at pickup and once at delivery without either
-        scan being treated as a replay of the other. `seal_intact: false` never blocks
-        delivery; it is recorded as tamper evidence for support to act on.
+        **Later version: seals are not used at launch**
+        ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). This scan
+        **does not gate and does not perform** `DELIVERED`: delivery is gated only by the
+        customer's proof of delivery (`submitProofOfDelivery`, a code or a photo).
+
+        When seals return: same signature, order-binding and single-use-nonce checks as
+        `scanPickup`, scoped to the `DELIVERY` proof so the same physical QR can legally be
+        scanned once at pickup and once at delivery without either scan being treated as a
+        replay of the other. `seal_intact: false` is recorded as tamper evidence for support
+        to act on and blocks nothing.
       x-roles: [RIDER]
-      x-version: V0
+      x-version: V1
       parameters:
         - $ref: '#/components/parameters/OrderIdPath'
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
@@ -5805,7 +5862,7 @@ paths:
               $ref: '#/components/schemas/DeliveryScanInput'
       responses:
         '200':
-          description: Delivery verified; the order has advanced to `DELIVERED`.
+          description: Delivery scan recorded; `order_state` is the order's state, which this scan did not change.
           content:
             application/json:
               schema:
@@ -5841,13 +5898,19 @@ paths:
       tags: [handoff]
       summary: Customer reports the seal was tampered with
       description: |
-        Filed by the customer after delivery — the rider never files this; their only
-        tamper-adjacent signal is `seal_intact` on their own scan. This never auto-fails the
-        order or the payment: it appends a `TAMPER_REPORT` event carrying the photo trail and
-        opens the existing dispute flow (A-33/A-35, `DELIVERED`/`COMPLETED` → `DISPUTED`),
-        which decides the money outcome from the full scan-and-photo chain of custody.
+        **Later version: seals are not used at launch**
+        ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)), so there is no
+        seal to report on; a customer reports a problem with a delivered order through a
+        refund request (`createRefund`).
+
+        When seals return, this is filed by the customer after delivery — the rider never
+        files this; their only tamper-adjacent signal is `seal_intact` on their own scan. It
+        never auto-fails the order or the payment: it appends a `TAMPER_REPORT` event carrying
+        the photo trail and opens the existing dispute flow (`DELIVERED`/`COMPLETED` →
+        `DISPUTED`), which decides the money outcome from the full scan-and-photo chain of
+        custody.
       x-roles: [CUSTOMER]
-      x-version: V0
+      x-version: V1
       parameters:
         - $ref: '#/components/parameters/OrderIdPath'
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
@@ -6197,6 +6260,7 @@ components:
                 `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                 `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
                 `POD_REQUIRED` → `{required_pod_method}`;
+                `PICKUP_CODE_INCORRECT` → `{attempts_remaining}`;
                 `RATE_LIMITED` → `{retry_after_seconds}`.
               oneOf:
                 - type: object
@@ -6346,6 +6410,9 @@ components:
         - POD_REQUIRED
         - POD_METHOD_MISMATCH
         - OTP_LOCKED
+        - PICKUP_CODE_REQUIRED
+        - PICKUP_CODE_INCORRECT
+        - PICKUP_CODE_LOCKED
         - CONTACT_WINDOW_CLOSED
         # --- handoff ----------------------------------------------------------
         - SEAL_NOT_FOUND
@@ -8788,6 +8855,20 @@ components:
         eta_at:
           type: [string, 'null']
           format: date-time
+        delivery_code:
+          type: [string, 'null']
+          pattern: '^[0-9]{4}$'
+          description: |
+            The 4-digit code the customer reads to the rider at a met handover, so the rider can
+            record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+            `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+            (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+            for an unattended drop (proof is a photo), and once five wrong codes have locked it
+            (the rider then falls back to a photo with a statement). Only the customer's own
+            projections carry it: the support projection (`OrderAdminView`, which extends the
+            customer view) always leaves it out, and the rider is never sent it
+            ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+          examples: ['4827']
         can_cancel:
           type: boolean
           description: 'Server-decided. True only while cancellation is free (before restaurant acceptance).'
@@ -8859,6 +8940,20 @@ components:
           oneOf:
             - $ref: '#/components/schemas/OrderRiderRef'
             - type: 'null'
+        pickup_code:
+          type: [string, 'null']
+          pattern: '^[0-9]{4}$'
+          description: |
+            The 4-digit code the kitchen reads to the rider at the counter. The rider types it
+            in to confirm pickup (`pickup_code` on `createAssignmentTransition`), which proves
+            the rider and the kitchen were both there and replaces the seal scan. Set from
+            acceptance while the order is `PREPARING` or `READY_FOR_PICKUP` and a rider will
+            collect it; null before acceptance, after pickup, for an order the customer
+            collects, and in every terminal state. Only the restaurant's projection carries it;
+            the rider is never sent it
+            ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+            [#178](https://github.com/shaiknoorullah/hg-mono/issues/178)).
+          examples: ['3051']
         elapsed_seconds:
           type: integer
           format: int32
@@ -8980,6 +9075,19 @@ components:
           oneOf:
             - $ref: '#/components/schemas/RiderPublicProfile'
             - type: 'null'
+        delivery_code:
+          type: [string, 'null']
+          pattern: '^[0-9]{4}$'
+          description: |
+            The 4-digit code the customer reads to the rider at a met handover, so the rider can
+            record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+            `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+            (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+            for an unattended drop (proof is a photo), and once five wrong codes have locked it
+            (the rider then falls back to a photo with a statement). Only the customer's own
+            projections carry it, and the rider is never sent it
+            ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+          examples: ['4827']
         timeline:
           type: array
           items:
@@ -10679,6 +10787,8 @@ components:
         D-19. The **post-accept** projection: full address, unit, buzzer and the proxied phone
         alias. Item prices and order totals are never present — the order is prepaid and the
         basket value is none of the rider's business, which removes a whole class of dispute.
+        Neither handover code is ever present: the rider hears the pickup code from the
+        kitchen and the delivery code from the customer, and types each one in.
       properties:
         id:
           type: string
@@ -10818,9 +10928,19 @@ components:
           minLength: 5
           maxLength: 200
           description: |
-            Mandatory when the geofence check fails. The transition is still allowed — a rider
-            is never trapped by GPS — but it is flagged for ops, and repeated overrides trigger
-            a review.
+            Mandatory when the geofence check fails, and when `PICKED_UP` is confirmed after
+            the pickup code has locked (`PICKUP_CODE_LOCKED`). The transition is still allowed
+            — a rider is never trapped by GPS or by a code — but it is flagged for operations,
+            and repeated overrides trigger a review.
+        pickup_code:
+          type: string
+          pattern: '^[0-9]{4}$'
+          writeOnly: true
+          description: |
+            Required when `to_state` is `PICKED_UP`; on any other `to_state` it is
+            `422 VALIDATION_FAILED`. The 4-digit code the kitchen reads out from its order
+            screen (`OrderRestaurantView.pickup_code`); the rider is never shown it. Five wrong
+            codes lock it — see `createAssignmentTransition`.
     ProofOfDeliveryInput:
       type: object
       additionalProperties: false

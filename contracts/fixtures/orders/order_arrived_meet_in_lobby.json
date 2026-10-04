@@ -1,23 +1,24 @@
 {
-  "scenario": "dispatch_at_restaurant",
-  "domain": "dispatch",
+  "scenario": "order_arrived_meet_in_lobby",
+  "domain": "orders",
   "schema": "OrderCustomerView",
-  "describes": "`dispatch_state = AT_RESTAURANT` on an order in `READY_FOR_PICKUP`. Rider is at the pickup, waiting on the pass.",
+  "describes": "The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen leads with the code. The same moment sends `order.rider_arrived` and a push.",
   "operations": [
     "getOrder",
     "getActiveOrder"
   ],
   "status": 200,
   "tags": [
-    "dispatch-state-matrix"
+    "delivery-code",
+    "edge"
   ],
   "payload": {
-    "id": "7f3b9a62-5d1a-4ea4-a4c7-4a069d6981bb",
-    "code": "HG-REUP-16X",
-    "state": "READY_FOR_PICKUP",
+    "id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+    "code": "HG-ARED-7X",
+    "state": "ARRIVED",
     "state_since": "2026-08-10T18:40:41.412Z",
-    "deadline_at": "2026-08-10T18:48:11.412Z",
-    "quote_id": "aca44780-1d6b-4931-ad9a-ddd1958dd13c",
+    "deadline_at": "2026-08-10T18:46:11.412Z",
+    "quote_id": "47da7287-1f70-49f2-a1ac-3404c5de2c5d",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
       "name": "Karachi Kitchen",
@@ -113,10 +114,9 @@
       "is_default": true
     },
     "delivery_instructions": [
-      "LEAVE_AT_DOOR",
-      "DO_NOT_RING_BELL"
+      "MEET_IN_LOBBY"
     ],
-    "special_instructions": "Please leave it on the mat, not the shoe rack.",
+    "special_instructions": "Lobby of the east tower; I will be at the front desk.",
     "rider": {
       "first_name": "Bilal",
       "last_initial": "S",
@@ -124,16 +124,16 @@
       "vehicle_type": "SCOOTER",
       "rating_avg": 4.9
     },
-    "dispatch_state": "AT_RESTAURANT",
+    "dispatch_state": "AT_CUSTOMER",
     "cancel_reason": null,
     "reject_reason": null,
     "eta_at": "2026-08-10T18:55:11.412Z",
-    "delivery_code": null,
+    "delivery_code": "4827",
     "can_cancel": false,
     "placed_at": "2026-08-10T18:10:11.412Z",
     "accepted_at": "2026-08-10T18:13:11.412Z",
     "ready_at": "2026-08-10T18:28:11.412Z",
-    "picked_up_at": null,
+    "picked_up_at": "2026-08-10T18:31:11.412Z",
     "delivered_at": null,
     "completed_at": null
   }

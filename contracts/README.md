@@ -173,7 +173,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **143 V0, 12 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **139 V0, 16 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -196,6 +196,20 @@ issue [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)):
 Still later-version: turning two-step sign-in off, listing and ending single sessions,
 dependency status, the in-app inbox, restaurant staff, ratings, the home feed and a restaurant
 adding delay to an order (`delayOrder`).
+
+The same day the owner replaced the package seal with two 4-digit handover codes
+([round-2 decisions, "Orders and delivery"](../docs/decisions/README.md#orders-and-delivery)).
+Seals are not used at launch and move to v1.1
+([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)), so the four seal operations
+(`bindPackageSeal`, `scanPickup`, `scanDelivery`, `reportTamper`) are now later-version, and no
+seal scan gates any order transition.
+
+| Code | Who sees it | Who types it in | Where in the contract |
+|---|---|---|---|
+| **Pickup code** | The kitchen, on `OrderRestaurantView.pickup_code` and `restaurant.order_accepted`, from acceptance until pickup | The rider, as `pickup_code` on the `PICKED_UP` transition of `createAssignmentTransition`. Wrong code: `PICKUP_CODE_INCORRECT` with the attempts left; five wrong codes: `PICKUP_CODE_LOCKED`, then pickup needs an `override_reason` and is flagged for operations ([#178](https://github.com/shaiknoorullah/hg-mono/issues/178), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) |
+| **Delivery code** | The customer, on `OrderCustomerView.delivery_code`, `OrderTracking.delivery_code` and the `order.rider_arrived` event (also a push), while a met handover is out for delivery | The rider, as `otp_code` on `submitProofOfDelivery`. Five wrong codes lock it and the rider falls back to a photo with a statement ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) |
+
+The rider is never sent either code; each one is heard from the person holding it.
 
 ---
 

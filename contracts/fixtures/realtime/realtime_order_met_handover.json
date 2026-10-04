@@ -1,0 +1,104 @@
+{
+  "scenario": "realtime_order_met_handover",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "A **met handover** (`MEET_IN_LOBBY`) from pickup to delivery. On arrival the customer receives `order.rider_arrived` carrying the 4-digit `delivery_code` (also sent as a push) and reads it to the rider, who records it as proof of delivery. The rider is never sent the code.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "delivery-code"
+  ],
+  "payload": [
+    {
+      "id": "4Y6HRW5CB2DTFHKPXJ0A4KPHEV",
+      "seq": 1,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "from": "READY_FOR_PICKUP",
+        "to": "PICKED_UP",
+        "at": "2026-08-10T18:42:11.412Z",
+        "reason": null,
+        "actor_kind": "RIDER",
+        "deadline_at": "2026-08-10T18:56:11.412Z",
+        "eta_at": "2026-08-10T18:54:11.412Z"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "G0SDH0MMM9S44JA4BFY49ERT73",
+      "seq": 2,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "rider.location",
+      "v": 1,
+      "ts": "2026-08-10T18:42:16.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "lat": 43.646,
+        "lng": -79.377,
+        "heading_deg": 226.0,
+        "speed_mps": 5.2,
+        "accuracy_m": 8.0,
+        "recorded_at": "2026-08-10T18:42:16.412Z"
+      },
+      "_delay_ms": 5000
+    },
+    {
+      "id": "ETP23BCP68Q3KH0TF5BP5F8XTC",
+      "seq": 3,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "from": "PICKED_UP",
+        "to": "ARRIVED",
+        "at": "2026-08-10T18:42:20.412Z",
+        "reason": null,
+        "actor_kind": "RIDER",
+        "deadline_at": "2026-08-10T18:47:11.412Z",
+        "eta_at": "2026-08-10T18:43:11.412Z"
+      },
+      "_delay_ms": 9000
+    },
+    {
+      "id": "H17AJW7DZZW13CWBTT56B5CBRN",
+      "seq": 4,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "order.rider_arrived",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "at": "2026-08-10T18:42:20.412Z",
+        "delivery_code": "4827"
+      },
+      "_delay_ms": 9000
+    },
+    {
+      "id": "E6W5JQ5J1745EK02ZPGC5DR02E",
+      "seq": 5,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:26.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "from": "ARRIVED",
+        "to": "DELIVERED",
+        "at": "2026-08-10T18:42:26.412Z",
+        "reason": null,
+        "actor_kind": "RIDER",
+        "deadline_at": "2026-08-10T19:12:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 15000
+    }
+  ]
+}

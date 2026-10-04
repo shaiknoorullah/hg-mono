@@ -2,7 +2,7 @@
   "scenario": "restaurant_order_restaurant_pending",
   "domain": "orders",
   "schema": "OrderRestaurantView",
-  "describes": "The incoming-order card with 80 s left on the 180 s window. **No delivery address yet** — §5 withholds it until acceptance.",
+  "describes": "The incoming-order card with 80 s left on the 180 s window. **No delivery address and no pickup code yet** — both are withheld until acceptance.",
   "operations": [
     "getRestaurantOrder",
     "listRestaurantOrders",
@@ -87,6 +87,7 @@
       "currency": "CAD"
     },
     "rider": null,
+    "pickup_code": null,
     "elapsed_seconds": 100,
     "is_late": false,
     "placed_at": "2026-08-10T18:10:11.412Z",

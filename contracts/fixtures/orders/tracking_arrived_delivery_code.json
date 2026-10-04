@@ -1,23 +1,22 @@
 {
-  "scenario": "tracking_degraded_gps",
+  "scenario": "tracking_arrived_delivery_code",
   "domain": "orders",
   "schema": "OrderTracking",
-  "describes": "The rider's phone has not reported for 90 seconds — `accuracy_m` is 180 m and the position is stale. The map must degrade honestly, not interpolate.",
+  "describes": "The rider is in the lobby for a met handover. The screen leads with `delivery_code`; the customer reads it out.",
   "operations": [
     "getOrderTracking"
   ],
   "status": 200,
   "tags": [
     "tracking",
-    "edge",
-    "degraded"
+    "delivery-code"
   ],
   "payload": {
-    "order_id": "abbb948c-d80a-4a97-a5e6-cf2528dfe677",
-    "state": "PICKED_UP",
-    "dispatch_state": "CARRYING",
-    "eta_at": "2026-08-10T18:58:11.412Z",
-    "eta_window_minutes": 15,
+    "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+    "state": "ARRIVED",
+    "dispatch_state": "AT_CUSTOMER",
+    "eta_at": "2026-08-10T18:43:11.412Z",
+    "eta_window_minutes": 10,
     "restaurant_location": {
       "latitude": 43.6817,
       "longitude": -79.3403
@@ -27,13 +26,13 @@
       "longitude": -79.381
     },
     "rider_location": {
-      "latitude": 43.67,
-      "longitude": -79.35,
-      "heading_deg": null,
-      "speed_mps": null,
-      "accuracy_m": 180.0,
-      "recorded_at": "2026-08-10T18:40:39.412Z",
-      "is_coarse": true
+      "latitude": 43.6413,
+      "longitude": -79.3808,
+      "heading_deg": 214.0,
+      "speed_mps": 0.0,
+      "accuracy_m": 12.0,
+      "recorded_at": "2026-08-10T18:42:03.412Z",
+      "is_coarse": false
     },
     "rider": {
       "first_name": "Bilal",
@@ -42,7 +41,7 @@
       "vehicle_type": "SCOOTER",
       "rating_avg": 4.9
     },
-    "delivery_code": null,
+    "delivery_code": "4827",
     "timeline": [
       {
         "from_state": null,
@@ -85,6 +84,13 @@
         "actor_kind": "RIDER",
         "reason": null,
         "at": "2026-08-10T18:31:11.412Z"
+      },
+      {
+        "from_state": "PICKED_UP",
+        "to_state": "ARRIVED",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:39:11.412Z"
       }
     ]
   }

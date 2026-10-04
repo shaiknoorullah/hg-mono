@@ -1,23 +1,23 @@
 {
-  "scenario": "dispatch_at_restaurant",
-  "domain": "dispatch",
+  "scenario": "order_delivered_meet_at_door",
+  "domain": "orders",
   "schema": "OrderCustomerView",
-  "describes": "`dispatch_state = AT_RESTAURANT` on an order in `READY_FOR_PICKUP`. Rider is at the pickup, waiting on the pass.",
+  "describes": "The met handover is done: `delivery_code` is null again once the order is `DELIVERED`, so an old code is never left on screen.",
   "operations": [
-    "getOrder",
-    "getActiveOrder"
+    "getOrder"
   ],
   "status": 200,
   "tags": [
-    "dispatch-state-matrix"
+    "delivery-code",
+    "edge"
   ],
   "payload": {
-    "id": "7f3b9a62-5d1a-4ea4-a4c7-4a069d6981bb",
-    "code": "HG-REUP-16X",
-    "state": "READY_FOR_PICKUP",
+    "id": "080c2d16-494e-4ac8-aa4d-91611b6a3886",
+    "code": "HG-DEED-9X",
+    "state": "DELIVERED",
     "state_since": "2026-08-10T18:40:41.412Z",
-    "deadline_at": "2026-08-10T18:48:11.412Z",
-    "quote_id": "aca44780-1d6b-4931-ad9a-ddd1958dd13c",
+    "deadline_at": "2026-08-10T19:12:11.412Z",
+    "quote_id": "a74df90a-c5d7-4269-a503-437fe2a17af1",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
       "name": "Karachi Kitchen",
@@ -113,10 +113,9 @@
       "is_default": true
     },
     "delivery_instructions": [
-      "LEAVE_AT_DOOR",
-      "DO_NOT_RING_BELL"
+      "MEET_AT_DOOR"
     ],
-    "special_instructions": "Please leave it on the mat, not the shoe rack.",
+    "special_instructions": "Buzz 1204 and I will come down.",
     "rider": {
       "first_name": "Bilal",
       "last_initial": "S",
@@ -124,7 +123,7 @@
       "vehicle_type": "SCOOTER",
       "rating_avg": 4.9
     },
-    "dispatch_state": "AT_RESTAURANT",
+    "dispatch_state": "COMPLETED",
     "cancel_reason": null,
     "reject_reason": null,
     "eta_at": "2026-08-10T18:55:11.412Z",
@@ -133,8 +132,8 @@
     "placed_at": "2026-08-10T18:10:11.412Z",
     "accepted_at": "2026-08-10T18:13:11.412Z",
     "ready_at": "2026-08-10T18:28:11.412Z",
-    "picked_up_at": null,
-    "delivered_at": null,
+    "picked_up_at": "2026-08-10T18:31:11.412Z",
+    "delivered_at": "2026-08-10T18:40:11.412Z",
     "completed_at": null
   }
 }

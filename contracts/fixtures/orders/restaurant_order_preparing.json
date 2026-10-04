@@ -2,7 +2,7 @@
   "scenario": "restaurant_order_preparing",
   "domain": "orders",
   "schema": "OrderRestaurantView",
-  "describes": "Accepted and overdue (`is_late: true`). The address is now present.",
+  "describes": "Accepted and overdue (`is_late: true`). The address is now present, and so is the 4-digit `pickup_code` the kitchen will read to the rider.",
   "operations": [
     "getRestaurantOrder",
     "listRestaurantOrders",
@@ -103,6 +103,7 @@
       "currency": "CAD"
     },
     "rider": null,
+    "pickup_code": "3051",
     "elapsed_seconds": 1920,
     "is_late": true,
     "placed_at": "2026-08-10T18:10:11.412Z",

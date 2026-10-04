@@ -804,6 +804,9 @@ const (
 	ErrorCodePAYMENTNOTREFUNDABLE           ErrorCode = "PAYMENT_NOT_REFUNDABLE"
 	ErrorCodePAYOUTACCOUNTINCOMPLETE        ErrorCode = "PAYOUT_ACCOUNT_INCOMPLETE"
 	ErrorCodePERMISSIONDENIED               ErrorCode = "PERMISSION_DENIED"
+	ErrorCodePICKUPCODEINCORRECT            ErrorCode = "PICKUP_CODE_INCORRECT"
+	ErrorCodePICKUPCODELOCKED               ErrorCode = "PICKUP_CODE_LOCKED"
+	ErrorCodePICKUPCODEREQUIRED             ErrorCode = "PICKUP_CODE_REQUIRED"
 	ErrorCodePLATEINUSE                     ErrorCode = "PLATE_IN_USE"
 	ErrorCodePODMETHODMISMATCH              ErrorCode = "POD_METHOD_MISMATCH"
 	ErrorCodePODREQUIRED                    ErrorCode = "POD_REQUIRED"
@@ -1062,6 +1065,12 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodePAYOUTACCOUNTINCOMPLETE:
 		return true
 	case ErrorCodePERMISSIONDENIED:
+		return true
+	case ErrorCodePICKUPCODEINCORRECT:
+		return true
+	case ErrorCodePICKUPCODELOCKED:
+		return true
+	case ErrorCodePICKUPCODEREQUIRED:
 		return true
 	case ErrorCodePLATEINUSE:
 		return true
@@ -3942,6 +3951,8 @@ type AllergenTag string
 // Assignment D-19. The **post-accept** projection: full address, unit, buzzer and the proxied phone
 // alias. Item prices and order totals are never present — the order is prepaid and the
 // basket value is none of the rider's business, which removes a whole class of dispute.
+// Neither handover code is ever present: the rider hears the pickup code from the
+// kitchen and the delivery code from the customer, and types each one in.
 type Assignment struct {
 	ArrivedDropoffAt *time.Time `json:"arrived_dropoff_at,omitempty"`
 	ArrivedPickupAt  *time.Time `json:"arrived_pickup_at,omitempty"`
@@ -4054,10 +4065,17 @@ type AssignmentTransitionInput struct {
 	// OccurredAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
 	OccurredAt Timestamp `json:"occurred_at"`
 
-	// OverrideReason Mandatory when the geofence check fails. The transition is still allowed — a rider
-	// is never trapped by GPS — but it is flagged for ops, and repeated overrides trigger
-	// a review.
+	// OverrideReason Mandatory when the geofence check fails, and when `PICKED_UP` is confirmed after
+	// the pickup code has locked (`PICKUP_CODE_LOCKED`). The transition is still allowed
+	// — a rider is never trapped by GPS or by a code — but it is flagged for operations,
+	// and repeated overrides trigger a review.
 	OverrideReason *string `json:"override_reason,omitempty"`
+
+	// PickupCode Required when `to_state` is `PICKED_UP`; on any other `to_state` it is
+	// `422 VALIDATION_FAILED`. The 4-digit code the kitchen reads out from its order
+	// screen (`OrderRestaurantView.pickup_code`); the rider is never shown it. Five wrong
+	// codes lock it — see `createAssignmentTransition`.
+	PickupCode *string `json:"pickup_code,omitempty"`
 
 	// ToState D-16 / D-20. The rider-facing view of the dispatch machine. `ARRIVED_AT_PICKUP` and
 	// `PICKED_UP` are deliberately distinct: conflating them destroys restaurant wait-time
@@ -4674,6 +4692,7 @@ type ErrorEnvelope struct {
 		// `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 		// `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
 		// `POD_REQUIRED` → `{required_pod_method}`;
+		// `PICKUP_CODE_INCORRECT` → `{attempts_remaining}`;
 		// `RATE_LIMITED` → `{retry_after_seconds}`.
 		Details *ErrorEnvelope_Error_Details `json:"details,omitempty"`
 
@@ -4702,6 +4721,7 @@ type ErrorEnvelopeErrorDetails1 = []FieldError
 // `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 // `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
 // `POD_REQUIRED` → `{required_pod_method}`;
+// `PICKUP_CODE_INCORRECT` → `{attempts_remaining}`;
 // `RATE_LIMITED` → `{retry_after_seconds}`.
 type ErrorEnvelope_Error_Details struct {
 	union json.RawMessage
@@ -5446,14 +5466,28 @@ type OrderAdminView struct {
 	AcceptedAt *time.Time `json:"accepted_at,omitempty"`
 
 	// CanCancel Server-decided. True only while cancellation is free (before restaurant acceptance).
-	CanCancel            *bool                        `json:"can_cancel,omitempty"`
-	CancelReason         *OrderCancellationReasonCode `json:"cancel_reason,omitempty"`
-	Code                 string                       `json:"code"`
-	CompletedAt          *time.Time                   `json:"completed_at,omitempty"`
-	DeadlineAt           *time.Time                   `json:"deadline_at,omitempty"`
-	DeliveredAt          *time.Time                   `json:"delivered_at,omitempty"`
-	DeliveryAddress      *Address                     `json:"delivery_address,omitempty"`
-	DeliveryInstructions *[]DeliveryInstruction       `json:"delivery_instructions,omitempty"`
+	CanCancel       *bool                        `json:"can_cancel,omitempty"`
+	CancelReason    *OrderCancellationReasonCode `json:"cancel_reason,omitempty"`
+	Code            string                       `json:"code"`
+	CompletedAt     *time.Time                   `json:"completed_at,omitempty"`
+	DeadlineAt      *time.Time                   `json:"deadline_at,omitempty"`
+	DeliveredAt     *time.Time                   `json:"delivered_at,omitempty"`
+	DeliveryAddress *Address                     `json:"delivery_address,omitempty"`
+
+	// DeliveryCode The 4-digit code the customer reads to the rider at a met handover, so the rider can
+	// record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+	// `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+	// (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+	// for an unattended drop (proof is a photo), and once five wrong codes have locked it
+	// (the rider then falls back to a photo with a statement). Only the customer's own
+	// projections carry it: the support projection (`OrderAdminView`, which extends the
+	// customer view) always leaves it out, and the rider is never sent it
+	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+	//
+	//
+	// Examples: 4827
+	DeliveryCode         *string                `json:"delivery_code,omitempty"`
+	DeliveryInstructions *[]DeliveryInstruction `json:"delivery_instructions,omitempty"`
 
 	// DestinationLocation The delivery address coordinates, for LiveMapBox.
 	DestinationLocation *GeoPoint `json:"destination_location,omitempty"`
@@ -5566,18 +5600,32 @@ type OrderCustomerView struct {
 	AcceptedAt *time.Time `json:"accepted_at,omitempty"`
 
 	// CanCancel Server-decided. True only while cancellation is free (before restaurant acceptance).
-	CanCancel            *bool                        `json:"can_cancel,omitempty"`
-	CancelReason         *OrderCancellationReasonCode `json:"cancel_reason,omitempty"`
-	Code                 string                       `json:"code"`
-	CompletedAt          *time.Time                   `json:"completed_at,omitempty"`
-	DeadlineAt           *time.Time                   `json:"deadline_at,omitempty"`
-	DeliveredAt          *time.Time                   `json:"delivered_at,omitempty"`
-	DeliveryAddress      *Address                     `json:"delivery_address,omitempty"`
-	DeliveryInstructions *[]DeliveryInstruction       `json:"delivery_instructions,omitempty"`
-	DispatchState        *DispatchState               `json:"dispatch_state,omitempty"`
-	EtaAt                *time.Time                   `json:"eta_at,omitempty"`
-	Id                   openapi_types.UUID           `json:"id"`
-	Lines                []OrderLine                  `json:"lines"`
+	CanCancel       *bool                        `json:"can_cancel,omitempty"`
+	CancelReason    *OrderCancellationReasonCode `json:"cancel_reason,omitempty"`
+	Code            string                       `json:"code"`
+	CompletedAt     *time.Time                   `json:"completed_at,omitempty"`
+	DeadlineAt      *time.Time                   `json:"deadline_at,omitempty"`
+	DeliveredAt     *time.Time                   `json:"delivered_at,omitempty"`
+	DeliveryAddress *Address                     `json:"delivery_address,omitempty"`
+
+	// DeliveryCode The 4-digit code the customer reads to the rider at a met handover, so the rider can
+	// record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+	// `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+	// (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+	// for an unattended drop (proof is a photo), and once five wrong codes have locked it
+	// (the rider then falls back to a photo with a statement). Only the customer's own
+	// projections carry it: the support projection (`OrderAdminView`, which extends the
+	// customer view) always leaves it out, and the rider is never sent it
+	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+	//
+	//
+	// Examples: 4827
+	DeliveryCode         *string                `json:"delivery_code,omitempty"`
+	DeliveryInstructions *[]DeliveryInstruction `json:"delivery_instructions,omitempty"`
+	DispatchState        *DispatchState         `json:"dispatch_state,omitempty"`
+	EtaAt                *time.Time             `json:"eta_at,omitempty"`
+	Id                   openapi_types.UUID     `json:"id"`
+	Lines                []OrderLine            `json:"lines"`
 
 	// Money The frozen copy of the quote's customer-facing decomposition. Renders in the fixed P-10 order.
 	Money      OrderMoney `json:"money"`
@@ -5905,6 +5953,20 @@ type OrderRestaurantView struct {
 	// release.
 	Money RestaurantOrderMoney `json:"money"`
 
+	// PickupCode The 4-digit code the kitchen reads to the rider at the counter. The rider types it
+	// in to confirm pickup (`pickup_code` on `createAssignmentTransition`), which proves
+	// the rider and the kitchen were both there and replaces the seal scan. Set from
+	// acceptance while the order is `PREPARING` or `READY_FOR_PICKUP` and a rider will
+	// collect it; null before acceptance, after pickup, for an order the customer
+	// collects, and in every terminal state. Only the restaurant's projection carries it;
+	// the rider is never sent it
+	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+	// [#178](https://github.com/shaiknoorullah/hg-mono/issues/178)).
+	//
+	//
+	// Examples: 3051
+	PickupCode *string `json:"pickup_code,omitempty"`
+
 	// PlacedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
 	PlacedAt        Timestamp      `json:"placed_at"`
 	PromisedReadyAt *time.Time     `json:"promised_ready_at,omitempty"`
@@ -5994,6 +6056,18 @@ type OrderSummary struct {
 
 // OrderTracking defines model for OrderTracking.
 type OrderTracking struct {
+	// DeliveryCode The 4-digit code the customer reads to the rider at a met handover, so the rider can
+	// record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+	// `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+	// (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+	// for an unattended drop (proof is a photo), and once five wrong codes have locked it
+	// (the rider then falls back to a photo with a statement). Only the customer's own
+	// projections carry it, and the rider is never sent it
+	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+	//
+	//
+	// Examples: 4827
+	DeliveryCode        *string        `json:"delivery_code,omitempty"`
 	DestinationLocation *GeoPoint      `json:"destination_location,omitempty"`
 	DispatchState       *DispatchState `json:"dispatch_state,omitempty"`
 	EtaAt               *time.Time     `json:"eta_at,omitempty"`

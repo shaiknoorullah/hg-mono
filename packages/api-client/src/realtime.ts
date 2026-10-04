@@ -148,6 +148,17 @@ export interface OrderNoteAddedData {
   text: string;
   at: string;
 }
+/**
+ * The arrival event, customer only, also sent as a push. `delivery_code` is the 4-digit code
+ * the customer reads to the rider at a met handover; null for an unattended drop or once it
+ * has locked. The rider is never sent it (docs/decisions/README.md, round 2, "Orders and
+ * delivery": https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+ */
+export interface OrderRiderArrivedData {
+  order_id: string;
+  at: string;
+  delivery_code: string | null;
+}
 
 /* ----------------------------- §4.3 payment ------------------------------ */
 
@@ -231,6 +242,11 @@ export interface RestaurantOrderAcceptedData {
   order_id: string;
   accepted_by: string;
   prep_eta_minutes: number;
+  /**
+   * The 4-digit code the kitchen reads to the rider at the counter; null when the customer
+   * collects the order. Restaurant channel only — the rider is never sent it.
+   */
+  pickup_code: string | null;
 }
 export interface RestaurantOrderRejectedData {
   order_id: string;
@@ -406,6 +422,7 @@ export interface RealtimeEventMap {
   'order.cancelled': OrderCancelledData;
   'order.completed': OrderCompletedData;
   'order.note_added': OrderNoteAddedData;
+  'order.rider_arrived': OrderRiderArrivedData;
 
   'payment.authorized': PaymentAuthorizedData;
   'payment.action_required': PaymentActionRequiredData;

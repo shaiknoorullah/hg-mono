@@ -88,6 +88,7 @@
         "currency": "CAD"
       },
       "rider": null,
+      "pickup_code": null,
       "elapsed_seconds": 150,
       "is_late": false,
       "placed_at": "2026-08-10T18:10:11.412Z",
@@ -165,6 +166,7 @@
         "currency": "CAD"
       },
       "rider": null,
+      "pickup_code": null,
       "elapsed_seconds": 20,
       "is_late": false,
       "placed_at": "2026-08-10T18:10:11.412Z",
@@ -258,6 +260,7 @@
         "currency": "CAD"
       },
       "rider": null,
+      "pickup_code": "3051",
       "elapsed_seconds": 1920,
       "is_late": true,
       "placed_at": "2026-08-10T18:10:11.412Z",
@@ -351,6 +354,7 @@
         "currency": "CAD"
       },
       "rider": null,
+      "pickup_code": "3051",
       "elapsed_seconds": 1920,
       "is_late": false,
       "placed_at": "2026-08-10T18:10:11.412Z",
@@ -444,6 +448,7 @@
         "currency": "CAD"
       },
       "rider": null,
+      "pickup_code": "3051",
       "elapsed_seconds": 1920,
       "is_late": false,
       "placed_at": "2026-08-10T18:10:11.412Z",
@@ -542,6 +547,7 @@
         "vehicle_type": "SCOOTER",
         "eta_at": "2026-08-10T18:48:11.412Z"
       },
+      "pickup_code": "3051",
       "elapsed_seconds": 1920,
       "is_late": false,
       "placed_at": "2026-08-10T18:10:11.412Z",

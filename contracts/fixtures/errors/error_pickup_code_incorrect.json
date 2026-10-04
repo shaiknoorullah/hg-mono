@@ -1,0 +1,23 @@
+{
+  "scenario": "error_pickup_code_incorrect",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `PICKUP_CODE_INCORRECT`. A wrong pickup code. The assignment stays where it was; `details.attempts_remaining` drives the counter on the rider's screen.",
+  "operations": [
+    "createAssignmentTransition"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "PICKUP_CODE_INCORRECT",
+      "message": "That pickup code is not right. 3 attempts remaining.",
+      "request_id": "32X1PXN2ZXZWT0ZPG0VNN4RB9S",
+      "details": {
+        "attempts_remaining": 3
+      }
+    }
+  }
+}

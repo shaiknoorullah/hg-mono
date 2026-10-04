@@ -123,6 +123,7 @@
     "cancel_reason": "CUSTOMER_CANCELLED",
     "reject_reason": null,
     "eta_at": null,
+    "delivery_code": null,
     "can_cancel": false,
     "placed_at": "2026-08-10T18:10:11.412Z",
     "accepted_at": null,

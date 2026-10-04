@@ -2,7 +2,7 @@
   "scenario": "realtime_order_happy_path",
   "domain": "realtime",
   "schema": "RealtimeEvent[]",
-  "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 24 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived → delivered → completed. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
+  "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 25 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted (with the kitchen's pickup code) → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived (with `order.rider_arrived`; left at the door, so no delivery code) → delivered → completed. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
   "operations": [],
   "status": 200,
   "tags": [
@@ -144,7 +144,8 @@
       "data": {
         "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
         "accepted_by": "Hamza K.",
-        "prep_eta_minutes": 20
+        "prep_eta_minutes": 20,
+        "pickup_code": "3051"
       },
       "_delay_ms": 12000
     },
@@ -407,6 +408,20 @@
       "id": "CTEBMH4RKS24GVT3WYSRW6V2KG",
       "seq": 21,
       "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
+      "type": "order.rider_arrived",
+      "v": 1,
+      "ts": "2026-08-10T18:42:59.412Z",
+      "data": {
+        "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+        "at": "2026-08-10T18:42:59.412Z",
+        "delivery_code": null
+      },
+      "_delay_ms": 48000
+    },
+    {
+      "id": "9KJ0QAM7RGKX0ABJZCFEDP35DR",
+      "seq": 22,
+      "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
       "type": "order.state_changed",
       "v": 1,
       "ts": "2026-08-10T18:43:05.412Z",
@@ -423,8 +438,8 @@
       "_delay_ms": 54000
     },
     {
-      "id": "9KJ0QAM7RGKX0ABJZCFEDP35DR",
-      "seq": 22,
+      "id": "B3A67BFRPR6JQ4ECMBE6HDETEC",
+      "seq": 23,
       "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
       "type": "dispatch.state_changed",
       "v": 1,
@@ -438,8 +453,8 @@
       "_delay_ms": 54100
     },
     {
-      "id": "B3A67BFRPR6JQ4ECMBE6HDETEC",
-      "seq": 23,
+      "id": "PBA4S1C3MZ8JWDZCHNP5HR5YGD",
+      "seq": 24,
       "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
       "type": "order.state_changed",
       "v": 1,
@@ -457,8 +472,8 @@
       "_delay_ms": 58000
     },
     {
-      "id": "PBA4S1C3MZ8JWDZCHNP5HR5YGD",
-      "seq": 24,
+      "id": "5GPG1ZVY982XN888BDXE3T8CAT",
+      "seq": 25,
       "channel": "order:c622bd1b-2de3-40be-aa8f-9996517b6aed",
       "type": "order.completed",
       "v": 1,

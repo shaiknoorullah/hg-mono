@@ -1,20 +1,20 @@
 {
-  "scenario": "tracking_preparing",
+  "scenario": "tracking_picked_up_delivery_code",
   "domain": "orders",
   "schema": "OrderTracking",
-  "describes": "Kitchen cooking, no rider yet — the map shows the restaurant only.",
+  "describes": "Out for delivery to a met handover: the tracking screen shows the 4-digit `delivery_code` under the map, ready for the door.",
   "operations": [
     "getOrderTracking"
   ],
   "status": 200,
   "tags": [
     "tracking",
-    "order-state-matrix"
+    "delivery-code"
   ],
   "payload": {
-    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
-    "state": "PREPARING",
-    "dispatch_state": "SEARCHING",
+    "order_id": "21e62382-e711-4fb5-a587-a7a8b555b312",
+    "state": "PICKED_UP",
+    "dispatch_state": "CARRYING",
     "eta_at": "2026-08-10T18:55:11.412Z",
     "eta_window_minutes": 10,
     "restaurant_location": {
@@ -25,9 +25,23 @@
       "latitude": 43.6412,
       "longitude": -79.381
     },
-    "rider_location": null,
-    "rider": null,
-    "delivery_code": null,
+    "rider_location": {
+      "latitude": 43.6598,
+      "longitude": -79.3652,
+      "heading_deg": 214.0,
+      "speed_mps": 7.4,
+      "accuracy_m": 12.0,
+      "recorded_at": "2026-08-10T18:42:03.412Z",
+      "is_coarse": false
+    },
+    "rider": {
+      "first_name": "Bilal",
+      "last_initial": "S",
+      "photo_url": "https://cdn.halalgoes.ca/img/avatar/rider-bilal.webp",
+      "vehicle_type": "SCOOTER",
+      "rating_avg": 4.9
+    },
+    "delivery_code": "4827",
     "timeline": [
       {
         "from_state": null,
@@ -56,6 +70,20 @@
         "actor_kind": "RESTAURANT",
         "reason": null,
         "at": "2026-08-10T18:13:11.412Z"
+      },
+      {
+        "from_state": "PREPARING",
+        "to_state": "READY_FOR_PICKUP",
+        "actor_kind": "RESTAURANT",
+        "reason": null,
+        "at": "2026-08-10T18:28:11.412Z"
+      },
+      {
+        "from_state": "READY_FOR_PICKUP",
+        "to_state": "PICKED_UP",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:31:11.412Z"
       }
     ]
   }
