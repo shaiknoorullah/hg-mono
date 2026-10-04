@@ -48,7 +48,7 @@ Each exists because it was violated in the previous system and cost real money o
 |---|---|
 | `docs/spec/` | **The specification of record** — 198 features, states, rules, acceptance criteria, SOW traceability |
 | `docs/decisions/` | Settled decisions, reconciled conflicts, open blockers |
-| `docs/design/` | Design system: DTCG tokens, 41 components, patterns, accessibility |
+| `docs/design/` | Design-system docs: DTCG tokens, 41 components, patterns, accessibility. [Claude Design](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv) is the source of truth for tokens and components. Redesign: `redesign-constitution.md` (the rules), `design-surface.md` (the approved canvases and every state), `audit/` (the pre-redesign audits, historical) |
 | `docs/analysis/legacy-system/` | Forensic analysis of the system being replaced (18 reports) |
 | `docs/analysis/base-evaluation/` | Why `ts-monorepo-template` was harvested, not forked |
 | `docs/planning/` | The six competing operating models, three judgements, the winner, and the backend module briefs |
