@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -262,7 +262,7 @@ CREATE TABLE login_attempt (
 CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
 ```
 
-  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account.
+  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account. While Redis cannot answer, these two limits, restaurant sign-up's (`rl:register:ip:{ip}`, 5/hour, checked before the argon2id hash) and the verification-email resend's (`rl:email_verify:{email}`, 5/24 h) are counted in each API replica's memory instead, with the same keys and windows ([Redis-down policy under rate limiting](#p-38--rate-limiting)): login answers 429 over the limit, never 503, and is never unlimited.
 
 - **Rules & invariants**:
   - **I-03.1** Plaintext passwords never appear in logs, audit payloads, error messages or panics. A `String()` method on the password type returns `"[REDACTED]"`.
@@ -2718,11 +2718,12 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   Responses carry `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and, on 429, `Retry-After`.
 
   **Redis-down policy** is explicit per class, and this is where the disposability rule needs care: rate limiting is *protection*, not *correctness*, so losing counters is acceptable — but not for authentication.
-  - `AUTH`: **fail closed** (503). A brute-force window is worse than a brief outage, and the Postgres-backed lockout in P-03 still applies.
+  - `AUTH`, sign-in codes (OTP request and verify): **fail closed** (503 `rate_limiter_unavailable`), as [phone sign-in](#p-02--phone-otp-authentication-customers-riders) requires.
+  - `AUTH`, login, restaurant sign-up and the verification-email resend: **fall back to a count in the replica's memory**, with the same key, limit and window, instead of letting the request through or refusing it. Each API replica counts on its own, so a caller gets at most the limit times the number of replicas (twice, with two). This is the degraded mode, not a second source of truth: counts are dropped when their window ends or when they are evicted, the next answer from Redis is the count again, and the Postgres-backed lockout of [email and password sign-in](#p-03--email--password-authentication-restaurants-admins-support) applies throughout. The memory is bounded: at most 10,000 counters per limit, the least recently used evicted first, and keys stored as fixed-size hashes. While it is in use, each limit logs one error per window (`rate limiter unavailable; counting in this replica's memory`), not one per request, so an alert can fire without flooding the logs.
   - `MONEY`: fail open, because idempotency (P-37) and the state machine already prevent duplicate effects; an alert fires.
   - All other classes: fail open with an alert.
 
-  Traefik additionally applies a coarse per-IP limit and connection caps in front of the application, so an application-level Redis outage is never the only defence.
+  Traefik additionally applies a coarse per-address limit to every `/v1/auth/` route, in front of the application and independent of Redis, so an application-level Redis outage is never the only defence: 120 requests a minute with bursts of 60, far above the application's own limits, counted on the connection's address (IPv6 per /64), never on `X-Forwarded-For`, since Traefik is the edge (`deploy/docker-compose.yml`, the `hg-auth` router).
 
 - **Data**: none in Postgres. Redis keys: `rl:{class}:{key}` (TTL = window), `rl:block:{ip}` for temporary bans after sustained abuse (TTL 15 min). Both disposable.
 - **Rules & invariants**:
@@ -2732,7 +2733,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   - **I-38.4** Webhook endpoints are never rate-limited below Stripe's retry rate.
 - **Acceptance criteria**:
   1. Given 11 OTP requests in 15 minutes from one IP, Then the 11th is 429 with `Retry-After` and no SMS is sent.
-  2. Given Redis is stopped, When a login is attempted, Then 503 `rate_limiter_unavailable`; When a search is attempted, Then it succeeds with an alert recorded.
+  2. Given Redis is stopped, When a sign-in code is requested, Then 503 `rate_limiter_unavailable`; When the 31st login from one address in 15 minutes, or the 6th restaurant sign-up from one address in an hour, is attempted, Then 429 with `Retry-After`, and the sign-up runs no password hash; When a search is attempted, Then it succeeds with an alert recorded.
   3. Given a 429, Then no partial effect exists — no order row, no Stripe call, no ledger entry.
   4. Given the rate-limit headers, Then `RateLimit-Remaining` decreases monotonically within a window and resets exactly at `RateLimit-Reset`.
 - **Version**: V1 · **Size**: M

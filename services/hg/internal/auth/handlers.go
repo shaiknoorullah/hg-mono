@@ -227,8 +227,8 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 
 // Login implements login. Argon2id verification, status check, TOTP where
 // enrolled, Postgres-backed lockout. Per-IP and per-email request limits answer
-// 429 with Retry-After; they fail open when Redis is down (the lockout does not
-// live in Redis), so login never answers 503.
+// 429 with Retry-After; when Redis is down they count in this replica's memory
+// instead (FallBackLocally), so login never answers 503.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	client, ok := clientSurface(r)
 	if !ok {

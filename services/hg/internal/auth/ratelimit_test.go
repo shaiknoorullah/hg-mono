@@ -1,9 +1,13 @@
 package auth
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -16,35 +20,232 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
-// TestLimiterWithRedisGoneFailsClosedOnlyWhereTheSpecSaysSo pins the two
-// Redis-down policies. Redis is disposable (docs/spec/01-platform.md, "G-1 —
+// The tests below pin what the auth limits do when Redis cannot answer
+// (issue #407). Redis is disposable (docs/spec/01-platform.md, "G-1 —
 // Postgres is the only source of truth"), so login, restaurant sign-up and the
-// email resend keep working when it is gone; the OTP endpoints are the two
-// where fail-open is unacceptable ("P-02 — Phone OTP authentication") and
-// answer 503 instead. Needs no container: the client points at a closed port.
-func TestLimiterWithRedisGoneFailsClosedOnlyWhereTheSpecSaysSo(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	addr := ln.Addr().String()
-	_ = ln.Close() // nothing listens here now
+// verification-email resend keep working, and keep being limited, counted in
+// this replica's memory (FallBackLocally). The OTP endpoints are the two where
+// a limit that does not hold is unacceptable ("P-02 — Phone OTP
+// authentication") and answer 503 instead. None needs a container: the client
+// points at a closed port.
 
-	rdb := redis.NewClient(&redis.Options{Addr: addr, MaxRetries: -1, DialTimeout: time.Second})
-	t.Cleanup(func() { _ = rdb.Close() })
+// TestWithRedisGoneLoginAndResendStayLimited: with Redis unreachable, the 31st
+// login from one address and the 11th for one email in 15 minutes, and the 6th
+// verification-email resend in 24 hours, get 429 with Retry-After.
+func TestWithRedisGoneLoginAndResendStayLimited(t *testing.T) {
+	cases := []struct {
+		name    string
+		max     int
+		window  time.Duration
+		path    string
+		handler func(*Handler) http.HandlerFunc
+		request func(i int) (ip, body string) // the i-th request, from 0
+	}{
+		{
+			name: "login per IP", max: 30, window: 15 * time.Minute, path: "/v1/auth/login",
+			handler: func(h *Handler) http.HandlerFunc { return h.Login },
+			request: func(i int) (string, string) {
+				// One address, a new email each time: only the per-IP limit fills.
+				return "203.0.113.20", fmt.Sprintf(`{"email":"owner%d@example.com","password":"correct horse battery"}`, i)
+			},
+		},
+		{
+			name: "login per email", max: 10, window: 15 * time.Minute, path: "/v1/auth/login",
+			handler: func(h *Handler) http.HandlerFunc { return h.Login },
+			request: func(i int) (string, string) {
+				// One email from a new address each time: only the per-email limit fills.
+				return fmt.Sprintf("198.51.100.%d", i+1), `{"email":"target@example.com","password":"correct horse battery"}`
+			},
+		},
+		{
+			name: "verification-email resend", max: 5, window: 24 * time.Hour, path: "/v1/auth/email/resend",
+			handler: func(h *Handler) http.HandlerFunc { return h.ResendEmailVerification },
+			request: func(int) (string, string) { return "203.0.113.21", `{"email":"pending@example.com"}` },
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := tc.handler(handlerWithoutStore(NewRateLimiter(goneRedis(t), nil)))
+			for i := range tc.max {
+				ip, body := tc.request(i)
+				if rec, passed := serve(handler, authRequest(tc.path, ip, body)); !passed {
+					t.Fatalf("request %d of %d was refused: %d %s", i+1, tc.max, rec.Code, rec.Body.String())
+				}
+			}
+			ip, body := tc.request(tc.max)
+			rec, passed := serve(handler, authRequest(tc.path, ip, body))
+			if passed {
+				t.Fatalf("request %d went past the limiter with Redis gone", tc.max+1)
+			}
+			assertLimited(t, rec, tc.window)
+		})
+	}
+}
+
+// TestWithRedisGoneASignUpOverTheLimitRunsNoHash: with Redis unreachable, the
+// 6th restaurant sign-up from one address in an hour gets 429 before any
+// argon2id hash runs, so a flood of sign-ups costs no CPU. The first five
+// reach the hash, which proves the test watches the hash the handler uses.
+func TestWithRedisGoneASignUpOverTheLimitRunsNoHash(t *testing.T) {
+	errStop := errors.New("test: stop after the hash")
+	hashes := 0
+	orig := hashNewPassword
+	hashNewPassword = func(string) (string, error) { hashes++; return "", errStop }
+	t.Cleanup(func() { hashNewPassword = orig })
+
+	h := handlerWithoutStore(NewRateLimiter(goneRedis(t), nil))
+	body := `{"email":"new@example.com","password":"correct horse battery","business_name":"Bismillah Grill","terms_version":"2026-01"}`
+	for i := 1; i <= 5; i++ {
+		rec, _ := serve(h.RegisterRestaurant, authRequest("/v1/auth/register/restaurant", "203.0.113.22", body))
+		if hashes != i {
+			t.Fatalf("sign-up %d: %d hashes, want %d (status %d %s)", i, hashes, i, rec.Code, rec.Body.String())
+		}
+	}
+	rec, passed := serve(h.RegisterRestaurant, authRequest("/v1/auth/register/restaurant", "203.0.113.22", body))
+	if passed {
+		t.Fatal("the 6th sign-up went past the limiter with Redis gone")
+	}
+	assertLimited(t, rec, time.Hour)
+	if hashes != 5 {
+		t.Errorf("the 6th sign-up ran the hash: %d hashes, want 5", hashes)
+	}
+}
+
+// TestWithRedisGoneTheOTPRequestStillAnswers503: sign-in codes never use the
+// local count. requestOtp fails closed with 503 RATE_LIMITER_UNAVAILABLE on
+// every request, and nothing is counted in memory.
+func TestWithRedisGoneTheOTPRequestStillAnswers503(t *testing.T) {
+	rl := NewRateLimiter(goneRedis(t), nil)
+	h := handlerWithoutStore(rl)
+	for i := 1; i <= 3; i++ {
+		req := authRequest("/v1/auth/otp/request", "203.0.113.23", `{"phone_e164":"+14165550123","purpose":"SIGN_IN"}`)
+		req.Header.Set("X-HG-Client", string(ClientCustomerApp))
+		rec, passed := serve(h.RequestOTP, req)
+		if passed {
+			t.Fatalf("request %d went past the limiter with Redis gone", i)
+		}
+		if rec.Code != http.StatusServiceUnavailable || errorCode(rec) != string(httpx.CodeRateLimiterUnavailable) {
+			t.Fatalf("request %d = %d %s, want 503 %s", i, rec.Code, rec.Body.String(), httpx.CodeRateLimiterUnavailable)
+		}
+	}
+	if n := localEntries(rl.local, "otp:phone") + localEntries(rl.local, "otp:ip"); n != 0 {
+		t.Errorf("%d OTP counters in memory, want 0: the OTP limits fail closed", n)
+	}
+}
+
+// TestLocalFallbackLogsOncePerWindowPerLimit: while Redis is down, each limit
+// logs one error per window, not one per request, so an alert can fire
+// without the logs flooding. The next line counts the requests in between.
+func TestLocalFallbackLogsOncePerWindowPerLimit(t *testing.T) {
+	var out bytes.Buffer
+	rl := NewRateLimiter(goneRedis(t), slog.New(slog.NewJSONHandler(&out, nil)))
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	rl.local.now = func() time.Time { return now }
+	ctx := context.Background()
+	byIP := Limit{Name: "login:ip", Subject: "203.0.113.24", Max: 30, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}
+	byEmail := Limit{Name: "login:email", Subject: "owner@example.com", Max: 10, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}
+	for range 50 {
+		_ = rl.Allow(ctx, byIP)
+		_ = rl.Allow(ctx, byEmail)
+	}
+	now = now.Add(15 * time.Minute)
+	_ = rl.Allow(ctx, byIP)
+
+	type line struct {
+		Level    string `json:"level"`
+		Limit    string `json:"limit"`
+		Requests int    `json:"requests_since_last_log"`
+	}
+	var lines []line
+	sc := bufio.NewScanner(&out)
+	for sc.Scan() {
+		var l line
+		if err := json.Unmarshal(sc.Bytes(), &l); err != nil {
+			t.Fatalf("log line %q: %v", sc.Text(), err)
+		}
+		lines = append(lines, l)
+	}
+	want := []line{
+		{Level: "ERROR", Limit: "login:ip", Requests: 1},
+		{Level: "ERROR", Limit: "login:email", Requests: 1},
+		{Level: "ERROR", Limit: "login:ip", Requests: 50}, // 49 unlogged, then this one
+	}
+	if fmt.Sprint(lines) != fmt.Sprint(want) {
+		t.Errorf("log lines = %+v, want %+v", lines, want)
+	}
+}
+
+// TestLocalFallbackCapHoldsUnderRandomKeys: a flood of made-up subjects never
+// grows one limit's counters past the cap. A counter in use survives it (the
+// least recently used goes first), another limit's counters are untouched,
+// and counters whose window has ended are dropped.
+func TestLocalFallbackCapHoldsUnderRandomKeys(t *testing.T) {
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	ll := newLocalLimiter(localMaxEntriesPerLimit, func() time.Time { return now })
+	target := Limit{Name: "login:email", Subject: "target@example.com", Max: 10, Window: 15 * time.Minute}
+	other := Limit{Name: "login:ip", Subject: "203.0.113.25", Max: 30, Window: 15 * time.Minute}
+	for range target.Max {
+		if _, err := ll.allow(target); err != nil {
+			t.Fatalf("under the limit: %v", err)
+		}
+	}
+	if _, err := ll.allow(other); err != nil {
+		t.Fatalf("other limit: %v", err)
+	}
+
+	flood := target
+	for i := range 3 * localMaxEntriesPerLimit {
+		flood.Subject = fmt.Sprintf("made-up-%d@example.com", i)
+		if _, err := ll.allow(flood); err != nil {
+			t.Fatalf("a new subject was limited: %v", err)
+		}
+		if i%1000 == 0 { // the guesser keeps trying through the flood
+			if _, err := ll.allow(target); !errors.Is(err, ErrRateLimited) {
+				t.Fatalf("after %d made-up subjects the target's count was lost: %v", i, err)
+			}
+		}
+	}
+	if n := localEntries(ll, target.Name); n != localMaxEntriesPerLimit {
+		t.Errorf("%d counters after the flood, want the cap, %d", n, localMaxEntriesPerLimit)
+	}
+	if n := localEntries(ll, other.Name); n != 1 {
+		t.Errorf("the flood changed another limit's counters: %d, want 1", n)
+	}
+
+	now = now.Add(target.Window + localSweepEvery)
+	if _, err := ll.allow(target); err != nil {
+		t.Errorf("a new window still limited: %v", err)
+	}
+	if n := localEntries(ll, target.Name); n != 1 {
+		t.Errorf("%d counters once every window ended, want 1 (the one just counted)", n)
+	}
+}
+
+// TestWithRedisHealthyTheLocalCountIsUnused: while Redis answers, nothing
+// changes. Every count is Redis's, the 31st login from one address is refused
+// by Redis's count, and this replica's memory holds no counters.
+func TestWithRedisHealthyTheLocalCountIsUnused(t *testing.T) {
+	rdb := startRedis(t)
 	rl := NewRateLimiter(rdb, nil)
 	ctx := context.Background()
-
-	open := Limit{Name: "login:ip", Subject: "203.0.113.9", Max: 30, Window: 15 * time.Minute, OnUnavailable: FailOpen}
-	if err := rl.Allow(ctx, open); err != nil {
-		t.Errorf("fail-open limit with Redis gone = %v, want nil (the request proceeds)", err)
+	l := Limit{Name: "login:ip", Subject: "203.0.113.26", Max: 30, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}
+	for i := 1; i <= 30; i++ {
+		if err := rl.Allow(ctx, l); err != nil {
+			t.Fatalf("request %d: %v", i, err)
+		}
 	}
-
-	closed := Limit{Name: "otp:phone", Subject: "+14165550123", Max: 5, Window: 15 * time.Minute}
-	if err := rl.Allow(ctx, closed); !errors.Is(err, ErrLimiterUnavailable) {
-		t.Errorf("default (fail-closed) limit with Redis gone = %v, want ErrLimiterUnavailable", err)
+	if err := rl.Allow(ctx, l); !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("31st request = %v, want ErrRateLimited", err)
+	}
+	if n, err := rdb.Get(ctx, "rl:login:ip:203.0.113.26").Int(); err != nil || n != 31 {
+		t.Errorf("Redis count = %d (%v), want 31", n, err)
+	}
+	if n := len(rl.local.limits); n != 0 {
+		t.Errorf("%d limits counted in memory while Redis answered, want 0", n)
 	}
 }
 
@@ -54,9 +255,7 @@ func TestLimiterWithRedisGoneFailsClosedOnlyWhereTheSpecSaysSo(t *testing.T) {
 // past the limiter, the first store call would panic, which the test reports.
 func TestOverTheLimitIs429WithRetryAfterAndNothingRuns(t *testing.T) {
 	rdb := startRedis(t)
-	secrets := &Secrets{CurrentTermsVersion: "2026-01"}
-	svc := NewService(nil, NewRateLimiter(rdb, nil), nil, nil, nil, secrets, nil)
-	h := NewHandler(svc, nil, nil, secrets)
+	h := handlerWithoutStore(NewRateLimiter(rdb, nil))
 
 	cases := []struct {
 		name    string
@@ -92,37 +291,97 @@ func TestOverTheLimitIs429WithRetryAfterAndNothingRuns(t *testing.T) {
 			if err := rdb.Set(ctx, tc.key, tc.max, tc.window).Err(); err != nil {
 				t.Fatalf("fill counter: %v", err)
 			}
-			req := httptest.NewRequest(http.MethodPost, tc.path, strings.NewReader(tc.body))
-			req.Header.Set("Content-Type", "application/json")
-			req.RemoteAddr = tc.ip + ":51000"
-			rec := httptest.NewRecorder()
-
-			func() {
-				defer func() {
-					if p := recover(); p != nil {
-						t.Fatalf("the request went past the limiter and reached the store: %v", p)
-					}
-				}()
-				tc.handler(rec, req)
-			}()
-
-			if rec.Code != http.StatusTooManyRequests {
-				t.Fatalf("status = %d, want 429; body %s", rec.Code, rec.Body.String())
+			rec, passed := serve(tc.handler, authRequest(tc.path, tc.ip, tc.body))
+			if passed {
+				t.Fatal("the request went past the limiter and reached the store")
 			}
-			var env struct {
-				Error struct {
-					Code string `json:"code"`
-				} `json:"error"`
-			}
-			if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil || env.Error.Code != "RATE_LIMITED" {
-				t.Errorf("error code = %q (%v), want RATE_LIMITED", env.Error.Code, err)
-			}
-			secs, err := strconv.Atoi(rec.Header().Get("Retry-After"))
-			if err != nil || secs < 1 || secs > int(tc.window/time.Second) {
-				t.Errorf("Retry-After = %q, want whole seconds in [1, %d]", rec.Header().Get("Retry-After"), int(tc.window/time.Second))
-			}
+			assertLimited(t, rec, tc.window)
 		})
 	}
+}
+
+// goneRedis is a client for a Redis that is not there: it points at a port
+// nothing listens on, so every command fails at once, as in an outage.
+func goneRedis(t *testing.T) *redis.Client {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	addr := ln.Addr().String()
+	_ = ln.Close() // nothing listens here now
+	// No retries and one quick dial, so a test of a hundred requests is fast.
+	rdb := redis.NewClient(&redis.Options{Addr: addr, MaxRetries: -1, DialTimeout: time.Second,
+		DialerRetries: 1, DialerRetryTimeout: time.Millisecond})
+	t.Cleanup(func() { _ = rdb.Close() })
+	return rdb
+}
+
+// handlerWithoutStore builds the auth handler over rl with no store. A request
+// the limiter lets through panics at its first store call, which serve
+// reports.
+func handlerWithoutStore(rl *RateLimiter) *Handler {
+	secrets := &Secrets{CurrentTermsVersion: "2026-01"}
+	return NewHandler(NewService(nil, rl, nil, nil, nil, secrets, nil), nil, nil, secrets)
+}
+
+// authRequest is a JSON POST to path from ip.
+func authRequest(path, ip, body string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = ip + ":51000"
+	return req
+}
+
+// serve runs req through a handler from handlerWithoutStore. passed reports
+// that the request went past the limiter and reached the store; rec is the
+// answer otherwise.
+func serve(handler http.HandlerFunc, req *http.Request) (rec *httptest.ResponseRecorder, passed bool) {
+	rec = httptest.NewRecorder()
+	defer func() {
+		if recover() != nil {
+			passed = true
+		}
+	}()
+	handler(rec, req)
+	return rec, false
+}
+
+// assertLimited checks for a 429 RATE_LIMITED answer whose Retry-After is
+// whole seconds within the window.
+func assertLimited(t *testing.T, rec *httptest.ResponseRecorder, window time.Duration) {
+	t.Helper()
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429; body %s", rec.Code, rec.Body.String())
+	}
+	if code := errorCode(rec); code != string(httpx.CodeRateLimited) {
+		t.Errorf("error code = %q, want %s", code, httpx.CodeRateLimited)
+	}
+	secs, err := strconv.Atoi(rec.Header().Get("Retry-After"))
+	if err != nil || secs < 1 || secs > int(window/time.Second) {
+		t.Errorf("Retry-After = %q, want whole seconds in [1, %d]", rec.Header().Get("Retry-After"), int(window/time.Second))
+	}
+}
+
+// errorCode is the error.code of an error answer, or "" when there is none.
+func errorCode(rec *httptest.ResponseRecorder) string {
+	var env struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &env)
+	return env.Error.Code
+}
+
+// localEntries is how many counters ll holds for the limit called name.
+func localEntries(ll *localLimiter, name string) int {
+	ll.mu.Lock()
+	defer ll.mu.Unlock()
+	if cs := ll.limits[name]; cs != nil {
+		return len(cs.byKey)
+	}
+	return 0
 }
 
 // startRedis brings up the compose stack's Redis image for the test, or skips

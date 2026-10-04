@@ -348,15 +348,15 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	}
 	// Redis request-rate limits, per IP then per email (docs/spec/01-platform.md,
 	// "P-03 — Email + password authentication"). An over-the-cap answer stops
-	// the attempt before anything is read or recorded. They fail open: the
-	// lockout below lives in Postgres and survives a Redis outage, and Traefik
-	// keeps its own per-IP limit in front of the app.
+	// the attempt before anything is read or recorded. With Redis down they
+	// count in this replica's memory instead (FallBackLocally), so login keeps
+	// working and stays limited; the lockout below lives in Postgres either way.
 	if err := s.rl.Allow(ctx, Limit{Name: "login:ip", Subject: ipSubject(ip),
-		Max: 30, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		Max: 30, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if err := s.rl.Allow(ctx, Limit{Name: "login:email", Subject: email,
-		Max: 10, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		Max: 10, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 
@@ -428,21 +428,25 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	return s.issueSession(ctx, acct, amr, client, nil, userAgent, ip, false)
 }
 
+// hashNewPassword is HashPassword. A test swaps it to prove that a sign-up
+// over its limit is refused before any argon2id hash runs.
+var hashNewPassword = HashPassword
+
 // RegisterRestaurant creates the account/restaurant/grant/token and enqueues the
 // verification email. No session is issued.
 func (s *Service) RegisterRestaurant(ctx context.Context, email, password, businessName string, ip *string) (*RegisterRestaurantResult, error) {
 	// 5 sign-ups per hour per IP (docs/spec/03-restaurant.md, "R-01 — Restaurant
 	// account signup"), checked before the argon2id hash so a flood costs no
-	// CPU. Fails open: a sign-up creates an unverified account and issues no
-	// session, and Traefik keeps its own per-IP limit in front of the app.
+	// CPU. With Redis down it counts in this replica's memory instead
+	// (FallBackLocally), still before the hash.
 	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: ipSubject(ip),
-		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		Max: 5, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if isBreachedPassword(password) {
 		return nil, errBreachedPassword
 	}
-	hash, err := HashPassword(password)
+	hash, err := hashNewPassword(password)
 	if err != nil {
 		return nil, err
 	}
@@ -494,8 +498,10 @@ func (s *Service) VerifyEmail(ctx context.Context, token string, client ClientSu
 // exists and is unverified. Identical externally whether or not it exists.
 func (s *Service) ResendEmailVerification(ctx context.Context, email string) error {
 	email = canonicalEmail(email)
+	// 5 per email per 24 hours: each one issues a token and queues an email.
+	// With Redis down it counts in this replica's memory (FallBackLocally).
 	if err := s.rl.Allow(ctx, Limit{Name: "email_verify", Subject: email,
-		Max: 5, Window: 24 * time.Hour, OnUnavailable: FailOpen}); err != nil {
+		Max: 5, Window: 24 * time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return err
 	}
 	acct, err := s.store.AccountByEmail(ctx, email)

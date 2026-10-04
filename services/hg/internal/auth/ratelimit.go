@@ -1,10 +1,13 @@
 package auth
 
 import (
+	"container/list"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -43,12 +46,17 @@ const (
 	// FailClosed refuses the request (ErrLimiterUnavailable → 503). Only for
 	// the OTP endpoints, where the limiter is the only brute-force defence.
 	FailClosed OnUnavailable = iota
-	// FailOpen allows the request and logs an error so an alert can fire.
-	// Redis is disposable — losing it degrades protection, never correctness
-	// (docs/spec/01-platform.md, "G-1 — Postgres is the only source of
-	// truth") — and the caller must have a defence that does not live in
-	// Redis: the Postgres login lockout, Traefik's per-IP limit.
-	FailOpen
+	// FallBackLocally counts the request in this replica's memory instead,
+	// under the same key, Max and Window, and logs an error once per window
+	// so an alert can fire (localLimiter). The limit keeps holding while Redis
+	// is down, once per replica: with two replicas a caller gets at most twice
+	// Max. It is the degraded mode, not a second source of truth: its counts
+	// are dropped when they expire or are evicted, and the next answer from
+	// Redis is the count again (docs/spec/01-platform.md, "P-38 — Rate
+	// limiting"). For limits whose request must not become a 503 while Redis
+	// is down: login (the lockout that stops password guessing lives in
+	// Postgres), restaurant sign-up and the verification-email resend.
+	FallBackLocally
 )
 
 // Limit is one fixed-window cap. The Redis key is "rl:{Name}:{Subject}". Name
@@ -69,8 +77,9 @@ func (l Limit) key() string { return "rl:" + l.Name + ":" + l.Subject }
 // in Postgres, not here (docs/spec/01-platform.md, "G-1 — Postgres is the only
 // source of truth").
 type RateLimiter struct {
-	rdb *redis.Client
-	log *slog.Logger
+	rdb   *redis.Client
+	log   *slog.Logger
+	local *localLimiter // used only while Redis cannot answer
 }
 
 // NewRateLimiter builds a RateLimiter over the shared client. A nil rdb gives a
@@ -79,14 +88,14 @@ func NewRateLimiter(rdb *redis.Client, log *slog.Logger) *RateLimiter {
 	if log == nil {
 		log = slog.Default()
 	}
-	return &RateLimiter{rdb: rdb, log: log}
+	return &RateLimiter{rdb: rdb, log: log, local: newLocalLimiter(localMaxEntriesPerLimit, time.Now)}
 }
 
 // Allow counts one request against l. It returns nil when the request may
 // proceed, a *RateLimitedError (errors.Is ErrRateLimited) when it is over the
 // cap, and ErrLimiterUnavailable only when Redis cannot answer and l fails
-// closed. The fail-open decision is made here, from l, so a caller never
-// filters error kinds: any non-nil error means "do not proceed".
+// closed. What happens when Redis cannot answer is decided here, from l, so a
+// caller never filters error kinds: any non-nil error means "do not proceed".
 func (rl *RateLimiter) Allow(ctx context.Context, l Limit) error {
 	if rl == nil || rl.rdb == nil {
 		return nil // no-op: allow everything in test/local mode without Redis
@@ -96,12 +105,16 @@ func (rl *RateLimiter) Allow(ctx context.Context, l Limit) error {
 	pipe.ExpireNX(ctx, l.key(), l.Window)
 	ttl := pipe.PTTL(ctx, l.key())
 	if _, err := pipe.Exec(ctx); err != nil {
-		if l.OnUnavailable == FailOpen {
-			rl.log.ErrorContext(ctx, "rate limiter unavailable; failing open",
-				"limit", l.Name, "error", err.Error())
-			return nil
+		if l.OnUnavailable != FallBackLocally {
+			return ErrLimiterUnavailable
 		}
-		return ErrLimiterUnavailable
+		logged, verdict := rl.local.allow(l)
+		if logged > 0 {
+			rl.log.ErrorContext(ctx, "rate limiter unavailable; counting in this replica's memory",
+				"limit", l.Name, "window", l.Window.String(),
+				"requests_since_last_log", logged, "error", err.Error())
+		}
+		return verdict
 	}
 	if incr.Val() > l.Max {
 		retry := ttl.Val()
@@ -141,4 +154,116 @@ func (rl *RateLimiter) SetCooldown(ctx context.Context, key string, ttl time.Dur
 		return ErrLimiterUnavailable
 	}
 	return nil
+}
+
+// localMaxEntriesPerLimit caps the counters the local fallback keeps for one
+// limit (one Limit.Name). Subjects come from the caller (an address, an
+// email), so without a cap a flood of made-up emails would grow memory for as
+// long as Redis is down. Names are constants in code, so the fallback holds at
+// most this many counters per limit: about 2 MB per limit at the cap, since a
+// counter keeps its key as a 32-byte hash, however long the email. A window
+// sees hundreds of subjects per limit at launch, not thousands.
+const localMaxEntriesPerLimit = 10_000
+
+// localSweepEvery is how often the fallback drops one limit's counters whose
+// window has ended. A sweep walks all of that limit's counters, so it runs at
+// most this often, never on every request.
+const localSweepEvery = time.Minute
+
+// localLimiter is the degraded mode behind FallBackLocally: the same
+// fixed-window count Redis keeps, held in this replica's memory while Redis
+// cannot answer. Each limit has its own counters, so a flood of made-up emails
+// on one limit cannot evict another limit's counters. Within a limit, a
+// counter whose window has ended is dropped by the next sweep, and beyond the
+// cap the least recently counted is evicted. Losing a counter costs at most a
+// window of extra allowance, exactly as losing a Redis key does.
+type localLimiter struct {
+	mu         sync.Mutex
+	now        func() time.Time
+	maxEntries int
+	limits     map[string]*localCounters // by Limit.Name
+}
+
+// localCounters is one limit's counters, most recently counted first.
+type localCounters struct {
+	byKey     map[[sha256.Size]byte]*list.Element // of *localCounter
+	lru       *list.List
+	nextSweep time.Time
+	nextLog   time.Time // the next fallback for this limit logs an error
+	unlogged  int64     // fallbacks counted since the last error was logged
+}
+
+type localCounter struct {
+	key     [sha256.Size]byte
+	count   int64
+	resetAt time.Time // the end of the window, as Redis's TTL would be
+}
+
+func newLocalLimiter(maxEntries int, now func() time.Time) *localLimiter {
+	return &localLimiter{now: now, maxEntries: maxEntries, limits: map[string]*localCounters{}}
+}
+
+// allow counts one request against l, with Redis's answers: a
+// *RateLimitedError carrying the time left in the window when the count is
+// over l.Max, nil otherwise. logged is non-zero on the first fallback for
+// l.Name in each l.Window, and is then the number of fallbacks for that limit
+// since the last time, so the caller logs one error per window per limit, not
+// one per request.
+func (ll *localLimiter) allow(l Limit) (logged int64, verdict error) {
+	now := ll.now()
+	key := sha256.Sum256([]byte(l.key()))
+
+	ll.mu.Lock()
+	defer ll.mu.Unlock()
+
+	cs := ll.limits[l.Name]
+	if cs == nil {
+		cs = &localCounters{byKey: map[[sha256.Size]byte]*list.Element{}, lru: list.New()}
+		ll.limits[l.Name] = cs
+	}
+	cs.unlogged++
+	if !now.Before(cs.nextLog) {
+		logged, cs.unlogged = cs.unlogged, 0
+		cs.nextLog = now.Add(l.Window)
+	}
+	if !now.Before(cs.nextSweep) {
+		cs.dropExpired(now)
+		cs.nextSweep = now.Add(localSweepEvery)
+	}
+
+	var c *localCounter
+	if e, ok := cs.byKey[key]; ok {
+		c = e.Value.(*localCounter)
+		cs.lru.MoveToFront(e)
+		if !now.Before(c.resetAt) { // the window ended: this request opens the next
+			c.count, c.resetAt = 0, now.Add(l.Window)
+		}
+	} else {
+		for len(cs.byKey) >= ll.maxEntries {
+			cs.remove(cs.lru.Back())
+		}
+		c = &localCounter{key: key, resetAt: now.Add(l.Window)}
+		cs.byKey[key] = cs.lru.PushFront(c)
+	}
+	c.count++
+	if c.count > l.Max {
+		return logged, &RateLimitedError{RetryAfter: c.resetAt.Sub(now)}
+	}
+	return logged, nil
+}
+
+// dropExpired removes every counter whose window has ended.
+func (cs *localCounters) dropExpired(now time.Time) {
+	for e := cs.lru.Back(); e != nil; {
+		prev := e.Prev()
+		if !now.Before(e.Value.(*localCounter).resetAt) {
+			cs.remove(e)
+		}
+		e = prev
+	}
+}
+
+func (cs *localCounters) remove(e *list.Element) {
+	delete(cs.byKey, e.Value.(*localCounter).key)
+	cs.lru.Remove(e)
 }
