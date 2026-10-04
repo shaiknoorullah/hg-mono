@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 )
 
 // mockStripe is a test double for StripeClient. It never fabricates ids the way
@@ -25,6 +26,7 @@ type mockStripe struct {
 	GetConnectFn    func(id string) (*StripeAccount, error)
 	TransferFn      func(CreateTransferInput) (*StripeTransfer, error)
 	VerifyWebhookFn func(payload []byte, sig string) (StripeEvent, error)
+	ListEventsFn    func(since time.Time) ([]StripeEvent, error)
 
 	// Recorded idempotency keys, to assert exactly-once behaviour.
 	TransferKeys []string
@@ -116,6 +118,13 @@ func (m *mockStripe) VerifyWebhook(payload []byte, sig string) (StripeEvent, err
 		return m.VerifyWebhookFn(payload, sig)
 	}
 	return StripeEvent{}, errors.New("no webhook verifier set")
+}
+
+func (m *mockStripe) ListEventsSince(_ context.Context, since time.Time) ([]StripeEvent, error) {
+	if m.ListEventsFn != nil {
+		return m.ListEventsFn(since)
+	}
+	return nil, nil
 }
 
 var _ StripeClient = (*mockStripe)(nil)

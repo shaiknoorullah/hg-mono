@@ -1,0 +1,29 @@
+{
+  "scenario": "totp_enrolment",
+  "domain": "platform",
+  "schema": "TotpEnrolment",
+  "describes": "Two-step sign-in enrolment, step one: the authenticator URI and ten recovery codes, shown **once**. Step two is `verifyTotpEnrolment` with a live code.",
+  "operations": [
+    "enrollTotp"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth"
+  ],
+  "payload": {
+    "provisioning_uri": "otpauth://totp/HalalGoes:amina.rahman%40halalgoes.ca?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=HalalGoes&algorithm=SHA1&digits=6&period=30",
+    "recovery_codes": [
+      "8069-7852",
+      "7492-4359",
+      "1230-8140",
+      "3668-3331",
+      "6585-3872",
+      "1915-2666",
+      "6696-6864",
+      "9189-2501",
+      "7249-7072",
+      "8795-4754"
+    ]
+  }
+}

@@ -48,6 +48,14 @@ info:
 
     Operations carry `x-version: V0` (in the 43-feature V0 cut) or `x-version: V1`
     (needed to make a V0 screen coherent, but not itself V0).
+
+    On 2026-10-01 the owner moved into V0 the operations launch screens depend on:
+    forgot and reset password, changing your own password, two-step sign-in enrolment,
+    the staff list and staff invites, sign out everywhere, restaurant payout history,
+    marking an item out of stock, restaurant menu editing and the menu review queue; and
+    added admin edits and removals of a menu item on a restaurant's behalf. Source:
+    `docs/decisions/README.md`, "Settled — redesign decisions, round 2", "Launch scope
+    and contract".
   contact:
     name: HalalGoes platform team
     email: shaiknooru247@gmail.com
@@ -576,7 +584,7 @@ paths:
       tags: [auth]
       summary: Revoke every session in the account's family
       x-roles: [CUSTOMER, RIDER, RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
-      x-version: V1
+      x-version: V0
       responses:
         '204':
           description: All sessions revoked.
@@ -664,7 +672,7 @@ paths:
       description: 'P-03. Always 200. Token TTL 30 min, single-use.'
       security: []
       x-roles: [PUBLIC]
-      x-version: V1
+      x-version: V0
       x-rate-class: AUTH
       requestBody:
         required: true
@@ -697,7 +705,7 @@ paths:
         P-03. Revokes **every** session in the account's family and sends a security email.
       security: []
       x-roles: [PUBLIC]
-      x-version: V1
+      x-version: V0
       x-rate-class: AUTH
       requestBody:
         required: true
@@ -730,8 +738,15 @@ paths:
       summary: Change the password of the calling account
       description: |
         P-03. Revokes every session except the calling one, which is re-issued.
+
+        A wrong current password is `422 INVALID_CREDENTIALS`, never `401`: the caller's
+        session is valid, and a client treats every `401` as an expired session — it would
+        refresh and send the wrong password a second time, counting double toward the
+        account lockout, or sign the person out instead of saying the password is wrong.
+        The backend still answers `401` until
+        [#238](https://github.com/shaiknoorullah/hg-mono/issues/238) is fixed.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
-      x-version: V1
+      x-version: V0
       requestBody:
         required: true
         content:
@@ -757,6 +772,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/SessionGrant'
+        '422':
+          description: '`INVALID_CREDENTIALS` (wrong current password), `BREACHED_PASSWORD`, `VALIDATION_FAILED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/totp/enroll:
@@ -768,7 +789,7 @@ paths:
         P-01/P-03/A-03. Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`, optional
         for restaurant staff. Returns the provisioning URI and recovery codes exactly once.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
-      x-version: V1
+      x-version: V0
       responses:
         '200':
           description: Enrolment started.
@@ -789,7 +810,7 @@ paths:
       tags: [auth]
       summary: Confirm TOTP enrolment with a live code
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
-      x-version: V1
+      x-version: V0
       requestBody:
         required: true
         content:
@@ -3110,7 +3131,7 @@ paths:
         R-14. Categories carry no pricing and require no admin approval. Names are unique
         per restaurant, case-insensitively. Maximum 40 categories.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
-      x-version: V1
+      x-version: V0
       parameters:
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
@@ -3139,6 +3160,57 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         default:
           $ref: '#/components/responses/Error'
+  /v1/restaurant/menu/categories/{categoryId}:
+    patch:
+      operationId: updateMenuCategory
+      tags: [restaurant]
+      summary: Rename, reorder, deactivate or reactivate a menu category
+      description: |
+        R-14, menu and category management (`docs/spec/03-restaurant.md`). Part of
+        restaurants editing their own menu from launch (`docs/decisions/README.md`, round 2,
+        "How restaurants get their menu onto HalalGoes and change it"). Every field is
+        optional. Categories carry no halal claim and no price, so a change is live at once
+        and never goes to review.
+
+        Setting `is_active: false` hides the category and its items from customers at once
+        without changing any item's own state; `is_active: true` restores exactly the
+        visibility the items had before. The restaurant's own menu still shows an inactive
+        category. Setting `sort_order` moves the category to that position; the server
+        keeps the order a dense sequence by shifting the others in the same transaction.
+        A name already used by another of the restaurant's categories, ignoring case, is
+        `409 CATEGORY_NAME_TAKEN`. A category that is not on the caller's menu is `404`.
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/MenuCategoryIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuCategoryUpdateInput'
+      responses:
+        '200':
+          description: Updated category.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MenuCategory'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          description: '`CATEGORY_NAME_TAKEN`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
   /v1/restaurant/menu/items:
     post:
       operationId: createMenuItem
@@ -3155,7 +3227,7 @@ paths:
         from the restaurant's approved certificate. Items containing alcohol or a
         pork-derived keyword are rejected outright.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
-      x-version: V1
+      x-version: V0
       parameters:
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
@@ -3201,7 +3273,7 @@ paths:
         while orders are in flight is always permitted — order lines snapshot their content
         and price, so nothing retroactively changes what a customer bought.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
-      x-version: V1
+      x-version: V0
       parameters:
         - $ref: '#/components/parameters/MenuItemIdPath'
       requestBody:
@@ -3240,7 +3312,7 @@ paths:
         null for indefinitely. Marking an item unavailable never touches an accepted order
         containing it, and never mutates a customer's cart.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
-      x-version: V1
+      x-version: V0
       parameters:
         - $ref: '#/components/parameters/MenuItemIdPath'
       requestBody:
@@ -4377,7 +4449,7 @@ paths:
         payout in `HELD` with the exact Stripe requirement list surfaced, and no transfer is
         attempted.
       x-roles: [RESTAURANT_OWNER]
-      x-version: V1
+      x-version: V0
       parameters:
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Cursor'
@@ -4406,7 +4478,7 @@ paths:
       summary: List staff accounts
       description: 'A-01. Admins may read the list; only a super admin may change it.'
       x-roles: [ADMIN, SUPER_ADMIN]
-      x-version: V1
+      x-version: V0
       parameters:
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Cursor'
@@ -4437,7 +4509,7 @@ paths:
         `ACTIVE` only after the invitee sets a password and enrols TOTP. "Remove" is never a
         hard delete. A staff user may never change their own role.
       x-roles: [SUPER_ADMIN]
-      x-version: V1
+      x-version: V0
       parameters:
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
@@ -5184,6 +5256,97 @@ paths:
           $ref: '#/components/responses/Error'
         default:
           $ref: '#/components/responses/Error'
+  /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/RestaurantIdPath'
+      - $ref: '#/components/parameters/MenuItemIdPath'
+    patch:
+      operationId: updateMenuItemOnBehalf
+      tags: [admin]
+      summary: Update a menu item on a restaurant's behalf
+      description: |
+        The admin twin of `updateMenuItem`, added to launch by the owner on 2026-10-01
+        (`docs/decisions/README.md`, round 2, "Launch scope and contract"). The same DTO
+        and the same guardrails: no `HALAL_CERTIFIED` assertion (`403 FIELD_NOT_WRITABLE`),
+        no alcohol or pork keyword (`422 PROHIBITED_INGREDIENT`), price inside the permitted
+        band (`422 PRICE_OUT_OF_RANGE`).
+
+        Operational fields apply immediately, as for the restaurant. Claim-bearing fields
+        are **approved on save**, exactly as an item an admin creates is approved on
+        creation: the reviewer and the author are the same accountable person. The new
+        version becomes `live_version`, and the acting admin is recorded on it and on the
+        audit event.
+
+        A restaurant's own edit is never silently discarded: when the item has a version in
+        `PENDING_REVIEW` and the body carries a claim-bearing field, the call is
+        `409 MENU_VERSION_PENDING` — decide that version first (`decideMenuVersion`). An item
+        that is not on this restaurant's menu is `404`, the same as one that does not exist.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuItemUpdateInput'
+      responses:
+        '200':
+          description: Updated item; any claim-bearing change is already live.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MenuItemOwnerView'
+        '403':
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          description: '`MENU_VERSION_PENDING` — the restaurant has an edit waiting for review.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: '`PRICE_OUT_OF_RANGE`, `PROHIBITED_INGREDIENT`, `VALIDATION_FAILED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteMenuItemOnBehalf
+      tags: [admin]
+      summary: Remove a menu item on a restaurant's behalf
+      description: |
+        Added to launch with `updateMenuItemOnBehalf` (`docs/decisions/README.md`, round 2,
+        "Launch scope and contract": an admin updates or removes a menu item on a
+        restaurant's behalf). A soft delete: the item leaves every customer read and the
+        restaurant's own menu at once, and the acting admin is recorded on the audit event.
+
+        Nothing a customer already bought changes — order lines snapshot their content and
+        price. A cart line holding the item is annotated unavailable with reason
+        `ITEM_DELETED`, never silently removed. A version of the item still waiting for
+        review is withdrawn, and deciding it afterwards is `409 ITEM_DELETED`. Removing an
+        item that is already removed, or that is not on this restaurant's menu, is `404`.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V0
+      responses:
+        '204':
+          description: Item removed.
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
   /v1/admin/menu-reviews:
     get:
       operationId: listMenuReviewQueue
@@ -5196,7 +5359,7 @@ paths:
         never auto-approved** (decision R-05): silence must not become consent on a halal
         claim.
       x-roles: [ADMIN, SUPER_ADMIN]
-      x-version: V1
+      x-version: V0
       parameters:
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Cursor'
@@ -5234,7 +5397,7 @@ paths:
         one transaction. Rejection requires a reason code, which the restaurant sees
         verbatim and may resubmit against without limit.
       x-roles: [ADMIN, SUPER_ADMIN]
-      x-version: V1
+      x-version: V0
       parameters:
         - name: versionId
           in: path
@@ -5832,6 +5995,13 @@ components:
       schema:
         type: string
         format: uuid
+    MenuCategoryIdPath:
+      name: categoryId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     OfferIdPath:
       name: offerId
       in: path
@@ -6206,6 +6376,7 @@ components:
         - ITEM_BLOCKED_BY_ADMIN
         - ITEM_DELETED
         - NO_LIVE_MENU_ITEM
+        - MENU_VERSION_PENDING
         - DOCUMENTS_INCOMPLETE
         - DOCUMENT_EXPIRES_TOO_SOON
         - UNDERAGE
@@ -9801,6 +9972,26 @@ components:
         sort_order:
           type: integer
           format: int32
+    MenuCategoryUpdateInput:
+      type: object
+      additionalProperties: false
+      description: |
+        Partial update of a menu category — every field is optional. All of it is
+        operational and live at once: a category carries no halal claim and is never
+        reviewed.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        description:
+          type: string
+          maxLength: 500
+        sort_order:
+          type: integer
+          format: int32
+        is_active:
+          type: boolean
     MenuItemInput:
       type: object
       additionalProperties: false
