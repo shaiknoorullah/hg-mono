@@ -1728,6 +1728,7 @@ CREATE TABLE realtime_connection (
   - **I-21.2** A principal can never receive an event for a channel it is not subscribed to, and can never subscribe to a channel it cannot pass the ownership check for.
   - **I-21.3** Losing dispatch of an order revokes the rider's `order:{id}` subscription within 2 s.
   - **I-21.4** Payloads are projected per role by the same projection types as HTTP (P-07); there is one serializer per (event, role), not a shared struct with conditional blanking.
+    A subscriber who holds several roles is projected for the one role that authorised the subscription (customer, then rider, then restaurant staff, then support), never for the union of their roles. Projection fails closed: an event type that has no projection for a role sends that role nothing, and the drop is logged ([realtime events in the contract's shapes](https://github.com/shaiknoorullah/hg-mono/issues/247)).
 - **Acceptance criteria**:
   1. Given customer C2, When C2 subscribes to `order:{X}` belonging to C1, Then `subscribe_error{code:"not_found"}` and no events are ever delivered.
   2. Given a rider is unassigned, When 2 s pass, Then the rider's socket receives `unsubscribed{channel:"order:X", reason:"no_longer_authorized"}` and subsequent events for X are not delivered to it.
