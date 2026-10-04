@@ -18,6 +18,7 @@ const (
 	codeContentType      httpx.ErrorCode = "CONTENT_TYPE_MISMATCH"
 	codeChecksum         httpx.ErrorCode = "CHECKSUM_MISMATCH"
 	codeImageTooSmall    httpx.ErrorCode = "IMAGE_TOO_SMALL"
+	codePrecondition     httpx.ErrorCode = "PRECONDITION_NOT_MET"
 )
 
 // Handler serves the uploads/documents operations (P-28).
@@ -120,7 +121,9 @@ func (h *Handler) CreateUpload(w http.ResponseWriter, r *http.Request) {
 
 // CreateDocumentDownloadURL implements createDocumentDownloadUrl (P-28): a
 // 120-second attachment URL, ownership or the global download action required,
-// and the issuance audited. Another partner's document is 404 with no URL.
+// and the issuance audited. Another partner's document is 404 with no URL. A
+// file the virus scanner has not passed, or whose bytes changed since, is 409
+// with no URL (https://github.com/shaiknoorullah/hg-mono/issues/218).
 func (h *Handler) CreateDocumentDownloadURL(w http.ResponseWriter, r *http.Request) {
 	documentID := chi.URLParam(r, "documentId")
 	p := httpx.PrincipalFrom(r.Context())
@@ -128,11 +131,18 @@ func (h *Handler) CreateDocumentDownloadURL(w http.ResponseWriter, r *http.Reque
 
 	res, err := h.repo.DownloadURL(r.Context(), actorFrom(r), documentID, canReadAny)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
+		switch {
+		case errors.Is(err, ErrNotFound):
 			httpx.Fail(w, r, http.StatusNotFound, codeNotFound, "No such document.", nil)
-			return
+		case errors.Is(err, ErrNotScannedClean):
+			httpx.Fail(w, r, http.StatusConflict, codePrecondition,
+				"The document's file has not passed the virus scan, so it cannot be downloaded.", nil)
+		case errors.Is(err, errNotConfigured):
+			httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeServiceUnavailable,
+				"The object store is not configured; the file cannot be verified.", nil)
+		default:
+			h.failInternal(w, r, err)
 		}
-		h.failInternal(w, r, err)
 		return
 	}
 	httpx.Respond(w, r, http.StatusOK, presignedDownload{

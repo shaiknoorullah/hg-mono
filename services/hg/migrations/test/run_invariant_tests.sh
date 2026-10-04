@@ -333,6 +333,38 @@ reject "a document whose file is not virus-scanned clean cannot be approved" "ky
        reviewed_by, reviewed_at)
      VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
              '15000000-0000-4000-8000-000000000003','APPROVED','11111111-1111-4111-8111-111111111111',now());"
+reject "a virus scan verdict cannot be changed except by a recorded re-scan" "stored_object_verdict_write_once" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state)
+     VALUES ('15000000-0000-4000-8000-000000000004','hg-kyc','kyc/t/g.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('v','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),'CLEAN');
+   UPDATE stored_object SET virus_scan_state='PENDING' WHERE id='15000000-0000-4000-8000-000000000004';"
+# Approval is not a one-time check: when a CLEAN file is found INFECTED later,
+# its approved document goes back to review with an audit row. Issue #218:
+# https://github.com/shaiknoorullah/hg-mono/issues/218
+accept "an approved document whose file turns INFECTED goes back to review" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state)
+     VALUES ('15000000-0000-4000-8000-000000000005','hg-kyc','kyc/t/h.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('u','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),'CLEAN');
+   INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+       reviewed_by, reviewed_at)
+     VALUES ('15000000-0000-4000-8000-000000000006','RESTAURANT','33333333-3333-4333-8333-333333333333',
+             'BUSINESS_LICENCE','15000000-0000-4000-8000-000000000005','APPROVED',
+             '11111111-1111-4111-8111-111111111111',now());
+   SELECT set_config('hg.rescan_reason', 'invariant test: newer signatures', true);
+   UPDATE stored_object SET virus_scan_state='INFECTED', virus_scan_detail='Eicar-Test-Signature'
+    WHERE id='15000000-0000-4000-8000-000000000005';
+   DO \$\$ BEGIN
+     IF NOT EXISTS (SELECT 1 FROM kyc_document WHERE id='15000000-0000-4000-8000-000000000006'
+                     AND state='IN_REVIEW' AND reviewed_by IS NULL AND deadline_at IS NOT NULL) THEN
+       RAISE EXCEPTION 'the document is still approved after its file turned INFECTED';
+     END IF;
+     IF NOT EXISTS (SELECT 1 FROM audit_event WHERE subject_id='15000000-0000-4000-8000-000000000006'
+                     AND action='kyc_document.reopen_virus_scan' AND reason_code='INFECTED') THEN
+       RAISE EXCEPTION 'the reopened document has no audit row';
+     END IF;
+   END \$\$;"
 reject "a document under review must carry its 72h SLA deadline" "kyc_document_deadline_required" \
   "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
        state, uploaded_by, confirmed_at)

@@ -22,10 +22,28 @@ const (
 	VerdictClean Verdict = "CLEAN"
 	// VerdictInfected: the scanner matched a signature; the detail names it.
 	VerdictInfected Verdict = "INFECTED"
-	// VerdictTooLarge: the file is bigger than the scanner will read, so it was
-	// never fully scanned. Flagged, never passed: an unscanned tail could hide
-	// anything.
+	// VerdictTooLarge: the file, or something packed inside it, is bigger than
+	// the scanner will read, so it was never fully scanned. Flagged, never
+	// passed: an unscanned part could hide anything.
 	VerdictTooLarge Verdict = "TOO_LARGE"
+	// VerdictUnscannable: the file holds encrypted content the scanner cannot
+	// look inside. Flagged, never passed, for the same reason.
+	VerdictUnscannable Verdict = "UNSCANNABLE"
+	// VerdictError: the scan finished but cannot vouch for the confirmed file —
+	// the bytes read were not the bytes confirmed, or the object could not be
+	// read at all after repeated tries. The scan worker records it; the scanner
+	// itself never returns it.
+	VerdictError Verdict = "ERROR"
+)
+
+// clamd reports a scan it could not complete as a heuristic "virus" when
+// AlertExceedsMax and AlertEncrypted are on (deploy/docker-compose.yml turns
+// them on). Without them clamd skips the content and answers OK, which would
+// pass a file nobody read. These prefixes are the signature names it uses
+// (https://docs.clamav.net/manual/Usage/Configuration.html, clamd.conf).
+const (
+	sigLimitsExceeded = "Heuristics.Limits.Exceeded"
+	sigEncrypted      = "Heuristics.Encrypted"
 )
 
 // Scanner scans a stream of bytes. A nil error means the verdict is final; an
@@ -128,9 +146,11 @@ func streamInstream(w io.Writer, r io.Reader) (srcErr, connErr error) {
 	return nil, err
 }
 
-// parseClamdReply turns one clamd reply line into a verdict. Anything that is
-// not a clear OK, FOUND or size-limit answer is an error, so the file waits
-// for a scanner that can answer rather than being passed on a guess.
+// parseClamdReply turns one clamd reply line into a verdict. A FOUND naming a
+// scan limit or encrypted content means part of the file went unread, so it is
+// TOO_LARGE or UNSCANNABLE — not CLEAN, and not a virus either. Anything that is
+// not a clear OK, FOUND or size-limit answer is an error, so the file waits for
+// a scanner that can answer rather than being passed on a guess.
 func parseClamdReply(reply string) (Verdict, string, error) {
 	switch {
 	case strings.HasPrefix(reply, replyTooLarge):
@@ -143,7 +163,14 @@ func parseClamdReply(reply string) (Verdict, string, error) {
 	case body == "OK":
 		return VerdictClean, "", nil
 	case strings.HasSuffix(body, " FOUND"):
-		return VerdictInfected, strings.TrimSuffix(body, " FOUND"), nil
+		sig := strings.TrimSuffix(body, " FOUND")
+		switch {
+		case strings.HasPrefix(sig, sigLimitsExceeded):
+			return VerdictTooLarge, sig, nil
+		case strings.HasPrefix(sig, sigEncrypted):
+			return VerdictUnscannable, sig, nil
+		}
+		return VerdictInfected, sig, nil
 	}
 	return "", "", fmt.Errorf("clamd: unrecognised reply %q", reply)
 }

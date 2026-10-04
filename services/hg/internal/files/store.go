@@ -1,9 +1,13 @@
 package files
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"io"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -14,11 +18,21 @@ import (
 // ErrNotFound is returned when an object or document row does not exist.
 var ErrNotFound = errors.New("files: not found")
 
+// ErrNotScannedClean is returned when a download is asked for a document whose
+// file the virus scanner has not passed: still pending, infected, too large or
+// unscannable, or found changed since its scan. No URL is minted for it
+// (https://github.com/shaiknoorullah/hg-mono/issues/218).
+var ErrNotScannedClean = errors.New("files: file not virus-scanned clean")
+
 // Presigner is the narrow slice of the MinIO client this module needs. Keeping
 // it an interface means the key/DB logic is unit-testable without a live MinIO,
-// and the presign call itself is a thin, mockable seam.
+// and the presign call itself is a thin, mockable seam. *minio.Client
+// satisfies it.
 type Presigner interface {
-	PresignedPutObject(ctx context.Context, bucket, object string, expires time.Duration) (*url.URL, error)
+	// PresignHeader presigns method on the object with extraHeaders included in
+	// the signature, so a request that does not carry exactly those header
+	// values is refused by the store.
+	PresignHeader(ctx context.Context, method, bucket, object string, expires time.Duration, reqParams url.Values, extraHeaders http.Header) (*url.URL, error)
 	PresignedGetObject(ctx context.Context, bucket, object string, expires time.Duration, reqParams url.Values) (*url.URL, error)
 }
 
@@ -49,8 +63,12 @@ type storedObjectRow struct {
 }
 
 // AllocateUpload inserts a PENDING stored_object with a server-generated key and
-// a one-hour deadline, then returns a presigned PUT whose TTL is 300 s (P-28).
-// The signature binds the object key; the client controls only the bytes.
+// a one-hour deadline, then returns a presigned PUT whose TTL is 300 s
+// (docs/spec/01-platform.md#p-28--presigned-upload-and-download). The signature
+// binds the object key and the declared Content-Type, Content-Length and
+// SHA-256, so the URL can only ever write the declared bytes: reusing it after
+// confirm or after the virus scan cannot swap the file
+// (https://github.com/shaiknoorullah/hg-mono/issues/218).
 func (r *Repo) AllocateUpload(ctx context.Context, actor Actor, p Purpose, in keyInputs, contentType string, byteSize int64, sha256hex string) (uploadResult, error) {
 	var out uploadResult
 	bucket, ok := bucketFor(p, r.buckets)
@@ -99,20 +117,26 @@ RETURNING id`
 		return out, err
 	}
 
-	u, err := r.presigner.PresignedPutObject(ctx, bucket, key, 300*time.Second)
+	// These headers are signed, not merely advised: a signature minted for a
+	// 1 MiB JPEG cannot push a 9 MiB PDF, and the store checks the body against
+	// x-amz-checksum-sha256, so different bytes are refused (contract
+	// openapi.yaml PresignedUpload.required_headers).
+	required := map[string]string{
+		"Content-Type":          contentType,
+		"Content-Length":        itoa(byteSize),
+		"x-amz-checksum-sha256": base64.StdEncoding.EncodeToString(sha),
+	}
+	signed := http.Header{}
+	for k, v := range required {
+		signed.Set(k, v)
+	}
+	u, err := r.presigner.PresignHeader(ctx, http.MethodPut, bucket, key, 300*time.Second, nil, signed)
 	if err != nil {
 		return out, err
 	}
 	out.URL = u.String()
 	out.ExpiresAt = time.Now().UTC().Add(300 * time.Second)
-	// x-amz-checksum-sha256 binds the content checksum into the presigned
-	// signature: a signature minted for a 1 MiB JPEG cannot be reused to
-	// push a 9 MiB PDF (contract openapi.yaml PresignedUpload.required_headers).
-	out.RequiredHeaders = map[string]string{
-		"Content-Type":          contentType,
-		"Content-Length":        itoa(byteSize),
-		"x-amz-checksum-sha256": base64.StdEncoding.EncodeToString(sha),
-	}
+	out.RequiredHeaders = required
 	return out, nil
 }
 
@@ -129,16 +153,26 @@ type uploadResult struct {
 // the request id in the audit trail. Ownership/authorization is decided by the
 // caller before this runs; a document the caller may not see returns ErrNotFound
 // so no URL is minted and existence is not leaked.
+//
+// Only a file the virus scanner passed is served, and only while its bytes are
+// still the ones that were scanned: the object is re-read and its SHA-256
+// compared with the confirmed one before the URL is minted. A file that changed
+// is marked ERROR, which sends any approved document on it back to review (see
+// migration 00028_virus_scan). Both refusals are ErrNotScannedClean
+// (https://github.com/shaiknoorullah/hg-mono/issues/218).
 func (r *Repo) DownloadURL(ctx context.Context, actor Actor, documentID string, canReadAny bool) (downloadResult, error) {
 	var out downloadResult
-	var bucket, key, subjectType, subjectID string
+	var objectID, bucket, key, subjectType, subjectID, scan string
+	var size int64
+	var sha []byte
 	err := inTx(ctx, r.pool, func(tx pgx.Tx) error {
 		const q = `
-SELECT so.bucket, so.object_key, kd.subject_type::text, kd.subject_id::text
+SELECT so.id, so.bucket, so.object_key, so.byte_size, so.sha256, so.virus_scan_state,
+       kd.subject_type::text, kd.subject_id::text
   FROM kyc_document kd
   JOIN stored_object so ON so.id = kd.stored_object_id
  WHERE kd.id = $1 AND kd.deleted_at IS NULL`
-		err := tx.QueryRow(ctx, q, documentID).Scan(&bucket, &key, &subjectType, &subjectID)
+		err := tx.QueryRow(ctx, q, documentID).Scan(&objectID, &bucket, &key, &size, &sha, &scan, &subjectType, &subjectID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -149,6 +183,43 @@ SELECT so.bucket, so.object_key, kd.subject_type::text, kd.subject_id::text
 		// kyc_document.download action (admins) bypasses the ownership check.
 		if !canReadAny && !r.ownsSubject(ctx, tx, actor.AccountID, subjectType, subjectID) {
 			return ErrNotFound
+		}
+		return nil
+	})
+	if err != nil {
+		return out, err
+	}
+	if scan != string(VerdictClean) {
+		return out, ErrNotScannedClean
+	}
+	if r.objects == nil {
+		return out, errNotConfigured
+	}
+	same, err := sameBytes(ctx, r.objects, bucket, key, size, sha)
+	if err != nil {
+		return out, err
+	}
+	if !same {
+		if err := inTx(ctx, r.pool, func(tx pgx.Tx) error {
+			return overrideVerdict(ctx, tx, actor, objectID, "ERROR",
+				"checksum mismatch: the stored bytes changed after the scan",
+				"stored_object.integrity_failed", "checksum mismatch at download")
+		}); err != nil {
+			return out, err
+		}
+		return out, ErrNotScannedClean
+	}
+
+	err = inTx(ctx, r.pool, func(tx pgx.Tx) error {
+		// Still CLEAN now, not only when first read: a re-scan may have landed
+		// while the bytes were being checked.
+		var now string
+		if err := tx.QueryRow(ctx,
+			`SELECT virus_scan_state FROM stored_object WHERE id = $1 FOR SHARE`, objectID).Scan(&now); err != nil {
+			return err
+		}
+		if now != string(VerdictClean) {
+			return ErrNotScannedClean
 		}
 		return writeAudit(ctx, tx, auditEntry{
 			actor:       actor,
@@ -171,6 +242,22 @@ SELECT so.bucket, so.object_key, kd.subject_type::text, kd.subject_id::text
 	out.URL = u.String()
 	out.ExpiresAt = time.Now().UTC().Add(120 * time.Second)
 	return out, nil
+}
+
+// sameBytes reports whether the object at key is exactly size bytes with the
+// given SHA-256. An error means the store could not be read, not a mismatch.
+func sameBytes(ctx context.Context, objects ObjectStore, bucket, key string, size int64, sha []byte) (bool, error) {
+	rc, err := objects.Open(ctx, bucket, key)
+	if err != nil {
+		return false, err
+	}
+	defer rc.Close()
+	h := sha256.New()
+	n, err := io.Copy(h, rc)
+	if err != nil {
+		return false, err
+	}
+	return n == size && bytes.Equal(h.Sum(nil), sha), nil
 }
 
 type downloadResult struct {

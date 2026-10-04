@@ -219,7 +219,7 @@ services:
 
   # Virus scanner for KYC uploads (docs/spec/01-platform.md#p-28--presigned-upload-and-download).
   # The API streams each confirmed document to clamd over INSTREAM and records
-  # CLEAN, INFECTED or TOO_LARGE.
+  # CLEAN, INFECTED, TOO_LARGE or UNSCANNABLE.
   # The API does not depend_on it: while clamd is down (including its first
   # start, which downloads the signature database and takes a few minutes),
   # documents wait in PENDING and cannot be approved — nothing is passed
@@ -228,6 +228,18 @@ services:
   clamav:
     image: clamav/clamav:1.4
     restart: unless-stopped
+    # The image writes each CLAMD_CONF_<Option> into clamd.conf at start. With
+    # the stock settings clamd skips an archive member or embedded file over
+    # its limits, and encrypted content, and still answers "OK" — a file nobody
+    # fully read would be passed CLEAN. These make clamd report them instead
+    # (Heuristics.Limits.Exceeded.*, Heuristics.Encrypted.*), which the API
+    # records as TOO_LARGE or UNSCANNABLE, never CLEAN
+    # (https://github.com/shaiknoorullah/hg-mono/issues/218).
+    environment:
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      CLAMD_CONF_AlertEncrypted: "yes"
+      CLAMD_CONF_AlertBrokenExecutables: "yes"
+      CLAMD_CONF_StreamMaxLength: 25M
     volumes:
       - clamavdb:/var/lib/clamav
     ports:

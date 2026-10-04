@@ -28,6 +28,16 @@ type fakeClamd struct {
 	cmds []string
 }
 
+// fakeClamdFindings maps content to the reply clamd gives for it. Besides
+// EICAR, the fake plays clamd with AlertExceedsMax and AlertEncrypted on: a
+// file with an over-limit or encrypted part comes back as a heuristic FOUND.
+var fakeClamdFindings = map[string]string{
+	eicar:               "stream: Eicar-Test-Signature FOUND",
+	"<<over-max-file>>": "stream: Heuristics.Limits.Exceeded.MaxFileSize FOUND",
+	"<<encrypted-pdf>>": "stream: Heuristics.Encrypted.PDF FOUND",
+	"<<broken-exe>>":    "stream: Heuristics.Broken.Executable FOUND",
+}
+
 func startFakeClamd(t *testing.T, limit int) *fakeClamd {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -75,8 +85,12 @@ func (f *fakeClamd) serve(conn net.Conn) {
 			break
 		}
 	}
-	if reply == "stream: OK" && bytes.Contains(got, []byte(eicar)) {
-		reply = "stream: Eicar-Test-Signature FOUND"
+	if reply == "stream: OK" {
+		for marker, r := range fakeClamdFindings {
+			if bytes.Contains(got, []byte(marker)) {
+				reply = r
+			}
+		}
 	}
 	f.mu.Lock()
 	f.got, f.cmds = got, append(f.cmds, string(cmd))
@@ -107,6 +121,13 @@ func TestClamdScannerVerdicts(t *testing.T) {
 		{"clean, multi-chunk", clean, VerdictClean, ""},
 		{"infected", append([]byte("%PDF-1.7\n"), eicar...), VerdictInfected, "Eicar-Test-Signature"},
 		{"over clamd's stream limit", make([]byte, limit+instreamChunk), VerdictTooLarge, ""},
+		// Parts clamd skipped are never CLEAN, and are not called a virus either.
+		{"an archive member over clamd's limits", []byte("PK <<over-max-file>>"),
+			VerdictTooLarge, "Heuristics.Limits.Exceeded.MaxFileSize"},
+		{"an encrypted PDF", []byte("%PDF-1.7 <<encrypted-pdf>>"),
+			VerdictUnscannable, "Heuristics.Encrypted.PDF"},
+		{"a broken executable is a finding", []byte("MZ <<broken-exe>>"),
+			VerdictInfected, "Heuristics.Broken.Executable"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

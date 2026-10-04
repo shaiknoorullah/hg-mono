@@ -952,9 +952,11 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     automatically; a document type with an expiry must have `expires_on` set before it can be
     `APPROVED` → `422 EXPIRY_REQUIRED`.
   - R6 A document may be set `APPROVED` only when its file's virus scan is `CLEAN` →
-    otherwise `409 PRECONDITION_NOT_MET`. A scan still pending, an `INFECTED` file and a file
-    `TOO_LARGE` to scan all refuse. The database enforces it too (migration
-    `services/hg/migrations/00028_virus_scan.sql`); the scan itself is specified in
+    otherwise `409 PRECONDITION_NOT_MET`. A scan still pending, an `INFECTED` file, a file
+    `TOO_LARGE` or `UNSCANNABLE`, and a file whose bytes changed (`ERROR`) all refuse. The
+    database enforces it too (migration `services/hg/migrations/00028_virus_scan.sql`), and
+    keeps enforcing it: if the file later stops being `CLEAN`, the document returns to
+    `IN_REVIEW`. The scan itself is specified in
     [presigned upload and download](01-platform.md#p-28--presigned-upload-and-download).
 - **Acceptance criteria**:
   1. Given a `BUSINESS_REGISTRATION` with 3 of 4 checks recorded, when the admin approves it, then
