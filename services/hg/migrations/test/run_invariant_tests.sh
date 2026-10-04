@@ -114,6 +114,19 @@ reject "a terminal order carrying a deadline is rejected" "order_deadline_requir
      now()+interval '10 minutes','PREP_OVERDUE','CUSTOMER_CANCELLED',3000,0,419,0,444,500,4363);"
 reject "a non-terminal dispatch with no deadline is rejected" "dispatch_deadline_required" \
   "INSERT INTO dispatch (order_id, state) VALUES ('88888888-8888-4888-8888-888888888888','SEARCHING');"
+reject "an unprocessed Stripe webhook with no retry time is rejected" "webhook_event_deadline_required" \
+  "INSERT INTO webhook_event (stripe_event_id, type, payload, livemode, event_created_at)
+   VALUES ('evt_inv_nodl', 'payment_intent.succeeded', '{}', false, now());"
+reject "a dead-lettered Stripe webhook without the error that put it there is rejected" \
+  "webhook_event_dead_letter_has_error" \
+  "INSERT INTO webhook_event (stripe_event_id, type, payload, livemode, event_created_at, dead_lettered_at)
+   VALUES ('evt_inv_dead', 'payment_intent.succeeded', '{}', false, now(), now());"
+reject "an open chargeback with no evidence deadline is rejected" "chargeback_deadline_required" \
+  "INSERT INTO chargeback (order_id, stripe_dispute_id, amount_cents, state)
+   VALUES ('88888888-8888-4888-8888-888888888888', 'dp_inv_nodl', 100, 'needs_response');"
+reject "a closed chargeback still on a clock is rejected" "chargeback_deadline_required" \
+  "INSERT INTO chargeback (order_id, stripe_dispute_id, amount_cents, state, outcome, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', 'dp_inv_closed', 100, 'lost', 'lost', now(), 'submit_dispute_evidence');"
 zero_rows "no live order lacks a deadline" "SELECT * FROM order_without_deadline"
 zero_rows "no live dispatch lacks a deadline" "SELECT * FROM dispatch_without_deadline"
 

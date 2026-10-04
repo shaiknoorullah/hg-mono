@@ -188,39 +188,54 @@ func (r *Repo) InsertConnectAccount(ctx context.Context, ownerType, ownerID stri
 	return tx.Commit(ctx)
 }
 
-// UpdateConnectFromStripe applies an account.updated / capability.updated
-// webhook to connect_account (P-19 §account.updated keeps it current).
-func (r *Repo) UpdateConnectFromStripe(ctx context.Context, acct *StripeAccount) error {
+// connectUpdate is what applying an account.updated snapshot did.
+type connectUpdate int
+
+const (
+	connectUnknown connectUpdate = iota // no connect_account has this Stripe id
+	connectStale                        // a newer snapshot was already applied
+	connectApplied
+)
+
+// updateConnectFromStripe applies an account.updated webhook to
+// connect_account inside the caller's transaction (docs/spec/01-platform.md,
+// "P-19 — Stripe Connect: onboarding and payouts (Canada)", step 4:
+// account.updated keeps it current). asOf is the event's creation time:
+// an account is a snapshot with no lifecycle order, so an older snapshot
+// arriving after a newer one is skipped rather than allowed to undo it.
+func updateConnectFromStripe(ctx context.Context, tx pgx.Tx, acct *StripeAccount, asOf time.Time) (connectUpdate, error) {
 	reqs, _ := json.Marshal(connectReqsMap(acct))
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx) //nolint:errcheck
-	if _, err := tx.Exec(ctx, `
+	var ownerType, ownerID string
+	err := tx.QueryRow(ctx, `
 		UPDATE connect_account
 		   SET charges_enabled = $2, payouts_enabled = $3, details_submitted = $4,
-		       requirements = $5, disabled_reason = $6, updated_at = now()
-		 WHERE stripe_account_id = $1`,
+		       requirements = $5, disabled_reason = $6, last_stripe_event_created_at = $7, updated_at = now()
+		 WHERE stripe_account_id = $1
+		   AND (last_stripe_event_created_at IS NULL OR last_stripe_event_created_at <= $7)
+		RETURNING owner_type::text, owner_id::text`,
 		acct.ID, acct.ChargesEnabled, acct.PayoutsEnabled, acct.DetailsSubmitted,
-		reqs, nullStr(acct.DisabledReason)); err != nil {
-		return err
+		reqs, nullStr(acct.DisabledReason), asOf).Scan(&ownerType, &ownerID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		var known bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM connect_account WHERE stripe_account_id = $1)`,
+			acct.ID).Scan(&known); err != nil {
+			return connectUnknown, err
+		}
+		if known {
+			return connectStale, nil
+		}
+		return connectUnknown, nil
 	}
-	var ownerType, ownerID string
-	if err := tx.QueryRow(ctx,
-		`SELECT owner_type::text, owner_id::text FROM connect_account WHERE stripe_account_id = $1`,
-		acct.ID).Scan(&ownerType, &ownerID); errors.Is(err, pgx.ErrNoRows) {
-		return tx.Commit(ctx) // unknown Stripe account — nothing to reconcile
-	} else if err != nil {
-		return err
+	if err != nil {
+		return connectUnknown, err
 	}
 	// A restaurant's payout account reaching READY advances PAYOUT_PENDING → MENU_PENDING (R-11).
 	if ownerType == "RESTAURANT" {
 		if err := restaurant.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
-			return err
+			return connectUnknown, err
 		}
 	}
-	return tx.Commit(ctx)
+	return connectApplied, nil
 }
 
 // connectReqsMap builds the requirements JSONB map to store. The

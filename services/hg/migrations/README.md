@@ -15,7 +15,7 @@ migrations/
   0000N_*.sql        the migrations, in order
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 59 assertions about what the DB refuses
+  test/              invariant tests: 63 assertions about what the DB refuses
   tools/             contract-enum generator and checker
 ```
 
@@ -50,7 +50,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | # | Invariant | Mechanism |
 |---|---|---|
 | 1 | Money is `BIGINT`, named `*_cents`. No `money`, `numeric`, `double precision` or `real` in any monetary column. | `lint_money_columns()` + `assert_schema_lints()`, called by `00023`. A migration that adds a float money column **cannot apply**. |
-| 2 | A non-terminal order carries a deadline and an action; a terminal one carries neither. | `order_deadline_required` CHECK on `"order"`, `dispatch_deadline_required` on `dispatch`, and the same shape on `payment_intent`, `refund`, `payout`, `kyc_document`, `stored_object`, `webhook_event`. "An order waits forever" is unrepresentable, not merely unlikely. |
+| 2 | A non-terminal order carries a deadline and an action; a terminal one carries neither. | `order_deadline_required` CHECK on `"order"`, `dispatch_deadline_required` on `dispatch`, and the same shape on `payment_intent`, `refund`, `payout`, `kyc_document`, `stored_object`, `webhook_event` and `chargeback` (on its evidence deadline until Stripe closes the dispute, `00034`). A Stripe webhook set aside after eight failed attempts is the one unprocessed row with no clock: it must carry the error that put it there, and it paged on-call when it was set aside (`00034`, [#231](https://github.com/shaiknoorullah/hg-mono/issues/231)). "An order waits forever" is unrepresentable, not merely unlikely. |
 | 3 | Every ledger batch sums to zero; `ledger_entry` is append-only. | Deferred constraint trigger `ledger_entry_batch_balanced` (fires at COMMIT, so rows may be written in any order) + `REVOKE UPDATE, DELETE, TRUNCATE` from `hg_app` + a `BEFORE UPDATE OR DELETE` trigger. Corrections are new `ADJUSTMENT` batches. |
 | 4 | The decomposition invariant is one query returning zero rows. | `SELECT * FROM ledger_order_residual;` — plus `ledger_batch_imbalance`, `ledger_global_residual`, `ledger_charge_identity_breach`, `ledger_tip_passthrough_breach`, and `assert_ledger_invariants()` which raises on any of them. |
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
