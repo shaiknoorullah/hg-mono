@@ -225,9 +225,10 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
 - **Behaviour**:
   - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.**
   - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, issues a session.
-  - `POST /v1/auth/email/resend` — rate limited 1/min, 5/day per account.
+  - `POST /v1/auth/email/resend` — rate limited like the reset email below; a 429 only when the caller is over its own limits.
   - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when enrolled/required, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
   - `POST /v1/auth/password/forgot` `{email}` → always 200; sends reset token if the account exists.
+  - **Link email limits** (verification and reset alike, as built Oct 2026): 3 an hour per address and client address (an IPv4 address or an IPv6 /64), so an attacker cannot use up the owner's own quota; 10 an hour per client address over all addresses; and a last-resort cap of 10 an hour and 20 a day per address, which answers generically and logs an alert. Addresses are counted in lower case with any `+tag` removed. Both operations answer in the same content and time whether or not the account exists. A new link does not cancel the earlier ones; at most 3 are live per account, and using one ends the rest.
   - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email.
   - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued.
   - `POST /v1/auth/totp/enroll` / `verify` / `disable` (step-up required).

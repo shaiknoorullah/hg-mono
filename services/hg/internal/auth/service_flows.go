@@ -416,7 +416,9 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	if isBreachedPassword(password) {
 		return nil, errBreachedPassword
 	}
-	if err := s.allowLinkEmail(ctx, emailKindVerify, email, clientKey); err != nil {
+	if err := s.allowLinkEmail(ctx, emailKindVerify, email, clientKey); errors.Is(err, errAddressCapped) {
+		return nil, ErrRateLimited
+	} else if err != nil {
 		return nil, err
 	}
 	hash, err := HashPassword(password)
@@ -467,18 +469,18 @@ func (s *Service) VerifyEmail(ctx context.Context, token string, client ClientSu
 
 // ResendEmailVerification issues a fresh EMAIL_VERIFY token when the account
 // exists and is unverified. It answers the same way, in the same time, whether
-// or not the account exists: ErrRateLimited (a 429) only when the client or the
-// address is over its email limit, which is keyed on the address as typed and
-// so says nothing about the account; nil otherwise. clientKey is the caller's
-// httpx.RateLimitKey.
+// or not the account exists: ErrRateLimited (a 429) only when this client is
+// over its own email limits, which are keyed on what it asked for and so say
+// nothing about the account; nil otherwise, including when the address is over
+// its overall cap. clientKey is the caller's httpx.RateLimitKey.
 func (s *Service) ResendEmailVerification(ctx context.Context, email, clientKey string) error {
 	defer s.answerUniformly(ctx, time.Now())
-	if err := s.rl.Allow(ctx, "rl:email_verify:"+rateLimitAddress(email), 5, 24*time.Hour); limited(err) {
+	switch err := s.allowLinkEmail(ctx, emailKindVerify, email, clientKey); {
+	case limited(err):
 		return ErrRateLimited
-	}
-	if err := s.allowLinkEmail(ctx, emailKindVerify, email, clientKey); limited(err) {
-		return ErrRateLimited
-	} else if err != nil {
+	case errors.Is(err, errAddressCapped):
+		return nil // the generic answer; allowLinkEmail raised the alert
+	case err != nil:
 		s.log.WarnContext(ctx, "verification email not sent: rate limiter unavailable", "error", err.Error())
 		return nil
 	}
@@ -511,7 +513,7 @@ func (s *Service) ResendEmailVerification(ctx context.Context, email, clientKey 
 func (s *Service) RequestPasswordReset(ctx context.Context, email, clientKey string) error {
 	defer s.answerUniformly(ctx, time.Now())
 	if err := s.allowLinkEmail(ctx, emailKindReset, email, clientKey); err != nil {
-		if !limited(err) {
+		if errors.Is(err, ErrLimiterUnavailable) {
 			s.log.WarnContext(ctx, "password reset email not sent: rate limiter unavailable", "error", err.Error())
 		}
 		return nil

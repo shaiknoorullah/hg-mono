@@ -219,10 +219,32 @@ func TestIntegrationPasswordResetEmailHasAWorkingLinkAndNoOtherSecret(t *testing
 	}
 }
 
-// TestIntegrationResetEmailsStopAtTheLimit: one mailbox gets at most three
-// reset emails an hour, and changing the case or adding a +tag does not buy
-// more; one client address gets at most ten requests' worth, whichever
-// addresses it names.
+// linkTokens returns the single-use tokens of every queued email of kind for
+// the account, oldest first, read from the delivery jobs as the worker would.
+func linkTokens(t *testing.T, pool *pgxpool.Pool, accountID string, kind notify.Kind) []string {
+	t.Helper()
+	rows, err := pool.Query(context.Background(), `
+		SELECT j.args->'overrides'->'EMAIL'->>'link_token'
+		  FROM notification n
+		  JOIN river_job j ON j.kind = 'notify_deliver' AND j.args->>'notification_id' = n.id::text
+		 WHERE n.account_id = $1 AND n.kind = $2
+		 ORDER BY n.created_at, n.id`, accountID, string(kind))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokens, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tokens
+}
+
+// TestIntegrationResetEmailsStopAtTheLimit: the tight limit is per address
+// and client address, so an attacker filling their own quota for a victim's
+// address does not stop the victim, asking from their own network; case and
+// +tag variants share one count; a client's overall budget holds whichever
+// addresses it names; and the overall cap per address bounds the total when
+// many networks ask.
 func TestIntegrationResetEmailsStopAtTheLimit(t *testing.T) {
 	pool := openTestPool(t)
 	ctx := context.Background()
@@ -231,43 +253,110 @@ func TestIntegrationResetEmailsStopAtTheLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc, _, _ := emailTestService(t, pool, inserter, NewMemoryRateLimiter())
-
-	local := "limit-" + uuid.NewString()[:8]
-	email := local + "@halalgoes.test"
-	reg, err := svc.RegisterRestaurant(ctx, email, "a long first password for tests", "Limit Test Kitchen", "198.51.100.1")
-	if err != nil {
-		t.Fatal(err)
+	register := func(email, client string) string {
+		t.Helper()
+		reg, err := svc.RegisterRestaurant(ctx, email, "a long first password for tests", "Limit Test Kitchen", client)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return reg.AccountID
 	}
 
-	// Two tagged spellings use up two of the address's three; the third
-	// request is the real address in capitals and sends; the fourth is over.
+	// An attacker's network asks five times, in five spellings of the
+	// victim's address: three emails at most, all to the victim.
+	local := "victim-" + uuid.NewString()[:8]
+	email := local + "@halalgoes.test"
+	victim := register(email, "198.51.100.1")
+	attacker := httpx.RateLimitKey("2001:db8:aa:1::5")
 	for _, variant := range []string{
-		local + "+1@halalgoes.test", strings.ToUpper(local) + "+2@HalalGoes.test",
-		strings.ToUpper(email), email, email,
+		strings.ToUpper(email), email, local + "+x@halalgoes.test", email, email,
 	} {
-		if err := svc.RequestPasswordReset(ctx, variant, "198.51.100.2"); err != nil {
+		_ = svc.RequestPasswordReset(ctx, variant, attacker)
+	}
+	if n := countNotifications(t, pool, victim, notify.KindPasswordReset); n != 2 {
+		t.Fatalf("%d reset emails from the attacker's network, want 2 (3 allowed; the +tag spelling used one)", n)
+	}
+	// Same /64, another host: still the attacker's quota.
+	_ = svc.RequestPasswordReset(ctx, email, httpx.RateLimitKey("2001:db8:aa:1::77"))
+	// The victim, from their own network, still gets their link.
+	if err := svc.RequestPasswordReset(ctx, email, "203.0.113.20"); err != nil {
+		t.Fatal(err)
+	}
+	if n := countNotifications(t, pool, victim, notify.KindPasswordReset); n != 3 {
+		t.Fatalf("%d reset emails after the victim asked, want 3: the attacker's quota must not block the victim", n)
+	}
+
+	// A client's overall budget: ten requests to strangers use its hour;
+	// the eleventh, for a real account, queues nothing.
+	other := register("client-"+uuid.NewString()[:8]+"@halalgoes.test", "198.51.100.3")
+	busy := httpx.RateLimitKey("2001:db8:bb:2::10")
+	for i := 0; i < linkEmailsPerClient; i++ {
+		_ = svc.RequestPasswordReset(ctx, fmt.Sprintf("stranger%d-%s@example.test", i, uuid.NewString()[:4]), busy)
+	}
+	var email2 string
+	if err := pool.QueryRow(ctx, `SELECT email::text FROM account WHERE id = $1`, other).Scan(&email2); err != nil {
+		t.Fatal(err)
+	}
+	_ = svc.RequestPasswordReset(ctx, email2, busy)
+	if n := countNotifications(t, pool, other, notify.KindPasswordReset); n != 0 {
+		t.Fatalf("%d reset emails past the client's overall budget, want 0", n)
+	}
+
+	// Many networks, one address: the overall cap bounds the total.
+	target := register("bombed-"+uuid.NewString()[:8]+"@halalgoes.test", "198.51.100.4")
+	var email3 string
+	if err := pool.QueryRow(ctx, `SELECT email::text FROM account WHERE id = $1`, target).Scan(&email3); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < linkEmailsPerAddressHour+5; i++ {
+		if err := svc.RequestPasswordReset(ctx, email3, fmt.Sprintf("192.0.2.%d", 10+i)); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if n := countNotifications(t, pool, reg.AccountID, notify.KindPasswordReset); n != 1 {
-		t.Fatalf("%d reset emails queued, want 1: case and +tag variants share the address's limit of 3", n)
+	if n := countNotifications(t, pool, target, notify.KindPasswordReset); n != linkEmailsPerAddressHour {
+		t.Fatalf("%d reset emails to one address from %d networks, want the cap of %d",
+			n, linkEmailsPerAddressHour+5, linkEmailsPerAddressHour)
 	}
+}
 
-	// Per client: ten requests from one address (to strangers) use its hour;
-	// the eleventh, for a real account, queues nothing.
-	other := "client-" + uuid.NewString()[:8] + "@halalgoes.test"
-	reg2, err := svc.RegisterRestaurant(ctx, other, "a long first password for tests", "Client Test Kitchen", "198.51.100.3")
+// TestIntegrationUsingOneResetLinkEndsTheOthers: a new link does not cancel
+// the earlier ones (so nobody can cancel the owner's link by asking for
+// another), at most three are live at once, and using one ends the rest.
+func TestIntegrationUsingOneResetLinkEndsTheOthers(t *testing.T) {
+	pool := openTestPool(t)
+	ctx := context.Background()
+	inserter, err := river.NewClient(riverpgxv5.New(pool), &river.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < linkEmailsPerClient; i++ {
-		_ = svc.RequestPasswordReset(ctx, fmt.Sprintf("stranger%d-%s@example.test", i, uuid.NewString()[:4]),
-			httpx.RateLimitKey("2001:db8:1:2::10"))
+	svc, _, _ := emailTestService(t, pool, inserter, NewMemoryRateLimiter())
+	email := "tokens-" + uuid.NewString()[:8] + "@halalgoes.test"
+	reg, err := svc.RegisterRestaurant(ctx, email, "a long first password for tests", "Token Test Kitchen", "198.51.100.5")
+	if err != nil {
+		t.Fatal(err)
 	}
-	// Same /64, different host: still the same client.
-	_ = svc.RequestPasswordReset(ctx, other, httpx.RateLimitKey("2001:db8:1:2::99"))
-	if n := countNotifications(t, pool, reg2.AccountID, notify.KindPasswordReset); n != 0 {
-		t.Fatalf("%d reset emails queued past the client's limit, want 0", n)
+	for i := 0; i < 4; i++ {
+		if err := svc.RequestPasswordReset(ctx, email, fmt.Sprintf("198.51.100.%d", 50+i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tokens := linkTokens(t, pool, reg.AccountID, notify.KindPasswordReset)
+	if len(tokens) != 4 {
+		t.Fatalf("%d reset links, want 4", len(tokens))
+	}
+	// The fourth link ended the first: three live at most.
+	if err := svc.ResetPassword(ctx, tokens[0], "a new password for tests 0"); err != errTokenExpired {
+		t.Fatalf("oldest link of four: err = %v, want errTokenExpired", err)
+	}
+	// The second link still works although two newer ones were sent.
+	if err := svc.ResetPassword(ctx, tokens[1], "a new password for tests 1"); err != nil {
+		t.Fatalf("an earlier, still live link: %v", err)
+	}
+	// Using it ended the others.
+	for _, tok := range tokens[2:] {
+		if err := svc.ResetPassword(ctx, tok, "a new password for tests 2"); err != errTokenExpired {
+			t.Fatalf("a link after another was used: err = %v, want errTokenExpired", err)
+		}
 	}
 }
 

@@ -124,6 +124,9 @@ func (s *Service) InviteStaff(ctx context.Context, tx pgx.Tx, inv notify.StaffIn
 		inv.AccountID, tokenHash, staffInviteTTL.String()).Scan(&tokenID, &expiresAt); err != nil {
 		return fmt.Errorf("auth: store staff invitation token: %w", err)
 	}
+	if err := capLiveTokens(ctx, tx, inv.AccountID.String(), "PASSWORD_RESET"); err != nil {
+		return fmt.Errorf("auth: cap live invitation tokens: %w", err)
+	}
 	n, err := notify.StaffInviteEmail(notify.StaffInvite{
 		LinkEmail: notify.LinkEmail{
 			AccountID: inv.AccountID, Role: notify.RoleAdmin, To: to, Token: token, TokenID: tokenID,
