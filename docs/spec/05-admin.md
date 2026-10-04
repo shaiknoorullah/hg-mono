@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -1564,6 +1564,15 @@ documents lapse cannot go on shift, but is not punished.
 - **Data**: `rider_application` and `rider_document` mirroring A-13's shapes, plus
   `rider { id, ..., date_of_birth, vehicle_type, licence_plate, onboarding_state, account_state, approved_by, approved_at, rejection_reason_code }`,
   and `document_check` reused with rider `check_key`s.
+  Decision reason codes, the same split as a
+  [restaurant decision](#a-18--restaurant-approval--rejection-decision) — approve:
+  `ALL_CHECKS_PASSED`, `APPROVED_WITH_NOTES`; reject and request changes: the document rejection
+  reasons (`ILLEGIBLE`, `EXPIRED`, `WRONG_DOCUMENT_TYPE`, `NAME_MISMATCH`, `DOB_MISMATCH`,
+  `ADDRESS_MISMATCH`, `PLATE_MISMATCH`, `UNRECOGNISED_CERTIFIER`, `SUSPECTED_FORGERY`,
+  `SUSPECTED_ALTERATION`, `INCOMPLETE_PAGES`, `OTHER`). `REQUEST_CHANGES` also names the documents
+  to redo. An approval never carries a rejection reason: the API takes one body shape per decision
+  ([#163](https://github.com/shaiknoorullah/hg-mono/issues/163)). The approval reason is kept on
+  the decision's `audit_event`.
 - **Role**: **Admin** — take, review, decide. **Super Admin** — same, plus reverse a rejection within
   30 days and override a document decision. **Support Agent** — only through a support case
   ([what support agents see](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)):

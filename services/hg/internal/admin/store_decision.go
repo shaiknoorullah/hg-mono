@@ -538,8 +538,12 @@ func (r *Repo) DecideRiderApplication(ctx context.Context, actor auditActor, acc
 		if actor.staffID != "" {
 			decidedBy = actor.staffID
 		}
+		// Only a rejection or a request for changes carries a document rejection
+		// reason; an approval's reason (RiderApproveReasonCode) has no column here
+		// and is kept on the audit row below (issue #163:
+		// https://github.com/shaiknoorullah/hg-mono/issues/163).
 		var rc any
-		if reasonCode != "" {
+		if decision != "APPROVE" && reasonCode != "" {
 			rc = reasonCode
 		}
 		if _, err := tx.Exec(ctx, `

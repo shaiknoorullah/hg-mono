@@ -111,7 +111,9 @@ export function RiderApplicationDetailScreen() {
   const onApprove = useCallback(async () => {
     setApproving(true);
     try {
-      await decide({ decision: 'APPROVE', reason_code: 'OTHER', reason_text: 'Approved on review.' });
+      // An approval carries an approval reason, never a rejection reason
+      // (https://github.com/shaiknoorullah/hg-mono/issues/163).
+      await decide({ decision: 'APPROVE', reason_code: 'ALL_CHECKS_PASSED', reason_text: 'Approved on review.' });
       toast.show({ variant: 'success', title: 'Rider application approved' });
       reload();
     } catch (err) {
@@ -242,7 +244,7 @@ export function RiderApplicationDetailScreen() {
             onConfirm={async ({ reasonCode, note }) => {
               await decide({
                 decision: 'REJECT',
-                reason_code: (reasonCode ?? 'OTHER') as Schema['RiderDecisionInput']['reason_code'],
+                reason_code: (reasonCode ?? 'OTHER') as Schema['RiderApplicationRejectInput']['reason_code'],
                 reason_text: note ?? '',
               });
               toast.show({ variant: 'success', title: 'Application rejected' });
