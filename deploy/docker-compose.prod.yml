@@ -1,0 +1,462 @@
+# HalalGoes — production override, for one Contabo Cloud VPS 6 (6 vCPU, 12 GB)
+# in US-East. At launch it is the only server: the warm standby comes next
+# month (issue #210: https://github.com/shaiknoorullah/hg-mono/issues/210), and
+# a permanent dev environment will run beside production on this same box
+# (issue #235: https://github.com/shaiknoorullah/hg-mono/issues/235). The owner
+# decided this on 4 Oct 2026 (issue #207:
+# https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570).
+#
+#   docker compose --env-file .env \
+#     -f docker-compose.yml -f docker-compose.prod.yml config   # check first
+#   docker compose --env-file .env \
+#     -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# The base file stays the shape of the stack. This file changes only what
+# production needs, and every number comes from the memory budget in
+# deploy/README.md, "Production", which also leaves room for the dev
+# environment. Raise a limit here only after changing that table. Easy to undo
+# by accident:
+#
+#   * Only Traefik publishes ports, and only 80 and 443. Docker's published
+#     ports skip the host firewall, so a port the base file publishes for local
+#     work (5432, 6379, 9000, 9001, 8081) is open to the internet whatever
+#     nftables says (issue #200:
+#     https://github.com/shaiknoorullah/hg-mono/issues/200). `!override`
+#     replaces the base file's list; a plain list would be appended to it. The
+#     one exception is the Silo console, on the host's loopback only.
+#   * No `build:`. CI builds the images and pushes them to GHCR; the box pulls
+#     them by digest. A digest cannot be retagged, so what was tested is what
+#     runs. The `@` is written here and only the digest is a variable, so a tag
+#     cannot be configured: `hg-api@latest` is not a valid image reference.
+#   * memswap_limit equals mem_limit: Docker otherwise lets a container swap as
+#     much again as its limit, which turns an out-of-memory kill into minutes
+#     of a box too slow to answer.
+#   * Every service logs to json-file, 20 MB x 5. Docker's default keeps logs
+#     forever, and a full disk stops Postgres.
+#
+# Maps and address search come from Mapbox through the API, so this stack
+# serves no map files and runs no geocoder. GlitchTip, Umami, nginx, the
+# metrics agents, Fluent Bit and the backup jobs are separate overrides; their
+# memory is budgeted, not started here.
+#
+# The seam for the dev environment (#235), which this file does not build:
+# dev is its own compose project with its own network, database, cache,
+# buckets, volumes and secrets. It shares Traefik, which holds no data: dev
+# puts its public containers on hg-edge and labels them with hg-dev-* routers
+# on dev hosts. If dev also scans with this ClamAV, it reaches it on a network
+# of its own, never on hg-scan, which would put it beside production's API.
+# Dev's memory comes out of the "Left for dev" row of the budget, and when the
+# box runs short, dev stops first (docs/ops/runbook.md).
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: "5"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Edge — the only container reachable from the internet.
+  # ---------------------------------------------------------------------------
+  traefik:
+    image: docker.io/library/traefik:v3.7.13@sha256:24841fe2de7304c149343d877d2923b4c8800a38ba015dea9174c23b20e344a0
+    command: !override
+      # No dashboard and no insecure API: they would show the whole routing
+      # table to anyone who found the port.
+      #
+      # Traefik reads container labels through the read-only socket proxy
+      # below, never through docker.sock itself.
+      - --providers.docker=true
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=hg-net
+
+      # Plain HTTP only redirects. Nothing is served over port 80.
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+
+      - --entrypoints.websecure.address=:443
+      # Every router on 443 gets a Let's Encrypt certificate without its own
+      # tls labels.
+      - --entrypoints.websecure.http.tls.certresolver=letsencrypt
+      # 300 s so a 15 MiB document upload from a slow phone finishes. Traefik
+      # sets this per entrypoint, not per router; hg's own 30 s read timeout
+      # still guards the API.
+      - --entrypoints.websecure.transport.respondingtimeouts.readtimeout=300s
+
+      # TLS-ALPN-01: the challenge is answered on 443, so port 80 never has to
+      # serve anything but the redirect.
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?set ACME_EMAIL in .env}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.caserver=${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
+
+      # The access log keeps no headers: they carry bearer tokens and cookies.
+      - --accesslog=true
+      - --accesslog.format=json
+      - --accesslog.fields.headers.defaultmode=drop
+      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
+      - --ping=true
+      - --global.checknewversion=false
+      - --global.sendanonymoususage=false
+    environment:
+      GOMEMLIMIT: 96MiB
+    ports: !override
+      - "80:80"
+      - "443:443"
+    volumes: !override
+      # acme.json holds the certificates' private keys; it is in the daily
+      # config backup.
+      - letsencrypt:/letsencrypt
+    networks: [hg-net, hg-edge, socket-proxy]
+    depends_on:
+      - socket-proxy
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    memswap_limit: 128m
+    logging: *logging
+
+  # Mounting docker.sock read-only does not make the Docker API read-only:
+  # anything that can reach the socket can start a privileged container. Traefik
+  # faces the internet, so it talks to this proxy instead, which answers only
+  # GET and HEAD for the container list, events, version and ping.
+  socket-proxy:
+    image: docker.io/tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [socket-proxy]
+    security_opt: ["no-new-privileges:true"]
+    # The plan budgets 32 MB, but HAProxy here measured 24 MB resident at idle
+    # on 4 CPUs and touched a 32 MB limit while starting. 48 MB keeps it clear
+    # of the kernel's reclaim.
+    mem_limit: 48m
+    memswap_limit: 48m
+    logging: *logging
+
+  # ---------------------------------------------------------------------------
+  # The API — 2 replicas, deployed with docker-rollout (deploy/README.md).
+  # ---------------------------------------------------------------------------
+  api:
+    build: !reset null
+    image: ${HG_IMAGE_REPO:-ghcr.io/shaiknoorullah}/hg-api@${HG_API_DIGEST:?set HG_API_DIGEST in .env to sha256:...}
+    environment:
+      # Fixed here, not read from .env: this file is production, and HG_ENV
+      # turns on the boot checks that refuse loopback dependencies and a
+      # missing data key.
+      HG_ENV: production
+      # 8 per replica: 16 connections, 32 while a deploy runs old and new
+      # replicas side by side, inside Postgres's max_connections of 60.
+      HG_POSTGRES_MAX_CONNS: 8
+      HG_POSTGRES_MIN_CONNS: 2
+      HG_REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+      HG_APP_DATA_KEY: ${HG_APP_DATA_KEY:?set HG_APP_DATA_KEY in .env}
+      # Public hg-media links, and every signed upload and download link, are
+      # built on the files host Traefik serves. A signature covers the host, so
+      # a link signed for minio:9000 could not be fixed up afterwards.
+      HG_MINIO_PUBLIC_BASE_URL: https://${HG_FILES_HOST:?set HG_FILES_HOST in .env, e.g. files.halalgoes.com}
+      HG_MINIO_PRESIGN_BASE_URL: https://${HG_FILES_HOST}
+      # The API believes X-Forwarded-For only from hg-net, whose subnet is
+      # fixed below. Traefik is the only proxy there, so every per-IP limit
+      # counts the real client, not Traefik (services/hg/internal/httpx/realip.go).
+      HG_TRUSTED_PROXY_CIDRS: 172.30.0.0/24
+      # The Go runtime collects harder as it nears this, well before the
+      # container's 320 MB limit kills it.
+      GOMEMLIMIT: 256MiB
+    labels: !override
+      - traefik.enable=true
+      - traefik.docker.network=hg-net
+
+      # Public router: the API host only. A bare PathPrefix(`/`) would also
+      # catch the files host and hand Silo's paths to the API.
+      - traefik.http.routers.hg-api.rule=Host(`${HG_API_HOST:?set HG_API_HOST in .env, e.g. api.halalgoes.com}`)
+      - traefik.http.routers.hg-api.entrypoints=websecure
+      - traefik.http.routers.hg-api.priority=1
+      - traefik.http.routers.hg-api.service=hg-api
+      - traefik.http.routers.hg-api.middlewares=hg-api-hsts@docker
+      # Browsers that have seen the API over HTTPS refuse plain HTTP to it for
+      # a year, so a network that strips the redirect gets nothing.
+      - traefik.http.middlewares.hg-api-hsts.headers.stsseconds=31536000
+
+      # /internal and /debug answer only to loopback, which no request through
+      # the edge comes from: dependency addresses are never public
+      # (docs/spec/01-platform.md, "Ground rules that bind every section",
+      # fail loud on config).
+      - traefik.http.routers.hg-internal.rule=Host(`${HG_API_HOST}`) && (PathPrefix(`/internal`) || PathPrefix(`/debug`))
+      - traefik.http.routers.hg-internal.entrypoints=websecure
+      - traefik.http.routers.hg-internal.priority=10
+      - traefik.http.routers.hg-internal.service=hg-api
+      - traefik.http.routers.hg-internal.middlewares=hg-internal-only@docker
+      - traefik.http.middlewares.hg-internal-only.ipallowlist.sourcerange=127.0.0.1/32
+
+      - traefik.http.services.hg-api.loadbalancer.server.port=8080
+      - traefik.http.services.hg-api.loadbalancer.healthcheck.path=/health/ready
+      - traefik.http.services.hg-api.loadbalancer.healthcheck.interval=10s
+      - traefik.http.services.hg-api.loadbalancer.healthcheck.timeout=3s
+    # hg-scan reaches ClamAV, once the API scans KYC documents (#218).
+    networks: [hg-net, hg-scan]
+    # Longer than HG_SHUTDOWN_TIMEOUT (20 s), so in-flight requests finish
+    # before Docker's SIGKILL rather than at Docker's default 10 s.
+    stop_grace_period: 30s
+    cpus: 1.5
+    mem_limit: 320m
+    memswap_limit: 320m
+    logging: *logging
+
+  # ---------------------------------------------------------------------------
+  # Postgres 17 + PostGIS 3.5 + pgBackRest — the only source of truth.
+  # ---------------------------------------------------------------------------
+  postgres:
+    # The CI-built image: the PostGIS image plus pgBackRest, which it does not
+    # ship. The standby (#210) will run the same image.
+    image: ${HG_IMAGE_REPO:-ghcr.io/shaiknoorullah}/hg-postgres@${HG_POSTGRES_DIGEST:?set HG_POSTGRES_DIGEST in .env to sha256:...}
+    # Postgres's own page cache counts against the 2 GB limit, so the cache
+    # settings fit inside it. max_connections leaves room for 32 API
+    # connections during a deploy, the migration role, the replica and backups;
+    # each role's CONNECTION LIMIT is set by the role migrations.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=1280MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - autovacuum_work_mem=32MB
+      - -c
+      - max_connections=60
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - jit=off
+      # At most 60 s of changes wait in an unfinished WAL segment before
+      # pgBackRest archives it (issue #64:
+      # https://github.com/shaiknoorullah/hg-mono/issues/64); 1 GB of WAL stays
+      # for the standby's replica (#210) to catch up from.
+      - -c
+      - archive_timeout=60
+      - -c
+      - wal_keep_size=1GB
+    ports: !reset []
+    # Docker's 64 MB default /dev/shm breaks parallel queries.
+    shm_size: 256m
+    # Fast shutdown checkpoints first; Docker's 10 s default would SIGKILL it
+    # into crash recovery.
+    stop_grace_period: 60s
+    mem_limit: 2048m
+    memswap_limit: 2048m
+    mem_reservation: 1536m
+    # Only matters when the whole host runs out: the kernel then kills
+    # something else first. At the container's own limit Postgres is still
+    # killed, and that pages.
+    oom_score_adj: -500
+    logging: *logging
+
+  # ---------------------------------------------------------------------------
+  # Valkey — disposable cache. Flushing it costs latency, never correctness
+  # (docs/spec/01-platform.md, "Ground rules that bind every section").
+  # ---------------------------------------------------------------------------
+  redis:
+    # No persistence: nothing in here is the only copy of anything.
+    command: !override
+      - valkey-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - allkeys-lru
+      - --requirepass
+      - ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    environment:
+      # valkey-cli reads this, so the healthcheck can authenticate.
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli ping | grep -q PONG"]
+    ports: !reset []
+    volumes: !reset []
+    mem_limit: 128m
+    memswap_limit: 128m
+    logging: *logging
+
+  # ---------------------------------------------------------------------------
+  # Silo — object storage. Browsers reach it only through the narrow files
+  # route below; the S3 port is never published.
+  # ---------------------------------------------------------------------------
+  minio:
+    environment:
+      GOMEMLIMIT: 400MiB
+      MINIO_API_REQUESTS_MAX: 32
+      MINIO_SCANNER_SPEED: slow
+      # Browsers upload straight to Silo with signed links, so the admin and
+      # restaurant origins need CORS. Exact origins, comma-separated.
+      MINIO_API_CORS_ALLOW_ORIGIN: ${HG_UPLOAD_ORIGINS:?set HG_UPLOAD_ORIGINS in .env to the admin and restaurant origins}
+      # MINIO_SERVER_URL stays unset, so the console talks to Silo directly
+      # instead of through the public files host.
+    # The console, on the host's loopback only. Reach it with
+    #   ssh -L 9001:127.0.0.1:9001 prod
+    ports: !override
+      - "127.0.0.1:9001:9001"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=hg-net
+
+      # files.<domain> reaches Silo only for an object in one of the five
+      # buckets (docs/spec/01-platform.md, "P-27 — Bucket layout and
+      # private-by-default"), and only to read it, upload it, or ask the browser's CORS
+      # question. Everything else on this host matches no router and Traefik
+      # answers 404, including:
+      #   * /minio/..., Silo's admin, health and metrics API;
+      #   * a bucket itself (/hg-kyc/, /hg-kyc?list-type=2): no listing;
+      #   * POST and DELETE.
+      # Requests carrying these headers are refused too, because no signed
+      # link hg issues uses them:
+      #   * X-Amz-Copy-Source: a server-side copy, which could read one
+      #     bucket's object into another;
+      #   * X-Amz-Trailer, or X-Amz-Content-Sha256 STREAMING-*: chunked
+      #     streaming uploads, the S3 parser's least-trodden path;
+      #   * X-Minio-Source-* and the replication status headers: replication
+      #     to the standby (#210) will run over WireGuard, never through the
+      #     edge.
+      # The bucket names are the defaults; change both if HG_MINIO_BUCKET_*
+      # ever changes.
+      - >-
+        traefik.http.routers.hg-files.rule=Host(`${HG_FILES_HOST}`)
+        && PathRegexp(`^/(hg-kyc|hg-pod|hg-media|hg-exports|hg-tmp)/[^/]`)
+        && (Method(`GET`) || Method(`HEAD`) || Method(`PUT`) || Method(`OPTIONS`))
+        && !HeaderRegexp(`X-Amz-Copy-Source`, `.*`)
+        && !HeaderRegexp(`X-Amz-Trailer`, `.*`)
+        && !HeaderRegexp(`X-Amz-Content-Sha256`, `(?i)^STREAMING-`)
+        && !HeaderRegexp(`X-Amz-Replication-Status`, `.*`)
+        && !HeaderRegexp(`X-Minio-Source-Replication-Request`, `.*`)
+        && !HeaderRegexp(`X-Minio-Source-Replication-Check`, `.*`)
+        && !HeaderRegexp(`X-Minio-Source-Proxy-Request`, `.*`)
+        && !HeaderRegexp(`X-Minio-Source-Mtime`, `.*`)
+        && !HeaderRegexp(`X-Minio-Source-Etag`, `.*`)
+        && !HeaderRegexp(`X-Minio-Source-Deletemarker`, `.*`)
+        && !HeaderRegexp(`X-Minio-Source-Deletemarker-Delete`, `.*`)
+        && !HeaderRegexp(`X-Minio-Replication-Reset-Status`, `.*`)
+        && !HeaderRegexp(`X-Minio-Replication-Actual-Object-Size`, `.*`)
+      - traefik.http.routers.hg-files.entrypoints=websecure
+      - traefik.http.routers.hg-files.service=hg-files
+      - traefik.http.routers.hg-files.middlewares=hg-files-hsts@docker
+      - traefik.http.middlewares.hg-files-hsts.headers.stsseconds=31536000
+      - traefik.http.services.hg-files.loadbalancer.server.port=9000
+    mem_limit: 512m
+    memswap_limit: 512m
+    logging: *logging
+
+  # ---------------------------------------------------------------------------
+  # ClamAV — scans uploaded KYC documents (issue #218:
+  # https://github.com/shaiknoorullah/hg-mono/issues/218). It runs here until
+  # the standby (#210) takes it over. Not published and not routed: only the
+  # API reaches it, on hg-scan.
+  # ---------------------------------------------------------------------------
+  clamav:
+    # The image ships a signature snapshot, so a first start does not depend
+    # on the download mirror; freshclam then keeps it current.
+    image: docker.io/clamav/clamav:1.5.4@sha256:ebec5bc138401b36ae987caa1a3fa3c3b2a21ed3d51f0bfa5852825e663e67b0
+    restart: unless-stopped
+    environment:
+      # The image writes each CLAMD_CONF_<Name> into clamd.conf, so the
+      # settings live here rather than in a mounted file.
+      #
+      # A concurrent reload keeps the old and the new signatures in memory at
+      # once, doubling clamd's use while it reloads
+      # (https://docs.clamav.net/manual/Installing/Docker.html). With it off,
+      # one copy fits the 4 GiB limit, and scans wait during each reload.
+      CLAMD_CONF_ConcurrentDatabaseReload: "no"
+      CLAMD_CONF_MaxThreads: "2"
+      # KYC files are up to 15 MiB (services/hg/internal/files/keys.go). A file
+      # past these limits is reported as found, never as clean: a scan that
+      # stopped early is not a clean scan.
+      CLAMD_CONF_MaxFileSize: 16M
+      CLAMD_CONF_MaxScanSize: 16M
+      CLAMD_CONF_StreamMaxLength: 16M
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      # The image logs to files inside the container. Rotate them so they
+      # neither fill the disk nor stop at clamd's 1 MB default.
+      CLAMD_CONF_LogFileMaxSize: 20M
+      CLAMD_CONF_LogRotate: "yes"
+      FRESHCLAM_CONF_LogFileMaxSize: 20M
+      FRESHCLAM_CONF_LogRotate: "yes"
+      # Signature updates four times a day.
+      FRESHCLAM_CHECKS: "4"
+    volumes:
+      # Signatures survive a restart, so the mirror is not asked for the whole
+      # set each time (it rate-limits clients that do).
+      - clamavdb:/var/lib/clamav
+    # hg-scan only, shared with the API alone. It is not internal: freshclam
+    # needs the internet for signatures. Postgres, Silo, Valkey and Traefik
+    # are not on it, so a flaw in the scanner reaches nothing but the API's
+    # connection to it.
+    networks: [hg-scan]
+    security_opt: ["no-new-privileges:true"]
+    # Two of the six CPUs, one per scan thread, so loading signatures cannot
+    # starve the API.
+    cpus: 2
+    mem_limit: 4096m
+    memswap_limit: 4096m
+    # When the whole box runs out of memory, the kernel kills the scanner
+    # before production's data services: KYC documents then wait as PENDING
+    # and are never passed without a scan (#218). Dev's containers should sit
+    # higher still (#235).
+    oom_score_adj: 500
+    logging: *logging
+
+  createbuckets:
+    mem_limit: 64m
+    memswap_limit: 64m
+    logging: *logging
+
+  # Migrations run as their own step before a deploy:
+  #   docker compose ... --profile tools run --rm migrate
+  migrate:
+    build: !reset null
+    image: ${HG_IMAGE_REPO:-ghcr.io/shaiknoorullah}/hg-migrate@${HG_MIGRATE_DIGEST:?set HG_MIGRATE_DIGEST in .env to sha256:...}
+    mem_limit: 128m
+    memswap_limit: 128m
+    logging: *logging
+
+networks:
+  # The stack's own network, on a fixed subnet so HG_TRUSTED_PROXY_CIDRS above
+  # can name it exactly. 172.30.x comes from Docker's own default pool, so
+  # Docker gives every later network a different range; keep WireGuard's
+  # addresses outside 172.30.0.0/16.
+  hg-net:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+  # Where Traefik meets anything that is not this stack: the dev
+  # environment's public containers (#235), on dev hosts. Production's
+  # services are not on it, so a container here can reach Traefik but not
+  # Postgres, Valkey or Silo. Fixed subnet, so dev's own trusted-proxy setting
+  # can name it.
+  hg-edge:
+    name: hg-edge
+    ipam:
+      config:
+        - subnet: 172.30.1.0/24
+
+  # The API and ClamAV only.
+  hg-scan:
+    name: hg-scan
+
+  # Traefik and the socket proxy only. internal: no route out, and nothing
+  # else on the box can reach the proxy.
+  socket-proxy:
+    name: hg-socket-proxy
+    internal: true
+
+volumes:
+  letsencrypt:
+  clamavdb:

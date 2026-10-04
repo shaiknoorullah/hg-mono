@@ -71,6 +71,12 @@ that looks like a network problem.)
 
 ## 3. Give Traefik HTTPS — the step that is easy to skip
 
+> **On the production box this is done.** [`deploy/docker-compose.prod.yml`](../docker-compose.prod.yml)
+> adds the `websecure` entrypoint and a `letsencrypt` resolver (TLS-ALPN on 443,
+> so the HTTP-01 lines below are not needed) and turns the dashboard off; see
+> [deploy/README.md](../README.md#production). The rest of this section is for a
+> box running the base file alone.
+
 **The product stack has no TLS today.** `deploy/docker-compose.yml` declares
 `--entrypoints.web.address=:80` and the dashboard on `:8080`, and nothing else.
 There is no `websecure` entrypoint and no ACME resolver, so `docker-compose.tls.yml`

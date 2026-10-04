@@ -4,7 +4,9 @@
 #   docker compose --env-file .env \
 #     -f docker-compose.yml -f docker-compose.tls.yml up -d
 #
-# PREREQUISITE: the product stack's Traefik has no HTTPS. deploy/docker-compose.yml
+# On the production box, deploy/docker-compose.prod.yml already provides the
+# `websecure` entrypoint and the `letsencrypt` resolver. Otherwise:
+# PREREQUISITE: the base product stack's Traefik has no HTTPS. deploy/docker-compose.yml
 # declares only `web` on :80 and the dashboard on :8080 — no `websecure`, no ACME
 # resolver. Add both there before using this file, or Traefik will advertise an
 # entrypoint that does not exist and the router will simply never match.

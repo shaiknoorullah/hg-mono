@@ -74,16 +74,24 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 4. **Mapbox token(s)** — §2.
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
    self-declared halal (default hide), O-04 refund liability.
-6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik, including the public
-   host for file links: `HG_MINIO_PRESIGN_BASE_URL` (e.g. `https://files.halalgoes.com`), routed
-   by Traefik to the object store with the Host header unchanged. Upload and download links are
-   signed for that host, so phones can use them.
-7. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
-   (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
+6. **Production hosting** — the box, DNS for the API and files hosts, and the production
+   variables in [`deploy/README.md`](deploy/README.md#production) (image digests, hosts,
+   `ACME_EMAIL`). TLS comes from the production override, which also sets the public host for
+   file links, `HG_MINIO_PRESIGN_BASE_URL`, to `https://` plus the files host: Traefik routes it
+   to the object store with the Host header unchanged, so upload and download links signed for
+   it work from phones.
+7. **Trusted proxy.** `HG_TRUSTED_PROXY_CIDRS` is the network Traefik reaches the API from. The
+   production override fixes that network's subnet and sets the variable to it; elsewhere, set it
+   from `docker network inspect hg-net`. Unset, the stack refuses to start: every request's client
    address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
    Never `0.0.0.0/0` (refused at boot).
 
 ## 4. Deploy the stack (on your host)
+
+On the production box, use the production override instead of `make up`: it publishes only
+80 and 443, serves HTTPS, pulls images by digest and sets the memory limits. The commands are in
+[`deploy/README.md`](deploy/README.md#production). The steps below run the base stack, as on a
+laptop.
 
 ```bash
 cp deploy/.env.example deploy/.env      # edit secrets + §3 flips; HG_ENV=production
