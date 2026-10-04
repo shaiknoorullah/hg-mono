@@ -131,18 +131,6 @@ func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string,
 	}, nil
 }
 
-// ipLimitSubject is what a per-IP limit counts ip under. httpx.RateLimitKey
-// buckets it: an IPv6 caller is counted per /64, not per address, and a request
-// with no resolved address shares one "unknown" budget rather than skipping the
-// limit.
-func ipLimitSubject(ip *string) string {
-	addr := ""
-	if ip != nil {
-		addr = *ip
-	}
-	return httpx.RateLimitKey(addr)
-}
-
 // requestOTPViaVerifier is the PhoneVerifier (Twilio Verify) variant of
 // RequestOTP. It keeps the same P-02 request throttle, 60 s cooldown and open-
 // challenge re-send scaffolding as the self-hosted path, but the provider owns
@@ -224,8 +212,19 @@ func (s *Service) otpRequestLimits(ctx context.Context, phone string, ip *string
 		Max: 5, Window: 15 * time.Minute, OnUnavailable: FailClosed}); err != nil {
 		return err
 	}
-	return s.rl.Allow(ctx, Limit{Name: "otp:ip", Subject: ipLimitSubject(ip),
+	return s.rl.Allow(ctx, Limit{Name: "otp:ip", Subject: ipSubject(ip),
 		Max: 20, Window: 15 * time.Minute, OnUnavailable: FailClosed})
+}
+
+// ipSubject is what a per-IP limit counts ip under (httpx.RateLimitKey): the
+// IPv4 address, or the IPv6 /64 it is in, because one subscriber can send from
+// any address in its /64. A request with no resolved address counts in one
+// shared "unknown" budget rather than skipping the limit.
+func ipSubject(ip *string) string {
+	if ip == nil {
+		return httpx.RateLimitKey("")
+	}
+	return httpx.RateLimitKey(*ip)
 }
 
 // startVerification asks the provider to send a code, swallowing (only logging,
@@ -352,7 +351,7 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	// the attempt before anything is read or recorded. They fail open: the
 	// lockout below lives in Postgres and survives a Redis outage, and Traefik
 	// keeps its own per-IP limit in front of the app.
-	if err := s.rl.Allow(ctx, Limit{Name: "login:ip", Subject: ipLimitSubject(ip),
+	if err := s.rl.Allow(ctx, Limit{Name: "login:ip", Subject: ipSubject(ip),
 		Max: 30, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
 		return nil, err
 	}
@@ -456,7 +455,7 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	// slot is taken, so a limited request never holds one (#216). They fail
 	// open: a sign-up creates an unverified account and issues no session, and
 	// Traefik keeps its own per-IP limit in front of the app.
-	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: ipLimitSubject(ip),
+	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: ipSubject(ip),
 		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
 		return nil, err
 	}
@@ -573,7 +572,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 	// flood of made-up tokens never holds one (#216). The token itself is 256
 	// random bits, so this limit is about the hashing cost, not guessing; it
 	// fails open like sign-up.
-	if err := s.rl.Allow(ctx, Limit{Name: "reset:ip", Subject: ipLimitSubject(ip),
+	if err := s.rl.Allow(ctx, Limit{Name: "reset:ip", Subject: ipSubject(ip),
 		Max: 10, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
 		return err
 	}

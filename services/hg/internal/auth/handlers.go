@@ -92,10 +92,10 @@ func clientSurface(r *http.Request) (ClientSurface, bool) {
 	return c, c.valid()
 }
 
-// clientIPPtr is the client address as the router's RealIP stage resolved it
-// (the forwarded address when the peer is a trusted proxy), or nil when it is
-// unknown. It keys every per-IP limit (through ipLimitSubject), so behind
-// Traefik it must not be the proxy's own address.
+// clientIPPtr is the client's address as resolved by the router's RealIP stage
+// (internal/httpx/realip.go): the forwarded address when the peer is a trusted
+// proxy, never Traefik's own. It keys every per-IP limit (through ipSubject);
+// keying a limit on the TCP peer would make one limit for the whole platform.
 func clientIPPtr(r *http.Request) *string {
 	host := httpx.ClientIP(r)
 	if host == "" {
