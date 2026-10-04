@@ -1,0 +1,54 @@
+# Customer app, part 2 of 2: sign in with the code, browse, add a dish, check out, place the
+# order. Env: CODE, RESTAURANT, DISH, EXPIRED_RESTAURANT.
+appId: com.halalgoes.customer.dev
+name: customer, sign in, browse, add to cart, check out
+---
+- tapOn:
+    below: "Enter the code sent to.*"
+    above: "Verify"
+- inputText: ${CODE}
+- tapOn: "Verify"
+
+# Discover lists the certified restaurant and never the one whose certificate expired.
+- extendedWaitUntil:
+    visible: "${RESTAURANT}.*"
+    timeout: 60000
+- assertNotVisible: "${EXPIRED_RESTAURANT}.*"
+- takeScreenshot: customer-03-discover
+
+- tapOn: "${RESTAURANT}.*"
+- scrollUntilVisible:
+    element: "Add ${DISH}"
+    timeout: 30000
+- takeScreenshot: customer-04-restaurant
+
+- tapOn: "Add ${DISH}"
+- extendedWaitUntil:
+    visible: "View cart.*"
+    timeout: 15000
+- takeScreenshot: customer-05-added-to-cart
+
+- tapOn: "View cart.*"
+- extendedWaitUntil:
+    visible:
+      text: "Continue to checkout"
+      enabled: true
+    timeout: 30000
+- takeScreenshot: customer-06-cart
+
+- tapOn: "Continue to checkout"
+- extendedWaitUntil:
+    visible: "Place order"
+    timeout: 60000
+- assertVisible: "Total"
+# The payment step. The app has no card form yet: with no Stripe keys the API runs its fake
+# payment client, which authorises the order by itself. Paying with a Stripe test card here is
+# TODO #63 (one real payment end to end), once the app can confirm a payment.
+- takeScreenshot: customer-07-checkout
+
+- tapOn: "Place order"
+- extendedWaitUntil:
+    visible: "Order HG-.*"
+    timeout: 60000
+- assertVisible: "Sent to restaurant"
+- takeScreenshot: customer-08-order-placed
