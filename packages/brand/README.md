@@ -3,8 +3,8 @@
 The supplied HalalGoes wordmark, and how it became the one piece of geometry
 every app draws: `src/wordmark-art.ts`.
 
-It moved here from `apps/marketing/brand/` so the apps share it instead of
-copying it. Everything that shows the logo imports the same module:
+It used to live inside the marketing site (`apps/marketing`) and moved here so
+the apps share it instead of copying it. Everything that shows the logo imports the same module:
 
 | Where | Component |
 |---|---|
