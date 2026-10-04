@@ -55,7 +55,7 @@ resolves only via hoisting.
 ### app.json highlights
 - name **"HalalGoes Captain"**, slug `rider`, scheme `rider-app`, portrait, light-only UI style.
 - iOS bundle `com.aaqeb11.rider`; Android package `com.aaqeb11.rider`.
-- **Hardcoded Android Google Maps API key in app.json: `AIzaSyD614SHSgC6FnrGsIj00_8SZJF5WznveSU`.**
+- **Hardcoded Android Google Maps API key in app.json: [REDACTED: Google Maps key, see [#130](https://github.com/shaiknoorullah/hg-mono/issues/130)].**
 - Permissions: fine/coarse location, camera, record audio; iOS location always+when-in-use strings.
 - EAS projectId `bde2f7c9-2bae-4f1b-89c2-d7a8123c07f6`.
 - Plugins: expo-router, expo-camera, expo-secure-store (androidBackup + FaceID string), expo-font.
@@ -274,9 +274,9 @@ Submission completion flag stored in SecureStore under key **`restaurant_submiss
 | `EXPO_PUBLIC_API_BASE_URL` | services/riderService.ts | `http://localhost:3456` | Duplicate/typo'd var name in unused service |
 
 Hardcoded values of note:
-- **Google Maps Directions API key `AIzaSyBWc3Y20xS1yk5D7ud4zPGkp0PU0MhLHTw`** hardcoded in 3 files
+- **Google Maps Directions API key [REDACTED: Google Maps key, see [#130](https://github.com/shaiknoorullah/hg-mono/issues/130)]** hardcoded in 3 files
   (order-processing/index.tsx, order-processing/MapScreen.tsx, components/rider/DeliveryMap.tsx).
-- **Android Maps key `AIzaSyD614SHSgC6FnrGsIj00_8SZJF5WznveSU`** in app.json.
+- **Android Maps key [REDACTED: Google Maps key, see [#130](https://github.com/shaiknoorullah/hg-mono/issues/130)]** in app.json.
 - Default riderId UUID + Hyderabad coordinates in useRiderStore.
 - `https://api.halalgoes.com` hardcoded in documents.ts upload-url call.
 - `ws://192.168.200.19:9080` in useWebSocketConnection.ts.
