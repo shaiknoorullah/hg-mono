@@ -245,8 +245,10 @@ reject "H5 and H7 are not overridable" "halal_check_hard_computed_flags" \
              '11111111-1111-4111-8111-111111111111',now());"
 n_rows "the three accepted issuing bodies are seeded" "3" \
   "SELECT 1 FROM halal_issuing_body WHERE status='ACCEPTED'"
-zero_rows "no restaurant claims CERTIFIED without a live certificate" \
+zero_rows "no restaurant shows a halal badge (certified or expiring soon) without a live certificate" \
   "SELECT * FROM halal_status_inconsistency"
+reject "a live restaurant cannot carry an expired halal state" "restaurant_live_not_halal_expired" \
+  "UPDATE restaurant SET halal_status = 'EXPIRED' WHERE id = '33333333-3333-4333-8333-333333333333';"
 
 echo
 echo "7. Quote and order money identities"

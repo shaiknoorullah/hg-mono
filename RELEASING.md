@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # Releasing HalalGoes
@@ -73,6 +73,9 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 4. **Mapbox token(s)** — §2.
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
    self-declared halal (default hide), O-04 refund liability.
+   Open: whether a restaurant is also suspended some days after its halal certificate expires
+   ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)). Default: never; it is delisted only.
+   Set `HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS` (e.g. `14`) if the owner decides otherwise.
 6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik.
 
 ## 4. Deploy the stack (on your host)
