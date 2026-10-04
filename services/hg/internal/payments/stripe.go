@@ -2,8 +2,11 @@ package payments
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
+	"time"
 
 	stripe "github.com/stripe/stripe-go/v79"
 	"github.com/stripe/stripe-go/v79/account"
@@ -57,6 +60,12 @@ type StripeClient interface {
 	// secret with a 300-second tolerance (P-17 / I-17.2) and returns the
 	// verified event. It never parses meaning before verifying.
 	VerifyWebhook(payload []byte, sigHeader string) (StripeEvent, error)
+
+	// ListEventsSince lists every event Stripe created at or after since,
+	// oldest first, for the on-demand catch-up after a failover or restore
+	// (catchup.go). The events come from the API over our own key, so they
+	// need no signature. Stripe keeps events for 30 days.
+	ListEventsSince(ctx context.Context, since time.Time) ([]StripeEvent, error)
 }
 
 // CreateIntentInput authorises a charge on the platform account.
@@ -381,15 +390,49 @@ func (s *liveStripe) VerifyWebhook(payload []byte, sig string) (StripeEvent, err
 	if err != nil {
 		return StripeEvent{}, fmt.Errorf("webhook signature verification failed: %w", err)
 	}
-	return StripeEvent{
+	return eventFrom(&ev, payload), nil
+}
+
+func (s *liveStripe) ListEventsSince(ctx context.Context, since time.Time) ([]StripeEvent, error) {
+	params := &stripe.EventListParams{
+		CreatedRange: &stripe.RangeQueryParams{GreaterThanOrEqual: since.Unix()},
+	}
+	params.Context = ctx
+	params.Limit = stripe.Int64(100) // page size; the iterator follows every page
+	it := s.api.Events.List(params)
+	var out []StripeEvent
+	for it.Next() {
+		ev := it.Event()
+		// A listed event is the same JSON a webhook delivers; re-encoding it
+		// gives the stored payload the shape ProcessStoredEvent parses.
+		raw, err := json.Marshal(ev)
+		if err != nil {
+			return nil, fmt.Errorf("stripe list events: encode %s: %w", ev.ID, err)
+		}
+		out = append(out, eventFrom(ev, raw))
+	}
+	if err := it.Err(); err != nil {
+		return nil, fmt.Errorf("stripe list events: %w", err)
+	}
+	// Stripe lists newest first. Replay oldest first, so each event lands on
+	// the state the one before it left.
+	slices.Reverse(out)
+	return out, nil
+}
+
+func eventFrom(ev *stripe.Event, raw []byte) StripeEvent {
+	out := StripeEvent{
 		ID:         ev.ID,
 		Type:       string(ev.Type),
 		APIVersion: ev.APIVersion,
 		LiveMode:   ev.Livemode,
 		Created:    ev.Created,
-		RawPayload: payload,
-		DataObject: ev.Data.Raw,
-	}, nil
+		RawPayload: raw,
+	}
+	if ev.Data != nil {
+		out.DataObject = ev.Data.Raw
+	}
+	return out
 }
 
 func intentFrom(pi *stripe.PaymentIntent) *StripeIntent {

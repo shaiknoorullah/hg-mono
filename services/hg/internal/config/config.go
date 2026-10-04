@@ -50,6 +50,15 @@ type Config struct {
 	SMS      SMS
 	OTP      OTP
 	Tax      Tax
+	Realtime Realtime
+}
+
+// Realtime holds the WebSocket gateway's per-replica limits.
+type Realtime struct {
+	// MaxSockets caps the live sockets one replica holds. An upgrade beyond it
+	// is closed with 1013 (try again later) so the client retries, possibly on
+	// the other replica (contracts/websocket.md "Limits").
+	MaxSockets int
 }
 
 // OTP holds the phone-verification provider selection. It is orthogonal to SMS
@@ -359,6 +368,13 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.Tax = Tax{
 		HSTRegistrationNumber: l.optional("HG_TAX_HST_REGISTRATION_NUMBER", ""),
 		PlatformLegalName:     l.optional("HG_TAX_PLATFORM_LEGAL_NAME", ""),
+	}
+
+	cfg.Realtime = Realtime{
+		MaxSockets: l.intVal("HG_REALTIME_MAX_SOCKETS", 2000),
+	}
+	if cfg.Realtime.MaxSockets < 1 {
+		l.errf("HG_REALTIME_MAX_SOCKETS: %d must be at least 1", cfg.Realtime.MaxSockets)
 	}
 
 	// G-7: outside local, no dependency may point at loopback. This is the

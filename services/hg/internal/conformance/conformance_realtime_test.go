@@ -68,7 +68,7 @@ func newRealtimeHarness(t *testing.T) *realtimeHarness {
 	// are driven over HTTP, and neither touches Redis. The gateway is required
 	// by NewHandler's signature and by the WS upgrade route's registration, but
 	// the upgrade is never invoked in this file.
-	gw := realtime.NewGateway(store, nil, testLogger(), nil)
+	gw := realtime.NewGateway(store, nil, testLogger(), nil, 2000)
 	h := realtime.NewHandler(store, gw, testLogger(), []string{"https://conformance.local"})
 	realtime.Routes(router, h)
 

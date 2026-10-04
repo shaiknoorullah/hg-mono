@@ -224,6 +224,142 @@ ERRORS = [
     ),
 ]
 
+# The error states of the operations the owner moved into launch on 2026-10-01
+# (docs/decisions/README.md, "Settled — redesign decisions, round 2", "Launch scope and
+# contract"). Same tuple as ERRORS plus the operations each one is registered for, so the
+# mock lists them under the operation that returns them. Codes and messages match what
+# services/hg returns today.
+LAUNCH_ERRORS = [
+    (
+        "reset_token_not_valid",
+        400,
+        "TOKEN_CONSUMED",
+        "This reset link is not valid.",
+        None,
+        "`resetPassword` with a token that expired (30 minutes), was already used, or never "
+        "existed. One body for all three, so a link cannot be probed. The app offers "
+        "\"Send a new link\" (`requestPasswordReset`).",
+        ["resetPassword"],
+    ),
+    (
+        "breached_password",
+        422,
+        "BREACHED_PASSWORD",
+        "This password has appeared in a data breach. Choose another.",
+        None,
+        "The new password is on the breached-password list. Same body on reset and change.",
+        ["resetPassword", "changePassword"],
+    ),
+    (
+        "current_password_incorrect",
+        422,
+        "INVALID_CREDENTIALS",
+        "The current password is incorrect.",
+        None,
+        "`changePassword` with the wrong current password. Nothing changed and no session "
+        "was revoked. A 422, not a 401: the session is fine, and the client treats every 401 "
+        "as an expired session to refresh and retry.",
+        ["changePassword"],
+    ),
+    (
+        "totp_code_incorrect",
+        422,
+        "INVALID_CREDENTIALS",
+        "The TOTP code is incorrect.",
+        None,
+        "`verifyTotpEnrolment` with a code that does not match the authenticator. Enrolment "
+        "stays open: the person types the next code, they do not start again.",
+        ["verifyTotpEnrolment"],
+    ),
+    (
+        "staff_email_in_use",
+        409,
+        "EMAIL_IN_USE",
+        "This email already belongs to an account.",
+        None,
+        "`createStaffUser` for an email that already has a live account. No invite is sent.",
+        ["createStaffUser"],
+    ),
+    (
+        "price_out_of_range",
+        422,
+        "PRICE_OUT_OF_RANGE",
+        "Price must be between $0.50 and $500.00.",
+        [{"field": "price_cents", "code": "range", "message": "Must be between 50 and 50000 cents."}],
+        "The catalogue price band. The restaurant sets its own price; it is still never a "
+        "price a client sends for an order.",
+        ["createMenuItem", "updateMenuItem", "createMenuItemOnBehalf", "updateMenuItemOnBehalf"],
+    ),
+    (
+        "prohibited_ingredient",
+        422,
+        "PROHIBITED_INGREDIENT",
+        "HalalGoes does not list items that contain alcohol or pork.",
+        [{"field": "ingredients_text", "code": "prohibited", "message": "Mentions rum."}],
+        "Rejected outright, before review. The same check runs for restaurants and for "
+        "admins editing on their behalf.",
+        ["createMenuItem", "updateMenuItem", "createMenuItemOnBehalf", "updateMenuItemOnBehalf"],
+    ),
+    (
+        "halal_tag_not_writable",
+        403,
+        "FIELD_NOT_WRITABLE",
+        "Halal certified is set by HalalGoes from your approved certificate.",
+        [{"field": "dietary_tags[0]", "code": "not_writable", "message": "HALAL_CERTIFIED cannot be set by hand."}],
+        "Nobody types the halal claim onto a dish, not even an admin: it comes from the "
+        "restaurant's approved certificate. A missing claim shows no badge, never an "
+        "optimistic one.",
+        ["createMenuItem", "updateMenuItem", "createMenuItemOnBehalf", "updateMenuItemOnBehalf"],
+    ),
+    (
+        "category_name_taken",
+        409,
+        "CATEGORY_NAME_TAKEN",
+        "You already have a category called Desserts.",
+        None,
+        "Category names are unique per restaurant, ignoring case, on create and on rename.",
+        ["createMenuCategory", "updateMenuCategory", "createMenuCategoryOnBehalf"],
+    ),
+    (
+        "item_blocked_by_admin",
+        403,
+        "ITEM_BLOCKED_BY_ADMIN",
+        "HalalGoes has blocked this item. Reason: the photo shows a different dish.",
+        None,
+        "`setMenuItemAvailability` on a `BLOCKED` item. The kitchen cannot un-block it; the "
+        "message carries the admin's reason.",
+        ["setMenuItemAvailability"],
+    ),
+    (
+        "menu_version_pending",
+        409,
+        "MENU_VERSION_PENDING",
+        "The restaurant has an edit to this item waiting for review. Decide it first.",
+        None,
+        "`updateMenuItemOnBehalf` with a claim-bearing field while the restaurant's own edit "
+        "is in the review queue. A restaurant's edit is never silently discarded.",
+        ["updateMenuItemOnBehalf"],
+    ),
+    (
+        "menu_version_already_decided",
+        409,
+        "ALREADY_DECIDED",
+        "Another reviewer already decided this version.",
+        None,
+        "Two reviewers on one version: the second decision is refused, never applied twice.",
+        ["decideMenuVersion"],
+    ),
+    (
+        "menu_version_item_deleted",
+        409,
+        "ITEM_DELETED",
+        "This item was removed from the menu.",
+        None,
+        "The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review.",
+        ["decideMenuVersion"],
+    ),
+]
+
 
 def build(reg, synth) -> None:
     _errors(reg)
@@ -255,7 +391,8 @@ def _operation_errors(reg) -> None:
 
 
 def _errors(reg) -> None:
-    for suffix, status, code, message, details, note in ERRORS:
+    entries = [(*entry, []) for entry in ERRORS] + LAUNCH_ERRORS
+    for suffix, status, code, message, details, note, operations in entries:
         envelope = {
             "error": {
                 "code": code,
@@ -271,6 +408,7 @@ def _errors(reg) -> None:
             "ErrorEnvelope",
             f"`{status}` · `{code}`. {note}",
             envelope,
+            operations=operations,
             status=status,
             tags=["error-envelope"],
         )

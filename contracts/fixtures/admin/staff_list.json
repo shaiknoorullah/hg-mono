@@ -2,10 +2,9 @@
   "scenario": "staff_list",
   "domain": "admin",
   "schema": "array<StaffUser>",
-  "describes": "Platform staff across every `StaffStatus`.",
+  "describes": "Platform staff across every `StaffStatus`. The invitee has never signed in and has no two-step sign-in yet.",
   "operations": [
-    "listStaff",
-    "createStaffUser"
+    "listStaff"
   ],
   "status": 200,
   "tags": [
@@ -22,7 +21,7 @@
       "id": "7a38a91f-2f1f-41f3-af8c-68e3c9a7f0e1",
       "email": "owner@karachikitchen.ca",
       "full_name": "Full Name",
-      "role": "CUSTOMER",
+      "role": "SUPER_ADMIN",
       "status": "ACTIVE",
       "mfa_enrolled": true,
       "last_login_at": "2026-08-10T18:32:11.412Z",
@@ -32,17 +31,17 @@
       "id": "f8298e26-27b1-4102-af62-0bbc308abfd6",
       "email": "owner@karachikitchen.ca",
       "full_name": "Full Name",
-      "role": "CUSTOMER",
+      "role": "ADMIN",
       "status": "INVITED",
-      "mfa_enrolled": true,
-      "last_login_at": "2026-08-10T18:32:11.412Z",
+      "mfa_enrolled": false,
+      "last_login_at": null,
       "created_at": "2026-08-10T17:57:11.412Z"
     },
     {
       "id": "6475cac7-079a-4961-a480-bf122e00bfd8",
       "email": "owner@karachikitchen.ca",
       "full_name": "Full Name",
-      "role": "CUSTOMER",
+      "role": "SUPPORT_AGENT",
       "status": "SUSPENDED",
       "mfa_enrolled": true,
       "last_login_at": "2026-08-10T18:32:11.412Z",
@@ -52,7 +51,7 @@
       "id": "0b8405b1-cb33-434b-a92e-962bb0fd6f34",
       "email": "owner@karachikitchen.ca",
       "full_name": "Full Name",
-      "role": "CUSTOMER",
+      "role": "ADMIN",
       "status": "DEACTIVATED",
       "mfa_enrolled": true,
       "last_login_at": "2026-08-10T18:32:11.412Z",
