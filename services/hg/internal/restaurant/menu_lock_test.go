@@ -10,7 +10,6 @@ package restaurant_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +21,7 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant/menulocktest"
 )
 
 // menuWriteCase is one restaurant menu write, called the way its route calls it.
@@ -121,12 +121,12 @@ func TestMenuLock_RefusedWhileSuspendedOrBanned(t *testing.T) {
 			t.Run(state+"/"+c.op, func(t *testing.T) {
 				f := seedFixtures(t, pool)
 				setAccountState(t, pool, f.restaurantID, state)
-				before := menuFingerprint(t, pool, f.restaurantID)
+				before := menulocktest.Fingerprint(t, pool, f.restaurantID)
 
 				rec := c.call(h, f)
 
 				assertMenuLocked(t, rec, state)
-				if after := menuFingerprint(t, pool, f.restaurantID); after != before {
+				if after := menulocktest.Fingerprint(t, pool, f.restaurantID); after != before {
 					t.Errorf("a refused %s changed the menu", c.op)
 				}
 			})
@@ -145,7 +145,7 @@ func TestMenuLock_AllowedWhenDelistedOrLive(t *testing.T) {
 			t.Run(state+"/"+c.op, func(t *testing.T) {
 				f := seedFixtures(t, pool)
 				setAccountState(t, pool, f.restaurantID, state)
-				before := menuFingerprint(t, pool, f.restaurantID)
+				before := menulocktest.Fingerprint(t, pool, f.restaurantID)
 
 				rec := c.call(h, f)
 
@@ -153,7 +153,7 @@ func TestMenuLock_AllowedWhenDelistedOrLive(t *testing.T) {
 					t.Fatalf("%s while %s: status=%d, want %d (body: %s)",
 						c.op, state, rec.Code, c.success, rec.Body.String())
 				}
-				if after := menuFingerprint(t, pool, f.restaurantID); after == before {
+				if after := menulocktest.Fingerprint(t, pool, f.restaurantID); after == before {
 					t.Errorf("%s while %s answered %d but wrote nothing", c.op, state, rec.Code)
 				}
 			})
@@ -187,7 +187,7 @@ func TestMenuLock_SuspensionCommittingDuringAWrite_WriteRefused(t *testing.T) {
 	f := seedFixtures(t, pool)
 	h := newHandler(pool)
 	ctx := context.Background()
-	before := menuFingerprint(t, pool, f.restaurantID)
+	before := menulocktest.Fingerprint(t, pool, f.restaurantID)
 
 	suspension, err := pool.Begin(ctx)
 	if err != nil {
@@ -212,7 +212,7 @@ func TestMenuLock_SuspensionCommittingDuringAWrite_WriteRefused(t *testing.T) {
 	done := make(chan *httptest.ResponseRecorder, 1)
 	go func() { done <- update.call(h, f) }()
 
-	waitUntilBlockedBy(t, pool, suspenderPID)
+	menulocktest.WaitForLockWaiter(t, pool, suspenderPID)
 	if err := suspension.Commit(ctx); err != nil {
 		t.Fatalf("commit suspension: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestMenuLock_SuspensionCommittingDuringAWrite_WriteRefused(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("the save never finished after the suspension committed")
 	}
-	if after := menuFingerprint(t, pool, f.restaurantID); after != before {
+	if after := menulocktest.Fingerprint(t, pool, f.restaurantID); after != before {
 		t.Error("a save that waited for a suspension changed the menu after it")
 	}
 }
@@ -257,7 +257,7 @@ func TestMenuLock_WriteHoldingTheLock_CommitsBeforeTheSuspension(t *testing.T) {
 		suspended <- err
 	}()
 
-	waitUntilBlockedBy(t, pool, writerPID)
+	menulocktest.WaitForLockWaiter(t, pool, writerPID)
 	select {
 	case err := <-suspended:
 		t.Fatalf("the suspension committed while a menu write held the lock (err=%v)", err)
@@ -309,62 +309,8 @@ func setAccountState(t *testing.T, pool *pgxpool.Pool, restaurantID, state strin
 	}
 }
 
-// menuFingerprint digests every menu row of the restaurant, so a test can say the
-// menu did or did not change without naming each column.
-func menuFingerprint(t *testing.T, pool *pgxpool.Pool, restaurantID string) string {
-	t.Helper()
-	var digest string
-	if err := pool.QueryRow(context.Background(), `
-		SELECT md5(
-		  coalesce((SELECT string_agg(row_to_json(c)::text, ',' ORDER BY c.id) FROM menu_category c WHERE c.restaurant_id = $1), '') || '|' ||
-		  coalesce((SELECT string_agg(row_to_json(i)::text, ',' ORDER BY i.id) FROM menu_item i WHERE i.restaurant_id = $1), '') || '|' ||
-		  coalesce((SELECT string_agg(row_to_json(v)::text, ',' ORDER BY v.id) FROM menu_item_version v WHERE v.restaurant_id = $1), ''))`,
-		restaurantID).Scan(&digest); err != nil {
-		t.Fatalf("menu fingerprint: %v", err)
-	}
-	return digest
-}
-
-// waitUntilBlockedBy waits until some backend is waiting on a lock the backend pid
-// holds, which is how the race tests know the second party has reached the lock.
-func waitUntilBlockedBy(t *testing.T, pool *pgxpool.Pool, pid int) {
-	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
-	for time.Now().Before(deadline) {
-		var blocked bool
-		if err := pool.QueryRow(context.Background(),
-			`SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE $1 = ANY (pg_blocking_pids(pid)))`,
-			pid).Scan(&blocked); err != nil {
-			t.Fatalf("pg_blocking_pids: %v", err)
-		}
-		if blocked {
-			return
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	t.Fatalf("nothing ever waited on backend %d's lock", pid)
-}
-
+// assertMenuLocked fails the test unless rec is 403 MENU_LOCKED for state.
 func assertMenuLocked(t *testing.T, rec *httptest.ResponseRecorder, state string) {
 	t.Helper()
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("status=%d, want 403 MENU_LOCKED (body: %s)", rec.Code, rec.Body.String())
-	}
-	var env struct {
-		Error struct {
-			Code    string `json:"code"`
-			Details struct {
-				AccountState string `json:"account_state"`
-			} `json:"details"`
-		} `json:"error"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
-		t.Fatalf("decode error envelope: %v (body: %s)", err, rec.Body.String())
-	}
-	if env.Error.Code != "MENU_LOCKED" {
-		t.Errorf("code=%q, want MENU_LOCKED", env.Error.Code)
-	}
-	if env.Error.Details.AccountState != state {
-		t.Errorf("details.account_state=%q, want %q", env.Error.Details.AccountState, state)
-	}
+	menulocktest.AssertLocked(t, rec.Code, rec.Body.Bytes(), state)
 }
