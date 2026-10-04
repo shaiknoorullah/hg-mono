@@ -27,6 +27,8 @@ A **modular monolith**, not microservices. Packages call each other as functions
 
 **Load-bearing rule:** flush Redis at any moment and the system must still be *correct* — just slower. Every Redis bug in the previous system came from violating this.
 
+**Where it runs:** at launch, all of it on one server, with a permanent dev environment beside production; a warm standby is added next month ([hosting and dev environment decisions](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
+
 ## 3. Non-negotiable invariants
 
 Each exists because it was violated in the previous system and cost real money or real safety. Do not weaken one without an entry in `docs/decisions/`.
@@ -97,18 +99,21 @@ cd services/hg && make up && make migrate && make run
 
 **Apps: all four exist and are being rebuilt.** Customer and rider (Expo), restaurant and admin (web) call the API through the generated client, but they predate the redesign. Rebuilding them from the approved canvases: [customer (#87)](https://github.com/shaiknoorullah/hg-mono/issues/87), [rider (#88)](https://github.com/shaiknoorullah/hg-mono/issues/88), [restaurant (#89)](https://github.com/shaiknoorullah/hg-mono/issues/89), [admin (#90)](https://github.com/shaiknoorullah/hg-mono/issues/90). The marketing site is `apps/marketing`.
 
-**Production: not set up yet.** The hosting plan is Contabo, a production box plus a warm standby ([#207](https://github.com/shaiknoorullah/hg-mono/issues/207)); the owner still has to confirm the purchase. A live Stripe account ([#56](https://github.com/shaiknoorullah/hg-mono/issues/56)) and real SMS and email ([#59](https://github.com/shaiknoorullah/hg-mono/issues/59)) are still to do. How the platform is built and hosted is in the [platform decisions](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01): self-hosted open source throughout. The exceptions are email through Resend and maps through Mapbox, which the owner approved, and the services that cannot be self-hosted: Stripe, Apple and Google push delivery, Twilio Verify and the app stores.
+**Release 1.0: Tuesday 6 Oct 2026**, moved from 1 Oct ([release date](docs/decisions/README.md#launch-scope-and-contract)). What ships: [#103](https://github.com/shaiknoorullah/hg-mono/issues/103); when it is done: [#257](https://github.com/shaiknoorullah/hg-mono/issues/257).
+
+**Production: not set up yet.** It starts on one Contabo Cloud VPS 6 in US-East; the warm standby ([#210](https://github.com/shaiknoorullah/hg-mono/issues/210)) is added next month ([hosting decision](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01), [hosting plan](https://github.com/shaiknoorullah/hg-mono/issues/207)). A permanent dev environment will run beside production on that server, with its own data, configuration and test-mode keys; only the requirement is settled, and its design awaits the owner's approval ([#235](https://github.com/shaiknoorullah/hg-mono/issues/235)). A live Stripe account ([#56](https://github.com/shaiknoorullah/hg-mono/issues/56)) and real SMS and email ([#59](https://github.com/shaiknoorullah/hg-mono/issues/59)) are still to do. How the platform is built and hosted is in the [platform decisions](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01): self-hosted open source throughout. The exceptions are email through Resend and maps through Mapbox, which the owner approved, and the services that cannot be self-hosted: Stripe, Apple and Google push delivery, Twilio Verify and the app stores.
 
 **Blocked on the owner** (the [open decisions](docs/decisions/README.md#open--blocking)):
 - **[HST supplier position (O-01)](docs/decisions/README.md#open--blocking)**: the registration number is set; whether the platform or each restaurant is the supplier of record is with the accountant.
 - **[SMS and OTP sender registration (O-03)](docs/decisions/README.md#open--blocking)**: nobody can sign in without it, and carrier approval takes days to weeks.
-- Also undecided: whether a suspended restaurant may edit its menu ([#205](https://github.com/shaiknoorullah/hg-mono/issues/205)), and the retention periods and in-app flow for account deletion ([launch scope](docs/decisions/README.md#launch-scope-and-contract)).
+- Also undecided: the retention periods and in-app flow for account deletion ([launch scope](docs/decisions/README.md#launch-scope-and-contract)).
 
 Refund liability, launch province and self-declared halal restaurants are [settled](docs/decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1).
 
 ## 8. Known gaps
 
 - The compose stack **booted from an empty volume and ran healthy**: Traefik, 2× API, Postgres/PostGIS, Redis and MinIO, with `/health` and `/health/ready` returning 200 through the published port. **It cannot start on a new host today:** the pinned MinIO images can no longer be pulled ([#202](https://github.com/shaiknoorullah/hg-mono/issues/202)). Object storage moves to [Silo, the maintained fork of MinIO](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01); the compose file keeps the old MinIO pin until #202 lands.
+- No standby server until next month ([#210](https://github.com/shaiknoorullah/hg-mono/issues/210)): a lost production server is rebuilt from backups, hours to a day offline, losing changes since the last off-server backup ([incident runbook](docs/ops/runbook.md)).
 - Object storage is more exposed than the [architecture](#2-architecture-in-one-picture) says: the compose file publishes the console and S3 API ports and the media bucket is public-read ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)), and presigned links are signed with the root user ([#203](https://github.com/shaiknoorullah/hg-mono/issues/203)).
 - Notifications (push, SMS and email) go to fake senders; only sign-in codes go through Twilio Verify. Real SMS, and email through Resend: [#59](https://github.com/shaiknoorullah/hg-mono/issues/59).
 - Map address search through our API, forwarding to Mapbox, is not in the contract yet ([#179](https://github.com/shaiknoorullah/hg-mono/issues/179)); Mapbox keys are [#57](https://github.com/shaiknoorullah/hg-mono/issues/57).

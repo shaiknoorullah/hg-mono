@@ -1,0 +1,16 @@
+# Build output. `make build` writes to bin/, which the root .gitignore covers.
+# A bare `go build ./cmd/<name>` writes the binary here instead, and a
+# `go build` inside cmd/<name> writes it next to main.go. A new command under
+# cmd/ needs both of its lines added here.
+/hg
+/seedpw
+/seedtotp
+/totpnow
+/cmd/hg/hg
+/cmd/seedpw/seedpw
+/cmd/seedtotp/seedtotp
+/cmd/totpnow/totpnow
+
+# `go test -c` binaries, and stderr captured from a local build or vet run.
+*.test
+/*.err
