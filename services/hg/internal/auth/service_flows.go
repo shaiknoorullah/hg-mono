@@ -52,11 +52,9 @@ func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string,
 	if err := s.rl.Allow(ctx, "rl:otp:phone:"+phone, 5, 15*time.Minute); err != nil {
 		return nil, err
 	}
-	if ip != nil {
-		// rl:otp:ip:{ip} — 20 requests / 15 min.
-		if err := s.rl.Allow(ctx, "rl:otp:ip:"+*ip, 20, 15*time.Minute); err != nil {
-			return nil, err
-		}
+	// rl:otp:ip:{ip, or its IPv6 /64} — 20 requests / 15 min.
+	if err := s.rl.Allow(ctx, otpIPLimitKey(ip), 20, 15*time.Minute); err != nil {
+		return nil, err
 	}
 
 	// Re-send inside an open challenge: same code, increment sends, honour the
@@ -136,6 +134,18 @@ func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string,
 	}, nil
 }
 
+// otpIPLimitKey is the per-IP OTP request counter for ip. httpx.RateLimitKey
+// buckets it: an IPv6 caller is counted per /64, not per address, and a request
+// with no resolved address shares one "unknown" budget rather than skipping the
+// limit.
+func otpIPLimitKey(ip *string) string {
+	addr := ""
+	if ip != nil {
+		addr = *ip
+	}
+	return "rl:otp:ip:" + httpx.RateLimitKey(addr)
+}
+
 // requestOTPViaVerifier is the PhoneVerifier (Twilio Verify) variant of
 // RequestOTP. It keeps the same P-02 request throttle, 60 s cooldown and open-
 // challenge re-send scaffolding as the self-hosted path, but the provider owns
@@ -150,10 +160,8 @@ func (s *Service) requestOTPViaVerifier(ctx context.Context, phone, purpose stri
 	if err := s.rl.Allow(ctx, "rl:otp:phone:"+phone, 5, 15*time.Minute); err != nil {
 		return nil, err
 	}
-	if ip != nil {
-		if err := s.rl.Allow(ctx, "rl:otp:ip:"+*ip, 20, 15*time.Minute); err != nil {
-			return nil, err
-		}
+	if err := s.rl.Allow(ctx, otpIPLimitKey(ip), 20, 15*time.Minute); err != nil {
+		return nil, err
 	}
 
 	cooldownKey := "rl:otp:cooldown:" + phone + ":" + purpose

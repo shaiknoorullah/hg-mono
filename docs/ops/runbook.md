@@ -165,6 +165,8 @@ If only WhatsApp fails, switch to text messages: set `HG_TWILIO_VERIFY_CHANNEL=s
 
 If Twilio itself is down or the account is blocked, there is nothing to switch to: the owner contacts Twilio and support tells customers. Don't change `HG_OTP_PROVIDER` during an incident: the other path sends through Twilio's message sender, which needs its own registered number and has never run in production.
 
+If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0`: the API refuses to start with it ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
+
 ## Payments are failing
 
 - **Signs:** checkout errors; `/health/ready` names Stripe; failed deliveries under the webhook endpoint in Stripe's dashboard; reconciliation exceptions on the System page.

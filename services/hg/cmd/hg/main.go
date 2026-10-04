@@ -505,12 +505,22 @@ func run() error {
 		st.DB().Pool, st.Cache().Client, authSecrets,
 		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
 
+	// Behind Traefik with no trusted proxy, every request's client address is
+	// Traefik's, so say which mode this process is in.
+	if len(cfg.TrustedProxies) == 0 {
+		log.Info("trusted proxies: none — X-Forwarded-For is ignored and the socket peer is the client address")
+	} else {
+		log.Info("trusted proxies: X-Forwarded-For is read from these peers only",
+			slog.Any("cidrs", cfg.TrustedProxies))
+	}
+
 	router := httpx.NewRouter(httpx.Options{
-		Logger:        log,
-		Env:           string(cfg.Env),
-		CORSOrigins:   cfg.CORSOrigins,
-		Authenticator: authModule.Authenticator,
-		Authorizer:    authModule.Authorizer,
+		Logger:         log,
+		Env:            string(cfg.Env),
+		CORSOrigins:    cfg.CORSOrigins,
+		TrustedProxies: cfg.TrustedProxies,
+		Authenticator:  authModule.Authenticator,
+		Authorizer:     authModule.Authorizer,
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
