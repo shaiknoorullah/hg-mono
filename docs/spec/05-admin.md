@@ -1527,8 +1527,8 @@ These six words mean exactly this everywhere in the product, in the API, and in 
 - **At launch** ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)): release 1.0 ships
   `applyRestaurantAccountAction` with `SUSPEND`, `DELIST`, `PROPOSE_BAN`, `CONFIRM_BAN`,
   `DEACTIVATE` and `REINSTATE`, the two-person ban with its 7-day lapse, rules 2, 3 and 6, and
-  acceptance criteria 1 and 4. Reinstating to `LIVE` needs a current, admin-verified halal
-  certificate (the order path's rule); relisting a `DELISTED` restaurant without one is
+  acceptance criteria 1 and 4. Reinstating to `LIVE` needs a current halal certificate an admin
+  has checked (the order path's rule); relisting a `DELISTED` restaurant without one is
   `409 HALAL_CERTIFICATE_REQUIRED`. Deactivating needs the `MERCHANT_REQUEST` reason instead of a
   linked case, because cases do not ship. A ban withdraws the restaurant's roles from its staff at
   sign-in and ends their sessions. Not at launch: timed suspensions (rule 1), `CLOSE`, the
@@ -1537,9 +1537,15 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   pending bans ([#327](https://github.com/shaiknoorullah/hg-mono/issues/327)). No other path
   changes an account's state with weaker gates ([#335](https://github.com/shaiknoorullah/hg-mono/pull/335)):
   the application's database role cannot write a restaurant's, rider's or customer's state, and the
-  only writers are database functions. The one for a staff action reads the actor's grants as they
-  stand, checks the transition, the own-account rule and the two-person ban, and writes the state,
-  the history and the audit together. The system's (completing onboarding, out of `PENDING` only;
+  only writers are database functions. The one for a staff action is given the request's access
+  token and acts only as the account whose live session, signed in with two-step sign-in, the token
+  was issued for; the application's database role holds only token hashes and cannot rewrite a
+  session. It reads the actor's grants as they stand, checks the transition, the own-account rule
+  (a staff account is not acted on as a rider or a customer) and the two-person ban (the confirming
+  super admin did not make the proposer staff, was not made staff by them, and held the role before
+  the proposal), and writes the state, the history and the audit together. Sign-in still writes the
+  session rows under the same role, so a connection that can insert one can mint a session
+  ([#372](https://github.com/shaiknoorullah/hg-mono/issues/372)). The system's (completing onboarding, out of `PENDING` only;
   the halal expiry, which only delists; the halal renewal and a certifying body given back, which
   only list a `DELISTED` restaurant again) take no actor and decide from the data
   ([certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling)). Completing

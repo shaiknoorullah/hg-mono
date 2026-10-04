@@ -328,7 +328,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
   `account_status` becomes `ACTIVE` exactly when `onboarding_state` becomes `ACTIVE`.
   In the build the column is `account_state`, and it leaves `PENDING` in the same row update: to
-  `LIVE` only with a current, admin-verified halal certificate and no delisting reason, otherwise to
+  `LIVE` only with a current halal certificate an admin has checked and no delisting reason, otherwise to
   `DELISTED` with the certificate's reason, so a certificate that lapses between the application's
   approval and the last onboarding step never gets listed. Completing onboarding changes nothing
   but `PENDING`; it never lifts a suspension or a ban. The step is a database function that checks
