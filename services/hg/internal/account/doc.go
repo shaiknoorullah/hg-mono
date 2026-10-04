@@ -1,5 +1,5 @@
 // Package account implements the self-service profile, push-device registration,
-// and notification inbox for the Halal Goes API.
+// and notification inbox for the HalalGoes API.
 //
 // Operations:
 //   - updateCustomerProfile [PATCH /v1/me/profile]        x-roles: CUSTOMER

@@ -1,5 +1,5 @@
 /**
- * `@hg/ui-native` — the Halal Goes React Native component library.
+ * `@hg/ui-native` — the HalalGoes React Native component library.
  *
  * Five tiers, built in parallel and re-exported here in dependency order: tokens under
  * everything, primitives under the certification family, and content/navigation/feedback

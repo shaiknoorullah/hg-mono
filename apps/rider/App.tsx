@@ -1,5 +1,5 @@
 /**
- * Halal Goes — Rider app root.
+ * HalalGoes — Rider app root.
  *
  * The whole tree renders under the RIDER register (`theme="rider"`) in the light scheme, so every
  * `@hg/ui-native` component below picks up the field-register density and 56pt touch targets.

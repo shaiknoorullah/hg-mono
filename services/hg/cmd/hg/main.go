@@ -1,4 +1,4 @@
-// Command hg is the Halal Goes API server.
+// Command hg is the HalalGoes API server.
 //
 // It is one binary containing every module as a package. The modules are
 // separated by their dependencies and their spec sections, not by a network hop:

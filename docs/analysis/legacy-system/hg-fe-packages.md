@@ -1,4 +1,4 @@
-# Halal Goes — Frontend Monorepo Shared Packages (`/home/user/halal-goes/packages/*`)
+# HalalGoes — Frontend Monorepo Shared Packages (`/home/user/halal-goes/packages/*`)
 
 Analysis date: 2026-08-09. Scope: `packages/auth`, `packages/ui`, `packages/eslint-config`, `packages/tailwind-config`, `packages/typescript-config` in the `halal-goes` Turborepo (yarn 4.9.2 workspaces `apps/*` + `packages/*`, turbo `^2.4.4`/`^2.5.5`).
 
@@ -6,7 +6,7 @@ Analysis date: 2026-08-09. Scope: `packages/auth`, `packages/ui`, `packages/esli
 
 ## 1. Purpose & Role
 
-The `packages/` directory holds the five shared workspace packages of the Turborepo frontend monorepo. Only one of them — **`@halal-goes/auth`** — is substantive product code: a shared phone-OTP authentication SDK (Supabase session management + axios calls to the Halal Goes backend API) consumed by the three Expo mobile apps (`users`, `rider`, `restaurant`). The other four are scaffolding:
+The `packages/` directory holds the five shared workspace packages of the Turborepo frontend monorepo. Only one of them — **`@halal-goes/auth`** — is substantive product code: a shared phone-OTP authentication SDK (Supabase session management + axios calls to the HalalGoes backend API) consumed by the three Expo mobile apps (`users`, `rider`, `restaurant`). The other four are scaffolding:
 
 - **`@repo/ui`** — leftover `create-turbo` starter React component library, consumed only by the starter Next.js apps `web` and `docs` (not by any real product app).
 - **`@repo/eslint-config`** — shared flat-config ESLint presets (base / next-js / react-internal).

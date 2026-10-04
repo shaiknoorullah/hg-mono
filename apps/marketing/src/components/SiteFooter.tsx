@@ -152,7 +152,7 @@ export function SiteFooter({ current }: { current?: Audience }) {
           }}
         >
           <p className="m-0 text-body-sm text-fg-secondary">Ontario, Canada. Launching soon — prices in CAD.</p>
-          <p className="m-0 text-body-sm text-fg-secondary">Halal Goes does not itself certify food.</p>
+          <p className="m-0 text-body-sm text-fg-secondary">HalalGoes does not itself certify food.</p>
         </div>
       </div>
     </footer>

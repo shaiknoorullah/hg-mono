@@ -1,6 +1,6 @@
 # Component library evaluation
 
-_For the four Halal Goes apps: two Expo (customer, rider) + two web consoles (admin,
+_For the four HalalGoes apps: two Expo (customer, rider) + two web consoles (admin,
 restaurant). Decision anchor: contract-first, we own our code (generated files are not
 hand-edited — owned components fit that ethos), one token system across all four, both
 themes. Aug 2026._

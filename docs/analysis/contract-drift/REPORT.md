@@ -4,7 +4,7 @@
 
 ## Executive summary
 
-The Halal Goes Go backend has drifted from contracts/openapi.yaml across ~79 confirmed findings (7 critical, 21 high, 25 medium, 26 low). Nothing in CI ever compares a byte the running server emits against the contract — both gates check disjoint, contract-internal things — so drift surfaced only in the running product. Lead with the three tiers that matter:
+The HalalGoes Go backend has drifted from contracts/openapi.yaml across ~79 confirmed findings (7 critical, 21 high, 25 medium, 26 low). Nothing in CI ever compares a byte the running server emits against the contract — both gates check disjoint, contract-internal things — so drift surfaced only in the running product. Lead with the three tiers that matter:
 
 HALAL (the product's single claim): Three surfaces guaranteed to render NO halal seal by construction. GET /v1/cart emits "restaurant": null unconditionally (cartToDTO never assigns Restaurant; the store never even fetches halal data), so the cart — a halal re-assertion surface before checkout — never shows the seal (critical). GET /v1/restaurant/profile emits a flat halal_status string instead of the required `halal` HalalBadge object, so the restaurant profile cannot express display_state (critical). GET /v1/orders/{orderId} (customer view) omits OrderRestaurantRef.halal entirely, tripping the C-12 client-error path (critical). addCartLine inherits the same null-restaurant defect (high). None produce a FALSE badge — the client fails safe to no-badge (invariant #8 holds) — but the required halal presentation is absent platform-wide on these surfaces.
 

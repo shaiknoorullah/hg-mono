@@ -1,7 +1,7 @@
 /* eslint-env node */
 /**
- * Metro for the rider app inside a pnpm workspace. Mirrors apps/gallery-native, plus the
- * SINGLETON block required because `@hg/ui-native` is consumed as SOURCE.
+ * Metro for the rider app inside a pnpm workspace, plus the SINGLETON block required because
+ * `@hg/ui-native` is consumed as SOURCE.
  *
  * 1. SINGLETONS: `@hg/ui-native` is not a built package — Metro compiles its TypeScript source
  *    in place. Its own `import 'react-native'` would otherwise resolve relative to the library
@@ -19,7 +19,7 @@
  *
  * 4. Two `@hg/ui-native` internals do not survive a web bundle as written (variable `require`
  *    of expo-clipboard; `findNodeHandle` in an effect). They are redirected to host-side
- *    adapters with the same export contract, exactly as the gallery does.
+ *    adapters with the same export contract, exactly as the customer app does.
  */
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');

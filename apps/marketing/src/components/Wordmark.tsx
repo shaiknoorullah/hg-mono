@@ -39,7 +39,7 @@ export function Wordmark({
   height = 32,
   id,
   className,
-  title = 'Halal Goes',
+  title = 'HalalGoes',
 }: {
   /** Height in px. Width follows the 556:186 artwork; nothing here is cropped. */
   height?: number;

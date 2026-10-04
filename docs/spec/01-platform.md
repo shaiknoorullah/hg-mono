@@ -1,4 +1,18 @@
-# Halal Goes — Cross-Cutting Platform Layer Specification
+---
+covers:
+  - services/hg/internal/auth/**
+  - services/hg/internal/session/**
+  - services/hg/internal/orders/**
+  - services/hg/internal/payments/**
+  - services/hg/internal/realtime/**
+  - services/hg/internal/notify/**
+  - services/hg/internal/files/**
+  - services/hg/internal/dispatch/**
+  - services/hg/internal/httpx/**
+reviewed: 2026-09-28
+---
+
+# HalalGoes — Cross-Cutting Platform Layer Specification
 
 **Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Redis 7, MinIO, Traefik v3, docker compose.
 **Currency**: CAD only. **Market**: Canada.
@@ -862,7 +876,7 @@ CREATE TABLE quote_tax_line (
   7. Given a province with no configured rate, When quoted, Then 422 `tax_profile_missing` and no order is created.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — GST/HST supplier position**: Is Halal Goes the deemed supplier for orders from non-registrant (small-supplier) restaurants, or does each restaurant remain the supplier? · **Proposed default**: platform is the deemed supplier for restaurants without a GST/HST number and collects/remits their food tax; registrant restaurants remain the supplier and receive their tax in their payout. Both paths are modelled by `restaurant.tax_role`. · **Why**: this determines who remits food tax and is the single highest-consequence tax question; it must be signed off by Canadian tax counsel before launch, and the data model supports either answer without a code change.
+> **DECISION REQUIRED — GST/HST supplier position**: Is HalalGoes the deemed supplier for orders from non-registrant (small-supplier) restaurants, or does each restaurant remain the supplier? · **Proposed default**: platform is the deemed supplier for restaurants without a GST/HST number and collects/remits their food tax; registrant restaurants remain the supplier and receive their tax in their payout. Both paths are modelled by `restaurant.tax_role`. · **Why**: this determines who remits food tax and is the single highest-consequence tax question; it must be signed off by Canadian tax counsel before launch, and the data model supports either answer without a code change.
 
 > **DECISION REQUIRED — QST registration**: Will the platform register for QST and operate in Quebec at launch? · **Proposed default**: no Quebec launch in V1; QC addresses are rejected at quote time with `province_not_served`. · **Why**: QST registration, French-language (Charter) obligations and Revenu Québec filing are a distinct workstream.
 
@@ -2014,6 +2028,8 @@ CREATE TABLE notification_delivery (
 
 ### P-25 — Push notifications (Expo)
 
+> **2026-10-01:** [The self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) allows Apple and Google push services. Expo Push is a hosted relay in front of them and is not on the exception list. Whether it stays is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 - **Behaviour**: Expo Push (`https://exp.host/--/api/v2/push/send`) fronts both FCM and APNs, which matches the Expo SDK 53 apps. Tokens are registered by the app after an explicit permission prompt and are bound to `(account_id, device_id, role_context)`.
 
   `POST /v1/devices` `{expo_push_token, device_id, platform, app_version, os_version, locale}` — upsert on `(account_id, device_id)`. `DELETE /v1/devices/{device_id}` on logout. **Logout always deletes the token**, so a shared phone never receives the previous user's orders.
@@ -2061,8 +2077,8 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
 
 - **Behaviour**:
   - **SMS**: one provider behind a `SMSSender` interface (Twilio at launch), Canadian long code or toll-free number **registered for A2P/short-code compliance**; Canadian carriers require pre-registration for application-to-person traffic. Messages: OTP, `must_reach` escalations, critical account/security. Every SMS includes the brand name; no marketing SMS in V1. Per-message cost is recorded in `notification_delivery.cost_cents`, with a daily spend circuit breaker.
-  - **Email**: one provider behind an `EmailSender` interface (Postmark/SES at launch) on a subdomain (`mail.halalgoes.com`) with **SPF, DKIM and DMARC** configured and a boot-time DNS probe that alerts if any is missing. Transactional and marketing streams are separated so a marketing complaint cannot damage transactional deliverability.
-  - **Templates**: stored in the repo as MJML→HTML + plaintext, versioned, rendered server-side, localised `en-CA` / `fr-CA`, with a golden-file test per template per locale. Admin-editable templates (`A37`) are V2 and, when added, are stored as `email_template` rows with a version history and a preview/approval step — never free-form HTML injected without sanitisation.
+  - **Email**: one provider behind an `EmailSender` interface ([Resend](https://resend.com), on HalalGoes's Resend accounts: [email decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) on a subdomain (`mail.halalgoes.com`) with **SPF, DKIM and DMARC** configured and a boot-time DNS probe that alerts if any is missing. Transactional and marketing streams are separated so a marketing complaint cannot damage transactional deliverability.
+  - **Templates**: built with [React Email](https://react.email) and stored in the repo, exported to HTML + plaintext, versioned, rendered server-side, localised `en-CA` / `fr-CA`, with a golden-file test per template per locale. Admin-editable templates (`A37`) are V2 and, when added, are stored as `email_template` rows with a version history and a preview/approval step — never free-form HTML injected without sanitisation.
   - Required templates at launch: email verification, password reset, security alert, order receipt, order cancelled + refund, refund settled, restaurant application approved/rejected, rider application approved/rejected, payout statement, Connect requirements due, monthly commission invoice.
 
 - **Data**: `notification_delivery` (P-24) carries provider ids and cost. `email_suppression (email, reason, at)` records bounces and complaints; a suppressed address is never emailed again for marketing and only for critical transactional mail.
@@ -2500,7 +2516,7 @@ RETURNING *;
   4. Given an admin marks a certifier as not recognised, Then every restaurant relying on it drops to `SELF_DECLARED` within the nightly sweep and owners are notified.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — recognised halal certifiers**: Which certifying bodies does Halal Goes accept? · **Proposed default**: an admin-managed allowlist seeded with the major Canadian bodies, with anything else requiring manual admin review before `CERTIFIED` is granted. · **Why**: the platform's entire premise is that "certified" means something; an open list makes the badge worthless.
+> **DECISION REQUIRED — recognised halal certifiers**: Which certifying bodies does HalalGoes accept? · **Proposed default**: an admin-managed allowlist seeded with the major Canadian bodies, with anything else requiring manual admin review before `CERTIFIED` is granted. · **Why**: the platform's entire premise is that "certified" means something; an open list makes the badge worthless.
 
 > **DECISION REQUIRED — self-declared restaurants**: Are non-certified halal restaurants listed at all? · **Proposed default**: yes, but hidden behind an explicit filter change, badged "Self-declared, not verified", and never described as certified. · **Why**: supply at launch will be thin, but conflating the two destroys the product.
 

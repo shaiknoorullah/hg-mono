@@ -19,8 +19,6 @@ __pycache__/
 .next/
 next-env.d.ts
 
-# expo web export output
-apps/gallery-native/dist/
 .claude/*
 !.claude/skills/
 .expo/

@@ -798,7 +798,7 @@ def _receipts(reg) -> None:
         "order_code": "HG-COED-9X",
         "receipt_number": "HG-2026-000148213",
         "issued_at": ts(-1 * MINUTE),
-        "platform_legal_name": "Halal Goes Technologies Inc.",
+        "platform_legal_name": "HalalGoes Technologies Inc.",
         # O-01 is open: both registration numbers exist so either answer is expressible.
         "platform_tax_registration_number": "701234567RT0001",
         "restaurant_legal_name": "Karachi Kitchen Inc.",

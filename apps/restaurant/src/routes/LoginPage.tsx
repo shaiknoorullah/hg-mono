@@ -39,7 +39,7 @@ export function LoginPage() {
             <Icon name="check" weight="bold" size={22} />
           </div>
           <div>
-            <h1 className="text-heading-md font-extrabold text-fg-primary">Halal Goes for restaurants</h1>
+            <h1 className="text-heading-md font-extrabold text-fg-primary">HalalGoes for restaurants</h1>
             <p className="text-body-sm text-fg-secondary">Sign in to manage orders, menu and hours.</p>
           </div>
         </div>
@@ -110,7 +110,7 @@ export function LoginPage() {
         </Card>
 
         <p className="mt-5 text-center text-body-sm text-fg-secondary">
-          New to Halal Goes?{' '}
+          New to HalalGoes?{' '}
           <Link to="/register" className="font-bold text-action-primary-bg">
             Register your restaurant
           </Link>

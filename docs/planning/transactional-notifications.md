@@ -1,6 +1,6 @@
 # Transactional notification infrastructure (core system, v1)
 
-_Halal Goes. **Reliability-critical, OLTP-side, ships with the core product (v1) — not v2.**
+_HalalGoes. **Reliability-critical, OLTP-side, ships with the core product (v1) — not v2.**
 This is the delivery path for messages a user must receive: sign-in OTP, order accepted,
 payment captured, rider assigned, arriving, delivered, refund issued. It is **completely
 separate** from the marketing/engagement plane (`growth-stack.md` / Dittofeed), because the
@@ -33,8 +33,10 @@ anchored to Postgres**, using the transactional outbox pattern.
 2. **At-least-once + idempotent** — the worker may retry; delivery is keyed by a stable
    `notification_id` (+ provider idempotency key) so retries never double-send.
 3. **Provider failover** — per channel, a primary + fallback provider (SMS: Twilio → fallback;
-   push: FCM/APNs; email: SES/Postmark). Retry with exponential backoff, then **dead-letter +
-   alert** (never silent-drop a transactional message).
+   push: FCM/APNs). Email has one provider, Resend
+   ([email decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
+   Retry with exponential backoff, then **dead-letter + alert** (never silent-drop a
+   transactional message).
 4. **Channel fallback** — critical types escalate: push → if undelivered/unregistered, fall back
    to SMS. Configured per notification type.
 5. **Consent independence** — transactional/OTP/legal messages send regardless of marketing
@@ -52,7 +54,7 @@ anchored to Postgres**, using the transactional outbox pattern.
 
 Generalise the existing **`SMSSender` seam** (today: phone OTP) into a multi-channel
 `Notifier` with adapters: **SMS** (Twilio + fallback), **Push** (FCM/APNs), **Email**
-(SES/Postmark), **in-app/WebSocket** (already have the WS hub). Each adapter is behind an
+(Resend, templates built with React Email), **in-app/WebSocket** (already have the WS hub). Each adapter is behind an
 interface with a fake for local/dev (like the fake Stripe), so the pipeline is testable without
 live creds.
 

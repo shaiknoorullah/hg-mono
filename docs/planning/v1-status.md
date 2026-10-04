@@ -1,6 +1,6 @@
 # v1 status — 5-wave push, released as `v1.0.0-rc1`
 
-_Halal Goes. Consolidated, **personally verified** status (not agent self-report). Aug 2026.
+_HalalGoes. Consolidated, **personally verified** status (not agent self-report). Aug 2026.
 The rule this whole push was held to: report the real state, never a green light I didn't
 run myself._
 

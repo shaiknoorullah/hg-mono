@@ -1,6 +1,6 @@
 # Handoff verification — QR + tamper-evident seal
 
-_Halal Goes. Verifiable chain of custody from kitchen to door: prove the **right** order moved to
+_HalalGoes. Verifiable chain of custody from kitchen to door: prove the **right** order moved to
 the **right** rider and **right** customer, and that it was **never opened** in transit. Extends
 the product's core claim — halal verification — from the certificate to the physical package.
 Captured Aug 2026 from product direction._

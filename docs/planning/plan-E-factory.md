@@ -207,7 +207,7 @@ Standing rule enforced by PS: **any process rule that survives two cycles as a h
 
 ### 4.5 The bug bestiary
 
-Every defect found in Halal Goes production **and** every defect that escapes a station becomes a named, permanent regression test (`BST-###`) with an owner and a tag. Tags feed lane assignment: touching code tagged `BST:pricing` auto-upgrades to L3. The bestiary is QA's memory made executable, and it is the mechanism by which the system gets *harder to break over time* rather than merely *bigger*.
+Every defect found in HalalGoes production **and** every defect that escapes a station becomes a named, permanent regression test (`BST-###`) with an owner and a tag. Tags feed lane assignment: touching code tagged `BST:pricing` auto-upgrades to L3. The bestiary is QA's memory made executable, and it is the mechanism by which the system gets *harder to break over time* rather than merely *bigger*.
 
 ### 4.6 The andon cord — stop the line
 
@@ -325,7 +325,7 @@ UX has approval authority on client PRs and no authority on backend PRs — a na
 
 ---
 
-## 9. Migration from the existing Halal Goes system
+## 9. Migration from the existing HalalGoes system
 
 Observed legacy shape: `hg-api` (NestJS/TS, Prisma, Redis + Redis Streams, Temporal, MinIO; services for carts, checkout, feed, orders, payments, pricing, ratings, restaurants, riders, users, admin), `halal-goes` (Turborepo: apps `users`, `rider`, `restaurant`, `restaurant-web`, `admin-web`, `web`, `docs`; packages `ui`, `auth`), `hg-docker` (separate compose). Exported API collections exist (`API v1.0.10.json`, `API v1.2.23.json`, `API v1.2.25.json`) — these are gold and become the migration's source of truth.
 

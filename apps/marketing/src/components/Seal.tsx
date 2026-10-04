@@ -25,7 +25,7 @@ export function Seal({ size = 240, className }: { size?: number; className?: str
       height={size}
       viewBox="0 0 240 240"
       role="img"
-      aria-label="Halal Goes verified seal"
+      aria-label="HalalGoes verified seal"
       // `block` belongs in the class list, not in a style attribute: an inline
       // style outranks every utility, which silently defeated the lg:hidden /
       // hidden lg:block pair that picks the phone or desktop size.
@@ -51,7 +51,7 @@ export function Seal({ size = 240, className }: { size?: number; className?: str
           textAnchor="middle"
         >
           <textPath href={`#${uid}-top`} startOffset="50%">
-            HALAL GOES
+            HALALGOES
           </textPath>
         </text>
         <text
@@ -118,7 +118,7 @@ export function StampSeal({ size = 168, className }: { size?: number; className?
       height={size}
       viewBox="0 0 240 240"
       role="img"
-      aria-label="Halal Goes verified seal — issued only when all seven checks pass"
+      aria-label="HalalGoes verified seal — issued only when all seven checks pass"
       className={`block ${className ?? ''}`}
     >
       <circle cx="120" cy="120" r="116" fill="none" stroke="var(--hg-mk-seal-ring)" strokeWidth="2.5" />
@@ -130,7 +130,7 @@ export function StampSeal({ size = 168, className }: { size?: number; className?
       <g aria-hidden="true" fill="var(--hg-mk-seal)">
         <text fontFamily="var(--font-mono)" fontSize="13.5" fontWeight="600" letterSpacing="2.4" textAnchor="middle">
           <textPath href={`#${uid}-top`} startOffset="50%">
-            HALAL GOES · VERIFIED
+            HALALGOES · VERIFIED
           </textPath>
         </text>
         <text fontFamily="var(--font-mono)" fontSize="13.5" fontWeight="600" letterSpacing="2.4" textAnchor="middle">

@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-09-28
+---
+
 # Decision: surface the certificate's slaughter method
 
 _Sep 2026, client-confirmed. Raised by the Gate B objection map; requires schema, contract, admin

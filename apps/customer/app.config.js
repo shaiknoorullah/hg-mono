@@ -20,7 +20,7 @@
 module.exports = ({ config }) => ({
   ...config,
   expo: {
-    name: 'Halal Goes — Customer',
+    name: 'HalalGoes — Customer',
     slug: 'hg-customer',
     version: '0.0.0',
     orientation: 'portrait',
