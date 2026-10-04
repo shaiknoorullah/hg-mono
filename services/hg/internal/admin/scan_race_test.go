@@ -71,6 +71,49 @@ UPDATE stored_object SET virus_scan_state='INFECTED', virus_scan_detail='Win.Tes
 	return err
 }
 
+// commitInfected records a late INFECTED verdict for file in its own
+// transaction on c and commits it.
+func commitInfected(ctx context.Context, c *pgxpool.Conn, fileID string) error {
+	tx, err := c.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err := recordInfected(ctx, tx, fileID); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// infectedLater records a late INFECTED verdict for file on a connection of
+// its own, in a goroutine, and returns that connection (to wait on its
+// backend) and a channel that receives the commit's result.
+func infectedLater(t *testing.T, ctx context.Context, pool *pgxpool.Pool, fileID string) (conn, <-chan error) {
+	t.Helper()
+	v := acquire(t, ctx, pool)
+	done := make(chan error, 1)
+	go func() { done <- commitInfected(ctx, v.c, fileID) }()
+	return v, done
+}
+
+// infectedHeld records a late INFECTED verdict for file on a connection of
+// its own and leaves the transaction open, so the file stays locked until the
+// caller commits it. Whatever is not committed is rolled back when the test
+// ends.
+func infectedHeld(t *testing.T, ctx context.Context, pool *pgxpool.Pool, fileID string) (conn, pgx.Tx) {
+	t.Helper()
+	v := acquire(t, ctx, pool)
+	tx, err := v.c.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin verdict: %v", err)
+	}
+	t.Cleanup(func() { _ = tx.Rollback(ctx) })
+	if err := recordInfected(ctx, tx, fileID); err != nil {
+		t.Fatalf("record verdict: %v", err)
+	}
+	return v, tx
+}
+
 // lockWait is how long a step waits for the other transaction to queue up
 // behind a lock before it carries on regardless.
 const lockWait = 3 * time.Second
@@ -137,15 +180,7 @@ func TestApprovalRacesAnInfectedVerdict(t *testing.T) {
 	// The verdict holds the file; the approval waits for it, then refuses.
 	t.Run("verdict first", func(t *testing.T) {
 		docID, fileID := seedReviewableDocument(t, ctx, pool, sa)
-		v := acquire(t, ctx, pool)
-		vtx, err := v.c.Begin(ctx)
-		if err != nil {
-			t.Fatalf("begin verdict: %v", err)
-		}
-		defer func() { _ = vtx.Rollback(ctx) }()
-		if err := recordInfected(ctx, vtx, fileID); err != nil {
-			t.Fatalf("record verdict: %v", err)
-		}
+		v, vtx := infectedHeld(t, ctx, pool, fileID)
 		approved := make(chan error, 1)
 		go func() { approved <- approve(docID) }()
 		waitBlockedBy(t, ctx, pool, v.pid)
@@ -178,21 +213,7 @@ func TestApprovalRacesAnInfectedVerdict(t *testing.T) {
 		go func() { approved <- approve(docID) }()
 		waitBlockedBy(t, ctx, pool, gate.pid) // the approval now holds the file
 
-		v := acquire(t, ctx, pool)
-		verdict := make(chan error, 1)
-		go func() {
-			vtx, err := v.c.Begin(ctx)
-			if err != nil {
-				verdict <- err
-				return
-			}
-			defer func() { _ = vtx.Rollback(ctx) }()
-			if err := recordInfected(ctx, vtx, fileID); err != nil {
-				verdict <- err
-				return
-			}
-			verdict <- vtx.Commit(ctx)
-		}()
+		v, verdict := infectedLater(t, ctx, pool, fileID)
 		waitBlocked(t, ctx, pool, v.pid) // the verdict waits for the approval
 		if err := gtx.Commit(ctx); err != nil {
 			t.Fatalf("release the document: %v", err)
@@ -223,21 +244,7 @@ UPDATE kyc_document SET state='APPROVED', reviewed_by=$2, reviewed_at=now(), dea
  WHERE id=$1`, docID, sa); err != nil {
 			t.Fatalf("approve: %v", err)
 		}
-		v := acquire(t, ctx, pool)
-		verdict := make(chan error, 1)
-		go func() {
-			vtx, err := v.c.Begin(ctx)
-			if err != nil {
-				verdict <- err
-				return
-			}
-			defer func() { _ = vtx.Rollback(ctx) }()
-			if err := recordInfected(ctx, vtx, fileID); err != nil {
-				verdict <- err
-				return
-			}
-			verdict <- vtx.Commit(ctx)
-		}()
+		v, verdict := infectedLater(t, ctx, pool, fileID)
 		waitBlocked(t, ctx, pool, v.pid)
 		if err := atx.Commit(ctx); err != nil {
 			t.Fatalf("commit approval: %v", err)
@@ -252,15 +259,7 @@ UPDATE kyc_document SET state='APPROVED', reviewed_by=$2, reviewed_at=now(), dea
 
 	t.Run("direct approval second", func(t *testing.T) {
 		docID, fileID := seedReviewableDocument(t, ctx, pool, sa)
-		v := acquire(t, ctx, pool)
-		vtx, err := v.c.Begin(ctx)
-		if err != nil {
-			t.Fatalf("begin verdict: %v", err)
-		}
-		defer func() { _ = vtx.Rollback(ctx) }()
-		if err := recordInfected(ctx, vtx, fileID); err != nil {
-			t.Fatalf("record verdict: %v", err)
-		}
+		_, vtx := infectedHeld(t, ctx, pool, fileID)
 		a := acquire(t, ctx, pool)
 		approved := make(chan error, 1)
 		go func() {
@@ -304,17 +303,7 @@ UPDATE kyc_document SET state='APPROVED', reviewed_by=$2, reviewed_at=now(), dea
 			go func() {
 				defer wg.Done()
 				<-barrier
-				vtx, err := v.Begin(ctx)
-				if err != nil {
-					verdictErr = err
-					return
-				}
-				defer func() { _ = vtx.Rollback(ctx) }()
-				if err := recordInfected(ctx, vtx, fileID); err != nil {
-					verdictErr = err
-					return
-				}
-				verdictErr = vtx.Commit(ctx)
+				verdictErr = commitInfected(ctx, v, fileID)
 			}()
 			close(barrier)
 			wg.Wait()
