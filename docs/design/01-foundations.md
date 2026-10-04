@@ -462,5 +462,5 @@ All three share one `tokens.json`. A surface never defines a colour; it selects 
 ## 13. Open questions for the client
 
 1. **Brand hex.** `#FFC220` is derived, not sampled (§1.2). If the client can supply the HungerStation brand book or a licensed brand kit, replace `color.brand.500` and re-run §8. Nothing else in the system depends on the exact value — the accessible pairings are all against `text.onBrand`.
-2. **HalalGoes has its own wordmark.** This document specifies no logo. A yellow-and-green mark that includes a seal motif would let the badge and the logo reinforce each other; that is a brand-design engagement, not a token decision.
+2. **HalalGoes has its own wordmark.** *Answered:* the owner approved the supplied script wordmark. It has no green and no seal motif, so it never competes with the halal badge; the rules are in Claude Design's [wordmark and app icon guideline](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv) and the geometry is in [`@hg/brand`](../../packages/brand/README.md).
 3. **Density preference on the restaurant tablet.** `compact` assumes a 10" tablet at arm's length in a kitchen. If the deployment is a phone, the queue needs `comfortable` and a two-column layout instead of four.
