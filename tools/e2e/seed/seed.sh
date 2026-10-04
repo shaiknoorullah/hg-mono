@@ -10,7 +10,7 @@
 #
 # Things that exist go in SQL; things that happen (orders, going online) go through the API
 # during the flows. This is the seed the dev-world harness (#20) is meant to grow from.
-# Idempotent: run it again and it changes nothing but the TOTP secrets.
+# Idempotent: run it again and it changes nothing but the password and the TOTP secret.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -32,8 +32,9 @@ echo "::group::the end-to-end world"
 psql -v ON_ERROR_STOP=1 -q -f "$root/tools/e2e/seed/world.sql"
 echo "::endgroup::"
 
-# Email sign-ins: everyone shares one throwaway password; the admin also gets a TOTP secret.
-password='E2e!Seed2026'
+# Email sign-ins: one password for everyone, made fresh for this world (or E2E_PASSWORD, to
+# sign in by hand); the admin also gets a TOTP secret. Both go only into world.json.
+password="${E2E_PASSWORD:-e2e-$(openssl rand -hex 12)}"
 restaurant_email='owner@bismillah-grill.e2e.halalgoes.test'
 admin_email='admin@e2e.halalgoes.test'
 

@@ -9,7 +9,7 @@ name: e2e
 #
 #   Run workflow (workflow_dispatch)      every flow (or the web flows only), on the branch picked
 #   nightly at 05:30 UTC                  every flow, on main; skipped when main has not changed
-#                                         since the last nightly run that passed
+#                                         since the last nightly run
 #   a pull request labelled e2e           the web flows only: no APK build, no emulator
 #
 # The emulator runs cost the most runner minutes (tools/e2e/README.md, "What it costs"), so they
@@ -57,7 +57,13 @@ env:
 
 jobs:
   # Decides what this run does: all (APKs, emulator and browser), web (browser only) or none.
+  # On a pull request without the e2e label nothing runs at all, so it costs no minutes; nor
+  # when some other label is added to a labelled one.
   plan:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (contains(github.event.pull_request.labels.*.name, 'e2e') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'e2e'))
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -70,9 +76,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
-          ACTION: ${{ github.event.action }}
-          LABEL: ${{ github.event.label.name }}
-          HAS_E2E_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'e2e') }}
           IN_FLOWS: ${{ inputs.flows }}
         run: |
           mode=none
@@ -80,13 +83,14 @@ jobs:
             workflow_dispatch)
               case "$IN_FLOWS" in all|web) mode="$IN_FLOWS" ;; *) echo "::error::flows must be all or web"; exit 1 ;; esac ;;
             pull_request)
-              # Only while the PR carries the label, and not again when some other label is added.
-              if [ "$HAS_E2E_LABEL" = true ] && { [ "$ACTION" != labeled ] || [ "$LABEL" = e2e ]; }; then mode=web; fi ;;
+              mode=web ;;
             schedule)
+              # The last nightly that finished, this one excepted. A failure is not retried every
+              # night on the same commit: run it by hand, or push a fix.
               last="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow e2e.yml --event schedule \
-                --status success --limit 1 --json headSha --jq '.[0].headSha // ""')"
+                --status completed --limit 1 --json headSha --jq '.[0].headSha // ""')"
               if [ "$last" = "$GITHUB_SHA" ]; then
-                echo "main is still at ${GITHUB_SHA::7}, which the last nightly run passed: nothing to do."
+                echo "main is still at ${GITHUB_SHA::7}, which the last nightly run already tested: nothing to do."
               else
                 mode=all
               fi ;;

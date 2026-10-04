@@ -27,8 +27,8 @@ The full list of journeys still to cover is the harness plan in
 | Trigger | What runs |
 |---|---|
 | **Run workflow** on the Actions tab (`workflow_dispatch`) | Every flow, or only the web flows (input `flows`), on the branch picked |
-| **Nightly**, 05:30 UTC | Every flow, on `main`. Skipped when `main` has not changed since the last nightly run that passed |
-| A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those cost the most minutes ([below](#what-it-costs)) |
+| **Nightly**, 05:30 UTC | Every flow, on `main`. Skipped when `main` has not changed since the last nightly run, passed or failed: a failure is retried by hand or by the next change |
+| A pull request with the **`e2e` label** | The web flows only, on every push while the label is on. No APK build and no emulator: those cost the most minutes ([below](#what-it-costs)). Without the label no job starts, so it costs nothing |
 
 A run on a pull request reads no secret. No run needs one: the API runs with `HG_ENV=local`, so it
 uses its fake payment client (no Stripe keys) and writes phone sign-in codes to its own log
@@ -43,8 +43,8 @@ flows run in this order, because steps 2 to 4 share one order (the cross-app smo
 |---|---|---|---|
 | 1 | Restaurant | Playwright | The owner signs in with email and password, sees the live order queue, and accepts an order a second customer placed through the API |
 | 2 | Customer | Maestro | Signs in with a test phone and the code from the API's log, sees the certified restaurant and not the expired one, opens it, adds a dish, checks out and places the order |
-| 3 | Restaurant | Playwright | Accepts that order within its 180 seconds and marks it ready for pickup |
-| 4 | Rider | Maestro | Signs in, goes online standing at the restaurant, and receives the dispatch offer for that order |
+| 3 | Restaurant | Playwright | Accepts that order within its 180 seconds |
+| 4 | Rider and restaurant | Maestro and Playwright | The rider signs in, goes online standing at the restaurant and waits on the offer screen; meanwhile the restaurant marks the order ready for pickup, and the rider receives the dispatch offer for it |
 | 5 | Admin | Playwright | Signs in with email, password and the authenticator code, finds and opens the order, then opens the verification register: the review queue and the seven-check halal verification of each restaurant's certificate |
 
 A flow that needs an earlier one is skipped, with the reason, when that one failed. The run's
@@ -53,7 +53,7 @@ summary page lists each flow's result. A pull request run (web flows only) does 
 **Artifacts** (`e2e-screenshots-and-traces`, kept 14 days):
 
 - `screenshots/<app>/`: one picture per step, numbered in order;
-- `playwright/report/`: the HTML report, with the trace and video of any failed test;
+- `playwright/<flow>/report/`: the HTML report of each Playwright run, with the trace and video of any failed test;
 - `maestro/<flow>/`: Maestro's JUnit report and debug output, with a screenshot of any failure;
 - `logs/`: the stack's logs (`compose.log`), the web servers' and the emulator's app log.
 
@@ -95,6 +95,9 @@ bash tools/e2e/web/serve.sh       # restaurant on :4173, admin on :4174
 E2E_MODE=web bash tools/e2e/run.sh   # or E2E_MODE=all with an emulator attached and the APKs in e2e-out/apk/
 ```
 
+`e2e-out/world.json` holds the run's password and the admin's TOTP secret; set `E2E_PASSWORD`
+before seeding to choose the password yourself.
+
 One flow at a time:
 
 ```bash
@@ -122,7 +125,7 @@ the first runs measure them; every job has a timeout:
 |---|---|---|
 | Nightly, apps changed | plan 1, two APK builds 2 × 15, flows 30 | 60 |
 | Nightly, apps unchanged (the APKs come from the cache) | plan 1, APKs 2 × 1, flows 30 | 35 |
-| Nightly, `main` unchanged since the last nightly that passed | plan 1 | 1 |
+| Nightly, `main` unchanged since the last nightly | plan 1 | 1 |
 | A push to a PR labelled `e2e` (web flows) | plan 1, flows 15 | 16 |
 | Run workflow, `flows: web` | plan 1, flows 15 | 16 |
 
@@ -140,6 +143,7 @@ on macOS runners and are not part of this workflow
 | No app receives live updates yet | The restaurant test clicks Refresh until the order shows; the rider flow taps "Check again" until the offer shows | [#27](https://github.com/shaiknoorullah/hg-mono/issues/27), [#29](https://github.com/shaiknoorullah/hg-mono/issues/29) |
 | The apps are being rebuilt from the approved designs | Selectors follow today's screens (visible text and labels); they change with the rebuilds | [#87](https://github.com/shaiknoorullah/hg-mono/issues/87)–[#90](https://github.com/shaiknoorullah/hg-mono/issues/90) |
 | An admin cannot approve a rider through the API | The rider is seeded already approved | [#163](https://github.com/shaiknoorullah/hg-mono/issues/163) |
+| The API still takes orders at a restaurant whose certificate expired, if the client knows a dish's id | The flows check only that the customer app never shows that restaurant | [#292](https://github.com/shaiknoorullah/hg-mono/issues/292) |
 | Every other journey in the inventory | Not driven yet | [#34](https://github.com/shaiknoorullah/hg-mono/issues/34), [#91](https://github.com/shaiknoorullah/hg-mono/issues/91) |
 
 ## Files

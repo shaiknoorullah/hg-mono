@@ -18,7 +18,8 @@ name: customer, sign in, browse, add to cart, check out
 
 - tapOn: "${RESTAURANT}.*"
 - scrollUntilVisible:
-    element: "Add ${DISH}"
+    element:
+      text: "Add ${DISH}"
     timeout: 30000
 - takeScreenshot: customer-04-restaurant
 

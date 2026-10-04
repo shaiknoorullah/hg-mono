@@ -68,26 +68,44 @@ test('restaurant: sign in, see the live order queue, accept an order placed thro
   expect((await adminOrder(order.id)).state).toBe('PREPARING');
 });
 
-test('restaurant: accept the order the customer placed on the phone, and mark it ready', { tag: '@cross' }, async ({ page }) => {
-  const code = process.env.E2E_CROSS_ORDER_CODE;
-  const id = process.env.E2E_CROSS_ORDER_ID;
+/** The order the customer placed on the emulator, from run.sh; the test skips without it. */
+function crossOrder(): { id: string; code: string } {
+  const code = process.env.E2E_CROSS_ORDER_CODE ?? '';
+  const id = process.env.E2E_CROSS_ORDER_ID ?? '';
   test.skip(!code || !id, 'no order from the customer flow (E2E_CROSS_ORDER_CODE, E2E_CROSS_ORDER_ID)');
+  return { id, code };
+}
+
+// The cross-app smoke, in two parts: the restaurant accepts the customer's order within its
+// 180 seconds, and marks it ready once the rider is online (run.sh waits for that), so that
+// dispatch offers it to the rider.
+test('restaurant: accept the order the customer placed on the phone', { tag: '@cross-accept' }, async ({ page }) => {
+  const { id, code } = crossOrder();
   const step = stepper('restaurant', 'cross');
 
   await step(page, 'customer-order', async () => {
     await signIn(page);
-    await waitForOrder(page, code!);
+    await waitForOrder(page, code);
   });
 
   await step(page, 'accepted', async () => {
-    await orderCard(page, code!).getByRole('button', { name: 'Accept' }).click();
-    await expect(orderCard(page, code!).getByRole('button', { name: 'Mark ready for pickup' })).toBeVisible();
+    await orderCard(page, code).getByRole('button', { name: 'Accept' }).click();
+    await expect(orderCard(page, code).getByRole('button', { name: 'Mark ready for pickup' })).toBeVisible();
   });
+
+  expect((await adminOrder(id)).state).toBe('PREPARING');
+});
+
+test('restaurant: mark the customer\'s order ready for pickup', { tag: '@cross-ready' }, async ({ page }) => {
+  const { id, code } = crossOrder();
+  const step = stepper('restaurant', 'cross-ready');
 
   await step(page, 'ready-for-pickup', async () => {
-    await orderCard(page, code!).getByRole('button', { name: 'Mark ready for pickup' }).click();
-    await expect(orderCard(page, code!).getByText('Ready for pickup', { exact: true })).toBeVisible();
+    await signIn(page);
+    await waitForOrder(page, code);
+    await orderCard(page, code).getByRole('button', { name: 'Mark ready for pickup' }).click();
+    await expect(orderCard(page, code).getByText('Ready for pickup', { exact: true })).toBeVisible();
   });
 
-  expect((await adminOrder(id!)).state).toBe('READY_FOR_PICKUP');
+  expect((await adminOrder(id)).state).toBe('READY_FOR_PICKUP');
 });

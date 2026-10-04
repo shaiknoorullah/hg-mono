@@ -1,7 +1,7 @@
 // Prints world.json: who is who in the end-to-end world, for the Playwright tests, the Maestro
 // flows and tools/e2e/lib/api.mjs. The ids, phones and names are the fixed ones in world.sql
 // (change both together); the sign-in secrets come from tools/e2e/seed/seed.sh. The file holds
-// this run's throwaway password and TOTP secret, so the workflow deletes it before uploading
+// this run's password and the admin's TOTP secret, so the workflow deletes it before uploading
 // anything.
 const env = (name) => {
   const value = process.env[name];
