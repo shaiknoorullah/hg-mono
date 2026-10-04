@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Releasing HalalGoes
@@ -83,6 +83,11 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
    Never `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside
    `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7`.
+8. **Edge limit on the sign-in routes.** `deploy/docker-compose.yml` puts every `/v1/auth/` route
+   behind a per-address limit in Traefik (the `hg-auth` router and `hg-auth-ratelimit` middleware;
+   [rate limiting](docs/spec/01-platform.md#p-38--rate-limiting)). A production override that
+   replaces the API's labels (`labels: !override`) drops them, so it must carry both, with its own
+   `Host(...)` rule and entrypoint. Check: `docker compose ... config | grep hg-auth-ratelimit`.
 
 ## 4. Deploy the stack (on your host)
 
