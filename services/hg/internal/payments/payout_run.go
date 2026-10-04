@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
 // The weekly payout run (issue #251).
@@ -266,7 +269,7 @@ func (r *PayoutRunner) payPayee(ctx context.Context, run PayoutRunRow, attempt i
 	// 3. This period's payout.
 	now := r.now()
 	pp, err := r.repo.createPeriodPayout(ctx, p, PayoutPeriod{Start: run.PeriodStart, End: run.PeriodEnd},
-		r.policy.hold(p.Type), now.Add(10*time.Minute), nextScheduledRun(now), run.ID)
+		r.policy.hold(p.Type), now.Add(10*time.Minute), nextScheduledRun(now), runActorFor(run))
 	if err != nil {
 		fail("build payout", err)
 		return
@@ -322,7 +325,7 @@ func (r *PayoutRunner) orderBlock(ctx context.Context, run PayoutRunRow, p Payee
 	days := r.policy.RestaurantNegativeBlockDays
 	switch {
 	case days > 0 && b.NegativeSince != nil && run.AsOf.Sub(*b.NegativeSince) > time.Duration(days)*24*time.Hour:
-		opened, err := r.repo.openCollection(ctx, p.ID, b, run.ID, days)
+		opened, err := r.repo.openCollection(ctx, p.ID, b, runActorFor(run), days)
 		if err != nil {
 			line(OutcomeError, "", 0, "block orders: "+err.Error())
 			return
@@ -337,7 +340,7 @@ func (r *PayoutRunner) orderBlock(ctx context.Context, run PayoutRunRow, p Payee
 		if b.Cents < 0 {
 			reason, detail = "BLOCK_TURNED_OFF", "the order block is turned off"
 		}
-		closed, err := r.repo.closeCollection(ctx, p.ID, run.ID, reason, b.Cents)
+		closed, err := r.repo.closeCollection(ctx, p.ID, runActorFor(run), reason, b.Cents)
 		if err != nil {
 			line(OutcomeError, "", 0, "lift order block: "+err.Error())
 			return
@@ -354,7 +357,7 @@ func (r *PayoutRunner) orderBlock(ctx context.Context, run PayoutRunRow, p Payee
 func (r *PayoutRunner) transfer(ctx context.Context, run PayoutRunRow, payoutID string, periodEnd time.Time,
 	line func(PayoutRunOutcome, string, int64, string)) {
 	earlier := periodEnd.Before(run.PeriodEnd)
-	claim, err := r.repo.claimTransfer(ctx, payoutID, r.owner, nextScheduledRun(r.now()))
+	claim, err := r.repo.claimTransfer(ctx, payoutID, r.owner, nextScheduledRun(r.now()), runActorFor(run))
 	if err != nil {
 		line(OutcomeError, payoutID, 0, "claim transfer: "+err.Error())
 		return
@@ -399,7 +402,7 @@ func (r *PayoutRunner) transfer(ctx context.Context, run PayoutRunRow, payoutID 
 			return
 		}
 	}
-	if err := r.repo.markTransferred(ctx, payoutID, tr.ID, run.ID, earlier, claim.AmountCents); err != nil {
+	if err := r.repo.markTransferred(ctx, payoutID, tr.ID, runActorFor(run), earlier, claim.AmountCents); err != nil {
 		// The transfer exists; the payout stays TRANSFERRING until its lease
 		// lapses, and the next run finds the transfer by its group.
 		line(OutcomeError, payoutID, claim.AmountCents, "record transfer "+tr.ID+": "+err.Error())
@@ -415,7 +418,7 @@ func (r *PayoutRunner) transfer(ctx context.Context, run PayoutRunRow, payoutID 
 func (r *PayoutRunner) transferFailed(ctx context.Context, run PayoutRunRow, payoutID string, cents int64, cause error,
 	line func(PayoutRunOutcome, string, int64, string)) {
 	msg := cause.Error()
-	if err := r.repo.markTransferFailed(ctx, payoutID, msg, run.ID, nextScheduledRun(r.now()), cents); err != nil {
+	if err := r.repo.markTransferFailed(ctx, payoutID, msg, runActorFor(run), nextScheduledRun(r.now()), cents); err != nil {
 		msg += " (and recording the failure: " + err.Error() + ")"
 	}
 	line(OutcomeTransferFailed, payoutID, cents, msg)
@@ -426,19 +429,51 @@ func (r *PayoutRunner) transferFailed(ctx context.Context, run PayoutRunRow, pay
 // ---------------------------------------------------------------------------
 
 // PayoutRunRequest is an admin's request to run the payout now. It names who
-// and as of when, never an amount: every amount comes from the ledger.
+// and as of when, never an amount: every amount comes from the ledger. Who is
+// asking is never part of it: Request reads the caller from the context.
 type PayoutRunRequest struct {
 	Payee          *PayeeRef
 	AsOf           *time.Time
 	Reason         string
-	Actor          adminActor
 	IdempotencyKey string
+}
+
+// requirePayoutAdmin is the authorisation for payout runs, checked here in the
+// service whoever the caller is, not only at the route: the principal in ctx
+// must be an admin or a super admin. Restaurant staff, riders, customers and
+// support agents never run or read payout runs, for themselves or anyone
+// else; a payee id in a request scopes nothing. Queuing a run moves money, so
+// it also needs a session that signed in with two-step sign-in
+// (docs/spec/05-admin.md, "A-02 — Role-based access control model": money
+// permissions need a verified second factor; staff sessions last at most 12
+// hours, decision log "Settled — redesign decisions, round 2", staff session
+// length).
+func requirePayoutAdmin(ctx context.Context, moneyMoves bool) (adminActor, error) {
+	p := httpx.PrincipalFrom(ctx)
+	if p.Anonymous || p.AccountID == "" || !(p.HasRole(httpx.RoleAdmin) || p.HasRole(httpx.RoleSuperAdmin)) {
+		return adminActor{}, ErrNotPayoutAdmin
+	}
+	if moneyMoves && !slices.Contains(p.AMR, "pwd+totp") {
+		return adminActor{}, ErrTwoStepRequired
+	}
+	a := adminActor{AccountID: p.AccountID, SessionID: p.SessionID, RequestID: httpx.RequestIDFrom(ctx)}
+	for _, role := range p.Roles {
+		a.Roles = append(a.Roles, string(role))
+	}
+	return a, nil
 }
 
 // Request queues an admin run and wakes this replica's loop. replayed is true
 // when the same admin already sent this Idempotency-Key with the same body; a
 // different body is ErrIdempotencyReuse.
 func (r *PayoutRunner) Request(ctx context.Context, req PayoutRunRequest) (run PayoutRunRow, replayed bool, err error) {
+	actor, err := requirePayoutAdmin(ctx, true)
+	if err != nil {
+		return run, false, err
+	}
+	if n := len([]rune(req.Reason)); n < 10 || n > 500 {
+		return run, false, ErrReasonRequired
+	}
 	now := r.now()
 	asOf := now
 	if req.AsOf != nil {
@@ -458,7 +493,7 @@ func (r *PayoutRunner) Request(ctx context.Context, req PayoutRunRequest) (run P
 		}
 		// Nobody runs their own payout: not a rider admin for themselves, not
 		// an admin who holds a role at the restaurant.
-		own, err := r.repo.isOwnPayee(ctx, req.Actor.AccountID, *req.Payee)
+		own, err := r.repo.isOwnPayee(ctx, actor.AccountID, *req.Payee)
 		if err != nil {
 			return run, false, err
 		}
@@ -468,7 +503,7 @@ func (r *PayoutRunner) Request(ctx context.Context, req PayoutRunRequest) (run P
 	}
 	fp := requestFingerprint(req)
 	run, inserted, err := r.repo.insertAdminRun(ctx, closedPeriodAt(asOf), asOf, now, req.Payee,
-		req.Reason, req.Actor.AccountID, req.IdempotencyKey, fp, req.Actor)
+		req.Reason, actor.AccountID, req.IdempotencyKey, fp, actor)
 	if err != nil {
 		return run, false, err
 	}
@@ -500,4 +535,7 @@ var (
 	ErrAsOfInFuture     = errors.New("as_of is in the future")
 	ErrIdempotencyReuse = errors.New("idempotency key reused with a different body")
 	ErrOwnPayout        = errors.New("an admin may not run their own payout")
+	ErrNotPayoutAdmin   = errors.New("only an admin or a super admin may run or read payout runs")
+	ErrTwoStepRequired  = errors.New("running a payout needs a session signed in with two-step sign-in")
+	ErrReasonRequired   = errors.New("a payout run needs a reason of 10 to 500 characters")
 )

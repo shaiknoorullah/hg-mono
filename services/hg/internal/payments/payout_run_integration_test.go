@@ -21,6 +21,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
 // The weekly payout run against a real, migrated Postgres (issue #251). Each
@@ -82,6 +84,15 @@ func TestPayoutRun_TwoMondays(t *testing.T) {
 	if finished != 2 || queued != 1 {
 		t.Fatalf("scheduled runs: %d succeeded and %d queued, want 2 and 1", finished, queued)
 	}
+	// The scheduler acts as the payout worker, never as a person.
+	var byWorker, byPerson int
+	queryRow(t, db, `
+		SELECT count(*) FILTER (WHERE actor_kind = 'JOB' AND actor_account_id IS NULL AND after->>'actor' = 'system:payout-run'),
+		       count(*) FILTER (WHERE actor_kind <> 'JOB' OR actor_account_id IS NOT NULL)
+		  FROM audit_event WHERE action LIKE 'payout.%'`, &byWorker, &byPerson)
+	if byWorker == 0 || byPerson != 0 {
+		t.Fatalf("payout audit events: %d by the payout worker, %d by a person; want some and none", byWorker, byPerson)
+	}
 	assertLedgerAtZero(t, db)
 }
 
@@ -99,6 +110,7 @@ func TestPayoutRun_NeverPaysTwice(t *testing.T) {
 	period := toronto(2026, 8, 17, 0, 0)
 	admin := addAdmin(t, db)
 	ctx := context.Background()
+	adminCtx := asAdmin(ctx, admin)
 
 	var riders []PayeeRef
 	for i := 0; i < 3; i++ {
@@ -128,25 +140,35 @@ func TestPayoutRun_NeverPaysTwice(t *testing.T) {
 	}
 
 	// An admin runs the same period again: everyone is already paid.
-	run, replayed, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001"})
+	run, replayed, err := r1.Request(adminCtx, PayoutRunRequest{Reason: "re-run after the Monday incident", IdempotencyKey: "rerun-0000000000001"})
 	if err != nil || replayed {
 		t.Fatalf("request: replayed=%v err=%v", replayed, err)
 	}
-	if again, replayed, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001"}); err != nil || !replayed || again.ID != run.ID {
+	// The request is audited: who (the admin's account), when, and why.
+	var actorKind, actor, reason string
+	if err := db.QueryRow(ctx, `
+		SELECT actor_kind, actor_account_id::text, reason FROM audit_event
+		 WHERE action = 'payout_run.request' AND subject_id = $1`, run.ID).Scan(&actorKind, &actor, &reason); err != nil {
+		t.Fatalf("the request was not audited: %v", err)
+	}
+	if actorKind != "ACCOUNT" || actor != admin || reason != "re-run after the Monday incident" {
+		t.Fatalf("request audited as %s %s %q, want ACCOUNT %s with the reason", actorKind, actor, reason, admin)
+	}
+	if again, replayed, err := r1.Request(adminCtx, PayoutRunRequest{Reason: "re-run after the Monday incident", IdempotencyKey: "rerun-0000000000001"}); err != nil || !replayed || again.ID != run.ID {
 		t.Fatalf("a retried request must return the first run: replayed=%v err=%v", replayed, err)
 	}
 	other := addPartner(t, db, PayeeRestaurant, true)
-	if _, _, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000001", Payee: &other}); !errors.Is(err, ErrIdempotencyReuse) {
+	if _, _, err := r1.Request(adminCtx, PayoutRunRequest{Reason: "re-run after the Monday incident", IdempotencyKey: "rerun-0000000000001", Payee: &other}); !errors.Is(err, ErrIdempotencyReuse) {
 		t.Fatalf("the same key with another body: err=%v, want ErrIdempotencyReuse", err)
 	}
 	future := monday.Add(time.Hour)
-	if _, _, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000002", AsOf: &future}); !errors.Is(err, ErrAsOfInFuture) {
+	if _, _, err := r1.Request(adminCtx, PayoutRunRequest{Reason: "re-run after the Monday incident", IdempotencyKey: "rerun-0000000000002", AsOf: &future}); !errors.Is(err, ErrAsOfInFuture) {
 		t.Fatalf("as_of in the future: err=%v, want ErrAsOfInFuture", err)
 	}
 	// An admin who belongs to a restaurant may not run its payout.
 	mustExec(t, db, `INSERT INTO account_role (account_id, role, scope_type, scope_id) VALUES ($1, 'RESTAURANT_OWNER', 'RESTAURANT', $2)`,
 		admin, other.ID)
-	if _, _, err := r1.Request(ctx, PayoutRunRequest{Reason: "pay my own restaurant early", Actor: adminActor{AccountID: admin},
+	if _, _, err := r1.Request(adminCtx, PayoutRunRequest{Reason: "pay my own restaurant early",
 		IdempotencyKey: "rerun-0000000000005", Payee: &other}); !errors.Is(err, ErrOwnPayout) {
 		t.Fatalf("an admin running their own restaurant's payout: err=%v, want ErrOwnPayout", err)
 	}
@@ -169,11 +191,11 @@ func TestPayoutRun_NeverPaysTwice(t *testing.T) {
 	// entry that committed after the first run (dated before its cutoff).
 	late := addPartner(t, db, PayeeRider, true)
 	earn(t, db, late, 800, toronto(2026, 8, 14, 12, 0))
-	runA, _, err := r1.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000003"})
+	runA, _, err := r1.Request(adminCtx, PayoutRunRequest{Reason: "re-run after the Monday incident", IdempotencyKey: "rerun-0000000000003"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	runB, _, err := r2.Request(ctx, PayoutRunRequest{Reason: "re-run after the Monday incident", Actor: adminActor{AccountID: admin}, IdempotencyKey: "rerun-0000000000004"})
+	runB, _, err := r2.Request(adminCtx, PayoutRunRequest{Reason: "re-run after the Monday incident", IdempotencyKey: "rerun-0000000000004"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,6 +414,13 @@ func toronto(y int, m time.Month, d, h, min int) time.Time {
 }
 
 func fixed(t time.Time) func() time.Time { return func() time.Time { return t } }
+
+// asAdmin is ctx carrying an admin who signed in with two-step sign-in.
+func asAdmin(ctx context.Context, accountID string) context.Context {
+	return httpx.WithPrincipalForTest(ctx, httpx.Principal{
+		AccountID: accountID, Roles: []httpx.Role{httpx.RoleAdmin}, AMR: []string{"pwd+totp"},
+	})
+}
 
 func newTestRunner(db *pgxpool.Pool, s *stripeTransfers, blockDays int) *PayoutRunner {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))

@@ -363,7 +363,7 @@ type periodPayout struct {
 // payout with the reason and no transfer; a negative balance is carried and
 // netted against later earnings.
 func (r *Repo) createPeriodPayout(ctx context.Context, payee PayeeRef, period PayoutPeriod, hold time.Duration,
-	readyBy, heldUntil time.Time, runID string) (periodPayout, error) {
+	readyBy, heldUntil time.Time, act runActor) (periodPayout, error) {
 	var out periodPayout
 	err := r.tx(ctx, func(tx pgx.Tx) error {
 		var c ConnectRow
@@ -448,11 +448,11 @@ func (r *Repo) createPeriodPayout(ctx context.Context, payee PayeeRef, period Pa
 		if state == "READY" {
 			out.Outcome, out.Ready, action = "", true, "payout.created"
 		}
-		return writeJobAudit(ctx, tx, jobAudit{
+		return writeJobAudit(ctx, tx, act, jobAudit{
 			action: action, subjectType: "payout", subjectID: out.PayoutID, amountCents: &p.AmountCents,
 			reason: holdReason,
 			after: map[string]any{
-				"run_id": runID, "payee_type": payee.Type, "payee_id": payee.ID, "state": state,
+				"payee_type": payee.Type, "payee_id": payee.ID, "state": state,
 				"period_start": period.Start, "period_end": period.End, "entry_count": p.EntryCount,
 			},
 		})
@@ -489,7 +489,7 @@ type transferClaim struct {
 // period, or TRANSFERRING with a lapsed lease (a worker stopped mid-transfer).
 // If Stripe has payouts turned off for the partner, the payout is held (or
 // stays held) instead and no transfer may be made.
-func (r *Repo) claimTransfer(ctx context.Context, payoutID, owner string, heldUntil time.Time) (transferClaim, error) {
+func (r *Repo) claimTransfer(ctx context.Context, payoutID, owner string, heldUntil time.Time, act runActor) (transferClaim, error) {
 	var out transferClaim
 	err := r.tx(ctx, func(tx pgx.Tx) error {
 		// The account first, then the payout: the same order createPeriodPayout
@@ -536,7 +536,7 @@ func (r *Repo) claimTransfer(ctx context.Context, payoutID, owner string, heldUn
 				return err
 			}
 			// Stripe turned payouts off after this payout was built.
-			return writeJobAudit(ctx, tx, jobAudit{
+			return writeJobAudit(ctx, tx, act, jobAudit{
 				action: "payout.held", subjectType: "payout", subjectID: payoutID, amountCents: &out.AmountCents,
 				reason: &out.HoldReason, after: map[string]any{"state": "HELD", "was": out.State},
 			})
@@ -558,7 +558,7 @@ func (r *Repo) claimTransfer(ctx context.Context, payoutID, owner string, heldUn
 }
 
 // markTransferred records the Stripe transfer and closes the payout as PAID.
-func (r *Repo) markTransferred(ctx context.Context, payoutID, transferID, runID string, released bool, cents int64) error {
+func (r *Repo) markTransferred(ctx context.Context, payoutID, transferID string, act runActor, released bool, cents int64) error {
 	return r.tx(ctx, func(tx pgx.Tx) error {
 		tag, err := tx.Exec(ctx, `
 			UPDATE payout
@@ -572,9 +572,9 @@ func (r *Repo) markTransferred(ctx context.Context, payoutID, transferID, runID 
 		if tag.RowsAffected() != 1 {
 			return fmt.Errorf("payout %s was not TRANSFERRING when its transfer %s returned", payoutID, transferID)
 		}
-		return writeJobAudit(ctx, tx, jobAudit{
+		return writeJobAudit(ctx, tx, act, jobAudit{
 			action: "payout.transferred", subjectType: "payout", subjectID: payoutID, amountCents: &cents,
-			after: map[string]any{"run_id": runID, "stripe_transfer_id": transferID, "released": released},
+			after: map[string]any{"stripe_transfer_id": transferID, "released": released},
 		})
 	})
 }
@@ -583,7 +583,7 @@ func (r *Repo) markTransferred(ctx context.Context, payoutID, transferID, runID 
 // again by the next run. Stripe remembers an idempotency key's result for at
 // least 24 hours, so a retry within a day of a refusal gets the same refusal;
 // the weekly run is well past that.
-func (r *Repo) markTransferFailed(ctx context.Context, payoutID, msg, runID string, retryBy time.Time, cents int64) error {
+func (r *Repo) markTransferFailed(ctx context.Context, payoutID, msg string, act runActor, retryBy time.Time, cents int64) error {
 	return r.tx(ctx, func(tx pgx.Tx) error {
 		_, err := tx.Exec(ctx, `
 			UPDATE payout
@@ -595,9 +595,9 @@ func (r *Repo) markTransferFailed(ctx context.Context, payoutID, msg, runID stri
 			return err
 		}
 		failed := "FAILED"
-		return writeJobAudit(ctx, tx, jobAudit{
+		return writeJobAudit(ctx, tx, act, jobAudit{
 			action: "payout.transfer_failed", subjectType: "payout", subjectID: payoutID, amountCents: &cents,
-			outcome: &failed, reason: &msg, after: map[string]any{"run_id": runID},
+			outcome: &failed, reason: &msg,
 		})
 	})
 }
@@ -664,23 +664,23 @@ func (r *Repo) balanceAt(ctx context.Context, p PayeeRef, asOf time.Time) (payee
 
 // openCollection blocks a restaurant's new orders for a balance that has been
 // negative too long. It reports false when one is already open.
-func (r *Repo) openCollection(ctx context.Context, restaurantID string, b payeeBalance, runID string, days int) (bool, error) {
+func (r *Repo) openCollection(ctx context.Context, restaurantID string, b payeeBalance, act runActor, days int) (bool, error) {
 	opened := false
 	err := r.tx(ctx, func(tx pgx.Tx) error {
 		tag, err := tx.Exec(ctx, `
 			INSERT INTO restaurant_collection (restaurant_id, balance_cents, negative_since, opened_by_run)
 			VALUES ($1, $2, $3, $4)
 			ON CONFLICT (restaurant_id) WHERE closed_at IS NULL DO NOTHING`,
-			restaurantID, b.Cents, *b.NegativeSince, runID)
+			restaurantID, b.Cents, *b.NegativeSince, act.RunID)
 		if err != nil || tag.RowsAffected() == 0 {
 			return err
 		}
 		opened = true
 		reason := fmt.Sprintf("balance below zero for more than %d days", days)
-		return writeJobAudit(ctx, tx, jobAudit{
+		return writeJobAudit(ctx, tx, act, jobAudit{
 			action: "restaurant.orders_blocked", subjectType: "restaurant", subjectID: restaurantID,
 			amountCents: &b.Cents, reasonCode: strPtrNonEmpty("NEGATIVE_BALANCE"), reason: &reason,
-			after: map[string]any{"run_id": runID, "negative_since": *b.NegativeSince},
+			after: map[string]any{"negative_since": *b.NegativeSince},
 		})
 	})
 	return opened, err
@@ -688,20 +688,20 @@ func (r *Repo) openCollection(ctx context.Context, restaurantID string, b payeeB
 
 // closeCollection lifts a restaurant's order block. It reports false when
 // none was open.
-func (r *Repo) closeCollection(ctx context.Context, restaurantID, runID, reason string, cents int64) (bool, error) {
+func (r *Repo) closeCollection(ctx context.Context, restaurantID string, act runActor, reason string, cents int64) (bool, error) {
 	closed := false
 	err := r.tx(ctx, func(tx pgx.Tx) error {
 		tag, err := tx.Exec(ctx, `
 			UPDATE restaurant_collection
 			   SET closed_at = now(), closed_by_run = $2, close_reason = $3
-			 WHERE restaurant_id = $1 AND closed_at IS NULL`, restaurantID, runID, reason)
+			 WHERE restaurant_id = $1 AND closed_at IS NULL`, restaurantID, act.RunID, reason)
 		if err != nil || tag.RowsAffected() == 0 {
 			return err
 		}
 		closed = true
-		return writeJobAudit(ctx, tx, jobAudit{
+		return writeJobAudit(ctx, tx, act, jobAudit{
 			action: "restaurant.orders_unblocked", subjectType: "restaurant", subjectID: restaurantID,
-			amountCents: &cents, reasonCode: &reason, after: map[string]any{"run_id": runID},
+			amountCents: &cents, reasonCode: &reason,
 		})
 	})
 	return closed, err
@@ -814,6 +814,26 @@ func (r *Repo) PayoutRunLines(ctx context.Context, runID string) ([]PayoutRunLin
 // trail": payout creation, execution and hold are audited money actions).
 // ---------------------------------------------------------------------------
 
+// payoutWorker names the system actor the payout run acts as. Its audit events
+// are actor_kind JOB with no account, so they can never be mistaken for a
+// person's; correlation_id is the run, and for a run an admin requested,
+// on_behalf_of_account_id is that admin.
+const payoutWorker = "system:payout-run"
+
+// runActor is who a payout run's writes are attributed to.
+type runActor struct {
+	RunID      string
+	OnBehalfOf string // the requesting admin's account; "" for a scheduled run
+}
+
+func runActorFor(run PayoutRunRow) runActor {
+	a := runActor{RunID: run.ID}
+	if run.RequestedBy != nil {
+		a.OnBehalfOf = *run.RequestedBy
+	}
+	return a
+}
+
 // jobAudit is one audit_event the payout worker writes.
 type jobAudit struct {
 	action      string
@@ -842,21 +862,27 @@ const auditInsert = `
 	INSERT INTO audit_event
 	  (actor_kind, actor_account_id, actor_roles, action, subject_type, subject_id,
 	   outcome, reason_code, reason, after, amount_cents, request_id, session_id,
+	   on_behalf_of_account_id, correlation_id,
 	   day, seq, prev_hash, hash)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
 	        current_date, 0, '\x00'::bytea, '\x00'::bytea)`
 
-func writeJobAudit(ctx context.Context, tx pgx.Tx, a jobAudit) error {
+func writeJobAudit(ctx context.Context, tx pgx.Tx, act runActor, a jobAudit) error {
 	outcome := "SUCCESS"
 	if a.outcome != nil {
 		outcome = *a.outcome
 	}
+	if a.after == nil {
+		a.after = map[string]any{}
+	}
+	a.after["actor"], a.after["run_id"] = payoutWorker, act.RunID
 	after, err := jsonOrNil(a.after)
 	if err != nil {
 		return err
 	}
 	_, err = tx.Exec(ctx, auditInsert, "JOB", nil, nil, a.action, a.subjectType, nullUUID(a.subjectID),
-		outcome, a.reasonCode, a.reason, after, a.amountCents, nil, nil)
+		outcome, a.reasonCode, a.reason, after, a.amountCents, nil, nil,
+		nullUUID(act.OnBehalfOf), nullStr(act.RunID))
 	return err
 }
 
@@ -875,7 +901,8 @@ func writeAdminAudit(ctx context.Context, tx pgx.Tx, actor adminActor, action, s
 		roles = string(b)
 	}
 	_, err = tx.Exec(ctx, auditInsert, "ACCOUNT", nullUUID(actor.AccountID), roles, action, subjectType,
-		nullUUID(subjectID), "SUCCESS", nil, nullStr(reason), afterJSON, nil, nullStr(actor.RequestID), nullUUID(actor.SessionID))
+		nullUUID(subjectID), "SUCCESS", nil, nullStr(reason), afterJSON, nil, nullStr(actor.RequestID), nullUUID(actor.SessionID),
+		nil, nil)
 	return err
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"slices"
 	"strings"
 	"time"
 
@@ -110,13 +109,21 @@ func (s *Service) WithPayoutRunner(r *PayoutRunner) *Service {
 	return s
 }
 
-// RequestPayoutRun queues an admin payout run.
+// RequestPayoutRun queues an admin payout run for the admin in ctx.
 func (s *Service) RequestPayoutRun(ctx context.Context, req PayoutRunRequest) (PayoutRunDTO, bool, error) {
+	if _, err := requirePayoutAdmin(ctx, true); err != nil {
+		return PayoutRunDTO{}, false, payoutAuthError(err)
+	}
 	if s.payouts == nil {
 		return PayoutRunDTO{}, false, ErrStripeNotConfigured
 	}
 	run, replayed, err := s.payouts.Request(ctx, req)
 	switch {
+	case errors.Is(err, ErrNotPayoutAdmin), errors.Is(err, ErrTwoStepRequired):
+		return PayoutRunDTO{}, false, payoutAuthError(err)
+	case errors.Is(err, ErrReasonRequired):
+		return PayoutRunDTO{}, false, domainErr(string(httpx.CodeValidationFailed), http.StatusUnprocessableEntity,
+			"reason must be 10–500 characters: say why the run is needed now.")
 	case errors.Is(err, ErrNotFound):
 		return PayoutRunDTO{}, false, domainErr(httpxNotFound, http.StatusNotFound, "No restaurant or rider with this id.")
 	case errors.Is(err, ErrAsOfInFuture):
@@ -137,8 +144,21 @@ func (s *Service) RequestPayoutRun(ctx context.Context, req PayoutRunRequest) (P
 	return payoutRunToDTO(run), replayed, nil
 }
 
-// GetPayoutRun returns one run and its lines.
+// payoutAuthError maps a refused caller to its 403.
+func payoutAuthError(err error) error {
+	if errors.Is(err, ErrTwoStepRequired) {
+		return domainErr(string(codeMFARequired), http.StatusForbidden,
+			"Running a payout needs a session signed in with two-step sign-in.")
+	}
+	return domainErr(string(httpx.CodeForbidden), http.StatusForbidden,
+		"Only an admin may run or read payout runs.")
+}
+
+// GetPayoutRun returns one run and its lines, to an admin in ctx.
 func (s *Service) GetPayoutRun(ctx context.Context, id string) (PayoutRunDetailDTO, error) {
+	if _, err := requirePayoutAdmin(ctx, false); err != nil {
+		return PayoutRunDetailDTO{}, payoutAuthError(err)
+	}
 	if _, err := uuid.Parse(id); err != nil {
 		return PayoutRunDetailDTO{}, domainErr(httpxNotFound, http.StatusNotFound, "No such payout run.")
 	}
@@ -164,8 +184,11 @@ func (s *Service) GetPayoutRun(ctx context.Context, id string) (PayoutRunDetailD
 	return out, nil
 }
 
-// ListPayoutRuns returns runs newest first.
+// ListPayoutRuns returns runs newest first, to an admin in ctx.
 func (s *Service) ListPayoutRuns(ctx context.Context, limit int, cursor string) ([]PayoutRunDTO, error) {
+	if _, err := requirePayoutAdmin(ctx, false); err != nil {
+		return nil, payoutAuthError(err)
+	}
 	if cursor != "" {
 		if _, err := uuid.Parse(cursor); err != nil {
 			return nil, domainErr(string(httpx.CodeValidationFailed), http.StatusUnprocessableEntity, "The cursor is not valid.")
@@ -188,15 +211,11 @@ func (s *Service) ListPayoutRuns(ctx context.Context, limit int, cursor string) 
 
 // CreatePayoutRun implements POST /v1/admin/payout-runs (createPayoutRun).
 func (h *Handler) CreatePayoutRun(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	// Moving money needs a session that signed in with two-step sign-in
-	// (docs/spec/05-admin.md, "A-02 — Role-based access control model":
-	// money permissions need a verified second factor). Admin roles are only
-	// granted to such sessions; this states it where the money moves, before
-	// the body is read.
-	if !slices.Contains(p.AMR, "pwd+totp") {
-		httpx.Fail(w, r, http.StatusForbidden, codeMFARequired,
-			"Running a payout needs a session signed in with two-step sign-in.", nil)
+	// The router has already refused anyone without payout_run.create (only
+	// admins hold it); the service checks the caller again, with two-step
+	// sign-in, before anything is queued.
+	if _, err := requirePayoutAdmin(r.Context(), true); err != nil {
+		h.fail(w, r, payoutAuthError(err))
 		return
 	}
 	var in PayoutRunInput
@@ -211,12 +230,7 @@ func (h *Handler) CreatePayoutRun(w http.ResponseWriter, r *http.Request) {
 			[]httpx.FieldError{{Field: "reason", Code: "length", Message: "must be 10–500 characters"}})
 		return
 	}
-	req := PayoutRunRequest{Reason: strings.TrimSpace(in.Reason), Actor: adminActor{
-		AccountID: p.AccountID, SessionID: p.SessionID, RequestID: httpx.RequestIDFrom(r.Context()),
-	}}
-	for _, role := range p.Roles {
-		req.Actor.Roles = append(req.Actor.Roles, string(role))
-	}
+	req := PayoutRunRequest{Reason: strings.TrimSpace(in.Reason)}
 	req.IdempotencyKey, _ = httpx.IdempotencyKeyFrom(r.Context())
 	if in.Payee != nil {
 		if in.Payee.Type != PayeeRestaurant && in.Payee.Type != PayeeRider {
