@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-04
+---
+
 # What's next
 
 _Status as of Aug 2026. Companion to `v0-launch-checklist.md`._
@@ -31,7 +36,7 @@ each is a config flip when the answer lands (see the runbook below):
 | **SMS / A2P sign-in** (O-03) | Twilio A2P 10DLC campaign approval | done — `TwilioSMSSender` built + unit-tested; `HG_SMS_PROVIDER=twilio` + creds flips it on. |
 | **Stripe live payments** | a real Stripe account + keys | done — live/fake was already a config gate (`Stripe.Configured()`); confirmed, no code change needed. |
 | **HST registration** (O-01) | accountant (registration number + supplier position) | config flip built (`HG_TAX_HST_REGISTRATION_NUMBER`); the receipt-snapshot *writer* that would render it is a separate, not-yet-built module — see runbook. |
-| Launch province (O-05), self-declared halal (O-06), refund liability (O-04) | product decisions | defaults coded (Ontario / hide / …); flip = config. |
+| Launch province (O-05), self-declared halal (O-06), refund liability (O-04) | settled in Sep 2026 ([launch decisions](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)) | defaults coded (Ontario / hide / by fault); no flip needed. |
 
 ## The plan — three lanes
 
@@ -51,9 +56,10 @@ empty/loading/error, verified through the UI against the conformant backend.
 - **Customer:** OTP auth polish, order history + reorder, profile, saved addresses,
   notifications, ratings.
 - **Rider:** onboarding, earnings/payouts, profile + documents, delivery history.
-- **Restaurant:** profile / hours / settings, staff management, payouts, menu editor.
+- **Restaurant:** profile / hours / settings, payouts, menu editor. Staff management waits: restaurant accounts are owner-only at launch ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 - **Admin:** the remaining surfaces — order oversight, disputes, refunds,
-  restaurant/rider management, dependency/system dashboards.
+  restaurant/rider management, the System page on the readiness check (dependency
+  status stays later-version: [launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 ### Lane 3 — Harden + finish the tail (woven in / after)
 - The 15–25 invariant tests as a suite; a security-review pass; observability.
@@ -148,8 +154,8 @@ writer is built.
 
 ### Province / self-declared halal / refund liability (O-04, O-05, O-06)
 
-Unchanged from the existing defaults (Ontario-only; self-declared halal hidden);
-not part of this pass. Still open — see `docs/decisions/README.md`.
+Settled in Sep 2026 as the coded defaults: Ontario only, self-declared halal hidden,
+refund liability by fault ([launch decisions](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
 ---
 

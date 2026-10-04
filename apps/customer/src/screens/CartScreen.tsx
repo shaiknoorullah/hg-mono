@@ -201,7 +201,7 @@ function Body({
           <Price cents={cents(cart.indicative_subtotal_cents)} size="lg" />
         </View>
 
-        <Button variant="primary" onPress={onCheckout} disabled={!cart.is_quotable}>
+        <Button variant="primary" fullWidth onPress={onCheckout} disabled={!cart.is_quotable}>
           Continue to checkout
         </Button>
         <Button variant="ghost" onPress={onClear} disabled={mutating === '__all__'}>

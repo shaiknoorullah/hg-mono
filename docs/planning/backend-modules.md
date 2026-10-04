@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-04
+---
+
 # Backend module briefs
 
 Seven domain modules remain. The foundation (`services/hg` skeleton, compose stack, 91-table schema) is in place, so these can run **in parallel** — they own disjoint packages.
@@ -21,7 +26,7 @@ Put these at the top of every brief.
 ## B3 — Auth & identity
 `internal/auth`, `internal/session`
 
-Phone OTP for customers and riders; email + password for restaurants and admins; one `account` table, many roles (platform spec P-01). Sessions, refresh, revocation. OTP generation, delivery via an `SMSSender` interface (no provider wired yet — O-03 is unresolved), attempt limits and Redis rate limiting. Replace `AnonymousAuthenticator` and `DenyAllAuthorizer` in `cmd/hg/main.go` with real implementations — **every non-public route currently 401s until this lands**. Ownership checks are part of this module's contract: the previous system had total IDOR.
+Phone OTP for customers and riders; email + password for restaurants and admins; one `account` table, many roles (platform spec P-01). Sessions, refresh, revocation. OTP generation, delivery via an `SMSSender` interface (Twilio Verify, a carrier the [self-hosted rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) allows; sender registration is still [open](../decisions/README.md#open--blocking)), attempt limits and Redis rate limiting. Replace `AnonymousAuthenticator` and `DenyAllAuthorizer` in `cmd/hg/main.go` with real implementations — **every non-public route currently 401s until this lands**. Ownership checks are part of this module's contract: the previous system had total IDOR.
 
 Spec: `01-platform.md` P-01…P-08 · `05-admin.md` for staff/RBAC.
 
@@ -71,7 +76,7 @@ Spec: `01-platform.md` P-22…P-27.
 ## B9 — Admin, RBAC & files
 `internal/admin`, `internal/files`
 
-Staff accounts, the RBAC permission matrix, hash-chained audit log. Restaurant and rider onboarding queues. **The halal seven-check verification** — H1…H7, with H5 (dates) and H7 (certificate uniqueness) server-computed and non-overridable; approval impossible unless all seven `PASS`. Menu approval for claim-bearing fields (never auto-approved). Refund authority caps. MinIO: private buckets, presigned upload and download, KYC retention.
+Staff accounts, the RBAC permission matrix, hash-chained audit log. Restaurant and rider onboarding queues. **The halal seven-check verification** — H1…H7, with H5 (dates) and H7 (certificate uniqueness) server-computed and non-overridable; approval impossible unless all seven `PASS`. Menu approval for claim-bearing fields (never auto-approved; an item an admin creates is approved on creation and audited: [menu approval](../decisions/README.md#settled--reconciliations)). Refund authority caps. Object storage ([Silo](https://github.com/pgsty/silo), the maintained MinIO fork: [object storage](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)): private buckets, presigned upload and download, KYC retention.
 
 Spec: `05-admin.md` in full · `01-platform.md` P-28…P-33.
 

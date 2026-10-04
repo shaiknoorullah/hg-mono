@@ -1,6 +1,6 @@
 ---
 covers: []
-reviewed: 2026-10-01
+reviewed: 2026-10-04
 ---
 
 # Decision log
@@ -49,15 +49,12 @@ Where two specs disagreed, or a spec default contradicted a client decision.
 
 ## Open — blocking
 
-Cannot proceed on engineering judgement. *(O-02 resolved — see S-11.)*
+Cannot proceed on engineering judgement. *(The accepted certifying bodies are settled: see [client decisions (S-11)](#settled--client-decisions). Refund liability, launch province and self-declared halal restaurants were settled in Sep 2026: see [launch decisions](#settled--launch-decisions-sep-2026-client-confirmed-at-rc1).)*
 
 | # | Decision | Why it blocks | Owner |
 |---|---|---|---|
 | O-01 | **HST registration number + supplier position** — is the platform the deemed supplier for non-registrant restaurants, or does each restaurant remain supplier of record? | No legal basis to charge tax. Affects every invoice and payout | Client's accountant |
 | O-03 | **SMS / A2P registration** — which provider and account sends OTP | Nobody can sign in without it. A2P 10DLC approval takes days to weeks. Check whether the existing Supabase setup already has a usable Twilio account behind it. Since 2026-09-28 customers also sign in before browsing, so nobody sees a restaurant until this is done | You — today |
-| O-04 | **Refund liability allocation** — who absorbs each refund reason code | Determines ledger postings and partner balances | You |
-| O-05 | **Launch province(s)** | Gates tax rates and address validation. Default: Ontario only | You |
-| O-06 | **Self-declared halal restaurants** — list behind an explicit filter, or hide entirely? | Product-defining. Default: hide entirely | You |
 
 
 ## Settled — launch decisions (Sep 2026, client-confirmed at rc1)
@@ -153,14 +150,14 @@ The owner answered 45 questions from the app redesign on 2026-09-28 ([decision p
 
 ## Settled — redesign decisions, round 2 (owner, 2026-10-01)
 
-The owner answered 42 questions from the second round of the app redesign on 2026-10-01. Three answers differ from the recommended option, and their rows say so: how a rider confirms pickup, how restaurants manage their menu, and the rows on the Discover home. Some answers narrow or extend a row from [round 1](#settled--redesign-decisions-owner-2026-09-28); where the two differ, the row here wins. "Launch" means what release 1.0 builds ([#103](https://github.com/shaiknoorullah/hg-mono/issues/103)); "later version" means the contract's V1 tier. Contract work for these answers: [#182](https://github.com/shaiknoorullah/hg-mono/issues/182) (later-version operations needed at launch), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183) and [#184](https://github.com/shaiknoorullah/hg-mono/issues/184) (contract behaviour).
+The owner answered 42 questions from the second round of the app redesign on 2026-10-01. Three answers differ from the recommended option, and their rows say so: how a rider confirms pickup, how restaurants manage their menu, and the rows on the Discover home. Some answers narrow or extend a row from [round 1](#settled--redesign-decisions-owner-2026-09-28); where the two differ, the row here wins. "Launch" means what release 1.0 builds ([#103](https://github.com/shaiknoorullah/hg-mono/issues/103)); "later version" means the contract's V1 tier. Contract work for these answers: [#182](https://github.com/shaiknoorullah/hg-mono/issues/182) (later-version operations needed at launch), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183) and [#184](https://github.com/shaiknoorullah/hg-mono/issues/184) (contract behaviour). One question this round left open, a suspended restaurant's menu ([#205](https://github.com/shaiknoorullah/hg-mono/issues/205)), the owner answered on 2026-10-04; its row is under Restaurant and carries that date.
 
 ### Launch scope and contract
 
 | Decision | Value | Why | Date |
 |---|---|---|---|
 | Later-version operations that launch screens depend on | **Seven move to launch:** marking an item out of stock; forgot password and reset; changing your own password; two-step sign-in enrolment for staff; the staff list and staff invites; sign out everywhere; restaurant payout history. **One new launch operation:** an admin updates or removes a menu item on a restaurant's behalf. **These stay later-version:** turning two-step sign-in off; listing and ending single sessions (the "My sessions" screen is hidden); dependency status (the System page uses the readiness check); the in-app inbox (the bell is hidden); restaurant staff. The restaurant "Account security" screen stays hidden. Restaurant menu editing and the menu review queue also move to launch: see the menu row below | Closes every gap that breaks launch: kitchens can mark a dish sold out, staff can enrol in the two-step sign-in the platform requires, nobody needs an engineer to unlock an account or add staff, and restaurants can see their payouts. Costs backend work on sign-in, staff and payouts before launch | 2026-10-01 |
-| How restaurants get their menu onto HalalGoes and change it | **Restaurants edit their own menu from launch, and the menu review queue moves to launch with it:** creating and updating items and categories, and the queue where staff decide on a menu version. Every save still goes to review; items an admin creates are still approved on creation. Menu editing while suspended is undecided: [#205](https://github.com/shaiknoorullah/hg-mono/issues/205). *Owner's choice:* the recommended option was a menu file or photo at onboarding, changes sent by email, and admins entering them | Restaurants are self-serve from day one. It is the largest backend and admin addition in this round | 2026-10-01 |
+| How restaurants get their menu onto HalalGoes and change it | **Restaurants edit their own menu from launch, and the menu review queue moves to launch with it:** creating and updating items and categories, and the queue where staff decide on a menu version. Every save still goes to review; items an admin creates are still approved on creation. A suspended restaurant cannot change its menu: see the suspended-menu row under Restaurant. *Owner's choice:* the recommended option was a menu file or photo at onboarding, changes sent by email, and admins entering them | Restaurants are self-serve from day one. It is the largest backend and admin addition in this round | 2026-10-01 |
 | Where map address search comes from: typing to search, filling the fields from the pin, turning a pin into an address | **Our API, which forwards to Mapbox:** three new launch operations. Mapbox keys: [#57](https://github.com/shaiknoorullah/hg-mono/issues/57). Mapbox is an approved exception to the self-hosted rule ([platform decisions](#settled--platform-decisions-owner-2026-10-01)) | One place to rate-limit, cache and swap providers; the secret key stays on the server; the server already checks addresses against delivery zones | 2026-10-01 |
 | Account deletion | **Stays later-version, but ships before the store release** ([#67](https://github.com/shaiknoorullah/hg-mono/issues/67)). At launch, staff delete an account by hand on request by phone or email. The proposed retention periods and the in-app deletion flow are not settled by this answer | No launch contract work, and the stores' in-app deletion requirement is still met in time. Deletion is manual for the first weeks | 2026-10-01 |
 
@@ -215,7 +212,8 @@ The owner answered 42 questions from the second round of the app redesign on 202
 | "Mark ready" button colour | **Forest green;** brand orange only ever means "accept a new order". Forest is the brand chrome colour, not the halal seal green ([palette decision](palette-and-invariant-10.md)) | On the kitchen screen, accept and mark ready looked the same at a glance | 2026-10-01 |
 | Optional note when accepting an order | **Removed at launch** | Accept stays one tap. No view returns the note, so nobody reads it today | 2026-10-01 |
 | "For how long" options for out-of-stock items and pauses | **Item: default "until closing". Pause: "until closing" replaces "rest of today"** | Fewer, clearer choices that follow each restaurant's own hours, late nights included | 2026-10-01 |
-| Opening hours while suspended | **Editable while suspended; read-only once deactivated.** The menu: [#205](https://github.com/shaiknoorullah/hg-mono/issues/205) | The restaurant is ready the moment it is reinstated | 2026-10-01 |
+| Opening hours while suspended | **Editable while suspended; read-only once deactivated.** The menu is locked while suspended: the next row | The restaurant is ready the moment it is reinstated | 2026-10-01 |
+| A suspended restaurant's menu | **Locked until the suspension is lifted.** The owner's answer: a suspended restaurant "can't change or edit its menu" until the suspension is lifted ([#205](https://github.com/shaiknoorullah/hg-mono/issues/205)). The lock covers every menu change a restaurant can make: items, categories, prices, availability (marking an item out of stock or back in stock) and photos. Changes already waiting in the menu review queue stay as they are, and no new change can be submitted. The restaurant can still read its menu, and Menu & Hours tells it plainly that the menu is locked while the account is suspended. Admins can still change the menu on the restaurant's behalf: today's contract lets them create items and categories; updating or removing an item on its behalf (the first launch-scope row) is not in the contract yet ([#182](https://github.com/shaiknoorullah/hg-mono/issues/182)). Enforcing the lock in the contract, the backend and the restaurant app: [#256](https://github.com/shaiknoorullah/hg-mono/issues/256) | A suspension follows a compliance or safety concern, and the menu carries the halal, dietary and allergen claims customers rely on, so nothing on it changes until HalalGoes lifts the suspension. Restaurants wait for reinstatement to change a dish, a price or a photo | 2026-10-04 |
 
 ### Admin
 
