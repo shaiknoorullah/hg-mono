@@ -13,6 +13,7 @@ package invariants
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"testing"
@@ -183,6 +184,15 @@ func paymentsService(pool *pgxpool.Pool) *payments.Service {
 type localGateway struct {
 	pay   *payments.Service
 	store *orders.Store
+}
+
+// VoidOrderPayment voids through the payments service, as cmd/hg/main.go does.
+func (g localGateway) VoidOrderPayment(ctx context.Context, orderID string) error {
+	_, err := g.pay.Void(ctx, orderID)
+	if errors.Is(err, payments.ErrNotFound) {
+		return nil
+	}
+	return err
 }
 
 func (g localGateway) CreateOrderIntent(ctx context.Context, in orders.CreateIntentInput) (orders.CreateIntentResult, error) {

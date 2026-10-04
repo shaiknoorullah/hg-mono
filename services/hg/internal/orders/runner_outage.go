@@ -197,10 +197,48 @@ func (r *DeadlineRunner) fireOutage(ctx context.Context, c claimedOrder) error {
 		// Authorise then capture: an order the restaurant has not accepted has
 		// not been captured, so cancelling it voids the authorisation and no
 		// refund is involved (AGENTS.md, "Non-negotiable invariants").
-		return r.transitionWithAudit(ctx, c, machine.StateCancelled, outageCancelReason,
-			"deadline fell during a platform outage", c.action, outcomeOutageVoided)
+		if err := r.transitionWithAudit(ctx, c, machine.StateCancelled, outageCancelReason,
+			"deadline fell during a platform outage", c.action, outcomeOutageVoided); err != nil {
+			return err
+		}
+		r.voidAfterCancel(ctx, c)
+		return nil
 	}
 	return r.reArmAfterOutage(ctx, c)
+}
+
+// voidAfterCancel releases the card hold of an order the runner has just
+// cancelled before the restaurant accepted it — authorise then capture: a
+// cancel before acceptance voids the authorisation (AGENTS.md, "Non-negotiable
+// invariants": https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants;
+// docs/spec/01-platform.md, "P-18 — Refunds, cancellations and compensation":
+// a void is how every cancel before capture gives the money back).
+//
+// It runs after the cancel has committed, the same store-then-process contract
+// as a restaurant rejection (internal/restaurant/handler.go, RejectOrder): the
+// order is CANCELLED whatever Stripe answers. A CREATED order has no
+// authorisation yet, so only AUTHORIZED and RESTAURANT_PENDING are voided.
+//
+// A failed void is logged, not retried: the cancelled order has no deadline
+// left, so the runner never sees it again, and no payments job yet voids the
+// intents of cancelled orders. Until one exists the hold lapses on its own
+// (about 7 days at Stripe) unless ops voids it by hand
+// (https://github.com/shaiknoorullah/hg-mono/issues/270).
+func (r *DeadlineRunner) voidAfterCancel(ctx context.Context, c claimedOrder) {
+	if c.state != machine.StateAuthorized && c.state != machine.StateRestaurantPending {
+		return
+	}
+	if r.gateway == nil {
+		r.log.Warn("payment gateway not wired: the cancelled order's authorisation was not voided",
+			slog.String("order_id", c.id))
+		return
+	}
+	if err := r.gateway.VoidOrderPayment(ctx, c.id); err != nil {
+		r.log.Error("void failed after a deadline cancel: the card hold stays until it lapses or ops voids it",
+			slog.String("order_id", c.id),
+			slog.String("action", c.action),
+			slog.String("error", err.Error()))
+	}
 }
 
 // awaitingAcceptance reports whether an order is still before the restaurant's

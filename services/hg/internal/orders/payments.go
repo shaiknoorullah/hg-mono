@@ -20,6 +20,16 @@ type PaymentGateway interface {
 	// order id inside the implementation (I-16.1). The real implementation lives
 	// in the payments module; orders depends only on this contract.
 	CreateOrderIntent(ctx context.Context, in CreateIntentInput) (CreateIntentResult, error)
+
+	// VoidOrderPayment cancels the order's uncaptured PaymentIntent, releasing
+	// the hold on the customer's card. The deadline runner calls it after a
+	// system cancel of an order the restaurant never accepted: authorise then
+	// capture means such an order was never captured, so a void, not a refund,
+	// gives the money back (AGENTS.md, "Non-negotiable invariants", authorise
+	// then capture: https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants).
+	// An order with no PaymentIntent yet (still CREATED) has nothing to void
+	// and returns nil.
+	VoidOrderPayment(ctx context.Context, orderID string) error
 }
 
 // CreateIntentInput is the P-16 PaymentIntent creation input. It carries the
@@ -58,4 +68,8 @@ func (errPaymentGatewayUnavailable) Error() string {
 
 func (unwiredGateway) CreateOrderIntent(context.Context, CreateIntentInput) (CreateIntentResult, error) {
 	return CreateIntentResult{}, ErrPaymentGatewayUnavailable
+}
+
+func (unwiredGateway) VoidOrderPayment(context.Context, string) error {
+	return ErrPaymentGatewayUnavailable
 }

@@ -186,8 +186,14 @@ func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
 		return r.transitionExpire(ctx, c, machine.StateCancelled, "PAYMENT_EXPIRED", machine.ActionExpirePayment)
 
 	case machine.ActionRestaurantTimeout:
-		// RESTAURANT_PENDING 180s elapsed: cancel + void auth (T8).
-		return r.transitionExpire(ctx, c, machine.StateCancelled, "RESTAURANT_TIMEOUT", machine.ActionRestaurantTimeout)
+		// RESTAURANT_PENDING 180s elapsed: cancel, then void the authorisation
+		// (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions",
+		// RESTAURANT_TIMEOUT; voidAfterCancel in runner_outage.go).
+		if err := r.transitionExpire(ctx, c, machine.StateCancelled, "RESTAURANT_TIMEOUT", machine.ActionRestaurantTimeout); err != nil {
+			return err
+		}
+		r.voidAfterCancel(ctx, c)
+		return nil
 
 	case machine.ActionPrepOverdue, machine.ActionPickupOverdue, machine.ActionDeliveryOverdue,
 		machine.ActionHandoverOverdue, machine.ActionDisputeSLABreach, machine.ActionOfferRestaurant,

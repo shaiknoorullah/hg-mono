@@ -334,6 +334,19 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 	return orders.CreateIntentResult{ClientSecret: row.StripePaymentIntentID + "_secret"}, nil
 }
 
+// VoidOrderPayment voids the order's uncaptured PaymentIntent after the
+// deadline runner cancels an order the restaurant never accepted (authorise
+// then capture — AGENTS.md, "Non-negotiable invariants"). An order with no
+// payment_intent row (still CREATED) has nothing to void, and with Stripe not
+// configured there is no hold to release, so both are no-ops.
+func (g orderPaymentGateway) VoidOrderPayment(ctx context.Context, orderID string) error {
+	_, err := g.svc.Void(ctx, orderID)
+	if errors.Is(err, payments.ErrNotFound) || errors.Is(err, payments.ErrStripeNotConfigured) {
+		return nil
+	}
+	return err
+}
+
 // orderLifecycleAdapter implements dispatch.OrderLifecycle by forwarding to the
 // orders module's Store.Transition. It is the single bridge between the dispatch
 // assignment machine and the P-14 order state machine: dispatch may not write

@@ -37,6 +37,7 @@ package conformance
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -67,6 +68,15 @@ import (
 type gapsOrderGateway struct {
 	svc   *payments.Service
 	store *orders.Store
+}
+
+// VoidOrderPayment voids through the payments service, as cmd/hg/main.go does.
+func (g gapsOrderGateway) VoidOrderPayment(ctx context.Context, orderID string) error {
+	_, err := g.svc.Void(ctx, orderID)
+	if errors.Is(err, payments.ErrNotFound) {
+		return nil
+	}
+	return err
 }
 
 func (g gapsOrderGateway) CreateOrderIntent(ctx context.Context, in orders.CreateIntentInput) (orders.CreateIntentResult, error) {

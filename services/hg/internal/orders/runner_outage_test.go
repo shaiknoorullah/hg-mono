@@ -43,7 +43,8 @@ func TestDeadlineRunnerOutage(t *testing.T) {
 		setDeadline(t, pool, paid, "-3 minutes")
 
 		alerts := &alertRecorder{}
-		r := NewDeadlineRunner(st, nil, testLogger(), "outage-test").WithOpsAlerter(alerts)
+		gw := &voidRecorder{}
+		r := NewDeadlineRunner(st, gw, testLogger(), "outage-test").WithOpsAlerter(alerts)
 		r.step(ctx)
 		r.step(ctx) // a second tick must change nothing
 
@@ -56,6 +57,15 @@ func TestDeadlineRunnerOutage(t *testing.T) {
 			t.Errorf("unaccepted order = %s / %s, want CANCELLED / PLATFORM_ERROR", state, cancelReason)
 		}
 		assertOutageAudit(t, pool, unaccepted, "OUTAGE_VOIDED")
+		// ...and its card hold is released: authorise then capture, a cancel
+		// before acceptance voids the authorisation (AGENTS.md, "Non-negotiable
+		// invariants"). The paid order was captured, so it is never voided.
+		if got := gw.voidsOf(unaccepted); got != 1 {
+			t.Errorf("unaccepted order voided %d times, want exactly 1", got)
+		}
+		if got := gw.voidsOf(paid); got != 0 {
+			t.Errorf("paid order voided %d times, want 0", got)
+		}
 
 		// Paid: fired once, no escalation used, re-armed from now.
 		var escalations int
@@ -94,7 +104,8 @@ func TestDeadlineRunnerOutage(t *testing.T) {
 		setDeadline(t, pool, order, "-10 seconds")
 
 		alerts := &alertRecorder{}
-		NewDeadlineRunner(st, nil, testLogger(), "outage-test").WithOpsAlerter(alerts).step(ctx)
+		gw := &voidRecorder{}
+		NewDeadlineRunner(st, gw, testLogger(), "outage-test").WithOpsAlerter(alerts).step(ctx)
 
 		var cancelReason string
 		var outageTagged bool
@@ -108,6 +119,10 @@ func TestDeadlineRunnerOutage(t *testing.T) {
 		}
 		if n := alerts.count(); n != 0 {
 			t.Errorf("short gap raised %d ops alerts, want 0", n)
+		}
+		// The acceptance timeout voids the authorisation too.
+		if got := gw.voidsOf(order); got != 1 {
+			t.Errorf("timed-out order voided %d times, want exactly 1", got)
 		}
 	})
 
@@ -298,4 +313,34 @@ func (a *alertRecorder) count() int {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return len(a.alerts)
+}
+
+// voidRecorder is a PaymentGateway that records which orders the runner asked
+// to void, instead of calling the payments module.
+type voidRecorder struct {
+	mu    sync.Mutex
+	voids []string
+}
+
+func (g *voidRecorder) CreateOrderIntent(context.Context, CreateIntentInput) (CreateIntentResult, error) {
+	return CreateIntentResult{}, ErrPaymentGatewayUnavailable
+}
+
+func (g *voidRecorder) VoidOrderPayment(_ context.Context, orderID string) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.voids = append(g.voids, orderID)
+	return nil
+}
+
+func (g *voidRecorder) voidsOf(orderID string) int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	n := 0
+	for _, id := range g.voids {
+		if id == orderID {
+			n++
+		}
+	}
+	return n
 }
