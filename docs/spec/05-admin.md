@@ -810,9 +810,9 @@ REGISTERED → EMAIL_VERIFIED → PROFILE_SUBMITTED → DOCUMENTS_SUBMITTED
 | State | Initiated by | Reversible | Can receive new orders | Visible in customer discovery | Login |
 |---|---|---|---|---|---|
 | `LIVE` | system, on READY | — | Yes (subject to hours + accepting toggle) | Yes | Full |
-| `DELISTED` | **system**, non-punitive (halal cert lapsed, docs expired, no approved menu) | Auto, when the cause clears | No | No | Full, with a blocking remediation banner |
-| `SUSPENDED` | **Admin**, punitive, reversible, optionally time-boxed | Yes, by Admin+ | No | No | Restricted: read own data, upload documents, respond to cases, edit opening hours ([hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); the menu is locked ([a suspended restaurant's menu](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
-| `BANNED` | **Admin** proposes, **Super Admin** confirms; punitive, permanent | Only by Super Admin | No | No | Blocked entirely (`403 ACCOUNT_BANNED`) |
+| `DELISTED` | **system**, non-punitive (halal cert lapsed, docs expired, no approved menu) | Auto, when the cause clears | No | No | Full, with a blocking remediation banner; the menu stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `SUSPENDED` | **Admin**, punitive, reversible, optionally time-boxed | Yes, by Admin+ | No | No | Restricted: read own data, upload documents, respond to cases, edit opening hours ([hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `BANNED` | **Admin** proposes, **Super Admin** confirms; punitive, permanent | Only by Super Admin | No | No | Blocked entirely (`403 ACCOUNT_BANNED`); the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | `DEACTIVATED` | **the restaurant itself**, or staff on the restaurant's written request; non-punitive voluntary exit | Yes, by the restaurant or Support Agent | No | No | Full, with a "reactivate" call to action; opening hours read-only |
 | `CLOSED` | Super Admin, after `BANNED` or `DEACTIVATED` + retention period, or on erasure request | No — terminal | No | No | Blocked |
 
@@ -1313,7 +1313,9 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   - R6 Rejection requires ≥ 1 `menu_review_finding`. `NON_HALAL_ITEM` or `ALCOHOL_CONTENT` findings
     additionally create a Tier 2 case of category `HALAL_INTEGRITY` against the restaurant, because
     they bear on the certification claim.
-  - R7 Admins may create menu categories and items on a restaurant's behalf. An item an admin creates
+  - R7 Admins may create menu categories and items on a restaurant's behalf, but never while it is
+    suspended or banned: then nobody changes its menu, admins included; a delisted restaurant's menu
+    stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). An item an admin creates
     is approved on creation and audited, with the creating admin recorded as its reviewer
     ([menu approval](../decisions/README.md#settled--reconciliations)). Updating or removing an item on
     a restaurant's behalf is a launch operation the contract does not have yet ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
@@ -2744,7 +2746,7 @@ is enforced server-side. `Deny` = `403 FORBIDDEN_PERMISSION`.
 | `menu.read_queue` | A-19 | Allow | Allow | Allow — position, SLA, findings |
 | `menu.review` (approve / reject / partial) | A-19 | Allow | Allow | Deny |
 | `menu.bulk_approve` | A-19 | Allow | Deny | Deny |
-| `menu.edit` (create, update or remove on a restaurant's behalf) | A-19 | Allow | Allow | Deny |
+| `menu.edit` (create, update or remove on a restaurant's behalf; refused while it is suspended or banned, [menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | A-19 | Allow | Allow | Deny |
 | `compliance.read` | A-20 | Allow | Allow | Limited — violation summary only |
 | `compliance.raise_violation` | A-20 | Allow | Allow | Deny |
 | `compliance.waive_violation` | A-20 | Allow | Allow | Deny |

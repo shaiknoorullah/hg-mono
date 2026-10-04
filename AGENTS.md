@@ -106,7 +106,7 @@ cd services/hg && make up && make migrate && make run
 **Blocked on the owner** (the [open decisions](docs/decisions/README.md#open--blocking)):
 - **[HST supplier position (O-01)](docs/decisions/README.md#open--blocking)**: the registration number is set; whether the platform or each restaurant is the supplier of record is with the accountant.
 - **[SMS and OTP sender registration (O-03)](docs/decisions/README.md#open--blocking)**: nobody can sign in without it, and carrier approval takes days to weeks.
-- Also undecided: whether a suspended restaurant may edit its menu ([#205](https://github.com/shaiknoorullah/hg-mono/issues/205)), and the retention periods and in-app flow for account deletion ([launch scope](docs/decisions/README.md#launch-scope-and-contract)).
+- Also undecided: the retention periods and in-app flow for account deletion ([launch scope](docs/decisions/README.md#launch-scope-and-contract)).
 
 Refund liability, launch province and self-declared halal restaurants are [settled](docs/decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1).
 
