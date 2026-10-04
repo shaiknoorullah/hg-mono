@@ -70,7 +70,7 @@ export function OnboardingPage() {
         {data.current_step === 'PAYOUT' && (
           <PassthroughStep
             title="Connect payouts"
-            description="Halal Goes pays out through Stripe Connect. Set up your payout account to start receiving orders."
+            description="HalalGoes pays out through Stripe Connect. Set up your payout account to start receiving orders."
             ctaLabel="Continue to Stripe"
             onContinue={async () => {
               await unwrapOrThrow(api.POST('/v1/connect/onboarding-link', {}));

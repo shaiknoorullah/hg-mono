@@ -27,7 +27,7 @@ const EFFECTIVE = '19 September 2026';
 export const metadata = pageMetadata({
   title: `The verification standard, ${VERSION}`,
   description:
-    'The seven checks a halal certificate must pass before a kitchen is listed on Halal Goes, the certifying bodies we accept, what happens when a certificate expires, and what we explicitly do not claim.',
+    'The seven checks a halal certificate must pass before a kitchen is listed on HalalGoes, the certifying bodies we accept, what happens when a certificate expires, and what we explicitly do not claim.',
   path: '/verification',
 });
 
@@ -60,7 +60,7 @@ export default function VerificationPage() {
             The verification standard.
           </h1>
           <p className="mt-4 mb-0 max-w-[62ch] text-body-lg leading-relaxed text-mk-ink lg:mt-[18px] lg:text-[19px]">
-            What a halal certificate has to survive before a kitchen appears on Halal Goes. If we change any
+            What a halal certificate has to survive before a kitchen appears on HalalGoes. If we change any
             of it, the version number changes with it.
           </p>
         </header>

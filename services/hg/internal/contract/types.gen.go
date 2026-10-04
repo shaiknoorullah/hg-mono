@@ -4171,7 +4171,7 @@ type CartLineInput struct {
 type Cents = int64
 
 // CertificationPanel C-12. The platform's core promise, made inspectable. The standing disclaimer is fixed
-// copy: "Certification verified by Halal Goes on {date}. Halal Goes does not itself
+// copy: "Certification verified by HalalGoes on {date}. HalalGoes does not itself
 // certify food."
 type CertificationPanel struct {
 	CertificateNumber *string `json:"certificate_number,omitempty"`
@@ -7062,7 +7062,7 @@ type RestaurantDetail struct {
 	Availability RestaurantAvailabilityInfo `json:"availability"`
 
 	// Certification C-12. The platform's core promise, made inspectable. The standing disclaimer is fixed
-	// copy: "Certification verified by Halal Goes on {date}. Halal Goes does not itself
+	// copy: "Certification verified by HalalGoes on {date}. HalalGoes does not itself
 	// certify food."
 	Certification CertificationPanel `json:"certification"`
 	Cuisines      *[]string          `json:"cuisines,omitempty"`

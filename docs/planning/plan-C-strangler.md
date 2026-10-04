@@ -196,11 +196,11 @@ DNS api.halalgoes.com
 
 ## 7. UI/UX overhaul — design big, ship thin
 
-This is the one place where up-front batch work is correct, and Plan C says so plainly: **design is cheap, reversible, and its failure mode is inconsistency** — which is precisely what Halal Goes has (four apps, three auth flows, mocked approval screens, dead legacy stores). You cannot strangle your way to a coherent visual language.
+This is the one place where up-front batch work is correct, and Plan C says so plainly: **design is cheap, reversible, and its failure mode is inconsistency** — which is precisely what HalalGoes has (four apps, three auth flows, mocked approval screens, dead legacy stores). You cannot strangle your way to a coherent visual language.
 
 So: **UX is designed up front in one pass; UI is shipped screen-by-screen behind flags.**
 
-1. **Design system package first** (`@hg/ui`): tokens, primitives, motion, empty/error/loading states, and — critically — a **canonical state matrix** every screen must implement (loading / empty / error / offline / stale / partial). Most of Halal Goes' worst UX today is missing states, not ugly ones.
+1. **Design system package first** (`@hg/ui`): tokens, primitives, motion, empty/error/loading states, and — critically — a **canonical state matrix** every screen must implement (loading / empty / error / offline / stale / partial). Most of HalalGoes' worst UX today is missing states, not ugly ones.
 2. **Full flow design up front** for the four surfaces, reviewed once by a human: customer order lifecycle, rider onboarding + delivery, restaurant order console, admin review queues. Delivered as annotated flows + screen inventory + the divergence list ("these 9 screens change behavior, not just looks").
 3. **Generated API client** (`@hg/api-client`) from `observed/openapi.yaml`. This single artifact kills an entire documented bug class: the `/api` prefix mismatch, `is_accepting` vs `isAccepting`, `//` double-slash URLs, the `LocationSelector` double-unwrap, hand-redeclared DTOs in every app. Clients stop guessing.
 4. **Screen-level strangling**: each screen ships as `ScreenV2` behind a per-user flag resolved server-side by the Fig (`X-HG-Flags` header) — so we can promote a redesigned screen to 5% of users, watch task-completion and error telemetry, and roll back in one flag. Old and new screens share the generated client, so UI work never blocks backend work and vice versa.
@@ -304,7 +304,7 @@ The new Go WS gateway starts life as a **client of the legacy gateway**: it conn
 
 ## 10. Honest self-critique — where this philosophy fails
 
-**1. The oracle may be empty.** Everything above assumes `api.halalgoes.com` carries meaningful, diverse, real traffic. Halal Goes may be pre-launch or near-zero traffic. If so, shadow diffing degrades into replaying a handful of synthetic requests — which is Plan A with an expensive proxy bolted on. *Mitigation is honest but weak:* a synthetic traffic generator driven by the four client apps' actual call patterns. This is the single biggest bet in the plan and it must be validated in week one, before M1 ships, by measuring actual production QPS. **If QPS is trivial, adopt Plan A and keep only the Fig + expand/contract from this plan.**
+**1. The oracle may be empty.** Everything above assumes `api.halalgoes.com` carries meaningful, diverse, real traffic. HalalGoes may be pre-launch or near-zero traffic. If so, shadow diffing degrades into replaying a handful of synthetic requests — which is Plan A with an expensive proxy bolted on. *Mitigation is honest but weak:* a synthetic traffic generator driven by the four client apps' actual call patterns. This is the single biggest bet in the plan and it must be validated in week one, before M1 ships, by measuring actual production QPS. **If QPS is trivial, adopt Plan A and keep only the Fig + expand/contract from this plan.**
 
 **2. ~40% of the needed surface has no legacy to strangle.** By the crosscut inventory, roughly 60 called endpoints don't exist anywhere — the entire admin refunds/disputes/settlements suite, Stripe Connect onboarding, most onboarding flows, menu image upload. Plus the whole UI overhaul. For all of that, the diff oracle is *vacuous* and we fall back to specification and ordinary review. Plan C is therefore not a complete methodology; it is a superb method for the ~60% that exists and a mediocre one for the rest. A fair reading is that Plan C and Plan A are complements, and Plan C's claim is only that the *sequencing* should be strangler-first.
 

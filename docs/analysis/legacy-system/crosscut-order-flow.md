@@ -1,4 +1,4 @@
-# Cross-Cutting Analysis: Order Lifecycle & Realtime Data Flow — Halal Goes
+# Cross-Cutting Analysis: Order Lifecycle & Realtime Data Flow — HalalGoes
 
 Repos analyzed: `/home/user/hg-api` (NestJS + Prisma + Temporal + Redis backend, v1.2.26), `/home/user/halal-goes` (Turborepo: Expo `users`/`rider`/`restaurant` apps; Next.js `restaurant-web`/`admin-web`), `/home/user/hg-docker` (standalone infra compose + integration guide v1.2.25).
 

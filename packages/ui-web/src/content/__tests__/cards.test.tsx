@@ -110,7 +110,7 @@ describe('HalalCertificationPanel', () => {
     verified_at: '2026-08-03T10:00:00Z',
     scope: 'WHOLE_ESTABLISHMENT',
     disclaimer:
-      'Certification verified by Halal Goes on 3 August 2026. Halal Goes does not itself certify food.',
+      'Certification verified by HalalGoes on 3 August 2026. HalalGoes does not itself certify food.',
   };
 
   it('renders expiry absolutely and puts the renewal note only in the panel', () => {
@@ -125,7 +125,7 @@ describe('HalalCertificationPanel', () => {
     expect(screen.getByTestId('HalalBadge')).toHaveAttribute('data-halal-render', 'certified');
     // The standing line is always present and never collapsible.
     expect(screen.getByTestId('HalalCertificationPanel-disclaimer')).toHaveTextContent(
-      'Halal Goes does not itself certify food.',
+      'HalalGoes does not itself certify food.',
     );
   });
 

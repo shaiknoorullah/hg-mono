@@ -1,0 +1,170 @@
+[
+  {
+    "kind": "link",
+    "file": "docs/analysis/contract-drift/REPORT.md",
+    "ref": "docs/analysis/contract-drift/OrderLine",
+    "detail": "File not found. Check if file exists and path is correct"
+  },
+  {
+    "kind": "link",
+    "file": "docs/analysis/legacy-system/hg-fe-restaurant-apps.md",
+    "ref": "unparseable: Cannot parse 'ws://…:9080' into a URL: invalid international domain name",
+    "detail": "Error building URL for \"ws://…:9080\" (Attribute: None): Cannot parse 'ws://…:9080' into a URL: invalid international domain name"
+  },
+  {
+    "kind": "link",
+    "file": "docs/design/01-foundations.md",
+    "ref": "https://amberjabeen.com/portfolio/building-and-scaling-a-design-system-at-delivery-hero-mena/",
+    "detail": "Rejected status code: 500 Internal Server Error"
+  },
+  {
+    "kind": "link",
+    "file": "docs/design/research/design-research.md",
+    "ref": "https://github.com/mapbox/mapbox-agent-skills/blob/main/skills/mapbox-style-patterns/references/delivery-logistics.md",
+    "detail": "Rejected status code: 503 Service Unavailable"
+  },
+  {
+    "kind": "link",
+    "file": "docs/planning/plan-F-falsification.md",
+    "ref": "https://idl.iscram.org/files/veinott/2010/1049_Veinott_etal2010.pdf",
+    "detail": "Rejected status code: 503 Service Unavailable"
+  },
+  {
+    "kind": "make",
+    "file": "contracts/README.md",
+    "ref": "make contracts-gen-go",
+    "detail": "services/hg/Makefile has no target \"contracts-gen-go\""
+  },
+  {
+    "kind": "make",
+    "file": "contracts/README.md",
+    "ref": "make contracts-gen-realtime",
+    "detail": "services/hg/Makefile has no target \"contracts-gen-realtime\""
+  },
+  {
+    "kind": "path",
+    "file": "contracts/README.md",
+    "ref": "apps/*/src/api/generated/**",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "contracts/README.md",
+    "ref": "services/*/internal/http/gen/**",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "contracts/README.md",
+    "ref": "services/hg/internal/http/gen/",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/HANDOFF.md",
+    "ref": "apps/landing",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/HANDOFF.md",
+    "ref": "apps/landing/src/lib/claims.ts",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/analysis/features-customer-rider.md",
+    "ref": "apps/users",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/analysis/features-customer-rider.md",
+    "ref": "services/riderService",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/analysis/features-restaurant-admin-backend.md",
+    "ref": "apps/admin-web",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/analysis/features-restaurant-admin-backend.md",
+    "ref": "apps/restaurant-web",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/01-foundations.md",
+    "ref": "docs/design/contrast.check.mjs",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/01-foundations.md",
+    "ref": "packages/tokens/nativewind-preset.js",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/01-foundations.md",
+    "ref": "packages/tokens/tokens.css",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/01-foundations.md",
+    "ref": "packages/tokens/tokens.d.ts",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/01-foundations.md",
+    "ref": "packages/tokens/tokens.ts",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/landing-creative-direction.md",
+    "ref": "apps/landing",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/landing-creative-direction.md",
+    "ref": "apps/landing/src/",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/planning/v1-wave1-report.md",
+    "ref": "apps/restaurant-web",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/spec/01-platform.md",
+    "ref": "docs/permissions.md",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "services/hg/migrations/README.md",
+    "ref": "tools/check_enums.py",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "services/hg/migrations/README.md",
+    "ref": "tools/enum_map.py",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "services/hg/migrations/README.md",
+    "ref": "tools/gen_enums.py",
+    "detail": "no such file or directory"
+  }
+]
