@@ -9,7 +9,7 @@
  * way back is a plain link to `/`, where the sign-in gate is.
  */
 import type { ReactNode, RefObject } from 'react';
-import { Banner, Card, Icon, themeAttributes } from '@hg/ui-web';
+import { Banner, Button, Card, Icon, themeAttributes } from '@hg/ui-web';
 
 export function AuthCard({ children }: { children: ReactNode }) {
   return (
@@ -65,5 +65,29 @@ export function ProblemBanner({
         description={description}
       />
     </div>
+  );
+}
+
+/**
+ * Someone is already signed in to the console in this tab when an email link opens. The
+ * link may be for another account, so nothing is switched silently and the token is not
+ * used until they choose (#356). The session carries no email or name to show yet (#170),
+ * so the copy cannot name the account. Today the console keeps its token in memory and an
+ * email link opens a fresh page, so this shows only if that ever changes.
+ */
+export function SignedInPrompt({ onSignOut }: { onSignOut: () => void }) {
+  return (
+    <AuthCard>
+      <AuthHeading title="You're already signed in">
+        Someone is signed in to the HalalGoes console here. This link may be for a different account, so sign out to
+        continue with it. If you stay signed in, the link stays unused.
+      </AuthHeading>
+      <Button size="lg" fullWidth onPress={onSignOut}>
+        Sign out and continue
+      </Button>
+      <Button variant="tertiary" href="/">
+        Stay signed in
+      </Button>
+    </AuthCard>
   );
 }

@@ -11,6 +11,8 @@ export interface Call {
   path: string;
   url: string;
   body: Record<string, unknown> | null;
+  /** The address bar when the request went out. */
+  address: string;
 }
 
 type Reply = Response | Error;
@@ -31,7 +33,12 @@ export function scriptFetch(script: Record<string, Reply | Reply[]>): Call[] {
   vi.mocked(globalThis.fetch).mockImplementation(async (input: RequestInfo | URL) => {
     const request = input instanceof Request ? input : new Request(String(input));
     const text = request.method === 'GET' ? '' : await request.clone().text();
-    const call: Call = { path: new URL(request.url).pathname, url: request.url, body: text ? JSON.parse(text) : null };
+    const call: Call = {
+      path: new URL(request.url).pathname,
+      url: request.url,
+      body: text ? JSON.parse(text) : null,
+      address: window.location.href,
+    };
     calls.push(call);
     const queue = queues.get(call.path);
     const reply = queue && queue.length > 1 ? queue.shift() : queue?.[0];
@@ -43,6 +50,24 @@ export function scriptFetch(script: Record<string, Reply | Reply[]>): Call[] {
 
 export function openAddress(pathAndQuery: string) {
   window.history.replaceState(null, '', pathAndQuery);
+}
+
+/**
+ * Opens an emailed link the way a browser does: the real address, then the boot step that
+ * takes the token out of it (`src/linkTokenBoot.ts`, which `main.tsx` imports first).
+ */
+export async function openLink(address: string) {
+  // Imported before the address is set: the boot module captures once, on first import.
+  const { LINK_PATHS } = await import('../src/linkTokenBoot');
+  const { captureLinkToken } = await import('../src/lib/linkToken');
+  openAddress(address);
+  captureLinkToken(LINK_PATHS);
+}
+
+/** Puts the address and the referrer policy back between tests. */
+export function resetAddress() {
+  openAddress('/');
+  document.querySelector('meta[name="referrer"]')?.remove();
 }
 
 export function installDomShims() {

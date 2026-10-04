@@ -1,13 +1,14 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import { TOKEN, TWELVE_HOUR, apiError, installDomShims, json, openAddress, scriptFetch } from './linkPageHarness';
+import { TOKEN, TWELVE_HOUR, apiError, installDomShims, json, openLink, resetAddress, scriptFetch } from './linkPageHarness';
+import { isAuthed, setToken } from '../src/lib/token';
 
 /** `/reset-password` on the admin console (issue #329): forgot password, and the emailed link. */
 const password = () => screen.getByLabelText(/^New password/) as HTMLInputElement;
 
 async function mount(address: string) {
-  openAddress(address);
+  await openLink(address);
   const { Root } = await import('../src/App');
   render(<Root />);
 }
@@ -17,7 +18,8 @@ describe('admin /reset-password', () => {
 
   afterEach(() => {
     cleanup();
-    openAddress('/');
+    setToken(null);
+    resetAddress();
   });
 
   it('is linked from the sign-in gate', async () => {
@@ -40,7 +42,7 @@ describe('admin /reset-password', () => {
   it('sets the new password from the emailed link, and the token leaves the address', async () => {
     const calls = scriptFetch({ '/v1/auth/password/reset': json(204) });
     await mount(`/reset-password?token=${TOKEN}`);
-    await waitFor(() => expect(window.location.search).toBe(''));
+    expect(window.location.href).not.toContain(TOKEN);
 
     fireEvent.change(password(), { target: { value: 'kettle-orchard-violet-41' } });
     fireEvent.click(screen.getByRole('button', { name: 'Set new password' }));
@@ -50,6 +52,9 @@ describe('admin /reset-password', () => {
       token: TOKEN,
       new_password: 'kettle-orchard-violet-41',
     });
+    expect(calls.every((c) => !c.address.includes(TOKEN))).toBe(true);
+    expect(isAuthed()).toBe(false);
+    expect(screen.getByRole('link', { name: 'Go to sign in' }).getAttribute('href')).toBe('/');
   });
 
   it('on an expired or used link, offers a new one', async () => {

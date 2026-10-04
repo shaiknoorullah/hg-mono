@@ -28,11 +28,6 @@ interface AuthContextValue extends AuthState {
   login: (email: string, password: string, totpCode?: string) => Promise<LoginResult>;
   register: (input: { email: string; password: string; businessName: string }) => Promise<LoginResult>;
   logout: () => Promise<void>;
-  /**
-   * Holds the session a public auth call issued (`verifyEmail`), or forgets the local one
-   * after `resetPassword` has revoked every session server-side.
-   */
-  adoptSession: (grant: Schema['SessionGrant'] | null) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -97,19 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'signed-out', principal: null });
   }, []);
 
-  const adoptSession = useCallback((grant: Schema['SessionGrant'] | null) => {
-    if (!grant) {
-      setSession(null);
-      setState({ status: 'signed-out', principal: null });
-      return;
-    }
-    setSession({ accessToken: grant.access_token, accountId: grant.principal.account_id });
-    setState({ status: 'signed-in', principal: grant.principal });
-  }, []);
-
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, login, register, logout, adoptSession }),
-    [state, login, register, logout, adoptSession],
+    () => ({ ...state, login, register, logout }),
+    [state, login, register, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

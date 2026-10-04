@@ -7,7 +7,8 @@
     <!-- Every request (our own assets, the API, fonts, map tiles) carries the origin only,
          never the path or query, so an emailed link's ?token= reaches no third party and no
          access log as a referrer (issue #329). The origin itself stays, which Mapbox's
-         URL-restricted token needs. -->
+         URL-restricted token needs. The pages an email links to switch to no-referrer at
+         boot (src/lib/linkToken.ts). -->
     <meta name="referrer" content="strict-origin" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

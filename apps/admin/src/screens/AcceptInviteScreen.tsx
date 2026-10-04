@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Icon } from '@hg/ui-web';
+import { Button, Icon } from '@hg/ui-web';
 
+import { logout } from '../lib/auth';
 import { isWellFormedToken, useLinkToken } from '../lib/emailLinks';
-import { AuthCard, AuthHeading } from '../components/AuthFrame';
+import { isAuthed } from '../lib/token';
+import { AuthCard, AuthHeading, SignedInPrompt } from '../components/AuthFrame';
 import { SetPasswordForm } from './ResetPasswordScreen';
 
 /**
@@ -14,13 +16,27 @@ import { SetPasswordForm } from './ResetPasswordScreen';
  * no invite-scoped two-step enrolment; both are #170. Until then the token sets the first
  * password through `resetPassword` (#350), which answers one generic error for an expired,
  * used or unknown link. The two states that follow from that, "this link doesn't work any
- * more" and "password set, two-step sign-in still to come", have no board yet.
+ * more" and "password set, two-step sign-in still to come", have no board yet. Setting the
+ * password signs nobody in; the person goes to the normal sign-in gate.
  */
-type Step = 'set' | 'invalid' | 'rejected' | 'done';
+type Step = 'signed-in' | 'set' | 'invalid' | 'rejected' | 'done';
 
 export function AcceptInviteScreen() {
-  const token = useLinkToken();
-  const [step, setStep] = useState<Step>(isWellFormedToken(token) ? 'set' : 'invalid');
+  const token = useLinkToken('/accept-invite');
+  const [step, setStep] = useState<Step>(() =>
+    !isWellFormedToken(token) ? 'invalid' : isAuthed() ? 'signed-in' : 'set',
+  );
+
+  if (step === 'signed-in') {
+    return (
+      <SignedInPrompt
+        onSignOut={() => {
+          logout();
+          setStep('set');
+        }}
+      />
+    );
+  }
 
   if (step === 'set' && isWellFormedToken(token)) {
     return (
@@ -54,8 +70,12 @@ export function AcceptInviteScreen() {
         <Icon name="check" size={32} className="text-fg-secondary" />
         <AuthHeading eyebrow="Step 1 of 2 done" title="Your password is set">
           One step is left: two-step sign-in. You need it before you can use the console, and it can't be set up
-          from this page yet. The super admin who invited you will set it up with you.
+          from this page yet. The super admin who invited you will set it up with you, then you sign in with your
+          work email, your password and a code from your authenticator app.
         </AuthHeading>
+        <Button size="lg" fullWidth href="/">
+          Go to sign in
+        </Button>
       </AuthCard>
     );
   }

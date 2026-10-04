@@ -11,8 +11,9 @@ import {
   useLinkToken,
   useRetryWindow,
 } from '../lib/emailLinks';
-import { setToken } from '../lib/token';
-import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner } from '../components/AuthFrame';
+import { logout } from '../lib/auth';
+import { isAuthed } from '../lib/token';
+import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner, SignedInPrompt } from '../components/AuthFrame';
 
 /**
  * `/reset-password`: "Forgot your password?" from the sign-in gate and, with `?token=…`, the
@@ -21,12 +22,26 @@ import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner } from '../component
  * The admin canvases have no reset board yet, so this follows the restaurant Sign-in
  * canvas's reset row (https://claude.ai/artifact/9AZ5YnbTdrfyFK1mUwYtCw: Forgot-Password to
  * Reset-Done) in the Staff canvas's frame, with the staff copy the invite boards use.
+ * Setting the password signs nobody in; "Go to sign in" opens the normal sign-in gate.
  */
-type Step = 'request' | 'set' | 'invalid' | 'done';
+type Step = 'signed-in' | 'request' | 'set' | 'invalid' | 'done';
 
 export function ResetPasswordScreen() {
-  const token = useLinkToken();
-  const [step, setStep] = useState<Step>(token === null ? 'request' : isWellFormedToken(token) ? 'set' : 'invalid');
+  const token = useLinkToken('/reset-password');
+  const [step, setStep] = useState<Step>(() =>
+    token === null ? 'request' : !isWellFormedToken(token) ? 'invalid' : isAuthed() ? 'signed-in' : 'set',
+  );
+
+  if (step === 'signed-in') {
+    return (
+      <SignedInPrompt
+        onSignOut={() => {
+          logout();
+          setStep('set');
+        }}
+      />
+    );
+  }
 
   if (step === 'set' && isWellFormedToken(token)) {
     return (
@@ -231,8 +246,7 @@ export function SetPasswordForm({
     const outcome = await resetPassword(token, password);
     setBusy(false);
     if (outcome.ok) {
-      // Every session in the account is revoked, this tab's included.
-      setToken(null);
+      // No session follows: the person signs in again on the sign-in gate.
       onDone();
       return;
     }

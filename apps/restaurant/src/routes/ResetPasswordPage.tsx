@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Icon, Input } from '@hg/ui-web';
-import { useAuth } from '../lib/auth';
+import { isSignedIn, useAuth } from '../lib/auth';
 import {
   PASSWORD_MIN,
   formatClockTime,
@@ -12,7 +12,7 @@ import {
   useLinkToken,
   useRetryWindow,
 } from '../lib/emailLinks';
-import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner } from '../components/AuthFrame';
+import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner, SignedInPrompt } from '../components/AuthFrame';
 
 /**
  * `/reset-password`: the "Forgot your password?" page and, with `?token=…`, the page the
@@ -21,14 +21,36 @@ import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner } from '../component
  * Boards: "Forgot your password" in the restaurant Sign-in canvas
  * (https://claude.ai/artifact/9AZ5YnbTdrfyFK1mUwYtCw): Forgot-Password, Forgot-Sending,
  * Forgot-Error, Forgot-Sent, Reset-Password, Reset-Saving, Reset-PasswordError,
- * Reset-LinkInvalid and Reset-Done. A 429 uses the wait from SignIn-TooMany.
+ * Reset-LinkInvalid and Reset-Done. A 429 uses the wait from SignIn-TooMany. Setting the
+ * password signs nobody in: Reset-Done sends the owner to the normal sign-in. If someone is
+ * already signed in on this device, it asks before using the token ("already signed in" has
+ * no board yet).
  */
-type Step = 'request' | 'set' | 'invalid' | 'done';
+type Step = 'signed-in' | 'request' | 'set' | 'invalid' | 'done';
 
 export function ResetPasswordPage() {
-  const token = useLinkToken();
-  const [step, setStep] = useState<Step>(token === null ? 'request' : isWellFormedToken(token) ? 'set' : 'invalid');
+  const token = useLinkToken('/reset-password');
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [step, setStep] = useState<Step>(() =>
+    token === null ? 'request' : !isWellFormedToken(token) ? 'invalid' : isSignedIn() ? 'signed-in' : 'set',
+  );
+  const [signingOut, setSigningOut] = useState(false);
 
+  if (step === 'signed-in') {
+    return (
+      <SignedInPrompt
+        busy={signingOut}
+        onStay={() => navigate('/orders')}
+        onSignOut={async () => {
+          setSigningOut(true);
+          await logout();
+          setSigningOut(false);
+          setStep('set');
+        }}
+      />
+    );
+  }
   if (step === 'set' && isWellFormedToken(token)) {
     return <SetPassword token={token} onInvalid={() => setStep('invalid')} onDone={() => setStep('done')} />;
   }
@@ -140,7 +162,6 @@ function RequestLink() {
 
 /** Reset-Password, Reset-Saving and Reset-PasswordError: `resetPassword`. */
 function SetPassword({ token, onInvalid, onDone }: { token: string; onInvalid: () => void; onDone: () => void }) {
-  const { adoptSession } = useAuth();
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -173,8 +194,7 @@ function SetPassword({ token, onInvalid, onDone }: { token: string; onInvalid: (
     const outcome = await resetPassword(token, password);
     setBusy(false);
     if (outcome.ok) {
-      // Every session in the account is revoked, this device's included.
-      adoptSession(null);
+      // No session follows: the owner signs in again with the new password.
       onDone();
       return;
     }

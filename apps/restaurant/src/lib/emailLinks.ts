@@ -6,16 +6,14 @@
  * draws the same states: the link no longer works, the password was refused, too many
  * attempts, or HalalGoes could not be reached.
  *
- * The link token is a credential. It is read once from the address bar, removed from it
- * straight away (`useLinkToken`), kept only in memory, and sent only to our own API in a
- * request body. Nothing here logs it.
+ * The link token is a credential. It is taken out of the address bar at boot
+ * (`linkToken.ts`), kept only in memory, and sent only to our own API in a POST body.
+ * Nothing here logs it, and no call here creates a session: `verifyEmail` still answers
+ * with one, which is dropped (#356).
  */
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import type { Schema } from '@hg/api-client';
 import { api } from './api';
-
-export type SessionGrant = Schema['SessionGrant'];
+import { linkTokenFor } from './linkToken';
 
 /** Why a call did not succeed, in the terms a page shows. */
 export type LinkFailure =
@@ -95,11 +93,14 @@ async function settle<T, D>(
   return { ok: false, ...(mapCode(code, response.status) ?? { kind: 'expired' }) };
 }
 
-/** `verifyEmail`: confirms the email and issues a session. */
-export function verifyEmail(token: string): Promise<LinkOutcome<SessionGrant>> {
+/**
+ * `verifyEmail`: confirms the email. The API also issues a session in its answer; that is
+ * dropped here on purpose, because opening a link must never sign anyone in (#356).
+ */
+export function verifyEmail(token: string): Promise<LinkOutcome> {
   return settle(
     () => api.POST('/v1/auth/email/verify', { body: { token } }),
-    (data) => data!.data,
+    () => undefined,
     (code) => (code === 'VERIFICATION_TOKEN_USED' ? { kind: 'used' } : null),
   );
 }
@@ -143,24 +144,9 @@ export function resetPassword(token: string, newPassword: string): Promise<LinkO
   );
 }
 
-/**
- * The `token` query parameter of the current address, read once and then removed from the
- * address bar (a `replace` navigation, so it is not left in history either). The value
- * lives only in this component's memory. `null` when the address had none.
- */
-export function useLinkToken(): string | null {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [token] = useState<string | null>(() => new URLSearchParams(location.search).get('token'));
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (!params.has('token')) return;
-    params.delete('token');
-    const search = params.toString();
-    navigate({ pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash }, { replace: true });
-  }, [location.search, location.pathname, location.hash, navigate]);
-
+/** The token this page's email link carried, captured at boot (`linkToken.ts`). */
+export function useLinkToken(path: string): string | null {
+  const [token] = useState<string | null>(() => linkTokenFor(path));
   return token;
 }
 

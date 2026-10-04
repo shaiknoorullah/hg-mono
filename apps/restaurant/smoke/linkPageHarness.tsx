@@ -13,6 +13,8 @@ export interface Call {
   path: string;
   url: string;
   body: Record<string, unknown> | null;
+  /** The address bar when the request went out. */
+  address: string;
 }
 
 type Reply = Response | Error | ((call: Call) => Response | Error);
@@ -39,7 +41,12 @@ export function scriptFetch(script: Record<string, Reply | Reply[]>): Call[] {
     vi.fn(async (input: RequestInfo | URL) => {
       const request = input instanceof Request ? input : new Request(String(input));
       const text = request.method === 'GET' ? '' : await request.clone().text();
-      const call: Call = { path: new URL(request.url).pathname, url: request.url, body: text ? JSON.parse(text) : null };
+      const call: Call = {
+        path: new URL(request.url).pathname,
+        url: request.url,
+        body: text ? JSON.parse(text) : null,
+        address: window.location.href,
+      };
       calls.push(call);
       const queue = queues.get(call.path);
       let reply: Reply | undefined = queue && queue.length > 1 ? queue.shift() : queue?.[0];
@@ -68,6 +75,22 @@ export async function mountAt(entry: string) {
       <LocationProbe />
     </MemoryRouter>,
   );
+}
+
+/**
+ * Opens an emailed link the way a browser does: the real address first, then the app's boot
+ * step that takes the token out of it, then the app, at the address that is left.
+ */
+export async function openLink(address: string) {
+  window.history.replaceState(null, '', address);
+  await import('../src/linkTokenBoot');
+  return mountAt(window.location.pathname + window.location.search);
+}
+
+/** Puts the address and the referrer policy back between tests. */
+export function resetAddress() {
+  window.history.replaceState(null, '', '/');
+  document.querySelector('meta[name="referrer"]')?.remove();
 }
 
 export function installDomShims() {

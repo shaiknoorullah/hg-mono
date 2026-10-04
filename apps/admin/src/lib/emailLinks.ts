@@ -7,12 +7,13 @@
  * draws the same states: the link no longer works, the password was refused, too many
  * attempts, or HalalGoes could not be reached.
  *
- * The link token is a credential. It is read once from the address bar, removed from it
- * straight away (`useLinkToken`), kept only in memory, and sent only to our own API in a
- * request body. Nothing here logs it.
+ * The link token is a credential. It is taken out of the address bar at boot
+ * (`linkToken.ts`), kept only in memory, and sent only to our own API in a POST body.
+ * Nothing here logs it, and no call here creates a session (#356).
  */
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { linkTokenFor } from './linkToken';
 
 /** Why a call did not succeed, in the terms a page shows. */
 export type LinkFailure =
@@ -121,24 +122,12 @@ export function resetPassword(token: string, newPassword: string): Promise<LinkO
 }
 
 /**
- * The `token` query parameter of the address the email opened, read once and then removed
- * from the address bar with `history.replaceState`, so it is neither shown, bookmarked,
- * kept in history nor sent on as a referrer. The value lives only in this component's
- * memory. `null` when the address had none.
- *
- * The console routes behind `#/` (a `HashRouter`), but an email link is a real path with a
- * real query (`/reset-password?token=…`), so this reads `window.location`, not the router.
+ * The token this page's email link carried, captured at boot (`linkToken.ts`). The console
+ * routes behind `#/`, but an email link is a real path with a real query
+ * (`/reset-password?token=…`), so the capture reads `window.location`, not the router.
  */
-export function useLinkToken(): string | null {
-  const [token] = useState<string | null>(() => new URLSearchParams(window.location.search).get('token'));
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    if (!url.searchParams.has('token')) return;
-    url.searchParams.delete('token');
-    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
-  }, []);
-
+export function useLinkToken(path: string): string | null {
+  const [token] = useState<string | null>(() => linkTokenFor(path));
   return token;
 }
 

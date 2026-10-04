@@ -8,7 +8,7 @@
  */
 import type { ReactNode, RefObject } from 'react';
 import { Link } from 'react-router-dom';
-import { Banner, Card, Icon } from '@hg/ui-web';
+import { Banner, Button, Card, Icon } from '@hg/ui-web';
 
 export function AuthCard({ children }: { children: ReactNode }) {
   return (
@@ -64,5 +64,28 @@ export function ProblemBanner({
         description={description}
       />
     </div>
+  );
+}
+
+/**
+ * Someone is already signed in on this device when an email link opens. The link may be for
+ * another account, so nothing is switched silently and the token is not used until they
+ * choose (#356). The session carries no email or name to show, so the copy says "this
+ * device" rather than naming the account.
+ */
+export function SignedInPrompt({ busy, onSignOut, onStay }: { busy: boolean; onSignOut: () => void; onStay: () => void }) {
+  return (
+    <AuthCard>
+      <AuthHeading title="You're already signed in">
+        Someone is signed in to HalalGoes on this device. This link may be for a different account, so sign out to
+        continue with it. If you stay signed in, the link stays unused.
+      </AuthHeading>
+      <Button size="lg" fullWidth loading={busy} onPress={onSignOut}>
+        Sign out and continue
+      </Button>
+      <Button variant="tertiary" onPress={onStay}>
+        Stay signed in
+      </Button>
+    </AuthCard>
   );
 }

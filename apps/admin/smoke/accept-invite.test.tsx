@@ -1,7 +1,8 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import { TOKEN, apiError, installDomShims, json, openAddress, scriptFetch } from './linkPageHarness';
+import { TOKEN, apiError, installDomShims, json, openLink, resetAddress, scriptFetch } from './linkPageHarness';
+import { isAuthed, setToken } from '../src/lib/token';
 
 /**
  * `/accept-invite?token=…` (issue #329): the staff invitation link. Until the invitation flow
@@ -11,7 +12,7 @@ import { TOKEN, apiError, installDomShims, json, openAddress, scriptFetch } from
 const password = () => screen.getByLabelText(/^New password/) as HTMLInputElement;
 
 async function mount(address: string) {
-  openAddress(address);
+  await openLink(address);
   const { Root } = await import('../src/App');
   render(<Root />);
 }
@@ -26,7 +27,8 @@ describe('admin /accept-invite', () => {
 
   afterEach(() => {
     cleanup();
-    openAddress('/');
+    setToken(null);
+    resetAddress();
   });
 
   it('opens without signing in, removes the token from the address, and sets the first password', async () => {
@@ -36,15 +38,32 @@ describe('admin /accept-invite', () => {
     expect(screen.getByRole('heading', { name: 'Set up your HalalGoes admin account' })).not.toBeNull();
     expect(screen.getByText('Step 1 of 2')).not.toBeNull();
     expect(screen.queryByRole('heading', { name: 'Admin sign in' })).toBeNull();
-    await waitFor(() => expect(window.location.search).toBe(''));
+    expect(window.location.href).not.toContain(TOKEN);
     expect(window.location.pathname).toBe('/accept-invite');
+    expect(document.querySelector('meta[name="referrer"]')?.getAttribute('content')).toBe('no-referrer');
 
     choose('kettle-orchard-violet-41');
 
     expect(await screen.findByRole('heading', { name: 'Your password is set' })).not.toBeNull();
     const reset = calls.find((c) => c.path === '/v1/auth/password/reset')!;
     expect(reset.body).toEqual({ token: TOKEN, new_password: 'kettle-orchard-violet-41' });
-    expect(calls.every((c) => !c.url.includes(TOKEN))).toBe(true);
+    expect(calls.every((c) => !c.url.includes(TOKEN) && !c.address.includes(TOKEN))).toBe(true);
+    // No session follows: the way on is the normal sign-in gate.
+    expect(isAuthed()).toBe(false);
+    expect(screen.getByRole('link', { name: 'Go to sign in' }).getAttribute('href')).toBe('/');
+  });
+
+  it('with someone signed in, asks before using the link', async () => {
+    setToken('someone-else');
+    const calls = scriptFetch({});
+    await mount(`/accept-invite?token=${TOKEN}`);
+
+    expect(screen.getByRole('heading', { name: "You're already signed in" })).not.toBeNull();
+    expect(calls).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out and continue' }));
+    expect(await screen.findByRole('heading', { name: 'Set up your HalalGoes admin account' })).not.toBeNull();
+    expect(isAuthed()).toBe(false);
   });
 
   it('refuses a short password on this device', async () => {

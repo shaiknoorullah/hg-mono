@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Icon, Input, Spinner } from '@hg/ui-web';
-import { useAuth } from '../lib/auth';
+import { isSignedIn, useAuth } from '../lib/auth';
 import {
   formatClockTime,
   isWellFormedToken,
@@ -10,25 +10,39 @@ import {
   useRetryWindow,
   verifyEmail,
 } from '../lib/emailLinks';
-import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner } from '../components/AuthFrame';
+import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner, SignedInPrompt } from '../components/AuthFrame';
 
 /**
  * `/verify-email?token=…`, the link in the sign-up email (issue #329). It confirms the email
- * through `verifyEmail`, which also signs the owner in, then opens onboarding.
+ * through `verifyEmail` and then sends the owner to the normal sign-in: opening a link never
+ * signs anyone in, so the session the API still returns is dropped (#356). If someone is
+ * already signed in on this device, it asks before using the token.
  *
  * Boards: "Check your email and verify link" in the restaurant Sign-in canvas
  * (https://claude.ai/artifact/9AZ5YnbTdrfyFK1mUwYtCw): Verify-Working, Verify-Expired,
  * Verify-ExpiredSending, Verify-ExpiredError, Verify-Used, Verify-Error and, after a new link
- * is sent, CheckEmail-Default and CheckEmail-Cooldown. The incomplete link (no or malformed
- * token) and a 429 on the confirmation itself have no board yet.
+ * is sent, CheckEmail-Default and CheckEmail-Cooldown. "Email verified", "already signed in",
+ * the incomplete link (no or malformed token) and a 429 on the confirmation itself have no
+ * board yet.
  */
-type LinkState = 'checking' | 'unreachable' | 'rate-limited' | 'used' | 'expired' | 'incomplete';
+type LinkState =
+  | 'signed-in'
+  | 'checking'
+  | 'verified'
+  | 'unreachable'
+  | 'rate-limited'
+  | 'used'
+  | 'expired'
+  | 'incomplete';
 
 export function VerifyEmailPage() {
-  const token = useLinkToken();
+  const token = useLinkToken('/verify-email');
   const navigate = useNavigate();
-  const { adoptSession } = useAuth();
-  const [state, setState] = useState<LinkState>(isWellFormedToken(token) ? 'checking' : 'incomplete');
+  const { logout } = useAuth();
+  const [state, setState] = useState<LinkState>(() =>
+    !isWellFormedToken(token) ? 'incomplete' : isSignedIn() ? 'signed-in' : 'checking',
+  );
+  const [signingOut, setSigningOut] = useState(false);
   const wait = useRetryWindow();
   const started = useRef(false);
 
@@ -37,8 +51,7 @@ export function VerifyEmailPage() {
     setState('checking');
     const outcome = await verifyEmail(token);
     if (outcome.ok) {
-      adoptSession(outcome.data);
-      navigate('/onboarding', { replace: true });
+      setState('verified');
       return;
     }
     if (outcome.kind === 'rate-limited') wait.start(outcome.retryAt);
@@ -51,18 +64,32 @@ export function VerifyEmailPage() {
 
   useEffect(() => {
     // A token works once, and StrictMode runs effects twice in development.
-    if (started.current) return;
+    if (started.current || state !== 'checking') return;
     started.current = true;
     void confirm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (state === 'signed-in') {
+    return (
+      <SignedInPrompt
+        busy={signingOut}
+        onStay={() => navigate('/orders')}
+        onSignOut={async () => {
+          setSigningOut(true);
+          await logout();
+          setSigningOut(false);
+          started.current = true;
+          void confirm();
+        }}
+      />
+    );
+  }
+
   if (state === 'checking') {
     return (
       <AuthCard>
-        <AuthHeading title="Confirming your email">
-          This only takes a moment. You'll go straight to setting up your restaurant.
-        </AuthHeading>
+        <AuthHeading title="Confirming your email">This only takes a moment.</AuthHeading>
         <div role="status" className="flex items-center gap-3 text-body-md text-fg-secondary">
           <Spinner size="sm" decorative />
           Confirming your email…
@@ -71,13 +98,17 @@ export function VerifyEmailPage() {
     );
   }
 
-  if (state === 'used') {
+  if (state === 'verified' || state === 'used') {
     return (
       <AuthCard>
         <Icon name="check" size={32} className="text-fg-secondary" />
-        <AuthHeading title="This link has already been used">
-          Your email is confirmed. Sign in to carry on setting up your restaurant.
-        </AuthHeading>
+        {state === 'verified' ? (
+          <AuthHeading title="Email verified">Sign in to start setting up your restaurant.</AuthHeading>
+        ) : (
+          <AuthHeading title="This link has already been used">
+            Your email is confirmed. Sign in to carry on setting up your restaurant.
+          </AuthHeading>
+        )}
         <Button size="lg" fullWidth onPress={() => navigate('/login')}>
           Sign in
         </Button>
