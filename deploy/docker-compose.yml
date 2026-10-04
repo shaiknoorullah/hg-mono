@@ -48,6 +48,9 @@ x-api-env: &api-env
   HG_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
   HG_MINIO_USE_SSL: "false"
   HG_MINIO_REGION: ${MINIO_REGION:-ca-central-1}
+  # Presigned links are signed for this host, not minio:9000, which no phone or
+  # browser can resolve. Required outside local.
+  HG_MINIO_PRESIGN_BASE_URL: ${HG_MINIO_PRESIGN_BASE_URL:-http://localhost:${MINIO_API_PORT:-9000}}
 
   # auth (P-02/P-04). The auth module refuses to boot without these two — added
   # here the same commit they became required, per the P-27 parity rule above.

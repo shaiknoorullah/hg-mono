@@ -403,6 +403,7 @@ func run() error {
 		slog.String("postgres", cfg.Postgres.Host()),
 		slog.String("redis", cfg.Redis.Addr),
 		slog.String("minio", cfg.MinIO.Endpoint),
+		slog.String("minio_presign_base", cfg.MinIO.PresignBaseURL),
 		slog.Int("cors_origins", len(cfg.CORSOrigins)))
 
 	// 2. Dependencies. Open dials all three and fails rather than returning a
@@ -686,7 +687,9 @@ func run() error {
 	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
-		st.Objects().Client,
+		// Links are signed for the public host phones reach; server-side
+		// reads and deletes stay on the internal client.
+		st.Objects().Signer,
 		files.NewMinIOObjectStore(st.Objects().Client),
 		files.Buckets{
 			KYC:     cfg.MinIO.Buckets.KYC,

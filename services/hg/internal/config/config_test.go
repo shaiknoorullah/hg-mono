@@ -116,6 +116,7 @@ func TestLoadRejectsLoopbackOutsideLocal(t *testing.T) {
 		"redis hostname":    {"HG_REDIS_ADDR", "localhost:6379"},
 		"redis ipv4":        {"HG_REDIS_ADDR", "127.0.0.1:6379"},
 		"minio":             {"HG_MINIO_ENDPOINT", "localhost:9000"},
+		"minio presign":     {"HG_MINIO_PRESIGN_BASE_URL", "http://localhost:9000"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -132,6 +133,44 @@ func TestLoadRejectsLoopbackOutsideLocal(t *testing.T) {
 				t.Errorf("error does not name %s: %v", tc.key, err)
 			}
 		})
+	}
+}
+
+// Outside local, presigned links must name a host phones can reach. Left unset,
+// they would be signed for the internal endpoint (minio:9000), which no phone
+// can resolve — so the process does not boot. Issue #203.
+func TestLoadRequiresPresignBaseURLOutsideLocal(t *testing.T) {
+	env := validEnv()
+	env["HG_ENV"] = "production"
+	env["HG_CORS_ALLOWED_ORIGINS"] = "https://app.halalgoes.com"
+	// Also required outside local (TestLoadRequiresTrustedProxiesOutsideLocal);
+	// set here so this test sees only the presign rule.
+	env["HG_TRUSTED_PROXY_CIDRS"] = "172.16.0.0/12"
+
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_MINIO_PRESIGN_BASE_URL") {
+		t.Fatalf("production booted without HG_MINIO_PRESIGN_BASE_URL (err: %v)", err)
+	}
+
+	env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com/"
+	cfg, err := Load(getenvFrom(env))
+	if err != nil {
+		t.Fatalf("a valid presign base was rejected: %v", err)
+	}
+	if cfg.MinIO.PresignBaseURL != "https://files.halalgoes.com" {
+		t.Errorf("PresignBaseURL = %q, want https://files.halalgoes.com", cfg.MinIO.PresignBaseURL)
+	}
+
+	// The S3 client takes a host only; a path would be dropped silently.
+	env["HG_MINIO_PRESIGN_BASE_URL"] = "https://halalgoes.com/files"
+	if _, err := Load(getenvFrom(env)); err == nil {
+		t.Error("a presign base with a path was accepted")
+	}
+
+	// Presigned links are bearer credentials, KYC download links included;
+	// a plain-http host would hand them out in cleartext.
+	env["HG_MINIO_PRESIGN_BASE_URL"] = "http://files.halalgoes.com"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "must be https") {
+		t.Errorf("production accepted a plain-http presign base (err: %v)", err)
 	}
 }
 
@@ -224,6 +263,9 @@ func TestLoadRequiresTrustedProxiesOutsideLocal(t *testing.T) {
 		t.Run(envName, func(t *testing.T) {
 			env := validEnv()
 			env["HG_ENV"] = envName
+			// Also required outside local (TestLoadRequiresPresignBaseURLOutsideLocal);
+			// set here so this test sees only the trusted-proxy rule.
+			env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
 
 			_, err := Load(getenvFrom(env))
 			if err == nil {
