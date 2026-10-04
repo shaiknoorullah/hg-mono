@@ -214,6 +214,33 @@ func TestLoadTrustedProxies(t *testing.T) {
 	}
 }
 
+// TestLoadRequiresTrustedProxiesOutsideLocal pins the fail-closed rule:
+// staging and production run behind Traefik, where an empty list would give
+// every caller Traefik's address and so one shared sign-in code limit for all
+// customers. The rule is step 3 (RealIP) of the middleware chain in
+// docs/spec/01-platform.md, "Deny-by-default routing and the middleware chain".
+func TestLoadRequiresTrustedProxiesOutsideLocal(t *testing.T) {
+	for _, envName := range []string{"staging", "production"} {
+		t.Run(envName, func(t *testing.T) {
+			env := validEnv()
+			env["HG_ENV"] = envName
+
+			_, err := Load(getenvFrom(env))
+			if err == nil {
+				t.Fatal("HG_TRUSTED_PROXY_CIDRS unset was accepted outside local")
+			}
+			if !strings.Contains(err.Error(), "HG_TRUSTED_PROXY_CIDRS") {
+				t.Errorf("error does not name HG_TRUSTED_PROXY_CIDRS: %v", err)
+			}
+
+			env["HG_TRUSTED_PROXY_CIDRS"] = "172.16.0.0/12"
+			if _, err := Load(getenvFrom(env)); err != nil {
+				t.Fatalf("a set HG_TRUSTED_PROXY_CIDRS was refused: %v", err)
+			}
+		})
+	}
+}
+
 func TestHostFromDSN(t *testing.T) {
 	cases := map[string]string{
 		"postgres://hg:hg@postgres:5432/hg?sslmode=disable": "postgres:5432",

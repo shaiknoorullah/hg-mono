@@ -37,8 +37,10 @@ type Config struct {
 	LogLevel        slog.Level
 	CORSOrigins     []string
 	// TrustedProxies are the reverse proxies (Traefik) whose X-Forwarded-For
-	// the API believes when it works out a request's client address. Empty by
-	// default: then the socket peer is the client and the header is ignored.
+	// the API believes when it works out a request's client address. When
+	// empty, the socket peer is the client and the header is ignored. Empty is
+	// allowed only when HG_ENV=local: staging and production run behind
+	// Traefik, where an empty list makes every caller share one address.
 	TrustedProxies []netip.Prefix
 
 	Postgres Postgres
@@ -343,6 +345,18 @@ func Load(getenv func(string) string) (*Config, error) {
 		l.denyLoopback("HG_POSTGRES_DSN", cfg.Postgres.Host())
 		l.denyLoopback("HG_REDIS_ADDR", cfg.Redis.Host())
 		l.denyLoopback("HG_MINIO_ENDPOINT", cfg.MinIO.Host())
+
+		// Outside local the API runs behind Traefik. With no trusted proxy,
+		// every request's client address is Traefik's, so each per-IP limit
+		// (the sign-in code limit in internal/auth/service_flows.go among
+		// them) becomes one limit for all customers. Refuse to boot rather
+		// than fail open. The rule is step 3 (RealIP, the client address) of
+		// the middleware chain in docs/spec/01-platform.md, "Deny-by-default
+		// routing and the middleware chain".
+		if len(cfg.TrustedProxies) == 0 {
+			l.errf("HG_TRUSTED_PROXY_CIDRS: required outside local; behind Traefik an empty list " +
+				"makes every per-IP limit global")
+		}
 	}
 
 	if err := l.err(); err != nil {
