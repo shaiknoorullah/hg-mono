@@ -57,9 +57,12 @@ var rules = map[Purpose]contentRule{
 		types:   map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"},
 		maxSize: 8 << 20,
 	},
+	// Delivery photos are shrunk on the phone before upload. A full-resolution
+	// camera photo is several MiB, slow on a rider's mobile data, and a photo
+	// that proves a bag was left at a door needs no more than about 1 MiB.
 	PurposePOD: {
 		types:   map[string]string{"image/jpeg": ".jpg", "image/webp": ".webp"},
-		maxSize: 8 << 20,
+		maxSize: 1 << 20,
 	},
 	PurposeAvatar: {
 		types:   map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"},

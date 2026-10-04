@@ -20,10 +20,10 @@
 //
 // What is real now and what is a stub:
 //
-//   - Real: the chain (request id, panic recovery, client address behind
-//     the trusted proxies, access log, CORS, timeout, body limit, guard,
-//     idempotency-key extraction), the envelope, the boot-time route
-//     verification, and the default-deny decision itself.
+//   - Real: the chain (request id, panic recovery, client address, access log,
+//     CORS, timeout, body limit, guard, idempotency-key extraction), the
+//     envelope, the boot-time route verification, and the default-deny
+//     decision itself.
 //   - Stub: Authenticator and Authorizer. AnonymousAuthenticator makes every
 //     caller anonymous and DenyAllAuthorizer grants nothing, so a non-public
 //     route answers 401/403 rather than pretending to authorize. The behaviour
