@@ -22,7 +22,7 @@
 //     a LIVE restaurant with the reason HALAL_CERTIFICATE_EXPIRED; a valid one
 //     removes the reason and relists. The certificate trigger calls the same
 //     function, so approving a renewal relists in the approval's transaction
-//     (migrations/00028_halal_certificate_expiry.sql). A LIVE restaurant with
+//     (migrations/00029_halal_certificate_expiry.sql). A LIVE restaurant with
 //     an EXPIRED halal state is refused by a CHECK constraint.
 //  3. Sends the renewal reminder that is due: 30, 14, 7 and 1 days before
 //     expiry (docs/decisions/README.md, "Settled — redesign decisions (owner,
@@ -39,12 +39,23 @@
 // (https://github.com/shaiknoorullah/hg-mono/issues/59), and the full set of
 // non-order messages is https://github.com/shaiknoorullah/hg-mono/issues/248.
 //
+// # Fail closed
+//
+// A missing halal field renders no badge, never an optimistic one (AGENTS.md,
+// "Non-negotiable invariants"). Only an admin-verified certificate's own dates
+// decide: a pending upload's claimed expiry never extends anything. A NULL,
+// zero or past instant, a NULL or unknown restaurant, a NULL date or an
+// unknown status is refused or lands on EXPIRED, never on a badge; an unknown
+// timezone takes the latest date anywhere (UTC+14). A failure to send a
+// message or to suspend never undoes the expiry: those run in savepoints after
+// the halal state has changed.
+//
 // # Time
 //
 // Every date is the restaurant's local date (restaurant.timezone) at an
 // explicit instant. RunAt takes that instant, so tests and the dev controls
 // (https://github.com/shaiknoorullah/hg-mono/issues/235) can run the job "as
-// of" any date. Run uses the injected clock (WithClock) and wakes just after
+// of" any date from now on (never the past: that could only revive a lapse). Run uses the injected clock (WithClock) and wakes just after
 // midnight in Toronto, when certificates lapse, and at least hourly.
 //
 // # Two replicas

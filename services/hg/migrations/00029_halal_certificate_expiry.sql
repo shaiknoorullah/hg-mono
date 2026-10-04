@@ -30,6 +30,15 @@
 --   5. halal_certificate_reminder records each renewal reminder (30, 14, 7 and
 --      1 days before expiry: docs/decisions/README.md, "Settled — redesign
 --      decisions (owner, 2026-09-28)") once per certificate and threshold.
+--
+-- Fail closed. A missing halal field renders no badge, never an optimistic one
+-- (AGENTS.md, "Non-negotiable invariants"). So: a NULL restaurant or instant,
+-- an unknown restaurant, or an instant in the past is refused (RAISE), never
+-- defaulted; only an APPROVED certificate whose last valid day has not passed
+-- can produce a badge, and anything the derivation cannot answer (a NULL date
+-- included) lands on EXPIRED; an unknown timezone takes the date that ends a
+-- certificate soonest. Nothing here is SECURITY DEFINER: every function runs
+-- with its caller's rights.
 
 -- +goose Up
 
@@ -37,30 +46,70 @@ CREATE TABLE halal_certificate_reminder (
   id                    uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
   halal_certificate_id  uuid NOT NULL REFERENCES halal_certificate(id),
   restaurant_id         uuid NOT NULL REFERENCES restaurant(id),
-  days_before           int NOT NULL CHECK (days_before > 0),
+  -- Only the decided cadence (docs/decisions/README.md, "Certificate renewal
+  -- reminders to restaurants"); a sixth threshold needs a migration.
+  days_before           int NOT NULL CHECK (days_before IN (30, 14, 7, 1)),
   expires_on            date NOT NULL,             -- the expiry date the reminder named
   sent_on               date NOT NULL,             -- the restaurant-local date it was due on
   recipients            int NOT NULL DEFAULT 0 CHECK (recipients >= 0),
   created_at            timestamptz NOT NULL DEFAULT now(),
+  -- A reminder is only ever sent inside its window, never after expiry.
+  CONSTRAINT halal_certificate_reminder_in_window
+    CHECK (sent_on BETWEEN expires_on - days_before AND expires_on),
   -- One reminder per certificate per threshold, as a database fact: two job
   -- replicas racing the same day both try this insert and one of them loses.
   CONSTRAINT halal_certificate_reminder_once UNIQUE (halal_certificate_id, days_before)
 );
 CREATE INDEX halal_certificate_reminder_restaurant ON halal_certificate_reminder (restaurant_id, created_at DESC);
 
+-- The calendar date at an instant in a restaurant's timezone. An unknown or
+-- NULL timezone does not fail open: it takes the date in the zone furthest
+-- ahead of UTC (UTC+14), the latest date anywhere, so a certificate is never
+-- treated as valid for longer than it is somewhere on Earth.
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION halal_local_date(p_tz text, p_at timestamptz)
+RETURNS date LANGUAGE plpgsql STABLE AS $$
+BEGIN
+  IF p_at IS NULL THEN
+    RAISE EXCEPTION 'halal_local_date: the instant is NULL' USING ERRCODE = 'null_value_not_allowed';
+  END IF;
+  IF p_tz IS NOT NULL THEN
+    BEGIN
+      RETURN (p_at AT TIME ZONE p_tz)::date;
+    EXCEPTION WHEN invalid_parameter_value THEN
+      RAISE WARNING 'halal_local_date: unknown time zone %; using UTC+14', p_tz;
+    END;
+  END IF;
+  RETURN ((p_at AT TIME ZONE 'UTC') + interval '14 hours')::date;
+END
+$$;
+-- +goose StatementEnd
+
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION halal_refresh_restaurant_status(p_restaurant_id uuid, p_at timestamptz)
 RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
-  r         record;
-  c         record;
-  today     date;
-  v_status  halal_display_state;
-  v_cert    uuid;
-  v_state   restaurant_account_state;
-  v_reasons text[];
-  lapse     constant text := 'HALAL_CERTIFICATE_EXPIRED';
+  r          record;
+  c          record;
+  today      date;
+  last_valid date;
+  v_status   halal_display_state;
+  v_cert     uuid;
+  v_state    restaurant_account_state;
+  v_reasons  text[];
+  lapse      constant text := 'HALAL_CERTIFICATE_EXPIRED';
 BEGIN
+  IF p_restaurant_id IS NULL OR p_at IS NULL THEN
+    RAISE EXCEPTION 'halal_refresh_restaurant_status: restaurant (%) and instant (%) are required',
+      p_restaurant_id, p_at USING ERRCODE = 'null_value_not_allowed';
+  END IF;
+  -- An instant in the past could only ever make a lapsed certificate look
+  -- valid again. Five minutes covers clock skew between the API and Postgres.
+  IF p_at < now() - interval '5 minutes' THEN
+    RAISE EXCEPTION 'halal_refresh_restaurant_status: % is in the past', p_at
+      USING ERRCODE = 'invalid_parameter_value';
+  END IF;
+
   SELECT id, timezone, halal_status, halal_certificate_id, account_state, delist_reasons,
          onboarding_state = 'ACTIVE' AND location IS NOT NULL AND province IS NOT NULL AS can_go_live
     INTO r
@@ -68,18 +117,27 @@ BEGIN
    WHERE id = p_restaurant_id
    FOR UPDATE;
   IF NOT FOUND THEN
-    RETURN;
+    RAISE EXCEPTION 'halal_refresh_restaurant_status: no restaurant %', p_restaurant_id
+      USING ERRCODE = 'no_data_found';
   END IF;
-  today := (p_at AT TIME ZONE r.timezone)::date;
+  today := halal_local_date(r.timezone, p_at);
 
   -- The restaurant's certificate: an APPROVED one wins over an EXPIRED one, and
   -- the later expiry wins within each. Only ACCEPTED issuing bodies count.
+  --
+  -- Only what an admin verified decides: an APPROVED certificate's fields were
+  -- transcribed and checked by staff and are immutable once approved, and an
+  -- EXPIRED one was APPROVED first. A PENDING upload's claimed expiry, the
+  -- uploaded document's valid_until, or anything from a request never counts.
   SELECT hc.id, hc.status, hc.expires_on, hc.grace_until
     INTO c
     FROM halal_certificate hc
     JOIN halal_issuing_body b ON b.id = hc.issuing_body_id
    WHERE hc.restaurant_id = p_restaurant_id
      AND hc.status IN ('APPROVED', 'EXPIRED')
+     AND hc.verified_by IS NOT NULL
+     AND hc.verified_at IS NOT NULL
+     AND hc.expires_on IS NOT NULL
      AND b.status = 'ACCEPTED'
      AND hc.deleted_at IS NULL
    ORDER BY (hc.status = 'APPROVED') DESC, hc.expires_on DESC, hc.id DESC
@@ -92,13 +150,16 @@ BEGIN
     v_cert := c.id;
     -- Valid through the whole of its last day (expires_on, or grace_until when
     -- a super admin granted one), in the restaurant's timezone; expired from
-    -- 00:00 local the day after. Amber "expiring soon" from 30 days out.
+    -- 00:00 local the day after. Amber "expiring soon" from 30 days out. Only
+    -- the two positive branches can give a badge; any other answer, a NULL
+    -- comparison included, falls through to EXPIRED.
+    last_valid := COALESCE(c.grace_until, c.expires_on);
     v_status := CASE
-      WHEN c.status = 'EXPIRED' OR COALESCE(c.grace_until, c.expires_on) < today
-        THEN 'EXPIRED'::halal_display_state
-      WHEN c.expires_on <= today + 30
+      WHEN c.status = 'APPROVED' AND last_valid >= today AND c.expires_on > today + 30
+        THEN 'CERTIFIED'::halal_display_state
+      WHEN c.status = 'APPROVED' AND last_valid >= today
         THEN 'EXPIRING_SOON'::halal_display_state
-      ELSE 'CERTIFIED'::halal_display_state
+      ELSE 'EXPIRED'::halal_display_state
     END;
   END IF;
 
@@ -157,6 +218,10 @@ $$;
 CREATE OR REPLACE FUNCTION halal_refresh_restaurant_status(p_restaurant_id uuid)
 RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
+  IF p_restaurant_id IS NULL THEN
+    RAISE EXCEPTION 'halal_refresh_restaurant_status: restaurant is required'
+      USING ERRCODE = 'null_value_not_allowed';
+  END IF;
   PERFORM halal_refresh_restaurant_status(p_restaurant_id, now());
 END
 $$;
@@ -175,7 +240,7 @@ CREATE OR REPLACE VIEW halal_status_inconsistency AS
         WHERE hc.id = r.halal_certificate_id
           AND hc.status = 'APPROVED'
           AND b.status = 'ACCEPTED'
-          AND COALESCE(hc.grace_until, hc.expires_on) >= (now() AT TIME ZONE r.timezone)::date
+          AND COALESCE(hc.grace_until, hc.expires_on) >= halal_local_date(r.timezone, now())
      );
 
 -- Bring every existing row up to date (this delists any restaurant already
@@ -239,4 +304,5 @@ $$;
 -- +goose StatementEnd
 
 DROP FUNCTION IF EXISTS halal_refresh_restaurant_status(uuid, timestamptz);
+DROP FUNCTION IF EXISTS halal_local_date(text, timestamptz);
 DROP TABLE IF EXISTS halal_certificate_reminder;

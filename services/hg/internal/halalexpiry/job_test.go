@@ -10,6 +10,7 @@ package halalexpiry_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"net/http"
@@ -26,6 +27,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
@@ -165,6 +167,100 @@ func TestEveryReplicaHasTheEffectOfOne(t *testing.T) {
 	if delistings != 1 {
 		t.Fatalf("delisting audit rows = %d, want 1", delistings)
 	}
+}
+
+// Anything the job cannot vouch for ends without a badge: only the date an
+// admin verified counts, an unknown timezone ends a certificate soonest, and a
+// missing or past instant, a missing date, an unknown status or an
+// off-cadence reminder is refused rather than defaulted.
+func TestFailsClosed(t *testing.T) {
+	ctx := context.Background()
+	db := newDatabase(t)
+	job := halalexpiry.New(db.pool, db.outbox, nil, halalexpiry.Config{})
+	verified := seedRestaurant(t, db, 40)
+	elsewhere := seedRestaurant(t, db, 40)
+
+	t.Run("an unknown timezone takes the latest date anywhere", func(t *testing.T) {
+		if _, err := db.pool.Exec(ctx, `UPDATE restaurant SET timezone = 'Mars/Olympus_Mons' WHERE id = $1`,
+			elsewhere.restaurant); err != nil {
+			t.Fatal(err)
+		}
+		// Noon in Toronto on the expiry day is already the next day at UTC+14.
+		elsewhere.runAt(t, job, elsewhere.local(0, 12, 0, 0))
+		elsewhere.expectListing(t, "EXPIRED", "DELISTED", "HALAL_CERTIFICATE_EXPIRED")
+		verified.expectListing(t, "EXPIRING_SOON", "LIVE")
+	})
+
+	t.Run("a later date the restaurant uploaded does not extend the verified one", func(t *testing.T) {
+		// The restaurant uploads a renewal claiming 400 more days; nobody has
+		// verified it, so the approved certificate's date still decides.
+		claimed := time.Now().In(toronto).AddDate(0, 0, 400).Format(time.DateOnly)
+		if _, err := db.pool.Exec(ctx, `
+			WITH o AS (
+			  INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256,
+			                             state, uploaded_by, confirmed_at)
+			  VALUES ('hg-kyc', 'test/halal-expiry/claimed.pdf', 'KYC_DOCUMENT', 'application/pdf', 1024,
+			          digest('claimed', 'sha256'), 'READY', $2, now()) RETURNING id),
+			d AS (
+			  INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id,
+			                            halal_issuing_body_id, state, valid_until, deadline_at, deadline_action)
+			  SELECT 'RESTAURANT', $1, 'HALAL_CERTIFICATE', o.id, $3, 'IN_REVIEW', $4::date,
+			         now() + interval '72 hours', 'ESCALATE' FROM o RETURNING id)
+			INSERT INTO halal_certificate (restaurant_id, document_id, certificate_number, issuing_body_id,
+			    certified_legal_name, certified_address, scope, issued_on, expires_on, status, checklist_version)
+			SELECT $1, d.id, 'CLAIMED-1', $3, 'Expiry Test Inc.', '1 Test St, Toronto', 'WHOLE_ESTABLISHMENT',
+			       current_date, $4::date, 'PENDING', 1 FROM d`,
+			verified.restaurant, verified.owner, verified.body, claimed); err != nil {
+			t.Fatal(err)
+		}
+		verified.runAt(t, job, verified.local(1, 0, 0, 30))
+		verified.expectListing(t, "EXPIRED", "DELISTED", "HALAL_CERTIFICATE_EXPIRED")
+		verified.expectCertificate(t, verified.certificate, "EXPIRED")
+		verified.expectNoBadge(t)
+	})
+
+	t.Run("a missing or past instant is refused", func(t *testing.T) {
+		if _, ran, err := job.RunAt(ctx, time.Time{}); err == nil || ran {
+			t.Fatalf("RunAt(zero) ran=%v err=%v, want a refusal", ran, err)
+		}
+		rep, _, err := job.RunAt(ctx, time.Now().Add(-48*time.Hour))
+		if err != nil || len(rep.Errors) != 2 {
+			t.Fatalf("RunAt(two days ago): err=%v, %d restaurant errors, want both refused", err, len(rep.Errors))
+		}
+		for name, q := range map[string]string{
+			"no restaurant":         `SELECT halal_refresh_restaurant_status(NULL::uuid, now())`,
+			"no instant":            `SELECT halal_refresh_restaurant_status('` + verified.restaurant.String() + `'::uuid, NULL)`,
+			"an instant past":       `SELECT halal_refresh_restaurant_status('` + verified.restaurant.String() + `'::uuid, now() - interval '1 day')`,
+			"an unknown restaurant": `SELECT halal_refresh_restaurant_status('` + uuid.NewString() + `'::uuid, now())`,
+		} {
+			if _, err := db.pool.Exec(ctx, q); err == nil {
+				t.Errorf("%s: accepted, want an error", name)
+			}
+		}
+	})
+
+	t.Run("the database refuses a missing date, an unknown status and an off-cadence reminder", func(t *testing.T) {
+		for name, c := range map[string]struct{ code, sql string }{
+			"no expiry date": {"23502", `
+				INSERT INTO halal_certificate (restaurant_id, document_id, certificate_number, issuing_body_id,
+				    certified_legal_name, certified_address, scope, issued_on, expires_on, status, checklist_version)
+				SELECT restaurant_id, document_id, 'NO-DATE', issuing_body_id, certified_legal_name,
+				       certified_address, scope, issued_on, NULL, 'PENDING', checklist_version
+				  FROM halal_certificate WHERE id = '` + verified.certificate.String() + `'`},
+			"unknown status": {"22P02",
+				`UPDATE halal_certificate SET status = 'VALID' WHERE id = '` + verified.certificate.String() + `'`},
+			"5-day reminder": {"23514", `
+				INSERT INTO halal_certificate_reminder (halal_certificate_id, restaurant_id, days_before, expires_on, sent_on)
+				VALUES ('` + verified.certificate.String() + `', '` + verified.restaurant.String() + `', 5,
+				        current_date + 5, current_date)`},
+		} {
+			_, err := db.pool.Exec(ctx, c.sql)
+			var pgErr *pgconn.PgError
+			if !errors.As(err, &pgErr) || pgErr.Code != c.code {
+				t.Errorf("%s: %v, want SQLSTATE %s", name, err, c.code)
+			}
+		}
+	})
 }
 
 // Suspension some days after a lapse is an open owner question (#164): off by

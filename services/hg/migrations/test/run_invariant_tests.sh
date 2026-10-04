@@ -249,6 +249,13 @@ zero_rows "no restaurant shows a halal badge (certified or expiring soon) withou
   "SELECT * FROM halal_status_inconsistency"
 reject "a live restaurant cannot carry an expired halal state" "restaurant_live_not_halal_expired" \
   "UPDATE restaurant SET halal_status = 'EXPIRED' WHERE id = '33333333-3333-4333-8333-333333333333';"
+reject "the halal state is never derived without an instant" "instant" \
+  "SELECT halal_refresh_restaurant_status('33333333-3333-4333-8333-333333333333'::uuid, NULL);"
+reject "the halal state is never derived as of the past" "in the past" \
+  "SELECT halal_refresh_restaurant_status('33333333-3333-4333-8333-333333333333'::uuid, now() - interval '1 day');"
+reject "a renewal reminder outside 30, 14, 7 or 1 days is refused" "halal_certificate_reminder_days_before_check" \
+  "INSERT INTO halal_certificate_reminder (halal_certificate_id, restaurant_id, days_before, expires_on, sent_on)
+     VALUES ('33333333-3333-4333-8333-3333333300a3','33333333-3333-4333-8333-333333333333',5,current_date+5,current_date);"
 
 echo
 echo "7. Quote and order money identities"

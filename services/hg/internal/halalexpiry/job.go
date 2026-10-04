@@ -92,7 +92,9 @@ type Report struct {
 	Relisted  int
 	Suspended int
 	Reminders int // reminder thresholds recorded (each notifies every recipient)
-	Errors    []error
+	// Errors are restaurants not evaluated, or evaluated whose suspension or
+	// messages failed (their halal state change still committed).
+	Errors []error
 }
 
 func (r Report) changed() bool {
@@ -111,7 +113,7 @@ func (j *Job) Run(ctx context.Context) {
 			j.log.Debug("halal expiry pass skipped: another replica holds the lease")
 		default:
 			for _, e := range rep.Errors {
-				j.log.Error("halal expiry: restaurant not evaluated", slog.String("error", e.Error()))
+				j.log.Error("halal expiry: restaurant pass incomplete", slog.String("error", e.Error()))
 			}
 			if rep.changed() {
 				j.log.Info("halal expiry pass",
@@ -146,6 +148,11 @@ func untilNextPass(now time.Time) time.Duration {
 // local date at that instant. ran is false when another replica holds the
 // lease. The pass is recorded in job_run.
 func (j *Job) RunAt(ctx context.Context, at time.Time) (rep Report, ran bool, err error) {
+	// A zero instant would read as year 1, when every certificate is valid.
+	// The database also refuses any instant in the past.
+	if at.IsZero() {
+		return rep, false, errors.New("halalexpiry: RunAt needs an instant; the zero time would fail open")
+	}
 	c, err := j.pool.Acquire(ctx)
 	if err != nil {
 		return rep, false, err
@@ -227,11 +234,14 @@ type lapsedCert struct {
 	restaurantName string
 }
 
-// evaluate brings one restaurant up to date as of at, in one transaction.
+// evaluate brings one restaurant up to date as of at, in one transaction. The
+// halal state and listing change first; suspension and messages follow in
+// savepoints, so their failure is reported without undoing the state change.
 func (j *Job) evaluate(ctx context.Context, conn *pgx.Conn, restaurantID uuid.UUID, at time.Time, rep *Report) error {
 	var out Report
+	var later []error // failures after the halal state change, which still commits
 	err := pgx.BeginFunc(ctx, conn, func(tx pgx.Tx) error {
-		out = Report{}
+		out, later = Report{}, nil
 		var before string
 		err := tx.QueryRow(ctx, `
 			SELECT account_state::text FROM restaurant
@@ -255,12 +265,18 @@ func (j *Job) evaluate(ctx context.Context, conn *pgx.Conn, restaurantID uuid.UU
 			return fmt.Errorf("refresh halal status: %w", err)
 		}
 
+		// What follows is optional to the halal state, so each part runs in a
+		// savepoint: if it fails, the expiry and delisting above still commit.
+		// The failure is reported, and job_run counts it.
 		if j.cfg.SuspendAfterExpiredDays > 0 {
-			n, err := suspendLongLapsed(ctx, tx, restaurantID, at, j.cfg.SuspendAfterExpiredDays)
-			if err != nil {
-				return fmt.Errorf("suspend after lapse: %w", err)
+			if err := pgx.BeginFunc(ctx, tx, func(sp pgx.Tx) error {
+				n, err := suspendLongLapsed(ctx, sp, restaurantID, at, j.cfg.SuspendAfterExpiredDays)
+				out.Suspended = n
+				return err
+			}); err != nil {
+				out.Suspended = 0
+				later = append(later, fmt.Errorf("suspend after lapse: %w", err))
 			}
-			out.Suspended = n
 		}
 
 		var after string
@@ -279,23 +295,24 @@ func (j *Job) evaluate(ctx context.Context, conn *pgx.Conn, restaurantID uuid.UU
 			return nil
 		}
 
-		recipients, err := staffToTell(ctx, tx, restaurantID)
-		if err != nil {
-			return err
-		}
-		for _, lc := range lapsed {
-			for _, acct := range recipients {
-				if _, err := j.notify.Enqueue(ctx, tx, expiredMessage(acct, restaurantID, lc)); err != nil {
-					return fmt.Errorf("enqueue expiry notice: %w", err)
+		if err := pgx.BeginFunc(ctx, tx, func(sp pgx.Tx) error {
+			recipients, err := staffToTell(ctx, sp, restaurantID)
+			if err != nil {
+				return err
+			}
+			for _, lc := range lapsed {
+				for _, acct := range recipients {
+					if _, err := j.notify.Enqueue(ctx, sp, expiredMessage(acct, restaurantID, lc)); err != nil {
+						return fmt.Errorf("enqueue expiry notice: %w", err)
+					}
 				}
 			}
+			out.Reminders, err = j.remind(ctx, sp, restaurantID, at, recipients)
+			return err
+		}); err != nil {
+			out.Reminders = 0
+			later = append(later, fmt.Errorf("halal state updated, messages not sent: %w", err))
 		}
-
-		sent, err := j.remind(ctx, tx, restaurantID, at, recipients)
-		if err != nil {
-			return fmt.Errorf("renewal reminder: %w", err)
-		}
-		out.Reminders = sent
 		return nil
 	})
 	if err != nil {
@@ -307,7 +324,7 @@ func (j *Job) evaluate(ctx context.Context, conn *pgx.Conn, restaurantID uuid.UU
 	rep.Relisted += out.Relisted
 	rep.Suspended += out.Suspended
 	rep.Reminders += out.Reminders
-	return nil
+	return errors.Join(later...)
 }
 
 // quiet reports whether a restaurant in this account state gets no halal
@@ -333,7 +350,7 @@ func expireLapsed(ctx context.Context, tx pgx.Tx, restaurantID uuid.UUID, at tim
 		   AND b.id = hc.issuing_body_id
 		   AND hc.status = 'APPROVED'
 		   AND hc.deleted_at IS NULL
-		   AND COALESCE(hc.grace_until, hc.expires_on) < ($2::timestamptz AT TIME ZONE r.timezone)::date
+		   AND COALESCE(hc.grace_until, hc.expires_on) < halal_local_date(r.timezone, $2::timestamptz)
 		RETURNING hc.id, hc.expires_on, b.name, r.display_name`, restaurantID, at)
 	if err != nil {
 		return nil, err
@@ -358,7 +375,7 @@ func suspendLongLapsed(ctx context.Context, tx pgx.Tx, restaurantID uuid.UUID, a
 		     AND hc.id = r.halal_certificate_id
 		     AND r.account_state = 'DELISTED'
 		     AND r.halal_status = 'EXPIRED'
-		     AND COALESCE(hc.grace_until, hc.expires_on) + $3::int < ($2::timestamptz AT TIME ZONE r.timezone)::date
+		     AND COALESCE(hc.grace_until, hc.expires_on) + $3::int < halal_local_date(r.timezone, $2::timestamptz)
 		  RETURNING r.id, r.delist_reasons
 		)
 		INSERT INTO audit_event
@@ -395,7 +412,7 @@ func staffToTell(ctx context.Context, tx pgx.Tx, restaurantID uuid.UUID) ([]uuid
 func (j *Job) remind(ctx context.Context, tx pgx.Tx, restaurantID uuid.UUID, at time.Time, recipients []uuid.UUID) (int, error) {
 	var c reminderCert
 	err := tx.QueryRow(ctx, `
-		SELECT hc.id, hc.expires_on, ($2::timestamptz AT TIME ZONE r.timezone)::date, b.name, r.display_name
+		SELECT hc.id, hc.expires_on, halal_local_date(r.timezone, $2::timestamptz), b.name, r.display_name
 		  FROM restaurant r
 		  JOIN halal_certificate hc ON hc.id = r.halal_certificate_id
 		  JOIN halal_issuing_body b ON b.id = hc.issuing_body_id
