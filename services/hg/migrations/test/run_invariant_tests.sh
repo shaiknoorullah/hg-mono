@@ -383,6 +383,10 @@ reject "hg_app cannot ALTER a table" "must be owner" \
   "$AS_APP ALTER TABLE \"order\" DROP CONSTRAINT order_deadline_required;"
 reject "hg_app cannot CREATE in the schema" "permission denied for schema public" \
   "$AS_APP CREATE TABLE probe (id int);"
+# A temp table named ledger_entry would hide the real one from the zero-sum
+# check, which then sums fake rows and lets an unbalanced batch commit.
+reject "hg_app cannot shadow a table with a temp table" "permission denied to create temporary tables" \
+  "$AS_APP CREATE TEMP TABLE ledger_entry (batch_id uuid, amount_cents bigint);"
 accept "hg_app can still read and write rows" \
   "$AS_APP SELECT count(*) FROM ledger_entry;
    SELECT next_channel_seq('order:hg-app-probe');"

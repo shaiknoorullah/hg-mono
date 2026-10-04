@@ -141,21 +141,31 @@ logs: ## Follow the API logs from both replicas
 ps: ## Show stack status
 	$(COMPOSE) ps
 
-# A .env made before the database roles existed lacks their passwords; copy the
-# example's in rather than fail, so `make up` keeps working on an old checkout.
+# The database role passwords are never copied from .env.example: pgroles makes
+# them real login passwords, hg_migrator's included (it owns the schema), and
+# Postgres is published on the host. A new .env gets random ones, and a .env made
+# before the roles existed has random ones appended. That is safe because pgroles
+# re-sets both passwords on every `make up` and `make migrate`, and `make run`
+# reads the same .env.
 DB_ROLE_ENV := HG_DB_MIGRATOR_PASSWORD HG_DB_APP_PASSWORD
 
 .PHONY: ensure-env
 ensure-env:
 	@if [ ! -f $(ENV_FILE) ]; then \
-		cp $(DEPLOY_DIR)/.env.example $(ENV_FILE); \
-		echo "created $(ENV_FILE) from .env.example — edit the secrets before anything but local"; \
+		cp $(DEPLOY_DIR)/.env.example $(ENV_FILE).tmp; \
+		for k in $(DB_ROLE_ENV); do \
+			pw="$$(openssl rand -hex 24)" && [ -n "$$pw" ] || { echo "openssl rand failed; cannot make $$k"; rm -f $(ENV_FILE).tmp; exit 1; }; \
+			sed "s/^$$k=.*/$$k=$$pw/" $(ENV_FILE).tmp > $(ENV_FILE).tmp2 && mv $(ENV_FILE).tmp2 $(ENV_FILE).tmp; \
+		done; \
+		mv $(ENV_FILE).tmp $(ENV_FILE); \
+		echo "created $(ENV_FILE) from .env.example, with random database role passwords — edit the other secrets before anything but local"; \
 	fi
 	@for k in $(DB_ROLE_ENV); do \
 		if ! grep -q "^$$k=" $(ENV_FILE); then \
+			pw="$$(openssl rand -hex 24)" && [ -n "$$pw" ] || { echo "openssl rand failed; cannot add $$k"; exit 1; }; \
 			[ -z "$$(tail -c1 $(ENV_FILE))" ] || echo >> $(ENV_FILE); \
-			grep "^$$k=" $(DEPLOY_DIR)/.env.example >> $(ENV_FILE); \
-			echo "added $$k to $(ENV_FILE) from .env.example"; \
+			echo "$$k=$$pw" >> $(ENV_FILE); \
+			echo "added $$k to $(ENV_FILE): a random password"; \
 		fi; \
 	done
 

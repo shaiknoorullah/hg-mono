@@ -93,6 +93,16 @@ SELECT format('REVOKE %I FROM hg_app', r.rolname)
   JOIN pg_roles r ON r.oid = m.roleid
  WHERE m.member = 'hg_app'::regrole \gexec
 
+-- No temporary tables. Postgres grants TEMPORARY on every database to PUBLIC,
+-- and the temporary schema is searched before `public`. A role that may create
+-- a temp table called ledger_entry hides the real one from any function that
+-- names the table without a schema, so the ledger's zero-sum check would sum
+-- the fake rows and pass an unbalanced batch; the audit hash chain could be fed
+-- a fake head the same way. Neither the API, River nor goose uses temp tables.
+-- 00028_least_privilege.sql also pins those functions' search_path.
+SELECT format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database()) \gexec
+SELECT format('REVOKE TEMPORARY ON DATABASE %I FROM hg_app', current_database()) \gexec
+
 -- ---------------------------------------------------------------------------
 -- Extensions need a superuser (PostGIS is not a trusted extension), so they are
 -- created here; the CREATE EXTENSION IF NOT EXISTS lines in 00001 then skip.

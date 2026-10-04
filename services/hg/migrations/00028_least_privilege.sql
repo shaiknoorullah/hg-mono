@@ -12,7 +12,11 @@
 --   * CREATE anything in the schema, or TRUNCATE, or add a TRIGGER — none of
 --     those privileges is granted;
 --   * SET session_replication_role = replica, which skips every trigger — that
---     takes a superuser.
+--     takes a superuser;
+--   * hide a table from a trigger function behind a temporary table of the same
+--     name — roles.sql withholds TEMPORARY on the database, and this migration
+--     pins the search_path of the ledger and audit trigger functions so the
+--     temporary schema is searched last even if that grant ever comes back.
 --
 -- test/run_invariant_tests.sh section 12 tries each of these as hg_app.
 
@@ -39,7 +43,24 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 -- It allows no DDL and does not touch triggers.
 GRANT MAINTAIN ON river_job TO hg_app;
 
+-- The trigger functions behind the ledger's zero-sum check and append-only rule
+-- (00017_ledger.sql) and the audit hash chain (00021_audit.sql) name their
+-- tables without a schema and run with the caller's rights. By default the
+-- caller's temporary schema is searched first, so a temp table called
+-- ledger_entry or audit_event would stand in for the real one. Naming pg_temp
+-- last puts it after `public`.
+ALTER FUNCTION ledger_assert_batch_balanced() SET search_path = public, pg_temp;
+ALTER FUNCTION ledger_assert_batch_nonempty() SET search_path = public, pg_temp;
+ALTER FUNCTION ledger_reject_mutation() SET search_path = public, pg_temp;
+ALTER FUNCTION audit_event_chain() SET search_path = public, pg_temp;
+ALTER FUNCTION audit_reject_mutation() SET search_path = public, pg_temp;
+
 -- +goose Down
+ALTER FUNCTION audit_reject_mutation() RESET search_path;
+ALTER FUNCTION audit_event_chain() RESET search_path;
+ALTER FUNCTION ledger_reject_mutation() RESET search_path;
+ALTER FUNCTION ledger_assert_batch_nonempty() RESET search_path;
+ALTER FUNCTION ledger_assert_batch_balanced() RESET search_path;
 -- The default privileges stay: they are the same ones 00023 sets, and when one
 -- role runs both migrations, revoking them here would undo 00023's as well.
 -- CREATE on `public` stays withheld from PUBLIC, as Postgres 15+ ships it.
