@@ -58,7 +58,7 @@ env:
 jobs:
   config-tests:
     if: github.event_name == 'pull_request'
-    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -79,7 +79,7 @@ jobs:
 
   plan:
     if: github.event_name != 'pull_request'
-    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
@@ -148,7 +148,7 @@ jobs:
   android:
     needs: plan
     if: needs.plan.outputs.kind == 'android'
-    runs-on: ${{ fromJSON(vars.HG_RUNS_ON_ANDROID || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
       contents: read
@@ -340,7 +340,7 @@ jobs:
   web:
     needs: plan
     if: needs.plan.outputs.kind == 'web'
-    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
@@ -398,7 +398,7 @@ jobs:
     if: >-
       always() && github.event_name == 'push' &&
       (needs.android.result == 'success' || needs.web.result == 'success')
-    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
