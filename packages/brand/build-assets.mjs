@@ -1,12 +1,14 @@
 /**
  * Build every static brand asset from ONE geometry module.
  *
- *   node apps/marketing/brand/build-assets.mjs
+ *   node packages/brand/build-assets.mjs
  *
  * The alternative is a folder of hand-exported PNGs, one per theme per size,
  * which is how a favicon ends up showing last quarter's logo. Everything below
- * is derived from `src/lib/wordmark-art.ts`, so there is exactly one place a
- * change to the mark has to happen.
+ * is derived from `src/wordmark-art.ts`, so there is exactly one place a
+ * change to the mark has to happen. It writes into every app that shows the
+ * logo: the marketing site, the restaurant and admin web apps, and the
+ * customer and rider Expo apps.
  *
  * The light/dark pair is a COLOUR SWAP, not two drawings. The supplied artwork
  * is the dark version (#D0D0D1 letterforms, drawn for a dark background); the
@@ -22,12 +24,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const APP = join(HERE, '..');
+const ROOT = join(HERE, '../..');
+const APP = join(ROOT, 'apps/marketing');
 
 // The art module is TypeScript; this script is the only consumer that cannot
 // import it, so it reads the two path strings out rather than pulling in a
 // transpiler for three regexes.
-const SRC = readFileSync(join(APP, 'src/lib/wordmark-art.ts'), 'utf8');
+const SRC = readFileSync(join(HERE, 'src/wordmark-art.ts'), 'utf8');
 const pick = (key) => {
   const m = SRC.match(new RegExp(`\\n  ${key}:\\n    '([^']+)'`));
   if (!m) throw new Error(`wordmark-art.ts: no ${key} — did the generator change shape?`);
@@ -109,7 +112,7 @@ function lockup({ box = 240, inset = 0.14, swashWidth = 1.61 } = {}) {
   };
 }
 
-function iconSvg({ box = 240, inset = 0.14, radius = 0.2, themed = true, theme = 'light' } = {}) {
+function iconSvg({ box = 240, inset = 0.14, radius = 0.2, themed = true, theme = 'light', plate = true } = {}) {
   const { cropRight, markup } = lockup({ box, inset });
   const style = themed
     ? `<style>:root{--fg:${THEME.light.fg};--bg:${THEME.light.bg}}@media (prefers-color-scheme:dark){:root{--fg:${THEME.dark.fg};--bg:${THEME.dark.bg}}}</style>`
@@ -118,13 +121,14 @@ function iconSvg({ box = 240, inset = 0.14, radius = 0.2, themed = true, theme =
   <title>HalalGoes</title>
   ${style}
   <defs><clipPath id="swashCrop"><rect x="${(cropRight - 9999).toFixed(2)}" y="-9999" width="9999" height="19998"/></clipPath></defs>
-  <rect width="${box}" height="${box}" rx="${(box * radius).toFixed(1)}" fill="var(--bg)"/>
+  ${plate ? `<rect width="${box}" height="${box}" rx="${(box * radius).toFixed(1)}" fill="var(--bg)"/>` : ''}
   ${markup}
 </svg>`;
 }
 
 const browser = await chromium.launch({
-  executablePath: process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  // Playwright's own bundled Chromium unless CHROME_PATH names another.
+  ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
 });
 async function png(svg, w, h, { transparent = false } = {}) {
   const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
@@ -140,7 +144,7 @@ const wrote = [];
 const put = (p, data) => {
   mkdirSync(dirname(p), { recursive: true });
   writeFileSync(p, data);
-  wrote.push(`${p.replace(APP + '/', '')}  ${(data.length / 1024).toFixed(1)}KB`);
+  wrote.push(`${p.replace(ROOT + '/', '')}  ${(data.length / 1024).toFixed(1)}KB`);
 };
 
 // 1. the wordmark, both themes, vector and raster
@@ -170,6 +174,49 @@ for (const size of [192, 512]) {
 // and the background runs to the edges.
 put(join(APP, 'public/icons/maskable-512.png'),
     await png(iconSvg({ box: 240, inset: 0.26, radius: 0, themed: false, theme: 'light' }), 512, 512));
+
+// 5. The restaurant and admin web apps (Vite): the same themed favicon the
+//    marketing site uses, and the same opaque iOS icon.
+for (const app of ['restaurant', 'admin']) {
+  const dir = join(ROOT, 'apps', app, 'public');
+  put(join(dir, 'favicon.svg'), iconSvg({ box: 240 }));
+  put(join(dir, 'apple-touch-icon.png'),
+      await png(iconSvg({ box: 240, radius: 0, themed: false, theme: 'light' }), 180, 180));
+}
+
+// 6. The customer and rider apps (Expo). The apps run the light scheme only, so
+//    every native icon is the light lockup.
+//    - icon: 1024 square, opaque and unrounded — iOS and the stores apply the mask.
+//    - adaptive-icon: Android's foreground layer, transparent; the launcher draws
+//      the background colour (app config) and crops to its own shape, keeping
+//      only the middle ~61%, so the lockup takes the maskable inset.
+//    - splash: the full wordmark centred on a transparent square, so `contain`
+//      on any screen leaves it at about half the width rather than edge to edge.
+//    - favicon: the web target's tab icon.
+const splashSvg = (() => {
+  const { view: v } = ART;
+  const box = 1200;
+  const w = box * 0.56;
+  const s = w / v.w;
+  const x = (box - w) / 2;
+  const y = (box - v.h * s) / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${box} ${box}" width="${box}" height="${box}">
+  <g transform="translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${s.toFixed(4)})">${wordmarkSvg(THEME.light.fg)
+    .replace(/^<svg[^>]*>/, '')
+    .replace(/<\/svg>$/, '')}</g>
+</svg>`;
+})();
+for (const app of ['customer', 'rider']) {
+  const dir = join(ROOT, 'apps', app, 'assets');
+  put(join(dir, 'icon.png'),
+      await png(iconSvg({ box: 240, radius: 0, themed: false, theme: 'light' }), 1024, 1024));
+  put(join(dir, 'adaptive-icon.png'),
+      await png(iconSvg({ box: 240, inset: 0.26, themed: false, theme: 'light', plate: false }), 1024, 1024,
+        { transparent: true }));
+  put(join(dir, 'splash.png'), await png(splashSvg, 1200, 1200, { transparent: true }));
+  put(join(dir, 'favicon.png'),
+      await png(iconSvg({ box: 240, radius: 0.2, themed: false, theme: 'light' }), 48, 48, { transparent: true }));
+}
 
 await browser.close();
 console.log('wrote:');

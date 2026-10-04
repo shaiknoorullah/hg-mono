@@ -46,13 +46,21 @@ import (
 )
 
 // riderLifecycle is the dispatch half of cmd/hg/main.go's orderLifecycleAdapter
-// (unexported there): the rider's PICKED_UP and DELIVERED move the real order.
+// (unexported there): the rider's PICKED_UP, ARRIVED_AT_DROPOFF and DELIVERED
+// move the real order.
 type riderLifecycle struct{ store *orders.Store }
 
 func (a riderLifecycle) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
 	return a.store.Transition(ctx, orders.TransitionRequest{
 		OrderID: orderID, To: machine.StatePickedUp, Actor: machine.ActorRider,
 		ActorAccountID: riderAccountID, Reason: "rider confirmed pickup",
+	})
+}
+
+func (a riderLifecycle) MarkArrived(ctx context.Context, orderID, riderAccountID string) error {
+	return a.store.Transition(ctx, orders.TransitionRequest{
+		OrderID: orderID, To: machine.StateArrived, Actor: machine.ActorRider,
+		ActorAccountID: riderAccountID, Reason: "rider arrived at the drop-off",
 	})
 }
 

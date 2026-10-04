@@ -11,7 +11,7 @@ covers:
   - packages/ui-native/src/content/**
   - packages/ui-native/src/feedback/**
   - packages/ui-native/src/navigation/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # HalalGoes — Component Inventory
@@ -621,6 +621,8 @@ There is no `seconds: number` prop. Clock skew is measured as `serverNow − dev
 | 4 — Navigation | 6 | AppBar, BottomNav, Tabs, Sheet, Modal, Toast |
 | 5 — Feedback & state | 9 | Skeleton, Spinner, EmptyState, ErrorState, Banner, Countdown, ListRow, Divider, Tooltip/Popover |
 | **Total** | **41** | |
+
+**Shipped beside the 41, not counted in them:** `Icon` (see [iconography](./01-foundations.md#11-iconography)) and `Wordmark`, the HalalGoes logo, in both `@hg/ui-web` and `@hg/ui-native`. `Wordmark` draws the approved traced artwork from `@hg/brand` ([packages/brand/README.md](../../packages/brand/README.md)); its letters take `text.primary` and its swash `action.primary`, so it has no green and never stands in for the halal seal. The rules for the mark are in Claude Design's [wordmark and app icon guideline](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv).
 
 **Deliberately absent, and why:**
 - **`SuccessButton` / filled green anything** — RULE H-1.
