@@ -1,12 +1,16 @@
 package realtime
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
@@ -21,21 +25,91 @@ const (
 	ActionSchemaRead httpx.Action = "realtime_schema.read"
 )
 
+// RateLimiter counts requests against a key in fixed windows. auth.RateLimiter
+// implements it over Redis: Allow returns nil within the limit,
+// auth.ErrRateLimited over it, and any other error when Redis cannot answer.
+type RateLimiter interface {
+	Allow(ctx context.Context, key string, limit int64, window time.Duration) error
+}
+
+// rateWindow is the window every realtime request limit is counted over.
+const rateWindow = time.Minute
+
+// upgradeStore is the part of Store the upgrade uses before the socket is
+// served: resolving the ticket and registering the connection. *Store
+// implements it; the capacity tests substitute one that needs no Postgres.
+type upgradeStore interface {
+	ConsumeTicket(ctx context.Context, raw string) (TicketPrincipal, error)
+	AuditTicketReuse(ctx context.Context, requestID, ip string) error
+	RegisterConnection(ctx context.Context, accountID, sessionID, client string) (string, error)
+}
+
 // Handler serves the realtime HTTP operations and the WebSocket upgrade.
 type Handler struct {
 	store       *Store
+	upgrades    upgradeStore
 	gw          *Gateway
 	log         *slog.Logger
 	corsOrigins map[string]struct{}
+	limiter     RateLimiter
 }
 
-// NewHandler builds the realtime HTTP handler.
-func NewHandler(store *Store, gw *Gateway, log *slog.Logger, corsOrigins []string) *Handler {
+// NewHandler builds the realtime HTTP handler. limiter counts upgrade attempts
+// per client address and ticket mints per session against the gateway's
+// Limits; a nil limiter counts nothing (tests and local runs without Redis).
+func NewHandler(store *Store, gw *Gateway, log *slog.Logger, corsOrigins []string, limiter RateLimiter) *Handler {
 	set := make(map[string]struct{}, len(corsOrigins))
 	for _, o := range corsOrigins {
 		set[strings.ToLower(strings.TrimSuffix(o, "/"))] = struct{}{}
 	}
-	return &Handler{store: store, gw: gw, log: log, corsOrigins: set}
+	return &Handler{store: store, upgrades: store, gw: gw, log: log, corsOrigins: set, limiter: limiter}
+}
+
+// allow counts one request against key and reports whether it is within limit
+// for the current rateWindow.
+//
+// A limiter that cannot answer (Redis is down) lets the request through, as
+// the rate-limiting spec requires for every class except sign-in
+// (docs/spec/01-platform.md, "P-38 — Rate limiting", Redis-down policy:
+// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting).
+// The socket caps are counted in memory and still hold without Redis.
+func (h *Handler) allow(r *http.Request, key string, limit int) bool {
+	if h.limiter == nil {
+		return true
+	}
+	err := h.limiter.Allow(r.Context(), key, int64(limit), rateWindow)
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, auth.ErrRateLimited):
+		return false
+	default:
+		h.log.Warn("realtime rate limiter unavailable; allowing the request",
+			slog.String("key", key), slog.String("error", err.Error()))
+		return true
+	}
+}
+
+// refuseRateLimited answers a request over one of the realtime request limits
+// with 429 RATE_LIMITED and a Retry-After of one window. Nothing was executed.
+func refuseRateLimited(w http.ResponseWriter, r *http.Request, message string) {
+	w.Header().Set("Retry-After", strconv.Itoa(int(rateWindow/time.Second)))
+	httpx.Fail(w, r, http.StatusTooManyRequests, httpx.CodeRateLimited, message, nil)
+}
+
+// ticketMintKey is the Redis counter for ticket mints by one session. Rebuild
+// source: none needed. A flush grants each session one fresh window, never a
+// socket past the per-session cap, which is counted in memory.
+func ticketMintKey(sessionID string) string {
+	return "rl:rt_ticket:session:" + sessionID
+}
+
+// upgradeAttemptKey is the Redis counter for upgrade attempts from one client
+// address. httpx.RateLimitKey buckets it: an IPv6 caller is counted per /64,
+// and an address that could not be resolved shares one "unknown" budget.
+// Rebuild source: none needed; a flush grants one fresh window.
+func upgradeAttemptKey(r *http.Request) string {
+	return "rl:rt_upgrade:addr:" + httpx.RateLimitKey(httpx.ClientIP(r))
 }
 
 // realtimeTicketResponse is the RealtimeTicket contract schema (§1.1).
@@ -58,6 +132,14 @@ func (h *Handler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		// non-public route, but a ticket without a session is meaningless.
 		httpx.Fail(w, r, http.StatusUnauthorized, httpx.CodeAuthenticationRequired,
 			"Authentication is required to mint a realtime ticket.", nil)
+		return
+	}
+
+	// Each ticket is a Postgres write and opens one socket, so one session may
+	// mint only so many a minute (issue #288,
+	// https://github.com/shaiknoorullah/hg-mono/issues/288).
+	if !h.allow(r, ticketMintKey(p.SessionID), h.gw.limits.TicketsPerSession) {
+		refuseRateLimited(w, r, "Too many realtime tickets for this session. Please wait before trying again.")
 		return
 	}
 
@@ -119,7 +201,20 @@ func (h *Handler) Schema(w http.ResponseWriter, r *http.Request) {
 // the CORS allowlist (§1.1). A ticket that is unknown, consumed or expired is
 // refused with HTTP 401 before any frame is exchanged, and writes a
 // realtime.ticket_reuse audit event.
+//
+// Three caps keep one caller from filling the replica (issue #288,
+// https://github.com/shaiknoorullah/hg-mono/issues/288; contracts/websocket.md
+// "Limits"): upgrade attempts per client address, then live sockets per
+// account and per session once the ticket says who is connecting, under the
+// replica-wide cap.
 func (h *Handler) Upgrade(w http.ResponseWriter, r *http.Request) {
+	// Count every attempt from this address first, ticket or not, so a flood of
+	// upgrades cannot keep ticket lookups, audit writes and handshakes busy.
+	if !h.allow(r, upgradeAttemptKey(r), h.gw.limits.UpgradesPerAddress) {
+		refuseRateLimited(w, r, "Too many realtime connection attempts from this address. Please wait before trying again.")
+		return
+	}
+
 	// Origin check on upgrade (§1.1). An empty Origin is a non-browser client and
 	// is allowed through to the ticket/bearer check; a present Origin must be on
 	// the allowlist.
@@ -131,17 +226,29 @@ func (h *Handler) Upgrade(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Take a socket slot before any Postgres work, so a full replica sheds load
-	// cheaply. The slot is held until the socket closes.
-	if !h.gw.admit() {
+	// Take a replica slot before any Postgres work, so a full replica sheds load
+	// cheaply. This defer is the only release of every slot the upgrade takes:
+	// a refused ticket, a refused account or session, a failed handshake, a
+	// failed registration and a closed socket all leave through it, and a lease
+	// gives its slots back once however often it is released (slots.go).
+	lease, ok := h.gw.admit()
+	if !ok {
 		h.refuseAtCapacity(w, r)
 		return
 	}
-	defer h.gw.release()
+	defer lease.release()
 
 	principal, roles, err := h.resolveUpgradeIdentity(w, r)
 	if err != nil {
 		// resolveUpgradeIdentity already wrote the 401 and any audit event.
+		return
+	}
+
+	// Now that the ticket says who is connecting, take the account's and the
+	// session's slots. The ticket is spent either way: a refused client mints a
+	// new one when it retries.
+	if err := lease.bind(principal.AccountID, principal.SessionID); err != nil {
+		h.refuseConnectionLimit(w, r, principal, err)
 		return
 	}
 
@@ -158,7 +265,7 @@ func (h *Handler) Upgrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	connID, err := h.store.RegisterConnection(r.Context(), principal.AccountID, principal.SessionID, client)
+	connID, err := h.upgrades.RegisterConnection(r.Context(), principal.AccountID, principal.SessionID, client)
 	if err != nil {
 		h.log.Warn("register connection failed", slog.String("error", err.Error()))
 		_ = ws.writeClose(CloseNormal, "registration failed")
@@ -178,13 +285,29 @@ func (h *Handler) Upgrade(w http.ResponseWriter, r *http.Request) {
 // The ticket is left unconsumed and nothing else is sent. The client reconnects
 // with backoff, and the load balancer may route it to the other replica.
 func (h *Handler) refuseAtCapacity(w http.ResponseWriter, r *http.Request) {
-	h.log.Warn("realtime replica at capacity; refusing socket", slog.Int64("max_sockets", h.gw.maxSockets))
+	h.log.Warn("realtime replica at capacity; refusing socket", slog.Int("max_sockets", h.gw.limits.MaxSockets))
+	closeAfterHandshake(w, r, h.log, reasonAtCapacity)
+}
+
+// refuseConnectionLimit answers an upgrade whose account or session already
+// holds its maximum sockets on this replica. Like refuseAtCapacity it completes
+// the handshake and closes with 1013, reason connection_limit, so a browser can
+// read why. The client backs off; a slot frees when one of its sockets closes.
+func (h *Handler) refuseConnectionLimit(w http.ResponseWriter, r *http.Request, p TicketPrincipal, cause error) {
+	h.log.Warn("realtime connection limit reached; refusing socket",
+		slog.String("account_id", p.AccountID), slog.String("cause", cause.Error()))
+	closeAfterHandshake(w, r, h.log, reasonConnectionLimit)
+}
+
+// closeAfterHandshake completes the handshake and sends only a 1013 close with
+// reason.
+func closeAfterHandshake(w http.ResponseWriter, r *http.Request, log *slog.Logger, reason string) {
 	ws, err := upgrade(w, r)
 	if err != nil {
-		h.log.Warn("websocket handshake failed", slog.String("error", err.Error()))
+		log.Warn("websocket handshake failed", slog.String("error", err.Error()))
 		return
 	}
-	_ = ws.writeClose(CloseTryAgainLater, reasonAtCapacity)
+	_ = ws.writeClose(CloseTryAgainLater, reason)
 }
 
 // resolveUpgradeIdentity consumes the ticket, or falls back to the native bearer
@@ -193,11 +316,11 @@ func (h *Handler) refuseAtCapacity(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) resolveUpgradeIdentity(w http.ResponseWriter, r *http.Request) (TicketPrincipal, []string, error) {
 	ticket := strings.TrimSpace(r.URL.Query().Get("ticket"))
 	if ticket != "" {
-		p, err := h.store.ConsumeTicket(r.Context(), ticket)
+		p, err := h.upgrades.ConsumeTicket(r.Context(), ticket)
 		if err != nil {
 			// A failed consume is refused before any frame. A plausible cause is
 			// reuse, so an audit event is written (§1.1).
-			_ = h.store.AuditTicketReuse(r.Context(), httpx.RequestIDFrom(r.Context()), httpx.ClientIP(r))
+			_ = h.upgrades.AuditTicketReuse(r.Context(), httpx.RequestIDFrom(r.Context()), httpx.ClientIP(r))
 			httpx.Fail(w, r, http.StatusUnauthorized, httpx.CodeAuthenticationRequired,
 				"The realtime ticket is invalid, already used, or expired.", nil)
 			return TicketPrincipal{}, nil, err

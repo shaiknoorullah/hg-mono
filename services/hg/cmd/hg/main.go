@@ -659,9 +659,18 @@ func run() error {
 	// Complete the Seam C wiring: orders.Store now emits realtime outbox events
 	// on every state transition via the transactional outbox (I-15 / §6.1).
 	rtEmitter.store = rtStore
-	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, cfg.Realtime.MaxSockets)
+	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, realtime.Limits{
+		MaxSockets:           cfg.Realtime.MaxSockets,
+		MaxSocketsPerAccount: cfg.Realtime.MaxSocketsPerAccount,
+		MaxSocketsPerSession: cfg.Realtime.MaxSocketsPerSession,
+		UpgradesPerAddress:   cfg.Realtime.UpgradesPerAddressPerMinute,
+		TicketsPerSession:    cfg.Realtime.TicketsPerSessionPerMinute,
+	})
 	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
-	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
+	// Upgrade attempts per address and ticket mints per session are counted in
+	// Redis with the same fixed-window limiter sign-in uses (issue #288).
+	rtLimiter := auth.NewRateLimiter(st.Cache().Client)
+	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins, rtLimiter))
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
 
