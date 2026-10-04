@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 )
 
 // ---- Domain types for the three new read operations ----
@@ -25,6 +27,11 @@ type OrderTracking struct {
 	RiderLocation       *RiderLocation
 	Rider               *RiderPublicProfile
 	Timeline            []OrderTransitionRow
+	// DeliveryCode is the polling twin of OrderView.DeliveryCode on this
+	// customer-only projection, under the same rule
+	// (handover.DeliveryCodeVisible; contracts/openapi.yaml,
+	// OrderTracking.delivery_code).
+	DeliveryCode *string
 }
 
 // GeoPoint is a lat/lng pair.
@@ -121,12 +128,16 @@ func (s *Store) GetOrderTracking(ctx context.Context, accountID, orderID string)
 	var destLat, destLng *float64
 	var dispatchState *string
 	var etaAt *time.Time
+	var instructions []string
+	var deliveryCodeEnc []byte
+	var deliveryCodeAttempts int
 
 	err := s.pool.QueryRow(ctx, `
 		SELECT o.id, o.state::text, o.eta_at,
 		       ST_Y(r.location::geometry) AS rest_lat,
 		       ST_X(r.location::geometry) AS rest_lng,
-		       d.state::text
+		       d.state::text,
+		       o.delivery_instructions::text[], o.delivery_code_enc, o.delivery_code_attempts
 		  FROM "order" o
 		  JOIN order_visibility ov ON ov.order_id = o.id AND ov.account_id = $1 AND ov.via = 'CUSTOMER'
 		  JOIN restaurant r ON r.id = o.restaurant_id
@@ -134,12 +145,16 @@ func (s *Store) GetOrderTracking(ctx context.Context, accountID, orderID string)
 		 WHERE o.id = $2`, accountID, orderID).Scan(
 		&ot.OrderID, &ot.State, &etaAt,
 		&restLat, &restLng,
-		&dispatchState)
+		&dispatchState,
+		&instructions, &deliveryCodeEnc, &deliveryCodeAttempts)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrOrderNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get order tracking: %w", err)
+	}
+	if handover.DeliveryCodeVisible(ot.State, instructions, deliveryCodeAttempts) {
+		ot.DeliveryCode = handover.Reveal(ot.OrderID, handover.Delivery, deliveryCodeEnc)
 	}
 
 	ot.RestaurantLocation = GeoPoint{Latitude: restLat, Longitude: restLng}

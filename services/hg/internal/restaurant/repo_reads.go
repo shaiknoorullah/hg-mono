@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 )
 
 // ErrNotFound is returned when a queried entity does not exist or belongs to
@@ -1218,6 +1220,10 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 	var custPhone *string
 	// Delivery area: city + distance band. City is available on the address.
 	var city *string
+	// The pickup code the kitchen reads to the rider (handover.PickupCodeVisible).
+	var fulfilment string
+	var pickupCodeEnc []byte
+	var pickupCodeAttempts int
 	err := r.db.QueryRow(ctx, `
 		SELECT o.id::text, o.code, o.state::text, o.state_since, o.deadline_at,
 		       o.promised_ready_at,
@@ -1225,7 +1231,8 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		       o.restaurant_net_cents, o.total_cents, o.currency::text,
 		       o.placed_at, o.accepted_at, o.ready_at, o.special_instructions,
 		       cp.first_name, cp.last_name, acc.phone_e164,
-		       addr.city
+		       addr.city,
+		       o.fulfilment::text, o.pickup_code_enc, o.pickup_code_attempts
 		  FROM "order" o
 		  LEFT JOIN account acc ON acc.id = o.account_id
 		  LEFT JOIN customer_profile cp ON cp.account_id = o.account_id
@@ -1238,12 +1245,20 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		&money.RestaurantNetCents, &money.TotalCents, &money.Currency,
 		&placedAt, &acceptedAt, &readyAt, &o.SpecialInstructions,
 		&custFirst, &custLast, &custPhone,
-		&city)
+		&city,
+		&fulfilment, &pickupCodeEnc, &pickupCodeAttempts)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get order: %w", err)
+	}
+	// The restaurant staff's own order view is the one place the pickup code is
+	// shown (contracts/openapi.yaml, OrderRestaurantView.pickup_code;
+	// https://github.com/shaiknoorullah/hg-mono/issues/310). The ownership
+	// predicate above (o.restaurant_id = $2) keeps it to this restaurant.
+	if handover.PickupCodeVisible(o.State, fulfilment, pickupCodeAttempts) {
+		o.PickupCode = handover.Reveal(o.ID, handover.Pickup, pickupCodeEnc)
 	}
 	if discountCents != 0 {
 		o.Money = money
@@ -1382,6 +1397,21 @@ func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAcco
 		orderID, actorAccountID)
 	if err != nil {
 		return nil, fmt.Errorf("insert transition: %w", err)
+	}
+
+	// Acceptance mints the pickup code the kitchen will read to the rider, in
+	// the same transaction, for an order a rider collects. The rider types it in
+	// to confirm pickup; there is no other way past it for the rider
+	// (contracts/README.md, "Neither code can be bypassed";
+	// https://github.com/shaiknoorullah/hg-mono/issues/310).
+	var fulfilment string
+	if err := tx.QueryRow(ctx, `SELECT fulfilment::text FROM "order" WHERE id = $1`, orderID).Scan(&fulfilment); err != nil {
+		return nil, fmt.Errorf("read fulfilment: %w", err)
+	}
+	if fulfilment == "DELIVERY" {
+		if err := handover.MintTx(ctx, tx, orderID, handover.Pickup); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {

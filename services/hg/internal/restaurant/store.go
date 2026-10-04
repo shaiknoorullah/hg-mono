@@ -220,6 +220,10 @@ type OrderRestaurantView struct {
 	PlacedAt            string               `json:"placed_at"`
 	AcceptedAt          *string              `json:"accepted_at"`
 	ReadyAt             *string              `json:"ready_at"`
+	// PickupCode is the 4-digit code the kitchen reads to the rider at the
+	// counter; null outside handover.PickupCodeVisible. This type is rendered
+	// only to the restaurant's own staff.
+	PickupCode *string `json:"pickup_code"`
 }
 
 func tsStrPtr(t *time.Time) *string {

@@ -242,6 +242,11 @@ type orderCustomerViewDTO struct {
 	PickedUpAt           *string                `json:"picked_up_at"`
 	DeliveredAt          *string                `json:"delivered_at"`
 	CompletedAt          *string                `json:"completed_at"`
+	// DeliveryCode is null except on the customer's own view of a met handover
+	// that is out for delivery (handover.DeliveryCodeVisible). This DTO is only
+	// ever rendered for the order's customer; the support view has its own
+	// type, whose delivery_code is always null (internal/admin).
+	DeliveryCode *string `json:"delivery_code"`
 }
 
 type orderRestaurantRefDTO struct {
