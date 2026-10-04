@@ -51,6 +51,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/retention"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
@@ -505,12 +506,22 @@ func run() error {
 		st.DB().Pool, st.Cache().Client, authSecrets,
 		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
 
+	// Behind Traefik with no trusted proxy, every request's client address is
+	// Traefik's, so say which mode this process is in.
+	if len(cfg.TrustedProxies) == 0 {
+		log.Info("trusted proxies: none — X-Forwarded-For is ignored and the socket peer is the client address")
+	} else {
+		log.Info("trusted proxies: X-Forwarded-For is read from these peers only",
+			slog.Any("cidrs", cfg.TrustedProxies))
+	}
+
 	router := httpx.NewRouter(httpx.Options{
-		Logger:        log,
-		Env:           string(cfg.Env),
-		CORSOrigins:   cfg.CORSOrigins,
-		Authenticator: authModule.Authenticator,
-		Authorizer:    authModule.Authorizer,
+		Logger:         log,
+		Env:            string(cfg.Env),
+		CORSOrigins:    cfg.CORSOrigins,
+		TrustedProxies: cfg.TrustedProxies,
+		Authenticator:  authModule.Authenticator,
+		Authorizer:     authModule.Authorizer,
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
@@ -650,6 +661,13 @@ func run() error {
 	// drop the ones past retention. Every replica runs the loop; a lease lets
 	// one work at a time.
 	go partitions.New(st.DB().Pool, log).Run(ctx)
+
+	// Retention: the hourly sweep that deletes rows past their retention period
+	// from the tables that otherwise only grow — published outbox rows, sockets,
+	// sign-in records, dead sessions, old notifications, unused quotes. Every
+	// replica runs it; a job_run claim lets one pass run per hour across the
+	// fleet. It never deletes ledger, order, audit or KYC rows.
+	go retention.New(st.DB().Pool, log).Run(ctx)
 
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works

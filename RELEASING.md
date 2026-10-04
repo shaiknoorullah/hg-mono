@@ -77,6 +77,10 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)). Default: never; it is delisted only.
    Set `HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS` (e.g. `14`) if the owner decides otherwise.
 6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik.
+7. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
+   (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
+   address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
+   Never `0.0.0.0/0` (refused at boot).
 
 ## 4. Deploy the stack (on your host)
 
