@@ -42,9 +42,18 @@ jobs:
         with:
           go-version: '1.23'
 
-      - uses: actions/setup-python@v5
+      - if: runner.environment == 'github-hosted'
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # Self-hosted (#287): use the machine's python3 in a private venv, since
+      # setup-python has no builds for the workstation's distro and system pip is managed.
+      - if: runner.environment != 'github-hosted'
+        name: python (self-hosted venv)
+        working-directory: .
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
 
       - run: pip install pyyaml
       # psql: from apt on GitHub's runners; on a self-hosted runner (#287) without psql,
