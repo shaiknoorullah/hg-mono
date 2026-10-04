@@ -1402,6 +1402,8 @@ CREATE TABLE saved_payment_method (
 
   **Reconciliation** (nightly, and on demand): pull Stripe balance transactions for the day and compare against `ledger_entry` on `PSP_CLEARING` and `PSP_FEES`. Any order present in one and not the other, or with an amount mismatch, is written to `reconciliation_exception` and paged. This is the backstop for a webhook that never arrived.
 
+  **Catch-up after a failover or a restore** (on demand): a failover or a restore from backup loses the last moments of writes, and with them any webhook stored in that window. `hg stripe-catchup --since <time>` closes the gap without waiting for the nightly run. It lists the Stripe events created since `<time>` and stores each one through the same store step a delivered webhook takes, so the unique index on the event id drops the ones already here, then applies every stored event in that window that has not been applied yet, oldest first. Next it reads back from Stripe every payment intent written in the last 24 hours (or since `<time>`, if that is earlier) and asserts its state through the same handlers; it never writes a payment state directly. It applies only the event types that have a payment intent effect; any other stored event (a refund, a dispute, a Connect account or a payout) stays pending for the handler that will own it. It prints the transitions it applied. Each disagreement it will not settle by itself (a payment Stripe knows and the database does not, one the database has further along than Stripe, or a captured payment Stripe reports cancelled or the other way round, which it never moves by itself) is written to `reconciliation_exception` in the same transaction that marks its event applied, at most one open row per kind and payment. A late decline for a payment already captured or cancelled is an old event, not a disagreement. Every run lists all the open ones and exits non-zero while any remain, until a person resolves them. It is a command of the `hg` binary, not an HTTP route, so only someone holding the server's own secrets can run it. A second run changes nothing.
+
 - **Data**:
 
 ```sql
@@ -1657,6 +1659,8 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
 
   **Limits per connection**: 64 KiB max frame, 20 inbound frames/second, 50 subscriptions, 4 concurrent connections per session, 10 per account. Heartbeat: server `ping` every 25 s, client must `pong` within 10 s or the socket is terminated. Origin is checked against the CORS allowlist on upgrade.
 
+  **Back-pressure**: fan-out never waits on a socket. Each connection has its own writer and a queue of 64 unsent frames; a connection that falls further behind is closed `1013 slow_consumer` and resumes from Postgres. Each replica holds at most `HG_REALTIME_MAX_SOCKETS` sockets (default 2,000); an upgrade beyond that is closed `1013 at_capacity`, so the client retries and may land on the other replica.
+
 - **Data**:
 
 ```sql
@@ -1696,6 +1700,7 @@ CREATE TABLE realtime_connection (
   3. Given a session is revoked, When 10 s pass, Then every socket bound to it is closed with 4401.
   4. Given Redis is flushed, When a status change occurs, Then the customer still receives it (over the live socket if the node holds it, else via push).
   5. Given 21 frames in one second, Then the 21st receives `error{code:"rate_limited"}` and the socket stays open; 100 frames in one second closes it with 4429.
+  6. Given one subscriber that stops reading, When events are published to its channel, Then every other subscriber still receives each one without waiting on it, and the stalled one is closed with 1013 once 64 frames are queued for it.
 - **Version**: V1 · **Size**: L
 
 ---

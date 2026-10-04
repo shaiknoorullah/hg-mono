@@ -1,0 +1,23 @@
+{
+  "scenario": "menu_category_created",
+  "domain": "catalogue",
+  "schema": "MenuCategory",
+  "describes": "A new, empty category. Categories carry no halal claim, so they are live at once and never reviewed.",
+  "operations": [
+    "createMenuCategory",
+    "createMenuCategoryOnBehalf"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "menu-editing"
+  ],
+  "payload": {
+    "id": "1219ae61-16a6-49b9-a0c0-85c8b8febced",
+    "name": "Weekend Breakfast",
+    "description": "Saturday and Sunday until noon.",
+    "sort_order": 8,
+    "is_active": true,
+    "item_count": 0
+  }
+}

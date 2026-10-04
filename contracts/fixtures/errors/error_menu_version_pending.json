@@ -1,0 +1,20 @@
+{
+  "scenario": "error_menu_version_pending",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `MENU_VERSION_PENDING`. `updateMenuItemOnBehalf` with a claim-bearing field while the restaurant's own edit is in the review queue. A restaurant's edit is never silently discarded.",
+  "operations": [
+    "updateMenuItemOnBehalf"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "MENU_VERSION_PENDING",
+      "message": "The restaurant has an edit to this item waiting for review. Decide it first.",
+      "request_id": "MR8N6C9B6WJ2W0YHQ82QETWA47"
+    }
+  }
+}
