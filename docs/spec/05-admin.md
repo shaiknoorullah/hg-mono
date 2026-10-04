@@ -1536,11 +1536,12 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   ([#325](https://github.com/shaiknoorullah/hg-mono/issues/325)); reading the history and the
   pending bans ([#327](https://github.com/shaiknoorullah/hg-mono/issues/327)). No other path
   changes an account's state with weaker gates ([#335](https://github.com/shaiknoorullah/hg-mono/pull/335)):
-  the database refuses any change of a restaurant's, rider's or customer's state without its own
-  history row, used once, whose actor holds the role that transition needs at that moment; only
-  the schema owner's functions write a system principal's history. So only the admin actions, the
-  system completing onboarding (out of `PENDING` only), the halal expiry (it only delists) and the
-  halal renewal (it only lists a `DELISTED` restaurant again) change it
+  the application's database role cannot write a restaurant's, rider's or customer's state, and the
+  only writers are database functions. The one for a staff action reads the actor's grants as they
+  stand, checks the transition, the own-account rule and the two-person ban, and writes the state,
+  the history and the audit together. The system's (completing onboarding, out of `PENDING` only;
+  the halal expiry, which only delists; the halal renewal and a certifying body given back, which
+  only list a `DELISTED` restaurant again) take no actor and decide from the data
   ([certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling)). Completing
   onboarding lists a restaurant only with a current halal certificate; without one it is `DELISTED`
   (rule R4 of [certificate expiry](#a-17--halal-certificate-expiry-monitoring-and-lapse-handling):
