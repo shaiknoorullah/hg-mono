@@ -7,10 +7,11 @@ import (
 )
 
 // TestSystemPrincipalsTakeOnlyTheirOwnTransitions pins what each system
-// principal may do: the expiry only delists a LIVE restaurant for a lapsed
-// certificate, the renewal only lists a DELISTED one again, and onboarding only
-// takes a restaurant out of PENDING. None of them may suspend, ban, deactivate,
-// lift a penalty, or touch a rider or a customer.
+// principal may record: the expiry only delists a LIVE restaurant for a lapsed
+// certificate, and the renewal only lists a DELISTED one again. None of them may
+// suspend, ban, deactivate, lift a penalty, or touch a rider or a customer.
+// (Onboarding records no history row; internal/admin's
+// TestCompletingOnboardingIsTheOnboardingPrincipal pins it.)
 func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 	var system []Transition
 	for _, tr := range Transitions() {
@@ -36,32 +37,6 @@ func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 		}
 		if !ReasonAllowed(tr.Subject, tr.Action, tr.ReasonCode) {
 			t.Errorf("%s gives a reason that does not fit %s: %s", tr.Principal, tr.Action, tr.ReasonCode)
-		}
-	}
-
-	// Onboarding leaves PENDING and nothing else; it lists only what an admin
-	// reinstating the restaurant could list.
-	for _, c := range []struct {
-		from, cert string
-		reasons    []string
-		to         string
-		left       []string
-		ok         bool
-	}{
-		{StatePending, "CERTIFIED", nil, StateLive, []string{}, true},
-		{StatePending, "EXPIRING_SOON", []string{"HALAL_CERTIFICATE_EXPIRED"}, StateLive, []string{}, true},
-		{StatePending, "EXPIRED", nil, StateDelisted, []string{"HALAL_CERTIFICATE_EXPIRED"}, true},
-		{StatePending, "UNVERIFIED", nil, StateDelisted, []string{"HALAL_CERTIFICATE_UNVERIFIED"}, true},
-		{StatePending, "CERTIFIED", []string{"DOCUMENT_EXPIRED"}, StateDelisted, []string{"DOCUMENT_EXPIRED"}, true},
-		{StateSuspended, "CERTIFIED", nil, StateSuspended, nil, false},
-		{StateBanned, "CERTIFIED", nil, StateBanned, nil, false},
-		{StateDeactivated, "CERTIFIED", nil, StateDeactivated, nil, false},
-		{StateDelisted, "CERTIFIED", []string{"NO_APPROVED_MENU"}, StateDelisted, []string{"NO_APPROVED_MENU"}, false},
-		{StateLive, "EXPIRED", nil, StateLive, nil, false},
-	} {
-		to, left, ok := GoLive(c.from, c.cert, c.reasons)
-		if to != c.to || ok != c.ok || !reflect.DeepEqual(left, c.left) {
-			t.Errorf("GoLive(%s, %s, %v) = %s %v %v, want %s %v %v", c.from, c.cert, c.reasons, to, left, ok, c.to, c.left, c.ok)
 		}
 	}
 }

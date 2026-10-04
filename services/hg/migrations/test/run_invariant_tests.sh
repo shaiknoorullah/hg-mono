@@ -418,6 +418,25 @@ reject "listing a restaurant needs a current halal certificate" "account_state_l
    INSERT INTO account_state_event ($ASE_COLS) VALUES
    ('RESTAURANT','13000000-0000-4000-8000-0000000000a1','REINSTATE','DELISTED','LIVE','ISSUE_RESOLVED',
     'relisting with no certificate','$INV_ADMIN','inv-relist-uncertified', '\x00');"
+reject "a history row authorises one change, once" "account_state_change_unrecorded" \
+  "INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','SUSPEND','ACTIVE','SUSPENDED','OTHER',
+    'suspended once','$INV_ADMIN','inv-once-suspend', '\x00');
+   UPDATE rider_profile SET account_status = 'SUSPENDED' WHERE account_id = '019ffe57-fbd0-7355-ade8-b03ea7943578';
+   INSERT INTO account_state_event ($ASE_COLS) VALUES
+   ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','REINSTATE','SUSPENDED','ACTIVE','ISSUE_RESOLVED',
+    'reinstated once','$INV_ADMIN','inv-once-reinstate', '\x00');
+   UPDATE rider_profile SET account_status = 'ACTIVE' WHERE account_id = '019ffe57-fbd0-7355-ade8-b03ea7943578';
+   UPDATE rider_profile SET account_status = 'SUSPENDED' WHERE account_id = '019ffe57-fbd0-7355-ade8-b03ea7943578';"
+reject "the application role cannot write a system principal's history" "account_state_system_actor_forged" \
+  "SET LOCAL ROLE hg_app;
+   INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
+                                    reason_text, actor_kind, system_actor, delist_reasons)
+   VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','DELIST','LIVE','DELISTED',
+           'HALAL_CERTIFICATE_EXPIRED','posing as the expiry','SYSTEM','HALAL_EXPIRY','{HALAL_CERTIFICATE_EXPIRED}');"
+reject "the application role cannot change who may take a transition" "permission denied" \
+  "SET LOCAL ROLE hg_app;
+   INSERT INTO account_state_rule VALUES ('RIDER','REINSTATE','BANNED','ACTIVE','ADMIN',NULL);"
 reject "completing onboarding never lifts a penalty" "account_state_change_unrecorded" \
   "INSERT INTO restaurant (id, slug, legal_name, display_name, line1, city, province, postal_code, location,
                            onboarding_state, account_state)

@@ -25,7 +25,6 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
-	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // orderTransitioner moves an order through the order state machine inside the
@@ -488,7 +487,7 @@ SELECT onboarding_state::text, delist_reasons, timezone, location IS NOT NULL
 			return preconditionError{Blockers: []string{
 				"The restaurant has not finished onboarding, so it cannot be listed."}}
 		}
-		cert, err := restaurant.HalalCertificateTx(ctx, tx, in.SubjectID)
+		cert, err := restaurantHalalCertificateTx(ctx, tx, in.SubjectID)
 		if err != nil {
 			return err
 		}
@@ -584,6 +583,34 @@ SELECT DISTINCT account_id FROM account_role
  WHERE scope_type = 'RESTAURANT' AND scope_id = $1 AND revoked_at IS NULL
    AND role IN ('RESTAURANT_OWNER', 'RESTAURANT_MANAGER')
  ORDER BY account_id`, restaurantID)
+}
+
+// restaurantHalalCertificateTx reads the restaurant's admin-verified halal
+// certificate the way the order path does
+// (https://github.com/shaiknoorullah/hg-mono/pull/298, halal_certification_at):
+// APPROVED, or later moved to EXPIRED, verified by an admin, from an ACCEPTED
+// issuing body, not deleted; an APPROVED one wins over an EXPIRED one, and the
+// later expiry within each. Nothing a request carries, and no pending upload,
+// ever counts. account_state_complete_onboarding() (migration 00035) reads it the
+// same way when onboarding lists a restaurant.
+func restaurantHalalCertificateTx(ctx context.Context, tx pgx.Tx, restaurantID string) (accountstate.HalalCertificate, error) {
+	var c accountstate.HalalCertificate
+	err := tx.QueryRow(ctx, `
+SELECT hc.status::text, hc.expires_on, hc.grace_until
+  FROM halal_certificate hc
+  JOIN halal_issuing_body b ON b.id = hc.issuing_body_id
+ WHERE hc.restaurant_id = $1
+   AND hc.status IN ('APPROVED', 'EXPIRED')
+   AND hc.verified_by IS NOT NULL
+   AND hc.verified_at IS NOT NULL
+   AND b.status = 'ACCEPTED'
+   AND hc.deleted_at IS NULL
+ ORDER BY (hc.status = 'APPROVED') DESC, hc.expires_on DESC, hc.id DESC
+ LIMIT 1`, restaurantID).Scan(&c.Status, &c.ExpiresOn, &c.GraceUntil)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return accountstate.HalalCertificate{}, nil
+	}
+	return c, err
 }
 
 // --- riders ------------------------------------------------------------------

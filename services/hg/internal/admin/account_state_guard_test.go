@@ -11,11 +11,13 @@ package admin
 import (
 	"context"
 	"errors"
+	"os"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -84,22 +86,55 @@ func accepted(t *testing.T, what string, err error) {
 	}
 }
 
-// staffEvent is a history row a path writes itself, naming a staff actor.
-func staffEvent(subject, id, action, from, to, reason, actor string) stmt {
+// staffEvent is a history row a path writes itself, naming a staff actor. For a
+// restaurant, reasons are the delisting reasons the change leaves (the guard
+// matches them to the row it updates).
+func staffEvent(subject, id, action, from, to, reason, actor string, reasons ...string) stmt {
+	if reasons == nil {
+		reasons = []string{}
+	}
 	return q(`
 INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
-                                 reason_text, actor_account_id, idempotency_key, request_hash)
-VALUES ($1::account_subject_type, $2, $3::account_action, $4, $5, $6, 'a direct write in a test', $7, $8, '\x00')`,
-		subject, id, action, from, to, reason, actor, uuid.NewString())
+                                 reason_text, actor_account_id, idempotency_key, request_hash, delist_reasons)
+VALUES ($1::account_subject_type, $2, $3::account_action, $4, $5, $6, 'a direct write in a test', $7, $8, '\x00', $9)`,
+		subject, id, action, from, to, reason, actor, uuid.NewString(), reasons)
 }
 
 // systemEvent is a history row naming a system principal.
-func systemEvent(subject, id, action, from, to, reason, principal string) stmt {
+func systemEvent(subject, id, action, from, to, reason, principal string, reasons ...string) stmt {
+	if reasons == nil {
+		reasons = []string{}
+	}
 	return q(`
 INSERT INTO account_state_event (subject_type, subject_id, action, from_state, to_state, reason_code,
-                                 reason_text, actor_kind, system_actor)
-VALUES ($1::account_subject_type, $2, $3::account_action, $4, $5, $6, 'a system principal in a test', 'SYSTEM', $7)`,
-		subject, id, action, from, to, reason, principal)
+                                 reason_text, actor_kind, system_actor, delist_reasons)
+VALUES ($1::account_subject_type, $2, $3::account_action, $4, $5, $6, 'a system principal in a test', 'SYSTEM', $7, $8)`,
+		subject, id, action, from, to, reason, principal, reasons)
+}
+
+// appPool connects as the application role (hg_app), with exactly the rights
+// the API has in production, rather than as the migrations' owner the other
+// tests use.
+func appPool(t *testing.T) *pgxpool.Pool {
+	t.Helper()
+	dsn := os.Getenv("HG_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("skipping integration test: HG_TEST_POSTGRES_DSN is not set")
+	}
+	cfg, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.AfterConnect = func(ctx context.Context, c *pgx.Conn) error {
+		_, err := c.Exec(ctx, `SET ROLE hg_app`)
+		return err
+	}
+	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	return pool
 }
 
 func setRestaurant(id, state string, reasons ...string) stmt {
@@ -306,8 +341,8 @@ func TestSiblingPathsCannotChangeARidersOrACustomersState(t *testing.T) {
 			staffEvent("CUSTOMER", super.AccountID, "SUSPEND", "ACTIVE", "SUSPENDED", "OTHER", admin.AccountID)),
 		"42501", "account_state_staff_subject")
 	refused(t, "a super admin suspends their own account",
-		direct(pool, setCustomer(super.AccountID, "SUSPENDED"),
-			staffEvent("CUSTOMER", super.AccountID, "SUSPEND", "ACTIVE", "SUSPENDED", "OTHER", super.AccountID)),
+		direct(pool, staffEvent("CUSTOMER", super.AccountID, "SUSPEND", "ACTIVE", "SUSPENDED", "OTHER", super.AccountID),
+			setCustomer(super.AccountID, "SUSPENDED")),
 		"42501", "account_state_own_account")
 	if s := scalar[string](t, pool, `SELECT status::text FROM account WHERE id = $1`, super.AccountID); s != "ACTIVE" {
 		t.Errorf("the super admin's account is %s, want ACTIVE", s)
@@ -393,7 +428,7 @@ func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 	live := guardRestaurant(t, pool, "ACTIVE", "LIVE")
 	accepted(t, "the expiry delists a live restaurant",
 		direct(pool, setRestaurant(live, "DELISTED", lapse),
-			systemEvent("RESTAURANT", live, "DELIST", "LIVE", "DELISTED", lapse, "HALAL_EXPIRY")))
+			systemEvent("RESTAURANT", live, "DELIST", "LIVE", "DELISTED", lapse, "HALAL_EXPIRY", lapse)))
 	if n := scalar[int](t, pool, `
 		SELECT count(*)::int FROM account_state_event
 		 WHERE subject_id = $1 AND actor_kind = 'SYSTEM' AND system_actor = 'HALAL_EXPIRY' AND actor_account_id IS NULL`, live); n != 1 {
@@ -401,7 +436,7 @@ func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 	}
 	refused(t, "the expiry suspends a delisted restaurant",
 		direct(pool, setRestaurant(live, "SUSPENDED", lapse),
-			systemEvent("RESTAURANT", live, "SUSPEND", "DELISTED", "SUSPENDED", "COMPLIANCE_THRESHOLD", "HALAL_EXPIRY")),
+			systemEvent("RESTAURANT", live, "SUSPEND", "DELISTED", "SUSPENDED", "COMPLIANCE_THRESHOLD", "HALAL_EXPIRY", lapse)),
 		"42501", "account_state_system_not_allowed")
 	refused(t, "the expiry suspends with no history row",
 		direct(pool, setRestaurant(live, "SUSPENDED", lapse)), "23000", "account_state_change_unrecorded")
@@ -412,7 +447,7 @@ func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 	other := guardRestaurant(t, pool, "ACTIVE", "LIVE")
 	refused(t, "the expiry delists for a reason that is not its own",
 		direct(pool, setRestaurant(other, "DELISTED", "NO_APPROVED_MENU"),
-			systemEvent("RESTAURANT", other, "DELIST", "LIVE", "DELISTED", "NO_APPROVED_MENU", "HALAL_EXPIRY")),
+			systemEvent("RESTAURANT", other, "DELIST", "LIVE", "DELISTED", "NO_APPROVED_MENU", "HALAL_EXPIRY", "NO_APPROVED_MENU")),
 		"42501", "account_state_system_not_allowed")
 	rider := seedRider(t, pool, "OFFLINE")
 	refused(t, "the expiry suspends a rider",
@@ -421,7 +456,7 @@ func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 		"42501", "account_state_system_not_allowed")
 	refused(t, "an unknown principal",
 		direct(pool, setRestaurant(other, "DELISTED", lapse),
-			systemEvent("RESTAURANT", other, "DELIST", "LIVE", "DELISTED", lapse, "NIGHTLY_CLEANUP")),
+			systemEvent("RESTAURANT", other, "DELIST", "LIVE", "DELISTED", lapse, "NIGHTLY_CLEANUP", lapse)),
 		"42501", "account_state_system_not_allowed")
 
 	refused(t, "the renewal lists a restaurant whose certificate is not current",
@@ -458,6 +493,7 @@ func TestSystemPrincipalsTakeOnlyTheirOwnTransitions(t *testing.T) {
 // lifts a penalty, and records the ONBOARDING principal in the audit log.
 func TestCompletingOnboardingIsTheOnboardingPrincipal(t *testing.T) {
 	pool := dialTestPool(t)
+	app := appPool(t) // the API's own rights: onboarding works without the owner's
 	ctx := context.Background()
 	reviewer := staff(t, pool, httpx.RoleAdmin)
 	ready := func(state string, certDays *int) string {
@@ -479,7 +515,7 @@ func TestCompletingOnboardingIsTheOnboardingPrincipal(t *testing.T) {
 	}
 	recompute := func(id string) (string, string, string) {
 		t.Helper()
-		tx, err := pool.Begin(ctx)
+		tx, err := app.Begin(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -518,6 +554,18 @@ func TestCompletingOnboardingIsTheOnboardingPrincipal(t *testing.T) {
 	if o, a, _ := recompute(punished); o != "ACTIVE" || a != "SUSPENDED" {
 		t.Errorf("suspended restaurant completing onboarding: %s/%s, want ACTIVE/SUSPENDED", o, a)
 	}
+
+	// The app role can call the onboarding principal but not steer it: with a gate
+	// unmet it refuses, and no UPDATE of the app's own takes a restaurant out of
+	// PENDING, even shaped like completing onboarding.
+	unready := guardRestaurant(t, pool, "MENU_PENDING", "PENDING")
+	certify(t, pool, unready, 300)
+	refused(t, "complete onboarding with the gates unmet",
+		direct(app, q(`SELECT * FROM account_state_complete_onboarding($1)`, unready)),
+		"23514", "account_state_onboarding_incomplete")
+	refused(t, "the app takes a restaurant out of PENDING itself, shaped like onboarding",
+		direct(app, q(`UPDATE restaurant SET onboarding_state = 'ACTIVE', account_state = 'LIVE' WHERE id = $1`, unready)),
+		"23000", "account_state_change_unrecorded")
 }
 
 // menuFor gives a restaurant one live, approved menu item, which onboarding needs

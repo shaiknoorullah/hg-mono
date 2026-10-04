@@ -20,8 +20,8 @@ import (
 func TestOnlyTheOwnersWriteAnAccountsState(t *testing.T) {
 	const admin = "internal/admin/store_account_state.go"
 	owners := map[string][]string{
-		"restaurant.account_state":     {admin, "internal/restaurant/onboarding_state.go"},
-		"restaurant.delist_reasons":    {admin, "internal/restaurant/onboarding_state.go"},
+		"restaurant.account_state":     {admin},
+		"restaurant.delist_reasons":    {admin},
 		"rider_profile.account_status": {admin},
 		"account.status":               {admin},
 		"account_state_event":          {admin},

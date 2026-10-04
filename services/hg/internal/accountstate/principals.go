@@ -6,18 +6,21 @@ package accountstate
 //   - a staff member's action is internal/admin's ApplyAccountAction, which checks
 //     the caller's role and two-step sign-in itself, then this package's state
 //     machine, the two-person ban and the own-account rule;
-//   - completing a restaurant's onboarding is internal/restaurant's
-//     RecomputeOnboarding, as the ONBOARDING system principal (GoLive below);
+//   - completing a restaurant's onboarding is the database function
+//     account_state_complete_onboarding(), which internal/restaurant's
+//     RecomputeOnboarding calls, as the ONBOARDING system principal;
 //   - the halal certificate expiry and renewal are the HALAL_EXPIRY and
 //     HALAL_RENEWAL system principals
 //     (https://github.com/shaiknoorullah/hg-mono/pull/274 implements them).
 //
 // Migration 00035 makes the same list a database fact, so no other code can
 // change a state with weaker gates: every change of restaurant.account_state,
-// rider_profile.account_status or account.status needs a history row for exactly
-// that change in the same transaction, and the history row is refused unless its
-// transition is in account_state_rule and its actor may take it. A test holds
-// account_state_rule equal to Transitions().
+// rider_profile.account_status or account.status needs an unused history row of
+// the same transaction for exactly that change, and the history row is refused
+// unless its transition is in account_state_rule and its actor holds, now, the
+// role it needs. Only the schema owner writes a system principal's row, so the
+// application cannot pose as one. A test holds account_state_rule equal to
+// Transitions().
 
 // System is a system principal: a part of the platform, not a person, that
 // changes an account's state on its own. It is the actor recorded in the account's
@@ -28,13 +31,15 @@ type System string
 const (
 	// SystemOnboarding takes a restaurant out of PENDING when its onboarding
 	// completes: to LIVE, or to DELISTED when its halal certificate is not current
-	// (GoLive). It takes no other transition, so completing onboarding can never
-	// lift a suspension or a ban. The specification: "LIVE — initiated by the
-	// system, on READY"
+	// (the ReinstatedState rule). It takes no other transition, so completing
+	// onboarding can never lift a suspension or a ban. The specification: "LIVE —
+	// initiated by the system, on READY"
 	// (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#20-the-restaurant-lifecycle-normative-referenced-by-a-13a-22).
-	// It writes no account_state_event row: the database recognises its one
-	// transition by the onboarding state completing in the same row update, and
-	// the onboarding transition row and the audit log record it.
+	// It is the database function account_state_complete_onboarding(), which
+	// checks the onboarding gates and the certificate itself and records its
+	// authority where the application cannot write; it writes no
+	// account_state_event row, and the onboarding transition row and the audit log
+	// record it.
 	SystemOnboarding System = "ONBOARDING"
 	// SystemHalalExpiry delists a LIVE restaurant whose halal certificate has
 	// lapsed, with the reason HALAL_CERTIFICATE_EXPIRED. It only delists: it never
@@ -108,19 +113,4 @@ func Transitions() []Transition {
 		}
 	}
 	return append(out, systemTransitions...)
-}
-
-// GoLive is where completing onboarding leaves a restaurant, as the ONBOARDING
-// system principal: LIVE only with a current halal certificate and no delisting
-// reason, otherwise DELISTED with the reasons it keeps — the same rule as an
-// admin reinstating it (ReinstatedState), so onboarding never lists a restaurant
-// an admin could not. ok is false unless the restaurant is still PENDING: the
-// principal's one transition is leaving PENDING, and completing onboarding never
-// changes any other state.
-func GoLive(from, certState string, delistReasons []string) (to string, reasons []string, ok bool) {
-	if from != StatePending {
-		return from, delistReasons, false
-	}
-	to, reasons = ReinstatedState(certState, delistReasons)
-	return to, reasons, true
 }

@@ -3,8 +3,6 @@ package restaurant
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -27,17 +25,18 @@ var onboardingRank = map[string]int{
 //	PAYOUT_PENDING     --payout account READY (R-11)---> MENU_PENDING
 //	MENU_PENDING       --≥1 LIVE item (R-17) AND hours set (R-06)--> ACTIVE
 //
-// When it reaches ACTIVE the restaurant leaves PENDING in the same row update
-// ("becomes ACTIVE exactly when onboarding_state becomes ACTIVE"). It does so as
-// the ONBOARDING system principal (accountstate.SystemOnboarding), whose one
-// transition is leaving PENDING, decided by accountstate.GoLive: LIVE only with a
-// current, admin-verified halal certificate and no delisting reason, otherwise
-// DELISTED with the reason, exactly as an admin reinstating it would. A certificate
-// can lapse between the application's approval and the last onboarding gate; the
-// restaurant is then delisted, not listed with a lapsed certificate. A restaurant
-// that is not PENDING keeps its account state: completing onboarding never lifts
-// a suspension or a ban. Migration 00035 refuses any other change of account_state
-// made here.
+// The last step, to ACTIVE, is the database function
+// account_state_complete_onboarding() (migration 00035): the ONBOARDING system
+// principal (accountstate.SystemOnboarding). It checks the three gates and the
+// halal certificate itself and takes the restaurant out of PENDING in the same row
+// update ("becomes ACTIVE exactly when onboarding_state becomes ACTIVE"): to LIVE
+// only with a current, admin-verified certificate and no delisting reason,
+// otherwise to DELISTED with the certificate's reason, the rule an admin
+// reinstating it follows (accountstate.ReinstatedState). A certificate can lapse
+// between the application's approval and the last gate; the restaurant is then
+// delisted, not listed. A restaurant that is not PENDING keeps its account state:
+// completing onboarding never lifts a suspension or a ban. The database refuses
+// any other way out of PENDING, so this code cannot list a restaurant by itself.
 //
 // It is monotonic and idempotent: it reads the current state and the three gating
 // conditions, computes the furthest reachable state, and only moves forward and
@@ -46,13 +45,10 @@ var onboardingRank = map[string]int{
 // menu-version approval. The caller passes its own transaction; the restaurant row
 // is locked FOR UPDATE so concurrent gate events serialise.
 func RecomputeOnboarding(ctx context.Context, tx pgx.Tx, restaurantID string) error {
-	var cur, account, timezone, halal string
-	var delist []string
-	var now time.Time
+	var cur string
 	var payoutReady, hasLiveItem, hasHours bool
 	if err := tx.QueryRow(ctx, `
-SELECT r.onboarding_state::text, r.account_state::text, r.delist_reasons, r.timezone,
-       r.halal_status::text, now(),
+SELECT r.onboarding_state::text,
        EXISTS (SELECT 1 FROM connect_account ca
                 WHERE ca.owner_type = 'RESTAURANT' AND ca.owner_id = r.id
                   AND ca.payouts_enabled AND ca.details_submitted),
@@ -62,8 +58,7 @@ SELECT r.onboarding_state::text, r.account_state::text, r.delist_reasons, r.time
        EXISTS (SELECT 1 FROM restaurant_hours h WHERE h.restaurant_id = r.id)
   FROM restaurant r
  WHERE r.id = $1
-   FOR UPDATE OF r`, restaurantID).Scan(&cur, &account, &delist, &timezone, &halal, &now,
-		&payoutReady, &hasLiveItem, &hasHours); err != nil {
+   FOR UPDATE OF r`, restaurantID).Scan(&cur, &payoutReady, &hasLiveItem, &hasHours); err != nil {
 		return err
 	}
 
@@ -83,26 +78,12 @@ SELECT r.onboarding_state::text, r.account_state::text, r.delist_reasons, r.time
 		return nil // already at or beyond the furthest reachable state
 	}
 
-	golive := false
-	var to string
-	var reasons []string
+	var from, to, halal string
+	var fromReasons, toReasons []string
 	if target == "ACTIVE" {
-		cert, err := HalalCertificateTx(ctx, tx, restaurantID)
-		if err != nil {
-			return err
-		}
-		certState := accountstate.CertificationState(cert, accountstate.LocalDate(timezone, now))
-		to, reasons, golive = accountstate.GoLive(account, certState, delist)
-	}
-
-	if golive {
-		// One row update: the database recognises completing onboarding only when
-		// the account leaves PENDING together with onboarding_state reaching ACTIVE.
-		if _, err := tx.Exec(ctx, `
-UPDATE restaurant
-   SET onboarding_state = 'ACTIVE', account_state = $2::restaurant_account_state,
-       delist_reasons = $3, updated_at = now()
- WHERE id = $1`, restaurantID, to, reasons); err != nil {
+		if err := tx.QueryRow(ctx, `
+SELECT from_state, to_state, delist_before, delist_after, halal_status
+  FROM account_state_complete_onboarding($1)`, restaurantID).Scan(&from, &to, &fromReasons, &toReasons, &halal); err != nil {
 			return err
 		}
 	} else if _, err := tx.Exec(ctx, `
@@ -117,10 +98,10 @@ VALUES ($1, $2::restaurant_onboarding_state, $3::restaurant_onboarding_state, 'S
 		restaurantID, cur, target); err != nil {
 		return err
 	}
-	if !golive {
+	if target != "ACTIVE" || from == to {
 		return nil
 	}
-	return auditGoLive(ctx, tx, restaurantID, account, to, delist, reasons, halal)
+	return auditGoLive(ctx, tx, restaurantID, from, to, fromReasons, toReasons, halal)
 }
 
 // auditGoLive records the ONBOARDING principal's change in the audit log: no
@@ -160,32 +141,4 @@ func nonNil(xs []string) []string {
 		return []string{}
 	}
 	return xs
-}
-
-// HalalCertificateTx reads the restaurant's admin-verified halal certificate the
-// way the order path does
-// (https://github.com/shaiknoorullah/hg-mono/pull/298, halal_certification_at):
-// APPROVED, or later moved to EXPIRED, verified by an admin, from an ACCEPTED
-// issuing body, not deleted; an APPROVED one wins over an EXPIRED one, and the
-// later expiry within each. Nothing a request carries, and no pending upload,
-// ever counts. Every path that lists a restaurant (an admin reinstating it, and
-// onboarding completing) reads it here.
-func HalalCertificateTx(ctx context.Context, tx pgx.Tx, restaurantID string) (accountstate.HalalCertificate, error) {
-	var c accountstate.HalalCertificate
-	err := tx.QueryRow(ctx, `
-SELECT hc.status::text, hc.expires_on, hc.grace_until
-  FROM halal_certificate hc
-  JOIN halal_issuing_body b ON b.id = hc.issuing_body_id
- WHERE hc.restaurant_id = $1
-   AND hc.status IN ('APPROVED', 'EXPIRED')
-   AND hc.verified_by IS NOT NULL
-   AND hc.verified_at IS NOT NULL
-   AND b.status = 'ACCEPTED'
-   AND hc.deleted_at IS NULL
- ORDER BY (hc.status = 'APPROVED') DESC, hc.expires_on DESC, hc.id DESC
- LIMIT 1`, restaurantID).Scan(&c.Status, &c.ExpiresOn, &c.GraceUntil)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return accountstate.HalalCertificate{}, nil
-	}
-	return c, err
 }
