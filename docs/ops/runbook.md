@@ -13,7 +13,7 @@ Production is **one** Contabo Cloud VPS 6 in US-East ([the owner's decision of 4
 
 Steps marked *(lands with #N)* depend on work that is not merged yet. Use them as written once it is.
 
-**The dev environment** ([#235][i235], being planned) runs beside prod on the same server. It is never restored from backups: once prod is back, reset dev from the fixtures. When the server is short of memory or disk, stop dev first.
+**The dev environment** ([#235][i235], being planned) runs beside prod on the same server. It is never restored from backups: once prod is back, reset dev from the fixtures. When the server is short of memory or disk, stop dev first. ClamAV, the largest container at 4 GiB, can go next: KYC documents then wait to be scanned and are never passed as clean ([#218][i218]). Every container's limit, and what is left for dev, is in [the memory budget](../../deploy/README.md#memory-budget).
 
 ## Recovery targets, one server
 
@@ -166,7 +166,7 @@ If only WhatsApp fails, switch to text messages: set `HG_TWILIO_VERIFY_CHANNEL=s
 
 If Twilio itself is down or the account is blocked, there is nothing to switch to: the owner contacts Twilio and support tells customers. Don't change `HG_OTP_PROVIDER` during an incident: the other path sends through Twilio's message sender, which needs its own registered number and has never run in production.
 
-If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0`: the API refuses to start with it ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
+If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that it names the network Traefik reaches the API from. In production that is `hg-proxy`, which only Traefik and the API join: the override sets `HG_TRUSTED_PROXY_CIDRS` to its subnet, 10.88.0.0/29 ([deploy README](../../deploy/README.md#production)). Compare it with `docker network inspect hg-proxy -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`; if the two differ, the server playbook ([#276](https://github.com/shaiknoorullah/hg-mono/pull/276)) created the network with another subnet, and the playbook's `hg_networks` and the override must be brought back into line. Never widen the setting to a data network such as `hg-data`, or to Docker's private ranges: any container there could then choose its own client address. Then restart the replicas one at a time. Never set it to `0.0.0.0/0`: the API refuses to start with it ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
 
 ## Payments are failing
 
@@ -234,6 +234,7 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [one-box]: https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570
 [i207]: https://github.com/shaiknoorullah/hg-mono/issues/207
 [i210]: https://github.com/shaiknoorullah/hg-mono/issues/210
+[i218]: https://github.com/shaiknoorullah/hg-mono/issues/218
 [i235]: https://github.com/shaiknoorullah/hg-mono/issues/235
 [i64]: https://github.com/shaiknoorullah/hg-mono/issues/64
 [i65]: https://github.com/shaiknoorullah/hg-mono/issues/65
