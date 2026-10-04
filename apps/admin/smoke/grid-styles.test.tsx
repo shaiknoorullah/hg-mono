@@ -70,14 +70,7 @@ function roleColours(scheme: ColorScheme): Map<string, string> {
 
 describe('admin data grid styles', () => {
   beforeAll(() => {
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: (query: string) => ({
-        matches: false, media: query, onchange: null,
-        addListener: () => {}, removeListener: () => {},
-        addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
-      }),
-    });
+    // jsdom has no layout; LyteNyte only needs the observer to exist.
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
       observe() {} unobserve() {} disconnect() {}
     };
