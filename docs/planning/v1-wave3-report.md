@@ -1,4 +1,4 @@
-# Halal Goes — v1 Wave 3 Integration Report
+# HalalGoes — v1 Wave 3 Integration Report
 
 _Date: 2026-08-15 · Branch: `integration` · Head: `6614f30`_
 

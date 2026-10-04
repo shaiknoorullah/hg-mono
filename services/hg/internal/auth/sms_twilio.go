@@ -68,7 +68,7 @@ func (t *TwilioSMSSender) SendOTP(ctx context.Context, phone, code string) error
 
 	form := url.Values{}
 	form.Set("To", phone)
-	form.Set("Body", fmt.Sprintf("Your Halal Goes code is %s. It expires shortly. Do not share it.", code))
+	form.Set("Body", fmt.Sprintf("Your HalalGoes code is %s. It expires shortly. Do not share it.", code))
 	if t.MessagingServiceSID != "" {
 		form.Set("MessagingServiceSid", t.MessagingServiceSID)
 	} else {

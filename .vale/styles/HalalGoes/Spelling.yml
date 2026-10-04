@@ -1,0 +1,11 @@
+# Spelling. Domain terms go in .vale/styles/config/vocabularies/HalalGoes/accept.txt
+# (one per line, regex allowed).
+extends: spelling
+message: "Spelling: '%s'. If it is a real term, add it to .vale/styles/config/vocabularies/HalalGoes/accept.txt."
+level: error
+# Identifiers written in prose are not words: snake_case, camelCase, and
+# anything with a digit in it.
+filters:
+  - '[A-Za-z]+_[A-Za-z0-9_]+'
+  - '[a-z]+[A-Z][A-Za-z0-9]*'
+  - '[A-Za-z]*[0-9][A-Za-z0-9]*'

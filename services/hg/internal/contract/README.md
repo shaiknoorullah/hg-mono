@@ -1,3 +1,9 @@
+---
+covers:
+  - services/hg/internal/contract/oapi-codegen.yaml
+reviewed: 2026-09-28
+---
+
 # `contract` — generated Go types for `openapi.yaml`
 
 `types.gen.go` is **generated** by [oapi-codegen] from `contracts/openapi.yaml` — one

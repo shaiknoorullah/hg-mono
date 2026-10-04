@@ -8,7 +8,7 @@ Read this first. It tells an AI assistant — or a new engineer — what this re
 
 ## 1. What this is
 
-**Halal Goes** — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Customers find and order from **verified halal-certified** restaurants; riders deliver; restaurants manage orders; admins verify certification.
+**HalalGoes** — a halal food-delivery marketplace for Canada (launch: Ontario, CAD). Customers find and order from **verified halal-certified** restaurants; riders deliver; restaurants manage orders; admins verify certification.
 
 This repo replaces three older ones (`hg-api`, `halal-goes`, `hg-docker`). It is a **from-scratch rebuild**, not a migration — the previous system was never in production, so there is no data to migrate and no traffic to preserve.
 
@@ -48,7 +48,7 @@ Each exists because it was violated in the previous system and cost real money o
 |---|---|
 | `docs/spec/` | **The specification of record** — 198 features, states, rules, acceptance criteria, SOW traceability |
 | `docs/decisions/` | Settled decisions, reconciled conflicts, open blockers |
-| `docs/design/` | Design system: DTCG tokens, 41 components, patterns, accessibility |
+| `docs/design/` | Design-system docs: DTCG tokens, 41 components, patterns, accessibility. [Claude Design](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv) is the source of truth for tokens and components. Redesign: `redesign-constitution.md` (the rules), `design-surface.md` (the approved canvases and every state), `audit/` (the pre-redesign audits, historical) |
 | `docs/analysis/legacy-system/` | Forensic analysis of the system being replaced (18 reports) |
 | `docs/analysis/base-evaluation/` | Why `ts-monorepo-template` was harvested, not forked |
 | `docs/planning/` | The six competing operating models, three judgements, the winner, and the backend module briefs |
@@ -57,7 +57,6 @@ Each exists because it was violated in the previous system and cost real money o
 | `contracts/` | **Single source of truth for every API shape.** OpenAPI + WebSocket + 311 fixtures |
 | `packages/api-client/` | Generated TS client. **Hand-editing generated files is forbidden** |
 | `packages/ui-native/`, `ui-web/` | 81 components, both themes |
-| `apps/gallery-native/`, `gallery-web/` | Component galleries — the visual review surface |
 | `services/hg/` | The Go binary |
 | `deploy/` | docker compose + Traefik |
 
@@ -70,8 +69,6 @@ pnpm install
 pnpm check                              # contract + fixtures + drift + typecheck — the gate
 pnpm -r test
 pnpm mock                               # mock API on :4010, WS on /v1/ws
-pnpm --filter gallery-web dev           # web component gallery
-pnpm --filter @hg/gallery-native web    # native gallery in a browser
 cd services/hg && make up && make migrate && make run
 ```
 
@@ -85,29 +82,37 @@ cd services/hg && make up && make migrate && make run
 
 - **The contract is authoritative.** If a spec, a prompt or a person contradicts `contracts/openapi.yaml`, the contract wins — or the contract changes first, deliberately, and clients regenerate. Never hand-write a type that the generator emits.
 - **Every screen implements empty, loading and error.** Happy-path-only screens do not merge.
-- **Tests are few and high-value.** Roughly 15–25 that pin invariants — money, auth, the state machine, one end-to-end smoke — not thousands that pin getters. The previous system had more test code than production code and still failed.
+- **Tests are few and high-value.** Roughly 15–25 that pin invariants — money, auth, the state machine, one end-to-end smoke — not thousands that pin getters. The previous system had more test code than production code and still failed. Coverage is measured, not chased: a PR may not lower the coverage of any file it touches, and only money and safety code (pricing, ledger, the order state machine, auth, payments) has a fixed floor — see `coverage/` and [#118](https://github.com/shaiknoorullah/hg-mono/issues/118).
 - **Prefer making a bug unrepresentable over testing for it.** A `CHECK` constraint beats a test; a branded type beats a runtime assert; an unexported brand beats a code review.
 - **Fixtures cover every state**, not the happy one — all 14 order states, all four halal states, empty lists, expired certificates, failed payments.
 - **Issues, PRs and links follow [`CONTRIBUTING.md`](CONTRIBUTING.md).** Everything found, deferred or in progress is a GitHub issue; one PR does one thing; the title prefix sets the label; internal codes are always written out and linked to their definition.
 
 ## 7. State as of the last commit
 
-**Done:** specification (198 features), decisions, design system, API contract (152 operations, 85 enums), generated client, 330 fixtures, mock server, 81 components.
+**Done:** specification (198 features), decisions, API contract (152 operations, 85 enums), generated client, 330 fixtures, mock server.
 
-**Backend:** built. 23 packages in `services/hg/internal` (auth, catalog, orders, payments, dispatch, realtime, notify, …); `make check` is green, with the conformance gate covering every operation. See the [build-completion report](docs/reports/06-build-completion.html).
+**Backend: built.** All seven domain modules from the [module briefs](docs/planning/backend-modules.md) exist in `services/hg/internal` (auth and identity; catalogue and discovery; cart, quote and orders; payments, ledger and payouts; dispatch; realtime; admin, roles and files), among 23 packages. Every one of the 152 contract operations is validated against a live response by the [conformance gate](services/hg/internal/conformance/COVERAGE.md), and the Go tests run in CI on every PR.
 
-**Apps:** all four exist (customer, rider, restaurant web, admin web) and run against the real backend. They are being redesigned and rebuilt: #80–#83 (design), #87–#90 (build).
+**Design: the redesign is approved.** The owner approved the redesigns of all four apps in Claude Design on 1 Oct 2026 ([sign-off](https://github.com/shaiknoorullah/hg-mono/issues/85#issuecomment-5976668489)). The canvases are listed in the [design surface](docs/design/design-surface.md) and the rules are in the [redesign constitution](docs/design/redesign-constitution.md). [Claude Design](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv) is the source of truth for tokens and components; `@hg/ui-web` and `@hg/ui-native` are being rebuilt on shadcn/ui and React Native Reusables to match it ([#109](https://github.com/shaiknoorullah/hg-mono/issues/109), [#110](https://github.com/shaiknoorullah/hg-mono/issues/110), [#111](https://github.com/shaiknoorullah/hg-mono/issues/111)).
 
-**Blocked on a human** — see the [open decisions](docs/decisions/README.md#open--blocking) and the [launch checklist](docs/planning/v0-launch-checklist.md):
-- **[HST supplier position (O-01)](docs/decisions/README.md#open--blocking)** — the registration number is set; who is the supplier of record is still with the accountant.
-- **[SMS / OTP provider (O-03)](docs/decisions/README.md#open--blocking)** — nobody can sign in without verified Twilio credentials.
-- **Production hosting** and a **live Stripe account** — the backend has only ever run locally.
+**Apps: all four exist and are being rebuilt.** Customer and rider (Expo), restaurant and admin (web) call the API through the generated client, but they predate the redesign. Rebuilding them from the approved canvases: [customer (#87)](https://github.com/shaiknoorullah/hg-mono/issues/87), [rider (#88)](https://github.com/shaiknoorullah/hg-mono/issues/88), [restaurant (#89)](https://github.com/shaiknoorullah/hg-mono/issues/89), [admin (#90)](https://github.com/shaiknoorullah/hg-mono/issues/90). The marketing site is `apps/marketing`.
+
+**Production: not set up yet.** The hosting plan is Contabo, a production box plus a warm standby ([#207](https://github.com/shaiknoorullah/hg-mono/issues/207)); the owner still has to confirm the purchase. A live Stripe account ([#56](https://github.com/shaiknoorullah/hg-mono/issues/56)) and real SMS and email ([#59](https://github.com/shaiknoorullah/hg-mono/issues/59)) are still to do. How the platform is built and hosted is in the [platform decisions](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01): self-hosted open source throughout, with email through Resend and maps through Mapbox as approved exceptions.
+
+**Blocked on the owner** (the [open decisions](docs/decisions/README.md#open--blocking)):
+- **[HST supplier position (O-01)](docs/decisions/README.md#open--blocking)**: the registration number is set; whether the platform or each restaurant is the supplier of record is with the accountant.
+- **[SMS and OTP sender registration (O-03)](docs/decisions/README.md#open--blocking)**: nobody can sign in without it, and carrier approval takes days to weeks.
+- Also undecided: whether a suspended restaurant may edit its menu ([#205](https://github.com/shaiknoorullah/hg-mono/issues/205)), and the retention periods and in-app flow for account deletion ([launch scope](docs/decisions/README.md#launch-scope-and-contract)).
 
 Refund liability, launch province and self-declared halal restaurants are [settled](docs/decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1).
 
 ## 8. Known gaps
 
-- The compose stack **boots from an empty volume and runs healthy** — Traefik + 2× API + Postgres/PostGIS + Redis + MinIO; `/health` and `/health/ready` return 200 through the published port. First bring-up is done, not pending.
+- The compose stack **booted from an empty volume and ran healthy**: Traefik, 2× API, Postgres/PostGIS, Redis and MinIO, with `/health` and `/health/ready` returning 200 through the published port. **It cannot start on a new host today:** the pinned MinIO images can no longer be pulled ([#202](https://github.com/shaiknoorullah/hg-mono/issues/202)). Object storage moves to [Silo, the maintained fork of MinIO](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01); the compose file keeps the old MinIO pin until #202 lands.
+- Object storage is more exposed than the [architecture](#2-architecture-in-one-picture) says: the compose file publishes the console and S3 API ports and the media bucket is public-read ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)), and presigned links are signed with the root user ([#203](https://github.com/shaiknoorullah/hg-mono/issues/203)).
+- Notifications (push, SMS and email) go to fake senders; only sign-in codes go through Twilio Verify. Real SMS, and email through Resend: [#59](https://github.com/shaiknoorullah/hg-mono/issues/59).
+- Map address search through our API, forwarding to Mapbox, is not in the contract yet ([#179](https://github.com/shaiknoorullah/hg-mono/issues/179)); Mapbox keys are [#57](https://github.com/shaiknoorullah/hg-mono/issues/57).
+- Some docs still name hosted SaaS tools that the self-hosted rule replaces: [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 - The auth module is **built and live**: phone OTP sign-in (WhatsApp/SMS via Twilio Verify), email + password + TOTP for admin/restaurant, the role matrix, and session/refresh. Non-public routes enforce the deny-by-default matrix, not a blanket 401. (Dev has no seeded login account — use `make dev-admin` to provision one.)
 - `DependencyReport` in the contract cannot express the configured-vs-actual comparison; the config-reality probe lives on a non-contract `/debug/deps` route until the contract is widened.
 - `react-native-svg` is now a dependency of `@hg/ui-native`, used by the `Icon` primitive for Solar product iconography (Sep 2026 — a scoped reversal of the original no-SVG stance). The **halal shield glyph and the four structural glyphs stay `View`-drawn deliberately** (`docs/design/01-foundations.md §11`) — the reversal is for product icons only, not the halal instrument.

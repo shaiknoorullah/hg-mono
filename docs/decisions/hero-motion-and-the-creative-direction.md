@@ -1,3 +1,10 @@
+---
+covers:
+  - apps/marketing/experiments/**
+  - apps/marketing/src/components/Hero.tsx
+reviewed: 2026-09-28
+---
+
 # Decision: the hero direction — signed page or scroll-driven device sequence
 
 _Sep 2026. **SETTLED — Option B, client-instructed.** Written while open; resolved the same

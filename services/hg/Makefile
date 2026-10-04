@@ -1,4 +1,4 @@
-# Halal Goes API — developer entry points.
+# HalalGoes API — developer entry points.
 #
 #   make up        bring the whole stack up (Traefik, Postgres+PostGIS, Redis, MinIO, 2× API)
 #   make run       run the API on the host against the compose dependencies

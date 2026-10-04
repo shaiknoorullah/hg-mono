@@ -1,0 +1,45 @@
+# lychee — link checker for the docs (.github/workflows/doc-links.yml, issue #120).
+# Pull requests run it with --offline: relative links and #anchors only.
+# The weekly scan runs it online, so external links are checked there and nowhere else.
+# Existing broken links are baselined in tools/doc-refs/baseline.json, not excluded here.
+
+# A link to "#heading" or "file.md#heading" must hit a real heading or id.
+include_fragments = "anchor-only"
+
+# Links inside code spans and fenced blocks are examples, not links.
+include_verbatim = false
+
+no_progress = true
+
+# External links (weekly scan only): be patient, and don't count rate limits as broken.
+# 401/403 mean the host is there but refuses a robot (Behance, DoorDash, Wiley, auth-only MCP
+# endpoints) — the page exists, so they are not broken links.
+max_retries = 3
+retry_wait_time = 5
+timeout = 30
+accept = ["200..=299", "401", "403", "429"]
+
+# Never checked, as inputs:
+exclude_path = [
+  # installed dependencies — not ours
+  "(^|/)node_modules/",
+  # third-party agent skills vendored under .claude/skills — upstream content we do not edit
+  "(^|/)\\.claude/skills/",
+  # a symlink to AGENTS.md, which is checked in its own right
+  "(^|/)CLAUDE\\.md$",
+]
+
+# Never checked, as link targets:
+exclude = [
+  # local dev servers, compose services and private IPs written as examples (e.g. http://localhost:4010)
+  "^https?://(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0)([:/]|$)",
+  # documentation-reserved example domains
+  "^https?://([a-z0-9-]+\\.)*example\\.(com|org|net)([:/]|$)",
+  # mail links cannot be verified
+  "^mailto:",
+  # the old system's API host, quoted in docs/analysis/legacy-system — it was never in production
+  "^https?://api\\.halalgoes\\.com",
+  # Uber Eats answers every robot with 410 Gone, whatever the page
+  "^https?://(www\\.)?ubereats\\.com",
+]
+exclude_all_private = true

@@ -6,7 +6,7 @@ Fleet analysis report. Scope: `/home/user/hg-api/api/src/services/users`, `/home
 
 ## 1. Purpose & Role in the Platform
 
-These four services are the identity/partner backbone of the Halal Goes food-delivery backend ("HalalGoes API", NestJS + Prisma/PostgreSQL(PostGIS) + Redis + Temporal):
+These four services are the identity/partner backbone of the HalalGoes food-delivery backend ("HalalGoes API", NestJS + Prisma/PostgreSQL(PostGIS) + Redis + Temporal):
 
 - **Users** — customer profiles, delivery addresses (PostGIS points), per-user analytics, and a Temporal "user onboarding" workflow (create + welcome notification).
 - **Restaurants** — restaurant profiles, addresses/geo-coords, menus & food items (with cuisines/categories/variants), order acceptance/rejection (which signals the checkout saga), restaurant stats/analytics, and a Temporal approval workflow.

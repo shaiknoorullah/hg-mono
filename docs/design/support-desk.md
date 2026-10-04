@@ -1,6 +1,6 @@
 # Support desk — headless Chatwoot, native admin UI
 
-_Halal Goes — admin console. **Buy the engine, build the UX.** Chatwoot runs headless as the
+_HalalGoes — admin console. **Buy the engine, build the UX.** Chatwoot runs headless as the
 support substrate; the agent experience is built **into our admin console** so support happens
 in the operational context (an order, a customer, a rider) with no app-switching. Captured Aug
 2026 from product direction._

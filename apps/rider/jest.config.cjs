@@ -9,6 +9,8 @@ module.exports = {
   rootDir: __dirname,
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  // Preloads react-native's lazy component getters outside any test's timeout; see the file.
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     /*

@@ -1,4 +1,4 @@
-# Halal Goes — realtime contract
+# HalalGoes — realtime contract
 
 **Status: normative.** This document is part of `contracts/` and carries the same authority as
 `openapi.yaml`. Generated clients are produced from both; hand-edited clients are forbidden.

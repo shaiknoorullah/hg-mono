@@ -161,7 +161,7 @@ export type HalalState = (typeof STATES)[number]['state'];
  *  source: docs/spec/02-customer.md:355 (C-12 R7) · contracts/openapi.yaml:7756-7759
  *          services/hg/internal/catalog/halal.go:51-58 (+ a test that pins it) */
 export const DISCLAIMER =
-  'Certification verified by Halal Goes on the date shown on each listing. Halal Goes does not itself certify food.';
+  'Certification verified by HalalGoes on the date shown on each listing. HalalGoes does not itself certify food.';
 
 /** The CBC Marketplace investigation. Independently verified against the
  *  Radio-Canada English syndication before use — every number below is quoted
