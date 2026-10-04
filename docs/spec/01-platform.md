@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -2193,7 +2193,7 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   1. `POST /v1/uploads` `{purpose, content_type, byte_size, sha256}` →
      server validates the purpose against the principal's role and against the per-purpose allowlist (below), allocates bucket + key, inserts `stored_object` in `PENDING` with `deadline_at = now() + 1 hour`, and returns a presigned `PUT` (TTL **300 s**) whose signature **binds `Content-Type` and `Content-Length`** so the client cannot upload something other than what it declared, plus the required `x-amz-checksum-sha256` header.
   2. Client `PUT`s the bytes directly to Silo.
-  3. `POST /v1/uploads/{id}/confirm` → server `HEAD`s the object, verifies size, content type and checksum, sniffs magic bytes (a `.pdf` that is really a `.exe` is rejected), enqueues a virus scan for KYC uploads, and sets `state='READY'` (or `REJECTED` with a reason). Only a `READY` object may be attached to a `kyc_document` or a menu item.
+  3. `POST /v1/uploads/{id}/confirm` → server `HEAD`s the object, verifies size, content type and checksum, sniffs magic bytes (a `.pdf` that is really a `.exe` is rejected), enqueues a virus scan for KYC uploads, and sets `state='READY'` (or `REJECTED` with a reason). Only a `READY` object may be attached to a `kyc_document` or a menu item. An attach takes only an upload made for that use, by the caller: a document takes the subject's own `KYC_DOCUMENT` upload that is not already another subject's document, a menu photo a `MENU_IMAGE` uploaded by the caller or someone at the restaurant (by the admin, on its behalf) or already one of its photos, a proof-of-delivery photo the `POD` the delivering rider uploaded for that order, a handover photo a `POD` uploaded by whoever attaches it, and an avatar the account's own `AVATAR`. Any other file is `404`, the same answer as a file that does not exist, and nothing is written ([#359](https://github.com/shaiknoorullah/hg-mono/issues/359)).
 
   Unconfirmed objects are deleted by the deadline runner after 1 hour.
 
@@ -2218,6 +2218,7 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   - **I-28.3** Presigned download URLs expire in ≤120 s for KYC documents and ≤300 s for a halal certificate view, and every issuance is audited with actor, subject and request id.
   - **I-28.4** A rider may upload a POD only for their own in-flight dispatch.
   - **I-28.5** EXIF GPS is stripped from every image before it enters `hg-media`.
+  - **I-28.6** No caller can attach someone else's upload, or an upload made for another use; a download link goes to whoever owns the document, so attaching another's file would hand over its bytes.
 - **Acceptance criteria**:
   1. Given an upload URL issued for `image/jpeg` at 1 MiB, When the client PUTs a 9 MiB PDF, Then Silo rejects the request on signature mismatch and `stored_object` stays `PENDING`.
   2. Given a confirmed upload whose bytes do not match the declared SHA-256, Then confirm returns 422 and the object is marked `REJECTED` and deleted.

@@ -542,7 +542,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
       the owner or manager attaching it, `READY`, not deleted, uploaded as a `KYC_DOCUMENT`, and
       not attached to another restaurant's or rider's documents. Anything else is `404`, the same
       answer as a file that does not exist, and nothing is written. A download link goes to whoever
-      owns the document, so attaching someone else's file would hand over its bytes
+      owns the document, so attaching a file another account uploaded would hand over its bytes
       ([#359](https://github.com/shaiknoorullah/hg-mono/issues/359)). The download link is also
       refused when a document's file is not its restaurant's own upload, and restaurant staff, who
       cannot list the documents, cannot download them either.

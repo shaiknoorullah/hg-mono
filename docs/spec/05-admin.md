@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -1319,7 +1319,9 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     suspended or banned: then nobody changes its menu, admins included; a delisted restaurant's menu
     stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). An item an admin creates
     is approved on creation and audited, with the creating admin recorded as its reviewer
-    ([menu approval](../decisions/README.md#settled--reconciliations)). Updating or removing an item on
+    ([menu approval](../decisions/README.md#settled--reconciliations)). Its photo must be a `MENU_IMAGE`
+    the admin uploaded, or the request is `404` and nothing is written
+    ([who may attach an upload](01-platform.md#p-28--presigned-upload-and-download)). Updating or removing an item on
     a restaurant's behalf is a launch operation the contract does not have yet ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
     [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)); it never silently discards a
     restaurant edit that is waiting for review.
