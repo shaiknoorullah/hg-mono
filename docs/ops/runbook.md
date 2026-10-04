@@ -227,7 +227,7 @@ On-call contains. The privacy officer and the owner decide what is reported, and
 ## Routine work on one server
 
 - **Reboots.** A timer reboots only when a reboot is pending: about 04:30 Toronto time on Sunday, early afternoon during Ramadan. About 2 minutes down. Anything longer waits for that window, with new orders paused and a Contabo snapshot taken first.
-- **Docker updates.** Monthly, by hand: unattended upgrades don't cover Docker's repository. Take a snapshot first, in the quiet window. Afterwards, check the published port still reaches the API: a new Docker once broke an old Traefik ([#228][i228]).
+- **Docker updates.** Monthly, by hand: unattended upgrades don't cover Docker's repository. Take a snapshot first, in the quiet window. Afterwards, check the published port still reaches the API: a new Docker once broke an old Traefik ([#228][i228]). Traefik is pinned by digest in the compose files; `docker compose logs traefik | grep 'Provider connection established'` shows it can read the new Docker. If it can't, move the pin to a Traefik release that supports that Docker's minimum API version.
 - **WireGuard is broken.** Get in through Contabo's rescue system, or switch on the VNC console in the panel for that emergency only. VNC is unencrypted and uses only the first 8 characters of its password. Log in with the local account's long password, then switch VNC off.
 - **Changing plan.** Contabo doesn't resize in place. Until the standby runs, a plan change is a planned rebuild (a fresh backup, new orders paused, then [the rebuild steps](#rebuild-on-a-new-server)) or Contabo's paid live migration. Take the free snapshot first. Never during Ramadan.
 
