@@ -58,9 +58,10 @@ var rules = []rule{
 	},
 	{
 		// Seven days ("P-22 — Event catalogue and envelope": retention 7 days).
-		// The spec drops whole daily partitions; until partition maintenance
-		// exists every event lands in the default partition, so the same
-		// retention is applied by delete. Replay already answers a gap older
+		// Partition maintenance (internal/partitions) drops whole daily
+		// partitions once they pass this age; this rule applies the same
+		// retention by delete to rows a drop cannot reach yet, such as rows in
+		// the default partition. Replay already answers a gap older
 		// than this with truncated: true ("P-23 — Delivery guarantees, replay
 		// and multi-replica fan-out").
 		table: "realtime_event",
