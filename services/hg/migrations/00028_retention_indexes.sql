@@ -28,10 +28,10 @@ CREATE INDEX otp_challenge_window_ends ON otp_challenge (window_ends_at);
 CREATE INDEX webhook_event_processed ON webhook_event (processed_at) WHERE processed_at IS NOT NULL;
 CREATE INDEX search_query_log_at ON search_query_log (at);
 CREATE INDEX notification_delivery_finished ON notification_delivery (queued_at) WHERE state <> 'QUEUED';
-CREATE INDEX notification_undeadlined ON notification (created_at) WHERE deadline_at IS NULL;
+CREATE INDEX notification_created ON notification (created_at);
 
 -- +goose Down
-DROP INDEX IF EXISTS notification_undeadlined;
+DROP INDEX IF EXISTS notification_created;
 DROP INDEX IF EXISTS notification_delivery_finished;
 DROP INDEX IF EXISTS search_query_log_at;
 DROP INDEX IF EXISTS webhook_event_processed;

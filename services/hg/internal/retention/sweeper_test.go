@@ -333,17 +333,22 @@ func seedRetentionCases(t *testing.T, ctx context.Context, pool *pgxpool.Pool) (
 		row{"today's webhook", "webhook_event", `stripe_event_id = 'evt_ret_new'`},
 		row{"today's search", "search_query_log", `q = 'ret-new'`})
 
-	// Notifications. An old one goes with its deliveries; an old one still on
-	// an escalation deadline stays, and so does its stuck QUEUED delivery; a
-	// new one stays but loses its 31-day-old finished delivery.
+	// Notifications. An old one goes with its deliveries; so does an old
+	// must-reach one whose deadline passed long ago, which is what every
+	// must-reach notification becomes, since nothing clears its deadline. An
+	// old one still on a live escalation deadline stays, and so does its stuck
+	// QUEUED delivery; a new one stays but loses its 31-day-old finished
+	// delivery.
 	exec(`
 		INSERT INTO notification (id, account_id, role_context, kind, title, body, created_at,
-		                          deadline_at, deadline_action)
+		                          must_reach, deadline_at, deadline_action)
 		VALUES ('5d000000-0000-4000-8000-000000000001', $1, 'CUSTOMER', 'ret', 't', 'b',
-		        now() - interval '91 days', NULL, NULL),
+		        now() - interval '91 days', false, NULL, NULL),
 		       ('5d000000-0000-4000-8000-000000000002', $1, 'CUSTOMER', 'ret', 't', 'b',
-		        now() - interval '91 days', now() + interval '1 minute', 'ESCALATE'),
-		       ('5d000000-0000-4000-8000-000000000003', $1, 'CUSTOMER', 'ret', 't', 'b', now(), NULL, NULL)`,
+		        now() - interval '91 days', false, now() + interval '1 minute', 'ESCALATE'),
+		       ('5d000000-0000-4000-8000-000000000003', $1, 'CUSTOMER', 'ret', 't', 'b', now(), false, NULL, NULL),
+		       ('5d000000-0000-4000-8000-000000000004', $1, 'CUSTOMER', 'ret', 't', 'b',
+		        now() - interval '91 days', true, now() - interval '91 days', 'ESCALATE')`,
 		fxCustomer)
 	exec(`
 		INSERT INTO notification_delivery (notification_id, channel, target, state, queued_at)
@@ -353,6 +358,7 @@ func seedRetentionCases(t *testing.T, ctx context.Context, pool *pgxpool.Pool) (
 		       ('5d000000-0000-4000-8000-000000000003', 'INAPP', 'ret-4', 'DELIVERED', now())`)
 	gone = append(gone,
 		row{"a 91-day-old notification", "notification", `id = '5d000000-0000-4000-8000-000000000001'`},
+		row{"a 91-day-old must-reach notification whose deadline passed", "notification", `id = '5d000000-0000-4000-8000-000000000004'`},
 		row{"its delivery", "notification_delivery", `target = 'ret-1'`},
 		row{"a 31-day-old finished delivery", "notification_delivery", `target = 'ret-3'`})
 	kept = append(kept,

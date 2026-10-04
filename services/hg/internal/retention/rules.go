@@ -158,7 +158,9 @@ var rules = []rule{
 		// reconciliation"). The row is the dedupe boundary for redeliveries, and
 		// Stripe stops redelivering after 3 days, but it is also the raw record
 		// of a money event, so it is kept a full year after processing. An event
-		// not yet processed is never deleted.
+		// not yet processed is never deleted. Inert until the deadline runner
+		// processes stored webhooks and sets processed_at; see
+		// https://github.com/shaiknoorullah/hg-mono/issues/231.
 		table: "webhook_event",
 		keep:  365 * day,
 		sql: `DELETE FROM webhook_event WHERE id IN (
@@ -193,13 +195,17 @@ var rules = []rule{
 		// Ninety days (docs/spec/03-restaurant.md, "5. Decisions required",
 		// data retention: "notifications 90 days"; docs/spec/04-rider.md,
 		// "D-33 — Notifications & alerts": "Notifications older than 90 days are
-		// pruned from the inbox"). A notification still escalating on a deadline
-		// is never deleted. Its delivery rows go with it (ON DELETE CASCADE).
+		// pruned from the inbox"). A notification is never deleted while its
+		// escalation deadline is inside the retention period. Nothing clears
+		// deadline_at once it has passed, and a must-reach notification may not
+		// have a NULL one (the notification_must_reach_has_deadline CHECK in
+		// migrations/00020_notifications.sql), so a passed deadline is old, not
+		// pending. Its delivery rows go with it (ON DELETE CASCADE).
 		table: "notification",
 		keep:  90 * day,
 		sql: `DELETE FROM notification WHERE id IN (
 			SELECT id FROM notification
-			 WHERE created_at < $1 AND deadline_at IS NULL
+			 WHERE created_at < $1 AND (deadline_at IS NULL OR deadline_at < $1)
 			 ORDER BY created_at LIMIT $2)`,
 	},
 	{
