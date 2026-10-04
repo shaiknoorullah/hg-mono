@@ -1,0 +1,20 @@
+{
+  "scenario": "error_staff_email_in_use",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `EMAIL_IN_USE`. `createStaffUser` for an email that already has a live account. No invite is sent.",
+  "operations": [
+    "createStaffUser"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "EMAIL_IN_USE",
+      "message": "This email already belongs to an account.",
+      "request_id": "XB5C7MSHJ4DY9VNKBY1EQHXJFD"
+    }
+  }
+}
