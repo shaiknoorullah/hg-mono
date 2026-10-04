@@ -738,6 +738,8 @@ const (
 	ErrorCodeDAILYCAPEXCEEDED               ErrorCode = "DAILY_CAP_EXCEEDED"
 	ErrorCodeDELAYLIMITREACHED              ErrorCode = "DELAY_LIMIT_REACHED"
 	ErrorCodeDELAYNOTALLOWEDINSTATUS        ErrorCode = "DELAY_NOT_ALLOWED_IN_STATUS"
+	ErrorCodeDELIVERYCODEINCORRECT          ErrorCode = "DELIVERY_CODE_INCORRECT"
+	ErrorCodeDELIVERYCODELOCKED             ErrorCode = "DELIVERY_CODE_LOCKED"
 	ErrorCodeDIFFERENTRESTAURANT            ErrorCode = "DIFFERENT_RESTAURANT"
 	ErrorCodeDOCUMENTALREADYEXPIRED         ErrorCode = "DOCUMENT_ALREADY_EXPIRED"
 	ErrorCodeDOCUMENTEXPIRESTOOSOON         ErrorCode = "DOCUMENT_EXPIRES_TOO_SOON"
@@ -796,7 +798,6 @@ const (
 	ErrorCodeORIGINNOTALLOWED               ErrorCode = "ORIGIN_NOT_ALLOWED"
 	ErrorCodeOTPINCORRECT                   ErrorCode = "OTP_INCORRECT"
 	ErrorCodeOTPINVALIDOREXPIRED            ErrorCode = "OTP_INVALID_OR_EXPIRED"
-	ErrorCodeOTPLOCKED                      ErrorCode = "OTP_LOCKED"
 	ErrorCodePAYLOADTOOLARGE                ErrorCode = "PAYLOAD_TOO_LARGE"
 	ErrorCodePAYMENTMETHODINUSE             ErrorCode = "PAYMENT_METHOD_IN_USE"
 	ErrorCodePAYMENTMETHODINVALID           ErrorCode = "PAYMENT_METHOD_INVALID"
@@ -934,6 +935,10 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeDELAYNOTALLOWEDINSTATUS:
 		return true
+	case ErrorCodeDELIVERYCODEINCORRECT:
+		return true
+	case ErrorCodeDELIVERYCODELOCKED:
+		return true
 	case ErrorCodeDIFFERENTRESTAURANT:
 		return true
 	case ErrorCodeDOCUMENTALREADYEXPIRED:
@@ -1049,8 +1054,6 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeOTPINCORRECT:
 		return true
 	case ErrorCodeOTPINVALIDOREXPIRED:
-		return true
-	case ErrorCodeOTPLOCKED:
 		return true
 	case ErrorCodePAYLOADTOOLARGE:
 		return true
@@ -1541,6 +1544,24 @@ func (e HandoffMethod) Valid() bool {
 	}
 }
 
+// Defines values for HandoverCodeKind.
+const (
+	HandoverCodeKindDELIVERY HandoverCodeKind = "DELIVERY"
+	HandoverCodeKindPICKUP   HandoverCodeKind = "PICKUP"
+)
+
+// Valid indicates whether the value is a known member of the HandoverCodeKind enum.
+func (e HandoverCodeKind) Valid() bool {
+	switch e {
+	case HandoverCodeKindDELIVERY:
+		return true
+	case HandoverCodeKindPICKUP:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HandoverMethod.
 const (
 	HANDEDTOCUSTOMER    HandoverMethod = "HANDED_TO_CUSTOMER"
@@ -1559,6 +1580,24 @@ func (e HandoverMethod) Valid() bool {
 	case LEFTATDOOR:
 		return true
 	case LEFTWITHRECEPTION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HandoverOverrideActorKind.
+const (
+	HandoverOverrideActorKindADMIN   HandoverOverrideActorKind = "ADMIN"
+	HandoverOverrideActorKindSUPPORT HandoverOverrideActorKind = "SUPPORT"
+)
+
+// Valid indicates whether the value is a known member of the HandoverOverrideActorKind enum.
+func (e HandoverOverrideActorKind) Valid() bool {
+	switch e {
+	case HandoverOverrideActorKindADMIN:
+		return true
+	case HandoverOverrideActorKindSUPPORT:
 		return true
 	default:
 		return false
@@ -2306,6 +2345,21 @@ func (e OrderStatusGroup) Valid() bool {
 	}
 }
 
+// Defines values for OtpProofInputMethod.
+const (
+	OtpProofInputMethodOTP OtpProofInputMethod = "OTP"
+)
+
+// Valid indicates whether the value is a known member of the OtpProofInputMethod enum.
+func (e OtpProofInputMethod) Valid() bool {
+	switch e {
+	case OtpProofInputMethodOTP:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OtpRequestInputPurpose.
 const (
 	PHONECHANGE OtpRequestInputPurpose = "PHONE_CHANGE"
@@ -2456,6 +2510,51 @@ func (e PayoutState) Valid() bool {
 	case PayoutStateTRANSFERRED:
 		return true
 	case PayoutStateTRANSFERRING:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhotoProofInputMethod.
+const (
+	PhotoProofInputMethodPHOTO PhotoProofInputMethod = "PHOTO"
+)
+
+// Valid indicates whether the value is a known member of the PhotoProofInputMethod enum.
+func (e PhotoProofInputMethod) Valid() bool {
+	switch e {
+	case PhotoProofInputMethodPHOTO:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhotoWithAttestationProofInputMethod.
+const (
+	PhotoWithAttestationProofInputMethodPHOTOWITHATTESTATION PhotoWithAttestationProofInputMethod = "PHOTO_WITH_ATTESTATION"
+)
+
+// Valid indicates whether the value is a known member of the PhotoWithAttestationProofInputMethod enum.
+func (e PhotoWithAttestationProofInputMethod) Valid() bool {
+	switch e {
+	case PhotoWithAttestationProofInputMethodPHOTOWITHATTESTATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PickupTransitionInputToState.
+const (
+	PickupTransitionInputToStatePICKEDUP PickupTransitionInputToState = "PICKED_UP"
+)
+
+// Valid indicates whether the value is a known member of the PickupTransitionInputToState enum.
+func (e PickupTransitionInputToState) Valid() bool {
+	switch e {
+	case PickupTransitionInputToStatePICKEDUP:
 		return true
 	default:
 		return false
@@ -4031,6 +4130,11 @@ type Assignment struct {
 	// RequiredPodMethod D-21. Derived from the order's delivery instruction and returned to the rider as
 	// `required_pod_method`. `DELIVERED` cannot commit without the artefact in the **same
 	// transaction** — there is no "mark delivered, upload later".
+	//
+	// `OTP` (a met handover) is satisfied only by the customer's delivery code: no photo
+	// and no statement replaces it, and when the code cannot be used the handover is
+	// confirmed by support (`overrideHandoverCode`), never by the rider. Where `PHOTO` is
+	// required, `PHOTO_WITH_ATTESTATION` (a photo with a statement) is accepted too.
 	RequiredPodMethod PodMethod `json:"required_pod_method"`
 
 	// State D-16 / D-20. The rider-facing view of the dispatch machine. `ARRIVED_AT_PICKUP` and
@@ -4054,8 +4158,11 @@ type AssignmentPaymentStatus string
 // no-op, a backwards transition is `409 INVALID_TRANSITION`.
 type AssignmentState string
 
-// AssignmentTransitionInput defines model for AssignmentTransitionInput.
-type AssignmentTransitionInput struct {
+// AssignmentStepInput Every rider step except `PICKED_UP`. `DELIVERED` is one of these steps, and it
+// commits only on a proof of delivery already recorded with `submitProofOfDelivery`
+// (`422 POD_REQUIRED` otherwise); at a met handover that proof is the customer's
+// delivery code.
+type AssignmentStepInput struct {
 	AccuracyM *float32 `json:"accuracy_m,omitempty"`
 
 	// Latitude WGS84 latitude. Never a money field — the only `number` types in this contract are geographic or rating values.
@@ -4065,24 +4172,24 @@ type AssignmentTransitionInput struct {
 	// OccurredAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
 	OccurredAt Timestamp `json:"occurred_at"`
 
-	// OverrideReason Mandatory when the geofence check fails, and when `PICKED_UP` is confirmed after
-	// the pickup code has locked (`PICKUP_CODE_LOCKED`). The transition is still allowed
-	// — a rider is never trapped by GPS or by a code — but it is flagged for operations,
-	// and repeated overrides trigger a review.
+	// OverrideReason Mandatory when the geofence check fails. The step is still allowed — a rider is
+	// never trapped by GPS — but it is flagged for operations, and repeated overrides
+	// trigger a review. It covers the geofence and nothing else: it never stands in for
+	// a handover code or a proof of delivery.
 	OverrideReason *string `json:"override_reason,omitempty"`
 
-	// PickupCode Required when `to_state` is `PICKED_UP`, unless the code has locked
-	// (`PICKUP_CODE_LOCKED`); then omit it and send `override_reason`. On any other
-	// `to_state` it is `422 VALIDATION_FAILED`. The 4-digit code the kitchen reads out from its order
-	// screen (`OrderRestaurantView.pickup_code`); the rider is never shown it. Five wrong
-	// codes lock it — see `createAssignmentTransition`.
-	PickupCode *string `json:"pickup_code,omitempty"`
-
-	// ToState D-16 / D-20. The rider-facing view of the dispatch machine. `ARRIVED_AT_PICKUP` and
-	// `PICKED_UP` are deliberately distinct: conflating them destroys restaurant wait-time
-	// measurement. Transitions are strictly forward; repeating the current state is a 200
-	// no-op, a backwards transition is `409 INVALID_TRANSITION`.
+	// ToState Any `AssignmentState` except `PICKED_UP`, which is `PickupTransitionInput`.
 	ToState AssignmentState `json:"to_state"`
+}
+
+// AssignmentTransitionInput One of two shapes, chosen by `to_state`. `PICKED_UP` is accepted **only** as
+// `PickupTransitionInput`, whose `pickup_code` is required; every other step is
+// `AssignmentStepInput`, which cannot carry `PICKED_UP` or a code. So there is no
+// pickup without a code and no field a rider can use to skip one
+// ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+// See `createAssignmentTransition` for the attempt limit and what happens after it.
+type AssignmentTransitionInput struct {
+	union json.RawMessage
 }
 
 // AuthMethod The access token's `amr` claim. Policy, not the client, decides which methods may
@@ -4693,8 +4800,14 @@ type ErrorEnvelope struct {
 		// `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 		// `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
 		// `POD_REQUIRED` → `{required_pod_method}`;
+		// `POD_METHOD_MISMATCH` → `{required_pod_method}`;
 		// `PICKUP_CODE_INCORRECT` → `{attempts_remaining}`;
+		// `DELIVERY_CODE_INCORRECT` → `{attempts_remaining}`;
 		// `RATE_LIMITED` → `{retry_after_seconds}`.
+		//
+		// **Never a handover code.** No error carries a pickup or delivery code, the
+		// one sent or the one expected, in `message` or `details`; a
+		// `VALIDATION_FAILED` on a code field names the field, never its value.
 		Details *ErrorEnvelope_Error_Details `json:"details,omitempty"`
 
 		// Message Human-readable and log-safe. **Clients branch on `code`, never on `message`.**
@@ -4722,8 +4835,14 @@ type ErrorEnvelopeErrorDetails1 = []FieldError
 // `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 // `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
 // `POD_REQUIRED` → `{required_pod_method}`;
+// `POD_METHOD_MISMATCH` → `{required_pod_method}`;
 // `PICKUP_CODE_INCORRECT` → `{attempts_remaining}`;
+// `DELIVERY_CODE_INCORRECT` → `{attempts_remaining}`;
 // `RATE_LIMITED` → `{retry_after_seconds}`.
+//
+// **Never a handover code.** No error carries a pickup or delivery code, the
+// one sent or the one expected, in `message` or `details`; a
+// `VALIDATION_FAILED` on a code field names the field, never its value.
 type ErrorEnvelope_Error_Details struct {
 	union json.RawMessage
 }
@@ -5008,8 +5127,60 @@ type HandoffScanResult struct {
 	Seal       PackageSeal `json:"seal"`
 }
 
+// HandoverCodeKind Which handover code a support override stands in for: `PICKUP`, the code the kitchen
+// reads to the rider at the counter, or `DELIVERY`, the code the customer reads to the
+// rider at a met handover.
+type HandoverCodeKind string
+
 // HandoverMethod defines model for HandoverMethod.
 type HandoverMethod string
+
+// HandoverOverride The append-only audit record `overrideHandoverCode` writes, in the same transaction
+// as the transition it performs. It never contains either code.
+type HandoverOverride struct {
+	ActorAccountId openapi_types.UUID `json:"actor_account_id"`
+
+	// ActorKind `SUPPORT` for a support agent, `ADMIN` for an admin or super admin.
+	ActorKind HandoverOverrideActorKind `json:"actor_kind"`
+	CaseId    openapi_types.UUID        `json:"case_id"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp `json:"created_at"`
+
+	// Handover Which handover code a support override stands in for: `PICKUP`, the code the kitchen
+	// reads to the rider at the counter, or `DELIVERY`, the code the customer reads to the
+	// rider at a met handover.
+	Handover HandoverCodeKind `json:"handover"`
+
+	// Id The audit record. Quote it in the support case.
+	Id      openapi_types.UUID `json:"id"`
+	OrderId openapi_types.UUID `json:"order_id"`
+
+	// OrderState The order state after the override: `PICKED_UP` or `DELIVERED`.
+	OrderState OrderState `json:"order_state"`
+	Reason     string     `json:"reason"`
+
+	// WrongCodeAttempts How many wrong codes had been tried for this handover; 5 means the code had locked.
+	WrongCodeAttempts int32 `json:"wrong_code_attempts"`
+}
+
+// HandoverOverrideActorKind `SUPPORT` for a support agent, `ADMIN` for an admin or super admin.
+type HandoverOverrideActorKind string
+
+// HandoverOverrideInput Every intervention requires a linked case — there are no context-free order mutations.
+type HandoverOverrideInput struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+
+	// Handover Which handover code a support override stands in for: `PICKUP`, the code the kitchen
+	// reads to the rider at the counter, or `DELIVERY`, the code the customer reads to the
+	// rider at a met handover.
+	Handover HandoverCodeKind `json:"handover"`
+
+	// Reason What support checked and why the code could not be used, for example "Code
+	// locked after 5 tries; called the kitchen, who confirmed they handed the bag to
+	// the rider". Kept on the audit record and the order's timeline.
+	Reason string `json:"reason"`
+}
 
 // HealthStatus defines model for HealthStatus.
 type HealthStatus struct {
@@ -5357,7 +5528,11 @@ type NextRoute string
 
 // Notification defines model for Notification.
 type Notification struct {
-	// Body Never contains an OTP code, a full address, card details or a token.
+	// Body Never contains a sign-in code, a pickup or delivery code, a full address, card
+	// details or a token. Push and SMS pass through APNs, FCM or a carrier and show on
+	// the lock screen and in the notification history, so a notification that leads to
+	// a code says only what to do ("Your rider is here") and deep-links to the screen
+	// that fetches the code over the authenticated API.
 	Body string `json:"body"`
 
 	// ChannelsAttempted Which delivery channels were attempted for this notification. The `INAPP` row
@@ -5475,22 +5650,11 @@ type OrderAdminView struct {
 	DeliveredAt     *time.Time                   `json:"delivered_at,omitempty"`
 	DeliveryAddress *Address                     `json:"delivery_address,omitempty"`
 
-	// DeliveryCode The 4-digit code the customer reads to the rider at a met handover, so the rider can
-	// record proof of delivery (`submitProofOfDelivery`). Set only while the order is
-	// `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
-	// (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
-	// for an unattended drop (proof is a photo), and once five wrong codes have locked it
-	// (the rider then falls back to a photo with a statement). Only the customer's own
-	// projections carry it: the support projection (`OrderAdminView`, which extends the
-	// customer view) always leaves it out, and the rider is never sent it
-	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
-	// Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
-	// not as a hash, because the server shows it again
-	// ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
-	//
-	//
-	// Examples: 4827
-	DeliveryCode         *string                `json:"delivery_code,omitempty"`
+	// DeliveryCode Always null for support and admin. The customer's delivery code is shown
+	// only to the customer, so nobody at HalalGoes can read a code out to a rider;
+	// a handover that cannot use its code is confirmed with `overrideHandoverCode`
+	// instead ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+	DeliveryCode         any                    `json:"delivery_code,omitempty"`
 	DeliveryInstructions *[]DeliveryInstruction `json:"delivery_instructions,omitempty"`
 
 	// DestinationLocation The delivery address coordinates, for LiveMapBox.
@@ -5617,10 +5781,13 @@ type OrderCustomerView struct {
 	// `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
 	// (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
 	// for an unattended drop (proof is a photo), and once five wrong codes have locked it
-	// (the rider then falls back to a photo with a statement). Only the customer's own
-	// projections carry it: the support projection (`OrderAdminView`, which extends the
-	// customer view) always leaves it out, and the rider is never sent it
-	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+	// (the order is then with support, who can confirm the handover with
+	// `overrideHandoverCode`). Only the customer's own authenticated projections carry
+	// it: the support projection (`OrderAdminView`, which extends the customer view)
+	// has it null, the rider is never sent it, and no push, SMS, email or realtime event
+	// carries it — the arrival push says only "Your rider is here", and the app fetches
+	// the code here
+	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180); [security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
 	// Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
 	// not as a hash, because the server shows it again
 	// ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
@@ -5961,14 +6128,20 @@ type OrderRestaurantView struct {
 	Money RestaurantOrderMoney `json:"money"`
 
 	// PickupCode The 4-digit code the kitchen reads to the rider at the counter. The rider types it
-	// in to confirm pickup (`pickup_code` on `createAssignmentTransition`), which proves
-	// the rider and the kitchen were both there and replaces the seal scan. Set from
-	// acceptance while the order is `PREPARING` or `READY_FOR_PICKUP` and a rider will
-	// collect it; null before acceptance, after pickup, for an order the customer
-	// collects, and in every terminal state. Only the restaurant's projection carries it;
-	// the rider is never sent it
+	// in to confirm pickup (`pickup_code` on `PickupTransitionInput`, required), which
+	// proves the rider and the kitchen were both there and replaces the seal scan. Set
+	// from acceptance while the order is `PREPARING` or `READY_FOR_PICKUP` and a rider
+	// will collect it; null before acceptance, after pickup, once five wrong codes have
+	// locked it (the order is then with support), for an order the customer collects,
+	// and in every terminal state. **Only the restaurant's authenticated order view
+	// carries it** (`getRestaurantOrder`, `listRestaurantOrders` and the restaurant's
+	// order actions, all restaurant-staff operations), plus the restaurant-staff
+	// projection of `restaurant.order_accepted` on the `restaurant:{id}` realtime
+	// channel, which no rider can subscribe to. The rider is never sent it, the support
+	// and admin projections never carry it, and no push, SMS or email does
 	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
-	// [#178](https://github.com/shaiknoorullah/hg-mono/issues/178)).
+	// [#178](https://github.com/shaiknoorullah/hg-mono/issues/178);
+	// [security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
 	// Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
 	// not as a hash, because the server shows it again
 	// ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
@@ -6071,9 +6244,10 @@ type OrderTracking struct {
 	// `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
 	// (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
 	// for an unattended drop (proof is a photo), and once five wrong codes have locked it
-	// (the rider then falls back to a photo with a statement). Only the customer's own
-	// projections carry it, and the rider is never sent it
-	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)).
+	// (the order is then with support). This is the polling twin of
+	// `OrderCustomerView.delivery_code`, on a `CUSTOMER`-only operation: the rider is never
+	// sent it, and no push, SMS, email or realtime event carries it
+	// ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180); [security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
 	// Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
 	// not as a hash, because the server shows it again
 	// ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
@@ -6142,6 +6316,22 @@ type OtpChallenge struct {
 	// ResendAfterS Remaining cooldown. 60 s between sends, maximum 3 sends per challenge.
 	ResendAfterS int32 `json:"resend_after_s"`
 }
+
+// OtpProofInput A met handover (`MEET_AT_DOOR`, `MEET_IN_LOBBY`): the customer reads their delivery
+// code to the rider, who types it in. Wrong code: `422 DELIVERY_CODE_INCORRECT`; five
+// wrong codes per order: `423 DELIVERY_CODE_LOCKED` and the order goes to support.
+type OtpProofInput struct {
+	HandoverMethod *HandoverMethod     `json:"handover_method,omitempty"`
+	Method         OtpProofInputMethod `json:"method"`
+
+	// OtpCode The customer's 4-digit delivery code (`OrderCustomerView.delivery_code`), read
+	// out by the customer. The rider is never shown it, and no response or error ever
+	// echoes it.
+	OtpCode *string `json:"otp_code,omitempty"`
+}
+
+// OtpProofInputMethod defines model for OtpProofInput.Method.
+type OtpProofInputMethod string
 
 // OtpRequestInput defines model for OtpRequestInput.
 type OtpRequestInput struct {
@@ -6309,6 +6499,35 @@ type PayoutState string
 // Examples: +14165550123
 type PhoneE164 = string
 
+// PhotoProofInput An unattended drop (`LEAVE_AT_DOOR`, `DO_NOT_RING_BELL`): a photo of the placed order.
+type PhotoProofInput struct {
+	HandoverMethod *HandoverMethod       `json:"handover_method,omitempty"`
+	Method         PhotoProofInputMethod `json:"method"`
+
+	// PhotoObjectId A `READY` object with purpose `POD`, uploaded by the assigned rider.
+	PhotoObjectId openapi_types.UUID `json:"photo_object_id"`
+}
+
+// PhotoProofInputMethod defines model for PhotoProofInput.Method.
+type PhotoProofInputMethod string
+
+// PhotoWithAttestationProofInput An unattended drop with a statement, accepted straight away wherever a photo is
+// required ([round-2 decisions, "Leave at door"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+// Never accepted for a met handover: where `required_pod_method` is `OTP` it is
+// `422 POD_METHOD_MISMATCH`, before or after the delivery code locks.
+type PhotoWithAttestationProofInput struct {
+	// AttestationReason The rider's statement of where and how the order was left.
+	AttestationReason string                               `json:"attestation_reason"`
+	HandoverMethod    *HandoverMethod                      `json:"handover_method,omitempty"`
+	Method            PhotoWithAttestationProofInputMethod `json:"method"`
+
+	// PhotoObjectId A `READY` object with purpose `POD`, uploaded by the assigned rider.
+	PhotoObjectId openapi_types.UUID `json:"photo_object_id"`
+}
+
+// PhotoWithAttestationProofInputMethod defines model for PhotoWithAttestationProofInput.Method.
+type PhotoWithAttestationProofInputMethod string
+
 // PickupScanInput defines model for PickupScanInput.
 type PickupScanInput struct {
 	// Latitude WGS84 latitude. Never a money field — the only `number` types in this contract are geographic or rating values.
@@ -6325,9 +6544,41 @@ type PickupScanInput struct {
 	SealIntact bool `json:"seal_intact"`
 }
 
+// PickupTransitionInput The rider confirms pickup with the code the kitchen reads out. `pickup_code` is
+// required, and there is no `override_reason`: a matching code is the proof that the
+// rider was at the counter, so pickup has no geofence check, and when the code cannot
+// be used only support or an admin can confirm the pickup (`overrideHandoverCode`).
+// Wrong code: `422 PICKUP_CODE_INCORRECT`; five wrong codes per order:
+// `423 PICKUP_CODE_LOCKED` and the order goes to support. See
+// `createAssignmentTransition`.
+type PickupTransitionInput struct {
+	AccuracyM *float32 `json:"accuracy_m,omitempty"`
+
+	// Latitude WGS84 latitude. Never a money field — the only `number` types in this contract are geographic or rating values.
+	Latitude  *Latitude  `json:"latitude,omitempty"`
+	Longitude *Longitude `json:"longitude,omitempty"`
+
+	// OccurredAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	OccurredAt Timestamp `json:"occurred_at"`
+
+	// PickupCode The 4-digit code the kitchen reads out from its order screen
+	// (`OrderRestaurantView.pickup_code`). The rider is never shown it, and no response
+	// or error ever echoes it.
+	PickupCode *string                      `json:"pickup_code,omitempty"`
+	ToState    PickupTransitionInputToState `json:"to_state"`
+}
+
+// PickupTransitionInputToState defines model for PickupTransitionInput.ToState.
+type PickupTransitionInputToState string
+
 // PodMethod D-21. Derived from the order's delivery instruction and returned to the rider as
 // `required_pod_method`. `DELIVERED` cannot commit without the artefact in the **same
 // transaction** — there is no "mark delivered, upload later".
+//
+// `OTP` (a met handover) is satisfied only by the customer's delivery code: no photo
+// and no statement replaces it, and when the code cannot be used the handover is
+// confirmed by support (`overrideHandoverCode`), never by the rider. Where `PHOTO` is
+// required, `PHOTO_WITH_ATTESTATION` (a photo with a statement) is accepted too.
 type PodMethod string
 
 // PostalCode Canadian FSA/LDU, stored uppercased with a single space.
@@ -6388,22 +6639,14 @@ type Principal struct {
 // PrincipalLocale defines model for Principal.Locale.
 type PrincipalLocale string
 
-// ProofOfDeliveryInput defines model for ProofOfDeliveryInput.
+// ProofOfDeliveryInput One of three shapes, chosen by `method`, and each one requires its proof: there is
+// no optional code and no method a rider can use to skip one
+// ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+// `method` must be the assignment's `required_pod_method`, except that where a photo
+// is required a photo with a statement is accepted too. A met handover (`OTP`) is
+// proved only by `OtpProofInput`. See `submitProofOfDelivery`.
 type ProofOfDeliveryInput struct {
-	// AttestationReason Required for `PHOTO_WITH_ATTESTATION`, after the mandatory wait.
-	AttestationReason *string         `json:"attestation_reason,omitempty"`
-	HandoverMethod    *HandoverMethod `json:"handover_method,omitempty"`
-
-	// Method D-21. Derived from the order's delivery instruction and returned to the rider as
-	// `required_pod_method`. `DELIVERED` cannot commit without the artefact in the **same
-	// transaction** — there is no "mark delivered, upload later".
-	Method PodMethod `json:"method"`
-
-	// OtpCode Read out by the customer. The rider is never shown it; five failures lock it.
-	OtpCode *string `json:"otp_code,omitempty"`
-
-	// PhotoObjectId A `READY` object with purpose `POD`, uploaded by the assigned rider.
-	PhotoObjectId *openapi_types.UUID `json:"photo_object_id,omitempty"`
+	union json.RawMessage
 }
 
 // Province ISO 3166-2:CA subdivision. Drives the tax profile (place of supply). Ontario only is
@@ -8278,6 +8521,17 @@ type CancelOrderAdminParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// OverrideHandoverCodeParams defines parameters for OverrideHandoverCode.
+type OverrideHandoverCodeParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // IssueRefundParams defines parameters for IssueRefund.
 type IssueRefundParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
@@ -9018,6 +9272,9 @@ type DecideMenuVersionJSONRequestBody = MenuVersionDecisionInput
 // CancelOrderAdminJSONRequestBody defines body for CancelOrderAdmin for application/json ContentType.
 type CancelOrderAdminJSONRequestBody = AdminOrderCancellationInput
 
+// OverrideHandoverCodeJSONRequestBody defines body for OverrideHandoverCode for application/json ContentType.
+type OverrideHandoverCodeJSONRequestBody = HandoverOverrideInput
+
 // IssueRefundJSONRequestBody defines body for IssueRefund for application/json ContentType.
 type IssueRefundJSONRequestBody = AdminRefundInput
 
@@ -9189,6 +9446,68 @@ type CreateUploadJSONRequestBody = UploadInput
 // ReceiveStripeWebhookJSONRequestBody defines body for ReceiveStripeWebhook for application/json ContentType.
 type ReceiveStripeWebhookJSONRequestBody ReceiveStripeWebhookJSONBody
 
+// AsAssignmentStepInput returns the union data inside the AssignmentTransitionInput as a AssignmentStepInput
+func (t AssignmentTransitionInput) AsAssignmentStepInput() (AssignmentStepInput, error) {
+	var body AssignmentStepInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAssignmentStepInput overwrites any union data inside the AssignmentTransitionInput as the provided AssignmentStepInput
+func (t *AssignmentTransitionInput) FromAssignmentStepInput(v AssignmentStepInput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAssignmentStepInput performs a merge with any union data inside the AssignmentTransitionInput, using the provided AssignmentStepInput
+func (t *AssignmentTransitionInput) MergeAssignmentStepInput(v AssignmentStepInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPickupTransitionInput returns the union data inside the AssignmentTransitionInput as a PickupTransitionInput
+func (t AssignmentTransitionInput) AsPickupTransitionInput() (PickupTransitionInput, error) {
+	var body PickupTransitionInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPickupTransitionInput overwrites any union data inside the AssignmentTransitionInput as the provided PickupTransitionInput
+func (t *AssignmentTransitionInput) FromPickupTransitionInput(v PickupTransitionInput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePickupTransitionInput performs a merge with any union data inside the AssignmentTransitionInput, using the provided PickupTransitionInput
+func (t *AssignmentTransitionInput) MergePickupTransitionInput(v PickupTransitionInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t AssignmentTransitionInput) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *AssignmentTransitionInput) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsErrorEnvelopeErrorDetails0 returns the union data inside the ErrorEnvelope_Error_Details as a ErrorEnvelopeErrorDetails0
 func (t ErrorEnvelope_Error_Details) AsErrorEnvelopeErrorDetails0() (ErrorEnvelopeErrorDetails0, error) {
 	var body ErrorEnvelopeErrorDetails0
@@ -9309,6 +9628,94 @@ func (t KycDocument_DocType) MarshalJSON() ([]byte, error) {
 }
 
 func (t *KycDocument_DocType) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsOtpProofInput returns the union data inside the ProofOfDeliveryInput as a OtpProofInput
+func (t ProofOfDeliveryInput) AsOtpProofInput() (OtpProofInput, error) {
+	var body OtpProofInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOtpProofInput overwrites any union data inside the ProofOfDeliveryInput as the provided OtpProofInput
+func (t *ProofOfDeliveryInput) FromOtpProofInput(v OtpProofInput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOtpProofInput performs a merge with any union data inside the ProofOfDeliveryInput, using the provided OtpProofInput
+func (t *ProofOfDeliveryInput) MergeOtpProofInput(v OtpProofInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPhotoProofInput returns the union data inside the ProofOfDeliveryInput as a PhotoProofInput
+func (t ProofOfDeliveryInput) AsPhotoProofInput() (PhotoProofInput, error) {
+	var body PhotoProofInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPhotoProofInput overwrites any union data inside the ProofOfDeliveryInput as the provided PhotoProofInput
+func (t *ProofOfDeliveryInput) FromPhotoProofInput(v PhotoProofInput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePhotoProofInput performs a merge with any union data inside the ProofOfDeliveryInput, using the provided PhotoProofInput
+func (t *ProofOfDeliveryInput) MergePhotoProofInput(v PhotoProofInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPhotoWithAttestationProofInput returns the union data inside the ProofOfDeliveryInput as a PhotoWithAttestationProofInput
+func (t ProofOfDeliveryInput) AsPhotoWithAttestationProofInput() (PhotoWithAttestationProofInput, error) {
+	var body PhotoWithAttestationProofInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPhotoWithAttestationProofInput overwrites any union data inside the ProofOfDeliveryInput as the provided PhotoWithAttestationProofInput
+func (t *ProofOfDeliveryInput) FromPhotoWithAttestationProofInput(v PhotoWithAttestationProofInput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePhotoWithAttestationProofInput performs a merge with any union data inside the ProofOfDeliveryInput, using the provided PhotoWithAttestationProofInput
+func (t *ProofOfDeliveryInput) MergePhotoWithAttestationProofInput(v PhotoWithAttestationProofInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ProofOfDeliveryInput) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ProofOfDeliveryInput) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

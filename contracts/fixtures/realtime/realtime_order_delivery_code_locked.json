@@ -1,14 +1,16 @@
 {
-  "scenario": "realtime_order_met_handover",
+  "scenario": "realtime_order_delivery_code_locked",
   "domain": "realtime",
   "schema": "RealtimeEvent[]",
-  "describes": "A **met handover** (`MEET_IN_LOBBY`) from pickup to delivery. On arrival the customer receives `order.rider_arrived` and a push that say only \"Your rider is here\"; neither carries the code. The app then fetches `delivery_code` from the customer's own order view (`order_arrived_meet_in_lobby`, `tracking_arrived_delivery_code`), and the customer reads it to the rider, who records it as proof of delivery. No event on this channel ever carries a code, because the rider subscribes to it too.",
+  "describes": "A met handover where **five wrong delivery codes** hand the order to support. The rider's fifth wrong code (`error_delivery_code_locked`) raises `HANDOVER_CODE_LOCKED` on `admin:ops`, which names the order and the handover, never the code. Support checks with the customer and confirms the delivery with `overrideHandoverCode` (`handover_override_delivery`): the order moves to `DELIVERED` with `actor_kind: SUPPORT` and the reason. The rider never had a fallback of their own.",
   "operations": [],
   "status": 200,
   "tags": [
     "realtime",
     "script",
-    "delivery-code"
+    "delivery-code",
+    "admin",
+    "error-path"
   ],
   "payload": [
     {
@@ -81,23 +83,40 @@
       "_delay_ms": 9000
     },
     {
+      "id": "SZY63S0F2T5WQJHQFREMFBFKK6",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:25.412Z",
+      "data": {
+        "severity": "WARNING",
+        "kind": "HANDOVER_CODE_LOCKED",
+        "subject_type": "ORDER",
+        "subject_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "message": "Five wrong delivery codes at a met handover. The delivery is with support.",
+        "at": "2026-08-10T18:42:25.412Z"
+      },
+      "_delay_ms": 14000
+    },
+    {
       "id": "E6W5JQ5J1745EK02ZPGC5DR02E",
       "seq": 5,
       "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
       "type": "order.state_changed",
       "v": 1,
-      "ts": "2026-08-10T18:42:26.412Z",
+      "ts": "2026-08-10T18:43:46.412Z",
       "data": {
         "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
         "from": "ARRIVED",
         "to": "DELIVERED",
-        "at": "2026-08-10T18:42:26.412Z",
-        "reason": null,
-        "actor_kind": "RIDER",
+        "at": "2026-08-10T18:43:46.412Z",
+        "reason": "Delivery confirmed by support: called the customer, who has the order.",
+        "actor_kind": "SUPPORT",
         "deadline_at": "2026-08-10T19:12:11.412Z",
         "eta_at": null
       },
-      "_delay_ms": 15000
+      "_delay_ms": 95000
     }
   ]
 }

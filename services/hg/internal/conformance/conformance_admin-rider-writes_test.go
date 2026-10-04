@@ -550,8 +550,13 @@ func TestConformance_AdminRiderWrites_InputValidation(t *testing.T) {
 				AccountID: activeRiderID,
 				Roles:     []string{roleRider},
 				IdemKey:   fmt.Sprintf("arw-pod-%d", time.Now().UnixNano()),
+				// Every proof shape requires its artefact (security review on #183,
+				// https://github.com/shaiknoorullah/hg-mono/issues/183): a photo with a
+				// statement needs both the photo and the statement.
 				Body: map[string]any{
-					"method": "PHOTO_WITH_ATTESTATION",
+					"method":             "PHOTO_WITH_ATTESTATION",
+					"photo_object_id":    "00000000-0000-4000-8000-000000000004",
+					"attestation_reason": "Left at the door as the customer asked.",
 				},
 			},
 		},

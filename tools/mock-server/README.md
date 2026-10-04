@@ -80,7 +80,8 @@ Playback starts on your first `subscribe` frame (or immediately with `&autoplay=
 | Script | What it drives |
 |---|---|
 | `realtime_order_happy_path` | 25 events, 58 s: created → authorized → offered → accepted → captured → dispatch → assigned → ready → picked up → 3 location pings → arrived (`order.rider_arrived`) → delivered → completed |
-| `realtime_order_met_handover` | A met handover: on arrival `order.rider_arrived` carries the customer's 4-digit delivery code |
+| `realtime_order_met_handover` | A met handover: on arrival `order.rider_arrived` says only that the rider is here; the app fetches the delivery code from `getOrder` (no event or push carries a code) |
+| `realtime_order_delivery_code_locked` | Five wrong delivery codes: `HANDOVER_CODE_LOCKED` on `admin:ops`, then support confirms the delivery (`actor_kind: SUPPORT`) |
 | `realtime_order_restaurant_rejects` | Rejection at 14 s; the authorisation is voided, not refunded |
 | `realtime_order_timeout_no_rider` | Three waves, no rider, order fails, full refund, `admin.dispatch_failure` |
 | `realtime_payment_action_required` | 3-D Secure as a normal path |

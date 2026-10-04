@@ -1,23 +1,23 @@
 {
-  "scenario": "order_admin_view_completed",
+  "scenario": "order_admin_view_delivery_overridden",
   "domain": "orders",
   "schema": "OrderAdminView",
-  "describes": "The full admin projection: timeline, dispatch history across two waves, payment, the ledger decomposition and `pii_revealed: false` (unmasking needs a recorded justification).",
+  "describes": "The order after `handover_override_delivery`: the timeline's `DELIVERED` step is `actor_kind: ADMIN` with the reason and the case, and `delivery_code` is null, as it always is for support and admin.",
   "operations": [
-    "getOrderAdmin",
-    "cancelOrderAdmin"
+    "getOrderAdmin"
   ],
   "status": 200,
   "tags": [
-    "admin"
+    "admin",
+    "delivery-code"
   ],
   "payload": {
-    "id": "d1435528-5730-4b9a-a635-98014dc0201a",
-    "code": "HG-COED-9X",
-    "state": "COMPLETED",
+    "id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+    "code": "HG-DEED-9X",
+    "state": "DELIVERED",
     "state_since": "2026-08-10T18:40:41.412Z",
-    "deadline_at": null,
-    "quote_id": "2503f1c0-63a5-456c-a471-fc184c240979",
+    "deadline_at": "2026-08-10T19:12:11.412Z",
+    "quote_id": "a74df90a-c5d7-4269-a503-437fe2a17af1",
     "restaurant": {
       "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
       "name": "Karachi Kitchen",
@@ -113,10 +113,9 @@
       "is_default": true
     },
     "delivery_instructions": [
-      "LEAVE_AT_DOOR",
-      "DO_NOT_RING_BELL"
+      "MEET_IN_LOBBY"
     ],
-    "special_instructions": "Please leave it on the mat, not the shoe rack.",
+    "special_instructions": "Lobby of the east tower; I will be at the front desk.",
     "rider": {
       "first_name": "Bilal",
       "last_initial": "S",
@@ -127,7 +126,7 @@
     "dispatch_state": "COMPLETED",
     "cancel_reason": null,
     "reject_reason": null,
-    "eta_at": null,
+    "eta_at": "2026-08-10T18:55:11.412Z",
     "delivery_code": null,
     "can_cancel": false,
     "placed_at": "2026-08-10T18:10:11.412Z",
@@ -135,7 +134,7 @@
     "ready_at": "2026-08-10T18:28:11.412Z",
     "picked_up_at": "2026-08-10T18:31:11.412Z",
     "delivered_at": "2026-08-10T18:40:11.412Z",
-    "completed_at": "2026-08-10T18:41:11.412Z",
+    "completed_at": null,
     "timeline": [
       {
         "from_state": null,
@@ -189,16 +188,9 @@
       {
         "from_state": "ARRIVED",
         "to_state": "DELIVERED",
-        "actor_kind": "RIDER",
-        "reason": null,
+        "actor_kind": "ADMIN",
+        "reason": "Delivery confirmed by an admin without the delivery code (case c8840d35-bf30-4fa4-a9cb-b3185fc8d004): customer's phone died in the lobby.",
         "at": "2026-08-10T18:40:11.412Z"
-      },
-      {
-        "from_state": "DELIVERED",
-        "to_state": "COMPLETED",
-        "actor_kind": "SYSTEM",
-        "reason": null,
-        "at": "2026-08-10T18:41:11.412Z"
       }
     ],
     "dispatch_history": [
@@ -244,7 +236,7 @@
       }
     ],
     "payment": {
-      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "order_id": "86e927df-0e4c-41b4-a4da-74b86551a63a",
       "state": "SUCCEEDED",
       "kind": "ORDER",
       "amount_authorized_cents": 10684,
@@ -269,48 +261,48 @@
       "ledger_residual_cents": 0,
       "ledger_entries": [
         {
-          "batch_id": "0f13e969-d16b-4d8f-a322-676a63b9ad16",
+          "batch_id": "eccc4c18-817f-4e40-a68a-0ff47298e177",
           "batch_kind": "CAPTURE",
           "account": "CUSTOMER_CHARGES",
           "component": "SUBTOTAL",
           "counterparty_type": "RESTAURANT",
-          "counterparty_id": "bc1ddfc4-3b1f-4428-ae49-6eeeb440b4dc",
+          "counterparty_id": "71bf6cde-a429-4d99-a937-a5e8d3e516a3",
           "amount_cents": -10684,
           "currency": "CAD",
           "memo": "Memo",
           "posted_at": "2026-08-10T18:32:11.412Z"
         },
         {
-          "batch_id": "a864c3cc-a47f-49a4-a72c-27e05203605d",
+          "batch_id": "f1dea56b-25e0-4427-aa58-deeb9b5013db",
           "batch_kind": "CAPTURE",
           "account": "RESTAURANT_PAYABLE",
           "component": "SUBTOTAL",
           "counterparty_type": "RESTAURANT",
-          "counterparty_id": "b8db30e8-ae2f-43e2-a84a-1a91404d2942",
+          "counterparty_id": "bb864655-b0cb-44ba-ae3a-cdeff2b50e31",
           "amount_cents": 7987,
           "currency": "CAD",
           "memo": "Memo",
           "posted_at": "2026-08-10T18:32:11.412Z"
         },
         {
-          "batch_id": "7c5fea45-ac93-4918-a759-001584100675",
+          "batch_id": "99af1116-e041-44ea-ae58-c0f20c65bf24",
           "batch_kind": "CAPTURE",
           "account": "RIDER_PAYABLE",
           "component": "TIP",
           "counterparty_type": "RESTAURANT",
-          "counterparty_id": "88d6fdd9-54b2-4a64-aa79-7be728c7113c",
+          "counterparty_id": "18cb33f9-c513-4ba8-a038-94e494c1ab5a",
           "amount_cents": 700,
           "currency": "CAD",
           "memo": "Memo",
           "posted_at": "2026-08-10T18:32:11.412Z"
         },
         {
-          "batch_id": "fad4bf36-cb28-476d-a3fc-4115d558d211",
+          "batch_id": "13cf8cfb-78ce-4ad2-a56c-f7488e812a49",
           "batch_kind": "CAPTURE",
           "account": "PLATFORM_REVENUE",
           "component": "SERVICE_FEE",
           "counterparty_type": "RESTAURANT",
-          "counterparty_id": "1bc9d5c7-7158-49b4-aa25-0f0e97c8446d",
+          "counterparty_id": "6fcacb76-3e32-476f-a44f-10b20a7586c6",
           "amount_cents": 399,
           "currency": "CAD",
           "memo": "Memo",

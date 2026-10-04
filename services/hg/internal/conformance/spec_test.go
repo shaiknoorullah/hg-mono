@@ -25,8 +25,12 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// updateMenuCategory (a restaurant renames, reorders, deactivates or
 	// reactivates its own menu category — the round-2 decision that restaurants
 	// edit their own menu from launch, docs/decisions/README.md "How restaurants
-	// get their menu onto HalalGoes and change it"; no handler yet).
-	const wantOps = 155
+	// get their menu onto HalalGoes and change it"; no handler yet) +
+	// overrideHandoverCode (support or an admin confirms a pickup or a met handover
+	// whose code cannot be used, with a reason, a case and an audit record — the only
+	// way past a handover code, security review on #183:
+	// https://github.com/shaiknoorullah/hg-mono/issues/183; no handler yet).
+	const wantOps = 156
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

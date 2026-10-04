@@ -220,7 +220,7 @@ def write_readme(manifest: dict) -> None:
         "admin": "Admin/support-facing surface.",
         "documents": "KYC document surface.",
         "tracking": "The live order-tracking screen.",
-        "delivery-code": "The customer's 4-digit delivery code: shown, hidden, locked.",
+        "delivery-code": "The customer's 4-digit delivery code: shown, hidden, locked, overridden by support.",
         "dense": "Deliberately busy — the worst case for a list or a card.",
         "degraded": "A partially-broken real-world condition (stale GPS, lost tracking).",
         "review-queue": "An admin review queue item.",
