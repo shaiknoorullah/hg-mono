@@ -331,9 +331,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   `LIVE` only with a current, admin-verified halal certificate and no delisting reason, otherwise to
   `DELISTED` with the certificate's reason, so a certificate that lapses between the application's
   approval and the last onboarding step never gets listed. Completing onboarding changes nothing
-  but `PENDING`; it never lifts a suspension or a ban, and the database refuses any other change of
-  the account state made by onboarding
-  ([one owner per account-state change, #335](https://github.com/shaiknoorullah/hg-mono/pull/335)).
+  but `PENDING`; it never lifts a suspension or a ban. The step is a database function that checks
+  the onboarding gates and the certificate itself, and the database refuses any other way out of
+  `PENDING` ([one owner per account-state change, #335](https://github.com/shaiknoorullah/hg-mono/pull/335)).
 
 - **Rules**:
   1. Transitions are executed only by named server functions inside a transaction with
