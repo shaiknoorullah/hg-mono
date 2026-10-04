@@ -40,7 +40,7 @@ func TestRestaurantStaffInvitesSendNothing(t *testing.T) {
 		t.Fatalf("restaurant staff invite queued %d notifications and %d tokens, want none", notifications, tokens)
 	}
 
-	svc := auth.NewService(auth.NewStore(pool), auth.NewRateLimiter(nil), nil, nil, nil, nil, nil)
+	svc := auth.NewService(auth.NewStore(pool), auth.NewRateLimiter(nil, nil), nil, nil, nil, nil, nil)
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)

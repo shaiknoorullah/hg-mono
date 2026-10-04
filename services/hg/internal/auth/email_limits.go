@@ -92,27 +92,31 @@ func rateLimitAddress(email string) string {
 // its own limits (the caller may say so: it reveals nothing about the
 // account), errAddressCapped when the address is over its overall cap (the
 // caller answers generically), and ErrLimiterUnavailable when Redis cannot
-// answer (the caller sends nothing).
+// answer (the caller sends nothing). Every one of these limits fails closed
+// (FailClosed in ratelimit.go): with no counter, no email.
 func (s *Service) allowLinkEmail(ctx context.Context, kind, email, clientKey string) error {
 	if clientKey == "" {
 		clientKey = "unknown"
 	}
 	addr := rateLimitAddress(email)
-	if err := s.rl.Allow(ctx, "rl:email:"+kind+":from:"+clientKey, linkEmailsPerClient, time.Hour); err != nil {
+	if err := s.rl.Allow(ctx, Limit{Name: "email:" + kind + ":from", Subject: clientKey,
+		Max: linkEmailsPerClient, Window: time.Hour, OnUnavailable: FailClosed}); err != nil {
 		return err
 	}
-	if err := s.rl.Allow(ctx, "rl:email:"+kind+":to:"+addr+":from:"+clientKey, linkEmailsPerAddressAndClient, time.Hour); err != nil {
+	if err := s.rl.Allow(ctx, Limit{Name: "email:" + kind + ":to-from", Subject: addr + ":from:" + clientKey,
+		Max: linkEmailsPerAddressAndClient, Window: time.Hour, OnUnavailable: FailClosed}); err != nil {
 		return err
 	}
 	for _, c := range []struct {
-		suffix string
+		name   string
 		limit  int64
 		window time.Duration
 	}{
-		{":hour", linkEmailsPerAddressHour, time.Hour},
-		{":day", linkEmailsPerAddressDay, 24 * time.Hour},
+		{"email:" + kind + ":to:hour", linkEmailsPerAddressHour, time.Hour},
+		{"email:" + kind + ":to:day", linkEmailsPerAddressDay, 24 * time.Hour},
 	} {
-		if err := s.rl.Allow(ctx, "rl:email:"+kind+":to:"+addr+c.suffix, c.limit, c.window); err != nil {
+		if err := s.rl.Allow(ctx, Limit{Name: c.name, Subject: addr,
+			Max: c.limit, Window: c.window, OnUnavailable: FailClosed}); err != nil {
 			if !limited(err) {
 				return err
 			}
