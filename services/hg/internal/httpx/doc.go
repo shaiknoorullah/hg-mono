@@ -20,9 +20,10 @@
 //
 // What is real now and what is a stub:
 //
-//   - Real: the chain (request id, panic recovery, access log, CORS, timeout,
-//     body limit, guard, idempotency-key extraction), the envelope, the
-//     boot-time route verification, and the default-deny decision itself.
+//   - Real: the chain (request id, panic recovery, client address behind
+//     the trusted proxies, access log, CORS, timeout, body limit, guard,
+//     idempotency-key extraction), the envelope, the boot-time route
+//     verification, and the default-deny decision itself.
 //   - Stub: Authenticator and Authorizer. AnonymousAuthenticator makes every
 //     caller anonymous and DenyAllAuthorizer grants nothing, so a non-public
 //     route answers 401/403 rather than pretending to authorize. The behaviour
@@ -38,7 +39,7 @@
 // yet *enforced* — the claim/replay transaction against idempotency_record
 // belongs in the store, in the same tx as the business effect.
 //
-// TODO: P-06 stages not yet present — RealIP (trust X-Forwarded-For only from
-// Traefik's IP), SecurityHeaders, RateLimit (P-38), Validate with
-// DisallowUnknownFields (P-36), ownership Authorize (P-07), AuditFinalize (P-35).
+// TODO: P-06 stages not yet present — SecurityHeaders, RateLimit (P-38),
+// Validate with DisallowUnknownFields (P-36), ownership Authorize (P-07),
+// AuditFinalize (P-35).
 package httpx

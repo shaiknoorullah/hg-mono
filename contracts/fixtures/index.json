@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 330,
+  "count": 331,
   "counts_by_domain": {
     "admin": 15,
     "cart": 12,
     "catalogue": 31,
     "dispatch": 31,
     "documents": 23,
-    "errors": 23,
+    "errors": 24,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -1935,6 +1935,21 @@
         "error-envelope"
       ],
       "file": "errors/error_rate_limited.json"
+    },
+    {
+      "scenario": "error_register_restaurant_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, \"R-01 — Restaurant account signup\"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds.",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path"
+      ],
+      "file": "errors/error_register_restaurant_rate_limited.json"
     },
     {
       "scenario": "error_restaurant_closed",
@@ -5611,6 +5626,7 @@
       "session_next_route_suspended"
     ],
     "registerRestaurant": [
+      "error_register_restaurant_rate_limited",
       "restaurant_registration"
     ],
     "rejectOrder": [

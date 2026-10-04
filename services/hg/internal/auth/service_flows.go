@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -322,9 +323,17 @@ func (s *Service) verifyOTPViaVerifier(ctx context.Context, challengeID, code st
 	return s.issueSession(ctx, acct, "otp", client, deviceID, userAgent, ip, isNew)
 }
 
+// canonicalEmail is the one spelling of an email that the limiter, the lockout
+// and the account lookup all see. account.email and login_attempt.email are
+// citext (migrations/00004_identity.sql), so Postgres treats "Owner@x.com" and
+// "owner@x.com" as one account; a Redis key is byte-exact, so without this each
+// case variant would get a fresh per-email budget.
+func canonicalEmail(email string) string { return strings.ToLower(strings.TrimSpace(email)) }
+
 // Login verifies email + password, checks status/lockout/TOTP, and issues a
 // session.
 func (s *Service) Login(ctx context.Context, email, password string, totp *string, client ClientSurface, userAgent, ip *string) (*issuedSession, error) {
+	email = canonicalEmail(email)
 	ipStr := ""
 	if ip != nil {
 		ipStr = *ip
@@ -480,6 +489,7 @@ func (s *Service) VerifyEmail(ctx context.Context, token string, client ClientSu
 // ResendEmailVerification issues a fresh EMAIL_VERIFY token when the account
 // exists and is unverified. Identical externally whether or not it exists.
 func (s *Service) ResendEmailVerification(ctx context.Context, email string) error {
+	email = canonicalEmail(email)
 	if err := s.rl.Allow(ctx, Limit{Name: "email_verify", Subject: email,
 		Max: 5, Window: 24 * time.Hour, OnUnavailable: FailOpen}); err != nil {
 		return err

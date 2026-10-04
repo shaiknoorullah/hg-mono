@@ -92,12 +92,12 @@ func clientSurface(r *http.Request) (ClientSurface, bool) {
 	return c, c.valid()
 }
 
+// clientIPPtr is the client's address as resolved by the router's RealIP stage
+// (internal/httpx/realip.go), never Traefik's: every request arrives through
+// it, so keying a per-IP limit on the TCP peer would make one limit for the
+// whole platform.
 func clientIPPtr(r *http.Request) *string {
-	host := r.RemoteAddr
-	if i := strings.LastIndex(host, ":"); i > 0 {
-		host = host[:i]
-	}
-	host = strings.Trim(host, "[]")
+	host := httpx.ClientIP(r)
 	if host == "" {
 		return nil
 	}

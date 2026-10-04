@@ -74,9 +74,11 @@ func TestOverTheLimitIs429WithRetryAfterAndNothingRuns(t *testing.T) {
 			body: `{"email":"owner@example.com","password":"correct horse battery"}`,
 		},
 		{
-			name: "login per email", key: "rl:login:email:limited@example.com", max: 10, window: 15 * time.Minute,
+			name: "login per email, any letter case", key: "rl:login:email:limited@example.com", max: 10, window: 15 * time.Minute,
 			ip: "203.0.113.11", handler: h.Login, path: "/v1/auth/login",
-			body: `{"email":"limited@example.com","password":"correct horse battery"}`,
+			// A case variant of the filled key: the account column is citext, so
+			// it is the same account and must share the same budget.
+			body: `{"email":" Limited@Example.COM","password":"correct horse battery"}`,
 		},
 		{
 			name: "restaurant sign-up per IP", key: "rl:register:ip:203.0.113.12", max: 5, window: time.Hour,

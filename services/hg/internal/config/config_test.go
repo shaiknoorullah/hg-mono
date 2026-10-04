@@ -162,12 +162,13 @@ func TestLoadRejectsWildcardCORS(t *testing.T) {
 
 func TestLoadRejectsMalformedValues(t *testing.T) {
 	cases := map[string]struct{ key, value, wantIn string }{
-		"unknown environment":   {"HG_ENV", "prod", "HG_ENV"},
-		"bad log level":         {"HG_LOG_LEVEL", "chatty", "HG_LOG_LEVEL"},
-		"bad duration":          {"HG_SHUTDOWN_TIMEOUT", "20 seconds", "HG_SHUTDOWN_TIMEOUT"},
-		"bad integer":           {"HG_REDIS_DB", "two", "HG_REDIS_DB"},
-		"bad boolean":           {"HG_MINIO_USE_SSL", "sometimes", "HG_MINIO_USE_SSL"},
-		"origin without scheme": {"HG_CORS_ALLOWED_ORIGINS", "app.halalgoes.com", "HG_CORS_ALLOWED_ORIGINS"},
+		"unknown environment":      {"HG_ENV", "prod", "HG_ENV"},
+		"bad log level":            {"HG_LOG_LEVEL", "chatty", "HG_LOG_LEVEL"},
+		"bad duration":             {"HG_SHUTDOWN_TIMEOUT", "20 seconds", "HG_SHUTDOWN_TIMEOUT"},
+		"bad integer":              {"HG_REDIS_DB", "two", "HG_REDIS_DB"},
+		"bad boolean":              {"HG_MINIO_USE_SSL", "sometimes", "HG_MINIO_USE_SSL"},
+		"origin without scheme":    {"HG_CORS_ALLOWED_ORIGINS", "app.halalgoes.com", "HG_CORS_ALLOWED_ORIGINS"},
+		"proxy that is not a CIDR": {"HG_TRUSTED_PROXIES", "traefik", "HG_TRUSTED_PROXIES"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

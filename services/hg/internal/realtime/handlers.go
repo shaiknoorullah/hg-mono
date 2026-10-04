@@ -81,7 +81,7 @@ func (h *Handler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var ip *string
-	if host := clientIP(r); host != "" {
+	if host := httpx.ClientIP(r); host != "" {
 		ip = &host
 	}
 
@@ -184,7 +184,7 @@ func (h *Handler) resolveUpgradeIdentity(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			// A failed consume is refused before any frame. A plausible cause is
 			// reuse, so an audit event is written (§1.1).
-			_ = h.store.AuditTicketReuse(r.Context(), httpx.RequestIDFrom(r.Context()), clientIP(r))
+			_ = h.store.AuditTicketReuse(r.Context(), httpx.RequestIDFrom(r.Context()), httpx.ClientIP(r))
 			httpx.Fail(w, r, http.StatusUnauthorized, httpx.CodeAuthenticationRequired,
 				"The realtime ticket is invalid, already used, or expired.", nil)
 			return TicketPrincipal{}, nil, err
@@ -267,14 +267,4 @@ func websocketURL(r *http.Request) string {
 		scheme = "ws"
 	}
 	return scheme + "://" + host + "/v1/ws"
-}
-
-// clientIP returns the direct peer host, matching httpx.AccessLog's conservative
-// behaviour: X-Forwarded-For is not trusted until the Traefik allowlist lands.
-func clientIP(r *http.Request) string {
-	host := r.RemoteAddr
-	if i := strings.LastIndex(host, ":"); i > 0 {
-		host = host[:i]
-	}
-	return strings.Trim(host, "[]")
 }

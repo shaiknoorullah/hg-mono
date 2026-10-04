@@ -413,7 +413,7 @@ func (r *Router) Handle(method, path string, p Policy, h Handler)
   |---|---|---|---|
   | 1 | `RequestID` | read/generate `X-Request-ID` (ULID), put in ctx + response header | — |
   | 2 | `Recover` | catch panics, log with stack, alert | 500 `internal_error` |
-  | 3 | `RealIP` | trust `X-Forwarded-For` **only** from Traefik's IP | — |
+  | 3 | `RealIP` | trust `X-Forwarded-For` / `X-Real-Ip` **only** from a trusted proxy (`HG_TRUSTED_PROXIES`, default Docker's bridge pools, where Traefik lives); right-most untrusted hop is the client; every per-IP limit keys on it | — |
   | 4 | `AccessLog` | structured log, PII-redacted, sampled for 2xx reads | — |
   | 5 | `Timeout` | ctx deadline by `Class` (READ 5 s, WRITE 15 s, MONEY 20 s, UPLOAD 60 s) | 503 `timeout` |
   | 6 | `BodyLimit` | `Policy.MaxBody` (default 1 MiB, AUTH 16 KiB) | 413 `payload_too_large` |

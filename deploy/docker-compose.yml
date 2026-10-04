@@ -29,6 +29,8 @@ x-api-env: &api-env
   HG_LOG_LEVEL: ${HG_LOG_LEVEL:-info}
   HG_SHUTDOWN_TIMEOUT: ${HG_SHUTDOWN_TIMEOUT:-20s}
   HG_CORS_ALLOWED_ORIGINS: ${HG_CORS_ALLOWED_ORIGINS:?set HG_CORS_ALLOWED_ORIGINS in .env}
+  # Empty means the config default: Docker's bridge pools, which hold hg-net.
+  HG_TRUSTED_PROXIES: ${HG_TRUSTED_PROXIES:-}
 
   HG_POSTGRES_DSN: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
   HG_POSTGRES_MAX_CONNS: ${HG_POSTGRES_MAX_CONNS:-10}
