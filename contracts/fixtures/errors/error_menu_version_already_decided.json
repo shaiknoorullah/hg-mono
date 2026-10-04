@@ -1,0 +1,20 @@
+{
+  "scenario": "error_menu_version_already_decided",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ALREADY_DECIDED`. Two reviewers on one version: the second decision is refused, never applied twice.",
+  "operations": [
+    "decideMenuVersion"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ALREADY_DECIDED",
+      "message": "Another reviewer already decided this version.",
+      "request_id": "P78F51H6GYD16FPAZ2JE4732NS"
+    }
+  }
+}

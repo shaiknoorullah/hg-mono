@@ -1,0 +1,63 @@
+{
+  "scenario": "menu_item_marked_out_of_stock_indefinitely",
+  "domain": "catalogue",
+  "schema": "MenuItemOwnerView",
+  "describes": "`setMenuItemAvailability` → `OUT_OF_STOCK`. Sold out until someone marks it available again. It shows in the weekly reminder of items left out of stock. Accepted orders and customers' carts are never changed by it.",
+  "operations": [
+    "setMenuItemAvailability"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "menu-editing",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+    "name": "Beef Nihari",
+    "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+    "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+    "price_cents": 2145,
+    "currency": "CAD",
+    "availability_state": "OUT_OF_STOCK",
+    "out_of_stock_until": null,
+    "dietary_tags": [
+      "HALAL_CERTIFIED",
+      "SPICY"
+    ],
+    "allergen_tags": [
+      "WHEAT_TRITICALE"
+    ],
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "tax_category": "PREPARED_FOOD",
+    "prep_minutes": 18,
+    "variant_groups": [],
+    "addon_groups": [],
+    "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+    "sort_order": 1,
+    "live_version": {
+      "id": "68c637e2-805c-4c4e-af88-1fdbfe4ad485",
+      "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+      "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "version": 3,
+      "name": "Beef Nihari",
+      "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+      "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+      "dietary_tags": [
+        "HALAL_CERTIFIED",
+        "SPICY"
+      ],
+      "allergen_tags": [
+        "WHEAT_TRITICALE"
+      ],
+      "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+      "review_status": "APPROVED",
+      "rejection_reason_code": null,
+      "review_note": null,
+      "submitted_at": "2026-08-01T18:42:11.412Z",
+      "reviewed_at": "2026-08-01T20:42:11.412Z",
+      "created_at": "2026-08-01T18:42:11.412Z"
+    },
+    "pending_version": null
+  }
+}

@@ -1,5 +1,8 @@
 // Command hg is the HalalGoes API server.
 //
+// `hg stripe-catchup --since <time>` instead runs the on-demand Stripe
+// catch-up after a failover or restore, and exits (stripe_catchup.go).
+//
 // It is one binary containing every module as a package. The modules are
 // separated by their dependencies and their spec sections, not by a network hop:
 // nothing here is a microservice, and the layout is designed so that extracting
@@ -366,7 +369,15 @@ func (a *orderLifecycleAdapter) OpenDispute(ctx context.Context, orderID, custom
 }
 
 func main() {
-	if err := run(); err != nil {
+	// With no subcommand, hg is the API server. `hg stripe-catchup` is the
+	// one operator command (stripe_catchup.go).
+	var err error
+	if len(os.Args) > 1 && os.Args[1] == "stripe-catchup" {
+		err = runStripeCatchup(os.Args[2:], os.Stdout)
+	} else {
+		err = run()
+	}
+	if err != nil {
 		// Boot failures go to stderr in plain text as well as the structured
 		// log: a container that dies in three seconds is read with `docker logs`,
 		// and a JSON blob is the wrong shape for that moment.
