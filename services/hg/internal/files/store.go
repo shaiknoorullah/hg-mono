@@ -26,15 +26,20 @@ var ErrNotScannedClean = errors.New("files: file not virus-scanned clean")
 
 // Presigner is the narrow slice of the MinIO client this module needs. Keeping
 // it an interface means the key/DB logic is unit-testable without a live MinIO,
-// and the presign call itself is a thin, mockable seam. *minio.Client
-// satisfies it.
+// and the presign call itself is a thin, mockable seam.
+//
+// The implementation is store.MinIO.Signer, configured for the public host
+// phones reach — never the internal client, whose links name minio:9000.
+// Uploads are signed with PresignHeader only: PresignedPutObject signs the Host
+// header alone, which lets one link upload any bytes of any size and type.
 type Presigner interface {
-	// PresignHeader presigns method on the object with extraHeaders included in
-	// the signature, so a request that does not carry exactly those header
-	// values is refused by the store.
 	PresignHeader(ctx context.Context, method, bucket, object string, expires time.Duration, reqParams url.Values, extraHeaders http.Header) (*url.URL, error)
 	PresignedGetObject(ctx context.Context, bucket, object string, expires time.Duration, reqParams url.Values) (*url.URL, error)
 }
+
+// uploadTTL is how long a presigned upload link lives (docs/spec/01-platform.md,
+// "P-28 — Presigned upload and download").
+const uploadTTL = 300 * time.Second
 
 // Repo is the files module's data access plus the object presigner and the
 // object-store seam confirmUpload needs. It never opens its own pool or client —
@@ -63,12 +68,11 @@ type storedObjectRow struct {
 }
 
 // AllocateUpload inserts a PENDING stored_object with a server-generated key and
-// a one-hour deadline, then returns a presigned PUT whose TTL is 300 s
-// (docs/spec/01-platform.md#p-28--presigned-upload-and-download). The signature
-// binds the object key and the declared Content-Type, Content-Length and
-// SHA-256, so the URL can only ever write the declared bytes: reusing it after
-// confirm or after the virus scan cannot swap the file
-// (https://github.com/shaiknoorullah/hg-mono/issues/218).
+// a one-hour deadline, then returns a presigned PUT whose TTL is 300 s (P-28).
+// The signature binds the object key, the content type, the length and the
+// checksum; the client supplies only the bytes, and only the declared ones.
+// Reusing the link after confirm or after the virus scan therefore cannot
+// swap the file (https://github.com/shaiknoorullah/hg-mono/issues/218).
 func (r *Repo) AllocateUpload(ctx context.Context, actor Actor, p Purpose, in keyInputs, contentType string, byteSize int64, sha256hex string) (uploadResult, error) {
 	var out uploadResult
 	bucket, ok := bucketFor(p, r.buckets)
@@ -117,27 +121,41 @@ RETURNING id`
 		return out, err
 	}
 
-	// These headers are signed, not merely advised: a signature minted for a
-	// 1 MiB JPEG cannot push a 9 MiB PDF, and the store checks the body against
-	// x-amz-checksum-sha256, so different bytes are refused (contract
-	// openapi.yaml PresignedUpload.required_headers).
+	u, headers, err := presignUpload(ctx, r.presigner, bucket, key, contentType, byteSize, sha)
+	if err != nil {
+		return out, err
+	}
+	out.URL = u.String()
+	out.ExpiresAt = time.Now().UTC().Add(uploadTTL)
+	out.RequiredHeaders = headers
+	return out, nil
+}
+
+// presignUpload signs a PUT that only succeeds with exactly the declared
+// Content-Type, Content-Length and SHA-256: each is a signed header, so changing
+// any one of them fails the signature, and the store checks the bytes against
+// the signed checksum. A link minted for a 1 MiB JPEG cannot push a 9 MiB PDF
+// (docs/spec/01-platform.md, "P-28 — Presigned upload and download", the first
+// rule and the first acceptance criterion; contract openapi.yaml
+// PresignedUpload.required_headers).
+//
+// The headers the client is told to send and the headers that are signed are
+// the same map, so the two cannot drift apart.
+func presignUpload(ctx context.Context, p Presigner, bucket, key, contentType string, byteSize int64, sha []byte) (*url.URL, map[string]string, error) {
 	required := map[string]string{
 		"Content-Type":          contentType,
 		"Content-Length":        itoa(byteSize),
 		"x-amz-checksum-sha256": base64.StdEncoding.EncodeToString(sha),
 	}
-	signed := http.Header{}
+	signed := make(http.Header, len(required))
 	for k, v := range required {
 		signed.Set(k, v)
 	}
-	u, err := r.presigner.PresignHeader(ctx, http.MethodPut, bucket, key, 300*time.Second, nil, signed)
+	u, err := p.PresignHeader(ctx, http.MethodPut, bucket, key, uploadTTL, nil, signed)
 	if err != nil {
-		return out, err
+		return nil, nil, err
 	}
-	out.URL = u.String()
-	out.ExpiresAt = time.Now().UTC().Add(300 * time.Second)
-	out.RequiredHeaders = required
-	return out, nil
+	return u, required, nil
 }
 
 // uploadResult is the internal shape the handler renders as PresignedUpload.
@@ -158,7 +176,7 @@ type uploadResult struct {
 // still the ones that were scanned: the object is re-read and its SHA-256
 // compared with the confirmed one before the URL is minted. A file that changed
 // is marked ERROR, which sends any approved document on it back to review (see
-// migration 00028_virus_scan). Both refusals are ErrNotScannedClean
+// migration 00029_virus_scan). Both refusals are ErrNotScannedClean
 // (https://github.com/shaiknoorullah/hg-mono/issues/218).
 func (r *Repo) DownloadURL(ctx context.Context, actor Actor, documentID string, canReadAny bool) (downloadResult, error) {
 	var out downloadResult

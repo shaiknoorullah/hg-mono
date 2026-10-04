@@ -29,6 +29,12 @@ x-api-env: &api-env
   HG_LOG_LEVEL: ${HG_LOG_LEVEL:-info}
   HG_SHUTDOWN_TIMEOUT: ${HG_SHUTDOWN_TIMEOUT:-20s}
   HG_CORS_ALLOWED_ORIGINS: ${HG_CORS_ALLOWED_ORIGINS:?set HG_CORS_ALLOWED_ORIGINS in .env}
+  HG_REALTIME_MAX_SOCKETS: ${HG_REALTIME_MAX_SOCKETS:-2000}
+  # Traefik's network, so the API reads the client address Traefik forwards
+  # rather than Traefik's own. Required, not defaulted: this stack always runs
+  # the API behind Traefik, and an empty list there makes every per-IP limit
+  # one limit for the whole platform (see .env.example).
+  HG_TRUSTED_PROXY_CIDRS: ${HG_TRUSTED_PROXY_CIDRS:?set HG_TRUSTED_PROXY_CIDRS in .env (see .env.example)}
 
   HG_POSTGRES_DSN: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
   HG_POSTGRES_MAX_CONNS: ${HG_POSTGRES_MAX_CONNS:-10}
@@ -43,6 +49,9 @@ x-api-env: &api-env
   HG_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
   HG_MINIO_USE_SSL: "false"
   HG_MINIO_REGION: ${MINIO_REGION:-ca-central-1}
+  # Presigned links are signed for this host, not minio:9000, which no phone or
+  # browser can resolve. Required outside local.
+  HG_MINIO_PRESIGN_BASE_URL: ${HG_MINIO_PRESIGN_BASE_URL:-http://localhost:${MINIO_API_PORT:-9000}}
 
   # Virus scanning of KYC uploads (docs/spec/01-platform.md#p-28--presigned-upload-and-download).
   # Required outside local: a KYC document cannot be approved until clamd has

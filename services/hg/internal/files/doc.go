@@ -28,7 +28,7 @@
 // records CLEAN, INFECTED, TOO_LARGE or UNSCANNABLE — or ERROR when the bytes
 // it read are not the confirmed ones. While clamd is down documents wait in
 // PENDING. Only a CLEAN file's document can be approved or downloaded, and only
-// while the file is unchanged: migration 00028_virus_scan makes the database
+// while the file is unchanged: migration 00029_virus_scan makes the database
 // refuse an approval, keeps a verdict write-once except through Rescan, and
 // sends an approved document back to review when its file stops being CLEAN
 // (https://github.com/shaiknoorullah/hg-mono/issues/218).

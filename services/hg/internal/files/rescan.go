@@ -15,7 +15,7 @@ var errRescanReason = errors.New("files: changing a virus scan verdict needs an 
 // Rescan sends a file that already has a virus scan verdict back to the scan
 // queue, for example after the signature database caught up with a new threat.
 // It is the one way to reopen a verdict: the database refuses any other change
-// to a recorded verdict (migration 00028_virus_scan, trigger
+// to a recorded verdict (migration 00029_virus_scan, trigger
 // stored_object_verdict_write_once), and this writes the audit row that names
 // the actor and the reason in the same transaction.
 //

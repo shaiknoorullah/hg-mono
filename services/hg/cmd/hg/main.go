@@ -46,9 +46,11 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/partitions"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/retention"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
@@ -401,6 +403,7 @@ func run() error {
 		slog.String("postgres", cfg.Postgres.Host()),
 		slog.String("redis", cfg.Redis.Addr),
 		slog.String("minio", cfg.MinIO.Endpoint),
+		slog.String("minio_presign_base", cfg.MinIO.PresignBaseURL),
 		slog.Int("cors_origins", len(cfg.CORSOrigins)))
 
 	// 2. Dependencies. Open dials all three and fails rather than returning a
@@ -503,12 +506,22 @@ func run() error {
 		st.DB().Pool, st.Cache().Client, authSecrets,
 		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
 
+	// Behind Traefik with no trusted proxy, every request's client address is
+	// Traefik's, so say which mode this process is in.
+	if len(cfg.TrustedProxies) == 0 {
+		log.Info("trusted proxies: none — X-Forwarded-For is ignored and the socket peer is the client address")
+	} else {
+		log.Info("trusted proxies: X-Forwarded-For is read from these peers only",
+			slog.Any("cidrs", cfg.TrustedProxies))
+	}
+
 	router := httpx.NewRouter(httpx.Options{
-		Logger:        log,
-		Env:           string(cfg.Env),
-		CORSOrigins:   cfg.CORSOrigins,
-		Authenticator: authModule.Authenticator,
-		Authorizer:    authModule.Authorizer,
+		Logger:         log,
+		Env:            string(cfg.Env),
+		CORSOrigins:    cfg.CORSOrigins,
+		TrustedProxies: cfg.TrustedProxies,
+		Authenticator:  authModule.Authenticator,
+		Authorizer:     authModule.Authorizer,
 	})
 
 	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
@@ -635,12 +648,25 @@ func run() error {
 	// Complete the Seam C wiring: orders.Store now emits realtime outbox events
 	// on every state transition via the transactional outbox (I-15 / §6.1).
 	rtEmitter.store = rtStore
-	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil)
+	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, cfg.Realtime.MaxSockets)
 	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
 	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
-	defer rtGateway.Shutdown()
+
+	// Partition maintenance (docs/spec/01-platform.md, "P-39 — Background
+	// runtime"): at start-up and hourly, keep realtime_event,
+	// rider_position_history and audit_event partitioned ahead of the clock and
+	// drop the ones past retention. Every replica runs the loop; a lease lets
+	// one work at a time.
+	go partitions.New(st.DB().Pool, log).Run(ctx)
+
+	// Retention: the hourly sweep that deletes rows past their retention period
+	// from the tables that otherwise only grow — published outbox rows, sockets,
+	// sign-in records, dead sessions, old notifications, unused quotes. Every
+	// replica runs it; a job_run claim lets one pass run per hour across the
+	// fleet. It never deletes ledger, order, audit or KYC rows.
+	go retention.New(st.DB().Pool, log).Run(ctx)
 
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works
@@ -661,7 +687,9 @@ func run() error {
 	fileObjects := files.NewMinIOObjectStore(st.Objects().Client)
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
-		st.Objects().Client,
+		// Links are signed for the public host phones reach; server-side
+		// reads and deletes stay on the internal client.
+		st.Objects().Signer,
 		fileObjects,
 		files.Buckets{
 			KYC:     cfg.MinIO.Buckets.KYC,
@@ -734,6 +762,13 @@ func run() error {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
+
+	// Close the live sockets with 1001 (server going away) first, and wait for
+	// the frames to go out, so clients reconnect with backoff instead of seeing
+	// an abnormal closure (contracts/websocket.md "Close codes"). It must run
+	// before st.Close: each close is recorded in Postgres. http.Server.Shutdown
+	// does not track upgraded sockets, so it cannot do this for us.
+	rtGateway.Shutdown()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Error("graceful shutdown exceeded its budget; forcing close",

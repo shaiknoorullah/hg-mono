@@ -30,7 +30,7 @@ import (
 //
 // When the scanner is down the worker backs off and tries again; documents wait
 // in PENDING meanwhile and cannot be approved, because the database refuses to
-// approve a KYC document whose file is not CLEAN (migration 00028_virus_scan).
+// approve a KYC document whose file is not CLEAN (migration 00029_virus_scan).
 type ScanWorker struct {
 	pool     *pgxpool.Pool
 	objects  ObjectStore

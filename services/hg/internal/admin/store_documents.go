@@ -56,7 +56,7 @@ var ErrDocDecided = errors.New("admin: document already decided")
 
 // ErrDocNotScanned is returned when an approval is attempted on a document
 // whose file has not been virus-scanned clean: the scan is still pending, found
-// a virus, or the file was too large to scan. Migration 00028_virus_scan makes
+// a virus, or the file was too large to scan. Migration 00029_virus_scan makes
 // the database refuse it too. Spec: docs/spec/01-platform.md#p-28--presigned-upload-and-download.
 var ErrDocNotScanned = errors.New("admin: document file not virus-scanned clean")
 
