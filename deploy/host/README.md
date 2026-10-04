@@ -59,7 +59,7 @@ Until the production stack runs ([#208][i208]), the Postgres and backup alerts f
 
 ## What production's compose file must do
 
-This playbook provisions the server; the production compose override (`deploy/docker-compose.prod.yml`, [#208][i208], [#296][pr296]) runs the app on it. These are the seams between the two, and the two must agree:
+This playbook provisions the server; the production compose override ([#208][i208]; [#296][pr296] adds it as `docker-compose.prod.yml`, beside the base compose file) runs the app on it. These are the seams between the two, and the two must agree:
 
 | Production compose | Why |
 |---|---|
@@ -77,7 +77,7 @@ This playbook provisions the server; the production compose override (`deploy/do
 | A `hg_monitor` role in `pg_monitor`, with `hg_monitor_postgres_password` from `host.sops.yaml` ([#215][i215]) | postgres-exporter's login |
 | A read-only Silo account for backups, in `hg_backup_silo_*` ([#203][i203]) | the bucket backups' login |
 | Project name `hg`, so Postgres is `hg-postgres-1` | the backups and the standby's set-up use `docker exec` by container name |
-| `.env` and the four secret files come from `prod.sops.env` (see Secrets): Postgres, Valkey, Silo and the bucket job read theirs from `$HG_SECRETS_DIR`, `/srv/hg/secrets` unless set. Compose files and `acme.json` live in `/srv/hg` | the config backup covers that folder |
+| `.env` and the four secret files come from `prod.sops.env` (see Secrets): Postgres, Valkey, Silo and the bucket job read theirs from one secrets folder, `/srv/hg/secrets` unless the production compose override is pointed elsewhere ([#296][pr296]). Compose files and `acme.json` live in `/srv/hg` | the config backup covers that folder |
 | Once `hg_standby_enabled` is true, Postgres at the fixed address `172.30.0.10` on `hg-data` (`ipv4_address`, beside its alias), and still no published port | the standby's replica comes in through a relay on this host, on `10.66.0.1:5432` (see "Next month") |
 
 ## Secrets
@@ -90,7 +90,7 @@ Secrets come from one place, chosen by `hg_secrets_backend`. Today that is `sops
 | `prod.sops.env` | production's settings ([#208][i208]) | `/srv/hg/.env`, and the secret files in `/srv/hg/secrets` |
 | `dev.sops.env` | dev's settings and test-mode keys | `/srv/hg-dev/.env` ([shape](secrets/dev.example.env)) |
 
-**Production's secret files.** Postgres, Valkey, Silo and the bucket job read their passwords from files, never from the environment (`deploy/docker-compose.prod.yml`, "Secrets"). The secrets role writes them from the same `prod.sops.env` entries as `.env`, so the two copies can't differ, into `/srv/hg/secrets` (mode 0700, root). Compose bind-mounts each file as it is on the host, ignoring a secret's uid and mode, so each is mode 0400 and owned by the uid that reads it inside its container:
+**Production's secret files.** Postgres, Valkey, Silo and the bucket job read their passwords from files, never from the environment (the production compose override's "Secrets" section, [#296][pr296]). The secrets role writes them from the same `prod.sops.env` entries as `.env`, so the two copies can't differ, into `/srv/hg/secrets` (mode 0700, root). Compose bind-mounts each file as it is on the host, ignoring a secret's uid and mode, so each is mode 0400 and owned by the uid that reads it inside its container:
 
 | File | From | Owner |
 |---|---|---|
@@ -198,7 +198,7 @@ What it sets up, each with the least it needs:
 
 `tests/check.sh` passes: every playbook's syntax, ansible-lint on its production profile, and shellcheck on every script. Every template was rendered with the test inventory, and the results checked with each tool's own validator: `docker compose config` for every compose file, `amtool check-config` for Alertmanager, `vmalert -dryRun` for the 18 alert rules, VictoriaMetrics' scrape-config dry run, `sshd -t` and `sshd -T` for the SSH drop-ins, and VictoriaLogs' flags. Matching the production compose file ([#296][pr296]) was checked too:
 
-- a script compared `hg_networks`, `hg_compose_networks`, the aliases and the secret file names with `deploy/docker-compose.prod.yml`: every external network it declares exists here with its subnet and `internal` setting, Silo's fixed address and Postgres's reserved one sit outside their networks' ranges, and nothing overlaps;
+- a script compared `hg_networks`, `hg_compose_networks`, the aliases and the secret file names with the production compose override from [#296][pr296]: every external network it declares exists here with its subnet and `internal` setting, Silo's fixed address and Postgres's reserved one sit outside their networks' ranges, and nothing overlaps;
 - the pinned socket proxy binary, run with the role's flags against a real Docker socket, answered ping, version, events, the container list and a container's inspect, and refused a container's archive, export and logs, `/info`, images, volumes, networks and every write;
 - the secrets role, run against a test `prod.sops.env`, wrote the four files with the right values, mode 0400 and no trailing newline, changed nothing on a second run, and stopped on a missing value and on a Valkey password with a space;
 - `docker_network` created networks with the configured range and gateway (Docker otherwise puts the gateway at the start of the range); `nft -c` accepts the firewall with the standby off and on (less its conntrack and rate-limit lines, which an unprivileged check can't load); `systemd-analyze verify` accepts the relay's units, and `systemd-socket-proxyd` with the same flags carried a connection.
