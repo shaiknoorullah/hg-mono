@@ -32,8 +32,13 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 20
 
     env:
+      # The superuser: creates the roles, and runs the lints, seed and tests.
       DATABASE_URL: postgres://hg:hg@localhost:5432/hg?sslmode=disable
       PGPASSWORD: hg
+      # goose runs as the schema's owner, never as the superuser — as in compose.
+      HG_DB_MIGRATOR_PASSWORD: migrator
+      HG_DB_APP_PASSWORD: app
+      MIGRATOR_URL: postgres://hg_migrator:migrator@localhost:5432/hg?sslmode=disable
 
     steps:
       - uses: actions/checkout@v4
@@ -57,9 +62,12 @@ jobs:
           python3 tools/gen_enums.py > /tmp/00002_enums.sql
           diff -u 00002_enums.sql /tmp/00002_enums.sql
 
-      # 2. The migrations apply.
+      # 2. The migrations apply, as the migration role. The superuser only
+      #    creates the roles (roles/roles.sql); it never runs goose.
+      - name: database roles
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f roles/roles.sql
       - name: goose up
-        run: goose -dir . postgres "$DATABASE_URL" up
+        run: goose -dir . postgres "$MIGRATOR_URL" up
 
       # 3. Money and geography lints against the finished schema. (00023 already
       #    gates on these, so a failure here means someone bypassed it.)
@@ -81,7 +89,8 @@ jobs:
         run: ./test/run_invariant_tests.sh
 
       # 7. Down migrations are real. Full rollback must leave nothing behind,
-      #    and must be followed by a clean re-apply.
+      #    and must be followed by a clean re-apply. The rollback runs as the
+      #    superuser: 00001's down drops extensions, which only it may do.
       - name: goose reset, then up again
         run: |
           goose -dir . postgres "$DATABASE_URL" reset
@@ -94,4 +103,5 @@ jobs:
           if [ -n "$LEFTOVERS" ]; then
             echo "rollback left objects behind:"; echo "$LEFTOVERS"; exit 1
           fi
-          goose -dir . postgres "$DATABASE_URL" up
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f roles/roles.sql
+          goose -dir . postgres "$MIGRATOR_URL" up

@@ -1,10 +1,10 @@
 # HalalGoes API — developer entry points.
 #
 #   make up        bring the whole stack up (Traefik, Postgres+PostGIS, Redis, MinIO, 2× API)
-#   make run       run the API on the host against the compose dependencies
+#   make run       run the API on the host against the compose dependencies, as hg_app
 #   make test      go test ./...
 #   make lint      gofmt check, go vet, golangci-lint when installed
-#   make migrate   apply the migrations in ./migrations
+#   make migrate   apply the migrations in ./migrations, as hg_migrator
 #   make down      stop the stack
 #
 # `make help` lists everything.
@@ -42,15 +42,12 @@ build: ## Compile the binary into ./bin/hg
 	@echo "built $(BINARY) ($(VERSION))"
 
 .PHONY: run
-run: ## Run the API on the host against the compose dependencies
-	@if [ ! -f $(ENV_FILE) ]; then \
-		echo "no $(ENV_FILE) — run: cp $(DEPLOY_DIR)/.env.example $(ENV_FILE)"; exit 1; \
-	fi
+run: ensure-env ## Run the API on the host against the compose dependencies
 	@set -a; . $(ENV_FILE); set +a; \
 	HG_ENV=$${HG_ENV:-local} \
 	HG_SERVICE_VERSION=$(VERSION) \
 	HG_HTTP_ADDR=$${HG_HTTP_ADDR:-:8080} \
-	HG_POSTGRES_DSN="postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@localhost:$(HOST_POSTGRES_PORT)/$${POSTGRES_DB}?sslmode=disable" \
+	HG_POSTGRES_DSN="postgres://hg_app:$${HG_DB_APP_PASSWORD}@localhost:$(HOST_POSTGRES_PORT)/$${POSTGRES_DB}?sslmode=disable" \
 	HG_REDIS_ADDR="localhost:$(HOST_REDIS_PORT)" \
 	HG_MINIO_ENDPOINT="localhost:$(HOST_MINIO_PORT)" \
 	HG_MINIO_ACCESS_KEY="$${MINIO_ROOT_USER}" \
@@ -144,12 +141,23 @@ logs: ## Follow the API logs from both replicas
 ps: ## Show stack status
 	$(COMPOSE) ps
 
+# A .env made before the database roles existed lacks their passwords; copy the
+# example's in rather than fail, so `make up` keeps working on an old checkout.
+DB_ROLE_ENV := HG_DB_MIGRATOR_PASSWORD HG_DB_APP_PASSWORD
+
 .PHONY: ensure-env
 ensure-env:
 	@if [ ! -f $(ENV_FILE) ]; then \
 		cp $(DEPLOY_DIR)/.env.example $(ENV_FILE); \
 		echo "created $(ENV_FILE) from .env.example — edit the secrets before anything but local"; \
 	fi
+	@for k in $(DB_ROLE_ENV); do \
+		if ! grep -q "^$$k=" $(ENV_FILE); then \
+			[ -z "$$(tail -c1 $(ENV_FILE))" ] || echo >> $(ENV_FILE); \
+			grep "^$$k=" $(DEPLOY_DIR)/.env.example >> $(ENV_FILE); \
+			echo "added $$k to $(ENV_FILE) from .env.example"; \
+		fi; \
+	done
 
 # ---------------------------------------------------------------------------
 # Migrations
@@ -157,6 +165,9 @@ ensure-env:
 # ./migrations is owned by a sibling agent and is goose-annotated. The runner is
 # built from this service's Dockerfile (target: migrate), so there is one Go
 # toolchain in play rather than two.
+#
+# goose runs as hg_migrator, which owns the schema. The compose `pgroles` service
+# creates that role (as the superuser, from migrations/roles/roles.sql) first.
 # ---------------------------------------------------------------------------
 
 .PHONY: migrate

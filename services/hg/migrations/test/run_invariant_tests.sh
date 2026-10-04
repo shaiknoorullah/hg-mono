@@ -356,5 +356,54 @@ else
 fi
 
 echo
+echo "12. The API's role cannot switch the invariants off (00028, roles/roles.sql)"
+# The API logs in as hg_app. SET LOCAL ROLE gives this superuser session exactly
+# hg_app's rights for one transaction, so each case is what a compromised API
+# could try.
+AS_APP="SET LOCAL ROLE hg_app;"
+reject "hg_app cannot disable the ledger's triggers" "must be owner" \
+  "$AS_APP ALTER TABLE ledger_entry DISABLE TRIGGER ALL;"
+reject "hg_app cannot drop the append-only trigger" "must be owner" \
+  "$AS_APP DROP TRIGGER ledger_entry_append_only ON ledger_entry;"
+reject "hg_app cannot replace the trigger function" "permission denied for schema public" \
+  "$AS_APP CREATE OR REPLACE FUNCTION ledger_reject_mutation() RETURNS trigger
+     LANGUAGE plpgsql AS 'BEGIN RETURN NULL; END';"
+reject "hg_app cannot skip triggers with session_replication_role" "permission denied to set parameter" \
+  "$AS_APP SET LOCAL session_replication_role = replica;"
+reject "hg_app cannot TRUNCATE the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP TRUNCATE ledger_entry;"
+reject "hg_app cannot UPDATE an amount on the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP UPDATE ledger_entry SET amount_cents = 1;"
+reject "hg_app cannot DELETE from the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP DELETE FROM ledger_entry;"
+reject "hg_app cannot add a trigger" "permission denied for table ledger_entry" \
+  "$AS_APP CREATE TRIGGER probe BEFORE INSERT ON ledger_entry
+     FOR EACH ROW EXECUTE FUNCTION ledger_reject_mutation();"
+reject "hg_app cannot ALTER a table" "must be owner" \
+  "$AS_APP ALTER TABLE \"order\" DROP CONSTRAINT order_deadline_required;"
+reject "hg_app cannot CREATE in the schema" "permission denied for schema public" \
+  "$AS_APP CREATE TABLE probe (id int);"
+accept "hg_app can still read and write rows" \
+  "$AS_APP SELECT count(*) FROM ledger_entry;
+   SELECT next_channel_seq('order:hg-app-probe');"
+n_rows "hg_app is no superuser, cannot create roles or databases, cannot bypass RLS" "0" \
+  "SELECT 1 FROM pg_roles WHERE rolname = 'hg_app'
+     AND (rolsuper OR rolcreaterole OR rolcreatedb OR rolbypassrls OR rolreplication)"
+n_rows "hg_app owns nothing in the schema" "0" \
+  "SELECT 1 FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relowner = 'hg_app'::regrole
+   UNION ALL SELECT 1 FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND proowner = 'hg_app'::regrole
+   UNION ALL SELECT 1 FROM pg_type WHERE typnamespace = 'public'::regnamespace AND typowner = 'hg_app'::regrole"
+n_rows "hg_app is a member of no other role" "0" \
+  "SELECT 1 FROM pg_auth_members WHERE member = 'hg_app'::regrole"
+n_rows "hg_app holds no TRUNCATE, TRIGGER or REFERENCES grant anywhere" "0" \
+  "SELECT 1 FROM information_schema.table_privileges
+     WHERE grantee = 'hg_app' AND privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')"
+reject "hg_monitor, the exporter's role, cannot read a table" "permission denied for table ledger_entry" \
+  "SET LOCAL ROLE hg_monitor; SELECT count(*) FROM ledger_entry;"
+n_rows "every role that logs in, other than the superuser, has a connection limit" "0" \
+  "SELECT 1 FROM pg_roles WHERE rolname IN ('hg_app','hg_migrator','hg_monitor')
+     AND rolconnlimit < 0"
+
+echo
 printf 'passed %d, failed %d\n\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
