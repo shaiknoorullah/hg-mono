@@ -40,8 +40,10 @@ jobs:
           POSTGRES_PASSWORD: hg
           POSTGRES_DB: hg
         ports: ['55432:5432']
+        # Ready over TCP, not the socket: the image's first-start setup runs a temporary server
+        # on the socket only, so a socket check passes while the published port still resets.
         options: >-
-          --health-cmd "pg_isready -U hg"
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432 -U hg -d hg"
           --health-interval 5s --health-timeout 5s --health-retries 20
 
     env:
