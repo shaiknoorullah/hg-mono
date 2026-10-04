@@ -68,7 +68,7 @@ One switch stops new orders on the whole platform and leaves everything else run
 
 **Who:** an `ADMIN` or `SUPER_ADMIN`. A support agent can see whether it is on, but cannot change it.
 
-**Turn it on.** In the admin console, or with the API (`setOrderingPause` in [the contract](../../contracts/openapi.yaml)):
+**Turn it on** with the API (`setOrderingPause` in [the contract](../../contracts/openapi.yaml)); the admin console gets a button for it with [#389](https://github.com/shaiknoorullah/hg-mono/issues/389). The access token is the one `login` returns when you sign in with your email, password and two-step code; it lasts 15 minutes.
 
 ```sh
 curl -fsS -X PUT https://<api host>/v1/admin/ordering-pause \
@@ -77,12 +77,12 @@ curl -fsS -X PUT https://<api host>/v1/admin/ordering-pause \
   -d '{"paused": true, "reason": "Stripe is refusing authorisations; see the incident timeline"}'
 ```
 
-The reason is required (10 to 500 characters) and goes into the audit log with your name, as action `ordering.pause`. Write it for the next person on call. Note the UTC time in the timeline.
+The reason is required (10 to 500 characters) and goes into the audit log with your account, as action `ordering.pause`. Write it for the next person on call. Note the UTC time in the timeline.
 
-**What changes, within a second, on every API replica:**
+**What changes, on every API replica, from the next request:**
 
 - New quotes and new orders are refused with `409 ORDERING_PAUSED`. Nothing is stored and nothing is charged.
-- The customer app reads `ordering.paused` from the public config and the cart's `ORDERING_PAUSED` blocking reason, and says ordering is paused instead of failing at checkout.
+- The public config says `"ordering": {"paused": true}` and the cart says `ORDERING_PAUSED`, so the customer app can say ordering is paused instead of failing at checkout *(the app side lands with [#388](https://github.com/shaiknoorullah/hg-mono/issues/388))*.
 - Every order already placed carries on to the end: restaurant accept and reject, riders, tracking, payments (capture on acceptance, voids), refunds and the staff tools. Offers already sent keep their full 180-second window.
 
 The switch lives in Postgres, not Redis: flushing or restarting Redis does not turn it off, and nothing needs flushing to turn it on.
