@@ -8,18 +8,20 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 )
 
-// minioPresigner is a Presigner backed by the shared MinIO client. It mints a
-// short-lived, single-use GET URL for a private object (P-28). The certificate
-// document lives in a private bucket and is never served from a public URL.
+// minioPresigner is a Presigner backed by the shared MinIO signing client. It
+// mints a short-lived, single-use GET URL for a private object (P-28). The
+// certificate document lives in a private bucket and is never served from a
+// public URL. Links are signed by store.MinIO.Signer, for the public host a
+// phone can reach, never by the internal client, whose links name minio:9000.
 type minioPresigner struct {
 	objects *store.MinIO
 }
 
-// NewMinIOPresigner builds a Presigner over the store's MinIO client. A nil
-// client (or nil store) yields a nil Presigner, which the handler treats as "no
+// NewMinIOPresigner builds a Presigner over the store's MinIO signer. A nil
+// signer (or nil store) yields a nil Presigner, which the handler treats as "no
 // certificate is viewable" — a 404 rather than a fabricated URL.
 func NewMinIOPresigner(objects *store.MinIO) Presigner {
-	if objects == nil || objects.Client == nil {
+	if objects == nil || objects.Signer == nil {
 		return nil
 	}
 	return &minioPresigner{objects: objects}
@@ -29,7 +31,7 @@ func NewMinIOPresigner(objects *store.MinIO) Presigner {
 // is computed from the request time and the TTL so the client can display the
 // exact expiry the URL was signed with.
 func (p *minioPresigner) PresignGet(ctx context.Context, bucket, objectKey string, ttl time.Duration) (string, time.Time, error) {
-	signedURL, err := p.objects.Client.PresignedGetObject(ctx, bucket, objectKey, ttl, url.Values{})
+	signedURL, err := p.objects.Signer.PresignedGetObject(ctx, bucket, objectKey, ttl, url.Values{})
 	if err != nil {
 		return "", time.Time{}, err
 	}

@@ -25,6 +25,12 @@ export interface Route {
   noContent: boolean;
   /** `true` when the 2xx `data` is an array (so `meta` is required). */
   isCollection: boolean;
+  /**
+   * `true` when the 2xx body is `AcknowledgementResponse` — `{data: {acknowledged: true}}`,
+   * the same body whatever happened (e.g. `requestPasswordReset`, which must not reveal
+   * whether an account exists). There is nothing to vary, so it needs no fixture.
+   */
+  acknowledgement: boolean;
   requiresIdempotencyKey: boolean;
 }
 
@@ -81,6 +87,7 @@ export function loadRoutes(): { routes: Route[]; basePath: string; spec: any } {
         successStatus,
         noContent: successStatus === 204 || !jsonSchema,
         isCollection: dataSchema?.type === 'array',
+        acknowledgement: jsonSchema?.$ref === '#/components/schemas/AcknowledgementResponse',
         requiresIdempotencyKey: (op.parameters ?? []).some(
           (p: any) => p?.name === 'Idempotency-Key' && p?.required === true,
         ),

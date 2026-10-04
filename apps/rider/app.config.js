@@ -1,0 +1,77 @@
+/**
+ * The rider app's Expo config, per environment. It replaces the static `app.json`, which could
+ * not read the environment.
+ *
+ * `APP_ENV` (dev or prod) picks the app's name, package and version; the API it talks to comes
+ * from `EXPO_PUBLIC_API_BASE_URL`, which `scripts/release/app-env.cjs` sets for the same
+ * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
+ * API but production's. How to build each: docs/release/README.md.
+ *
+ * `@rnmapbox/maps` stays out of autolinking (package.json `expo.autolinking.exclude`) until the
+ * rider screens use a native map; its plugin only pins the SDK version.
+ */
+const { expoAppEnv } = require('../../scripts/release/app-env.cjs');
+
+const CAMERA_REASON =
+  'HalalGoes needs the camera to scan the handoff QR code at pickup and drop-off.';
+
+module.exports = () => {
+  const env = expoAppEnv(process.env);
+  return {
+    expo: {
+      name: `HalalGoes — Rider${env.nameSuffix}`,
+      slug: 'hg-rider',
+      version: env.version,
+      orientation: 'portrait',
+      scheme: 'hgrider',
+      userInterfaceStyle: 'light',
+      newArchEnabled: true,
+      platforms: ['ios', 'android', 'web'],
+      web: {
+        bundler: 'metro',
+        output: 'single',
+      },
+      ios: {
+        supportsTablet: true,
+        infoPlist: {
+          NSCameraUsageDescription: CAMERA_REASON,
+          NSLocationWhenInUseUsageDescription:
+            'HalalGoes uses your location to route you to pickups and drop-offs.',
+          NSLocationAlwaysAndWhenInUseUsageDescription:
+            "HalalGoes uses your location in the background so dispatch can find you while you're online.",
+        },
+      },
+      android: {
+        edgeToEdgeEnabled: true,
+        permissions: [
+          'CAMERA',
+          'ACCESS_FINE_LOCATION',
+          'ACCESS_COARSE_LOCATION',
+          'ACCESS_BACKGROUND_LOCATION',
+          'RECORD_AUDIO',
+        ],
+        package: `com.halalgoes.rider${env.idSuffix}`,
+        versionCode: env.versionCode,
+      },
+      plugins: [
+        'expo-dev-client',
+        'expo-font',
+        ['expo-camera', { cameraPermission: CAMERA_REASON }],
+        [
+          'expo-location',
+          {
+            locationAlwaysAndWhenInUsePermission:
+              "HalalGoes uses your location so dispatch can route you and find you while you're online.",
+          },
+        ],
+        ['@rnmapbox/maps', { RNMapboxMapsVersion: '11.8.0' }],
+      ],
+      extra: {
+        appEnv: env.name,
+        eas: {
+          projectId: 'TODO-set-after-eas-init',
+        },
+      },
+    },
+  };
+};

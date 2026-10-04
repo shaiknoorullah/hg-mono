@@ -1,0 +1,58 @@
+{
+  "scenario": "menu_item_created_by_admin",
+  "domain": "catalogue",
+  "schema": "MenuItemOwnerView",
+  "describes": "`createMenuItemOnBehalf`: approved on creation, because the reviewer and the author are the same accountable person. Live at once; the note says who added it.",
+  "operations": [
+    "createMenuItemOnBehalf"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "menu-editing"
+  ],
+  "payload": {
+    "id": "208bcc39-0521-4e32-a6bd-43c72845bc45",
+    "name": "Adana Kebab",
+    "description": "Hand-minced lamb on a wide skewer with sumac onion.",
+    "image_url": "https://cdn.halalgoes.ca/img/dish/adana-kebab.webp",
+    "price_cents": 2099,
+    "currency": "CAD",
+    "availability_state": "AVAILABLE",
+    "out_of_stock_until": null,
+    "dietary_tags": [
+      "HALAL_CERTIFIED",
+      "SPICY"
+    ],
+    "allergen_tags": [],
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "tax_category": "PREPARED_FOOD",
+    "prep_minutes": 18,
+    "variant_groups": [],
+    "addon_groups": [],
+    "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+    "sort_order": 10,
+    "live_version": {
+      "id": "999d7855-1620-4f3b-a92f-5afbfa59d694",
+      "menu_item_id": "208bcc39-0521-4e32-a6bd-43c72845bc45",
+      "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "version": 1,
+      "name": "Adana Kebab",
+      "description": "Hand-minced lamb on a wide skewer with sumac onion.",
+      "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+      "dietary_tags": [
+        "HALAL_CERTIFIED",
+        "SPICY"
+      ],
+      "allergen_tags": [],
+      "image_url": "https://cdn.halalgoes.ca/img/dish/adana-kebab.webp",
+      "review_status": "APPROVED",
+      "rejection_reason_code": null,
+      "review_note": "Edited by HalalGoes at the restaurant's request (phone, 10 Aug).",
+      "submitted_at": "2026-08-10T18:41:11.412Z",
+      "reviewed_at": "2026-08-10T18:41:11.412Z",
+      "created_at": "2026-08-10T18:41:11.412Z"
+    },
+    "pending_version": null
+  }
+}
