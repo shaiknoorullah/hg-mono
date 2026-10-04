@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -1399,6 +1399,8 @@ CREATE TABLE saved_payment_method (
   | `payout.paid` / `payout.failed` | update partner payout state, notify |
 
   **Reconciliation** (nightly, and on demand): pull Stripe balance transactions for the day and compare against `ledger_entry` on `PSP_CLEARING` and `PSP_FEES`. Any order present in one and not the other, or with an amount mismatch, is written to `reconciliation_exception` and paged. This is the backstop for a webhook that never arrived.
+
+  **Catch-up after a failover or a restore** (on demand): a failover or a restore from backup loses the last moments of writes, and with them any webhook stored in that window. `hg stripe-catchup --since <time>` closes the gap without waiting for the nightly run. It lists the Stripe events created since `<time>` and stores each one through the same store step a delivered webhook takes, so the unique index on the event id drops the ones already here, then applies every stored event in that window that has not been applied yet, oldest first. Next it reads back from Stripe every payment intent written in the last 24 hours (or since `<time>`, if that is earlier) and asserts its state through the same handlers; it never writes a payment state directly. It prints the transitions it applied and the mismatches left for a person (a payment Stripe knows and the database does not, one the database has further along than Stripe, or a captured or cancelled payment Stripe reports in a different final state, which it never moves by itself) and exits non-zero while any remain. It is a command of the `hg` binary, not an HTTP route, so only someone holding the server's own secrets can run it. A second run changes nothing.
 
 - **Data**:
 

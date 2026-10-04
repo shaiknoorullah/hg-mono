@@ -3,7 +3,7 @@ covers:
   - services/hg/cmd/**
   - services/hg/migrations/**
   - apps/restaurant/.claude/skills/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks

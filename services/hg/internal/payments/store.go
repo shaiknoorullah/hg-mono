@@ -607,6 +607,77 @@ func (r *Repo) InsertWebhookEvent(ctx context.Context, ev StripeEvent) (inserted
 	return tag.RowsAffected() == 1, nil
 }
 
+// storedEvent is one webhook_event row awaiting its business effect.
+type storedEvent struct {
+	ID            string // webhook_event.id
+	StripeEventID string
+	Payload       []byte
+}
+
+// UnprocessedWebhookEventsSince lists the stored events created at or after
+// since that have not been applied yet, oldest first.
+func (r *Repo) UnprocessedWebhookEventsSince(ctx context.Context, since time.Time) ([]storedEvent, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT id::text, stripe_event_id, payload
+		  FROM webhook_event
+		 WHERE provider = 'stripe' AND processed_at IS NULL AND event_created_at >= $1
+		 ORDER BY event_created_at, received_at`, since)
+	if err != nil {
+		return nil, fmt.Errorf("list unprocessed webhook events: %w", err)
+	}
+	defer rows.Close()
+	var out []storedEvent
+	for rows.Next() {
+		var e storedEvent
+		if err := rows.Scan(&e.ID, &e.StripeEventID, &e.Payload); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+// MarkWebhookEventProcessed stamps an applied event. processed_at is what lets
+// the row drop its deadline (webhook_event_deadline_required).
+func (r *Repo) MarkWebhookEventProcessed(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE webhook_event
+		   SET processed_at = now(), attempts = attempts + 1, last_error = NULL,
+		       deadline_at = NULL, deadline_action = NULL, lease_until = NULL, lease_owner = NULL
+		 WHERE id = $1 AND processed_at IS NULL`, id)
+	return err
+}
+
+// RecordWebhookEventFailure counts a failed attempt and keeps the row pending,
+// deadline and all, so it is retried.
+func (r *Repo) RecordWebhookEventFailure(ctx context.Context, id, lastError string) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE webhook_event SET attempts = attempts + 1, last_error = $2
+		 WHERE id = $1 AND processed_at IS NULL`, id, lastError)
+	return err
+}
+
+// IntentStripeIDsTouchedSince lists the Stripe ids of every payment_intent
+// row written at or after since, oldest first.
+func (r *Repo) IntentStripeIDsTouchedSince(ctx context.Context, since time.Time) ([]string, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT stripe_payment_intent_id FROM payment_intent
+		 WHERE updated_at >= $1 ORDER BY updated_at`, since)
+	if err != nil {
+		return nil, fmt.Errorf("list recently touched payment intents: %w", err)
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
 // ---------------------------------------------------------------------------
 // Ledger.
 // ---------------------------------------------------------------------------
@@ -615,6 +686,14 @@ func (r *Repo) InsertWebhookEvent(ctx context.Context, ev StripeEvent) (inserted
 // A CAPTURE batch whose idempotency_key already exists is a no-op (I-17.1).
 func (r *Repo) PostBatch(ctx context.Context, b LedgerBatch) error {
 	return r.tx(ctx, func(tx pgx.Tx) error { return insertBatch(ctx, tx, b) })
+}
+
+// LedgerBatchPosted reports whether a batch with this idempotency key exists.
+func (r *Repo) LedgerBatchPosted(ctx context.Context, idempotencyKey string) (bool, error) {
+	var posted bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM ledger_batch WHERE idempotency_key = $1)`, idempotencyKey).Scan(&posted)
+	return posted, err
 }
 
 func insertBatch(ctx context.Context, tx pgx.Tx, b LedgerBatch) error {

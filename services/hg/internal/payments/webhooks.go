@@ -33,6 +33,15 @@ func (s *Service) ReceiveWebhook(ctx context.Context, payload []byte, sigHeader 
 		return webhookResult{}, &DomainError{Code: "VALIDATION_FAILED", Status: 400,
 			Message: "Webhook signature verification failed."}
 	}
+	return s.storeEvent(ctx, ev, envIsLive)
+}
+
+// storeEvent is everything a webhook does after its signature checks out: the
+// livemode gate, then the insert under the (provider, stripe_event_id) unique
+// index. The on-demand catch-up (catchup.go) feeds events listed from the
+// Stripe API through here too, so a replayed event and a delivered one are
+// the same row, stored at most once.
+func (s *Service) storeEvent(ctx context.Context, ev StripeEvent, envIsLive bool) (webhookResult, error) {
 	// I-17.3: livemode on the event must match the environment or reject+alert.
 	if ev.LiveMode != envIsLive {
 		s.log.ErrorContext(ctx, "stripe webhook livemode mismatch — rejected",
@@ -71,6 +80,34 @@ type stripePIObject struct {
 	AmountCapturable int64  `json:"amount_capturable"`
 }
 
+// effectKind sorts what applying an event or a reconciliation did, so the
+// catch-up can count changes and list what needs a person without parsing
+// labels.
+type effectKind int
+
+const (
+	// effectUnchanged: already in that state, or an event we do not act on.
+	effectUnchanged effectKind = iota
+	// effectApplied: a state change or a ledger batch was written.
+	effectApplied
+	// effectBehind: the asserted state is earlier in the lifecycle than the
+	// database's, so nothing moved. From a webhook that is only a late,
+	// out-of-order event; from Stripe's current view of the intent it means
+	// the database is ahead of Stripe, which is a mismatch.
+	effectBehind
+	// effectMismatch: Stripe and the database disagree in a way the code
+	// will not settle by itself, so a person has to look.
+	effectMismatch
+)
+
+// effect is the outcome of one state assertion. Its label is the audit line.
+type effect struct {
+	kind  effectKind
+	label string
+}
+
+func (e effect) String() string { return e.label }
+
 // ProcessStoredEvent applies a stored webhook event's business effect. It is
 // idempotent: re-running it produces exactly one state change and one ledger
 // batch (I-17.1). The order state machine (owned by the orders module) is
@@ -79,82 +116,103 @@ type stripePIObject struct {
 //
 // It returns the set of effects applied, for the deadline runner's audit line.
 func (s *Service) ProcessStoredEvent(ctx context.Context, rawPayload []byte) (string, error) {
+	eff, err := s.processEvent(ctx, rawPayload)
+	return eff.String(), err
+}
+
+func (s *Service) processEvent(ctx context.Context, rawPayload []byte) (effect, error) {
 	var env stripeEventEnvelope
 	if err := json.Unmarshal(rawPayload, &env); err != nil {
-		return "", fmt.Errorf("parse stored event: %w", err)
+		return effect{}, fmt.Errorf("parse stored event: %w", err)
 	}
+	var target PaymentState
 	switch env.Type {
 	case "payment_intent.amount_capturable_updated":
-		return s.applyPIState(ctx, env, StateRequiresCapture)
+		target = StateRequiresCapture
 	case "payment_intent.requires_action":
-		return s.applyPIState(ctx, env, StateRequiresAction)
+		target = StateRequiresAction
 	case "payment_intent.succeeded":
-		return s.applyPISucceeded(ctx, env)
+		target = StateSucceeded
 	case "payment_intent.payment_failed":
-		return s.applyPIState(ctx, env, StateFailed)
+		target = StateFailed
 	case "payment_intent.canceled":
-		return s.applyPIState(ctx, env, StateCanceled)
+		target = StateCanceled
 	default:
 		// Events we recognise but do not yet act on (transfers, disputes,
 		// account.updated, payout.*) are marked processed by the runner without
 		// a payment_intent effect. Returning no error keeps them from retrying.
-		return "ignored:" + env.Type, nil
+		return effect{effectUnchanged, "ignored:" + env.Type}, nil
 	}
-}
-
-// applyPIState advances a payment_intent to `target` only if that is not
-// earlier in the lifecycle than the current state (the out-of-order guard).
-func (s *Service) applyPIState(ctx context.Context, env stripeEventEnvelope, target PaymentState) (string, error) {
 	var obj stripePIObject
 	if err := json.Unmarshal(env.Data.Object, &obj); err != nil {
-		return "", fmt.Errorf("parse payment_intent object: %w", err)
+		return effect{}, fmt.Errorf("parse payment_intent object: %w", err)
 	}
-	cur, err := s.repo.GetIntentByStripeID(ctx, obj.ID)
+	return s.assertIntentState(ctx, obj.ID, target, obj.AmountReceived)
+}
+
+// assertIntentState is the one transition path for a payment_intent, shared by
+// webhook processing and the catch-up's reconciliation. It is a state
+// assertion, never a delta: it never moves a PI backwards (out-of-order
+// safety, docs/spec/01-platform.md "Webhooks, idempotency and
+// reconciliation"), and never moves a captured or cancelled one at all.
+// amountReceived is read only for SUCCEEDED.
+func (s *Service) assertIntentState(ctx context.Context, stripeID string, target PaymentState, amountReceived int64) (effect, error) {
+	cur, err := s.repo.GetIntentByStripeID(ctx, stripeID)
 	if errors.Is(err, ErrNotFound) {
-		return "unknown_intent:" + obj.ID, nil
+		return effect{effectMismatch, "unknown_intent:" + stripeID}, nil
 	}
 	if err != nil {
-		return "", err
+		return effect{}, err
 	}
-	if paymentStateRank[target] < paymentStateRank[PaymentState(cur.State)] {
-		return fmt.Sprintf("skipped_backwards:%s<-%s", cur.State, target), nil
+	curState := PaymentState(cur.State)
+	if paymentStateRank[target] < paymentStateRank[curState] {
+		return effect{effectBehind, fmt.Sprintf("skipped_backwards:%s<-%s", curState, target)}, nil
 	}
-	applied, err := s.repo.AdvanceIntentState(ctx, obj.ID, target)
+	// A captured or cancelled payment is settled: Stripe never moves one of
+	// those to another final state, so an assertion that it did is a
+	// disagreement for a person, not a transition. Above all, a cancelled
+	// authorisation never has money captured against it here.
+	if (curState == StateSucceeded || curState == StateCanceled) && target != curState {
+		return effect{effectMismatch, fmt.Sprintf("settled_conflict:%s<-%s", curState, target)}, nil
+	}
+	if target == StateSucceeded {
+		return s.recordSucceeded(ctx, cur, amountReceived)
+	}
+	applied, err := s.repo.AdvanceIntentState(ctx, stripeID, target)
 	if err != nil {
-		return "", err
+		return effect{}, err
 	}
 	if !applied {
-		return "noop:" + string(target), nil
+		return effect{effectUnchanged, "noop:" + string(target)}, nil
 	}
-	return "advanced:" + string(target), nil
+	return effect{effectApplied, "advanced:" + string(target)}, nil
 }
 
-// applyPISucceeded records the capture: set the captured amount and, if not
+// recordSucceeded records the capture: set the captured amount and, if not
 // already posted, post the CAPTURE ledger batch. The batch's idempotency key is
 // the order id so a redelivered succeeded event posts exactly one batch.
-func (s *Service) applyPISucceeded(ctx context.Context, env stripeEventEnvelope) (string, error) {
-	var obj stripePIObject
-	if err := json.Unmarshal(env.Data.Object, &obj); err != nil {
-		return "", fmt.Errorf("parse payment_intent object: %w", err)
-	}
-	cur, err := s.repo.GetIntentByStripeID(ctx, obj.ID)
-	if errors.Is(err, ErrNotFound) {
-		return "unknown_intent:" + obj.ID, nil
-	}
-	if err != nil {
-		return "", err
-	}
-	captured := obj.AmountReceived
+func (s *Service) recordSucceeded(ctx context.Context, cur IntentRow, amountReceived int64) (effect, error) {
+	captured := amountReceived
 	if captured == 0 {
 		captured = cur.AmountAuthorizedCents
 	}
+	key := "capture:" + cur.OrderID
+	if PaymentState(cur.State) == StateSucceeded && cur.AmountCapturedCents == captured {
+		posted, err := s.repo.LedgerBatchPosted(ctx, key)
+		if err != nil {
+			return effect{}, err
+		}
+		if posted {
+			return effect{effectUnchanged, "noop:" + string(StateSucceeded)}, nil
+		}
+	}
 	money, _, err := s.repo.GetOrderMoney(ctx, cur.OrderID)
 	if err != nil {
-		return "", err
+		return effect{}, err
 	}
-	batch := BuildCaptureBatch(money, "capture:"+cur.OrderID, "system:capture")
-	if err := s.repo.RecordCapture(ctx, obj.ID, captured, batch); err != nil {
-		return "", err
+	batch := BuildCaptureBatch(money, key, "system:capture")
+	if err := s.repo.RecordCapture(ctx, cur.StripePaymentIntentID, captured, batch); err != nil {
+		return effect{}, err
 	}
-	return "captured:" + cur.OrderID, nil
+	return effect{effectApplied, "captured:" + cur.OrderID}, nil
 }
