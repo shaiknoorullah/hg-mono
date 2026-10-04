@@ -266,7 +266,7 @@ func (r *DeadlineRunner) reArm(ctx context.Context, c claimedOrder, start time.T
 // deadline_audit_once index, which makes "every deadline action runs exactly
 // once" (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions",
 // rules) a database fact. A row handled by the outage path carries its outage_id; the
-// schema refuses an OUTAGE_* outcome without one (migrations/00028).
+// schema refuses an OUTAGE_* outcome without one (migrations/00042).
 func (r *DeadlineRunner) recordAudit(ctx context.Context, tx pgx.Tx, c claimedOrder, action, outcome string) error {
 	lagMs := int(time.Since(c.deadlineAt).Milliseconds())
 	_, err := tx.Exec(ctx, `

@@ -6,19 +6,30 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 152
-- **Validated (covered):** 152
-- **Not yet validated (uncovered):** 0
+- **Total contract operations:** 155
+- **Validated (covered):** 8
+- **Not yet validated (uncovered):** 147
 
-## Covered (152)
+## Covered (8)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
-- `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
 - `addCartLine` — POST /v1/cart/lines
+- `cancelOrder` — POST /v1/orders/{orderId}/cancel
+- `createOrder` — POST /v1/orders
+- `createQuote` — POST /v1/quotes
+- `createRealtimeTicket` — POST /v1/realtime/ticket
+- `getAssignment` — GET /v1/riders/me/assignments/{assignmentId}
+- `receiveStripeWebhook` — POST /v1/webhooks/stripe
+
+## Uncovered (147)
+
+Each uncovered operation is listed with its method/path. This list is emitted
+every run: an operation silently losing coverage becomes visible here.
+
+- `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
 - `attachRestaurantDocument` — POST /v1/restaurant/documents
 - `attachRiderDocument` — POST /v1/riders/me/documents
 - `bindPackageSeal` — POST /v1/orders/{orderId}/handoff/seal
-- `cancelOrder` — POST /v1/orders/{orderId}/cancel
 - `cancelOrderAdmin` — POST /v1/admin/orders/{orderId}/cancel
 - `changePassword` — POST /v1/auth/password/change
 - `clearCart` — DELETE /v1/cart
@@ -33,10 +44,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `createMenuCategoryOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/categories
 - `createMenuItem` — POST /v1/restaurant/menu/items
 - `createMenuItemOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/items
-- `createOrder` — POST /v1/orders
 - `createPaymentMethodSetupIntent` — POST /v1/payment-methods/setup-intent
-- `createQuote` — POST /v1/quotes
-- `createRealtimeTicket` — POST /v1/realtime/ticket
 - `createRefund` — POST /v1/refunds
 - `createRestaurantStaffUser` — POST /v1/restaurant/staff
 - `createStaffUser` — POST /v1/admin/staff
@@ -47,12 +55,12 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `decideRiderApplication` — POST /v1/admin/rider-applications/{riderAccountId}/decision
 - `delayOrder` — POST /v1/restaurant/orders/{orderId}/delay
 - `deleteAddress` — DELETE /v1/addresses/{addressId}
+- `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
 - `deletePaymentMethod` — DELETE /v1/payment-methods/{paymentMethodId}
 - `disableTotp` — POST /v1/auth/totp/disable
 - `enrollTotp` — POST /v1/auth/totp/enroll
 - `getActiveOrder` — GET /v1/orders/active
 - `getAddress` — GET /v1/addresses/{addressId}
-- `getAssignment` — GET /v1/riders/me/assignments/{assignmentId}
 - `getCart` — GET /v1/cart
 - `getConnectStatus` — GET /v1/connect/status
 - `getCurrentOffer` — GET /v1/riders/me/offers/current
@@ -118,7 +126,6 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `markNotificationRead` — POST /v1/notifications/{notificationId}/read
 - `markOrderReady` — POST /v1/restaurant/orders/{orderId}/ready
 - `proposeHalalIssuingBody` — POST /v1/admin/halal-issuing-bodies
-- `receiveStripeWebhook` — POST /v1/webhooks/stripe
 - `recordHalalChecks` — PUT /v1/admin/halal-certificates/{certificateId}/checks
 - `refreshSession` — POST /v1/auth/refresh
 - `registerDevice` — POST /v1/devices
@@ -160,13 +167,9 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `updateAddress` — PATCH /v1/addresses/{addressId}
 - `updateCartLine` — PATCH /v1/cart/lines/{lineId}
 - `updateCustomerProfile` — PATCH /v1/me/profile
+- `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId}
 - `updateMenuItem` — PATCH /v1/restaurant/menu/items/{itemId}
+- `updateMenuItemOnBehalf` — PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
 - `verifyEmail` — POST /v1/auth/email/verify
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
-
-## Uncovered (0)
-
-Each uncovered operation is listed with its method/path. This list is emitted
-every run: an operation silently losing coverage becomes visible here.
-

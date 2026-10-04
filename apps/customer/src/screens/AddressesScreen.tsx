@@ -69,7 +69,19 @@ export function AddressesScreen(): React.ReactElement {
         actions={[
           {
             key: 'add',
-            icon: <Icon name="plus" weight="bold" size={20} color={theme.color.text.onBrand} />,
+            // AppBar paints surface.chrome (dark forest) and cannot recolour an icon it is
+            // handed as a node, so the icon has to match the bar's own foreground. It was
+            // text.onBrand — the dark ink meant for the orange button — at 1.33:1 on the
+            // chrome, which made the only way to add an address effectively invisible. Same
+            // pairing AppBar uses for its title; there is no text.onChrome token.
+            icon: (
+              <Icon
+                name="plus"
+                weight="bold"
+                size={20}
+                color={theme.scheme === 'dark' ? theme.color.text.primary : theme.color.text.onInverse}
+              />
+            ),
             accessibilityLabel: 'Add address',
             onPress: () => nav.push({ name: 'addressForm', addressId: null }),
           },

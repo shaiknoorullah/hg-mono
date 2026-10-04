@@ -63,6 +63,27 @@ The two schema lints are also runnable on their own:
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f lint/schema_lint.sql
 ```
 
+## Retention: what is deleted, and what never is
+
+Some tables only grow: the outbox, socket and ticket records, sign-in records,
+idempotency records, sessions, Stripe webhooks, the search log, notifications
+and quotes. The hourly retention sweep in
+[`internal/retention`](../internal/retention/rules.go) deletes their rows once
+they are past a retention period, in batches of 2,000, on one replica at a time.
+Each table's period, and the spec section it comes from, sits next to its rule
+in `rules.go` and in the
+[retention periods decision](../../../docs/decisions/data-retention-periods.md). `00028_retention_indexes.sql` adds the indexes the sweep needs:
+one on each age column a rule filters by, and one on every column that holds a
+foreign key to `session`, so deleting a session does not scan the tables that
+point at it.
+
+The sweep never deletes from the ledger, orders, the audit trail, KYC records,
+or payments, refunds and payouts. Those are kept for years by law, and the
+ledger and audit tables refuse `DELETE` to `hg_app` outright (`00023`); a test
+in `internal/retention/rules_test.go` fails if a rule ever names one of them. A
+quote an order was placed from is part of that order's record and is never
+deleted either.
+
 ## Contract enums
 
 `00002_enums.sql` is **generated**, never hand-edited:
@@ -79,7 +100,7 @@ unaccounted for, and `gen_enums.py` refuses to generate.
 
 ## Verification
 
-- **Applied**: `goose up` runs all 28 migrations against a real
+- **Applied**: `goose up` runs all 29 migrations against a real
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
