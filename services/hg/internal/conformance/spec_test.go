@@ -18,8 +18,10 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// getOrderRating/submitOrderRating (durable food+rider ratings, replacing
 	// the previously in-memory customer rating state) + bindPackageSeal/
 	// scanPickup/scanDelivery/reportTamper (internal/handoff, migration 00027:
-	// the tamper-evident seal chain of custody that gates PICKED_UP/DELIVERED).
-	const wantOps = 152
+	// the tamper-evident seal chain of custody that gates PICKED_UP/DELIVERED) +
+	// createPayoutRun/listPayoutRuns/getPayoutRun (the weekly payout run, run
+	// now by an admin, and its audit trail: issue #251).
+	const wantOps = 155
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

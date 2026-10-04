@@ -6,11 +6,11 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 152
-- **Validated (covered):** 152
+- **Total contract operations:** 155
+- **Validated (covered):** 155
 - **Not yet validated (uncovered):** 0
 
-## Covered (152)
+## Covered (155)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
@@ -35,6 +35,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `createMenuItemOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/items
 - `createOrder` — POST /v1/orders
 - `createPaymentMethodSetupIntent` — POST /v1/payment-methods/setup-intent
+- `createPayoutRun` — POST /v1/admin/payout-runs
 - `createQuote` — POST /v1/quotes
 - `createRealtimeTicket` — POST /v1/realtime/ticket
 - `createRefund` — POST /v1/refunds
@@ -71,6 +72,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getOrderRiderPublicProfile` — GET /v1/orders/{orderId}/rider
 - `getOrderTracking` — GET /v1/orders/{orderId}/tracking
 - `getOwnMenu` — GET /v1/restaurant/menu
+- `getPayoutRun` — GET /v1/admin/payout-runs/{runId}
 - `getPublicConfig` — GET /v1/config/public
 - `getQuote` — GET /v1/quotes/{quoteId}
 - `getReadiness` — GET /health/ready
@@ -99,6 +101,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `listOrders` — GET /v1/orders
 - `listOrdersAdmin` — GET /v1/admin/orders
 - `listPaymentMethods` — GET /v1/payment-methods
+- `listPayoutRuns` — GET /v1/admin/payout-runs
 - `listRefunds` — GET /v1/refunds
 - `listRestaurantApplications` — GET /v1/admin/restaurant-applications
 - `listRestaurantDocuments` — GET /v1/restaurant/documents
