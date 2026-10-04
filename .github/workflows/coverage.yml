@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 30
     permissions:
       contents: write # push the baseline branch (main only)
@@ -50,12 +50,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+          # GitHub's cache upload runs at home-upload speed on our runners, which keep
+          # the pnpm store on disk anyway; cache only on GitHub's runners.
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - uses: actions/setup-go@v5
         with:
           go-version-file: services/hg/go.mod
           cache-dependency-path: services/hg/go.sum
+          # Our runners keep the Go caches on disk; uploading them to GitHub took over
+          # 15 minutes per job. Cache only on GitHub's runners.
+          cache: ${{ runner.environment == 'github-hosted' }}
 
       - run: pnpm install --frozen-lockfile
 
