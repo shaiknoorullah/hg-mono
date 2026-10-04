@@ -97,7 +97,8 @@ The database has three logins, each with its own password in `deploy/.env`: the 
 superuser (`POSTGRES_PASSWORD`) only creates the roles; goose runs as `hg_migrator`
 (`HG_DB_MIGRATOR_PASSWORD`), which owns the schema; the API runs as `hg_app`
 (`HG_DB_APP_PASSWORD`), which can read and write rows but cannot change the schema or switch the
-ledger's triggers off. `make up` and `make migrate` create and update the roles first, from
+ledger's triggers off; its hourly partition upkeep goes through two narrow functions that run as
+`hg_migrator`. `make up` and `make migrate` create and update the roles first, from
 [`services/hg/migrations/roles/roles.sql`](services/hg/migrations/roles/roles.sql); the reasons
 are in [the migrations README](services/hg/migrations/README.md#who-connects-as-whom).
 

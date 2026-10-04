@@ -5,7 +5,7 @@
 --                goose logs in as this role.
 --   hg_app       the role the API logs in as. Not a superuser, not an owner, no
 --                DDL. Its grants are in 00023_grants_and_lints.sql and
---                00029_least_privilege.sql; nothing else.
+--                00032_least_privilege.sql; nothing else.
 --   hg_monitor   for the metrics exporter: the built-in pg_monitor role and no
 --                access to any table. It may log in only when
 --                HG_DB_MONITOR_PASSWORD is set (the exporter is
@@ -99,7 +99,7 @@ SELECT format('REVOKE %I FROM hg_app', r.rolname)
 -- names the table without a schema, so the ledger's zero-sum check would sum
 -- the fake rows and pass an unbalanced batch; the audit hash chain could be fed
 -- a fake head the same way. Neither the API, River nor goose uses temp tables.
--- 00029_least_privilege.sql also pins those functions' search_path.
+-- 00032_least_privilege.sql also pins those functions' search_path.
 SELECT format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database()) \gexec
 SELECT format('REVOKE TEMPORARY ON DATABASE %I FROM hg_app', current_database()) \gexec
 
