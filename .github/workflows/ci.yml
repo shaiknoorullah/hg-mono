@@ -1,0 +1,656 @@
+name: ci
+
+# The code checks, each run only when something it checks changed, behind one `gate` job.
+# Was: tests.yml, contracts.yml and coverage.yml, which ran every job on every PR (issue #287).
+#
+#   contract-kit  the client, the fixtures and the mock cannot drift from contracts/openapi.yaml:
+#                 every one of them is regenerated here and any difference fails the build.
+#   js            lint and every JS unit-test suite. No baseline: a known-failing test stays red
+#                 until it is fixed, not hidden.
+#   go            go vet and the Go test suite (testcontainers-backed tests need Docker).
+#   coverage      measured on every PR, never allowed to drop, with fixed floors only where money
+#                 and safety live (issue #118). On a PR every changed file must stay at or above
+#                 coverage/baseline.json and every area in coverage/floors.json at or above its
+#                 floor; the table is posted as one PR comment. On main the baseline is raised
+#                 (never lowered) through a PR. Weekly, a full scan opens one issue per finding.
+#                 Each suite runs once (issue #374): js and go run theirs with coverage on, fail
+#                 on red tests (issue #42), and hand their numbers to this job as a small JSON
+#                 file; this job only compares. Red tests do not stop coverage: it is measured
+#                 from whatever ran. Local: `pnpm coverage && pnpm coverage:check` (issue #43).
+#   gate          always runs; passes when every job above passed or was skipped because
+#                 nothing it checks changed. Make this the one required check.
+#
+# Runners and trust: docs/ci/self-hosted-runners.md. The checks run on HG_RUNS_ON with a
+# read-only token and no secrets, for trusted PRs only. The three coverage jobs that write
+# (PR comment, baseline PR, weekly issues) run no repository code and stay on GitHub's runners.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC: coverage full scan
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A new push to a PR cancels its old run. On main, runs queue instead, so every merge gets
+  # its tests and its coverage baseline.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # What changed. Each check below runs only when a path it checks changed, or this file did.
+  changes:
+    if: >-
+      (github.event_name == 'schedule' ||
+       (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+      (github.event_name != 'pull_request' ||
+       (github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login)))
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read # a PR's changed files come from the API; no checkout needed
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      js: ${{ steps.filter.outputs.js }}
+      coverage: ${{ steps.filter.outputs.coverage }}
+    steps:
+      # A push is compared with the commit before it, which needs the history.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: github.event_name == 'push'
+        with:
+          clean: true
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        with:
+          filters: |
+            go:
+              - 'services/hg/**'
+              - 'contracts/**'
+              - '.github/workflows/ci.yml'
+            js:
+              - 'apps/**'
+              - 'packages/**'
+              - 'contracts/**'
+              - 'tools/contract-tools/**'
+              - 'tools/mock-server/**'
+              # Exported by packages/emails; contract-kit checks they were not hand-edited.
+              - 'services/hg/internal/notify/emailtmpl/templates/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.npmrc'
+              - 'tsconfig.json'
+              - '.github/workflows/ci.yml'
+            coverage:
+              - 'services/hg/**'
+              - 'apps/**'
+              - 'packages/**'
+              - 'contracts/**'
+              - 'coverage/**'
+              - '.github/scripts/coverage.mjs'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.github/workflows/ci.yml'
+
+  contracts:
+    name: contract-kit
+    needs: changes
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push') &&
+      needs.changes.outputs.js == 'true' &&
+      (
+       (github.event_name == 'schedule' ||
+        (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+       (github.event_name != 'pull_request' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          clean: true
+          persist-credentials: false
+
+      # No `version:` here on purpose. `package.json` already pins
+      # `packageManager: pnpm@10.33.0`, and action-setup@v4 refuses to start when
+      # the version is declared in both places — it cannot tell which one you
+      # meant, and a silent mismatch is how a lockfile gets rewritten by the
+      # wrong pnpm. Leaving it out makes `packageManager` the single source, so
+      # CI and a developer's machine resolve the same version by construction.
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      # The pnpm store, keyed by pnpm-lock.yaml, from the Actions cache on GitHub's runners.
+      # A self-hosted runner keeps its own store and uploads nothing.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
+
+      - if: runner.environment == 'github-hosted'
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      # Self-hosted (#287): use the machine's python3 in a private venv, since
+      # setup-python has no builds for the workstation's distro and system pip is managed.
+      - if: runner.environment != 'github-hosted'
+        name: python (self-hosted venv)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - run: pip install pyyaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # 1. The contract itself: refs resolve, operationIds are unique and camelCase, every
+      #    operation declares x-roles and x-version, money is integer cents and never
+      #    inbound outside the allowlist, ErrorCode is SCREAMING_SNAKE_CASE, no YAML-1.1
+      #    truthy scalars, no unsatisfiable allOf.
+      - name: validate contract
+        run: pnpm validate:contract
+
+      # 2. The generated client is exactly what the contract produces. A hand edit to
+      #    packages/api-client/src/generated/** fails here.
+      - name: client is not hand-edited
+        run: pnpm generate:check
+
+      # 3. The fixtures are exactly what the builder produces. A hand edit to
+      #    contracts/fixtures/** fails here.
+      - name: fixtures are not hand-edited
+        run: |
+          pnpm fixtures:build
+          git diff --exit-code -- contracts/fixtures
+
+      # 4. Every fixture still validates against its schema.
+      - name: validate fixtures
+        run: pnpm validate:fixtures
+
+      - name: typecheck
+        run: pnpm -r typecheck
+
+      # The email templates the Go service embeds are exactly what packages/emails
+      # exports. A hand edit to services/hg/internal/notify/emailtmpl/templates/**,
+      # or a template changed without re-exporting, fails here.
+      - name: email templates are not hand-edited
+        run: pnpm emails:check
+
+      # 5. The mock actually boots and serves the contract. It runs in its own process
+      #    group, so the cleanup step below stops all of it.
+      - name: mock server smoke test
+        env:
+          # Not 4010: a developer's own `pnpm mock` may hold it on a self-hosted runner.
+          PORT: '54010'
+          HOST: 127.0.0.1
+        run: |
+          setsid pnpm mock &
+          echo $! > "$RUNNER_TEMP/mock.pid"
+          for _ in $(seq 1 30); do
+            curl -sf "localhost:$PORT/__mock/health" >/dev/null && break
+            sleep 1
+          done
+          curl -sf "localhost:$PORT/__mock/health" | tee /dev/stderr | grep -q '"status":"ok"'
+          curl -sf "localhost:$PORT/v1/orders/any?scenario=order_arrived" | grep -q '"state":"ARRIVED"'
+          curl -s "localhost:$PORT/v1/definitely-not-a-route" | grep -q 'NOT_FOUND'
+
+      - name: stop the mock server
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/mock.pid" ] || exit 0
+          kill -- "-$(cat "$RUNNER_TEMP/mock.pid")" 2>/dev/null || true
+
+  js:
+    needs: changes
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push') &&
+      needs.changes.outputs.js == 'true' &&
+      (
+       (github.event_name == 'schedule' ||
+        (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+       (github.event_name != 'pull_request' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          clean: true
+          persist-credentials: false
+
+      # No `version:` — `packageManager` in package.json is the single source (see contracts).
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: lint
+        run: pnpm lint
+
+      # Runs even when lint failed, so one PR shows both results. Every package's suite runs
+      # (the script refuses to start if a package with a `test` script is missing from it),
+      # once, with coverage on. Red tests fail this step after coverage is written.
+      - name: test
+        if: ${{ !cancelled() }}
+        run: node .github/scripts/coverage.mjs collect --js --fail-on-red
+
+      # A few KB of JSON for the coverage job, kept even when tests were red.
+      - name: hand the coverage to the coverage job
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-slice-js
+          path: coverage/.out/summary.json
+          retention-days: 3
+          overwrite: true # a re-run replaces it
+
+  go:
+    needs: changes
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push') &&
+      needs.changes.outputs.go == 'true' &&
+      (
+       (github.event_name == 'schedule' ||
+        (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+       (github.event_name != 'pull_request' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    timeout-minutes: 30
+    env:
+      # The testcontainers reaper removes the tests' containers when the test process ends,
+      # even when it crashes or the job is cancelled. Never let a runner turn it off.
+      TESTCONTAINERS_RYUK_DISABLED: 'false'
+    defaults:
+      run:
+        working-directory: services/hg
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          clean: true
+          persist-credentials: false
+
+      # Module and build caches, keyed by go.sum, from the Actions cache on GitHub's runners.
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: services/hg/go.mod
+          cache: ${{ runner.environment == 'github-hosted' }}
+          cache-dependency-path: services/hg/go.sum
+
+      # Node runs the coverage script below: built-ins only, nothing to install.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: vet
+        run: make vet
+
+      # `make test` (go test -race ./...) with coverage on, once: tests that need
+      # HG_TEST_POSTGRES_DSN skip when it is unset; the testcontainers-backed ones run here
+      # because the runner has Docker. Red tests fail this step after coverage is written.
+      - name: test
+        if: ${{ !cancelled() }}
+        working-directory: .
+        run: node .github/scripts/coverage.mjs collect --go --fail-on-red
+
+      # A few KB of JSON for the coverage job, kept even when tests were red.
+      - name: hand the coverage to the coverage job
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-slice-go
+          path: coverage/.out/summary.json
+          retention-days: 3
+          overwrite: true # a re-run replaces it
+
+  # Compares; measures nothing itself unless a suite's job did not run (see "which suites to
+  # measure here"). Waits for go and js, and runs when they failed: red tests do not stop it.
+  coverage:
+    needs: [changes, go, js]
+    if: >-
+      !cancelled() && needs.changes.result == 'success' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+       needs.changes.outputs.coverage == 'true') &&
+      (
+       (github.event_name == 'schedule' ||
+        (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) &&
+       (github.event_name != 'pull_request' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: read # compare the table with the PR's coverage comment
+      pull-requests: read
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: 'false'
+    outputs:
+      comment: ${{ steps.comment.outputs.post }}
+      comment-id: ${{ steps.comment.outputs.id }}
+      baseline: ${{ steps.baseline.outputs.rose }}
+      findings: ${{ steps.scan.outputs.findings }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0 # the ratchet diffs against the PR base
+          clean: true
+          persist-credentials: false
+
+      # Each suite runs once per workflow run, in its own job when that job runs (issue #374).
+      # A suite whose job was skipped had nothing it measures change, so its numbers are main's
+      # and nothing here compares them, unless the coverage tool or its floors changed: then,
+      # and for the weekly scan (the go and js jobs run only on PRs and pushes), it runs here.
+      - name: which suites to measure here
+        id: here
+        env:
+          EVENT: ${{ github.event_name }}
+          GO: ${{ needs.go.result }}
+          JS: ${{ needs.js.result }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          tool=true # changed, or there is nothing to compare with
+          if { [ "$EVENT" = pull_request ] || [ "$EVENT" = push ]; } &&
+            git cat-file -e "${BASE:-none}^{commit}" 2>/dev/null &&
+            git diff --quiet "$BASE"...HEAD -- coverage .github/scripts/coverage.mjs; then
+            tool=false
+          fi
+          for suite in go js; do
+            result=$GO
+            [ "$suite" = go ] || result=$JS
+            here=false
+            if [ "$result" = skipped ] && [ "$tool" = true ]; then here=true; fi
+            echo "$suite: job $result, measured here: $here"
+            echo "$suite=$here" >> "$GITHUB_OUTPUT"
+          done
+
+      # pnpm and Go only for a suite measured here: comparing needs only Node and git.
+      # Version comes from package.json `packageManager` (see contracts).
+      - if: steps.here.outputs.js == 'true'
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: ${{ runner.environment == 'github-hosted' && steps.here.outputs.js == 'true' && 'pnpm' || '' }}
+
+      - if: steps.here.outputs.go == 'true'
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: services/hg/go.mod
+          cache: ${{ runner.environment == 'github-hosted' }}
+          cache-dependency-path: services/hg/go.sum
+
+      - if: steps.here.outputs.js == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # Never fails on red tests; see the note at the top.
+      - name: measure the suites whose job did not run
+        if: steps.here.outputs.go == 'true' || steps.here.outputs.js == 'true'
+        env:
+          GO_HERE: ${{ steps.here.outputs.go }}
+          JS_HERE: ${{ steps.here.outputs.js }}
+        run: |
+          suites=()
+          if [ "$GO_HERE" = true ]; then suites+=(--go); fi
+          if [ "$JS_HERE" = true ]; then suites+=(--js); fi
+          node .github/scripts/coverage.mjs collect "${suites[@]}"
+
+      # What the go and js jobs measured: one small JSON file each, not the raw profiles.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: coverage-slice-*
+          path: ${{ runner.temp }}/coverage-slices
+
+      # A job that ran, green or red, must have left its numbers; a skipped one left none.
+      - name: join the suites' coverage
+        env:
+          GO: ${{ needs.go.result }}
+          JS: ${{ needs.js.result }}
+        run: |
+          slices=()
+          if [ "$GO" != skipped ]; then slices+=("$RUNNER_TEMP/coverage-slices/coverage-slice-go/summary.json"); fi
+          if [ "$JS" != skipped ]; then slices+=("$RUNNER_TEMP/coverage-slices/coverage-slice-js/summary.json"); fi
+          node .github/scripts/coverage.mjs merge "${slices[@]}"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-summary
+          path: coverage/.out/summary.json
+          retention-days: 14
+
+      # ---------------------------------------------------------------- pull request
+      - name: ratchet and floors
+        id: check
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node .github/scripts/coverage.mjs check --base "$BASE_SHA"
+
+      # The `coverage-comment` job posts the table; it runs only when the table changed.
+      - name: does the coverage comment need updating
+        id: comment
+        if: always() && github.event_name == 'pull_request' && steps.check.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ ! -f coverage/.out/report.md ]; then echo "post=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- coverage-report -->")))][0].id // empty' | head -n 1)
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          if [ -n "$id" ] && [ "$(gh api "repos/$REPO/issues/comments/$id" --jq .body)" = "$(cat coverage/.out/report.md)" ]; then
+            echo "the PR's coverage comment is up to date"
+            echo "post=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "post=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && steps.comment.outputs.post == 'true'
+        with:
+          name: coverage-report
+          path: coverage/.out/report.md
+          retention-days: 1
+
+      # ---------------------------------------------------------------- push to main
+      # The `coverage-baseline` job commits it and opens the PR.
+      - name: raise the baseline
+        id: baseline
+        if: github.event_name == 'push'
+        run: |
+          node .github/scripts/coverage.mjs update-baseline
+          if git diff --quiet -- coverage/baseline.json; then
+            echo "coverage did not rise; baseline unchanged"
+            echo "rose=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "rose=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: steps.baseline.outputs.rose == 'true'
+        with:
+          name: coverage-baseline
+          path: coverage/baseline.json
+          retention-days: 1
+
+      # ---------------------------------------------------------------- weekly scan
+      # The `coverage-issues` job files one issue per finding.
+      - name: full scan
+        id: scan
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          node .github/scripts/coverage.mjs check --all || true
+          if [ -f coverage/.out/findings.json ]; then echo "findings=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: steps.scan.outputs.findings == 'true'
+        with:
+          name: coverage-findings
+          path: coverage/.out/findings.json
+          retention-days: 7
+
+  # ------------------------------------------------------------------------------ writers
+  # The three jobs below need a write token, so they stay on GitHub's runners and run no
+  # repository code: each takes a file the coverage job produced and calls the API.
+
+  coverage-comment:
+    needs: coverage
+    if: >-
+      !cancelled() && github.event_name == 'pull_request' && needs.coverage.outputs.comment == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: coverage-report
+          path: ${{ runner.temp }}/coverage-report
+      - name: post the coverage table
+        continue-on-error: true # the ratchet in the coverage job is the gate, not this comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          ID: ${{ needs.coverage.outputs.comment-id }}
+        run: |
+          report="$RUNNER_TEMP/coverage-report/report.md"
+          if [ -n "$ID" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$ID" -F body=@"$report" >/dev/null
+          else
+            gh api --method POST "repos/$REPO/issues/$PR/comments" -F body=@"$report" >/dev/null
+          fi
+
+  coverage-baseline:
+    needs: coverage
+    if: >-
+      !cancelled() && github.event_name == 'push' && needs.coverage.outputs.baseline == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the baseline branch
+      pull-requests: write # open the baseline PR
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          clean: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: coverage-baseline
+          path: coverage
+      - name: open the baseline PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          branch=ci/coverage-baseline
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -C "$branch"
+          git add coverage/baseline.json
+          git commit -m "ci: raise the coverage baseline" -m "Coverage rose on main; the ratchet baseline follows it up. Issue #118."
+          git push --force origin "$branch"
+          if [ -z "$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            body=$(printf '%s\n' \
+              '## What' 'Raise the coverage baseline to what main measures now.' '' \
+              '## Issue' 'Part of #118' '' \
+              '## Why now' 'Coverage rose on main; the ratchet only moves up.' '' \
+              '## Links' '- https://github.com/shaiknoorullah/hg-mono/blob/main/coverage/baseline.json')
+            gh pr create --repo "$REPO" --base main --head "$branch" \
+              --title "ci: raise the coverage baseline" --body "$body"
+          fi
+
+  coverage-issues:
+    needs: coverage
+    if: >-
+      !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      needs.coverage.outputs.findings == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: coverage-findings
+          path: ${{ runner.temp }}/coverage-findings
+      - name: file an issue per finding
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          findings="$RUNNER_TEMP/coverage-findings/findings.json"
+          n=$(jq length "$findings")
+          for i in $(seq 0 $((n - 1))); do
+            title=$(jq -r ".[$i].title" "$findings")
+            body=$(jq -r ".[$i].body" "$findings")
+            if gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" --json title --jq '.[].title' \
+                | grep -Fxq -- "$title"; then
+              echo "already open: $title"
+            else
+              gh issue create --repo "$REPO" --title "$title" --body "$body" --label chore
+            fi
+          done
+
+  # --------------------------------------------------------------------------------- gate
+  # The one check to require. It always runs, and passes only when the run is trusted AND every
+  # job above passed or was skipped because nothing it checks changed. An untrusted PR (every job
+  # above skipped by its trust check) runs this on GitHub's runners, where it fails.
+  gate:
+    name: gate
+    needs: [changes, contracts, js, go, coverage]
+    if: always() && (github.event_name == 'pull_request' || github.event_name == 'push')
+    runs-on: ${{ ((github.event_name == 'schedule' || (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login)))) && fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      # Every run starts here. An untrusted run (see "Who can run CI" in
+      # docs/ci/self-hosted-runners.md) runs on GitHub's runners, checks out nothing and fails.
+      - name: trusted author, actor and branch
+        id: trust
+        env:
+          TRUSTED: ${{ (github.event_name == 'schedule' || (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor))) && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))) }}
+        run: |
+          if [ "$TRUSTED" != true ]; then
+            echo "::error::Not run: CI runs only for this repository's branches, when the PR's author, the actor and whoever re-ran it are all in the HG_CI_TRUSTED_ACTORS repository variable (docs/ci/self-hosted-runners.md)."
+            exit 1
+          fi
+
+      - name: results
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          CONTRACTS: ${{ needs.contracts.result }}
+          JS: ${{ needs.js.result }}
+          GO: ${{ needs.go.result }}
+          COVERAGE: ${{ needs.coverage.result }}
+        run: |
+          printf '%-14s %s\n' changes "$CHANGES" contract-kit "$CONTRACTS" js "$JS" go "$GO" coverage "$COVERAGE"
+          echo "skipped = nothing that job checks changed"
+          if [ "$CHANGES" != success ]; then
+            echo "::error::the changes job did not succeed, so the checks were not decided"
+            exit 1
+          fi
+          for r in "$CONTRACTS" "$JS" "$GO" "$COVERAGE"; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::a check failed or was cancelled; see its job above"; exit 1 ;;
+            esac
+          done

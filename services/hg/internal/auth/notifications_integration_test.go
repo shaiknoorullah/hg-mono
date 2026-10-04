@@ -130,7 +130,7 @@ func TestIntegrationPasswordResetEmailHasAWorkingLinkAndNoOtherSecret(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, captured, worker := emailTestService(t, pool, inserter, NewRateLimiter(nil))
+	svc, captured, worker := emailTestService(t, pool, inserter, NewRateLimiter(nil, nil))
 
 	email := fmt.Sprintf("owner-%s@halalgoes.test", uuid.NewString()[:8])
 	reg, err := svc.RegisterRestaurant(ctx, email, "a long first password for tests", "Reset Test Kitchen", testClient)
@@ -427,7 +427,7 @@ func TestIntegrationStaffInviteGoesOnlyToTheInvitedAccount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, captured, worker := emailTestService(t, pool, inserter, NewRateLimiter(nil))
+	svc, captured, worker := emailTestService(t, pool, inserter, NewRateLimiter(nil, nil))
 
 	email := "new-staff-" + uuid.NewString()[:8] + "@halalgoes.test"
 	var id uuid.UUID

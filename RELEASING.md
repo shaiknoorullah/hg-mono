@@ -87,7 +87,8 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 8. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
    (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
    address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
-   Never `0.0.0.0/0` (refused at boot).
+   Never `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside
+   `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7`.
 
 ## 4. Deploy the stack (on your host)
 
