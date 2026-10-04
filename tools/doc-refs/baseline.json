@@ -127,6 +127,54 @@
   },
   {
     "kind": "path",
+    "file": "docs/design/audit/restaurant.md",
+    "ref": "contracts/websocket.md:149,242-248",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/audit/restaurant.md",
+    "ref": "packages/api-client/src/client.ts:52-55,165-185",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/audit/restaurant.md",
+    "ref": "packages/api-client/src/realtime.ts:34,202-248,465-480",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/audit/rider.md",
+    "ref": "contracts/websocket.md:259–270",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/audit/rider.md",
+    "ref": "contracts/websocket.md:33–44",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/audit/rider.md",
+    "ref": "docs/design/contrast.check.mjs",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/audit/rider.md",
+    "ref": "packages/ui-native/src/navigation/Sheet.tsx:4–10",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
+    "file": "docs/design/audit/rider.md",
+    "ref": "packages/ui-native/src/tokens/generated/themes.ts:1425–1441",
+    "detail": "no such file or directory"
+  },
+  {
+    "kind": "path",
     "file": "docs/design/landing-creative-direction.md",
     "ref": "apps/landing",
     "detail": "no such file or directory"

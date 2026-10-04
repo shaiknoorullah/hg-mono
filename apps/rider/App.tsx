@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ThemeProvider, Wordmark } from '@hg/ui-native';
+import { ThemeProvider, useTheme, Wordmark } from '@hg/ui-native';
 import { useHgFonts } from '@hg/ui-native/fonts';
 
 import { NavProvider } from './src/nav';
@@ -36,6 +36,9 @@ import { subscribe, isAuthed } from './src/token';
 type Phase = 'phone' | 'code';
 
 function LoginGate(): React.ReactElement {
+  // Inside ThemeProvider (see the root below), so colours come from the rider
+  // register. They were raw hexes because this branch mounted outside it.
+  const theme = useTheme();
   const [phase, setPhase] = React.useState<Phase>('phone');
   const [phone, setPhone] = React.useState('');
   const [challengeId, setChallengeId] = React.useState('');
@@ -74,20 +77,20 @@ function LoginGate(): React.ReactElement {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: theme.color.surface.base }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.container}>
         <View style={styles.brand}>
           <Wordmark height={56} />
         </View>
-        <Text style={styles.title}>Rider sign in</Text>
+        <Text style={[styles.title, { color: theme.color.text.primary }]}>Rider sign in</Text>
 
         {phase === 'phone' ? (
           <>
-            <Text style={styles.label}>Phone number (e.g. +14165550100)</Text>
+            <Text style={[styles.label, { color: theme.color.text.secondary }]}>Phone number (e.g. +14165550100)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.color.border.interactive, color: theme.color.text.primary }]}
               value={phone}
               onChangeText={setPhone}
               placeholder="+1 416 555 0100"
@@ -97,25 +100,25 @@ function LoginGate(): React.ReactElement {
               editable={!busy}
               accessibilityLabel="Phone number"
             />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={[styles.error, { color: theme.color.feedback.danger.text }]}>{error}</Text> : null}
             <Pressable
-              style={[styles.button, busy && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: theme.color.action.primary }, busy && styles.buttonDisabled]}
               onPress={handleSendCode}
               disabled={busy}
               accessibilityRole="button"
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.color.text.onBrand} />
               ) : (
-                <Text style={styles.buttonText}>Send code</Text>
+                <Text style={[styles.buttonText, { color: theme.color.text.onBrand }]}>Send code</Text>
               )}
             </Pressable>
           </>
         ) : (
           <>
-            <Text style={styles.label}>Enter the code sent to {phone}</Text>
+            <Text style={[styles.label, { color: theme.color.text.secondary }]}>Enter the code sent to {phone}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.color.border.interactive, color: theme.color.text.primary }]}
               value={code}
               onChangeText={setCode}
               placeholder="000000"
@@ -125,17 +128,17 @@ function LoginGate(): React.ReactElement {
               editable={!busy}
               accessibilityLabel="Verification code"
             />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={[styles.error, { color: theme.color.feedback.danger.text }]}>{error}</Text> : null}
             <Pressable
-              style={[styles.button, busy && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: theme.color.action.primary }, busy && styles.buttonDisabled]}
               onPress={handleVerify}
               disabled={busy}
               accessibilityRole="button"
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.color.text.onBrand} />
               ) : (
-                <Text style={styles.buttonText}>Verify</Text>
+                <Text style={[styles.buttonText, { color: theme.color.text.onBrand }]}>Verify</Text>
               )}
             </Pressable>
             <Pressable
@@ -143,7 +146,7 @@ function LoginGate(): React.ReactElement {
               onPress={() => { setPhase('phone'); setError(null); setCode(''); }}
               accessibilityRole="button"
             >
-              <Text style={styles.linkText}>Change number</Text>
+              <Text style={[styles.linkText, { color: theme.color.action.primary }]}>Change number</Text>
             </Pressable>
           </>
         )}
@@ -153,7 +156,7 @@ function LoginGate(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#fff' },
+  flex: { flex: 1 },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -162,29 +165,29 @@ const styles = StyleSheet.create({
   },
   // The logo from @hg/ui-native — the same geometry as every other surface (packages/brand).
   brand: { alignItems: 'center', marginBottom: 24 },
-  title: { fontSize: 24, fontWeight: '700', color: '#111', marginBottom: 8 },
-  label: { fontSize: 14, color: '#555' },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
+  label: { fontSize: 14 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#111',
   },
   button: {
-    backgroundColor: '#1a7a4a',
+    // Colour applied from the theme at the usage site: action.primary. Solid
+    // green here broke the rule that solid green is reserved for halal status
+    // (AGENTS.md "Non-negotiable invariants"): green is the seal, never 'tap here'.
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 4,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  error: { color: '#c0392b', fontSize: 13 },
+  buttonText: { fontSize: 16, fontWeight: '600' },
+  error: { fontSize: 13 },
   link: { alignItems: 'center', paddingVertical: 8 },
-  linkText: { color: '#1a7a4a', fontSize: 14 },
+  linkText: { fontSize: 14 },
 });
 
 // ---------------------------------------------------------------------------
@@ -204,12 +207,17 @@ export default function App(): React.ReactElement | null {
   }
 
   if (!authed) {
+    // ThemeProvider wraps this branch too. It used to wrap only the
+    // authenticated one, so the sign-in gate — the first screen every rider
+    // sees — rendered with no design system and hard-coded its own palette.
     return (
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
-          <LoginGate />
-        </SafeAreaView>
+        <ThemeProvider theme="rider" scheme="light">
+          <StatusBar style="dark" />
+          <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+            <LoginGate />
+          </SafeAreaView>
+        </ThemeProvider>
       </SafeAreaProvider>
     );
   }
