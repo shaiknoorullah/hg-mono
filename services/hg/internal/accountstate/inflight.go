@@ -40,7 +40,7 @@ var halalOrSafety = map[string]bool{"HALAL_INTEGRITY": true, "FOOD_SAFETY_RISK":
 // food safety, cancels and refunds orders still being prepared. Orders already
 // ready or with a rider always finish here: the order state machine has no
 // cancel step from those states without a rider recovery flow
-// (https://github.com/shaiknoorullah/hg-mono/issues/253 lists this as deferred).
+// (https://github.com/shaiknoorullah/hg-mono/issues/326).
 func RestaurantOrderOutcome(a Action, reasonCode, orderState string) OrderOutcome {
 	if a == Reinstate || !OrderInProgress(orderState) {
 		return Continue

@@ -355,7 +355,7 @@ CREATE TABLE signing_key (
 - **Rules & invariants**:
   - **I-04.1** A refresh token is valid at most once. `UPDATE session SET rotated_at=now() … WHERE refresh_hash=$1 AND rotated_at IS NULL AND revoked_at IS NULL RETURNING id` — zero rows means either reuse or revocation.
   - **I-04.2** Reuse of a rotated token revokes every session sharing `family_id`.
-  - **I-04.3** Roles are re-read from `account_role` on every refresh; a revoked grant disappears from tokens within one access-token lifetime (≤15 min) at worst.
+  - **I-04.3** Roles are re-read from `account_role` on every refresh; a revoked grant disappears from tokens within one access-token lifetime (≤15 min) at worst. A banned partner's grants are not read at all: a banned rider holds no `RIDER` role, and the staff of a banned or closed restaurant hold none of its restaurant roles, at the next sign-in or refresh. A confirmed ban also revokes every session it affects at once ([admin account actions, #253](https://github.com/shaiknoorullah/hg-mono/issues/253)).
   - **I-04.4** No refresh token is ever written to a log, an audit payload, or a `Location` header.
   - **I-04.5** Clock skew tolerance for `exp`/`iat` is ±60 s and no more.
 - **Acceptance criteria**:
@@ -1965,6 +1965,7 @@ CREATE INDEX outbox_pending ON outbox_message(available_at) WHERE published_at I
   | `document.review_state_changed` | — | P, E, I | — (only the application decision notifies a rider: [one message per review](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) | — |
   | `onboarding.state_changed` | — | E, I | P, I | — |
   | Paused rider reinstated ([reinstatement notice](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | — | — | P, I | — |
+  | Account suspended, banned, deactivated or reinstated by an admin; restaurant delisted ([admin account actions, #253](https://github.com/shaiknoorullah/hg-mono/issues/253)) | P, S, I | E, I (owners and managers) | P, I | — |
   | `connect.requirements_changed` / `payouts_enabled=false` | — | P, E, I | P, E, I | RT |
   | `payout.paid` / `payout.failed` | — | E, I | P, E, I | RT (on failed) |
   | `chargeback.created` | — | E, I | — | RT, E |
@@ -2418,7 +2419,7 @@ RETURNING *;
 - **Data**: `dispatch`, `dispatch_offer` (P-14). Redis `geo:riders:online` as a pre-filter only.
 - **Rules & invariants**:
   - **I-32.1** Exactly one rider can be assigned to an order; guaranteed by the conditional `UPDATE`, not by application ordering.
-  - **I-32.2** An offline, unapproved, suspended, busy or stale-position rider is never offered an order.
+  - **I-32.2** An offline, unapproved, suspended, busy or stale-position rider is never offered an order. Suspending a rider withdraws the offers already waiting for them in the same transaction, and accepting an offer is refused (`403 ACCOUNT_NOT_ACTIVE`) unless the rider's account status is `ACTIVE`.
   - **I-32.3** A rider who rejected or let an offer expire is never re-offered the same order.
   - **I-32.4** Every offer has `expires_at`; expiry is driven by the deadline runner, not by a client timer.
   - **I-32.5** Dispatch produces a decision (assigned or `NO_RIDER_FOUND`) within a bounded time: 3 waves × 20 s + slack ≤ 90 s.
