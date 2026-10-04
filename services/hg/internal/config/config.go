@@ -36,12 +36,11 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	LogLevel        slog.Level
 	CORSOrigins     []string
-	// TrustedProxies are the peers whose X-Forwarded-For / X-Real-Ip headers
-	// name the real client (HG_TRUSTED_PROXIES, comma-separated CIDRs or bare
-	// addresses). Every public request arrives through Traefik, so without
-	// this every client would share Traefik's address and a per-IP limit would
-	// be one platform-wide limit (docs/spec/01-platform.md, "P-06 —
-	// Deny-by-default routing and the middleware chain", stage 3 RealIP).
+	// TrustedProxies are the reverse proxies (Traefik) whose X-Forwarded-For
+	// the API believes when it works out a request's client address. When
+	// empty, the socket peer is the client and the header is ignored. Empty is
+	// allowed only when HG_ENV=local: staging and production run behind
+	// Traefik, where an empty list makes every caller share one address.
 	TrustedProxies []netip.Prefix
 
 	Postgres Postgres
@@ -189,6 +188,15 @@ type MinIO struct {
 	// defaults to scheme+host derived from Endpoint when unset, which is correct
 	// for the dev compose stack where MinIO is reached directly.
 	PublicBaseURL string
+	// PresignBaseURL is the scheme+host phones and browsers reach the object
+	// store's S3 API at, without a trailing slash or a path — e.g.
+	// "https://files.halalgoes.com". Every presigned upload and download link is
+	// signed for this host. It cannot be patched in afterwards: the signature
+	// covers the Host header, so a link signed for the internal endpoint
+	// (minio:9000), which no phone can resolve, stays unusable. The reverse proxy
+	// in front of it must forward the Host header unchanged. Locally it defaults
+	// to scheme+host derived from Endpoint; outside local it is required.
+	PresignBaseURL string
 	// Buckets is the P-27 bucket layout. Private buckets are subject to the
 	// boot-time privacy probe.
 	Buckets Buckets
@@ -241,7 +249,7 @@ func Load(getenv func(string) string) (*Config, error) {
 
 	cfg.LogLevel = l.logLevel("HG_LOG_LEVEL", slog.LevelInfo)
 	cfg.CORSOrigins = l.originList("HG_CORS_ALLOWED_ORIGINS")
-	cfg.TrustedProxies = l.prefixList("HG_TRUSTED_PROXIES", defaultTrustedProxies)
+	cfg.TrustedProxies = l.prefixList("HG_TRUSTED_PROXY_CIDRS")
 
 	cfg.Postgres = Postgres{
 		DSN:         l.required("HG_POSTGRES_DSN"),
@@ -276,6 +284,19 @@ func Load(getenv func(string) string) (*Config, error) {
 	// resolver can join "/bucket/key" without doubling it.
 	cfg.MinIO.PublicBaseURL = strings.TrimSuffix(
 		l.optional("HG_MINIO_PUBLIC_BASE_URL", defaultPublicBaseURL(cfg.MinIO.Endpoint, cfg.MinIO.UseSSL)), "/")
+	// Presigned links are signed for the host phones reach, never the internal
+	// endpoint. Locally that is the same MinIO the API dials; anywhere else an
+	// unset value would mint links for minio:9000, so it does not boot.
+	presignBase := l.optional("HG_MINIO_PRESIGN_BASE_URL", "")
+	presignSet := presignBase != ""
+	if !presignSet {
+		if cfg.Env != "" && !cfg.Env.IsLocal() {
+			l.errf("HG_MINIO_PRESIGN_BASE_URL is required when HG_ENV is not local: presigned links "+
+				"are signed for this host, and phones cannot reach the internal endpoint %q", cfg.MinIO.Endpoint)
+		}
+		presignBase = defaultPublicBaseURL(cfg.MinIO.Endpoint, cfg.MinIO.UseSSL)
+	}
+	cfg.MinIO.PresignBaseURL = l.baseURL("HG_MINIO_PRESIGN_BASE_URL", presignBase)
 
 	cfg.Stripe = Stripe{
 		SecretKey:         l.optional("HG_STRIPE_SECRET_KEY", ""),
@@ -346,6 +367,35 @@ func Load(getenv func(string) string) (*Config, error) {
 		l.denyLoopback("HG_POSTGRES_DSN", cfg.Postgres.Host())
 		l.denyLoopback("HG_REDIS_ADDR", cfg.Redis.Host())
 		l.denyLoopback("HG_MINIO_ENDPOINT", cfg.MinIO.Host())
+		if u, err := url.Parse(cfg.MinIO.PresignBaseURL); err == nil {
+			l.denyLoopback("HG_MINIO_PRESIGN_BASE_URL", u.Host)
+			// Every presigned link is a bearer credential, including the
+			// two-minute KYC and certificate download links, and an upload
+			// link carries the document itself. Over plain http both would
+			// cross the network in cleartext, breaking the rule that KYC and
+			// certificates stay private (AGENTS.md, "Non-negotiable
+			// invariants": ../../../../AGENTS.md#3-non-negotiable-invariants).
+			// iOS App Transport Security and Android 9+ also refuse cleartext
+			// by default, so the links would fail on phones anyway. An unset
+			// value already failed above, so only an explicit http host is
+			// reported here.
+			if presignSet && u.Scheme != "https" {
+				l.errf("HG_MINIO_PRESIGN_BASE_URL must be https when HG_ENV is not local: " +
+					"presigned links are bearer credentials")
+			}
+		}
+
+		// Outside local the API runs behind Traefik. With no trusted proxy,
+		// every request's client address is Traefik's, so each per-IP limit
+		// (the sign-in code limit in internal/auth/service_flows.go among
+		// them) becomes one limit for all customers. Refuse to boot rather
+		// than fail open. The rule is step 3 (RealIP, the client address) of
+		// the middleware chain in docs/spec/01-platform.md, "Deny-by-default
+		// routing and the middleware chain".
+		if len(cfg.TrustedProxies) == 0 {
+			l.errf("HG_TRUSTED_PROXY_CIDRS: required outside local; behind Traefik an empty list " +
+				"makes every per-IP limit global")
+		}
 	}
 
 	if err := l.err(); err != nil {
@@ -444,35 +494,6 @@ func (l *loader) logLevel(key string, def slog.Level) slog.Level {
 	return lvl
 }
 
-// defaultTrustedProxies is where Docker allocates bridge networks from by
-// default, which is where the compose network that Traefik and the API share
-// (deploy/docker-compose.yml, hg-net) gets its subnet. The API publishes no
-// port, so only a container on that network can be its peer. Loopback is
-// deliberately absent: a developer's direct request is its own client.
-const defaultTrustedProxies = "172.16.0.0/12,192.168.0.0/16"
-
-// prefixList parses comma-separated CIDRs; a bare address is its own /32 or
-// /128.
-func (l *loader) prefixList(key, def string) []netip.Prefix {
-	var out []netip.Prefix
-	for _, part := range strings.Split(l.optional(key, def), ",") {
-		s := strings.TrimSpace(part)
-		if s == "" {
-			continue
-		}
-		if p, err := netip.ParsePrefix(s); err == nil {
-			out = append(out, p.Masked())
-			continue
-		}
-		if a, err := netip.ParseAddr(s); err == nil {
-			out = append(out, netip.PrefixFrom(a.Unmap(), a.Unmap().BitLen()))
-			continue
-		}
-		l.errf("%s: %q is not a CIDR or an IP address", key, s)
-	}
-	return out
-}
-
 // originList parses the CORS allowlist. A wildcard is rejected outright:
 // invariant I-06.5 forbids Access-Control-Allow-Origin: * on any route that can
 // carry credentials, and every route here can.
@@ -504,6 +525,59 @@ func (l *loader) originList(key string) []string {
 	}
 	if len(out) == 0 && len(l.errs) == 0 {
 		l.errf("%s: no usable origin found", key)
+	}
+	return out
+}
+
+// baseURL validates an absolute http(s) scheme+host value and returns it without
+// a trailing slash. A path, query or fragment is refused: the S3 client takes a
+// host only, so a path would be dropped silently and every link would miss it.
+// An empty value passes through as "" (nothing configured, nothing to check).
+func (l *loader) baseURL(key, raw string) string {
+	if raw == "" {
+		return ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		l.errf("%s: %q is not an absolute http(s) URL (scheme://host[:port])", key, raw)
+		return ""
+	}
+	if (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		l.errf("%s: %q must be scheme://host[:port] only, with no path, query or credentials", key, raw)
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
+}
+
+// prefixList parses a comma-separated list of CIDRs; a bare IP is one address.
+//
+// A prefix that covers every address (0.0.0.0/0, ::/0) is refused: trusting
+// every peer means believing X-Forwarded-For from anyone, so any caller could
+// pick the address its rate limits and audit rows are recorded under.
+func (l *loader) prefixList(key string) []netip.Prefix {
+	raw := strings.TrimSpace(l.getenv(key))
+	if raw == "" {
+		return nil
+	}
+	var out []netip.Prefix
+	for _, part := range strings.Split(raw, ",") {
+		s := strings.TrimSpace(part)
+		if s == "" {
+			continue
+		}
+		var p netip.Prefix
+		if ip, err := netip.ParseAddr(s); err == nil && ip.Zone() == "" {
+			p = netip.PrefixFrom(ip, ip.BitLen())
+		} else if p, err = netip.ParsePrefix(s); err != nil {
+			l.errf("%s: %q is not a CIDR (e.g. 172.18.0.0/16) or an IP address", key, s)
+			continue
+		}
+		if p.Bits() == 0 {
+			l.errf("%s: %q trusts every address, which lets any caller forge its client address; "+
+				"list only the proxy's own network", key, s)
+			continue
+		}
+		out = append(out, p.Masked())
 	}
 	return out
 }

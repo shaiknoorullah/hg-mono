@@ -7,55 +7,73 @@ import (
 	"testing"
 )
 
-// TestRealIPBelievesForwardingHeadersOnlyFromTrustedProxies pins the RealIP
-// stage (docs/spec/01-platform.md, "P-06 — Deny-by-default routing and the
-// middleware chain", stage 3). Behind Traefik every request has the same TCP
-// peer, so per-IP limits need the forwarded address; but the headers are
-// client-writable, so a forged one must never move a client into another
-// client's budget or out of its own.
-func TestRealIPBelievesForwardingHeadersOnlyFromTrustedProxies(t *testing.T) {
-	trusted := []netip.Prefix{netip.MustParsePrefix("172.16.0.0/12")}
-	const traefik = "172.18.0.5:41000"
+// TestClientIPBelievesForwardedForOnlyFromATrustedProxy pins the client address
+// every per-IP rate limit and audit row is keyed on. Two failures it rules out:
+// behind Traefik every caller sharing Traefik's address (one global limit), and
+// a caller dodging its limit by sending its own X-Forwarded-For.
+//
+// It goes through the router, so it also proves RealIP is in the chain.
+func TestClientIPBelievesForwardedForOnlyFromATrustedProxy(t *testing.T) {
+	traefik := []netip.Prefix{netip.MustParsePrefix("172.18.0.0/16"), netip.MustParsePrefix("fd00::/8")}
 
 	cases := []struct {
 		name    string
+		trusted []netip.Prefix
 		peer    string
 		xff     []string
-		xRealIP string
 		want    string
 	}{
-		{name: "through Traefik, X-Forwarded-For names the client",
-			peer: traefik, xff: []string{"203.0.113.7"}, want: "203.0.113.7"},
-		{name: "a forged entry prepended by the client is ignored",
-			peer: traefik, xff: []string{"198.51.100.1, 203.0.113.7"}, want: "203.0.113.7"},
-		{name: "trusted hops on the right are skipped",
-			peer: traefik, xff: []string{"203.0.113.7", "172.18.0.9"}, want: "203.0.113.7"},
-		{name: "X-Real-Ip when there is no X-Forwarded-For",
-			peer: traefik, xRealIP: "2001:db8::7", want: "2001:db8::7"},
-		{name: "IPv4-mapped IPv6 is the IPv4 client, one key not two",
-			peer: traefik, xff: []string{"::ffff:203.0.113.7"}, want: "203.0.113.7"},
-		{name: "headers from an untrusted peer are ignored",
-			peer: "198.51.100.20:5000", xff: []string{"203.0.113.7"}, xRealIP: "203.0.113.8", want: "198.51.100.20"},
-		{name: "IPv6 peer comes back without brackets or port",
-			peer: "[2001:db8::20]:5000", want: "2001:db8::20"},
-		{name: "a trusted peer with no headers is itself",
-			peer: traefik, want: "172.18.0.5"},
+		{"no trusted proxies by default: the header is ignored",
+			nil, "172.18.0.5:41000", []string{"203.0.113.7"}, "172.18.0.5"},
+		{"untrusted peer: a forged header is ignored",
+			traefik, "198.51.100.9:5000", []string{"203.0.113.7"}, "198.51.100.9"},
+		{"trusted peer: the address Traefik appended",
+			traefik, "172.18.0.5:41000", []string{"203.0.113.7"}, "203.0.113.7"},
+		{"trusted peer: a client-written prefix is never read",
+			traefik, "172.18.0.5:41000", []string{"10.9.9.9, 203.0.113.7"}, "203.0.113.7"},
+		{"two trusted hops: the right-most untrusted address",
+			traefik, "172.18.0.5:41000", []string{"1.1.1.1, 203.0.113.7", "172.18.0.9"}, "203.0.113.7"},
+		{"trusted peer, no header: the peer",
+			traefik, "172.18.0.5:41000", nil, "172.18.0.5"},
+		{"every entry trusted: the left-most trusted address",
+			traefik, "172.18.0.5:41000", []string{"172.18.0.7, 172.18.0.9"}, "172.18.0.7"},
+		{"garbage left of a trusted hop: the last address a proxy vouched for",
+			traefik, "172.18.0.5:41000", []string{"not-an-ip, 172.18.0.9"}, "172.18.0.9"},
+		{"IPv6 peer and client, unbracketed and zone-free",
+			traefik, "[fd00::5%eth0]:41000", []string{"[2001:db8::7]:443"}, "2001:db8::7"},
+		{"IPv4-mapped peer still matches an IPv4 range",
+			traefik, "[::ffff:172.18.0.5]:41000", []string{"203.0.113.7"}, "203.0.113.7"},
+
+		// The ways a caller might try to choose its own address.
+		{"untrusted peer: several forged lines, one naming a trusted proxy, all ignored",
+			traefik, "198.51.100.9:5000", []string{"203.0.113.7", "172.18.0.9"}, "198.51.100.9"},
+		{"trusted peer: a forged line before the one Traefik wrote is never read",
+			traefik, "172.18.0.5:41000", []string{"10.9.9.9", "203.0.113.7"}, "203.0.113.7"},
+		{"trusted peer: garbage where Traefik's entry should be gives the peer, not the client's pick",
+			traefik, "172.18.0.5:41000", []string{"203.0.113.66, garbage"}, "172.18.0.5"},
+		{"trusted peer: an empty header gives the peer",
+			traefik, "172.18.0.5:41000", []string{""}, "172.18.0.5"},
+		{"IPv4-mapped client is unmapped, so it shares its IPv4 key",
+			traefik, "172.18.0.5:41000", []string{"::ffff:203.0.113.7"}, "203.0.113.7"},
+		{"a zone on a forwarded entry is dropped",
+			traefik, "172.18.0.5:41000", []string{"2001:db8::7%eth0"}, "2001:db8::7"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			rt := testRouter(func(o *Options) { o.TrustedProxies = tc.trusted })
 			var got string
-			h := RealIP(trusted)(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+			rt.Get("/ip", Policy{Public: true, Class: ClassRead}, func(w http.ResponseWriter, r *http.Request) {
 				got = ClientIP(r)
-			}))
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+				w.WriteHeader(http.StatusNoContent)
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/ip", nil)
 			req.RemoteAddr = tc.peer
 			for _, v := range tc.xff {
 				req.Header.Add("X-Forwarded-For", v)
 			}
-			if tc.xRealIP != "" {
-				req.Header.Set("X-Real-Ip", tc.xRealIP)
-			}
-			h.ServeHTTP(httptest.NewRecorder(), req)
+			rt.ServeHTTP(httptest.NewRecorder(), req)
+
 			if got != tc.want {
 				t.Errorf("ClientIP = %q, want %q", got, tc.want)
 			}

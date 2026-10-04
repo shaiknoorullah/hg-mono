@@ -262,7 +262,7 @@ CREATE TABLE login_attempt (
 CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
 ```
 
-  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min); over either cap ⟹ 429 `rate_limited` with `Retry-After`, and the attempt is not evaluated or recorded. Both fail open when Redis is unreachable (login never answers 503). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account.
+  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account.
 
 - **Rules & invariants**:
   - **I-03.1** Plaintext passwords never appear in logs, audit payloads, error messages or panics. A `String()` method on the password type returns `"[REDACTED]"`.
@@ -416,7 +416,7 @@ func (r *Router) Handle(method, path string, p Policy, h Handler)
   |---|---|---|---|
   | 1 | `RequestID` | read/generate `X-Request-ID` (ULID), put in ctx + response header | — |
   | 2 | `Recover` | catch panics, log with stack, alert | 500 `internal_error` |
-  | 3 | `RealIP` | trust `X-Forwarded-For` / `X-Real-Ip` **only** from a trusted proxy (`HG_TRUSTED_PROXIES`, default the Docker bridge pools, where Traefik lives); the right-most hop that is not a trusted proxy is the client, and every per-IP limit keys on it | — |
+  | 3 | `RealIP` | trust `X-Forwarded-For` **only** from Traefik's IP: when the peer is in `HG_TRUSTED_PROXY_CIDRS` (required outside `HG_ENV=local`, where an empty list would give every caller Traefik's address; `/0` refused at boot), the client is the right-most address in the header that is not a trusted proxy; otherwise the peer, and the header is ignored. Every reader of the client address uses this one result. A per-IP rate limit counts an IPv4 caller by address and an IPv6 caller by its /64 (a subscriber can send from any address in its /64), and a request with no resolved address in one shared bucket, never unlimited; logs and audit rows keep the exact address | — |
   | 4 | `AccessLog` | structured log, PII-redacted, sampled for 2xx reads | — |
   | 5 | `Timeout` | ctx deadline by `Class` (READ 5 s, WRITE 15 s, MONEY 20 s, UPLOAD 60 s) | 503 `timeout` |
   | 6 | `BodyLimit` | `Policy.MaxBody` (default 1 MiB, AUTH 16 KiB) | 413 `payload_too_large` |
@@ -2198,7 +2198,7 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   |---|---|---|---|
   | `KYC_DOCUMENT` | `image/jpeg`, `image/png`, `image/heic`, `application/pdf` | 10 MiB | the subject's owner account |
   | `MENU_IMAGE` | `image/jpeg`, `image/png`, `image/webp` | 5 MiB | restaurant staff with `menu_item.update` |
-  | `POD` | `image/jpeg` | 3 MiB | the assigned rider only, only while dispatch is `AT_CUSTOMER`/`CARRYING` |
+  | `POD` | `image/jpeg` | 1 MiB (the rider app shrinks the photo before upload) | the assigned rider only, only while dispatch is `AT_CUSTOMER`/`CARRYING` |
   | `AVATAR` | `image/jpeg`, `image/png` | 2 MiB | the account itself |
   | `EXPORT` | server-generated only | — | no client uploads |
 
@@ -2713,8 +2713,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   Responses carry `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and, on 429, `Retry-After`.
 
   **Redis-down policy** is explicit per class, and this is where the disposability rule needs care: rate limiting is *protection*, not *correctness*, so losing counters is acceptable — but not for authentication.
-  - `AUTH`, OTP request/verify: **fail closed** (503). A brute-force window on a 6-digit code is worse than a brief outage (P-02).
-  - `AUTH`, everything else (login, restaurant sign-up, email resend): fail open with an alert. Login's lockout lives in Postgres (P-03) and survives the outage; a sign-up issues no session. This matches the contract, where only `requestOtp` and `verifyOtp` declare a 503.
+  - `AUTH`: **fail closed** (503). A brute-force window is worse than a brief outage, and the Postgres-backed lockout in P-03 still applies.
   - `MONEY`: fail open, because idempotency (P-37) and the state machine already prevent duplicate effects; an alert fires.
   - All other classes: fail open with an alert.
 
@@ -2728,7 +2727,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   - **I-38.4** Webhook endpoints are never rate-limited below Stripe's retry rate.
 - **Acceptance criteria**:
   1. Given 11 OTP requests in 15 minutes from one IP, Then the 11th is 429 with `Retry-After` and no SMS is sent.
-  2. Given Redis is stopped, When an OTP is requested, Then 503 `rate_limiter_unavailable`; When a login or a search is attempted, Then it proceeds with an alert recorded, and the Postgres login lockout still applies.
+  2. Given Redis is stopped, When a login is attempted, Then 503 `rate_limiter_unavailable`; When a search is attempted, Then it succeeds with an alert recorded.
   3. Given a 429, Then no partial effect exists — no order row, no Stripe call, no ledger entry.
   4. Given the rate-limit headers, Then `RateLimit-Remaining` decreases monotonically within a window and resets exactly at `RateLimit-Reset`.
 - **Version**: V1 · **Size**: M

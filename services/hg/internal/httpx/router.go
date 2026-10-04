@@ -44,13 +44,13 @@ type Options struct {
 	Env string
 	// CORSOrigins is the exact-origin allowlist; a wildcard is rejected in config.
 	CORSOrigins []string
+	// TrustedProxies are the peers whose X-Forwarded-For is believed (stage 3,
+	// RealIP). Empty means none: the socket peer is the client.
+	TrustedProxies []netip.Prefix
 	// Authenticator resolves credentials to a Principal (stage 10).
 	Authenticator Authenticator
 	// Authorizer answers the role→action question (stage 11).
 	Authorizer Authorizer
-	// TrustedProxies are the peers whose forwarding headers RealIP believes
-	// (stage 3). Empty means none: every client is its TCP peer.
-	TrustedProxies []netip.Prefix
 }
 
 // NewRouter builds a Router with the P-06 chain installed in order.
