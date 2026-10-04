@@ -60,9 +60,6 @@ func (h *Handler) CreateMenuCategoryOnBehalf(w http.ResponseWriter, r *http.Requ
 	row, err := h.repo.CreateMenuCategoryOnBehalf(r.Context(), actorFrom(r),
 		restaurantID, in.Name, in.Description, sortOrder)
 	if err != nil {
-		if restaurant.RespondMenuLocked(w, r, err) {
-			return
-		}
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Restaurant not found.", nil)
@@ -71,6 +68,9 @@ func (h *Handler) CreateMenuCategoryOnBehalf(w http.ResponseWriter, r *http.Requ
 		if errors.Is(err, ErrCategoryNameTaken) {
 			httpx.Fail(w, r, http.StatusConflict, CodeCategoryNameTaken,
 				"A category with this name already exists for this restaurant.", nil)
+			return
+		}
+		if restaurant.RespondMenuLocked(w, r, err) {
 			return
 		}
 		h.failInternal(w, r, err)
@@ -186,12 +186,12 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 			taxCategory:       taxCategory,
 		})
 	if err != nil {
-		if restaurant.RespondMenuLocked(w, r, err) {
-			return
-		}
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Restaurant or category not found.", nil)
+			return
+		}
+		if restaurant.RespondMenuLocked(w, r, err) {
 			return
 		}
 		h.failInternal(w, r, err)
@@ -359,9 +359,6 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 	result, err := h.repo.DecideMenuVersion(r.Context(), actorFrom(r),
 		versionID, in.Decision, in.ReasonCode, in.ReviewNote)
 	if err != nil {
-		if restaurant.RespondMenuLocked(w, r, err) {
-			return
-		}
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Menu version not found.", nil)
@@ -375,6 +372,9 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrItemDeleted) {
 			httpx.Fail(w, r, http.StatusConflict, CodeItemDeleted,
 				"The menu item has been deleted.", nil)
+			return
+		}
+		if restaurant.RespondMenuLocked(w, r, err) {
 			return
 		}
 		h.failInternal(w, r, err)

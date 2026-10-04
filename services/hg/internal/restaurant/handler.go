@@ -388,13 +388,13 @@ func (h *Handler) CreateMenuCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cat, err := h.repo.CreateCategory(r.Context(), restaurantID, body)
-	if RespondMenuLocked(w, r, err) {
-		return
-	}
 	if errors.Is(err, ErrCategoryNameTaken) {
 		httpx.Fail(w, r, http.StatusConflict,
 			httpx.ErrorCode("CATEGORY_NAME_TAKEN"),
 			"A category with this name already exists.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
 		return
 	}
 	if err != nil {
@@ -459,13 +459,13 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	item, err := h.repo.CreateMenuItem(r.Context(), restaurantID, body)
-	if RespondMenuLocked(w, r, err) {
-		return
-	}
 	if errors.Is(err, ErrNotFound) {
 		// Target category does not belong to this restaurant (or does not exist):
 		// invisible → 404, never a 403 that would confirm a foreign category.
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
 		return
 	}
 	if err != nil {
@@ -526,11 +526,11 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 	itemID := chi.URLParam(r, "itemId")
 	item, err := h.repo.UpdateMenuItem(r.Context(), restaurantID, itemID, body)
-	if RespondMenuLocked(w, r, err) {
-		return
-	}
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
 		return
 	}
 	if err != nil {
@@ -570,11 +570,11 @@ func (h *Handler) SetMenuItemAvailability(w http.ResponseWriter, r *http.Request
 	}
 	itemID := chi.URLParam(r, "itemId")
 	item, err := h.repo.SetMenuItemAvailability(r.Context(), restaurantID, itemID, body)
-	if RespondMenuLocked(w, r, err) {
-		return
-	}
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
 		return
 	}
 	if err != nil {

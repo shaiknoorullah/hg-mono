@@ -81,24 +81,6 @@ var ErrCategoryNameTaken = errors.New("admin: category name taken")
 // ErrItemDeleted is returned when the menu_item has been soft-deleted.
 var ErrItemDeleted = errors.New("admin: item deleted")
 
-// lockMenuOnBehalf is the menu lock for an admin's menu write: the shared check in
-// internal/restaurant (menu_lock.go), with a missing restaurant mapped to this
-// package's ErrNotFound. While the restaurant is suspended or banned it returns
-// restaurant.ErrMenuLocked: admins cannot change the menu either
-// (https://github.com/shaiknoorullah/hg-mono/issues/256). Call it as the first
-// statement of every admin menu write's transaction, including the update and
-// remove operations still to be built.
-func lockMenuOnBehalf(ctx context.Context, tx pgx.Tx, restaurantID string) error {
-	return mapMenuLockErr(restaurant.LockMenuForWrite(ctx, tx, restaurantID))
-}
-
-func mapMenuLockErr(err error) error {
-	if errors.Is(err, restaurant.ErrNotFound) {
-		return ErrNotFound
-	}
-	return err
-}
-
 // CreateMenuCategoryOnBehalf inserts a new menu_category for the given restaurant
 // on behalf of an admin (A-19). The restaurant must exist (returns ErrNotFound
 // otherwise). Duplicate name within the same restaurant returns ErrCategoryNameTaken.
@@ -520,4 +502,22 @@ func isUniqueViolation(err error) bool {
 		return pe.SQLState() == "23505"
 	}
 	return false
+}
+
+// lockMenuOnBehalf is the menu lock for an admin's menu write: the shared check in
+// internal/restaurant (menu_lock.go), with a missing restaurant mapped to this
+// package's ErrNotFound. While the restaurant is suspended or banned it returns
+// restaurant.ErrMenuLocked: admins cannot change the menu either
+// (https://github.com/shaiknoorullah/hg-mono/issues/256). Call it as the first
+// statement of every admin menu write's transaction, including the update and
+// remove operations still to be built.
+func lockMenuOnBehalf(ctx context.Context, tx pgx.Tx, restaurantID string) error {
+	return mapMenuLockErr(restaurant.LockMenuForWrite(ctx, tx, restaurantID))
+}
+
+func mapMenuLockErr(err error) error {
+	if errors.Is(err, restaurant.ErrNotFound) {
+		return ErrNotFound
+	}
+	return err
 }

@@ -913,7 +913,6 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 
 // CreateMenuItem creates a new menu item + initial DRAFT version.
 // The version is always DRAFT (never auto-approved per R-05 / halal gate).
-// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go).
 func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -921,6 +920,7 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
+	// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go).
 	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
 		return nil, err
 	}
@@ -999,8 +999,6 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 
 // UpdateMenuItem creates a new PENDING_REVIEW version for an existing item
 // (or DRAFT when carrying halal-bearing tags). Validates ownership.
-// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go): no
-// price, photo or other field changes, and a version waiting for review stays.
 func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, in menuItemUpdateDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -1008,6 +1006,8 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
+	// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go): no
+	// price, photo or other field changes, and a version waiting for review stays.
 	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
 		return nil, err
 	}
