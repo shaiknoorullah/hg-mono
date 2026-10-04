@@ -132,7 +132,7 @@ export function CheckoutScreen(): React.ReactElement {
             }}
           >
             <TotalRow label="Total" cents={state.quote.total_cents} emphasise />
-            <Button variant="primary" loading={placing} onPress={() => void onPlace()}>
+            <Button variant="primary" fullWidth loading={placing} onPress={() => void onPlace()}>
               Place order
             </Button>
           </View>

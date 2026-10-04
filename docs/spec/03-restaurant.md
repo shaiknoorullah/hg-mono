@@ -3,16 +3,18 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # HalalGoes — RESTAURANT domain specification
 
 **Status**: implementable spec, derived from SOW items 1–8 (Restaurant section).
-**Target**: Go modular monolith, single binary. Postgres + Redis + MinIO + Traefik. No Temporal, no
+**Target**: Go modular monolith, single binary. Postgres + Redis + [Silo](https://github.com/pgsty/silo), the maintained MinIO fork ([object storage](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) + Traefik. No Temporal, no
 microservices, no serverless.
 **Restaurant surface**: web app only (Next.js today; surface-agnostic here). The Expo
 `apps/restaurant` mobile app is **not** in this spec — see "Global out of scope".
+**Devices**: desktop and landscape tablets from 1024×768 up, light theme only; no portrait or phone
+layouts ([devices at launch](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [dark theme](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 **Market**: Canada. Currency CAD. Language en-CA (fr-CA deferred to V3).
 
 ---
@@ -43,7 +45,7 @@ Acceptance criteria → Out of scope → Version → Size.
 | Soft delete | `deleted_at timestamptz NULL`. Every read path filters it. Deleted rows are never returned to the restaurant surface. |
 | Enums | Postgres native enums, `SCREAMING_SNAKE`. Unknown value on input → `422 invalid_enum_value`, never coerced. |
 | Envelope | All responses `{"data": …, "meta": {…}}` or `{"error": {"code","message","field_errors":[]}}`. Never a bare array. Never HTTP 200 with `success:false`. |
-| Pagination | Cursor-based: `?limit=` (default 25, max 100) + `?cursor=`. `meta.next_cursor` null at end. |
+| Pagination | Cursor-based: `?limit=` (default 20, max 100) + `?cursor=`. `meta.next_cursor` null at end. |
 | Idempotency | Every non-GET carries `Idempotency-Key` (UUID). Replays inside 24h return the stored original response. Required on accept/reject, payout request, document confirm. |
 | Validation | Request bodies validated against explicit structs at the HTTP boundary. Field allowlists only — no struct passthrough to the ORM, so `is_approved`, `commission_rate_bps`, `deleted_at` are never client-writable. |
 | Authorization | Every restaurant endpoint resolves `restaurant_id` from the **session**, never the path/body. A path `restaurant_id` that differs from the session's → `403 forbidden`, never 404-masked. |
@@ -101,9 +103,9 @@ edit a menu while orders are in flight" — see R-15.
 |---|---|---|---|---|
 | `PENDING` | system on signup | no | n/a | yes |
 | `ACTIVE` | admin approval + payout account ready | yes (subject to hours/toggle) | continue | yes |
-| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes, read-only + disputes |
+| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours; the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | `REJECTED` | admin at onboarding review | no | n/a | yes, to re-submit documents |
-| `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no |
+| `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no; the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | `CLOSED` | restaurant self-service offboarding | no | continue to completion | yes for 90 days |
 
 Full transition and in-flight-order semantics are specified in **R-36**.
@@ -118,7 +120,7 @@ PENDING_RESTAURANT ──accept──▶ ACCEPTED ──restaurant marks──�
       ▼                            │                              │
   CANCELLED_*                      └── restaurant cancel ─▶ CANCELLED_BY_RESTAURANT
                                                                   │
-                                       rider scans ──▶ PICKED_UP ─┴─▶ ON_THE_WAY ─▶ DELIVERED
+                                       pickup code ──▶ PICKED_UP ─┴─▶ ON_THE_WAY ─▶ DELIVERED
 ```
 
 `PICKED_UP`, `ON_THE_WAY`, `DELIVERED` are rider/system-driven and are **read-only** to the
@@ -184,9 +186,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   3. **Given** a password of `Password1234` that appears in the breached list, **when** signup is attempted, **then** `422` is returned with `field_errors:[{field:"password",code:"breached_password"}]` and no rows are written.
   4. **Given** a successful signup, **when** the `restaurant_user` row is inspected, **then** `password_hash` starts with `$argon2id$` and the plaintext appears in no log line, audit row, or error payload.
 
-  > **DECISION REQUIRED — multi-location and franchise accounts**: can one login own several restaurants, and can one restaurant run several menus? · **Proposed default**: **no** for V1 and V2 — one login = one restaurant = one address = one menu. A chain onboards each location separately. Revisit in V3. · **Why**: tenancy-within-a-tenant touches every query, index and authorisation check in the domain; deferring the decision is cheap, committing to it wrongly now is not. *(D-15)*
+  > **Decided:** one restaurant per login at launch; a chain onboards each location separately ([one login for several restaurants](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). One menu per restaurant stays the proposed default.
 
-- **Out of scope**: social login (Apple/Google/Facebook — the legacy mobile buttons were decorative and are **not** rebuilt); phone/OTP signup; invite-based staff signup (V3); multi-restaurant / franchise accounts under one login (**D-15**); CAPTCHA (V2); self-serve email change.
+- **Out of scope**: social login (Apple/Google/Facebook — the legacy mobile buttons were decorative and are **not** rebuilt); phone/OTP signup; invite-based staff signup (a later version: the owner is the only login at launch, [staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)); multi-restaurant / franchise accounts under one login (**D-15**); CAPTCHA (V2); self-serve email change.
 
 - **Version**: V1
 - **Size**: M
@@ -264,8 +266,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   4. Maximum **10** concurrent active sessions per user; the oldest is revoked beyond that.
   5. `POST /v1/restaurant/auth/logout` revokes the current session; `logout-all` revokes every
      session for the user.
-  6. Password reset: `request-reset` → emailed token (TTL 1h, single-use, supersedes prior) →
-     `confirm-reset` sets the new hash and revokes **all** sessions.
+  6. Password reset: `request-reset` → emailed token (TTL 30 min, single-use, supersedes prior) →
+     `confirm-reset` sets the new hash and revokes **all** sessions. A signed-in user may change
+     their own password, which revokes every other session. Reset, change and `logout-all` ship at
+     launch ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   7. Authorization middleware rejects a request whose JWT `rid` does not match the `restaurant_id`
      of the resource being addressed. No endpoint accepts `restaurant_id` from the client for
      authorization purposes.
@@ -276,7 +280,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   3. **Given** restaurant A's session, **when** it calls `GET /v1/restaurant/orders?restaurant_id=<B's id>`, **then** `403 forbidden` is returned and A's own orders are **not** returned as a silent fallback.
   4. **Given** 10 consecutive wrong-password attempts, **when** the 11th attempt uses the *correct* password, **then** `423 account_locked` is returned with `retry_after_seconds` ≤ 900.
 
-- **Out of scope**: SSO/SAML; MFA (V2); device-trust / "remember this device"; biometric; session
+- **Out of scope**: SSO/SAML; MFA (V2; it issues no recovery codes, and a super admin resets a lost
+  authenticator after a phone call-back check: [recovery codes](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [manual resets](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); device-trust / "remember this device"; biometric; session
   transfer between the web app and a future mobile app.
 
 - **Version**: V1
@@ -358,8 +363,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Behaviour**: A single form captures the operational identity of the restaurant: owner contact,
   public description, address, geographic coordinates, cuisine types, average preparation time and
-  timezone. Coordinates are chosen on a map; the server **derives and validates** them rather than
-  trusting the client blindly. Saving a valid profile advances `PROFILE_PENDING → DOCUMENTS_PENDING`.
+  timezone. Coordinates are chosen by typing into a map search, then dragging the pin for precision;
+  search and pin-to-address requests go through our API, which forwards to Mapbox
+  ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [map address search](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+  The server **derives and validates** them rather than trusting the client blindly. Saving a valid profile advances `PROFILE_PENDING → DOCUMENTS_PENDING`.
 
 - **Data** (all on `restaurant` unless noted):
   `display_name, legal_name, owner_first_name, owner_last_name, phone_e164, description,
@@ -390,8 +397,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   8. `timezone` must be an IANA zone whose country is CA; defaulted from `province_code` and
      overridable.
   9. `cuisine_type_ids` 1–5 entries from the server-managed lookup. Free-text cuisine is rejected.
-  10. Address is **not** geocoded automatically in V1; the map pin is authoritative and the address
-      text is stored as entered. A mismatch check (pin vs. postal-code centroid > 5 km) raises a
+  10. The map pin is authoritative; the address fields may be filled from the pin through the same
+      API, and the text is stored as the owner confirms it. A mismatch check (pin vs. postal-code centroid > 5 km) raises a
       soft warning shown to the admin reviewer, not a hard failure.
 
 - **Acceptance criteria**:
@@ -401,7 +408,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   4. **Given** `gst_hst_number='27AAPFU0939F1ZV'` (an Indian GSTIN), **when** the profile is saved, **then** `422 invalid_gst_hst_number`.
   5. **Given** a saved profile, **when** the same payload is re-submitted, **then** `200` is returned, the row is unchanged apart from `updated_at`, and no duplicate audit entry with an empty diff is written.
 
-- **Out of scope**: address autocomplete / Google Places; automatic reverse geocoding; multiple
+- **Out of scope**: address searches sent from the browser straight to a map provider; multiple
   addresses per restaurant; delivery-radius configuration (platform-owned); French-language profile
   fields (V3); social links; restaurant website field.
 
@@ -442,13 +449,17 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      to 365 days ahead; a nightly job deletes overrides older than 90 days.
   5. **Last-order cutoff**: new orders are refused from `closes_at − avg_prep_minutes`. A restaurant
      is never handed an order it cannot finish before closing.
-  6. `pause_until` accepts only the values 15, 30, 60 minutes or "rest of today" (= local 23:59:59).
+  6. `pause_until` accepts only the values 15, 30, 60 minutes or "until closing" (the restaurant's
+     next closing time, past midnight included), which replaces "rest of today"; an API change
+     ([pausing on late nights](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), ["for how long" options](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
      Pausing does **not** affect already-accepted orders.
   7. Editing hours while orders are in flight is allowed and has no effect on them.
   8. `is_open_now` is computed server-side in the restaurant's timezone with DST handled by the
      IANA database. It is exposed on the customer feed and re-checked at checkout; a checkout for a
      closed restaurant → `409 restaurant_closed` with `next_open_at`.
-  9. Changing hours takes effect immediately. There is no admin approval for hours.
+  9. Changing hours takes effect immediately. There is no admin approval for hours. Hours stay
+     editable while the restaurant is suspended and become read-only once it is deactivated
+     ([opening hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 - **Acceptance criteria**:
   1. **Given** Friday hours `11:00–14:00` and `17:00–23:00` in `America/Toronto` and `avg_prep_minutes=20`, **when** a customer checks out at 22:45 local, **then** `409 restaurant_closed` is returned with `next_open_at` = the next Saturday opening instant in UTC.
@@ -471,15 +482,15 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Behaviour**: The restaurant uploads a fixed pack of documents through a three-call presigned flow
   so that file bytes never traverse the API: `POST documents/upload-url` (server validates intent,
-  mints a MinIO presigned `PUT`, creates a `media` row in `PENDING_UPLOAD`) → client `PUT`s the bytes
-  directly to MinIO → `POST documents/confirm` (server `HEAD`s the object, verifies size and
+  mints a Silo presigned `PUT`, creates a `media` row in `PENDING_UPLOAD`) → client `PUT`s the bytes
+  directly to Silo → `POST documents/confirm` (server `HEAD`s the object, verifies size and
   content-type, computes checksum, flips `media` to `STORED` and creates/replaces the
   `restaurant_document` row). Documents live in a **private** bucket; they are readable only through
   short-lived presigned GETs issued to the owning restaurant or to an admin (R-08).
 
-> **DECISION REQUIRED — Canadian document set (the FSSAI substitution)**: The SOW names FSSAI, an Indian regulator with no Canadian legal meaning. What is the actual required document pack? · **Proposed default**: `BUSINESS_LICENCE`, `HALAL_CERTIFICATE`, `FOOD_SAFETY` (provincial or municipal food-premises permit, or a food-handler certificate), `OWNER_ID` — all four required; `LIABILITY_INSURANCE` optional in V2; `gst_hst_number` captured as a field in CRA format `\d{9}RT\d{4}`, **not** an Indian GSTIN. · **Why**: food-premises permitting in Canada is provincial/municipal, so there is no single national certificate to demand, and no Canadian restaurant can produce the document the SOW names. *(D-11)*
+> **Decided:** the four required documents below replace FSSAI; a CRA business number replaces GSTIN; liability insurance stays hidden until V2 ([FSSAI certificate](../decisions/README.md#settled--reconciliations), [liability insurance upload](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 
-> **DECISION REQUIRED — recognised halal certifiers**: Which certifying bodies does the platform accept? · **Proposed default**: a server-managed `halal_certifier(id, name, jurisdiction, website, is_active)` allowlist seeded by the client before launch; `OTHER` is selectable but permanently forces manual admin review and disqualifies the restaurant from any future auto-approval heuristic. **The client must supply the initial list of recognised certifiers.** · **Why**: the platform's whole premise is a *verifiable* halal claim, and a free-text issuer field makes it unverifiable. *(D-10)*
+> **Decided:** three seeded certifying bodies, extensible by a super admin; any other body sends the application to "waiting on certifying body" ([accepted certifying bodies](../decisions/README.md#settled--client-decisions), [body not on the accepted list](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 > ⚠️ **FSSAI is replaced.** See §1.5. The V1 required pack for Canada is:
 
@@ -519,8 +530,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   6. `expires_on` must be a future date at upload time; an already-expired certificate →
      `422 document_already_expired`.
   7. `HALAL_CERTIFICATE.issuer_name` must be selected from the server-managed
-     `halal_certifier` allowlist (**D-10**); `OTHER` is permitted but forces manual admin review and
-     blocks auto-approval heuristics forever.
+     `halal_certifier` allowlist (**D-10**); `OTHER` is permitted, and the reviewer then marks the
+     application "waiting on certifying body" until a super admin decides on that body
+     ([body not on the accepted list](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   8. Re-uploading a `doc_type` supersedes the previous row rather than mutating it. Full history is
      retained for audit; only the newest non-superseded row is "current".
   9. Uploads are permitted only in `onboarding_state ∈ {DOCUMENTS_PENDING, DOCUMENTS_REJECTED}` or,
@@ -528,15 +540,15 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   10. Rate limit 20 `upload-url` calls per hour per restaurant.
 
 - **Acceptance criteria**:
-  1. **Given** a presigned URL minted for `HALAL_CERTIFICATE` with a 10 MB limit, **when** the client `PUT`s an 11 MB file, **then** MinIO rejects the upload with `EntityTooLarge` and `confirm` subsequently returns `409 upload_not_found`.
-  2. **Given** a file whose declared type is `application/pdf` but whose bytes begin `MZ`, **when** `confirm` is called, **then** `422 content_type_mismatch` is returned, the MinIO object is deleted, and no `restaurant_document` row exists.
-  3. **Given** a stored document, **when** its `object_key` is requested from MinIO without a signature, **then** HTTP `403` is returned — verified by an integration test against the live bucket policy.
+  1. **Given** a presigned URL minted for `HALAL_CERTIFICATE` with a 10 MB limit, **when** the client `PUT`s an 11 MB file, **then** Silo rejects the upload with `EntityTooLarge` and `confirm` subsequently returns `409 upload_not_found`.
+  2. **Given** a file whose declared type is `application/pdf` but whose bytes begin `MZ`, **when** `confirm` is called, **then** `422 content_type_mismatch` is returned, the Silo object is deleted, and no `restaurant_document` row exists.
+  3. **Given** a stored document, **when** its `object_key` is requested from Silo without a signature, **then** HTTP `403` is returned — verified by an integration test against the live bucket policy.
   4. **Given** a `BUSINESS_LICENCE` at `version=1` with `status='REJECTED'`, **when** a new business licence is uploaded, **then** a `version=2` row is created with `status='UPLOADED'`, the v1 row becomes `SUPERSEDED`, and `GET /documents` returns only v2 as current.
   5. **Given** a `HALAL_CERTIFICATE` with `expires_on` yesterday, **when** `confirm` is called, **then** `422 document_already_expired` and no document row is created.
 
 - **Out of scope**: OCR/auto-extraction of certificate fields; virus scanning (V2 — ClamAV sidecar);
   automated verification against certifier registries; document translation; e-signature; storing
-  documents in any bucket other than MinIO; the legacy Supabase/Payload-CMS upload path (deleted).
+  documents in any bucket other than Silo; the legacy Supabase/Payload-CMS upload path (deleted).
 
 - **Version**: V1
 - **Size**: L
@@ -576,8 +588,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      the code is `OTHER`. *(The current admin UI collects the reason via a browser `prompt()` — not
      acceptable; this is a structured form.)*
   5. Review SLA: `sla_due_at = submitted_at + 2 business days` in `America/Toronto`. Breach raises an
-     admin dashboard flag. **No auto-approval on SLA breach, ever** — see **D-22** for menus, which
-     differs.
+     admin dashboard flag. Restaurants are told to expect a decision "within 3 business days"
+     ([document review time](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+     **No auto-approval on SLA breach, ever** — menu changes are never auto-approved either
+     ([menu approval](../decisions/README.md#settled--reconciliations)).
   6. Approving the pack sets `documents_approved_at`, transitions to `PAYOUT_PENDING`, and emits
      `restaurant.documents.approved` (R-09, R-34).
   7. Rejecting sets `DOCUMENTS_REJECTED`, marks only the failing documents `REJECTED` (approved ones
@@ -674,13 +688,14 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **SOW trace**: *"Halal Certification Verification: Verify and approve Halal certifications… Track verification status"* and *"Compliance Monitoring: Ensure restaurants comply with platform policies"* (SOW §2, Admin §1). Derived requirement: a halal certificate has an expiry date, and the platform's entire value proposition is that halal claims are currently valid.
 
 - **Behaviour**: A nightly job (03:00 `America/Toronto`) evaluates every current, approved
-  `restaurant_document` with a non-null `expires_on`. It sends renewal reminders at T−30, T−14 and
-  T−3 days, and on the expiry date it marks the document `EXPIRED`. An expired **halal certificate**
+  `restaurant_document` with a non-null `expires_on`. It sends renewal reminders 30, 14, 7 and 1
+  days before expiry ([certificate renewal reminders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)),
+  and on the expiry date it marks the document `EXPIRED`. An expired **halal certificate**
   or **food safety** document automatically moves the restaurant to `SUSPENDED` with
   `suspension_reason='DOCUMENT_EXPIRED'`. Renewal is a normal R-07 upload plus an R-08 review of just
   that document; approval restores `ACTIVE` automatically.
 
-  > **DECISION REQUIRED — expired-document consequence**: auto-suspend, flag only, or allow a grace period? · **Proposed default**: an expired `HALAL_CERTIFICATE` or `FOOD_SAFETY` triggers **automatic suspension with no grace period**; an expired `OWNER_ID` or `BUSINESS_LICENCE` raises an admin flag only. Reminders at T−30, T−14 and T−3 days. · **Why**: a grace period means knowingly serving orders under an expired halal certificate, which is the one failure that destroys the platform's reason to exist. *(D-12)*
+  > **DECISION REQUIRED — expired-document consequence**: auto-suspend, flag only, or allow a grace period? · **Proposed default**: an expired `HALAL_CERTIFICATE` or `FOOD_SAFETY` triggers **automatic suspension with no grace period**; an expired `OWNER_ID` or `BUSINESS_LICENCE` raises an admin flag only. Reminders 30, 14, 7 and 1 days before expiry (decided: [certificate renewal reminders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). · **Why**: a grace period means knowingly serving orders under an expired halal certificate, which is the one failure that destroys the platform's reason to exist. *(D-12)*
 
 - **Data**: `restaurant_document.expires_on`, `restaurant.suspension_reason`,
   `document_reminder(id, restaurant_document_id, offset_days, sent_at)` (idempotency guard so a
@@ -772,8 +787,11 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      Error paths redirect to `/login` (an existing route) — *the current `/auth/login` redirect is a
      dead route and is a defect not to be ported.*
   5. `onboarding_state PAYOUT_PENDING → MENU_PENDING` occurs only on `state='READY'`.
-  6. An order is never accepted while `payout_account.state != 'READY'`; the restaurant cannot be
-     `ACTIVE` without it.
+  6. A restaurant cannot become `ACTIVE` or take its first order until `payout_account.state` is
+     `READY`. One that was `READY` and is later `RESTRICTED` keeps taking orders: earnings build up
+     and are paid on the next Monday payout after Stripe is fixed, and a banner asks the owner to
+     fix it ([restricted payouts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [which partners keep working](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [held payout release](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01);
+     contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
   7. Only one payout account per restaurant. Changing bank details is done inside Stripe's hosted
      flow, re-entered through a fresh Account Link.
   8. Stripe API calls carry an idempotency key derived from `(restaurant_id, operation, attempt)`.
@@ -801,12 +819,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Behaviour**: An active restaurant edits its own profile. Fields are partitioned into three
   classes so that low-risk edits are instant while identity- and location-affecting edits go through
-  admin review — because address and legal name are what the approved documents attest to.
+  admin review — because address and legal name are what the approved documents attest to, and the
+  customer-facing name and description can carry a halal claim.
 
   | Class | Fields | Effect |
   |---|---|---|
-  | **Instant** | `display_name`, `description`, `phone_e164`, `cuisine_type_ids`, `avg_prep_minutes`, `logo_media_id`, `cover_media_id`, gallery, hours (R-06) | Live on save |
-  | **Reviewed** | `legal_name`, `address_*`, `lat`/`lng`, `province_code`, `gst_hst_number` | Creates a `profile_change_request`; live values unchanged until an admin approves |
+  | **Instant** | `phone_e164`, `cuisine_type_ids`, `avg_prep_minutes`, `logo_media_id`, `cover_media_id`, gallery, hours (R-06) | Live on save |
+  | **Reviewed** | `display_name`, `description`, `legal_name`, `address_*`, `lat`/`lng`, `province_code`, `gst_hst_number` | Creates a `profile_change_request`; live values unchanged until an admin approves ([description and customer-facing name](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [GST/HST number](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
   | **Locked** | `email`, `commission_rate_bps`, `account_status`, `onboarding_state`, `slug`, any `*_at`, any id | Not writable by the restaurant at all; `403 field_not_writable` |
 
 - **Data**: `profile_change_request(id, restaurant_id, requested_by_user_id, changes_json,
@@ -833,7 +852,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `PUT /api/restaurants/{id}/location` relative-fetch defect disappears by construction.)*
 
 - **Acceptance criteria**:
-  1. **Given** an active restaurant, **when** it PATCHes `description`, **then** `200` is returned, the value is live immediately, and no `profile_change_request` is created.
+  1. **Given** an active restaurant, **when** it PATCHes `avg_prep_minutes`, **then** `200` is returned, the value is live immediately, and no `profile_change_request` is created.
   2. **Given** an active restaurant, **when** it PATCHes `address_line1` and `lat`/`lng`, **then** `202` is returned with a `profile_change_request` in `PENDING`, and `GET /v1/restaurant/profile` still shows the old address with `pending_changes` populated.
   3. **Given** a PATCH containing `commission_rate_bps`, **when** it is submitted, **then** `403 field_not_writable` naming that field, and no other field in the same payload is applied.
   4. **Given** a coordinate change of 3 km, **when** it is submitted, **then** the response includes `requires_documents:["BUSINESS_LICENCE","FOOD_SAFETY"]` and the request cannot be approved until both are re-uploaded and approved.
@@ -950,11 +969,11 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   content lives on a version and, when changed, is reviewed by an admin before it reaches customers
   (R-17). Customers always read the item's `live_version_id`; the restaurant reads live + pending.
 
-  **Editing the menu while orders are in flight is always allowed.** Order lines snapshot
+  **Orders in flight never block a menu edit.** Order lines snapshot
   `item_version_id`, `name_snapshot` and `unit_price_cents` at order creation (§1.2), so no menu edit
   can retroactively change what a customer bought, what the restaurant must cook, or what either
-  party pays. There is no menu lock, no "orders in flight" guard, and no version pinning beyond the
-  snapshot.
+  party pays. There is no "orders in flight" guard and no version pinning beyond the snapshot. Only the
+  account state locks the menu: nobody edits it while the restaurant is suspended or banned ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 - **Data**:
   ```
@@ -1038,7 +1057,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   1. **Given** a live item with an approved image, **when** a new image is uploaded and confirmed, **then** the customer menu still serves the old image and the restaurant view shows `pending_version.image_media_id` set.
   2. **Given** the pending image is approved, **when** the customer menu is fetched, **then** the new image URL is served within the menu cache TTL (60 s) and the old object remains fetchable for 7 days.
   3. **Given** a 300×300 upload, **when** `confirm` is called, **then** `422 image_too_small` with `min:"800x800"`.
-  4. **Given** an image uploaded but never attached to a version, **when** the nightly sweep runs 25 h later, **then** the MinIO object and the `media` row are gone.
+  4. **Given** an image uploaded but never attached to a version, **when** the nightly sweep runs 25 h later, **then** the Silo object and the `media` row are gone.
 
 - **Out of scope**: multiple images per dish; video; auto-cropping UI; background removal;
   stock-photo library; image-based dish recognition.
@@ -1064,9 +1083,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
   > **DECISION REQUIRED — reviewed vs. instant menu fields**: Which menu fields need admin approval before going live? · **Proposed default**: **Reviewed** = `name`, `description`, `ingredients_text`, `dietary_tags`, `allergen_tags`, `image_media_id`, `portion_description`. **Instant** = `price_cents`, `availability_state`, `out_of_stock_until`, `category_id`, `sort_order`, `prep_minutes`, item creation as `DRAFT`, and item deletion. · **Why**: reviewed fields are food-safety and halal claims the platform vouches for; instant fields are operational and would make the queue the bottleneck of every dinner service. *(D-03)*
 
-  > **DECISION REQUIRED — menu review SLA and fallback**: What happens if admins do not review a pending menu change? · **Proposed default**: SLA 4 business hours. A pending version older than **24 hours** is **auto-approved** by a scheduled job, tagged `auto_approved=true`, and retained in an admin "post-hoc audit" list. Rejection after auto-approval reverts the item to the prior version. · **Why**: unlike KYC (never auto-approved), a stalled menu queue silently freezes a restaurant's business; a 24 h backstop plus post-hoc audit trades a bounded risk for guaranteed liveness. *(D-22)*
+  > **Decided:** menu changes are never auto-approved; a pending version waits until an admin decides ([menu approval](../decisions/README.md#settled--reconciliations)). The review SLA stays proposed at 4 business hours.
 
-- **Data**: `menu_item_version.review_status, submitted_at, reviewed_by_admin_id, reviewed_at, review_note, auto_approved bool`;
+- **Data**: `menu_item_version.review_status, submitted_at, reviewed_by_admin_id, reviewed_at, review_note`;
   `menu_review_task(id, restaurant_id, pending_version_ids uuid[], state, submitted_at, sla_due_at, decided_at, assigned_admin_id)`;
   `menu_rejection_reason` enum: `MISLEADING_DESCRIPTION`, `UNSUBSTANTIATED_HALAL_CLAIM`, `INCORRECT_DIETARY_TAG`, `MISSING_ALLERGEN`, `POOR_IMAGE_QUALITY`, `IMAGE_NOT_OF_DISH`, `PROHIBITED_ITEM`, `OFFENSIVE_CONTENT`, `OTHER`.
 
@@ -1074,14 +1093,12 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
   | From | To | Trigger |
   |---|---|---|
-  | — | `DRAFT` | restaurant edits a reviewed field, has not submitted |
-  | `DRAFT` | `PENDING_REVIEW` | restaurant clicks "Submit for approval" (or autosubmit after 10 min idle) |
+  | — | `PENDING_REVIEW` | restaurant saves a reviewed field; no drafts at launch ([menu drafts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
+  | — | `APPROVED` | an admin creates the item on the restaurant's behalf; the creator is the reviewer ([menu approval](../decisions/README.md#settled--reconciliations)). Never while the restaurant is suspended or banned ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
   | `PENDING_REVIEW` | `APPROVED` | admin approves |
-  | `PENDING_REVIEW` | `APPROVED` (`auto_approved=true`) | 24 h backstop job |
   | `PENDING_REVIEW` | `REJECTED` | admin rejects with a reason code |
-  | `PENDING_REVIEW` | `WITHDRAWN` | restaurant edits again (creates a newer draft) or cancels |
+  | `PENDING_REVIEW` | `WITHDRAWN` | restaurant saves again (creates a newer pending version) or cancels |
   | `APPROVED` | `SUPERSEDED` | a newer version is approved |
-  | `APPROVED(auto)` | `REVOKED` | admin post-hoc rejects; item reverts to the previous approved version |
 
 - **Rules**:
   1. A menu item's **first** version must be `APPROVED` before the item can appear to customers. A
@@ -1094,13 +1111,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      reject is not (each rejection needs a reason).
   6. Every decision emits `menu_item.review_decided` on the restaurant's event stream (R-09) and an
      email digest at most once per hour.
-  7. Approval and auto-approval both write `audit_log` with `actor_type='ADMIN'` or `'SYSTEM'`.
+  7. Every approval, including an item an admin creates, writes `audit_log` with `actor_type='ADMIN'`.
 
 - **Acceptance criteria**:
   1. **Given** a live item, **when** the restaurant changes only `price_cents`, **then** the new price is live immediately, no `menu_item_version` is created, and the admin queue is unchanged.
   2. **Given** a live item, **when** the restaurant changes `description`, **then** customers still see the old description, `pending_version_id` is set, and the admin queue contains one entry.
-  3. **Given** a pending version submitted 25 h ago, **when** the backstop job runs, **then** it becomes `APPROVED` with `auto_approved=true`, `live_version_id` is repointed, and it appears in the post-hoc audit list.
-  4. **Given** an auto-approved version, **when** an admin post-hoc rejects it, **then** `live_version_id` reverts to the previous approved version, the item's customer-visible content matches that previous version, and the restaurant is notified with the reason.
+  3. **Given** a pending version submitted 25 h ago with no admin decision, **when** it is read, **then** it is still `PENDING_REVIEW` and customers still see the previous live version.
+  4. **Given** an admin creates an item on a restaurant's behalf, **when** it is saved, **then** its first version is `APPROVED` with that admin as reviewer, and one `audit_log` row records it.
   5. **Given** a restaurant with zero approved item versions, **when** it attempts to go `ACTIVE`, **then** `409 no_live_menu_item`.
 
 - **Out of scope**: approval of categories, hours, offers (offers are reviewed separately in R-21),
@@ -1121,7 +1138,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   counts in V1 — restaurants do not maintain them accurately and counting creates reservation
   semantics the platform cannot enforce.
 
-  > **DECISION REQUIRED — snooze durations and auto-restock**: What "temporarily unavailable" options exist and when does an item come back? · **Proposed default**: options are **1 hour**, **until end of service today** (restaurant-local `closes_at`), and **indefinitely**. Every item with `availability_state='OUT_OF_STOCK'` and a non-null `out_of_stock_until` is automatically restored by a per-minute job. Additionally, **all** `OUT_OF_STOCK_TODAY` items are restored at the restaurant's next opening time. Indefinitely-unavailable items are never auto-restored, and a weekly digest lists items unavailable >14 days. · **Why**: end-of-day auto-restock matches how kitchens actually run out of a prep batch, and the weekly digest stops menus silently rotting. *(D-13)*
+  > **Decided:** a switch; turning it off opens a "for how long" menu whose default is "until closing" ([setting item availability](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), ["for how long" options](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+  > **Open** (proposed defaults stand): the other options, 1 hour and indefinitely; a per-minute restore job; "until closing" items restored at the next opening; a weekly digest of items unavailable over 14 days.
 
 - **Data**: `menu_item.availability_state`, `menu_item.out_of_stock_until timestamptz NULL`,
   `menu_item.unavailable_since`, `availability_change_log(id, menu_item_id, from_state, to_state, until, changed_by_user_id, created_at)`.
@@ -1131,7 +1149,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   | From | To | Trigger |
   |---|---|---|
   | — | `AVAILABLE` | item created |
-  | `AVAILABLE` | `OUT_OF_STOCK` | restaurant marks unavailable; `out_of_stock_until` = now+1h / next open / NULL |
+  | `AVAILABLE` | `OUT_OF_STOCK` | restaurant marks unavailable; `out_of_stock_until` = now+1h / next closing time / NULL |
   | `OUT_OF_STOCK` | `AVAILABLE` | restaurant marks available, **or** per-minute job when `out_of_stock_until <= now()`, **or** next-opening restore job |
   | `AVAILABLE` | `HIDDEN` | item's category deactivated, or item soft-deleted |
   | `HIDDEN` | previous state | category reactivated |
@@ -1154,7 +1172,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   7. The per-minute restock job holds an advisory lock and is idempotent.
 
 - **Acceptance criteria**:
-  1. **Given** an item marked out of stock "until end of service today" at 14:00 with closing at 23:00 local, **when** the per-minute job runs at 23:00, **then** the item is `AVAILABLE` and one `availability_change_log` row records the automatic restore with `changed_by_user_id=NULL`.
+  1. **Given** an item marked out of stock "until closing" at 14:00 with closing at 23:00 local, **when** the per-minute job runs at 23:00, **then** the item is `AVAILABLE` and one `availability_change_log` row records the automatic restore with `changed_by_user_id=NULL`.
   2. **Given** an item marked out of stock indefinitely, **when** 48 hours pass, **then** it is still `OUT_OF_STOCK` and it appears in the weekly stale-item digest.
   3. **Given** an accepted order containing item X, **when** X is marked out of stock, **then** the order is untouched and no notification is sent to that order's customer.
   4. **Given** a bulk request marking 200 items unavailable, **when** one item id belongs to another restaurant, **then** `403 forbidden` is returned and **none** of the 200 are changed.
@@ -1291,7 +1309,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
   `BOGO` is **explicitly deferred to V3** — it interacts badly with per-line refunds and partial cancellations.
 
-  > **DECISION REQUIRED — who funds a discount**: Does the discount reduce the restaurant's payout or the platform's commission? · **Proposed default**: every offer carries `funding_source ∈ {RESTAURANT, PLATFORM, SHARED}`. Restaurant-created offers are always `RESTAURANT`: the discount reduces the item subtotal, and commission is charged on the **discounted** subtotal, so the restaurant bears the discount and the platform bears its commission share of it. `PLATFORM` and `SHARED` (`platform_share_bps`) are settable **only by an admin**. · **Why**: any other default lets a restaurant spend platform money, and charging commission on the pre-discount amount would make restaurant-funded promotions economically irrational. *(D-05)*
+  > **Decided:** discounts are restaurant-funded ([discount funding](../decisions/README.md#settled--reconciliations)), and commission is 0% at launch ([platform commission](../decisions/README.md#settled--client-decisions)).
 
   > **DECISION REQUIRED — stacking**: How many discounts can apply to one order? · **Proposed default**: at most **one** restaurant offer and **one** platform coupon per order; within restaurant offers the one producing the **largest** customer discount wins; combined discount is capped at **50%** of item subtotal; discounts never apply to delivery fee, platform fee, taxes or tip. · **Why**: unbounded stacking is the classic route to negative-revenue orders, and "best offer wins" is the only rule customers do not perceive as arbitrary. *(D-24)*
 
@@ -1315,7 +1333,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   |---|---|---|
   | — | `DRAFT` | created |
   | `DRAFT` | `PENDING_REVIEW` | submitted |
-  | `PENDING_REVIEW` | `APPROVED` | admin approves (or 24 h auto-approve backstop, as R-17) |
+  | `PENDING_REVIEW` | `APPROVED` | admin approves (never auto-approved, like menu changes) |
   | `PENDING_REVIEW` | `REJECTED` | admin rejects with reason |
   | `APPROVED` | `SCHEDULED` | approved and `starts_at > now()` |
   | `SCHEDULED` | `LIVE` | clock reaches `starts_at` |
@@ -1410,15 +1428,20 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **SOW trace**: *"Order Dashboard: View incoming orders in real-time with details like customer name, order items, delivery address, and special instructions."* (SOW §2, Restaurants §3).
 
-- **Behaviour**: A single operational screen with four columns — **New** (`PENDING_RESTAURANT`),
-  **Accepted** (`ACCEPTED`), **Preparing** (`PREPARING`), **Ready** (`READY_FOR_PICKUP`) — plus a
-  collapsed "Out for delivery" strip. It loads via REST and then stays current via the SSE stream
-  (R-09). A new order raises a modal with a countdown (R-24) and an audible, repeating alert.
+- **Behaviour**: No column board. A live strip in the header, directly under the app bar on every
+  restaurant page, lists each order awaiting acceptance with its countdown (R-24), and the alert
+  sounds until the order is accepted, rejected or expires. Arrow keys move along the strip, one key
+  accepts and one rejects (reject still asks for a reason); a stray key press never accepts an
+  order that is not focused. Open orders show as side-by-side panes (list, order, timeline) on a
+  page that fits the screen, with no overlay modal or sheet ([how a new order appears](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28),
+  [desktop working pages](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [where the live strip sits](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+  It loads via REST and then stays current via the SSE stream (R-09).
 
-- **Data**: read model `order_summary` projected from `order` + `order_line`:
+- **Data**: `GET /v1/restaurant/orders` returns the contract's `OrderRestaurantView` (its shape wins
+  where this sketch differs), projected from `order` + `order_line`:
   ```
   {id, order_number, status, placed_at, response_deadline_at, promised_ready_at,
-   customer_display_name, customer_phone_masked, delivery_address_short,
+   customer_display_name, customer_phone_masked (null until accepted), delivery_address_short,
    special_instructions, line_count, item_summary[], subtotal_cents, total_cents,
    restaurant_payout_cents, rider:{display_name, eta_at, status} | null,
    is_scheduled bool, elapsed_seconds}
@@ -1428,9 +1451,11 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   through R-24/R-25/R-26/R-28.
 
 - **Rules**:
-  1. **Customer PII is minimised.** The restaurant sees the customer's **first name + last initial**,
-     a **masked phone** (`+1 ••• ••• 4821`), and the delivery address **only after the order is
-     `ACCEPTED`** (before acceptance it sees the delivery city and distance band only). Full phone is
+  1. **Customer PII is minimised.** The restaurant sees the customer's **first name + last initial**;
+     the **masked phone** (`+1 ••• ••• 4821`) and the delivery address arrive **only after the order
+     is `ACCEPTED`**, withheld by the server, not just the screen ([masked phone before accepting](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28);
+     contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). Before
+     acceptance it sees the delivery city and distance band only. Full phone is
      never exposed; contact goes through the platform (R-26). *(Today, order reads expose raw
      customer phone numbers to partners.)*
   2. `special_instructions` is rendered verbatim, HTML-escaped, max 500 chars, and is prominent — it
@@ -1447,8 +1472,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      restaurant can read. *(Currently any caller can read any order by id.)*
 
 - **Acceptance criteria**:
-  1. **Given** an order in `PENDING_RESTAURANT`, **when** the restaurant fetches the dashboard, **then** `delivery_address_short` contains city and distance band but no street address, and `customer_phone_masked` reveals at most the last 4 digits.
-  2. **Given** the same order after acceptance, **when** it is refetched, **then** the full delivery address is present and the phone is still masked.
+  1. **Given** an order in `PENDING_RESTAURANT`, **when** the restaurant fetches the dashboard, **then** `delivery_address_short` contains city and distance band but no street address, and `customer_phone_masked` is null.
+  2. **Given** the same order after acceptance, **when** it is refetched, **then** the full delivery address is present and the phone appears, masked to its last 4 digits.
   3. **Given** restaurant A, **when** it requests order `X` belonging to restaurant B by id, **then** `403 forbidden` and no order fields are leaked in the error body.
   4. **Given** an SSE disconnect of 40 s during which two orders arrived, **when** the client reconnects, **then** both orders are present after the reconnect refetch and neither is duplicated in the UI.
 
@@ -1471,11 +1496,12 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   restaurant has until the deadline to `accept` or `reject`. The **server** is the sole authority on
   expiry; the client countdown is decorative.
 
-  > **DECISION REQUIRED — response window and expiry consequence**: What exactly happens when a restaurant does not respond in time? · **Proposed default**: `RESPONSE_WINDOW = 180 seconds`. On expiry the server transitions the order to `CANCELLED_NO_RESPONSE`, **voids the payment authorisation** (no capture, therefore no refund and no processing fee), notifies the customer with the reason and an apology credit offer, increments `missed_order_count`, and — after **two consecutive** expiries — forces `is_accepting_orders=false` (R-22). The order is **not** re-offered to the same restaurant and **not** re-routed to another restaurant, because the SOW mandates single-restaurant orders. · **Why**: 180 s is long enough for a busy kitchen and short enough that a customer is not left waiting; voiding an authorisation rather than refunding a capture avoids fees, avoids a 5–10 day refund wait, and removes the whole class of "refund TODO" failures in the current system. *(D-01)*
+  > **Decided:** `RESPONSE_WINDOW = 180 seconds` ([acceptance window](../decisions/README.md#settled--reconciliations)); expiry voids the authorisation, never captures ([authorise then capture](../../AGENTS.md#3-non-negotiable-invariants)).
+  > **Open** (proposed defaults stand): an apology credit offer to the customer; toggle forced off after two consecutive expiries (R-22); no re-offer, no re-route.
 
   > **DECISION REQUIRED — authorise-then-capture vs capture-then-refund**: When is the customer's card actually charged? · **Proposed default**: **manual capture**. Authorise at checkout (`capture_method=manual`), capture on restaurant acceptance, void on reject/expiry. Authorisations are re-authorised if still uncaptured at 6 days (Stripe's 7-day limit). · **Why**: it makes rejection and timeout free and instantaneous for the customer, and it is the only model in which "the restaurant said no" does not involve moving money at all. *(D-02)*
 
-  **Rejection** requires a structured reason and is never implicit. Closing the notification dialog,
+  **Rejection** requires a structured reason and is never implicit. Moving focus off the live strip,
   navigating away, refreshing, losing the socket, or the browser crashing all leave the order in
   `PENDING_RESTAURANT` until the server-side deadline. *(The current implementation auto-rejects on
   dialog dismiss and on expiry client-side, so an accidental click loses a paid order. That
@@ -1535,7 +1561,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Acceptance criteria**:
   1. **Given** an order in `PENDING_RESTAURANT` with 200 s elapsed and `RESPONSE_WINDOW=180`, **when** the restaurant clicks accept, **then** `409 offer_expired`, the order is `CANCELLED_NO_RESPONSE`, the Stripe intent shows `canceled` with `amount_captured=0`, and no rider was dispatched.
   2. **Given** an unanswered offer, **when** the API process is killed at t=60 s and restarted at t=90 s, **then** the order still transitions to `CANCELLED_NO_RESPONSE` within 2 s of `response_deadline_at`.
-  3. **Given** an order dialog, **when** the restaurant closes the dialog, refreshes the page and loses the SSE connection, **then** the order is still `PENDING_RESTAURANT` and fully acceptable — no client action rejects an order implicitly.
+  3. **Given** an order in the live strip, **when** the restaurant moves focus away, refreshes the page and loses the SSE connection, **then** the order is still `PENDING_RESTAURANT` and fully acceptable — no client action rejects an order implicitly.
   4. **Given** an accept whose Stripe capture returns `card_declined`, **when** the transaction completes, **then** the order is `CANCELLED_PAYMENT_FAILED`, no rider dispatch job exists, and the restaurant sees a specific "payment failed" message rather than a generic error.
   5. **Given** the same accept request replayed 3× with one `Idempotency-Key`, **when** all three complete, **then** exactly one capture exists in Stripe and exactly one `ACCEPTED` audit row.
   6. **Given** two consecutive expired offers, **when** the second expires, **then** `is_accepting_orders=false` and a third order is never offered.
@@ -1571,7 +1597,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   | `PREPARING` | `READY_FOR_PICKUP` | restaurant | "Mark ready" |
   | `PREPARING` | `PREPARING` | restaurant | delay applied (R-26) — `promised_ready_at` moves, status unchanged |
   | `ACCEPTED`/`PREPARING` | `CANCELLED_BY_RESTAURANT` | restaurant | bounded cancel (R-28) |
-  | `READY_FOR_PICKUP` | `PICKED_UP` | rider | rider confirms pickup — **not** restaurant-writable |
+  | `READY_FOR_PICKUP` | `PICKED_UP` | rider | rider types the short pickup code the kitchen reads out from its order screen; no seal at launch ([how a rider confirms pickup](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#47](https://github.com/shaiknoorullah/hg-mono/issues/47); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) — **not** restaurant-writable |
 
 - **Rules**:
   1. The transition table is enforced in **one** place — a pure Go function
@@ -1668,7 +1694,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Behaviour**: A separate, paginated, filterable view of terminal orders (`DELIVERED` and all
   `CANCELLED_*`), with per-order detail showing the immutable snapshot of what was ordered, what was
   charged, what the restaurant earned, and the full status timeline. CSV export for a bounded date
-  range.
+  range. History reads `GET /v1/restaurant/orders` (`listRestaurantOrders`) filtered by terminal
+  `state`, which returns `OrderRestaurantView`.
 
   *(Today there is no history view at all — the orders table is a live list with no pagination, no
   date filter and no status filter.)*
@@ -1682,10 +1709,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **States**: `export_job`: `QUEUED --worker picks up--> RUNNING --success--> READY --download or 7 days--> EXPIRED`; `RUNNING --error--> FAILED` (retryable 3×).
 
 - **Rules**:
-  1. Filters: `date_from`/`date_to` (restaurant-local days, max span 366 days), `status[]`,
-     `q` (order number or customer first name, min 3 chars), `min_total_cents`/`max_total_cents`.
-     `date_from` is required; there is no unbounded history query.
-  2. Cursor pagination, default 25, max 100. Sorted by `placed_at DESC` with `id` as a tiebreaker so
+  1. Filters: `state[]`, as the contract has it; there is no unbounded history query. Date range
+     (restaurant-local days, max span 366 days), text search (order number or customer first name,
+     min 3 chars) and total filters are not in the contract and need a contract change first.
+  2. Cursor pagination, default 20, max 100. Sorted by `placed_at DESC` with `id` as a tiebreaker so
      paging is stable under concurrent inserts.
   3. Retention: order history is queryable for **7 years** (Canadian business-record retention);
      customer PII inside it is progressively minimised — after **90 days** the customer's name is
@@ -1702,7 +1729,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Acceptance criteria**:
   1. **Given** 5,000 historical orders, **when** the first page is requested with `limit=25`, **then** the query plan uses the `(restaurant_id, placed_at DESC, id)` index, returns in <200 ms at p95, and `meta.next_cursor` pages without repeats or gaps under concurrent inserts.
-  2. **Given** a request with no `date_from`, **when** it is submitted, **then** `422 date_from_required`.
+  2. **Given** a history request with no `limit`, **when** it is submitted, **then** at most 20 orders are returned and `meta.next_cursor` pages on.
   3. **Given** an order containing an item that has since been renamed and re-priced, **when** the historical detail is opened, **then** the original name and price are shown.
   4. **Given** an order 91 days old, **when** it is read, **then** the customer name renders as initials and the address as the first three postal characters.
   5. **Given** an export request for 12 months, **when** the job completes, **then** a presigned URL returns a CSV whose row count equals the filtered order count and whose totals column sums to the dashboard's period revenue to the cent.
@@ -1900,7 +1927,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   payout produces its own lines. The restaurant sees a running balance, a per-period statement, and a
   per-order breakdown that reconciles exactly.
 
-  > **DECISION REQUIRED — commission and fee stack**: What does the platform charge and what does the restaurant net? · **Proposed default**: commission = **18%** of `(subtotal − discount)`, stored per restaurant as `commission_rate_bps=1800` so it is negotiable per contract. The restaurant does **not** bear the payment-processing fee, the delivery fee, or the platform fee charged to the customer; tips pass through 100% to the rider (restaurant tips are out of scope). Formula: `restaurant_payout = (subtotal − discount) − commission + restaurant_tax_remittance`. · **Why**: a single percentage on the discounted food subtotal is the industry-standard, auditable model, and holding it as basis points on the restaurant row makes per-restaurant deals a data change rather than a code change. *(D-06)*
+  > **Decided:** commission is **0%** at launch, kept per restaurant as `commission_rate_bps` and switchable ([platform commission](../decisions/README.md#settled--client-decisions)).
+  > **Open** (proposed defaults stand): commission applies to `(subtotal − discount)`. The restaurant does **not** bear the payment-processing fee, the delivery fee, or the platform fee charged to the customer; tips pass through 100% to the rider (restaurant tips are out of scope). Formula: `restaurant_payout = (subtotal − discount) − commission + restaurant_tax_remittance`.
 
   > **DECISION REQUIRED — GST/HST**: who computes, collects and remits sales tax? · **Proposed default**: the platform computes GST/HST on the food subtotal using the **delivery province** rate table, collects it from the customer, and remits it to the restaurant as `restaurant_tax_remittance` in the payout; the restaurant remains the remitter of record to CRA. Platform-charged fees (delivery, service, commission) carry their own tax, invoiced separately by the platform. · **Why**: the platform must show a tax-inclusive total at checkout, but assuming the remitter role for the restaurant's food sales is a tax-registration question the SOW explicitly excludes ("Business Specific Legal Compliance Measures" is out of scope). **This one needs an accountant's sign-off before build.** *(D-19)*
 
@@ -1928,8 +1956,12 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `available` after.
   3. Order entries are written **when the order reaches `DELIVERED`**, not at acceptance, not at
      capture.
-  4. A refund writes `REFUND_REVERSAL` entries that exactly negate the original order's entries for
-     the refunded proportion, including the commission.
+  4. A refund debits the restaurant only when its reason code makes the restaurant liable
+     ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
+     A halal complaint charges the restaurant the item's net price only when substantiated; otherwise
+     the platform pays it as goodwill ([halal complaint refunds](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+     A restaurant-liable refund writes `REFUND_REVERSAL` entries that exactly negate the original
+     order's entries for the refunded proportion, including the commission.
   5. Per-order breakdown always reconciles:
      `Σ ledger_entry(order_id=X) = restaurant_payout_cents(X)`. A nightly integrity job asserts this
      for every order and alerts on any mismatch.
@@ -1941,7 +1973,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Acceptance criteria**:
   1. **Given** a delivered order with subtotal 5000, discount 500, commission rate 1800 bps, **when** the ledger is written, **then** entries are `ORDER_SALE +5000`, `ORDER_DISCOUNT −500`, `COMMISSION −810`, and `Σ = 3690 = restaurant_payout_cents`.
-  2. **Given** that order is later fully refunded, **when** the refund settles, **then** three `REFUND_REVERSAL` entries exactly negate the originals and the restaurant's balance returns to its pre-order value.
+  2. **Given** that order is later fully refunded for a restaurant-liable reason, **when** the refund settles, **then** three `REFUND_REVERSAL` entries exactly negate the originals and the restaurant's balance returns to its pre-order value.
   3. **Given** a period that has already been `PAID_OUT`, **when** a dispute adjustment for one of its orders is approved, **then** the adjustment lands in the current `OPEN` period and the closed period's statement is byte-identical to the one previously downloaded.
   4. **Given** every money column in the schema, **when** types are inspected, **then** all are `bigint` cents; no `numeric`, `money` or floating-point column holds currency.
   5. **Given** 10,000 seeded orders with refunds and adjustments, **when** the nightly integrity job runs, **then** zero reconciliation mismatches are reported.
@@ -1961,7 +1993,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   Stripe Connect payouts to the verified bank account (R-11). Separately, the restaurant may request
   an **on-demand payout** of its available balance, subject to a floor and a fee.
 
-  > **DECISION REQUIRED — payout cadence, hold period and minimum**: How often and how soon does a restaurant get paid? · **Proposed default**: cadence options **DAILY / WEEKLY / MONTHLY** (SOW-mandated), default **WEEKLY**. Hold period **3 calendar days** after `delivered_at` before funds become available (covers the customer dispute window). Weekly payouts run **Tuesday 06:00 America/Toronto** covering everything available at that instant; daily payouts run 06:00 daily; monthly on the 1st. **Minimum automatic payout CAD 25.00** — below it the balance rolls forward. Payout method: Stripe standard bank payout only in V1. · **Why**: a 3-day hold is the shortest window that still lets a same-day dispute be netted rather than clawed back, and a CAD 25 floor keeps per-payout costs sane on a daily cadence. *(D-07)*
+  > **Decided:** payouts run weekly on Monday, automatically, with no minimum ([payout cadence](../decisions/README.md#settled--client-decisions), [payout minimum](../decisions/README.md#settled--reconciliations)).
+  > **Open** (proposed defaults stand): a **3 calendar day** hold after `delivered_at`; whether the SOW's daily and monthly options are offered later; Stripe standard bank payout only.
 
   > **DECISION REQUIRED — on-demand payout limits and fee**: What are the constraints on "request a payout"? · **Proposed default**: minimum **CAD 50.00** available balance, maximum **1 per calendar day**, fee **CAD 1.50** debited as an `INSTANT_PAYOUT_FEE` ledger entry, only while `payout_account.state='READY'` and `account_status='ACTIVE'`. Arrival is Stripe-standard (1–2 business days) — the platform does **not** promise instant arrival. · **Why**: an unlimited free on-demand payout is a per-transaction cost the platform absorbs and an operational lever for fraud; one per day with a small fee makes it a genuine convenience rather than a default. *(D-08)*
 
@@ -2013,7 +2046,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      one is not a schema migration.
 
 - **Acceptance criteria**:
-  1. **Given** an available balance of CAD 18.00 and `frequency=WEEKLY`, **when** the Tuesday scheduler runs, **then** no payout is created, the balance rolls forward, and the restaurant sees "below CAD 25.00 minimum" as the reason.
+  1. **Given** an available balance of CAD 18.00 and `frequency=WEEKLY`, **when** the Monday scheduler runs, **then** a payout of CAD 18.00 is created, because there is no minimum.
   2. **Given** an available balance of CAD 400.00, **when** the scheduler fires twice concurrently for the same period, **then** exactly one `payout` row exists and every consumed ledger entry carries that single `payout_id`.
   3. **Given** a `payout.failed` webhook, **when** it is processed, **then** the payout is `FAILED`, `PAYOUT_REVERSAL` entries restore the exact amount, the available balance returns to its pre-payout value, and the restaurant receives an email naming the failure reason.
   4. **Given** an on-demand request with CAD 45.00 available, **when** it is submitted, **then** `422 below_minimum_payout` with `minimum_cents:5000`.
@@ -2131,7 +2164,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   | `ORDER_EXPIRED_NO_RESPONSE` | IN_APP, EMAIL | no |
   | `ORDER_RIDER_ASSIGNED` / `ORDER_RIDER_ARRIVED` / `ORDER_PICKED_UP` | IN_APP | yes |
   | `DOCUMENT_APPROVED` / `DOCUMENT_REJECTED` | IN_APP, EMAIL | no |
-  | `DOCUMENT_EXPIRING` (T−30/14/3) | IN_APP, EMAIL | no |
+  | `DOCUMENT_EXPIRING` (T−30/14/7/1) | IN_APP, EMAIL | no |
   | `ACCOUNT_SUSPENDED` / `ACCOUNT_REINSTATED` | IN_APP, EMAIL | no |
   | `MENU_ITEM_APPROVED` / `MENU_ITEM_REJECTED` | IN_APP, EMAIL (hourly digest) | yes (digest only) |
   | `PAYOUT_PAID` / `PAYOUT_FAILED` | IN_APP, EMAIL | no |
@@ -2165,7 +2198,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   4. **Given** a restaurant attempting to disable `ORDER_NEW`, **when** the preference is set, **then** `422 notification_type_not_disableable`.
   5. **Given** the email provider returns 500 three times for one notification, **when** retries exhaust, **then** the delivery is `DEAD_LETTER`, an operational alert fires, and the in-app notification is unaffected.
 
-- **Out of scope**: native mobile push (there is no restaurant mobile app in scope); WhatsApp/Telegram channels; per-user (rather than per-restaurant) notification routing until staff accounts exist (V3); marketing-campaign authoring by restaurants; notification analytics.
+- **Out of scope**: native mobile push (there is no restaurant mobile app in scope); WhatsApp/Telegram channels; per-user (rather than per-restaurant) notification routing until staff accounts exist (a later version); marketing-campaign authoring by restaurants; notification analytics.
 
 - **Version**: V1 (IN_APP + EMAIL, catalogue above) · V2 (WEB_PUSH, SMS, digests)
 - **Size**: L
@@ -2262,7 +2295,11 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `SUSPENDED` automatically.
   4. A suspended restaurant retains full read access, its order history, its ledger, and the ability
      to open and reply to tickets (specifically to appeal, R-33 category
-     `ACCOUNT_SUSPENSION_APPEAL`). It cannot edit its menu or accept orders.
+     `ACCOUNT_SUSPENSION_APPEAL`). It cannot accept orders. It may still edit its opening hours,
+     which become read-only once it is deactivated ([opening hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+     Nobody can change its menu until the suspension is lifted, admins acting on its behalf included;
+     the same holds while it is banned. The lock follows the account state: a restaurant that is
+     delisted rather than suspended can still edit its menu ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   5. Funds accrued before suspension are preserved; payouts pause (R-32) and resume on reinstatement.
      Offboarding (`CLOSED`) triggers a final payout after the last order's hold period elapses.
   6. Reinstatement from an automatic suspension is automatic when the cause clears **and** no manual
@@ -2343,7 +2380,8 @@ Aggressive exclusions that apply across every feature above:
    is retired, not rebuilt. No restaurant mobile app in V1–V3.
 2. **Multi-location / franchise accounts.** One login = one restaurant = one address = one menu.
 3. **Staff sub-accounts and roles.** The `role` column exists (`OWNER|MANAGER|STAFF`) but only
-   `OWNER` is issued in V1–V2.
+   `OWNER` is issued at launch and the Staff screen is hidden; restaurant staff come in a later
+   version ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 4. **Pickup / dine-in / table ordering.** Delivery only.
 5. **Scheduled and pre-orders.** Immediate orders only.
 6. **Inventory quantities, recipes, food-cost accounting, supplier integration.**
@@ -2371,35 +2409,35 @@ sentence; none requires new engineering analysis.
 
 | # | Topic | Question | Proposed default | Why | Blocks |
 |---|---|---|---|---|---|
-| **D-01** | Order response timeout | What exactly happens when a restaurant does not answer an order in time? | 180 s window; on expiry → `CANCELLED_NO_RESPONSE`, payment **authorisation voided** (no capture, no refund), customer notified + apology credit, `missed_order_count`+1; two consecutive expiries force `is_accepting_orders=false`. **No re-offer, no re-route** (SOW mandates one restaurant per order). | Long enough for a busy kitchen, short enough not to strand a paying customer; voiding beats refunding on fees and speed. | R-24 · **V1** |
+| **D-01** | Order response timeout | What exactly happens when a restaurant does not answer an order in time? | 180 s window (decided: [acceptance window](../decisions/README.md#settled--reconciliations)); on expiry → `CANCELLED_NO_RESPONSE`, payment **authorisation voided** (no capture, no refund), customer notified + apology credit, `missed_order_count`+1; two consecutive expiries force `is_accepting_orders=false`. **No re-offer, no re-route** (SOW mandates one restaurant per order). | Long enough for a busy kitchen, short enough not to strand a paying customer; voiding beats refunding on fees and speed. | R-24 · **V1** |
 | **D-02** | Payment timing | Authorise-then-capture, or capture-then-refund? | **Manual capture**: authorise at checkout, capture on acceptance, void on reject/expiry; re-authorise at day 6. | Makes rejection and timeout free and instant, and removes the entire "refund failed" failure class. | R-24 · **V1** |
 | **D-03** | Menu approval scope | Which menu fields need admin approval before going live? | Reviewed: `name`, `description`, `ingredients_text`, `dietary_tags`, `allergen_tags`, `image`, `portion_description`. Instant: `price_cents`, availability, `category_id`, `sort_order`, `prep_minutes`, deletion. | Reviewed fields are halal and food-safety claims; instant fields are operational and would make the review queue the bottleneck of dinner service. | R-17 · **V1** |
 | **D-04** | Price-change guardrail | Block, flag or ignore a large price increase? | Never block. Flag any increase >30% within 24 h; >5 flagged changes in 7 days opens an admin compliance task. | Bait-and-switch is the abuse vector when prices bypass review; blocking breaks legitimate cost changes. | R-15 · **V1** |
-| **D-05** | Discount funding | Who pays for a discount — restaurant or platform? | `funding_source` on every offer; restaurant-created offers are always `RESTAURANT`; commission is charged on the **discounted** subtotal. `PLATFORM`/`SHARED` settable by admin only. | Any other default lets a restaurant spend platform money. | R-21 · V2 |
-| **D-06** | Commission | What does the platform charge? | 18% of `(subtotal − discount)`, stored as `commission_rate_bps` per restaurant. Restaurant does not bear processing, delivery or platform fees; tips pass to the rider. | Standard, auditable, and per-restaurant deals become a data change. | R-31 · **V1** |
-| **D-07** | Payout cadence | How often, how soon, what minimum? | DAILY/WEEKLY/MONTHLY, default WEEKLY (Tue 06:00 America/Toronto); **3-day hold** after delivery; **CAD 25** minimum, else roll forward; Stripe bank payout only. | 3 days is the shortest hold that nets same-day disputes instead of clawing back. | R-32 · **V1** |
+| **D-05** | Discount funding | Who pays for a discount — restaurant or platform? | **Decided:** restaurant-funded ([discount funding](../decisions/README.md#settled--reconciliations)). | Any other default lets a restaurant spend platform money. | decided |
+| **D-06** | Commission | What does the platform charge? | **Decided:** 0% at launch, kept per restaurant as `commission_rate_bps` and switchable ([platform commission](../decisions/README.md#settled--client-decisions)). Restaurant does not bear processing, delivery or platform fees; tips pass to the rider. | Standard, auditable, and per-restaurant deals become a data change. | decided |
+| **D-07** | Payout cadence | How often, how soon, what minimum? | **Decided:** weekly, Monday, automatic, no minimum ([payout cadence](../decisions/README.md#settled--client-decisions), [payout minimum](../decisions/README.md#settled--reconciliations)). Still proposed: **3-day hold** after delivery; daily/monthly options possibly later; Stripe bank payout only. | 3 days is the shortest hold that nets same-day disputes instead of clawing back. | R-32 · **V1** |
 | **D-08** | On-demand payouts | Limits and fee for "request a payout"? | Min CAD 50 available, max 1/calendar day, CAD 1.50 fee, only while payout account `READY` and account `ACTIVE`. Standard 1–2 business day arrival — no "instant" promise. | Free unlimited on-demand payouts are a per-transaction cost and a fraud lever. | R-32 · V2 |
 | **D-09** | Heartbeat-gated availability | Should a restaurant with no live session receive orders? | No. 30 s heartbeat; >5 min stale → `CLOSED_OFFLINE`; `is_accepting_orders` is not mutated, so service resumes automatically on reconnect. | Preventing an unattended offer is cheaper and more reliable than escalating after one. | R-22 · **V1** |
-| **D-10** | Halal certifier allowlist | Which Canadian halal certifiers does the platform recognise? | Server-managed `halal_certifier` allowlist, seeded by the client before launch; `OTHER` is permitted but forces manual review forever. **The client must supply the initial list.** | The platform's entire value proposition is that the halal claim is verifiable; an unbounded free-text issuer field makes it unverifiable. | R-07 · **V1 — client input needed** |
-| **D-11** | Canadian document set (FSSAI) | The SOW names FSSAI, an **Indian** authority with no Canadian meaning. What replaces it? | Required pack: `BUSINESS_LICENCE`, `HALAL_CERTIFICATE`, `FOOD_SAFETY` (provincial/municipal food-premises permit or food-handler certificate), `OWNER_ID`. `LIABILITY_INSURANCE` optional (V2). `gst_hst_number` as a field, CRA format `\d{9}RT\d{4}` — **not** an Indian GSTIN. | FSSAI is a template error; no Canadian restaurant can produce one, and food-premises permitting in Canada is provincial/municipal. | R-07 · **V1 — contract clarification needed** |
-| **D-12** | Expired-document consequence | Auto-suspend, flag, or grace period? | Expired `HALAL_CERTIFICATE` or `FOOD_SAFETY` → automatic suspension, **no grace period**. Expired `OWNER_ID` or `BUSINESS_LICENCE` → admin flag only. Reminders at T−30/14/3. | Trading on an expired halal certificate is the single failure that destroys the platform's premise. | R-10 · **V1** |
-| **D-13** | Out-of-stock snooze | What durations, and when does an item come back? | 1 hour / until end of service today / indefinitely. Per-minute auto-restore job; all `until end of service` items restore at next opening; weekly digest of items unavailable >14 days. | Matches how a kitchen actually runs out of a prep batch, and stops menus silently rotting. | R-18 · **V1** |
+| **D-10** | Halal certifier allowlist | Which Canadian halal certifiers does the platform recognise? | **Decided:** three seeded bodies, extensible by a super admin; any other body puts the application in "waiting on certifying body" ([accepted certifying bodies](../decisions/README.md#settled--client-decisions), [body not on the accepted list](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). | The platform's entire value proposition is that the halal claim is verifiable; an unbounded free-text issuer field makes it unverifiable. | decided |
+| **D-11** | Canadian document set (FSSAI) | The SOW names FSSAI, an **Indian** authority with no Canadian meaning. What replaces it? | **Decided** ([FSSAI certificate](../decisions/README.md#settled--reconciliations)): `BUSINESS_LICENCE`, `HALAL_CERTIFICATE`, `FOOD_SAFETY` (provincial/municipal food-premises permit or food-handler certificate), `OWNER_ID`. `LIABILITY_INSURANCE` hidden until V2. `gst_hst_number` as a field, CRA format `\d{9}RT\d{4}` — **not** an Indian GSTIN. | FSSAI is a template error; no Canadian restaurant can produce one, and food-premises permitting in Canada is provincial/municipal. | decided |
+| **D-12** | Expired-document consequence | Auto-suspend, flag, or grace period? | Expired `HALAL_CERTIFICATE` or `FOOD_SAFETY` → automatic suspension, **no grace period**. Expired `OWNER_ID` or `BUSINESS_LICENCE` → admin flag only. Reminders at T−30/14/7/1 (decided: [certificate renewal reminders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). | Trading on an expired halal certificate is the single failure that destroys the platform's premise. | R-10 · **V1** |
+| **D-13** | Out-of-stock snooze | What durations, and when does an item come back? | A switch; off opens "for how long", default **until closing** (decided: ["for how long" options](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). Other options: 1 hour / indefinitely. Per-minute auto-restore job; all "until closing" items restore at next opening; weekly digest of items unavailable >14 days. | Matches how a kitchen actually runs out of a prep batch, and stops menus silently rotting. | R-18 · **V1** |
 | **D-14** | Cart vs out-of-stock | Drop the line, block checkout, or notify live? | **Never mutate the cart.** Annotate on read; block checkout with `409 cart_has_unavailable_items` and explicit line ids; live toast to connected customers. Never substitute. | Silent removal changes the price the customer thought they agreed to; silent substitution is a halal hazard. | R-19 · **V1** |
-| **D-15** | Multi-location accounts | Can one login own several restaurants / can one restaurant have several menus? | **No** in V1–V2. One login = one restaurant = one address = one menu. Revisit in V3. | Multi-tenancy inside a tenant touches every query, index and authorisation check; committing to it late is far cheaper than committing to it wrongly now. | R-01, R-14 · **V1** |
+| **D-15** | Multi-location accounts | Can one login own several restaurants / can one restaurant have several menus? | **Decided:** one restaurant per login at launch ([one login for several restaurants](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). One menu per restaurant stays the default. | Multi-tenancy inside a tenant touches every query, index and authorisation check; committing to it late is far cheaper than committing to it wrongly now. | decided |
 | **D-16** | Post-acceptance cancellation | Is a restaurant penalised for cancelling an accepted order? | No monetary penalty in V1. Recorded, surfaced in reliability metrics; >5% over 7 days with ≥20 orders opens an admin compliance review. | Penalising on thin data drives supply away; measuring from day one keeps the option open. | R-28 · **V1** |
 | **D-17** | Restaurant↔rider channel | Free text, masked call, or canned messages? | V1 canned messages only (fixed template enum); V2 masked voice via telephony proxy. **No free-text chat in V1 or V2.** | Free text needs moderation, PII controls, retention and a transport this surface otherwise does not need. | R-26 · **V1** |
 | **D-18** | Dispute authority and SLA | Who can move money in a dispute, and how fast? | Support agent ≤ CAD 50; admin ≤ CAD 500; super admin above. First response 4 business hours, resolution target 3 business days; SLA breach auto-escalates priority. | The SOW defines the roles but no financial limits; tiered authority is the minimum ledger control. | R-33 · V2 |
 | **D-19** | GST/HST | Who computes, collects and remits sales tax on food? | Platform computes on the delivery province's rate, collects from the customer, remits to the restaurant as `restaurant_tax_remittance`; the restaurant remains remitter of record. Platform fees taxed and invoiced separately. | Needed for a tax-inclusive checkout total, but the remitter question is a registration matter the SOW excludes from scope. **Requires an accountant's sign-off before build.** | R-31 · **V1 — external advice needed** |
 | **D-20** | Prep time and ETA | Per item, per order, or restaurant-level? | `promised_ready_at = accepted_at + max(item prep times ∪ restaurant avg)`, capped at 90 min, adjustable once at accept time by ±15 min. | Max-of-items is the only rule that never promises a time the kitchen cannot meet. | R-15, R-24 · **V1** |
 | **D-21** | Data retention | How long are orders, PII and documents kept? | Orders 7 years (business records); customer PII inside orders minimised after 90 days (initials + partial postal code); KYC documents 7 years after account closure; ticket attachments 2 years; notifications 90 days. | Canadian business-record retention vs. PIPEDA minimisation; the split keeps both satisfiable. | R-27, R-36 · V2 |
-| **D-22** | Menu review SLA and fallback | What if admins never review a pending menu change? | SLA 4 business hours; **auto-approve at 24 hours** with `auto_approved=true` and a post-hoc admin audit list; post-hoc rejection reverts to the prior version. KYC is **never** auto-approved. | A stalled queue silently freezes a restaurant's business; a bounded backstop plus audit trades small risk for guaranteed liveness. | R-17 · **V1** |
+| **D-22** | Menu review SLA and fallback | What if admins never review a pending menu change? | **Decided:** never auto-approved, like KYC; a pending version waits for an admin ([menu approval](../decisions/README.md#settled--reconciliations)). SLA still proposed: 4 business hours. | An unreviewed claim never reaches customers just because time passed. | decided |
 | **D-23** | Locale, currency, timezone | Are these per restaurant or global? | Currency **CAD only**, globally. Timezone **per restaurant** (IANA), driving every day boundary, report and schedule. Locale `en-CA` only until V3. | One currency removes an entire class of money bug; per-restaurant timezone is unavoidable in a country with six of them. | all · **V1** |
 | **D-24** | Offer stacking | How many discounts can apply to one order? | Max one restaurant offer + one platform coupon; best-for-customer wins among restaurant offers; combined cap 50% of item subtotal; never applies to delivery fee, platform fee, tax or tip. | Unbounded stacking is the classic route to negative-revenue orders. | R-21 · V2 |
 | **D-25** | Suspension vs pending offers | Cancel offers in flight at the moment of suspension, or let them be answered? | **Cancel and void** every `PENDING_RESTAURANT` order at the instant of suspension; customer gets an apology credit. Accepted orders always complete. | Letting a restaurant accept work seconds after being suspended for a halal violation is exactly the failure the platform exists to prevent. | R-36 · **V1** |
 | **D-26** | Unattended-order escalation | SMS or phone a restaurant that is offered an order with no live session? | No — the heartbeat gate (D-09) prevents the offer instead. SMS/voice escalation deferred to V2 as an opt-in. | Preventing the bad offer beats escalating after it; escalation without a heartbeat gate still loses orders. | R-34 · V2 |
 
-**Blocking for V1 build start**: D-01, D-02, D-03, D-06, D-09, D-11, D-12, D-19, D-20, D-22, D-25.
-**Requires client-supplied data**: D-10 (certifier list), D-11 (document set confirmation).
+**Blocking for V1 build start**: D-01, D-02, D-03, D-09, D-12, D-19, D-20, D-25.
+**Requires client-supplied data**: none; the certifier list and the document set are decided.
 **Requires external professional advice**: D-19 (GST/HST remitter role).
 
 

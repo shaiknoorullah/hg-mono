@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { lintSource, isReservedGreenSolid } from '../l4-no-green-solids.js';
+import { lintSource, isReservedGreenSolid, COLOR_BY_UTILITY } from '../l4-no-green-solids.js';
 import { lintPaths } from '../run.js';
 import { color } from '../../tokens/index.js';
 
@@ -61,6 +61,53 @@ describe('L-4 no green solids', () => {
 
   it('a suppression demands a written reason', () => {
     expect(lintSource('x.tsx', `/* l4-allow: registered exception */ 'bg-success-600'`)).toEqual([]);
+  });
+
+  it('a misspelt halal var is not a halal var — its fallback is what paints', () => {
+    // The admin live map shipped `var(--hg-color-halal-verified, <green>)`. That
+    // name does not exist, so every pin painted the fallback. The prefix used to
+    // exempt it; resolution now has to succeed before the allowlist applies.
+    const green = color.success['600'];
+    // l4-allow: fixture for the rule itself
+    const css = lintSource('x.css', `.pin { background: var(--hg-color-halal-verified, ${green}); }`);
+    expect(css).toHaveLength(1);
+    expect(css[0]?.hex).toBe(green.toUpperCase());
+
+    // A real halal token keeps its exemption, fallback and all.
+    const seal = color.halal.certified.seal;
+    expect(
+      lintSource('x.css', `.pin { background: var(--hg-color-halal-certified-seal, ${seal}); }`),
+    ).toEqual([]);
+  });
+
+  it('flags a green painted imperatively through a variable', () => {
+    // Declarative scanners cannot see `el.style.background = c`; the colour
+    // arrives through a variable. Files that paint imperatively are swept.
+    const green = color.success['600'];
+    const src = [
+      // l4-allow: fixture for the rule itself
+      `const c = '${green}';`,
+      `el.style.background = c;`,
+    ].join('\n');
+    const found = lintSource('Map.tsx', src);
+    expect(found).toHaveLength(1);
+    expect(found[0]?.message).toContain('imperatively');
+
+    // The same literal in a file that never paints imperatively is left alone —
+    // the sweep is scoped so it does not fire on every hex in the codebase.
+    expect(lintSource('Tokens.tsx', `const c = '${green}';`)).toEqual([]);
+  });
+
+  it('camelCase token leaves resolve by their kebab var name', () => {
+    // flattenColors used to lowercase the path before the camelCase→kebab pass,
+    // so color.map.pinRider was indexed only as `map-pinrider` and
+    // --hg-color-map-pin-rider resolved to nothing. The registered rider-pin
+    // exception survived on prefix-matching alone. Asserted on the table itself:
+    // a behavioural test cannot see this, because an unresolved var with no
+    // fallback also lints clean.
+    expect(COLOR_BY_UTILITY.get('map-pin-rider')).toBe(color.map.pinRider.toUpperCase());
+    expect(COLOR_BY_UTILITY.get('map-pin-restaurant')).toBe(color.map.pinRestaurant.toUpperCase());
+    expect(COLOR_BY_UTILITY.get('map-pin-customer')).toBe(color.map.pinCustomer.toUpperCase());
   });
 
   it('the foundation tier itself is clean', () => {
