@@ -25,7 +25,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+          # GitHub's cache upload runs at home-upload speed on our runners, which keep
+          # the pnpm store on disk anyway; cache only on GitHub's runners.
+          cache: ${{ runner.environment == 'github-hosted' && 'pnpm' || '' }}
 
       - if: runner.environment == 'github-hosted'
         uses: actions/setup-python@v5
