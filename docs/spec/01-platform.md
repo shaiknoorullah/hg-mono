@@ -1064,6 +1064,8 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
 
   Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal.
 
+  A support agent or admin may also cancel an order before the restaurant accepts it, from `CREATED`, `AUTHORIZED` or `RESTAURANT_PENDING`, recorded with actor `ADMIN` ([admin order intervention](05-admin.md#a-38--order-lookup-and-admin-order-intervention)).
+
   **The dispatch sub-machine** (table `dispatch`, one row per order, created at T6):
 
   ```
