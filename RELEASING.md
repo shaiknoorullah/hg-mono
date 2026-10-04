@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-09-28
+reviewed: 2026-10-04
 ---
 
 # Releasing HalalGoes
@@ -73,9 +73,11 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 4. **Mapbox token(s)** — §2.
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
    self-declared halal (default hide), O-04 refund liability.
-6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik.
+6. **Production hosting** — one Contabo server ([the owner's decision](https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570)) + domain/DNS + TLS for Traefik. Set the server up with one command: [deploy/host](deploy/host/README.md), "Day 1".
 
 ## 4. Deploy the stack (on your host)
+
+On the production server, provision first with [deploy/host](deploy/host/README.md): it installs Docker, the firewall, backups and monitoring, and writes production's `.env` from the encrypted `prod.sops.env` rather than a copy edited on the server. The commands below are the stack itself, on any host:
 
 ```bash
 cp deploy/.env.example deploy/.env      # edit secrets + §3 flips; HG_ENV=production
