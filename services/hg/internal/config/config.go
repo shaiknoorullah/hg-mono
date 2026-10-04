@@ -280,7 +280,8 @@ func Load(getenv func(string) string) (*Config, error) {
 	// endpoint. Locally that is the same MinIO the API dials; anywhere else an
 	// unset value would mint links for minio:9000, so it does not boot.
 	presignBase := l.optional("HG_MINIO_PRESIGN_BASE_URL", "")
-	if presignBase == "" {
+	presignSet := presignBase != ""
+	if !presignSet {
 		if cfg.Env != "" && !cfg.Env.IsLocal() {
 			l.errf("HG_MINIO_PRESIGN_BASE_URL is required when HG_ENV is not local: presigned links "+
 				"are signed for this host, and phones cannot reach the internal endpoint %q", cfg.MinIO.Endpoint)
@@ -360,6 +361,20 @@ func Load(getenv func(string) string) (*Config, error) {
 		l.denyLoopback("HG_MINIO_ENDPOINT", cfg.MinIO.Host())
 		if u, err := url.Parse(cfg.MinIO.PresignBaseURL); err == nil {
 			l.denyLoopback("HG_MINIO_PRESIGN_BASE_URL", u.Host)
+			// Every presigned link is a bearer credential, including the
+			// two-minute KYC and certificate download links, and an upload
+			// link carries the document itself. Over plain http both would
+			// cross the network in cleartext, breaking the rule that KYC and
+			// certificates stay private (AGENTS.md, "Non-negotiable
+			// invariants": ../../../../AGENTS.md#3-non-negotiable-invariants).
+			// iOS App Transport Security and Android 9+ also refuse cleartext
+			// by default, so the links would fail on phones anyway. An unset
+			// value already failed above, so only an explicit http host is
+			// reported here.
+			if presignSet && u.Scheme != "https" {
+				l.errf("HG_MINIO_PRESIGN_BASE_URL must be https when HG_ENV is not local: " +
+					"presigned links are bearer credentials")
+			}
 		}
 	}
 

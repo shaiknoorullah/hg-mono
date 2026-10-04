@@ -89,8 +89,8 @@ curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
 
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
-`HG_MINIO_PRESIGN_BASE_URL` is unset, or if `HG_SMS_PROVIDER=twilio` with incomplete creds —
-misconfig fails loudly, never silently.
+`HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
+or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
 
 ## 5. Verify the gate (any time)
 

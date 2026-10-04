@@ -162,6 +162,13 @@ func TestLoadRequiresPresignBaseURLOutsideLocal(t *testing.T) {
 	if _, err := Load(getenvFrom(env)); err == nil {
 		t.Error("a presign base with a path was accepted")
 	}
+
+	// Presigned links are bearer credentials, KYC download links included;
+	// a plain-http host would hand them out in cleartext.
+	env["HG_MINIO_PRESIGN_BASE_URL"] = "http://files.halalgoes.com"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "must be https") {
+		t.Errorf("production accepted a plain-http presign base (err: %v)", err)
+	}
 }
 
 func TestLoadAllowsLoopbackInLocal(t *testing.T) {
