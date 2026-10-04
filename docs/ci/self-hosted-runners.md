@@ -40,7 +40,7 @@ gh variable delete HG_RUNS_ON                              # move it back to Git
 | Label | Meaning |
 |---|---|
 | `self-hosted`, `Linux`, `X64` | added by GitHub to every Linux x64 self-hosted runner |
-| `hg` | a HalalGoes CI runner, sandboxed as below. `HG_RUNS_ON` selects this |
+| `hg` | a HalalGoes CI runner, set up with the sandbox below. `HG_RUNS_ON` selects this |
 | `workstation`, `laptop` | which machine, to pin a job to one when needed |
 
 ## Which jobs run where
@@ -92,7 +92,7 @@ its one-line diff and merge it by hand.
 |---|---|
 | The owner pushes to a branch of this repository with an open PR the owner opened | every check whose paths changed runs on `HG_RUNS_ON`; `gate` and `doc and PR checks` pass or fail on the results |
 | A PR from a fork | does not run at all while "Run workflows from fork pull requests" is off (it is, and must stay off). If it were on: nothing is checked out on our runners, the code-checking jobs are skipped, and `gate`, `doc and PR checks` and `schema` fail on GitHub's runners |
-| The owner re-runs a run that an untrusted person started, or pushes to an untrusted person's PR | still untrusted (the original actor, or the PR's author, is not in the list): fails as above. To run CI on that code, the owner opens a PR of their own from it |
+| The owner re-runs a run that an untrusted person started, or pushes to an untrusted person's PR | still untrusted (the original actor, or the author of the PR, is not in the list): fails as above. To run CI on that code, the owner opens a PR of their own from it |
 | Someone outside the list adds a label (any label, `claude-review` included) to the owner's PR | `docs` runs for the label event and `doc and PR checks` fails as untrusted, until a trusted event (a push, an edit, a label by the owner) runs it again; the Claude review does not run. `ci` does not react to labels, so `gate` keeps its result |
 | Someone outside the list comments `@claude` | the Claude job is skipped; nothing runs |
 
@@ -150,7 +150,7 @@ that:
 - `runs-on` is the switch above, unless the job needs a secret or a write token: then
   `ubuntu-latest`, with no checkout of repository code if it holds a write token.
 - Every job that can run on our runners carries the trust check from "Who can run CI" in its `if:`,
-  or, if it reports a PR's result, picks GitHub's runners for an untrusted run and fails at its
+  or, if it reports the result of a PR, picks GitHub's runners for an untrusted run and fails at its
   first step. Never use `pull_request_target` or `workflow_run` to run PR code.
 - No `${{ }}` of PR or event fields inside `run:`: pass them through `env:`.
 - `permissions:` read-only (`contents: read`, plus `issues: read` or `pull-requests: read` where a
