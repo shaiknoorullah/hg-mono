@@ -26,6 +26,7 @@ type OrderNotCollectableError struct {
 	OrderState string
 }
 
+// Error names the order state the pickup was refused in.
 func (e *OrderNotCollectableError) Error() string {
 	return fmt.Sprintf("the order cannot be picked up in state %s", e.OrderState)
 }
