@@ -329,6 +329,17 @@ reject "a document under review must carry its 72h SLA deadline" "kyc_document_d
    INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state)
      VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
              '15000000-0000-4000-8000-000000000002','IN_REVIEW');"
+reject "a rider's file is attached once per document type" "kyc_document_rider_file_once" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at)
+     VALUES ('15000000-0000-4000-8000-000000000229','hg-kyc','kyc/t/p.jpg','KYC_DOCUMENT',
+             'image/jpeg',10,digest('p','sha256'),'READY','019ffe57-fbd0-7355-ade8-b03ea7943578',now());
+   INSERT INTO kyc_document (subject_type, subject_id, rider_doc_type, stored_object_id, state,
+                             deadline_at, deadline_action)
+     VALUES ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','PROFILE_PHOTO',
+             '15000000-0000-4000-8000-000000000229','SUBMITTED',now()+interval '72 hours','ESCALATE'),
+            ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','PROFILE_PHOTO',
+             '15000000-0000-4000-8000-000000000229','SUBMITTED',now()+interval '72 hours','ESCALATE');"
 reject "a live restaurant with no location is rejected" "restaurant_live_needs_location" \
   "INSERT INTO restaurant (slug, legal_name, display_name, onboarding_state, account_state)
      VALUES ('no-location','No Location Inc.','No Location','ACTIVE','LIVE');"
