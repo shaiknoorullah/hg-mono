@@ -168,6 +168,8 @@ func TestLoadRejectsMalformedValues(t *testing.T) {
 		"bad integer":           {"HG_REDIS_DB", "two", "HG_REDIS_DB"},
 		"bad boolean":           {"HG_MINIO_USE_SSL", "sometimes", "HG_MINIO_USE_SSL"},
 		"origin without scheme": {"HG_CORS_ALLOWED_ORIGINS", "app.halalgoes.com", "HG_CORS_ALLOWED_ORIGINS"},
+		// A negative suspension delay must not boot as "suspend at once" or "never".
+		"negative halal suspension": {"HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS", "-14", "HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
