@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 )
 
 // Repo is the data layer for the restaurant package. It is the only place that
@@ -11,11 +13,21 @@ import (
 // for unit tests that never reach the DB.
 type Repo struct {
 	db *pgxpool.Pool
+
+	// inviter mints a staff invitation (token and email) inside CreateStaff's
+	// transaction; the auth module provides it. Nil sends nothing.
+	inviter notify.StaffInviter
 }
 
 // NewRepo builds a Repo over the given pool.
 func NewRepo(pool *pgxpool.Pool) *Repo {
 	return &Repo{db: pool}
+}
+
+// WithStaffInviter wires the auth module's staff inviter. Call once at boot.
+func (r *Repo) WithStaffInviter(inv notify.StaffInviter) *Repo {
+	r.inviter = inv
+	return r
 }
 
 // RestaurantForAccount returns the restaurant id the account is scoped to via

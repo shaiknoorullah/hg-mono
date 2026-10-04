@@ -47,6 +47,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handoff"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify/emailtmpl"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/partitions"
@@ -452,22 +453,56 @@ func run() error {
 		return err
 	}
 
-	// P-24 transactional notifications. The notify module enqueues a
-	// notification row + River delivery job inside a business tx (see the order
-	// emitter below). Channel senders are fakes for now: real SMS/push is
-	// blocked on O-03 (A2P registration) — until then the INAPP inbox row (the
-	// system of record per listNotifications) is written and push/SMS are
-	// no-ops rather than a hard boot dependency. NoAccountLookup means no
-	// external target is resolved, which is the correct behaviour while senders
-	// are fakes. River's own tables ship as migration 00024_river_outbox.sql.
+	// Transactional notifications (docs/spec/01-platform.md, "P-24 —
+	// Notification router"). The notify module enqueues a notification row and
+	// a River delivery job inside the business transaction (the order emitter
+	// below, auth's sign-up and reset emails, admin decisions, staff invites).
+	// River's own tables ship as migration 00024_river_outbox.sql.
+	//
+	// Email goes through Resend when HG_RESEND_API_KEY is set (issue #59).
+	// Outside production every email first passes the allow-list, so dev never
+	// messages a real person (issue #235); with no key the log sender records
+	// each email instead (captured in full outside production, issue #248).
+	// Push (issue #58) and notification SMS (blocked on the A2P registration,
+	// docs/decisions/README.md "Open — blocking") have no provider yet: their
+	// deliveries are recorded SUPPRESSED and the inbox row stays the record.
+	emailTemplates, err := emailtmpl.Load()
+	if err != nil {
+		return fmt.Errorf("notify: email templates: %w", err)
+	}
+	captureEmail := cfg.Env != config.EnvProduction
+	var emailSender notify.EmailSender
+	switch {
+	case cfg.Email.Configured() && cfg.Env == config.EnvProduction:
+		emailSender = &notify.ResendSender{APIKey: cfg.Email.ResendAPIKey, From: cfg.Email.From, ReplyTo: cfg.Email.ReplyTo}
+		log.Info("email provider: resend")
+	case cfg.Email.Configured():
+		emailSender = notify.AllowListSender{
+			Next:  &notify.ResendSender{APIKey: cfg.Email.ResendAPIKey, From: cfg.Email.From, ReplyTo: cfg.Email.ReplyTo},
+			Allow: notify.AllowList(cfg.Email.AllowList), Log: log, Capture: captureEmail,
+		}
+		log.Info("email provider: resend, limited to the non-production allow-list",
+			slog.Int("allow_list_entries", len(cfg.Email.AllowList)))
+	default:
+		emailSender = notify.LogEmailSender{Log: log, Capture: captureEmail}
+		if cfg.Env == config.EnvProduction {
+			log.Warn("email provider: log — no email is sent (set HG_RESEND_API_KEY)")
+		} else {
+			log.Info("email provider: log — emails are written to this log, not sent")
+		}
+	}
 	notifier := notify.NewNotifier().
-		Register(notify.ChannelPush, notify.NewFakeSender()).
-		Register(notify.ChannelSMS, notify.NewFakeSender()).
-		Register(notify.ChannelEmail, notify.NewFakeSender())
+		Register(notify.ChannelPush, notify.LogSender{Channel: notify.ChannelPush, Log: log}).
+		Register(notify.ChannelSMS, notify.LogSender{Channel: notify.ChannelSMS, Log: log}).
+		Register(notify.ChannelEmail, notify.EmailAdapter{EmailSender: emailSender})
 	notifyClient, err := notify.NewClient(st.DB().Pool, notify.Options{
 		Notifier: notifier,
-		Accounts: notify.NoAccountLookup{},
-		Log:      log,
+		Accounts: notify.PgAccountLookup{DB: st.DB().Pool},
+		Emails: &notify.EmailRenderer{
+			Templates: emailTemplates,
+			Links:     notify.Links{Restaurant: cfg.Email.RestaurantWebURL, Admin: cfg.Email.AdminWebURL},
+		},
+		Log: log,
 	})
 	if err != nil {
 		return fmt.Errorf("notify: construct client: %w", err)
@@ -516,6 +551,9 @@ func run() error {
 	authModule := auth.NewModule(
 		st.DB().Pool, st.Cache().Client, authSecrets,
 		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
+	// Email verification, password reset and staff invitations go out
+	// through the notification outbox (issue #248).
+	authModule.UseNotifications(notifyClient.Enqueue)
 
 	// Behind Traefik with no trusted proxy, every request's client address is
 	// Traefik's, so say which mode this process is in.
@@ -642,7 +680,7 @@ func run() error {
 	// restaurantPay bridges restaurant.PaymentActions to the payments sibling so
 	// AcceptOrder captures (T6) and RejectOrder voids (T7) without importing the
 	// payments package from the restaurant package (modular-monolith seam).
-	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
+	restaurantRepo := restaurant.NewRepo(st.DB().Pool).WithStaffInviter(authModule.StaffInviter())
 	restaurantPay := restaurantPayAdapter{svc: paymentsSvc}
 	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil, restaurantPay))
 
@@ -694,7 +732,9 @@ func run() error {
 	rider.Routes(router, rider.NewHandler(rider.NewService(rider.NewRepo(st.DB().Pool))))
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
-	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
+	admin.Routes(router, admin.NewHandler(
+		admin.NewRepo(st.DB().Pool).WithNotifications(notifyClient.Enqueue, authModule.StaffInviter()),
+		admin.DefaultConfig()))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
 		// Links are signed for the public host phones reach; server-side

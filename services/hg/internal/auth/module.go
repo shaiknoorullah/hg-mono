@@ -23,6 +23,7 @@ type Module struct {
 
 	deny  *session.DenySet
 	store *Store
+	svc   *Service
 }
 
 // NewModule constructs the module from the shared pool, redis client, secrets
@@ -56,6 +57,7 @@ func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSS
 		Authorizer:    Matrix{},
 		deny:          deny,
 		store:         store,
+		svc:           svc,
 	}
 }
 

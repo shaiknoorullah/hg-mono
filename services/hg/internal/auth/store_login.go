@@ -62,6 +62,50 @@ func (s *Store) InsertCredentialToken(ctx context.Context, accountID, kind strin
 	return err
 }
 
+// IssueCredentialToken stores a token hash like InsertCredentialToken and, in
+// the same transaction, runs issued — which enqueues the email that carries
+// the token, so a token row never exists without its email queued, nor an
+// email without its token.
+func (s *Store) IssueCredentialToken(ctx context.Context, accountID, kind string, tokenHash []byte, ttl time.Duration, issued TokenIssued) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var tokenID string
+	var expiresAt time.Time
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO credential_token (account_id, kind, token_hash, expires_at)
+		VALUES ($1, $2, $3, now() + $4::interval)
+		RETURNING id, expires_at`,
+		accountID, kind, tokenHash, ttl.String()).Scan(&tokenID, &expiresAt); err != nil {
+		return err
+	}
+	if issued != nil {
+		if err := issued(ctx, tx, accountID, tokenID, expiresAt); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+// PasswordSurface names the web app an account signs in to with a password:
+// "ADMIN" for platform staff, "RESTAURANT" for restaurant owners, managers and
+// staff, and "" for an account that signs in by phone (customers and riders),
+// which has no password to reset.
+func (s *Store) PasswordSurface(ctx context.Context, accountID string) (string, error) {
+	var surface string
+	err := s.pool.QueryRow(ctx, `
+		SELECT CASE
+		         WHEN bool_or(role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')) THEN 'ADMIN'
+		         WHEN bool_or(role IN ('RESTAURANT_OWNER', 'RESTAURANT_MANAGER', 'RESTAURANT_STAFF')) THEN 'RESTAURANT'
+		         ELSE ''
+		       END
+		  FROM account_role
+		 WHERE account_id = $1 AND revoked_at IS NULL`, accountID).Scan(&surface)
+	return surface, err
+}
+
 // ConsumeCredentialTokenResult distinguishes the token outcomes so the handler
 // can return the contract's precise code.
 type ConsumeCredentialTokenResult struct {

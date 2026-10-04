@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	totp_ "github.com/pquerna/otp/totp"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
@@ -420,15 +422,13 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	if err != nil {
 		return nil, err
 	}
-	res, err := s.store.RegisterRestaurant(ctx, email, hash, businessName, tokenHash, token, 24)
+	// The verification email is enqueued in the registration transaction
+	// (notifications.go), so the account and its email commit together.
+	res, err := s.store.RegisterRestaurant(ctx, email, hash, businessName, tokenHash, token, 24,
+		s.linkEmailSender(notify.EmailVerification, notify.RoleRestaurant, email, token, ""))
 	if err != nil {
 		return nil, err
 	}
-	// Enqueue the verification email. The email transport is the notification
-	// module's (P-24); here we log the enqueue honestly without fabricating a
-	// provider result. TODO(notifications sibling): route via P-24.
-	s.log.InfoContext(ctx, "restaurant verification email enqueued",
-		"template", "restaurant_email_verify", "account_id", res.AccountID)
 	return res, nil
 }
 
@@ -473,34 +473,54 @@ func (s *Service) ResendEmailVerification(ctx context.Context, email string) err
 	if err != nil || acct.EmailVerifiedAt != nil {
 		return nil
 	}
+	if acct.Email == nil {
+		return nil
+	}
+	surface, err := s.store.PasswordSurface(ctx, acct.ID)
+	if err != nil || surface != string(notify.RoleRestaurant) {
+		// Only a restaurant signs up by email and verifies it with a link.
+		return nil
+	}
 	token, tokenHash, err := NewOpaqueToken()
 	if err != nil {
 		return nil
 	}
-	if err := s.store.InsertCredentialToken(ctx, acct.ID, "EMAIL_VERIFY", tokenHash, 24*time.Hour); err != nil {
-		return nil
+	if err := s.store.IssueCredentialToken(ctx, acct.ID, "EMAIL_VERIFY", tokenHash, 24*time.Hour,
+		s.linkEmailSender(notify.EmailVerification, notify.RoleRestaurant, *acct.Email, token, acct.Timezone)); err != nil {
+		s.log.ErrorContext(ctx, "verification email not issued", "account_id", acct.ID, "error", err.Error())
 	}
-	s.log.InfoContext(ctx, "restaurant verification email re-enqueued", "account_id", acct.ID)
-	_ = token
 	return nil
 }
 
 // RequestPasswordReset issues a PASSWORD_RESET token when the account exists.
 // Always succeeds externally (no enumeration).
+//
+// Now that the link really leaves by email, one address gets at most five
+// reset emails an hour (rebuild source: none needed — a flushed counter only
+// allows a few extra emails), so the form cannot be used to flood a mailbox.
+// The cap is silent, like every other outcome here.
 func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
+	if err := s.rl.Allow(ctx, "rl:password_reset:"+strings.ToLower(email), 5, time.Hour); errors.Is(err, ErrRateLimited) {
+		return nil
+	}
 	acct, err := s.store.AccountByEmail(ctx, email)
-	if err != nil {
+	if err != nil || acct.Email == nil {
+		return nil
+	}
+	// The link opens the web app the account signs in to; a customer or
+	// rider signs in by phone and has no password to reset.
+	surface, err := s.store.PasswordSurface(ctx, acct.ID)
+	if err != nil || surface == "" {
 		return nil
 	}
 	token, tokenHash, err := NewOpaqueToken()
 	if err != nil {
 		return nil
 	}
-	if err := s.store.InsertCredentialToken(ctx, acct.ID, "PASSWORD_RESET", tokenHash, 30*time.Minute); err != nil {
-		return nil
+	if err := s.store.IssueCredentialToken(ctx, acct.ID, "PASSWORD_RESET", tokenHash, 30*time.Minute,
+		s.linkEmailSender(notify.PasswordReset, notify.RoleContext(surface), *acct.Email, token, acct.Timezone)); err != nil {
+		s.log.ErrorContext(ctx, "password reset email not issued", "account_id", acct.ID, "error", err.Error())
 	}
-	s.log.InfoContext(ctx, "password reset email enqueued", "account_id", acct.ID)
-	_ = token
 	return nil
 }
 
@@ -527,6 +547,12 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return err
 	}
 	if err := s.store.SetPassword(ctx, res.AccountID, hash); err != nil {
+		return err
+	}
+	// The token was delivered to the account's email, so using it proves the
+	// address. This is what lets an invited staff member, whose first
+	// password is set through this operation, sign in afterwards.
+	if err := s.store.MarkEmailVerified(ctx, res.AccountID); err != nil {
 		return err
 	}
 	if err := s.store.RevokeAllForAccount(ctx, res.AccountID, "password_reset"); err != nil {

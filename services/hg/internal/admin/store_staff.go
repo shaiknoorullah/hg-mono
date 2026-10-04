@@ -4,22 +4,20 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 )
 
 // ErrEmailInUse is returned when an email already belongs to a live account.
 var ErrEmailInUse = errors.New("admin: email in use")
 
 // CreateStaff invites a staff account (A-01): it creates the account with no
-// password, a staff_profile in INVITED, and a global role grant, then audits it
-// — all in one transaction. The invitation token itself is issued by the auth
-// module; this creates the account the token will attach to.
-//
-// TODO(auth sibling): issue the staff_invitation row + single-use token and the
-// invite email. This function creates the INVITED account and grant so the flow
-// has something to attach to, but does not mint the token (that is A-01's
-// email/token half, owned by auth).
+// password, a staff_profile in INVITED, and a global role grant, mints the
+// invitation (a single-use token and the email that carries it, through the
+// auth module's StaffInviter), then audits it — all in one transaction.
 func (r *Repo) CreateStaff(ctx context.Context, actor auditActor, in staffUserInput) (staffRow, error) {
 	var out staffRow
 	err := r.inTx(ctx, func(tx pgx.Tx) error {
@@ -65,6 +63,19 @@ INSERT INTO account_role (account_id, role, scope_type, granted_by)
 VALUES ($1, $2, 'GLOBAL', $3)`
 		if _, err := tx.Exec(ctx, insRole, out.ID, in.Role, createdBy); err != nil {
 			return err
+		}
+
+		if r.inviter != nil {
+			id, err := uuid.Parse(out.ID)
+			if err != nil {
+				return err
+			}
+			if err := r.inviter.InviteStaff(ctx, tx, notify.StaffInvitation{
+				AccountID: id, Role: notify.RoleAdmin, Email: in.Email, InviteeName: in.FullName,
+				TeamName: "the HalalGoes team", RoleLabel: notify.StaffRoleLabel(in.Role),
+			}); err != nil {
+				return err
+			}
 		}
 
 		return writeAudit(ctx, tx, auditEntry{

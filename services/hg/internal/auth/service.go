@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
@@ -28,6 +29,10 @@ type Service struct {
 	// UsePhoneVerifier; never mutated after boot.
 	verifier      PhoneVerifier
 	verifyChannel string
+
+	// notify is the notification outbox the email flows enqueue into
+	// (notifications.go). Nil sends nothing; set once at wiring time.
+	notify notify.TxEnqueuer
 }
 
 // UsePhoneVerifier switches this service onto the PhoneVerifier (Twilio Verify)

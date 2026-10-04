@@ -22,8 +22,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 )
 
 // ErrStaffEmailInUse is returned when an email already belongs to a live account.
@@ -123,6 +126,25 @@ func (r *Repo) CreateStaff(ctx context.Context, actorAccountID string, actorRole
 		const insRole = `INSERT INTO account_role (account_id, role, scope_type, scope_id, granted_by) VALUES ($1, 'RESTAURANT_STAFF', 'RESTAURANT', $2, $3)`
 		if _, err := tx.Exec(ctx, insRole, out.ID, restaurantID, createdBy); err != nil {
 			return err
+		}
+
+		// The invitation: a single-use link to set a first password, emailed
+		// in this transaction (internal/notify).
+		if r.inviter != nil {
+			var teamName string
+			if err := tx.QueryRow(ctx, `SELECT display_name FROM restaurant WHERE id = $1`, restaurantID).Scan(&teamName); err != nil {
+				return err
+			}
+			id, err := uuid.Parse(out.ID)
+			if err != nil {
+				return err
+			}
+			if err := r.inviter.InviteStaff(ctx, tx, notify.StaffInvitation{
+				AccountID: id, Role: notify.RoleRestaurant, Email: in.Email, InviteeName: in.FullName,
+				TeamName: teamName, RoleLabel: notify.StaffRoleLabel("RESTAURANT_STAFF"),
+			}); err != nil {
+				return err
+			}
 		}
 
 		after, _ := json.Marshal(map[string]any{
