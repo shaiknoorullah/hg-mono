@@ -107,7 +107,9 @@ services:
       - |
         set -e
         for b in {{ hg_buckets | join(' ') }}; do mc mb --ignore-existing "dev/$$b"; mc anonymous set none "dev/$$b"; done
-        mc anonymous set download dev/hg-media
+        # Anyone may fetch a media object by its key; nobody may list the bucket or its versions.
+        printf '%s' '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::hg-media/*"]}]}' > /tmp/media-read.json
+        mc anonymous set-json /tmp/media-read.json dev/hg-media
         expire() { mc --json ilm rule ls "dev/$$1" 2>/dev/null | grep -Eq "\"Days\": *$$2[,}]" || mc ilm rule add --expire-days "$$2" "dev/$$1"; }
         expire hg-pod 90
         expire hg-exports 30

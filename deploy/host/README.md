@@ -11,7 +11,7 @@ Everything here is open source and self-hosted. The only outside services it tal
 | `bootstrap.yml` | First contact as root: creates the `ops` account, nothing else |
 | `offline.yml` | The owner's always-on machine: the off-server backup copy and the outside watcher |
 | `standby.yml` | Next month: the warm standby. Never applied by `site.yml` |
-| `group_vars/all.yml` | Every shared setting, and every container image pinned by tag and digest |
+| `group_vars/all.yml` | Every shared setting, and every container image pinned by tag and digest (from public registries for now: the [object-storage decision](../../docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01) asks for Silo in a registry HalalGoes controls, an open question in [#278][pr278]) |
 | `inventory/hosts.example.yml` | The inventory's shape; `provision.sh` writes the real one (kept local) |
 | `secrets/*.example.*` | The shape of each encrypted secrets file. Never filled in |
 | `tests/check.sh` | Syntax, ansible-lint and shellcheck; needs no server |
@@ -193,5 +193,6 @@ What it sets up, each with the least it needs:
 [i225]: https://github.com/shaiknoorullah/hg-mono/issues/225
 [i235]: https://github.com/shaiknoorullah/hg-mono/issues/235
 [i275]: https://github.com/shaiknoorullah/hg-mono/issues/275
+[pr278]: https://github.com/shaiknoorullah/hg-mono/pull/278
 [runbook-routine]: ../../docs/ops/runbook.md#routine-work-on-one-server
 [runbook-rebuild]: ../../docs/ops/runbook.md#rebuild-on-a-new-server

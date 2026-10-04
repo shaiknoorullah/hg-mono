@@ -101,6 +101,8 @@ hg_alert_smtp_user: resend
 
 # ---------------------------------------------------------------------------- images
 # Pinned by tag and digest. Update them in one reviewed PR, never on the server.
+# The object-storage decision asks for Silo in a registry HalalGoes controls; these come
+# from Docker Hub, by digest, the same as #278. Mirroring them is the open question there.
 hg_images:
   socket_proxy: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
   clamav: clamav/clamav:1.5.4@sha256:ebec5bc138401b36ae987caa1a3fa3c3b2a21ed3d51f0bfa5852825e663e67b0
