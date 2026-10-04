@@ -243,6 +243,9 @@ reject "H5 and H7 are not overridable" "halal_check_hard_computed_flags" \
        overridable, checked_by, checked_at)
      VALUES ('ee000000-0000-4000-8000-000000000013','H5_DATES_VALID','PASS','FAIL',true,
              '11111111-1111-4111-8111-111111111111',now());"
+reject "a deleted issuing body cannot stay ACCEPTED, so ACCEPTED means accepted now" \
+  "halal_issuing_body_deleted_not_accepted" \
+  "UPDATE halal_issuing_body SET deleted_at = now() WHERE status = 'ACCEPTED';"
 n_rows "the three accepted issuing bodies are seeded" "3" \
   "SELECT 1 FROM halal_issuing_body WHERE status='ACCEPTED'"
 zero_rows "no restaurant claims CERTIFIED without a live certificate" \

@@ -1109,15 +1109,22 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   a new body (`status = PROPOSED`) when a certificate names an unlisted issuer. **Support Agent** —
   read `name` and `status` only.
 - **States**: `PROPOSED → ACCEPTED` (Super Admin) · `PROPOSED → REJECTED` · `ACCEPTED → SUSPENDED`
-  (issuer under question; existing approved certificates are **not** auto-revoked but a P2 case is
+  (issuer under question; existing approved certificates are **not** auto-revoked, a P2 case is
   raised per affected restaurant and no new certificate from that issuer may be approved) ·
-  `SUSPENDED → ACCEPTED` · `ACCEPTED|SUSPENDED → RETIRED` (issuer ceased; existing certificates run to
-  their expiry, no renewals accepted).
+  `SUSPENDED → ACCEPTED` · `ACCEPTED|SUSPENDED → RETIRED` (issuer ceased; no renewals accepted).
+  A certificate vouches for a restaurant only while its body is `ACCEPTED`: once a body is
+  suspended, retired or rejected, its certificates stop counting at once, and a restaurant no other
+  accepted certificate vouches for loses its badge and is delisted (hidden, menu not locked) until
+  the body is accepted again or the restaurant has a current certificate from an accepted body
+  ([withdrawing a body's acceptance left its restaurants showing CERTIFIED](https://github.com/shaiknoorullah/hg-mono/issues/346)).
 - **Rules**:
   - R1 `H2_ISSUER_ACCEPTED` passes only for `status = ACCEPTED` **at the moment of certificate review**.
   - R2 Suspending or retiring a body writes an `audit_event` and enqueues one `case` per restaurant
     holding an approved certificate from that body, at Tier 2, priority P2, category
-    `HALAL_ISSUER_STATUS_CHANGE`.
+    `HALAL_ISSUER_STATUS_CHANGE`. In the same transaction every such restaurant's halal state is
+    derived again, each one delisted or listed again is audited, and its owners and managers are
+    notified. Until support cases exist ([staff renewal case](https://github.com/shaiknoorullah/hg-mono/issues/273)),
+    the case is an `admin.alert` of that kind on `admin:ops`.
   - R3 Alias matching is case-insensitive, punctuation- and whitespace-normalised; the admin still
     confirms `H2` explicitly — matching is a suggestion, never an approval.
   - R4 A body cannot be deleted, only retired.
@@ -1129,8 +1136,9 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   1. Given a body in `PROPOSED`, when an admin attempts to approve a certificate naming it, then
      `H2_ISSUER_ACCEPTED` computes `FAIL` and approval returns `422 CHECK_FAILED`.
   2. Given a body moves `ACCEPTED → SUSPENDED` while 12 restaurants hold approved certificates from
-     it, then 12 cases exist at Tier 2 with category `HALAL_ISSUER_STATUS_CHANGE`, and those 12
-     restaurants remain `LIVE`.
+     it and no other, then 12 cases exist at Tier 2 with category `HALAL_ISSUER_STATUS_CHANGE`, and
+     those 12 restaurants are `DELISTED` with no badge in the same request; moving the body back to
+     `ACCEPTED` lists the ones delisted only for this again.
   3. Given an `ADMIN`, when they attempt to set a body `ACCEPTED`, then `403 FORBIDDEN_PERMISSION`;
      when they propose a body, then `201` with `status='PROPOSED'`.
 - **Out of scope**: automated scraping of certifier registries; accreditation-scheme validation;

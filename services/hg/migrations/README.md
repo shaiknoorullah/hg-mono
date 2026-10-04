@@ -15,7 +15,7 @@ migrations/
   0000N_*.sql        the migrations, in order
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 59 assertions about what the DB refuses
+  test/              invariant tests: 60 assertions about what the DB refuses
   tools/             contract-enum generator and checker
 ```
 
@@ -103,7 +103,7 @@ unaccounted for, and `gen_enums.py` refuses to generate.
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
-- **Tested**: 59 invariant assertions pass (`test/run_invariant_tests.sh`).
+- **Tested**: 60 invariant assertions pass (`test/run_invariant_tests.sh`).
 - **Environment caveat**: Docker was not available, so this was verified
   against a locally installed **Postgres 16.13 with PostGIS 3.4.2**, not the
   spec's Postgres 17 + PostGIS 3.6. Nothing here uses a 17-only or 3.6-only

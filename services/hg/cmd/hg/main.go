@@ -694,7 +694,11 @@ func run() error {
 	rider.Routes(router, rider.NewHandler(rider.NewService(rider.NewRepo(st.DB().Pool))))
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
-	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
+	// The notification outbox is wired so a change of a halal issuing body's
+	// status tells the owners of every restaurant it lists or delists, in the
+	// same transaction (https://github.com/shaiknoorullah/hg-mono/issues/346).
+	admin.Routes(router, admin.NewHandler(
+		admin.NewRepo(st.DB().Pool).WithNotifier(notifyClient.Enqueue), admin.DefaultConfig()))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
 		// Links are signed for the public host phones reach; server-side

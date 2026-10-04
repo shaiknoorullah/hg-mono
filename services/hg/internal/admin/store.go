@@ -19,6 +19,9 @@ var ErrNotFound = errors.New("admin: not found")
 // from the verified principal, never from a request body.
 type Repo struct {
 	pool *pgxpool.Pool
+	// notify is the notification outbox status changes of issuing bodies write
+	// to (WithNotifier); nil until wired.
+	notify Enqueuer
 }
 
 // NewRepo builds the repository over the shared pool.
@@ -168,7 +171,12 @@ RETURNING id, name, aliases, country, region, website, accreditation_ref, requir
 }
 
 // SetIssuingBodyStatus changes a body's status (super-admin only, A-16) and
-// audits the before/after in one transaction.
+// audits the before/after in one transaction. In the same transaction it applies
+// the change to every restaurant holding a certificate from the body
+// (resyncIssuerRestaurantsTx): a certificate vouches only while its body is
+// ACCEPTED, so withdrawing a body delists the restaurants it alone vouched for,
+// and accepting it again lists them again.
+// Issue: https://github.com/shaiknoorullah/hg-mono/issues/346
 func (r *Repo) SetIssuingBodyStatus(ctx context.Context, actor auditActor, id, newStatus string, requiresConfirm *bool, justification string) (issuingBodyRow, error) {
 	var out issuingBodyRow
 	err := r.inTx(ctx, func(tx pgx.Tx) error {
@@ -186,17 +194,18 @@ UPDATE halal_issuing_body
        requires_issuer_confirmation = COALESCE($3, requires_issuer_confirmation),
        decided_by=$4, decided_at=now()
  WHERE id=$1
-RETURNING id, name, aliases, country, region, website, accreditation_ref, requires_issuer_confirmation, status, notes`
+RETURNING id, name, aliases, country, region, website, accreditation_ref, requires_issuer_confirmation, status, notes, decided_at`
 		var decidedBy any
 		if actor.staffID != "" {
 			decidedBy = actor.staffID
 		}
+		var decidedAt time.Time
 		if err := tx.QueryRow(ctx, upd, id, newStatus, requiresConfirm, decidedBy).Scan(&out.ID, &out.Name,
 			&out.Aliases, &out.Country, &out.Region, &out.Website, &out.AccreditationRef,
-			&out.RequiresIssuerConfirmation, &out.Status, &out.Notes); err != nil {
+			&out.RequiresIssuerConfirmation, &out.Status, &out.Notes, &decidedAt); err != nil {
 			return err
 		}
-		return writeAudit(ctx, tx, auditEntry{
+		if err := writeAudit(ctx, tx, auditEntry{
 			actor:       actor,
 			action:      "halal_issuing_body.set_status",
 			subjectType: "HALAL_ISSUING_BODY",
@@ -205,7 +214,10 @@ RETURNING id, name, aliases, country, region, website, accreditation_ref, requir
 			reason:      &justification,
 			before:      map[string]any{"status": before.Status},
 			after:       map[string]any{"status": out.Status},
-		})
+		}); err != nil {
+			return err
+		}
+		return r.resyncIssuerRestaurantsTx(ctx, tx, actor, out, decidedAt)
 	})
 	return out, err
 }
