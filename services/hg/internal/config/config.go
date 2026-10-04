@@ -51,6 +51,19 @@ type Config struct {
 	OTP      OTP
 	Tax      Tax
 	Realtime Realtime
+
+	// SecretSources says, for each name in SecretSettings, whether its value
+	// came from a file, from the environment, or was not set. It is what the
+	// boot log reports about secrets (LogSecretSources).
+	SecretSources map[string]SecretSource
+	// Warnings are problems Load tolerated because HG_ENV is local, such as a
+	// secret file its group can read. Outside local each one is an error.
+	// They never contain a secret.
+	Warnings []string
+
+	// lookup is the environment Load read, with each secret setting resolved
+	// from its file. Config.Lookup exposes it to auth.LoadSecrets.
+	lookup func(string) string
 }
 
 // Realtime holds the WebSocket gateway's per-replica limits.
@@ -240,8 +253,15 @@ func (b Buckets) All() []string {
 // misconfigured deployment surfaces its whole diff in one boot rather than one
 // variable per restart. A non-nil error means the process must exit non-zero:
 // there is no partially-valid Config.
+//
+// Every name in SecretSettings may instead be given as NAME_FILE (see
+// ReadSecret). Outside HG_ENV=local a secret file its group or everyone can
+// read, or a secret still set to a deploy/.env.example placeholder, is refused.
 func Load(getenv func(string) string) (*Config, error) {
 	l := &loader{getenv: getenv}
+	// Secrets are resolved first, because how strictly depends only on HG_ENV.
+	// An unset or unknown HG_ENV is strict; it is reported as an error below.
+	l.resolveSecrets(Environment(strings.TrimSpace(getenv("HG_ENV"))) != EnvLocal)
 
 	cfg := &Config{
 		ServiceVersion:  l.optional("HG_SERVICE_VERSION", "dev"),
@@ -417,6 +437,12 @@ func Load(getenv func(string) string) (*Config, error) {
 	if err := l.err(); err != nil {
 		return nil, err
 	}
+	cfg.SecretSources = make(map[string]SecretSource, len(l.secrets))
+	for name, s := range l.secrets {
+		cfg.SecretSources[name] = s.source
+	}
+	cfg.Warnings = l.warns
+	cfg.lookup = l.lookup
 	return cfg, nil
 }
 
@@ -424,8 +450,28 @@ func Load(getenv func(string) string) (*Config, error) {
 func LoadFromOS() (*Config, error) { return Load(os.Getenv) }
 
 type loader struct {
-	getenv func(string) string
-	errs   []string
+	getenv  func(string) string
+	errs    []string
+	warns   []string
+	secrets map[string]resolvedSecret
+}
+
+// lookup returns a variable's value: a secret setting as resolveSecrets read
+// it (from the variable or its file), anything else straight from getenv.
+func (l *loader) lookup(key string) string {
+	if s, ok := l.secrets[key]; ok {
+		return s.value
+	}
+	return l.getenv(key)
+}
+
+// value is lookup with surrounding space trimmed. A secret read from a file is
+// returned as read: only its one trailing newline was dropped.
+func (l *loader) value(key string) string {
+	if s, ok := l.secrets[key]; ok {
+		return s.value
+	}
+	return strings.TrimSpace(l.getenv(key))
 }
 
 func (l *loader) errf(format string, args ...any) {
@@ -443,16 +489,26 @@ func (l *loader) err() error {
 
 // required returns the variable's value, recording an error when it is unset or
 // blank. It never substitutes a zero value silently — that is the whole point.
+//
+// A secret setting may be given as NAME_FILE instead, which satisfies the rule;
+// one whose file already failed to load is not reported a second time.
 func (l *loader) required(key string) string {
-	v := strings.TrimSpace(l.getenv(key))
+	v := l.value(key)
 	if v == "" {
-		l.errf("%s is required and was not set", key)
+		s, isSecret := l.secrets[key]
+		switch {
+		case isSecret && s.failed:
+		case isSecret:
+			l.errf("%s is required and was not set (set it, or %s_FILE to a file holding it)", key, key)
+		default:
+			l.errf("%s is required and was not set", key)
+		}
 	}
 	return v
 }
 
 func (l *loader) optional(key, def string) string {
-	if v := strings.TrimSpace(l.getenv(key)); v != "" {
+	if v := l.value(key); v != "" {
 		return v
 	}
 	return def

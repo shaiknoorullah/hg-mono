@@ -31,6 +31,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       -o /out/hg \
       ./cmd/hg
 
+# The migrate image's entrypoint (cmd/migrate): it reads goose's connection
+# string from GOOSE_DBSTRING_FILE when that is set, then starts goose.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -trimpath -ldflags="-s -w" -o /out/hg-migrate ./cmd/migrate
+
 # Fail the build rather than the deploy if the binary is not actually static.
 RUN ! ldd /out/hg 2>/dev/null | grep -q "=>" || (echo "hg is not statically linked" && exit 1)
 
@@ -43,10 +50,18 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOBIN=/out go install github.com/pressly/goose/v3/cmd/goose@v3.24.1
 
+# goose reads its connection string, password included, only from
+# GOOSE_DBSTRING, and this image has no shell to turn a secret file into a
+# variable. hg-migrate does that: given GOOSE_DBSTRING_FILE it reads the file
+# and starts goose with the value, so the container's configuration holds only
+# a path (issue #309: https://github.com/shaiknoorullah/hg-mono/issues/309).
+# Without it, goose runs exactly as before. Arguments pass through: `migrate
+# status` still runs `goose status`.
 FROM gcr.io/distroless/static-debian12:nonroot AS migrate
 COPY --from=goose-build /out/goose /usr/local/bin/goose
+COPY --from=build /out/hg-migrate /usr/local/bin/hg-migrate
 USER nonroot:nonroot
-ENTRYPOINT ["/usr/local/bin/goose"]
+ENTRYPOINT ["/usr/local/bin/hg-migrate"]
 CMD ["up"]
 
 # Runtime stage. distroless/static holds no shell, no package manager and no

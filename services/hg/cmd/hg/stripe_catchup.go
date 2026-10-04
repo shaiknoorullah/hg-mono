@@ -80,6 +80,7 @@ func runStripeCatchup(args []string, stdout io.Writer) error {
 
 	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: cfg.LogLevel})).
 		With(slog.String("service", "hg-stripe-catchup"), slog.String("env", string(cfg.Env)))
+	cfg.LogSecretSources(log)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
