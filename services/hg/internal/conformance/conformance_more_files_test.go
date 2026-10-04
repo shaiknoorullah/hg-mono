@@ -254,9 +254,10 @@ func mfSeedKycDocument(t *testing.T, pool *pgxpool.Pool, subjectAccountID string
 	ctx := context.Background()
 	var storedID string
 	if err := pool.QueryRow(ctx, `
-INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, owner_account_id, uploaded_by, confirmed_at, virus_scan_state)
+INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, owner_account_id, uploaded_by, confirmed_at,
+                           virus_scan_state, virus_scan_sha256, virus_scan_version)
 VALUES ('hg-kyc','mf/'||md5(random()::text),'KYC_DOCUMENT','application/pdf',$2,
-        digest($3::bytea,'sha256'),'READY',$1,$1,now(),'CLEAN')
+        digest($3::bytea,'sha256'),'READY',$1,$1,now(),'CLEAN',digest($3::bytea,'sha256'),1)
 RETURNING id`, subjectAccountID, len(mfKycBytes), mfKycBytes).Scan(&storedID); err != nil {
 		t.Fatalf("mfSeedKycDocument stored_object: %v", err)
 	}

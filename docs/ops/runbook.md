@@ -174,9 +174,9 @@ Every uploaded KYC document is scanned by the `clamav` service before it can be 
 
 - **What breaks:** new rider and restaurant documents wait in review. An approval is refused with 409, and the document cannot be downloaded. Documents that are already approved are unaffected.
 - **Signs:** `virus scan sweep failed, documents stay pending` in the API logs; `docker compose ps` shows `clamav` unhealthy or restarting.
-- **Check** `docker compose logs --since 30m clamav` and `free -m`. On first start, clamav downloads its signature database, which takes a few minutes and about 1 GB of memory.
+- **Check** `docker compose logs --since 30m clamav` and `free -m`. On first start, `clamav` downloads its signature database, which takes a few minutes and about 1 GB of memory.
 
-Restart it with `docker compose restart clamav`. The API retries by itself and scans the waiting documents once clamav is healthy. Never approve a document by changing its scan state in the database: the database refuses a changed verdict that is not a recorded re-scan.
+Restart it with `docker compose restart clamav`. The API retries by itself and scans the waiting documents once `clamav` is healthy. Never approve a document by changing its scan state in the database: the database refuses a changed verdict that is not a recorded re-scan.
 
 ## Payments are failing
 

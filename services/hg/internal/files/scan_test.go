@@ -128,6 +128,30 @@ func scanStateOf(t *testing.T, ctx context.Context, pool *pgxpool.Pool, id strin
 	return state, detail
 }
 
+func sha256Of(b []byte) []byte {
+	sum := sha256.Sum256(b)
+	return sum[:]
+}
+
+// contentVersionOf reads an object's content_version.
+func contentVersionOf(t *testing.T, ctx context.Context, pool *pgxpool.Pool, id string) int64 {
+	t.Helper()
+	var v int64
+	if err := pool.QueryRow(ctx, `SELECT content_version FROM stored_object WHERE id=$1`, id).Scan(&v); err != nil {
+		t.Fatalf("read content version: %v", err)
+	}
+	return v
+}
+
+// approveAgain tries to approve a document again, as any writer could, and
+// reports whether the database let it.
+func approveAgain(ctx context.Context, pool *pgxpool.Pool, owner, docID string) error {
+	_, err := pool.Exec(ctx, `
+UPDATE kyc_document SET state='APPROVED', reviewed_by=$2, reviewed_at=now(), deadline_at=NULL, deadline_action=NULL
+ WHERE id=$1`, docID, owner)
+	return err
+}
+
 // The scan worker end to end, against a real schema and a fake clamd:
 //   - while clamd is down nothing is passed — documents stay PENDING;
 //   - once it is up, each document gets CLEAN or INFECTED (with the signature);
@@ -181,6 +205,21 @@ func TestScanWorker(t *testing.T) {
 	}
 	if _, detail := scanStateOf(t, ctx, pool, infectedID); detail != "Eicar-Test-Signature" {
 		t.Errorf("infected detail = %q, want the signature name", detail)
+	}
+	// The CLEAN verdict names the bytes it is about and the contents it was
+	// read at; the swapped file's ERROR names the bytes that were really there.
+	var cleanBound, swappedSeen bool
+	if err := pool.QueryRow(ctx, `
+SELECT (SELECT virus_scan_sha256 = sha256 AND virus_scan_version = content_version FROM stored_object WHERE id=$1),
+       (SELECT virus_scan_sha256 = $3 FROM stored_object WHERE id=$2)`,
+		cleanID, swappedID, sha256Of([]byte("%PDF-1.7 a different file"))).Scan(&cleanBound, &swappedSeen); err != nil {
+		t.Fatalf("read verdict binding: %v", err)
+	}
+	if !cleanBound {
+		t.Errorf("the CLEAN verdict is not bound to the file's SHA-256 and content version")
+	}
+	if !swappedSeen {
+		t.Errorf("the ERROR verdict does not record the SHA-256 of the bytes that were scanned")
 	}
 
 	// A document whose file is not CLEAN cannot be approved, by any writer.
@@ -280,9 +319,13 @@ func TestUploadURLBindsTheBytes(t *testing.T) {
 // A document stays approved only while its file is still the clean file that
 // was scanned (https://github.com/shaiknoorullah/hg-mono/issues/218):
 //
-//	(a) bytes swapped after the scan are caught before a download is issued:
-//	    no URL, the file is marked ERROR, and the document leaves APPROVED;
-//	(b) a file a re-scan finds INFECTED takes its approved document back to
+//	(a) bytes swapped after a CLEAN scan are caught before a download is
+//	    issued: no URL, the file gets a new content version, its verdict goes
+//	    back to PENDING and the document leaves APPROVED. It cannot be approved
+//	    again, and the next scan of the swapped bytes ends ERROR;
+//	(b) the same swap caught at approval time (CheckScannedFile) refuses the
+//	    approval and does the same;
+//	(c) a file a re-scan finds INFECTED takes its approved document back to
 //	    review, and it can no longer be downloaded.
 func TestApprovalFollowsTheFile(t *testing.T) {
 	ctx := context.Background()
@@ -293,34 +336,67 @@ func TestApprovalFollowsTheFile(t *testing.T) {
 
 	data := []byte("%PDF-1.7 a clean driving licence")
 	swapID, swapKey := seedConfirmedKYC(t, ctx, pool, owner, data)
+	checkID, checkKey := seedConfirmedKYC(t, ctx, pool, owner, data)
 	rescanID, rescanKey := seedConfirmedKYC(t, ctx, pool, owner, data)
-	store := keyedObjectStore{swapKey: data, rescanKey: data}
+	store := keyedObjectStore{swapKey: data, checkKey: data, rescanKey: data}
 	clean := NewScanWorker(pool, store, fixedScanner{v: VerdictClean}, 1<<20, quiet)
 	clean.batch = 1000
 	if _, err := clean.Sweep(ctx); err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
 	swapDoc := approveDocument(t, ctx, pool, owner, swapID)
+	checkDoc := approveDocument(t, ctx, pool, owner, checkID)
 	rescanDoc := approveDocument(t, ctx, pool, owner, rescanID)
 	repo := NewRepo(pool, &recordingPresigner{}, store, Buckets{KYC: "hg-kyc"})
 
 	if _, err := repo.DownloadURL(ctx, admin, swapDoc, true); err != nil {
 		t.Fatalf("download of an approved, clean, unchanged file: %v", err)
 	}
+	if v, ok, err := repo.CheckScannedFile(ctx, checkID, owner, "req-check"); err != nil || !ok || v != 1 {
+		t.Fatalf("CheckScannedFile of a clean, unchanged file = (%d, %v, %v), want (1, true, nil)", v, ok, err)
+	}
 
 	// (a) The bytes at the key change after the scan.
-	store[swapKey] = append([]byte("%PDF-1.7 "), eicar...)
+	swapped := append([]byte("%PDF-1.7 "), eicar...)
+	store[swapKey] = swapped
 	if _, err := repo.DownloadURL(ctx, admin, swapDoc, true); !errors.Is(err, ErrNotScannedClean) {
 		t.Fatalf("download after the bytes were swapped: err = %v, want ErrNotScannedClean", err)
 	}
-	if st, _ := scanStateOf(t, ctx, pool, swapID); st != "ERROR" {
-		t.Errorf("swapped file is %s, want ERROR", st)
+	if st, _ := scanStateOf(t, ctx, pool, swapID); st != "PENDING" {
+		t.Errorf("swapped file is %s, want PENDING: new contents need a new scan", st)
 	}
-	if st := documentState(t, ctx, pool, swapDoc); st == "APPROVED" {
-		t.Errorf("the document over a swapped file is still APPROVED")
+	if v := contentVersionOf(t, ctx, pool, swapID); v != 2 {
+		t.Errorf("swapped file is at content version %d, want 2", v)
+	}
+	if st := documentState(t, ctx, pool, swapDoc); st != "IN_REVIEW" {
+		t.Errorf("the document over a swapped file is %s, want IN_REVIEW", st)
+	}
+	if err := approveAgain(ctx, pool, owner, swapDoc); err == nil {
+		t.Errorf("a document over swapped, unscanned bytes was approved again")
+	}
+	if _, err := clean.Sweep(ctx); err != nil {
+		t.Fatalf("Sweep: %v", err)
+	}
+	if st, _ := scanStateOf(t, ctx, pool, swapID); st != "ERROR" {
+		t.Errorf("the re-scan of swapped bytes is %s, want ERROR: they are not the confirmed upload", st)
+	}
+	if err := approveAgain(ctx, pool, owner, swapDoc); err == nil {
+		t.Errorf("a document over a file whose re-scan is ERROR was approved")
 	}
 
-	// (b) Newer signatures: a recorded re-scan, and this time clamd finds it.
+	// (b) The same swap, found when an admin approves.
+	store[checkKey] = swapped
+	if v, ok, err := repo.CheckScannedFile(ctx, checkID, owner, "req-check"); err != nil || ok {
+		t.Fatalf("CheckScannedFile after the bytes were swapped = (%d, %v, %v), want not clean", v, ok, err)
+	}
+	if st, _ := scanStateOf(t, ctx, pool, checkID); st != "PENDING" {
+		t.Errorf("file swapped before approval is %s, want PENDING", st)
+	}
+	if st := documentState(t, ctx, pool, checkDoc); st == "APPROVED" {
+		t.Errorf("the document over a file swapped before approval is still APPROVED")
+	}
+
+	// (c) Newer signatures: a recorded re-scan, and this time clamd finds it.
 	if _, err := pool.Exec(ctx, `UPDATE stored_object SET virus_scan_state='PENDING' WHERE id=$1`, rescanID); err == nil {
 		t.Fatalf("a verdict was changed without a recorded re-scan")
 	}
@@ -340,5 +416,73 @@ func TestApprovalFollowsTheFile(t *testing.T) {
 	}
 	if _, err := repo.DownloadURL(ctx, admin, rescanDoc, true); !errors.Is(err, ErrNotScannedClean) {
 		t.Errorf("download of an INFECTED file: err = %v, want ErrNotScannedClean", err)
+	}
+}
+
+// Approve, then a late INFECTED verdict on the same file: the document leaves
+// APPROVED in the same transaction, with an audit row, and cannot be approved
+// again (https://github.com/shaiknoorullah/hg-mono/issues/218).
+func TestLateInfectedVerdictRevokesApproval(t *testing.T) {
+	ctx := context.Background()
+	pool := dialTestPool(t)
+	owner := seedAccount(t, ctx, pool)
+	data := []byte("%PDF-1.7 a certificate passed by yesterday's signatures")
+	id, key := seedConfirmedKYC(t, ctx, pool, owner, data)
+	w := NewScanWorker(pool, keyedObjectStore{key: data}, fixedScanner{v: VerdictClean}, 1<<20,
+		slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if _, err := w.Sweep(ctx); err != nil {
+		t.Fatalf("Sweep: %v", err)
+	}
+	doc := approveDocument(t, ctx, pool, owner, id)
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `SELECT set_config('hg.rescan_reason', 'newer signatures', true)`); err != nil {
+		t.Fatalf("set reason: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `
+UPDATE stored_object SET virus_scan_state='INFECTED', virus_scan_detail='Win.Test.Late' WHERE id=$1`, id); err != nil {
+		t.Fatalf("record the late verdict: %v", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	if st := documentState(t, ctx, pool, doc); st != "IN_REVIEW" {
+		t.Fatalf("after a late INFECTED verdict the document is %s, want IN_REVIEW", st)
+	}
+	var audited bool
+	if err := pool.QueryRow(ctx, `
+SELECT EXISTS (SELECT 1 FROM audit_event WHERE subject_id=$1 AND action='kyc_document.reopen_virus_scan'
+                AND reason_code='INFECTED')`, doc).Scan(&audited); err != nil {
+		t.Fatalf("read audit: %v", err)
+	}
+	if !audited {
+		t.Errorf("the reopened document has no audit row naming the INFECTED verdict")
+	}
+	if err := approveAgain(ctx, pool, owner, doc); err == nil {
+		t.Errorf("a document over an INFECTED file was approved again")
+	}
+}
+
+// Fail closed: a scanner answer the worker does not recognise is not a
+// verdict. Nothing is recorded, the file stays PENDING, and the sweep reports
+// the scanner as unusable so the worker backs off.
+func TestUnknownVerdictFailsClosed(t *testing.T) {
+	ctx := context.Background()
+	pool := dialTestPool(t)
+	owner := seedAccount(t, ctx, pool)
+	data := []byte("%PDF-1.7 scanned by a confused scanner")
+	id, key := seedConfirmedKYC(t, ctx, pool, owner, data)
+	w := NewScanWorker(pool, keyedObjectStore{key: data}, fixedScanner{v: Verdict("PROBABLY_FINE")}, 1<<20,
+		slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if _, err := w.Sweep(ctx); !errors.Is(err, errScannerUnavailable) {
+		t.Fatalf("Sweep with an unknown verdict: err = %v, want errScannerUnavailable", err)
+	}
+	if st, _ := scanStateOf(t, ctx, pool, id); st != "PENDING" {
+		t.Errorf("after an unknown verdict the file is %s, want PENDING", st)
 	}
 }

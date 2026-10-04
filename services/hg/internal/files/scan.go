@@ -21,7 +21,11 @@ import (
 // CLEAN, INFECTED, TOO_LARGE or UNSCANNABLE. It hashes the bytes as they stream
 // and records ERROR, never CLEAN, when they are not the bytes that were
 // confirmed: a verdict is about one exact file, not about whatever sits at the
-// key (https://github.com/shaiknoorullah/hg-mono/issues/218).
+// key (https://github.com/shaiknoorullah/hg-mono/issues/218). Each verdict is
+// recorded with the SHA-256 of the bytes it is about and the object's
+// content_version, and the database accepts CLEAN only when both match the
+// object's current ones (migration 00031_virus_scan, CHECK
+// stored_object_clean_is_bound).
 //
 // The queue is the table itself, so a restart, a Redis flush or a second
 // replica loses nothing: each object is claimed with FOR UPDATE SKIP LOCKED in
@@ -30,7 +34,7 @@ import (
 //
 // When the scanner is down the worker backs off and tries again; documents wait
 // in PENDING meanwhile and cannot be approved, because the database refuses to
-// approve a KYC document whose file is not CLEAN (migration 00029_virus_scan).
+// approve a KYC document whose file is not CLEAN (migration 00031_virus_scan).
 type ScanWorker struct {
 	pool     *pgxpool.Pool
 	objects  ObjectStore
@@ -182,7 +186,7 @@ func (w *ScanWorker) scanOne(ctx context.Context, skip []string) (string, error)
 	var id string
 	err := inTx(ctx, w.pool, func(tx pgx.Tx) error {
 		const claim = `
-SELECT id, bucket, object_key, byte_size, sha256
+SELECT id, bucket, object_key, byte_size, sha256, content_version
   FROM stored_object
  WHERE state = 'READY' AND virus_scan_state = 'PENDING' AND deleted_at IS NULL
    AND (virus_scan_next_at IS NULL OR virus_scan_next_at <= now())
@@ -191,9 +195,9 @@ SELECT id, bucket, object_key, byte_size, sha256
  LIMIT 1
  FOR UPDATE SKIP LOCKED`
 		var bucket, key string
-		var size int64
+		var size, version int64
 		var sha []byte
-		err := tx.QueryRow(ctx, claim, skip).Scan(&id, &bucket, &key, &size, &sha)
+		err := tx.QueryRow(ctx, claim, skip).Scan(&id, &bucket, &key, &size, &sha, &version)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -201,18 +205,25 @@ SELECT id, bucket, object_key, byte_size, sha256
 			return err
 		}
 
-		verdict, detail, err := w.verdict(ctx, bucket, key, size, sha)
+		verdict, detail, scanned, err := w.verdict(ctx, bucket, key, size, sha)
 		if err != nil {
 			return err
 		}
 
+		// The verdict names the bytes it is about and the contents it was
+		// read at. The row has been locked since the claim, so the version
+		// cannot have moved; the WHERE says so rather than assuming it.
 		const upd = `
 UPDATE stored_object
    SET virus_scan_state = $2, virus_scan_detail = NULLIF($3, ''), virus_scanned_at = now(),
-       virus_scan_next_at = NULL
- WHERE id = $1`
-		if _, err := tx.Exec(ctx, upd, id, string(verdict), detail); err != nil {
+       virus_scan_next_at = NULL, virus_scan_sha256 = $4, virus_scan_version = $5
+ WHERE id = $1 AND content_version = $5 AND virus_scan_state = 'PENDING'`
+		tag, err := tx.Exec(ctx, upd, id, string(verdict), detail, scanned, version)
+		if err != nil {
 			return err
+		}
+		if tag.RowsAffected() != 1 {
+			return fmt.Errorf("files: object %s changed while it was being scanned", id)
 		}
 		if verdict != VerdictClean {
 			w.log.Warn("virus scan: file flagged",
@@ -236,15 +247,16 @@ UPDATE stored_object
 }
 
 // verdict decides one object: the bytes confirmed as size bytes with SHA-256
-// sha. A failure is classified as the scanner's (errScannerUnavailable) or the
-// object store's (errObjectUnreadable).
-func (w *ScanWorker) verdict(ctx context.Context, bucket, key string, size int64, sha []byte) (Verdict, string, error) {
+// sha. It also returns the SHA-256 of the bytes the scanner read, or nil when
+// it did not read them all. A failure is classified as the scanner's
+// (errScannerUnavailable) or the object store's (errObjectUnreadable).
+func (w *ScanWorker) verdict(ctx context.Context, bucket, key string, size int64, sha []byte) (Verdict, string, []byte, error) {
 	if size > w.maxBytes {
-		return VerdictTooLarge, fmt.Sprintf("%d bytes is over the %d-byte scan limit", size, w.maxBytes), nil
+		return VerdictTooLarge, fmt.Sprintf("%d bytes is over the %d-byte scan limit", size, w.maxBytes), nil, nil
 	}
 	rc, err := w.objects.Open(ctx, bucket, key)
 	if err != nil {
-		return "", "", fmt.Errorf("%w: %v", errObjectUnreadable, err)
+		return "", "", nil, fmt.Errorf("%w: %v", errObjectUnreadable, err)
 	}
 	defer rc.Close()
 	h := sha256.New()
@@ -252,30 +264,44 @@ func (w *ScanWorker) verdict(ctx context.Context, bucket, key string, size int64
 	v, detail, err := w.scanner.Scan(ctx, src)
 	if err != nil {
 		if src.err != nil {
-			return "", "", fmt.Errorf("%w: %v", errObjectUnreadable, src.err)
+			return "", "", nil, fmt.Errorf("%w: %v", errObjectUnreadable, src.err)
 		}
-		return "", "", fmt.Errorf("%w: %v", errScannerUnavailable, err)
+		return "", "", nil, fmt.Errorf("%w: %v", errScannerUnavailable, err)
+	}
+	// Fail closed: a verdict the worker does not know is not a verdict. The
+	// file stays PENDING until a scanner gives an answer it understands.
+	if !v.known() {
+		return "", "", nil, fmt.Errorf("%w: unrecognised verdict %q", errScannerUnavailable, v)
+	}
+	var scanned []byte
+	if src.eof && src.err == nil {
+		scanned = h.Sum(nil)
 	}
 	// CLEAN is a claim about the confirmed file, so it needs proof that the
 	// scanner read exactly that file, every byte. Anything else is ERROR.
-	if v == VerdictClean && (src.n != size || !bytes.Equal(h.Sum(nil), sha)) {
-		return VerdictError, "checksum mismatch: the scanned bytes are not the confirmed upload", nil
+	if v == VerdictClean && (scanned == nil || src.n != size || !bytes.Equal(scanned, sha)) {
+		return VerdictError, "checksum mismatch: the scanned bytes are not the confirmed upload", scanned, nil
 	}
-	return v, detail, nil
+	return v, detail, scanned, nil
 }
 
-// readRecorder counts the bytes read and remembers the first non-EOF read
-// error, so a failed scan can be blamed on the right side.
+// readRecorder counts the bytes read, notes whether the reader reached the
+// end, and remembers the first non-EOF read error, so a failed scan can be
+// blamed on the right side and a hash is only trusted for a complete read.
 type readRecorder struct {
 	r   io.Reader
 	n   int64
+	eof bool
 	err error
 }
 
 func (rr *readRecorder) Read(p []byte) (int, error) {
 	n, err := rr.r.Read(p)
 	rr.n += int64(n)
-	if err != nil && !errors.Is(err, io.EOF) && rr.err == nil {
+	switch {
+	case errors.Is(err, io.EOF):
+		rr.eof = true
+	case err != nil && rr.err == nil:
 		rr.err = err
 	}
 	return n, err

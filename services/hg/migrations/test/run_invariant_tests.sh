@@ -209,7 +209,8 @@ reject "a certificate cannot be APPROVED without all seven checks at PASS" "hala
      VALUES ('ee000000-0000-4000-8000-000000000001','hg-kyc','kyc/test/cert.pdf','KYC_DOCUMENT',
              'application/pdf',1024,digest('x','sha256'),'READY',
              '11111111-1111-4111-8111-111111111111',now());
-   UPDATE stored_object SET virus_scan_state='CLEAN' WHERE id='ee000000-0000-4000-8000-000000000001';
+   UPDATE stored_object SET virus_scan_state='CLEAN', virus_scan_sha256=sha256, virus_scan_version=content_version
+     WHERE id='ee000000-0000-4000-8000-000000000001';
    INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id,
        state, reviewed_by, reviewed_at)
      VALUES ('ee000000-0000-4000-8000-000000000002','RESTAURANT','33333333-3333-4333-8333-333333333333',
@@ -229,7 +230,8 @@ reject "H5 and H7 are not overridable" "halal_check_hard_computed_flags" \
      VALUES ('ee000000-0000-4000-8000-000000000011','hg-kyc','kyc/test/cert2.pdf','KYC_DOCUMENT',
              'application/pdf',1024,digest('x2','sha256'),'READY',
              '11111111-1111-4111-8111-111111111111',now());
-   UPDATE stored_object SET virus_scan_state='CLEAN' WHERE id='ee000000-0000-4000-8000-000000000011';
+   UPDATE stored_object SET virus_scan_state='CLEAN', virus_scan_sha256=sha256, virus_scan_version=content_version
+     WHERE id='ee000000-0000-4000-8000-000000000011';
    INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id,
        state, reviewed_by, reviewed_at)
      VALUES ('ee000000-0000-4000-8000-000000000012','RESTAURANT','33333333-3333-4333-8333-333333333333',
@@ -320,7 +322,8 @@ reject "a document decision with no reviewer is rejected" "kyc_document_decision
        state, uploaded_by, confirmed_at)
      VALUES ('15000000-0000-4000-8000-000000000001','hg-kyc','kyc/t/d.pdf','KYC_DOCUMENT',
              'application/pdf',10,digest('y','sha256'),'READY','11111111-1111-4111-8111-111111111111',now());
-   UPDATE stored_object SET virus_scan_state='CLEAN' WHERE id='15000000-0000-4000-8000-000000000001';
+   UPDATE stored_object SET virus_scan_state='CLEAN', virus_scan_sha256=sha256, virus_scan_version=content_version
+     WHERE id='15000000-0000-4000-8000-000000000001';
    INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state)
      VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
              '15000000-0000-4000-8000-000000000001','APPROVED');"
@@ -335,18 +338,20 @@ reject "a document whose file is not virus-scanned clean cannot be approved" "ky
              '15000000-0000-4000-8000-000000000003','APPROVED','11111111-1111-4111-8111-111111111111',now());"
 reject "a virus scan verdict cannot be changed except by a recorded re-scan" "stored_object_verdict_write_once" \
   "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
-       state, uploaded_by, confirmed_at, virus_scan_state)
+       state, uploaded_by, confirmed_at, virus_scan_state, virus_scan_sha256, virus_scan_version)
      VALUES ('15000000-0000-4000-8000-000000000004','hg-kyc','kyc/t/g.pdf','KYC_DOCUMENT',
-             'application/pdf',10,digest('v','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),'CLEAN');
+             'application/pdf',10,digest('v','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),
+             'CLEAN',digest('v','sha256'),1);
    UPDATE stored_object SET virus_scan_state='PENDING' WHERE id='15000000-0000-4000-8000-000000000004';"
 # Approval is not a one-time check: when a CLEAN file is found INFECTED later,
 # its approved document goes back to review with an audit row. Issue #218:
 # https://github.com/shaiknoorullah/hg-mono/issues/218
 accept "an approved document whose file turns INFECTED goes back to review" \
   "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
-       state, uploaded_by, confirmed_at, virus_scan_state)
+       state, uploaded_by, confirmed_at, virus_scan_state, virus_scan_sha256, virus_scan_version)
      VALUES ('15000000-0000-4000-8000-000000000005','hg-kyc','kyc/t/h.pdf','KYC_DOCUMENT',
-             'application/pdf',10,digest('u','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),'CLEAN');
+             'application/pdf',10,digest('u','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),
+             'CLEAN',digest('u','sha256'),1);
    INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
        reviewed_by, reviewed_at)
      VALUES ('15000000-0000-4000-8000-000000000006','RESTAURANT','33333333-3333-4333-8333-333333333333',
@@ -365,6 +370,129 @@ accept "an approved document whose file turns INFECTED goes back to review" \
        RAISE EXCEPTION 'the reopened document has no audit row';
      END IF;
    END \$\$;"
+# Fail closed: only CLEAN, about the file's current bytes, passes. Every other
+# verdict refuses the approval; an unknown verdict or none cannot be stored.
+n=10
+for scan in PENDING ERROR TOO_LARGE UNSCANNABLE INFECTED SKIPPED; do
+  n=$((n + 1))
+  reject "a document whose file is $scan cannot be approved" "kyc_document_virus_scan_clean" \
+    "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+         state, uploaded_by, confirmed_at, virus_scan_state)
+       VALUES ('15000000-0000-4000-8000-0000000000$n','hg-kyc','kyc/t/s$n.pdf','KYC_DOCUMENT',
+               'application/pdf',10,digest('s$n','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),'$scan');
+     INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+         reviewed_by, reviewed_at)
+       VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
+               '15000000-0000-4000-8000-0000000000$n','APPROVED','11111111-1111-4111-8111-111111111111',now());"
+done
+reject "an unknown verdict cannot be stored" "stored_object_virus_scan_state_check" \
+  "INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state)
+     VALUES ('hg-kyc','kyc/t/unknown.pdf','KYC_DOCUMENT','application/pdf',10,digest('unknown','sha256'),
+             'READY','11111111-1111-4111-8111-111111111111',now(),'PROBABLY_FINE');"
+reject "a missing verdict cannot be stored" "virus_scan_state" \
+  "INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state)
+     VALUES ('hg-kyc','kyc/t/null.pdf','KYC_DOCUMENT','application/pdf',10,digest('null','sha256'),
+             'READY','11111111-1111-4111-8111-111111111111',now(),NULL);"
+# A CLEAN verdict is about particular bytes: it must name the object's current
+# SHA-256 and content version, or it is not CLEAN.
+reject "a CLEAN verdict about other bytes is refused" "stored_object_clean_is_bound" \
+  "INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state, virus_scan_sha256, virus_scan_version)
+     VALUES ('hg-kyc','kyc/t/other.pdf','KYC_DOCUMENT','application/pdf',10,digest('mine','sha256'),
+             'READY','11111111-1111-4111-8111-111111111111',now(),'CLEAN',digest('theirs','sha256'),1);"
+reject "a CLEAN verdict naming no bytes is refused" "stored_object_clean_is_bound" \
+  "INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state)
+     VALUES ('hg-kyc','kyc/t/nobytes.pdf','KYC_DOCUMENT','application/pdf',10,digest('nobytes','sha256'),
+             'READY','11111111-1111-4111-8111-111111111111',now(),'CLEAN');"
+# No drift: a new upload over a clean, approved file — new bytes recorded on the
+# same row — moves the contents on, resets the verdict to PENDING and reopens
+# the document, even when the writer tries to carry CLEAN over.
+accept "a new upload over an approved file resets its verdict and reopens the document" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state, virus_scan_sha256, virus_scan_version)
+     VALUES ('15000000-0000-4000-8000-000000000007','hg-kyc','kyc/t/i.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('i','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),
+             'CLEAN',digest('i','sha256'),1);
+   INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+       reviewed_by, reviewed_at)
+     VALUES ('15000000-0000-4000-8000-000000000008','RESTAURANT','33333333-3333-4333-8333-333333333333',
+             'BUSINESS_LICENCE','15000000-0000-4000-8000-000000000007','APPROVED',
+             '11111111-1111-4111-8111-111111111111',now());
+   UPDATE stored_object SET sha256=digest('i-swapped','sha256'), byte_size=11,
+          virus_scan_state='CLEAN', virus_scan_sha256=digest('i-swapped','sha256')
+    WHERE id='15000000-0000-4000-8000-000000000007';
+   DO \$\$ BEGIN
+     IF NOT EXISTS (SELECT 1 FROM stored_object WHERE id='15000000-0000-4000-8000-000000000007'
+                     AND virus_scan_state='PENDING' AND virus_scan_sha256 IS NULL
+                     AND virus_scan_version IS NULL AND content_version=2) THEN
+       RAISE EXCEPTION 'new bytes kept a verdict about the old ones';
+     END IF;
+     IF NOT EXISTS (SELECT 1 FROM kyc_document WHERE id='15000000-0000-4000-8000-000000000008'
+                     AND state='IN_REVIEW') THEN
+       RAISE EXCEPTION 'the document is still approved after its file was replaced';
+     END IF;
+     IF NOT EXISTS (SELECT 1 FROM audit_event WHERE subject_id='15000000-0000-4000-8000-000000000008'
+                     AND action='kyc_document.reopen_virus_scan' AND reason_code='CONTENT_CHANGED') THEN
+       RAISE EXCEPTION 'the reopened document has no audit row';
+     END IF;
+   END \$\$;"
+# An overwrite the database only learns about from the store (internal/files
+# found other bytes at the key) is recorded by moving content_version on.
+accept "bytes found changed at the key reset the verdict and reopen the document" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state, virus_scan_sha256, virus_scan_version)
+     VALUES ('15000000-0000-4000-8000-000000000009','hg-kyc','kyc/t/j.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('j','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),
+             'CLEAN',digest('j','sha256'),1);
+   INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+       reviewed_by, reviewed_at)
+     VALUES ('15000000-0000-4000-8000-000000000010','RESTAURANT','33333333-3333-4333-8333-333333333333',
+             'BUSINESS_LICENCE','15000000-0000-4000-8000-000000000009','APPROVED',
+             '11111111-1111-4111-8111-111111111111',now());
+   UPDATE stored_object SET content_version = content_version + 1
+    WHERE id='15000000-0000-4000-8000-000000000009';
+   DO \$\$ BEGIN
+     IF NOT EXISTS (SELECT 1 FROM stored_object WHERE id='15000000-0000-4000-8000-000000000009'
+                     AND virus_scan_state='PENDING' AND content_version=2) THEN
+       RAISE EXCEPTION 'changed bytes kept their verdict';
+     END IF;
+     IF EXISTS (SELECT 1 FROM kyc_document WHERE id='15000000-0000-4000-8000-000000000010'
+                 AND state='APPROVED') THEN
+       RAISE EXCEPTION 'the document is still approved after its bytes changed';
+     END IF;
+   END \$\$;"
+reject "a document over replaced, unscanned bytes cannot be approved again" "kyc_document_virus_scan_clean" \
+  "UPDATE kyc_document SET state='APPROVED', reviewed_by='11111111-1111-4111-8111-111111111111',
+          reviewed_at=now(), deadline_at=NULL, deadline_action=NULL
+    WHERE id='15000000-0000-4000-8000-000000000010';"
+accept "pointing an approved document at another file sends it back to review" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at, virus_scan_state, virus_scan_sha256, virus_scan_version)
+     VALUES ('15000000-0000-4000-8000-000000000020','hg-kyc','kyc/t/k.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('k','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),
+             'CLEAN',digest('k','sha256'),1),
+            ('15000000-0000-4000-8000-000000000021','hg-kyc','kyc/t/l.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('l','sha256'),'READY','11111111-1111-4111-8111-111111111111',now(),
+             'CLEAN',digest('l','sha256'),1);
+   INSERT INTO kyc_document (id, subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+       reviewed_by, reviewed_at)
+     VALUES ('15000000-0000-4000-8000-000000000022','RESTAURANT','33333333-3333-4333-8333-333333333333',
+             'BUSINESS_LICENCE','15000000-0000-4000-8000-000000000020','APPROVED',
+             '11111111-1111-4111-8111-111111111111',now());
+   UPDATE kyc_document SET stored_object_id='15000000-0000-4000-8000-000000000021'
+    WHERE id='15000000-0000-4000-8000-000000000022';
+   DO \$\$ BEGIN
+     IF NOT EXISTS (SELECT 1 FROM kyc_document WHERE id='15000000-0000-4000-8000-000000000022'
+                     AND state='IN_REVIEW' AND reviewed_by IS NULL AND deadline_at IS NOT NULL) THEN
+       RAISE EXCEPTION 'the document stayed approved over a file nobody reviewed';
+     END IF;
+   END \$\$;"
+zero_rows "no approved document sits on a file that has not passed its virus scan" \
+  "SELECT kd.id FROM kyc_document kd JOIN stored_object so ON so.id = kd.stored_object_id
+    WHERE kd.state = 'APPROVED' AND NOT virus_scan_passed(so)"
 reject "a document under review must carry its 72h SLA deadline" "kyc_document_deadline_required" \
   "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
        state, uploaded_by, confirmed_at)

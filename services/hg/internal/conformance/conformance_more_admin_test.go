@@ -76,14 +76,16 @@ func madSeedStoredObject(t *testing.T, ctx context.Context, pool *pgxpool.Pool, 
 	return madSeedScannedObject(t, ctx, pool, actorID, "CLEAN")
 }
 
-// madSeedScannedObject is madSeedStoredObject with a chosen virus_scan_state.
+// madSeedScannedObject is madSeedStoredObject with a chosen virus_scan_state,
+// recorded as a verdict about the object's current bytes.
 func madSeedScannedObject(t *testing.T, ctx context.Context, pool *pgxpool.Pool, actorID, scan string) string {
 	t.Helper()
 	var id string
 	if err := pool.QueryRow(ctx, `
-INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at, virus_scan_state)
+INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at,
+                           virus_scan_state, virus_scan_sha256, virus_scan_version)
 VALUES ('hg-kyc','mad/'||md5(random()::text),'KYC_DOCUMENT','application/pdf',2048,
-        decode(repeat('c3',32),'hex'),'READY',$1,now(),$2)
+        decode(repeat('c3',32),'hex'),'READY',$1,now(),$2,decode(repeat('c3',32),'hex'),1)
 RETURNING id`, actorID, scan).Scan(&id); err != nil {
 		t.Fatalf("madSeedStoredObject: %v", err)
 	}
@@ -310,10 +312,11 @@ func TestConformance_MoreAdmin_DocumentReview(t *testing.T) {
 		h.CheckResponse(t, rq, http.StatusOK)
 	})
 
-	// A document whose file has not been virus-scanned clean — still pending,
-	// or infected — is refused with 409, never approved
+	// A document whose file has not been virus-scanned clean is refused with
+	// 409, never approved. Fail closed: every verdict but CLEAN refuses —
+	// still pending, infected, a scan error, oversized, unscannable, skipped
 	// (spec: docs/spec/01-platform.md#p-28--presigned-upload-and-download).
-	for _, scan := range []string{"PENDING", "INFECTED"} {
+	for _, scan := range []string{"PENDING", "INFECTED", "ERROR", "TOO_LARGE", "UNSCANNABLE", "SKIPPED"} {
 		t.Run("reviewRestaurantDocument refuses a "+scan+" file", func(t *testing.T) {
 			restaurantID := madSeedPlainRestaurant(t, ctx, pool)
 			storedObjID := madSeedScannedObject(t, ctx, pool, saID, scan)

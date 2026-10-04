@@ -253,9 +253,10 @@ func seedKycDocument(t *testing.T, ctx context.Context, pool *pgxpool.Pool, uplo
 	t.Helper()
 	var soID string
 	err := pool.QueryRow(ctx, `
-		INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at, virus_scan_state)
+		INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at,
+		                           virus_scan_state, virus_scan_sha256, virus_scan_version)
 		VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'image/jpeg', 512000,
-		        decode(repeat('ab',32),'hex'), 'READY', $1, now(), 'CLEAN')
+		        decode(repeat('ab',32),'hex'), 'READY', $1, now(), 'CLEAN', decode(repeat('ab',32),'hex'), 1)
 		RETURNING id`, uploaderID).Scan(&soID)
 	if err != nil {
 		t.Fatalf("seed stored_object: %v", err)

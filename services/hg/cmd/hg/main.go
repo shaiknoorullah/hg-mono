@@ -694,9 +694,8 @@ func run() error {
 	rider.Routes(router, rider.NewHandler(rider.NewService(rider.NewRepo(st.DB().Pool))))
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
-	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
 	fileObjects := files.NewMinIOObjectStore(st.Objects().Client)
-	files.Routes(router, files.NewHandler(files.NewRepo(
+	filesRepo := files.NewRepo(
 		st.DB().Pool,
 		// Links are signed for the public host phones reach; server-side
 		// reads and deletes stay on the internal client.
@@ -709,7 +708,14 @@ func run() error {
 			Exports: cfg.MinIO.Buckets.Exports,
 			Tmp:     cfg.MinIO.Buckets.Tmp,
 		},
-	)))
+	)
+	// Approving a KYC document re-reads its file and refuses bytes that are
+	// not the bytes the virus scanner passed, as download does
+	// (https://github.com/shaiknoorullah/hg-mono/issues/218).
+	admin.Routes(router, admin.NewHandler(
+		admin.NewRepo(st.DB().Pool).WithScannedFileCheck(filesRepo.CheckScannedFile),
+		admin.DefaultConfig()))
+	files.Routes(router, files.NewHandler(filesRepo))
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
 	// payments.Routes(router, …), realtime.Routes(router, …).

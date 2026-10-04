@@ -36,6 +36,17 @@ const (
 	VerdictError Verdict = "ERROR"
 )
 
+// known reports whether v is one of the verdicts above. Only VerdictClean
+// passes a file; every other known verdict flags it, and an unknown one is not
+// recorded at all — the file waits in PENDING.
+func (v Verdict) known() bool {
+	switch v {
+	case VerdictClean, VerdictInfected, VerdictTooLarge, VerdictUnscannable, VerdictError:
+		return true
+	}
+	return false
+}
+
 // clamd reports a scan it could not complete as a heuristic "virus" when
 // AlertExceedsMax and AlertEncrypted are on (deploy/docker-compose.yml turns
 // them on). Without them clamd skips the content and answers OK, which would
