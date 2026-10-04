@@ -169,11 +169,11 @@ If Twilio is fine but every customer is refused with "too many attempts" at once
 
 ## Password sign-in answers "busy"
 
-Each password check takes 64 MiB, so each API replica runs at most `HG_AUTH_HASH_CONCURRENCY` (default 3) at once, in three separate queues: restaurant sign-up and password reset, login, and staff (admin login and password change). A full queue answers `503` with `Retry-After`, and the client retries ([password hashing cap][i216]).
+Each password check takes 64 MiB, so each API replica runs at most `HG_AUTH_HASH_CONCURRENCY` (default 3) at once, in three separate queues: restaurant sign-up and password reset, login, and staff (sign-in from the admin web app, and staff password changes). A full queue answers `503` with `Retry-After`, and the client retries ([password hashing cap][i216]).
 
 - **What breaks:** email and password sign-in, restaurant sign-up or password reset on that replica, for a few seconds at a time. Phone sign-in is unaffected. Admin login has its own queue, so a sign-up or login flood does not lock staff out.
 - **Signs:** `password hashing at capacity` warnings in the API logs, each naming its gate (`signup`, `login` or `staff`).
-- **Check** which gate is full. If it is `signup` or `login` and the requests come from a few addresses, it is a flood: the per-address and per-email limits already turn those away before they reach a queue, so let them run out. If it is steady real traffic, raise `HG_AUTH_HASH_CONCURRENCY` in the secrets store only when the replica's memory limit has room for another 64 MiB per step, and restart the replicas one at a time.
+- **Check** which gate is full. If it is `signup` or `login` and the requests come from a few addresses, it is a flood: the per-address and per-email limits already turn those away before they reach a queue, so let them run out. If it is `staff`, someone is sending sign-ins as the admin web app, which anyone can: each address is turned away after 30 attempts in 15 minutes, so if it persists, block the sending addresses at Traefik. If it is steady real traffic, raise `HG_AUTH_HASH_CONCURRENCY` in the secrets store only when the replica's memory limit has room for another 64 MiB per step, and restart the replicas one at a time.
 
 ## Payments are failing
 

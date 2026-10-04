@@ -260,10 +260,45 @@ func TestRateLimitedRequestsNeverTakeAHashingSlot(t *testing.T) {
 			}
 		})
 	}
+
+	// A signed-in password change over its per-account cap is refused before
+	// the account is read or a slot is taken (security review of #216,
+	// finding 2). It goes through the router, so the session's principal and
+	// the role check are the real ones; with no store, a request that got past
+	// the limiter would fail with 500.
+	t.Run("password change per account", func(t *testing.T) {
+		owner := httpx.Principal{AccountID: "0b3c3a52-6f0e-4d4e-9d1a-000000000216", SessionID: "sess-limited",
+			Roles: []httpx.Role{httpx.RoleRestaurantOwner}, AMR: []string{"pwd"}}
+		if err := rdb.Set(context.Background(), "rl:password_change:account:"+owner.AccountID, 5, time.Hour).Err(); err != nil {
+			t.Fatalf("fill counter: %v", err)
+		}
+		router := httpx.NewRouter(httpx.Options{Env: "local", Authenticator: &fixedTOTPAuth{p: owner}, Authorizer: Matrix{}})
+		Routes(router, h)
+		before := totalAcquired()
+		req := httptest.NewRequest(http.MethodPost, "/v1/auth/password/change",
+			strings.NewReader(`{"current_password":"correct horse battery","new_password":"a-brand-new-long-password"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-HG-Client", string(ClientRestaurantWeb))
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusTooManyRequests {
+			t.Fatalf("status = %d, want 429; body %s", rec.Code, rec.Body.String())
+		}
+		if code := errorCode(t, rec); code != "RATE_LIMITED" {
+			t.Fatalf("error.code = %q, want RATE_LIMITED", code)
+		}
+		if rec.Header().Get("Retry-After") == "" {
+			t.Fatal("429 without Retry-After")
+		}
+		if after := totalAcquired(); after != before {
+			t.Fatalf("hashing slots taken = %d, want 0", after-before)
+		}
+	})
 }
 
 // With every sign-up slot held by a flood, a restaurant owner still signs in,
-// and an admin still reaches the TOTP step: each verified on its own gate.
+// and an admin signing in from the staff web app still reaches the TOTP step:
+// each verified on the gate of the surface it signs in from.
 func TestLoginSucceedsWhileSignupGateIsFull(t *testing.T) {
 	pool := hashTestPool(t)
 	svc := loginTestService(t, pool)
@@ -346,7 +381,266 @@ func TestBusyLoginIsNotAFailedAttemptAndUnknownEmailsLookTheSame(t *testing.T) {
 	}
 }
 
+// The gate is a function of the request, never of the account: sign-in picks it
+// from the client surface alone, and a password change from the session's
+// roles alone (security review of #216, findings 1 and 2).
+func TestHashGateIsChosenFromTheRequestNeverTheAccount(t *testing.T) {
+	for _, tc := range []struct {
+		client ClientSurface
+		want   hashAudience
+	}{
+		{ClientAdminWeb, audienceStaff},
+		{ClientRestaurantWeb, audienceLogin},
+		{ClientCustomerApp, audienceLogin},
+		{ClientRiderApp, audienceLogin},
+		{ClientWeb, audienceLogin},
+		{ClientSurface(""), audienceLogin},
+		{ClientSurface("ADMIN-WEB"), audienceLogin},
+	} {
+		if got := loginAudience(tc.client); got != tc.want {
+			t.Errorf("sign-in from %q verifies on %s, want %s", tc.client, got, tc.want)
+		}
+	}
+	for _, tc := range []struct {
+		roles []httpx.Role
+		want  hashAudience
+	}{
+		{nil, audienceLogin},
+		{[]httpx.Role{httpx.RoleCustomer}, audienceLogin},
+		{[]httpx.Role{httpx.RoleRider}, audienceLogin},
+		{[]httpx.Role{httpx.RoleRestaurantOwner}, audienceLogin},
+		{[]httpx.Role{httpx.RoleRestaurantManager, httpx.RoleRestaurantStaff}, audienceLogin},
+		{[]httpx.Role{httpx.RoleSupportAgent}, audienceStaff},
+		{[]httpx.Role{httpx.RoleAdmin}, audienceStaff},
+		{[]httpx.Role{httpx.RoleSuperAdmin}, audienceStaff},
+		{[]httpx.Role{httpx.RoleRestaurantOwner, httpx.RoleAdmin}, audienceStaff},
+	} {
+		if got := passwordChangeAudience(tc.roles); got != tc.want {
+			t.Errorf("password change by %v hashes on %s, want %s", tc.roles, got, tc.want)
+		}
+	}
+}
+
+// On the staff web app's sign-in, an email with no account and a staff email
+// answer exactly the same way, whether the staff gate is free or full: same
+// status, same Retry-After, same body, the same full wait, and the same gate.
+// On the public surface, a staff email under a full login gate is answered busy
+// like any other email instead of slipping through on the staff gate. So
+// neither a 503 nor its timing tells which emails exist or belong to staff
+// (security review of #216, finding 1).
+func TestStaffSignInAnswersAnUnknownEmailAndAStaffEmailTheSame(t *testing.T) {
+	pool := hashTestPool(t)
+	svc := loginTestService(t, pool)
+	h := NewHandler(svc, nil, nil, svc.secrets)
+	const password = "a-long-enough-password"
+	admin := uniqueEmail("staffadmin")
+	support := uniqueEmail("staffsupport")
+	unknown := uniqueEmail("staffnobody")
+	seedEmailAccount(t, pool, admin, password, httpx.RoleAdmin)
+	seedEmailAccount(t, pool, support, password, httpx.RoleSupportAgent)
+
+	const wait = 150 * time.Millisecond
+	configureHashingForTest(t, DefaultHashConcurrency, wait)
+	gates := passwordGates.Load()
+
+	type answer struct {
+		status     int
+		retryAfter string
+		body       string
+		took       time.Duration
+	}
+	signIn := func(client ClientSurface, email string) answer {
+		t.Helper()
+		body := `{"email":"` + email + `","password":"not-the-password-at-all"}`
+		req := httptest.NewRequest(http.MethodPost, "/v1/auth/login", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-HG-Client", string(client))
+		req.RemoteAddr = "203.0.113.70:51000"
+		rec := httptest.NewRecorder()
+		start := time.Now()
+		h.Login(rec, req)
+		return answer{rec.Code, rec.Header().Get("Retry-After"), withoutRequestID(t, rec), time.Since(start)}
+	}
+	emails := []string{unknown, admin, support}
+	signInAll := func(client ClientSurface) []answer {
+		t.Helper()
+		out := make([]answer, len(emails))
+		for i, e := range emails {
+			out[i] = signIn(client, e)
+		}
+		return out
+	}
+	same := func(label string, answers []answer) {
+		t.Helper()
+		for i := 1; i < len(answers); i++ {
+			a, b := answers[0], answers[i]
+			if a.status != b.status || a.retryAfter != b.retryAfter || a.body != b.body {
+				t.Fatalf("%s: %s answered %d %q %s but %s answered %d %q %s", label,
+					emails[0], a.status, a.retryAfter, a.body, emails[i], b.status, b.retryAfter, b.body)
+			}
+		}
+	}
+
+	// Staff gate free: every email costs one verification on the staff gate
+	// and none on the login gate, and all answer 401.
+	staffBefore, loginBefore := gates.staff.acquired.Load(), gates.login.acquired.Load()
+	free := signInAll(ClientAdminWeb)
+	same("staff gate free", free)
+	if free[0].status != http.StatusUnauthorized {
+		t.Fatalf("staff gate free: status %d, want 401 (body %s)", free[0].status, free[0].body)
+	}
+	if got := gates.staff.acquired.Load() - staffBefore; got != 3 {
+		t.Fatalf("staff gate free: %d staff slots taken for 3 sign-ins, want 3 (one verification each)", got)
+	}
+	if got := gates.login.acquired.Load() - loginBefore; got != 0 {
+		t.Fatalf("staff gate free: %d login slots taken, want 0", got)
+	}
+
+	// Staff gate full: every email waits the whole wait and is answered busy.
+	held, err := acquireHashSlot(context.Background(), audienceStaff)
+	if err != nil {
+		t.Fatalf("fill the staff gate: %v", err)
+	}
+	full := signInAll(ClientAdminWeb)
+	held.release()
+	same("staff gate full", full)
+	if full[0].status != http.StatusServiceUnavailable || full[0].retryAfter != "1" {
+		t.Fatalf("staff gate full: %d with Retry-After %q, want 503 with \"1\"", full[0].status, full[0].retryAfter)
+	}
+	for i, a := range full {
+		if a.took < wait {
+			t.Fatalf("staff gate full: sign-in %d answered after %s, before the %s wait ran out", i, a.took, wait)
+		}
+	}
+
+	// Login gate full, staff gate free: on the public surface a staff email is
+	// busy like an unknown one. Before the review it verified on the staff
+	// gate and answered 401, which told it apart.
+	held, err = acquireHashSlot(context.Background(), audienceLogin)
+	if err != nil {
+		t.Fatalf("fill the login gate: %v", err)
+	}
+	staffBefore = gates.staff.acquired.Load()
+	public := signInAll(ClientRestaurantWeb)
+	held.release()
+	same("login gate full", public)
+	if public[0].status != http.StatusServiceUnavailable {
+		t.Fatalf("login gate full: status %d, want 503 (body %s)", public[0].status, public[0].body)
+	}
+	if got := gates.staff.acquired.Load() - staffBefore; got != 0 {
+		t.Fatalf("login gate full: public sign-ins took %d staff slots, want 0", got)
+	}
+}
+
+// A flood of password changes from sessions without a staff role (a customer
+// from phone sign-in, a restaurant owner from sign-up) hashes on the login
+// gate, never the staff gate, so an admin signing in from the staff web app
+// still gets a slot at once and reaches the TOTP step (security review of
+// #216, finding 2). The wait is short: had the flood shared the staff gate,
+// the admin would have been turned away.
+func TestCustomerPasswordChangeFloodDoesNotDelayStaffLogin(t *testing.T) {
+	pool := hashTestPool(t)
+	svc := loginTestService(t, pool)
+	const password = "a-long-enough-password"
+	admin := uniqueEmail("floodadmin")
+	seedEmailAccount(t, pool, admin, password, httpx.RoleAdmin)
+	// A phone-sign-in customer normally has no password and is turned away
+	// before hashing; giving it one makes every attempt cost a verification,
+	// the worst case for the gate.
+	flooders := []httpx.Principal{
+		{AccountID: seedEmailAccount(t, pool, uniqueEmail("floodcustomer"), password, httpx.RoleCustomer),
+			SessionID: "sess-flood-customer", Roles: []httpx.Role{httpx.RoleCustomer}, AMR: []string{"otp"}},
+		{AccountID: seedEmailAccount(t, pool, uniqueEmail("floodowner"), password, httpx.RoleRestaurantOwner),
+			SessionID: "sess-flood-owner", Roles: []httpx.Role{httpx.RoleRestaurantOwner}, AMR: []string{"pwd"}},
+	}
+
+	configureHashingForTest(t, DefaultHashConcurrency, 300*time.Millisecond)
+	gates := passwordGates.Load()
+
+	stop := make(chan struct{})
+	var flood sync.WaitGroup
+	var mu sync.Mutex
+	var unexpected error
+	for i := 0; i < 12; i++ {
+		p := flooders[i%len(flooders)]
+		flood.Add(1)
+		go func() {
+			defer flood.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				_, err := svc.ChangePassword(context.Background(), p,
+					"not-the-current-password", "a-brand-new-long-password", ClientCustomerApp)
+				if !errors.Is(err, errInvalidCredentials) && !errors.Is(err, ErrPasswordHashBusy) {
+					mu.Lock()
+					unexpected = err
+					mu.Unlock()
+				}
+			}
+		}()
+	}
+	stopFlood := func() {
+		select {
+		case <-stop:
+		default:
+			close(stop)
+			flood.Wait()
+		}
+	}
+	defer stopFlood()
+
+	// Wait until the flood fills whichever gate it hashes on and is being
+	// turned away.
+	for deadline := time.Now().Add(10 * time.Second); gates.login.rejected.Load()+gates.staff.rejected.Load() == 0; {
+		if time.Now().After(deadline) {
+			t.Fatal("the password-change flood never filled a gate")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	staffBefore := gates.staff.acquired.Load()
+	ip := "203.0.113.80"
+	_, err := svc.Login(context.Background(), admin, password, nil, ClientAdminWeb, nil, &ip)
+	stopFlood()
+	if !errors.Is(err, errMFARequired) {
+		t.Fatalf("admin sign-in during a customer password-change flood = %v, want the TOTP step (password verified)", err)
+	}
+	if got := gates.staff.acquired.Load() - staffBefore; got != 1 {
+		t.Fatalf("staff slots taken during the flood = %d, want 1 (the admin's own)", got)
+	}
+	if got := gates.staff.rejected.Load(); got != 0 {
+		t.Fatalf("staff gate rejections = %d, want 0", got)
+	}
+	if gates.login.rejected.Load() == 0 {
+		t.Fatal("the flood was never turned away on the login gate; it must hash there")
+	}
+	if unexpected != nil { // the flood has stopped: no more writers
+		t.Fatalf("a flood password change answered %v, want invalid credentials or busy", unexpected)
+	}
+}
+
 // ---- helpers ---------------------------------------------------------------
+
+// withoutRequestID is the response body with error.request_id removed, the one
+// field that differs between two otherwise identical answers.
+func withoutRequestID(t *testing.T, rec *httptest.ResponseRecorder) string {
+	t.Helper()
+	var env map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode body: %v (body %s)", err, rec.Body.String())
+	}
+	if e, ok := env["error"].(map[string]any); ok {
+		delete(e, "request_id")
+	}
+	out, err := json.Marshal(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(out)
+}
 
 // configureHashingForTest installs fresh gates and restores the defaults after.
 func configureHashingForTest(t *testing.T, total int, wait time.Duration) {

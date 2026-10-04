@@ -832,6 +832,10 @@ export interface paths {
          *     return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
          *     sets `error.details.email_verification_required` **only after** the credentials
          *     were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
+         *
+         *     A `503` means password checking is at capacity. The staff web app (`X-HG-Client:
+         *     admin-web`) has capacity of its own; which capacity a request uses depends only on
+         *     that header, never on the email, so a `503` says nothing about the account.
          */
         post: operations["login"];
         delete?: never;
@@ -974,6 +978,9 @@ export interface paths {
          *     account lockout, or sign the person out instead of saying the password is wrong.
          *     The backend still answers `401` until
          *     [#238](https://github.com/shaiknoorullah/hg-mono/issues/238) is fixed.
+         *
+         *     At most 5 attempts per account in 15 minutes; past that, `429` with `Retry-After`,
+         *     before the current password is checked.
          */
         post: operations["changePassword"];
         delete?: never;
@@ -8280,6 +8287,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            429: components["responses"]["RateLimited"];
             503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };

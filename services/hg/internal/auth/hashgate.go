@@ -7,6 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
 // Password hashing is the most expensive thing this process does: every
@@ -19,9 +21,12 @@ import (
 // 503 with Retry-After.
 //
 // There is one gate per audience, so a flood on one public form cannot lock
-// everyone else out: throwaway sign-ups fill only the sign-up gate, and admins
-// keep a slot of their own however busy customer-facing login is. The slots of
-// all gates add up to HG_AUTH_HASH_CONCURRENCY, so peak memory stays bounded.
+// everyone else out: throwaway sign-ups fill only the sign-up gate, and the
+// staff web app keeps a slot of its own however busy customer-facing login is.
+// A gate is chosen from the request (its endpoint, its client surface, the
+// session's roles), never from the account an email belongs to, so which gate
+// answered never says anything about an account. The slots of all gates add up
+// to HG_AUTH_HASH_CONCURRENCY, so peak memory stays bounded.
 //
 // The argon2id work is reachable only through a held hashSlot, so no code path
 // can hash outside the cap. The per-request rate limits run before a slot is
@@ -39,13 +44,58 @@ const (
 	// audienceSignup is the public forms that create a password: restaurant
 	// sign-up and password reset.
 	audienceSignup hashAudience = "signup"
-	// audienceLogin is sign-in for every account that is not staff, and for an
-	// email with no account (which still pays for a verification; see Login).
+	// audienceLogin is sign-in from every surface except the staff web app,
+	// whoever the email belongs to, and the password change of a session that
+	// holds no staff role.
 	audienceLogin hashAudience = "login"
-	// audienceStaff is sign-in for admin and super-admin accounts, and the
-	// authenticated password change. Its slot is never shared with the public.
+	// audienceStaff is sign-in from the staff web app, whoever the email belongs
+	// to, and the password change of a session that holds a staff role.
 	audienceStaff hashAudience = "staff"
 )
+
+// loginAudience picks the gate for a sign-in from the request alone: the staff
+// web app (X-HG-Client: admin-web) verifies on the staff gate, every other
+// surface on the login gate. It takes nothing about the account, so the gate,
+// and with it a 503 under load or the time spent waiting, cannot reveal whether
+// an email is registered or belongs to staff. An email with no account on the
+// staff surface verifies the dummy hash on the staff gate like any other.
+//
+// Security review of #216 (https://github.com/shaiknoorullah/hg-mono/issues/216),
+// finding 1: choosing the gate from the looked-up account's role let a full
+// gate tell staff emails apart.
+func loginAudience(client ClientSurface) hashAudience {
+	if client == ClientAdminWeb {
+		return audienceStaff
+	}
+	return audienceLogin
+}
+
+// passwordChangeAudience picks the gate for a signed-in password change: the
+// staff gate only for a session holding a staff role, the login gate for every
+// other session. Any customer can get a session by phone sign-in, and any
+// restaurant owner by signing up, so sending every session to the staff gate
+// would let them fill it and lock staff out.
+//
+// Security review of #216 (https://github.com/shaiknoorullah/hg-mono/issues/216),
+// finding 2.
+func passwordChangeAudience(roles []httpx.Role) hashAudience {
+	if holdsStaffRole(roles) {
+		return audienceStaff
+	}
+	return audienceLogin
+}
+
+// holdsStaffRole reports whether the roles include a platform staff role:
+// support agent, admin or super-admin (the roles of the staff web app).
+func holdsStaffRole(roles []httpx.Role) bool {
+	for _, r := range roles {
+		switch r {
+		case httpx.RoleSupportAgent, httpx.RoleAdmin, httpx.RoleSuperAdmin:
+			return true
+		}
+	}
+	return false
+}
 
 const (
 	// DefaultHashConcurrency is how many password hashes may run at once in one

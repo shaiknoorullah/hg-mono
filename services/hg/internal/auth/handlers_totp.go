@@ -67,6 +67,9 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"new_password must be at least 12 characters.", nil)
 		return
+	case errors.Is(err, ErrRateLimited):
+		failRateLimited(w, r, err, "Too many password change attempts. Please wait before trying again.")
+		return
 	case errors.Is(err, ErrPasswordHashBusy):
 		h.failHashBusy(w, r, err, "changePassword")
 		return

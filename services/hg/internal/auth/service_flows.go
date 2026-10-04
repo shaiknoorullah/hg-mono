@@ -376,25 +376,15 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
-	// Staff verify on a gate of their own, so a flood of public sign-ins or
-	// sign-ups cannot lock an admin out (hashgate.go). The role is known only
-	// from the account, so it is read before the hash.
-	var grants []RoleGrant
-	audience := audienceLogin
-	if known {
-		if grants, err = s.store.RolesFor(ctx, acct.ID); err != nil {
-			return nil, err
-		}
-		if requiresTOTP(grants) {
-			audience = audienceStaff
-		}
-	}
+	// The gate comes from the request's surface, never from the account: the
+	// staff web app verifies on the staff gate, so a flood of public sign-ins or
+	// sign-ups cannot lock an admin out, and every email sent there, registered
+	// or not, staff or not, waits on that same gate (hashgate.go, loginAudience).
 	// An unknown email, or an account with no password, verifies against a
 	// dummy hash: every answer below costs one argon2id verification on the
-	// same gate, so neither the timing nor a 503 under load tells an attacker
-	// which emails are registered (#216). Only a staff email under a full login
-	// gate answers differently, which is the price of keeping staff sign-in
-	// open during a flood.
+	// request's gate, so neither the timing nor a 503 under load tells an
+	// attacker which emails are registered or which belong to staff (#216).
+	audience := loginAudience(client)
 	encoded := dummyPasswordHash
 	if known && acct.PasswordHash != nil {
 		encoded = *acct.PasswordHash
@@ -427,7 +417,13 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	}
 
 	// TOTP: admin/super-admin require it (P-01 admin MFA). If enrolled or
-	// required, verify the supplied code.
+	// required, verify the supplied code. The roles are read only now, after
+	// the password matched, so a known email costs no extra query before the
+	// hash that an unknown one does not.
+	grants, err := s.store.RolesFor(ctx, acct.ID)
+	if err != nil {
+		return nil, err
+	}
 	amr := "pwd"
 	if requiresTOTP(grants) || acct.TOTPEnrolledAt != nil {
 		if totp == nil || *totp == "" {
@@ -729,6 +725,15 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 	if len(newPassword) < 12 || len(newPassword) > 256 {
 		return nil, errWeakPassword
 	}
+	// 5 attempts per account per 15 minutes, checked before anything is read or
+	// a hashing slot is taken, so a limited request never holds one (#216). It
+	// fails open like login's limits: the hashing gate below still bounds the
+	// work, and Redis is disposable (docs/spec/01-platform.md, "G-1 — Postgres
+	// is the only source of truth").
+	if err := s.rl.Allow(ctx, Limit{Name: "password_change:account", Subject: p.AccountID,
+		Max: 5, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		return nil, err
+	}
 	acct, err := s.store.AccountByID(ctx, p.AccountID)
 	if err != nil {
 		return nil, err
@@ -737,10 +742,11 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 		return nil, errInvalidCredentials
 	}
 	// One slot covers both the check of the current password and the new hash,
-	// so "busy" never reads as "the current password is incorrect". It needs a
-	// session, which a public flood does not have, so it shares the staff gate
-	// rather than the public sign-up and login gates.
-	slot, err := acquireHashSlot(ctx, audienceStaff)
+	// so "busy" never reads as "the current password is incorrect". Only a
+	// session holding a staff role uses the staff gate; every other session
+	// shares the login gate, so sessions anyone can get (phone sign-in,
+	// restaurant sign-up) cannot fill the staff gate (passwordChangeAudience).
+	slot, err := acquireHashSlot(ctx, passwordChangeAudience(p.Roles))
 	if err != nil {
 		return nil, err
 	}
