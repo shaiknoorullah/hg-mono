@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -166,17 +167,31 @@ func (a *LiveAssignment) AwaitsHandover(kind handover.Kind) bool {
 	return a.State == "ARRIVED_AT_DROPOFF" && a.RequiredPodMethod == "OTP"
 }
 
+// ErrNotAwaitingHandover is SupportConfirmTx's refusal: the order has no live
+// assignment waiting on that handover.
+var ErrNotAwaitingHandover = errors.New("dispatch: the assignment is not waiting on that handover")
+
 // SupportConfirmTx moves the assignment over a handover support confirmed,
 // inside the override's transaction: PICKED_UP for the pickup, DELIVERED for
 // the delivery. A delivery confirmed by support is the proof of delivery, so
 // pod_recorded is set; and as for any delivered assignment the rider's
 // availability is restored and the dispatch row completes. actorKind is
 // SUPPORT or ADMIN, and the transition row carries the override's reason.
-func SupportConfirmTx(ctx context.Context, tx pgx.Tx, a *LiveAssignment, kind handover.Kind, actorKind, actorAccountID, reason string, now time.Time) error {
-	if !a.AwaitsHandover(kind) {
-		return errors.New("dispatch: the assignment is not waiting on that handover")
+//
+// The preconditions are in the UPDATE's WHERE clause, not taken from a: the
+// assignment must belong to orderID, be live, and be at the counter
+// (ARRIVED_AT_PICKUP) for the pickup, or at the door of a met handover
+// (ARRIVED_AT_DROPOFF, required_pod_method OTP) for the delivery. The rider
+// whose availability is restored is the one on the row. So a stale or forged
+// LiveAssignment moves nothing: anything else is ErrNotAwaitingHandover. The
+// caller holds the row lock (LockLiveAssignmentTx) in the same transaction.
+func SupportConfirmTx(ctx context.Context, tx pgx.Tx, orderID string, a *LiveAssignment, kind handover.Kind, actorKind, actorAccountID, reason string, now time.Time) error {
+	if a == nil {
+		return ErrNotAwaitingHandover
 	}
-	to := "PICKED_UP"
+	from, to := "ARRIVED_AT_PICKUP", "PICKED_UP"
+	var riderAccountID string
+	var err error
 	if kind == handover.Pickup {
 		var wait *int
 		if a.ArrivedPickupAt != nil {
@@ -186,37 +201,43 @@ func SupportConfirmTx(ctx context.Context, tx pgx.Tx, a *LiveAssignment, kind ha
 			}
 			wait = &w
 		}
-		if _, err := tx.Exec(ctx, `
+		err = tx.QueryRow(ctx, `
 UPDATE assignment
    SET state = 'PICKED_UP', state_since = now(), picked_up_at = now(),
-       pickup_wait_seconds = COALESCE($2, pickup_wait_seconds)
- WHERE id = $1`, a.ID, wait); err != nil {
-			return fmt.Errorf("override pickup: %w", err)
-		}
+       pickup_wait_seconds = COALESCE($3, pickup_wait_seconds)
+ WHERE id = $1 AND order_id = $2 AND terminated_at IS NULL
+   AND state = 'ARRIVED_AT_PICKUP'
+RETURNING rider_account_id::text`, a.ID, orderID, wait).Scan(&riderAccountID)
 	} else {
-		to = "DELIVERED"
-		if _, err := tx.Exec(ctx, `
+		from, to = "ARRIVED_AT_DROPOFF", "DELIVERED"
+		err = tx.QueryRow(ctx, `
 UPDATE assignment
    SET state = 'DELIVERED', state_since = now(), delivered_at = now(),
        terminated_at = now(), pod_recorded = true
- WHERE id = $1`, a.ID); err != nil {
-			return fmt.Errorf("override delivery: %w", err)
-		}
+ WHERE id = $1 AND order_id = $2 AND terminated_at IS NULL
+   AND state = 'ARRIVED_AT_DROPOFF' AND required_pod_method = 'OTP'
+RETURNING rider_account_id::text`, a.ID, orderID).Scan(&riderAccountID)
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotAwaitingHandover
+	}
+	if err != nil {
+		return fmt.Errorf("override %s: %w", strings.ToLower(string(kind)), err)
 	}
 	if _, err := tx.Exec(ctx, `
 INSERT INTO assignment_transition (assignment_id, from_state, to_state, actor_kind, actor_account_id, reason)
-VALUES ($1, $2, $3, $4, $5, $6)`, a.ID, a.State, to, actorKind, actorAccountID, reason); err != nil {
+VALUES ($1, $2, $3, $4, $5, $6)`, a.ID, from, to, actorKind, actorAccountID, reason); err != nil {
 		return fmt.Errorf("override transition row: %w", err)
 	}
 	if to == "DELIVERED" {
-		if err := restoreAvailabilityTx(ctx, tx, a.RiderAccountID); err != nil {
+		if err := restoreAvailabilityTx(ctx, tx, riderAccountID); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `
 UPDATE dispatch SET state = 'COMPLETED', state_since = now(),
                     deadline_at = NULL, deadline_action = NULL
- WHERE order_id = (SELECT order_id FROM assignment WHERE id = $1) AND rider_account_id = $2`,
-			a.ID, a.RiderAccountID); err != nil {
+ WHERE order_id = $1 AND rider_account_id = $2`,
+			orderID, riderAccountID); err != nil {
 			return fmt.Errorf("override completes dispatch: %w", err)
 		}
 	}

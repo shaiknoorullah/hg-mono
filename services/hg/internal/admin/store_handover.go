@@ -35,8 +35,9 @@ var (
 // https://github.com/shaiknoorullah/hg-mono/issues/310). In one transaction:
 //
 //  1. Check the caller is still staff (overrideActorTx): the role and the
-//     staff account are read from Postgres, not trusted from the token, and the
-//     actor kind comes from the live grant.
+//     staff account are read from Postgres, not trusted from the token or from
+//     actor.roles. The actor kind and the roles the audit row names come from
+//     the live grant.
 //  2. Lock the order's live assignment, then the order: the lock order every
 //     handover-code path uses, so this cannot deadlock with a rider's attempt.
 //  3. Refuse a caller who is a party to the order (partyToOrderTx).
@@ -54,9 +55,13 @@ var (
 //     SUPPORT or ADMIN and the reason on the timeline. That function also
 //     retires the code, so no later attempt can use it, and sends the usual
 //     order.state_changed event.
-//  7. Move the assignment the same way (dispatch.SupportConfirmTx).
+//  7. Move the assignment the same way (dispatch.SupportConfirmTx), whose
+//     UPDATE carries the preconditions in its WHERE clause, so it moves only
+//     this order's live assignment at the counter or the door. The order's
+//     own UPDATE likewise names the state it moves from (internal/orders).
 //  8. Write the append-only handover_override record and the hash-chained
-//     audit_event. Neither holds a code.
+//     audit_event, both naming the proven actor and the reason. Neither holds
+//     a code.
 //
 // A second override of a handover that already happened is an
 // IllegalTransitionError, and the UNIQUE (order_id, handover) constraint backs
@@ -71,10 +76,13 @@ func (r *OrdersRepo) OverrideHandover(ctx context.Context, actor auditActor,
 
 	var out handoverOverrideView
 	err = r.inTx(ctx, func(tx pgx.Tx) error {
-		actorKind, err := overrideActorTx(ctx, tx, actor.staffID)
+		actorKind, liveRoles, err := overrideActorTx(ctx, tx, actor.staffID)
 		if err != nil {
 			return err
 		}
+		// The audit row names the roles proven in this transaction, not the
+		// ones the session's token claimed.
+		actor.roles = liveRoles
 		asn, err := dispatch.LockLiveAssignmentTx(ctx, tx, orderID)
 		if err != nil {
 			return err
@@ -129,7 +137,10 @@ func (r *OrdersRepo) OverrideHandover(ctx context.Context, actor auditActor,
 		}); err != nil {
 			return err
 		}
-		if err := dispatch.SupportConfirmTx(ctx, tx, asn, kind, string(actorKind), actor.staffID, in.Reason, time.Now().UTC()); err != nil {
+		if err := dispatch.SupportConfirmTx(ctx, tx, orderID, asn, kind, string(actorKind), actor.staffID, in.Reason, time.Now().UTC()); err != nil {
+			if errors.Is(err, dispatch.ErrNotAwaitingHandover) {
+				return &orders.IllegalTransitionError{From: from, To: to, Allowed: machine.AllowedFrom(from)}
+			}
 			return err
 		}
 
@@ -175,8 +186,8 @@ RETURNING id::text, created_at`,
 
 // overrideActorTx checks, inside the override's transaction, that the caller
 // is still staff who may confirm a handover, and returns the actor kind the
-// record and the timeline carry: ADMIN for a live ADMIN or SUPER_ADMIN grant,
-// SUPPORT for SUPPORT_AGENT.
+// record and the timeline carry (ADMIN for a live ADMIN or SUPER_ADMIN grant,
+// SUPPORT for SUPPORT_AGENT) and the live staff grants the audit row names.
 //
 // The session's token is not enough on its own. It names the roles the account
 // held when it was issued and stays valid until it expires, and the revocation
@@ -195,17 +206,21 @@ RETURNING id::text, created_at`,
 // cannot (createStaffUser always writes the profile). Whether a profile should
 // be required is an open question on
 // https://github.com/shaiknoorullah/hg-mono/pull/315.
-func overrideActorTx(ctx context.Context, tx pgx.Tx, accountID string) (machine.ActorKind, error) {
+func overrideActorTx(ctx context.Context, tx pgx.Tx, accountID string) (machine.ActorKind, []string, error) {
+	if !isUUID(accountID) {
+		// No proven caller: never recorded as a SYSTEM override.
+		return "", nil, errStaffNotActive
+	}
 	var accountStatus string
 	err := tx.QueryRow(ctx, `SELECT status::text FROM account WHERE id = $1 FOR SHARE`, accountID).Scan(&accountStatus)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", errStaffNotActive
+		return "", nil, errStaffNotActive
 	}
 	if err != nil {
-		return "", fmt.Errorf("read the caller's account: %w", err)
+		return "", nil, fmt.Errorf("read the caller's account: %w", err)
 	}
 	if accountStatus != "ACTIVE" {
-		return "", errStaffNotActive
+		return "", nil, errStaffNotActive
 	}
 	// A soft-deleted profile counts as deactivated.
 	var staffStatus string
@@ -216,28 +231,28 @@ func overrideActorTx(ctx context.Context, tx pgx.Tx, accountID string) (machine.
 	case errors.Is(err, pgx.ErrNoRows):
 		// No profile: see above.
 	case err != nil:
-		return "", fmt.Errorf("read the caller's staff profile: %w", err)
+		return "", nil, fmt.Errorf("read the caller's staff profile: %w", err)
 	case staffStatus != "ACTIVE" || deleted:
-		return "", errStaffNotActive
+		return "", nil, errStaffNotActive
 	}
 
 	var roles []string
 	if err := tx.QueryRow(ctx, `
-SELECT COALESCE(array_agg(role::text), '{}')
+SELECT COALESCE(array_agg(role::text ORDER BY role::text), '{}')
   FROM account_role
  WHERE account_id = $1 AND scope_type = 'GLOBAL' AND revoked_at IS NULL
    AND role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')`, accountID).Scan(&roles); err != nil {
-		return "", fmt.Errorf("read the caller's staff roles: %w", err)
+		return "", nil, fmt.Errorf("read the caller's staff roles: %w", err)
 	}
 	if len(roles) == 0 {
-		return "", errStaffRoleRevoked
+		return "", nil, errStaffRoleRevoked
 	}
 	for _, role := range roles {
 		if role == "ADMIN" || role == "SUPER_ADMIN" {
-			return machine.ActorAdmin, nil
+			return machine.ActorAdmin, roles, nil
 		}
 	}
-	return machine.ActorSupport, nil
+	return machine.ActorSupport, roles, nil
 }
 
 // partyToOrderTx refuses a caller who is a party to the order: its customer,
