@@ -252,12 +252,13 @@ LAUNCH_ERRORS = [
     ),
     (
         "current_password_incorrect",
-        401,
+        422,
         "INVALID_CREDENTIALS",
         "The current password is incorrect.",
         None,
         "`changePassword` with the wrong current password. Nothing changed and no session "
-        "was revoked.",
+        "was revoked. A 422, not a 401: the session is fine, and the client treats every 401 "
+        "as an expired session to refresh and retry.",
         ["changePassword"],
     ),
     (
@@ -316,8 +317,8 @@ LAUNCH_ERRORS = [
         "CATEGORY_NAME_TAKEN",
         "You already have a category called Desserts.",
         None,
-        "Category names are unique per restaurant, ignoring case.",
-        ["createMenuCategory", "createMenuCategoryOnBehalf"],
+        "Category names are unique per restaurant, ignoring case, on create and on rename.",
+        ["createMenuCategory", "updateMenuCategory", "createMenuCategoryOnBehalf"],
     ),
     (
         "item_blocked_by_admin",

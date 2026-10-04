@@ -2,11 +2,11 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 357,
+  "count": 358,
   "counts_by_domain": {
     "admin": 17,
     "cart": 12,
-    "catalogue": 40,
+    "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
     "errors": 36,
@@ -520,6 +520,21 @@
         "menu-editing"
       ],
       "file": "catalogue/menu_category_created.json"
+    },
+    {
+      "scenario": "menu_category_updated",
+      "domain": "catalogue",
+      "schema": "MenuCategory",
+      "describes": "`updateMenuCategory`: renamed and deactivated in one save, live at once with no review. Customers no longer see the category or its three items; the restaurant still does, flagged `is_active: false`, and each item keeps its own state for when the category is switched back on.",
+      "operations": [
+        "updateMenuCategory"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_category_updated.json"
     },
     {
       "scenario": "menu_empty",
@@ -1969,9 +1984,10 @@
       "scenario": "error_category_name_taken",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case.",
+      "describes": "`409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case, on create and on rename.",
       "operations": [
         "createMenuCategory",
+        "updateMenuCategory",
         "createMenuCategoryOnBehalf"
       ],
       "status": 409,
@@ -1984,11 +2000,11 @@
       "scenario": "error_current_password_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`401` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked.",
+      "describes": "`422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry.",
       "operations": [
         "changePassword"
       ],
-      "status": 401,
+      "status": 422,
       "tags": [
         "error-envelope"
       ],
@@ -6220,6 +6236,10 @@
     "updateCustomerProfile": [
       "customer_profile"
     ],
+    "updateMenuCategory": [
+      "error_category_name_taken",
+      "menu_category_updated"
+    ],
     "updateMenuItem": [
       "error_halal_tag_not_writable",
       "error_price_out_of_range",
@@ -6380,6 +6400,7 @@
     "updateAddress": "addresses_list",
     "updateCartLine": "cart_at_quantity_cap",
     "updateCustomerProfile": "customer_profile",
+    "updateMenuCategory": "menu_category_updated",
     "updateMenuItem": "menu_item_edit_pending_review",
     "updateMenuItemOnBehalf": "menu_item_edited_by_admin",
     "verifyEmail": "session_grant_customer",

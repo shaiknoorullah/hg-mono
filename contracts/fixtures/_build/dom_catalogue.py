@@ -533,6 +533,27 @@ def _menu_editing(reg) -> None:
         tags=["restaurant", "menu-editing"],
     )
 
+    # The Desserts category of `menu_full`, renamed and switched off for the evening.
+    desserts = menu_category(5, [menu_item(i) for i in (13, 14, 12)])
+    del desserts["items"]
+    reg.add(
+        "menu_category_updated",
+        "catalogue",
+        "MenuCategory",
+        "`updateMenuCategory`: renamed and deactivated in one save, live at once with no "
+        "review. Customers no longer see the category or its three items; the restaurant "
+        "still does, flagged `is_active: false`, and each item keeps its own state for when "
+        "the category is switched back on.",
+        {
+            **desserts,
+            "name": "Sweets & Desserts",
+            "description": "Back tomorrow at noon.",
+            "is_active": False,
+        },
+        operations=["updateMenuCategory"],
+        tags=["restaurant", "menu-editing"],
+    )
+
     # A dish the restaurant just added: nothing is live until a reviewer approves it.
     new_item = menu_item(8)
     first = _version(new_item, 1, "PENDING_REVIEW", created=-2 * MINUTE)

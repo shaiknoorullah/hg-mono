@@ -738,6 +738,13 @@ paths:
       summary: Change the password of the calling account
       description: |
         P-03. Revokes every session except the calling one, which is re-issued.
+
+        A wrong current password is `422 INVALID_CREDENTIALS`, never `401`: the caller's
+        session is valid, and a client treats every `401` as an expired session — it would
+        refresh and send the wrong password a second time, counting double toward the
+        account lockout, or sign the person out instead of saying the password is wrong.
+        The backend still answers `401` until
+        [#238](https://github.com/shaiknoorullah/hg-mono/issues/238) is fixed.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V0
       requestBody:
@@ -765,6 +772,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/SessionGrant'
+        '422':
+          description: '`INVALID_CREDENTIALS` (wrong current password), `BREACHED_PASSWORD`, `VALIDATION_FAILED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/totp/enroll:
@@ -3139,6 +3152,57 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '409':
+          description: '`CATEGORY_NAME_TAKEN`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/restaurant/menu/categories/{categoryId}:
+    patch:
+      operationId: updateMenuCategory
+      tags: [restaurant]
+      summary: Rename, reorder, deactivate or reactivate a menu category
+      description: |
+        R-14, menu and category management (`docs/spec/03-restaurant.md`). Part of
+        restaurants editing their own menu from launch (`docs/decisions/README.md`, round 2,
+        "How restaurants get their menu onto HalalGoes and change it"). Every field is
+        optional. Categories carry no halal claim and no price, so a change is live at once
+        and never goes to review.
+
+        Setting `is_active: false` hides the category and its items from customers at once
+        without changing any item's own state; `is_active: true` restores exactly the
+        visibility the items had before. The restaurant's own menu still shows an inactive
+        category. Setting `sort_order` moves the category to that position; the server
+        keeps the order a dense sequence by shifting the others in the same transaction.
+        A name already used by another of the restaurant's categories, ignoring case, is
+        `409 CATEGORY_NAME_TAKEN`. A category that is not on the caller's menu is `404`.
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/MenuCategoryIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuCategoryUpdateInput'
+      responses:
+        '200':
+          description: Updated category.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MenuCategory'
+        '404':
+          $ref: '#/components/responses/Error'
         '409':
           description: '`CATEGORY_NAME_TAKEN`.'
           content:
@@ -5926,6 +5990,13 @@ components:
         format: uuid
     MenuItemIdPath:
       name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MenuCategoryIdPath:
+      name: categoryId
       in: path
       required: true
       schema:
@@ -9901,6 +9972,26 @@ components:
         sort_order:
           type: integer
           format: int32
+    MenuCategoryUpdateInput:
+      type: object
+      additionalProperties: false
+      description: |
+        Partial update of a menu category — every field is optional. All of it is
+        operational and live at once: a category carries no halal claim and is never
+        reviewed.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        description:
+          type: string
+          maxLength: 500
+        sort_order:
+          type: integer
+          format: int32
+        is_active:
+          type: boolean
     MenuItemInput:
       type: object
       additionalProperties: false

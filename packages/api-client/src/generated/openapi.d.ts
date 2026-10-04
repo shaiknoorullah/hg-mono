@@ -967,6 +967,13 @@ export interface paths {
         /**
          * Change the password of the calling account
          * @description P-03. Revokes every session except the calling one, which is re-issued.
+         *
+         *     A wrong current password is `422 INVALID_CREDENTIALS`, never `401`: the caller's
+         *     session is valid, and a client treats every `401` as an expired session — it would
+         *     refresh and send the wrong password a second time, counting double toward the
+         *     account lockout, or sign the person out instead of saying the password is wrong.
+         *     The backend still answers `401` until
+         *     [#238](https://github.com/shaiknoorullah/hg-mono/issues/238) is fixed.
          */
         post: operations["changePassword"];
         delete?: never;
@@ -2242,6 +2249,38 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/v1/restaurant/menu/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Rename, reorder, deactivate or reactivate a menu category
+         * @description R-14, menu and category management (`docs/spec/03-restaurant.md`). Part of
+         *     restaurants editing their own menu from launch (`docs/decisions/README.md`, round 2,
+         *     "How restaurants get their menu onto HalalGoes and change it"). Every field is
+         *     optional. Categories carry no halal claim and no price, so a change is live at once
+         *     and never goes to review.
+         *
+         *     Setting `is_active: false` hides the category and its items from customers at once
+         *     without changing any item's own state; `is_active: true` restores exactly the
+         *     visibility the items had before. The restaurant's own menu still shows an inactive
+         *     category. Setting `sort_order` moves the category to that position; the server
+         *     keeps the order a dense sequence by shifting the others in the same transaction.
+         *     A name already used by another of the restaurant's categories, ignoring case, is
+         *     `409 CATEGORY_NAME_TAKEN`. A category that is not on the caller's menu is `404`.
+         */
+        patch: operations["updateMenuCategory"];
         trace?: never;
     };
     "/v1/restaurant/menu/items": {
@@ -4256,6 +4295,18 @@ export interface components {
             /** Format: int32 */
             sort_order?: number;
         };
+        /**
+         * @description Partial update of a menu category — every field is optional. All of it is
+         *     operational and live at once: a category carries no halal claim and is never
+         *     reviewed.
+         */
+        MenuCategoryUpdateInput: {
+            description?: string;
+            is_active?: boolean;
+            name?: string;
+            /** Format: int32 */
+            sort_order?: number;
+        };
         MenuCategoryWithItems: components["schemas"]["MenuCategory"] & {
             items: components["schemas"]["MenuItem"][];
         };
@@ -6250,6 +6301,7 @@ export interface components {
         IdempotencyKeyRequired: string;
         /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
         Limit: number;
+        MenuCategoryIdPath: string;
         MenuItemIdPath: string;
         OfferIdPath: string;
         OrderIdPath: string;
@@ -6352,6 +6404,7 @@ export type SchemaLongitude = components['schemas']['Longitude'];
 export type SchemaMenu = components['schemas']['Menu'];
 export type SchemaMenuCategory = components['schemas']['MenuCategory'];
 export type SchemaMenuCategoryInput = components['schemas']['MenuCategoryInput'];
+export type SchemaMenuCategoryUpdateInput = components['schemas']['MenuCategoryUpdateInput'];
 export type SchemaMenuCategoryWithItems = components['schemas']['MenuCategoryWithItems'];
 export type SchemaMenuItem = components['schemas']['MenuItem'];
 export type SchemaMenuItemAvailabilityInput = components['schemas']['MenuItemAvailabilityInput'];
@@ -6536,6 +6589,7 @@ export type ParameterCursor = components['parameters']['Cursor'];
 export type ParameterDocumentIdPath = components['parameters']['DocumentIdPath'];
 export type ParameterIdempotencyKeyRequired = components['parameters']['IdempotencyKeyRequired'];
 export type ParameterLimit = components['parameters']['Limit'];
+export type ParameterMenuCategoryIdPath = components['parameters']['MenuCategoryIdPath'];
 export type ParameterMenuItemIdPath = components['parameters']['MenuItemIdPath'];
 export type ParameterOfferIdPath = components['parameters']['OfferIdPath'];
 export type ParameterOrderIdPath = components['parameters']['OrderIdPath'];
@@ -8196,6 +8250,15 @@ export interface operations {
                     "application/json": {
                         data: components["schemas"]["SessionGrant"];
                     };
+                };
+            };
+            /** @description `INVALID_CREDENTIALS` (wrong current password), `BREACHED_PASSWORD`, `VALIDATION_FAILED`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             default: components["responses"]["Error"];
@@ -10257,6 +10320,45 @@ export interface operations {
                     };
                 };
             };
+            /** @description `CATEGORY_NAME_TAKEN`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateMenuCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoryId: components["parameters"]["MenuCategoryIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuCategoryUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Updated category. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MenuCategory"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
             /** @description `CATEGORY_NAME_TAKEN`. */
             409: {
                 headers: {

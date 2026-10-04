@@ -2,9 +2,10 @@
   "scenario": "error_category_name_taken",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case.",
+  "describes": "`409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case, on create and on rename.",
   "operations": [
     "createMenuCategory",
+    "updateMenuCategory",
     "createMenuCategoryOnBehalf"
   ],
   "status": 409,

@@ -173,7 +173,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **142 V0, 12 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **143 V0, 12 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -189,6 +189,7 @@ issue [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)):
 | Restaurant payout history | `listRestaurantPayouts` |
 | Marking an item out of stock | `setMenuItemAvailability` |
 | Restaurants edit their own menu | `createMenuCategory`, `createMenuItem`, `updateMenuItem` |
+| **New:** a restaurant renames, reorders, deactivates or reactivates its own category | `updateMenuCategory` |
 | The menu review queue | `listMenuReviewQueue`, `decideMenuVersion` |
 | **New:** an admin updates or removes a menu item on a restaurant's behalf | `updateMenuItemOnBehalf`, `deleteMenuItemOnBehalf` |
 

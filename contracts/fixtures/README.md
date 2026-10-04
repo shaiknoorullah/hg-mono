@@ -68,13 +68,13 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**357 scenarios** across 15 domains.
+**358 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
 | [`admin`](#admin) | 17 | Review queues, applications, staff and the menu-review workflow. |
 | [`cart`](#cart) | 12 | Cart and quote — every blocking reason, the quantity cap, and the money edges. |
-| [`catalogue`](#catalogue) | 40 | Discovery, restaurant detail, hours and menus. |
+| [`catalogue`](#catalogue) | 41 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
 | [`errors`](#errors) | 36 | `{error}` envelopes for the codes an app actually branches on. |
@@ -133,13 +133,14 @@ Cart and quote — every blocking reason, the quantity cap, and the money edges.
 
 ### catalogue
 
-Discovery, restaurant detail, hours and menus. — 40 scenarios.
+Discovery, restaurant detail, hours and menus. — 41 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
 | `feed_empty` | `array&lt;FeedSection&gt;` | 200 | No rails — a brand-new service area with nothing to merchandise yet. |
 | `feed_sections` | `array&lt;FeedSection&gt;` | 200 | The home feed's merchandised rails. |
 | `menu_category_created` | `MenuCategory` | 200 | A new, empty category. Categories carry no halal claim, so they are live at once and never reviewed. |
+| `menu_category_updated` | `MenuCategory` | 200 | `updateMenuCategory`: renamed and deactivated in one save, live at once with no review. Customers no longer see the category or its three items; the restaurant still does, flagged `is_active: false`, and each item keeps its own state for when the category is switched back on. |
 | `menu_empty` | `Menu` | 200 | A restaurant with **no menu at all** — approved, live, zero categories. Pair with `restaurant_detail_no_menu`. |
 | `menu_full` | `Menu` | 200 | Three categories, twelve items, one out-of-stock dessert and the many-variant/many-addon platter. The default menu for every app. |
 | `menu_item_available` | `MenuItem` | 200 | `availability_state = AVAILABLE`. Orderable now. |
@@ -258,8 +259,8 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_breached_password` | `ErrorEnvelope` | 422 | `422` · `BREACHED_PASSWORD`. The new password is on the breached-password list. Same body on reset and change. |
 | `error_capture_failed` | `ErrorEnvelope` | 409 | `409` · `CAPTURE_FAILED`. Was `capture_failed`. The order is cancelled; nothing is owed. Pairs with `payment_failed`. |
 | `error_cart_has_unavailable_items` | `ErrorEnvelope` | 409 | `409` · `CART_HAS_UNAVAILABLE_ITEMS`. Was `cart_has_unavailable_items`. Pairs with the `cart_has_unavailable_items` fixture. |
-| `error_category_name_taken` | `ErrorEnvelope` | 409 | `409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case. |
-| `error_current_password_incorrect` | `ErrorEnvelope` | 401 | `401` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. |
+| `error_category_name_taken` | `ErrorEnvelope` | 409 | `409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case, on create and on rename. |
+| `error_current_password_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry. |
 | `error_documents_incomplete` | `ErrorEnvelope` | 422 | `422` · `INCOMPLETE_DOCUMENT_PACK`. Was `incomplete_document_pack`. Pairs with `restaurant_document_pack_incomplete`. |
 | `error_forbidden` | `ErrorEnvelope` | 403 | `403` · `FORBIDDEN`. Was `forbidden`. Note the English word 'forbidden' in prose was **not** rewritten by the normalisation — only code tokens were. |
 | `error_halal_tag_not_writable` | `ErrorEnvelope` | 403 | `403` · `FIELD_NOT_WRITABLE`. Nobody types the halal claim onto a dish, not even an admin: it comes from the restaurant's approved certificate. A missing claim shows no badge, never an optimistic one. |
@@ -559,7 +560,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `state-matrix` | 64 | One fixture per member of a closed enum. |
 | `edge` | 51 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `rider` | 49 | Rider-facing surface. |
-| `restaurant` | 39 | Restaurant-facing surface. |
+| `restaurant` | 40 | Restaurant-facing surface. |
 | `error-envelope` | 36 | A `{error}` body with a real `ErrorCode`. |
 | `halal` | 29 | Touches the halal claim surface. |
 | `money` | 26 | Exercises the money path specifically. |
@@ -574,10 +575,10 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `assignment-state-matrix` | 12 | One per `AssignmentState` (all 12). |
 | `document-state-matrix` | 12 | One per `KycDocumentState`, plus rejection reasons. |
 | `dispatch-state-matrix` | 10 | One per `DispatchState` (all 10). |
+| `menu-editing` | 10 |  |
 | `refund-state-matrix` | 10 | One per `RefundState` (all 10). |
 | `boundary` | 9 | At an exact limit (quantity cap, expiry tomorrow, zero, the maximum). |
 | `documents` | 9 | KYC document surface. |
-| `menu-editing` | 9 |  |
 | `realtime` | 9 | WebSocket, not HTTP. |
 | `payment-state-matrix` | 8 | One per `PaymentState` (all 8). |
 | `script` | 8 | A realtime event sequence, not a response body. |
@@ -600,7 +601,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 ## Operation coverage
 
-132 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
+133 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
 
 | Operation | Default scenario | Also available |
 |---|---|---|
@@ -731,6 +732,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `updateAddress` | `addresses_list` | — |
 | `updateCartLine` | `cart_at_quantity_cap` | — |
 | `updateCustomerProfile` | `customer_profile` | — |
+| `updateMenuCategory` | `menu_category_updated` | `error_category_name_taken` |
 | `updateMenuItem` | `menu_item_edit_pending_review` | `error_halal_tag_not_writable`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `updateMenuItemOnBehalf` | `menu_item_edited_by_admin` | `error_halal_tag_not_writable`, `error_menu_version_pending`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `verifyEmail` | `session_grant_customer` | — |
