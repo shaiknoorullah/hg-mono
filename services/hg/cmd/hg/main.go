@@ -640,7 +640,6 @@ func run() error {
 	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
-	defer rtGateway.Shutdown()
 
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works
@@ -720,6 +719,13 @@ func run() error {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
+
+	// Close the live sockets with 1001 (server going away) first, and wait for
+	// the frames to go out, so clients reconnect with backoff instead of seeing
+	// an abnormal closure (contracts/websocket.md "Close codes"). It must run
+	// before st.Close: each close is recorded in Postgres. http.Server.Shutdown
+	// does not track upgraded sockets, so it cannot do this for us.
+	rtGateway.Shutdown()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Error("graceful shutdown exceeded its budget; forcing close",

@@ -95,6 +95,61 @@ func TestStalledReaderDoesNotDelayOthers(t *testing.T) {
 	}
 }
 
+// TestShutdownFlushesGoingAway pins the deploy promise in contracts/websocket.md
+// "Close codes": every socket gets 1001 (server going away) before Shutdown
+// returns, so the process cannot exit first and leave clients with 1006
+// (abnormal closure). A stalled socket must not hold the deploy past
+// shutdownFlushBudget.
+func TestShutdownFlushesGoingAway(t *testing.T) {
+	gw := NewGateway(nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, 2)
+	open := func() (*connection, net.Conn) {
+		srv, peer := net.Pipe()
+		c := newConnection(gw, &wsConn{raw: srv, br: bufio.NewReader(srv)}, gw.log, "", "", "", nil)
+		go c.writeLoop()
+		t.Cleanup(func() {
+			_ = peer.Close()
+			<-c.writerDone
+		})
+		gw.register(c)
+		return c, peer
+	}
+
+	reading, readingPeer := open()
+	_, _ = open() // stalled: its peer never reads
+
+	// The phone reads a moment after Shutdown starts, so a Shutdown that only
+	// hands the close to the writer returns before the frame has gone out.
+	type frame struct {
+		op   wsOpcode
+		body []byte
+		err  error
+	}
+	got := make(chan frame, 1)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		op, body, err := readServerFrame(bufio.NewReader(readingPeer))
+		got <- frame{op, body, err}
+	}()
+
+	start := time.Now()
+	gw.Shutdown()
+	if took := time.Since(start); took > shutdownFlushBudget+time.Second {
+		t.Fatalf("Shutdown took %v; a stalled socket must not hold it past %v", took.Round(time.Millisecond), shutdownFlushBudget)
+	}
+	select {
+	case <-reading.writerDone:
+	default:
+		t.Fatal("Shutdown returned before the reading socket's writer sent its close frame")
+	}
+	f := <-got
+	if f.err != nil || f.op != opClose || len(f.body) < 2 {
+		t.Fatalf("frame on shutdown: op %d, err %v; want a close frame", f.op, f.err)
+	}
+	if code := binary.BigEndian.Uint16(f.body); code != CloseGoingAway {
+		t.Fatalf("close code = %d, want %d (server going away)", code, CloseGoingAway)
+	}
+}
+
 // relayPayload is a Redis fan-out message for one all-participants event.
 func relayPayload(t *testing.T, channel string, seq int) []byte {
 	t.Helper()
