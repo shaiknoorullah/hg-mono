@@ -189,10 +189,17 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 		// longer counted as holding a live dispatch. Other terminal reasons leave
 		// the platform-side reassignment to ops; dispatch never cancels an order.
 		if in.ToState == "DELIVERED" {
+			prevDispatch, err := dispatchStateFor(ctx, tx, orderID)
+			if err != nil {
+				return nil, false, err
+			}
 			if _, err := tx.Exec(ctx, `
 UPDATE dispatch SET state = 'COMPLETED', state_since = now(),
                     deadline_at = NULL, deadline_action = NULL
  WHERE order_id = $1 AND rider_account_id = $2`, orderID, riderAccountID); err != nil {
+				return nil, false, err
+			}
+			if err := emitDispatchState(ctx, tx, orderID, prevDispatch, "COMPLETED", now); err != nil {
 				return nil, false, err
 			}
 		}
@@ -222,10 +229,12 @@ RETURNING 'ON_DELIVERY', availability_state::text`, riderAccountID).Scan(&from, 
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `
+	if _, err = tx.Exec(ctx, `
 INSERT INTO rider_availability_event (account_id, from_state, to_state, reason, actor_kind)
-VALUES ($1, $2, $3, 'ASSIGNMENT_TERMINAL', 'SYSTEM')`, riderAccountID, from, to)
-	return err
+VALUES ($1, $2, $3, 'ASSIGNMENT_TERMINAL', 'SYSTEM')`, riderAccountID, from, to); err != nil {
+		return err
+	}
+	return emitAvailability(ctx, tx, riderAccountID)
 }
 
 func timestampColumn(state string) string {
@@ -397,17 +406,46 @@ UPDATE rider_profile rp
 
 // SweepStaleOnline moves ONLINE_IDLE riders whose location fix is older than the
 // staleness window to ONLINE_STALE (D-10: not dispatchable, still "online").
+// Each rider moved is sent rider.availability_changed in the same transaction
+// (events.go).
 func (s *Store) SweepStaleOnline(ctx context.Context, staleAfter time.Duration, now time.Time) (int64, error) {
-	tag, err := s.db.Exec(ctx, `
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+	rows, err := tx.Query(ctx, `
 UPDATE rider_profile rp
    SET availability_state = 'ONLINE_STALE', availability_changed_at = now()
  WHERE rp.availability_state = 'ONLINE_IDLE'
    AND NOT EXISTS (
          SELECT 1 FROM rider_position pos
           WHERE pos.account_id = rp.account_id
-            AND pos.received_at > $1)`, now.Add(-staleAfter))
+            AND pos.received_at > $1)
+RETURNING rp.account_id::text`, now.Add(-staleAfter))
 	if err != nil {
 		return 0, err
 	}
-	return tag.RowsAffected(), nil
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for _, id := range ids {
+		if err := emitAvailability(ctx, tx, id); err != nil {
+			return 0, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return int64(len(ids)), nil
 }

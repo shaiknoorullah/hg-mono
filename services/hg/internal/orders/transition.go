@@ -132,12 +132,14 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 	}
 
 	// Emit a realtime outbox event in the same transaction so the customer's
-	// order channel receives a live update. The emitter is optional (nil when
-	// the realtime module is not wired, e.g. in unit tests).
-	if s.emitter != nil {
-		if err := s.emitter.EmitOrderTransition(ctx, tx, req.OrderID, string(req.To)); err != nil {
-			return fmt.Errorf("emit order transition: %w", err)
-		}
+	// tracking, the restaurant's queue and the rider see the change, in the
+	// contract's shapes, whoever called this function (events.go; issue #247).
+	// The notifier behind s.emitter is optional (nil in unit tests).
+	if err := s.emitTransition(ctx, tx, transitionFacts{
+		OrderID: req.OrderID, From: &fromCopy, To: req.To, Actor: req.Actor,
+		ActorAccountID: req.ActorAccountID, PrepEtaMinutes: req.PrepEtaMinutes,
+	}); err != nil {
+		return fmt.Errorf("emit order transition: %w", err)
 	}
 
 	for _, eff := range effects {

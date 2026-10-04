@@ -179,6 +179,15 @@ func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quo
 			machine.ActorCustomer, in.AccountID, "order placed", ""); err != nil {
 			return err
 		}
+		// order.created and the first order.state_changed, in this transaction
+		// (events.go). Creation has no notification of its own, so the notifier
+		// is not called.
+		if err := emitOrderEvents(ctx, tx, transitionFacts{
+			OrderID: orderID, To: machine.StateCreated,
+			Actor: machine.ActorCustomer, ActorAccountID: in.AccountID,
+		}); err != nil {
+			return fmt.Errorf("emit order created: %w", err)
+		}
 
 		prepared = &PreparedOrder{
 			OrderID: orderID, OrderCode: code, QuoteID: stored.ID,

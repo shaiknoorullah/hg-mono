@@ -422,7 +422,21 @@ func (s *Store) Replay(ctx context.Context, channel string, afterSeq int64) (eve
 //
 // The caller passes a pgx.Tx that already contains the state mutation; on commit
 // both the state and the event become visible together.
+//
+// It is the low-level writer under Emit (emit.go), which producers use. It
+// refuses an event type that is not in the catalogue, or one written to a
+// channel family that does not carry it: such an event could never be
+// delivered (Project drops it), so writing it would only burn a seq and leave
+// every subscriber a gap.
 func EmitInTx(ctx context.Context, tx pgx.Tx, channel, eventType string, version int, audience []string, payload json.RawMessage, orderID, accountID *string) (seq int64, ulid string, err error) {
+	s, ok := byType[eventType]
+	if !ok {
+		return 0, "", fmt.Errorf("event type %q is not in the realtime catalogue", eventType)
+	}
+	ch, ok := ParseChannel(channel)
+	if !ok || ch.Kind != s.kind {
+		return 0, "", fmt.Errorf("event type %q does not travel on channel %q", eventType, channel)
+	}
 	if err = tx.QueryRow(ctx, `SELECT next_channel_seq($1)`, channel).Scan(&seq); err != nil {
 		return 0, "", fmt.Errorf("allocate seq: %w", err)
 	}

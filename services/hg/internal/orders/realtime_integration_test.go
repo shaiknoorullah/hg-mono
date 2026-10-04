@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,85 +16,82 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
-// testRealtimeEmitter is an in-test implementation of orders.EventEmitter that
-// calls realtime.EmitInTx directly — the same logic the cmd/hg/main.go adapter
-// uses. It lets the integration test own the realtime outbox without importing
-// package main.
-type testRealtimeEmitter struct{}
+// recordingNotifier is an orders.EventEmitter that records the transitions it
+// was handed, inside the transition's transaction.
+type recordingNotifier struct{ states []string }
 
-func (e *testRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error {
-	payload, err := json.Marshal(struct {
-		State string `json:"state"`
-	}{State: newState})
-	if err != nil {
-		return err
-	}
-	oid := orderID
-	_, _, err = realtime.EmitInTx(ctx, tx,
-		"order:"+orderID,
-		"order.state_changed",
-		1,
-		nil,
-		json.RawMessage(payload),
-		&oid,
-		nil,
-	)
-	return err
+func (n *recordingNotifier) EmitOrderTransition(_ context.Context, _ pgx.Tx, _ string, newState string) error {
+	n.states = append(n.states, newState)
+	return nil
 }
 
-// TestIntegrationTransitionWritesRealtimeEvent verifies that a state transition
-// writes a realtime_event row for the order's channel in the same transaction,
-// satisfying the transactional outbox contract (§6.1 / Seam C).
+// channelEvents reads a channel's events in seq order.
+func channelEvents(t *testing.T, pool *pgxpool.Pool, channel string) []realtime.StoredEvent {
+	t.Helper()
+	events, _, err := realtime.NewStore(pool, "test").Replay(context.Background(), channel, 0)
+	if err != nil {
+		t.Fatalf("replay %s: %v", channel, err)
+	}
+	return events
+}
+
+// validateEvent checks a stored event against the schema
+// GET /v1/realtime/schema serves for its type, for every role that receives it.
+func validateEvent(t *testing.T, e realtime.StoredEvent) {
+	t.Helper()
+	raw, err := json.Marshal(realtime.SchemaFor(e.Type))
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := openapi3.NewSchema()
+	if err := schema.UnmarshalJSON(raw); err != nil {
+		t.Fatalf("compile %s schema: %v", e.Type, err)
+	}
+	delivered := 0
+	for _, v := range []realtime.Viewer{realtime.ViewCustomer, realtime.ViewRestaurant, realtime.ViewRider, realtime.ViewSupport, realtime.ViewSelf} {
+		out, ok := realtime.Project(e.Type, v, e.Audience, e.Payload)
+		if !ok {
+			continue
+		}
+		delivered++
+		var val any
+		if err := json.Unmarshal(out, &val); err != nil {
+			t.Fatal(err)
+		}
+		if err := schema.VisitJSON(val); err != nil {
+			t.Errorf("%s (seq %d) for viewer %d violates its contract schema: %v\n%s", e.Type, e.Seq, v, err, out)
+		}
+	}
+	if delivered == 0 {
+		t.Errorf("%s (seq %d) reaches no viewer", e.Type, e.Seq)
+	}
+}
+
+// TestIntegrationTransitionWritesRealtimeEvent verifies that creating and
+// moving an order writes the contract's events on the order's channel in the
+// same transaction (contracts/websocket.md sections 4.2 and 6.1), and that
+// each validates against the schema the server publishes.
 func TestIntegrationTransitionWritesRealtimeEvent(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
 
-	// Wire a store with the realtime emitter so Transition emits outbox events.
-	st := NewStore(pool, &testRealtimeEmitter{})
-	b := seedBasics(t, pool)
+	notifier := &recordingNotifier{}
+	st := NewStore(pool, notifier)
+	orderID, channel, accountID := buildCreatedOrder(t, pool, st)
 
-	// Build an order in CREATED state.
-	cart, err := st.AddCartLine(ctx, b.accountID, b.restaurantID,
-		CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
-	if err != nil {
-		t.Fatalf("add cart line: %v", err)
-	}
-	q, err := st.CreateQuote(ctx, QuoteRequest{
-		AccountID: b.accountID, CartID: cart.ID,
-		DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY",
-	})
-	if err != nil {
-		t.Fatalf("create quote: %v", err)
-	}
-	var fresh *Quote
-	prepared, err := st.CreateOrder(ctx, OrderInput{AccountID: b.accountID, QuoteID: q.ID}, &fresh)
-	if err != nil {
-		t.Fatalf("create order: %v", err)
+	// Creation: order.created, then the first order.state_changed (from null).
+	created := channelEvents(t, pool, channel)
+	if len(created) != 2 || created[0].Type != "order.created" || created[1].Type != "order.state_changed" {
+		t.Fatalf("creation wrote %v, want order.created then order.state_changed", eventTypes(created))
 	}
 
-	channel := "order:" + prepared.OrderID
-
-	// Clean up realtime rows this test writes (the account/order rows are
-	// handled by seedBasics's Cleanup; realtime rows reference order_id so they
-	// must go first).
-	t.Cleanup(func() {
-		bg := context.Background()
-		_, _ = pool.Exec(bg, `DELETE FROM outbox_message WHERE channel = $1`, channel)
-		_, _ = pool.Exec(bg, `DELETE FROM realtime_event WHERE channel = $1`, channel)
-		_, _ = pool.Exec(bg, `DELETE FROM channel_cursor WHERE channel = $1`, channel)
-	})
-
-	// Perform a transition: CREATED → CANCELLED. This is a customer cancel
-	// before restaurant acceptance and requires no money effect.
-	// cancel_reason must be a valid order_cancellation_reason_code enum value;
-	// customer_cancel_reason carries the customer's reported reason code.
 	cancelReason := "CUSTOMER_CANCELLED"
 	customerReason := "CHANGED_MIND"
-	err = st.Transition(ctx, TransitionRequest{
-		OrderID:              prepared.OrderID,
+	err := st.Transition(ctx, TransitionRequest{
+		OrderID:              orderID,
 		To:                   machine.StateCancelled,
 		Actor:                machine.ActorCustomer,
-		ActorAccountID:       b.accountID,
+		ActorAccountID:       accountID,
 		Reason:               "customer cancelled",
 		CancelReason:         &cancelReason,
 		CustomerCancelReason: &customerReason,
@@ -100,36 +100,38 @@ func TestIntegrationTransitionWritesRealtimeEvent(t *testing.T) {
 		t.Fatalf("transition: %v", err)
 	}
 
-	// Assert: a realtime_event row for the order's channel exists.
-	var count int
-	if err := pool.QueryRow(ctx,
-		`SELECT count(*) FROM realtime_event WHERE channel = $1 AND type = 'order.state_changed'`,
-		channel).Scan(&count); err != nil {
-		t.Fatalf("count realtime_event: %v", err)
+	events := channelEvents(t, pool, channel)
+	if got := eventTypes(events); !slices.Equal(got, []string{"order.created", "order.state_changed", "order.state_changed", "order.cancelled"}) {
+		t.Fatalf("channel events = %v", got)
 	}
-	if count == 0 {
-		t.Fatalf("expected a realtime_event row for channel %s after Transition; got 0", channel)
-	}
-
-	// Assert: the event's payload carries the new state.
-	var rawPayload json.RawMessage
-	if err := pool.QueryRow(ctx,
-		`SELECT payload FROM realtime_event WHERE channel = $1 AND type = 'order.state_changed' LIMIT 1`,
-		channel).Scan(&rawPayload); err != nil {
-		t.Fatalf("read payload: %v", err)
-	}
-	var got struct {
-		State string `json:"state"`
-	}
-	if err := json.Unmarshal(rawPayload, &got); err != nil {
-		t.Fatalf("unmarshal payload: %v", err)
-	}
-	if got.State != string(machine.StateCancelled) {
-		t.Errorf("payload.state = %q, want %q", got.State, machine.StateCancelled)
+	for i, e := range events {
+		if e.Seq != int64(i+1) {
+			t.Errorf("event %d has seq %d; the channel's seq must be gapless", i, e.Seq)
+		}
+		validateEvent(t, e)
 	}
 
-	// Assert: there is exactly one corresponding outbox_message row
-	// (the transactional outbox invariant from §6.1).
+	var changed struct {
+		From      *string `json:"from"`
+		To        string  `json:"to"`
+		Reason    *string `json:"reason"`
+		ActorKind string  `json:"actor_kind"`
+	}
+	if err := json.Unmarshal(events[2].Payload, &changed); err != nil {
+		t.Fatal(err)
+	}
+	if changed.From == nil || *changed.From != "CREATED" || changed.To != "CANCELLED" ||
+		changed.Reason == nil || *changed.Reason != "CUSTOMER_CANCELLED" || changed.ActorKind != "CUSTOMER" {
+		t.Errorf("order.state_changed = %+v, want CREATED -> CANCELLED by CUSTOMER, reason CUSTOMER_CANCELLED", changed)
+	}
+
+	// The notifier still runs inside the transition (creation is not a
+	// notification).
+	if !slices.Equal(notifier.states, []string{"CANCELLED"}) {
+		t.Errorf("notifier saw %v, want [CANCELLED]", notifier.states)
+	}
+
+	// Every event has its outbox row (the transactional outbox invariant).
 	var missing int
 	if err := pool.QueryRow(ctx,
 		`SELECT count(*) FROM realtime_event_without_outbox WHERE channel = $1`,
@@ -139,6 +141,14 @@ func TestIntegrationTransitionWritesRealtimeEvent(t *testing.T) {
 	if missing != 0 {
 		t.Errorf("%d realtime event(s) have no outbox row — the transactional outbox invariant is violated", missing)
 	}
+}
+
+func eventTypes(events []realtime.StoredEvent) []string {
+	out := make([]string, len(events))
+	for i, e := range events {
+		out[i] = e.Type
+	}
+	return out
 }
 
 // buildCreatedOrder seeds a domain fixture and returns an order in CREATED state
@@ -207,13 +217,14 @@ func TestIntegrationTransitionRollsBackEventOnEffectFailure(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
 
-	st := NewStore(pool, &testRealtimeEmitter{})
+	st := NewStore(pool)
 	orderID, channel, accountID := buildCreatedOrder(t, pool, st)
 
 	before := orderState(t, pool, orderID)
+	eventsBefore := countRealtimeEvents(t, pool, channel)
 
-	// A poison effect that always fails. It runs AFTER the emitter has already
-	// written the outbox row inside the tx, so the rollback must unwind that write.
+	// A poison effect that always fails. It runs AFTER the transition has
+	// written its outbox rows inside the tx, so the rollback must unwind them.
 	boom := errors.New("boom: effect failed")
 	cancelReason := "CUSTOMER_CANCELLED"
 	customerReason := "CHANGED_MIND"
@@ -235,23 +246,24 @@ func TestIntegrationTransitionRollsBackEventOnEffectFailure(t *testing.T) {
 	if after := orderState(t, pool, orderID); after != before {
 		t.Errorf("order state advanced to %q despite failed effect; want %q (tx must roll back)", after, before)
 	}
-	// And crucially: no realtime_event may have leaked. If the emitter wrote
-	// outside the caller's tx, this would be non-zero — a ghost event.
-	if n := countRealtimeEvents(t, pool, channel); n != 0 {
-		t.Errorf("%d realtime_event row(s) leaked after a rolled-back transition; the outbox write is not atomic with the state change", n)
+	// And crucially: no realtime_event may have leaked. Had the events been
+	// written outside the caller's tx, there would be a ghost event here.
+	if n := countRealtimeEvents(t, pool, channel); n != eventsBefore {
+		t.Errorf("%d realtime_event row(s) leaked after a rolled-back transition; the outbox write is not atomic with the state change", n-eventsBefore)
 	}
 }
 
 // TestIntegrationIllegalTransitionEmitsNoEvent verifies a rejected transition
-// (one the state machine refuses) writes no realtime_event: the emitter is
-// reached only after the state UPDATE succeeds, so an illegal pair never
+// (one the state machine refuses) writes no realtime_event: the events are
+// written only after the state UPDATE succeeds, so an illegal pair never
 // produces an outbox event.
 func TestIntegrationIllegalTransitionEmitsNoEvent(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
 
-	st := NewStore(pool, &testRealtimeEmitter{})
+	st := NewStore(pool)
 	orderID, channel, _ := buildCreatedOrder(t, pool, st)
+	eventsBefore := countRealtimeEvents(t, pool, channel)
 
 	// CREATED -> DELIVERED is not a legal pair; the machine rejects it before any
 	// state write or emit.
@@ -265,22 +277,21 @@ func TestIntegrationIllegalTransitionEmitsNoEvent(t *testing.T) {
 	if !errors.As(err, &illegal) {
 		t.Fatalf("Transition error = %v, want IllegalTransitionError", err)
 	}
-	if n := countRealtimeEvents(t, pool, channel); n != 0 {
-		t.Errorf("%d realtime_event row(s) written for an illegal transition; want 0", n)
+	if n := countRealtimeEvents(t, pool, channel); n != eventsBefore {
+		t.Errorf("%d realtime_event row(s) written for an illegal transition; want 0", n-eventsBefore)
 	}
 }
 
-// TestIntegrationNilEmitterTransitionsWithoutEvent is the nil-dependency safety
-// contract: a Store built with no emitter (the realtime sibling not wired — e.g.
-// a boot without B8, or a unit context) must still transition orders normally
-// and simply emit nothing. This proves Transition never assumes the emitter is
-// present.
-func TestIntegrationNilEmitterTransitionsWithoutEvent(t *testing.T) {
+// TestIntegrationStoreWithoutNotifierStillEmits pins the reason the realtime
+// events are written by Transition itself rather than through the injected
+// notifier: a Store built with no notifier — as internal/admin builds one —
+// still moves the order AND still tells the customer, the restaurant and the
+// rider (https://github.com/shaiknoorullah/hg-mono/issues/247).
+func TestIntegrationStoreWithoutNotifierStillEmits(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
 
-	// No emitter passed: s.emitter is nil.
-	st := NewStore(pool)
+	st := NewStore(pool) // no notifier: s.emitter is nil
 	orderID, channel, accountID := buildCreatedOrder(t, pool, st)
 
 	cancelReason := "CUSTOMER_CANCELLED"
@@ -295,14 +306,12 @@ func TestIntegrationNilEmitterTransitionsWithoutEvent(t *testing.T) {
 		CustomerCancelReason: &customerReason,
 	})
 	if err != nil {
-		t.Fatalf("transition with nil emitter: %v", err)
+		t.Fatalf("transition without a notifier: %v", err)
 	}
-	// The state change still committed.
 	if s := orderState(t, pool, orderID); s != string(machine.StateCancelled) {
-		t.Errorf("order state = %q after nil-emitter transition; want CANCELLED", s)
+		t.Errorf("order state = %q, want CANCELLED", s)
 	}
-	// But no realtime event was emitted.
-	if n := countRealtimeEvents(t, pool, channel); n != 0 {
-		t.Errorf("%d realtime_event row(s) written with a nil emitter; want 0 (boot-without-sibling must be silent)", n)
+	if got := eventTypes(channelEvents(t, pool, channel)); !slices.Contains(got, "order.cancelled") {
+		t.Errorf("a store without a notifier emitted %v; it must still emit order.cancelled", got)
 	}
 }

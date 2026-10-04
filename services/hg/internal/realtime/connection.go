@@ -272,6 +272,14 @@ func (c *connection) handleResume(channelStr string, afterSeq int64) {
 		return
 	}
 
+	// The head is read before the replay, so the range the reply reports covers
+	// at least everything that existed when the client asked.
+	head, err := c.gw.store.ChannelHead(c.ctx, ch.Raw)
+	if err != nil {
+		c.log.Warn("replay head failed", slog.String("channel", ch.Raw), slog.String("error", err.Error()))
+		c.sendError(ErrCodeValidationFailed, "Replay failed.", true)
+		return
+	}
 	events, truncated, err := c.gw.store.Replay(c.ctx, ch.Raw, afterSeq)
 	if err != nil {
 		c.log.Warn("replay failed", slog.String("channel", ch.Raw), slog.String("error", err.Error()))
@@ -279,18 +287,24 @@ func (c *connection) handleResume(channelStr string, afterSeq int64) {
 		return
 	}
 
+	// resume_complete reports the range the replay covered — from the first seq
+	// after the client's cursor to the channel's head — not just the events this
+	// viewer was sent. Events outside the viewer's audience still take a seq on
+	// the channel (contracts/websocket.md section 4: audiences are per event),
+	// so a client that sets its cursor to to_seq moves past them instead of
+	// seeing the same "gap" again. When truncated, to_seq is the head the client
+	// resets its cursor to after refetching over REST (section 6.3).
 	viewer := c.resolveViewer(ch)
-	var fromSeq, toSeq int64
+	fromSeq, toSeq := afterSeq+1, head
 	replayed := 0
 	for _, e := range events {
+		if e.Seq > toSeq {
+			toSeq = e.Seq
+		}
 		projected, deliver := Project(e.Type, viewer, e.Audience, e.Payload)
 		if !deliver {
 			continue
 		}
-		if replayed == 0 {
-			fromSeq = e.Seq
-		}
-		toSeq = e.Seq
 		replayed++
 		c.send(Envelope{
 			ID:      e.ULID,

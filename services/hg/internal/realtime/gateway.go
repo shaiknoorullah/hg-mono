@@ -195,6 +195,12 @@ func (g *Gateway) dispatch(redisChannel string, payload []byte) {
 		out.Data = projected
 		c.enqueue(out)
 	}
+
+	// The order's rider may have changed: re-check the riders still subscribed
+	// (revalidate.go).
+	if participantChange[env.Type] {
+		g.revalidateRiders(channel, targets)
+	}
 }
 
 // register adds a connection to the fleet.

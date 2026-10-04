@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/contract"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // staleHeartbeat is the R-22 heartbeat gate: a restaurant whose order screen has
@@ -43,11 +46,21 @@ func (rp *Repo) getAvailability(ctx context.Context, restaurantID string) (avail
 // setAcceptingOrders flips the master switch and reads the row back after the
 // write (R-22): the response is the persisted row, so a no-op is impossible to
 // mistake for a success. pause_until is ignored when accepting is false.
-func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, accepting bool, pauseUntil *time.Time) (availabilityRow, error) {
+//
+// The restaurant's tablets hear of it in the same transaction:
+// restaurant.status_changed on restaurant:{id}, with the open state the change
+// produces and the staff member who made it (contracts/websocket.md section
+// 4.4; https://github.com/shaiknoorullah/hg-mono/issues/247).
+func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, accepting bool, pauseUntil *time.Time, changedBy string, now time.Time) (availabilityRow, error) {
 	var pause *time.Time
 	if accepting {
 		pause = pauseUntil
 	}
+	tx, err := rp.db.Begin(ctx)
+	if err != nil {
+		return availabilityRow{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
 	const q = `
 		UPDATE restaurant
 		   SET is_accepting_orders = $2,
@@ -56,13 +69,35 @@ func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, acc
 		 RETURNING account_state::text, is_accepting_orders, pause_until,
 		           last_heartbeat_at, missed_order_count, timezone`
 	var a availabilityRow
-	err := rp.db.QueryRow(ctx, q, restaurantID, accepting, pause).Scan(
+	err = tx.QueryRow(ctx, q, restaurantID, accepting, pause).Scan(
 		&a.accountState, &a.isAcceptingOrders, &a.pauseUntil,
 		&a.lastHeartbeatAt, &a.missedOrderCount, &a.timezone)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return availabilityRow{}, errNotFound
 	}
-	return a, err
+	if err != nil {
+		return availabilityRow{}, err
+	}
+	verdict := deriveOpenState(a, now, true, false)
+	var by *string
+	if changedBy != "" {
+		name, err := realtime.StaffName(ctx, tx, changedBy)
+		if err != nil {
+			return availabilityRow{}, err
+		}
+		by = &name
+	}
+	reason := verdict.reason
+	if err := realtime.EmitRestaurant(ctx, tx, restaurantID, nil, realtime.RestaurantStatusChanged{
+		RestaurantID: restaurantID, IsAcceptingOrders: a.isAcceptingOrders,
+		OpenState: contract.RestaurantOpenState(verdict.state), Reason: &reason, ChangedBy: by,
+	}); err != nil {
+		return availabilityRow{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return availabilityRow{}, err
+	}
+	return a, nil
 }
 
 // recordHeartbeat stamps last_heartbeat_at = now() and returns the row so the

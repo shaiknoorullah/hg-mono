@@ -2,7 +2,10 @@ package dispatch
 
 import (
 	"context"
+	"errors"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // waveToEscalate is a dispatch whose current offer wave has lapsed and which is
@@ -48,15 +51,42 @@ SELECT order_id::text, wave, radius_m,
 // MarkNoRiderFound ends the search for an order that exhausted the wave/radius/time
 // budget with no acceptance (D-15 hard stop). Idempotent and safe: it only touches a
 // still-searching, unassigned dispatch, so it can never clobber an accept.
+//
+// The customer, the restaurant and ops hear of it in the same transaction:
+// dispatch.state_changed on the order's channel and admin.dispatch_failure on
+// admin:ops (events.go).
 func (s *Store) MarkNoRiderFound(ctx context.Context, orderID string) error {
-	_, err := s.db.Exec(ctx, `
-UPDATE dispatch
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	var from string
+	var waves, radiusM int
+	err = tx.QueryRow(ctx, `
+WITH prev AS (
+  SELECT order_id, state FROM dispatch
+   WHERE order_id = $1
+     AND state IN ('SEARCHING', 'OFFERED')
+     AND rider_account_id IS NULL
+   FOR UPDATE)
+UPDATE dispatch d
    SET state = 'NO_RIDER_FOUND', state_since = now(),
        deadline_at = NULL, deadline_action = NULL
- WHERE order_id = $1
-   AND state IN ('SEARCHING', 'OFFERED')
-   AND rider_account_id IS NULL`, orderID)
-	return err
+  FROM prev
+ WHERE d.order_id = prev.order_id
+RETURNING prev.state::text, d.wave, d.radius_m`, orderID).Scan(&from, &waves, &radiusM)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil // already ended, or a rider took it: nothing to say
+	}
+	if err != nil {
+		return err
+	}
+	if err := emitNoRiderFound(ctx, tx, orderID, from, waves, radiusM, time.Now().UTC()); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // SweepUnresponsiveRiders forces OFFLINE any online rider whose three most-recent
@@ -110,6 +140,9 @@ RETURNING rp.account_id::text`)
 		if _, err := tx.Exec(ctx, `
 INSERT INTO rider_availability_event (account_id, from_state, to_state, reason, actor_kind)
 VALUES ($1, 'ONLINE_IDLE', 'OFFLINE', 'UNRESPONSIVE', 'SYSTEM')`, id); err != nil {
+			return 0, err
+		}
+		if err := emitAvailability(ctx, tx, id); err != nil {
 			return 0, err
 		}
 	}
