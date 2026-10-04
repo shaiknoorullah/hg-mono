@@ -2417,6 +2417,117 @@ func (e PayoutInterval) Valid() bool {
 	}
 }
 
+// Defines values for PayoutPayeeType.
+const (
+	PayoutPayeeTypeRESTAURANT PayoutPayeeType = "RESTAURANT"
+	PayoutPayeeTypeRIDER      PayoutPayeeType = "RIDER"
+)
+
+// Valid indicates whether the value is a known member of the PayoutPayeeType enum.
+func (e PayoutPayeeType) Valid() bool {
+	switch e {
+	case PayoutPayeeTypeRESTAURANT:
+		return true
+	case PayoutPayeeTypeRIDER:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PayoutRunKind.
+const (
+	PayoutRunKindADMIN     PayoutRunKind = "ADMIN"
+	PayoutRunKindSCHEDULED PayoutRunKind = "SCHEDULED"
+)
+
+// Valid indicates whether the value is a known member of the PayoutRunKind enum.
+func (e PayoutRunKind) Valid() bool {
+	switch e {
+	case PayoutRunKindADMIN:
+		return true
+	case PayoutRunKindSCHEDULED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PayoutRunOutcome.
+const (
+	PayoutRunOutcomeALREADYPAID      PayoutRunOutcome = "ALREADY_PAID"
+	PayoutRunOutcomeCARRIEDNEGATIVE  PayoutRunOutcome = "CARRIED_NEGATIVE"
+	PayoutRunOutcomeERROR            PayoutRunOutcome = "ERROR"
+	PayoutRunOutcomeHELD             PayoutRunOutcome = "HELD"
+	PayoutRunOutcomeNOPAYOUTACCOUNT  PayoutRunOutcome = "NO_PAYOUT_ACCOUNT"
+	PayoutRunOutcomeNOTHINGDUE       PayoutRunOutcome = "NOTHING_DUE"
+	PayoutRunOutcomeORDERSBLOCKED    PayoutRunOutcome = "ORDERS_BLOCKED"
+	PayoutRunOutcomeORDERSUNBLOCKED  PayoutRunOutcome = "ORDERS_UNBLOCKED"
+	PayoutRunOutcomePAID             PayoutRunOutcome = "PAID"
+	PayoutRunOutcomePARTNERSUSPENDED PayoutRunOutcome = "PARTNER_SUSPENDED"
+	PayoutRunOutcomeRELEASED         PayoutRunOutcome = "RELEASED"
+	PayoutRunOutcomeSTILLHELD        PayoutRunOutcome = "STILL_HELD"
+	PayoutRunOutcomeTRANSFERFAILED   PayoutRunOutcome = "TRANSFER_FAILED"
+)
+
+// Valid indicates whether the value is a known member of the PayoutRunOutcome enum.
+func (e PayoutRunOutcome) Valid() bool {
+	switch e {
+	case PayoutRunOutcomeALREADYPAID:
+		return true
+	case PayoutRunOutcomeCARRIEDNEGATIVE:
+		return true
+	case PayoutRunOutcomeERROR:
+		return true
+	case PayoutRunOutcomeHELD:
+		return true
+	case PayoutRunOutcomeNOPAYOUTACCOUNT:
+		return true
+	case PayoutRunOutcomeNOTHINGDUE:
+		return true
+	case PayoutRunOutcomeORDERSBLOCKED:
+		return true
+	case PayoutRunOutcomeORDERSUNBLOCKED:
+		return true
+	case PayoutRunOutcomePAID:
+		return true
+	case PayoutRunOutcomePARTNERSUSPENDED:
+		return true
+	case PayoutRunOutcomeRELEASED:
+		return true
+	case PayoutRunOutcomeSTILLHELD:
+		return true
+	case PayoutRunOutcomeTRANSFERFAILED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PayoutRunState.
+const (
+	PayoutRunStateFAILED    PayoutRunState = "FAILED"
+	PayoutRunStateQUEUED    PayoutRunState = "QUEUED"
+	PayoutRunStateRUNNING   PayoutRunState = "RUNNING"
+	PayoutRunStateSUCCEEDED PayoutRunState = "SUCCEEDED"
+)
+
+// Valid indicates whether the value is a known member of the PayoutRunState enum.
+func (e PayoutRunState) Valid() bool {
+	switch e {
+	case PayoutRunStateFAILED:
+		return true
+	case PayoutRunStateQUEUED:
+		return true
+	case PayoutRunStateRUNNING:
+		return true
+	case PayoutRunStateSUCCEEDED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PayoutState.
 const (
 	PayoutStateDRAFT        PayoutState = "DRAFT"
@@ -6200,6 +6311,220 @@ type PayoutDetail struct {
 // PayoutInterval Decision S-04: weekly, Monday, automatic, **no minimum**, for both partner types.
 type PayoutInterval string
 
+// PayoutPayee defines model for PayoutPayee.
+type PayoutPayee struct {
+	// Id The restaurant id, or the rider's account id.
+	Id openapi_types.UUID `json:"id"`
+
+	// Type Who a payout is paid to. A restaurant is identified by its restaurant id, a rider by their account id.
+	Type PayoutPayeeType `json:"type"`
+}
+
+// PayoutPayeeType Who a payout is paid to. A restaurant is identified by its restaurant id, a rider by their account id.
+type PayoutPayeeType string
+
+// PayoutRun defines model for PayoutRun.
+type PayoutRun struct {
+	// AsOf RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	AsOf Timestamp `json:"as_of"`
+
+	// Attempts How many times a worker started it. Above 1 means a worker stopped mid-run and another finished it.
+	Attempts int32 `json:"attempts"`
+
+	// Carried Partners whose unpaid balance was zero or below, carried to a later run.
+	Carried int32 `json:"carried"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp `json:"created_at"`
+
+	// DueAt When the run was due: Monday 09:00 America/Toronto for a scheduled run, the request time for an admin one.
+	DueAt Timestamp `json:"due_at"`
+
+	// Error Why the run itself stopped, when it did. Per-partner failures are lines.
+	Error      *string    `json:"error"`
+	Failed     int32      `json:"failed"`
+	FinishedAt *time.Time `json:"finished_at"`
+	Held       int32      `json:"held"`
+
+	// HeldCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	HeldCents Cents              `json:"held_cents"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Kind `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+	Kind PayoutRunKind `json:"kind"`
+
+	// Paid Payouts transferred, new and released.
+	Paid int32 `json:"paid"`
+
+	// PaidCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	PaidCents Cents `json:"paid_cents"`
+
+	// Partners Partners the run looked at.
+	Partners int32 `json:"partners"`
+
+	// Payee The one partner this run is for, or null for every partner.
+	Payee *PayoutPayee `json:"payee"`
+
+	// PeriodEnd The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid.
+	PeriodEnd Timestamp `json:"period_end"`
+
+	// PeriodStart RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	PeriodStart Timestamp `json:"period_start"`
+	Released    int32     `json:"released"`
+
+	// RequestedBy The admin who requested it; null for a scheduled run.
+	RequestedBy *openapi_types.UUID `json:"requested_by"`
+	StartedAt   *time.Time          `json:"started_at"`
+
+	// State `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+	// payout stays owed and the next run tries it again.
+	State PayoutRunState `json:"state"`
+}
+
+// PayoutRunDetail defines model for PayoutRunDetail.
+type PayoutRunDetail struct {
+	// AsOf RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	AsOf Timestamp `json:"as_of"`
+
+	// Attempts How many times a worker started it. Above 1 means a worker stopped mid-run and another finished it.
+	Attempts int32 `json:"attempts"`
+
+	// Carried Partners whose unpaid balance was zero or below, carried to a later run.
+	Carried int32 `json:"carried"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp `json:"created_at"`
+
+	// DueAt When the run was due: Monday 09:00 America/Toronto for a scheduled run, the request time for an admin one.
+	DueAt Timestamp `json:"due_at"`
+
+	// Error Why the run itself stopped, when it did. Per-partner failures are lines.
+	Error      *string    `json:"error"`
+	Failed     int32      `json:"failed"`
+	FinishedAt *time.Time `json:"finished_at"`
+	Held       int32      `json:"held"`
+
+	// HeldCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	HeldCents Cents              `json:"held_cents"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Kind `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+	Kind  PayoutRunKind   `json:"kind"`
+	Lines []PayoutRunLine `json:"lines"`
+
+	// Paid Payouts transferred, new and released.
+	Paid int32 `json:"paid"`
+
+	// PaidCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	PaidCents Cents `json:"paid_cents"`
+
+	// Partners Partners the run looked at.
+	Partners int32 `json:"partners"`
+
+	// Payee The one partner this run is for, or null for every partner.
+	Payee *PayoutPayee `json:"payee"`
+
+	// PeriodEnd The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid.
+	PeriodEnd Timestamp `json:"period_end"`
+
+	// PeriodStart RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	PeriodStart Timestamp `json:"period_start"`
+	Released    int32     `json:"released"`
+
+	// RequestedBy The admin who requested it; null for a scheduled run.
+	RequestedBy *openapi_types.UUID `json:"requested_by"`
+	StartedAt   *time.Time          `json:"started_at"`
+
+	// State `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+	// payout stays owed and the next run tries it again.
+	State PayoutRunState `json:"state"`
+}
+
+// PayoutRunInput defines model for PayoutRunInput.
+type PayoutRunInput struct {
+	// AsOf Run as if it were this moment: the run pays the period that closed by then.
+	// Defaults to now; a time in the future is `422 VALIDATION_FAILED`.
+	AsOf *Timestamp `json:"as_of,omitempty"`
+
+	// Payee Run for this partner only. Omit it to run for every partner.
+	Payee *PayoutPayee `json:"payee,omitempty"`
+}
+
+// PayoutRunKind `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+type PayoutRunKind string
+
+// PayoutRunLine defines model for PayoutRunLine.
+type PayoutRunLine struct {
+	// AmountCents The payout's amount, or the balance carried or owed.
+	//
+	// Examples: 4696
+	AmountCents Cents `json:"amount_cents"`
+
+	// At RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	At     Timestamp `json:"at"`
+	Detail *string   `json:"detail"`
+
+	// Outcome What a run did for one partner.
+	// `PAID`: a payout for this period was created and transferred.
+	// `HELD`: a payout was created but Stripe has payouts turned off for the partner, so no
+	// transfer was made; `STILL_HELD`: an earlier held payout is still blocked;
+	// `RELEASED`: an earlier held or unfinished payout was transferred.
+	// `TRANSFER_FAILED`: Stripe refused the transfer; the payout stays owed for the next run.
+	// `ALREADY_PAID`: this partner already has a payout for this period.
+	// `NOTHING_DUE`: no unpaid earnings before the cutoff.
+	// `CARRIED_NEGATIVE`: the unpaid balance is zero or below, so it is carried and netted
+	// against later earnings.
+	// `NO_PAYOUT_ACCOUNT`: no Stripe account yet; the balance waits for onboarding.
+	// `PARTNER_SUSPENDED`: a suspended or banned restaurant is not paid until reinstated.
+	// `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
+	// longer than the configured limit, so it takes no new orders, or it has recovered.
+	// `ERROR`: the server failed for this partner; see `detail`.
+	Outcome  PayoutRunOutcome    `json:"outcome"`
+	Payee    PayoutPayee         `json:"payee"`
+	PayoutId *openapi_types.UUID `json:"payout_id"`
+}
+
+// PayoutRunOutcome What a run did for one partner.
+// `PAID`: a payout for this period was created and transferred.
+// `HELD`: a payout was created but Stripe has payouts turned off for the partner, so no
+// transfer was made; `STILL_HELD`: an earlier held payout is still blocked;
+// `RELEASED`: an earlier held or unfinished payout was transferred.
+// `TRANSFER_FAILED`: Stripe refused the transfer; the payout stays owed for the next run.
+// `ALREADY_PAID`: this partner already has a payout for this period.
+// `NOTHING_DUE`: no unpaid earnings before the cutoff.
+// `CARRIED_NEGATIVE`: the unpaid balance is zero or below, so it is carried and netted
+// against later earnings.
+// `NO_PAYOUT_ACCOUNT`: no Stripe account yet; the balance waits for onboarding.
+// `PARTNER_SUSPENDED`: a suspended or banned restaurant is not paid until reinstated.
+// `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
+// longer than the configured limit, so it takes no new orders, or it has recovered.
+// `ERROR`: the server failed for this partner; see `detail`.
+type PayoutRunOutcome string
+
+// PayoutRunState `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+// payout stays owed and the next run tries it again.
+type PayoutRunState string
+
 // PayoutState `HELD` carries a reason and is what `payouts_enabled=false` produces.
 type PayoutState string
 
@@ -8175,6 +8500,26 @@ type CancelOrderAdminParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// ListPayoutRunsParams defines parameters for ListPayoutRuns.
+type ListPayoutRunsParams struct {
+	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// CreatePayoutRunParams defines parameters for CreatePayoutRun.
+type CreatePayoutRunParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // IssueRefundParams defines parameters for IssueRefund.
 type IssueRefundParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
@@ -8914,6 +9259,9 @@ type DecideMenuVersionJSONRequestBody = MenuVersionDecisionInput
 
 // CancelOrderAdminJSONRequestBody defines body for CancelOrderAdmin for application/json ContentType.
 type CancelOrderAdminJSONRequestBody = AdminOrderCancellationInput
+
+// CreatePayoutRunJSONRequestBody defines body for CreatePayoutRun for application/json ContentType.
+type CreatePayoutRunJSONRequestBody = PayoutRunInput
 
 // IssueRefundJSONRequestBody defines body for IssueRefund for application/json ContentType.
 type IssueRefundJSONRequestBody = AdminRefundInput

@@ -51,6 +51,7 @@ def build(reg, synth) -> None:
     _availability(reg, synth)
     _earnings(reg, synth)
     _payouts(reg, synth)
+    _payout_runs(reg, synth)
 
 
 def _dispatch(reg, synth) -> None:
@@ -568,4 +569,118 @@ def _payouts(reg, synth) -> None:
         operations=["listRiderPayouts", "listRestaurantPayouts"],
         meta={"next_cursor": None, "has_more": False, "total": 0},
         tags=["edge", "empty"],
+    )
+
+
+# The payout run closed at NOW (Monday 10 August 2026): the week from Monday
+# 3 August 00:00 to Monday 10 August 00:00 America/Toronto, due 09:00 Toronto.
+RUN_PERIOD_START = "2026-08-03T04:00:00.000Z"
+RUN_PERIOD_END = "2026-08-10T04:00:00.000Z"
+RUN_DUE = "2026-08-10T13:00:00.000Z"
+
+PAYOUT_RUN_OUTCOMES = {
+    "PAID": (2099, "Stripe transfer tr_1Q2w3E4r5T6y7U8i"),
+    "HELD": (700, "Stripe has payouts turned off for this partner: requirements_due: external_account"),
+    "STILL_HELD": (1250, "Stripe still has payouts turned off: requirements_due: individual.verification.document"),
+    "RELEASED": (650, "Stripe transfer tr_9O8i7U6y5T4r3E2w"),
+    "TRANSFER_FAILED": (4500, "stripe create transfer: insufficient available balance"),
+    "ALREADY_PAID": (3000, "this period's payout already exists (PAID)"),
+    "NOTHING_DUE": (0, None),
+    "CARRIED_NEGATIVE": (-500, "below zero since 2026-08-05; carried to the next run"),
+    "NO_PAYOUT_ACCOUNT": (0, "no Stripe account yet; the balance is paid once onboarding is complete"),
+    "PARTNER_SUSPENDED": (0, "the restaurant is SUSPENDED; its balance is kept until it is reinstated"),
+    "ORDERS_BLOCKED": (-500, "balance below zero since 2026-07-05, more than 30 days: no new orders until it recovers"),
+    "ORDERS_UNBLOCKED": (0, "the balance has recovered"),
+    "ERROR": (0, "build payout: connection reset by peer"),
+}
+
+
+def _payout_run(synth, label: str, state: str, kind: str = "SCHEDULED") -> dict[str, Any]:
+    run = synth.make("PayoutRun", label)
+    scheduled = kind == "SCHEDULED"
+    run.update(
+        kind=kind,
+        state=state,
+        payee=None if scheduled else {"type": "RIDER", "id": uuid_for("rider-payout-run")},
+        period_start=RUN_PERIOD_START,
+        period_end=RUN_PERIOD_END,
+        as_of=RUN_DUE if scheduled else ts(),
+        due_at=RUN_DUE if scheduled else ts(),
+        requested_by=None if scheduled else uuid_for("admin-payout-run"),
+        started_at=None,
+        finished_at=None,
+        attempts=0,
+        partners=0,
+        paid=0,
+        held=0,
+        released=0,
+        carried=0,
+        failed=0,
+        paid_cents=0,
+        held_cents=0,
+        error=None,
+        created_at=RUN_DUE if scheduled else ts(),
+    )
+    if state != "QUEUED":
+        run.update(started_at=RUN_DUE, attempts=1)
+    if state in ("SUCCEEDED", "FAILED"):
+        run.update(finished_at="2026-08-10T13:00:04.180Z", partners=42, paid=37, held=2, released=1,
+                   carried=2, paid_cents=184210, held_cents=1950)
+    if state == "FAILED":
+        run.update(paid=36, failed=1, paid_cents=179710)
+    return run
+
+
+def _payout_runs(reg, synth) -> None:
+    notes = {
+        "QUEUED": "An admin asked to run the payout now; the worker picks it up within seconds.",
+        "RUNNING": "The Monday run is paying partners. A worker that stops mid-run is relieved by the next.",
+        "SUCCEEDED": "The Monday run paid everyone it could; holds and carried balances are not failures.",
+        "FAILED": "One transfer failed. The payout stays owed and the next run tries it again.",
+    }
+    for state, note in notes.items():
+        kind = "ADMIN" if state == "QUEUED" else "SCHEDULED"
+        reg.add(
+            f"payout_run_{state.lower()}",
+            "admin",
+            "PayoutRun",
+            note,
+            _payout_run(synth, f"payout-run-{state}", state, kind),
+            operations=["createPayoutRun"] if state == "QUEUED" else ["listPayoutRuns"],
+            status=202 if state == "QUEUED" else 200,
+            tags=["payout-run-state-matrix", "admin", "money"],
+        )
+
+    detail = _payout_run(synth, "payout-run-detail", "FAILED")
+    detail["lines"] = [
+        {
+            "payee": {"type": "RESTAURANT" if outcome in ("PARTNER_SUSPENDED", "ORDERS_BLOCKED", "ORDERS_UNBLOCKED") else "RIDER",
+                      "id": uuid_for(f"payee-{outcome}")},
+            "outcome": outcome,
+            "payout_id": uuid_for(f"payout-{outcome}") if outcome in ("PAID", "HELD", "STILL_HELD", "RELEASED", "TRANSFER_FAILED", "ALREADY_PAID") else None,
+            "amount_cents": cents,
+            "detail": text,
+            "at": "2026-08-10T13:00:02.517Z",
+        }
+        for outcome, (cents, text) in PAYOUT_RUN_OUTCOMES.items()
+    ]
+    reg.add(
+        "payout_run_detail_every_outcome",
+        "admin",
+        "PayoutRunDetail",
+        "A run's audit trail with one line for every outcome a run can record.",
+        detail,
+        operations=["getPayoutRun"],
+        tags=["admin", "money", "state-matrix"],
+    )
+
+    reg.add(
+        "payout_run_list_empty",
+        "admin",
+        "array<PayoutRun>",
+        "No payout run has happened yet.",
+        [],
+        operations=["listPayoutRuns"],
+        meta={"next_cursor": None, "has_more": False, "total": 0},
+        tags=["admin", "edge", "empty"],
     )

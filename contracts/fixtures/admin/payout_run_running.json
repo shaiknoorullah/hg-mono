@@ -1,0 +1,39 @@
+{
+  "scenario": "payout_run_running",
+  "domain": "admin",
+  "schema": "PayoutRun",
+  "describes": "The Monday run is paying partners. A worker that stops mid-run is relieved by the next.",
+  "operations": [
+    "listPayoutRuns"
+  ],
+  "status": 200,
+  "tags": [
+    "payout-run-state-matrix",
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "id": "3e5dc7be-eca4-4f76-ab86-3f69f5e7a6d8",
+    "kind": "SCHEDULED",
+    "state": "RUNNING",
+    "payee": null,
+    "period_start": "2026-08-03T04:00:00.000Z",
+    "period_end": "2026-08-10T04:00:00.000Z",
+    "as_of": "2026-08-10T13:00:00.000Z",
+    "due_at": "2026-08-10T13:00:00.000Z",
+    "requested_by": null,
+    "started_at": "2026-08-10T13:00:00.000Z",
+    "finished_at": null,
+    "attempts": 1,
+    "partners": 0,
+    "paid": 0,
+    "held": 0,
+    "released": 0,
+    "carried": 0,
+    "failed": 0,
+    "paid_cents": 0,
+    "held_cents": 0,
+    "error": null,
+    "created_at": "2026-08-10T13:00:00.000Z"
+  }
+}

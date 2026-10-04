@@ -1,0 +1,39 @@
+{
+  "scenario": "payout_run_failed",
+  "domain": "admin",
+  "schema": "PayoutRun",
+  "describes": "One transfer failed. The payout stays owed and the next run tries it again.",
+  "operations": [
+    "listPayoutRuns"
+  ],
+  "status": 200,
+  "tags": [
+    "payout-run-state-matrix",
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "id": "17c24664-25ce-4cc5-a1e7-1b4a0b1cca60",
+    "kind": "SCHEDULED",
+    "state": "FAILED",
+    "payee": null,
+    "period_start": "2026-08-03T04:00:00.000Z",
+    "period_end": "2026-08-10T04:00:00.000Z",
+    "as_of": "2026-08-10T13:00:00.000Z",
+    "due_at": "2026-08-10T13:00:00.000Z",
+    "requested_by": null,
+    "started_at": "2026-08-10T13:00:00.000Z",
+    "finished_at": "2026-08-10T13:00:04.180Z",
+    "attempts": 1,
+    "partners": 42,
+    "paid": 36,
+    "held": 2,
+    "released": 1,
+    "carried": 2,
+    "failed": 1,
+    "paid_cents": 179710,
+    "held_cents": 1950,
+    "error": null,
+    "created_at": "2026-08-10T13:00:00.000Z"
+  }
+}

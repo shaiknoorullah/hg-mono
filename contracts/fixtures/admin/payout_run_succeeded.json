@@ -1,0 +1,39 @@
+{
+  "scenario": "payout_run_succeeded",
+  "domain": "admin",
+  "schema": "PayoutRun",
+  "describes": "The Monday run paid everyone it could; holds and carried balances are not failures.",
+  "operations": [
+    "listPayoutRuns"
+  ],
+  "status": 200,
+  "tags": [
+    "payout-run-state-matrix",
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "id": "dd8abf74-6dab-4c65-aae2-876386af6913",
+    "kind": "SCHEDULED",
+    "state": "SUCCEEDED",
+    "payee": null,
+    "period_start": "2026-08-03T04:00:00.000Z",
+    "period_end": "2026-08-10T04:00:00.000Z",
+    "as_of": "2026-08-10T13:00:00.000Z",
+    "due_at": "2026-08-10T13:00:00.000Z",
+    "requested_by": null,
+    "started_at": "2026-08-10T13:00:00.000Z",
+    "finished_at": "2026-08-10T13:00:04.180Z",
+    "attempts": 1,
+    "partners": 42,
+    "paid": 37,
+    "held": 2,
+    "released": 1,
+    "carried": 2,
+    "failed": 0,
+    "paid_cents": 184210,
+    "held_cents": 1950,
+    "error": null,
+    "created_at": "2026-08-10T13:00:00.000Z"
+  }
+}
