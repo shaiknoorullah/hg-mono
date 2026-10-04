@@ -182,6 +182,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       res.status(route.successStatus === 204 ? 204 : route.successStatus).end();
       return;
     }
+    if (route.acknowledgement) {
+      res.status(route.successStatus).json({ data: { acknowledged: true } });
+      return;
+    }
     res
       .status(501)
       .json(

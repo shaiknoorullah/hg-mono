@@ -1,0 +1,30 @@
+{
+  "scenario": "error_prohibited_ingredient",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `PROHIBITED_INGREDIENT`. Rejected outright, before review. The same check runs for restaurants and for admins editing on their behalf.",
+  "operations": [
+    "createMenuItem",
+    "updateMenuItem",
+    "createMenuItemOnBehalf",
+    "updateMenuItemOnBehalf"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "PROHIBITED_INGREDIENT",
+      "message": "HalalGoes does not list items that contain alcohol or pork.",
+      "request_id": "Z9MSNZ8DJ7WH1CHQAK0V398P2C",
+      "details": [
+        {
+          "field": "ingredients_text",
+          "code": "prohibited",
+          "message": "Mentions rum."
+        }
+      ]
+    }
+  }
+}
