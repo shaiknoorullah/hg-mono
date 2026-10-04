@@ -297,8 +297,10 @@ jobs:
 
           certs="$("$tools/apksigner" verify --print-certs "$apk")"
           echo "$certs"
-          dn="$(sed -n 's/^Signer #1 certificate DN: //p' <<<"$certs")"
-          cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<<"$certs")"
+          # apksigner prints "Signer #1 certificate …" or, for a v2-only APK, "V2 Signer: certificate …".
+          dn="$(sed -n -E 's/^(Signer #1|V[0-9]+ Signer):? certificate DN: //p' <<<"$certs" | sed -n 1p)"
+          cert="$(sed -n -E 's/^(Signer #1|V[0-9]+ Signer):? certificate SHA-256 digest: //p' <<<"$certs" | sed -n 1p)"
+          if [ -z "$dn" ] || [ -z "$cert" ]; then fail "could not read the signer from apksigner"; fi
           if [ "$PROD" = true ]; then
             [[ "$dn" != *"CN=Android Debug"* ]] || fail "a prod APK is signed with the debug key"
             expected="$(tr -d ':[:space:]' <<<"$EXPECTED_CERT_SHA256" | tr '[:upper:]' '[:lower:]')"
