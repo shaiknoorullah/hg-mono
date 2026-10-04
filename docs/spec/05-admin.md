@@ -186,9 +186,9 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
   A-02); staff org-chart/manager hierarchy; hard deletion of staff rows.
 - **As built (Oct 2026)**: the invitation is a 72-hour single-use token stored like a password-reset
   token and emailed through the notification outbox in the transaction that creates the account. The
-  address is read from the invited account itself, the email quotes nothing the inviter typed (only
-  the role, from a fixed list), and one account gets at most 3 invitations a day and one inviter
-  sends at most 20. The invitee sets a first password through the reset-password operation, which
+  address is read from the invited account itself, the email quotes nothing the super admin typed
+  (only the role, from a fixed list), and one account gets at most 3 invitations a day and one super
+  admin sends at most 20. The invitee sets a first password through the reset-password operation, which
   also marks the email verified, then enrols two-step sign-in. `staff_invitation` is not written yet,
   and an expired link answers with the reset operation's expired-token error rather than
   `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170),
