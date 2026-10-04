@@ -6,9 +6,10 @@ import { IconMenuBook, IconWallet, IconUsers, IconSettings, IconLogout } from '.
 /**
  * The persistent restaurant-operator chrome, on the shared `AppShell` + `SideNav` frame
  * (`@hg/ui-web` navigation tier) instead of a bespoke aside. `SideNav` is glass — a
- * translucent surface with a real backdrop blur — and its active row is a soft orange tint
- * with a solid 4px orange accent bar, never green (RULE H-1: solid green is reserved to
- * `color.halal.*` alone; this is wayfinding chrome, not a certification).
+ * translucent surface with a real backdrop blur — and its current page is a filled tile in the
+ * soft orange selected tint with a bold label, never an edge bar (issue #398), and never green
+ * (solid green is reserved to `color.halal.*` alone; this is wayfinding chrome, not a
+ * certification).
  *
  * Semantic `Icon` names cover Orders (checklist) and Hours (clock); Menu, Payouts, Staff and
  * Settings have no match in the shared primitive's small cross-platform set, so those keep
