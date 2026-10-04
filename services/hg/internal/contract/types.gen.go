@@ -4093,7 +4093,10 @@ type Cart struct {
 	// Examples: 4696
 	IndicativeSubtotalCents Cents `json:"indicative_subtotal_cents"`
 
-	// IsQuotable False when any line is unavailable, the restaurant is closed, or no address is selected.
+	// IsQuotable False when any line is unavailable, the restaurant is closed, the restaurant cannot
+	// take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
+	// is not current), or no address is selected. A cart whose restaurant becomes
+	// unavailable is kept, never emptied on the customer's behalf.
 	IsQuotable bool `json:"is_quotable"`
 
 	// ItemCount Sum of quantities, not the number of distinct lines.

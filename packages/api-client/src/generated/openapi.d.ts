@@ -1208,6 +1208,13 @@ export interface paths {
          *     the current cart's restaurant and line count. `replace=true` performs clear + add as
          *     **one atomic call** — a two-call clear-then-add is prohibited because it can leave an
          *     empty cart on failure.
+         *
+         *     `409 RESTAURANT_UNAVAILABLE` when the item's restaurant cannot take orders: it is not
+         *     listed and live (delisted, suspended or banned), or its halal certificate is not
+         *     current **as of this request**, computed from admin-verified certificate data. A
+         *     client that still holds the item id from an old cart or a cached menu gets the same
+         *     answer. Quoting and placing an order check it again in their own transaction, and a
+         *     cart already holding the restaurant's items is kept but stops being quotable.
          */
         post: operations["addCartLine"];
         delete?: never;
@@ -3529,7 +3536,12 @@ export interface components {
             /** Format: uuid */
             id: string;
             indicative_subtotal_cents: components["schemas"]["Cents"];
-            /** @description False when any line is unavailable, the restaurant is closed, or no address is selected. */
+            /**
+             * @description False when any line is unavailable, the restaurant is closed, the restaurant cannot
+             *     take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
+             *     is not current), or no address is selected. A cart whose restaurant becomes
+             *     unavailable is kept, never emptied on the customer's behalf.
+             */
             is_quotable: boolean;
             /**
              * Format: int32
@@ -8602,7 +8614,8 @@ export interface operations {
             };
             /**
              * @description `DIFFERENT_RESTAURANT`, `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`,
-             *     `ADDON_UNAVAILABLE` or `RESTAURANT_CLOSED`. The cart is unchanged.
+             *     `ADDON_UNAVAILABLE`, `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`. The cart is
+             *     unchanged.
              */
             409: {
                 headers: {

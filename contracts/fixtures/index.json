@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 358,
+  "count": 360,
   "counts_by_domain": {
     "admin": 17,
-    "cart": 12,
+    "cart": 13,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 36,
+    "errors": 37,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -354,6 +354,21 @@
         "dense"
       ],
       "file": "cart/cart_many_lines.json"
+    },
+    {
+      "scenario": "cart_restaurant_unavailable",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "The restaurant's halal certificate expired after these items were added. The cart is kept as it was, the badge reads `EXPIRED` (cool slate, never a red one) and `blocking_reasons: [RESTAURANT_UNAVAILABLE]` with `is_quotable: false`. Adding, quoting and ordering answer `409 RESTAURANT_UNAVAILABLE` (`error_restaurant_unavailable`).",
+      "operations": [
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "error-path",
+        "halal"
+      ],
+      "file": "cart/cart_restaurant_unavailable.json"
     },
     {
       "scenario": "cart_single_line",
@@ -2298,6 +2313,18 @@
         "error-envelope"
       ],
       "file": "errors/error_restaurant_closed.json"
+    },
+    {
+      "scenario": "error_restaurant_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RESTAURANT_UNAVAILABLE`. From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed and live, or its halal certificate is not current as of the request, computed from admin-verified certificate data. The apps show the halal copy and keep the cart. Pairs with `cart_restaurant_unavailable`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_restaurant_unavailable.json"
     },
     {
       "scenario": "error_review_edit_window_closed",
@@ -5666,6 +5693,7 @@
       "cart_empty",
       "cart_has_unavailable_items",
       "cart_many_lines",
+      "cart_restaurant_unavailable",
       "cart_single_line"
     ],
     "getConnectStatus": [
