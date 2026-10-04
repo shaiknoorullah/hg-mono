@@ -56,8 +56,9 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 dev-reset                                         (planned make target)
   └─ cmd/devworld reset
        1. guard: HG_ENV=local and DB host is local, else refuse
-       2. drop schema public, migrate up, flush Redis   (new orders start open:
-          migrating recreates the ordering-pause row switched off)
+       2. drop schema public, re-run migrations/roles/roles.sql as the superuser
+          (it hands the new schema to hg_migrator), migrate up as hg_migrator, flush Redis
+          (new orders start open: migrating recreates the ordering-pause row switched off)
        3. load migrations/seed/*            (reference data — unchanged)
        4. load migrations/devworld/*.sql    (the static world)
        5. set credentials                   (password hash + encrypted TOTP, via the seedpw/seedtotp code paths)

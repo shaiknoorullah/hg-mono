@@ -123,7 +123,8 @@ runner in Settings → Actions → Runners.
 
 - Linux, x64 or arm64, with a systemd user manager and unprivileged user namespaces.
 - **Docker**, usable by the runner's user. The `migrations` job uses a Postgres service container,
-  and the Go tests and coverage start Postgres with testcontainers. Without Docker those jobs fail.
+  and the Go tests start Postgres with testcontainers: in the `go` job, or in `coverage` for the
+  weekly scan. Without Docker those jobs fail.
 - No `psql`, Go, Node or Python setup is needed: jobs install Go and Node into the runner's own
   tool cache, use the machine's `python3` in a private venv, and run `psql` from the Postgres image.
 - **No KVM on the workstation** (`/dev/kvm` is missing), so it cannot boot an Android emulator.
@@ -167,6 +168,10 @@ that:
 - Caches: on GitHub's runners, the Actions cache (keyed by `pnpm-lock.yaml` and `go.sum`); on ours,
   the runner's own home, never uploaded. Release builds run on GitHub's runners and restore no
   cache, so nothing a PR job built on our machines can reach a release.
+- Artifacts: an upload from our runners goes to GitHub's storage at home-upload speed, so upload
+  only small results, never build output or caches. The `go` and `js` jobs hand `coverage` their
+  numbers as a JSON file of a few KB (`coverage-slice-go`, `coverage-slice-js`), not the raw
+  coverage profiles ([#374](https://github.com/shaiknoorullah/hg-mono/issues/374)).
 
 ## What is still at risk
 

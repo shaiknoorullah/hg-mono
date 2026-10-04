@@ -172,8 +172,9 @@ WHERE asn.id = $1 AND asn.rider_account_id = $2`
 // not been wired yet.
 //
 // SKIP LOCKED is not used here because we want every replica to see the same
-// list — two replicas calling RunWave for the same order will contend on the
-// dispatch_wave unique index and one will log an error, which is harmless.
+// list — two replicas calling RunWave for the same order queue on the dispatch
+// row the first wave creates, and the second finds the wave already run
+// (CreateWave, errWaveNotOpen) and writes nothing.
 func (s *Store) FindUndispatchedReadyOrders(ctx context.Context) ([]string, error) {
 	rows, err := s.db.Query(ctx, `
 SELECT o.id
