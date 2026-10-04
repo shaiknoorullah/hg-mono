@@ -14,6 +14,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -179,11 +181,14 @@ func TestLocalFallbackLogsOncePerWindowPerLimit(t *testing.T) {
 	}
 }
 
-// TestLocalFallbackCapHoldsUnderRandomKeys: a flood of made-up subjects never
-// grows one limit's counters past the cap. A counter in use survives it (the
-// least recently used goes first), another limit's counters are untouched,
-// and counters whose window has ended are dropped.
-func TestLocalFallbackCapHoldsUnderRandomKeys(t *testing.T) {
+// TestLocalFallbackCapHoldsWithoutEvictingALiveCount: a flood of made-up
+// subjects (random emails, or addresses in fresh IPv6 /64s) can neither grow
+// one limit's counters past the cap nor push a guesser's count out to get a
+// fresh budget. Once the limit is full of live counts, new subjects share one
+// overflow window with the same Max, so the flood is refused, never let
+// through. Another limit's counters are untouched, and counters whose window
+// has ended are dropped.
+func TestLocalFallbackCapHoldsWithoutEvictingALiveCount(t *testing.T) {
 	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
 	ll := newLocalLimiter(localMaxEntriesPerLimit, func() time.Time { return now })
 	target := Limit{Name: "login:email", Subject: "target@example.com", Max: 10, Window: 15 * time.Minute}
@@ -197,20 +202,25 @@ func TestLocalFallbackCapHoldsUnderRandomKeys(t *testing.T) {
 		t.Fatalf("other limit: %v", err)
 	}
 
-	flood := target
+	flood, allowed := target, 0
 	for i := range 3 * localMaxEntriesPerLimit {
 		flood.Subject = fmt.Sprintf("made-up-%d@example.com", i)
-		if _, err := ll.allow(flood); err != nil {
-			t.Fatalf("a new subject was limited: %v", err)
+		if _, err := ll.allow(flood); err == nil {
+			allowed++
+		} else if !errors.Is(err, ErrRateLimited) {
+			t.Fatalf("made-up subject %d: %v", i, err)
 		}
-		if i%1000 == 0 { // the guesser keeps trying through the flood
-			if _, err := ll.allow(target); !errors.Is(err, ErrRateLimited) {
-				t.Fatalf("after %d made-up subjects the target's count was lost: %v", i, err)
-			}
-		}
+	}
+	// Each subject that found room has its own count; after that, all of
+	// them together get one Max.
+	if want := localMaxEntriesPerLimit - 1 + int(target.Max); allowed != want {
+		t.Errorf("%d made-up subjects allowed, want %d", allowed, want)
 	}
 	if n := localEntries(ll, target.Name); n != localMaxEntriesPerLimit {
 		t.Errorf("%d counters after the flood, want the cap, %d", n, localMaxEntriesPerLimit)
+	}
+	if _, err := ll.allow(target); !errors.Is(err, ErrRateLimited) {
+		t.Errorf("after the flood the guesser was allowed again (%v): its count was evicted", err)
 	}
 	if n := localEntries(ll, other.Name); n != 1 {
 		t.Errorf("the flood changed another limit's counters: %d, want 1", n)
@@ -222,6 +232,83 @@ func TestLocalFallbackCapHoldsUnderRandomKeys(t *testing.T) {
 	}
 	if n := localEntries(ll, target.Name); n != 1 {
 		t.Errorf("%d counters once every window ended, want 1 (the one just counted)", n)
+	}
+}
+
+// TestWithRedisGoneTheLocalCountUsesTheRedisKey: the local count is keyed
+// exactly as Redis's is, so a guesser cannot reset it by changing the email's
+// letter case or spaces, or the address within its IPv6 /64, and requests
+// with no resolvable address share one "unknown" count.
+func TestWithRedisGoneTheLocalCountUsesTheRedisKey(t *testing.T) {
+	rl := NewRateLimiter(goneRedis(t), nil)
+	login := handlerWithoutStore(rl).Login
+	spellings := []string{"Target@Example.COM", " target@example.com", "TARGET@example.com", "target@EXAMPLE.com "}
+	body := func(email string) string {
+		return fmt.Sprintf(`{"email":%q,"password":"correct horse battery"}`, email)
+	}
+
+	// Ten logins for one email, spelled four ways, from ten addresses in one /64.
+	for i := range 10 {
+		ip := fmt.Sprintf("2001:db8:1:2::%x", i+1)
+		if rec, passed := serve(login, authRequest("/v1/auth/login", ip, body(spellings[i%len(spellings)]))); !passed {
+			t.Fatalf("login %d was refused: %d %s", i+1, rec.Code, rec.Body.String())
+		}
+	}
+	if e, a := localEntries(rl.local, "login:email"), localEntries(rl.local, "login:ip"); e != 1 || a != 1 {
+		t.Errorf("counters: %d per email, %d per address; want 1 and 1 (one email, one /64)", e, a)
+	}
+	rec, passed := serve(login, authRequest("/v1/auth/login", "2001:db8:1:2:ffff:ffff:ffff:ffff", body("tArGeT@example.com")))
+	if passed {
+		t.Fatal("an 11th spelling of the email, from a new address in the same /64, went past the limiter")
+	}
+	assertLimited(t, rec, 15*time.Minute)
+
+	// No resolvable address: every request counts in the one "unknown" bucket.
+	for i := range 31 {
+		req := authRequest("/v1/auth/login", "", body(fmt.Sprintf("owner%d@example.com", i)))
+		req.RemoteAddr = "pipe"
+		rec, passed := serve(login, req)
+		if i < 30 && !passed {
+			t.Fatalf("login %d with no address was refused: %d %s", i+1, rec.Code, rec.Body.String())
+		}
+		if i == 30 {
+			if passed {
+				t.Fatal("the 31st login with no address went past the limiter")
+			}
+			assertLimited(t, rec, 15*time.Minute)
+		}
+	}
+}
+
+// TestLocalFallbackIsAtomicUnderConcurrency: with Redis gone, concurrent
+// requests over one count can never take more than Max between them, and
+// every one gets a counted answer.
+func TestLocalFallbackIsAtomicUnderConcurrency(t *testing.T) {
+	rl := NewRateLimiter(goneRedis(t), nil)
+	l := Limit{Name: "login:email", Subject: "target@example.com", Max: 10, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}
+	const attempts = 50 // Max plus 40
+	var allowed, limited atomic.Int64
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for range attempts {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			switch err := rl.Allow(context.Background(), l); {
+			case err == nil:
+				allowed.Add(1)
+			case errors.Is(err, ErrRateLimited):
+				limited.Add(1)
+			default:
+				t.Errorf("an answer that is neither allowed nor limited: %v", err)
+			}
+		}()
+	}
+	close(start)
+	wg.Wait()
+	if allowed.Load() != l.Max || limited.Load() != attempts-l.Max {
+		t.Errorf("%d allowed and %d limited, want %d and %d", allowed.Load(), limited.Load(), l.Max, attempts-l.Max)
 	}
 }
 
@@ -329,7 +416,7 @@ func handlerWithoutStore(rl *RateLimiter) *Handler {
 func authRequest(path, ip, body string) *http.Request {
 	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.RemoteAddr = ip + ":51000"
+	req.RemoteAddr = net.JoinHostPort(ip, "51000")
 	return req
 }
 
