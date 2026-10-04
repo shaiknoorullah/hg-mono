@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 # Make the HalalGoes Android release key and hand it to GitHub Actions. The OWNER runs this once.
 #
-#   scripts/release/make-android-keystore.sh [--out DIR] [--repo OWNER/NAME] [--replace-existing-key]
+#   scripts/release/make-android-keystore.sh [--out DIR] [--repo OWNER/NAME] [--replace-existing-key] [--repo-secrets]
 #
 # What it does:
 #   1. Makes a release keystore with keytool and a random password, in DIR
 #      (default: ~/halalgoes-android-release-key, which must be outside any git checkout).
-#   2. Sets the four repo secrets the release workflow signs prod APKs with:
+#   2. Sets up the repo's `release` environment, which only main and the customer-v* and rider-v*
+#      tags may use, and stores in it the four secrets prod APKs are signed with:
 #      ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD,
-#      and the repo variable ANDROID_RELEASE_CERT_SHA256 the workflow checks each APK against.
+#      plus the variable ANDROID_RELEASE_CERT_SHA256 the workflow checks each APK against.
+#      --repo-secrets stores them as repo secrets instead, for a GitHub plan without environment
+#      secrets on private repos.
 #   3. Tells you how to back the key up. Read that part: it matters more than the rest.
 #
 # Run it again with the same DIR and it reuses the key there and only sets the secrets again.
-# It never prints a password, never puts one on a command line, and never writes inside the repo.
+# It never prints a password, never puts one on a command line, and never writes inside a repo.
 # Needs: keytool (any JDK 17+), gh (signed in, with admin rights on the repo), openssl, base64.
 # Docs: docs/release/README.md
 
@@ -22,6 +25,7 @@ umask 077
 OUT="${HOME}/halalgoes-android-release-key"
 REPO=""
 REPLACE=0
+ENVIRONMENT="release"
 ALIAS="halalgoes-release"
 
 die() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
@@ -31,7 +35,8 @@ while [ $# -gt 0 ]; do
     --out) OUT="${2:?--out needs a directory}"; shift 2 ;;
     --repo) REPO="${2:?--repo needs OWNER/NAME}"; shift 2 ;;
     --replace-existing-key) REPLACE=1; shift ;;
-    -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --repo-secrets) ENVIRONMENT=""; shift ;;
+    -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown argument: $1 (try --help)" ;;
   esac
 done
@@ -45,6 +50,10 @@ if [ -z "$REPO" ]; then
   REPO="$(cd "$(dirname "$0")" && gh repo view --json nameWithOwner -q .nameWithOwner)" \
     || die "could not tell which repo this is. Pass --repo OWNER/NAME."
 fi
+
+# Where the secrets go: the release environment, or (with --repo-secrets) the repo.
+SCOPE=(--repo "$REPO")
+[ -z "$ENVIRONMENT" ] || SCOPE+=(--env "$ENVIRONMENT")
 
 # The key must never be committed: refuse any folder inside a git checkout, before making it.
 probe="$OUT"
@@ -68,7 +77,7 @@ if [ -f "$KEYSTORE" ]; then
   fi
   ALIAS="$KEY_ALIAS"
 else
-  if gh secret list --repo "$REPO" 2>/dev/null | grep -q '^ANDROID_KEYSTORE_BASE64[[:space:]]' && [ "$REPLACE" -ne 1 ]; then
+  if gh secret list "${SCOPE[@]}" 2>/dev/null | grep -q '^ANDROID_KEYSTORE_BASE64[[:space:]]' && [ "$REPLACE" -ne 1 ]; then
     die "$REPO already has a release key (secret ANDROID_KEYSTORE_BASE64), and there is none in $OUT.
 A new key means every installed copy of the apps must be uninstalled before it can update.
 If you have the old key, run this again with --out pointing at its folder.
@@ -94,16 +103,31 @@ fi
 export STORE_PASSWORD
 
 FINGERPRINT="$(keytool -list -v -keystore "$KEYSTORE" -storetype PKCS12 -storepass:env STORE_PASSWORD -alias "$ALIAS" \
-  | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | head -n 1)"
+  | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | sed -n 1p)"
 [ -n "$FINGERPRINT" ] || die "could not read the certificate fingerprint from $KEYSTORE."
 
-printf 'Setting the release secrets on %s …\n' "$REPO"
+if [ -n "$ENVIRONMENT" ]; then
+  printf 'Setting up the %s environment on %s …\n' "$ENVIRONMENT" "$REPO"
+  # Only main (manual prod builds) and the Android release tags may enter it.
+  printf '{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' \
+    | gh api -X PUT "repos/$REPO/environments/$ENVIRONMENT" --input - >/dev/null \
+    || die "could not set up the $ENVIRONMENT environment. If your GitHub plan has no environment secrets for private repos, run again with --repo-secrets."
+  policies="$(gh api "repos/$REPO/environments/$ENVIRONMENT/deployment-branch-policies" \
+    -q '.branch_policies[] | .type + " " + .name')"
+  for policy in "branch main" "tag customer-v*" "tag rider-v*"; do
+    grep -qxF "$policy" <<<"$policies" \
+      || gh api -X POST "repos/$REPO/environments/$ENVIRONMENT/deployment-branch-policies" \
+        -f type="${policy%% *}" -f name="${policy#* }" >/dev/null
+  done
+fi
+
+printf 'Setting the release secrets …\n'
 # Values go in on stdin, never as arguments: nothing lands in shell history or the process list.
-base64 <"$KEYSTORE" | tr -d '\n' | gh secret set ANDROID_KEYSTORE_BASE64 --repo "$REPO"
-printf '%s' "$STORE_PASSWORD" | gh secret set ANDROID_KEYSTORE_PASSWORD --repo "$REPO"
-printf '%s' "$STORE_PASSWORD" | gh secret set ANDROID_KEY_PASSWORD --repo "$REPO"
-printf '%s' "$ALIAS" | gh secret set ANDROID_KEY_ALIAS --repo "$REPO"
-gh variable set ANDROID_RELEASE_CERT_SHA256 --repo "$REPO" --body "$FINGERPRINT"
+base64 <"$KEYSTORE" | tr -d '\n' | gh secret set ANDROID_KEYSTORE_BASE64 "${SCOPE[@]}"
+printf '%s' "$STORE_PASSWORD" | gh secret set ANDROID_KEYSTORE_PASSWORD "${SCOPE[@]}"
+printf '%s' "$STORE_PASSWORD" | gh secret set ANDROID_KEY_PASSWORD "${SCOPE[@]}"
+printf '%s' "$ALIAS" | gh secret set ANDROID_KEY_ALIAS "${SCOPE[@]}"
+gh variable set ANDROID_RELEASE_CERT_SHA256 "${SCOPE[@]}" --body "$FINGERPRINT"
 
 cat <<EOF
 
@@ -113,7 +137,7 @@ Done. Prod APKs built by the release workflow are now signed with this key.
     halalgoes-android-release.p12            the key
     PASSWORDS-keep-with-the-keystore.txt     its password and alias
   Certificate SHA-256:   $FINGERPRINT
-                         (also saved as the repo variable ANDROID_RELEASE_CERT_SHA256)
+                         (also saved as the variable ANDROID_RELEASE_CERT_SHA256)
 
 BACK IT UP NOW. This is the only copy.
   Android only installs an update signed with the same key as the installed app. If this key

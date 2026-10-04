@@ -11,11 +11,13 @@ trap 'rm -rf "$WORK"' EXIT
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 pass() { printf 'ok - %s\n' "$*"; }
 
-# A stand-in gh: records each secret's value (from stdin) and each variable, in $STATE.
+# A stand-in gh: records every call in calls.log, each secret's value (from stdin) and each
+# variable, and the release environment's deployment policies, under $STATE.
 mkdir -p "$WORK/bin" "$WORK/state/secrets" "$WORK/state/variables"
 cat >"$WORK/bin/gh" <<'GH'
 #!/usr/bin/env bash
 set -euo pipefail
+echo "$*" >>"$STATE/calls.log"
 case "$1 $2" in
   "auth status") exit 0 ;;
   "repo view") echo "example/hg-mono" ;;
@@ -27,6 +29,14 @@ case "$1 $2" in
       if [ "$1" = --body ]; then printf '%s' "$2" >"$STATE/variables/$name"; fi
       shift
     done ;;
+  "api -X")
+    case "$3 $4" in
+      "PUT repos/example/hg-mono/environments/release") cat >"$STATE/environment.json" ;;
+      "POST repos/example/hg-mono/environments/release/deployment-branch-policies")
+        echo "${6#type=} ${8#name=}" >>"$STATE/policies" ;;
+      *) echo "unexpected gh api call: $*" >&2; exit 1 ;;
+    esac ;;
+  "api repos/example/hg-mono/environments/release/deployment-branch-policies") cat "$STATE/policies" 2>/dev/null || true ;;
   *) echo "unexpected gh call: $*" >&2; exit 1 ;;
 esac
 GH
@@ -39,7 +49,13 @@ KEYDIR="$WORK/key"
 for s in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
   [ -s "$STATE/secrets/$s" ] || fail "secret $s was not set"
 done
-pass "sets the four secrets"
+if grep '^secret set\|^variable set' "$STATE/calls.log" | grep -v -- '--env release'; then
+  fail "a secret or variable was set outside the release environment"
+fi
+grep -q '"custom_branch_policies":true' "$STATE/environment.json" || fail "the release environment is open to every branch"
+[ "$(sort "$STATE/policies" | tr '\n' ',')" = "branch main,tag customer-v*,tag rider-v*," ] \
+  || fail "release environment policies: $(tr '\n' ',' <"$STATE/policies")"
+pass "sets the four secrets in the release environment, which only main and the Android release tags may use"
 
 PASSWORD="$(cat "$STATE/secrets/ANDROID_KEYSTORE_PASSWORD")"
 ALIAS="$(cat "$STATE/secrets/ANDROID_KEY_ALIAS")"

@@ -76,10 +76,11 @@ git tag customer-v1.0.0
 git push origin customer-v1.0.0
 ```
 
-A tag always builds **prod**. When the build passes, the workflow publishes a GitHub Release for
-the tag with the files and their SHA-256 sums; a version with a pre-release label (`-rc.1`) is
-marked as a pre-release. If the build fails, no release is made: fix the cause and run the failed
-jobs again, or delete the tag and tag again.
+A tag always builds **prod**, and only from a commit that is on `main`; a tag anywhere else is
+refused. When the build passes, the workflow publishes a GitHub Release for the tag with the files
+and their SHA-256 sums; a version with a pre-release label (`-rc.1`) is marked as a pre-release.
+If the build fails, no release is made: fix the cause and run the failed jobs again, or delete the
+tag and tag again.
 
 ### A build without a tag
 
@@ -90,15 +91,27 @@ gh workflow run release-builds.yml -f app=customer -f env=dev -f version=1.0.0-d
 gh run watch
 ```
 
-The files are on the run's page under Artifacts for 14 days. Use this for dev builds, and to try
-a prod build before tagging it.
+The files are on the run's page under Artifacts for 14 days. Dev builds run from any branch. Prod
+builds run from `main` only (choose `main` in "Use workflow from"); use one to try a prod build
+before tagging it.
 
 ### What each build checks
 
 - The APK's package, version name and version code are the ones expected for its environment.
 - The API it talks to is inside its JavaScript bundle (and inside a web bundle).
-- Dev APKs carry the debug key. Prod APKs do not; when the repo variable
+- Dev APKs carry the debug key. Prod APKs do not; when the variable
   `ANDROID_RELEASE_CERT_SHA256` is set, their certificate must be the release key's.
+
+### What keeps a prod build trustworthy
+
+- Prod builds come only from `main` or a tag on `main`, as above.
+- The signing secrets belong to the repo's `release` environment, which only the prod Android job
+  enters, and which only `main` and the `customer-v*` and `rider-v*` tags may use. Dev builds and
+  pull requests cannot read them. The owner can add required reviewers to that environment in the
+  repo settings, so each prod build waits for approval.
+- Prod builds restore no cache: they are built from the commit alone.
+- Every action the workflow uses is pinned to a commit, and its inputs are checked against a fixed
+  list before any script sees them.
 
 ## Web apps
 
@@ -154,15 +167,18 @@ scripts/release/make-android-keystore.sh
 The script:
 
 1. makes the key in `~/halalgoes-android-release-key`, outside the repo, with a random password;
-2. sets the repo secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
-   `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, and the repo variable
+2. sets up the `release` environment (only `main` and the Android release tags may use it) and
+   stores in it the secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+   `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, and the variable
    `ANDROID_RELEASE_CERT_SHA256`;
 3. prints how to back it up. Do it straight away: both files in the folder go into a password
    manager and onto offline storage.
 
 It never prints the password or passes it on a command line, and it refuses to write the key
 inside a git checkout. Run it again with the same folder to set the secrets again; it will not
-make a second key while the repo already has one.
+make a second key while the repo already has one. If GitHub refuses the environment (environment
+secrets on private repos need a paid plan), run it with `--repo-secrets` to store them as repo
+secrets instead; the prod-only and `main`-only rules still hold.
 
 Until the secrets exist, a prod Android build stops at its first step with "Release key missing"
 and names this task. Dev builds don't need the key.
