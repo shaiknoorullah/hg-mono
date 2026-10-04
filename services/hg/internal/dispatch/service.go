@@ -302,7 +302,9 @@ func scoreFor(distanceM float64) int {
 	return int(1000 - 0.1*eta)
 }
 
-// Reconcile is the availability backstop (D-10).
-func (s *Service) Reconcile(ctx context.Context) (int64, error) {
+// Reconcile is the availability backstop of docs/spec/04-rider.md, "D-10 —
+// Availability: online / offline": it restores every rider stuck ON_DELIVERY
+// with no live assignment and returns them.
+func (s *Service) Reconcile(ctx context.Context) ([]string, error) {
 	return s.store.ReconcileAvailability(ctx)
 }

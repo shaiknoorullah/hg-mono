@@ -28,6 +28,11 @@ x-api-env: &api-env
   HG_HTTP_ADDR: ":8080"
   HG_LOG_LEVEL: ${HG_LOG_LEVEL:-info}
   HG_SHUTDOWN_TIMEOUT: ${HG_SHUTDOWN_TIMEOUT:-20s}
+  # Rider availability sweeps (docs/spec/04-rider.md, "D-10 — Availability:
+  # online / offline"; see .env.example).
+  HG_RIDER_STALE_AFTER: ${HG_RIDER_STALE_AFTER:-120s}
+  HG_RIDER_STALE_SWEEP_INTERVAL: ${HG_RIDER_STALE_SWEEP_INTERVAL:-15s}
+  HG_RIDER_RECONCILE_INTERVAL: ${HG_RIDER_RECONCILE_INTERVAL:-60s}
   HG_CORS_ALLOWED_ORIGINS: ${HG_CORS_ALLOWED_ORIGINS:?set HG_CORS_ALLOWED_ORIGINS in .env}
   HG_REALTIME_MAX_SOCKETS: ${HG_REALTIME_MAX_SOCKETS:-2000}
   # Traefik's network, so the API reads the client address Traefik forwards
