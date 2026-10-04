@@ -10,7 +10,8 @@
     "ios": "expo run:ios",
     "build:web": "expo export --platform web --output-dir dist",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "lint": "../../packages/ui-web/node_modules/.bin/tsx ../../packages/ui-web/src/lint/run.ts App.tsx src"
   },
   "dependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",

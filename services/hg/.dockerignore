@@ -9,3 +9,14 @@ tmp/
 .env
 .env.*
 !.env.example
+# Locally built binaries (see .gitignore): the image builds its own.
+hg
+seedpw
+seedtotp
+totpnow
+cmd/hg/hg
+cmd/seedpw/seedpw
+cmd/seedtotp/seedtotp
+cmd/totpnow/totpnow
+*.test
+*.err

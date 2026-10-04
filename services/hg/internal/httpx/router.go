@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"sort"
 	"strings"
 	"sync"
@@ -43,6 +44,9 @@ type Options struct {
 	Env string
 	// CORSOrigins is the exact-origin allowlist; a wildcard is rejected in config.
 	CORSOrigins []string
+	// TrustedProxies are the peers whose X-Forwarded-For is believed (stage 3,
+	// RealIP). Empty means none: the socket peer is the client.
+	TrustedProxies []netip.Prefix
 	// Authenticator resolves credentials to a Principal (stage 10).
 	Authenticator Authenticator
 	// Authorizer answers the role→action question (stage 11).
@@ -70,19 +74,20 @@ func NewRouter(opts Options) *Router {
 		env:    opts.Env,
 		routes: map[routeKey]Policy{},
 	}
-	// The chain, in the P-06 order. Stages 3, 7, 9, 13, 14 and 16 are not built
+	// The chain, in the P-06 order. Stages 7, 9, 13, 14 and 16 are not built
 	// yet and are listed as TODOs in doc.go; the ones present are in position so
 	// that inserting the rest does not reorder anything.
 	rt.global = []Middleware{
-		RequestID(),            // 1
-		Recover(log),           // 2
-		AccessLog(log),         // 4
-		Timeout(),              // 5
-		BodyLimit(),            // 6
-		CORS(opts.CORSOrigins), // 8
-		Authenticate(auth),     // 10
-		Guard(az),              // 11
-		IdempotencyKey(),       // 12
+		RequestID(),                 // 1
+		Recover(log),                // 2
+		RealIP(opts.TrustedProxies), // 3
+		AccessLog(log),              // 4
+		Timeout(),                   // 5
+		BodyLimit(),                 // 6
+		CORS(opts.CORSOrigins),      // 8
+		Authenticate(auth),          // 10
+		Guard(az),                   // 11
+		IdempotencyKey(),            // 12
 	}
 
 	rt.mux.NotFound(func(w http.ResponseWriter, r *http.Request) {

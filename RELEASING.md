@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-10-01
+reviewed: 2026-10-04
 ---
 
 # Releasing HalalGoes
@@ -77,6 +77,10 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    host for file links: `HG_MINIO_PRESIGN_BASE_URL` (e.g. `https://files.halalgoes.com`), routed
    by Traefik to the object store with the Host header unchanged. Upload and download links are
    signed for that host, so phones can use them.
+7. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
+   (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
+   address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
+   Never `0.0.0.0/0` (refused at boot).
 
 ## 4. Deploy the stack (on your host)
 
