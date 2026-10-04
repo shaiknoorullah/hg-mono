@@ -3971,11 +3971,11 @@ export interface components {
                  *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
                  *     `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                  *     `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+                 *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
                  *     `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
                  *     `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                  *     `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
                  *     `POD_REQUIRED` → `{required_pod_method}`;
-                 *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
                  *     `RATE_LIMITED` → `{retry_after_seconds}`.
                  */
                 details?: {

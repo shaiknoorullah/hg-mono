@@ -300,12 +300,12 @@ either way, but the **values** need a human before launch:
 | `x-roles` and `x-version` present | Any operation omits either — this is the deny-by-default gate expressed in the contract |
 | Money invariant | A `_cents` field is not `integer/int64`, or a money-shaped field lacks the suffix, or a `number`-typed field has a money-shaped name |
 | Mass-assignment invariant | A request body contains a price-shaped field outside the three-item allowlist |
+| Menu lock declared | A write under a menu path (`/menu`, `/menu/…`, `/menu-reviews/…`) has no `403` naming `MENU_LOCKED`, the refusal while the restaurant is suspended or banned ([menu lock](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#256](https://github.com/shaiknoorullah/hg-mono/issues/256)) |
 | Component reachability | A schema, parameter or response is declared and never referenced |
 | Contract drift | The document generated from the route registry differs from the committed one |
 | Fixture validity | Any fixture under `contracts/fixtures/` does not validate against its named schema (`pnpm validate:fixtures`) |
 | Error-code casing | Any `ErrorCode` member is not `SCREAMING_SNAKE_CASE`, or the enum contains a duplicate |
 | YAML 1.1 truthy scalars | An unquoted `ON`/`OFF`/`YES`/`NO` appears in an `enum`, `examples` or `default` — see §"Two contract defects" |
 | Unsatisfiable `allOf` | An `allOf` extends a base that sets `additionalProperties: false` |
-| Menu lock declared | A write under a menu path (`/menu`, `/menu/…`, `/menu-reviews/…`) has no `403` naming `MENU_LOCKED`, the refusal while the restaurant is suspended or banned ([menu lock](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#256](https://github.com/shaiknoorullah/hg-mono/issues/256)) |
 | Generated-client drift | `pnpm generate` changes `packages/api-client/src/generated/**` (`git diff --exit-code`) |
 | Fixture drift | `pnpm fixtures:build` changes anything under `contracts/fixtures/` (`git diff --exit-code`) |
