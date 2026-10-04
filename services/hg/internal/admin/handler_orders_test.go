@@ -36,6 +36,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // ---- test helpers --------------------------------------------------------
@@ -178,6 +179,10 @@ func seedOrderBasics(t *testing.T, pool *pgxpool.Pool) orderTestBasics {
 		_, _ = pool.Exec(ctx, `DELETE FROM restaurant WHERE id=$1`, b.restaurantID)
 		_, _ = pool.Exec(ctx, `DELETE FROM account WHERE id=$1`, b.accountID)
 	})
+	// Certified through the real chain (an admin-verified certificate): the
+	// order path refuses a restaurant the platform cannot vouch for.
+	// https://github.com/shaiknoorullah/hg-mono/issues/292
+	testseed.CertifyRestaurant(t, pool, b.restaurantID, 300)
 	return b
 }
 

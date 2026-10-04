@@ -28,8 +28,9 @@ type QuoteRequest struct {
 // read FOR SHARE so a concurrent price edit cannot interleave (P-09 step 1).
 //
 // It enforces ownership: the cart must belong to the account. It fails loudly
-// (typed errors) on an unavailable item, a closed restaurant, or a province with
-// no effective tax rate — never silently zeroing (I-09.7).
+// (typed errors) on an unavailable item, a restaurant that cannot take orders
+// (ErrRestaurantUnavailable), a closed restaurant, or a province with no
+// effective tax rate — never silently zeroing (I-09.7).
 func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resolvedContext, error) {
 	var rc resolvedContext
 
@@ -37,21 +38,30 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	var restaurantID, province, taxRole string
 	var commissionBps int
 	var acceptingOrders bool
-	var accountState string
+	var gate restaurantGate
 	err := tx.QueryRow(ctx, `
-		SELECT c.restaurant_id, r.account_state, r.is_accepting_orders,
-		       COALESCE(r.province::text, ''), r.commission_rate_bps, r.tax_role
+		SELECT c.restaurant_id, r.is_accepting_orders,
+		       COALESCE(r.province::text, ''), r.commission_rate_bps, r.tax_role,
+		       `+restaurantGateColumns+`
 		  FROM cart c
 		  JOIN restaurant r ON r.id = c.restaurant_id
 		 WHERE c.id = $1 AND c.account_id = $2 AND c.deleted_at IS NULL`,
-		req.CartID, req.AccountID).Scan(&restaurantID, &accountState, &acceptingOrders, &province, &commissionBps, &taxRole)
+		req.CartID, req.AccountID).Scan(append([]any{&restaurantID, &acceptingOrders, &province, &commissionBps, &taxRole},
+		gate.scanTargets()...)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return rc, ErrCartNotFound
 	}
 	if err != nil {
 		return rc, fmt.Errorf("resolve cart: %w", err)
 	}
-	if accountState != "LIVE" || !acceptingOrders {
+	// Quoting and createOrder both resolve here, inside their own transaction,
+	// so a restaurant that cannot take orders is refused in the transaction
+	// that would create the order (orderable.go). Unavailable outranks closed.
+	// https://github.com/shaiknoorullah/hg-mono/issues/292
+	if err := gate.refuseUnorderable(); err != nil {
+		return rc, err
+	}
+	if !acceptingOrders {
 		return rc, ErrRestaurantClosed
 	}
 	rc.cartID = req.CartID
