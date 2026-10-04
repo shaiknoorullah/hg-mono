@@ -1,6 +1,24 @@
-# brand/
+# @hg/brand
 
-The supplied Halalgoes wordmark, and how it became `src/components/Wordmark.tsx`.
+The supplied HalalGoes wordmark, and how it became the one piece of geometry
+every app draws: `src/wordmark-art.ts`.
+
+It used to live inside the marketing site (`apps/marketing`) and moved here so
+the apps share it instead of copying it. Everything that shows the logo imports the same module:
+
+| Where | Component |
+|---|---|
+| marketing site | `apps/marketing/src/components/Wordmark.tsx` and the OG card |
+| restaurant and admin web apps | `Wordmark` from `@hg/ui-web` |
+| customer and rider apps | `Wordmark` from `@hg/ui-native` (`react-native-svg`) |
+| favicons and app icons | written by `build-assets.mjs`, below |
+
+In the apps the colours are theme roles, not hexes: the letterforms take
+`text.primary` and the swash takes `action.primary` (the same `#F1521E` as
+`--hg-mk-accent`). So the apps' dark mode paints the letterforms in the dark
+theme's `text.primary` (`#F6EFDD`) rather than the supplied `#D0D0D1` the
+marketing site keeps. There is no green in the mark, so it never competes with
+the halal seal.
 
 ## What arrived
 
@@ -38,11 +56,11 @@ descender bleed into the swash instead of meeting it at a cut.
 ## Regenerating
 
 ```bash
-cd apps/marketing/brand && python3 trace-wordmark.py   # needs Pillow
+cd packages/brand && python3 trace-wordmark.py   # needs Pillow
 ```
 
 Prints the geometry and writes `silhouette.path` / `swash.path`. Paste each into
-the matching constant in `src/components/Wordmark.tsx`. The `.path` files are
+the matching constant in `src/wordmark-art.ts`. The `.path` files are
 intermediates and are not checked in.
 
 There is no potrace or numpy in the container this was built in, so
@@ -92,19 +110,28 @@ the mark cannot come out invisible on a surface nobody thought about.
 ## Everything this builds
 
 ```bash
-node apps/marketing/brand/build-assets.mjs
+pnpm --filter @hg/brand build:assets   # the same as: node packages/brand/build-assets.mjs
+# Playwright's Chromium renders the PNGs; point CHROME_PATH at another build if
+# the pinned one is not installed:
+CHROME_PATH=~/.cache/ms-playwright/chromium-<n>/chrome-linux64/chrome node packages/brand/build-assets.mjs
 ```
 
-One command, one source of geometry, nine files:
+One command, one source of geometry, every file:
 
 | File | What it is |
 |---|---|
 | `halalgoes-wordmark-light.svg` · `-dark.svg` | the full wordmark, standalone, transparent |
 | `halalgoes-wordmark-light.png` · `-dark.png` | the same at 1112×372 (2× the supplied master), for decks and signatures |
-| `../src/app/icon.svg` | the browser favicon — **one file, both themes**, via a `prefers-color-scheme` block inside the SVG |
-| `../src/app/apple-icon.png` | 180×180, opaque and unrounded: iOS applies its own mask, and a transparent one renders on black |
-| `../public/icons/icon-192.png` · `icon-512.png` | Android / PWA install |
-| `../public/icons/maskable-512.png` | the same lockup with far more padding, because Android crops maskable icons to a circle |
+| `apps/marketing/src/app/icon.svg` | the browser favicon — **one file, both themes**, via a `prefers-color-scheme` block inside the SVG |
+| `apps/marketing/src/app/apple-icon.png` | 180×180, opaque and unrounded: iOS applies its own mask, and a transparent one renders on black |
+| `apps/marketing/public/icons/icon-192.png` · `icon-512.png` | Android / PWA install |
+| `apps/marketing/public/icons/maskable-512.png` | the same lockup with far more padding, because Android crops maskable icons to a circle |
+| `apps/{restaurant,admin}/public/favicon.svg` | the same themed favicon as the marketing site |
+| `apps/{restaurant,admin}/public/apple-touch-icon.png` | the same 180×180 iOS icon |
+| `apps/{customer,rider}/assets/icon.png` | 1024×1024, opaque and unrounded, for iOS and the stores |
+| `apps/{customer,rider}/assets/adaptive-icon.png` | Android adaptive-icon foreground: transparent, maskable padding; the background colour is in the app config |
+| `apps/{customer,rider}/assets/splash.png` | the light wordmark centred on a transparent square |
+| `apps/{customer,rider}/assets/favicon.png` | 48×48, the Expo web target's tab icon |
 
 The icons are the logo's own **H**, selected out of the traced silhouette rather
 than redrawn — everything left of x=135 is the H and its counter, and the swash

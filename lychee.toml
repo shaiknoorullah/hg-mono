@@ -1,4 +1,4 @@
-# lychee — link checker for the docs (.github/workflows/doc-links.yml, issue #120).
+# lychee — link checker for the docs (the doc-links steps of .github/workflows/docs.yml, issue #120).
 # Pull requests run it with --offline: relative links and #anchors only.
 # The weekly scan runs it online, so external links are checked there and nowhere else.
 # Existing broken links are baselined in tools/doc-refs/baseline.json, not excluded here.
