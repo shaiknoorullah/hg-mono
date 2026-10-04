@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   labels:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     # A fork's token cannot write labels; the check below still runs for forks.
     if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
@@ -38,7 +38,7 @@ jobs:
           true
 
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,7 +47,7 @@ jobs:
         run: node .github/scripts/pr-rules.mjs check
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

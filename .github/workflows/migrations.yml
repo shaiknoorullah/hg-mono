@@ -17,7 +17,7 @@ defaults:
 
 jobs:
   schema:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
 
     services:
       postgres:
@@ -26,13 +26,13 @@ jobs:
           POSTGRES_USER: hg
           POSTGRES_PASSWORD: hg
           POSTGRES_DB: hg
-        ports: ['5432:5432']
+        ports: ['55432:5432']
         options: >-
           --health-cmd "pg_isready -U hg"
           --health-interval 5s --health-timeout 5s --health-retries 20
 
     env:
-      DATABASE_URL: postgres://hg:hg@localhost:5432/hg?sslmode=disable
+      DATABASE_URL: postgres://hg:hg@localhost:55432/hg?sslmode=disable
       PGPASSWORD: hg
 
     steps:
@@ -41,13 +41,38 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+          # Our runners keep the Go caches on disk; uploading them to GitHub took over
+          # 15 minutes per job. Cache only on GitHub's runners.
+          cache: ${{ runner.environment == 'github-hosted' }}
 
-      - uses: actions/setup-python@v5
+      - if: runner.environment == 'github-hosted'
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # Self-hosted (#287): use the machine's python3 in a private venv, since
+      # setup-python has no builds for the workstation's distro and system pip is managed.
+      - if: runner.environment != 'github-hosted'
+        name: python (self-hosted venv)
+        working-directory: .
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
 
       - run: pip install pyyaml
-      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      # psql: from apt on GitHub's runners; on a self-hosted runner (#287) without psql,
+      # a wrapper runs psql from the Postgres image against this job's database.
+      - name: psql client
+        working-directory: .
+        run: |
+          if command -v psql >/dev/null; then exit 0; fi
+          if [ "$RUNNER_ENVIRONMENT" = "github-hosted" ]; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+          else
+            mkdir -p "$RUNNER_TEMP/bin"
+            printf '%s\n' '#!/bin/sh' 'exec docker run --rm -i --network host -e PGPASSWORD -v "$PWD:$PWD" -w "$PWD" postgis/postgis:17-3.5 psql "$@"' > "$RUNNER_TEMP/bin/psql"
+            chmod +x "$RUNNER_TEMP/bin/psql"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          fi
       - run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       # 1. The enum migration is generated from the contract. If regenerating it
