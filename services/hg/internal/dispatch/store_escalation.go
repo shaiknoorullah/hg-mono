@@ -26,7 +26,7 @@ type waveToEscalate struct {
 // are already EXPIRED and excluded from the next candidate set.
 //
 // Every replica runs the dispatch runner, so the claim takes the dispatch
-// row's lease, as the P-15 runner mechanics do for every deadline
+// row's lease, as the runner mechanics do for every deadline
 // (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions"): FOR
 // UPDATE SKIP LOCKED, then lease_until/lease_owner for escalationLease. A
 // search another replica holds is skipped until its lease lapses; the wave's
@@ -77,16 +77,16 @@ RETURNING d.order_id::text, d.wave, d.radius_m,
 // It ends the dispatch only. The order stays READY_FOR_PICKUP: dispatch may
 // never cancel an order, and NO_RIDER_FOUND hands the order to its own
 // READY_FOR_PICKUP deadline instead, which escalates and, at its cap, cancels
-// with a full refund (docs/spec/01-platform.md, "P-14 — Order lifecycle"
-// dispatch sub-machine, and the order deadline table in "P-15 — Deadlines and
-// timeout actions"). No money moves here: the payment was captured when the
+// with a full refund (docs/spec/01-platform.md: the dispatch sub-machine in
+// "P-14 — Order lifecycle states and transitions", and the order deadline
+// table in "P-15 — Deadlines and timeout actions"). No money moves here: the payment was captured when the
 // restaurant accepted, and the refund belongs to that cancellation
 // (https://github.com/shaiknoorullah/hg-mono/issues/336).
 //
 // The customer, the restaurant and ops hear of it in the same transaction:
 // dispatch.state_changed on the order's channel and admin.dispatch_failure on
-// admin:ops (docs/spec/01-platform.md, "P-32 — Rider search and the offer
-// waves", acceptance criterion 3; events_no_rider.go). Only the call that
+// admin:ops (docs/spec/01-platform.md, "P-32 — Rider search and offer",
+// acceptance criterion 3; events_no_rider.go). Only the call that
 // moves the row writes them, so a second replica's call says nothing.
 func (s *Store) MarkNoRiderFound(ctx context.Context, orderID string) error {
 	tx, err := s.db.Begin(ctx)

@@ -63,8 +63,9 @@ const (
 	// found (https://github.com/shaiknoorullah/hg-mono/issues/294).
 	emptyWaveHold = 20 * time.Second
 	// escalationLease is how long a replica holds a due search it claimed to
-	// run the next wave: the dispatch row's lease_until, as in the P-15 runner
-	// mechanics. A replica that dies mid-wave lets the search go after this.
+	// run the next wave: the dispatch row's lease_until, as in the runner
+	// mechanics of "P-15 — Deadlines and timeout actions" (docs/spec/01-platform.md).
+	// A replica that dies mid-wave lets the search go after this.
 	escalationLease = 30 * time.Second
 )
 

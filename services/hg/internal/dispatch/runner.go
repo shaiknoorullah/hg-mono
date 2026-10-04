@@ -156,7 +156,7 @@ func (r *DispatchRunner) EscalateAndExpire(ctx context.Context) error {
 //     criterion 5);
 //   - after a wave whose riders let it lapse, the next searches the same radius
 //     for the next riders, widening at once while a radius has nobody left
-//     (D-13 step 3).
+//     (step 3 of the same section).
 //
 // A wave that finds nobody is written empty and holds the search, so a rider
 // who comes online meanwhile is found by the next one. The search ends in
