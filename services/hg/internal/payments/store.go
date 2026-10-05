@@ -352,22 +352,40 @@ type CreateRefundParams struct {
 	ApprovalStatus  string // "", PENDING, APPROVED, DECLINED
 	RequestedBy     string
 	ApprovedBy      string
-	DeadlineAction  string
-	Lines           []RefundLineAmount
-	Ledger          *LedgerBatch // nil until AUTHORISED
-	Money           OrderMoney
+	// RequiredRole is the role that must decide an approval request
+	// (PENDING_APPROVAL); empty otherwise.
+	RequiredRole   string
+	DeadlineAction string
+	Lines          []RefundLineAmount
+	Ledger         *LedgerBatch // nil until AUTHORISED
+	Money          OrderMoney
 }
+
+// refundWaitForReview is how long a refund waiting for a person (a
+// customer's request, or an approval request) has before it is overdue: the
+// 24-hour review target in docs/spec/02-customer.md, "C-37 — Refund requests
+// and refund tracking".
+const refundWaitForReview = 24 * time.Hour
 
 // CreateRefund inserts the refund, its lines and (when provided) its balanced
 // ledger batch in a single transaction. The deferred triggers assert
-// refund≤captured and batch balance at COMMIT.
+// refund≤captured and batch balance at COMMIT. An authorised refund is due to
+// the sender at once (refund_sender.go); one waiting for a person is on the
+// review clock.
 func (r *Repo) CreateRefund(ctx context.Context, p CreateRefundParams) (string, error) {
 	var refundID string
 	err := r.tx(ctx, func(tx pgx.Tx) error {
-		var deadlineAt *time.Time
+		var deadlineIn *float64
 		if !terminalRefund(p.State) {
-			d := time.Now().Add(2 * time.Minute)
-			deadlineAt = &d
+			wait := refundWaitForReview.Seconds()
+			if p.State == RefundAuthorised {
+				wait = 0
+			}
+			deadlineIn = &wait
+		}
+		var requiredRole *string
+		if p.RequiredRole != "" {
+			requiredRole = &p.RequiredRole
 		}
 		var approval *string
 		if p.ApprovalStatus != "" {
@@ -385,15 +403,16 @@ func (r *Repo) CreateRefund(ctx context.Context, p CreateRefundParams) (string, 
 			INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
 			                    amount_cents, tax_cents,
 			                    restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
-			                    state, approval_status, requested_by, approved_by,
+			                    state, approval_status, requested_by, approved_by, approval_required_role,
 			                    deadline_at, deadline_action)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::role_name,
+			        now() + make_interval(secs => $17::float8),$18)
 			RETURNING id::text`,
 			p.OrderID, p.PaymentIntentID, string(p.Kind), string(p.Scope), p.ReasonCode, nullStr(p.Note),
 			p.AmountCents, p.TaxCents,
 			p.Split.RestaurantChargebackCents, p.Split.RiderChargebackCents, p.Split.PlatformAbsorbedCents,
-			string(p.State), approval, p.RequestedBy, approvedBy,
-			deadlineAt, action).Scan(&refundID)
+			string(p.State), approval, p.RequestedBy, approvedBy, requiredRole,
+			deadlineIn, action).Scan(&refundID)
 		if err != nil {
 			return err
 		}
