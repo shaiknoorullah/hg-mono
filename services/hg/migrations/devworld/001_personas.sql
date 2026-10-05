@@ -418,7 +418,7 @@ INSERT INTO devworld_persona (
   ('menu', 'a0000000-0000-4000-8000-000000000207', 'b0000000-0000-4000-8000-000000000207', 'menu@seed.hg', NULL, true, true, 'MENU_PENDING', 'PENDING', 'CERTIFIED', false, NULL, NULL, NULL),
   ('bismillah-grill', 'a0000000-0000-4000-8000-000000000208', 'b0000000-0000-4000-8000-000000000208', 'bismillah-grill@seed.hg', NULL, true, true, 'ACTIVE', 'LIVE', 'CERTIFIED', true, NULL, NULL, NULL),
   ('expiring-halal', 'a0000000-0000-4000-8000-000000000209', 'b0000000-0000-4000-8000-000000000209', 'expiring-halal@seed.hg', NULL, true, true, 'ACTIVE', 'LIVE', 'EXPIRING_SOON', true, NULL, NULL, NULL),
-  ('expired-halal', 'a0000000-0000-4000-8000-000000000210', 'b0000000-0000-4000-8000-000000000210', 'expired-halal@seed.hg', NULL, true, true, 'ACTIVE', 'LIVE', 'EXPIRED', false, NULL, NULL, NULL),
+  ('expired-halal', 'a0000000-0000-4000-8000-000000000210', 'b0000000-0000-4000-8000-000000000210', 'expired-halal@seed.hg', NULL, true, true, 'ACTIVE', 'DELISTED', 'EXPIRED', false, NULL, NULL, NULL),
   ('paused', 'a0000000-0000-4000-8000-000000000211', 'b0000000-0000-4000-8000-000000000211', 'paused@seed.hg', NULL, true, true, 'ACTIVE', 'LIVE', 'CERTIFIED', false, NULL, NULL, NULL),
   ('suspended', 'a0000000-0000-4000-8000-000000000212', 'b0000000-0000-4000-8000-000000000212', 'suspended@seed.hg', NULL, true, true, 'ACTIVE', 'SUSPENDED', 'CERTIFIED', false, NULL, NULL, NULL)
 ON CONFLICT (slug) DO UPDATE SET

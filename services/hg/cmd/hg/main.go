@@ -43,6 +43,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/halalexpiry"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handoff"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
@@ -798,6 +799,16 @@ func run() error {
 	if err := notifyClient.Start(ctx); err != nil {
 		return fmt.Errorf("notify: start worker pool: %w", err)
 	}
+
+	// Halal certificate expiry (#252): lapses certificates the day after they
+	// expire, delists the restaurant, and sends the 30/14/7/1-day renewal
+	// reminders through the notification outbox. One replica works at a time
+	// (advisory lock); the other skips. Spec: docs/spec/05-admin.md, "A-17 —
+	// Halal certificate expiry monitoring and lapse handling".
+	halalExpiry := halalexpiry.New(st.DB().Pool, notifyClient.Enqueue, log, halalexpiry.Config{
+		SuspendAfterExpiredDays: cfg.Halal.SuspendAfterExpiredDays,
+	})
+	go halalExpiry.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
