@@ -17,5 +17,7 @@
   "lock": { "linear": "lock-keyhole-linear", "bold": "lock-keyhole-bold" },
   "info": { "linear": "info-circle-linear", "bold": "info-circle-bold" },
   "warning": { "linear": "danger-triangle-linear", "bold": "danger-triangle-bold" },
-  "refresh": { "linear": "restart-linear", "bold": "restart-bold" }
+  "refresh": { "linear": "restart-linear", "bold": "restart-bold" },
+  "card": { "linear": "card-linear", "bold": "card-bold" },
+  "phone": { "linear": "phone-linear", "bold": "phone-bold" }
 }

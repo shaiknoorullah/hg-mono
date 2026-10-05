@@ -342,7 +342,7 @@ function AccountBody({
             testID="Account-addresses"
           />
           {/* No card screen in this app yet: the row says what is saved and opens nothing. */}
-          <ListRow title="Payment methods" subtitle={cardSub} testID="Account-payment" />
+          <ListRow icon="card" title="Payment methods" subtitle={cardSub} testID="Account-payment" />
         </ListGroup>
 
         <ListGroup label="Notifications">
@@ -358,6 +358,7 @@ function AccountBody({
         <ListGroup label="Help">
           {support?.phoneE164 ? (
             <ListRow
+              icon="phone"
               title="Call support"
               subtitle={`${support.hours ? `${support.hours}. ` : ''}Have your order code ready.`}
               onPress={() => callSupport(support.phoneE164!)}
@@ -365,6 +366,7 @@ function AccountBody({
             />
           ) : (
             <ListRow
+              icon="phone"
               title={support?.hours ? 'Phone support is closed now' : "Phone support isn't available right now"}
               subtitle={`${support?.hours ? `Open ${support.hours}. ` : ''}For a problem with an order, open it in Orders and choose Get help.`}
               testID="Account-support"

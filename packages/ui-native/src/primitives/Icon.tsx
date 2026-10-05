@@ -61,13 +61,18 @@ export type IconName =
   | 'lock'
   | 'info'
   | 'warning'
-  | 'refresh';
+  | 'refresh'
+  // Not in the design system's map: Solar's own card and phone glyphs, for the Account canvas's
+  // Payment methods and Call support rows (shared with `@hg/ui-web`).
+  | 'card'
+  | 'phone';
 
 /**
  * The semantic name -> Solar icon id map, read from `solar-icon-map.json` — the single
  * hand-authored source of truth `scripts/generate-icons.mjs` also reads. The first fourteen keys
  * match `@hg/ui-web`'s copy (`packages/ui-web/src/primitives/Icon.tsx`) — same keys, same Solar
- * ids; the five extension names use the Solar ids the design system's own map gives them.
+ * ids; the five extension names use the Solar ids the design system's own map gives them, and
+ * `card` and `phone` (in both packages) use Solar's own `card` and `phone` glyphs.
  */
 export const SOLAR_ICON_IDS = solarIconMap as Record<IconName, Record<IconWeight, string>>;
 
