@@ -1,0 +1,21 @@
+{
+  "scenario": "error_refund_self_approval_forbidden",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `SELF_APPROVAL_FORBIDDEN`. The person who asked for a refund, or who sent it up for a second person, tried to approve it. A goodwill refund above CAD 50.00 always needs someone else.",
+  "operations": [
+    "approveRefund",
+    "issueRefund"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "SELF_APPROVAL_FORBIDDEN",
+      "message": "Nobody may approve their own refund request.",
+      "request_id": "XB7073TVB40P38PNXVZ65R48GM"
+    }
+  }
+}

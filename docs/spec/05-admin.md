@@ -2210,6 +2210,13 @@ documents lapse cannot go on shift, but is not punished.
   - R6 Refunds require the session's MFA to be verified within 12 hours (A-02 R4).
   - R7 Every refund state change writes an `audit_event` including the authority path used
     (`role`, `cap_applied`, `approver_ids`).
+  - As built ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)): the approval request is
+    the `PENDING_APPROVAL` refund itself (no separate table), with the role that must decide it and
+    who sent it up; the rolling total counts the refunds a person *approved* (`refund.approved_by`,
+    `approved_at`) and is summed under a per-person advisory lock rather than a `staff_refund_ledger`
+    upsert; a customer's request is reviewed through `approveRefund` and `declineRefund`; the caps are
+    the platform's 24-hour figures in `internal/payments/types.go`, and the per-order and order-age
+    limits in the table above are not enforced yet.
   - R8 A refund against an order whose payment is not `CAPTURED` is rejected
     `409 PAYMENT_NOT_REFUNDABLE`; a cancellation before capture voids the authorisation instead and is
     a different operation.

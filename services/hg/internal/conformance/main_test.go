@@ -115,4 +115,7 @@ var expectedCovered = []string{
 	"createRealtimeTicket", "receiveStripeWebhook",
 	// admin payout runs (conformance_payout_runs_test.go, issue #251)
 	"createPayoutRun", "getPayoutRun", "listPayoutRuns",
+	// refund review and chargebacks (#172; conformance_refund_review_test.go)
+	"listRefundsAdmin", "approveRefund", "declineRefund",
+	"listChargebacks", "getChargeback", "addChargebackEvidenceNote",
 }
