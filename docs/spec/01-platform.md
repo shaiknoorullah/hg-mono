@@ -1300,7 +1300,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 
   `POST /v1/orders` (idempotent, `MONEY`):
   1. Validate + re-execute the quote (P-09).
-  2. In one transaction: create `order` in `CREATED`, `order_line`(+addons), `dispatch` deferred, `payment_intent` row, outbox event.
+  2. In one transaction: create `order` in `CREATED`, `order_line`(+addons), `dispatch` deferred, `payment_intent` row, outbox event, and consume the cart (soft-delete it, [C-23 rule 1](02-customer.md#c-23--order-placement-checkout)), so the placed lines leave the cart with the order.
   3. Create the Stripe PaymentIntent:
      ```
      amount               = quote.total_cents            // integer, CAD
