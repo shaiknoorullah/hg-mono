@@ -19,7 +19,7 @@ func TestApprovedRiderBecomesActiveAndCanGoOnline(t *testing.T) {
 	mustExec(t, pool, `
 INSERT INTO rider_profile (account_id, first_name, last_name, date_of_birth,
                            onboarding_state, account_status, approved_at)
-VALUES ($1, 'R', 'R', '1990-01-01', 'PAYOUT_PENDING', 'ACTIVE', now())`, acct)
+VALUES ($1, 'R', 'R', '1990-01-01', 'PAYOUT_PENDING', 'PENDING', now())`, acct)
 	stripeID := "acct_it_" + acct
 	mustExec(t, pool, `
 INSERT INTO connect_account (owner_type, owner_id, stripe_account_id, payouts_enabled, details_submitted)
