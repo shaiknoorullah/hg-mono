@@ -1062,7 +1062,7 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
   | T20 | `DISPUTED` | `RESOLVED` | support resolves (refund / partial / no action) | support/admin (`dispute.resolve`) | refund + adjustment batch |
   | T21 | `PREPARING`/`READY_FOR_PICKUP` | `DISPUTED` | restaurant reports an unrecoverable problem | restaurant staff | none yet |
 
-  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal.
+  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal, but it is the one unfinished state that is not the customer's active order: every problem report puts an order there, and an order under review after a problem report does not block a new checkout ([narrowed one-active-order rule](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). Its only way out is T20 to `RESOLVED`, so an order that stopped counting as active never counts again.
 
   A support agent or admin may also cancel an order before the restaurant accepts it, from `CREATED`, `AUTHORIZED` or `RESTAURANT_PENDING`, recorded with actor `ADMIN` ([admin order intervention](05-admin.md#a-38--order-lookup-and-admin-order-intervention)).
 
@@ -2721,7 +2721,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 
-  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day.
+  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day. The one-active-order rule is enforced in the order-creation transaction, not by the limiter: the transaction first takes a per-customer lock, so two checkouts racing for the same customer queue, and the second counts only after the first has committed. The active order that `getActiveOrder` returns is the one that refuses a second checkout, so a lone order under review is not it; the order history's active section still lists every unfinished order.
 
   Responses carry `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and, on 429, `Retry-After`.
 
