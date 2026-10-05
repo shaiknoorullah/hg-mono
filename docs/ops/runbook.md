@@ -135,7 +135,7 @@ A rebuild from the nightly copy can lose a day. Try the cheaper ways first:
 - **The OS is broken but the disk is fine:** boot Contabo's rescue system and copy the backup repositories (pgBackRest and restic) off the disk. Then rebuild from those: about a minute lost, not a day.
 - **The disk is gone:** rebuild from the copy on the owner's machine.
 
-If it came back by itself after a crash, nothing was lost. The runner's outage handling *(lands with [#222][i222])* deals with deadlines that fell in the gap, and Stripe retries webhook deliveries for up to three days ([Stripe docs](https://docs.stripe.com/webhooks#retries)).
+If it came back by itself after a crash, nothing was lost. The runner's outage handling *(lands with [#222][i222])* deals with deadlines that fell in the gap, and Stripe retries webhook deliveries for up to three days ([Stripe docs](https://docs.stripe.com/webhooks#automatic-retries)).
 
 ### Rebuild on a new server
 
