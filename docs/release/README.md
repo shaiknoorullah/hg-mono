@@ -167,6 +167,18 @@ The customer app pays with Stripe's payment sheet, which needs the PUBLIC key
 the customer app skips it. When the API runs its local fake gateway (`HG_ENV=local`, no Stripe
 key) it returns `pi_fake_…` client secrets and the app skips the sheet too.
 
+## Building with EAS instead
+
+The rider's `eas.json` `preview` and `production` profiles set `EXPO_PUBLIC_API_BASE_URL` to the
+placeholder `https://api.halalgoes.com`. To point a build elsewhere, edit that value in
+`apps/rider/eas.json`, or override it for one build with
+`EXPO_PUBLIC_API_BASE_URL=https://… eas build -p android --profile preview` (a variable set in
+your shell wins over the profile's `env`).
+
+`extra.eas.projectId` is only written into the app config when `EAS_PROJECT_ID` is set, so a local
+`npx expo prebuild` or Gradle build never needs EAS. Using EAS Build is an owner step: run
+`eas init` once, then export the id it prints as `EAS_PROJECT_ID` (or set it in the profile's `env`).
+
 ## The release key
 
 Prod APKs are signed with the HalalGoes release key. Android installs an update only if it is

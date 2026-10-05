@@ -32,7 +32,7 @@ import {
 } from '@hg/ui-native';
 
 import { getCart } from '../api/cart';
-import { ensureDeliveryAddress } from '../api/addresses';
+import { listAddresses, sortForDelivery, type Address } from '../api/addresses';
 import { createQuote, getOrderPayment, placeOrder } from '../api/orders';
 import { payWithSheet } from '../payments/pay';
 import { isFakeClientSecret } from '../payments/types';
@@ -44,7 +44,7 @@ type Quote = Schema['Quote'];
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; code: string | null }
-  | { kind: 'ready'; quote: Quote };
+  | { kind: 'ready'; quote: Quote; addresses: Address[]; addressId: string };
 
 export function CheckoutScreen(): React.ReactElement {
   const theme = useTheme();
@@ -95,18 +95,33 @@ export function CheckoutScreen(): React.ReactElement {
     [nav],
   );
 
-  const load = React.useCallback(() => {
-    setState({ kind: 'loading' });
-    setPlaceError(null);
-    // A delivery quote is priced against a concrete address (the server derives the tax
-    // province from it, P-11), so resolve one before quoting.
-    Promise.all([getCart(), ensureDeliveryAddress()])
-      .then(([cart, address]) =>
-        createQuote({ cartId: cart.id, fulfilment: 'DELIVERY', deliveryAddressId: address.id }),
-      )
-      .then((quote) => setState({ kind: 'ready', quote }))
-      .catch((e) => setState({ kind: 'error', code: errorCodeOf(e) }));
-  }, []);
+  const load = React.useCallback(
+    (chosenId?: string) => {
+      setState({ kind: 'loading' });
+      setPlaceError(null);
+      // A delivery quote is priced against a concrete address (the server derives the tax
+      // province from it, P-11): the customer's pick, else their default. No address at all
+      // means the address form, not a made-up one.
+      Promise.all([getCart(), listAddresses()])
+        .then(async ([cart, list]) => {
+          const addresses = sortForDelivery(list);
+          const address = addresses.find((a) => a.id === chosenId) ?? addresses[0];
+          if (!address) {
+            nav.replace({ name: 'addressForm', addressId: null });
+            return;
+          }
+          const quote = await createQuote({
+            cartId: cart.id,
+            fulfilment: 'DELIVERY',
+            deliveryAddressId: address.id,
+          });
+          setState({ kind: 'ready', quote, addresses, addressId: address.id });
+        })
+        .catch((e) => setState({ kind: 'error', code: errorCodeOf(e) }));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   React.useEffect(() => load(), [load]);
 
@@ -143,11 +158,17 @@ export function CheckoutScreen(): React.ReactElement {
         </View>
       ) : state.kind === 'error' ? (
         <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
-          <ErrorState errorCode={state.code} onRetry={load} />
+          <ErrorState errorCode={state.code} onRetry={() => load()} />
         </View>
       ) : (
         <>
           <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+            <AddressPicker
+              addresses={state.addresses}
+              selectedId={state.addressId}
+              onPick={(id) => load(id)}
+              onAdd={() => nav.push({ name: 'addressForm', addressId: null })}
+            />
             <QuoteSummary quote={state.quote} />
             {payError ? (
               <Banner variant="danger" title="Payment not completed" description={payError} />
@@ -178,6 +199,49 @@ export function CheckoutScreen(): React.ReactElement {
           </View>
         </>
       )}
+    </View>
+  );
+}
+
+/** Where this order goes: the chosen address, and a plain list to switch when there are several. */
+function AddressPicker({
+  addresses,
+  selectedId,
+  onPick,
+  onAdd,
+}: {
+  addresses: Address[];
+  selectedId: string;
+  onPick: (id: string) => void;
+  onAdd: () => void;
+}): React.ReactElement {
+  const theme = useTheme();
+  const heading = useTypeStyle('heading.sm');
+  return (
+    <View
+      style={{
+        gap: 8,
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: theme.color.surface.raised,
+        borderWidth: 1,
+        borderColor: theme.color.border.decorative,
+      }}
+    >
+      <Text style={[heading, { color: theme.color.text.primary }]}>Deliver to</Text>
+      {addresses.map((a) => (
+        <Button
+          key={a.id}
+          variant={a.id === selectedId ? 'primary' : 'secondary'}
+          fullWidth
+          onPress={() => (a.id === selectedId ? undefined : onPick(a.id))}
+        >
+          {`${a.label ? `${a.label}: ` : ''}${a.line1}, ${a.city}`}
+        </Button>
+      ))}
+      <Button variant="secondary" fullWidth onPress={onAdd}>
+        Add a new address
+      </Button>
     </View>
   );
 }
