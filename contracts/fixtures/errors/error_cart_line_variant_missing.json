@@ -1,0 +1,32 @@
+{
+  "scenario": "error_cart_line_variant_missing",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. A line the menu does not allow: a required variant group with no choice, and an add-on group below its `min_select`. Every problem comes back at once, each with its field. Other codes: `not_on_item` (`variant_ids[i]`), `one_per_group`, `duplicate`, `max_select`. The cart is unchanged.",
+  "operations": [
+    "addCartLine"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "This item cannot be added with these choices.",
+      "request_id": "2SZWBMDKJ3FDECAT88R1R44X7B",
+      "details": [
+        {
+          "field": "variant_ids",
+          "code": "required_group_missing",
+          "message": "Choose a Rice."
+        },
+        {
+          "field": "addons",
+          "code": "min_select",
+          "message": "Choose at least 1 from Chutneys and sauces."
+        }
+      ]
+    }
+  }
+}
