@@ -1413,7 +1413,7 @@ CREATE TABLE saved_payment_method (
   | `payment_intent.payment_failed` | → `FAILED`, order T2/T3 per retry policy, notify |
   | `payment_intent.canceled` | → `CANCELED` |
   | `charge.refunded` | reconcile `refund` rows, post the REFUND batch if not already posted |
-  | `charge.dispute.created` / `.updated` / `.closed` | open, update or close a chargeback record, freeze affected payouts, notify ops; a lost dispute is a `reconciliation_exception`. The order's state is left alone: T19 is the customer's, the restaurant's or support's, and ops review the chargeback |
+  | `charge.dispute.created` / `.updated` / `.closed` | open, update or close a chargeback record, freeze affected payouts, notify ops; a lost dispute is a `reconciliation_exception`. Stripe's final statuses close it: `won`, `lost`, `prevented`, `warning_closed`, `charge_refunded` ([a prevented dispute closes](https://github.com/shaiknoorullah/hg-mono/issues/365)). The order's state is left alone: T19 is the customer's, the restaurant's or support's, and ops review the chargeback |
   | `balance.available` | trigger payout reconciliation |
   | `account.updated` (Connect) | update `connect_account` capabilities, `charges_enabled`, `payouts_enabled`, requirements |
   | `capability.updated` | none: Stripe sends `account.updated` for every capability change, and that event carries `payouts_enabled` |

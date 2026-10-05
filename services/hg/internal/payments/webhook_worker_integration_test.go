@@ -524,6 +524,55 @@ func TestWebhookWorker_ADisputeOpensTheChargebackHoldAndIsAudited(t *testing.T) 
 	h.assertLedgerZeroSum(order)
 }
 
+// A dispute Stripe closes as prevented is final like won or lost (#365): the
+// chargeback takes the outcome, leaves its evidence-deadline clock and drops
+// out of the open list, and nothing is left for a person to decide.
+func TestWebhookWorker_ADisputeClosedAsPreventedIsClosed(t *testing.T) {
+	h := newWebhookHarness(t)
+	ctx := context.Background()
+	pi, dispute := h.id("pi_prevented"), h.id("dp_prevented")
+	order := seedOrderWithIntent(t, h.pool, pi, "COMPLETED", "REQUIRES_CAPTURE")
+	t.Cleanup(func() {
+		_, _ = h.pool.Exec(ctx, `DELETE FROM reconciliation_exception WHERE stripe_object_id = $1`, dispute)
+		_, _ = h.pool.Exec(ctx, `DELETE FROM chargeback WHERE stripe_dispute_id = $1`, dispute)
+	})
+	t0 := time.Now().Add(-10 * time.Minute)
+	h.send(h.id("evt_pv_cap"), "payment_intent.succeeded", t0, piObject(pi, "succeeded", 3919))
+	h.process()
+
+	due := time.Now().Add(7 * 24 * time.Hour).Truncate(time.Second).UTC()
+	disputeObject := func(status string) map[string]any {
+		return map[string]any{"id": dispute, "object": "dispute", "amount": 3919, "currency": "cad",
+			"payment_intent": pi, "reason": "fraudulent", "status": status,
+			"evidence_details": map[string]any{"due_by": due.Unix()}}
+	}
+	h.send(h.id("evt_pv_created"), "charge.dispute.created", t0.Add(time.Minute), disputeObject("needs_response"))
+	h.process()
+	closed := h.id("evt_pv_closed")
+	h.send(closed, "charge.dispute.closed", t0.Add(2*time.Minute), disputeObject("prevented"))
+	h.process()
+	if r := h.stored(closed); !r.Processed {
+		t.Fatalf("the prevented close was not processed: %+v", r)
+	}
+
+	if got := h.text(`SELECT coalesce(outcome, 'open') || '/' || (deadline_at IS NULL)::text FROM chargeback
+		WHERE stripe_dispute_id = $1 AND order_id = $2`, dispute, order); got != "prevented/true" {
+		t.Errorf("chargeback after a prevented close: %s, want prevented/true (closed, off the clock)", got)
+	}
+	open := true
+	list, _, err := h.svc.ListChargebacks(ctx, staffAs(h.id("agent"), "SUPPORT_AGENT"), ChargebackFilter{Open: &open, OrderID: order})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 0 {
+		t.Errorf("open chargebacks for the order: %d, want 0 once the dispute is prevented", len(list))
+	}
+	if n := h.count(`SELECT count(*) FROM reconciliation_exception WHERE stripe_object_id = $1`, dispute); n != 0 {
+		t.Errorf("%d reconciliation exceptions for a prevented dispute, want 0: nothing was lost", n)
+	}
+	h.assertLedgerZeroSum(order)
+}
+
 // An event whose effect fails is rolled back whole, kept unprocessed and
 // retried after a backoff that doubles from a minute; the eighth failure
 // sets it aside for a person and pages on-call in the same transaction
