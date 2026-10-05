@@ -599,6 +599,20 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email, clientKey str
 	return nil
 }
 
+// resetTokenErr is the answer for a password-reset link that cannot be used,
+// or nil when it can.
+func resetTokenErr(res ConsumeCredentialTokenResult) error {
+	switch {
+	case res.NotFound:
+		return ErrNotFound
+	case res.Used:
+		return errTokenUsed
+	case res.Expired:
+		return errTokenExpired
+	}
+	return nil
+}
+
 // ResetPassword consumes a PASSWORD_RESET token, sets the new password, and
 // revokes every session in the account (a reset ends every session:
 // https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-03--email--password-authentication-restaurants-admins-support).
@@ -619,6 +633,17 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 	if isBreachedPassword(newPassword) {
 		return errBreachedPassword
 	}
+	// A link that cannot be used is answered before a hashing slot is taken:
+	// it will never hash, so a flood of made-up links neither holds a slot nor
+	// queues on the sign-up gate (#448).
+	tokenHash := HashOpaqueToken(token)
+	state, err := s.store.CredentialTokenState(ctx, "PASSWORD_RESET", tokenHash)
+	if err != nil {
+		return err
+	}
+	if err := resetTokenErr(state); err != nil {
+		return err
+	}
 	// Take the hashing slot before consuming the single-use token: if hashing
 	// is busy the caller gets 503 and the reset link still works on retry.
 	slot, err := acquireHashSlot(ctx, audienceSignup)
@@ -626,17 +651,12 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 		return err
 	}
 	defer slot.release()
-	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", HashOpaqueToken(token))
+	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", tokenHash)
 	if err != nil {
 		return err
 	}
-	switch {
-	case res.NotFound:
-		return ErrNotFound
-	case res.Used:
-		return errTokenUsed
-	case res.Expired:
-		return errTokenExpired
+	if err := resetTokenErr(res); err != nil {
+		return err
 	}
 	hash, err := slot.hash(newPassword)
 	slot.release() // the writes below need no slot

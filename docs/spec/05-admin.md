@@ -191,8 +191,17 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
   admin sends at most 20. The invitee sets a first password through the reset-password operation, which
   also marks the email verified, then enrols two-step sign-in. `staff_invitation` is not written yet,
   and an expired link answers with the reset operation's expired-token error rather than
-  `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170),
-  and the web pages the link opens are [#329](https://github.com/shaiknoorullah/hg-mono/issues/329).
+  `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
+  The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
+  `/accept-invite` sets the first password and stops there: two-step enrolment cannot start from the
+  link until the acceptance flow exists, so the page says the inviting super admin will set it up
+  with the invitee.
+  `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
+  opens. Both take the token the way the restaurant app's link pages do (see
+  [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),
+  with the same shared code: out of the address before anything loads, in memory only, sent once
+  in a POST body, and never a sign-in. If the console is already signed in in that tab, the page
+  asks before it uses the link.
 - **Version**: V1 · **Size**: M
 
 > **Decided:** no warning above 25 active staff accounts at launch ([staff account warning](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
@@ -1334,7 +1343,11 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     suspended or banned: then nobody changes its menu, admins included; a delisted restaurant's menu
     stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). An item an admin creates
     is approved on creation and audited, with the creating admin recorded as its reviewer
-    ([menu approval](../decisions/README.md#settled--reconciliations)). Updating or removing an item on
+    ([menu approval](../decisions/README.md#settled--reconciliations)). Its photo must be a confirmed
+    `MENU_IMAGE` the admin or someone at the restaurant uploaded, or one of the restaurant's photos
+    already; anything else is `404` and nothing is written
+    ([#450](https://github.com/shaiknoorullah/hg-mono/issues/450),
+    [presigned upload](01-platform.md#p-28--presigned-upload-and-download)). Updating or removing an item on
     a restaurant's behalf is a launch operation ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
     [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)) the contract has and the backend
     does not build yet; it never silently discards a restaurant edit that is waiting for review.
@@ -2201,6 +2214,13 @@ documents lapse cannot go on shift, but is not punished.
   - R6 Refunds require the session's MFA to be verified within 12 hours (A-02 R4).
   - R7 Every refund state change writes an `audit_event` including the authority path used
     (`role`, `cap_applied`, `approver_ids`).
+  - As built ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)): the approval request is
+    the `PENDING_APPROVAL` refund itself (no separate table), with the role that must decide it and
+    who sent it up; the rolling total counts the refunds a person *approved* (`refund.approved_by`,
+    `approved_at`) and is summed under a per-person advisory lock rather than a `staff_refund_ledger`
+    upsert; a customer's request is reviewed through `approveRefund` and `declineRefund`; the caps are
+    the platform's 24-hour figures in `internal/payments/types.go`, and the per-order and order-age
+    limits in the table above are not enforced yet.
   - R8 A refund against an order whose payment is not `CAPTURED` is rejected
     `409 PAYMENT_NOT_REFUNDABLE`; a cancellation before capture voids the authorisation instead and is
     a different operation.

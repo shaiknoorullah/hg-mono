@@ -2,7 +2,7 @@
   "scenario": "order_admin_view_disputed",
   "domain": "orders",
   "schema": "OrderAdminView",
-  "describes": "A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored).",
+  "describes": "A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored). The money timeline shows the payment, the request, the agent sending it up, and a chargeback with one evidence note.",
   "operations": [
     "getOrderAdmin"
   ],
@@ -346,6 +346,100 @@
       ],
       "currency": "CAD"
     },
-    "pii_revealed": false
+    "pii_revealed": false,
+    "chargebacks": [
+      {
+        "id": "90643f56-9440-4eb5-a3a6-f4b5edcda5ce",
+        "order_id": "2e24b9a3-5c76-42e3-aaf9-18534b201ae9",
+        "order_code": "HG-DIED-8X",
+        "stripe_dispute_id": "dp_1Qkdisputed",
+        "amount_cents": 1695,
+        "currency": "CAD",
+        "reason": "product_not_received",
+        "status": "NEEDS_RESPONSE",
+        "outcome": null,
+        "evidence_due_at": "2026-08-15T18:42:11.412Z",
+        "deadline_at": "2026-08-15T18:42:11.412Z",
+        "evidence_submitted_at": null,
+        "opened_at": "2026-08-10T18:34:11.412Z",
+        "updated_at": "2026-08-10T17:42:11.412Z",
+        "evidence_notes": [
+          {
+            "id": "4719e140-31fb-427f-a53a-060d96e8e086",
+            "body": "Proof of delivery photo at the front door, 19:42, matches the address on the order.",
+            "author_account_id": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+            "created_at": "2026-08-10T18:39:11.412Z"
+          }
+        ]
+      }
+    ],
+    "money_timeline": [
+      {
+        "kind": "PAYMENT_AUTHORISED",
+        "at": "2026-08-10T18:11:11.412Z",
+        "amount_cents": 10684,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": null,
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "PAYMENT_CAPTURED",
+        "at": "2026-08-10T18:13:11.412Z",
+        "amount_cents": 10684,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": null,
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "REFUND_REQUESTED",
+        "at": "2026-08-10T18:24:11.412Z",
+        "amount_cents": 1695,
+        "currency": "CAD",
+        "actor_kind": "ACCOUNT",
+        "actor_account_id": "c2a83f3e-d7b9-4a92-abb3-af31e948f03f",
+        "refund_id": "73fbf1ad-a4e8-4805-a86d-5da003c4c3b9",
+        "chargeback_id": null,
+        "reason": "Customer reports the biryani was missing from the bag."
+      },
+      {
+        "kind": "REFUND_ESCALATED",
+        "at": "2026-08-10T18:30:11.412Z",
+        "amount_cents": 1695,
+        "currency": "CAD",
+        "actor_kind": "ACCOUNT",
+        "actor_account_id": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+        "refund_id": "73fbf1ad-a4e8-4805-a86d-5da003c4c3b9",
+        "chargeback_id": null,
+        "reason": "Over what I can approve today; needs an admin."
+      },
+      {
+        "kind": "CHARGEBACK_OPENED",
+        "at": "2026-08-10T18:34:11.412Z",
+        "amount_cents": 1695,
+        "currency": "CAD",
+        "actor_kind": "WEBHOOK",
+        "actor_account_id": null,
+        "refund_id": null,
+        "chargeback_id": "90643f56-9440-4eb5-a3a6-f4b5edcda5ce",
+        "reason": "product_not_received"
+      },
+      {
+        "kind": "CHARGEBACK_EVIDENCE_NOTE",
+        "at": "2026-08-10T18:39:11.412Z",
+        "amount_cents": null,
+        "currency": "CAD",
+        "actor_kind": "ACCOUNT",
+        "actor_account_id": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+        "refund_id": null,
+        "chargeback_id": "90643f56-9440-4eb5-a3a6-f4b5edcda5ce",
+        "reason": null
+      }
+    ]
   }
 }

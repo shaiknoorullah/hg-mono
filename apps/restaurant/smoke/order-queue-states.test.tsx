@@ -3,6 +3,7 @@ import { render, screen, waitFor, cleanup } from '@testing-library/react';
 
 import queueBusy from '../../../contracts/fixtures/orders/restaurant_order_queue_busy.json';
 import queueEmpty from '../../../contracts/fixtures/orders/restaurant_order_queue_empty.json';
+import { installDomShims } from '@hg/ui-web/testing';
 
 /**
  * `OrdersPage` drives all three states — loading, empty (queue drained, a *positive* tone —
@@ -26,20 +27,7 @@ async function renderOrders() {
 }
 
 describe('restaurant order queue — loading, empty, error, rows', () => {
-  beforeAll(() => {
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: (query: string) => ({
-        matches: false, media: query, onchange: null,
-        addListener: () => {}, removeListener: () => {},
-        addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
-      }),
-    });
-    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
-      observe() {} unobserve() {} disconnect() {}
-    };
-    Element.prototype.scrollIntoView = function scrollIntoView() {};
-  });
+  beforeAll(installDomShims);
 
   afterEach(() => {
     cleanup();

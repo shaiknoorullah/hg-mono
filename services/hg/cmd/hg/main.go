@@ -675,8 +675,11 @@ func run() error {
 		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
 	}
 	paymentsRepo := payments.NewRepo(st.DB().Pool)
+	// A customer whose refund request staff decline is told through the
+	// notification outbox, in the decline's own transaction (#172).
 	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log).
-		WithOrderHooks(ordersStore)
+		WithOrderHooks(ordersStore).
+		WithOutbox(notifyClient.Enqueue)
 	// The weekly payout run (issue #251): Monday 09:00 America/Toronto, for
 	// every rider and restaurant, and on demand through createPayoutRun. It
 	// needs Stripe, so without a client there is no runner and createPayoutRun
