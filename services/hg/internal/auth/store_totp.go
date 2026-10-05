@@ -3,9 +3,11 @@ package auth
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
@@ -129,15 +131,17 @@ func (s *Store) ChangePasswordAndRevokeAll(ctx context.Context, accountID, newHa
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	ct, err := tx.Exec(ctx, `
+	var setAt time.Time
+	err = tx.QueryRow(ctx, `
 		UPDATE account
 		SET password_hash = $2, password_set_at = now()
-		WHERE id = $1 AND deleted_at IS NULL`, accountID, newHash)
+		WHERE id = $1 AND deleted_at IS NULL
+		RETURNING password_set_at`, accountID, newHash).Scan(&setAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
 	if err != nil {
 		return err
-	}
-	if ct.RowsAffected() == 0 {
-		return ErrNotFound
 	}
 
 	if _, err = tx.Exec(ctx, `
@@ -146,6 +150,10 @@ func (s *Store) ChangePasswordAndRevokeAll(ctx context.Context, accountID, newHa
 		return err
 	}
 	if err := emitSecurityEvent(ctx, tx, accountID, realtime.SecurityPasswordChanged, nil); err != nil {
+		return err
+	}
+	if err := s.sendSecurityAlert(ctx, tx, accountID, notify.SecurityPasswordChanged, "",
+		setAt.UTC().Format(time.RFC3339Nano), setAt, nil); err != nil {
 		return err
 	}
 
@@ -162,10 +170,19 @@ func (s *Store) ResetPasswordAndRevokeAll(ctx context.Context, accountID, newHas
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err := tx.Exec(ctx, `
+	// A staff invitee sets their first password through this same path; that
+	// is not a reset of anything, so it sends no security alert.
+	var firstPassword bool
+	if err := tx.QueryRow(ctx, `SELECT password_hash IS NULL FROM account WHERE id = $1 FOR UPDATE`,
+		accountID).Scan(&firstPassword); err != nil {
+		return err
+	}
+	var setAt time.Time
+	if err := tx.QueryRow(ctx, `
 		UPDATE account SET password_hash = $2, password_set_at = now(),
 		                   email_verified_at = COALESCE(email_verified_at, now())
-		WHERE id = $1`, accountID, newHash); err != nil {
+		WHERE id = $1
+		RETURNING password_set_at`, accountID, newHash).Scan(&setAt); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `
@@ -175,6 +192,12 @@ func (s *Store) ResetPasswordAndRevokeAll(ctx context.Context, accountID, newHas
 	}
 	if err := emitSecurityEvent(ctx, tx, accountID, realtime.SecurityPasswordChanged, nil); err != nil {
 		return err
+	}
+	if !firstPassword {
+		if err := s.sendSecurityAlert(ctx, tx, accountID, notify.SecurityPasswordReset, "",
+			setAt.UTC().Format(time.RFC3339Nano), setAt, nil); err != nil {
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }

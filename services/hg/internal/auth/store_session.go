@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
@@ -79,6 +80,10 @@ func (s *Store) CreateSession(ctx context.Context, p NewSessionParams) (*Session
 	}
 	if fresh {
 		if err := emitSecurityEvent(ctx, tx, p.AccountID, realtime.SecurityNewDeviceLogin, row.IPCity); err != nil {
+			return nil, err
+		}
+		if err := s.sendSecurityAlert(ctx, tx, p.AccountID, notify.SecurityNewDevice, p.Client,
+			row.ID, row.IssuedAt, row.IPCity); err != nil {
 			return nil, err
 		}
 	}

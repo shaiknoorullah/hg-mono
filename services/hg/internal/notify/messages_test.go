@@ -74,6 +74,10 @@ func TestEveryBuilderFillsItsTemplate(t *testing.T) {
 			Role: RoleRider, PayeeName: "Omar", PayoutID: uuid.New(), AmountCents: 4200, PeriodStart: when.AddDate(0, 0, -7),
 			PeriodEnd: when, Occurrence: "transfer_attempt:1"}, Problem: problem, NextRun: when.AddDate(0, 0, 7)}))
 	}
+	for _, kind := range []SecurityAlertKind{SecurityPasswordChanged, SecurityPasswordReset, SecurityNewDevice} {
+		built["security "+string(kind)] = must(SecurityAlertEmail(SecurityAlert{AccountID: acct, Role: RoleRestaurant,
+			Kind: kind, Ref: "ref", At: when, Place: "Toronto"}))
+	}
 	for _, suspended := range []bool{true, false} {
 		built["restaurant standing "+map[bool]string{true: "suspended", false: "reinstated"}[suspended]] = must(
 			RestaurantStandingChanged(RestaurantStanding{AccountID: acct, RestaurantID: rest, RestaurantName: "Al-Noor Grill",

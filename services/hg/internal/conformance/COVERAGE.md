@@ -7,182 +7,182 @@ The oracle: every covered operation had its live server response validated again
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
 - **Total contract operations:** 168
-- **Validated (covered):** 166
-- **Not yet validated (uncovered):** 2
+- **Validated (covered):** 3
+- **Not yet validated (uncovered):** 165
 
-## Covered (166)
+## Covered (3)
 
-- `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
-- `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
-- `addCartLine` — POST /v1/cart/lines
-- `addChargebackEvidenceNote` — POST /v1/admin/chargebacks/{chargebackId}/evidence-notes
-- `approveRefund` — POST /v1/admin/refunds/{refundId}/approve
-- `attachRestaurantDocument` — POST /v1/restaurant/documents
-- `attachRiderDocument` — POST /v1/riders/me/documents
-- `bindPackageSeal` — POST /v1/orders/{orderId}/handoff/seal
-- `cancelOrder` — POST /v1/orders/{orderId}/cancel
-- `cancelOrderAdmin` — POST /v1/admin/orders/{orderId}/cancel
-- `changePassword` — POST /v1/auth/password/change
-- `clearCart` — DELETE /v1/cart
-- `confirmUpload` — POST /v1/uploads/{uploadId}/confirm
-- `createAddress` — POST /v1/addresses
-- `createAssignmentTransition` — POST /v1/riders/me/assignments/{assignmentId}/transitions
-- `createCertificateViewUrl` — POST /v1/restaurants/{restaurantId}/certificate-url
-- `createConnectAccount` — POST /v1/connect/account
-- `createConnectOnboardingLink` — POST /v1/connect/onboarding-link
-- `createDocumentDownloadUrl` — GET /v1/documents/{documentId}/download-url
-- `createMenuCategory` — POST /v1/restaurant/menu/categories
-- `createMenuCategoryOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/categories
-- `createMenuItem` — POST /v1/restaurant/menu/items
-- `createMenuItemOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/items
-- `createOrder` — POST /v1/orders
-- `createPaymentMethodSetupIntent` — POST /v1/payment-methods/setup-intent
-- `createPayoutRun` — POST /v1/admin/payout-runs
-- `createQuote` — POST /v1/quotes
-- `createRealtimeTicket` — POST /v1/realtime/ticket
 - `createRefund` — POST /v1/refunds
-- `createRestaurantStaffUser` — POST /v1/restaurant/staff
-- `createStaffUser` — POST /v1/admin/staff
-- `createUpload` — POST /v1/uploads
-- `decideHalalCertificate` — POST /v1/admin/halal-certificates/{certificateId}/decision
-- `decideMenuVersion` — POST /v1/admin/menu-reviews/{versionId}/decision
-- `decideRestaurantApplication` — POST /v1/admin/restaurant-applications/{restaurantId}/decision
-- `decideRiderApplication` — POST /v1/admin/rider-applications/{riderAccountId}/decision
-- `declineRefund` — POST /v1/admin/refunds/{refundId}/decline
-- `delayOrder` — POST /v1/restaurant/orders/{orderId}/delay
-- `deleteAddress` — DELETE /v1/addresses/{addressId}
-- `deleteMenuCategory` — DELETE /v1/restaurant/menu/categories/{categoryId}
-- `deleteMenuItem` — DELETE /v1/restaurant/menu/items/{itemId}
-- `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
-- `deletePaymentMethod` — DELETE /v1/payment-methods/{paymentMethodId}
-- `disableTotp` — POST /v1/auth/totp/disable
-- `enrollTotp` — POST /v1/auth/totp/enroll
-- `getActiveOrder` — GET /v1/orders/active
-- `getAddress` — GET /v1/addresses/{addressId}
-- `getAssignment` — GET /v1/riders/me/assignments/{assignmentId}
-- `getCart` — GET /v1/cart
-- `getChargeback` — GET /v1/admin/chargebacks/{chargebackId}
-- `getConnectStatus` — GET /v1/connect/status
-- `getCurrentOffer` — GET /v1/riders/me/offers/current
-- `getCurrentPrincipal` — GET /v1/auth/me
-- `getCustomerProfile` — GET /v1/me/profile
-- `getHalalCertificate` — GET /v1/admin/halal-certificates/{certificateId}
-- `getHealth` — GET /health
-- `getHomeFeed` — GET /v1/feed
-- `getOpenApiDocument` — GET /v1/openapi.json
-- `getOrder` — GET /v1/orders/{orderId}
-- `getOrderAdmin` — GET /v1/admin/orders/{orderId}
-- `getOrderPayment` — GET /v1/orders/{orderId}/payment
-- `getOrderRating` — GET /v1/orders/{orderId}/rating
-- `getOrderReceipt` — GET /v1/orders/{orderId}/receipt
-- `getOrderRiderPublicProfile` — GET /v1/orders/{orderId}/rider
-- `getOrderTracking` — GET /v1/orders/{orderId}/tracking
-- `getOrderingPause` — GET /v1/admin/ordering-pause
-- `getOwnMenu` — GET /v1/restaurant/menu
-- `getPayoutRun` — GET /v1/admin/payout-runs/{runId}
-- `getPublicConfig` — GET /v1/config/public
-- `getQuote` — GET /v1/quotes/{quoteId}
-- `getRealtimeSchema` — GET /v1/realtime/schema
 - `getRefund` — GET /v1/refunds/{refundId}
-- `getRestaurant` — GET /v1/restaurants/{restaurantId}
-- `getRestaurantApplication` — GET /v1/admin/restaurant-applications/{restaurantId}
-- `getRestaurantAvailability` — GET /v1/restaurant/availability
-- `getRestaurantCertification` — GET /v1/restaurants/{restaurantId}/certification
-- `getRestaurantHours` — GET /v1/restaurant/hours
-- `getRestaurantMenu` — GET /v1/restaurants/{restaurantId}/menu
-- `getRestaurantOnboardingStatus` — GET /v1/restaurant/onboarding/status
-- `getRestaurantOrder` — GET /v1/restaurant/orders/{orderId}
-- `getRestaurantProfile` — GET /v1/restaurant/profile
-- `getRiderApplication` — GET /v1/admin/rider-applications/{riderAccountId}
-- `getRiderDashboard` — GET /v1/riders/me/dashboard
-- `getRiderEarningsSummary` — GET /v1/riders/me/earnings/summary
-- `getRiderMe` — GET /v1/riders/me
-- `getRiderOnboardingStatus` — GET /v1/riders/me/onboarding/status
-- `getRiderPayout` — GET /v1/riders/me/payouts/{payoutId}
 - `issueRefund` — POST /v1/admin/refunds
-- `listAddresses` — GET /v1/addresses
-- `listChargebacks` — GET /v1/admin/chargebacks
-- `listHalalIssuingBodies` — GET /v1/admin/halal-issuing-bodies
-- `listMenuReviewQueue` — GET /v1/admin/menu-reviews
-- `listNotifications` — GET /v1/notifications
-- `listOrders` — GET /v1/orders
-- `listOrdersAdmin` — GET /v1/admin/orders
-- `listPaymentMethods` — GET /v1/payment-methods
-- `listPayoutRuns` — GET /v1/admin/payout-runs
-- `listRefunds` — GET /v1/refunds
-- `listRefundsAdmin` — GET /v1/admin/refunds
-- `listRestaurantApplications` — GET /v1/admin/restaurant-applications
-- `listRestaurantDocuments` — GET /v1/restaurant/documents
-- `listRestaurantOrders` — GET /v1/restaurant/orders
-- `listRestaurantPayouts` — GET /v1/restaurant/payouts
-- `listRestaurantStaff` — GET /v1/restaurant/staff
-- `listRestaurants` — GET /v1/restaurants
-- `listRiderApplications` — GET /v1/admin/rider-applications
-- `listRiderDocuments` — GET /v1/riders/me/documents
-- `listRiderEarningEntries` — GET /v1/riders/me/earnings/entries
-- `listRiderPayouts` — GET /v1/riders/me/payouts
-- `listSessions` — GET /v1/auth/sessions
-- `listStaff` — GET /v1/admin/staff
-- `login` — POST /v1/auth/login
-- `logout` — POST /v1/auth/logout
-- `logoutAll` — POST /v1/auth/logout-all
-- `markNotificationRead` — POST /v1/notifications/{notificationId}/read
-- `markOrderReady` — POST /v1/restaurant/orders/{orderId}/ready
-- `proposeHalalIssuingBody` — POST /v1/admin/halal-issuing-bodies
-- `receiveStripeWebhook` — POST /v1/webhooks/stripe
-- `recordHalalChecks` — PUT /v1/admin/halal-certificates/{certificateId}/checks
-- `refreshSession` — POST /v1/auth/refresh
-- `registerDevice` — POST /v1/devices
-- `registerRestaurant` — POST /v1/auth/register/restaurant
-- `rejectOffer` — POST /v1/riders/me/offers/{offerId}/reject
-- `rejectOrder` — POST /v1/restaurant/orders/{orderId}/reject
-- `removeCartLine` — DELETE /v1/cart/lines/{lineId}
-- `reportRiderPositions` — POST /v1/riders/me/positions
-- `reportTamper` — POST /v1/orders/{orderId}/handoff/tamper-report
-- `requestOtp` — POST /v1/auth/otp/request
-- `requestPasswordReset` — POST /v1/auth/password/forgot
-- `resendEmailVerification` — POST /v1/auth/email/resend
-- `resetPassword` — POST /v1/auth/password/reset
-- `reviewRestaurantDocument` — POST /v1/admin/restaurant-documents/{documentId}/review
-- `reviewRiderDocument` — POST /v1/admin/rider-documents/{documentId}/review
-- `revokeSession` — DELETE /v1/auth/sessions/{sessionId}
-- `scanDelivery` — POST /v1/orders/{orderId}/handoff/delivery-scan
-- `scanPickup` — POST /v1/orders/{orderId}/handoff/pickup-scan
-- `search` — GET /v1/search
-- `sendRestaurantHeartbeat` — POST /v1/restaurant/heartbeat
-- `setDefaultAddress` — POST /v1/addresses/{addressId}/default
-- `setDefaultPaymentMethod` — POST /v1/payment-methods/{paymentMethodId}/default
-- `setHalalIssuingBodyStatus` — POST /v1/admin/halal-issuing-bodies/{bodyId}/status
-- `setMenuItemAvailability` — PUT /v1/restaurant/menu/items/{itemId}/availability
-- `setOrderingPause` — PUT /v1/admin/ordering-pause
-- `setRestaurantAcceptingOrders` — PATCH /v1/restaurant/availability
-- `setRestaurantHours` — PUT /v1/restaurant/hours
-- `setRiderAvailability` — PUT /v1/riders/me/availability
-- `submitOrderRating` — PUT /v1/orders/{orderId}/rating
-- `submitProofOfDelivery` — POST /v1/riders/me/assignments/{assignmentId}/proof-of-delivery
-- `submitRestaurantDocuments` — POST /v1/restaurant/documents/submit
-- `submitRestaurantProfile` — PUT /v1/restaurant/profile
-- `submitRiderDocuments` — POST /v1/riders/me/onboarding/documents
-- `submitRiderProfile` — POST /v1/riders/me/onboarding/profile
-- `submitRiderVehicle` — POST /v1/riders/me/onboarding/vehicle
-- `takeNextRestaurantApplication` — POST /v1/admin/restaurant-applications/take-next
-- `takeNextRiderApplication` — POST /v1/admin/rider-applications/take-next
-- `transcribeHalalCertificate` — PUT /v1/admin/halal-certificates/{certificateId}/transcription
-- `unregisterDevice` — DELETE /v1/devices/{deviceId}
-- `updateAddress` — PATCH /v1/addresses/{addressId}
-- `updateCartLine` — PATCH /v1/cart/lines/{lineId}
-- `updateCustomerProfile` — PATCH /v1/me/profile
-- `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId}
-- `updateMenuItem` — PATCH /v1/restaurant/menu/items/{itemId}
-- `updateMenuItemOnBehalf` — PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
-- `verifyEmail` — POST /v1/auth/email/verify
-- `verifyOtp` — POST /v1/auth/otp/verify
-- `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (2)
+## Uncovered (165)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
+- `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept — unexplained gap
+- `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept — unexplained gap
+- `addCartLine` — POST /v1/cart/lines — unexplained gap
+- `addChargebackEvidenceNote` — POST /v1/admin/chargebacks/{chargebackId}/evidence-notes — unexplained gap
+- `approveRefund` — POST /v1/admin/refunds/{refundId}/approve — unexplained gap
+- `attachRestaurantDocument` — POST /v1/restaurant/documents — unexplained gap
+- `attachRiderDocument` — POST /v1/riders/me/documents — unexplained gap
+- `bindPackageSeal` — POST /v1/orders/{orderId}/handoff/seal — unexplained gap
+- `cancelOrder` — POST /v1/orders/{orderId}/cancel — unexplained gap
+- `cancelOrderAdmin` — POST /v1/admin/orders/{orderId}/cancel — unexplained gap
+- `changePassword` — POST /v1/auth/password/change — unexplained gap
+- `clearCart` — DELETE /v1/cart — unexplained gap
+- `confirmUpload` — POST /v1/uploads/{uploadId}/confirm — unexplained gap
+- `createAddress` — POST /v1/addresses — unexplained gap
+- `createAssignmentTransition` — POST /v1/riders/me/assignments/{assignmentId}/transitions — unexplained gap
+- `createCertificateViewUrl` — POST /v1/restaurants/{restaurantId}/certificate-url — unexplained gap
+- `createConnectAccount` — POST /v1/connect/account — unexplained gap
+- `createConnectOnboardingLink` — POST /v1/connect/onboarding-link — unexplained gap
+- `createDocumentDownloadUrl` — GET /v1/documents/{documentId}/download-url — unexplained gap
+- `createMenuCategory` — POST /v1/restaurant/menu/categories — unexplained gap
+- `createMenuCategoryOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/categories — unexplained gap
+- `createMenuItem` — POST /v1/restaurant/menu/items — unexplained gap
+- `createMenuItemOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/items — unexplained gap
+- `createOrder` — POST /v1/orders — unexplained gap
+- `createPaymentMethodSetupIntent` — POST /v1/payment-methods/setup-intent — unexplained gap
+- `createPayoutRun` — POST /v1/admin/payout-runs — unexplained gap
+- `createQuote` — POST /v1/quotes — unexplained gap
+- `createRealtimeTicket` — POST /v1/realtime/ticket — unexplained gap
+- `createRestaurantStaffUser` — POST /v1/restaurant/staff — unexplained gap
+- `createStaffUser` — POST /v1/admin/staff — unexplained gap
+- `createUpload` — POST /v1/uploads — unexplained gap
+- `decideHalalCertificate` — POST /v1/admin/halal-certificates/{certificateId}/decision — unexplained gap
+- `decideMenuVersion` — POST /v1/admin/menu-reviews/{versionId}/decision — unexplained gap
+- `decideRestaurantApplication` — POST /v1/admin/restaurant-applications/{restaurantId}/decision — unexplained gap
+- `decideRiderApplication` — POST /v1/admin/rider-applications/{riderAccountId}/decision — unexplained gap
+- `declineRefund` — POST /v1/admin/refunds/{refundId}/decline — unexplained gap
+- `delayOrder` — POST /v1/restaurant/orders/{orderId}/delay — unexplained gap
+- `deleteAddress` — DELETE /v1/addresses/{addressId} — unexplained gap
+- `deleteMenuCategory` — DELETE /v1/restaurant/menu/categories/{categoryId} — unexplained gap
+- `deleteMenuItem` — DELETE /v1/restaurant/menu/items/{itemId} — unexplained gap
+- `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId} — unexplained gap
+- `deletePaymentMethod` — DELETE /v1/payment-methods/{paymentMethodId} — unexplained gap
+- `disableTotp` — POST /v1/auth/totp/disable — unexplained gap
+- `enrollTotp` — POST /v1/auth/totp/enroll — unexplained gap
+- `getActiveOrder` — GET /v1/orders/active — unexplained gap
+- `getAddress` — GET /v1/addresses/{addressId} — unexplained gap
+- `getAssignment` — GET /v1/riders/me/assignments/{assignmentId} — unexplained gap
+- `getCart` — GET /v1/cart — unexplained gap
+- `getChargeback` — GET /v1/admin/chargebacks/{chargebackId} — unexplained gap
+- `getConnectStatus` — GET /v1/connect/status — unexplained gap
+- `getCurrentOffer` — GET /v1/riders/me/offers/current — unexplained gap
+- `getCurrentPrincipal` — GET /v1/auth/me — unexplained gap
+- `getCustomerProfile` — GET /v1/me/profile — unexplained gap
 - `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
+- `getHalalCertificate` — GET /v1/admin/halal-certificates/{certificateId} — unexplained gap
+- `getHealth` — GET /health — unexplained gap
+- `getHomeFeed` — GET /v1/feed — unexplained gap
+- `getOpenApiDocument` — GET /v1/openapi.json — unexplained gap
+- `getOrder` — GET /v1/orders/{orderId} — unexplained gap
+- `getOrderAdmin` — GET /v1/admin/orders/{orderId} — unexplained gap
+- `getOrderPayment` — GET /v1/orders/{orderId}/payment — unexplained gap
+- `getOrderRating` — GET /v1/orders/{orderId}/rating — unexplained gap
+- `getOrderReceipt` — GET /v1/orders/{orderId}/receipt — unexplained gap
+- `getOrderRiderPublicProfile` — GET /v1/orders/{orderId}/rider — unexplained gap
+- `getOrderTracking` — GET /v1/orders/{orderId}/tracking — unexplained gap
+- `getOrderingPause` — GET /v1/admin/ordering-pause — unexplained gap
+- `getOwnMenu` — GET /v1/restaurant/menu — unexplained gap
+- `getPayoutRun` — GET /v1/admin/payout-runs/{runId} — unexplained gap
+- `getPublicConfig` — GET /v1/config/public — unexplained gap
+- `getQuote` — GET /v1/quotes/{quoteId} — unexplained gap
 - `getReadiness` — GET /health/ready — needs Redis and the object store
+- `getRealtimeSchema` — GET /v1/realtime/schema — unexplained gap
+- `getRestaurant` — GET /v1/restaurants/{restaurantId} — unexplained gap
+- `getRestaurantApplication` — GET /v1/admin/restaurant-applications/{restaurantId} — unexplained gap
+- `getRestaurantAvailability` — GET /v1/restaurant/availability — unexplained gap
+- `getRestaurantCertification` — GET /v1/restaurants/{restaurantId}/certification — unexplained gap
+- `getRestaurantHours` — GET /v1/restaurant/hours — unexplained gap
+- `getRestaurantMenu` — GET /v1/restaurants/{restaurantId}/menu — unexplained gap
+- `getRestaurantOnboardingStatus` — GET /v1/restaurant/onboarding/status — unexplained gap
+- `getRestaurantOrder` — GET /v1/restaurant/orders/{orderId} — unexplained gap
+- `getRestaurantProfile` — GET /v1/restaurant/profile — unexplained gap
+- `getRiderApplication` — GET /v1/admin/rider-applications/{riderAccountId} — unexplained gap
+- `getRiderDashboard` — GET /v1/riders/me/dashboard — unexplained gap
+- `getRiderEarningsSummary` — GET /v1/riders/me/earnings/summary — unexplained gap
+- `getRiderMe` — GET /v1/riders/me — unexplained gap
+- `getRiderOnboardingStatus` — GET /v1/riders/me/onboarding/status — unexplained gap
+- `getRiderPayout` — GET /v1/riders/me/payouts/{payoutId} — unexplained gap
+- `listAddresses` — GET /v1/addresses — unexplained gap
+- `listChargebacks` — GET /v1/admin/chargebacks — unexplained gap
+- `listHalalIssuingBodies` — GET /v1/admin/halal-issuing-bodies — unexplained gap
+- `listMenuReviewQueue` — GET /v1/admin/menu-reviews — unexplained gap
+- `listNotifications` — GET /v1/notifications — unexplained gap
+- `listOrders` — GET /v1/orders — unexplained gap
+- `listOrdersAdmin` — GET /v1/admin/orders — unexplained gap
+- `listPaymentMethods` — GET /v1/payment-methods — unexplained gap
+- `listPayoutRuns` — GET /v1/admin/payout-runs — unexplained gap
+- `listRefunds` — GET /v1/refunds — unexplained gap
+- `listRefundsAdmin` — GET /v1/admin/refunds — unexplained gap
+- `listRestaurantApplications` — GET /v1/admin/restaurant-applications — unexplained gap
+- `listRestaurantDocuments` — GET /v1/restaurant/documents — unexplained gap
+- `listRestaurantOrders` — GET /v1/restaurant/orders — unexplained gap
+- `listRestaurantPayouts` — GET /v1/restaurant/payouts — unexplained gap
+- `listRestaurantStaff` — GET /v1/restaurant/staff — unexplained gap
+- `listRestaurants` — GET /v1/restaurants — unexplained gap
+- `listRiderApplications` — GET /v1/admin/rider-applications — unexplained gap
+- `listRiderDocuments` — GET /v1/riders/me/documents — unexplained gap
+- `listRiderEarningEntries` — GET /v1/riders/me/earnings/entries — unexplained gap
+- `listRiderPayouts` — GET /v1/riders/me/payouts — unexplained gap
+- `listSessions` — GET /v1/auth/sessions — unexplained gap
+- `listStaff` — GET /v1/admin/staff — unexplained gap
+- `login` — POST /v1/auth/login — unexplained gap
+- `logout` — POST /v1/auth/logout — unexplained gap
+- `logoutAll` — POST /v1/auth/logout-all — unexplained gap
+- `markNotificationRead` — POST /v1/notifications/{notificationId}/read — unexplained gap
+- `markOrderReady` — POST /v1/restaurant/orders/{orderId}/ready — unexplained gap
+- `proposeHalalIssuingBody` — POST /v1/admin/halal-issuing-bodies — unexplained gap
+- `receiveStripeWebhook` — POST /v1/webhooks/stripe — unexplained gap
+- `recordHalalChecks` — PUT /v1/admin/halal-certificates/{certificateId}/checks — unexplained gap
+- `refreshSession` — POST /v1/auth/refresh — unexplained gap
+- `registerDevice` — POST /v1/devices — unexplained gap
+- `registerRestaurant` — POST /v1/auth/register/restaurant — unexplained gap
+- `rejectOffer` — POST /v1/riders/me/offers/{offerId}/reject — unexplained gap
+- `rejectOrder` — POST /v1/restaurant/orders/{orderId}/reject — unexplained gap
+- `removeCartLine` — DELETE /v1/cart/lines/{lineId} — unexplained gap
+- `reportRiderPositions` — POST /v1/riders/me/positions — unexplained gap
+- `reportTamper` — POST /v1/orders/{orderId}/handoff/tamper-report — unexplained gap
+- `requestOtp` — POST /v1/auth/otp/request — unexplained gap
+- `requestPasswordReset` — POST /v1/auth/password/forgot — unexplained gap
+- `resendEmailVerification` — POST /v1/auth/email/resend — unexplained gap
+- `resetPassword` — POST /v1/auth/password/reset — unexplained gap
+- `reviewRestaurantDocument` — POST /v1/admin/restaurant-documents/{documentId}/review — unexplained gap
+- `reviewRiderDocument` — POST /v1/admin/rider-documents/{documentId}/review — unexplained gap
+- `revokeSession` — DELETE /v1/auth/sessions/{sessionId} — unexplained gap
+- `scanDelivery` — POST /v1/orders/{orderId}/handoff/delivery-scan — unexplained gap
+- `scanPickup` — POST /v1/orders/{orderId}/handoff/pickup-scan — unexplained gap
+- `search` — GET /v1/search — unexplained gap
+- `sendRestaurantHeartbeat` — POST /v1/restaurant/heartbeat — unexplained gap
+- `setDefaultAddress` — POST /v1/addresses/{addressId}/default — unexplained gap
+- `setDefaultPaymentMethod` — POST /v1/payment-methods/{paymentMethodId}/default — unexplained gap
+- `setHalalIssuingBodyStatus` — POST /v1/admin/halal-issuing-bodies/{bodyId}/status — unexplained gap
+- `setMenuItemAvailability` — PUT /v1/restaurant/menu/items/{itemId}/availability — unexplained gap
+- `setOrderingPause` — PUT /v1/admin/ordering-pause — unexplained gap
+- `setRestaurantAcceptingOrders` — PATCH /v1/restaurant/availability — unexplained gap
+- `setRestaurantHours` — PUT /v1/restaurant/hours — unexplained gap
+- `setRiderAvailability` — PUT /v1/riders/me/availability — unexplained gap
+- `submitOrderRating` — PUT /v1/orders/{orderId}/rating — unexplained gap
+- `submitProofOfDelivery` — POST /v1/riders/me/assignments/{assignmentId}/proof-of-delivery — unexplained gap
+- `submitRestaurantDocuments` — POST /v1/restaurant/documents/submit — unexplained gap
+- `submitRestaurantProfile` — PUT /v1/restaurant/profile — unexplained gap
+- `submitRiderDocuments` — POST /v1/riders/me/onboarding/documents — unexplained gap
+- `submitRiderProfile` — POST /v1/riders/me/onboarding/profile — unexplained gap
+- `submitRiderVehicle` — POST /v1/riders/me/onboarding/vehicle — unexplained gap
+- `takeNextRestaurantApplication` — POST /v1/admin/restaurant-applications/take-next — unexplained gap
+- `takeNextRiderApplication` — POST /v1/admin/rider-applications/take-next — unexplained gap
+- `transcribeHalalCertificate` — PUT /v1/admin/halal-certificates/{certificateId}/transcription — unexplained gap
+- `unregisterDevice` — DELETE /v1/devices/{deviceId} — unexplained gap
+- `updateAddress` — PATCH /v1/addresses/{addressId} — unexplained gap
+- `updateCartLine` — PATCH /v1/cart/lines/{lineId} — unexplained gap
+- `updateCustomerProfile` — PATCH /v1/me/profile — unexplained gap
+- `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId} — unexplained gap
+- `updateMenuItem` — PATCH /v1/restaurant/menu/items/{itemId} — unexplained gap
+- `updateMenuItemOnBehalf` — PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId} — unexplained gap
+- `verifyEmail` — POST /v1/auth/email/verify — unexplained gap
+- `verifyOtp` — POST /v1/auth/otp/verify — unexplained gap
+- `verifyTotpEnrolment` — POST /v1/auth/totp/verify — unexplained gap

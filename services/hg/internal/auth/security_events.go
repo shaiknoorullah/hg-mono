@@ -2,10 +2,13 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
@@ -37,4 +40,60 @@ func isNewDevice(ctx context.Context, tx pgx.Tx, accountID, sessionID string, de
 		return false, err
 	}
 	return signedInBefore && !seenDevice, nil
+}
+
+// sendSecurityAlert enqueues the security email for one change (issue #348),
+// in the transaction that makes it, beside the account.security_event above:
+// the email exists if and only if the change committed. ref names the change
+// (the session id, or the time the password was set), so it is sent once.
+// client is the new session's surface, or "" for a password change or reset;
+// it picks the role the email is filed under, falling back to the account's
+// highest live role. The address is the account's verified email, resolved
+// at send time (notify.PgAccountLookup); an account without one gets none.
+// Without notifications wired (tests that build a bare Store) it sends nothing.
+func (s *Store) sendSecurityAlert(ctx context.Context, tx pgx.Tx, accountID string, kind notify.SecurityAlertKind,
+	client, ref string, at time.Time, ipCity *string) error {
+	if s.alerts == nil {
+		return nil
+	}
+	id, err := uuid.Parse(accountID)
+	if err != nil {
+		return fmt.Errorf("auth: account id %q: %w", accountID, err)
+	}
+	var zone, accountRole string
+	if err := tx.QueryRow(ctx, `
+		SELECT a.timezone,
+		       CASE WHEN bool_or(r.role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')) THEN 'ADMIN'
+		            WHEN bool_or(r.role IN ('RESTAURANT_OWNER', 'RESTAURANT_MANAGER', 'RESTAURANT_STAFF')) THEN 'RESTAURANT'
+		            WHEN bool_or(r.role = 'RIDER') THEN 'RIDER'
+		            ELSE 'CUSTOMER' END
+		  FROM account a
+		  LEFT JOIN account_role r ON r.account_id = a.id AND r.revoked_at IS NULL
+		 WHERE a.id = $1
+		 GROUP BY a.id`, accountID).Scan(&zone, &accountRole); err != nil {
+		return fmt.Errorf("auth: load account for security alert: %w", err)
+	}
+	role := notify.RoleContext(accountRole)
+	switch client {
+	case "customer-app":
+		role = notify.RoleCustomer
+	case "rider-app":
+		role = notify.RoleRider
+	case "restaurant-web":
+		role = notify.RoleRestaurant
+	case "admin-web":
+		role = notify.RoleAdmin
+	}
+	place := ""
+	if ipCity != nil {
+		place = *ipCity
+	}
+	n, err := notify.SecurityAlertEmail(notify.SecurityAlert{
+		AccountID: id, Role: role, Kind: kind, Ref: ref, At: at, Place: place, Zone: notify.Zone(zone),
+	})
+	if err != nil {
+		return err
+	}
+	_, err = s.alerts.Enqueue(ctx, tx, n)
+	return err
 }

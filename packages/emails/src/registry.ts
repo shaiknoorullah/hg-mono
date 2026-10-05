@@ -1,5 +1,5 @@
 import type { Template } from './define.js';
-import { emailVerification, passwordReset, staffInvite } from './templates/account.js';
+import { emailVerification, passwordReset, securityAlert, staffInvite } from './templates/account.js';
 import { generic } from './templates/generic.js';
 import { certificateLapsed, certificateRenewalReminder } from './templates/halal.js';
 import { payoutFailed, payoutHeld, payoutSent } from './templates/money.js';
@@ -30,6 +30,7 @@ export const templates: readonly Template[] = [
   emailVerification,
   passwordReset,
   staffInvite,
+  securityAlert,
   restaurantApplicationApproved,
   restaurantApplicationChangesRequested,
   restaurantApplicationRejected,

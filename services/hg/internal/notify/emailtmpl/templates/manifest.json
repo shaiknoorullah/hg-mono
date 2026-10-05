@@ -35,6 +35,17 @@
       ]
     },
     {
+      "name": "security_alert",
+      "subject": "{{.Heading}}",
+      "vars": [
+        "Heading",
+        "Summary",
+        "When",
+        "Place",
+        "IfNotYou"
+      ]
+    },
+    {
       "name": "restaurant_application_approved",
       "subject": "{{.RestaurantName}} is approved on HalalGoes",
       "vars": [
