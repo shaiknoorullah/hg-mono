@@ -1,171 +1,134 @@
 /**
- * Saved-address CRUD (C-30): list, make-default, delete, and hand off to `AddressFormScreen`
- * for create/edit. `deleteAddress` can 409 `ADDRESS_IN_USE` when a non-terminal order still
- * references the row — that's surfaced as a toast rather than a silent failure.
+ * Saved addresses (C-30), as the Account canvas's Addresses board draws it: one card of rows,
+ * each a single press target that opens the address to edit (where Make default and Delete
+ * live), and Add address below the list.
+ *
+ * Row rules from the canvas: the label is the title ('Home' gets the home icon, anything else the
+ * map pin); with no label, `line1` is the title. A unit already starting with Unit, Apt, Suite or
+ * # is shown as stored, otherwise prefixed "Unit " (never "Unit Unit 4211").
  */
 import * as React from 'react';
-import { FlatList, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { isApiError } from '@hg/api-client';
-import {
-  AppBar,
-  Badge,
-  Button,
-  Card,
-  EmptyState,
-  ErrorState,
-  Icon,
-  Spinner,
-  Toast,
-  useTheme,
-  useTypeStyle,
-} from '@hg/ui-native';
+import { ScrollView, View } from 'react-native';
+import { AppBar, Badge, Button, Icon, Skeleton, tokens, useTheme } from '@hg/ui-native';
 
-import { listAddresses, deleteAddress, setDefaultAddress, type Address } from '../api/addresses';
+import { listAddresses, type Address } from '../api/addresses';
 import { useAsync } from '../api/async';
+import { ListGroup, ListRow } from '../components/ListRow';
+import { StateMessage } from '../components/StateMessage';
 import { useNavigation } from '../navigation/stack';
+import { CustomerTabBar } from '../navigation/TabBar';
+
+export function unitText(unit: string): string {
+  return /^(unit|apt|suite|#)/i.test(unit.trim()) ? unit.trim() : `Unit ${unit.trim()}`;
+}
+
+/** Title and the two sublines of an address row. */
+export function addressRow(a: Address): { title: string; lines: string[] } {
+  const unit = a.unit ? unitText(a.unit) : '';
+  const cityLine = `${a.city}, ${a.province} ${a.postal_code}`;
+  if (a.label) return { title: a.label, lines: [unit ? `${a.line1}, ${unit}` : a.line1, cityLine] };
+  return { title: a.line1, lines: unit ? [unit, cityLine] : [cityLine] };
+}
 
 export function AddressesScreen(): React.ReactElement {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const { state, reload } = useAsync(() => listAddresses(), []);
-  const [busyId, setBusyId] = React.useState<string | null>(null);
-  const [toast, setToast] = React.useState<string | null>(null);
 
-  async function onMakeDefault(id: string): Promise<void> {
-    setBusyId(id);
-    try {
-      await setDefaultAddress(id);
-      reload();
-    } catch {
-      setToast("Couldn't set that as your default address.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function onDelete(id: string): Promise<void> {
-    setBusyId(id);
-    try {
-      await deleteAddress(id);
-      reload();
-    } catch (e) {
-      setToast(
-        isApiError(e) && String(e.code) === 'ADDRESS_IN_USE'
-          ? "That address is on an active order and can't be deleted yet."
-          : "Couldn't delete that address.",
-      );
-    } finally {
-      setBusyId(null);
-    }
-  }
+  const add = (): void => nav.push({ name: 'addressForm', addressId: null });
+  const empty = state.kind === 'ready' && state.data.length === 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
+    <View style={{ flex: 1, backgroundColor: theme.color.surface.base }}>
       <AppBar
-        title="Saved addresses"
-        back={{ onPress: nav.back }}
-        actions={[
-          {
-            key: 'add',
-            // AppBar paints surface.chrome (dark forest) and cannot recolour an icon it is
-            // handed as a node, so the icon has to match the bar's own foreground. It was
-            // text.onBrand — the dark ink meant for the orange button — at 1.33:1 on the
-            // chrome, which made the only way to add an address effectively invisible. Same
-            // pairing AppBar uses for its title; there is no text.onChrome token.
-            icon: (
-              <Icon
-                name="plus"
-                weight="bold"
-                size={20}
-                color={theme.scheme === 'dark' ? theme.color.text.primary : theme.color.text.onInverse}
-              />
-            ),
-            accessibilityLabel: 'Add address',
-            onPress: () => nav.push({ name: 'addressForm', addressId: null }),
-          },
-        ]}
+        tone="cream"
+        title="Addresses"
+        back={{ onPress: nav.back, previousTitle: 'Account' }}
+        loading={state.kind === 'loading'}
       />
-      {state.kind === 'loading' ? (
-        <View style={{ flex: 1, padding: 16 }}>
-          <Spinner label="Loading addresses" />
-        </View>
-      ) : state.kind === 'error' ? (
-        <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
-          <ErrorState errorCode={state.code} onRetry={reload} />
-        </View>
-      ) : state.data.length === 0 ? (
-        <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
-          <EmptyState
-            title="No saved addresses"
-            description="Add a delivery address to check out faster next time."
-            primaryAction={{ label: 'Add address', onPress: () => nav.push({ name: 'addressForm', addressId: null }) }}
+      <View style={{ flex: 1 }}>
+        {state.kind === 'loading' ? (
+          <View style={{ padding: tokens.space['4'], paddingTop: tokens.space['2'] }} accessibilityLabel="Loading addresses">
+            <ListGroup>
+              {[40, 30].map((w) => (
+                <View
+                  key={w}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: tokens.space['3'], minHeight: theme.density.rowHeight, paddingHorizontal: tokens.space['4'] }}
+                >
+                  <View style={{ width: 36 }}>
+                    <Skeleton variant="rect" height={36} animated={false} />
+                  </View>
+                  <View style={{ flex: 1, gap: tokens.space['2'] }}>
+                    <View style={{ width: `${w}%` }}>
+                      <Skeleton variant="rect" height={14} animated={false} />
+                    </View>
+                    <View style={{ width: '70%' }}>
+                      <Skeleton variant="rect" height={12} animated={false} />
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ListGroup>
+          </View>
+        ) : state.kind === 'error' ? (
+          <StateMessage
+            tone="error"
+            icon="refresh"
+            title="We couldn't load your addresses"
+            description="Check your connection and try again. Your saved addresses are safe."
+            onRetry={reload}
+            testID="Addresses-error"
           />
-        </View>
-      ) : (
-        <FlatList
-          data={state.data}
-          keyExtractor={(a) => a.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 16 + insets.bottom, gap: 12 }}
-          renderItem={({ item }) => (
-            <AddressRow
-              address={item}
-              busy={busyId === item.id}
-              onEdit={() => nav.push({ name: 'addressForm', addressId: item.id })}
-              onMakeDefault={() => onMakeDefault(item.id)}
-              onDelete={() => onDelete(item.id)}
-            />
-          )}
-        />
-      )}
-      {toast ? <Toast variant="danger" title={toast} onDismiss={() => setToast(null)} /> : null}
-    </View>
-  );
-}
-
-function AddressRow({
-  address,
-  busy,
-  onEdit,
-  onMakeDefault,
-  onDelete,
-}: {
-  address: Address;
-  busy: boolean;
-  onEdit: () => void;
-  onMakeDefault: () => void;
-  onDelete: () => void;
-}): React.ReactElement {
-  const theme = useTheme();
-  const label = useTypeStyle('label.lg');
-  const body = useTypeStyle('body.sm');
-
-  return (
-    <Card variant="outlined" onPress={onEdit}>
-      <View style={{ gap: 6 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={[label, { color: theme.color.text.primary }]}>{address.label ?? 'Address'}</Text>
-          {address.is_default ? <Badge label="Default" variant="brand" /> : null}
-        </View>
-        <Text style={[body, { color: theme.color.text.secondary }]}>
-          {address.line1}
-          {address.unit ? `, Unit ${address.unit}` : ''}
-        </Text>
-        <Text style={[body, { color: theme.color.text.secondary }]}>
-          {address.city}, {address.province} {address.postal_code}
-        </Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-          {!address.is_default ? (
-            <Button variant="tertiary" size="sm" onPress={onMakeDefault} loading={busy}>
-              Make default
-            </Button>
-          ) : null}
-          <Button variant="tertiary" size="sm" onPress={onDelete} loading={busy} destructive>
-            Delete
+        ) : empty ? (
+          <StateMessage
+            tone="empty"
+            icon="map"
+            title="No saved addresses"
+            description="Search for an address and drag the pin onto the door your rider should use. You don't need to be there."
+            testID="Addresses-empty"
+          />
+        ) : (
+          <ScrollView contentContainerStyle={{ padding: tokens.space['4'], paddingTop: tokens.space['2'] }}>
+            <ListGroup testID="Addresses-list">
+              {state.data.map((a) => {
+                const row = addressRow(a);
+                return (
+                  <ListRow
+                    key={a.id}
+                    icon={a.label === 'Home' ? 'home' : 'map'}
+                    title={row.title}
+                    subtitle={row.lines.join('\n')}
+                    trailing={
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: tokens.space['2'] }}>
+                        {a.is_default ? <Badge label="Default" variant="neutral" size="sm" /> : null}
+                        <Icon name="chevron-right" size={20} color={theme.color.text.secondary} />
+                      </View>
+                    }
+                    accessibilityLabel={`${a.label ? `${a.label}, ` : ''}${a.is_default ? 'default address, ' : ''}${row.lines.join(', ')}. Edit`}
+                    onPress={() => nav.push({ name: 'addressForm', addressId: a.id })}
+                  />
+                );
+              })}
+            </ListGroup>
+          </ScrollView>
+        )}
+      </View>
+      {state.kind !== 'error' ? (
+        <View style={{ paddingHorizontal: tokens.space['4'], paddingBottom: tokens.space['4'], paddingTop: tokens.space['2'] }}>
+          <Button
+            variant={empty ? 'primary' : 'tertiary'}
+            size="lg"
+            fullWidth
+            disabled={state.kind === 'loading'}
+            iconStart={<Icon name="plus" size={20} color={empty ? theme.color.text.onBrand : theme.color.text.primary} />}
+            onPress={add}
+            testID="Addresses-add"
+          >
+            Add address
           </Button>
         </View>
-      </View>
-    </Card>
+      ) : null}
+      <CustomerTabBar active="profile" />
+    </View>
   );
 }

@@ -18,6 +18,8 @@ import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AddressesScreen } from '../screens/AddressesScreen';
 import { AddressFormScreen } from '../screens/AddressFormScreen';
+import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
+import { AddressStepScreen } from '../screens/AddressStepScreen';
 import { NavigationProvider } from './stack';
 import type { Route } from './stack';
 
@@ -45,6 +47,10 @@ function screenFor(route: Route): React.ReactElement {
       return <AddressesScreen />;
     case 'addressForm':
       return <AddressFormScreen addressId={route.addressId} />;
+    case 'notificationSettings':
+      return <NotificationSettingsScreen />;
+    case 'welcomeAddress':
+      return <AddressStepScreen />;
     default: {
       // Exhaustiveness: a new route with no case is a compile error here.
       const _never: never = route;
@@ -53,9 +59,10 @@ function screenFor(route: Route): React.ReactElement {
   }
 }
 
-export function Router(): React.ReactElement {
+/** `initial` is where sign-in lands: Home, Orders, or the first-run address step. */
+export function Router({ initial = { name: 'discovery' } }: { initial?: Route }): React.ReactElement {
   return (
-    <NavigationProvider initial={{ name: 'discovery' }}>
+    <NavigationProvider initial={initial}>
       {(route) => (
         // Keying on the route identity remounts a screen when its params change (e.g. a
         // different restaurant), so each screen's own fetch effects re-run cleanly.

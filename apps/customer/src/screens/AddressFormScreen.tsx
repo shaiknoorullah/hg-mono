@@ -13,8 +13,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppBar, Banner, Button, ErrorState, Input, Select, Spinner, Switch, Toast, useTheme } from '@hg/ui-native';
 import type { SelectOption } from '@hg/ui-native';
 
+import { isApiError } from '@hg/api-client';
+
 import {
   createAddress,
+  deleteAddress,
   getAddress,
   updateAddress,
   type Address,
@@ -104,6 +107,7 @@ function Form({
     | { kind: 'network' }
   >({ kind: 'idle' });
   const [saving, setSaving] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const [errorText, setErrorText] = React.useState<string | null>(null);
   const [toast, setToast] = React.useState<string | null>(null);
 
@@ -181,6 +185,25 @@ function Form({
     }
   }
 
+  // Delete lives on the edit screen, as the Account canvas draws it; the Addresses rows only open
+  // this screen. 409 ADDRESS_IN_USE: a non-terminal order still references the address.
+  async function remove(): Promise<void> {
+    if (!addressId) return;
+    setDeleting(true);
+    try {
+      await deleteAddress(addressId);
+      onSaved();
+    } catch (e) {
+      setToast(
+        isApiError(e) && String(e.code) === 'ADDRESS_IN_USE'
+          ? "That address is on an active order and can't be deleted yet."
+          : "Couldn't delete that address.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 + bottomInset, gap: 14 }}>
       {noToken ? (
@@ -235,6 +258,11 @@ function Form({
       <Button variant="primary" onPress={save} loading={saving} disabled={!valid} fullWidth>
         {addressId ? 'Save changes' : 'Add address'}
       </Button>
+      {addressId ? (
+        <Button variant="tertiary" onPress={remove} loading={deleting} destructive fullWidth>
+          Delete address
+        </Button>
+      ) : null}
       {toast ? <Toast variant="danger" title={toast} onDismiss={() => setToast(null)} /> : null}
     </ScrollView>
   );

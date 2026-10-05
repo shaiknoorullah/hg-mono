@@ -25,7 +25,10 @@ export type Route =
   | { name: 'notifications' }
   | { name: 'profile' }
   | { name: 'addresses' }
-  | { name: 'addressForm'; addressId: string | null };
+  | { name: 'addressForm'; addressId: string | null }
+  | { name: 'notificationSettings' }
+  /** First run only: "Where should we deliver?" after a new customer saves their details. */
+  | { name: 'welcomeAddress' };
 
 export type RouteName = Route['name'];
 
