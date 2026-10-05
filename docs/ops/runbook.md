@@ -138,7 +138,7 @@ This is what the server runs **today**, until the pgBackRest and restic set-up i
 
 Files are kept 14 days. They live **on the same disk**: there is no off-server copy yet (the owner's backup key, [#64][i64]). If the disk is lost, so are they. Each run writes `hg_backup_last_success_timestamp_seconds` for the monitoring stack. `systemctl status hg-backup-current.service` shows the last run.
 
-Run every step from `/srv/hg/repo`, with `C="docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.server.yml"`. Write each step's UTC time in the timeline.
+Run every step from `/srv/hg/repo`. Set `C` to the compose command every deploy uses: `docker compose` with the base file [`deploy/docker-compose.yml`](../../deploy/docker-compose.yml) and then the server override. The override sits beside the base file on the server, copied there from [the app stack role](../../deploy/host/roles/app_stack/files/docker-compose.server.yml). Write each step's UTC time in the timeline.
 
 **The database:**
 
@@ -162,9 +162,11 @@ Tried on 5 Oct on a local stack, which has the same container names: a dump made
    ```sh
    U=$(docker exec hg-minio-1 printenv MINIO_ROOT_USER); P=$(docker exec hg-minio-1 printenv MINIO_ROOT_PASSWORD)
    docker run --rm --network hg-net -e MC_HOST_s="http://$U:$P@hg-minio-1:9000" -v /srv/restore:/restore \
-     --entrypoint mc "$(grep ^HG_MC_IMAGE= /etc/hg/backup-current.conf | cut -d= -f2)" mirror /restore/<bucket> s/<bucket>
+     --entrypoint mc <mc image> mirror /restore/<bucket> s/<bucket>
    unset P
    ```
+
+   `<mc image>` is the `mc` image the backup script uses, named in `/etc/hg/backup-current.conf`.
 
    Never add `--remove` here: it deletes every file uploaded after the backup.
 3. Remove `/srv/restore` once the incident is closed. It holds KYC documents.
