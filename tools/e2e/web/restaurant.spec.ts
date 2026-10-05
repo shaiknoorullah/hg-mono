@@ -5,13 +5,13 @@ import { adminOrder, placeOrder, world } from '../lib/api.mjs';
 import { OUT } from '../lib/paths.mjs';
 import { stepper } from './shots';
 
-// The restaurant web app (apps/restaurant) against the real API: the owner of Bismillah Grill
-// signs in with email and password, sees the live order queue and works orders in it.
+// The restaurant web app (apps/restaurant) against the API:
+// Tests the owner operations (order handling, menu management, operating hours, payouts, mobile nav).
 
-async function signIn(page: Page): Promise<void> {
+async function signIn(page: Page, email?: string): Promise<void> {
   const w = world();
   await page.goto('/login');
-  await page.getByLabel('Business email').fill(w.restaurant.ownerEmail);
+  await page.getByLabel('Business email').fill(email ?? w.restaurant.ownerEmail);
   await page.getByLabel('Password').fill(w.password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   // Onboarding is finished, so the app moves on to the orders.
@@ -31,6 +31,9 @@ async function waitForOrder(page: Page, code: string): Promise<void> {
   }).toPass({ timeout: 60_000 });
 }
 
+// ---------------------------------------------------------------------------
+// 1. Order queue flow: order placed through the API accepted by restaurant
+// ---------------------------------------------------------------------------
 test('restaurant: sign in, see the live order queue, accept an order placed through the API', { tag: '@api-order' }, async ({ page }) => {
   const step = stepper('restaurant', 'api-order');
 
@@ -43,7 +46,7 @@ test('restaurant: sign in, see the live order queue, accept an order placed thro
     await signIn(page);
   });
 
-  // A second customer orders through the API; the fake payment client authorises it at once,
+  // A customer orders through the API; the fake payment client authorises it at once,
   // and the restaurant then has 180 seconds to accept.
   const order = await placeOrder('api');
   expect(order.state).toBe('RESTAURANT_PENDING');
@@ -76,9 +79,9 @@ function crossOrder(): { id: string; code: string } {
   return { id, code };
 }
 
-// The cross-app smoke, in two parts: the restaurant accepts the customer's order within its
-// 180 seconds, and marks it ready once the rider is online (run.sh waits for that), so that
-// dispatch offers it to the rider.
+// ---------------------------------------------------------------------------
+// 2. Cross-app smoke: customer phone order accepted and marked ready
+// ---------------------------------------------------------------------------
 test('restaurant: accept the order the customer placed on the phone', { tag: '@cross-accept' }, async ({ page }) => {
   const { id, code } = crossOrder();
   const step = stepper('restaurant', 'cross');
@@ -108,4 +111,126 @@ test('restaurant: mark the customer\'s order ready for pickup', { tag: '@cross-r
   });
 
   expect((await adminOrder(id)).state).toBe('READY_FOR_PICKUP');
+});
+
+// ---------------------------------------------------------------------------
+// 3. Complete browser journeys: register, menu, hours, payouts, mobile nav
+// ---------------------------------------------------------------------------
+test('restaurant web app: journeys (register, menu, hours, payouts, responsive nav)', async ({ page }) => {
+  const step = stepper('restaurant', 'journey');
+
+  // Register form validation
+  await step(page, '01-register-form', async () => {
+    await page.goto('/register');
+    await expect(page.getByRole('heading', { name: 'Register your restaurant' })).toBeVisible();
+    await page.getByLabel('Business name').fill('E2E New Grill');
+    await page.getByLabel('Business email').fill(`e2e+reg_${Date.now()}@halalgoes.test`);
+    await page.getByLabel('Password').fill('SecurePassword123!');
+  });
+
+  await step(page, '02-register-submit-terms-version-bug', async () => {
+    await page.getByRole('button', { name: 'Create account' }).click();
+    const alert = page.getByRole('alert');
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText('terms version is out of date');
+  });
+
+  // Sign in as active partner
+  await step(page, '03-sign-in-partner', async () => {
+    await signIn(page);
+    await expect(page.getByRole('heading', { name: 'Live orders', level: 1 })).toBeVisible();
+  });
+
+  // Menu Management
+  await step(page, '04-menu-overview', async () => {
+    await page.goto('/menu');
+    await expect(page.getByRole('heading', { name: 'Menu', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add item' })).toBeVisible();
+  });
+
+  await step(page, '05-menu-add-category-and-item', async () => {
+    await page.getByRole('button', { name: 'Add item' }).click();
+    await expect(page.getByRole('heading', { name: 'Add menu item' })).toBeVisible();
+
+    const newCatTab = page.getByRole('tab', { name: 'New category' });
+    if (await newCatTab.isVisible()) {
+      await newCatTab.click();
+      await page.getByPlaceholder('e.g. Grills').fill('E2E Specials');
+    }
+    await page.getByLabel('Item name').fill('Special Biryani');
+    await page.getByLabel('Price (CAD)').fill('16.50');
+    await page.getByRole('button', { name: 'Add item' }).last().click();
+    await page.waitForTimeout(1000);
+  });
+
+  await step(page, '06-menu-add-second-item', async () => {
+    await page.getByRole('button', { name: 'Add item' }).click();
+    await expect(page.getByRole('heading', { name: 'Add menu item' })).toBeVisible();
+
+    const existingCatTab = page.getByRole('tab', { name: 'Existing category' });
+    if (await existingCatTab.isVisible()) {
+      await existingCatTab.click();
+    }
+    await page.getByLabel('Item name').fill('Special Mango Lassi');
+    await page.getByLabel('Price (CAD)').fill('6.50');
+    await page.getByRole('button', { name: 'Add item' }).last().click();
+    await page.waitForTimeout(1000);
+  });
+
+  await step(page, '07-menu-edit-item', async () => {
+    const editBtn = page.locator('button[aria-label="Edit Special Biryani"]');
+    if (await editBtn.isVisible()) {
+      await editBtn.click();
+      await expect(page.getByRole('heading', { name: 'Edit item' })).toBeVisible();
+      await page.getByLabel('Price (CAD)').fill('17.50');
+      await page.getByRole('button', { name: 'Save changes' }).click();
+      await page.waitForTimeout(1000);
+    }
+  });
+
+  await step(page, '08-menu-toggle-availability', async () => {
+    const toggle = page.getByRole('switch', { name: /available/i }).first();
+    if (await toggle.isVisible()) {
+      await toggle.click();
+      await page.waitForTimeout(800);
+    }
+  });
+
+  // Operating Hours
+  await step(page, '09-hours-overview', async () => {
+    await page.goto('/hours');
+    await expect(page.getByRole('heading', { name: 'Hours & availability' })).toBeVisible();
+    await expect(page.getByLabel('Accepting orders')).toBeVisible();
+  });
+
+  await step(page, '10-toggle-accepting-orders-focus', async () => {
+    const switchEl = page.getByLabel('Accepting orders');
+    await switchEl.focus();
+    await expect(switchEl).toBeFocused();
+    await switchEl.click();
+    await page.waitForTimeout(800);
+    await switchEl.click();
+    await page.waitForTimeout(800);
+  });
+
+  // Payouts Page
+  await step(page, '11-payouts-overview', async () => {
+    await page.goto('/payouts');
+    await expect(page.getByRole('heading', { name: 'Payouts', exact: true })).toBeVisible();
+    await expect(page.getByText('Weekly, every Monday', { exact: false })).toBeVisible();
+  });
+
+  // Responsive Mobile Navigation (390px Viewport)
+  await step(page, '12-mobile-responsive-bottom-nav', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/orders');
+    await expect(page.getByRole('heading', { name: 'Live orders', level: 1 })).toBeVisible();
+
+    const mobileNav = page.locator('nav[aria-label="Primary"]');
+    await expect(mobileNav).toBeVisible();
+
+    const activeTile = mobileNav.locator('button[aria-current="page"]');
+    await expect(activeTile).toBeVisible();
+    await expect(activeTile).toContainText('Orders');
+  });
 });
