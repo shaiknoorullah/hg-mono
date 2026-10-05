@@ -57,11 +57,4 @@ The scenario writes no database row. Terminal commands run from `services/hg`.
 
 ## Stripe test mode
 
-With no `HG_STRIPE_SECRET_KEY` on the API, the local fake Stripe makes the payout account ready at once, as above.
-
-With a Stripe **test** key (`sk_test_…`), Express onboarding is hosted by Stripe and needs a person:
-1. The scenario stops after `connect  Stripe test-mode onboarding waits for a person: open <url>`, at `PAYOUT_PENDING`.
-2. Run `stripe listen --forward-connect-to localhost:8080/v1/webhooks/stripe`. Open the URL and complete Stripe's test onboarding.
-3. When `account.updated` arrives, the rider becomes `ACTIVE`. Go online from the rider app's **Availability** screen.
-
-A live key (`sk_live_…`) must never be used locally.
+Payout set-up with and without a Stripe test key works as in the [restaurant playbook's Stripe test mode](../restaurant/onboarding.md#stripe-test-mode). For a rider, when `account.updated` arrives the rider becomes `ACTIVE`; go online from the rider app's **Availability** screen.
