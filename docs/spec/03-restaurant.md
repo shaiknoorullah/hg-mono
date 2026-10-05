@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -1561,6 +1561,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `CANCELLED_PAYMENT_FAILED`, the restaurant is notified, and rider dispatch is **not** enqueued.
      There is no path where a failed money operation lets the flow continue. *(Today the saga falls
      through to rider assignment when cancel/refund returns false.)*
+     Accept first checks that the restaurant can still take orders, under the same lock as checkout
+     ([one check for every order path](01-platform.md#p-09--canonical-price-computation-the-quote)): if it is
+     not listed, not `LIVE`, or its halal certificate is not current at that moment, accept answers
+     `409 RESTAURANT_UNAVAILABLE`, nothing is captured, and the order times out and releases its authorisation.
   4. **Reject** performs, in one transaction: status → `CANCELLED_BY_RESTAURANT`; store reason;
      void the authorisation; notify the customer; release any offer budget (R-21). A void failure
      leaves the order in `CANCELLED_BY_RESTAURANT` and raises an operational alert with a retry job —
@@ -1598,6 +1602,14 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Behaviour**: After acceptance the restaurant advances the order through exactly two
   restaurant-owned transitions: `ACCEPTED → PREPARING` and `PREPARING → READY_FOR_PICKUP`. Marking
   ready notifies the assigned rider (R-26) and the customer. All later statuses belong to the rider.
+
+  Marking ready starts the order's pickup deadline from the [platform deadline table](./01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable):
+  when no rider has collected the order 15 minutes later, and every 10 minutes after that, the
+  search for a rider is re-opened, ops are alerted and the customer is told
+  ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)). A rider cannot pick
+  up an order the kitchen has not marked ready: the pickup is refused and the rider is told to wait
+  for the kitchen, until the kitchen's pickup code is checked
+  ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
 
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,

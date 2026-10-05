@@ -28,6 +28,7 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // ─── Test infrastructure ──────────────────────────────────────────────────────
@@ -152,6 +153,25 @@ func seedFixtures(t *testing.T, pool *pgxpool.Pool) fixtures {
 		_, _ = pool.Exec(c, `DELETE FROM account WHERE id IN ($1,$2,$3,$4)`,
 			f.ownerAccountID, f.managerAccountID, f.staffAccountID, f.otherAccountID)
 	})
+	return f
+}
+
+// seedOrderableFixtures is seedFixtures with a primary restaurant that can take
+// orders: LIVE, with a location, and certified through the real chain (an
+// admin-verified certificate). Accepting an order refuses any other restaurant
+// (https://github.com/shaiknoorullah/hg-mono/issues/328).
+func seedOrderableFixtures(t *testing.T, pool *pgxpool.Pool) fixtures {
+	t.Helper()
+	f := seedFixtures(t, pool)
+	if _, err := pool.Exec(context.Background(), `
+		UPDATE restaurant
+		   SET province = 'ON', city = 'Toronto', line1 = '1 King St', postal_code = 'M5J0C3',
+		       location = ST_SetSRID(ST_MakePoint(-79.3810, 43.6412), 4326)::geography,
+		       onboarding_state = 'ACTIVE', account_state = 'LIVE'
+		 WHERE id = $1`, f.restaurantID); err != nil {
+		t.Fatalf("make the restaurant live: %v", err)
+	}
+	testseed.CertifyRestaurant(t, pool, f.restaurantID, 300)
 	return f
 }
 
@@ -1016,7 +1036,7 @@ func TestIntegration_GetOrder_IDOR_Returns404(t *testing.T) {
 // already PREPARING must return 409 ILLEGAL_TRANSITION.
 func TestIntegration_AcceptOrder_IllegalTransition(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID, "PREPARING", "now() + interval '30 minutes'")
 
 	h := newHandler(pool)
@@ -1047,7 +1067,7 @@ func TestIntegration_AcceptOrder_IllegalTransition(t *testing.T) {
 // must return 409 OFFER_EXPIRED.
 func TestIntegration_AcceptOrder_OfferExpired(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	// deadline_at is in the past — the 180 s window has closed.
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID, "RESTAURANT_PENDING", "now() - interval '1 second'")
 

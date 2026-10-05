@@ -19,6 +19,7 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.halalgoes.com",
         "EXPO_PUBLIC_MAPBOX_TOKEN": ""
       }
     },
@@ -26,6 +27,7 @@
       "channel": "production",
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.halalgoes.com",
         "EXPO_PUBLIC_MAPBOX_TOKEN": ""
       }
     }
