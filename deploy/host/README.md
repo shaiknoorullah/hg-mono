@@ -71,7 +71,7 @@ A rebuild on a new server: order a Contabo VPS 6 with the owner's SSH key, put i
 1. **WireGuard.** The server side is installed and its tunnel is up (`sudo wg show wg0 public-key` prints its public key) but there is no peer. Generate a key on the laptop (`wg genkey | tee private.key | wg pubkey`), add `- {name: owner-laptop, public_key: "<public key>", address: 10.66.0.10}` under `hg_wg_peers` in `inventory/current.yml`, run `./provision-current.sh --tags wireguard,firewall`, then put the private key into `out/owner-laptop.conf` and bring the tunnel up. Public SSH stays open until the owner decides to close it (`hg_ssh_public: false` in `current.yml`, run from the tunnel).
 2. **Alert email.** Create a Resend API key with sending access, then `sops edit ~/.config/halalgoes/secrets/host.sops.yaml` and set `hg_alert_smtp_password`, then `./provision-current.sh --tags monitoring`. Until then alerts show in the dashboards only (Alertmanager has no email receiver; Gatus sends none).
 3. **Terraform credentials**: see [`deploy/terraform/README.md`](../terraform/README.md).
-4. **Off-server backup copy.** Add the owner's backup machine key to `hg_offline_pull_ssh_keys` and `hg_pull_sources`-style access (read-only SFTP as `hg-pull`, inside `/srv/backup`) once WireGuard works. Until then the only copy is on this server and a Contabo snapshot is the second line.
+4. **Off-server backup copy.** Add the owner's backup machine public key to `hg_offline_pull_ssh_keys` (in `inventory/current.yml`) and run `./provision-current.sh --tags backup`: the `hg-pull` account is read-only SFTP inside `/srv/backup`. Until then the only copy is on this server, and a Contabo snapshot is the second line.
 
 ### Backups today
 
