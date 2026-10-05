@@ -859,6 +859,7 @@ const (
 	ErrorCodeQUOTESTALE                     ErrorCode = "QUOTE_STALE"
 	ErrorCodeRATELIMITED                    ErrorCode = "RATE_LIMITED"
 	ErrorCodeRATELIMITERUNAVAILABLE         ErrorCode = "RATE_LIMITER_UNAVAILABLE"
+	ErrorCodeRECEIPTNOTREADY                ErrorCode = "RECEIPT_NOT_READY"
 	ErrorCodeREFRESHREUSEDETECTED           ErrorCode = "REFRESH_REUSE_DETECTED"
 	ErrorCodeREFUNDALREADYREQUESTED         ErrorCode = "REFUND_ALREADY_REQUESTED"
 	ErrorCodeREFUNDEXCEEDSCAPTURED          ErrorCode = "REFUND_EXCEEDS_CAPTURED"
@@ -1134,6 +1135,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeRATELIMITED:
 		return true
 	case ErrorCodeRATELIMITERUNAVAILABLE:
+		return true
+	case ErrorCodeRECEIPTNOTREADY:
 		return true
 	case ErrorCodeREFRESHREUSEDETECTED:
 		return true

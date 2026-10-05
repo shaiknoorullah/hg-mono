@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 422,
+  "count": 423,
   "counts_by_domain": {
     "admin": 35,
     "cart": 14,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 54,
+    "errors": 55,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -2702,6 +2702,20 @@
         "error-envelope"
       ],
       "file": "errors/error_rate_limited.json"
+    },
+    {
+      "scenario": "error_receipt_not_ready",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RECEIPT_NOT_READY`. `getOrderReceipt` before the order reaches COMPLETED: the receipt is written once at COMPLETED (docs/spec/01-platform.md, \"P-10 — Fee breakdown presented to the customer\"). The customer app shows the receipt as not ready yet rather than as an error; an order that never captured never gets one.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_receipt_not_ready.json"
     },
     {
       "scenario": "error_refund_already_decided",
@@ -6770,6 +6784,7 @@
       "order_rating_unrated"
     ],
     "getOrderReceipt": [
+      "error_receipt_not_ready",
       "receipt_pickup_zero_tip",
       "receipt_standard",
       "receipt_with_refund"

@@ -2210,7 +2210,7 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
         '409':
-          description: 'The order never captured, so no receipt is issued.'
+          description: '`RECEIPT_NOT_READY` — the order has not reached `COMPLETED`, so no receipt is issued yet. An order that never captured never gets one.'
           content:
             application/json:
               schema:
@@ -7255,6 +7255,9 @@ components:
         - TRANSITION_NOT_PERMITTED_FOR_ACTOR
         - ACTIVE_ORDER_EXISTS
         - CANCELLATION_WINDOW_CLOSED
+        # getOrderReceipt before the order reaches COMPLETED: the receipt snapshot is
+        # written once at COMPLETED (https://github.com/shaiknoorullah/hg-mono/issues/540).
+        - RECEIPT_NOT_READY
         # Staff paused new orders platform-wide (setOrderingPause,
         # https://github.com/shaiknoorullah/hg-mono/issues/244). Always a 409; createOrder
         # says why it is not a 503.

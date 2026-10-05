@@ -84,7 +84,8 @@ export async function getOrder(orderId: string): Promise<OrderCustomerView> {
 
 /**
  * The order's receipt (P-10 / C-27), read from the snapshot the server writes once at
- * `COMPLETED`. Until then the server answers 409, which `isReceiptNotReady` recognises.
+ * `COMPLETED`. Until then the server answers `409 RECEIPT_NOT_READY`, which `isReceiptNotReady`
+ * recognises.
  */
 export async function getOrderReceipt(orderId: string): Promise<Receipt> {
   const body = await unwrap(
@@ -93,13 +94,15 @@ export async function getOrderReceipt(orderId: string): Promise<Receipt> {
   return body.data as unknown as Receipt;
 }
 
+/** Typed against the contract's `ErrorCode`, so the build breaks if the contract drops it. */
+const RECEIPT_NOT_READY: Schema['ErrorCode'] = 'RECEIPT_NOT_READY';
+
 /**
- * True for the receipt's 409: the order has no receipt yet. The contract defines a 409 on this
- * operation but its `ErrorCode` enum has no `RECEIPT_NOT_READY` (the server's code), so this
- * branches on the status the contract does define.
+ * True for the receipt's `409 RECEIPT_NOT_READY`: the order has not reached `COMPLETED`, so it
+ * has no receipt yet. Any other 409 is a real error, not "not ready".
  */
 export function isReceiptNotReady(e: unknown): boolean {
-  return isApiError(e) && e.status === 409;
+  return isApiError(e) && e.status === 409 && e.code === RECEIPT_NOT_READY;
 }
 
 export type OrderCancellationInput = Schema['OrderCancellationInput'];
