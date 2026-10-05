@@ -307,7 +307,7 @@ func (w *DeliveryWorker) attempt(ctx context.Context, log *slog.Logger, n Notifi
 		return attemptOutcome{result: attemptSuppressed}, nil
 	}
 
-	msg := Message{Title: n.Title, Body: n.Body, DeepLink: n.DeepLink, Data: n.Data}
+	msg := Message{Title: n.Title, Body: n.Body, DeepLink: n.DeepLink, Data: n.Data, Priority: n.Priority}
 	if override.Body != "" {
 		msg.Body = override.Body
 	}
@@ -323,7 +323,13 @@ func (w *DeliveryWorker) attempt(ctx context.Context, log *slog.Logger, n Notifi
 		}
 	}
 	if sendErr == nil {
-		providerMsgID, sendErr = w.Notifier.Send(ctx, ch, target, msg)
+		if ch == ChannelPush && override.Target == "" && len(targets.PushTokens) > 1 {
+			// Every live device of the account, in one request; the delivery
+			// row names the most recently seen one.
+			providerMsgID, sendErr = w.Notifier.SendAll(ctx, ch, targets.PushTokens, msg)
+		} else {
+			providerMsgID, sendErr = w.Notifier.Send(ctx, ch, target, msg)
+		}
 	}
 
 	if reason, ok := suppressedReason(sendErr); ok {

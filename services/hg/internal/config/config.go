@@ -51,6 +51,7 @@ type Config struct {
 	SMS      SMS
 	OTP      OTP
 	Email    Email
+	Push     Push
 	RiderPay RiderPay
 	Tax      Tax
 	Realtime Realtime
@@ -220,6 +221,21 @@ type Email struct {
 	// opens (scheme://host only).
 	RestaurantWebURL string
 	AdminWebURL      string
+}
+
+// Push holds the push-notification settings (docs/spec/01-platform.md,
+// "P-25 — Devices and push"; issue #58). Push is off unless HG_PUSH_ENABLED
+// is true: off, every push is recorded SUPPRESSED and the in-app inbox is the
+// record, as before.
+type Push struct {
+	Enabled bool
+	// ExpoAccessToken is EXPO_ACCESS_TOKEN, sent to Expo when set. Optional:
+	// Expo needs it only when the project's enhanced push security is on.
+	ExpoAccessToken string
+	// Invalid holds HG_PUSH_ENABLED's value when it is not a boolean. Push
+	// then stays off and the API still boots: a typo in an optional setting
+	// must not stop sign-in or ordering.
+	Invalid string
 }
 
 // EmailLinkDomain is the only domain an email may link to outside local.
@@ -524,6 +540,15 @@ func Load(getenv func(string) string) (*Config, error) {
 	if cfg.Env == EnvProduction && len(cfg.Email.AllowList) > 0 {
 		l.errf("HG_EMAIL_ALLOWLIST is for non-production environments only: in production it would " +
 			"silently stop email to every customer not on it")
+	}
+
+	cfg.Push = Push{ExpoAccessToken: strings.TrimSpace(l.getenv("EXPO_ACCESS_TOKEN"))}
+	if raw := strings.TrimSpace(l.getenv("HG_PUSH_ENABLED")); raw != "" {
+		if on, err := strconv.ParseBool(raw); err == nil {
+			cfg.Push.Enabled = on
+		} else {
+			cfg.Push.Invalid = raw
+		}
 	}
 
 	cfg.RiderPay = RiderPay{
