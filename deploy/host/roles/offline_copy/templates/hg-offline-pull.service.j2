@@ -1,0 +1,12 @@
+# Managed by Ansible (deploy/host/roles/offline_copy).
+[Unit]
+Description=Pull the HalalGoes backup copy over WireGuard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hg-offline-pull
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=12h

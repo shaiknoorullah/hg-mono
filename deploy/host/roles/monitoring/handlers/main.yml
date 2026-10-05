@@ -1,0 +1,6 @@
+- name: Restart the monitoring stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_monitoring_dir }}"
+    state: restarted
+  when: hg_docker_ready
+  ignore_errors: "{{ ansible_check_mode }}"
