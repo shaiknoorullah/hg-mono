@@ -45,10 +45,25 @@ import { enumLabel } from '../lib/format.js';
 import { HealthPill } from '../components/HealthPill.js';
 
 type DependencyReport = Schema['DependencyReport'];
+type Readiness = Schema['ReadinessStatus'];
+type Report = { kind: 'deps'; report: DependencyReport } | { kind: 'ready'; readiness: Readiness };
 
 export function DependencyDashboardScreen() {
-  const fetcher = useCallback(async () => (await unwrap(api.GET('/internal/deps', {}))).data, []);
-  const { status, data, error, reload } = useLoad<DependencyReport>(fetcher);
+  // `/internal/deps` is host-only (403 from the edge, or a CORS-shaped failure in a browser):
+  // fall back to the public `/health/ready` so the screen still shows whether the system is up.
+  const fetcher = useCallback(async (): Promise<Report> => {
+    try {
+      return { kind: 'deps', report: (await unwrap(api.GET('/internal/deps', {}))).data };
+    } catch (depsErr) {
+      try {
+        return { kind: 'ready', readiness: (await unwrap(api.GET('/health/ready', {}))).data };
+      } catch {
+        throw depsErr;
+      }
+    }
+  }, []);
+  const { status, data: result, error, reload } = useLoad<Report>(fetcher);
+  const data = result?.kind === 'deps' ? result.report : null;
 
   return (
     <section aria-labelledby="deps-heading" className="adm-stack">
@@ -86,6 +101,30 @@ export function DependencyDashboardScreen() {
           }
           onRetry={reload}
         />
+      ) : null}
+
+      {status === 'ready' && result?.kind === 'ready' ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--hg-space-3)' }}>
+            <HealthPill level={result.readiness.ready ? 'HEALTHY' : 'AT_RISK'} />
+            <span className="text-body-sm text-fg-secondary">
+              Showing the readiness check: the detailed report is restricted to the server host.
+            </span>
+          </div>
+          <Card header={<h2 className="text-heading-sm text-fg-primary">Readiness</h2>}>
+            <dl className="adm-kv-grid">
+              {result.readiness.dependencies.map((dep) => (
+                <div className="adm-kv" key={dep.name}>
+                  <dt className="text-label-sm text-fg-secondary">{dep.name}</dt>
+                  <dd className="text-body-md text-fg-primary" style={{ display: 'flex', alignItems: 'center', gap: 'var(--hg-space-2)' }}>
+                    <HealthPill level={connectedHealth(dep.ready)} />
+                    {dep.detail ? <span className="text-body-sm text-fg-secondary">{dep.detail}</span> : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Card>
+        </>
       ) : null}
 
       {status === 'ready' && data ? (
