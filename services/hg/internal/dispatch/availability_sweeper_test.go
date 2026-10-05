@@ -168,7 +168,6 @@ func TestReconcileSweep(t *testing.T) {
 // calls mixed. Nothing fails (a deadlock would surface as an error), every
 // rider is moved, and no stranded rider is restored or logged twice.
 func TestAvailabilitySweepsOnTwoReplicas(t *testing.T) {
-	t.Skip("concurrent RunOnce callers exhaust the pool and deadlock the lease: https://github.com/shaiknoorullah/hg-mono/issues/525")
 	poolA, poolB := openPool(t), openPool(t)
 	forgetSweepRuns(t, poolA)
 	replicas := []*AvailabilitySweeper{newTestSweeper(poolA), newTestSweeper(poolB)}
