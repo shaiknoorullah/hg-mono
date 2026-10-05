@@ -1,9 +1,10 @@
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
+import { VERIFY_OUT } from './env.mjs';
 
 const APP = 'http://localhost:19006';
 const PHONE = '+14165552255';
-const OUT = '/home/devsupreme/work/hg-mono/tools/verify';
+const OUT = VERIFY_OUT;
 
 function readOtpForPhone(phone) {
   const txt = execSync('docker logs hg-api-1 --tail 1000', { encoding: 'utf8' }) +

@@ -35,7 +35,8 @@ const TAB_FOR: Partial<Record<ScreenName, string>> = {
 function ShiftWatcher(): null {
   const nav = useNav();
   const dashboard = useDashboard();
-  useLocationReporting(isOnline(dashboard));
+  // Every 5 s while an assignment is being worked, every 20 s when idle (location.ts).
+  useLocationReporting(isOnline(dashboard), dashboard?.active_assignment ?? null);
 
   const offerId = dashboard?.current_offer?.offer_id ?? null;
   const assignmentId = dashboard?.active_assignment?.id ?? null;

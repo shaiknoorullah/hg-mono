@@ -104,6 +104,8 @@ func (h *Handler) CreateUpload(w http.ResponseWriter, r *http.Request) {
 			fieldFail(w, r, "sha256", "sha256 must be 64 lowercase hex characters")
 		case errors.Is(err, errBadPurpose):
 			fieldFail(w, r, "purpose", "purpose not allowed")
+		case errors.Is(err, errNotDelivering):
+			fieldFail(w, r, "order_id", "order_id must be an order you are delivering")
 		default:
 			h.failInternal(w, r, err)
 		}
