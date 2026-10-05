@@ -127,6 +127,30 @@ reject "an open chargeback with no evidence deadline is rejected" "chargeback_de
 reject "a closed chargeback still on a clock is rejected" "chargeback_deadline_required" \
   "INSERT INTO chargeback (order_id, stripe_dispute_id, amount_cents, state, outcome, deadline_at, deadline_action)
    VALUES ('88888888-8888-4888-8888-888888888888', 'dp_inv_closed', 100, 'lost', 'lost', now(), 'submit_dispute_evidence');"
+reject "a refund that moves money with no approver is rejected" "refund_money_needs_approver" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'AUTHORISED', '11111111-1111-4111-8111-111111111111', now(), 'submit_refund_to_stripe');"
+reject "a goodwill refund above CAD 50 approved by the person who asked for it is rejected" \
+  "refund_goodwill_second_approver" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by, approved_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'GOODWILL',
+           'GOODWILL', 5001, 'AUTHORISED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), 'submit_refund_to_stripe');"
+reject "a refund recorded as at Stripe without Stripe's refund id is rejected" "refund_at_stripe_has_id" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by, approved_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'SUBMITTED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), 'await_refund_settlement');"
+reject "a refund approval request that names no approving role is rejected" "refund_approval_names_role" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, approval_status,
+                       requested_by, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'GOODWILL',
+           'GOODWILL', 100, 'PENDING_APPROVAL', 'PENDING', '11111111-1111-4111-8111-111111111111',
+           now(), 'await_refund_approval');"
 zero_rows "no live order lacks a deadline" "SELECT * FROM order_without_deadline"
 zero_rows "no live dispatch lacks a deadline" "SELECT * FROM dispatch_without_deadline"
 

@@ -1,0 +1,10 @@
+# Managed by Ansible (deploy/host/roles/lynis).
+[Unit]
+Description=Lynis security audit
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hg-lynis
+Nice=15
+IOSchedulingClass=idle
+MemoryMax=256M

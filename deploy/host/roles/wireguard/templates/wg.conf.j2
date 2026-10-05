@@ -1,0 +1,23 @@
+# Managed by Ansible (deploy/host/roles/wireguard). The private key is in {{ hg_wg_interface }}.key.
+[Interface]
+Address = {{ hg_wg_address }}/24
+ListenPort = {{ hg_wg_port }}
+PostUp = wg set %i private-key /etc/wireguard/%i.key
+{% for peer in hg_wg_peers | default([]) %}
+
+# {{ peer.name }}
+[Peer]
+PublicKey = {{ peer.public_key }}
+AllowedIPs = {{ peer.address }}/32
+{% endfor %}
+{% for host in groups['hg_servers'] | default([]) %}
+{% if hg_standby_enabled | bool and host != inventory_hostname and hostvars[host].hg_public_ipv4 is defined and hg_wg_private_keys[host] | default('') | length > 0 %}
+
+# {{ host }}
+[Peer]
+PublicKey = {{ hg_wg_private_keys[host] | hg_wg_pubkey }}
+AllowedIPs = {{ hostvars[host].hg_wg_address }}/32
+Endpoint = {{ hostvars[host].hg_public_ipv4 }}:{{ hg_wg_port }}
+PersistentKeepalive = 25
+{% endif %}
+{% endfor %}

@@ -1,0 +1,73 @@
+- name: Cap everything dev runs in one slice
+  ansible.builtin.template:
+    src: hg-dev.slice.j2
+    dest: /etc/systemd/system/hg-dev.slice
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Apply the slice before dev's containers start in it
+  ansible.builtin.meta: flush_handlers
+
+- name: Create dev's folders
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ '0750' if item == hg_dev_dir else '0755' }}"
+  loop:
+    - "{{ hg_dev_dir }}"
+    - "{{ hg_dev_dir }}/web"
+    - "{{ hg_dev_dir }}/web/admin"
+    - "{{ hg_dev_dir }}/web/restaurant"
+
+- name: Write dev's compose file and web server config
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ hg_dev_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - compose.yml
+    - nginx.conf
+
+- name: Copy the migrations and seed data dev resets to
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../services/hg/migrations/"
+    dest: "{{ hg_dev_dir }}/migrations/"
+    owner: root
+    group: root
+    mode: "0644"
+    directory_mode: "0755"
+
+- name: Record which migrate image a dev reset uses
+  ansible.builtin.copy:
+    content: "{{ hg_dev_migrate_image }}"
+    dest: "{{ hg_dev_dir }}/migrate-image"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the dev reset script
+  ansible.builtin.copy:
+    src: hg-dev-reset
+    dest: /usr/local/sbin/hg-dev-reset
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check that dev's settings exist (written from dev.sops.env by roles/secrets)
+  ansible.builtin.stat:
+    path: "{{ hg_dev_dir }}/.env"
+  register: hg_dev_env
+
+- name: Run the dev environment
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_dev_dir }}"
+    state: present
+    pull: missing
+    remove_orphans: true
+  when: hg_docker_ready and hg_dev_env.stat.exists

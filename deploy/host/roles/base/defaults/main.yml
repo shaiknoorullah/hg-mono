@@ -1,0 +1,24 @@
+hg_swap_size_mb: 2048
+hg_swappiness: 10
+hg_journald_max_use: 500M
+hg_journald_max_retention: 30day
+hg_lock_root_password: true
+
+# Reboots happen only when an update needs one, in a quiet window. During Ramadan suhoor
+# orders come before dawn and daytime is quieter, so set hg_ramadan: true for the month.
+hg_ramadan: false
+hg_reboot_window: "Sun *-*-* 04:30:00 {{ hg_ops_timezone }}"
+hg_reboot_window_ramadan: "Sun *-*-* 13:30:00 {{ hg_ops_timezone }}"
+
+hg_base_packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - jq
+  - sudo
+  - unattended-upgrades
+  - needrestart
+  - nftables
+  - iproute2
+  - openssh-server
+  - python3-requests
