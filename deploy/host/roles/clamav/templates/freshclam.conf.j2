@@ -1,0 +1,9 @@
+# Managed by Ansible (deploy/host/roles/clamav).
+DatabaseOwner clamav
+DatabaseMirror database.clamav.net
+UpdateLogFile /var/log/clamav/freshclam.log
+LogFileMaxSize 10M
+LogRotate yes
+LogTime yes
+NotifyClamd /etc/clamav/clamd.conf
+ScriptedUpdates yes

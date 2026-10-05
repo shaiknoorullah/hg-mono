@@ -1,0 +1,17 @@
+# The account the owner's machine logs in as to pull the off-server copy: read-only SFTP,
+# locked inside the backup folder (roles/ssh). offline.yml runs this file on its own to
+# authorise a new machine's key.
+- name: Create the account the owner's machine pulls the off-server copy with
+  ansible.builtin.user:
+    name: "{{ hg_pull_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: /var/lib/{{ hg_pull_user }}
+    create_home: true
+
+- name: Authorise the owner's pulling machines (read-only SFTP inside {{ hg_backup_root }})
+  ansible.posix.authorized_key:
+    user: "{{ hg_pull_user }}"
+    key: "{{ hg_offline_pull_ssh_keys | join('\n') }}"
+    exclusive: true
+  when: hg_offline_pull_ssh_keys | length > 0
