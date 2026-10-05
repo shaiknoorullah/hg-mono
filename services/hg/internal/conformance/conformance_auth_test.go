@@ -117,7 +117,7 @@ func newAuthHarness(t *testing.T, pool *pgxpool.Pool) *authHarness {
 	sms := newCaptureSMS()
 
 	store := auth.NewStore(pool)
-	rl := auth.NewRateLimiter(nil) // nil redis → limiter no-ops (never fail-closed here)
+	rl := auth.NewRateLimiter(nil, nil) // nil redis → limiter no-ops (never fail-closed here)
 	deny := session.NewDenySet()
 	issuer := session.NewIssuer(secrets.SigningKID, secrets.SigningPriv, "hg-api")
 
