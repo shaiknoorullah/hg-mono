@@ -72,6 +72,8 @@ const (
 	KindOrderCancelled       Kind = "ORDER_CANCELLED"
 	KindRiderAssigned        Kind = "RIDER_ASSIGNED"
 	KindPaymentCaptureFailed Kind = "PAYMENT_CAPTURE_FAILED"
+	// KindRefundDeclined: staff declined the customer's refund request (#172).
+	KindRefundDeclined Kind = "REFUND_DECLINED"
 )
 
 // New is the input to Enqueue: everything needed to write the notification

@@ -1,0 +1,20 @@
+{
+  "scenario": "error_refund_approver_over_daily_limit",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `DAILY_CAP_EXCEEDED`. A second approver's own rolling 24-hour limit counts too. The request stays in the queue for someone with room.",
+  "operations": [
+    "approveRefund"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "DAILY_CAP_EXCEEDED",
+      "message": "Approving this would take you past your 24-hour refund limit; a super admin can approve it.",
+      "request_id": "JK46TRRPDX3TCJKJ7GTM8Z1MMY"
+    }
+  }
+}

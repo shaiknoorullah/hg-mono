@@ -1,0 +1,20 @@
+{
+  "scenario": "error_chargeback_closed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ALREADY_DECIDED`. Evidence notes are for open chargebacks only.",
+  "operations": [
+    "addChargebackEvidenceNote"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ALREADY_DECIDED",
+      "message": "Stripe has closed this chargeback (lost); it takes no more evidence.",
+      "request_id": "K3XNXJQE0FZDKGB8KN7N5YVVKB"
+    }
+  }
+}

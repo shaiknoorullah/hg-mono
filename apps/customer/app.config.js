@@ -6,7 +6,9 @@
  * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
  * API but production's. How to build each: docs/release/README.md.
  *
- * Maps: the Mapbox plugin is not loaded (no screen uses a map yet); add `@rnmapbox/maps` back to
+ * Maps: `@rnmapbox/maps` stays out of autolinking (package.json `expo.autolinking.exclude`), as in
+ * the rider app, so the Android build never asks Mapbox's Maven repository for the native SDK. The
+ * Mapbox plugin is not loaded (no screen uses a map yet); add `@rnmapbox/maps` back to
  * `plugins` with the map screen. `EXPO_PUBLIC_MAPBOX_TOKEN` is still passed through for that.
  */
 const { expoAppEnv } = require('../../scripts/release/app-env.cjs');

@@ -3,7 +3,7 @@ covers:
   - services/hg/cmd/**
   - services/hg/migrations/**
   - apps/restaurant/.claude/skills/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -53,30 +53,30 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 ## 4. Architecture
 
 ```
-dev-reset                                         (planned make target)
+dev-reset                                         (make dev-reset)
   └─ cmd/devworld reset
-       1. guard: HG_ENV=local and DB host is local, else refuse
-       2. drop schema public, re-run migrations/roles/roles.sql as the superuser
-          (it hands the new schema to hg_migrator), migrate up as hg_migrator, flush Redis
-          (new orders start open: migrating recreates the ordering-pause row switched off)
-       3. load migrations/seed/*            (reference data — unchanged)
-       4. load migrations/devworld/*.sql    (the static world)
-       5. set credentials                   (password hash + encrypted TOTP, via the seedpw/seedtotp code paths)
-       6. run bootstrap scenarios over HTTP (order history, admin decisions that must be real)
-       7. verify: every persona in its declared state → table printed, non-zero exit on mismatch
+       1. guard: HG_ENV=local, and the database host is loopback, a Unix socket,
+          or the compose service name postgres. Anything else is refused.
+       2. drop schema public (topology extensions first, they pin objects), then goose up
+          as the same local superuser
+       3. load the reference seed
+       4. load migrations/devworld/001_personas.sql
+       5. set one shared password hash. The admin authenticator is enrolled only when
+          HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
+       6. flush Redis only when HG_REDIS_ADDR is local. A connection failure does not fail the reset.
+       7. verify: every persona in its declared state, or a non-zero exit
 
-dev-scenario s=<name> [p=<persona>] [ARGS=...]    (planned make target)
-  └─ cmd/devworld scenario <name>  → HTTP only, as seeded customer / rider / admin
-
-dev-totp p=<persona> [QR=1]                       (planned make target)
-  └─ cmd/devworld totp <persona>
+dev-scenario                                      (not built yet)
+dev-totp                                          (make dev-totp — prints the admin code, not the secret)
 ```
 
-None of these units exists yet; every location below is planned. Service paths are relative to `services/hg/`.
+`reset`, `seed`, `verify`, `list` and `totp` exist. The scenario command and the fixed phone sign-in range do not. The world is one SQL file. Service paths below are relative to `services/hg/`.
+
+The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator`. The first migration recreates the roles, and goose uses the local superuser in `HG_POSTGRES_DSN`. Credentials are hashed in the command. `seedpw` is not used, because that command also marks the email verified. Connect rows for the live restaurant, the payout-pending restaurant and the sim rider are stand-ins with test account ids. They are not Stripe accounts. Payout and ledger rows are not seeded.
 
 | Unit | Location | Responsibility | Depends on |
 |---|---|---|---|
-| World SQL | `migrations/devworld/` | Static personas and their data, fixed UUIDs, idempotent; one file per app group (`10_restaurant_*.sql`, later `20_customer_*.sql` …) | reference seed |
+| World SQL | `migrations/devworld/001_personas.sql` | Static personas and their data, fixed UUIDs, idempotent | reference seed |
 | `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `totp` / `list` / `verify` | pgx, auth credential helpers |
 | Scenario client | `internal/devworld/client/` | Typed HTTP calls using generated contract types; signs in as personas | `internal/contract` |
 | Scenario registry | `internal/devworld/scenarios/` | One file per scenario, registered by name with a one-line purpose | scenario client |
@@ -90,7 +90,7 @@ None of these units exists yet; every location below is planned. Service paths a
 
 ## 5. Personas and coverage
 
-All email-login personas sign in as `<persona>@seed.hg`, password `Seed!2026`, each with its own fixed TOTP secret stored in the manifest. Phone-login personas use the reserved test range (see [scenario sign-in](#64-scenario-sign-in)). Fixed UUIDs use a readable prefix per persona.
+Email-login personas share one local password and sign in as `<persona>@seed.hg`. Only the admin persona is enrolled in an authenticator, and only when `HG_APP_DATA_KEY` is set. That secret is derived from the email, not stored in the repository. Phone-login personas keep their reserved numbers; the fixed sign-in range is not built yet (see [scenario sign-in](#64-scenario-sign-in)). Fixed UUIDs stay the same across resets.
 
 ### 5.1 Restaurant personas
 
@@ -216,7 +216,7 @@ The harness produces real realtime events (order state changes, offers, `rider.l
 
 ## 12. Risks to settle in planning
 
-- **Payout seeds vs the ledger.** The [zero-residual ledger rule (invariant 6)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) requires every order's money to decompose to zero via the append-only ledger. If payout rows need backing ledger batches the SQL cannot honestly produce, payouts move from SQL to an admin payout run over the API; any state the API cannot reach (e.g. FAILED) is listed as a gap rather than forged. Against a Stripe sandbox, Stripe's own test-mode events reach those states: the webhook worker applies `transfer.*` and `payout.*` to the payout, `account.updated` to the payout account and `charge.dispute.*` to a chargeback ([#249](https://github.com/shaiknoorullah/hg-mono/issues/249)).
+- **Payout seeds vs the ledger.** The [zero-residual ledger rule (invariant 6)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) requires every order's money to decompose to zero via the append-only ledger. If payout rows need backing ledger batches the SQL cannot honestly produce, payouts move from SQL to an admin payout run over the API; any state the API cannot reach (e.g. FAILED) is listed as a gap rather than forged. Against a Stripe sandbox, Stripe's own test-mode events reach those states: the webhook worker applies `transfer.*` and `payout.*` to the payout, `account.updated` to the payout account and `charge.dispute.*` to a chargeback ([#249](https://github.com/shaiknoorullah/hg-mono/issues/249)). Refunds in every state come from the API too: a customer's request, then staff approval or decline (`approveRefund`, `declineRefund`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)), so each approved refund carries its ledger batch and approver.
 - **Proof of delivery.** If PoD requires an uploaded object in MinIO, the simulator uploads a bundled test image through the documented presigned flow.
 - **Dispatch reach.** The journey assumes dispatch offers to an online rider within range of the restaurant. `rider-sim` starts at the route's origin inside that radius; planning confirms the radius and offer loop in `internal/dispatch`.
 - **Drift.** The world SQL must follow schema migrations. Mitigated by the world verify in CI (see [verification](#8-verification)) — a migration that breaks the world fails the build.

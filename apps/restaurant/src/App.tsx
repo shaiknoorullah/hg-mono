@@ -4,6 +4,8 @@ import { ToastProvider, TooltipProvider, themeAttributes } from '@hg/ui-web';
 import { AuthProvider, isSignedIn } from './lib/auth';
 import { LoginPage } from './routes/LoginPage';
 import { RegisterPage } from './routes/RegisterPage';
+import { VerifyEmailPage } from './routes/VerifyEmailPage';
+import { ResetPasswordPage } from './routes/ResetPasswordPage';
 import { OnboardingPage } from './routes/onboarding/OnboardingPage';
 import { OrdersPage } from './routes/OrdersPage';
 import { MenuPage } from './routes/MenuPage';
@@ -42,6 +44,9 @@ export function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          {/* Public: the pages our emails link to (issue #329). */}
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
             path="/onboarding/*"
             element={
