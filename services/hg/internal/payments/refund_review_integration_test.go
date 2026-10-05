@@ -53,13 +53,29 @@ func (h *refundHarness) request(order string) AdminRefundDTO {
 	return d
 }
 
+// requestFees is a customer's request for the delivery fee back (CAD 4.19),
+// inside a support agent's per-order limit.
+func (h *refundHarness) requestFees(order string) AdminRefundDTO {
+	h.t.Helper()
+	r, err := h.svc.RequestRefund(context.Background(), RefundInput{OrderID: order, Kind: RefundFeesOnly,
+		ReasonCode: "LATE_DELIVERY"}, h.customerOf(order))
+	if err != nil || r.State != string(RefundRequested) {
+		h.t.Fatalf("customer request: %+v err=%v; want REQUESTED", r, err)
+	}
+	d, err := getAdminRefund(context.Background(), h.pool, r.ID)
+	if err != nil {
+		h.t.Fatalf("read the request: %v", err)
+	}
+	return d
+}
+
 func (h *refundHarness) audits(subject, action string) int {
 	h.t.Helper()
 	return h.count(`SELECT count(*) FROM audit_event WHERE subject_id = $1 AND action = $2 AND reason IS NOT NULL`, subject, action)
 }
 
-// A support agent approves a customer's request within their 24-hour limit,
-// and it is sent. One above the limit is not approved and not rejected: it
+// A support agent approves a customer's request within their limits, and it
+// is sent. One above them is not approved and not rejected: it
 // goes up to an admin, the agent who sent it up cannot approve it, another
 // agent cannot either, and only once an admin approves it is it sent. Each
 // approval is audited with its reason, and a retried click replays the first
@@ -67,12 +83,12 @@ func (h *refundHarness) audits(subject, action string) int {
 func TestRefundReview_SupportApprovesWithinItsLimitAndOverItNeedsASecondPerson(t *testing.T) {
 	h := newReviewHarness(t)
 	ctx := context.Background()
-	small, smallPI := h.capturedOrder("review-small", 3000)  // CAD 39.19
-	large, largePI := h.capturedOrder("review-large", 25000) // CAD 259.19, above the agent's CAD 200
+	small, smallPI := h.capturedOrder("review-small", 3000)  // its CAD 4.19 fee is within the agent's limits
+	large, largePI := h.capturedOrder("review-large", 25000) // CAD 259.19, above the agent's CAD 25 per order and CAD 150 a day
 	agent, otherAgent, admin := h.staff("review-agent"), h.staff("review-agent-2"), h.staff("review-admin")
 	reason := RefundDecisionInput{ReasonText: "the rider's trace shows no drop-off"}
 
-	within := h.request(small)
+	within := h.requestFees(small)
 	_, err := h.svc.ApproveRefund(ctx, within.ID, Staff{AccountID: agent, Roles: []string{"SUPPORT_AGENT"}}, reason, nil)
 	wantDomainErr(t, err, string(codeMFARequired))
 	out, err := h.svc.ApproveRefund(ctx, within.ID, staffAs(agent, "SUPPORT_AGENT"), reason, nil)
@@ -227,7 +243,8 @@ func TestChargebacks_EvidenceNotesAndTheMoneyTimeline(t *testing.T) {
 		_, _ = h.pool.Exec(ctx, `DELETE FROM reconciliation_exception WHERE stripe_object_id = $1`, dispute)
 	})
 	request := h.request(order)
-	if _, err := approveAs(ctx, h.svc, request.ID, agent, "SUPPORT_AGENT"); err != nil {
+	// A whole order is above a support agent's per-order limit; an admin approves it.
+	if _, err := approveAs(ctx, h.svc, request.ID, agent, "ADMIN"); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
 	due := time.Now().Add(5 * 24 * time.Hour).Truncate(time.Second).UTC()

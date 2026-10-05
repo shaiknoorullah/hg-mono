@@ -12,16 +12,24 @@ import type { SVGProps } from 'react';
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
   size?: number;
+  /**
+   * Gives the glyph its own accessible name. Omit for the common case — a glyph next to visible
+   * text, or inside a control that already has a label — and it is hidden from screen readers,
+   * as `@hg/ui-web`'s `Icon` is (#424).
+   */
+  label?: string;
 }
 
 function base(props: IconProps) {
-  const { size = 20, ...rest } = props;
+  const { size = 20, label, ...rest } = props;
   return {
     width: size,
     height: size,
     viewBox: '0 0 24 24',
     fill: 'none',
     xmlns: 'http://www.w3.org/2000/svg',
+    focusable: 'false' as const,
+    ...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true as const }),
     ...rest,
   };
 }
