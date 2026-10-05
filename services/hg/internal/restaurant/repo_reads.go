@@ -1042,6 +1042,111 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 	}, nil
 }
 
+// lockOwnedCategory is the IDOR guard for filing an item under a category: the
+// category must be on this restaurant's menu and not deleted, else ErrNotFound
+// (never a 403 that would confirm a foreign category). It takes a FOR KEY SHARE
+// lock, so a delete of the category that is counting its items (DeleteCategory)
+// either finishes first, and this re-reads the row and finds it deleted, or waits
+// until this transaction has filed the item and then counts it.
+func lockOwnedCategory(ctx context.Context, tx pgx.Tx, restaurantID, categoryID string) error {
+	var one int
+	err := tx.QueryRow(ctx, `
+		SELECT 1 FROM menu_category
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL
+		   FOR KEY SHARE`, categoryID, restaurantID).Scan(&one)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("verify category ownership: %w", err)
+	}
+	return nil
+}
+
+// CategoryNotEmptyError is returned when a category still holds items that are
+// not deleted, so it cannot be deleted (R-14: deleting a category never deletes
+// an item).
+type CategoryNotEmptyError struct{ ItemCount int }
+
+func (e *CategoryNotEmptyError) Error() string {
+	return fmt.Sprintf("category not empty: %d items", e.ItemCount)
+}
+
+// DeleteCategory soft-deletes one of the restaurant's categories (deleteMenuCategory).
+// Returns ErrNotFound when it is not on this restaurant's menu or already deleted,
+// *CategoryNotEmptyError while it holds items, and ErrMenuLocked while the
+// restaurant is suspended or banned.
+func (r *Repo) DeleteCategory(ctx context.Context, restaurantID, categoryID string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return err
+	}
+	// The category row is locked before its items are counted. The restaurant's own
+	// item writes file an item under a category through lockOwnedCategory, whose
+	// lock waits for this one, so none lands in it between the count and the delete.
+	var exists bool
+	if err := tx.QueryRow(ctx, `
+		SELECT true FROM menu_category
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL
+		   FOR UPDATE`, categoryID, restaurantID).Scan(&exists); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("lock category: %w", err)
+	}
+	var items int
+	if err := tx.QueryRow(ctx, `
+		SELECT count(*) FROM menu_item WHERE category_id = $1 AND deleted_at IS NULL`,
+		categoryID).Scan(&items); err != nil {
+		return fmt.Errorf("count category items: %w", err)
+	}
+	if items > 0 {
+		return &CategoryNotEmptyError{ItemCount: items}
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE menu_category SET deleted_at = now() WHERE id = $1`, categoryID); err != nil {
+		return fmt.Errorf("delete category: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
+// DeleteMenuItem soft-deletes one of the restaurant's items (deleteMenuItem). Order
+// lines keep their own snapshot, so nothing already bought changes. A version
+// waiting for review is withdrawn. Returns ErrNotFound when the item is not on
+// this restaurant's menu or already deleted, and ErrMenuLocked while the
+// restaurant is suspended or banned.
+func (r *Repo) DeleteMenuItem(ctx context.Context, restaurantID, itemID string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return err
+	}
+	tag, err := tx.Exec(ctx, `
+		UPDATE menu_item SET deleted_at = now(), pending_version_id = NULL
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL`, itemID, restaurantID)
+	if err != nil {
+		return fmt.Errorf("delete menu item: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE menu_item_version SET review_status = 'WITHDRAWN'
+		 WHERE menu_item_id = $1 AND review_status IN ('PENDING_REVIEW', 'DRAFT')`, itemID); err != nil {
+		return fmt.Errorf("withdraw pending versions: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
 // CreateMenuItem creates a new menu item + initial DRAFT version.
 // The version is always DRAFT (never auto-approved per R-05 / halal gate).
 func (r *Repo) CreateMenuItem(ctx context.Context, accountID, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {
@@ -1063,15 +1168,8 @@ func (r *Repo) CreateMenuItem(ctx context.Context, accountID, restaurantID strin
 	// menu_item.category_id references menu_category(id) globally, so without this
 	// check a caller could attach an item to another tenant's category. A
 	// foreign or non-existent category is indistinguishable → 404 (never 403).
-	var ownedCat bool
-	if err := tx.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM menu_category
-		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL)`,
-		in.CategoryID, restaurantID).Scan(&ownedCat); err != nil {
-		return nil, fmt.Errorf("verify category ownership: %w", err)
-	}
-	if !ownedCat {
-		return nil, ErrNotFound
+	if err := lockOwnedCategory(ctx, tx, restaurantID, in.CategoryID); err != nil {
+		return nil, err
 	}
 
 	var itemID string
@@ -1182,15 +1280,8 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, accountID, restaurantID, item
 	}
 	if in.CategoryID != nil {
 		// IDOR guard: the destination category must belong to THIS restaurant.
-		var ownedCat bool
-		if err := tx.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM menu_category
-			 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL)`,
-			*in.CategoryID, restaurantID).Scan(&ownedCat); err != nil {
-			return nil, fmt.Errorf("verify category ownership: %w", err)
-		}
-		if !ownedCat {
-			return nil, ErrNotFound
+		if err := lockOwnedCategory(ctx, tx, restaurantID, *in.CategoryID); err != nil {
+			return nil, err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE menu_item SET category_id=$1::uuid, updated_at=now() WHERE id=$2`,
 			*in.CategoryID, itemID); err != nil {

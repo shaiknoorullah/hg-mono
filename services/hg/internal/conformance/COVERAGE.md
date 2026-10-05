@@ -6,15 +6,17 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 160
-- **Validated (covered):** 155
+- **Total contract operations:** 168
+- **Validated (covered):** 163
 - **Not yet validated (uncovered):** 5
 
-## Covered (155)
+## Covered (163)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
 - `addCartLine` — POST /v1/cart/lines
+- `addChargebackEvidenceNote` — POST /v1/admin/chargebacks/{chargebackId}/evidence-notes
+- `approveRefund` — POST /v1/admin/refunds/{refundId}/approve
 - `attachRestaurantDocument` — POST /v1/restaurant/documents
 - `attachRiderDocument` — POST /v1/riders/me/documents
 - `bindPackageSeal` — POST /v1/orders/{orderId}/handoff/seal
@@ -46,8 +48,11 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `decideMenuVersion` — POST /v1/admin/menu-reviews/{versionId}/decision
 - `decideRestaurantApplication` — POST /v1/admin/restaurant-applications/{restaurantId}/decision
 - `decideRiderApplication` — POST /v1/admin/rider-applications/{riderAccountId}/decision
+- `declineRefund` — POST /v1/admin/refunds/{refundId}/decline
 - `delayOrder` — POST /v1/restaurant/orders/{orderId}/delay
 - `deleteAddress` — DELETE /v1/addresses/{addressId}
+- `deleteMenuCategory` — DELETE /v1/restaurant/menu/categories/{categoryId}
+- `deleteMenuItem` — DELETE /v1/restaurant/menu/items/{itemId}
 - `deletePaymentMethod` — DELETE /v1/payment-methods/{paymentMethodId}
 - `disableTotp` — POST /v1/auth/totp/disable
 - `enrollTotp` — POST /v1/auth/totp/enroll
@@ -55,6 +60,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getAddress` — GET /v1/addresses/{addressId}
 - `getAssignment` — GET /v1/riders/me/assignments/{assignmentId}
 - `getCart` — GET /v1/cart
+- `getChargeback` — GET /v1/admin/chargebacks/{chargebackId}
 - `getConnectStatus` — GET /v1/connect/status
 - `getCurrentOffer` — GET /v1/riders/me/offers/current
 - `getCurrentPrincipal` — GET /v1/auth/me
@@ -94,6 +100,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getRiderPayout` — GET /v1/riders/me/payouts/{payoutId}
 - `issueRefund` — POST /v1/admin/refunds
 - `listAddresses` — GET /v1/addresses
+- `listChargebacks` — GET /v1/admin/chargebacks
 - `listHalalIssuingBodies` — GET /v1/admin/halal-issuing-bodies
 - `listMenuReviewQueue` — GET /v1/admin/menu-reviews
 - `listNotifications` — GET /v1/notifications
@@ -102,6 +109,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `listPaymentMethods` — GET /v1/payment-methods
 - `listPayoutRuns` — GET /v1/admin/payout-runs
 - `listRefunds` — GET /v1/refunds
+- `listRefundsAdmin` — GET /v1/admin/refunds
 - `listRestaurantApplications` — GET /v1/admin/restaurant-applications
 - `listRestaurantDocuments` — GET /v1/restaurant/documents
 - `listRestaurantOrders` — GET /v1/restaurant/orders

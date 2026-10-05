@@ -6,8 +6,10 @@
   "operations": [
     "createMenuCategory",
     "updateMenuCategory",
+    "deleteMenuCategory",
     "createMenuItem",
     "updateMenuItem",
+    "deleteMenuItem",
     "setMenuItemAvailability",
     "createMenuCategoryOnBehalf",
     "createMenuItemOnBehalf",

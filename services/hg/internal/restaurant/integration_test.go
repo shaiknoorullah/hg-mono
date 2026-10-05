@@ -56,6 +56,7 @@ type fixtures struct {
 	restaurantID     string
 	otherRestID      string // the other restaurant — never visible to ownerAccount
 	categoryID       string
+	emptyCategoryID  string // a second category holding no item
 	menuItemID       string
 	menuVersionID    string // pending version for the item above
 }
@@ -122,6 +123,11 @@ func seedFixtures(t *testing.T, pool *pgxpool.Pool) fixtures {
 		`INSERT INTO menu_category (restaurant_id, name) VALUES ($1, 'Mains') RETURNING id`,
 		f.restaurantID).Scan(&f.categoryID); err != nil {
 		t.Fatalf("seed category: %v", err)
+	}
+	if err := pool.QueryRow(ctx,
+		`INSERT INTO menu_category (restaurant_id, name, sort_order) VALUES ($1, 'Specials', 1) RETURNING id`,
+		f.restaurantID).Scan(&f.emptyCategoryID); err != nil {
+		t.Fatalf("seed empty category: %v", err)
 	}
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO menu_item (restaurant_id, category_id, price_cents, availability_state, tax_category)

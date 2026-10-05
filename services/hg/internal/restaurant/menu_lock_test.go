@@ -44,6 +44,15 @@ var restaurantMenuWrites = []menuWriteCase{
 		},
 	},
 	{
+		// The fixture's category holds its item: a fresh empty one is deleted.
+		op: "deleteMenuCategory", route: "DELETE /v1/restaurant/menu/categories/{categoryId}", success: http.StatusNoContent,
+		call: func(h *restaurant.Handler, f fixtures) *httptest.ResponseRecorder {
+			id := f.emptyCategoryID
+			req := httptest.NewRequest(http.MethodDelete, "/v1/restaurant/menu/categories/"+id, nil)
+			return serveAsOwner(h.DeleteMenuCategory, withChiParam(req, "categoryId", id), f)
+		},
+	},
+	{
 		op: "createMenuItem", route: "POST /v1/restaurant/menu/items", success: http.StatusCreated,
 		call: func(h *restaurant.Handler, f fixtures) *httptest.ResponseRecorder {
 			body := fmt.Sprintf(`{"name":"Lamb Karahi","category_id":%q,"price_cents":2100}`, f.categoryID)
@@ -59,6 +68,13 @@ var restaurantMenuWrites = []menuWriteCase{
 			body := `{"price_cents":1900,"description":"Now with saffron rice."}`
 			req := httptest.NewRequest(http.MethodPatch, "/v1/restaurant/menu/items/"+f.menuItemID, strings.NewReader(body))
 			return serveAsOwner(h.UpdateMenuItem, withChiParam(req, "itemId", f.menuItemID), f)
+		},
+	},
+	{
+		op: "deleteMenuItem", route: "DELETE /v1/restaurant/menu/items/{itemId}", success: http.StatusNoContent,
+		call: func(h *restaurant.Handler, f fixtures) *httptest.ResponseRecorder {
+			req := httptest.NewRequest(http.MethodDelete, "/v1/restaurant/menu/items/"+f.menuItemID, nil)
+			return serveAsOwner(h.DeleteMenuItem, withChiParam(req, "itemId", f.menuItemID), f)
 		},
 	},
 	{
