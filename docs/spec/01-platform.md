@@ -1275,7 +1275,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 
 > **Decided:** customer fully refunded, restaurant paid in full, the platform absorbs the cost ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
-> **Open:** is the customer offered a pickup option before the order is cancelled? ([cancel at the pickup cap](https://github.com/shaiknoorullah/hg-mono/issues/336)) As built, they are not: they are told of the delay on each lapse, and at the cap the order is cancelled and refunded.
+> **Owner question:** is the customer offered a pickup option before the order is cancelled? ([cancel at the pickup cap](https://github.com/shaiknoorullah/hg-mono/issues/336)) As built, they are not: they are told of the delay on each lapse, and at the cap the order is cancelled and refunded.
 
   As built ([#336](https://github.com/shaiknoorullah/hg-mono/issues/336)): at the third lapse, in the deadline runner's one transaction, the search for a rider is closed (`NO_RIDER_FOUND`, pending offers withdrawn), the full refund is posted `AUTHORISED` with its balanced REFUND batch (`payments.RefundSystemCancelTx`), and the order moves to `CANCELLED` with `cancel_reason = NO_RIDER_FOUND`, so `order.cancelled` carries the refund and the refund sender sends it to Stripe. A refund needs an account that asked for it and one that approved it; a deadline has no person, so both are the platform's own account (migration `00056`), which cannot sign in and holds no role. An order a rider holds is not cancelled: the rider may be at the counter, so ops decide.
 
