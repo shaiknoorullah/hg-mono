@@ -6,6 +6,11 @@
  * tip and total — every one rendered through `Price` from branded `Cents`. Nothing on this screen
  * adds cents by hand; the server priced it and the client displays it (G-1).
  *
+ * After the order is created, the Stripe payment sheet confirms its `client_secret` (authorise
+ * only: the server captures on restaurant acceptance). Cancel or failure keeps the same order and
+ * offers "Retry payment". The fake local gateway (`pi_fake_*` secrets) skips the sheet; web has no
+ * sheet (native-only SDK) and goes straight to tracking.
+ *
  * "Place order" POSTs `/v1/orders` with the `quote_id` only (no amount, G-3). On success it routes
  * to tracking with the returned order id. A failure shows its real error code; nothing is faked.
  */
@@ -28,7 +33,9 @@ import {
 
 import { getCart } from '../api/cart';
 import { ensureDeliveryAddress } from '../api/addresses';
-import { createQuote, placeOrder } from '../api/orders';
+import { createQuote, getOrderPayment, placeOrder } from '../api/orders';
+import { payWithSheet } from '../payments/pay';
+import { isFakeClientSecret } from '../payments/types';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
 
@@ -47,6 +54,46 @@ export function CheckoutScreen(): React.ReactElement {
   const [state, setState] = React.useState<State>({ kind: 'loading' });
   const [placing, setPlacing] = React.useState(false);
   const [placeError, setPlaceError] = React.useState<string | null>(null);
+  // Set once the order exists but is not yet paid: retrying pays THIS order, never a new one.
+  const [unpaid, setUnpaid] = React.useState<{ orderId: string; secret: string } | null>(null);
+  const [payError, setPayError] = React.useState<string | null>(null);
+
+  const pay = React.useCallback(
+    async (orderId: string, secret: string) => {
+      setPayError(null);
+      // Local/dev fake gateway: nothing to confirm, the server advanced the order itself.
+      if (isFakeClientSecret(secret)) {
+        nav.reset({ name: 'tracking', orderId });
+        return;
+      }
+      const result = await payWithSheet(secret);
+      if (result.status === 'paid' || result.status === 'unsupported') {
+        // 'unsupported' is web: no Stripe sheet there, the order waits for payment.
+        nav.reset({ name: 'tracking', orderId });
+        return;
+      }
+      // Re-read the intent so a retry uses the server's current secret (it is re-issued while
+      // an action is still required); if the order has since moved on, just track it.
+      let next = secret;
+      try {
+        const payment = await getOrderPayment(orderId);
+        if (payment.client_secret) next = payment.client_secret;
+        else if (['PROCESSING', 'REQUIRES_CAPTURE', 'SUCCEEDED'].includes(payment.state)) {
+          nav.reset({ name: 'tracking', orderId });
+          return;
+        }
+      } catch {
+        /* keep the secret we have */
+      }
+      setUnpaid({ orderId, secret: next });
+      setPayError(
+        result.status === 'canceled'
+          ? 'Payment was cancelled. Your order is not placed until you pay.'
+          : (result.message ?? 'Payment failed. Please try again.'),
+      );
+    },
+    [nav],
+  );
 
   const load = React.useCallback(() => {
     setState({ kind: 'loading' });
@@ -68,14 +115,19 @@ export function CheckoutScreen(): React.ReactElement {
     setPlacing(true);
     setPlaceError(null);
     try {
+      if (unpaid) {
+        await pay(unpaid.orderId, unpaid.secret);
+        return;
+      }
       const created = await placeOrder(state.quote.id);
-      nav.reset({ name: 'tracking', orderId: created.order.id });
+      setUnpaid({ orderId: created.order.id, secret: created.client_secret });
+      await pay(created.order.id, created.client_secret);
     } catch (e) {
       setPlaceError(errorCodeOf(e) ?? 'ORDER_FAILED');
     } finally {
       setPlacing(false);
     }
-  }, [state, nav]);
+  }, [state, nav, unpaid, pay]);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
@@ -97,6 +149,9 @@ export function CheckoutScreen(): React.ReactElement {
         <>
           <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
             <QuoteSummary quote={state.quote} />
+            {payError ? (
+              <Banner variant="danger" title="Payment not completed" description={payError} />
+            ) : null}
             {placeError ? (
               <Banner
                 variant="danger"
@@ -118,7 +173,7 @@ export function CheckoutScreen(): React.ReactElement {
           >
             <TotalRow label="Total" cents={state.quote.total_cents} emphasise />
             <Button variant="primary" fullWidth loading={placing} onPress={() => void onPlace()}>
-              Place order
+              {unpaid ? 'Retry payment' : 'Place order'}
             </Button>
           </View>
         </>

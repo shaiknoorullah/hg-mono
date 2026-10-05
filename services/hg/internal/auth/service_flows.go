@@ -371,19 +371,37 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	}
 
 	acct, err := s.store.AccountByEmail(ctx, email)
-	if errors.Is(err, ErrNotFound) {
-		_ = s.store.RecordLoginAttempt(ctx, email, nil, ipStr, "NO_ACCOUNT")
-		return nil, errInvalidCredentials
+	known := err == nil
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return nil, err
 	}
+	// The gate comes from the request's surface, never from the account: the
+	// staff web app verifies on the staff gate, so a flood of public sign-ins or
+	// sign-ups cannot lock an admin out, and every email sent there, registered
+	// or not, staff or not, waits on that same gate (hashgate.go, loginAudience).
+	// An unknown email, or an account with no password, verifies against a
+	// dummy hash: every answer below costs one argon2id verification on the
+	// request's gate, so neither the timing nor a 503 under load tells an
+	// attacker which emails are registered or which belong to staff (#216).
+	audience := loginAudience(client)
+	encoded := dummyPasswordHash
+	if known && acct.PasswordHash != nil {
+		encoded = *acct.PasswordHash
+	}
+	// Busy hashing is not a failed attempt: it must not count toward the
+	// lockout, so nothing is recorded. Taking the slot here, apart from the
+	// verification, keeps the two outcomes from ever being confused.
+	slot, err := acquireHashSlot(ctx, audience)
 	if err != nil {
 		return nil, err
 	}
-	if acct.PasswordHash == nil {
-		_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_PASSWORD")
+	ok, verr := slot.verify(encoded, password)
+	slot.release()
+	if !known {
+		_ = s.store.RecordLoginAttempt(ctx, email, nil, ipStr, "NO_ACCOUNT")
 		return nil, errInvalidCredentials
 	}
-	ok, verr := VerifyPassword(*acct.PasswordHash, password)
-	if verr != nil || !ok {
+	if acct.PasswordHash == nil || verr != nil || !ok {
 		_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_PASSWORD")
 		return nil, errInvalidCredentials
 	}
@@ -397,13 +415,14 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 		return nil, errAccountNotActive
 	}
 
+	// TOTP: admin/super-admin require it (P-01 admin MFA). If enrolled or
+	// required, verify the supplied code. The roles are read only now, after
+	// the password matched, so a known email costs no extra query before the
+	// hash that an unknown one does not.
 	grants, err := s.store.RolesFor(ctx, acct.ID)
 	if err != nil {
 		return nil, err
 	}
-
-	// TOTP: admin/super-admin require it (P-01 admin MFA). If enrolled or
-	// required, verify the supplied code.
 	amr := "pwd"
 	if requiresTOTP(grants) || acct.TOTPEnrolledAt != nil {
 		if totp == nil || *totp == "" {
@@ -432,17 +451,27 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 // verification email. No session is issued.
 func (s *Service) RegisterRestaurant(ctx context.Context, email, password, businessName string, ip *string) (*RegisterRestaurantResult, error) {
 	// 5 sign-ups per hour per IP (docs/spec/03-restaurant.md, "R-01 — Restaurant
-	// account signup"), checked before the argon2id hash so a flood costs no
-	// CPU. Fails open: a sign-up creates an unverified account and issues no
-	// session, and Traefik keeps its own per-IP limit in front of the app.
+	// account signup") and 5 per hour per email, both checked before a hashing
+	// slot is taken, so a limited request never holds one (#216). They fail
+	// open: a sign-up creates an unverified account and issues no session, and
+	// Traefik keeps its own per-IP limit in front of the app.
 	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: ipSubject(ip),
+		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		return nil, err
+	}
+	if err := s.rl.Allow(ctx, Limit{Name: "register:email", Subject: canonicalEmail(email),
 		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
 		return nil, err
 	}
 	if isBreachedPassword(password) {
 		return nil, errBreachedPassword
 	}
-	hash, err := HashPassword(password)
+	slot, err := acquireHashSlot(ctx, audienceSignup)
+	if err != nil {
+		return nil, err
+	}
+	hash, err := slot.hash(password)
+	slot.release() // the writes below need no slot
 	if err != nil {
 		return nil, err
 	}
@@ -538,10 +567,25 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) error 
 
 // ResetPassword consumes a PASSWORD_RESET token, sets the new password, and
 // revokes every session in the account (I-03.2).
-func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
+func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, ip *string) error {
+	// 10 resets per hour per IP, checked before a hashing slot is taken, so a
+	// flood of made-up tokens never holds one (#216). The token itself is 256
+	// random bits, so this limit is about the hashing cost, not guessing; it
+	// fails open like sign-up.
+	if err := s.rl.Allow(ctx, Limit{Name: "reset:ip", Subject: ipSubject(ip),
+		Max: 10, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		return err
+	}
 	if isBreachedPassword(newPassword) {
 		return errBreachedPassword
 	}
+	// Take the hashing slot before consuming the single-use token: if hashing
+	// is busy the caller gets 503 and the reset link still works on retry.
+	slot, err := acquireHashSlot(ctx, audienceSignup)
+	if err != nil {
+		return err
+	}
+	defer slot.release()
 	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", HashOpaqueToken(token))
 	if err != nil {
 		return err
@@ -554,7 +598,8 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	case res.Expired:
 		return errTokenExpired
 	}
-	hash, err := HashPassword(newPassword)
+	hash, err := slot.hash(newPassword)
+	slot.release() // the writes below need no slot
 	if err != nil {
 		return err
 	}
@@ -679,6 +724,15 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 	if len(newPassword) < 12 || len(newPassword) > 256 {
 		return nil, errWeakPassword
 	}
+	// 5 attempts per account per 15 minutes, checked before anything is read or
+	// a hashing slot is taken, so a limited request never holds one (#216). It
+	// fails open like login's limits: the hashing gate below still bounds the
+	// work, and Redis is disposable (docs/spec/01-platform.md, "G-1 — Postgres
+	// is the only source of truth").
+	if err := s.rl.Allow(ctx, Limit{Name: "password_change:account", Subject: p.AccountID,
+		Max: 5, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		return nil, err
+	}
 	acct, err := s.store.AccountByID(ctx, p.AccountID)
 	if err != nil {
 		return nil, err
@@ -686,11 +740,22 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 	if acct.PasswordHash == nil {
 		return nil, errInvalidCredentials
 	}
-	ok, verr := VerifyPassword(*acct.PasswordHash, currentPassword)
+	// One slot covers both the check of the current password and the new hash,
+	// so "busy" never reads as "the current password is incorrect". Only a
+	// session holding a staff role uses the staff gate; every other session
+	// shares the login gate, so sessions anyone can get (phone sign-in,
+	// restaurant sign-up) cannot fill the staff gate (passwordChangeAudience).
+	slot, err := acquireHashSlot(ctx, passwordChangeAudience(p.Roles))
+	if err != nil {
+		return nil, err
+	}
+	defer slot.release()
+	ok, verr := slot.verify(*acct.PasswordHash, currentPassword)
 	if verr != nil || !ok {
 		return nil, errInvalidCredentials
 	}
-	newHash, err := HashPassword(newPassword)
+	newHash, err := slot.hash(newPassword)
+	slot.release() // the writes below need no slot
 	if err != nil {
 		return nil, err
 	}

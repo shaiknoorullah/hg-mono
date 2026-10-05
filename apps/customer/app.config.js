@@ -50,7 +50,7 @@ module.exports = () => {
           backgroundColor: '#FFFAEA',
         },
       },
-      plugins: ['expo-dev-client'],
+      plugins: ['expo-dev-client', ['@stripe/stripe-react-native', {}]],
       extra: {
         appEnv: env.name,
         // So `npx expo config --type public` shows whether a map token was present at build time.

@@ -33,6 +33,7 @@ import { getOrder } from '../api/orders';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
 import { TamperReportCard } from '../components/TamperReportCard';
+import { TrackingMap } from '../components/TrackingMap';
 
 // Delivery-phase states where the customer has (or has just received) the sealed bag and can
 // report a broken seal.
@@ -47,6 +48,9 @@ const TERMINAL_STATES: ReadonlySet<string> = new Set([
   'RESOLVED',
 ]);
 const POLL_MS = 10_000;
+
+// Out for delivery: the rider has the bag. Only then does the map poll.
+const ON_ITS_WAY: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED']);
 
 type Order = Schema['OrderCustomerView'];
 
@@ -126,6 +130,7 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
           contentContainerStyle={{ padding: 16, paddingBottom: 24 + insets.bottom, gap: 16 }}
         >
           <StateHeader order={state.order} />
+          {ON_ITS_WAY.has(state.order.state) ? <TrackingMap orderId={orderId} /> : null}
 
           <View
             style={{
