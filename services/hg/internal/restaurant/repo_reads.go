@@ -414,6 +414,10 @@ func (r *Repo) SetHours(ctx context.Context, restaurantID string, in hoursInputD
 		}
 	}
 
+	// Hours are one of the gates to ACTIVE (R-06): re-evaluate in this transaction.
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -971,6 +975,11 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 		return nil, fmt.Errorf("set live_version_id: %w", err)
 	}
 
+	// A live item is one of the gates to ACTIVE (R-17): re-evaluate in this transaction.
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -1085,6 +1094,9 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 		return nil, fmt.Errorf("set live_version: %w", err)
 	}
 
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
