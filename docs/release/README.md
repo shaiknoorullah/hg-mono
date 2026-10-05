@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Releasing the apps
