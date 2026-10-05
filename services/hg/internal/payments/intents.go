@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 )
@@ -220,15 +222,21 @@ const (
 func updateConnectFromStripe(ctx context.Context, tx pgx.Tx, acct *StripeAccount, asOf time.Time) (connectUpdate, error) {
 	reqs, _ := json.Marshal(connectReqsMap(acct))
 	var ownerType, ownerID string
+	var wasEnabled bool
+	var wasReqs []byte
 	err := tx.QueryRow(ctx, `
-		UPDATE connect_account
+		WITH prev AS (
+		  SELECT id, payouts_enabled, requirements FROM connect_account WHERE stripe_account_id = $1 FOR UPDATE
+		)
+		UPDATE connect_account ca
 		   SET charges_enabled = $2, payouts_enabled = $3, details_submitted = $4,
 		       requirements = $5, disabled_reason = $6, last_stripe_event_created_at = $7, updated_at = now()
-		 WHERE stripe_account_id = $1
-		   AND (last_stripe_event_created_at IS NULL OR last_stripe_event_created_at <= $7)
-		RETURNING owner_type::text, owner_id::text`,
+		  FROM prev
+		 WHERE ca.id = prev.id
+		   AND (ca.last_stripe_event_created_at IS NULL OR ca.last_stripe_event_created_at <= $7)
+		RETURNING ca.owner_type::text, ca.owner_id::text, prev.payouts_enabled, prev.requirements`,
 		acct.ID, acct.ChargesEnabled, acct.PayoutsEnabled, acct.DetailsSubmitted,
-		reqs, nullStr(acct.DisabledReason), asOf).Scan(&ownerType, &ownerID)
+		reqs, nullStr(acct.DisabledReason), asOf).Scan(&ownerType, &ownerID, &wasEnabled, &wasReqs)
 	if errors.Is(err, pgx.ErrNoRows) {
 		var known bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM connect_account WHERE stripe_account_id = $1)`,
@@ -241,6 +249,9 @@ func updateConnectFromStripe(ctx context.Context, tx pgx.Tx, acct *StripeAccount
 		return connectUnknown, nil
 	}
 	if err != nil {
+		return connectUnknown, err
+	}
+	if err := emitConnectRequirements(ctx, tx, ownerType, ownerID, wasEnabled, wasReqs, acct); err != nil {
 		return connectUnknown, err
 	}
 	// A restaurant's payout account reaching READY advances PAYOUT_PENDING → MENU_PENDING (R-11).
@@ -289,3 +300,50 @@ func connectReqsMap(acct *StripeAccount) map[string]any {
 	}
 	return m
 }
+
+// emitConnectRequirements writes connect.requirements_changed to the partner's
+// own account channel (the rider, or the restaurant's owners and managers;
+// contracts/websocket.md section 4.6) when an account.updated snapshot changed
+// what Stripe asks of them: whether payouts are on, what is due, what is past
+// due, or by when. A snapshot that changes none of these writes nothing.
+func emitConnectRequirements(ctx context.Context, tx pgx.Tx, ownerType, ownerID string, wasEnabled bool,
+	wasReqs []byte, acct *StripeAccount) error {
+	wasDue, _, wasPast, wasDeadline := parseRequirements(wasReqs)
+	var deadline *int64
+	if acct.Deadline != nil && *acct.Deadline != 0 {
+		deadline = acct.Deadline
+	}
+	if wasEnabled == acct.PayoutsEnabled && slices.Equal(wasDue, acct.CurrentlyDue) &&
+		slices.Equal(wasPast, acct.PastDue) && equalUnix(wasDeadline, deadline) {
+		return nil
+	}
+	subject := realtime.OnboardingRestaurant
+	if ownerType == PayeeRider {
+		subject = realtime.OnboardingRider
+	}
+	accounts, err := realtime.SubjectAccounts(ctx, tx, subject, ownerID)
+	if err != nil {
+		return err
+	}
+	ev := realtime.ConnectRequirementsChanged{
+		CurrentlyDue: nonNil(acct.CurrentlyDue), PastDue: nonNil(acct.PastDue), PayoutsEnabled: acct.PayoutsEnabled,
+	}
+	if deadline != nil {
+		ev.Deadline = realtime.AtPtr(ptrTime(time.Unix(*deadline, 0)))
+	}
+	for _, a := range accounts {
+		if err := realtime.EmitAccount(ctx, tx, a, ev); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func equalUnix(a, b *int64) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+func ptrTime(t time.Time) *time.Time { return &t }

@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // SessionRow is the persisted session (P-04). The refresh token is never stored;
@@ -48,8 +50,13 @@ func (s *Store) CreateSession(ctx context.Context, p NewSessionParams) (*Session
 	if err != nil {
 		return nil, err
 	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
 	var row SessionRow
-	err = s.pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO session
 		  (family_id, account_id, amr, roles_snapshot, client, device_id, user_agent,
 		   ip, refresh_hash, idle_expires_at, absolute_expires_at)
@@ -64,6 +71,18 @@ func (s *Store) CreateSession(ctx context.Context, p NewSessionParams) (*Session
 		&row.IPCity, &row.IssuedAt, &row.LastUsedAt, &row.IdleExpires, &row.AbsExpires,
 		&row.RevokedAt, &row.RotatedAt)
 	if err != nil {
+		return nil, err
+	}
+	fresh, err := isNewDevice(ctx, tx, p.AccountID, row.ID, p.DeviceID)
+	if err != nil {
+		return nil, err
+	}
+	if fresh {
+		if err := emitSecurityEvent(ctx, tx, p.AccountID, realtime.SecurityNewDeviceLogin, row.IPCity); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 	return &row, nil
@@ -186,18 +205,39 @@ func (s *Store) RevokeAllForAccount(ctx context.Context, accountID, reason strin
 // session is not the caller's — the 404-vs-403 rule: another account's session
 // is invisible, not forbidden. Revoking an already-revoked own session is
 // idempotent (still nil).
+//
+// Revoking a session other than by signing out of it ("logout") tells the
+// account's devices, in the same transaction (account.security_event,
+// session_revoked).
 func (s *Store) RevokeSessionForAccount(ctx context.Context, accountID, sessionID, reason string) error {
-	ct, err := s.pool.Exec(ctx, `
-		UPDATE session SET revoked_at = COALESCE(revoked_at, now()),
-		                   revoke_reason = COALESCE(revoke_reason, $3)
-		WHERE id = $2 AND account_id = $1`, accountID, sessionID, reason)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	if ct.RowsAffected() == 0 {
+	defer func() { _ = tx.Rollback(ctx) }()
+	var wasRevoked bool
+	var ipCity *string
+	err = tx.QueryRow(ctx, `
+		WITH prev AS (
+		  SELECT id, revoked_at FROM session WHERE id = $2 AND account_id = $1 FOR UPDATE
+		)
+		UPDATE session s SET revoked_at = COALESCE(s.revoked_at, now()),
+		                     revoke_reason = COALESCE(s.revoke_reason, $3)
+		  FROM prev
+		 WHERE s.id = prev.id
+		RETURNING prev.revoked_at IS NOT NULL, s.ip_city`, accountID, sessionID, reason).Scan(&wasRevoked, &ipCity)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	if !wasRevoked && reason != "logout" {
+		if err := emitSecurityEvent(ctx, tx, accountID, realtime.SecuritySessionRevoked, ipCity); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 // ListLiveSessions returns the account's live sessions newest-first, capped at

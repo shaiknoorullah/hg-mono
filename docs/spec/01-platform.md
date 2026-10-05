@@ -1856,6 +1856,8 @@ CREATE TABLE realtime_connection (
   | `notification.created` | `{notification_id, kind, title, body, deep_link, created_at}` |
   | `notification.read` | `{notification_id, read_at}` |
 
+  Who receives them: the account's owner only. An event about a restaurant goes to each of its live owners and managers, never its other staff; one about a rider goes to the rider. `onboarding.state_changed` is sent for steps the subject did not take themselves (an admin's decision, Stripe turning payouts on, a menu approval); a step they take gets its new state in its own response. `document.review_state_changed` goes to restaurants only: a rider hears only the application decision ([one message per review](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). `account.security_event` is sent for a sign-in from a device the account has not used before (never the first sign-in, and not on the web, which has no device id), a password changed or reset, and a session revoked other than by signing out of it. `notification.created` is sent for notifications that have an inbox row; a sign-in code has none.
+
   **Admin (channel `admin:ops`)**
 
   | Type | Payload |

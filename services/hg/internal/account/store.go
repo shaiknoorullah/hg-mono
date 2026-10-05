@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // errNotFound is the sentinel returned when a scoped query finds no matching
@@ -536,24 +537,45 @@ func (r *Repo) ListNotifications(
 // the IDOR guard: another account's notification is indistinguishable from
 // a non-existent one. Idempotent: marking an already-read notification is
 // a no-op that returns 204.
+//
+// The first read writes notification.read on the account's own channel, in
+// the same transaction, so the caller's other devices clear the badge
+// (contracts/websocket.md section 4.6). A repeat read writes nothing.
 func (r *Repo) MarkNotificationRead(ctx context.Context, callerID, notificationID string) error {
-	// Use UPDATE … WHERE read_at IS NULL OR read_at IS NOT NULL so that an
-	// already-read notification still matches (idempotency). The only way to
-	// get 0 rows is an unknown id or a different account's id.
-	tag, err := r.pool.Exec(ctx, `
-		UPDATE notification
-		SET    read_at    = COALESCE(read_at, now()),
-		       updated_at = now()
-		WHERE  id         = $1
-		  AND  account_id = $2
-	`, notificationID, callerID)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	if tag.RowsAffected() == 0 {
+	defer tx.Rollback(ctx) //nolint:errcheck
+	// An already-read notification still matches (idempotency). The only way
+	// to get no row is an unknown id or a different account's id.
+	var wasRead bool
+	var readAt time.Time
+	err = tx.QueryRow(ctx, `
+		WITH prev AS (
+		  SELECT id, read_at FROM notification WHERE id = $1 AND account_id = $2 FOR UPDATE
+		)
+		UPDATE notification n
+		SET    read_at    = COALESCE(n.read_at, now()),
+		       updated_at = now()
+		FROM   prev
+		WHERE  n.id = prev.id
+		RETURNING prev.read_at IS NOT NULL, n.read_at
+	`, notificationID, callerID).Scan(&wasRead, &readAt)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return errNotFound
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	if !wasRead {
+		if err := realtime.EmitAccount(ctx, tx, callerID, realtime.NotificationRead{
+			NotificationID: notificationID, ReadAt: realtime.At(readAt),
+		}); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────

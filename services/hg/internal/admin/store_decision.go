@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 )
@@ -306,6 +307,12 @@ VALUES ($1, $2::restaurant_onboarding_state, $3::restaurant_onboarding_state, 'A
 			restaurantID, curOnboarding, toState, decidedBy, reasonCode, reasonText, nullStr(actor.requestID)); err != nil {
 			return err
 		}
+		// The owners and managers see the decision on their own account
+		// channels, in this transaction (contracts/websocket.md section 4.6).
+		if err := realtime.EmitOnboardingChanged(ctx, tx, realtime.OnboardingRestaurant, restaurantID,
+			curOnboarding, toState); err != nil {
+			return err
+		}
 		// DOCUMENTS_APPROVED → PAYOUT_PENDING is automatic (spec R, transition table);
 		// recompute advances it (and no-ops on rejection, which is out of the band).
 		if err := restaurant.RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
@@ -580,12 +587,20 @@ UPDATE rider_profile SET onboarding_state=$2::rider_onboarding_state, approved_b
  WHERE account_id=$1`, accountID, toState, decidedBy); err != nil {
 				return err
 			}
-			// Payouts may already be enabled: go straight to ACTIVE.
-			if err := rider.RecomputeOnboarding(ctx, tx, accountID); err != nil {
-				return err
-			}
 		} else {
 			if _, err := tx.Exec(ctx, `UPDATE rider_profile SET onboarding_state=$2::rider_onboarding_state WHERE account_id=$1`, accountID, toState); err != nil {
+				return err
+			}
+		}
+		// The rider sees the decision on their own account channel, in this
+		// transaction (contracts/websocket.md section 4.6).
+		if err := realtime.EmitOnboardingChanged(ctx, tx, realtime.OnboardingRider, accountID,
+			profile.OnboardingState, toState); err != nil {
+			return err
+		}
+		if decision == "APPROVE" {
+			// Payouts may already be enabled: go straight to ACTIVE.
+			if err := rider.RecomputeOnboarding(ctx, tx, accountID); err != nil {
 				return err
 			}
 		}

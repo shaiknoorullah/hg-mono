@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // TOTPRecord holds the TOTP-related columns from the account row.
@@ -143,6 +145,36 @@ func (s *Store) ChangePasswordAndRevokeAll(ctx context.Context, accountID, newHa
 		WHERE account_id = $1 AND revoked_at IS NULL`, accountID, reason); err != nil {
 		return err
 	}
+	if err := emitSecurityEvent(ctx, tx, accountID, realtime.SecurityPasswordChanged, nil); err != nil {
+		return err
+	}
 
+	return tx.Commit(ctx)
+}
+
+// ResetPasswordAndRevokeAll is the end of a password reset, in one
+// transaction: the new hash, the email proven (the link was delivered to it,
+// which is what lets an invited staff member sign in afterwards), every
+// session revoked, and the account's devices told.
+func (s *Store) ResetPasswordAndRevokeAll(ctx context.Context, accountID, newHash string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `
+		UPDATE account SET password_hash = $2, password_set_at = now(),
+		                   email_verified_at = COALESCE(email_verified_at, now())
+		WHERE id = $1`, accountID, newHash); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE session SET revoked_at = now(), revoke_reason = 'password_reset'
+		WHERE account_id = $1 AND revoked_at IS NULL`, accountID); err != nil {
+		return err
+	}
+	if err := emitSecurityEvent(ctx, tx, accountID, realtime.SecurityPasswordChanged, nil); err != nil {
+		return err
+	}
 	return tx.Commit(ctx)
 }

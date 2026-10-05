@@ -194,7 +194,7 @@ func moveRefund(ctx context.Context, tx pgx.Tx, refundID, stripeRefundID string,
 	if tag.RowsAffected() != 1 {
 		return fmt.Errorf("refund %s is no longer %s", refundID, from)
 	}
-	return nil
+	return emitRefundMoved(ctx, tx, refundID, to)
 }
 
 // refundBatchPosted reports whether a refund already has its REFUND batch.
