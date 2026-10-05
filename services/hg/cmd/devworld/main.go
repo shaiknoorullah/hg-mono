@@ -36,6 +36,32 @@ func main() {
 		devworld.PrintManifest()
 	case "totp":
 		err = devworld.PrintAdminCode(time.Now())
+	case "scenario":
+		if len(os.Args) < 3 {
+			usage()
+			os.Exit(2)
+		}
+		if os.Args[2] == "list" {
+			devworld.PrintScenarios()
+			break
+		}
+		base := os.Getenv("HG_API_URL")
+		if base == "" {
+			base = "http://127.0.0.1:8080"
+		}
+		err = devworld.RunScenario(ctx, base, os.Args[2])
+	case "journey":
+		var opts devworld.JourneyOptions
+		opts, err = devworld.ParseJourneyArgs(os.Args[2:])
+		if err != nil {
+			usage()
+			break
+		}
+		base := os.Getenv("HG_API_URL")
+		if base == "" {
+			base = "http://127.0.0.1:8080"
+		}
+		err = devworld.RunJourney(ctx, base, opts)
 	default:
 		usage()
 		os.Exit(2)
@@ -47,6 +73,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: devworld reset | seed | verify | list | totp")
+	fmt.Fprintln(os.Stderr, "usage: devworld reset | seed | verify | list | totp | scenario <name|list> | journey [--route=short|long|early-rider] [--speed=1x|4x|max] [--auto=none|restaurant|all] [--manual=rider]")
 	fmt.Fprintln(os.Stderr, "reset and seed require HG_ENV=local and a local HG_POSTGRES_DSN.")
+	fmt.Fprintln(os.Stderr, "scenario and journey call HG_API_URL (default http://127.0.0.1:8080).")
 }

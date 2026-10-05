@@ -166,6 +166,8 @@ CREATE TABLE admin_profile   (account_id uuid PRIMARY KEY REFERENCES account(id)
 
   **Provider**: sign-in codes go through Twilio Verify ([SMS carriers exception](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). When it is configured, Twilio generates, sends and checks the code and no code hash is stored locally; without it (development), the challenge table below is used. Sender registration is still open ([SMS registration](../decisions/README.md#open--blocking)).
 
+  **Reserved development range**: one fictional phone range is the exception. When the process environment is local or staging, a phone in that range stores a fixed development code and skips both the phone verifier and the SMS sender. Production and every other environment keep the normal path for every phone, including that range. The request and verify bodies do not change. The range and the code are named in the dev-world design ([scenario sign-in](../superpowers/specs/2026-09-28-devworld-harness-design.md#64-scenario-sign-in)).
+
 - **Data**:
 
 ```sql

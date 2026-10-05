@@ -17,10 +17,17 @@
  * States:
  *   loading — the getAssignment read.
  *   error   — the read failed, a transition was rejected, or POD was rejected.
- *   ready   — the assignment with pickup, drop-off, items and the next action.
+ *   ready   — the assignment with a live map, pickup, drop-off, items and the next action.
+ *
+ * The live map (`DeliveryMap`) shows the rider's own position gliding along the road route to the
+ * current stop — the restaurant until the order is picked up, then the customer — with the
+ * distance and ETA written under it, and one Navigate button that hands that stop to the phone's
+ * navigation app. Builds without the Mapbox SDK show the same text and button without the map.
+ * Reporting the position to the server (every 5 s during a delivery) is the shell's job
+ * (`RiderShell`, `location.ts`), not this screen's.
  */
 import * as React from 'react';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
 import { Text } from 'react-native';
 import {
   Badge,
@@ -45,7 +52,8 @@ import { sha256HexBytes } from '../sha256';
 import { Screen, LoadingView, ErrorView } from './Screen';
 import { SealScanCard } from '../components/SealScanCard';
 import { useNav } from '../nav';
-import { openNavigation } from '../navigate';
+import { useLiveFix } from '../location';
+import { DeliveryMap, type DeliveryLeg } from '../map/DeliveryMap';
 
 /** Runs the same real 3-call private-bucket upload flow the onboarding screen uses, for a POD
  *  photo instead of a KYC document, and returns the confirmed `stored_object` id. */
@@ -129,6 +137,17 @@ type Load =
   | { status: 'loading' }
   | { status: 'error'; message: string; code?: string }
   | { status: 'ready'; assignment: Assignment };
+
+/** Which stop the map routes to in each state; no entry means no map (the delivery is over). */
+const MAP_LEG: Partial<Record<AssignmentState, DeliveryLeg>> = {
+  ASSIGNED: 'pickup',
+  EN_ROUTE_TO_PICKUP: 'pickup',
+  ARRIVED_AT_PICKUP: 'pickup',
+  PICKED_UP: 'dropoff',
+  EN_ROUTE_TO_DROPOFF: 'dropoff',
+  ARRIVED_AT_DROPOFF: 'dropoff',
+  RETURNING: 'pickup',
+};
 
 export function AssignmentScreen({
   assignmentId,
@@ -280,6 +299,8 @@ export function AssignmentScreen({
   const delivered =
     state.status === 'ready' &&
     (state.assignment.pod_recorded || state.assignment.state === 'DELIVERED');
+  const mapLeg = state.status === 'ready' && !delivered ? MAP_LEG[state.assignment.state] : undefined;
+  const live = useLiveFix(mapLeg !== undefined);
 
   return (
     <Screen title="Active delivery" subtitle="Deliver and record proof" loading={submitting || advancing}>
@@ -301,6 +322,27 @@ export function AssignmentScreen({
 
       {state.status === 'ready' ? (
         <>
+          {mapLeg ? (
+            <Card>
+              <DeliveryMap
+                leg={mapLeg}
+                pickup={{
+                  latitude: state.assignment.pickup.latitude,
+                  longitude: state.assignment.pickup.longitude,
+                  label: state.assignment.pickup.restaurant_name,
+                }}
+                dropoff={{
+                  latitude: state.assignment.dropoff.latitude,
+                  longitude: state.assignment.dropoff.longitude,
+                  label: state.assignment.dropoff.customer_display_name,
+                }}
+                rider={live}
+                height={260}
+                navigable
+              />
+            </Card>
+          ) : null}
+
           <Card>
             <View style={{ gap: theme.density.gutter }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.target.spacing }}>
@@ -401,29 +443,6 @@ export function AssignmentScreen({
                 {stepError ? (
                   <Banner variant="warning" title="Couldn't advance" description={stepError} />
                 ) : null}
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  fullWidth
-                  onPress={() =>
-                    void openNavigation(
-                      { ...state.assignment.pickup, label: state.assignment.pickup.restaurant_name },
-                      Platform.OS,
-                    )
-                  }
-                >
-                  Navigate to restaurant
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  fullWidth
-                  onPress={() =>
-                    void openNavigation(state.assignment.dropoff, Platform.OS)
-                  }
-                >
-                  Navigate to customer
-                </Button>
                 <Button
                   variant="primary"
                   size="xl"

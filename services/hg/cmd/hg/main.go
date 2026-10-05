@@ -559,7 +559,7 @@ func run() error {
 	}
 	authModule := auth.NewModule(
 		st.DB().Pool, st.Cache().Client, authSecrets,
-		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
+		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), string(cfg.Env), log)
 	// Email verification, password reset and staff invitations go out
 	// through the notification outbox (issue #248).
 	authModule.UseNotifications(notifyClient.Enqueue)

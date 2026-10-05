@@ -6,12 +6,14 @@
  * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
  * API but production's. How to build each: docs/release/README.md.
  *
- * Maps: `@rnmapbox/maps` stays out of autolinking (package.json `expo.autolinking.exclude`), as in
- * the rider app, so the Android build never asks Mapbox's Maven repository for the native SDK. The
- * Mapbox plugin is not loaded (no screen uses a map yet); add `@rnmapbox/maps` back to
- * `plugins` with the map screen. `EXPO_PUBLIC_MAPBOX_TOKEN` is still passed through for that.
+ * Maps: the live tracking map uses `@rnmapbox/maps`, which needs Mapbox's secret download token to
+ * build for Android. With `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` set the module is autolinked and its
+ * config plugin added; without it both are left out (react-native.config.js) and the app shows the
+ * ETA text only. The mechanism is in scripts/release/mapbox.cjs. The public map token,
+ * `EXPO_PUBLIC_MAPBOX_TOKEN`, is read at run time.
  */
 const { expoAppEnv } = require('../../scripts/release/app-env.cjs');
+const { mapboxPlugins } = require('../../scripts/release/mapbox.cjs');
 
 module.exports = () => {
   const env = expoAppEnv(process.env);
@@ -52,7 +54,7 @@ module.exports = () => {
           backgroundColor: '#FFFAEA',
         },
       },
-      plugins: ['expo-dev-client', ['@stripe/stripe-react-native', {}]],
+      plugins: ['expo-dev-client', ['@stripe/stripe-react-native', {}], ...mapboxPlugins()],
       extra: {
         appEnv: env.name,
         // So `npx expo config --type public` shows whether a map token was present at build time.

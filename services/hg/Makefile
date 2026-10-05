@@ -234,6 +234,17 @@ dev-reset: ## Wipe and re-seed a local database with the stable personas
 dev-totp: ## Print the current local admin sign-in code
 	@$(GO) run ./cmd/devworld totp
 
+.PHONY: dev-scenario
+dev-scenario: ## Drive one API scenario against a running local API (s=new-order)
+	@s="$${s:-new-order}"; \
+	HG_API_URL="$${HG_API_URL:-http://127.0.0.1:8080}" $(GO) run ./cmd/devworld scenario "$$s"
+
+.PHONY: dev-journey
+dev-journey: ## Drive one live order against a running local API (route=short speed=1x auto=none)
+	@args="--route=$${route:-short} --speed=$${speed:-1x} --auto=$${auto:-none}"; \
+	if [ "$${manual:-}" = "rider" ]; then args="$$args --manual=rider"; fi; \
+	HG_API_URL="$${HG_API_URL:-http://127.0.0.1:8080}" $(GO) run ./cmd/devworld journey $$args
+
 # ---------------------------------------------------------------------------
 # Diagnostics
 # ---------------------------------------------------------------------------
