@@ -395,6 +395,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. The hero image is `restaurants.hero_object_key` resolved through the media CDN path; if null, a neutral cuisine-derived placeholder. A test asserts no bundled restaurant photograph exists in the app bundle.
   5. Menu payload is cached client-side for 5 min and invalidated on cart mutation failure with `ITEM_UNAVAILABLE`.
   6. A floating cart bar appears when the cart is non-empty, showing **sum of quantities** (not distinct line count) and the cart subtotal.
+  7. `GET /v1/restaurants/{id}?delivery_address_id=` prices the availability strip against that saved address when it belongs to the signed-in customer; an address that is not theirs, is deleted or has no location reads as no address (`NO_ADDRESS`), never another customer's location.
 - **Acceptance criteria**:
   1. Given a restaurant with a `hero_object_key`, when the detail page renders, then the displayed image URL contains that key and matches no path under the app's static assets directory.
   2. Given a menu with items in 3 categories, when the page renders, then tabs are `All` + those 3 in `sort_order`, and selecting a tab shows only that category's items.
