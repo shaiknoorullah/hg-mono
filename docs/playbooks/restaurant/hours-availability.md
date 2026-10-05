@@ -25,12 +25,12 @@ This playbook tests store trading schedules, instant order acceptance toggling, 
 1. **Browser action**:
    - Focus the **Accepting orders** toggle using the Tab key.
 2. **Visible assertion**:
-   - The two-layer focus ring (`HG_FOCUS`) is clearly visible surrounding the switch component.
+   - The two-layer focus ring (the shared focus style) is clearly visible surrounding the switch component.
 3. **Browser action**:
    - Press the Space key or click the switch to disable order acceptance.
 4. **Visible assertion**:
    - State indicator updates to `Closed — toggled off`.
-   - The active pulse glow settles to slate (an operational state, never red, per [Design Rule 9](AGENTS.md#3-non-negotiable-invariants)).
+   - The active pulse glow settles to slate (an operational state, never red, per [Design Rule 9](../../../AGENTS.md#3-non-negotiable-invariants)).
 5. **Browser action**:
    - Toggle the switch back to active.
 6. **Visible assertion**:

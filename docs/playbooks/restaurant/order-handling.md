@@ -21,7 +21,7 @@ This playbook scripts the end-to-end order processing lifecycle for restaurant o
    - Note: If live socket updates are not connected in your environment, click **Refresh**.
 3. **Visible assertion**:
    - A new order card appears displaying the order code (e.g. `#HG-…`), customer name, delivery destination, and ordered items.
-   - A 180-second countdown timer is active (enforcing [Platform Invariant 4](docs/spec/01-platform.md#non-negotiable-invariants) — non-terminal states have a deadline).
+   - A 180-second countdown timer is active (enforcing [Platform Invariant 4](../../spec/01-platform.md#non-negotiable-invariants) — non-terminal states have a deadline).
    - An attention ring highlights newly arrived orders.
 
 ---
@@ -48,7 +48,7 @@ This playbook scripts the end-to-end order processing lifecycle for restaurant o
    - Type a pre-printed bag seal code (e.g. `SEAL-8821`).
    - Click **Bind seal**.
 3. **Visible assertion**:
-   - A success confirmation displays `Sealed · SEAL-8821` with a tinted success badge (never solid green, per [Design Rule 10](AGENTS.md#3-non-negotiable-invariants)).
+   - A success confirmation displays `Sealed · SEAL-8821` with a tinted success badge (never solid green, per [Design Rule 10](../../../AGENTS.md#3-non-negotiable-invariants)).
    - The chain-of-custody seal is now bound on the server for rider pickup scan.
 
 ---
