@@ -131,10 +131,10 @@ func (r *DeadlineRunner) claim(ctx context.Context) ([]claimedOrder, error) {
 // the subset the orders module owns end-to-end without a sibling: the pure
 // state-machine timeouts (RESTAURANT_TIMEOUT, PREP_OVERDUE re-arm/cap,
 // DELIVERY/HANDOVER re-arm, DISPUTE_SLA re-arm), EXPIRE_PAYMENT (which cancels
-// the order) and the PICKUP_OVERDUE escalation (runner_pickup.go). Actions
-// whose money effect belongs to a sibling
-// (OFFER_RESTAURANT → dispatch, SETTLE → ledger) re-arm the deadline and record
-// the audit rather than fabricating the sibling's work.
+// the order), SETTLE (which completes a delivered order and issues its
+// receipt) and the PICKUP_OVERDUE escalation (runner_pickup.go). An action
+// whose effect belongs to a sibling (OFFER_RESTAURANT → dispatch) re-arms the
+// deadline and records the audit rather than fabricating the sibling's work.
 func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
 	start := time.Now()
 	switch c.action {
@@ -149,13 +149,25 @@ func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
 		return r.transitionExpire(ctx, c, machine.StateCancelled, "RESTAURANT_TIMEOUT", machine.ActionRestaurantTimeout)
 
 	case machine.ActionPrepOverdue, machine.ActionDeliveryOverdue,
-		machine.ActionHandoverOverdue, machine.ActionDisputeSLABreach, machine.ActionOfferRestaurant,
-		machine.ActionSettle:
+		machine.ActionHandoverOverdue, machine.ActionDisputeSLABreach, machine.ActionOfferRestaurant:
 		// Re-arm within the escalation cap, or drive toward the cap's terminal
-		// action. The cap's terminal effect (refund, dispute, settle) belongs to
-		// the ledger/dispatch siblings; until they are wired, the runner re-arms
+		// action. The cap's terminal effect (refund, dispute) belongs to the
+		// ledger/dispatch siblings; until they are wired, the runner re-arms
 		// and records the audit so nothing is abandoned and no money is faked.
 		return r.reArm(ctx, c, start)
+
+	case machine.ActionSettle:
+		// DELIVERED and nobody disputed it in time: COMPLETED, with its
+		// receipt (T18; https://github.com/shaiknoorullah/hg-mono/issues/511).
+		// A settle that fails leaves the order DELIVERED and re-arms it, so it
+		// is retried 2 minutes on, audited, and never abandoned.
+		if err := r.settle(ctx, c); err != nil {
+			if rerr := r.reArm(ctx, c, start); rerr != nil {
+				return errors.Join(err, fmt.Errorf("re-arm after a failed settle: %w", rerr))
+			}
+			return err
+		}
+		return nil
 
 	case machine.ActionPickupOverdue:
 		// READY_FOR_PICKUP lapsed and nobody has collected the order: escalate
@@ -203,10 +215,50 @@ func (r *DeadlineRunner) transitionExpire(ctx context.Context, c claimedOrder, t
 	})
 }
 
+// settle handles SETTLE: a delivered order whose settle deadline has passed
+// moves DELIVERED → COMPLETED (T18, a SYSTEM edge) through the one transition
+// function, and its receipt is written in the same transaction
+// (receipt.go), with the deadline audit. Settling moves no money: the capture
+// batch already split the charge to the restaurant, the tax authority and the
+// platform's held delivery share, and the rider's own DELIVERED transition
+// paid the rider (docs/spec/01-platform.md, "P-13 — The ledger and the
+// zero-residual invariant"). So no ledger batch is posted here.
+//
+// The order is re-checked under its row lock: it must still be DELIVERED with
+// a deadline that has passed. An order disputed in the meantime is left to
+// its dispute, and a second run of the same claim finds a COMPLETED order and
+// does nothing, so an order completes, and its receipt is written, once.
+func (r *DeadlineRunner) settle(ctx context.Context, c claimedOrder) error {
+	return r.store.inTx(ctx, func(tx pgx.Tx) error {
+		var due bool
+		err := tx.QueryRow(ctx, `
+			SELECT true FROM "order"
+			 WHERE id = $1 AND state = 'DELIVERED' AND deadline_at <= now()
+			 FOR UPDATE`, c.id).Scan(&due)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("lock delivered order: %w", err)
+		}
+		if err := r.recordAudit(ctx, tx, c, machine.ActionSettle, "TRANSITIONED"); err != nil {
+			return err
+		}
+		return r.store.transitionTx(ctx, tx, TransitionRequest{
+			OrderID: c.id, To: machine.StateCompleted, Actor: machine.ActorSystem,
+			Reason: "settle deadline passed",
+		}, func(tx pgx.Tx) error {
+			return r.store.writeReceiptSnapshotTx(ctx, tx, c.id)
+		})
+	})
+}
+
 // reArm bumps the deadline forward by the state's ReArm interval and increments
 // deadline_escalations, up to the cap. At the cap it records the audit as
 // CAP_REACHED and leaves the row with a fresh deadline (never abandoned); the
-// terminal effect is a sibling's job and is a clearly-scoped TODO.
+// terminal effect is a sibling's job and is a clearly-scoped TODO. It only
+// touches an order still in the state it was claimed in: one that moved on
+// carries its new state's deadline, which is not this action's to change.
 func (r *DeadlineRunner) reArm(ctx context.Context, c claimedOrder, start time.Time) error {
 	spec, ok := machine.DeadlineFor(c.state)
 	if !ok {
@@ -222,15 +274,15 @@ func (r *DeadlineRunner) reArm(ctx context.Context, c claimedOrder, start time.T
 	}
 	next := time.Now().UTC().Add(interval)
 	return r.store.inTx(ctx, func(tx pgx.Tx) error {
-		if err := r.recordAudit(ctx, tx, c, c.action, outcome); err != nil {
-			return err
-		}
-		_, err := tx.Exec(ctx, `
+		ct, err := tx.Exec(ctx, `
 			UPDATE "order"
 			   SET deadline_at = $1, deadline_escalations = LEAST(deadline_escalations + 1, 32),
 			       lease_until = NULL, lease_owner = NULL
-			 WHERE id = $2`, next, c.id)
-		return err
+			 WHERE id = $2 AND state = $3`, next, c.id, string(c.state))
+		if err != nil || ct.RowsAffected() == 0 {
+			return err
+		}
+		return r.recordAudit(ctx, tx, c, c.action, outcome)
 	})
 }
 

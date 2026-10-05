@@ -945,7 +945,7 @@ CREATE TABLE quote_tax_line (
   | `REFUNDS` | debit (+) | money returned to customers |
   | `PLATFORM_ABSORBED` | debit (+) | goodwill / no-rider write-offs |
 
-  Postings happen at four moments: **capture** (customer charge recognised), **delivery/settlement** (split to restaurant, rider, platform, tax), **refund** (reversal), **payout** (payable → transferred). Each is a *balanced batch*: a set of `ledger_entry` rows written in one transaction whose `amount_cents` sum to zero.
+  Postings happen at four moments: **capture** (customer charge recognised and split to restaurant, tax and the platform's held share), **delivery** (the rider's share moved to the rider), **refund** (reversal), **payout** (payable → transferred). Each is a *balanced batch*: a set of `ledger_entry` rows written in one transaction whose `amount_cents` sum to zero. **Settlement posts nothing**: when a delivered order's `SETTLE` deadline passes it moves `DELIVERED → COMPLETED` and its receipt is written, and every cent has already been placed by the capture and the delivery ([#511](https://github.com/shaiknoorullah/hg-mono/issues/511)).
 
   Worked example, at launch values (commission 0%, service fee $0.00, rider paid the delivery fee plus the tip) — Ontario, subtotal $30.00, restaurant-funded promo $3.00, delivery $5.99 ($2.99 + 3 km × $1.00), service $0.00, HST 13% on ($27.00 + $5.99) = $32.99 → $4.29, tip $5.00, total **$42.28**. Rider $5.99 + tip $5.00 = $10.99. Restaurant is a registrant (`RESTAURANT_IS_SUPPLIER`), so food HST ($27.00 × 13% = $3.51) is restaurant-remittable; delivery HST ($5.99 × 13% = $0.78) is platform-remittable.
 
@@ -953,14 +953,17 @@ CREATE TABLE quote_tax_line (
   |---|---|---|
   | capture | `CUSTOMER_CHARGES` | −4228 |
   | capture | `PSP_CLEARING` | +4228 |
-  | settle | `PSP_CLEARING` | −4228 |
-  | settle | `RESTAURANT_PAYABLE` | +2700 ($27.00, no commission) |
-  | settle | `TAX_PAYABLE` (restaurant) | +351 |
-  | settle | `RIDER_PAYABLE` | +1099 |
-  | settle | `TAX_PAYABLE` (platform) | +78 |
+  | capture | `PSP_CLEARING` | −4228 |
+  | capture | `RESTAURANT_PAYABLE` | +2700 ($27.00, no commission) |
+  | capture | `TAX_PAYABLE` | +429 (restaurant's $3.51 + platform's $0.78, one row) |
+  | capture | `PLATFORM_REVENUE` | +1099 (delivery fee + tip, held until a rider delivers) |
+  | delivery | `PLATFORM_REVENUE` | −599 |
+  | delivery | `RIDER_PAYABLE` | +599 (`DELIVERY_FEE`) |
+  | delivery | `PLATFORM_REVENUE` | −500 |
+  | delivery | `RIDER_PAYABLE` | +500 (`TIP`) |
   | **Σ** | | **0** |
 
-  The customer's $42.28 decomposes to restaurant $27.00 + restaurant tax $3.51 + rider $10.99 (incl. $5.00 tip) + platform tax $0.78 = $42.28. Zero residual; with commission and service fee at zero the platform posts no revenue row. (Stripe fees are posted separately against `PLATFORM_REVENUE` when the balance-transaction webhook arrives, keeping the customer-facing decomposition clean.)
+  The customer's $42.28 decomposes to restaurant $27.00 + tax $4.29 (restaurant-remittable $3.51, platform-remittable $0.78, per the quote's tax lines) + rider $10.99 (incl. $5.00 tip) = $42.28. Zero residual; with commission and service fee at zero, `PLATFORM_REVENUE` nets to zero once the rider is paid. Settling the order (`DELIVERED → COMPLETED`) adds no rows. (Stripe fees are posted separately against `PLATFORM_REVENUE` when the balance-transaction webhook arrives, keeping the customer-facing decomposition clean.)
 
   **When the rider's share is posted.** The rider is not known at capture, so the capture batch leaves the delivery fee and the tip in `PLATFORM_REVENUE`, where a cancelled order's refund finds them. The rider's own `DELIVERED` transition then posts, in the same transaction, one balanced pair per earning: the delivery fee and the tip, exactly as priced, move from that held share to the `RIDER_PAYABLE` of the rider whose assignment is `DELIVERED` with its proof of delivery, read and locked from the database (the rider named on the request is only checked against it). One rider earning line mirrors each posting ([earnings formula and per-delivery ledger](04-rider.md#d-26--earnings-formula-and-per-delivery-ledger)). The batch is keyed by the order, so a replay posts nothing. No other path pays a rider: not a cancelled order, not one refunded in full before delivery, not a reassigned or returned assignment, not another actor's state change. A later refund that charges the rider back writes the reversing `RIDER_PAYABLE` entry and a mirroring `CLAWBACK` line; nothing is updated or deleted. Whether the platform makes up a tip lowered after the rider accepts is the owner's open question ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)); until it is decided it does not (`HG_RIDER_TIP_MAKEUP`, off).
   Built in [#306](https://github.com/shaiknoorullah/hg-mono/issues/306).
@@ -1015,7 +1018,7 @@ CREATE INDEX ledger_entry_cp ON ledger_entry(counterparty_type, counterparty_id,
   - **I-13.6 (immutability)** Zero `UPDATE`/`DELETE` on `ledger_entry` ever succeeds.
   - **I-13.7 (global balance)** `SELECT SUM(amount_cents) FROM ledger_entry` = 0 at all times.
 - **Acceptance criteria**:
-  1. Given the worked example order, When settled, Then `SUM(amount_cents) WHERE order_id = X` is exactly 0 and the five settlement rows match the table above cent-for-cent.
+  1. Given the worked example order, When captured and delivered, Then `SUM(amount_cents) WHERE order_id = X` is exactly 0 and the rows match the table above cent-for-cent; When it is then settled, Then no row is added.
   2. Given an attempt to write an unbalanced batch, When the transaction commits, Then it fails with `ledger_batch_unbalanced` and nothing is persisted.
   3. Given a partial refund of $10.00 on the worked example, When posted, Then a new balanced batch exists, `SUM` over the order is still 0, and the restaurant/rider/platform reversals sum to exactly 1000.
   4. Given any attempt to `UPDATE ledger_entry SET amount_cents = …`, Then the statement raises `ledger_is_append_only`.
@@ -1068,7 +1071,7 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
   | T15 | `PICKED_UP` | `DELIVERED` | rider completes without an arrival ping | rider (`dispatch.complete`) | none |
   | T16 | `ARRIVED` | `DELIVERED` | rider completes handover with the customer's delivery code, or a photo plus statement for leave-at-door | rider (`dispatch.complete`) | none |
   | T17 | `PICKED_UP`/`ARRIVED` | `DISPUTED` | support opens an incident mid-delivery | support/admin | none yet |
-  | T18 | `DELIVERED` | `COMPLETED` | settlement batch posted successfully | system | **settle** (P-13) |
+  | T18 | `DELIVERED` | `COMPLETED` | `SETTLE` deadline passed with the order still `DELIVERED`; the receipt is written in the same transaction (P-10) | system | none: the capture and the delivery already posted every cent (P-13) |
   | T19 | `DELIVERED`/`COMPLETED` | `DISPUTED` | customer or restaurant raises a dispute within the window | customer, restaurant staff, support | none yet |
   | T20 | `DISPUTED` | `RESOLVED` | support resolves (refund / partial / no action) | support/admin (`dispute.resolve`) | refund + adjustment batch |
   | T21 | `PREPARING`/`READY_FOR_PICKUP` | `DISPUTED` | restaurant reports an unrecoverable problem | restaurant staff | none yet |
@@ -1189,7 +1192,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 - **Rules & invariants**:
   - **I-14.1** `order.state` is only ever written by `OrderService.Transition`.
   - **I-14.2** Every state change appends exactly one `order_transition` row in the same transaction; the row count equals the number of state changes.
-  - **I-14.3** No transition exists that reaches `PREPARING` without a successful capture; no transition reaches `COMPLETED` without a balanced settlement batch.
+  - **I-14.3** No transition exists that reaches `PREPARING` without a successful capture; no transition reaches `COMPLETED` without its `receipt_snapshot` written in the same transaction.
   - **I-14.4** `dispatch` can only be created for orders in `PREPARING` or later, and only one dispatch row per order.
   - **I-14.5** A rider may only act on a dispatch where `dispatch.rider_account_id = principal`.
   - **I-14.6** Terminal states never transition again (`order_state_is_terminal(from)` ⟹ reject).
@@ -1200,7 +1203,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   3. Given an order accepted by the restaurant, When capture fails permanently, Then the order does not enter `PREPARING`; it reaches `CANCELLED` with `cancel_reason='capture_failed'` and the restaurant is notified.
   4. Given an order in `PREPARING`, When the rider marks pickup before the restaurant marks ready, Then 409 — `PREPARING → PICKED_UP` is not in the table; the rider sees "waiting for the kitchen", and neither the assignment nor the order moves. The same holds for an order the rider cannot collect (cancelled, rejected, disputed or not yet accepted). A rider who does not hold the order's delivery gets 404, as for any assignment that is not theirs ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317); the early handover with the kitchen's code is [#413](https://github.com/shaiknoorullah/hg-mono/issues/413)).
   5. Given the state machine, When the exhaustive transition test runs (all 14 × 14 ordered pairs × 6 actor kinds), Then exactly the 21 rows above are permitted and all 1155 other combinations are rejected.
-  6. Given an order reaching `DELIVERED`, When settlement fails, Then the order stays `DELIVERED` with an armed deadline and retries; it never silently sits without a deadline.
+  6. Given an order reaching `DELIVERED`, When settlement fails (its receipt cannot be issued), Then the order stays `DELIVERED` with an armed deadline and retries; it never silently sits without a deadline.
 
 - **Version**: V1 · **Size**: L
 
@@ -1221,7 +1224,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (restart a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` (pickup escalation, shipped) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` (shipped, [#336](https://github.com/shaiknoorullah/hg-mono/issues/336); only when no rider holds the order, otherwise ops are alerted and it keeps escalating) |
   | `PICKED_UP` | `picked_up_at + 75 min` | `DELIVERY_OVERDUE` — ping rider, alert ops, re-arm `+15 min` | 3 | T17 `DISPUTED` + ops case. **Never auto-delivers.** |
   | `ARRIVED` | `+15 min` | `HANDOVER_OVERDUE` — notify customer, alert ops, re-arm `+10 min` | 2 | T17 `DISPUTED` + ops case |
-  | `DELIVERED` | `+2 min` | `SETTLE` — post the settlement batch, transition T18; on failure re-arm with exponential backoff (2 m, 4 m, 8 m, …) | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
+  | `DELIVERED` | `+2 min` | `SETTLE` — transition T18 and write the receipt, posting nothing (P-13); on failure re-arm 2 m on | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
   | `DISPUTED` | `+48 h` | `DISPUTE_SLA_BREACH` — escalate to senior ops, re-arm `+24 h` | 3 | auto-resolve in the customer's favour per policy, transition T20 |
 
   **Dispatch deadlines:**
