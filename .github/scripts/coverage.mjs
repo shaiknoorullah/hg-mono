@@ -111,12 +111,10 @@ function collectGo() {
   // and measures in one pass. -race requires -covermode=atomic; a block still counts as
   // covered when its count is above zero, so the numbers equal `set` mode's. No -coverpkg:
   // each package is measured by its own tests only, as the baseline was.
-  // No Postgres here: integration tests skip themselves (HG_TEST_POSTGRES_DSN unset),
-  // so the numbers are the same on every machine and every run.
+  // HG_TEST_POSTGRES_DSN passes through: the go job sets it to its seeded Postgres service
+  // (issue #520), so the database-backed tests run and count. Unset, they skip themselves.
   const argv = ['test', '-race', '-covermode=atomic', `-coverprofile=${profile}`, './...'];
-  const exit = run('go', argv, join(ROOT, GO_DIR), {
-    HG_TEST_POSTGRES_DSN: '',
-  });
+  const exit = run('go', argv, join(ROOT, GO_DIR));
   const files = existsSync(profile) ? parseGoProfile(readFileSync(profile, 'utf8')) : {};
   return { name: 'go', exit, files };
 }
