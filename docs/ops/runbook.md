@@ -267,6 +267,7 @@ Sign-up confirmations, password resets, staff invitations, application decisions
 - **Check** [Resend's status page](https://resend-status.com/) and the Resend dashboard: the API key, the sending domain's verification, and the account's sending limits.
 - A failed email retries by itself with backoff, up to 12 tries. A refused address (`PROVIDER_REJECTED`) is not retried. After fixing the key, put it in the secrets store and restart the replicas one at a time; emails still waiting for a retry go out.
 - Never set `HG_EMAIL_ALLOWLIST` in production: the API refuses to start with it, because it would stop email to everyone not on it.
+- Push is the same check with `channel = 'PUSH'`: the API logs `push provider: log` at start-up unless `HG_PUSH_ENABLED=true`, and turning it off again (unset it, restart the replicas one at a time) only stops pushes; orders and the inbox are unaffected.
 
 ## Password sign-in answers "busy"
 

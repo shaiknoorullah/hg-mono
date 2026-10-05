@@ -407,6 +407,20 @@ func (r *Repo) RevokeDevice(ctx context.Context, callerID, deviceID string) erro
 	return nil
 }
 
+// RevokePushToken revokes every live device holding token. The push sender
+// calls it when Expo reports the token as DeviceNotRegistered (the app was
+// uninstalled), so nothing is sent to it again; the app registers a fresh
+// token on its next sign-in.
+func (r *Repo) RevokePushToken(ctx context.Context, token string) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE device
+		SET    revoked_at = now()
+		WHERE  expo_push_token = $1
+		  AND  revoked_at IS NULL
+	`, token)
+	return err
+}
+
 // ListNotifications returns the caller's inbox, newest-first, with keyset
 // pagination. cursor is the last-seen notification id (empty = first page).
 // unreadOnly filters to notifications where read_at IS NULL.

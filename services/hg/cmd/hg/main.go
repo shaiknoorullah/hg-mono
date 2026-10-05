@@ -497,9 +497,12 @@ func run() error {
 	// Outside production every email first passes the allow-list, so dev never
 	// messages a real person (issue #235); with no key the log sender records
 	// each email instead (captured in full outside production, issue #248).
-	// Push (issue #58) and notification SMS (blocked on the A2P registration,
-	// docs/decisions/README.md "Open — blocking") have no provider yet: their
-	// deliveries are recorded SUPPRESSED and the inbox row stays the record.
+	// Push goes through Expo only when HG_PUSH_ENABLED is true (issue #58);
+	// off, as by default, every push is recorded SUPPRESSED and the inbox row
+	// stays the record. Notification SMS (blocked on the A2P registration,
+	// docs/decisions/README.md "Open — blocking") has no provider yet.
+	// Delivery runs in the outbox worker, after the business transaction has
+	// committed, so a failed push never fails the request that caused it.
 	emailTemplates, err := emailtmpl.Load()
 	if err != nil {
 		return fmt.Errorf("notify: email templates: %w", err)
@@ -529,8 +532,22 @@ func run() error {
 			log.Info("email provider: log — emails are written to this log, not sent")
 		}
 	}
+	accountRepo := account.NewRepo(st.DB().Pool)
+	var pushSender notify.ChannelSender = notify.LogSender{Channel: notify.ChannelPush, Log: log}
+	switch {
+	case cfg.Push.Invalid != "":
+		log.Warn("push provider: log — HG_PUSH_ENABLED is not a boolean, so push stays off",
+			slog.String("value", cfg.Push.Invalid))
+	case cfg.Push.Enabled:
+		// A token Expo reports as DeviceNotRegistered is revoked by the
+		// account module, which owns the device table.
+		pushSender = &notify.ExpoSender{AccessToken: cfg.Push.ExpoAccessToken, Revoke: accountRepo.RevokePushToken, Log: log}
+		log.Info("push provider: expo", slog.Bool("access_token", cfg.Push.ExpoAccessToken != ""))
+	default:
+		log.Info("push provider: log — no push is sent (set HG_PUSH_ENABLED=true)")
+	}
 	notifier := notify.NewNotifier().
-		Register(notify.ChannelPush, notify.LogSender{Channel: notify.ChannelPush, Log: log}).
+		Register(notify.ChannelPush, pushSender).
 		Register(notify.ChannelSMS, notify.LogSender{Channel: notify.ChannelSMS, Log: log}).
 		Register(notify.ChannelEmail, notify.EmailAdapter{EmailSender: emailSender})
 	notifyClient, err := notify.NewClient(st.DB().Pool, notify.Options{
@@ -620,7 +637,7 @@ func run() error {
 	// B2 — Customer delivery addresses (internal/addresses, P-30).
 	addresses.Routes(router, addresses.NewHandler(addresses.NewRepo(st.DB().Pool)))
 	// B2 — Account self-service (C-03, P-24, P-25): profile, devices, notifications.
-	account.Routes(router, account.NewHandler(account.NewRepo(st.DB().Pool)))
+	account.Routes(router, account.NewHandler(accountRepo))
 	// The revocation deny set refreshes from Postgres every 10 s (P-04).
 	authModule.StartRevocationRefresher(ctx)
 	// TODO(siblings): catalog.Routes(router, …), orders.Routes(router, …),
