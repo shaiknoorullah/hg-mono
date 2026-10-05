@@ -13,7 +13,7 @@
  * with the payment sheet (src/payments). The intent is manual-capture: confirming authorises,
  * the server captures when the restaurant accepts.
  */
-import { idempotencyKey, unwrap } from '@hg/api-client';
+import { idempotencyKey, isApiError, unwrap } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 
 import { api } from './client';
@@ -26,6 +26,7 @@ export type OrderCustomerView = Schema['OrderCustomerView'];
 export type OrderSummary = Schema['OrderSummary'];
 export type OrderStatusGroup = Schema['OrderStatusGroup'];
 export type PageMeta = Schema['PageMeta'];
+export type Receipt = Schema['Receipt'];
 
 export async function createQuote(input: {
   cartId: string;
@@ -79,6 +80,26 @@ export async function getOrder(orderId: string): Promise<OrderCustomerView> {
     api.GET('/v1/orders/{orderId}', { params: { path: { orderId } } }),
   );
   return body.data as unknown as OrderCustomerView;
+}
+
+/**
+ * The order's receipt (P-10 / C-27), read from the snapshot the server writes once at
+ * `COMPLETED`. Until then the server answers 409, which `isReceiptNotReady` recognises.
+ */
+export async function getOrderReceipt(orderId: string): Promise<Receipt> {
+  const body = await unwrap(
+    api.GET('/v1/orders/{orderId}/receipt', { params: { path: { orderId } } }),
+  );
+  return body.data as unknown as Receipt;
+}
+
+/**
+ * True for the receipt's 409: the order has no receipt yet. The contract defines a 409 on this
+ * operation but its `ErrorCode` enum has no `RECEIPT_NOT_READY` (the server's code), so this
+ * branches on the status the contract does define.
+ */
+export function isReceiptNotReady(e: unknown): boolean {
+  return isApiError(e) && e.status === 409;
 }
 
 /**

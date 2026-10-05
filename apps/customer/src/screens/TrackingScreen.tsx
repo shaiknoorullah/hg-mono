@@ -7,8 +7,9 @@
  * flow through that one component, including the terminal ones, so a cancelled or failed order
  * renders correctly rather than as a stuck spinner.
  *
- * The receipt block re-uses the order's own `money` decomposition, every figure through `Price`.
- * Loading, empty (no active order) and error are all present.
+ * Until the order is delivered, the "Order total" block re-uses the order's own `money`
+ * decomposition, every figure through `Price`. Once delivered, `OrderReceipt` loads the receipt the
+ * server saved at completion. Loading, empty (no active order) and error are all present.
  */
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -32,6 +33,7 @@ import {
 import { getOrder } from '../api/orders';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
+import { OrderReceipt } from '../components/OrderReceipt';
 import { TamperReportCard } from '../components/TamperReportCard';
 import { TrackingMap } from '../components/TrackingMap';
 
@@ -48,6 +50,10 @@ const TERMINAL_STATES: ReadonlySet<string> = new Set([
   'RESOLVED',
 ]);
 const POLL_MS = 10_000;
+
+// Delivered orders have a receipt, or will within minutes: the server saves it when the order
+// completes, and answers 409 until then.
+const HAS_RECEIPT: ReadonlySet<string> = new Set(['DELIVERED', 'COMPLETED']);
 
 // Out for delivery: the rider has the bag. Only then does the map poll.
 const ON_ITS_WAY: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED']);
@@ -150,7 +156,11 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
             />
           </View>
 
-          <Receipt order={state.order} />
+          {state.order.state !== 'COMPLETED' ? <OrderTotal order={state.order} /> : null}
+          {HAS_RECEIPT.has(state.order.state) ? (
+            // Keyed on state so the receipt reloads when a polled DELIVERED order completes.
+            <OrderReceipt key={state.order.state} orderId={orderId} />
+          ) : null}
 
           {DELIVERY_PHASE.has(state.order.state) ? (
             <TamperReportCard orderId={orderId} />
@@ -182,7 +192,7 @@ function StateHeader({ order }: { order: Order }): React.ReactElement {
   );
 }
 
-function Receipt({ order }: { order: Order }): React.ReactElement {
+function OrderTotal({ order }: { order: Order }): React.ReactElement {
   const theme = useTheme();
   const heading = useTypeStyle('heading.sm');
   const { money } = order;
@@ -198,7 +208,7 @@ function Receipt({ order }: { order: Order }): React.ReactElement {
         borderColor: theme.color.border.decorative,
       }}
     >
-      <Text style={[heading, { color: theme.color.text.primary }]}>Receipt</Text>
+      <Text style={[heading, { color: theme.color.text.primary }]}>Order total</Text>
 
       <Row label="Subtotal" value={money.subtotal_cents} />
       {(money.tax_lines ?? []).map((tax) => (
