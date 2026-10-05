@@ -45,6 +45,12 @@ func newWebhookHarness(t *testing.T) *webhookHarness {
 	t.Helper()
 	pool := testPool(t)
 	t.Cleanup(pool.Close)
+	return newWebhookHarnessOn(t, pool)
+}
+
+// newWebhookHarnessOn is newWebhookHarness on a database the caller chose.
+func newWebhookHarnessOn(t *testing.T, pool *pgxpool.Pool) *webhookHarness {
+	t.Helper()
 	quiet := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// The live client, with a key nothing uses: only its webhook verification
 	// runs, and that is computation over the raw body, not a call.
