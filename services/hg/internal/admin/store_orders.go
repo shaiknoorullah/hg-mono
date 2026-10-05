@@ -21,9 +21,14 @@ type OrdersRepo struct {
 	st   *orders.Store
 }
 
-// NewOrdersRepo builds the admin order repository.
-func NewOrdersRepo(pool *pgxpool.Pool) *OrdersRepo {
-	return &OrdersRepo{pool: pool, st: orders.NewStore(pool)}
+// NewOrdersRepo builds the admin order repository. cancelled, when set,
+// releases a cancelled order's rider in the cancel's transaction.
+func NewOrdersRepo(pool *pgxpool.Pool, cancelled ...orders.OrderCancelled) *OrdersRepo {
+	st := orders.NewStore(pool)
+	if len(cancelled) > 0 && cancelled[0] != nil {
+		st.WithOrderCancelled(cancelled[0])
+	}
+	return &OrdersRepo{pool: pool, st: st}
 }
 
 // adminOrderSummaryRow is a raw projection from the database used to build

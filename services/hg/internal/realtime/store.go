@@ -324,8 +324,10 @@ func (s *Store) orderRelationship(ctx context.Context, accountID, orderID string
 			o.account_id = $2,
 			EXISTS (
 				SELECT 1 FROM dispatch d
+				  JOIN assignment a ON a.order_id = d.order_id AND a.rider_account_id = d.rider_account_id
 				 WHERE d.order_id = o.id
-				   AND d.rider_account_id = $2),
+				   AND d.rider_account_id = $2
+				   AND a.terminated_at IS NULL),
 			EXISTS (
 				SELECT 1 FROM account_role ar
 				 WHERE ar.account_id = $2

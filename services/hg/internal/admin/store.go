@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // ErrNotFound is returned by the repository when a row does not exist.
@@ -27,6 +28,9 @@ type Repo struct {
 	// nothing, which only tests rely on.
 	notify  notify.TxEnqueuer
 	inviter notify.StaffInviter
+
+	// orderCancelled is the dispatch half of a staff cancel (orders.OrderCancelled).
+	orderCancelled orders.OrderCancelled
 }
 
 // NewRepo builds the repository over the shared pool.
@@ -37,6 +41,14 @@ func NewRepo(pool *pgxpool.Pool) *Repo { return &Repo{pool: pool} }
 func (r *Repo) WithNotifications(enq notify.TxEnqueuer, inviter notify.StaffInviter) *Repo {
 	r.notify = enq
 	r.inviter = inviter
+	return r
+}
+
+// WithOrderCancelled attaches the dispatch half of a staff cancel: the order's
+// rider is released in the cancel's transaction
+// (https://github.com/shaiknoorullah/hg-mono/issues/415).
+func (r *Repo) WithOrderCancelled(h orders.OrderCancelled) *Repo {
+	r.orderCancelled = h
 	return r
 }
 

@@ -42,7 +42,7 @@ type Handler struct {
 func NewHandler(repo *Repo, cfg Config) *Handler {
 	return &Handler{
 		repo:       repo,
-		ordersRepo: NewOrdersRepo(repo.pool),
+		ordersRepo: NewOrdersRepo(repo.pool, repo.orderCancelled),
 		cfg:        cfg,
 		now:        func() time.Time { return time.Now().UTC() },
 	}
