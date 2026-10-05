@@ -2820,6 +2820,8 @@ is enforced server-side. `Deny` = `403 FORBIDDEN_PERMISSION`.
 | `oversight.read_agent_metrics` | A-11 | Allow | Limited — team aggregates + own-queue agents | Limited — own metrics only |
 | `oversight.create_quality_review` | A-11 | Allow | Deny | Deny |
 
+The admin console's System page now shows whether new orders are paused, since when and the latest reason, and lets `ADMIN` and `SUPER_ADMIN` pause or resume them with a required reason after a confirmation; a `403` from `setOrderingPause` turns the panel read-only, as a support agent sees it ([#389](https://github.com/shaiknoorullah/hg-mono/issues/389)).
+
 ### 7.2 Restaurant domain
 
 | Permission | Feature | Super Admin | Admin | Support Agent |
