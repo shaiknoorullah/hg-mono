@@ -2081,6 +2081,8 @@ CREATE TABLE notification_delivery (
 
   Receipts: Expo returns ticket ids; a follow-up job fetches receipts and maps errors — `DeviceNotRegistered` deletes the token, `MessageTooBig`/`InvalidCredentials` alert, `MessageRateExceeded` backs off. This is the only way `notification_delivery` reaches a truthful terminal state.
 
+  Built so far ([#58](https://github.com/shaiknoorullah/hg-mono/issues/58)): `services/hg/internal/notify/expo.go` sends each notification to all of the account's live devices in batches of 100, at high priority with a sound for HIGH and CRITICAL and a 300 s TTL, reads the tickets and revokes a device whose ticket says `DeviceNotRegistered`, and is used only when `HG_PUSH_ENABLED=true` (otherwise every push is recorded `SUPPRESSED`); receipts, `channelId` and `categoryId` are not done yet.
+
   iOS critical path: order offers for riders use a time-sensitive interruption level; the app requests the entitlement. Android uses a high-importance notification channel created at first launch.
 
 - **Data**:

@@ -1120,7 +1120,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. **Every notification is persisted to the inbox regardless of push outcome or OS permission.** The inbox is the system of record; push is a delivery optimisation. (Today the inbox is a permanently static "No New Notifications" screen.)
   5. Deduplication: one notification per `(user_id, type, order_id)` — a repeated status event never produces a second push.
   6. Quiet hours 22:00–08:00 local suppress **`PROMOTION` only**; transactional pushes are always delivered.
-  7. Token lifecycle: registered on login and on app foreground if changed; deactivated on logout and on provider rejection. A token is bound to exactly one `user_id` (re-registration under a new user detaches it from the old).
+  7. Token lifecycle: registered on login and on app foreground if changed; deactivated on logout and on provider rejection (the server's `RevokePushToken` in `services/hg/internal/account/store.go` revokes the device when Expo answers `DeviceNotRegistered`). A token is bound to exactly one `user_id` (re-registration under a new user detaches it from the old).
   8. If the OS permission is denied, the app shows a one-line inbox banner explaining that updates are in the inbox and offering a link to system settings; it does not re-prompt more than once per 30 days.
   9. Badge count = unread inbox rows, updated over the socket and on cold start.
 - **Acceptance criteria**:
