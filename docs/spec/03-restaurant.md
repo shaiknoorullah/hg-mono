@@ -1030,6 +1030,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   is not `ACCOUNT_SUSPENDED`: that code means the caller's own account is suspended and sends the app
   to the suspension screen, while here the caller stays signed in and only the menu is locked
   ([#256](https://github.com/shaiknoorullah/hg-mono/issues/256)).
+  *Built in the restaurant app ([#381](https://github.com/shaiknoorullah/hg-mono/issues/381)): while the profile's `account_state` is `SUSPENDED` or `BANNED`, or a save comes back `403 MENU_LOCKED`, the Menu screen still lists the menu, disables every edit control and shows one amber notice that says why it is locked and to contact support; opening hours stay editable.*
 
 - **Data**:
   ```
