@@ -218,13 +218,7 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("upload.confirm"),
 		httpx.Action("upload.create"),
 	),
-	httpx.RoleSupportAgent: setOf(
-		ActionSessionReadSelf,
-		ActionSessionRevokeSelf,
-		httpx.Action("auth.password_change"),
-		httpx.Action("auth.totp_disable"),
-		httpx.Action("auth.totp_enroll"),
-		httpx.Action("auth.totp_verify_enrolment"),
+	httpx.RoleSupportAgent: withStaffAccount(
 		httpx.Action("chargeback.annotate"),
 		httpx.Action("chargeback.read"),
 		httpx.Action("halal_certificate.read"),
@@ -246,13 +240,7 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("restaurant_application.read"),
 		httpx.Action("rider_application.read"),
 	),
-	httpx.RoleAdmin: setOf(
-		ActionSessionReadSelf,
-		ActionSessionRevokeSelf,
-		httpx.Action("auth.password_change"),
-		httpx.Action("auth.totp_disable"),
-		httpx.Action("auth.totp_enroll"),
-		httpx.Action("auth.totp_verify_enrolment"),
+	httpx.RoleAdmin: withStaffAccount(
 		httpx.Action("chargeback.annotate"),
 		httpx.Action("chargeback.read"),
 		httpx.Action("document.review"),
@@ -293,13 +281,7 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("upload.confirm"),
 		httpx.Action("upload.create"),
 	),
-	httpx.RoleSuperAdmin: setOf(
-		ActionSessionReadSelf,
-		ActionSessionRevokeSelf,
-		httpx.Action("auth.password_change"),
-		httpx.Action("auth.totp_disable"),
-		httpx.Action("auth.totp_enroll"),
-		httpx.Action("auth.totp_verify_enrolment"),
+	httpx.RoleSuperAdmin: withStaffAccount(
 		httpx.Action("chargeback.annotate"),
 		httpx.Action("chargeback.read"),
 		httpx.Action("document.review"),
@@ -340,6 +322,25 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("upload.confirm"),
 		httpx.Action("upload.create"),
 	),
+}
+
+// staffAccount is what every platform staff member (support, admin, super
+// admin) may do to their own account: see and revoke their sessions, change
+// their password, and turn two-step sign-in on or off.
+var staffAccount = []httpx.Action{
+	ActionSessionReadSelf,
+	ActionSessionRevokeSelf,
+	httpx.Action("auth.password_change"),
+	httpx.Action("auth.totp_disable"),
+	httpx.Action("auth.totp_enroll"),
+	httpx.Action("auth.totp_verify_enrolment"),
+}
+
+// withStaffAccount is setOf with the staffAccount actions added.
+func withStaffAccount(actions ...httpx.Action) map[httpx.Action]struct{} {
+	all := make([]httpx.Action, 0, len(staffAccount)+len(actions))
+	all = append(all, staffAccount...)
+	return setOf(append(all, actions...)...)
 }
 
 func setOf(actions ...httpx.Action) map[httpx.Action]struct{} {
