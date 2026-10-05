@@ -44,6 +44,11 @@ func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSS
 	verifier := session.NewVerifier(
 		map[string]ed25519.PublicKey{secrets.SigningKID: secrets.SigningPub}, "hg-api")
 
+	// Cap concurrent argon2id hashing in this process, per audience, so a burst
+	// of sign-ups or logins can neither exhaust the replica's memory nor lock
+	// staff out (hashgate.go).
+	ConfigurePasswordHashing(secrets.HashConcurrency, secrets.HashWait, secrets.HashMaxWaiters)
+
 	svc := NewService(store, rl, sms, issuer, deny, secrets, log)
 	// O-03 / phone-OTP provider: a non-nil PhoneVerifier (Twilio Verify) takes
 	// over requestOtp/verifyOtp; nil leaves the self-hosted challenge default.
