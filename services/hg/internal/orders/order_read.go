@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/money"
 )
 
 // OrderView is the customer projection (P-07) of an order, in the shape the
@@ -231,6 +232,9 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 			&tl.BaseCents, &tl.AmountCents, &tl.RebateApplied, &tl.RemittableBy); err != nil {
 			return nil, err
 		}
+		// The rate was read and dropped, so the order view and the receipt
+		// printed every rate as "0" (https://github.com/shaiknoorullah/hg-mono/issues/511).
+		tl.Rate, _ = money.RateFromDecimalString(rateStr)
 		v.TaxLines = append(v.TaxLines, tl)
 	}
 	if err := taxRows.Err(); err != nil {

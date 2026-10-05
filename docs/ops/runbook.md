@@ -257,6 +257,13 @@ Each password check takes 64 MiB, so each API replica runs at most `HG_AUTH_HASH
 - **If a rider holds it** at the third alert (severity `CRITICAL`), it is not cancelled automatically, because the rider may be at the counter. The order needs a person, and the admin console cannot cancel a ready order: call on-call, call the rider, and call the restaurant and the customer meanwhile.
 - **Never** edit the order's state or `deadline_at` by hand ([deadlines spec][p15]).
 
+## A delivered order never completes
+
+- **Signs:** an order stays `DELIVERED` well past 2 minutes, the customer's receipt answers `RECEIPT_NOT_READY`, and the API logs `deadline action failed` with `action=SETTLE` every 2 minutes for that order.
+- **What the system does:** 2 minutes after delivery it completes the order and issues its receipt, in one step, and posts no money (the charge was split at capture and the rider paid at delivery: [ledger spec][p13], [#511][i511]). When the receipt cannot be issued, the order stays `DELIVERED` and the step is retried every 2 minutes; nothing is lost. The usual cause is an order with no payment record, so there is no charge to print.
+- **What to do:** read the logged error for the order. A missing payment record is a payments fault: go to [the payments section](#payments-are-failing). An order disputed in the meantime is not completed, by design; it follows its dispute.
+- **Never** write `receipt_snapshot` or the state by hand: an issued receipt can never be replaced ([receipt spec][p10]).
+
 ## A suspected breach
 
 PIPEDA covers this ([the Privacy Commissioner's guidance][opc-breach]; [#214][i214]). The loss of personal information counts too, not only access by someone else.
@@ -318,6 +325,7 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [i222]: https://github.com/shaiknoorullah/hg-mono/issues/222
 [i293]: https://github.com/shaiknoorullah/hg-mono/issues/293
 [i336]: https://github.com/shaiknoorullah/hg-mono/issues/336
+[i511]: https://github.com/shaiknoorullah/hg-mono/issues/511
 [i78]: https://github.com/shaiknoorullah/hg-mono/issues/78
 [i208]: https://github.com/shaiknoorullah/hg-mono/issues/208
 [i209]: https://github.com/shaiknoorullah/hg-mono/issues/209
@@ -333,6 +341,7 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [p38]: ../spec/01-platform.md#p-38--rate-limiting
 [p15]: ../spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable
 [p13]: ../spec/01-platform.md#p-13--the-ledger-and-the-zero-residual-invariant
+[p10]: ../spec/01-platform.md#p-10--fee-breakdown-presented-to-the-customer
 [p17]: ../spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation
 [dec-support]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
 [dec-sms]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01

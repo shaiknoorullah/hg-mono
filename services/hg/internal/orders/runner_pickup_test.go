@@ -109,6 +109,10 @@ func TestIntegrationEveryNonTerminalStateHasADeadlineHandler(t *testing.T) {
 				t.Fatalf("non-terminal %s has no deadline in the deadline table", state)
 			}
 			orderID, _, _ := buildCreatedOrder(t, pool, st)
+			if state == machine.StateDelivered {
+				// Settling issues the receipt, which prints the captured charge.
+				seedCapturedIntent(t, pool, orderID)
+			}
 			makeDue(t, pool, orderID, state, spec.Action, 0)
 
 			c := mustClaim(t, runner, orderID)
