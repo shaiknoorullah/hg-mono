@@ -136,8 +136,13 @@ func (h *Handler) GetOrderPayment(w http.ResponseWriter, r *http.Request) {
 // CreateRefund implements POST /v1/refunds.
 func (h *Handler) CreateRefund(w http.ResponseWriter, r *http.Request) {
 	p := httpx.PrincipalFrom(r.Context())
+	body, idem, err := readIdempotentBody(r, "/v1/refunds")
+	if err != nil {
+		invalidBody(w, r, err)
+		return
+	}
 	var in RefundInput
-	if err := decodeJSON(r, &in); err != nil {
+	if err := decodeStrict(body, &in); err != nil {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"The request body is not valid.", []httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
 		return
@@ -159,12 +164,12 @@ func (h *Handler) CreateRefund(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	dto, err := h.svc.RequestRefund(r.Context(), in, p.AccountID)
+	out, err := h.svc.RequestRefundOnce(r.Context(), in, p.AccountID, idem)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	httpx.Respond(w, r, http.StatusCreated, dto)
+	writeOutcome(w, r, out)
 }
 
 // ListRefunds implements GET /v1/refunds.

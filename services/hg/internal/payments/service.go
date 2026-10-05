@@ -214,6 +214,28 @@ func (s *Service) GetOrderPayment(ctx context.Context, orderID, accountID string
 // IssueAdminRefund, under their authority cap. The review of a request is
 // #172.
 func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy string) (RefundDTO, error) {
+	out, err := s.RequestRefundOnce(ctx, in, requestedBy, nil)
+	if err != nil {
+		return RefundDTO{}, err
+	}
+	return out.Data.(RefundDTO), nil
+}
+
+// RequestRefundOnce is RequestRefund under the request's Idempotency-Key: the
+// key is claimed before anything is read, so a retried request gets the first
+// answer back rather than a second refund, or a refusal computed from the
+// refund the first one made (https://github.com/shaiknoorullah/hg-mono/issues/363).
+func (s *Service) RequestRefundOnce(ctx context.Context, in RefundInput, requestedBy string, idem *Idempotency) (Outcome, error) {
+	return s.repo.once(ctx, idem, func(tx pgx.Tx) (Outcome, error) {
+		dto, err := s.requestRefund(ctx, tx, in, requestedBy)
+		if err != nil {
+			return Outcome{}, err
+		}
+		return Outcome{Status: http.StatusCreated, Data: dto}, nil
+	})
+}
+
+func (s *Service) requestRefund(ctx context.Context, tx pgx.Tx, in RefundInput, requestedBy string) (RefundDTO, error) {
 	if in.Kind == RefundGoodwill {
 		// GOODWILL carries an amount and is admin-only; it is not created here.
 		return RefundDTO{}, domainErr(string(CodePaymentNotRefundable), 422,
@@ -285,12 +307,12 @@ func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy
 		Lines:           computed.Lines,
 		Money:           money,
 	}
-	refundID, err := s.repo.CreateRefund(ctx, params)
+	refundID, err := insertRefund(ctx, tx, params)
 	if err != nil {
 		return RefundDTO{}, err
 	}
 
-	rr, err := s.repo.GetRefund(ctx, refundID)
+	rr, err := scanRefund(tx.QueryRow(ctx, refundSelect+` WHERE r.id = $1`, refundID))
 	if err != nil {
 		return RefundDTO{}, err
 	}

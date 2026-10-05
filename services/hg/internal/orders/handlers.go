@@ -6,6 +6,7 @@ package orders
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -18,6 +19,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/idempotency"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
 )
 
@@ -247,6 +250,14 @@ func (h *Handler) GetQuote(w http.ResponseWriter, r *http.Request) {
 // ---- Order ----
 
 func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	// The body is read once, for the Idempotency-Key's request hash and for
+	// the decoder.
+	body, idem, err := idempotency.FromRequest(r, "/v1/orders")
+	if err != nil {
+		httpx.Fail(w, r, http.StatusBadRequest, codeValidationFailed, "Could not read request body.", nil)
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewReader(body))
 	var in orderInputDTO
 	if !decodeStrict(w, r, &in) {
 		return
@@ -262,44 +273,84 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	oi := OrderInput{
 		AccountID: h.accountID(r), QuoteID: in.QuoteID, PaymentMethodID: in.PaymentMethodID,
 		SavePaymentMethod: save, DeliveryInstructions: in.DeliveryInstructions, SpecialInstructions: in.SpecialInstructions,
+		Idem: idem,
 	}
 
 	var freshQuote *Quote
 	prepared, err := h.store.CreateOrder(r.Context(), oi, &freshQuote)
 	if err != nil {
-		if errors.Is(err, ErrQuoteStale) && freshQuote != nil {
+		switch {
+		case errors.Is(err, ErrQuoteStale) && freshQuote != nil:
 			httpx.Fail(w, r, http.StatusConflict, codeQuoteStale,
 				"The price changed since this quote was created. Please review and re-confirm.",
 				map[string]any{"quote": quoteToDTO(freshQuote)})
-			return
+		case errors.Is(err, idempotency.ErrKeyReuse):
+			httpx.Fail(w, r, http.StatusConflict, httpx.CodeIdempotencyKeyReuse,
+				"This Idempotency-Key was already used for a different request.", nil)
+		case errors.Is(err, idempotency.ErrInProgress):
+			w.Header().Set("Retry-After", "1")
+			httpx.Fail(w, r, http.StatusConflict, httpx.CodeIdempotencyInProgress,
+				"A request with this Idempotency-Key is still in progress.", nil)
+		default:
+			h.fail(w, r, err)
 		}
-		h.fail(w, r, err)
+		return
+	}
+	if prepared.Replay != nil {
+		idempotency.WriteReplay(w, r, *prepared.Replay)
 		return
 	}
 
+	// The order is committed. What is left is finished even if the client has
+	// gone (a phone that timed out will retry with the same key), and its
+	// answer is recorded against the key so that retry gets it back.
+	ctx := context.WithoutCancel(r.Context())
+	res := idempotency.Capture(w, func(w http.ResponseWriter) {
+		h.authoriseCreatedOrder(ctx, w, r, prepared, in.PaymentMethodID, save)
+	})
+	// A 201, or the 503 that failed the order, is the order's answer for good;
+	// any other server error is left unrecorded, so a retry after the lease
+	// takes over and finishes the order instead of replaying the error.
+	if prepared.RecordID != "" && (res.Status < 500 || res.Status == http.StatusServiceUnavailable) {
+		if err := idempotency.Complete(ctx, h.store.pool, prepared.RecordID, res); err != nil {
+			h.log.Error("record the createOrder answer against its idempotency key",
+				slog.String("order_id", prepared.OrderID), slog.String("error", err.Error()))
+		}
+	}
+}
+
+// authoriseCreatedOrder asks the payment gateway for the order's
+// PaymentIntent and answers createOrder. It is also how a retry finishes an
+// attempt that created the order but died before answering: the gateway is
+// keyed by the order id, so asking twice makes one PaymentIntent.
+func (h *Handler) authoriseCreatedOrder(ctx context.Context, w http.ResponseWriter, r *http.Request,
+	prepared *PreparedOrder, paymentMethodID *string, save bool) {
+	if prepared.State == machine.StateFailed {
+		h.failPaymentUnavailable(w, r)
+		return
+	}
 	// Ask the payment gateway for the PaymentIntent (P-16 step 3/4). The order
 	// row already exists in CREATED under its deadline; if the gateway is not
 	// wired we answer 503 honestly and mark the order FAILED rather than
 	// fabricating a client_secret.
-	res, gwErr := h.gateway.CreateOrderIntent(r.Context(), CreateIntentInput{
+	res, gwErr := h.gateway.CreateOrderIntent(ctx, CreateIntentInput{
 		OrderID: prepared.OrderID, OrderCode: prepared.OrderCode, QuoteID: prepared.QuoteID,
 		AccountID: h.accountID(r), RestaurantID: prepared.RestaurantID,
 		AmountCents: prepared.TotalCents, Currency: "CAD",
-		PaymentMethodID: in.PaymentMethodID, SavePaymentMethod: save,
+		PaymentMethodID: paymentMethodID, SavePaymentMethod: save,
 	})
 	if gwErr != nil {
 		h.log.Error("payment gateway failed for created order",
 			slog.String("order_id", prepared.OrderID), slog.String("error", gwErr.Error()))
 		// Fail the order to a terminal state so no CREATED order sits without a PI.
-		_ = h.store.Transition(r.Context(), TransitionRequest{
+		_ = h.store.Transition(ctx, TransitionRequest{
 			OrderID: prepared.OrderID, To: "FAILED", Actor: "SYSTEM", Reason: "payment gateway unavailable",
 		})
-		httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeServiceUnavailable,
-			"Payment could not be initialised. No charge was made and the order was not placed.", nil)
+		h.failPaymentUnavailable(w, r)
 		return
 	}
 
-	view, err := h.store.GetOrderForCustomer(r.Context(), h.accountID(r), prepared.OrderID)
+	view, err := h.store.GetOrderForCustomer(ctx, h.accountID(r), prepared.OrderID)
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -307,6 +358,11 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	httpx.Respond(w, r, http.StatusCreated, orderCreatedDTO{
 		Order: orderViewToDTO(view), ClientSecret: res.ClientSecret,
 	})
+}
+
+func (h *Handler) failPaymentUnavailable(w http.ResponseWriter, r *http.Request) {
+	httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeServiceUnavailable,
+		"Payment could not be initialised. No charge was made and the order was not placed.", nil)
 }
 
 func (h *Handler) GetOrder(w http.ResponseWriter, r *http.Request) {
