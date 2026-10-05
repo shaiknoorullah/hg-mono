@@ -21,7 +21,9 @@ import { Spinner } from './Spinner.js';
  * the type below makes it impossible to omit the label.
  *
  * States (all implemented): default (border.interactive 1px) · hover
- * (border.strong) · focus-visible (2px border.brand + two-layer ring) ·
+ * (border.strong) · focus-visible (the field's own border turns 2px in the
+ * focus colour, no ring; an invalid field keeps its danger border and gets the
+ * two-layer ring instead — docs/decisions/focus-indicator.md) ·
  * active/pressed n/a for a text field, stated explicitly · disabled
  * (surface.subtle fill + disabledOpacity) · loading (trailing spinner, field
  * stays editable unless readOnly) · error (2px danger border, errorText below
