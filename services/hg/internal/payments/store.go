@@ -20,6 +20,8 @@ var ErrNotFound = errors.New("not found")
 // writes another module's table.
 type Repo struct {
 	pool *pgxpool.Pool
+	// outbox receives the payout notices (payout_notices.go); nil sends none.
+	outbox Outbox
 }
 
 // NewRepo builds a Repo over an existing pgx pool.

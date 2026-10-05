@@ -211,10 +211,9 @@ var ErrStripeNotConfigured = errors.New("stripe is not configured (HG_STRIPE_SEC
 // StripeAPIVersion is the Stripe API version every call is made in. stripe-go
 // fixes it per major version and sends it in the Stripe-Version header of every
 // request; it has no per-client setting, so it moves only when the library is
-// upgraded. The webhook endpoints are created in this same version, because
-// webhook.ConstructEvent refuses an event in any other
-// (https://github.com/shaiknoorullah/hg-mono/issues/320). A test pins it, so an
-// upgrade that moves it fails until the endpoints move with it.
+// upgraded. A test pins it, so an upgrade that moves it is a deliberate change
+// (https://github.com/shaiknoorullah/hg-mono/issues/320). Webhook events are
+// not held to it: see VerifyWebhook.
 const StripeAPIVersion = stripe.APIVersion
 
 // liveStripe is the production StripeClient backed by the Stripe Go SDK.
@@ -490,8 +489,16 @@ func (s *liveStripe) FindBankPayout(ctx context.Context, stripeAccountID, payout
 	return nil, nil
 }
 
+// VerifyWebhook checks the signature and its timestamp, and accepts an event
+// in any API version. A webhook endpoint sends events in the version it was
+// created in, usually the account's default, which is not StripeAPIVersion;
+// refusing those answered every webhook 400
+// (https://github.com/shaiknoorullah/hg-mono/issues/529). Nothing here decodes
+// with stripe-go's types: each effect parses data.object into its own struct
+// of fields that are the same in every version, as the catch-up does.
 func (s *liveStripe) VerifyWebhook(payload []byte, sig string) (StripeEvent, error) {
-	ev, err := webhook.ConstructEvent(payload, sig, s.webhookSecret)
+	ev, err := webhook.ConstructEventWithOptions(payload, sig, s.webhookSecret,
+		webhook.ConstructEventOptions{IgnoreAPIVersionMismatch: true})
 	if err != nil {
 		return StripeEvent{}, fmt.Errorf("webhook signature verification failed: %w", err)
 	}

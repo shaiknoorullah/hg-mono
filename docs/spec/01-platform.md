@@ -1395,7 +1395,7 @@ CREATE TABLE saved_payment_method (
 
 ### P-17 — Webhooks, idempotency and reconciliation
 
-- **Behaviour**: `POST /v1/webhooks/stripe` is a `Public` route (no session) protected by **signature verification** — `Stripe-Signature` checked against `STRIPE_WEBHOOK_SECRET` with a 300-second tolerance. Unverified requests are 400 and are not logged with their body. Every refused delivery leaves one `WARN` line, `stripe webhook rejected`, with the reason (`signature`, `livemode` or `unreadable body`), for a signature failure the kind in fixed words (`no valid signature` is a signing secret that is not this endpoint's), and the event id when the body has one shaped like `evt_…` — never the body or the `Stripe-Signature` header ([a rejected webhook leaves no reason in the log](https://github.com/shaiknoorullah/hg-mono/issues/516)).
+- **Behaviour**: `POST /v1/webhooks/stripe` is a `Public` route (no session) protected by **signature verification** — `Stripe-Signature` checked against `STRIPE_WEBHOOK_SECRET` with a 300-second tolerance. Unverified requests are 400 and are not logged with their body. Every refused delivery leaves one `WARN` line, `stripe webhook rejected`, with the reason (`signature`, `livemode` or `unreadable body`), for a signature failure the kind in fixed words (`no valid signature` is a signing secret that is not this endpoint's), and the event id when the body has one shaped like `evt_…` — never the body or the `Stripe-Signature` header ([a rejected webhook leaves no reason in the log](https://github.com/shaiknoorullah/hg-mono/issues/516)). A signed event is accepted in any Stripe API version: the endpoint sends the version it was created in, and each effect reads its own fields from the raw object, not the library's types ([every webhook was refused for its API version](https://github.com/shaiknoorullah/hg-mono/issues/529)).
 
   Processing is **store-then-process**:
   1. Verify signature. Insert `webhook_event {stripe_event_id UNIQUE, type, payload, received_at}`. A duplicate `stripe_event_id` returns `200` immediately — this is the idempotency boundary, and it is a Postgres unique index, not a Redis key.
@@ -1997,7 +1997,7 @@ CREATE INDEX outbox_pending ON outbox_message(available_at) WHERE published_at I
   | `onboarding.state_changed` | — | E, I | P, I | — |
   | Paused rider reinstated ([reinstatement notice](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | — | — | P, I | — |
   | `connect.requirements_changed` / `payouts_enabled=false` | — | P, E, I | P, E, I | RT |
-  | `payout.paid` / `payout.failed` | — | E, I | P, E, I | RT (on failed) |
+  | `payout.paid` / `payout.failed` ([held, failed and sent notices](../../services/hg/internal/payments/payout_notices.go)) | — | E, I | P, E, I | RT (on failed) |
   | `chargeback.created` | — | E, I | — | RT, E |
   | Dispatch failure / reconciliation exception / queue depth | — | — | — | RT, E, page |
   | Marketing / promotions | P, E (**opt-in only**) | E (opt-in) | — | — |
@@ -2008,7 +2008,7 @@ CREATE INDEX outbox_pending ON outbox_message(available_at) WHERE published_at I
 
   **Acknowledgement**: realtime delivery is only counted as delivered when the client sends back an `ack {notification_id}`; push counts as delivered on an Expo receipt of `ok`. This closes the old gap where "connected" meant "seen in the last 5 minutes" and a stale socket silently swallowed an order offer.
 
-  **Quiet hours** 22:00–08:00 in the recipient's timezone suppress `PUSH` and `SMS` for non-transactional notifications only; transactional and `must_reach` always send. **CASL** (Canada's Anti-Spam Legislation) governs marketing: express opt-in recorded with timestamp, source and IP; every commercial message carries the sender identification and a one-click unsubscribe honoured within 10 business days (we honour immediately); `customer_profile.marketing_consent_at` gates every marketing send and a withdrawal is a hard stop.
+  **Quiet hours** 22:00–08:00 in the recipient's timezone suppress `PUSH` and `SMS` for non-transactional notifications only; transactional and `must_reach` always send. The non-transactional kinds are a closed list in [`notify/quiet.go`](../../services/hg/internal/notify/quiet.go): application decisions, reinstatement notices, payout notices and certificate renewal reminders. Every other kind is transactional, so a new kind is never silenced by default. A suppressed attempt is recorded `SUPPRESSED` with reason `QUIET_HOURS`; the inbox row and the email still go. **CASL** (Canada's Anti-Spam Legislation) governs marketing: express opt-in recorded with timestamp, source and IP; every commercial message carries the sender identification and a one-click unsubscribe honoured within 10 business days (we honour immediately); `customer_profile.marketing_consent_at` gates every marketing send and a withdrawal is a hard stop.
 
   **Deduplication and grouping**: `notification.dedupe_key` (e.g. `order:{id}:state:PREPARING`) is unique per recipient, so a retried event produces one notification. `group_key` (e.g. `order:{id}`) lets a whole group be dismissed when the order is taken — the rider whose offer was won gets the group removed rather than a stale badge.
 

@@ -120,6 +120,25 @@
       ]
     },
     {
+      "name": "payout_held",
+      "subject": "Your HalalGoes payout of {{.Amount}} is on hold",
+      "vars": [
+        "PayeeName",
+        "Amount",
+        "PeriodText"
+      ]
+    },
+    {
+      "name": "payout_failed",
+      "subject": "Your HalalGoes payout of {{.Amount}} did not reach you",
+      "vars": [
+        "PayeeName",
+        "Amount",
+        "PeriodText",
+        "NextStep"
+      ]
+    },
+    {
       "name": "certificate_renewal_reminder",
       "subject": "Your halal certificate expires {{.TimeLeft}}",
       "vars": [

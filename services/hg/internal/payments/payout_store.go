@@ -10,6 +10,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 )
 
 // Storage for the weekly payout run (issue #251): the payout_run and
@@ -567,6 +569,8 @@ func (r *Repo) createPeriodPayout(ctx context.Context, payee PayeeRef, period Pa
 		out.Outcome, action = OutcomeHeld, "payout.held"
 		if state == "READY" {
 			out.Outcome, out.Ready, action = "", true, "payout.created"
+		} else if err := notifyPayoutHeld(ctx, tx, r.outbox, out.PayoutID); err != nil {
+			return err
 		}
 		return writeJobAudit(ctx, tx, act, jobAudit{
 			action: action, subjectType: "payout", subjectID: out.PayoutID, amountCents: &p.AmountCents,
@@ -680,6 +684,9 @@ func (r *Repo) claimTransfer(ctx context.Context, payoutID, owner string, heldUn
 				return err
 			}
 			// Stripe turned payouts off after this payout was built.
+			if err := notifyPayoutHeld(ctx, tx, r.outbox, payoutID); err != nil {
+				return err
+			}
 			return writeJobAudit(ctx, tx, act, jobAudit{
 				action: "payout.held", subjectType: "payout", subjectID: payoutID, amountCents: &out.AmountCents,
 				reason: &out.HoldReason, after: map[string]any{"state": "HELD", "was": out.State},
@@ -889,10 +896,17 @@ func (r *Repo) bankPayoutFailed(ctx context.Context, payoutID string, attempt in
 			 WHERE payout_id = $1 AND attempt = $2 AND state = 'REQUESTED'`, payoutID, attempt, msg); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `
+		tag, err := tx.Exec(ctx, `
 			UPDATE payout SET last_error = $2, deadline_at = $3, deadline_action = 'create_bank_payout'
-			 WHERE id = $1 AND state = 'TRANSFERRED'`, payoutID, msg, retryBy); err != nil {
+			 WHERE id = $1 AND state = 'TRANSFERRED'`, payoutID, msg, retryBy)
+		if err != nil {
 			return err
+		}
+		if tag.RowsAffected() == 1 {
+			if err := notifyPayoutFailed(ctx, tx, r.outbox, payoutID, notify.PayoutRetrying,
+				fmt.Sprintf("bank_attempt:%d", attempt), retryBy); err != nil {
+				return err
+			}
 		}
 		failed := "FAILED"
 		return writeJobAudit(ctx, tx, act, jobAudit{
@@ -908,13 +922,21 @@ func (r *Repo) bankPayoutFailed(ctx context.Context, payoutID string, attempt in
 // the weekly run is well past that.
 func (r *Repo) markTransferFailed(ctx context.Context, payoutID, msg string, act runActor, retryBy time.Time, cents int64) error {
 	return r.tx(ctx, func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, `
+		var attempts int32
+		err := tx.QueryRow(ctx, `
 			UPDATE payout
 			   SET state = 'READY', last_error = $2, failure_message = $2,
 			       deadline_at = $3, deadline_action = 'execute_transfer',
 			       lease_until = NULL, lease_owner = NULL
-			 WHERE id = $1 AND state = 'TRANSFERRING'`, payoutID, msg, retryBy)
-		if err != nil {
+			 WHERE id = $1 AND state = 'TRANSFERRING'
+			RETURNING attempts`, payoutID, msg, retryBy).Scan(&attempts)
+		switch {
+		case err == nil:
+			if err := notifyPayoutFailed(ctx, tx, r.outbox, payoutID, notify.PayoutRetrying,
+				fmt.Sprintf("transfer_attempt:%d", attempts), retryBy); err != nil {
+				return err
+			}
+		case !errors.Is(err, pgx.ErrNoRows):
 			return err
 		}
 		failed := "FAILED"
