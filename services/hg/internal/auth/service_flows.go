@@ -455,7 +455,7 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 		return nil, errAccountNotActive
 	}
 
-	// TOTP: admin/super-admin require it (P-01 admin MFA). If enrolled or
+	// TOTP: support, admin and super-admin require it (P-01 staff MFA). If enrolled or
 	// required, verify the supplied code. The roles are read only now, after
 	// the password matched, so a known email costs no extra query before the
 	// hash that an unknown one does not.
