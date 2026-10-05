@@ -265,6 +265,9 @@ INSERT INTO rider_profile (account_id, first_name, last_name, date_of_birth,
                            onboarding_state, account_status, availability_state, is_online, approved_at)
 VALUES ($1, 'R', 'R', '1990-01-01', 'ACTIVE', 'ACTIVE', 'ON_DELIVERY', true, now())`, acct)
 	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM outbox_message WHERE channel = 'rider:' || $1`, acct)
+		_, _ = pool.Exec(ctx, `DELETE FROM realtime_event WHERE channel = 'rider:' || $1`, acct)
+		_, _ = pool.Exec(ctx, `DELETE FROM channel_cursor WHERE channel = 'rider:' || $1`, acct)
 		_, _ = pool.Exec(ctx, `DELETE FROM rider_availability_event WHERE account_id=$1`, acct)
 		_, _ = pool.Exec(ctx, `DELETE FROM rider_profile WHERE account_id=$1`, acct)
 		_, _ = pool.Exec(ctx, `DELETE FROM account WHERE id=$1`, acct)
@@ -277,5 +280,17 @@ VALUES ($1, 'R', 'R', '1990-01-01', 'ACTIVE', 'ACTIVE', 'ON_DELIVERY', true, now
 	mustQuery(t, pool, `SELECT availability_state::text FROM rider_profile WHERE account_id=$1`, &state, acct)
 	if state != "ONLINE_IDLE" {
 		t.Fatalf("stuck rider availability = %s, want ONLINE_IDLE after reconcile", state)
+	}
+
+	// The rider app hears of it on the rider's channel, written with the
+	// change (https://github.com/shaiknoorullah/hg-mono/issues/379).
+	var events int
+	mustQuery(t, pool, `
+SELECT count(*) FROM realtime_event e
+  JOIN outbox_message m ON m.realtime_event_id = e.id
+ WHERE e.channel = 'rider:' || $1 AND e.type = 'rider.availability_changed'
+   AND e.payload->>'availability_state' = 'ONLINE_IDLE'`, &events, acct)
+	if events != 1 {
+		t.Errorf("rider.availability_changed ONLINE_IDLE events = %d, want 1", events)
 	}
 }
