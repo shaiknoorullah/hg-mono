@@ -98,8 +98,8 @@ RETURNING d.order_id::text, d.wave, d.radius_m,
 // The customer, the restaurant and ops hear of it in the same transaction:
 // dispatch.state_changed on the order's channel and admin.dispatch_failure on
 // admin:ops (docs/spec/01-platform.md, "P-32 — Rider search and offer",
-// acceptance criterion 3; events_no_rider.go). Only the call that
-// moves the row writes them, so a second replica's call says nothing.
+// acceptance criterion 3; events.go). Only the call that moves the row writes
+// them, so a second replica's call says nothing.
 func (s *Store) MarkNoRiderFound(ctx context.Context, orderID string) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -186,6 +186,9 @@ RETURNING rp.account_id::text`)
 		if _, err := tx.Exec(ctx, `
 INSERT INTO rider_availability_event (account_id, from_state, to_state, reason, actor_kind)
 VALUES ($1, 'ONLINE_IDLE', 'OFFLINE', 'UNRESPONSIVE', 'SYSTEM')`, id); err != nil {
+			return 0, err
+		}
+		if err := emitAvailability(ctx, tx, id); err != nil {
 			return 0, err
 		}
 	}

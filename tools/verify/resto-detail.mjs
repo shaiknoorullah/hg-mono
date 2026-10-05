@@ -1,6 +1,7 @@
 // Deeper check: log in, open one order's detail, confirm getRestaurantOrder's
 // nested money/customer/lines render without crashing against the real backend.
 import { chromium } from 'playwright';
+import { requireEnv } from './env.mjs';
 const APP = 'http://localhost:5173';
 const calls = [], errors = [];
 const browser = await chromium.launch();
@@ -9,8 +10,8 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('response', (r) => { if (r.url().includes(':8080/')) calls.push(`${r.status()} ${r.request().method()} ${r.url().replace('http://localhost:8080','')}`); });
 
 await page.goto(APP, { waitUntil: 'networkidle' });
-await page.fill('input[name="email"]', 'resto@demo.hg');
-await page.fill('input[name="password"]', 'Resto@1234');
+await page.fill('input[name="email"]', requireEnv('SEED_EMAIL'));
+await page.fill('input[name="password"]', requireEnv('SEED_PASSWORD'));
 await page.click('button[type="submit"]');
 await page.waitForResponse((r) => r.url().includes('/v1/restaurant/orders'), { timeout: 15000 }).catch(() => {});
 await page.waitForTimeout(1200);

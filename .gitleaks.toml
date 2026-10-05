@@ -37,6 +37,16 @@ regexes = [
   '''^hgseal\.[0-9a-f-]+\.[0-9a-f-]+$''',
 ]
 
+# The local persona password. It is the same for every @seed.hg account so a
+# developer can sign in after make dev-reset. Exact value, and only in the
+# devworld package, so a copy pasted anywhere else is still caught.
+[[allowlists]]
+description = "shared local persona password"
+condition = "AND"
+paths = ['''^services/hg/internal/devworld/''']
+regexTarget = "secret"
+regexes = ['''^Seed!2026$''']
+
 # The email-link page tests (issue #329): a made-up link token, its letters and
 # digits in sequence, and a made-up new password. Matched by exact value, and
 # only in those tests, so a real token pasted anywhere is still caught.

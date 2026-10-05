@@ -2,136 +2,199 @@ package realtime
 
 import (
 	"encoding/json"
-	"math"
+	"fmt"
 )
 
-// Viewer is a subscriber's relationship to a channel, resolved at subscribe time
-// and reused at every send. Projection (§5) is part of ownership: there is one
-// projection per (event, role), and the gateway applies it before a frame leaves
-// the process, never trusting a shared struct with conditional blanking.
+// Viewer is the ONE role a subscription was authorised as. The ownership
+// check that admits a subscribe (store.go, AuthorizeSubscribe) decides it, from
+// the same facts, and the gateway projects every event on that subscription
+// for that role and no other (contracts/websocket.md section 5, "Per-role
+// projection rules"; https://github.com/shaiknoorullah/hg-mono/issues/247).
+//
+// It is one value, never a set: a principal who is related to a channel in
+// several ways (restaurant staff who are also the order's customer, say) is
+// projected for the single relationship that authorised the subscription, not
+// for the union of what those roles may see. The union is not representable.
 type Viewer int
 
 const (
-	// ViewCustomer is the order's customer.
-	ViewCustomer Viewer = iota
-	// ViewRestaurant is restaurant staff for the order's restaurant.
+	// ViewNone is the zero value: no role. It is never granted and never
+	// projected, so a subscription whose role was not set receives nothing.
+	ViewNone Viewer = iota
+	// ViewCustomer is the order's customer, on order:{id}.
+	ViewCustomer
+	// ViewRestaurant is staff of the order's restaurant, on order:{id} and
+	// restaurant:{id}.
 	ViewRestaurant
-	// ViewRider is the assigned rider.
+	// ViewRider is the order's assigned rider, on order:{id}.
 	ViewRider
 	// ViewSupport is support or admin: everything, PII masked by default.
 	ViewSupport
-	// ViewSelf is the account channel owner (account:{id}), rider channel owner,
-	// or admin:ops — no cross-audience projection applies.
-	ViewSelf
+	// ViewAccountOwner is the owner of account:{id}.
+	ViewAccountOwner
+	// ViewRiderSelf is the rider who owns rider:{id}.
+	ViewRiderSelf
 )
 
-// Project applies the §5 per-role projection to an event's payload for a given
-// viewer. It returns the payload the viewer is permitted to see, or ok=false
-// when this viewer is not in the event's audience at all (the frame is dropped).
-//
-// The event carries its audience as a []string of role tokens; the gateway
-// resolved the viewer's relationship when it authorized the subscribe. Two
-// projections the contract singles out are enforced here:
-//   - rider.location to a restaurant is coarse (≈100 m) with no customer PII;
-//   - the restaurant does not see the delivery address until ACCEPTED, and the
-//     rider does not see the full customer address until PICKED_UP.
-//
-// Because the emitting modules write the unprojected payload, Project withholds
-// rather than adds: it strips fields a viewer must not see. A field a viewer is
-// entitled to that the emitter never wrote is simply absent — never fabricated.
-func Project(eventType string, viewer Viewer, audience []string, payload json.RawMessage) (json.RawMessage, bool) {
-	if !viewerInAudience(viewer, audience) {
-		return nil, false
-	}
-	// Support/admin and the self channels see the payload as written (support
-	// with masking already applied by the emitter per §5; unmasking is a
-	// separate, audited HTTP path, never a socket concern).
-	if viewer == ViewSupport || viewer == ViewSelf {
-		return payload, true
-	}
-
-	switch eventType {
-	case "rider.location":
-		if viewer == ViewRestaurant {
-			return coarsenLocation(payload), true
-		}
-		return payload, true
-	}
-	return payload, true
+// Viewers is every role, in a fixed order.
+func Viewers() []Viewer {
+	return []Viewer{ViewCustomer, ViewRestaurant, ViewRider, ViewSupport, ViewAccountOwner, ViewRiderSelf}
 }
 
-// viewerInAudience maps the event's role-token audience to the viewer relation.
-// An empty audience means "all participants" (§4.2 order.state_changed and
-// friends list "all participants"), so anyone subscribed receives it.
-func viewerInAudience(viewer Viewer, audience []string) bool {
-	if len(audience) == 0 {
-		return true
-	}
-	want := ""
-	switch viewer {
+// String names the role in logs.
+func (v Viewer) String() string {
+	switch v {
 	case ViewCustomer:
-		want = "customer"
+		return "customer"
 	case ViewRestaurant:
-		want = "restaurant"
+		return "restaurant"
 	case ViewRider:
-		want = "rider"
+		return "rider"
 	case ViewSupport:
-		want = "support"
-	case ViewSelf:
-		return true
+		return "support"
+	case ViewAccountOwner:
+		return "account_owner"
+	case ViewRiderSelf:
+		return "rider_self"
+	case ViewNone:
+		return "none"
 	}
-	for _, a := range audience {
-		switch a {
-		case "all", "all_participants":
+	return fmt.Sprintf("unknown(%d)", int(v))
+}
+
+// dropReason says why a frame was not sent to one subscriber. Everything but
+// notInAudience means the projection failed closed and is logged as a warning.
+type dropReason int
+
+const (
+	delivered dropReason = iota
+	// notInAudience: the role's allow-list has no serializer for the event —
+	// the contract does not send it to that role. The everyday case.
+	notInAudience
+	// unknownViewer: the subscription's role is not one the allow-list knows
+	// (no role, or a value outside the closed set).
+	unknownViewer
+	// unknownEvent: no role has a serializer for the event type, so it is not
+	// an event this binary can send at all.
+	unknownEvent
+	// badSource: the stored source record did not decode or encode.
+	badSource
+	// storedAudience: the producer narrowed the event's audience below the
+	// role's allow-list.
+	storedAudience
+)
+
+func (r dropReason) String() string {
+	switch r {
+	case delivered:
+		return "delivered"
+	case notInAudience:
+		return "not_in_audience"
+	case unknownViewer:
+		return "unknown_role"
+	case unknownEvent:
+		return "no_serializer"
+	case badSource:
+		return "bad_source"
+	case storedAudience:
+		return "stored_audience"
+	}
+	return "unknown"
+}
+
+// failedClosed reports whether a drop is a fault worth a warning rather than
+// the contract's audience rule doing its job.
+func (r dropReason) failedClosed() bool {
+	return r == unknownViewer || r == unknownEvent || r == badSource
+}
+
+// Project returns the payload one role may see for an event, or ok=false when
+// nothing may be sent — the frame is then dropped for that subscriber.
+//
+// It fails closed. The payload is built by the serializer the allow-list
+// (catalogue.go, allowList: role → event type → serializer) names for exactly
+// this role and event type, from the source record the producer stored.
+// There is no default serializer and no pass-through: an unknown or missing
+// role, an event type with no serializer for the role (including one added to
+// the catalogue later without serializers), and a source record that does not
+// decode all send nothing.
+//
+// audience is the role list stored with the event. It can only narrow: an
+// empty list leaves the allow-list's audience unchanged.
+func Project(eventType string, viewer Viewer, audience []string, payload json.RawMessage) (json.RawMessage, bool) {
+	out, why := project(eventType, viewer, audience, payload)
+	return out, why == delivered
+}
+
+// project is Project with the reason a frame was dropped, for the log.
+func project(eventType string, viewer Viewer, audience []string, payload json.RawMessage) (json.RawMessage, dropReason) {
+	serializers, ok := allowList[viewer]
+	if !ok {
+		return nil, unknownViewer
+	}
+	serialize, ok := serializers[eventType]
+	if !ok {
+		if !servedToAnyone(eventType) {
+			return nil, unknownEvent
+		}
+		return nil, notInAudience
+	}
+	if !inStoredAudience(viewer, audience) {
+		return nil, storedAudience
+	}
+	out, err := serialize.run(payload)
+	if err != nil {
+		return nil, badSource
+	}
+	b, err := json.Marshal(out)
+	if err != nil {
+		return nil, badSource
+	}
+	return b, delivered
+}
+
+// servedToAnyone reports whether any role has a serializer for an event type.
+func servedToAnyone(eventType string) bool {
+	for _, serializers := range allowList {
+		if _, ok := serializers[eventType]; ok {
 			return true
-		case want:
-			return true
-		case "support", "admin":
-			if viewer == ViewSupport {
-				return true
-			}
 		}
 	}
 	return false
 }
 
-// coarsenLocation rounds lat/lng to ~100 m and drops accuracy so a restaurant
-// receives only enough to know the rider is close (§5). The customer, in
-// contrast, receives the precise position unchanged.
-func coarsenLocation(payload json.RawMessage) json.RawMessage {
-	var m map[string]json.RawMessage
-	if err := json.Unmarshal(payload, &m); err != nil {
-		// If we cannot parse it we must not forward a payload we could not
-		// redact. Return an empty object rather than leaking.
-		return json.RawMessage(`{}`)
+// audienceToken is the role token realtime_event.audience stores; "" for a
+// role that has none, which no stored list contains.
+func audienceToken(v Viewer) string {
+	switch v {
+	case ViewCustomer:
+		return "customer"
+	case ViewRestaurant:
+		return "restaurant"
+	case ViewRider:
+		return "rider"
+	case ViewSupport:
+		return "support"
+	case ViewAccountOwner, ViewRiderSelf:
+		return "self"
 	}
-	roundField := func(key string) {
-		raw, ok := m[key]
-		if !ok {
-			return
-		}
-		var f float64
-		if err := json.Unmarshal(raw, &f); err != nil {
-			return
-		}
-		// ~100 m ≈ 0.001° at these latitudes; round to 3 decimals.
-		r := math.Round(f*1000) / 1000
-		b, _ := json.Marshal(r)
-		m[key] = b
-	}
-	roundField("lat")
-	roundField("lng")
-	// Precise accuracy would let a restaurant reconstruct the fine position;
-	// remove it along with any customer PII fields that must never reach the
-	// restaurant on this event.
-	delete(m, "accuracy_m")
-	delete(m, "speed_mps")
-	delete(m, "customer_phone")
-	delete(m, "customer_address")
+	return ""
+}
 
-	out, err := json.Marshal(m)
-	if err != nil {
-		return json.RawMessage(`{}`)
+// inStoredAudience applies the stored role list, if any. It is a second gate
+// behind the allow-list and can only narrow it.
+func inStoredAudience(viewer Viewer, audience []string) bool {
+	if len(audience) == 0 {
+		return true
 	}
-	return out
+	want := audienceToken(viewer)
+	if want == "" {
+		return false
+	}
+	for _, a := range audience {
+		if a == want || a == "all" {
+			return true
+		}
+	}
+	return false
 }

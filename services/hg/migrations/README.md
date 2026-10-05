@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — database schema
@@ -18,7 +18,13 @@ migrations/
   lint/schema_lint.sql   the money + geography lints, runnable standalone
   test/              invariant tests: 101 assertions about what the DB refuses
   tools/             contract-enum generator and checker
+  devworld/          local personas; loaded only by cmd/devworld
 ```
+
+`devworld/` is not a goose migration. `make migrate`, `make seed`, the reference
+loader, and a deploy never apply it. `make dev-reset` (or `go run ./cmd/devworld reset`
+from `services/hg`) is the only loader, and it refuses every environment other
+than local and every database that is not on this machine.
 
 ## Running
 
