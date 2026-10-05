@@ -170,11 +170,14 @@ func findRefundForUpdate(ctx context.Context, tx pgx.Tx, stripeRefundID, metadat
 // from is the state the caller read under its lock; the update is refused
 // if the row is no longer in it.
 func moveRefund(ctx context.Context, tx pgx.Tx, refundID, stripeRefundID string, from, to RefundState, failure string) error {
-	set := "state = $2, stripe_refund_id = coalesce(stripe_refund_id, $3)"
+	// A refund Stripe has seen is no longer the sender's to send: its lease
+	// goes, and its clock becomes the one for the state it is now in (an
+	// AUTHORISED refund's deadline is when the sender next tries it).
+	set := "state = $2, stripe_refund_id = coalesce(stripe_refund_id, $3), lease_owner = NULL, lease_until = NULL"
 	args := []any{refundID, string(to), stripeRefundID, string(from)}
 	switch to {
 	case RefundSubmitted:
-		set += `, deadline_at = coalesce(deadline_at, now() + interval '7 days'),
+		set += `, deadline_at = now() + interval '7 days',
 		        deadline_action = 'await_refund_settlement'`
 	case RefundSucceeded:
 		set += ", settled_at = coalesce(settled_at, now()), failure_message = NULL, deadline_at = NULL, deadline_action = NULL"
@@ -417,6 +420,11 @@ type webhookAudit struct {
 	AmountCents *int64
 	After       map[string]any
 	EventID     string
+	// ActorKind is who made the change when it was not a webhook: 'JOB' for
+	// the refund sender, 'ACCOUNT' (with ActorAccountID) for a person.
+	// Empty means 'WEBHOOK'.
+	ActorKind      string
+	ActorAccountID string
 }
 
 // writeWebhookAudit appends the audit row in the caller's transaction; the
@@ -426,12 +434,17 @@ func writeWebhookAudit(ctx context.Context, tx pgx.Tx, a webhookAudit) error {
 	if err != nil {
 		return err
 	}
+	actor := a.ActorKind
+	if actor == "" {
+		actor = "WEBHOOK"
+	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO audit_event
-		  (actor_kind, action, subject_type, subject_id, outcome, reason_code, after, amount_cents,
+		  (actor_kind, actor_account_id, action, subject_type, subject_id, outcome, reason_code, after, amount_cents,
 		   correlation_id, day, seq, prev_hash, hash)
-		VALUES ('WEBHOOK', $1, $2, $3, 'SUCCESS', $4, $5, $6, $7, current_date, 0, '\x00'::bytea, '\x00'::bytea)`,
-		a.Action, a.SubjectType, nullUUID(a.SubjectID), nullStr(a.ReasonCode), after, a.AmountCents, nullStr(a.EventID))
+		VALUES ($8, $9, $1, $2, $3, 'SUCCESS', $4, $5, $6, $7, current_date, 0, '\x00'::bytea, '\x00'::bytea)`,
+		a.Action, a.SubjectType, nullUUID(a.SubjectID), nullStr(a.ReasonCode), after, a.AmountCents, nullStr(a.EventID),
+		actor, nullUUID(a.ActorAccountID))
 	if err != nil {
 		return fmt.Errorf("audit %s: %w", a.Action, err)
 	}

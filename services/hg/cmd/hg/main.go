@@ -698,6 +698,15 @@ func run() error {
 	// authorisation event moves its order through the orders store
 	// (orders.Store.PaymentAuthorised) in that same transaction.
 	go payments.NewWebhookWorker(paymentsSvc, cfg.Env == config.EnvProduction).Run(ctx)
+	// The refund sender sends approved refunds to Stripe: one replica at a
+	// time under an advisory-lock lease, each refund claimed and recorded
+	// before the call, keyed rf:<refund id>, retried with backoff and set
+	// aside with an ops alert after eight failures (#318). The refund
+	// webhooks above finalise what it sends. With no Stripe client there is
+	// nothing to send to, and approved refunds wait.
+	if stripeClient != nil {
+		go payments.NewRefundSender(paymentsSvc).Run(ctx)
+	}
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
