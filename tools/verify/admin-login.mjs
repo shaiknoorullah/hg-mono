@@ -8,21 +8,11 @@
 //
 // Run from repo root: node tools/verify/admin-login.mjs
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow as totp } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5174';
-const EMAIL = process.env.SEED_EMAIL ?? 'admin@demo.hg';
-const PASSWORD = process.env.SEED_PASSWORD ?? 'Admin@1234';
-
-// Generate a TOTP code fresh, right before we type it (30s window).
-function totp() {
-  return execSync(
-    'SECRET=$(cat /tmp/hg-admin-totp-secret.txt) go run ./cmd/totpnow',
-    { cwd: '/home/devsupreme/work/hg-mono/services/hg', shell: '/bin/bash' },
-  )
-    .toString()
-    .trim();
-}
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 
 const calls = [];
 const consoleErrors = [];

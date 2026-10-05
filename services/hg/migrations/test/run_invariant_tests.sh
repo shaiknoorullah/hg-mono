@@ -151,6 +151,17 @@ reject "a refund approval request that names no approving role is rejected" "ref
    VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'GOODWILL',
            'GOODWILL', 100, 'PENDING_APPROVAL', 'PENDING', '11111111-1111-4111-8111-111111111111',
            now(), 'await_refund_approval');"
+reject "a refund approved by the person who sent it up for a second person is rejected" "refund_second_person" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by,
+                       escalated_by, escalated_at, approved_by, approved_at, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'AUTHORISED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), '11111111-1111-4111-8111-111111111111', now(),
+           now(), 'submit_refund_to_stripe');"
+reject "a declined refund that does not say who declined it and why is rejected" "refund_decline_recorded" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'DECLINED', '11111111-1111-4111-8111-111111111111');"
 zero_rows "no live order lacks a deadline" "SELECT * FROM order_without_deadline"
 zero_rows "no live dispatch lacks a deadline" "SELECT * FROM dispatch_without_deadline"
 
@@ -282,8 +293,17 @@ reject "H5 and H7 are not overridable" "halal_check_hard_computed_flags" \
              '11111111-1111-4111-8111-111111111111',now());"
 n_rows "the three accepted issuing bodies are seeded" "3" \
   "SELECT 1 FROM halal_issuing_body WHERE status='ACCEPTED'"
-zero_rows "no restaurant claims CERTIFIED without a live certificate" \
+zero_rows "no restaurant shows a halal badge (certified or expiring soon) without a live certificate" \
   "SELECT * FROM halal_status_inconsistency"
+reject "a live restaurant cannot carry an expired halal state" "restaurant_live_not_halal_expired" \
+  "UPDATE restaurant SET halal_status = 'EXPIRED' WHERE id = '33333333-3333-4333-8333-333333333333';"
+reject "the halal state is never derived without an instant" "instant" \
+  "SELECT halal_refresh_restaurant_status('33333333-3333-4333-8333-333333333333'::uuid, NULL);"
+reject "the halal state is never derived as of the past" "in the past" \
+  "SELECT halal_refresh_restaurant_status('33333333-3333-4333-8333-333333333333'::uuid, now() - interval '1 day');"
+reject "a renewal reminder outside 30, 14, 7 or 1 days is refused" "halal_certificate_reminder_days_before_check" \
+  "INSERT INTO halal_certificate_reminder (halal_certificate_id, restaurant_id, days_before, expires_on, sent_on)
+     VALUES ('33333333-3333-4333-8333-3333333300a3','33333333-3333-4333-8333-333333333333',5,current_date+5,current_date);"
 
 echo
 echo "7. Quote and order money identities"
@@ -318,6 +338,17 @@ reject "a receipt snapshot cannot be rewritten" "receipt_snapshot_is_immutable" 
   "UPDATE \"order\" SET receipt_snapshot = '{\"v\":1}' WHERE id='88888888-8888-4888-8888-888888888888';
    UPDATE \"order\" SET receipt_snapshot = '{\"v\":2}' WHERE id='88888888-8888-4888-8888-888888888888';"
 zero_rows "no quote taxes the tip" "SELECT * FROM quote_tip_taxed"
+# The platform-wide pause on new orders: one row, never removed, and a pause
+# always says when and why (https://github.com/shaiknoorullah/hg-mono/issues/244).
+n_rows "there is exactly one ordering-pause row" "1" "SELECT 1 FROM ordering_pause"
+reject "a second ordering-pause row is rejected" "ordering_pause_pkey" \
+  "INSERT INTO ordering_pause (id) VALUES (true);"
+reject "any ordering-pause row but the one is rejected" "ordering_pause_id_check" \
+  "INSERT INTO ordering_pause (id) VALUES (false);"
+reject "a pause with no reason or start time is rejected" "ordering_pause_explained" \
+  "UPDATE ordering_pause SET paused = true;"
+reject "the API role cannot delete the ordering-pause row" "permission denied" \
+  "SET LOCAL ROLE hg_app; DELETE FROM ordering_pause;"
 
 echo
 echo "8. Dispatch: exactly one rider"
@@ -380,6 +411,17 @@ reject "a rider's file is attached once per document type" "kyc_document_rider_f
 reject "a live restaurant with no location is rejected" "restaurant_live_needs_location" \
   "INSERT INTO restaurant (slug, legal_name, display_name, onboarding_state, account_state)
      VALUES ('no-location','No Location Inc.','No Location','ACTIVE','LIVE');"
+reject "a restaurant's file is attached once per document type" "kyc_document_restaurant_file_once" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at)
+     VALUES ('15000000-0000-4000-8000-000000000360','hg-kyc','kyc/t/r.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('r','sha256'),'READY','11111111-1111-4111-8111-111111111111',now());
+   INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+                             deadline_at, deadline_action)
+     VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
+             '15000000-0000-4000-8000-000000000360','SUBMITTED',now()+interval '72 hours','ESCALATE'),
+            ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
+             '15000000-0000-4000-8000-000000000360','SUBMITTED',now()+interval '72 hours','ESCALATE');"
 
 echo
 echo "10. Realtime and idempotency"

@@ -286,12 +286,14 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_6
-          ram-size: 2048M
+          ram-size: 3072M
           disk-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          # One command: the action runs each line of `script` as its own shell.
-          script: bash tools/e2e/run.sh
+          # One command: the action runs each line of `script` as its own shell. A system
+          # "isn't responding" dialog (the launcher, under load) must never cover the app under
+          # test, so error dialogs are hidden first; more memory keeps the launcher responsive.
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/run.sh
 
       - name: Collect the stack's logs
         if: always()

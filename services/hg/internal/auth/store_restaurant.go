@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -23,14 +25,20 @@ type RegisterRestaurantResult struct {
 	VerifyToken string
 }
 
+// TokenIssued runs inside the transaction that stored a credential token, so
+// the email carrying it is enqueued in the same commit (the notification
+// outbox: internal/notify/doc.go). tokenID is the credential_token row id.
+type TokenIssued func(ctx context.Context, tx pgx.Tx, accountID, tokenID string, expiresAt time.Time) error
+
 // RegisterRestaurant creates one unverified account (email + argon2id hash), one
 // restaurant in onboarding_state REGISTERED, one RESTAURANT_OWNER grant scoped to
 // that restaurant, and one EMAIL_VERIFY credential token — atomically (R-01). No
-// session is issued until the email is verified.
+// session is issued until the email is verified. issued, when non-nil, enqueues
+// the verification email in the same transaction.
 //
 // slug is derived from the business name and de-duplicated with a short random
 // suffix; the restaurant's display_name and legal_name are the business name.
-func (s *Store) RegisterRestaurant(ctx context.Context, email, passwordHash, businessName string, tokenHash []byte, verifyToken string, verifyTTLHours int) (*RegisterRestaurantResult, error) {
+func (s *Store) RegisterRestaurant(ctx context.Context, email, passwordHash, businessName string, tokenHash []byte, verifyToken string, verifyTTLHours int, issued TokenIssued) (*RegisterRestaurantResult, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -75,11 +83,19 @@ func (s *Store) RegisterRestaurant(ctx context.Context, email, passwordHash, bus
 		return nil, err
 	}
 
-	if _, err = tx.Exec(ctx, `
+	var tokenID string
+	var expiresAt time.Time
+	if err = tx.QueryRow(ctx, `
 		INSERT INTO credential_token (account_id, kind, token_hash, expires_at)
-		VALUES ($1, 'EMAIL_VERIFY', $2, now() + ($3::text || ' hours')::interval)`,
-		accountID, tokenHash, fmt.Sprintf("%d", verifyTTLHours)); err != nil {
+		VALUES ($1, 'EMAIL_VERIFY', $2, now() + ($3::text || ' hours')::interval)
+		RETURNING id, expires_at`,
+		accountID, tokenHash, fmt.Sprintf("%d", verifyTTLHours)).Scan(&tokenID, &expiresAt); err != nil {
 		return nil, err
+	}
+	if issued != nil {
+		if err = issued(ctx, tx, accountID, tokenID, expiresAt); err != nil {
+			return nil, err
+		}
 	}
 
 	if err = tx.Commit(ctx); err != nil {

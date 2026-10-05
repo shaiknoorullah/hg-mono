@@ -1,10 +1,14 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-09-28
+reviewed: 2026-10-05
 ---
 
 # What the old restaurant web app teaches the redesign
+
+> **2026-10-05:** the new app adds what the old one never had — a live "rider approaching" map on
+> accepted orders, drawn from the coarse realtime position
+> ([R-23 rule 8](../../spec/03-restaurant.md#r-23--live-order-dashboard)). Nothing below changes.
 
 Brief for issue #140, which feeds the restaurant redesign (#82). Written 28 Sep 2026.
 

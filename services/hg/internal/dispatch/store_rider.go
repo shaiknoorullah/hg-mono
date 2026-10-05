@@ -140,6 +140,9 @@ VALUES ($1, $2, $3, 'RIDER_TOGGLE', 'RIDER',
 			riderAccountID, cur, target, lng, lat); err != nil {
 			return "", time.Time{}, err
 		}
+		if err := emitAvailability(ctx, tx, riderAccountID); err != nil {
+			return "", time.Time{}, err
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -239,9 +242,20 @@ ON CONFLICT (account_id) DO UPDATE
 			return 0, nil, err
 		}
 		// A location update returns ONLINE_STALE riders to ONLINE_IDLE (D-10).
-		if _, err := tx.Exec(ctx, `
+		tag, err := tx.Exec(ctx, `
 UPDATE rider_profile SET availability_state = 'ONLINE_IDLE', availability_changed_at = now()
- WHERE account_id = $1 AND availability_state = 'ONLINE_STALE'`, riderAccountID); err != nil {
+ WHERE account_id = $1 AND availability_state = 'ONLINE_STALE'`, riderAccountID)
+		if err != nil {
+			return 0, nil, err
+		}
+		if tag.RowsAffected() > 0 {
+			if err := emitAvailability(ctx, tx, riderAccountID); err != nil {
+				return 0, nil, err
+			}
+		}
+		// The rider's position to the customer and restaurant of each order the
+		// rider is carrying out, throttled per order (events.go).
+		if err := emitRiderLocation(ctx, tx, riderAccountID, *newest); err != nil {
 			return 0, nil, err
 		}
 		t := newest.RecordedAt

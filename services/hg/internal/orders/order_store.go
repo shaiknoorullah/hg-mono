@@ -50,6 +50,15 @@ type PreparedOrder struct {
 func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quote) (*PreparedOrder, error) {
 	var prepared *PreparedOrder
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
+		// No new orders while staff have paused them platform-wide
+		// (https://github.com/shaiknoorullah/hg-mono/issues/244). First, and
+		// FOR SHARE: the lock lasts until this transaction ends, so a pause
+		// committing meanwhile waits for this order or makes it refuse here;
+		// an order is never created after the pause committed.
+		if err := requireOrderingOpen(ctx, tx, true); err != nil {
+			return err
+		}
+
 		// Load the stored quote, owned by the account, FOR UPDATE so a concurrent
 		// order for the same quote serialises.
 		stored, err := s.loadQuoteTx(ctx, tx, in.QuoteID, in.AccountID)
@@ -190,6 +199,15 @@ func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quo
 		if err := insertTransition(ctx, tx, orderID, nil, machine.StateCreated,
 			machine.ActorCustomer, in.AccountID, "order placed", ""); err != nil {
 			return err
+		}
+		// order.created and the first order.state_changed, in this transaction
+		// (events.go). Creation has no notification of its own, so the notifier
+		// is not called.
+		if err := emitOrderEvents(ctx, tx, transitionFacts{
+			OrderID: orderID, To: machine.StateCreated,
+			Actor: machine.ActorCustomer, ActorAccountID: in.AccountID,
+		}); err != nil {
+			return fmt.Errorf("emit order created: %w", err)
 		}
 
 		prepared = &PreparedOrder{

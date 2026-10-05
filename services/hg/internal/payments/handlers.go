@@ -214,11 +214,14 @@ func (h *Handler) GetRefund(w http.ResponseWriter, r *http.Request) {
 // customer's request is never lost. amount_cents is accepted ONLY for a GOODWILL
 // PARTIAL_AMOUNT (G-3); anywhere else it is 422 UNKNOWN_FIELD.
 func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
+	body, idem, err := readIdempotentBody(r, "/v1/admin/refunds")
+	if err != nil {
+		invalidBody(w, r, err)
+		return
+	}
 	var in AdminRefundInput
-	if err := decodeJSON(r, &in); err != nil {
-		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"The request body is not valid.", []httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
+	if err := decodeStrict(body, &in); err != nil {
+		invalidBody(w, r, err)
 		return
 	}
 	// Required fields (AdminRefundInput.required).
@@ -257,21 +260,14 @@ func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := make([]string, 0, len(p.Roles))
-	for _, rr := range p.Roles {
-		roles = append(roles, string(rr))
-	}
-	refund, approval, escalated, err := h.svc.IssueAdminRefund(r.Context(), in, p.AccountID, roles)
+	// Within the caller's cap: the authorised refund, 201. Above it: the
+	// approval request, 202 Accepted. A replay: the first answer.
+	out, err := h.svc.IssueAdminRefund(r.Context(), in, StaffFrom(r), idem)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	if escalated {
-		// Above the caller's cap: the approval request, 202 Accepted.
-		httpx.Respond(w, r, http.StatusAccepted, approval)
-		return
-	}
-	httpx.Respond(w, r, http.StatusCreated, refund)
+	writeOutcome(w, r, out)
 }
 
 // ---------------------------------------------------------------------------

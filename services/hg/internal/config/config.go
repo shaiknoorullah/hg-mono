@@ -50,9 +50,11 @@ type Config struct {
 	Stripe   Stripe
 	SMS      SMS
 	OTP      OTP
+	Email    Email
 	RiderPay RiderPay
 	Tax      Tax
 	Realtime Realtime
+	Halal    Halal
 	Payouts  Payouts
 }
 
@@ -106,6 +108,18 @@ type Realtime struct {
 	// is closed with 1013 (try again later) so the client retries, possibly on
 	// the other replica (contracts/websocket.md "Limits").
 	MaxSockets int
+}
+
+// Halal holds the halal certificate expiry settings (internal/halalexpiry).
+type Halal struct {
+	// SuspendAfterExpiredDays (HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS) suspends a
+	// restaurant once its certificate has been expired for this many days. 0,
+	// the default, never suspends: an expired certificate delists the
+	// restaurant and nothing more, as docs/spec/05-admin.md ("A-17 — Halal
+	// certificate expiry monitoring and lapse handling") documents. Suspending
+	// after 14 days is an open owner question:
+	// https://github.com/shaiknoorullah/hg-mono/issues/164.
+	SuspendAfterExpiredDays int
 }
 
 // OTP holds the phone-verification provider selection. It is orthogonal to SMS
@@ -167,6 +181,39 @@ type TwilioSMS struct {
 func (t TwilioSMS) Configured() bool {
 	return t.AccountSID != "" && t.AuthToken != "" && (t.FromNumber != "" || t.MessagingServiceSID != "")
 }
+
+// Email holds the transactional email settings (docs/spec/01-platform.md,
+// "P-26 — SMS and email"). Mail goes through Resend, the one approved hosted
+// email provider (docs/decisions/README.md, "Settled — platform decisions",
+// Email row); with no API key the binary uses the log sender, which sends
+// nothing and records every email in the log.
+type Email struct {
+	// Provider is "log" or "resend". Unset means "resend" when
+	// HG_RESEND_API_KEY is set and "log" otherwise, so a dev box with no key
+	// never needs a flag to stay quiet.
+	Provider     string
+	ResendAPIKey string
+	// From is the sender, e.g. "HalalGoes <notifications@mail.halalgoes.com>",
+	// on a domain verified in Resend.
+	From    string
+	ReplyTo string
+	// AllowList is the only set of addresses a non-production environment
+	// may really email ("someone@example.com" or a whole "@example.com").
+	// Outside production every other address is logged, not sent, so dev
+	// never messages a real person (issue #235). Empty blocks everyone. It
+	// must be empty in production, where it would silently drop real mail.
+	AllowList []string
+	// RestaurantWebURL and AdminWebURL are the web apps an email's button
+	// opens (scheme://host only).
+	RestaurantWebURL string
+	AdminWebURL      string
+}
+
+// EmailLinkDomain is the only domain an email may link to outside local.
+const EmailLinkDomain = "halalgoes.com"
+
+// Configured reports whether real email can be sent.
+func (e Email) Configured() bool { return e.Provider == "resend" && e.ResendAPIKey != "" }
 
 // Tax holds the O-01 tax-registration settings that flow into every
 // customer-facing receipt (contract: Receipt.platform_tax_registration_number).
@@ -429,6 +476,43 @@ func Load(getenv func(string) string) (*Config, error) {
 		}
 	}
 
+	cfg.Email = Email{
+		ResendAPIKey: l.optional("HG_RESEND_API_KEY", ""),
+		From:         l.optional("HG_EMAIL_FROM", "HalalGoes <notifications@mail.halalgoes.com>"),
+		ReplyTo:      l.optional("HG_EMAIL_REPLY_TO", ""),
+		AllowList:    l.list("HG_EMAIL_ALLOWLIST"),
+		RestaurantWebURL: l.baseURL("HG_RESTAURANT_WEB_URL",
+			l.optional("HG_RESTAURANT_WEB_URL", "http://localhost:5183")),
+		AdminWebURL: l.baseURL("HG_ADMIN_WEB_URL", l.optional("HG_ADMIN_WEB_URL", "http://localhost:5175")),
+	}
+	defaultEmailProvider := "log"
+	if cfg.Email.ResendAPIKey != "" {
+		defaultEmailProvider = "resend"
+	}
+	cfg.Email.Provider = l.optional("HG_EMAIL_PROVIDER", defaultEmailProvider)
+	switch cfg.Email.Provider {
+	case "log", "resend":
+	default:
+		l.errf("HG_EMAIL_PROVIDER: %q is not one of log, resend", cfg.Email.Provider)
+	}
+	if cfg.Email.Provider == "resend" {
+		if cfg.Email.ResendAPIKey == "" {
+			l.errf("HG_EMAIL_PROVIDER=resend requires HG_RESEND_API_KEY")
+		}
+		if !strings.Contains(cfg.Email.From, "@") {
+			l.errf("HG_EMAIL_FROM: %q is not a sender address", cfg.Email.From)
+		}
+	}
+	for _, a := range cfg.Email.AllowList {
+		if at := strings.LastIndexByte(a, '@'); at < 0 || at == len(a)-1 {
+			l.errf("HG_EMAIL_ALLOWLIST: %q is neither an address nor an @domain", a)
+		}
+	}
+	if cfg.Env == EnvProduction && len(cfg.Email.AllowList) > 0 {
+		l.errf("HG_EMAIL_ALLOWLIST is for non-production environments only: in production it would " +
+			"silently stop email to every customer not on it")
+	}
+
 	cfg.RiderPay = RiderPay{
 		TipMakeUp: l.boolVal("HG_RIDER_TIP_MAKEUP", DefaultRiderPay().TipMakeUp),
 	}
@@ -453,6 +537,13 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.Tax = Tax{
 		HSTRegistrationNumber: l.optional("HG_TAX_HST_REGISTRATION_NUMBER", ""),
 		PlatformLegalName:     l.optional("HG_TAX_PLATFORM_LEGAL_NAME", ""),
+	}
+
+	cfg.Halal = Halal{
+		SuspendAfterExpiredDays: l.intVal("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS", 0),
+	}
+	if cfg.Halal.SuspendAfterExpiredDays < 0 {
+		l.errf("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: %d is negative; 0 means never suspend", cfg.Halal.SuspendAfterExpiredDays)
 	}
 
 	cfg.Realtime = Realtime{
@@ -508,6 +599,25 @@ func Load(getenv func(string) string) (*Config, error) {
 		if len(cfg.TrustedProxies) == 0 {
 			l.errf("HG_TRUSTED_PROXY_CIDRS: required outside local; behind Traefik an empty list " +
 				"makes every per-IP limit global")
+		}
+
+		// A real email's button must open one of our own web apps over TLS:
+		// never a developer's localhost, never another domain.
+		if cfg.Email.Provider == "resend" {
+			for _, key := range []string{"HG_RESTAURANT_WEB_URL", "HG_ADMIN_WEB_URL"} {
+				raw := map[string]string{
+					"HG_RESTAURANT_WEB_URL": cfg.Email.RestaurantWebURL,
+					"HG_ADMIN_WEB_URL":      cfg.Email.AdminWebURL,
+				}[key]
+				u, err := url.Parse(raw)
+				if err != nil || u.Scheme != "https" {
+					l.errf("%s must be an https URL when HG_ENV is not local and email is sent", key)
+					continue
+				}
+				if host := strings.ToLower(u.Hostname()); host != EmailLinkDomain && !strings.HasSuffix(host, "."+EmailLinkDomain) {
+					l.errf("%s: %q is not on %s; emails link only to our own domain", key, raw, EmailLinkDomain)
+				}
+			}
 		}
 	}
 
@@ -660,6 +770,17 @@ func (l *loader) baseURL(key, raw string) string {
 		return ""
 	}
 	return u.Scheme + "://" + u.Host
+}
+
+// list splits a comma-separated value, trimming spaces and dropping empties.
+func (l *loader) list(key string) []string {
+	var out []string
+	for _, part := range strings.Split(l.getenv(key), ",") {
+		if p := strings.TrimSpace(part); p != "" {
+			out = append(out, strings.ToLower(p))
+		}
+	}
+	return out
 }
 
 // trustableProxyRanges is the address space a trusted proxy may sit in: the
