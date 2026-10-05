@@ -16,6 +16,7 @@
 //          be in the same sentence and near the reference (issue-refs.mjs), not just on the line.
 //          Needs the GitHub API, so it runs only in CI with a token (skipped locally).
 //   link   broken relative links and #anchors, found by lychee and merged in with --lychee.
+//          A missing #fragment on a github.com issue or PR page is not a finding (see below).
 //
 // Existing findings live in tools/doc-refs/baseline.json; only findings missing from it fail.
 //
@@ -465,12 +466,31 @@ if (issueRefs.length && token && process.env.CI) {
   }
 }
 
+// GitHub draws the anchors of an issue or PR page (#issuecomment-…, #discussion_r…) with
+// JavaScript, so lychee never finds them in the HTML it fetches. Lychee only looks for a fragment
+// once the page itself answered 2xx, so a missing fragment there means the link works: dropped.
+// Any other error on such a URL (a 404, a timeout) is still a finding. A repeat of the same URL is
+// reported as "Error (cached)"; it is dropped only when the first report of that URL was a
+// missing fragment.
+const GH_THREAD_ANCHOR = /^https:\/\/github\.com\/[^/]+\/[^/]+\/(?:issues|pull)\/\d+[^#]*#/;
+const isMissingFragment = (e) => /fragment/i.test(`${e.status?.text ?? ''} ${e.status?.details ?? ''}`);
+const isCached = (e) => /\(cached\)/i.test(e.status?.text ?? '');
+function ghFragmentOnly(errorMap) {
+  const urls = new Set();
+  for (const errs of Object.values(errorMap)) {
+    for (const e of errs) if (GH_THREAD_ANCHOR.test(e.url) && !isCached(e) && isMissingFragment(e)) urls.add(e.url);
+  }
+  return (e) => GH_THREAD_ANCHOR.test(e.url) && (isMissingFragment(e) || (isCached(e) && urls.has(e.url)));
+}
+
 // lychee: relative links and #anchors (and external links in the weekly scan)
 for (const f of opts.lychee) {
   const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+  const skip = ghFragmentOnly(j.error_map ?? {});
   for (const [input, errs] of Object.entries(j.error_map ?? {})) {
     const file = path.isAbsolute(input) ? rel(input) : input.replace(/^\.\//, '');
     for (const e of errs) {
+      if (skip(e)) continue;
       let ref = e.url.startsWith('file://') ? rel(fileURLToPath(e.url.split('#')[0])) + (e.url.includes('#') ? '#' + e.url.split('#').slice(1).join('#') : '') : e.url;
       if (ref === 'error:') ref = `unparseable: ${e.status?.details ?? e.status?.text ?? ''}`.slice(0, 200);
       findings.push({ kind: 'link', file, ref, detail: e.status?.text ?? 'broken', line: e.span?.line });
