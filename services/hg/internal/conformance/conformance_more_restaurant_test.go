@@ -16,6 +16,7 @@ package conformance
 //	  attachRestaurantDocument    POST /v1/restaurant/documents
 //	  submitRestaurantDocuments   POST /v1/restaurant/documents/submit
 //	  createMenuCategory          POST /v1/restaurant/menu/categories
+//	  updateMenuCategory          PATCH /v1/restaurant/menu/categories/{categoryId}
 //	  createMenuItem              POST /v1/restaurant/menu/items
 //	  updateMenuItem              PATCH /v1/restaurant/menu/items/{itemId}
 //	  setMenuItemAvailability     PUT  /v1/restaurant/menu/items/{itemId}/availability
@@ -370,6 +371,12 @@ func TestConformance_MoreRestaurant_Menu(t *testing.T) {
 	t.Run("createMenuCategory", func(t *testing.T) {
 		body := map[string]any{"name": "Desserts", "sort_order": 2}
 		mrValidateReqThenResp(t, h, "POST", "/v1/restaurant/menu/categories", b.managerID, body, 201)
+	})
+
+	// updateMenuCategory — PATCH → MenuCategory (200).
+	t.Run("updateMenuCategory", func(t *testing.T) {
+		body := map[string]any{"name": "Mains & Grills", "sort_order": 0, "is_active": true}
+		mrValidateReqThenResp(t, h, "PATCH", "/v1/restaurant/menu/categories/"+b.categoryID, b.managerID, body, 200)
 	})
 
 	// createMenuItem — POST → MenuItem (201).

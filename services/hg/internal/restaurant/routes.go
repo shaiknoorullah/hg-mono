@@ -73,6 +73,8 @@ func Routes(r *httpx.Router, h *Handler) {
 		read(ActionMenuRead, "getOwnMenu"), h.GetOwnMenu)
 	r.Post("/v1/restaurant/menu/categories",
 		write(ActionMenuCategoryWrite, "createMenuCategory"), h.CreateMenuCategory)
+	r.Patch("/v1/restaurant/menu/categories/{categoryId}",
+		writeNoIdem(ActionMenuCategoryWrite, "updateMenuCategory"), h.UpdateMenuCategory)
 	r.Delete("/v1/restaurant/menu/categories/{categoryId}",
 		writeNoIdem(ActionMenuCategoryWrite, "deleteMenuCategory"), h.DeleteMenuCategory)
 	r.Post("/v1/restaurant/menu/items",

@@ -37,10 +37,7 @@ type adminMenuWriteCase struct {
 }
 
 // adminMenuWrites lists every menu write route in this package. A menu write route
-// without an entry here fails TestMenuLock_EveryAdminMenuWriteRouteHasACase. The
-// update and remove operations on a restaurant's behalf (updateMenuItemOnBehalf,
-// deleteMenuItemOnBehalf) are in the contract but not routed yet; when they are,
-// that test fails until they get a case.
+// without an entry here fails TestMenuLock_EveryAdminMenuWriteRouteHasACase.
 var adminMenuWrites = []adminMenuWriteCase{
 	{
 		name:    "createMenuCategoryOnBehalf",
@@ -83,6 +80,26 @@ var adminMenuWrites = []adminMenuWriteCase{
 		body: func(menuTestRestaurant) map[string]any {
 			return map[string]any{"decision": "REJECT", "reason_code": "MISLEADING_DESCRIPTION"}
 		},
+	},
+	{
+		// A price only: the seeded item has a version waiting for review, which a
+		// claim-bearing edit would meet with 409 MENU_VERSION_PENDING.
+		name:    "updateMenuItemOnBehalf",
+		route:   "PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}",
+		success: http.StatusOK,
+		path: func(d menuTestRestaurant) string {
+			return "/v1/admin/restaurants/" + d.restaurantID + "/menu/items/" + d.menuItemID
+		},
+		body: func(menuTestRestaurant) map[string]any { return map[string]any{"price_cents": 1750} },
+	},
+	{
+		name:    "deleteMenuItemOnBehalf",
+		route:   "DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}",
+		success: http.StatusNoContent,
+		path: func(d menuTestRestaurant) string {
+			return "/v1/admin/restaurants/" + d.restaurantID + "/menu/items/" + d.menuItemID
+		},
+		body: func(menuTestRestaurant) map[string]any { return nil },
 	},
 }
 

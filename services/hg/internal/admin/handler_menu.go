@@ -139,20 +139,7 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 		fieldFail(w, r, "name", "name must be between 2 and 80 characters")
 		return
 	}
-	if in.Description != nil && runeLen(*in.Description) > menuItemDescMax {
-		fieldFail(w, r, "description", "description must be at most 600 characters")
-		return
-	}
-	if in.IngredientsText != nil && runeLen(*in.IngredientsText) > menuIngredientsMax {
-		fieldFail(w, r, "ingredients_text", "ingredients_text must be at most 1000 characters")
-		return
-	}
-	if in.PrepMinutes != nil && (*in.PrepMinutes < menuPrepMinutesMin || *in.PrepMinutes > menuPrepMinutesMax) {
-		fieldFail(w, r, "prep_minutes", "prep_minutes must be between 1 and 120")
-		return
-	}
-	if in.ImageObjectID != nil && *in.ImageObjectID != "" && !isValidUUIDStr(*in.ImageObjectID) {
-		fieldFail(w, r, "image_object_id", "image_object_id must be a UUID")
+	if !menuItemOptionalFieldsOK(w, r, in.Description, in.IngredientsText, in.PrepMinutes, in.ImageObjectID) {
 		return
 	}
 
@@ -410,6 +397,27 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 		out.AllergenTags = []string{}
 	}
 	httpx.Respond(w, r, http.StatusOK, out)
+}
+
+// menuItemOptionalFieldsOK checks the optional fields MenuItemInput and
+// MenuItemUpdateInput share against the contract's bounds, answering 422 for the
+// first one out of bounds. It reports whether the request may go on. An image id
+// must be a UUID: anything else would fail the uuid cast as a 500.
+func menuItemOptionalFieldsOK(w http.ResponseWriter, r *http.Request,
+	description, ingredientsText *string, prepMinutes *int, imageObjectID *string) bool {
+	switch {
+	case description != nil && runeLen(*description) > menuItemDescMax:
+		fieldFail(w, r, "description", "description must be at most 600 characters")
+	case ingredientsText != nil && runeLen(*ingredientsText) > menuIngredientsMax:
+		fieldFail(w, r, "ingredients_text", "ingredients_text must be at most 1000 characters")
+	case prepMinutes != nil && (*prepMinutes < menuPrepMinutesMin || *prepMinutes > menuPrepMinutesMax):
+		fieldFail(w, r, "prep_minutes", "prep_minutes must be between 1 and 120")
+	case imageObjectID != nil && !isValidUUIDStr(*imageObjectID):
+		fieldFail(w, r, "image_object_id", "image_object_id must be a UUID")
+	default:
+		return true
+	}
+	return false
 }
 
 // renderMenuItemVersion converts a menuItemVersionRow to a menuItemVersion DTO.

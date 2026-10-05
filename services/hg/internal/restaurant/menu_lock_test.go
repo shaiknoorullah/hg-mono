@@ -44,6 +44,15 @@ var restaurantMenuWrites = []menuWriteCase{
 		},
 	},
 	{
+		// A rename, a move and a deactivation in one save.
+		op: "updateMenuCategory", route: "PATCH /v1/restaurant/menu/categories/{categoryId}", success: http.StatusOK,
+		call: func(h *restaurant.Handler, f fixtures) *httptest.ResponseRecorder {
+			body := fmt.Sprintf(`{"name":"Lock test %d","sort_order":0,"is_active":false}`, time.Now().UnixNano())
+			req := httptest.NewRequest(http.MethodPatch, "/v1/restaurant/menu/categories/"+f.categoryID, strings.NewReader(body))
+			return serveAsOwner(h.UpdateMenuCategory, withChiParam(req, "categoryId", f.categoryID), f)
+		},
+	},
+	{
 		// The fixture's category holds its item: a fresh empty one is deleted.
 		op: "deleteMenuCategory", route: "DELETE /v1/restaurant/menu/categories/{categoryId}", success: http.StatusNoContent,
 		call: func(h *restaurant.Handler, f fixtures) *httptest.ResponseRecorder {

@@ -107,6 +107,8 @@ var expectedCovered = []string{
 	"listAddresses", "listNotifications",
 	// admin (replaces handler_orders_conformance_test.go / handler_menu_conformance_test.go)
 	"listOrdersAdmin", "getOrderAdmin", "listMenuReviewQueue",
+	// menu edits that had no handler (https://github.com/shaiknoorullah/hg-mono/issues/502)
+	"updateMenuCategory", "updateMenuItemOnBehalf", "deleteMenuItemOnBehalf",
 	// a restaurant deletes its own items and empty categories
 	// (https://github.com/shaiknoorullah/hg-mono/issues/239)
 	"deleteMenuItem", "deleteMenuCategory",

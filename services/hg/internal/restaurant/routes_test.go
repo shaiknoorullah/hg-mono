@@ -31,12 +31,12 @@ func TestRestaurantNoPublicRoutes(t *testing.T) {
 	}
 }
 
-// TestRestaurantRouteCount asserts the expected number of routes (23 operations:
-// the original 19 plus listRestaurantStaff/createRestaurantStaffUser and
-// deleteMenuCategory/deleteMenuItem).
+// TestRestaurantRouteCount asserts the expected number of routes (24 operations:
+// the original 19 plus listRestaurantStaff/createRestaurantStaffUser,
+// updateMenuCategory and deleteMenuCategory/deleteMenuItem).
 // This pins the route surface so an accidental deletion or rename fails loudly.
 func TestRestaurantRouteCount(t *testing.T) {
-	const wantCount = 23
+	const wantCount = 24
 	r := httpx.NewRouter(httpx.Options{Env: "test"})
 	restaurant.Routes(r, restaurant.NewHandler(nil, nil, nil))
 	if got := len(r.Routes()); got != wantCount {

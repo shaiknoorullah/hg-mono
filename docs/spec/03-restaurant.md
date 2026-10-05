@@ -979,7 +979,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Rules**:
   1. `name` 1–60 chars, unique per restaurant case-insensitively (`UNIQUE (restaurant_id, lower(name)) WHERE deleted_at IS NULL`). Duplicate → `409 category_name_taken`.
   2. Max **40** categories per restaurant.
-  3. `sort_order` is a dense integer sequence maintained server-side; the reorder endpoint accepts the full ordered id list and rewrites it in one transaction. Partial/sparse client-supplied orders are rejected.
+  3. `sort_order` is a dense integer sequence maintained server-side; the reorder endpoint accepts the full ordered id list and rewrites it in one transaction. Partial/sparse client-supplied orders are rejected. *At launch the contract has no full-list reorder: a category moves with `updateMenuCategory`, whose `sort_order` is the position to move it to (past the end is the end), and the server rewrites the whole menu as `0..n-1` in the same transaction, with the categories locked so two moves queue rather than interleave ([#502](https://github.com/shaiknoorullah/hg-mono/issues/502)). The same call renames, deactivates and reactivates.*
   4. Deleting a non-empty category → `409 category_not_empty` with `item_count`. Items must be moved or deleted first. **Deleting a category never deletes items.** *Built as `deleteMenuCategory`: a soft delete of an empty category, `409 CATEGORY_NOT_EMPTY` with `details.item_count` while it holds any item that is not deleted. The category row is locked while its items are counted, and filing an item under a category waits for that lock, so an item cannot land in a category as it is deleted ([#239](https://github.com/shaiknoorullah/hg-mono/issues/239)).*
   5. Deactivating a category hides its items from customers immediately but does not change item state; reactivating restores exactly the prior item visibility.
   6. Categories are keyed by id, never by name. *(The current system dedupes cuisines and categories by a slug stored in the display-name column; that is not ported.)*
@@ -1751,6 +1751,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   6. Messages are rate-limited to 10 per order per actor.
   7. `ORDER_READY` is emitted automatically by R-25 and cannot be sent manually (prevents duplicate
      pings).
+  8. The orders module applies the delay, not the restaurant module: `Store.DelayInTx` in
+     `internal/orders` counts the order's `order_delay` rows under its row lock, moves `deadline_at`
+     and `promised_ready_at`, writes the `order_delay` row and the `PREPARING → PREPARING`
+     `order_transition` row, emits `order.state_changed` (reason: the delay's reason code, with the
+     new `deadline_at`) and enqueues the customer's `ORDER_PREP_DELAYED` notification, in one
+     transaction ([#351](https://github.com/shaiknoorullah/hg-mono/issues/351)). Telling the
+     assigned rider by push, and the `delay_not_allowed_in_status` error code, are not built yet.
 
 - **Acceptance criteria**:
   1. **Given** an order with `promised_ready_at = T`, **when** a +10 delay with `reason_code='HIGH_VOLUME'` is applied, **then** `promised_ready_at = T+10m`, one `order_delay` row exists, and both the rider and the customer receive an ETA update within 5 s.
