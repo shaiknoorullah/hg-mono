@@ -19,7 +19,7 @@ func main() {
 		fmt.Println("SEED_EMAIL and SEED_PASSWORD required")
 		os.Exit(1)
 	}
-	hash, err := auth.HashPassword(password)
+	hash, err := auth.HashPassword(context.Background(), password)
 	if err != nil {
 		panic(err)
 	}

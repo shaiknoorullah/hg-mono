@@ -12,7 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: false,
-    include: ['smoke/**/*.test.tsx'],
+    include: ['smoke/**/*.test.{ts,tsx}'],
     testTimeout: 15000,
   },
 });
