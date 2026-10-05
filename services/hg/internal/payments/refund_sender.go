@@ -24,7 +24,7 @@ import (
 //
 // What it sends. Only an AUTHORISED refund that names the member of staff who
 // approved it, which the schema also requires of it
-// (refund_money_needs_approver, 00035): a customer's request (REQUESTED) and
+// (refund_money_needs_approver, 00046): a customer's request (REQUESTED) and
 // an approval request (PENDING_APPROVAL) are never claimed. Only against a captured payment: an authorisation that
 // was never captured is voided (Service.Void, PaymentIntent.cancel), never
 // refunded, and a refund row cannot exist for one (refund_within_capture).

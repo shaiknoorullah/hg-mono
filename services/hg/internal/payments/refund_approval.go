@@ -24,7 +24,7 @@ import (
 // puts the refund on the sender's clock (refund_sender.go), with its audit row,
 // in one transaction. Until then nothing about it reaches Stripe, and the
 // schema refuses a refund that moves money without an approver
-// (refund_money_needs_approver, 00035). The HTTP route that calls this is
+// (refund_money_needs_approver, 00046). The HTTP route that calls this is
 // #172.
 func (s *Service) ApproveRefund(ctx context.Context, refundID, approverID string, approverRoles []string) (RefundDTO, error) {
 	err := s.repo.tx(ctx, func(tx pgx.Tx) error {
