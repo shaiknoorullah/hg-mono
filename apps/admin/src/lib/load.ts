@@ -78,15 +78,17 @@ export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload:
     void run();
   }, [run]);
 
+  // A silent refresh takes a ticket too: it refreshes the record now on screen, and an answer
+  // that arrives after the screen moved on (or after a newer run) is dropped.
   const refresh = useCallback(async () => {
+    const ticket = ++latest.current;
     try {
       const data = await fetcher();
-      setState({ status: 'ready', data, error: null });
+      if (ticket === latest.current) setState({ status: 'ready', data, error: null });
     } catch {
       /* keep the last good view; the next signal or poll tries again */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetcher]);
 
   return { ...state, reload: () => void run(), refresh };
 }
