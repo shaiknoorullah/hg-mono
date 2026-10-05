@@ -43,6 +43,24 @@ func Routes(r *httpx.Router, h *Handler) {
 	// action; the auth matrix must grant it to SUPPORT_AGENT, ADMIN, SUPER_ADMIN.
 	r.Post("/v1/admin/refunds", money(ActionRefundIssueGoodwill, "issueRefund"), h.IssueRefund)
 
+	// The refund review queue: staff list refunds, and approve or decline the
+	// ones waiting for a person (#172). Approving moves money, so it is
+	// MONEY-class; declining and evidence notes are writes, but keyed too, so
+	// a retried click replays rather than repeats.
+	writeOnce := func(action httpx.Action, op string) httpx.Policy {
+		return httpx.Policy{Action: action, Class: httpx.ClassWrite, Idempotent: true, OperationID: op}
+	}
+	r.Get("/v1/admin/refunds", read(ActionRefundReadAny, "listRefundsAdmin"), h.ListRefundsAdmin)
+	r.Post("/v1/admin/refunds/{refundId}/approve", money(ActionRefundApprove, "approveRefund"), h.ApproveRefund)
+	r.Post("/v1/admin/refunds/{refundId}/decline", writeOnce(ActionRefundDecline, "declineRefund"), h.DeclineRefund)
+
+	// Chargebacks: disputes raised with the customer's bank, and the evidence
+	// staff keep for them (#172; sending it to Stripe is #319).
+	r.Get("/v1/admin/chargebacks", read(ActionChargebackRead, "listChargebacks"), h.ListChargebacks)
+	r.Get("/v1/admin/chargebacks/{chargebackId}", read(ActionChargebackRead, "getChargeback"), h.GetChargeback)
+	r.Post("/v1/admin/chargebacks/{chargebackId}/evidence-notes",
+		writeOnce(ActionChargebackAnnotate, "addChargebackEvidenceNote"), h.AddChargebackEvidenceNote)
+
 	// Stripe webhook (P-17) — the only PUBLIC route in this module.
 	r.Post("/v1/webhooks/stripe", httpx.Policy{
 		Public:      true,

@@ -1,5 +1,7 @@
 package admin
 
+import "github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+
 // Wire DTOs. Every shape here is the contract's schema verbatim
 // (contracts/openapi.yaml) with additionalProperties:false honoured by not
 // emitting fields the schema does not name. Money is never present in an admin
@@ -434,6 +436,10 @@ type adminOrderView struct {
 	Payment       adminOrderPayment       `json:"payment"`
 	Refunds       []adminRefund           `json:"refunds"`
 	PiiRevealed   bool                    `json:"pii_revealed"`
+
+	// The order's money timeline and chargebacks (#172).
+	MoneyTimeline []payments.MoneyEventDTO `json:"money_timeline"`
+	Chargebacks   []payments.ChargebackDTO `json:"chargebacks"`
 
 	// LiveMapBox fields (admin-only widening of the customer-scoped OrderTracking
 	// shape): restaurant + destination coordinates and the rider's live position.

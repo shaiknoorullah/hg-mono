@@ -115,8 +115,8 @@ func TestRefundSender_AnApprovedRefundIsSentOnceThenFinalisedByItsWebhook(t *tes
 	order, pi := h.capturedOrder("once", 3000)
 	admin := h.staff("admin-once")
 
-	refund, _, escalated, err := h.svc.IssueAdminRefund(ctx, AdminRefundInput{OrderID: order, Scope: ScopeFull,
-		ReasonCode: "PLATFORM_ERROR", ReasonText: "the platform charged for a broken order"}, admin, []string{"ADMIN"})
+	refund, _, escalated, err := issueAs(ctx, h.svc, AdminRefundInput{OrderID: order, Scope: ScopeFull,
+		ReasonCode: "PLATFORM_ERROR", ReasonText: "the platform charged for a broken order"}, admin, "ADMIN")
 	if err != nil || escalated || refund.State != string(RefundAuthorised) || refund.AmountCents != 3919 {
 		t.Fatalf("issue: %+v escalated=%t err=%v; want an AUTHORISED refund of 3919", refund, escalated, err)
 	}
@@ -209,8 +209,8 @@ func TestRefundSender_AnOverLimitRefundIsNotSentUntilASecondPersonApprovesIt(t *
 	agent, otherAgent, admin := h.staff("agent"), h.staff("agent-2"), h.staff("admin")
 
 	goodwill := int64(6000)
-	_, approval, escalated, err := h.svc.IssueAdminRefund(ctx, AdminRefundInput{OrderID: order, Scope: ScopePartialAmount,
-		ReasonCode: "GOODWILL", ReasonText: "a long wait on a cold evening", AmountCents: &goodwill}, agent, []string{"SUPPORT_AGENT"})
+	_, approval, escalated, err := issueAs(ctx, h.svc, AdminRefundInput{OrderID: order, Scope: ScopePartialAmount,
+		ReasonCode: "GOODWILL", ReasonText: "a long wait on a cold evening", AmountCents: &goodwill}, agent, "SUPPORT_AGENT")
 	if err != nil || !escalated || approval.RequiredRole != "ADMIN" || approval.Status != "PENDING" {
 		t.Fatalf("issue: %+v escalated=%t err=%v; want an approval request for an ADMIN", approval, escalated, err)
 	}
@@ -229,15 +229,15 @@ func TestRefundSender_AnOverLimitRefundIsNotSentUntilASecondPersonApprovesIt(t *
 		t.Fatalf("%d REFUND batches before approval, want 0", n)
 	}
 
-	_, err = h.svc.ApproveRefund(ctx, refundID, agent, []string{"SUPPORT_AGENT", "ADMIN"})
+	_, err = approveAs(ctx, h.svc, refundID, agent, "SUPPORT_AGENT", "ADMIN")
 	wantDomainErr(t, err, string(CodeSelfApprovalForbidden))
-	_, err = h.svc.ApproveRefund(ctx, refundID, otherAgent, []string{"SUPPORT_AGENT"})
+	_, err = approveAs(ctx, h.svc, refundID, otherAgent, "SUPPORT_AGENT")
 	wantDomainErr(t, err, "FORBIDDEN")
 	if got := h.refundState(refundID); got != "PENDING_APPROVAL" {
 		t.Fatalf("after refused approvals: %s, want PENDING_APPROVAL", got)
 	}
 
-	approved, err := h.svc.ApproveRefund(ctx, refundID, admin, []string{"ADMIN"})
+	approved, err := approveAs(ctx, h.svc, refundID, admin, "ADMIN")
 	if err != nil || approved.State != string(RefundAuthorised) {
 		t.Fatalf("approve: %+v err=%v; want AUTHORISED", approved, err)
 	}
@@ -247,8 +247,8 @@ func TestRefundSender_AnOverLimitRefundIsNotSentUntilASecondPersonApprovesIt(t *
 	if n := h.count(`SELECT count(*) FROM ledger_batch WHERE refund_id = $1 AND kind = 'REFUND'`, refundID); n != 1 {
 		t.Errorf("%d REFUND batches after approval, want 1", n)
 	}
-	_, err = h.svc.ApproveRefund(ctx, refundID, admin, []string{"ADMIN"})
-	wantDomainErr(t, err, string(CodeConflict))
+	_, err = approveAs(ctx, h.svc, refundID, admin, "ADMIN")
+	wantDomainErr(t, err, codeAlreadyDecided)
 
 	if p := h.pass(); p.Submitted < 1 {
 		t.Fatalf("pass after approval: %+v, want the approved refund submitted", p)
@@ -277,14 +277,14 @@ func TestRefundSender_ARefundAboveWhatIsLeftOfTheCaptureIsRefused(t *testing.T) 
 	admin, admin2 := h.staff("admin-ceiling"), h.staff("admin-ceiling-2")
 
 	first := int64(3000)
-	refund, _, _, err := h.svc.IssueAdminRefund(ctx, AdminRefundInput{OrderID: order, Scope: ScopePartialAmount,
-		ReasonCode: "GOODWILL", ReasonText: "most of the order arrived cold", AmountCents: &first}, admin, []string{"ADMIN"})
+	refund, _, _, err := issueAs(ctx, h.svc, AdminRefundInput{OrderID: order, Scope: ScopePartialAmount,
+		ReasonCode: "GOODWILL", ReasonText: "most of the order arrived cold", AmountCents: &first}, admin, "ADMIN")
 	if err != nil || refund.State != string(RefundAuthorised) {
 		t.Fatalf("first refund: %+v err=%v", refund, err)
 	}
 	second := int64(1000)
-	_, _, _, err = h.svc.IssueAdminRefund(ctx, AdminRefundInput{OrderID: order, Scope: ScopePartialAmount,
-		ReasonCode: "GOODWILL", ReasonText: "and the drinks were missing", AmountCents: &second}, admin2, []string{"ADMIN"})
+	_, _, _, err = issueAs(ctx, h.svc, AdminRefundInput{OrderID: order, Scope: ScopePartialAmount,
+		ReasonCode: "GOODWILL", ReasonText: "and the drinks were missing", AmountCents: &second}, admin2, "ADMIN")
 	wantDomainErr(t, err, string(CodeRefundExceedsCaptured))
 	if n := h.count(`SELECT count(*) FROM refund WHERE order_id = $1`, order); n != 1 {
 		t.Fatalf("%d refunds on the order, want only the first", n)
@@ -330,8 +330,8 @@ func TestRefund_AnUncapturedOrderIsVoidedNotRefunded(t *testing.T) {
 
 	_, err := h.svc.RequestRefund(ctx, RefundInput{OrderID: order, Kind: RefundFull, ReasonCode: "CUSTOMER_CHANGED_MIND"}, customer)
 	wantDomainErr(t, err, string(CodePaymentNotRefundable))
-	_, _, _, err = h.svc.IssueAdminRefund(ctx, AdminRefundInput{OrderID: order, Scope: ScopeFull,
-		ReasonCode: "RESTAURANT_REJECTED", ReasonText: "the restaurant could not make it"}, admin, []string{"SUPER_ADMIN"})
+	_, _, _, err = issueAs(ctx, h.svc, AdminRefundInput{OrderID: order, Scope: ScopeFull,
+		ReasonCode: "RESTAURANT_REJECTED", ReasonText: "the restaurant could not make it"}, admin, "SUPER_ADMIN")
 	wantDomainErr(t, err, string(CodePaymentNotRefundable))
 
 	// What a rejection or a cancel before acceptance calls.
@@ -367,8 +367,8 @@ func TestRefundSender_RetriesWithBackoffThenSetsAsideAndARefusedRefundFails(t *t
 	issue := func(order string) string {
 		t.Helper()
 		amount := int64(2500)
-		r, _, _, err := h.svc.IssueAdminRefund(ctx, AdminRefundInput{OrderID: order, Scope: ScopePartialAmount,
-			ReasonCode: "GOODWILL", ReasonText: "goodwill for a late delivery", AmountCents: &amount}, admin, []string{"SUPER_ADMIN"})
+		r, _, _, err := issueAs(ctx, h.svc, AdminRefundInput{OrderID: order, Scope: ScopePartialAmount,
+			ReasonCode: "GOODWILL", ReasonText: "goodwill for a late delivery", AmountCents: &amount}, admin, "SUPER_ADMIN")
 		if err != nil {
 			t.Fatalf("issue: %v", err)
 		}
