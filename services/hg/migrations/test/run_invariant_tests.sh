@@ -114,6 +114,43 @@ reject "a terminal order carrying a deadline is rejected" "order_deadline_requir
      now()+interval '10 minutes','PREP_OVERDUE','CUSTOMER_CANCELLED',3000,0,419,0,444,500,4363);"
 reject "a non-terminal dispatch with no deadline is rejected" "dispatch_deadline_required" \
   "INSERT INTO dispatch (order_id, state) VALUES ('88888888-8888-4888-8888-888888888888','SEARCHING');"
+reject "an unprocessed Stripe webhook with no retry time is rejected" "webhook_event_deadline_required" \
+  "INSERT INTO webhook_event (stripe_event_id, type, payload, livemode, event_created_at)
+   VALUES ('evt_inv_nodl', 'payment_intent.succeeded', '{}', false, now());"
+reject "a dead-lettered Stripe webhook without the error that put it there is rejected" \
+  "webhook_event_dead_letter_has_error" \
+  "INSERT INTO webhook_event (stripe_event_id, type, payload, livemode, event_created_at, dead_lettered_at)
+   VALUES ('evt_inv_dead', 'payment_intent.succeeded', '{}', false, now(), now());"
+reject "an open chargeback with no evidence deadline is rejected" "chargeback_deadline_required" \
+  "INSERT INTO chargeback (order_id, stripe_dispute_id, amount_cents, state)
+   VALUES ('88888888-8888-4888-8888-888888888888', 'dp_inv_nodl', 100, 'needs_response');"
+reject "a closed chargeback still on a clock is rejected" "chargeback_deadline_required" \
+  "INSERT INTO chargeback (order_id, stripe_dispute_id, amount_cents, state, outcome, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', 'dp_inv_closed', 100, 'lost', 'lost', now(), 'submit_dispute_evidence');"
+reject "a refund that moves money with no approver is rejected" "refund_money_needs_approver" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'AUTHORISED', '11111111-1111-4111-8111-111111111111', now(), 'submit_refund_to_stripe');"
+reject "a goodwill refund above CAD 50 approved by the person who asked for it is rejected" \
+  "refund_goodwill_second_approver" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by, approved_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'GOODWILL',
+           'GOODWILL', 5001, 'AUTHORISED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), 'submit_refund_to_stripe');"
+reject "a refund recorded as at Stripe without Stripe's refund id is rejected" "refund_at_stripe_has_id" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by, approved_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'SUBMITTED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), 'await_refund_settlement');"
+reject "a refund approval request that names no approving role is rejected" "refund_approval_names_role" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, approval_status,
+                       requested_by, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'GOODWILL',
+           'GOODWILL', 100, 'PENDING_APPROVAL', 'PENDING', '11111111-1111-4111-8111-111111111111',
+           now(), 'await_refund_approval');"
 zero_rows "no live order lacks a deadline" "SELECT * FROM order_without_deadline"
 zero_rows "no live dispatch lacks a deadline" "SELECT * FROM dispatch_without_deadline"
 
@@ -338,6 +375,17 @@ reject "a document under review must carry its 72h SLA deadline" "kyc_document_d
    INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state)
      VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
              '15000000-0000-4000-8000-000000000002','IN_REVIEW');"
+reject "a rider's file is attached once per document type" "kyc_document_rider_file_once" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at)
+     VALUES ('15000000-0000-4000-8000-000000000229','hg-kyc','kyc/t/p.jpg','KYC_DOCUMENT',
+             'image/jpeg',10,digest('p','sha256'),'READY','019ffe57-fbd0-7355-ade8-b03ea7943578',now());
+   INSERT INTO kyc_document (subject_type, subject_id, rider_doc_type, stored_object_id, state,
+                             deadline_at, deadline_action)
+     VALUES ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','PROFILE_PHOTO',
+             '15000000-0000-4000-8000-000000000229','SUBMITTED',now()+interval '72 hours','ESCALATE'),
+            ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','PROFILE_PHOTO',
+             '15000000-0000-4000-8000-000000000229','SUBMITTED',now()+interval '72 hours','ESCALATE');"
 reject "a live restaurant with no location is rejected" "restaurant_live_needs_location" \
   "INSERT INTO restaurant (slug, legal_name, display_name, onboarding_state, account_state)
      VALUES ('no-location','No Location Inc.','No Location','ACTIVE','LIVE');"
@@ -455,6 +503,23 @@ n_rows "every partitioned table is one that partition upkeep maintains" "0" \
   "SELECT 1 FROM pg_partitioned_table pt JOIN pg_class c ON c.oid = pt.partrelid
     WHERE c.relnamespace = 'public'::regnamespace
       AND c.relname NOT IN ('realtime_event', 'rider_position_history', 'audit_event')"
+echo "13. Rider earnings follow the ledger"
+reject "an earning line that disagrees with its ledger posting is rejected" "earning_entry_ledger_mismatch" \
+  "INSERT INTO ledger_batch (kind, order_id, idempotency_key, posted_by)
+     VALUES ('SETTLE','88888888-8888-4888-8888-888888888888','inv-rider-mismatch','system:test');
+   INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, amount_cents, component)
+     SELECT id, order_id, 'PLATFORM_REVENUE', 'PLATFORM', -419, 'COMMISSION'
+       FROM ledger_batch WHERE idempotency_key = 'inv-rider-mismatch';
+   INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, counterparty_id, amount_cents, component)
+     SELECT id, order_id, 'RIDER_PAYABLE', 'RIDER', '019ffe57-fbd0-7355-ade8-b03ea7943578', 419, 'DELIVERY_FEE'
+       FROM ledger_batch WHERE idempotency_key = 'inv-rider-mismatch';
+   INSERT INTO earning_entry (account_id, order_id, type, base_cents, gross_cents, ledger_entry_id)
+     VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',500,500,
+             currval('ledger_entry_id_seq'));"
+reject "a second DELIVERY line for one order is rejected" "earning_entry_once_per_order" \
+  "INSERT INTO earning_entry (account_id, order_id, type, base_cents, gross_cents)
+   VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',419,419),
+          ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',419,419);"
 
 echo
 printf 'passed %d, failed %d\n\n' "$PASS" "$FAIL"

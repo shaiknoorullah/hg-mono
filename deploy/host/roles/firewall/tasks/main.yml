@@ -1,0 +1,66 @@
+- name: Install nftables
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+
+- name: Create the nftables drop-in folder
+  ansible.builtin.file:
+    path: /etc/systemd/system/nftables.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Never let stopping nftables flush Docker's rules
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/nftables.service.d/10-hg.conf
+    content: |
+      # Managed by Ansible (deploy/host/roles/firewall).
+      # Debian's unit runs "nft flush ruleset" on stop, which deletes Docker's chains too.
+      # Remove only our own table.
+      [Service]
+      ExecStop=
+      ExecStop=-/usr/sbin/nft delete table inet host
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Write the host firewall
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Reload the host firewall
+
+- name: Apply systemd changes before starting the firewall
+  ansible.builtin.meta: flush_handlers
+
+- name: Turn the firewall on now and at every boot
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    state: started
+  # On a fresh server in check mode the unit is not installed yet.
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# After the new table is live, so there is no moment without a filter.
+- name: Gather installed packages (is ufw here?)
+  ansible.builtin.package_facts:
+
+- name: Is ufw active?
+  ansible.builtin.command: ufw status
+  register: hg_ufw_status
+  changed_when: false
+  check_mode: false
+  when: ansible_facts.packages['ufw'] is defined
+
+- name: Turn ufw off (this table is the host firewall)
+  ansible.builtin.command: ufw --force disable
+  changed_when: true
+  when: >-
+    ansible_facts.packages['ufw'] is defined and ('Status: active' in hg_ufw_status.stdout)
+    and not ansible_check_mode

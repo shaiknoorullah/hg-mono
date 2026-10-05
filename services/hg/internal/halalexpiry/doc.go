@@ -22,7 +22,7 @@
 //     a LIVE restaurant with the reason HALAL_CERTIFICATE_EXPIRED; a valid one
 //     removes the reason and relists. The certificate trigger calls the same
 //     function, so approving a renewal relists in the approval's transaction
-//     (migrations/00029_halal_certificate_expiry.sql). A LIVE restaurant with
+//     (migrations/00049_halal_certificate_expiry.sql). A LIVE restaurant with
 //     an EXPIRED halal state is refused by a CHECK constraint.
 //  3. Sends the renewal reminder that is due: 30, 14, 7 and 1 days before
 //     expiry (docs/decisions/README.md, "Settled — redesign decisions (owner,

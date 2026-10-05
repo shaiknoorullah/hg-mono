@@ -1,0 +1,20 @@
+HalalGoes
+
+Your halal certificate expires {{.TimeLeft}}
+
+Halal certificate
+
+Issued by {{.IssuerName}}
+Expires {{.ExpiresOn}}
+
+To keep {{.RestaurantName}} listed on HalalGoes, upload your renewed certificate before it expires. We review it before it replaces the current one.
+
+If the certificate expires before a renewed one is approved, customers stop seeing {{.RestaurantName}} the day after it expires, until we approve the new certificate.
+
+Upload renewed certificate {{.ActionURL}}
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

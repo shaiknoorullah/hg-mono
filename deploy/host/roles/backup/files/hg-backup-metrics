@@ -1,0 +1,52 @@
+#!/bin/bash
+# hg-backup-metrics: every minute, the live state of WAL archiving and of the off-server
+# copy, for the alerts in roles/monitoring:
+#   hg_pgbackrest_wal_newest_age_seconds  age of the newest WAL file in the repository
+#   hg_pgbackrest_wal_segments_waiting    finished WAL segments Postgres has not archived yet
+#   hg_pgbackrest_wal_dropped_total       "dropped WAL file" lines: pgBackRest gave up on WAL
+#                                         when its queue was full (archive-push-queue-max)
+#   hg_backup_offline_pull_last_timestamp_seconds  last login of the owner's pulling machine
+# Managed by Ansible (deploy/host/roles/backup).
+set -uo pipefail
+# shellcheck source=/dev/null
+source /etc/hg/backup/backup.conf
+out="$TEXTFILE_DIR/hg_backup_live.prom"
+
+segment() { # WAL file name -> segment number (16 MB segments: 256 per log id)
+  echo $(( 16#${1:8:8} * 256 + 16#${1:16:8} ))
+}
+
+{
+  vdir=$(find "$PGBR_REPO/archive/$PGBR_STANZA" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -n 1)
+  sdir=$(find "${vdir:-/nonexistent}" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '.*/[0-9A-F]{16}' 2>/dev/null | sort | tail -n 1)
+  wal=$(find "${sdir:-/nonexistent}" -mindepth 1 -maxdepth 1 -type f -regextype posix-extended -regex '.*/[0-9A-F]{24}-[^/]*' 2>/dev/null | sort | tail -n 1)
+  if [ -n "$wal" ]; then
+    echo "# HELP hg_pgbackrest_wal_newest_age_seconds Age of the newest WAL file in the pgBackRest repository."
+    echo "# TYPE hg_pgbackrest_wal_newest_age_seconds gauge"
+    echo "hg_pgbackrest_wal_newest_age_seconds $(( $(date +%s) - $(stat -c %Y "$wal") ))"
+    name=$(basename "$wal")
+    current=$(timeout 10 docker exec "$PG_CONTAINER" psql -U "$PG_USER" -d "$PG_DB" -XAtc \
+      "select pg_walfile_name(pg_current_wal_lsn())" 2>/dev/null || true)
+    if [[ $current =~ ^[0-9A-F]{24}$ ]]; then
+      waiting=$(( $(segment "$current") - 1 - $(segment "${name:0:24}") ))
+      [ "$waiting" -lt 0 ] && waiting=0
+      echo "# HELP hg_pgbackrest_wal_segments_waiting Finished WAL segments not in the repository yet."
+      echo "# TYPE hg_pgbackrest_wal_segments_waiting gauge"
+      echo "hg_pgbackrest_wal_segments_waiting $waiting"
+    fi
+  fi
+
+  dropped=$(cat "$PGBR_LOG_DIR"/*.log 2>/dev/null | grep -c "dropped WAL file" || true)
+  echo "# HELP hg_pgbackrest_wal_dropped_total Times pgBackRest dropped WAL because its queue was full."
+  echo "# TYPE hg_pgbackrest_wal_dropped_total counter"
+  echo "hg_pgbackrest_wal_dropped_total ${dropped:-0}"
+
+  last=$(journalctl -q -r -n 1 -o short-unix --since "-35 days" -t sshd -t sshd-session \
+    --grep "Accepted publickey for $PULL_USER " 2>/dev/null | awk 'NR==1 {print int($1)}')
+  if [ -n "$last" ]; then
+    echo "# HELP hg_backup_offline_pull_last_timestamp_seconds Last login of the owner's backup machine."
+    echo "# TYPE hg_backup_offline_pull_last_timestamp_seconds gauge"
+    echo "hg_backup_offline_pull_last_timestamp_seconds $last"
+  fi
+} > "$out.tmp"
+mv "$out.tmp" "$out"

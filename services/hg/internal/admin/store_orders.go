@@ -419,12 +419,11 @@ var adminCancellableStates = map[machine.State]bool{
 
 // CancelOrder executes the admin/support cancellation of an order.
 //
-// For post-acceptance states (PREPARING) the transition goes through the shared
-// Store.Transition (T11: ActorSupport allowed). For pre-acceptance states
-// (CREATED, AUTHORIZED, RESTAURANT_PENDING) the machine actor table only lists
-// CUSTOMER and SYSTEM (T3/T5/T8); we perform the transition directly via SQL
-// inside the same invariants (deadline cleared, cancel_reason set, transition row
-// appended) to support the A-38 admin override.
+// Every cancel goes through the orders module's one transition function, inside
+// this transaction (TransitionInTx): after acceptance (PREPARING) as SUPPORT,
+// before it (CREATED, AUTHORIZED, RESTAURANT_PENDING) as ADMIN, the staff cancel
+// the machine lists on those edges (docs/spec/05-admin.md, "A-38 — Order lookup
+// and admin order intervention").
 //
 // Returns ErrNotFound when the order does not exist, *orders.IllegalTransitionError
 // when the state is terminal or not cancellable.
@@ -463,42 +462,32 @@ func (r *OrdersRepo) CancelOrder(ctx context.Context, actor auditActor, orderID,
 		}
 
 		// Determine which actor kind to use. T11 (PREPARING→CANCELLED) accepts
-		// ActorSupport and ActorAdmin. For pre-acceptance states T3/T5/T8 accept only
-		// CUSTOMER/SYSTEM, so we write the transition row directly as ADMIN actor.
+		// ActorSupport and ActorAdmin. Before acceptance the machine lists ADMIN
+		// on the cancel edges for this staff cancel (docs/spec/05-admin.md,
+		// "A-38 — Order lookup and admin order intervention").
 		actorKind := machine.ActorAdmin
 		if from == machine.StatePreparing {
 			actorKind = machine.ActorSupport // T11 lists SUPPORT/ADMIN; SUPPORT covers both
 		}
 
-		// Write the state change: clear the deadline (CANCELLED is terminal) AND
-		// reset the lease/escalation columns the shared machine transition resets
-		// (I-14/I-15), so a cancelled order can never remain claimable by the
-		// deadline runner or carry a stale escalation count.
-		_, err := tx.Exec(ctx, `
-UPDATE "order"
-   SET state               = 'CANCELLED',
-       state_since         = now(),
-       deadline_at         = NULL,
-       deadline_action     = NULL,
-       deadline_escalations = 0,
-       lease_until         = NULL,
-       lease_owner         = NULL,
-       cancel_reason       = $2::order_cancellation_reason_code,
-       cancelled_at        = now()
- WHERE id = $1 AND state::text = $3`,
-			orderID, reasonCode, string(from))
-		if err != nil {
-			return fmt.Errorf("cancel order: %w", err)
-		}
-
-		// Append the transition row.
-		fromStr := string(from)
-		_, err = tx.Exec(ctx, `
-INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason, request_id)
-VALUES ($1, $2::order_state, 'CANCELLED', $3::order_actor_kind, $4, $5, $6)`,
-			orderID, fromStr, string(actorKind), nilIfEmpty(actor.staffID), in.ReasonText, nilIfEmpty(actor.requestID))
-		if err != nil {
-			return fmt.Errorf("insert order_transition: %w", err)
+		// Move the order through the one transition function, in this
+		// transaction: it clears the deadline (CANCELLED is terminal), resets
+		// the lease and escalation columns so the deadline runner can never
+		// claim a cancelled order, sets cancel_reason and cancelled_at, and
+		// appends the order_transition row (docs/spec/01-platform.md, "P-14 —
+		// Order lifecycle states and transitions";
+		// https://github.com/shaiknoorullah/hg-mono/issues/337).
+		cancelReason := reasonCode
+		if err := r.st.TransitionInTx(ctx, tx, orders.TransitionRequest{
+			OrderID:        orderID,
+			To:             machine.StateCancelled,
+			Actor:          actorKind,
+			ActorAccountID: actor.staffID,
+			Reason:         in.ReasonText,
+			RequestID:      actor.requestID,
+			CancelReason:   &cancelReason,
+		}); err != nil {
+			return err
 		}
 
 		// MONEY (contract A-38 / T11): "Cancelling after acceptance always issues a
@@ -613,8 +602,11 @@ SELECT coalesce(sum(amount_cents),0) FROM refund
 		return fmt.Errorf("refusing to post unbalanced cancel-refund batch (residual=%d)", batch.Residual())
 	}
 
-	// Insert the refund row (AUTHORISED, on a clock: deadline required by the
-	// refund_deadline_required CHECK for non-terminal states).
+	// Insert the refund row: AUTHORISED, approved by the member of staff who
+	// cancelled (the schema refuses a refund that moves money with no
+	// approver, refund_money_needs_approver), and due to the payments refund
+	// sender at once, which sends it to Stripe (payments/refund_sender.go,
+	// #318).
 	requestedBy := actor.staffID
 	if requestedBy == "" {
 		// requested_by is NOT NULL; fall back to the system account. This never
@@ -626,15 +618,15 @@ SELECT coalesce(sum(amount_cents),0) FROM refund
 INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
                     amount_cents, tax_cents,
                     restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
-                    state, requested_by, deadline_at, deadline_action)
+                    state, approval_status, requested_by, approved_by, deadline_at, deadline_action)
 VALUES ($1,$2,'FULL','FULL',$3::refund_reason_code,$4,
         $5,$6,$7,$8,$9,
-        'AUTHORISED',$10, now() + interval '2 minutes','SUBMIT_REFUND')
+        'AUTHORISED','APPROVED',$10,$10, now(),$11)
 RETURNING id::text`,
 		orderID, intentID, reversalReason, in.ReasonText,
 		refundCents, taxCents,
 		split.RestaurantChargebackCents, split.RiderChargebackCents, split.PlatformAbsorbedCents,
-		requestedBy).Scan(&refundID); err != nil {
+		requestedBy, payments.RefundActionSubmit).Scan(&refundID); err != nil {
 		return fmt.Errorf("insert cancel refund: %w", err)
 	}
 

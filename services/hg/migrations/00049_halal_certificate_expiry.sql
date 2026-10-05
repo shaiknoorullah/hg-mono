@@ -62,28 +62,9 @@ CREATE TABLE halal_certificate_reminder (
 );
 CREATE INDEX halal_certificate_reminder_restaurant ON halal_certificate_reminder (restaurant_id, created_at DESC);
 
--- The calendar date at an instant in a restaurant's timezone. An unknown or
--- NULL timezone does not fail open: it takes the date in the zone furthest
--- ahead of UTC (UTC+14), the latest date anywhere, so a certificate is never
--- treated as valid for longer than it is somewhere on Earth.
--- +goose StatementBegin
-CREATE OR REPLACE FUNCTION halal_local_date(p_tz text, p_at timestamptz)
-RETURNS date LANGUAGE plpgsql STABLE AS $$
-BEGIN
-  IF p_at IS NULL THEN
-    RAISE EXCEPTION 'halal_local_date: the instant is NULL' USING ERRCODE = 'null_value_not_allowed';
-  END IF;
-  IF p_tz IS NOT NULL THEN
-    BEGIN
-      RETURN (p_at AT TIME ZONE p_tz)::date;
-    EXCEPTION WHEN invalid_parameter_value THEN
-      RAISE WARNING 'halal_local_date: unknown time zone %; using UTC+14', p_tz;
-    END;
-  END IF;
-  RETURN ((p_at AT TIME ZONE 'UTC') + interval '14 hours')::date;
-END
-$$;
--- +goose StatementEnd
+-- halal_local_date(tz, at), the restaurant-local calendar date, is defined by
+-- 00033_halal_certified_now.sql, which the order path also uses; this migration
+-- relies on it and leaves it in place on the way down.
 
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION halal_refresh_restaurant_status(p_restaurant_id uuid, p_at timestamptz)
@@ -304,5 +285,4 @@ $$;
 -- +goose StatementEnd
 
 DROP FUNCTION IF EXISTS halal_refresh_restaurant_status(uuid, timestamptz);
-DROP FUNCTION IF EXISTS halal_local_date(text, timestamptz);
 DROP TABLE IF EXISTS halal_certificate_reminder;

@@ -7,6 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 )
 
 // ErrNotFound is returned by the repository when a row does not exist.
@@ -19,10 +21,24 @@ var ErrNotFound = errors.New("admin: not found")
 // from the verified principal, never from a request body.
 type Repo struct {
 	pool *pgxpool.Pool
+
+	// notify and inviter send the messages a decision or an invitation owes
+	// someone, inside the same transaction (internal/notify). Nil sends
+	// nothing, which only tests rely on.
+	notify  notify.TxEnqueuer
+	inviter notify.StaffInviter
 }
 
 // NewRepo builds the repository over the shared pool.
 func NewRepo(pool *pgxpool.Pool) *Repo { return &Repo{pool: pool} }
+
+// WithNotifications wires the notification outbox and the staff inviter
+// (auth.Module.StaffInviter). Call once at boot.
+func (r *Repo) WithNotifications(enq notify.TxEnqueuer, inviter notify.StaffInviter) *Repo {
+	r.notify = enq
+	r.inviter = inviter
+	return r
+}
 
 // --- Staff (A-01) ---
 

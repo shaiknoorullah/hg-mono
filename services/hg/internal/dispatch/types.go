@@ -1,9 +1,11 @@
 package dispatch
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/riderview"
 )
 
 // Domain error codes this module raises. Each must exist in the contract's
@@ -90,11 +92,23 @@ type OfferPickup struct {
 	Longitude      float64 `json:"longitude"`
 }
 
-// OfferDropoff is the pre-accept dropoff projection (street + neighbourhood only).
+// OfferDropoff is the pre-accept drop-off: the area's name (the address's
+// city column, passed through whole) and its point. The point is a
+// riderview.Area, which can only hold a point rounded to about a kilometre, so
+// the delivery address's exact point cannot reach a rider who has not
+// accepted.
 type OfferDropoff struct {
-	Area      string  `json:"area"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Area  string
+	Point riderview.Area
+}
+
+// MarshalJSON writes the contract's shape: {area, latitude, longitude}.
+func (d OfferDropoff) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Area      string  `json:"area"`
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}{Area: d.Area, Latitude: d.Point.Lat(), Longitude: d.Point.Lng()})
 }
 
 // DispatchOffer is the contract DispatchOffer (pre-accept projection, D-14).

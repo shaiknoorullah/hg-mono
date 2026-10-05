@@ -15,7 +15,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // stripeCatchupUsage is printed for -h and for a bad invocation.
@@ -32,8 +34,10 @@ changes nothing the second time.
 
 Each disagreement with Stripe it will not settle by itself is filed as a
 reconciliation_exception and listed on every run until a person resolves it
-(sets its resolved_at). Events with no payment effect yet (refunds, disputes,
-Connect accounts, payouts) are stored but left pending for their handlers.
+(sets its resolved_at). Every stored event in the window is applied through
+the same handlers as the server's webhook worker, including one the worker
+set aside after repeated failures: running this is how such an event is
+retried once its cause is fixed.
 
 It needs the server's own environment (HG_POSTGRES_DSN, HG_STRIPE_SECRET_KEY,
 HG_ENV and the rest), which is what keeps it admin-only: there is no HTTP route
@@ -98,7 +102,13 @@ func runStripeCatchup(args []string, stdout io.Writer) error {
 	}
 
 	stripe := payments.NewLiveStripe(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
-	svc := payments.NewService(payments.NewRepo(pool), stripe, cfg.Stripe, log)
+	// Events move orders here as they do in the server's webhook worker: an
+	// order whose authorisation event was lost is presented to the restaurant
+	// now. Its realtime event is written; its push notification is not, as
+	// this command runs without the notification client.
+	ordersStore := orders.NewStore(pool, &orderRealtimeEmitter{store: realtime.NewStore(pool, "stripe-catchup")})
+	svc := payments.NewService(payments.NewRepo(pool), stripe, cfg.Stripe, log).
+		WithOrderHooks(ordersStore)
 	rep, err := svc.CatchUp(ctx, since, envIsLive)
 	printCatchUpReport(stdout, rep)
 	if err != nil {

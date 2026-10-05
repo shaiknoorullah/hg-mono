@@ -58,6 +58,18 @@ func (s *Store) Transition(ctx context.Context, req TransitionRequest, effects .
 	})
 }
 
+// TransitionInTx is Transition inside a transaction the caller already holds.
+// It is for a caller that must lock its own rows first and commit its own
+// records with the state change: the restaurant's accept, reject and
+// mark-ready lock the order under the restaurant's ownership predicate, then
+// move it here (https://github.com/shaiknoorullah/hg-mono/issues/337). It is
+// the same single function as Transition, not a second writer of order.state
+// (docs/spec/01-platform.md, "P-14 — Order lifecycle states and transitions").
+// The caller commits or rolls back tx.
+func (s *Store) TransitionInTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
+	return s.transitionTx(ctx, tx, req, effects...)
+}
+
 func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
 	var fromStr string
 	var acceptedAt *time.Time
@@ -129,6 +141,17 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 	fromCopy := from
 	if err := insertTransition(ctx, tx, req.OrderID, &fromCopy, req.To, req.Actor, req.ActorAccountID, req.Reason, req.RequestID); err != nil {
 		return fmt.Errorf("insert transition: %w", err)
+	}
+
+	// The rider who delivered is paid in the same transaction as the
+	// delivery, and only by the rider's own DELIVERED transition: no other
+	// actor's state change writes earnings, and a failed write rolls the
+	// delivery back (https://github.com/shaiknoorullah/hg-mono/issues/306).
+	// DELIVERED is reachable once per order, so this runs once.
+	if req.To == machine.StateDelivered && req.Actor == machine.ActorRider && s.riderEarnings != nil {
+		if err := s.riderEarnings.CreditDeliveryTx(ctx, tx, req.OrderID, req.ActorAccountID); err != nil {
+			return fmt.Errorf("rider earnings: %w", err)
+		}
 	}
 
 	// Emit a realtime outbox event in the same transaction so the customer's
