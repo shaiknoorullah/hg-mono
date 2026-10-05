@@ -684,6 +684,10 @@ func run() error {
 	// under the rider pay rules the owner has not settled (issue #306).
 	paymentsSvc.WithRiderPay(cfg.RiderPay)
 	ordersStore.WithRiderEarnings(paymentsSvc)
+	// A cancelled order releases its rider in the cancel's transaction, on
+	// this one store that every caller (admin included) cancels through
+	// (https://github.com/shaiknoorullah/hg-mono/issues/415).
+	ordersStore.WithOrderCancelled(dispatchCancel{})
 
 	// The webhook worker applies stored Stripe events from the database: one
 	// replica at a time under an advisory-lock lease, each event's effect and
@@ -914,4 +918,12 @@ func run() error {
 	st.Close()
 	log.Info("stopped")
 	return nil
+}
+
+// dispatchCancel implements orders.OrderCancelled with the dispatch module's
+// half of a cancellation (dispatch.ReleaseCancelledOrderTx).
+type dispatchCancel struct{}
+
+func (dispatchCancel) OrderCancelledTx(ctx context.Context, tx pgx.Tx, orderID string) error {
+	return dispatch.ReleaseCancelledOrderTx(ctx, tx, orderID)
 }
