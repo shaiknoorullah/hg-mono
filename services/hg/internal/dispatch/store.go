@@ -136,7 +136,10 @@ type InsertedOffer struct {
 }
 
 // CreateWave persists a dispatch_wave row and one dispatch_offer per candidate,
-// all in one transaction. The partial unique index dispatch_offer_one_pending
+// all in one transaction, and moves the order's dispatch row (creating it on
+// the first wave) to this wave with deadline expiresAt. A wave that found
+// nobody is written the same way with no candidates and no offers: it is still
+// a wave of the search. The partial unique index dispatch_offer_one_pending
 // guarantees a rider cannot hold two pending offers; the unique
 // dispatch_offer_unique guarantees a rider is offered a given order at most once.
 func (s *Store) CreateWave(ctx context.Context, o *OrderDispatchInfo, waveNo, radiusM int, cands []Candidate, offers []offerRow, expiresAt time.Time) ([]InsertedOffer, error) {
@@ -156,15 +159,34 @@ func (s *Store) CreateWave(ctx context.Context, o *OrderDispatchInfo, waveNo, ra
 	// ON CONFLICT bumps wave/radius on a re-run while the order is still being
 	// searched, but never disturbs a row that has already been ASSIGNED (or is
 	// otherwise past SEARCHING/OFFERED/PENDING): the WHERE guard leaves it intact.
-	if _, err := tx.Exec(ctx, `
+	//
+	// It leaves state_since alone: the state does not change, and state_since is
+	// where the search's wave and time budget is counted from
+	// (ClaimWavesToEscalate).
+	//
+	// The guard also only moves the search forward a wave, and the wave's
+	// writer releases the escalation lease. Two replicas running the same wave
+	// (both sweeping a new ready order, or one racing a lease that lapsed)
+	// queue on this row: the second finds the wave already run, writes nothing
+	// and gets errWaveNotOpen, so a wave and its offers exist once
+	// (https://github.com/shaiknoorullah/hg-mono/issues/294).
+	var upserted string
+	err = tx.QueryRow(ctx, `
 INSERT INTO dispatch (order_id, state, state_since, wave, radius_m, deadline_at, deadline_action)
 VALUES ($1, 'SEARCHING', now(), $2, $3, $4, 'NEXT_WAVE')
 ON CONFLICT (order_id) DO UPDATE
    SET wave = EXCLUDED.wave, radius_m = EXCLUDED.radius_m,
-       state_since = now(), deadline_at = EXCLUDED.deadline_at, deadline_action = 'NEXT_WAVE'
+       deadline_at = EXCLUDED.deadline_at, deadline_action = 'NEXT_WAVE',
+       lease_until = NULL, lease_owner = NULL
  WHERE dispatch.state IN ('PENDING', 'SEARCHING', 'OFFERED')
-   AND dispatch.rider_account_id IS NULL`,
-		o.OrderID, waveNo, radiusM, expiresAt); err != nil {
+   AND dispatch.rider_account_id IS NULL
+   AND dispatch.wave < EXCLUDED.wave
+RETURNING order_id::text`,
+		o.OrderID, waveNo, radiusM, expiresAt).Scan(&upserted)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errWaveNotOpen
+	}
+	if err != nil {
 		return nil, err
 	}
 

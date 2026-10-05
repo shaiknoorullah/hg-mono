@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageReplicationTargets",
+      "Effect": "Allow",
+      "Action": ["admin:SetBucketTarget", "admin:GetBucketTarget"]
+    },
+    {
+      "Sid": "ConfigureReplicationOnTheNamedBucketsOnly",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetReplicationConfiguration",
+        "s3:PutReplicationConfiguration",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads",
+        "s3:GetBucketLocation",
+        "s3:GetBucketVersioning",
+        "s3:GetBucketObjectLockConfiguration",
+        "s3:GetEncryptionConfiguration"
+      ],
+      "Resource": [{% for b in hg_standby_replicated_buckets %}"arn:aws:s3:::{{ b }}"{{ "," if not loop.last }}{% endfor %}]
+    }
+  ]
+}

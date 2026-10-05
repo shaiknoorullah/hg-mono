@@ -23,6 +23,7 @@ import (
 // (P-15). There is no external orchestrator.
 type DeadlineRunner struct {
 	store   *Store
+	pickup  PickupEscalator // runner_pickup.go; nil re-arms a lapsed pickup only
 	log     *slog.Logger
 	owner   string
 	batch   int
@@ -128,8 +129,9 @@ func (r *DeadlineRunner) claim(ctx context.Context) ([]claimedOrder, error) {
 // fire executes one claimed row's action. The set of actions implemented here is
 // the subset the orders module owns end-to-end without a sibling: the pure
 // state-machine timeouts (RESTAURANT_TIMEOUT, PREP_OVERDUE re-arm/cap,
-// PICKUP/DELIVERY/HANDOVER re-arm, DISPUTE_SLA re-arm) and EXPIRE_PAYMENT (which
-// cancels the order). Actions whose money effect belongs to a sibling
+// DELIVERY/HANDOVER re-arm, DISPUTE_SLA re-arm), EXPIRE_PAYMENT (which cancels
+// the order) and the PICKUP_OVERDUE escalation (runner_pickup.go). Actions
+// whose money effect belongs to a sibling
 // (OFFER_RESTAURANT → dispatch, SETTLE → ledger) re-arm the deadline and record
 // the audit rather than fabricating the sibling's work.
 func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
@@ -145,7 +147,7 @@ func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
 		// RESTAURANT_PENDING 180s elapsed: cancel + void auth (T8).
 		return r.transitionExpire(ctx, c, machine.StateCancelled, "RESTAURANT_TIMEOUT", machine.ActionRestaurantTimeout)
 
-	case machine.ActionPrepOverdue, machine.ActionPickupOverdue, machine.ActionDeliveryOverdue,
+	case machine.ActionPrepOverdue, machine.ActionDeliveryOverdue,
 		machine.ActionHandoverOverdue, machine.ActionDisputeSLABreach, machine.ActionOfferRestaurant,
 		machine.ActionSettle:
 		// Re-arm within the escalation cap, or drive toward the cap's terminal
@@ -154,9 +156,35 @@ func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
 		// and records the audit so nothing is abandoned and no money is faked.
 		return r.reArm(ctx, c, start)
 
+	case machine.ActionPickupOverdue:
+		// READY_FOR_PICKUP lapsed and nobody has collected the order: escalate
+		// dispatch, alert ops, tell the customer, re-arm (runner_pickup.go;
+		// https://github.com/shaiknoorullah/hg-mono/issues/293).
+		return r.escalatePickup(ctx, c)
+
 	default:
-		return fmt.Errorf("unknown deadline action %q", c.action)
+		return r.fireByState(ctx, c)
 	}
+}
+
+// fireByState handles a deadline whose stored action this runner does not
+// know by the action the deadline table names for the order's state. Every
+// non-terminal state has an action and every action has a case in fire (a
+// database-backed test walks all of them), so an order can never fail its
+// deadline on every pass and stay where it is. An action written outside the
+// transition function, like the RIDER_NO_SHOW the restaurant's mark-ready
+// wrote before #293 was fixed, is handled as its state's action and logged so
+// the writer gets fixed (https://github.com/shaiknoorullah/hg-mono/issues/337).
+func (r *DeadlineRunner) fireByState(ctx context.Context, c claimedOrder) error {
+	spec, ok := machine.DeadlineFor(c.state)
+	if !ok || spec.Action == c.action {
+		return fmt.Errorf("unknown deadline action %q in state %s", c.action, c.state)
+	}
+	r.log.Warn("deadline action does not match the order's state; handling it as the state's action",
+		slog.String("order_id", c.id), slog.String("state", string(c.state)),
+		slog.String("action", c.action), slog.String("handled_as", spec.Action))
+	c.action = spec.Action
+	return r.fire(ctx, c)
 }
 
 // transitionExpire runs a system transition to a terminal state with a cancel

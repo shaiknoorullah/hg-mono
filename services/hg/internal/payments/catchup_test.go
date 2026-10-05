@@ -36,10 +36,11 @@ func TestCatchUp_RefusesAStartStripeCannotReplay(t *testing.T) {
 	}
 }
 
-// Reconciliation asserts only states it knows: a status it has never seen
-// asserts nothing rather than a guess, and a decline asserts FAILED the way
-// the payment_failed webhook does.
-func TestReconcileTarget(t *testing.T) {
+// Reconciliation and the webhooks assert only states they know: a status
+// never seen asserts nothing rather than a guess, and a decline asserts
+// FAILED whether it comes from Stripe's current view or a payment_failed
+// event.
+func TestStripeIntentTarget(t *testing.T) {
 	cases := []struct {
 		pi   StripeIntent
 		want PaymentState
@@ -53,9 +54,9 @@ func TestReconcileTarget(t *testing.T) {
 		{StripeIntent{Status: "some_future_status"}, "", false},
 	}
 	for _, c := range cases {
-		got, ok := reconcileTarget(&c.pi)
+		got, ok := stripeIntentTarget(c.pi.Status, c.pi.FailureCode != "")
 		if got != c.want || ok != c.ok {
-			t.Errorf("reconcileTarget(%q, failure=%q) = (%q, %t), want (%q, %t)",
+			t.Errorf("stripeIntentTarget(%q, declined=%q) = (%q, %t), want (%q, %t)",
 				c.pi.Status, c.pi.FailureCode, got, ok, c.want, c.ok)
 		}
 	}

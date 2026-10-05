@@ -28,17 +28,18 @@ import (
 
 // The tests below pin what the auth limits do when Redis cannot answer
 // (issue #407). Redis is disposable (docs/spec/01-platform.md, "G-1 —
-// Postgres is the only source of truth"), so login, restaurant sign-up and the
-// verification-email resend keep working, and keep being limited, counted in
-// this replica's memory (FallBackLocally). The OTP endpoints are the two where
-// a limit that does not hold is unacceptable ("P-02 — Phone OTP
-// authentication") and answer 503 instead. None needs a container: the client
-// points at a closed port.
+// Postgres is the only source of truth"), so login, restaurant sign-up,
+// password reset and password change keep being limited, counted in this
+// replica's memory (FallBackLocally). The OTP endpoints are the two where a
+// limit that does not hold is unacceptable ("P-02 — Phone OTP
+// authentication") and answer 503 instead; the emailed-link limits
+// (email_limits.go) fail closed too, so no email is sent. None needs a
+// container: the client points at a closed port.
 
-// TestWithRedisGoneLoginAndResendStayLimited: with Redis unreachable, the 31st
-// login from one address and the 11th for one email in 15 minutes, and the 6th
-// verification-email resend in 24 hours, get 429 with Retry-After.
-func TestWithRedisGoneLoginAndResendStayLimited(t *testing.T) {
+// TestWithRedisGoneLoginStaysLimited: with Redis unreachable, the 31st login
+// from one address and the 11th for one email in 15 minutes get 429 with
+// Retry-After.
+func TestWithRedisGoneLoginStaysLimited(t *testing.T) {
 	cases := []struct {
 		name    string
 		max     int
@@ -63,11 +64,6 @@ func TestWithRedisGoneLoginAndResendStayLimited(t *testing.T) {
 				return fmt.Sprintf("198.51.100.%d", i+1), `{"email":"target@example.com","password":"correct horse battery"}`
 			},
 		},
-		{
-			name: "verification-email resend", max: 5, window: 24 * time.Hour, path: "/v1/auth/email/resend",
-			handler: func(h *Handler) http.HandlerFunc { return h.ResendEmailVerification },
-			request: func(int) (string, string) { return "203.0.113.21", `{"email":"pending@example.com"}` },
-		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -88,32 +84,51 @@ func TestWithRedisGoneLoginAndResendStayLimited(t *testing.T) {
 	}
 }
 
-// TestWithRedisGoneASignUpOverTheLimitRunsNoHash: with Redis unreachable, the
-// 6th restaurant sign-up from one address in an hour gets 429 before any
-// argon2id hash runs, so a flood of sign-ups costs no CPU. The first five
-// reach the hash, which proves the test watches the hash the handler uses.
-func TestWithRedisGoneASignUpOverTheLimitRunsNoHash(t *testing.T) {
-	errStop := errors.New("test: stop after the hash")
-	hashes := 0
-	orig := hashNewPassword
-	hashNewPassword = func(string) (string, error) { hashes++; return "", errStop }
-	t.Cleanup(func() { hashNewPassword = orig })
-
+// TestWithRedisGoneTheResendSendsNothing: with Redis unreachable the
+// verification-email resend gives the generic answer and never reaches the
+// store, so no token is issued and no email queued: its limits are the
+// emailed-link limits, which fail closed (email_limits.go).
+func TestWithRedisGoneTheResendSendsNothing(t *testing.T) {
 	h := handlerWithoutStore(NewRateLimiter(goneRedis(t), nil))
+	for i := 1; i <= 6; i++ {
+		rec, passed := serve(h.ResendEmailVerification, authRequest("/v1/auth/email/resend", "203.0.113.21", `{"email":"pending@example.com"}`))
+		if passed {
+			t.Fatalf("resend %d reached the store with Redis gone", i)
+		}
+		if rec.Code != http.StatusAccepted {
+			t.Fatalf("resend %d = %d %s, want the generic 202", i, rec.Code, rec.Body.String())
+		}
+	}
+}
+
+// TestWithRedisGoneASignUpOverTheLimitRunsNoHash: with Redis unreachable, the
+// 6th restaurant sign-up from one address in an hour gets 429 from the local
+// count, and no sign-up takes a hashing slot. The first five are counted
+// locally and then stopped with 503 by the verification-email limits, which
+// fail closed (email_limits.go: with no counter, no email, so no account).
+func TestWithRedisGoneASignUpOverTheLimitRunsNoHash(t *testing.T) {
+	gates := passwordGates.Load()
+	before := gates.signup.acquired.Load()
+
+	rl := NewRateLimiter(goneRedis(t), nil)
+	h := handlerWithoutStore(rl)
 	body := `{"email":"new@example.com","password":"correct horse battery","business_name":"Bismillah Grill","terms_version":"2026-01"}`
 	for i := 1; i <= 5; i++ {
-		rec, _ := serve(h.RegisterRestaurant, authRequest("/v1/auth/register/restaurant", "203.0.113.22", body))
-		if hashes != i {
-			t.Fatalf("sign-up %d: %d hashes, want %d (status %d %s)", i, hashes, i, rec.Code, rec.Body.String())
+		rec, passed := serve(h.RegisterRestaurant, authRequest("/v1/auth/register/restaurant", "203.0.113.22", body))
+		if passed || rec.Code != http.StatusServiceUnavailable || errorCode(t, rec) != string(httpx.CodeRateLimiterUnavailable) {
+			t.Fatalf("sign-up %d = %d %s, want 503 %s from the email limits", i, rec.Code, rec.Body.String(), httpx.CodeRateLimiterUnavailable)
 		}
+	}
+	if n := localEntries(rl.local, "register:ip"); n != 1 {
+		t.Fatalf("%d register:ip counts in memory, want 1: the per-IP limit counts locally", n)
 	}
 	rec, passed := serve(h.RegisterRestaurant, authRequest("/v1/auth/register/restaurant", "203.0.113.22", body))
 	if passed {
 		t.Fatal("the 6th sign-up went past the limiter with Redis gone")
 	}
 	assertLimited(t, rec, time.Hour)
-	if hashes != 5 {
-		t.Errorf("the 6th sign-up ran the hash: %d hashes, want 5", hashes)
+	if got := gates.signup.acquired.Load() - before; got != 0 {
+		t.Errorf("%d sign-ups took a hashing slot with Redis gone, want 0", got)
 	}
 }
 
@@ -130,7 +145,7 @@ func TestWithRedisGoneTheOTPRequestStillAnswers503(t *testing.T) {
 		if passed {
 			t.Fatalf("request %d went past the limiter with Redis gone", i)
 		}
-		if rec.Code != http.StatusServiceUnavailable || errorCode(rec) != string(httpx.CodeRateLimiterUnavailable) {
+		if rec.Code != http.StatusServiceUnavailable || errorCode(t, rec) != string(httpx.CodeRateLimiterUnavailable) {
 			t.Fatalf("request %d = %d %s, want 503 %s", i, rec.Code, rec.Body.String(), httpx.CodeRateLimiterUnavailable)
 		}
 	}
@@ -463,24 +478,13 @@ func assertLimited(t *testing.T, rec *httptest.ResponseRecorder, window time.Dur
 	if rec.Code != http.StatusTooManyRequests {
 		t.Fatalf("status = %d, want 429; body %s", rec.Code, rec.Body.String())
 	}
-	if code := errorCode(rec); code != string(httpx.CodeRateLimited) {
+	if code := errorCode(t, rec); code != string(httpx.CodeRateLimited) {
 		t.Errorf("error code = %q, want %s", code, httpx.CodeRateLimited)
 	}
 	secs, err := strconv.Atoi(rec.Header().Get("Retry-After"))
 	if err != nil || secs < 1 || secs > int(window/time.Second) {
 		t.Errorf("Retry-After = %q, want whole seconds in [1, %d]", rec.Header().Get("Retry-After"), int(window/time.Second))
 	}
-}
-
-// errorCode is the error.code of an error answer, or "" when there is none.
-func errorCode(rec *httptest.ResponseRecorder) string {
-	var env struct {
-		Error struct {
-			Code string `json:"code"`
-		} `json:"error"`
-	}
-	_ = json.Unmarshal(rec.Body.Bytes(), &env)
-	return env.Error.Code
 }
 
 // localEntries is how many counters ll holds for the limit called name.

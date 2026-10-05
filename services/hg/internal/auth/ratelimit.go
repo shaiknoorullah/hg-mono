@@ -83,6 +83,39 @@ type RateLimiter struct {
 	rdb   *redis.Client
 	log   *slog.Logger
 	local *localLimiter // used only while Redis cannot answer
+	mem   *memoryCounts // NewMemoryRateLimiter only: tests, no Redis
+}
+
+// memoryCounts is NewMemoryRateLimiter's store: fixed windows in process
+// memory. For tests, which have no Redis.
+type memoryCounts struct {
+	mu     sync.Mutex
+	counts map[string]int64
+	until  map[string]time.Time
+}
+
+// allow is Allow over process memory: the same fixed window and the same
+// answers, with no Redis to be unavailable.
+func (m *memoryCounts) allow(l Limit) error {
+	key := l.key()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	now := time.Now()
+	if now.After(m.until[key]) {
+		m.counts[key], m.until[key] = 0, now.Add(l.Window)
+	}
+	m.counts[key]++
+	if m.counts[key] > l.Max {
+		return &RateLimitedError{RetryAfter: m.until[key].Sub(now)}
+	}
+	return nil
+}
+
+// NewMemoryRateLimiter is a RateLimiter that counts in process memory, for
+// tests that need limits to bite without a Redis. Production always uses
+// NewRateLimiter: two replicas must share one count.
+func NewMemoryRateLimiter() *RateLimiter {
+	return &RateLimiter{log: slog.Default(), mem: &memoryCounts{counts: map[string]int64{}, until: map[string]time.Time{}}}
 }
 
 // NewRateLimiter builds a RateLimiter over the shared client. A nil rdb gives a
@@ -100,6 +133,9 @@ func NewRateLimiter(rdb *redis.Client, log *slog.Logger) *RateLimiter {
 // closed. What happens when Redis cannot answer is decided here, from l, so a
 // caller never filters error kinds: any non-nil error means "do not proceed".
 func (rl *RateLimiter) Allow(ctx context.Context, l Limit) error {
+	if rl != nil && rl.mem != nil {
+		return rl.mem.allow(l)
+	}
 	if rl == nil || rl.rdb == nil {
 		return nil // no-op: allow everything in test/local mode without Redis
 	}

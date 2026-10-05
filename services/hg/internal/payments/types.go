@@ -19,6 +19,10 @@ const (
 	ActionConnectRead         httpx.Action = "connect.read"
 	ActionEarningsRead        httpx.Action = "earnings.read"
 	ActionPayoutRead          httpx.Action = "payout.read"
+	// ActionPayoutRunCreate queues a payout run now; ActionPayoutRunRead reads
+	// runs and their lines. Both are admin actions (issue #251).
+	ActionPayoutRunCreate httpx.Action = "payout_run.create"
+	ActionPayoutRunRead   httpx.Action = "payout_run.read"
 )
 
 // Error codes this module raises. Each must exist in the contract's ErrorCode

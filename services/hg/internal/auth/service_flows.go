@@ -15,6 +15,7 @@ import (
 	totp_ "github.com/pquerna/otp/totp"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
@@ -371,19 +372,37 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	}
 
 	acct, err := s.store.AccountByEmail(ctx, email)
-	if errors.Is(err, ErrNotFound) {
-		_ = s.store.RecordLoginAttempt(ctx, email, nil, ipStr, "NO_ACCOUNT")
-		return nil, errInvalidCredentials
+	known := err == nil
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return nil, err
 	}
+	// The gate comes from the request's surface, never from the account: the
+	// staff web app verifies on the staff gate, so a flood of public sign-ins or
+	// sign-ups cannot lock an admin out, and every email sent there, registered
+	// or not, staff or not, waits on that same gate (hashgate.go, loginAudience).
+	// An unknown email, or an account with no password, verifies against a
+	// dummy hash: every answer below costs one argon2id verification on the
+	// request's gate, so neither the timing nor a 503 under load tells an
+	// attacker which emails are registered or which belong to staff (#216).
+	audience := loginAudience(client)
+	encoded := dummyPasswordHash
+	if known && acct.PasswordHash != nil {
+		encoded = *acct.PasswordHash
+	}
+	// Busy hashing is not a failed attempt: it must not count toward the
+	// lockout, so nothing is recorded. Taking the slot here, apart from the
+	// verification, keeps the two outcomes from ever being confused.
+	slot, err := acquireHashSlot(ctx, audience)
 	if err != nil {
 		return nil, err
 	}
-	if acct.PasswordHash == nil {
-		_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_PASSWORD")
+	ok, verr := slot.verify(encoded, password)
+	slot.release()
+	if !known {
+		_ = s.store.RecordLoginAttempt(ctx, email, nil, ipStr, "NO_ACCOUNT")
 		return nil, errInvalidCredentials
 	}
-	ok, verr := VerifyPassword(*acct.PasswordHash, password)
-	if verr != nil || !ok {
+	if acct.PasswordHash == nil || verr != nil || !ok {
 		_ = s.store.RecordLoginAttempt(ctx, email, &acct.ID, ipStr, "BAD_PASSWORD")
 		return nil, errInvalidCredentials
 	}
@@ -397,13 +416,14 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 		return nil, errAccountNotActive
 	}
 
+	// TOTP: admin/super-admin require it (P-01 admin MFA). If enrolled or
+	// required, verify the supplied code. The roles are read only now, after
+	// the password matched, so a known email costs no extra query before the
+	// hash that an unknown one does not.
 	grants, err := s.store.RolesFor(ctx, acct.ID)
 	if err != nil {
 		return nil, err
 	}
-
-	// TOTP: admin/super-admin require it (P-01 admin MFA). If enrolled or
-	// required, verify the supplied code.
 	amr := "pwd"
 	if requiresTOTP(grants) || acct.TOTPEnrolledAt != nil {
 		if totp == nil || *totp == "" {
@@ -428,25 +448,42 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	return s.issueSession(ctx, acct, amr, client, nil, userAgent, ip, false)
 }
 
-// hashNewPassword is HashPassword. A test swaps it to prove that a sign-up
-// over its limit is refused before any argon2id hash runs.
-var hashNewPassword = HashPassword
-
 // RegisterRestaurant creates the account/restaurant/grant/token and enqueues the
-// verification email. No session is issued.
-func (s *Service) RegisterRestaurant(ctx context.Context, email, password, businessName string, ip *string) (*RegisterRestaurantResult, error) {
+// verification email. No session is issued. clientKey is the caller's
+// httpx.RateLimitKey (its IPv4 address or IPv6 /64). It keys the per-IP
+// sign-up limit and the per-client email limits (email_limits.go), all checked
+// before anything is created; over any of them it returns ErrRateLimited.
+func (s *Service) RegisterRestaurant(ctx context.Context, email, password, businessName, clientKey string) (*RegisterRestaurantResult, error) {
+	if clientKey == "" {
+		clientKey = httpx.RateLimitKey("") // one shared budget, never no limit
+	}
 	// 5 sign-ups per hour per IP (docs/spec/03-restaurant.md, "R-01 — Restaurant
-	// account signup"), checked before the argon2id hash so a flood costs no
-	// CPU. With Redis down it counts in this replica's memory instead
+	// account signup") and 5 per hour per email, both checked before the argon2id
+	// hash and a hashing slot, so a limited request costs no CPU and holds no
+	// slot (#216). With Redis down they count in this replica's memory instead
 	// (FallBackLocally), still before the hash.
-	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: ipSubject(ip),
+	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: clientKey,
+		Max: 5, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
+		return nil, err
+	}
+	if err := s.rl.Allow(ctx, Limit{Name: "register:email", Subject: canonicalEmail(email),
 		Max: 5, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if isBreachedPassword(password) {
 		return nil, errBreachedPassword
 	}
-	hash, err := hashNewPassword(password)
+	if err := s.allowLinkEmail(ctx, emailKindVerify, email, clientKey); errors.Is(err, errAddressCapped) {
+		return nil, &RateLimitedError{RetryAfter: time.Hour}
+	} else if err != nil {
+		return nil, err
+	}
+	slot, err := acquireHashSlot(ctx, audienceSignup)
+	if err != nil {
+		return nil, err
+	}
+	hash, err := slot.hash(password)
+	slot.release() // the writes below need no slot
 	if err != nil {
 		return nil, err
 	}
@@ -454,100 +491,141 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	if err != nil {
 		return nil, err
 	}
-	res, err := s.store.RegisterRestaurant(ctx, email, hash, businessName, tokenHash, token, 24)
+	// The verification email is enqueued in the registration transaction
+	// (notifications.go), so the account and its email commit together.
+	res, err := s.store.RegisterRestaurant(ctx, email, hash, businessName, tokenHash, token, 24,
+		s.linkEmailSender(notify.EmailVerification, notify.RoleRestaurant, email, token, ""))
 	if err != nil {
 		return nil, err
 	}
-	// Enqueue the verification email. The email transport is the notification
-	// module's (P-24); here we log the enqueue honestly without fabricating a
-	// provider result. TODO(notifications sibling): route via P-24.
-	s.log.InfoContext(ctx, "restaurant verification email enqueued",
-		"template", "restaurant_email_verify", "account_id", res.AccountID)
 	return res, nil
 }
 
-// VerifyEmail consumes an EMAIL_VERIFY token, marks the email verified, advances
-// onboarding, and issues a session.
-func (s *Service) VerifyEmail(ctx context.Context, token string, client ClientSurface, userAgent, ip *string) (*issuedSession, error) {
+// VerifyEmail consumes an EMAIL_VERIFY token, marks the email verified and
+// advances onboarding. It issues no session: an emailed link must never sign
+// anyone in, or an attacker could send someone the link for the attacker's own
+// account and have them work in it (login cross-site request forgery,
+// https://github.com/shaiknoorullah/hg-mono/issues/356). The owner signs in
+// afterwards with Login.
+func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 	res, err := s.store.ConsumeCredentialToken(ctx, "EMAIL_VERIFY", HashOpaqueToken(token))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	switch {
 	case res.NotFound:
-		return nil, ErrNotFound
+		return ErrNotFound
 	case res.Used:
-		return nil, errTokenUsed
+		return errTokenUsed
 	case res.Expired:
-		return nil, errTokenExpired
+		return errTokenExpired
 	}
 	if err := s.store.MarkEmailVerified(ctx, res.AccountID); err != nil {
-		return nil, err
+		return err
 	}
-	if err := s.store.AdvanceRestaurantOnboarding(ctx, res.AccountID); err != nil {
-		return nil, err
-	}
-	acct, err := s.store.AccountByID(ctx, res.AccountID)
-	if err != nil {
-		return nil, err
-	}
-	return s.issueSession(ctx, acct, "pwd", client, nil, userAgent, ip, false)
+	return s.store.AdvanceRestaurantOnboarding(ctx, res.AccountID)
 }
 
 // ResendEmailVerification issues a fresh EMAIL_VERIFY token when the account
-// exists and is unverified. Identical externally whether or not it exists.
-func (s *Service) ResendEmailVerification(ctx context.Context, email string) error {
+// exists and is unverified. It answers the same way, in the same time, whether
+// or not the account exists: ErrRateLimited (a 429) only when this client is
+// over its own email limits, which are keyed on what it asked for and so say
+// nothing about the account; nil otherwise, including when the address is over
+// its overall cap. clientKey is the caller's httpx.RateLimitKey.
+func (s *Service) ResendEmailVerification(ctx context.Context, email, clientKey string) error {
+	defer s.answerUniformly(ctx, time.Now())
 	email = canonicalEmail(email)
-	// 5 per email per 24 hours: each one issues a token and queues an email.
-	// With Redis down it counts in this replica's memory (FallBackLocally).
-	if err := s.rl.Allow(ctx, Limit{Name: "email_verify", Subject: email,
-		Max: 5, Window: 24 * time.Hour, OnUnavailable: FallBackLocally}); err != nil {
-		return err
-	}
-	acct, err := s.store.AccountByEmail(ctx, email)
-	if errors.Is(err, ErrNotFound) {
+	switch err := s.allowLinkEmail(ctx, emailKindVerify, email, clientKey); {
+	case limited(err):
+		return err // a *RateLimitedError: the 429 carries its Retry-After
+	case errors.Is(err, errAddressCapped):
+		return nil // the generic answer; allowLinkEmail raised the alert
+	case err != nil:
+		s.log.WarnContext(ctx, "verification email not sent: rate limiter unavailable", "error", err.Error())
 		return nil
 	}
-	if err != nil || acct.EmailVerifiedAt != nil {
+	acct, err := s.store.AccountByEmail(ctx, email)
+	if err != nil || acct.EmailVerifiedAt != nil || acct.Email == nil {
+		return nil
+	}
+	surface, err := s.store.PasswordSurface(ctx, acct.ID)
+	if err != nil || surface != string(notify.RoleRestaurant) {
+		// Only a restaurant signs up by email and verifies it with a link.
 		return nil
 	}
 	token, tokenHash, err := NewOpaqueToken()
 	if err != nil {
 		return nil
 	}
-	if err := s.store.InsertCredentialToken(ctx, acct.ID, "EMAIL_VERIFY", tokenHash, 24*time.Hour); err != nil {
-		return nil
+	if err := s.store.IssueCredentialToken(ctx, acct.ID, "EMAIL_VERIFY", tokenHash, 24*time.Hour,
+		s.linkEmailSender(notify.EmailVerification, notify.RoleRestaurant, *acct.Email, token, acct.Timezone)); err != nil {
+		s.log.ErrorContext(ctx, "verification email not issued", "account_id", acct.ID, "error", err.Error())
 	}
-	s.log.InfoContext(ctx, "restaurant verification email re-enqueued", "account_id", acct.ID)
-	_ = token
 	return nil
 }
 
-// RequestPasswordReset issues a PASSWORD_RESET token when the account exists.
-// Always succeeds externally (no enumeration).
-func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
+// RequestPasswordReset issues a PASSWORD_RESET token and emails it when the
+// account exists and signs in with a password. It always returns nil and
+// always takes the same time (uniformLinkDelay), so the answer says nothing
+// about whether the account exists. The per-client and per-address email
+// limits (email_limits.go) are checked first and silently stop the email;
+// clientKey is the caller's httpx.RateLimitKey.
+func (s *Service) RequestPasswordReset(ctx context.Context, email, clientKey string) error {
+	defer s.answerUniformly(ctx, time.Now())
+	if err := s.allowLinkEmail(ctx, emailKindReset, email, clientKey); err != nil {
+		if errors.Is(err, ErrLimiterUnavailable) {
+			s.log.WarnContext(ctx, "password reset email not sent: rate limiter unavailable", "error", err.Error())
+		}
+		return nil
+	}
 	acct, err := s.store.AccountByEmail(ctx, email)
-	if err != nil {
+	if err != nil || acct.Email == nil {
+		return nil
+	}
+	// The link opens the web app the account signs in to; a customer or
+	// rider signs in by phone and has no password to reset.
+	surface, err := s.store.PasswordSurface(ctx, acct.ID)
+	if err != nil || surface == "" {
 		return nil
 	}
 	token, tokenHash, err := NewOpaqueToken()
 	if err != nil {
 		return nil
 	}
-	if err := s.store.InsertCredentialToken(ctx, acct.ID, "PASSWORD_RESET", tokenHash, 30*time.Minute); err != nil {
-		return nil
+	if err := s.store.IssueCredentialToken(ctx, acct.ID, "PASSWORD_RESET", tokenHash, 30*time.Minute,
+		s.linkEmailSender(notify.PasswordReset, notify.RoleContext(surface), *acct.Email, token, acct.Timezone)); err != nil {
+		s.log.ErrorContext(ctx, "password reset email not issued", "account_id", acct.ID, "error", err.Error())
 	}
-	s.log.InfoContext(ctx, "password reset email enqueued", "account_id", acct.ID)
-	_ = token
 	return nil
 }
 
 // ResetPassword consumes a PASSWORD_RESET token, sets the new password, and
-// revokes every session in the account (I-03.2).
-func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
+// revokes every session in the account (a reset ends every session:
+// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-03--email--password-authentication-restaurants-admins-support).
+// Like VerifyEmail it issues no session, also when the token is a staff
+// invitation setting a first password: the user signs in afterwards with Login,
+// with the authenticator code where the account requires one
+// (https://github.com/shaiknoorullah/hg-mono/issues/356).
+func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, ip *string) error {
+	// 10 resets per hour per IP, checked before a hashing slot is taken, so a
+	// flood of made-up tokens never holds one (#216). The token itself is 256
+	// random bits, so this limit is about the hashing cost, not guessing. With
+	// Redis down it counts in this replica's memory, like sign-up
+	// (FallBackLocally).
+	if err := s.rl.Allow(ctx, Limit{Name: "reset:ip", Subject: ipSubject(ip),
+		Max: 10, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
+		return err
+	}
 	if isBreachedPassword(newPassword) {
 		return errBreachedPassword
 	}
+	// Take the hashing slot before consuming the single-use token: if hashing
+	// is busy the caller gets 503 and the reset link still works on retry.
+	slot, err := acquireHashSlot(ctx, audienceSignup)
+	if err != nil {
+		return err
+	}
+	defer slot.release()
 	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", HashOpaqueToken(token))
 	if err != nil {
 		return err
@@ -560,11 +638,18 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	case res.Expired:
 		return errTokenExpired
 	}
-	hash, err := HashPassword(newPassword)
+	hash, err := slot.hash(newPassword)
+	slot.release() // the writes below need no slot
 	if err != nil {
 		return err
 	}
 	if err := s.store.SetPassword(ctx, res.AccountID, hash); err != nil {
+		return err
+	}
+	// The token was delivered to the account's email, so using it proves the
+	// address. This is what lets an invited staff member, whose first
+	// password is set through this operation, sign in afterwards.
+	if err := s.store.MarkEmailVerified(ctx, res.AccountID); err != nil {
 		return err
 	}
 	if err := s.store.RevokeAllForAccount(ctx, res.AccountID, "password_reset"); err != nil {
@@ -685,6 +770,15 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 	if len(newPassword) < 12 || len(newPassword) > 256 {
 		return nil, errWeakPassword
 	}
+	// 5 attempts per account per 15 minutes, checked before anything is read or
+	// a hashing slot is taken, so a limited request never holds one (#216).
+	// With Redis down it counts in this replica's memory, like login's limits
+	// (FallBackLocally): Redis is disposable (docs/spec/01-platform.md, "G-1 —
+	// Postgres is the only source of truth").
+	if err := s.rl.Allow(ctx, Limit{Name: "password_change:account", Subject: p.AccountID,
+		Max: 5, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
+		return nil, err
+	}
 	acct, err := s.store.AccountByID(ctx, p.AccountID)
 	if err != nil {
 		return nil, err
@@ -692,11 +786,22 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 	if acct.PasswordHash == nil {
 		return nil, errInvalidCredentials
 	}
-	ok, verr := VerifyPassword(*acct.PasswordHash, currentPassword)
+	// One slot covers both the check of the current password and the new hash,
+	// so "busy" never reads as "the current password is incorrect". Only a
+	// session holding a staff role uses the staff gate; every other session
+	// shares the login gate, so sessions anyone can get (phone sign-in,
+	// restaurant sign-up) cannot fill the staff gate (passwordChangeAudience).
+	slot, err := acquireHashSlot(ctx, passwordChangeAudience(p.Roles))
+	if err != nil {
+		return nil, err
+	}
+	defer slot.release()
+	ok, verr := slot.verify(*acct.PasswordHash, currentPassword)
 	if verr != nil || !ok {
 		return nil, errInvalidCredentials
 	}
-	newHash, err := HashPassword(newPassword)
+	newHash, err := slot.hash(newPassword)
+	slot.release() // the writes below need no slot
 	if err != nil {
 		return nil, err
 	}
