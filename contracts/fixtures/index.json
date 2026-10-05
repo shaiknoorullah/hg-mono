@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 360,
+  "count": 374,
   "counts_by_domain": {
-    "admin": 17,
+    "admin": 26,
     "cart": 12,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 38,
+    "errors": 43,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -155,6 +155,22 @@
       "file": "admin/menu_version_withdrawn.json"
     },
     {
+      "scenario": "restaurant_application_approved",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "`decideRestaurantApplication` with `restaurant_decision_input_approve`: approved and moved to `PAYOUT_PENDING`. **Approval does not make the restaurant live**: `account_state` stays `PENDING` until payouts are enabled and a menu is approved.",
+      "operations": [
+        "decideRestaurantApplication",
+        "getRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "restaurant"
+      ],
+      "file": "admin/restaurant_application_approved.json"
+    },
+    {
       "scenario": "restaurant_application_none_to_take",
       "domain": "admin",
       "schema": "RestaurantApplication|null",
@@ -177,8 +193,7 @@
       "describes": "A complete application sitting in the queue: five documents, a halal certificate awaiting the seven checks, and no decision yet.",
       "operations": [
         "getRestaurantApplication",
-        "takeNextRestaurantApplication",
-        "decideRestaurantApplication"
+        "takeNextRestaurantApplication"
       ],
       "status": 200,
       "tags": [
@@ -219,6 +234,78 @@
       "file": "admin/restaurant_application_queue_empty.json"
     },
     {
+      "scenario": "restaurant_decision_input_approve",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. APPROVE: an approval reason; `internal_note` stays with staff.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_approve.json"
+    },
+    {
+      "scenario": "restaurant_decision_input_reject",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. REJECT: a rejection reason. Final for this application.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_reject.json"
+    },
+    {
+      "scenario": "restaurant_decision_input_request_changes",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. REQUEST_CHANGES: a rejection reason and exactly which documents to redo.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_request_changes.json"
+    },
+    {
+      "scenario": "rider_application_approved",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "`decideRiderApplication` with `rider_decision_input_approve`: the rider moves to `PAYOUT_PENDING`, not straight to dispatchable. They are offered orders only once Stripe reports payouts enabled.",
+      "operations": [
+        "decideRiderApplication",
+        "getRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "rider"
+      ],
+      "file": "admin/rider_application_approved.json"
+    },
+    {
+      "scenario": "rider_application_changes_requested",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "`decideRiderApplication` with `rider_decision_input_request_changes`: the licence is rejected with its reason and the rider redoes exactly that document.",
+      "operations": [
+        "decideRiderApplication",
+        "getRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "rider",
+        "error-path"
+      ],
+      "file": "admin/rider_application_changes_requested.json"
+    },
+    {
       "scenario": "rider_application_none_to_take",
       "domain": "admin",
       "schema": "RiderApplication|null",
@@ -241,8 +328,7 @@
       "describes": "A rider application with six documents and a vehicle on file.",
       "operations": [
         "getRiderApplication",
-        "takeNextRiderApplication",
-        "decideRiderApplication"
+        "takeNextRiderApplication"
       ],
       "status": 200,
       "tags": [
@@ -265,6 +351,45 @@
         "review-queue"
       ],
       "file": "admin/rider_application_queue.json"
+    },
+    {
+      "scenario": "rider_decision_input_approve",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. APPROVE: an approval reason, never a rejection reason. The text reaches the rider.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_approve.json"
+    },
+    {
+      "scenario": "rider_decision_input_reject",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. REJECT: a document rejection reason and the sentence the rider reads.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_reject.json"
+    },
+    {
+      "scenario": "rider_decision_input_request_changes",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. REQUEST_CHANGES: a document rejection reason and exactly which documents to redo.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_request_changes.json"
     },
     {
       "scenario": "staff_list",
@@ -1918,6 +2043,21 @@
       "file": "errors/error_active_order_exists.json"
     },
     {
+      "scenario": "error_application_already_decided",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. A second decision on a decided application is refused, never applied over the first.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_application_already_decided.json"
+    },
+    {
       "scenario": "error_authentication_required",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2009,6 +2149,36 @@
         "error-envelope"
       ],
       "file": "errors/error_current_password_incorrect.json"
+    },
+    {
+      "scenario": "error_decision_approval_reason_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_decision_approval_reason_required.json"
+    },
+    {
+      "scenario": "error_decision_rejection_reason_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. A rejection or a request for changes without a rejection reason. Every decision is reasoned and audited; nothing changed.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_decision_rejection_reason_required.json"
     },
     {
       "scenario": "error_documents_incomplete",
@@ -2274,6 +2444,21 @@
       "file": "errors/error_rate_limited.json"
     },
     {
+      "scenario": "error_register_restaurant_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, \"R-01 — Restaurant account signup\"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds.",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path"
+      ],
+      "file": "errors/error_register_restaurant_rate_limited.json"
+    },
+    {
       "scenario": "error_reset_token_not_valid",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2322,6 +2507,20 @@
         "error-envelope"
       ],
       "file": "errors/error_review_window_closed.json"
+    },
+    {
+      "scenario": "error_rider_under_18",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `AGE_REQUIREMENT_NOT_MET`. Approving a rider whose date of birth makes them under 18. No role can override it, and the application stays in review.",
+      "operations": [
+        "decideRiderApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_rider_under_18.json"
     },
     {
       "scenario": "error_staff_email_in_use",
@@ -5627,10 +5826,18 @@
       "menu_version_withdrawn"
     ],
     "decideRestaurantApplication": [
-      "restaurant_application_pending_review"
+      "error_application_already_decided",
+      "error_decision_approval_reason_required",
+      "error_decision_rejection_reason_required",
+      "restaurant_application_approved"
     ],
     "decideRiderApplication": [
-      "rider_application_pending_review"
+      "error_application_already_decided",
+      "error_decision_approval_reason_required",
+      "error_decision_rejection_reason_required",
+      "error_rider_under_18",
+      "rider_application_approved",
+      "rider_application_changes_requested"
     ],
     "delayOrder": [
       "restaurant_order_picked_up",
@@ -5838,6 +6045,7 @@
       "restaurant_detail_unverified"
     ],
     "getRestaurantApplication": [
+      "restaurant_application_approved",
       "restaurant_application_pending_review"
     ],
     "getRestaurantAvailability": [
@@ -5887,6 +6095,8 @@
       "restaurant_profile"
     ],
     "getRiderApplication": [
+      "rider_application_approved",
+      "rider_application_changes_requested",
       "rider_application_pending_review"
     ],
     "getRiderDashboard": [
@@ -6091,6 +6301,7 @@
       "session_next_route_suspended"
     ],
     "registerRestaurant": [
+      "error_register_restaurant_rate_limited",
       "restaurant_registration"
     ],
     "rejectOrder": [
@@ -6330,8 +6541,8 @@
     "createUpload": "presigned_upload",
     "decideHalalCertificate": "halal_certificate_status_approved",
     "decideMenuVersion": "menu_version_approved",
-    "decideRestaurantApplication": "restaurant_application_pending_review",
-    "decideRiderApplication": "rider_application_pending_review",
+    "decideRestaurantApplication": "restaurant_application_approved",
+    "decideRiderApplication": "rider_application_approved",
     "delayOrder": "restaurant_order_preparing",
     "enrollTotp": "totp_enrolment",
     "getActiveOrder": "order_preparing",

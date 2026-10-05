@@ -2,7 +2,7 @@
 covers:
   - packages/ui-web/src/**
   - apps/admin/src/**
-reviewed: 2026-09-28
+reviewed: 2026-10-05
 ---
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
@@ -25,12 +25,12 @@ _Draft for issue #141 (design-first, #108). Status: **draft for owner review in 
 | Thing | Where | Note |
 |---|---|---|
 | LyteNyte dependency | `apps/admin/package.json:17` → `"@1771technologies/lytenyte-core": "^2.2.1"` | Only the admin app uses it. It resolves to 2.2.1, with `lytenyte-shared` and `lytenyte-design` at 2.2.1. |
-| LyteNyte usage | `apps/admin/src/components/KeysetGrid.tsx` | Used by `OrdersAdminScreen`, `OnboardingQueueScreen` and `RiderQueueScreen`. It builds a `Grid` from `useClientDataSource` with one keyset page per data source, `rowHeight={44}`, and wires activation to `events.cell.click/keyDown`. It imports `grid.css` and `light-dark.css`. |
+| LyteNyte usage | `apps/admin/src/components/KeysetGrid.tsx` | Used by `OrdersAdminScreen`, `OnboardingQueueScreen` and `RiderQueueScreen`. It builds a `Grid` from `useClientDataSource` with one keyset page per data source, `rowHeight={44}`, and wires activation to `events.cell.click/keyDown`. It imports `grid.css` and our generated `@hg/ui-web/grid-theme.css` (it imported LyteNyte's `light-dark.css` until [#145](https://github.com/shaiknoorullah/hg-mono/issues/145)). |
 | Hand-rolled table | `packages/ui-web/src/data/DataTable.tsx`, `types.ts`, `useGridKeyboard.ts`, `PiiCell.tsx` | Used by `RefundCasesScreen`, `StaffListScreen`, `ApplicationDetailScreen`, `RiderApplicationDetailScreen` and the gallery. |
 | Spec of record | [`docs/design/02-components.md`, the `DataTable` section](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin) | Cursor pagination only. Server-side sort and filter. Content-class widths. Sticky header and first column. Row height from `density.rowHeight`. Six states. "Real `<table>` semantics… `<caption>`… `aria-sort`". |
 | Licence of the installed package | `node_modules/.../lytenyte-core/package.json` → `"license": "Apache-2.0"`. `npm view @1771technologies/lytenyte-pro license` → `COMMERCIAL` | |
 
-**Defect found while researching: the current `KeysetGrid` runs without its styles.** Every rule in LyteNyte's `grid.css` sits under `@layer ln-grid { .ln-grid { … } }`. `KeysetGrid` wraps the grid in `<div className="adm-grid-box">` and never adds `.ln-grid` anywhere (`grep -rn "ln-grid" apps/admin/src` finds nothing). So none of these apply:
+**Defect found while researching: `KeysetGrid` ran without its styles. Fixed in [#145](https://github.com/shaiknoorullah/hg-mono/issues/145)**: the wrapper now carries `ln-grid`, `light-dark.css` is gone, and the theme in [the theming section](#8-theming-our-tokens-on-lytenyte) replaced it. As found: Every rule in LyteNyte's `grid.css` sits under `@layer ln-grid { .ln-grid { … } }`. `KeysetGrid` wraps the grid in `<div className="adm-grid-box">` and never adds `.ln-grid` anywhere (`grep -rn "ln-grid" apps/admin/src` finds nothing). So none of these apply:
 - LyteNyte's cell padding
 - hover and selection
 - the tabular-number rule
@@ -199,7 +199,7 @@ These rules apply to every cell:
 ### 5.2 `IdCell`
 - **Props:** `value: string` (e.g. `HG-10482`), `copy?: boolean`, `href?: string`
 - **When to use:** order `code`, certificate number, payout id. It is the pinned first column in most tables.
-- **Accessibility:** the copy button is labelled "Copy order HG-10482" and announces "Copied". **LyteNyte sets `user-select: none` on the viewport** (`grid.css`), so `.hg-grid [data-ln-cell] { user-select: text }` must be restored for ID cells, or admins cannot select an order code.
+- **Accessibility:** the copy button is labelled "Copy order HG-10482" and announces "Copied". **LyteNyte sets `user-select: none` on the viewport** (`grid.css`), so `user-select: text` must be restored on the cells, or admins cannot select an order code. The shared theme restores it on every body cell (`.ln-grid [data-ln-cell='true']`, [#145](https://github.com/shaiknoorullah/hg-mono/issues/145)).
 - **Tokens:** `text.mono-md` / `font.mono`, `text.primary`, fixed width from content class `id`.
 
 ### 5.3 `MoneyCell`
@@ -343,7 +343,7 @@ Evidence comes from `lytenyte-core/dist` and `lytenyte-shared/dist` at 2.2.1. A 
 | **No `aria-sort`** | not emitted anywhere | Headless `Grid.HeaderCell aria-sort={…}` on the sortable column. The header content is a real `<button>` "Sort by Total, descending". Announce the new order through the polite status region. |
 | **No accessible name on `role="grid"`** | the viewport renders `role:"grid"` with no label | `Grid.Viewport aria-labelledby={captionId}`. The [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin)'s `<caption>` becomes a heading plus `aria-labelledby`, because the grid is div-based, not a `<table>`. **Amend that spec's "real `<table>` semantics" in `docs/decisions/`.** |
 | **`aria-rowcount` is the loaded count** | `"aria-rowcount": api.rowView().rowCount` is written after spread props, so it can't be overridden | With keyset paging there is no total. Accept it (it's accurate for the loaded rows), and say "Showing 50 orders, more available" in the status region. Report upstream as a request for an override. |
-| **Tab model** | the viewport is `tabIndex=0`. `navigator.js`: on Tab it sets `viewport.inert=true` for one tick, so **Tab leaves the grid**. Cells render `tabIndex=0`, not roving `-1`. | This matches the [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin) ("arrows within, Tab out"). The first Tab lands on the viewport and ArrowDown enters the cells. The `KeysetGrid` comment "a cell is natively in the tab order… Tab + Enter reaches any row" is **wrong**, so fix the comment. Add the "Skip to table" link (04-a11y line 195) targeting the viewport. |
+| **Tab model** | the viewport is `tabIndex=0`. `navigator.js`: on Tab it sets `viewport.inert=true` for one tick, so **Tab leaves the grid**. Cells render `tabIndex=0`, not roving `-1`. | This matches the [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin) ("arrows within, Tab out"). The first Tab lands on the viewport and ArrowDown enters the cells. The `KeysetGrid` comment "a cell is natively in the tab order… Tab + Enter reaches any row" was **wrong**, and is corrected ([#145](https://github.com/shaiknoorullah/hg-mono/issues/145)). Add the "Skip to table" link (04-a11y line 195) targeting the viewport. |
 | **Interactive content inside cells** | docs: "left/right arrows cycle through tabbable elements within a cell before advancing" | Keep **at most one** interactive control per cell (a copy button, a reveal button, an actions menu). Enter on a cell activates the row. The actions menu opens on Enter or Space when focused. |
 | **Focus indicator is 1px `--ln-primary-50` (blue)** | `grid.css`: `[data-ln-cell]:focus::before { border: 1px solid var(--ln-primary-50) }` | Override (see [focus](#83-focus-per-docsdecisionsfocus-indicatormd)) to our inset two-layer ring in `--hg-focus-ring-color`. 1px blue fails our focus decision and is below the 2px WCAG 2.4.13 guidance. |
 | **Colour-only encoding** | n/a (it's our cells) | [Cell rule 1](#5-the-cell-component-set): every bar or sparkline has visible text. Status has icon + text. Selection has a checkbox + tint. Countdown urgency has a text suffix. |
@@ -363,7 +363,9 @@ Evidence comes from `lytenyte-core/dist` and `lytenyte-shared/dist` at 2.2.1. A 
   - they load Inter
   - their dark mode is keyed to `.dark`
 - Add the `ln-grid` class on the wrapper (the [unstyled-grid defect](#1-evidence-what-exists-today)).
-- Our mapping lives in a new `grid-theme.css` in `packages/ui-web/src/data/`, **generated by the token generator** (like `tokens.css`). The `--ln-*` → `--hg-*` bridge is therefore regenerated rather than hand-kept, and dark mode follows our `[data-theme]` / `prefers-color-scheme` rules automatically, because it only references role variables.
+- Our mapping is `packages/ui-web/src/tokens/grid-theme.css`, exported as `@hg/ui-web/grid-theme.css` and **generated by the token generator** next to `tokens.css` (built in [#145](https://github.com/shaiknoorullah/hg-mono/issues/145)). The generator refuses any `--hg-*` name `tokens.css` does not declare, so a renamed token fails generation instead of silently leaving the grid without styles. Dark mode follows our `[data-theme]` / `prefers-color-scheme` rules automatically, because it only references role variables.
+- The theme sits **outside any cascade layer**, so it beats `@layer ln-grid` whichever order the two files load in. It also draws the frame on `.ln-grid` (border, `radius.md`, clip, as `DataTable` does) and drops the viewport's own square border.
+- `apps/admin/smoke/grid-styles.test.tsx` pins the wiring: the `ln-grid` wrapper, only `grid.css` from LyteNyte and always with our theme, every variable `grid.css` reads given a role, and none of them a solid green.
 
 ### 8.2 Variable map (the variables `grid.css` actually reads)
 
@@ -373,13 +375,14 @@ Evidence comes from `lytenyte-core/dist` and `lytenyte-shared/dist` at 2.2.1. A 
 | `--ln-font-md` | `var(--hg-text-body-sm-size)` (compact) / `--hg-text-body-md-size` |
 | `--ln-row-height` | set by LyteNyte from the `rowHeight` prop (see [density](#43-density)) |
 | `--ln-padding-horizontal-cell` | `var(--hg-density-card-padding)` |
-| `--ln-bg-ui-panel` | `var(--hg-surface-raised)` (cells and header) |
-| `--ln-bg-row-alternate` | `var(--hg-surface-raised)`. **No banding**: use rules, not zebra (cream on white banding reads as selection) |
+| `--ln-bg-ui-panel` | `var(--hg-surface-base)` (cells). The header is overridden to `var(--hg-surface-subtle)` with label type, matching `DataTable`'s body and header. (This draft said `surface-raised`; `surface-base` is what `DataTable` uses, so the two admin tables match.) |
+| `--ln-bg-row-alternate` | `var(--hg-surface-base)`. **No banding**: use rules, not zebra (cream on white banding reads as selection) |
 | `--ln-bg-row-hover` | `var(--hg-state-hover-overlay)` |
 | `--ln-primary-50` | selected-row tint base → **override** the selected `::before` to `var(--hg-state-selected-tint)` instead of LyteNyte's `color-mix(primary 30%)`. The resize handle's hover goes to `var(--hg-border-interactive)` |
 | `--ln-text-dark`, `--ln-text` | `var(--hg-text-primary)`, `var(--hg-text-secondary)` |
 | `--ln-border`, `--ln-border-row` | `var(--hg-border-decorative)` |
-| `--ln-border-strong`, `--ln-border-xstrong` | `var(--hg-border-interactive)` (pinned-column edges) |
+| `--ln-border-strong` | `var(--hg-border-interactive)` (pinned-column edges) |
+| `--ln-border-xstrong` | `var(--hg-border-strong)` (pinned-row edges) |
 
 Do **not** map LyteNyte's `--ln-green-*` / `--ln-red-*` / `--ln-yellow-*`. Nothing in Core's `grid.css` reads them. They exist for Pro components, and the `light-dark.css` values include a solid green (`hsla(158,61%,48%)`) that the [no-green-solids lint rule (L-4)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/01-foundations.md#9-token-pipeline-and-lint-rules) would flag if it were ever used as a fill. Leaving them unset keeps them out of the product.
 
@@ -387,15 +390,15 @@ Do **not** map LyteNyte's `--ln-green-*` / `--ln-red-*` / `--ln-yellow-*`. Nothi
 A cell is a **borderless control**, so it takes decision point 3: the two-layer ring in the theme's focus colour, **inset** so it isn't clipped by the neighbouring cell or the viewport's overflow:
 
 ```css
-.hg-grid [data-ln-cell="true"]:focus-visible::before,
-.hg-grid [data-ln-header-cell="true"]:focus-visible::before {
+.ln-grid [data-ln-cell="true"]:focus-visible::before,
+.ln-grid [data-ln-header-cell="true"]:focus-visible::before {
   border: 0;
   box-shadow: inset 0 0 0 2px var(--hg-focus-ring-offset), inset 0 0 0 5px var(--hg-focus-ring-color);
   outline: 2px solid transparent; /* forced-colors */
 }
 ```
 
-This is the same recipe as `.hg-focus-inset` in `globals.css`. Where a cell sits on the selected tint, apply `focusRingOn()`'s flip set. The viewport itself (first Tab stop) gets the same ring on its edge. Use `:focus-visible` (the library uses `:focus`), so a mouse click doesn't draw the ring.
+This is the same recipe as `.hg-focus-inset` in `globals.css`. Where a cell sits on the selected tint, apply `focusRingOn()`'s flip set. The viewport itself (first Tab stop) gets the outer two-layer ring round the `.ln-grid` frame, because the cells would cover an inset one. Use `:focus-visible` (the library uses `:focus`), so a mouse click doesn't draw the ring; LyteNyte's own 1px `:focus` ring is removed. As built in [#145](https://github.com/shaiknoorullah/hg-mono/issues/145).
 
 ### 8.4 Halal colour rules inside the grid
 - The **only** solid green pixel in any table is `HalalBadge`'s seal. The [no-green-solids lint rule (L-4)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/01-foundations.md#9-token-pipeline-and-lint-rules) must scan `grid-theme.css` and every cell file. A registered test asserts no `--ln-*` variable resolves into the green hue band.
@@ -407,7 +410,7 @@ This is the same recipe as `.hg-focus-inset` in `globals.css`. Where a cell sits
 ## 9. Conflicts with our rules, and hidden costs
 
 1. **The [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin) says "real `<table>` semantics"; LyteNyte is ARIA-grid on `div` elements.** It is compliant with the ARIA grid pattern, but it is a spec change. Record a decision amending that spec and the accessibility standard (caption → `aria-labelledby`, `<th scope>` → `columnheader`).
-2. **Two tables exist today.** `KeysetGrid` (LyteNyte without its styles, header lost on empty or error, no PII column support, no `aria-sort`) and `DataTable` (hand-rolled, spec-complete). The cost of #110 is porting `DataTable`'s behaviour onto LyteNyte **without regressing** its PII guarantees, states and a11y, and then deleting `KeysetGrid` and `useGridKeyboard.ts`. Budget it as a rewrite of the row surface, not a re-skin.
+2. **Two tables exist today.** `KeysetGrid` (LyteNyte, styled since [#145](https://github.com/shaiknoorullah/hg-mono/issues/145), but header lost on empty or error, no PII column support, no `aria-sort`) and `DataTable` (hand-rolled, spec-complete). The cost of #110 is porting `DataTable`'s behaviour onto LyteNyte **without regressing** its PII guarantees, states and a11y, and then deleting `KeysetGrid` and `useGridKeyboard.ts`. Budget it as a rewrite of the row surface, not a re-skin.
 3. **Allow-list (#108/#112).** `DataTable` and its cells are compositions of LyteNyte + shadcn/Radix + the existing allow-listed `HalalBadge`, `Price` and `Countdown`. `SparklineCell` and `MeterCell` are custom SVG/CSS, so they must be named explicitly on the allow-list as part of this issue.
 4. **Density conflict.** The admin theme token is comfortable at 64px, but the brief and today's code use 44px (see [density](#43-density)). The owner needs to decide.
 5. **The contract has no data for sparklines or deltas**, except `EarningsSummary.buckets`. Any other trend cell means widening `contracts/openapi.yaml` first, then fixtures (all states), then regenerating. Don't design sparklines into the orders or queue tables until then.
@@ -426,8 +429,8 @@ This is the same recipe as `.hg-focus-inset` in `globals.css`. Where a cell sits
 
 ## 10. Done when (for #110)
 - [ ] `DataTable` on LyteNyte Core with the same public API. `KeysetGrid` is deleted and admin screens are migrated.
-- [ ] `.ln-grid` + `grid-theme.css` are generated from tokens. `light-dark.css` is no longer imported. Dark mode follows `[data-theme]`.
-- [ ] Focus is the inset two-layer ring in `--hg-focus-ring-color` on `:focus-visible`.
+- [x] `.ln-grid` + `grid-theme.css` are generated from tokens. `light-dark.css` is no longer imported. Dark mode follows `[data-theme]`. (Done in [#145](https://github.com/shaiknoorullah/hg-mono/issues/145) for `KeysetGrid`; `DataTable` reuses the same two stylesheets.)
+- [x] Focus is the inset two-layer ring in `--hg-focus-ring-color` on `:focus-visible`. (Done in [#145](https://github.com/shaiknoorullah/hg-mono/issues/145), in the shared theme.)
 - [ ] The 9 cells above live in a new `cells/` folder in `packages/ui-web/src/data/`, each with a `textValue`, a gallery story and fixtures for every state (including null, unknown enum, all 14 order states and all 4 halal states).
 - [ ] `aria-sort`, a labelled grid, a polite status region, a "Skip to table" link, and `user-select` restored on ID and text cells.
 - [ ] The [no-green-solids lint rule (L-4)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/01-foundations.md#9-token-pipeline-and-lint-rules) scans the grid theme and cells. A test asserts no red token is reachable from `HalalStateCell` or the certification queue.
