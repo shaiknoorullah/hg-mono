@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 )
 
@@ -23,6 +25,9 @@ type Service struct {
 	cfg    config.Stripe
 	log    *slog.Logger
 	now    func() time.Time
+	orders OrderHooks
+	// payouts queues admin payout runs; nil when Stripe is not configured.
+	payouts *PayoutRunner
 }
 
 // NewService builds the payments service.
@@ -38,6 +43,27 @@ func NewService(repo *Repo, sc StripeClient, cfg config.Stripe, log *slog.Logger
 // returns the service.
 func (s *Service) WithRiderPay(p config.RiderPay) *Service {
 	s.riderPay = p
+	return s
+}
+
+// OrderHooks is how a stored Stripe event moves an order. The orders module
+// owns the order and its state machine; payments never writes "order"
+// itself. The server wires it to the orders store (cmd/hg).
+type OrderHooks interface {
+	// PaymentAuthorised moves an order still waiting for its payment
+	// (CREATED) to AUTHORIZED and on to RESTAURANT_PENDING, inside tx
+	// (docs/spec/01-platform.md, "P-14 — Order lifecycle states and
+	// transitions": created to authorised, then to restaurant pending). It
+	// reports whether the order moved; an
+	// order already past CREATED, or ended, is left as it is.
+	PaymentAuthorised(ctx context.Context, tx pgx.Tx, orderID string) (bool, error)
+}
+
+// WithOrderHooks sets the hooks stored Stripe events move orders through.
+// Without them an event still updates the payment, and the order is left to
+// its own deadline.
+func (s *Service) WithOrderHooks(h OrderHooks) *Service {
+	s.orders = h
 	return s
 }
 

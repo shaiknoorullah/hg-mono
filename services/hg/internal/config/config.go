@@ -46,12 +46,33 @@ type Config struct {
 	Postgres Postgres
 	Redis    Redis
 	MinIO    MinIO
+	Dispatch Dispatch
 	Stripe   Stripe
 	SMS      SMS
 	OTP      OTP
 	RiderPay RiderPay
 	Tax      Tax
 	Realtime Realtime
+	Payouts  Payouts
+}
+
+// Payouts holds the payout settings the owner may still change.
+type Payouts struct {
+	// RestaurantNegativeBalanceBlockDays: a restaurant whose payout balance
+	// has been below zero for longer than this many days takes no new orders
+	// until it recovers; 0 turns the block off. The default, 30, is the
+	// documented behaviour (docs/spec/01-platform.md, "P-19 — Stripe Connect:
+	// onboarding and payouts (Canada)", Schedules). Whether to block at all is
+	// still the owner's open question:
+	// https://github.com/shaiknoorullah/hg-mono/issues/164.
+	RestaurantNegativeBalanceBlockDays int
+	// RestaurantHoldHours: a restaurant's earning from an order is paid once
+	// the order has been settled this long, so a dispute raised inside the
+	// window is netted before the money leaves. The default, 72, is the
+	// proposed three-day hold that stands until the owner decides
+	// (docs/spec/03-restaurant.md, "R-32 — Payout schedule, preferences and
+	// payout requests").
+	RestaurantHoldHours int
 }
 
 // RiderPay holds the rider-pay rules the owner has not settled yet. Each
@@ -260,6 +281,23 @@ func (b Buckets) All() []string {
 	return []string{b.KYC, b.POD, b.Media, b.Exports, b.Tmp}
 }
 
+// Dispatch holds the rider availability sweeps' threshold and schedule
+// (internal/dispatch/availability_sweeper.go). The defaults are the values
+// docs/spec/04-rider.md sets in "D-10 — Availability: online / offline".
+type Dispatch struct {
+	// RiderStaleAfter (HG_RIDER_STALE_AFTER, default 120s): an online rider
+	// whose last location is older than this is moved to ONLINE_STALE and
+	// offered no work until their next location update.
+	RiderStaleAfter time.Duration
+	// RiderStaleSweepEvery (HG_RIDER_STALE_SWEEP_INTERVAL, default 15s): how
+	// often the stale-location sweep runs.
+	RiderStaleSweepEvery time.Duration
+	// RiderReconcileEvery (HG_RIDER_RECONCILE_INTERVAL, default 60s): how often
+	// a rider stuck ON_DELIVERY with no live assignment is looked for and
+	// restored.
+	RiderReconcileEvery time.Duration
+}
+
 // Load reads the environment into a Config.
 //
 // It accumulates every problem it finds and returns them together, so a
@@ -394,6 +432,23 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.RiderPay = RiderPay{
 		TipMakeUp: l.boolVal("HG_RIDER_TIP_MAKEUP", DefaultRiderPay().TipMakeUp),
 	}
+	cfg.Dispatch = Dispatch{
+		RiderStaleAfter:      l.duration("HG_RIDER_STALE_AFTER", 120*time.Second),
+		RiderStaleSweepEvery: l.duration("HG_RIDER_STALE_SWEEP_INTERVAL", 15*time.Second),
+		RiderReconcileEvery:  l.duration("HG_RIDER_RECONCILE_INTERVAL", 60*time.Second),
+	}
+	for _, v := range []struct {
+		key string
+		d   time.Duration
+	}{
+		{"HG_RIDER_STALE_AFTER", cfg.Dispatch.RiderStaleAfter},
+		{"HG_RIDER_STALE_SWEEP_INTERVAL", cfg.Dispatch.RiderStaleSweepEvery},
+		{"HG_RIDER_RECONCILE_INTERVAL", cfg.Dispatch.RiderReconcileEvery},
+	} {
+		if v.d <= 0 {
+			l.errf("%s: %s must be more than zero", v.key, v.d)
+		}
+	}
 
 	cfg.Tax = Tax{
 		HSTRegistrationNumber: l.optional("HG_TAX_HST_REGISTRATION_NUMBER", ""),
@@ -405,6 +460,18 @@ func Load(getenv func(string) string) (*Config, error) {
 	}
 	if cfg.Realtime.MaxSockets < 1 {
 		l.errf("HG_REALTIME_MAX_SOCKETS: %d must be at least 1", cfg.Realtime.MaxSockets)
+	}
+
+	cfg.Payouts = Payouts{
+		RestaurantNegativeBalanceBlockDays: l.intVal("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS", 30),
+		RestaurantHoldHours:                l.intVal("HG_PAYOUT_RESTAURANT_HOLD_HOURS", 72),
+	}
+	if cfg.Payouts.RestaurantHoldHours < 0 {
+		l.errf("HG_PAYOUT_RESTAURANT_HOLD_HOURS: %d must be 0 or more", cfg.Payouts.RestaurantHoldHours)
+	}
+	if cfg.Payouts.RestaurantNegativeBalanceBlockDays < 0 {
+		l.errf("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: %d must be 0 (off) or more",
+			cfg.Payouts.RestaurantNegativeBalanceBlockDays)
 	}
 
 	// G-7: outside local, no dependency may point at loopback. This is the

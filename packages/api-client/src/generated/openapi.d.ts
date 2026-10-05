@@ -410,6 +410,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/payout-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payout runs, newest first
+         * @description Every run, automatic or requested by an admin, with what it paid, held and carried.
+         */
+        get: operations["listPayoutRuns"];
+        put?: never;
+        /**
+         * Run the weekly payout now, for one partner or for every partner
+         * @description Queues a payout run and returns it at once; the server's payout worker runs it
+         *     within seconds, the same code as the automatic Monday run (`GET` the run to follow
+         *     it). Payouts are weekly, every Monday, automatic, with no minimum
+         *     ([payout cadence](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--client-decisions)).
+         *     A run pays the period that closed by `as_of`: Monday 00:00 to Monday 00:00,
+         *     America/Toronto. Every unpaid earning created before that Monday is included, so
+         *     balances carried from earlier weeks are paid too.
+         *
+         *     Running twice never pays twice: a partner gets at most one payout per period, a
+         *     ledger entry belongs to at most one payout, and every Stripe transfer is keyed by
+         *     its payout's id. A payout held because Stripe has payouts turned off for the partner
+         *     is released by the first run for a later period
+         *     ([held payouts](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *
+         *     What is paid comes from the ledger only; the request names who and as of when, never
+         *     an amount. An earning tied to an order is paid once the order is settled and its hold
+         *     has passed: an hour after delivery for a rider, three days for a restaurant. Refunds
+         *     and chargebacks are netted at once, and a balance at or below zero is carried, never
+         *     paid.
+         *
+         *     `as_of` defaults to now and may not be in the future, so a run can never pay an
+         *     earning before its week has closed. A replay with the same `Idempotency-Key` returns
+         *     the run as it was first queued; the same key with a different body is
+         *     `409 IDEMPOTENCY_KEY_REUSE`. The session must have signed in with two-step sign-in,
+         *     and an admin may not run a payout for a partner they are, or belong to.
+         */
+        post: operations["createPayoutRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/payout-runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One payout run and what it did for each partner
+         * @description The audit trail of one run: one line per action per partner — paid, held, released,
+         *     carried because the balance was not positive, skipped and why — with the payout it
+         *     created or moved.
+         */
+        get: operations["getPayoutRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/refunds": {
         parameters: {
             query?: never;
@@ -1251,6 +1321,13 @@ export interface paths {
          *     the current cart's restaurant and line count. `replace=true` performs clear + add as
          *     **one atomic call** — a two-call clear-then-add is prohibited because it can leave an
          *     empty cart on failure.
+         *
+         *     `409 RESTAURANT_UNAVAILABLE` when the item's restaurant cannot take orders: it is not
+         *     listed and live (delisted, suspended or banned), or its halal certificate is not
+         *     current **as of this request**, computed from admin-verified certificate data. A
+         *     client that still holds the item id from an old cart or a cached menu gets the same
+         *     answer. Quoting and placing an order check it again in their own transaction, and a
+         *     cart already holding the restaurant's items is kept but stops being quotable.
          */
         post: operations["addCartLine"];
         delete?: never;
@@ -2497,6 +2574,14 @@ export interface paths {
          *     Expiry is server-authoritative. A late accept is `409 OFFER_EXPIRED` with the final
          *     state — never a partial success. Closing the dialog, refreshing, or losing the
          *     socket never rejects an order.
+         *
+         *     `409 RESTAURANT_UNAVAILABLE` when the restaurant cannot take orders **as of this
+         *     request**: it is not listed and live (suspended, banned, delisted), or its halal
+         *     certificate is not current, computed from admin-verified certificate data. Nothing is
+         *     captured; the order stays `RESTAURANT_PENDING` until its deadline cancels it and
+         *     releases the authorisation. The check holds the restaurant row locked until the
+         *     accept commits, so a concurrent suspension either lands first and refuses the accept,
+         *     or waits for it and then treats the order as accepted.
          */
         post: operations["acceptOrder"];
         delete?: never;
@@ -3577,7 +3662,12 @@ export interface components {
             /** Format: uuid */
             id: string;
             indicative_subtotal_cents: components["schemas"]["Cents"];
-            /** @description False when any line is unavailable, the restaurant is closed, or no address is selected. */
+            /**
+             * @description False when any line is unavailable, the restaurant is closed, the restaurant cannot
+             *     take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
+             *     is not current), or no address is selected. A cart whose restaurant becomes
+             *     unavailable is kept, never emptied on the customer's behalf.
+             */
             is_quotable: boolean;
             /**
              * Format: int32
@@ -5041,6 +5131,130 @@ export interface components {
          * @enum {string}
          */
         PayoutInterval: "DAILY" | "WEEKLY";
+        PayoutPayee: {
+            /**
+             * Format: uuid
+             * @description The restaurant id, or the rider's account id.
+             */
+            id: string;
+            type: components["schemas"]["PayoutPayeeType"];
+        };
+        /**
+         * @description Who a payout is paid to. A restaurant is identified by its restaurant id, a rider by their account id.
+         * @enum {string}
+         */
+        PayoutPayeeType: "RESTAURANT" | "RIDER";
+        PayoutRun: {
+            as_of: components["schemas"]["Timestamp"];
+            /**
+             * Format: int32
+             * @description How many times a worker started it. Above 1 means a worker stopped mid-run and another finished it.
+             */
+            attempts: number;
+            /**
+             * Format: int32
+             * @description Partners whose unpaid balance was zero or below, carried to a later run.
+             */
+            carried: number;
+            created_at: components["schemas"]["Timestamp"];
+            /** @description When the run was due: Monday 09:00 America/Toronto for a scheduled run, the request time for an admin one. */
+            due_at: components["schemas"]["Timestamp"];
+            /** @description Why the run itself stopped, when it did. Per-partner failures are lines. */
+            error: string | null;
+            /** Format: int32 */
+            failed: number;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: int32 */
+            held: number;
+            held_cents: components["schemas"]["Cents"];
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["PayoutRunKind"];
+            /**
+             * Format: int32
+             * @description Payouts transferred, new and released.
+             */
+            paid: number;
+            paid_cents: components["schemas"]["Cents"];
+            /**
+             * Format: int32
+             * @description Partners the run looked at.
+             */
+            partners: number;
+            /** @description The one partner this run is for, or null for every partner. */
+            payee: components["schemas"]["PayoutPayee"] | null;
+            /** @description The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid. */
+            period_end: components["schemas"]["Timestamp"];
+            period_start: components["schemas"]["Timestamp"];
+            /** @description Why the admin requested it; null for a scheduled run. */
+            reason: string | null;
+            /** Format: int32 */
+            released: number;
+            /**
+             * Format: uuid
+             * @description The admin who requested it; null for a scheduled run.
+             */
+            requested_by: string | null;
+            /** Format: date-time */
+            started_at: string | null;
+            state: components["schemas"]["PayoutRunState"];
+        };
+        PayoutRunDetail: components["schemas"]["PayoutRun"] & {
+            lines: components["schemas"]["PayoutRunLine"][];
+        };
+        /** @description Who to pay and as of when; never an amount. Every amount comes from the ledger. */
+        PayoutRunInput: {
+            /**
+             * @description Run as if it were this moment: the run pays the period that closed by then.
+             *     Defaults to now; a time in the future is `422 VALIDATION_FAILED`.
+             */
+            as_of?: components["schemas"]["Timestamp"];
+            /** @description Run for this partner only. Omit it to run for every partner. */
+            payee?: components["schemas"]["PayoutPayee"];
+            /** @description Why the run is needed now. Kept on the run and in the audit trail. */
+            reason: string;
+        };
+        /**
+         * @description `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+         * @enum {string}
+         */
+        PayoutRunKind: "SCHEDULED" | "ADMIN";
+        PayoutRunLine: {
+            /** @description The payout's amount, or the balance carried or owed. */
+            amount_cents: components["schemas"]["Cents"];
+            at: components["schemas"]["Timestamp"];
+            detail: string | null;
+            outcome: components["schemas"]["PayoutRunOutcome"];
+            payee: components["schemas"]["PayoutPayee"];
+            /** Format: uuid */
+            payout_id: string | null;
+        };
+        /**
+         * @description What a run did for one partner.
+         *     `PAID`: a payout for this period was created and transferred.
+         *     `HELD`: a payout was created but Stripe has payouts turned off for the partner, so no
+         *     transfer was made; `STILL_HELD`: an earlier held payout is still blocked;
+         *     `RELEASED`: an earlier held or unfinished payout was transferred.
+         *     `TRANSFER_FAILED`: Stripe refused the transfer; the payout stays owed for the next run.
+         *     `ALREADY_PAID`: this partner already has a payout for this period.
+         *     `NOTHING_DUE`: no unpaid earnings before the cutoff.
+         *     `CARRIED_NEGATIVE`: the unpaid balance is zero or below, so it is carried and netted
+         *     against later earnings.
+         *     `NO_PAYOUT_ACCOUNT`: no Stripe account yet; the balance waits for onboarding.
+         *     `PARTNER_SUSPENDED`: a suspended or banned restaurant is not paid until reinstated.
+         *     `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
+         *     longer than the configured limit, so it takes no new orders, or it has recovered.
+         *     `ERROR`: the server failed for this partner; see `detail`.
+         * @enum {string}
+         */
+        PayoutRunOutcome: "PAID" | "HELD" | "STILL_HELD" | "RELEASED" | "TRANSFER_FAILED" | "ALREADY_PAID" | "NOTHING_DUE" | "CARRIED_NEGATIVE" | "NO_PAYOUT_ACCOUNT" | "PARTNER_SUSPENDED" | "ORDERS_BLOCKED" | "ORDERS_UNBLOCKED" | "ERROR";
+        /**
+         * @description `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+         *     payout stays owed and the next run tries it again.
+         * @enum {string}
+         */
+        PayoutRunState: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
         /**
          * @description `HELD` carries a reason and is what `payouts_enabled=false` produces.
          * @enum {string}
@@ -6635,6 +6849,15 @@ export type SchemaPaymentState = components['schemas']['PaymentState'];
 export type SchemaPayout = components['schemas']['Payout'];
 export type SchemaPayoutDetail = components['schemas']['PayoutDetail'];
 export type SchemaPayoutInterval = components['schemas']['PayoutInterval'];
+export type SchemaPayoutPayee = components['schemas']['PayoutPayee'];
+export type SchemaPayoutPayeeType = components['schemas']['PayoutPayeeType'];
+export type SchemaPayoutRun = components['schemas']['PayoutRun'];
+export type SchemaPayoutRunDetail = components['schemas']['PayoutRunDetail'];
+export type SchemaPayoutRunInput = components['schemas']['PayoutRunInput'];
+export type SchemaPayoutRunKind = components['schemas']['PayoutRunKind'];
+export type SchemaPayoutRunLine = components['schemas']['PayoutRunLine'];
+export type SchemaPayoutRunOutcome = components['schemas']['PayoutRunOutcome'];
+export type SchemaPayoutRunState = components['schemas']['PayoutRunState'];
 export type SchemaPayoutState = components['schemas']['PayoutState'];
 export type SchemaPhoneE164 = components['schemas']['PhoneE164'];
 export type SchemaPickupScanInput = components['schemas']['PickupScanInput'];
@@ -7509,6 +7732,155 @@ export interface operations {
                 };
             };
             409: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listPayoutRuns: {
+        parameters: {
+            query?: {
+                /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Runs, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRun"][];
+                        meta: components["schemas"]["PageMeta"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createPayoutRun: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutRunInput"];
+            };
+        };
+        responses: {
+            /** @description The run is queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRun"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /**
+             * @description `MFA_REQUIRED`: the session did not sign in with two-step sign-in. `FORBIDDEN`: the
+             *     payee is the caller, or a restaurant the caller belongs to.
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `NOT_FOUND`: the payee is neither a restaurant nor a rider. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REUSE`: this key was used with a different body. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `reason` is missing or too short, or `as_of` is in the future. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Stripe is not configured on this server, so nothing can be paid. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPayoutRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run and its lines. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRunDetail"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };
@@ -8825,7 +9197,8 @@ export interface operations {
             };
             /**
              * @description `DIFFERENT_RESTAURANT`, `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`,
-             *     `ADDON_UNAVAILABLE` or `RESTAURANT_CLOSED`. The cart is unchanged.
+             *     `ADDON_UNAVAILABLE`, `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`. The cart is
+             *     unchanged.
              */
             409: {
                 headers: {
@@ -10862,7 +11235,7 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
-            /** @description `OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`. */
+            /** @description `OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`, `RESTAURANT_UNAVAILABLE`. */
             409: {
                 headers: {
                     [name: string]: unknown;

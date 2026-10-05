@@ -417,11 +417,19 @@ func TestIntegration_RiderEarnings_EndpointsShowTheAmounts(t *testing.T) {
 		t.Fatalf("seed connect account: %v", err)
 	}
 	repo := NewRepo(pool)
-	payoutID, _, err := repo.RunPayout(ctx, "RIDER", o.RiderID, time.Now().Add(-7*24*time.Hour), time.Now().Add(time.Second))
+	now := time.Now()
+	pp, err := repo.createPeriodPayout(ctx, PayeeRef{Type: "RIDER", ID: o.RiderID},
+		PayoutPeriod{Start: now.Add(-7 * 24 * time.Hour), End: now.Add(time.Second)},
+		0, now.Add(time.Hour), now.Add(time.Hour), runActor{})
+	payoutID := pp.PayoutID
 	if err != nil || payoutID == "" {
 		t.Fatalf("run payout = %q, %v", payoutID, err)
 	}
-	if err := repo.MarkPayoutTransferred(ctx, payoutID, "tr_test_"+payoutID); err != nil {
+	claim, err := repo.claimTransfer(ctx, payoutID, "test", now.Add(time.Hour), runActor{})
+	if err != nil || !claim.Claimed {
+		t.Fatalf("claim transfer = %+v, %v", claim, err)
+	}
+	if err := repo.markTransferred(ctx, payoutID, "tr_test_"+payoutID, runActor{}, false, claim.AmountCents); err != nil {
 		t.Fatalf("mark transferred: %v", err)
 	}
 	rctx := chi.NewRouteContext()
