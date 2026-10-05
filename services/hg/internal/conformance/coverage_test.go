@@ -49,9 +49,6 @@ func writeCoverage(t *testing.T, h *Harness) {
 var uncoveredReasons = map[string]string{
 	// No route serves these yet: #261 added them to the contract without a
 	// handler (https://github.com/shaiknoorullah/hg-mono/issues/502).
-	"updateMenuCategory":     "no handler yet (#502)",
-	"updateMenuItemOnBehalf": "no handler yet (#502)",
-	"deleteMenuItemOnBehalf": "no handler yet (#502)",
 	// Both report on Redis and the object store, which a run against Postgres
 	// alone does not have (https://github.com/shaiknoorullah/hg-mono/issues/377).
 	"getDependencyStatus": "needs Redis and the object store",

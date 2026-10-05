@@ -1042,6 +1042,106 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 	}, nil
 }
 
+// UpdateCategory renames, reorders, deactivates or reactivates one of the
+// restaurant's categories (updateMenuCategory, R-14). Every field is optional.
+// A new sort_order moves the category to that position, and the restaurant's
+// categories are rewritten as a dense 0..n-1 sequence in the same transaction.
+// Returns ErrNotFound when the category is not on this restaurant's menu,
+// ErrCategoryNameTaken for a name another of its categories uses (ignoring
+// case), and ErrMenuLocked while the restaurant is suspended or banned.
+func (r *Repo) UpdateCategory(ctx context.Context, restaurantID, categoryID string, in categoryUpdateDTO) (*MenuCategoryView, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
+	// Lock every category of the menu, in id order, so two reorders of the same
+	// menu queue behind each other instead of interleaving their rewrites.
+	if _, err := tx.Exec(ctx, `
+		SELECT 1 FROM menu_category
+		 WHERE restaurant_id = $1 AND deleted_at IS NULL
+		 ORDER BY id FOR UPDATE`, restaurantID); err != nil {
+		return nil, fmt.Errorf("lock categories: %w", err)
+	}
+
+	tag, err := tx.Exec(ctx, `
+		UPDATE menu_category
+		   SET name        = COALESCE($3, name),
+		       description = COALESCE($4, description),
+		       is_active   = COALESCE($5, is_active)
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL`,
+		categoryID, restaurantID, in.Name, in.Description, in.IsActive)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrCategoryNameTaken
+		}
+		return nil, fmt.Errorf("update category: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, ErrNotFound
+	}
+
+	if in.SortOrder != nil {
+		if err := moveCategory(ctx, tx, restaurantID, categoryID, *in.SortOrder); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	var c MenuCategoryView
+	if err := r.db.QueryRow(ctx, `
+		SELECT id::text, name, description, sort_order, is_active
+		  FROM menu_category WHERE id = $1`, categoryID).Scan(
+		&c.ID, &c.Name, &c.Description, &c.SortOrder, &c.IsActive); err != nil {
+		return nil, err
+	}
+	if c.Items, err = r.loadCategoryItems(ctx, restaurantID, categoryID); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// moveCategory puts the category at position (clamped to the menu) in the order
+// the menu is shown in (sort_order, then name), and rewrites sort_order for the
+// restaurant's categories as the dense sequence 0..n-1. The caller holds the
+// categories' row locks.
+func moveCategory(ctx context.Context, tx pgx.Tx, restaurantID, categoryID string, position int) error {
+	rows, err := tx.Query(ctx, `
+		SELECT id::text FROM menu_category
+		 WHERE restaurant_id = $1 AND deleted_at IS NULL
+		 ORDER BY sort_order, name, id`, restaurantID)
+	if err != nil {
+		return fmt.Errorf("read category order: %w", err)
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return fmt.Errorf("read category order: %w", err)
+	}
+	order := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if id != categoryID {
+			order = append(order, id)
+		}
+	}
+	position = max(0, min(position, len(order)))
+	order = append(order[:position], append([]string{categoryID}, order[position:]...)...)
+	if _, err := tx.Exec(ctx, `
+		UPDATE menu_category c SET sort_order = o.ord - 1
+		  FROM unnest($1::uuid[]) WITH ORDINALITY AS o(id, ord)
+		 WHERE c.id = o.id AND c.sort_order <> o.ord - 1`, order); err != nil {
+		return fmt.Errorf("rewrite category order: %w", err)
+	}
+	return nil
+}
+
 // CreateMenuItem creates a new menu item + initial DRAFT version.
 // The version is always DRAFT (never auto-approved per R-05 / halal gate).
 func (r *Repo) CreateMenuItem(ctx context.Context, accountID, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {

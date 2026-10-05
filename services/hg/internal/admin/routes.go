@@ -55,6 +55,17 @@ func Routes(r *httpx.Router, h *Handler) {
 	// Menu moderation (A-19): admin creates on behalf of restaurant, reviews queue.
 	r.Post("/v1/admin/restaurants/{restaurantId}/menu/categories", write(ActionMenuCreateOnBehalf, "createMenuCategoryOnBehalf"), h.CreateMenuCategoryOnBehalf)
 	r.Post("/v1/admin/restaurants/{restaurantId}/menu/items", write(ActionMenuCreateOnBehalf, "createMenuItemOnBehalf"), h.CreateMenuItemOnBehalf)
+	// Updating and removing an item on a restaurant's behalf are the same
+	// permission as creating one: the admin role matrix grants create, update and
+	// remove on a restaurant's behalf together (docs/spec/05-admin.md, the
+	// consolidated permission matrix, "menu.edit"), so they declare the same action.
+	// The contract gives neither operation an Idempotency-Key parameter, so the
+	// route does not demand one: a PATCH or DELETE repeated is the same change.
+	writeNoIdem := func(action httpx.Action, op string) httpx.Policy {
+		return httpx.Policy{Action: action, Class: httpx.ClassWrite, OperationID: op}
+	}
+	r.Patch("/v1/admin/restaurants/{restaurantId}/menu/items/{itemId}", writeNoIdem(ActionMenuCreateOnBehalf, "updateMenuItemOnBehalf"), h.UpdateMenuItemOnBehalf)
+	r.Delete("/v1/admin/restaurants/{restaurantId}/menu/items/{itemId}", writeNoIdem(ActionMenuCreateOnBehalf, "deleteMenuItemOnBehalf"), h.DeleteMenuItemOnBehalf)
 	r.Get("/v1/admin/menu-reviews", read(ActionMenuReviewRead, "listMenuReviewQueue"), h.ListMenuReviewQueue)
 	r.Post("/v1/admin/menu-reviews/{versionId}/decision", write(ActionMenuReviewDecide, "decideMenuVersion"), h.DecideMenuVersion)
 

@@ -7,10 +7,10 @@ The oracle: every covered operation had its live server response validated again
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
 - **Total contract operations:** 166
-- **Validated (covered):** 161
-- **Not yet validated (uncovered):** 5
+- **Validated (covered):** 164
+- **Not yet validated (uncovered):** 2
 
-## Covered (161)
+## Covered (164)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
@@ -51,6 +51,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `declineRefund` — POST /v1/admin/refunds/{refundId}/decline
 - `delayOrder` — POST /v1/restaurant/orders/{orderId}/delay
 - `deleteAddress` — DELETE /v1/addresses/{addressId}
+- `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
 - `deletePaymentMethod` — DELETE /v1/payment-methods/{paymentMethodId}
 - `disableTotp` — POST /v1/auth/totp/disable
 - `enrollTotp` — POST /v1/auth/totp/enroll
@@ -169,18 +170,17 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `updateAddress` — PATCH /v1/addresses/{addressId}
 - `updateCartLine` — PATCH /v1/cart/lines/{lineId}
 - `updateCustomerProfile` — PATCH /v1/me/profile
+- `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId}
 - `updateMenuItem` — PATCH /v1/restaurant/menu/items/{itemId}
+- `updateMenuItemOnBehalf` — PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
 - `verifyEmail` — POST /v1/auth/email/verify
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (5)
+## Uncovered (2)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
-- `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId} — no handler yet (#502)
 - `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
 - `getReadiness` — GET /health/ready — needs Redis and the object store
-- `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId} — no handler yet (#502)
-- `updateMenuItemOnBehalf` — PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId} — no handler yet (#502)
