@@ -329,6 +329,17 @@ reject "a document under review must carry its 72h SLA deadline" "kyc_document_d
    INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state)
      VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
              '15000000-0000-4000-8000-000000000002','IN_REVIEW');"
+reject "a rider's file is attached once per document type" "kyc_document_rider_file_once" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at)
+     VALUES ('15000000-0000-4000-8000-000000000229','hg-kyc','kyc/t/p.jpg','KYC_DOCUMENT',
+             'image/jpeg',10,digest('p','sha256'),'READY','019ffe57-fbd0-7355-ade8-b03ea7943578',now());
+   INSERT INTO kyc_document (subject_type, subject_id, rider_doc_type, stored_object_id, state,
+                             deadline_at, deadline_action)
+     VALUES ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','PROFILE_PHOTO',
+             '15000000-0000-4000-8000-000000000229','SUBMITTED',now()+interval '72 hours','ESCALATE'),
+            ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','PROFILE_PHOTO',
+             '15000000-0000-4000-8000-000000000229','SUBMITTED',now()+interval '72 hours','ESCALATE');"
 reject "a live restaurant with no location is rejected" "restaurant_live_needs_location" \
   "INSERT INTO restaurant (slug, legal_name, display_name, onboarding_state, account_state)
      VALUES ('no-location','No Location Inc.','No Location','ACTIVE','LIVE');"
@@ -356,7 +367,97 @@ else
 fi
 
 echo
-echo "12. Rider earnings follow the ledger"
+echo "12. The API's role cannot switch the invariants off (00032, roles/roles.sql)"
+# The API logs in as hg_app. SET LOCAL ROLE gives this superuser session exactly
+# hg_app's rights for one transaction, so each case is what a compromised API
+# could try.
+AS_APP="SET LOCAL ROLE hg_app;"
+reject "hg_app cannot disable the ledger's triggers" "must be owner" \
+  "$AS_APP ALTER TABLE ledger_entry DISABLE TRIGGER ALL;"
+reject "hg_app cannot drop the append-only trigger" "must be owner" \
+  "$AS_APP DROP TRIGGER ledger_entry_append_only ON ledger_entry;"
+reject "hg_app cannot replace the trigger function" "permission denied for schema public" \
+  "$AS_APP CREATE OR REPLACE FUNCTION ledger_reject_mutation() RETURNS trigger
+     LANGUAGE plpgsql AS 'BEGIN RETURN NULL; END';"
+reject "hg_app cannot skip triggers with session_replication_role" "permission denied to set parameter" \
+  "$AS_APP SET LOCAL session_replication_role = replica;"
+reject "hg_app cannot TRUNCATE the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP TRUNCATE ledger_entry;"
+reject "hg_app cannot UPDATE an amount on the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP UPDATE ledger_entry SET amount_cents = 1;"
+reject "hg_app cannot DELETE from the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP DELETE FROM ledger_entry;"
+reject "hg_app cannot add a trigger" "permission denied for table ledger_entry" \
+  "$AS_APP CREATE TRIGGER probe BEFORE INSERT ON ledger_entry
+     FOR EACH ROW EXECUTE FUNCTION ledger_reject_mutation();"
+reject "hg_app cannot ALTER a table" "must be owner" \
+  "$AS_APP ALTER TABLE \"order\" DROP CONSTRAINT order_deadline_required;"
+reject "hg_app cannot CREATE in the schema" "permission denied for schema public" \
+  "$AS_APP CREATE TABLE probe (id int);"
+# A temp table named ledger_entry would hide the real one from the zero-sum
+# check, which then sums fake rows and lets an unbalanced batch commit.
+reject "hg_app cannot shadow a table with a temp table" "permission denied to create temporary tables" \
+  "$AS_APP CREATE TEMP TABLE ledger_entry (batch_id uuid, amount_cents bigint);"
+accept "hg_app can still read and write rows" \
+  "$AS_APP SELECT count(*) FROM ledger_entry;
+   SELECT next_channel_seq('order:hg-app-probe');"
+n_rows "hg_app is no superuser, cannot create roles or databases, cannot bypass RLS" "0" \
+  "SELECT 1 FROM pg_roles WHERE rolname = 'hg_app'
+     AND (rolsuper OR rolcreaterole OR rolcreatedb OR rolbypassrls OR rolreplication)"
+n_rows "hg_app owns nothing in the schema" "0" \
+  "SELECT 1 FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relowner = 'hg_app'::regrole
+   UNION ALL SELECT 1 FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND proowner = 'hg_app'::regrole
+   UNION ALL SELECT 1 FROM pg_type WHERE typnamespace = 'public'::regnamespace AND typowner = 'hg_app'::regrole"
+n_rows "hg_app is a member of no other role" "0" \
+  "SELECT 1 FROM pg_auth_members WHERE member = 'hg_app'::regrole"
+n_rows "hg_app holds no TRUNCATE, TRIGGER or REFERENCES grant anywhere" "0" \
+  "SELECT 1 FROM information_schema.table_privileges
+     WHERE grantee = 'hg_app' AND privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')"
+reject "hg_monitor, the exporter's role, cannot read a table" "permission denied for table ledger_entry" \
+  "SET LOCAL ROLE hg_monitor; SELECT count(*) FROM ledger_entry;"
+n_rows "every role that logs in, other than the superuser, has a connection limit" "0" \
+  "SELECT 1 FROM pg_roles WHERE rolname IN ('hg_app','hg_migrator','hg_monitor')
+     AND rolconnlimit < 0"
+# Partition upkeep is the only DDL hg_app may ask for, and only through the two
+# functions in 00032. internal/partitions' tests run the whole loop as hg_app.
+AS_APP_UTC="SET LOCAL ROLE hg_app; SET LOCAL TimeZone = 'UTC';"
+reject "hg_app cannot create a partition itself" "permission denied for schema public" \
+  "$AS_APP CREATE TABLE realtime_event_p20990101 PARTITION OF realtime_event
+     FOR VALUES FROM ('2099-01-01 00:00Z') TO ('2099-01-02 00:00Z');"
+reject "hg_app cannot drop a partition itself" "must be owner" \
+  "$AS_APP DROP TABLE realtime_event_default;"
+reject "partition upkeep refuses a table outside its list" "not a partitioned table it maintains" \
+  "$AS_APP SELECT * FROM hg_partition_ensure('ledger_entry', '2099-01-01 00:00Z', '2099-01-02 00:00Z');"
+reject "partition upkeep refuses a range that is not one whole UTC day" "not one whole UTC day" \
+  "$AS_APP_UTC SELECT * FROM hg_partition_ensure('realtime_event',
+     date_trunc('day', now()) + interval '1 hour', date_trunc('day', now()) + interval '25 hours');"
+reject "partition upkeep refuses a range more than 400 days ahead" "more than 400 days ahead" \
+  "$AS_APP_UTC SELECT * FROM hg_partition_ensure('realtime_event',
+     date_trunc('day', now()) + interval '500 days', date_trunc('day', now()) + interval '501 days');"
+reject "partition upkeep refuses to drop inside a table's retention" "nothing after" \
+  "$AS_APP SELECT hg_partition_drop_before('realtime_event', now() - interval '6 days');"
+reject "partition upkeep never drops an audit partition" "never dropped" \
+  "$AS_APP SELECT hg_partition_drop_before('audit_event', '2000-01-01 00:00Z');"
+reject "hg_readonly cannot run partition upkeep" "permission denied for function" \
+  "SET LOCAL ROLE hg_readonly; SELECT hg_partition_drop_before('realtime_event', '2000-01-01 00:00Z');"
+accept "hg_app runs partition upkeep through the functions" \
+  "$AS_APP_UTC SELECT * FROM hg_partition_ensure('realtime_event',
+     date_trunc('day', now()) + interval '30 days', date_trunc('day', now()) + interval '31 days');
+   SELECT hg_partition_drop_before('realtime_event', now() - interval '7 days');"
+n_rows "partition upkeep runs as hg_migrator, search_path pinned, callable by hg_app alone" "2" \
+  "SELECT 1 FROM pg_proc p
+    WHERE p.proname IN ('hg_partition_ensure', 'hg_partition_drop_before')
+      AND p.prosecdef AND p.proowner = 'hg_migrator'::regrole
+      AND 'search_path=public, pg_temp' = ANY (p.proconfig)
+      AND p.proacl IS NOT NULL
+      AND has_function_privilege('hg_app', p.oid, 'EXECUTE')
+      AND NOT EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
+                       WHERE a.grantee NOT IN ('hg_app'::regrole, 'hg_migrator'::regrole))"
+n_rows "every partitioned table is one that partition upkeep maintains" "0" \
+  "SELECT 1 FROM pg_partitioned_table pt JOIN pg_class c ON c.oid = pt.partrelid
+    WHERE c.relnamespace = 'public'::regnamespace
+      AND c.relname NOT IN ('realtime_event', 'rider_position_history', 'audit_event')"
+echo "13. Rider earnings follow the ledger"
 reject "an earning line that disagrees with its ledger posting is rejected" "earning_entry_ledger_mismatch" \
   "INSERT INTO ledger_batch (kind, order_id, idempotency_key, posted_by)
      VALUES ('SETTLE','88888888-8888-4888-8888-888888888888','inv-rider-mismatch','system:test');

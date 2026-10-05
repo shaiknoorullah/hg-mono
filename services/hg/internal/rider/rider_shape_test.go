@@ -461,8 +461,8 @@ func TestErrorTaxonomy_MissingProfileIsTypedNotFound(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // TestConcurrency_AttachDocumentNoDoubleRow fires the same attach twice
-// concurrently (distinct idempotency keys, same object) and asserts the repo's
-// dedup keeps a single row — no double effect under a race.
+// concurrently (distinct idempotency keys, same object) and asserts a single
+// row, returned to both callers — no double effect under a race (#229).
 func TestConcurrency_AttachDocumentNoDoubleRow(t *testing.T) {
 	pool := openTestDB(t)
 	ctx := context.Background()
@@ -473,17 +473,34 @@ func TestConcurrency_AttachDocumentNoDoubleRow(t *testing.T) {
 	tok := bearerFor(t, iss, riderID, []string{"RIDER"})
 	body := map[string]any{"doc_type": "PROFILE_PHOTO", "stored_object_id": soID}
 
-	type res struct{ code int }
+	type res struct {
+		code int
+		id   string
+	}
 	ch := make(chan res, 2)
 	for i := 0; i < 2; i++ {
 		go func(i int) {
 			rec := do(t, router, "POST", "/v1/riders/me/documents", body, tok,
 				"Idempotency-Key", fmt.Sprintf("cc-%d-%d", time.Now().UnixNano(), i))
-			ch <- res{rec.Code}
+			var env struct {
+				Data struct {
+					ID string `json:"id"`
+				} `json:"data"`
+			}
+			_ = json.Unmarshal(rec.Body.Bytes(), &env)
+			ch <- res{rec.Code, env.Data.ID}
 		}(i)
 	}
+	ids := map[string]bool{}
 	for i := 0; i < 2; i++ {
-		<-ch
+		r := <-ch
+		if r.code != http.StatusCreated {
+			t.Errorf("concurrent attach got %d, want 201", r.code)
+		}
+		ids[r.id] = true
+	}
+	if len(ids) != 1 {
+		t.Errorf("concurrent attach returned document ids %v, want the same one twice", ids)
 	}
 
 	var count int

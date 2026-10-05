@@ -25,10 +25,20 @@ module.exports = () => {
       scheme: 'hgcustomer',
       userInterfaceStyle: 'light',
       newArchEnabled: true,
+      // The HalalGoes logo. Every file under assets/ is written by
+      // `pnpm --filter @hg/brand build:assets` from the one traced geometry; do
+      // not edit them by hand. #FFFAEA is the light theme's surface.base.
+      icon: './assets/icon.png',
+      splash: {
+        image: './assets/splash.png',
+        resizeMode: 'contain',
+        backgroundColor: '#FFFAEA',
+      },
       platforms: ['ios', 'android', 'web'],
       web: {
         bundler: 'metro',
         output: 'single',
+        favicon: './assets/favicon.png',
       },
       ios: {
         supportsTablet: true,
@@ -38,8 +48,12 @@ module.exports = () => {
         edgeToEdgeEnabled: true,
         package: `com.halalgoes.customer${env.idSuffix}`,
         versionCode: env.versionCode,
+        adaptiveIcon: {
+          foregroundImage: './assets/adaptive-icon.png',
+          backgroundColor: '#FFFAEA',
+        },
       },
-      plugins: ['@rnmapbox/maps', 'expo-dev-client'],
+      plugins: ['@rnmapbox/maps', 'expo-dev-client', ['@stripe/stripe-react-native', {}]],
       extra: {
         appEnv: env.name,
         // So `npx expo config --type public` shows whether a map token was present at build time.
