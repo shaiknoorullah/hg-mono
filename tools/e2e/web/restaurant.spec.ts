@@ -15,7 +15,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel('Password').fill(w.password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   // Onboarding is finished, so the app moves on to the orders.
-  await expect(page.getByRole('heading', { name: 'Live orders' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Live orders', level: 1 })).toBeVisible();
 }
 
 /** The card for one order: the nearest block around its code that holds a button. */
