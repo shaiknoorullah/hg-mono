@@ -382,7 +382,10 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 
 // ---- email verification (R-02) ---------------------------------------------
 
-// VerifyEmail implements verifyEmail. Consumes the token and issues a session.
+// VerifyEmail implements verifyEmail. Consumes the token and answers 204: no
+// session, no cookie. An emailed link must never sign anyone in
+// (https://github.com/shaiknoorullah/hg-mono/issues/356); the owner signs in
+// with Login.
 func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var in tokenInput
 	if err := decodeJSON(r, &in); err != nil || len(in.Token) < 32 || len(in.Token) > 128 {
@@ -390,11 +393,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 			"A valid token is required.", nil)
 		return
 	}
-	client, _ := clientSurface(r)
-	if !client.valid() {
-		client = ClientRestaurantWeb
-	}
-	issued, err := h.svc.VerifyEmail(r.Context(), in.Token, client, userAgentPtr(r), clientIPPtr(r))
+	err := h.svc.VerifyEmail(r.Context(), in.Token)
 	switch {
 	case errors.Is(err, errTokenExpired):
 		httpx.Fail(w, r, http.StatusGone, CodeVerifyTokenExpired,
@@ -413,7 +412,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 			"The server failed to process this request.", nil)
 		return
 	}
-	h.writeSessionGrant(w, r, issued, http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ---- resend email verification / forgot password (acknowledgement) ---------
@@ -448,7 +447,9 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 }
 
 // ResetPassword implements resetPassword. Sets the password and revokes every
-// session in the account's family, then 204.
+// session in the account's family, then 204: no session, no cookie, also for a
+// staff invitation's first password
+// (https://github.com/shaiknoorullah/hg-mono/issues/356).
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var in resetPasswordInput
 	if err := decodeJSON(r, &in); err != nil || len(in.Token) < 32 || len(in.Token) > 128 {

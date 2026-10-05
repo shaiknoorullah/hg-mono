@@ -14,7 +14,7 @@ reviewed: 2026-10-05
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
 
-**Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Redis 7, [Silo](https://github.com/pgsty/silo) object storage (MinIO-compatible S3 API; [object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)), Traefik v3, docker compose.
+**Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Valkey 9 (Redis-compatible), [Silo](https://github.com/pgsty/silo) object storage (the maintained fork of MinIO, with its S3 API; [object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)), Traefik v3, docker compose.
 **Currency**: CAD only. **Market**: Canada; launch in Ontario only ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 **Status**: normative. Every domain module (restaurant, menu, cart, order, dispatch, payments, admin) depends on this layer and may not re-implement any part of it.
 
@@ -224,12 +224,12 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
 
 - **Behaviour**:
   - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.**
-  - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, issues a session.
+  - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, answers `204`. **Issues no session and sets no cookie**: an emailed link never signs anyone in, or an attacker could send someone the link for the attacker's own account and have them work in it ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The owner then signs in with `login`.
   - `POST /v1/auth/email/resend` — rate limited like the reset email below; a 429 only when the caller is over its own limits.
   - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when enrolled/required, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
   - `POST /v1/auth/password/forgot` `{email}` → always 200; sends reset token if the account exists.
   - **Link email limits** (verification and reset alike, as built Oct 2026): 3 an hour per address and client address (an IPv4 address or an IPv6 /64), so an attacker cannot use up the owner's own quota; 10 an hour per client address over all addresses; and a last-resort cap of 10 an hour and 20 a day per address, which answers generically and logs an alert. Addresses are counted in lower case with any `+tag` removed. Both operations answer in the same content and time whether or not the account exists. A new link does not cancel the earlier ones; at most 3 are live per account, and using one ends the rest.
-  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email.
+  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email. Answers `204` with no session and no cookie, also for a staff invitation setting a first password; the user then signs in with `login` (with the authenticator code where required).
   - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued.
   - `POST /v1/auth/totp/enroll` / `verify` / `disable` (step-up required).
 
@@ -1077,7 +1077,7 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
                  └──────────┘         └────────────┴─────────────┴──► UNASSIGNED → SEARCHING
                  └───────────────────────────────────────────────────► NO_RIDER_FOUND
   ```
-  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13).
+  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13). A pickup moves the order in the same transaction as the dispatch step, so a refused order move refuses the pickup ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317)). Only the rider who holds the order's delivery can move it, checked where the order is locked. A pickup while the order is still `PREPARING` is refused until the kitchen's pickup code is checked: marking ready is the kitchen's step, never the rider's word alone ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
 
   **Enforcement.** A single function owns every transition:
   ```go
@@ -1190,7 +1190,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   1. Given an order in `RESTAURANT_PENDING`, When a `PUT` attempts to set it to `DELIVERED`, Then 409 `illegal_transition` listing `["PREPARING","REJECTED","CANCELLED"]`, and no row changes.
   2. Given restaurant staff scoped to R1 and an order for R2 in `RESTAURANT_PENDING`, When they accept it, Then 404 and no transition occurs. (Old system: any caller with two ids could accept.)
   3. Given an order accepted by the restaurant, When capture fails permanently, Then the order does not enter `PREPARING`; it reaches `CANCELLED` with `cancel_reason='capture_failed'` and the restaurant is notified.
-  4. Given an order in `PREPARING`, When the rider marks pickup before the restaurant marks ready, Then 409 — `PREPARING → PICKED_UP` is not in the table; the rider sees "waiting for the kitchen".
+  4. Given an order in `PREPARING`, When the rider marks pickup before the restaurant marks ready, Then 409 — `PREPARING → PICKED_UP` is not in the table; the rider sees "waiting for the kitchen", and neither the assignment nor the order moves. The same holds for an order the rider cannot collect (cancelled, rejected, disputed or not yet accepted). A rider who does not hold the order's delivery gets 404, as for any assignment that is not theirs ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317); the early handover with the kitchen's code is [#413](https://github.com/shaiknoorullah/hg-mono/issues/413)).
   5. Given the state machine, When the exhaustive transition test runs (all 14 × 14 ordered pairs × 6 actor kinds), Then exactly the 21 rows above are permitted and all 1155 other combinations are rejected.
   6. Given an order reaching `DELIVERED`, When settlement fails, Then the order stays `DELIVERED` with an armed deadline and retries; it never silently sits without a deadline.
 
@@ -1210,7 +1210,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   | `AUTHORIZED` | `+60 s` | `OFFER_RESTAURANT` — emit the offer, transition T4 (or T5 if the restaurant is closed/paused) | 3 (retry every 60 s) | T5 `CANCELLED` + void |
   | `RESTAURANT_PENDING` | `+180 s` | `RESTAURANT_TIMEOUT` — transition T8, void auth, notify customer, decrement the restaurant's acceptance SLA | 0 | — |
   | `PREPARING` | `accepted_at + prep_eta + 10 min` | `PREP_OVERDUE` — notify customer with a new ETA, alert ops, re-arm `+10 min` | 3 | T11 `CANCELLED`, full customer refund, restaurant paid per policy |
-  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (widen radius / manual assign), alert ops, re-arm `+10 min` | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
+  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (re-open a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
   | `PICKED_UP` | `picked_up_at + 75 min` | `DELIVERY_OVERDUE` — ping rider, alert ops, re-arm `+15 min` | 3 | T17 `DISPUTED` + ops case. **Never auto-delivers.** |
   | `ARRIVED` | `+15 min` | `HANDOVER_OVERDUE` — notify customer, alert ops, re-arm `+10 min` | 2 | T17 `DISPUTED` + ops case |
   | `DELIVERED` | `+2 min` | `SETTLE` — post the settlement batch, transition T18; on failure re-arm with exponential backoff (2 m, 4 m, 8 m, …) | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
@@ -1267,7 +1267,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 
 > **Decided:** customer fully refunded, restaurant paid in full, the platform absorbs the cost ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
-> **Open:** is the customer offered a pickup option before the order is cancelled?
+> **Open:** is the customer offered a pickup option before the order is cancelled? ([cancel at the pickup cap](https://github.com/shaiknoorullah/hg-mono/issues/336))
 
 > **DECISION REQUIRED — prep overdue cancellation**: When a kitchen blows through three escalations, is the restaurant still paid? · **Proposed default**: no — full customer refund, no restaurant payout, incident recorded against the restaurant's SLA. · **Why**: unlike the no-rider case, the failure is the restaurant's.
 
@@ -1278,6 +1278,8 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 ---
 
 # 5. Payments (Stripe, CAD, Canada)
+
+**One keyed Stripe client.** Every Stripe call the server makes (PaymentIntents, SetupIntents, refunds, Connect accounts and onboarding links, transfers) goes through the one client built from `HG_STRIPE_SECRET_KEY`. The SDK's package-level functions read a global key that nothing sets, so a call made through one would reach Stripe with no key and fail with 401; they are not used, and a test fails if one comes back ([issue #338](https://github.com/shaiknoorullah/hg-mono/issues/338)). Every call is made in the Stripe API version that the stripe-go major version pins, which the server logs at startup (`api_version`); the webhook endpoints are created in that same version, because signature verification refuses an event sent in any other, and a test pins the version so a library upgrade that moves it fails until the endpoints move with it.
 
 ### P-16 — PaymentIntent lifecycle and capture timing
 
@@ -2123,11 +2125,13 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
 
   | Bucket | Visibility | Contents | Versioning | Retention |
   |---|---|---|---|---|
-  | `hg-kyc` | **private** | restaurant business licence, halal certificate, food-safety cert, owner ID; rider licence, vehicle registration, insurance, profile photo | on | 7 years after account closure |
-  | `hg-pod` | **private** | proof-of-delivery photos and signatures | off | 90 days, then delete |
-  | `hg-media` | **private**, read through presigned URLs | menu item photos, restaurant logos and covers, rider profile photos (the cropped public one) | off | lifetime of the entity |
-  | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | off | 30 days |
-  | `hg-tmp` | **private** | unconfirmed uploads | off | 24 h lifecycle rule |
+  | `hg-kyc` | **private** | restaurant business licence, halal certificate, food-safety cert, owner ID; rider licence, vehicle registration, insurance, profile photo | on, old versions kept 35 days | 7 years after account closure |
+  | `hg-pod` | **private** | proof-of-delivery photos and signatures | on, old versions kept 35 days | 90 days, then delete |
+  | `hg-media` | **private**, read through presigned URLs | menu item photos, restaurant logos and covers, rider profile photos (the cropped public one) | on, old versions kept 35 days | lifetime of the entity |
+  | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | on, old versions kept 35 days | 30 days |
+  | `hg-tmp` | **private** | unconfirmed uploads | on, old versions kept 35 days | 24 h lifecycle rule |
+
+  Every bucket is versioned so an overwrite or a delete made by hand in the console can be undone; a version that is no longer current is deleted 35 days later. When the API deletes an object (a rejected upload, or a deletion under the [document lifecycle and retention rules](#p-29--document-lifecycle-review-and-retention)), it deletes every version of that key, so the bytes are gone at once rather than kept for 35 days. The retention column applies to the current version ([object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). Until `hg-media` is private ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)), the compose file serves it public-read, and an anonymous reader may fetch an object by its key and nothing else: no bucket listing and no version listing, so an old or deleted version cannot be found or downloaded.
 
   Object keys are server-generated and unguessable:
   ```

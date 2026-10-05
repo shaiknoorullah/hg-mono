@@ -94,6 +94,25 @@ func TestActorPermitted(t *testing.T) {
 	}
 }
 
+// TestOnlyTheRestaurantMarksReady: marking an order ready (PREPARING to
+// READY_FOR_PICKUP, row T10 of the transition table in docs/spec/01-platform.md,
+// "P-14 — Order lifecycle states and transitions") is the kitchen's step. No
+// rider, and no system path acting on a rider's word, may take it.
+func TestOnlyTheRestaurantMarksReady(t *testing.T) {
+	tr, ok := Lookup(StatePreparing, StateReadyForPickup)
+	if !ok {
+		t.Fatal("mark-ready edge missing")
+	}
+	if !tr.ActorPermitted(ActorRestaurant) {
+		t.Error("the restaurant should be permitted to mark ready")
+	}
+	for _, a := range []ActorKind{ActorSystem, ActorRider, ActorCustomer} {
+		if tr.ActorPermitted(a) {
+			t.Errorf("%s must not mark an order ready", a)
+		}
+	}
+}
+
 func TestAllowedFromForError(t *testing.T) {
 	// Acceptance 1: RESTAURANT_PENDING → {PREPARING, REJECTED, CANCELLED}.
 	got := AllowedFrom(StateRestaurantPending)

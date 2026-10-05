@@ -501,32 +501,29 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	return res, nil
 }
 
-// VerifyEmail consumes an EMAIL_VERIFY token, marks the email verified, advances
-// onboarding, and issues a session.
-func (s *Service) VerifyEmail(ctx context.Context, token string, client ClientSurface, userAgent, ip *string) (*issuedSession, error) {
+// VerifyEmail consumes an EMAIL_VERIFY token, marks the email verified and
+// advances onboarding. It issues no session: an emailed link must never sign
+// anyone in, or an attacker could send someone the link for the attacker's own
+// account and have them work in it (login cross-site request forgery,
+// https://github.com/shaiknoorullah/hg-mono/issues/356). The owner signs in
+// afterwards with Login.
+func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 	res, err := s.store.ConsumeCredentialToken(ctx, "EMAIL_VERIFY", HashOpaqueToken(token))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	switch {
 	case res.NotFound:
-		return nil, ErrNotFound
+		return ErrNotFound
 	case res.Used:
-		return nil, errTokenUsed
+		return errTokenUsed
 	case res.Expired:
-		return nil, errTokenExpired
+		return errTokenExpired
 	}
 	if err := s.store.MarkEmailVerified(ctx, res.AccountID); err != nil {
-		return nil, err
+		return err
 	}
-	if err := s.store.AdvanceRestaurantOnboarding(ctx, res.AccountID); err != nil {
-		return nil, err
-	}
-	acct, err := s.store.AccountByID(ctx, res.AccountID)
-	if err != nil {
-		return nil, err
-	}
-	return s.issueSession(ctx, acct, "pwd", client, nil, userAgent, ip, false)
+	return s.store.AdvanceRestaurantOnboarding(ctx, res.AccountID)
 }
 
 // ResendEmailVerification issues a fresh EMAIL_VERIFY token when the account
@@ -603,7 +600,12 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email, clientKey str
 }
 
 // ResetPassword consumes a PASSWORD_RESET token, sets the new password, and
-// revokes every session in the account (I-03.2).
+// revokes every session in the account (a reset ends every session:
+// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-03--email--password-authentication-restaurants-admins-support).
+// Like VerifyEmail it issues no session, also when the token is a staff
+// invitation setting a first password: the user signs in afterwards with Login,
+// with the authenticator code where the account requires one
+// (https://github.com/shaiknoorullah/hg-mono/issues/356).
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, ip *string) error {
 	// 10 resets per hour per IP, checked before a hashing slot is taken, so a
 	// flood of made-up tokens never holds one (#216). The token itself is 256
