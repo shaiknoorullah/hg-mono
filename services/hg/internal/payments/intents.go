@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 )
 
 // The auth-then-capture lifecycle (P-16), exposed as internal service methods
@@ -185,6 +186,12 @@ func (r *Repo) InsertConnectAccount(ctx context.Context, ownerType, ownerID stri
 			return err
 		}
 	}
+	// An approved rider whose payouts are now enabled becomes ACTIVE (can go online).
+	if ownerType == "RIDER" {
+		if err := rider.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return err
+		}
+	}
 	return tx.Commit(ctx)
 }
 
@@ -217,6 +224,12 @@ func (r *Repo) UpdateConnectFromStripe(ctx context.Context, acct *StripeAccount)
 	// A restaurant's payout account reaching READY advances PAYOUT_PENDING → MENU_PENDING (R-11).
 	if ownerType == "RESTAURANT" {
 		if err := restaurant.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return err
+		}
+	}
+	// An approved rider whose payouts are now enabled becomes ACTIVE (can go online).
+	if ownerType == "RIDER" {
+		if err := rider.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
 			return err
 		}
 	}

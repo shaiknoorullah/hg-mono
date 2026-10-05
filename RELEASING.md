@@ -36,7 +36,7 @@ files are committed and carry **no real secrets**.
 
 | Surface | Copy to | Key vars |
 |---|---|---|
-| Backend / compose | `deploy/.env.example` → `deploy/.env` | DB/Redis/MinIO + auth keys + the **§3 go-live flips** |
+| Backend / compose | `deploy/.env.example` → `deploy/.env` | DB/cache (Valkey)/object storage (Silo) + auth keys + the **§3 go-live flips** |
 | Admin (`@hg/admin`, Vite) | `apps/admin/.env.example` → `apps/admin/.env.local` | `VITE_API_BASE_URL`, `VITE_MAPBOX_TOKEN` |
 | Restaurant (`@hg/restaurant`, Vite) | `apps/restaurant/.env.example` → `apps/restaurant/.env.local` | `VITE_API_BASE_URL` |
 | Customer (`@hg/customer`, Expo) | `apps/customer/.env.example` → `apps/customer/.env` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_MAPBOX_TOKEN` |
@@ -98,7 +98,7 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 ```bash
 cp deploy/.env.example deploy/.env      # edit secrets + §3 flips; HG_ENV=production
 cd services/hg
-make up            # Traefik + 2× API + Postgres/PostGIS + Redis + MinIO
+make up            # Traefik + 2× API + Postgres/PostGIS + Valkey + Silo
 make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```

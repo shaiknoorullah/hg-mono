@@ -228,6 +228,11 @@ RETURNING id`
 			return err
 		}
 
+		// A live item is a gate to ACTIVE: re-evaluate in this transaction.
+		if err := restaurant.RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+			return err
+		}
+
 		// Read back the full item row.
 		const sel = `
 SELECT mi.id, mi.restaurant_id, mi.category_id, mi.price_cents, mi.currency::text,
