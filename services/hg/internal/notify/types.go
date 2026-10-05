@@ -116,13 +116,27 @@ type New struct {
 	// no override resolves its target from AccountLookup and sends Title/Body
 	// unchanged.
 	Overrides map[Channel]ChannelOverride
+	// Email names the template the EMAIL channel renders and the display
+	// values it fills in (email.go). It is stored in notification.data, which
+	// the contract never exposes, so it must hold nothing secret: a one-time
+	// link token goes in Overrides[ChannelEmail].LinkToken instead. Nil means
+	// the EMAIL channel, if planned, sends the generic template with Title and
+	// Body.
+	Email *EmailSpec
 }
 
 // ChannelOverride customises delivery for one channel of one notification
 // without touching the persisted, contract-visible row. See New.Overrides.
 type ChannelOverride struct {
-	Target string // empty means "resolve from the account as usual"
-	Body   string // empty means "use the notification's own Body"
+	Target string `json:"target,omitempty"` // empty means "resolve from the account as usual"
+	Body   string `json:"body,omitempty"`   // empty means "use the notification's own Body"
+	// LinkToken is a single-use token (email verification, password reset,
+	// staff invite) appended to the email's link as ?token=. Like an OTP code,
+	// it travels only in the delivery job's arguments and to the provider,
+	// never into notification.body or notification.data (docs/spec/01-platform.md,
+	// "P-24 — Notification router", rule I-24.5: no notification body contains
+	// a token).
+	LinkToken string `json:"link_token,omitempty"`
 }
 
 // Notification is the persisted row (services/hg/migrations/00020_notifications.sql).
