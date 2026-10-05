@@ -226,12 +226,6 @@
     gap: var(--hg-space-3);
   }
 
-  .adm-grid-box {
-    border: 1px solid var(--hg-border-decorative);
-    border-radius: var(--hg-radius-sm);
-    overflow: hidden;
-  }
-
   .adm-form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
