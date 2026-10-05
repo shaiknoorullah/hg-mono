@@ -512,9 +512,13 @@ func TestConformance_PasswordResetFlow(t *testing.T) {
 // changePassword
 // ============================================================================
 
-// TestConformance_ChangePassword validates changePassword: an authenticated
-// restaurant owner changes their password and receives a re-issued SessionGrant.
-// Both the request body and the SessionGrant response are validated.
+// TestConformance_ChangePassword validates changePassword: a wrong current
+// password is 422 INVALID_CREDENTIALS, never 401, which the shared client
+// would answer by refreshing and retrying
+// (https://github.com/shaiknoorullah/hg-mono/issues/238); then an
+// authenticated restaurant owner changes their password and receives a
+// re-issued SessionGrant. Both the request body and the SessionGrant response
+// are validated.
 func TestConformance_ChangePassword(t *testing.T) {
 	pool := openPool(t)
 	a := newAuthHarness(t, pool)
@@ -528,6 +532,19 @@ func TestConformance_ChangePassword(t *testing.T) {
 		"X-Test-Roles":      "RESTAURANT_OWNER",
 		"X-HG-Client":       webClient,
 	}
+	wrong := map[string]any{"current_password": "NotTheCurrent12!", "new_password": "ConformanceNew34!"}
+	wrq := a.req(t, "POST", "/v1/auth/password/change", wrong, authHdrs)
+	wresp := a.do(t, wrq)
+	raw, _ := io.ReadAll(wresp.Body)
+	wresp.Body.Close()
+	if wresp.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(string(raw), `"INVALID_CREDENTIALS"`) {
+		t.Fatalf("wrong current password: %d %s, want 422 INVALID_CREDENTIALS", wresp.StatusCode, raw)
+	}
+	wrq = a.req(t, "POST", "/v1/auth/password/change", wrong, authHdrs)
+	wresp = a.do(t, wrq)
+	a.validateResp(t, wrq, wresp, http.StatusUnprocessableEntity)
+	wresp.Body.Close()
+
 	body := map[string]any{"current_password": current, "new_password": "ConformanceNew34!"}
 
 	crq := a.req(t, "POST", "/v1/auth/password/change", body, authHdrs)
