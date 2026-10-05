@@ -2537,7 +2537,10 @@ documents lapse cannot go on shift, but is not punished.
     acceptance: staff may do that without a case, and the reason goes on the audit log
     ([cancellation policy](../decisions/README.md#settled--client-decisions); needs a contract change).
   - R2 Cancelling after acceptance always issues a refund per A-29 R1 and A-33; the two are one
-    transaction from the operator's point of view.
+    transaction from the operator's point of view. The same transaction releases the order's
+    rider: a live assignment ends `CANCELLED_BY_PLATFORM`, the rider is available again, the
+    dispatch row stops naming them and `dispatch.unassigned` is written
+    ([#415](https://github.com/shaiknoorullah/hg-mono/issues/415)).
   - R3 `FORCE_STATUS` writes an `audit_event` with severity `DESTRUCTIVE`, requires re-authentication
     (A-02 R4), and raises a P3 case at Tier 3 for after-the-fact review.
   - R4 ETA extension is customer-visible and notifies the customer; it never changes any SLA

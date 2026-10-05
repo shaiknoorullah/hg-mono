@@ -46,6 +46,9 @@ type Store struct {
 	// riderEarnings pays the rider inside the DELIVERED transition. Optional:
 	// nil (tests, minimal wiring) delivers without writing earnings.
 	riderEarnings RiderEarnings
+	// orderCancelled releases the order's rider inside every cancellation.
+	// Optional: nil (tests, minimal wiring) cancels without it.
+	orderCancelled OrderCancelled
 
 	// platformTaxRegistrationNumber and platformLegalName are the O-01 values
 	// (HG_TAX_HST_REGISTRATION_NUMBER / HG_TAX_PLATFORM_LEGAL_NAME) that the
@@ -90,6 +93,23 @@ func NewStore(pool *pgxpool.Pool, emitter ...EventEmitter) *Store {
 // (https://github.com/shaiknoorullah/hg-mono/issues/306).
 type RiderEarnings interface {
 	CreditDeliveryTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error
+}
+
+// OrderCancelled is the dispatch half of a cancellation, run inside the
+// transaction that moves the order to CANCELLED: a live assignment ends, its
+// rider is available again, the dispatch row stops naming them and a search
+// with no rider is closed (https://github.com/shaiknoorullah/hg-mono/issues/415).
+// It must not commit or roll back tx. The dispatch module implements it and
+// cmd/hg injects it, so orders never imports dispatch.
+type OrderCancelled interface {
+	OrderCancelledTx(ctx context.Context, tx pgx.Tx, orderID string) error
+}
+
+// WithOrderCancelled attaches the cancellation's dispatch half and returns the
+// store.
+func (s *Store) WithOrderCancelled(h OrderCancelled) *Store {
+	s.orderCancelled = h
+	return s
 }
 
 // WithRiderEarnings attaches the rider earnings writer and returns the store.
