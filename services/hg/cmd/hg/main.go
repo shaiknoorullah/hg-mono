@@ -649,6 +649,11 @@ func run() error {
 		paymentsSvc.WithPayoutRunner(payoutRunner)
 	}
 	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
+	// The rider who delivered is paid inside the order's DELIVERED transition,
+	// under the rider pay rules the owner has not settled (issue #306).
+	paymentsSvc.WithRiderPay(cfg.RiderPay)
+	ordersStore.WithRiderEarnings(paymentsSvc)
+
 	// The webhook worker applies stored Stripe events from the database: one
 	// replica at a time under an advisory-lock lease, each event's effect and
 	// its processed_at in one transaction, retried with backoff and

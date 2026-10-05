@@ -40,6 +40,9 @@ type Store struct {
 	pool    *pgxpool.Pool
 	emitter EventEmitter    // optional; nil means no realtime events
 	media   MediaURLBuilder // optional; nil renders every image URL as null
+	// riderEarnings pays the rider inside the DELIVERED transition. Optional:
+	// nil (tests, minimal wiring) delivers without writing earnings.
+	riderEarnings RiderEarnings
 
 	// platformTaxRegistrationNumber and platformLegalName are the O-01 values
 	// (HG_TAX_HST_REGISTRATION_NUMBER / HG_TAX_PLATFORM_LEGAL_NAME) that the
@@ -70,6 +73,25 @@ func NewStore(pool *pgxpool.Pool, emitter ...EventEmitter) *Store {
 	if len(emitter) > 0 {
 		s.emitter = emitter[0]
 	}
+	return s
+}
+
+// RiderEarnings writes a rider's earnings for a delivered order: the ledger
+// postings and the rider's earning lines, inside the transaction tx that
+// moves the order to DELIVERED. The payee comes from the database (the
+// order's DELIVERED assignment with its proof of delivery); riderAccountID,
+// the rider completing the transition, is only checked against it. It must
+// not commit or roll back tx, and it must write nothing when the order is
+// already paid. The payments module implements it and cmd/hg/main.go injects
+// it, so orders never imports payments
+// (https://github.com/shaiknoorullah/hg-mono/issues/306).
+type RiderEarnings interface {
+	CreditDeliveryTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error
+}
+
+// WithRiderEarnings attaches the rider earnings writer and returns the store.
+func (s *Store) WithRiderEarnings(e RiderEarnings) *Store {
+	s.riderEarnings = e
 	return s
 }
 

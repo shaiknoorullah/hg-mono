@@ -16,6 +16,10 @@ import (
 // Repo and the StripeClient and enforces the P-16..P-21 rules. It never reads an
 // *http.Request and never trusts a client-supplied amount.
 type Service struct {
+	// riderPay holds the rider pay rules the owner has not settled
+	// (rider_earnings.go): config.DefaultRiderPay until WithRiderPay.
+	riderPay config.RiderPay
+
 	repo   *Repo
 	stripe StripeClient
 	cfg    config.Stripe
@@ -31,7 +35,15 @@ func NewService(repo *Repo, sc StripeClient, cfg config.Stripe, log *slog.Logger
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Service{repo: repo, stripe: sc, cfg: cfg, log: log, now: time.Now}
+	return &Service{repo: repo, stripe: sc, cfg: cfg, log: log, now: time.Now,
+		riderPay: config.DefaultRiderPay()}
+}
+
+// WithRiderPay sets the rider pay rules the owner has not settled yet and
+// returns the service.
+func (s *Service) WithRiderPay(p config.RiderPay) *Service {
+	s.riderPay = p
+	return s
 }
 
 // OrderHooks is how a stored Stripe event moves an order. The orders module
