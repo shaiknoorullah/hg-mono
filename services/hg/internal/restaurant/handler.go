@@ -394,6 +394,9 @@ func (h *Handler) CreateMenuCategory(w http.ResponseWriter, r *http.Request) {
 			"A category with this name already exists.", nil)
 		return
 	}
+	if RespondMenuLocked(w, r, err) {
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
@@ -462,6 +465,9 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
 		return
 	}
+	if RespondMenuLocked(w, r, err) {
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
@@ -524,6 +530,9 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
 		return
 	}
+	if RespondMenuLocked(w, r, err) {
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
@@ -563,6 +572,9 @@ func (h *Handler) SetMenuItemAvailability(w http.ResponseWriter, r *http.Request
 	item, err := h.repo.SetMenuItemAvailability(r.Context(), restaurantID, itemID, body)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
 		return
 	}
 	if err != nil {

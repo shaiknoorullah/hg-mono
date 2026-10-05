@@ -224,7 +224,7 @@ func TestDecideRiderApplication(t *testing.T) {
 		t.Fatalf("expected no blockers for an approvable adult, got %v", got.blockers)
 	}
 
-	decided, err := repo.DecideRiderApplication(ctx, actor, adult, "APPROVE", "", "Welcome aboard the platform.", at)
+	decided, err := repo.DecideRiderApplication(ctx, actor, adult, "APPROVE", "ALL_CHECKS_PASSED", "Welcome aboard the platform.", at)
 	if err != nil {
 		t.Fatalf("approve rider: %v", err)
 	}

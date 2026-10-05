@@ -165,6 +165,8 @@ jobs:
       PROD: ${{ needs.plan.outputs.env == 'prod' }}
       # Public (pk.) token, read by the maps at run time. Optional: without it there is no map.
       EXPO_PUBLIC_MAPBOX_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN_MOBILE }}
+      # Public (pk_) Stripe key for the customer's payment sheet. Without it a customer cannot pay.
+      EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_MOBILE }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:

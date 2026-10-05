@@ -233,12 +233,15 @@ func (e *orderRealtimeEmitter) notifyRestaurantStaff(ctx context.Context, tx pgx
 // (e.g. dispatch has not yet matched a rider by the time the restaurant marks
 // ready) is a deliberate no-op: there is no recipient to tell yet, and the
 // dispatch module's own ready-check drives the rider once one is assigned.
+// Nor is a rider who already has the food told it is ready: a pickup before
+// the kitchen tapped ready marks the order ready in the pickup's own
+// transaction (orders.Store.PickUpTx).
 func (e *orderRealtimeEmitter) notifyAssignedRider(ctx context.Context, tx pgx.Tx, orderID uuid.UUID, ev notify.OrderEvent) error {
 	var riderAccountID uuid.UUID
 	err := tx.QueryRow(ctx, `
 		SELECT rider_account_id
 		  FROM assignment
-		 WHERE order_id = $1 AND terminated_at IS NULL`, orderID).
+		 WHERE order_id = $1 AND terminated_at IS NULL AND picked_up_at IS NULL`, orderID).
 		Scan(&riderAccountID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
@@ -324,15 +327,19 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 // assignment machine and the P-14 order state machine: dispatch may not write
 // order.state directly; it must call through this interface (P-14).
 //
-// Both calls use ActorRider because the transition is triggered by the rider
-// completing a physical step (picking up / delivering the order). The orders
-// module validates the pair against the compile-time transition table, so an
-// invalid call (e.g. wrong current state) returns IllegalTransitionError and the
-// lifecycle call is a no-op.
+// The three dispatch calls use ActorRider because each transition is triggered
+// by the rider completing a physical step (picking up, arriving at the
+// customer, delivering the order). The orders module validates the pair
+// against the compile-time transition table, so an invalid call (e.g. wrong
+// current state) returns IllegalTransitionError and the lifecycle call is a
+// no-op.
 type orderLifecycleAdapter struct {
 	store *orders.Store
 }
 
+// ConfirmPickup is the handoff seal scan's pickup (handoff.OrderLifecycle). The
+// rider's own pickup step moves the order inside its transaction instead, with
+// ConfirmPickupTx (pickup.go).
 func (a *orderLifecycleAdapter) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
 	return a.store.Transition(ctx, orders.TransitionRequest{
 		OrderID:        orderID,
@@ -340,6 +347,20 @@ func (a *orderLifecycleAdapter) ConfirmPickup(ctx context.Context, orderID, ride
 		Actor:          machine.ActorRider,
 		ActorAccountID: riderAccountID,
 		Reason:         "rider confirmed pickup",
+	})
+}
+
+// MarkArrived is the picked-up to arrived step, taken when the rider taps "I'm
+// here" at the drop-off (issue #250). Going through Transition arms the
+// 15-minute handover-overdue deadline and emits the same order.state_changed
+// event as every other step.
+func (a *orderLifecycleAdapter) MarkArrived(ctx context.Context, orderID, riderAccountID string) error {
+	return a.store.Transition(ctx, orders.TransitionRequest{
+		OrderID:        orderID,
+		To:             machine.StateArrived,
+		Actor:          machine.ActorRider,
+		ActorAccountID: riderAccountID,
+		Reason:         "rider arrived at the drop-off",
 	})
 }
 
@@ -598,8 +619,10 @@ func run() error {
 	var stripeClient payments.StripeClient
 	if cfg.Stripe.Configured() {
 		stripeClient = payments.NewLiveStripe(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
+		// The API version every call is made in, never the key.
 		log.Info("stripe configured",
 			slog.Bool("livemode", cfg.Stripe.LiveMode()),
+			slog.String("api_version", payments.StripeAPIVersion),
 			slog.Bool("webhook_secret_set", cfg.Stripe.WebhookSecret != ""))
 	} else if cfg.Env.IsLocal() {
 		// Local dev only: a fake payment client so orders can be placed end-to-end
@@ -633,7 +656,10 @@ func run() error {
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
 	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
-	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr)
+	// A ready order nobody collects is escalated on each lapse of its pickup
+	// deadline: re-dispatch, an ops alert, a customer notice (pickup.go).
+	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr).
+		WithPickupEscalator(&pickupEscalator{notify: notifyClient.Enqueue})
 	go deadlineRunner.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
@@ -647,7 +673,7 @@ func run() error {
 
 	// B11 — Handoff (internal/handoff, migration 00027): package-seal chain of
 	// custody. Reuses the same orderLifecycleAdapter instance dispatch is wired
-	// with above — it already satisfies dispatch.OrderLifecycle's two methods
+	// with above — it already satisfies dispatch.OrderLifecycle's three methods
 	// plus handoff.OrderLifecycle's OpenDispute — and auth's P-04 Ed25519 signing
 	// key, so no second key pair is minted for this module alone.
 	handoffStore := handoff.NewStore(st.DB().Pool)
@@ -659,7 +685,10 @@ func run() error {
 	// restaurantPay bridges restaurant.PaymentActions to the payments sibling so
 	// AcceptOrder captures (T6) and RejectOrder voids (T7) without importing the
 	// payments package from the restaurant package (modular-monolith seam).
-	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
+	// ordersStore carries the realtime emitter, so accept, reject and
+	// mark-ready reach the customer like every other order move
+	// (https://github.com/shaiknoorullah/hg-mono/issues/337).
+	restaurantRepo := restaurant.NewRepo(st.DB().Pool, ordersStore)
 	restaurantPay := restaurantPayAdapter{svc: paymentsSvc}
 	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil, restaurantPay))
 

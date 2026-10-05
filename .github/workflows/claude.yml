@@ -1,5 +1,8 @@
 name: Claude Code
 
+# Runs only when an issue, comment or review mentions @claude; for any other event the job is
+# skipped and uses no runner. It needs a secret, so it stays on GitHub's runners
+# (docs/ci/self-hosted-runners.md).
 on:
   issue_comment:
     types: [created]
@@ -12,12 +15,16 @@ on:
 
 jobs:
   claude:
+    # An @claude mention is the trigger, never the authorisation: the commenter (and whoever
+    # re-runs it) must be in HG_CI_TRUSTED_ACTORS. GitHub's runners only, never ours.
     if: |
+      contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) && contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.triggering_actor) && (
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))))
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
@@ -26,13 +33,13 @@ jobs:
       actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 1
 
       - name: Run Claude Code
         id: claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea # v1.0.241
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
