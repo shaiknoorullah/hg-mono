@@ -1215,7 +1215,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   | `AUTHORIZED` | `+60 s` | `OFFER_RESTAURANT` — emit the offer, transition T4 (or T5 if the restaurant is closed/paused) | 3 (retry every 60 s) | T5 `CANCELLED` + void |
   | `RESTAURANT_PENDING` | `+180 s` | `RESTAURANT_TIMEOUT` — transition T8, void auth, notify customer, decrement the restaurant's acceptance SLA | 0 | — |
   | `PREPARING` | `accepted_at + prep_eta + 10 min` | `PREP_OVERDUE` — notify customer with a new ETA, alert ops, re-arm `+10 min` | 3 | T11 `CANCELLED`, full customer refund, restaurant paid per policy |
-  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (restart a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
+  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (restart a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` (pickup escalation, shipped) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
   | `PICKED_UP` | `picked_up_at + 75 min` | `DELIVERY_OVERDUE` — ping rider, alert ops, re-arm `+15 min` | 3 | T17 `DISPUTED` + ops case. **Never auto-delivers.** |
   | `ARRIVED` | `+15 min` | `HANDOVER_OVERDUE` — notify customer, alert ops, re-arm `+10 min` | 2 | T17 `DISPUTED` + ops case |
   | `DELIVERED` | `+2 min` | `SETTLE` — post the settlement batch, transition T18; on failure re-arm with exponential backoff (2 m, 4 m, 8 m, …) | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
@@ -1744,6 +1744,7 @@ CREATE TABLE realtime_connection (
   - **I-21.2** A principal can never receive an event for a channel it is not subscribed to, and can never subscribe to a channel it cannot pass the ownership check for.
   - **I-21.3** Losing dispatch of an order revokes the rider's `order:{id}` subscription within 2 s.
   - **I-21.4** Payloads are projected per role by the same projection types as HTTP (P-07); there is one serializer per (event, role), not a shared struct with conditional blanking.
+    A subscriber who holds several roles is projected for the one role that authorised the subscription (customer, then rider, then restaurant staff, then support), never for the union of their roles. Projection fails closed: an event type that has no projection for a role sends that role nothing, and the drop is logged ([realtime events in the contract's shapes](https://github.com/shaiknoorullah/hg-mono/issues/247)).
 - **Acceptance criteria**:
   1. Given customer C2, When C2 subscribes to `order:{X}` belonging to C1, Then `subscribe_error{code:"not_found"}` and no events are ever delivered.
   2. Given a rider is unassigned, When 2 s pass, Then the rider's socket receives `unsubscribed{channel:"order:X", reason:"no_longer_authorized"}` and subsequent events for X are not delivered to it.
@@ -1885,7 +1886,9 @@ CREATE INDEX realtime_event_created ON realtime_event(created_at);
   - **I-22.1** `seq` is strictly increasing and gapless per channel, allocated inside the same transaction as the state change that caused the event.
   - **I-22.2** Every event type in the catalogue has a Go struct, a JSON-Schema entry and at least one integration test that observes it end-to-end. A test enumerates the catalogue and fails on any type with no producer or no test (the "every write has a reader" check).
   - **I-22.3** No event payload contains a raw customer phone number, a full address for an unauthorised audience, a card number, a token, or any monetary value not sourced from the order/quote.
+    Every rider in a wave receives `dispatch.offer` before accepting, so its drop-off `lat`/`lng` is the approximate area, rounded to about a kilometre, never the delivery address's own point; the stored event holds the same rounded point ([the customer's address on a rider's offer](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   - **I-22.4** `rider.location` is throttled to at most one event per 5 s per order and is only published while the order is in `PICKED_UP`/`ARRIVED` or dispatch is `ASSIGNED`+.
+    It goes only to an order the rider is still carrying out: the rider's assignment is on its way to the restaurant or the customer, and the order is being prepared or delivered. An assignment that ends without a delivery, or an order cancelled under a live assignment, ends it, even though the dispatch row still names the rider ([realtime events in the contract's shapes](https://github.com/shaiknoorullah/hg-mono/issues/247)).
 - **Acceptance criteria**:
   1. Given the catalogue test, When it runs, Then every listed type is produced by at least one integration scenario and validated against its schema.
   2. Given an order progresses from creation to completion, Then the customer's socket observes a strictly increasing `seq` with no gaps.
