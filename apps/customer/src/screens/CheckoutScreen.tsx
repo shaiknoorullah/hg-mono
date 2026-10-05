@@ -14,9 +14,9 @@
  * another address, a closed or unavailable restaurant goes back to the cart or elsewhere, an
  * expired or stale quote is priced again and the customer checks the new total.
  *
- * Payment is the payments module's (`payWithSheet`); this screen only reads its result. Once the
+ * Payment is the payments module's (`payForOrder`); this screen only reads its outcome. Once the
  * order exists, a cancelled or failed payment keeps that same order and offers to pay again,
- * never a second order. An unknown result status is treated as failed with its message.
+ * never a second order.
  *
  * Every async path here catches, and a render-time surprise falls to `ScreenBoundary`, so no
  * response shape the server sends can take the app down.
@@ -47,9 +47,8 @@ import {
 
 import { getCart } from '../api/cart';
 import { listAddresses, sortForDelivery, type Address } from '../api/addresses';
-import { createQuote, getOrderPayment, placeOrder, type Quote } from '../api/orders';
-import { payWithSheet } from '../payments/pay';
-import { isFakeClientSecret } from '../payments/types';
+import { createQuote, placeOrder, type Quote } from '../api/orders';
+import { payForOrder } from '../payments/payForOrder';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
 import { ORDERING_PAUSED, OrderingPausedNotice, useOrderingPause } from '../ordering/orderingPause';
@@ -87,7 +86,7 @@ type Pricing =
   | { kind: 'refused'; code: string | null; problem: CheckoutProblem };
 
 /** The order exists; paying again uses it, never a new one. */
-type Unpaid = { orderId: string; secret: string; message: string; declined: boolean };
+type Unpaid = { orderId: string; secret: string; message: string };
 
 export function CheckoutScreen(): React.ReactElement {
   const nav = useNavigation();
@@ -232,54 +231,20 @@ function CheckoutView(): React.ReactElement {
     [setup, addressId, tipCents, price],
   );
 
-  /** Confirm payment for an order that exists. Never throws. */
+  /**
+   * Pay for an order that exists, through the payments module (`payForOrder`, which never
+   * throws). Placed goes to tracking; anything else keeps this same order on screen with its
+   * reason and "Retry payment".
+   */
   const pay = React.useCallback(
     async (orderId: string, secret: string) => {
-      // Local/dev fake gateway: nothing to confirm, the server advanced the order itself.
-      if (isFakeClientSecret(secret)) {
+      const outcome = await payForOrder(orderId, secret);
+      if (!live.current) return;
+      if (outcome.kind === 'placed') {
         nav.reset({ name: 'tracking', orderId });
         return;
       }
-      let status = 'failed';
-      let message: string | undefined;
-      try {
-        const result = await payWithSheet(secret);
-        status = String((result as { status?: unknown })?.status ?? 'failed');
-        message = (result as { message?: string })?.message;
-      } catch (e) {
-        message = e instanceof Error ? e.message : undefined;
-      }
-      if (!live.current) return;
-      if (status === 'paid' || status === 'unsupported') {
-        // 'unsupported' is web: no Stripe sheet there, the order waits for payment.
-        nav.reset({ name: 'tracking', orderId });
-        return;
-      }
-      // Re-read the intent so a retry uses the server's current secret (it is re-issued while an
-      // action is still required); if the order has since moved on, just track it.
-      let next = secret;
-      try {
-        const payment = await getOrderPayment(orderId);
-        if (payment?.client_secret) next = payment.client_secret;
-        else if (['PROCESSING', 'REQUIRES_CAPTURE', 'SUCCEEDED'].includes(String(payment?.state))) {
-          nav.reset({ name: 'tracking', orderId });
-          return;
-        }
-      } catch {
-        /* keep the secret we have */
-      }
-      if (!live.current) return;
-      setUnpaid({
-        orderId,
-        secret: next,
-        declined: status !== 'canceled',
-        message:
-          status === 'canceled'
-            ? 'You closed the payment. Your order is held, and nothing is charged until you pay.'
-            : status === 'unconfigured'
-              ? (message ?? "Card payments aren't set up on this build yet. Nothing was charged.")
-              : (message ?? 'Your payment didn’t go through. Nothing was charged. Try again.'),
-      });
+      setUnpaid({ orderId, secret: outcome.secret, message: outcome.message });
     },
     [nav],
   );
@@ -392,7 +357,7 @@ function CheckoutView(): React.ReactElement {
               <Notice
                 testID="Checkout-unpaid"
                 icon="clock"
-                title={unpaid.declined ? 'Payment not completed' : 'Payment closed'}
+                title="Payment not completed"
                 body={unpaid.message}
               />
             ) : null}
@@ -820,7 +785,7 @@ function FooterActions({
     return (
       <>
         <Button variant="primary" size="lg" fullWidth loading={placing} onPress={onPlace} testID="Checkout-pay-again">
-          Try paying again
+          Retry payment
         </Button>
         <Button variant="tertiary" size="md" fullWidth onPress={() => onTrack(unpaid.orderId)}>
           View my order
@@ -830,7 +795,8 @@ function FooterActions({
   }
 
   const problem = pricing.kind === 'refused' ? pricing.problem : placeProblem;
-  if (problem && problem.action !== 'requote') {
+  // A refused first quote has nothing to place, so even "price hold ran out" offers Try again.
+  if (problem && (problem.action !== 'requote' || pricing.kind === 'refused')) {
     switch (problem.action) {
       case 'address':
         return (
