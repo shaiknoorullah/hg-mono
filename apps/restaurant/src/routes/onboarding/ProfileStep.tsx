@@ -2,6 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { isApiError, type Schema } from '@hg/api-client';
 import { Button, Card, Input, Select, Textarea } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../../lib/apiHelpers';
+import { AddressSearch } from '../../components/AddressSearch';
+import { MAPBOX_TOKEN, type GeocodeResult } from '../../lib/geocode';
+
+/** Only without a Mapbox token: the listing is saved as "location not verified". */
+const UNVERIFIED_POINT = { latitude: 43.6532, longitude: -79.3832 };
 
 const PROVINCES: Schema['Province'][] = ['ON', 'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'PE', 'QC', 'SK', 'YT'];
 const PROVINCE_OPTIONS = PROVINCES.map((p) => ({ value: p, label: p }));
@@ -20,6 +25,7 @@ export function ProfileStep({ onSaved }: { onSaved: () => void }) {
     postal_code: '',
     avg_prep_minutes: 25,
   });
+  const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,8 +33,23 @@ export function ProfileStep({ onSaved }: { onSaved: () => void }) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  function onPick(r: GeocodeResult) {
+    setForm((f) => ({
+      ...f,
+      line1: r.line1,
+      city: r.city || f.city,
+      province: (r.province as Schema['Province'] | null) ?? f.province,
+      postal_code: r.postalCode || f.postal_code,
+    }));
+    setPoint({ latitude: r.latitude, longitude: r.longitude });
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!point && MAPBOX_TOKEN) {
+      setError('Search for your address and pick it from the results.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -36,10 +57,7 @@ export function ProfileStep({ onSaved }: { onSaved: () => void }) {
         api.PUT('/v1/restaurant/profile', {
           body: {
             ...form,
-            // Toronto is the only launch service area (AGENTS.md O-05); geocoding UI is
-            // out of scope for v1 core, so we anchor on the default city point.
-            latitude: 43.6532,
-            longitude: -79.3832,
+            ...(point ?? UNVERIFIED_POINT),
             timezone: 'America/Toronto',
             cuisine_ids: [],
           },
@@ -88,6 +106,9 @@ export function ProfileStep({ onSaved }: { onSaved: () => void }) {
             onChange={(v) => set('description', v)}
             placeholder="Halal-certified Levantine grill, family recipes since 1998."
           />
+        </div>
+        <div className="sm:col-span-2">
+          <AddressSearch confirmed={point !== null} onPick={onPick} />
         </div>
         <div className="sm:col-span-2">
           <Input label="Street address" required value={form.line1} onChange={(v) => set('line1', v)} />
