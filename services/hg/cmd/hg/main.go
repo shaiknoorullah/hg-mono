@@ -22,7 +22,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -44,6 +43,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/halalexpiry"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handoff"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
@@ -60,42 +60,27 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
 
-// orderRealtimeEmitter bridges the orders module to the realtime module: it
-// implements orders.EventEmitter by calling realtime.EmitInTx inside the
-// caller's transaction, so the outbox event and the state change commit
-// atomically (the transactional outbox). The store field is set once
-// realtime.NewStore is called in run() and before the HTTP server starts, so
-// it is always non-nil by the time any Transition can run.
+// orderRealtimeEmitter implements orders.EventEmitter: it writes the
+// order-lifecycle notifications inside the transition's transaction. The
+// realtime events themselves are written by orders.Transition directly, in the
+// contract's shapes (internal/orders/events.go;
+// https://github.com/shaiknoorullah/hg-mono/issues/247), so this type no longer
+// touches the realtime outbox.
 type orderRealtimeEmitter struct {
+	// store is no longer read: the realtime write moved into orders.Transition.
+	// It goes when the realtime wiring in run() is next edited (open
+	// https://github.com/shaiknoorullah/hg-mono/pull/291 edits those lines).
 	store *realtime.Store
 	// notify is the transactional-outbox enqueuer (P-24). It is optional: when
 	// nil (e.g. a build without the notify module wired) EmitOrderTransition
-	// still emits the realtime event and simply skips the notification. When
-	// set, the order-lifecycle notification is written into the SAME tx as the
-	// state change, so it commits or rolls back atomically with the transition
-	// (notify/doc.go: a notification is a row first, a delivery attempt second).
+	// does nothing. When set, the order-lifecycle notification is written into
+	// the SAME tx as the state change, so it commits or rolls back atomically
+	// with the transition (notify/doc.go: a notification is a row first, a
+	// delivery attempt second).
 	notify *notify.Enqueuer
 }
 
 func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error {
-	payload, err := json.Marshal(struct {
-		State string `json:"state"`
-	}{State: newState})
-	if err != nil {
-		return fmt.Errorf("marshal order transition payload: %w", err)
-	}
-	oid := orderID
-	if _, _, err = realtime.EmitInTx(ctx, tx,
-		"order:"+orderID,
-		"order.state_changed",
-		1,
-		nil,
-		json.RawMessage(payload),
-		&oid,
-		nil,
-	); err != nil {
-		return err
-	}
 	if e.notify == nil {
 		return nil
 	}
@@ -575,7 +560,7 @@ func run() error {
 	}
 	authModule := auth.NewModule(
 		st.DB().Pool, st.Cache().Client, authSecrets,
-		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
+		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), string(cfg.Env), log)
 	// Email verification, password reset and staff invitations go out
 	// through the notification outbox (issue #248).
 	authModule.UseNotifications(notifyClient.Enqueue)
@@ -598,7 +583,10 @@ func run() error {
 		Authorizer:     authModule.Authorizer,
 	})
 
-	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
+	// getPublicConfig reports the platform-wide pause on new orders, which the
+	// orders module owns (https://github.com/shaiknoorullah/hg-mono/issues/244).
+	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes).
+		WithOrderingStatus(orders.NewStore(st.DB().Pool).OrderingStatus), cfg)
 	auth.Routes(router, authModule.Handler)
 
 	// B2 — Customer delivery addresses (internal/addresses, P-30).
@@ -634,10 +622,8 @@ func run() error {
 	// to provide; until it is wired, orders uses the honest unwired gateway that
 	// 503s rather than fabricating a client_secret, and createOrder answers 503.
 	//
-	// The realtime emitter (Seam C) is created now and its store field is set
-	// after rtStore is built (B8 below). The HTTP server starts only after all
-	// wiring completes, so emitter.store is always non-nil before any Transition
-	// can be called.
+	// The order-lifecycle notifier. Transition writes the realtime events
+	// itself (internal/orders/events.go); this carries only the notifications.
 	rtEmitter := &orderRealtimeEmitter{notify: notifyClient.Enqueue}
 	// O-01 (HST registration): HG_TAX_HST_REGISTRATION_NUMBER is the one-line
 	// flip that stamps the platform's registration number onto every receipt
@@ -675,8 +661,11 @@ func run() error {
 		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
 	}
 	paymentsRepo := payments.NewRepo(st.DB().Pool)
+	// A customer whose refund request staff decline is told through the
+	// notification outbox, in the decline's own transaction (#172).
 	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log).
-		WithOrderHooks(ordersStore)
+		WithOrderHooks(ordersStore).
+		WithOutbox(notifyClient.Enqueue)
 	// The weekly payout run (issue #251): Monday 09:00 America/Toronto, for
 	// every rider and restaurant, and on demand through createPayoutRun. It
 	// needs Stripe, so without a client there is no runner and createPayoutRun
@@ -813,6 +802,16 @@ func run() error {
 	if err := notifyClient.Start(ctx); err != nil {
 		return fmt.Errorf("notify: start worker pool: %w", err)
 	}
+
+	// Halal certificate expiry (#252): lapses certificates the day after they
+	// expire, delists the restaurant, and sends the 30/14/7/1-day renewal
+	// reminders through the notification outbox. One replica works at a time
+	// (advisory lock); the other skips. Spec: docs/spec/05-admin.md, "A-17 —
+	// Halal certificate expiry monitoring and lapse handling".
+	halalExpiry := halalexpiry.New(st.DB().Pool, notifyClient.Enqueue, log, halalexpiry.Config{
+		SuspendAfterExpiredDays: cfg.Halal.SuspendAfterExpiredDays,
+	})
+	go halalExpiry.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),

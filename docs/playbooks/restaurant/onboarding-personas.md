@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-05
+---
+
 # Restaurant Playbook: Onboarding Personas
 
 This playbook tests the restaurant operator onboarding flow across every lifecycle state defined in the [dev world harness design](../../superpowers/specs/2026-09-28-devworld-harness-design.md). Each persona proves a specific screen and gating behavior against the real backend.

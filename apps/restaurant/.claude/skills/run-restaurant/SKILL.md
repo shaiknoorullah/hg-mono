@@ -24,7 +24,6 @@ Paths below are relative to `apps/restaurant/`.
 ```bash
 D=.claude/skills/run-restaurant/driver.sh
 $D smoke                           # start mock + vite if down, sign in, screenshot orders/menu/hours, click Accept, print network + console errors
-$D --backend staging smoke         # run against live staging backend (https://api.halalgoes.com) with real data
 $D --backend local smoke           # run against local Go backend (http://localhost:8080)
 $D shot /payouts                   # screenshot any route with the signed-in session (/staff, /settings, /onboarding, /login ...)
 $D up                              # only start the servers (the browser part is yours: agent-browser --session hg-restaurant ...)

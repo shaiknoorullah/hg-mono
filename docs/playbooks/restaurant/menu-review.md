@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-05
+---
+
 # Restaurant Playbook: Menu Management & Review
 
 This playbook scripts menu management, price updates, copy revisions that require administrative review, and item stock availability.

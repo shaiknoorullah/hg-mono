@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-05
+---
+
 # Restaurant Playbook: Weekly Payouts & Balance
 
 This playbook tests the partner payouts interface, verifying weekly cadence, financial privacy, and status indicators.

@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-05
+---
+
 # Restaurant Playbook: Staff Roles & Financial Privacy
 
 This playbook tests role-based permission boundaries across Owner, Manager, and Staff roles, verifying that financial and administrative endpoints are strictly partitioned.

@@ -30,6 +30,11 @@ type Service struct {
 	verifier      PhoneVerifier
 	verifyChannel string
 
+	// env is the process environment ("local", "staging", "production").
+	// It gates the reserved development sign-in range. Empty refuses that
+	// range. Set once from NewModule.
+	env string
+
 	// notify is the notification outbox the email flows enqueue into
 	// (notifications.go). Nil sends nothing; set once at wiring time.
 	notify notify.TxEnqueuer
@@ -49,6 +54,13 @@ func (s *Service) UsePhoneVerifier(v PhoneVerifier, channel string) {
 	}
 	s.verifier = v
 	s.verifyChannel = channel
+}
+
+// SetEnvironment records the process environment. The reserved development
+// phone range accepts a fixed code only when env is local or staging.
+// Called once from NewModule, before the service is serving.
+func (s *Service) SetEnvironment(env string) {
+	s.env = env
 }
 
 // NewService wires the service.

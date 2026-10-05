@@ -45,7 +45,11 @@ func (e *otpIncorrectError) Error() string { return "otp incorrect" }
 // (or re-sends) the code, and enqueues the SMS. It fails closed (503) when Redis
 // is unreachable. The response never signals whether the number is known.
 func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string, deviceID, ip *string) (*wireOtpChallenge, error) {
-	if s.verifier != nil {
+	// A reserved development number stays on the stored-hash path even when a
+	// phone verifier is configured, and the code is not handed to the SMS
+	// sender. Every other number with a verifier keeps the provider path.
+	delivery := otpDelivery(s.env, s.verifier != nil, phone)
+	if delivery == otpViaVerifier {
 		return s.requestOTPViaVerifier(ctx, phone, purpose, deviceID, ip)
 	}
 	// Rate limits (Redis). Keys rebuild from nothing — a flush costs at most a
@@ -107,20 +111,30 @@ func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string,
 		}, nil
 	}
 
-	// No open challenge: generate a fresh code and send it.
-	code, err := GenerateOTPCode()
-	if err != nil {
-		return nil, err
+	// No open challenge: generate a fresh code and send it. A reserved
+	// development number stores the fixed code and skips the sender, so the
+	// code is neither texted nor written to the log.
+	var code string
+	var err error
+	if delivery == otpViaFixed {
+		code = TestSignInCode
+	} else {
+		code, err = GenerateOTPCode()
+		if err != nil {
+			return nil, err
+		}
 	}
 	codeHash := HMACCode(code, s.secrets.OTPPepper)
 	challenge, err := s.store.InsertChallenge(ctx, phone, purpose, codeHash, deviceID, ip)
 	if err != nil {
 		return nil, err
 	}
-	if err := s.sms.SendOTP(ctx, phone, code); err != nil {
-		s.log.WarnContext(ctx, "otp sms send failed", "error", err.Error())
-		// Delivery failure is not surfaced to the caller (no enumeration); the
-		// challenge exists and the client can request a resend.
+	if delivery != otpViaFixed {
+		if err := s.sms.SendOTP(ctx, phone, code); err != nil {
+			s.log.WarnContext(ctx, "otp sms send failed", "error", err.Error())
+			// Delivery failure is not surfaced to the caller (no enumeration); the
+			// challenge exists and the client can request a resend.
+		}
 	}
 	if err := s.rl.SetCooldown(ctx, cooldownKey, 60*time.Second); err != nil {
 		return nil, err
@@ -255,7 +269,13 @@ func randomSentinelHash() ([]byte, error) {
 // account by phone.
 func (s *Service) VerifyOTP(ctx context.Context, challengeID, code string, client ClientSurface, deviceID, userAgent, ip *string) (*issuedSession, error) {
 	if s.verifier != nil {
-		return s.verifyOTPViaVerifier(ctx, challengeID, code, client, deviceID, userAgent, ip)
+		fixed, ferr := s.challengeUsesFixedCode(ctx, challengeID)
+		if ferr != nil {
+			return nil, ferr
+		}
+		if !fixed {
+			return s.verifyOTPViaVerifier(ctx, challengeID, code, client, deviceID, userAgent, ip)
+		}
 	}
 	codeHash := HMACCode(code, s.secrets.OTPPepper)
 	outcome, err := s.store.ConsumeChallenge(ctx, challengeID, codeHash)
@@ -277,6 +297,25 @@ func (s *Service) VerifyOTP(ctx context.Context, challengeID, code string, clien
 		return nil, errAccountNotActive
 	}
 	return s.issueSession(ctx, acct, "otp", client, deviceID, userAgent, ip, isNew)
+}
+
+// challengeUsesFixedCode reports whether this challenge belongs to the
+// reserved development range. Outside local and staging it returns false
+// without reading the database. A missing challenge returns false so the
+// provider path can answer invalid. Any other read error is returned and
+// the provider is not called.
+func (s *Service) challengeUsesFixedCode(ctx context.Context, challengeID string) (bool, error) {
+	if !fixedTestEnv(s.env) {
+		return false, nil
+	}
+	ch, err := s.store.OpenChallengeByID(ctx, challengeID)
+	if errors.Is(err, ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return FixedTestCode(s.env, ch.PhoneE164), nil
 }
 
 // verifyOTPViaVerifier is the PhoneVerifier (Twilio Verify) variant of VerifyOTP.
@@ -349,15 +388,15 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	}
 	// Redis request-rate limits, per IP then per email (docs/spec/01-platform.md,
 	// "P-03 — Email + password authentication"). An over-the-cap answer stops
-	// the attempt before anything is read or recorded. They fail open: the
-	// lockout below lives in Postgres and survives a Redis outage, and Traefik
-	// keeps its own per-IP limit in front of the app.
+	// the attempt before anything is read or recorded. With Redis down they
+	// count in this replica's memory instead (FallBackLocally), so login keeps
+	// working and stays limited; the lockout below lives in Postgres either way.
 	if err := s.rl.Allow(ctx, Limit{Name: "login:ip", Subject: ipSubject(ip),
-		Max: 30, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		Max: 30, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if err := s.rl.Allow(ctx, Limit{Name: "login:email", Subject: email,
-		Max: 10, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		Max: 10, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 
@@ -460,14 +499,14 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	// 5 sign-ups per hour per IP (docs/spec/03-restaurant.md, "R-01 — Restaurant
 	// account signup") and 5 per hour per email, both checked before the argon2id
 	// hash and a hashing slot, so a limited request costs no CPU and holds no
-	// slot (#216). They fail open: a sign-up creates an unverified account and
-	// issues no session, and Traefik keeps its own per-IP limit in front of the app.
+	// slot (#216). With Redis down they count in this replica's memory instead
+	// (FallBackLocally), still before the hash.
 	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: clientKey,
-		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		Max: 5, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if err := s.rl.Allow(ctx, Limit{Name: "register:email", Subject: canonicalEmail(email),
-		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		Max: 5, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if isBreachedPassword(password) {
@@ -599,6 +638,20 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email, clientKey str
 	return nil
 }
 
+// resetTokenErr is the answer for a password-reset link that cannot be used,
+// or nil when it can.
+func resetTokenErr(res ConsumeCredentialTokenResult) error {
+	switch {
+	case res.NotFound:
+		return ErrNotFound
+	case res.Used:
+		return errTokenUsed
+	case res.Expired:
+		return errTokenExpired
+	}
+	return nil
+}
+
 // ResetPassword consumes a PASSWORD_RESET token, sets the new password, and
 // revokes every session in the account (a reset ends every session:
 // https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-03--email--password-authentication-restaurants-admins-support).
@@ -609,14 +662,26 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email, clientKey str
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, ip *string) error {
 	// 10 resets per hour per IP, checked before a hashing slot is taken, so a
 	// flood of made-up tokens never holds one (#216). The token itself is 256
-	// random bits, so this limit is about the hashing cost, not guessing; it
-	// fails open like sign-up.
+	// random bits, so this limit is about the hashing cost, not guessing. With
+	// Redis down it counts in this replica's memory, like sign-up
+	// (FallBackLocally).
 	if err := s.rl.Allow(ctx, Limit{Name: "reset:ip", Subject: ipSubject(ip),
-		Max: 10, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		Max: 10, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return err
 	}
 	if isBreachedPassword(newPassword) {
 		return errBreachedPassword
+	}
+	// A link that cannot be used is answered before a hashing slot is taken:
+	// it will never hash, so a flood of made-up links neither holds a slot nor
+	// queues on the sign-up gate (#448).
+	tokenHash := HashOpaqueToken(token)
+	state, err := s.store.CredentialTokenState(ctx, "PASSWORD_RESET", tokenHash)
+	if err != nil {
+		return err
+	}
+	if err := resetTokenErr(state); err != nil {
+		return err
 	}
 	// Take the hashing slot before consuming the single-use token: if hashing
 	// is busy the caller gets 503 and the reset link still works on retry.
@@ -625,17 +690,12 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 		return err
 	}
 	defer slot.release()
-	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", HashOpaqueToken(token))
+	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", tokenHash)
 	if err != nil {
 		return err
 	}
-	switch {
-	case res.NotFound:
-		return ErrNotFound
-	case res.Used:
-		return errTokenUsed
-	case res.Expired:
-		return errTokenExpired
+	if err := resetTokenErr(res); err != nil {
+		return err
 	}
 	hash, err := slot.hash(newPassword)
 	slot.release() // the writes below need no slot
@@ -770,12 +830,12 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 		return nil, errWeakPassword
 	}
 	// 5 attempts per account per 15 minutes, checked before anything is read or
-	// a hashing slot is taken, so a limited request never holds one (#216). It
-	// fails open like login's limits: the hashing gate below still bounds the
-	// work, and Redis is disposable (docs/spec/01-platform.md, "G-1 — Postgres
-	// is the only source of truth").
+	// a hashing slot is taken, so a limited request never holds one (#216).
+	// With Redis down it counts in this replica's memory, like login's limits
+	// (FallBackLocally): Redis is disposable (docs/spec/01-platform.md, "G-1 —
+	// Postgres is the only source of truth").
 	if err := s.rl.Allow(ctx, Limit{Name: "password_change:account", Subject: p.AccountID,
-		Max: 5, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		Max: 5, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	acct, err := s.store.AccountByID(ctx, p.AccountID)

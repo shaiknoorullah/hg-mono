@@ -346,6 +346,14 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 		c.IsQuotable = false
 		c.BlockingReasons = appendReason(c.BlockingReasons, "BELOW_MINIMUM_ORDER")
 	}
+	// Staff paused new orders platform-wide: the cart says so before checkout
+	// is refused (https://github.com/shaiknoorullah/hg-mono/issues/244).
+	if err := requireOrderingOpen(ctx, tx, false); errors.Is(err, ErrOrderingPaused) {
+		c.IsQuotable = false
+		c.BlockingReasons = appendReason(c.BlockingReasons, string(codeOrderingPaused))
+	} else if err != nil {
+		return nil, err
+	}
 	if addressID == nil {
 		c.IsQuotable = false
 	}

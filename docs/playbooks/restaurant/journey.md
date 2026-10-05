@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-05
+---
+
 # Restaurant Playbook: End-to-End Live Journey
 
 This playbook walks an operator and an automation agent through a complete live order journey using the [dev world simulator](../../superpowers/specs/2026-09-28-devworld-harness-design.md).

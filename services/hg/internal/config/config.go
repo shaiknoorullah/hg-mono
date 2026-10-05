@@ -54,6 +54,7 @@ type Config struct {
 	RiderPay RiderPay
 	Tax      Tax
 	Realtime Realtime
+	Halal    Halal
 	Payouts  Payouts
 }
 
@@ -107,6 +108,18 @@ type Realtime struct {
 	// is closed with 1013 (try again later) so the client retries, possibly on
 	// the other replica (contracts/websocket.md "Limits").
 	MaxSockets int
+}
+
+// Halal holds the halal certificate expiry settings (internal/halalexpiry).
+type Halal struct {
+	// SuspendAfterExpiredDays (HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS) suspends a
+	// restaurant once its certificate has been expired for this many days. 0,
+	// the default, never suspends: an expired certificate delists the
+	// restaurant and nothing more, as docs/spec/05-admin.md ("A-17 — Halal
+	// certificate expiry monitoring and lapse handling") documents. Suspending
+	// after 14 days is an open owner question:
+	// https://github.com/shaiknoorullah/hg-mono/issues/164.
+	SuspendAfterExpiredDays int
 }
 
 // OTP holds the phone-verification provider selection. It is orthogonal to SMS
@@ -524,6 +537,13 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.Tax = Tax{
 		HSTRegistrationNumber: l.optional("HG_TAX_HST_REGISTRATION_NUMBER", ""),
 		PlatformLegalName:     l.optional("HG_TAX_PLATFORM_LEGAL_NAME", ""),
+	}
+
+	cfg.Halal = Halal{
+		SuspendAfterExpiredDays: l.intVal("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS", 0),
+	}
+	if cfg.Halal.SuspendAfterExpiredDays < 0 {
+		l.errf("HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: %d is negative; 0 means never suspend", cfg.Halal.SuspendAfterExpiredDays)
 	}
 
 	cfg.Realtime = Realtime{

@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-05
+---
+
 # Restaurant Playbook: Operating Hours & Availability
 
 This playbook tests store trading schedules, instant order acceptance toggling, and automated offline state transitions.

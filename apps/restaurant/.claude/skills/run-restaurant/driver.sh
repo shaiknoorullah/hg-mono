@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Drive the restaurant web app against the contract mock or a real backend with agent-browser.
 #
-#   driver.sh [--backend local|staging] up        start backend/vite in the background, wait until answering
-#   driver.sh [--backend local|staging] smoke     sign in, screenshot Orders/Menu/Hours, click Accept, print network calls
-#   driver.sh [--backend local|staging] shot URL  screenshot one route using the signed-in session
+#   driver.sh [--backend mock|local] up        start backend/vite in the background, wait until answering
+#   driver.sh [--backend mock|local] smoke     sign in, screenshot Orders/Menu/Hours, click Accept, print network calls
+#   driver.sh [--backend mock|local] shot URL  screenshot one route using the signed-in session
 #   driver.sh down                                close the browser and kill servers
 #
 # Paths resolve from this file, so it runs from any cwd. Output lands in $OUT (default /tmp/hg-restaurant-run).
@@ -31,11 +31,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$BACKEND" in
-  staging)
-    API_URL="https://api.halalgoes.com"
-    API_CHECK="$API_URL/health/ready"
-    USE_MOCK=false
-    ;;
   local)
     API_URL="http://localhost:8080"
     API_CHECK="$API_URL/health/ready"
@@ -80,8 +75,8 @@ signin() {
     ab find label "Business email" fill "owner@restaurant.ca" >/dev/null
     ab find label "Password" fill "password123" >/dev/null
   else
-    ab find label "Business email" fill "${RESTO_EMAIL:-owner@restaurant.ca}" >/dev/null
-    ab find label "Password" fill "${RESTO_PASSWORD:-SecurePassword123!}" >/dev/null
+    ab find label "Business email" fill "${RESTO_EMAIL:-bismillah-grill@seed.hg}" >/dev/null
+    ab find label "Password" fill "${RESTO_PASSWORD:-Seed!2026}" >/dev/null
   fi
   ab find role button click --name "Sign in" >/dev/null
   ab wait --load networkidle >/dev/null
@@ -130,5 +125,5 @@ case "${1:-smoke}" in
   smoke) smoke ;;
   shot) up; signin; shot "${2:?route}" "$(echo "${2}" | tr -c 'a-z0-9\n' '-' | sed 's/^-*//')" ;;
   down) down ;;
-  *) echo "usage: $0 [--backend local|staging] {up|smoke|shot /route|down}" >&2; exit 2 ;;
+  *) echo "usage: $0 [--backend mock|local] {up|smoke|shot /route|down}" >&2; exit 2 ;;
 esac

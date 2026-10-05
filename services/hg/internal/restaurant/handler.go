@@ -283,13 +283,26 @@ func (h *Handler) AttachRestaurantDocument(w http.ResponseWriter, r *http.Reques
 			[]httpx.FieldError{{Field: "doc_type", Code: "invalid", Message: "unknown document type"}})
 		return
 	}
+	// stored_object_id reaches a uuid column; a malformed value is a clean 422
+	// rather than a 22P02-induced 500.
+	if !isValidUUID(body.StoredObjectID) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"stored_object_id must be a UUID.",
+			[]httpx.FieldError{{Field: "stored_object_id", Code: "invalid", Message: "must be a UUID"}})
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
 	}
-	doc, err := h.repo.AttachDocument(r.Context(), restaurantID, body)
+	doc, err := h.repo.AttachDocument(r.Context(), p.AccountID, restaurantID, body)
 	if err != nil {
 		switch {
+		case errors.Is(err, ErrUploadNotFound):
+			// One answer for every file the caller may not attach, so it says
+			// nothing about whether the file exists (#359).
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound,
+				"No such upload.", nil)
 		case errors.Is(err, ErrHalalCertMissingFields):
 			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 				"A halal certificate must name an issuing body, a certificate number and a valid_until.",
@@ -455,11 +468,18 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 			[]httpx.FieldError{{Field: "category_id", Code: "invalid", Message: "malformed UUID"}})
 		return
 	}
+	if !validImageObjectID(w, r, body.ImageObjectID) {
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
 	}
-	item, err := h.repo.CreateMenuItem(r.Context(), restaurantID, body)
+	item, err := h.repo.CreateMenuItem(r.Context(), p.AccountID, restaurantID, body)
+	if errors.Is(err, ErrUploadNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such upload.", nil)
+		return
+	}
 	if errors.Is(err, ErrNotFound) {
 		// Target category does not belong to this restaurant (or does not exist):
 		// invisible → 404, never a 403 that would confirm a foreign category.
@@ -521,12 +541,19 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 				Message: "must be between 50 (CAD 0.50) and 50000 (CAD 500.00)"}})
 		return
 	}
+	if !validImageObjectID(w, r, body.ImageObjectID) {
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
 	}
 	itemID := chi.URLParam(r, "itemId")
-	item, err := h.repo.UpdateMenuItem(r.Context(), restaurantID, itemID, body)
+	item, err := h.repo.UpdateMenuItem(r.Context(), p.AccountID, restaurantID, itemID, body)
+	if errors.Is(err, ErrUploadNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such upload.", nil)
+		return
+	}
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
 		return
@@ -539,6 +566,19 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.Respond(w, r, http.StatusOK, item)
+}
+
+// validImageObjectID answers 422 for an image_object_id that is not a UUID, which
+// would otherwise reach a uuid cast and fail as a 500. It reports whether the
+// request may go on.
+func validImageObjectID(w http.ResponseWriter, r *http.Request, id *string) bool {
+	if id == nil || isValidUUID(*id) {
+		return true
+	}
+	httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+		"image_object_id must be a UUID.",
+		[]httpx.FieldError{{Field: "image_object_id", Code: "invalid", Message: "must be a UUID"}})
+	return false
 }
 
 // SetMenuItemAvailability implements PUT /v1/restaurant/menu/items/{itemId}/availability.

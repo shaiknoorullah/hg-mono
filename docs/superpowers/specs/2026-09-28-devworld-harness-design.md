@@ -39,7 +39,7 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 **Non-goals (stated, not hidden)**
 
 - Any product feature, including live updates in any app. The world and simulator produce real events; whether an app *shows* them live is each app's feature work (companion spec for restaurant; issues for the others).
-- Time-passage states: prep overdue, pickup overdue, certificate lapsing on its own. The API cannot move the clock; forging `deadline_at` is exactly what [every non-terminal order state carries a deadline (invariant 4)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) exists to prevent. Reached by waiting; a dev-only clock is a possible later spec.
+- Time-passage states: prep overdue, pickup overdue, certificate lapsing on its own. The API cannot move the clock; forging `deadline_at` is exactly what [every non-terminal order state carries a deadline (invariant 4)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) exists to prevent. Reached by waiting; a dev-only clock is a possible later spec. The exception is the certificate: the expiry job runs "as of" any future instant (`RunAt` in `services/hg/internal/halalexpiry/`), which the dev controls in [#235](https://github.com/shaiknoorullah/hg-mono/issues/235) can call.
 - A timed-out order in seeded history (would add 180 s to every reset). A timeout is produced live by leaving a `new-order` alone.
 - Changing production behaviour. Everything new is gated to `HG_ENV=local` or lives in dev tooling.
 
@@ -49,39 +49,41 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 - **Purpose is declared, then checked.** Each persona declares the state it lands in; a verifier asserts it after every seed. The coverage tables (see [personas and coverage](#5-personas-and-coverage)) are data the verifier reads, so they cannot silently drift.
 - **Time-relative, not calendar-fixed.** "Expires in 10 days" is `now() + interval '10 days'` at seed time, so states stay true after any reset.
 - **Seeded history stays inside retention.** The API binary runs the hourly retention sweep ([`services/hg/internal/retention`](../../../services/hg/internal/retention/rules.go)) in every environment, local included. A seeded row older than its table's retention period (a notification over 90 days old, a quote expired over 30 days ago with no order, a sign-in attempt over 90 days old) is deleted within the hour, so a persona that depends on one would silently drift out of its declared state.
-- **Auth is exercised, not bypassed.** Personas sign in with real password + TOTP. The only dev accommodation is a fixed OTP for a reserved fictional phone range, local-only (see [scenario sign-in](#64-scenario-sign-in)).
+- **Auth is exercised, not bypassed.** Personas sign in with real password + TOTP. The only dev accommodation is a fixed OTP for a reserved fictional phone range, and only when the process environment is local or staging (see [scenario sign-in](#64-scenario-sign-in)).
 
 ## 4. Architecture
 
 ```
-dev-reset                                         (planned make target)
+dev-reset                                         (make dev-reset)
   └─ cmd/devworld reset
-       1. guard: HG_ENV=local and DB host is local, else refuse
-       2. drop schema public, re-run migrations/roles/roles.sql as the superuser
-          (it hands the new schema to hg_migrator), migrate up as hg_migrator, flush Redis
-       3. load migrations/seed/*            (reference data — unchanged)
-       4. load migrations/devworld/*.sql    (the static world)
-       5. set credentials                   (password hash + encrypted TOTP, via the seedpw/seedtotp code paths)
-       6. run bootstrap scenarios over HTTP (order history, admin decisions that must be real)
-       7. verify: every persona in its declared state → table printed, non-zero exit on mismatch
+       1. guard: HG_ENV=local, and the database host is loopback, a Unix socket,
+          or the compose service name postgres. Anything else is refused.
+       2. drop schema public (topology extensions first, they pin objects), then goose up
+          as the same local superuser (new orders start open: migrating recreates the
+          ordering-pause row switched off)
+       3. load the reference seed
+       4. load migrations/devworld/001_personas.sql
+       5. set one shared password hash. The admin authenticator is enrolled only when
+          HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
+       6. flush Redis only when HG_REDIS_ADDR is local. A connection failure does not fail the reset.
+       7. verify: every persona in its declared state, or a non-zero exit
 
-dev-scenario s=<name> [p=<persona>] [ARGS=...]    (planned make target)
-  └─ cmd/devworld scenario <name>  → HTTP only, as seeded customer / rider / admin
-
-dev-totp p=<persona> [QR=1]                       (planned make target)
-  └─ cmd/devworld totp <persona>
+dev-scenario                                      (make dev-scenario s=new-order)
+dev-totp                                          (make dev-totp — prints the admin code, not the secret)
 ```
 
-None of these units exists yet; every location below is planned. Service paths are relative to `services/hg/`.
+`reset`, `seed`, `verify`, `list`, `totp`, `scenario` and `journey` exist. The world is one SQL file. Service paths below are relative to `services/hg/`.
+
+The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator`. The first migration recreates the roles, and goose uses the local superuser in `HG_POSTGRES_DSN`. Credentials are hashed in the command. `seedpw` is not used, because that command also marks the email verified. Connect rows for the live restaurant, the payout-pending restaurant and the sim rider are stand-ins with test account ids. They are not Stripe accounts. Payout and ledger rows are not seeded.
 
 | Unit | Location | Responsibility | Depends on |
 |---|---|---|---|
-| World SQL | `migrations/devworld/` | Static personas and their data, fixed UUIDs, idempotent; one file per app group (`10_restaurant_*.sql`, later `20_customer_*.sql` …) | reference seed |
-| `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `totp` / `list` / `verify` | pgx, auth credential helpers |
-| Scenario client | `internal/devworld/client/` | Typed HTTP calls using generated contract types; signs in as personas | `internal/contract` |
-| Scenario registry | `internal/devworld/scenarios/` | One file per scenario, registered by name with a one-line purpose | scenario client |
-| Journey simulator | `internal/devworld/journey/` | Drives one order end-to-end, rider along a route | scenario client, route data |
-| Route data | `migrations/devworld/routes/*.json` | Fixed Toronto route lines between seeded places | — |
+| World SQL | `migrations/devworld/001_personas.sql` | Static personas and their data, fixed UUIDs, idempotent | reference seed |
+| `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `journey` / `totp` / `list` / `verify` | pgx, auth credential helpers |
+| Scenario client | `internal/devworld/scenario.go` | HTTP calls that sign in as personas and place orders | auth sign-in |
+| Scenario registry | `internal/devworld/scenario.go` | Named scenarios the command accepts | scenario client |
+| Journey simulator | `internal/devworld/journey.go` | Drives one order as far as the API allows | scenario client, route line |
+| Route data | `internal/devworld/route.go` | Straight-line approach. A directions line is used only when a token is set | — |
 | Persona manifest | `internal/devworld/personas.go` | Name, app, login, declared state, purpose — the single source the verifier, `list` and the coverage docs read | — |
 | Playbooks | `playbooks/<app>/*.md` under `docs/` | Human- and Claude-readable test scripts with assertions | `devworld`, running stack |
 | Run skill | `apps/<app>/.claude/skills/run-<app>/` | Agent launch + drive recipe, gains a `--backend` mode | playbooks |
@@ -90,7 +92,7 @@ None of these units exists yet; every location below is planned. Service paths a
 
 ## 5. Personas and coverage
 
-All email-login personas sign in as `<persona>@seed.hg`, password `Seed!2026`, each with its own fixed TOTP secret stored in the manifest. Phone-login personas use the reserved test range (see [scenario sign-in](#64-scenario-sign-in)). Fixed UUIDs use a readable prefix per persona.
+Email-login personas share one local password and sign in as `<persona>@seed.hg`. Only the admin persona is enrolled in an authenticator, and only when `HG_APP_DATA_KEY` is set. That secret is derived from the email, not stored in the repository. Phone-login personas keep their reserved numbers, and the fixed sign-in range is built (see [scenario sign-in](#64-scenario-sign-in)). Fixed UUIDs stay the same across resets.
 
 ### 5.1 Restaurant personas
 
@@ -105,7 +107,7 @@ All email-login personas sign in as `<persona>@seed.hg`, password `Seed!2026`, e
 | `menu-setup` | MENU_PENDING, empty menu | PENDING | — | — | first-menu creation |
 | **`bismillah-grill`** | ACTIVE | LIVE | CERTIFIED | OPEN | the operating surface (see [its depth below](#52-bismillah-grill-depth)) |
 | `expiring-halal` | ACTIVE | LIVE | EXPIRING_SOON (expires now + 10 d) | OPEN | expiring warning |
-| `expired-halal` | ACTIVE | LIVE | EXPIRED (expired now − 7 d) | — | slate, never red ([never red for a halal state (invariant 9)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)); hidden from customers |
+| `expired-halal` | ACTIVE | DELISTED (reason `HALAL_CERTIFICATE_EXPIRED`) | EXPIRED (expired now − 7 d) | — | slate, never red ([never red for a halal state (invariant 9)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)); hidden from customers. Not `LIVE`: the schema refuses a listed restaurant with an expired certificate ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252)) |
 | `paused` | ACTIVE | LIVE | CERTIFIED | PAUSED, with reason | availability toggle + reason |
 | `suspended` | ACTIVE | SUSPENDED | CERTIFIED | CLOSED_SUSPENDED | what a suspended operator sees |
 
@@ -115,7 +117,7 @@ All email-login personas sign in as `<persona>@seed.hg`, password `Seed!2026`, e
 - **Hours** — weekday standard, Friday/Saturday overnight (11:00–01:00), one closed-holiday override and one late-opening override, dated relative to now.
 - **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), one INVITED, one SUSPENDED. Manager and staff can sign in to test the role matrix.
 - **Payouts** — one per state (DRAFT, READY, TRANSFERRING, TRANSFERRED, PAID, FAILED, HELD). See the payout-seeds risk in [risks to settle in planning](#12-risks-to-settle-in-planning).
-- **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-run-by-reset)).
+- **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-not-run-by-reset)).
 
 ### 5.3 Supporting personas (shared by every app)
 
@@ -129,7 +131,14 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 
 ## 6. Scenarios
 
-All scenarios act over HTTP against the running stack (Traefik on the published port). Default target is `bismillah-grill`; `--persona` picks another restaurant; `--count=N` repeats. Each prints the order code and every observed state change, so a person or agent can follow along in any app.
+`devworld scenario <name>` calls the API at `HG_API_URL` (default `http://127.0.0.1:8080`). `devworld scenario list` prints the names the command accepts. Each run signs in as the personas it needs and prints the order code and every observed state. The command follows the API when this table and the running code disagree:
+
+- A customer cancel ends in `CANCELLED`.
+- A restaurant rejection ends in `REJECTED`.
+- Rush places one order for each of the two seeded customers, a few seconds apart, then a further order for the first customer. The API refuses that third order while one is still active. The five-order rush in the table waits until more customers exist.
+- Menu approve and reject save the draft item through the restaurant API, then ask an admin to decide it. When that save returns no version, they decide the seeded draft. The save numbers the next version from the live version only, so a draft that is not live inserts version 1 again and the database refuses it. The decision endpoint accepts only a version waiting for review, so those two scenarios exit non-zero and print both refusals. They do not insert a review row.
+
+`journey` is `devworld journey`. Arrival at the restaurant is a step inside that command, not a separate scenario. Default target is `bismillah-grill`.
 
 ### 6.1 Catalogue
 
@@ -139,31 +148,33 @@ All scenarios act over HTTP against the running stack (Traefik on the published 
 | `rush` | 5 × `new-order`, a few seconds apart | busy queue sorted by deadline |
 | `order-preparing` | `new-order` + restaurant accept | PREPARING |
 | `order-ready` | … + restaurant ready | READY_FOR_PICKUP awaiting a rider |
-| `rider-arrives` | `rider-sim` accepts offer, drives to restaurant, arrives | rider at pickup, seal handoff pending |
+| `rider-arrives` | step inside `devworld journey`, not its own scenario | rider at pickup, seal handoff pending |
 | `customer-cancels` | customer cancels a pending order | offer withdrawn |
 | `docs-approve` / `docs-reject` | `admin-seed` decides `docs-review` | onboarding advances / shows reason |
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
-| `journey` | see [journey](#63-journey) | one order, whole lifecycle, live |
+| `journey` | see [journey](#63-journey) | one live order, stopped when a seal cannot be bound |
 
-### 6.2 Bootstrap (run by `reset`)
+### 6.2 Bootstrap (not run by `reset`)
 
-For `bismillah-grill`: 3 DELIVERED orders (via `journey --auto=all --speed=max`), 1 CUSTOMER_CANCELLED, 1 rejected by the restaurant (`KITCHEN_AT_CAPACITY`). Ledger, payment intents and dispatch records are whatever the real code writes.
+Reset does not run the journey. Delivered history waits until an issued seal exists, because the journey stops there and does not insert one. A cancelled order and a rejected order are the scenario commands, not part of reset.
 
 ### 6.3 Journey
 
-1. `customer-amina` orders from the target restaurant.
-2. **Restaurant steps** — default *manual*: the simulator waits and prints `waiting for restaurant to accept (178 s left)`, then `waiting for ready`. `--auto=restaurant` performs them via API.
-3. `rider-sim` is set online at the route's start point; real dispatch offers the order; the simulator accepts. (`--manual=rider` leaves the rider steps to a person or agent in the rider app instead — the hook the rider app's coverage uses, see [extending to another app](#10-extending-to-another-app).)
-4. The simulator walks the route polyline, posting `/v1/riders/me/positions` every 5 s (the contract's throttle), advancing assignment transitions at the pickup and drop-off points, entering the seal code at pickup, and submitting proof of delivery with a bundled test image.
-5. Terminates at DELIVERED (or reports the state it stopped in and why).
+`devworld journey` places one order at `bismillah-grill` and drives it as far as the API allows. `make dev-journey` runs it (`route=short`, `speed=1x`, `auto=none`; `manual=rider` leaves the rider to a person).
 
-Flags: `--route=short|long|early-rider` (early-rider arrives before the food is ready; a pickup confirmed before the kitchen taps ready marks the order ready in the same step, [early pickup](https://github.com/shaiknoorullah/hg-mono/issues/317)), `--speed=1x|4x|max` (default 1x, real pace), `--auto=none|restaurant|all`, `--manual=rider`.
+1. `customer-amina` orders from the target restaurant. An order she already has in a state this command can continue is reused.
+2. Restaurant steps default to waiting. The command prints the order state until someone accepts and marks it ready, or until the command's deadline. `--auto=restaurant` and `--auto=all` accept and mark ready.
+3. `--route=early-rider` brings `rider-sim` online at the start of the approach before the kitchen marks the order ready, posts positions up to the door, and polls for an offer. Dispatch offers only a ready order, so none arrives. The command then marks the order ready. A rider transition does not mark a preparing order ready: the running pickup refuses that state ([early pickup](https://github.com/shaiknoorullah/hg-mono/issues/317)). If the order is already ready, the command says the early arrival cannot be shown and continues with the short approach.
+4. When `--auto=all` drives the rider, `rider-sim` is online at the route start before the order is marked ready, so the first sweep can see the rider. The command polls the current offer. It does not call the sweep itself. `--manual=rider`, and any run that does not pass `--auto=all`, stops once the order is ready and leaves the rider to a person.
+5. The simulator posts positions along the pickup leg. `1x` waits 5 seconds between posts, `4x` waits a quarter of that, and `max` does not wait and may send up to 10 points at once. At the restaurant it records en route and arrived. The restaurant then tries to bind a seal. The world has no issued seal, so the bind is refused. The command prints that status and the order state, and exits non-zero. It does not insert a seal, and it does not mark the order picked up or delivered.
 
-Routes are fixed JSON route lines between seeded coordinates (restaurant ↔ customer addresses), so a run is identical every time and no external routing service is called.
+Flags: `--route=short|long|early-rider`, `--speed=1x|4x|max` (default `1x`), `--auto=none|restaurant|all`, `--manual=rider`.
+
+The default line is straight between the approach start and the restaurant door, so a run needs no network. A directions response is used only when `MAPBOX_TOKEN` or `HG_MAPBOX_TOKEN` is set. If that request fails, the command uses the straight line. The earlier draft of this section called for fixed JSON route files and no routing service.
 
 ### 6.4 Scenario sign-in
 
-Customers and riders authenticate by phone OTP. New config: phones `+15550100100` through `+15550100199` (a fictional 555 range) accept code `000000` **only when `HG_ENV=local`**; config validation refuses the setting in any other environment. Scenarios still call `/v1/auth/otp/request` and `/v1/auth/otp/verify` — the real session, refresh and role-matrix code runs. Email + password + TOTP personas (restaurant staff, admin) sign in normally using the manifest's TOTP secret. The same range lets a person or agent sign in to the customer and rider apps by hand.
+Customers and riders authenticate by phone OTP. Phones `+15550100100` through `+15550100199` (a fictional 555 range) accept code `000000` when `HG_ENV` is `local` or `staging`. Production, an empty environment, and every other value refuse that code, including for a phone in the range. The range never reaches a configured phone verifier or the SMS sender. Scenarios still call `/v1/auth/otp/request` and `/v1/auth/otp/verify` — the real session, refresh and role-matrix code runs. Email + password + authenticator personas (restaurant staff, admin) sign in through the normal login endpoint. The same range lets a person sign in to the customer and rider apps by hand on a local or staging server.
 
 ## 7. Playbooks (Claude in Chrome and headless)
 
@@ -185,7 +196,7 @@ Two runners, same playbook:
 ## 8. Verification
 
 1. **World verify in CI** — `devworld reset` against an empty migrated database; `devworld verify` asserts every manifest persona is in its declared state (signing in through the API as each persona where the state is visible that way). Non-zero exit fails CI.
-2. **Journey integration test** — `journey --auto=all --speed=max` in the backend integration suite reaches DELIVERED; the order's ledger batches sum to zero.
+2. **Journey** — `journey --auto=all --speed=max` stops when the restaurant cannot bind a seal. Delivered, and a ledger that sums to zero, wait on an issued seal. The command does not insert one.
 3. **Acceptance** — the restaurant `journey.md` playbook run end to end in the user's Chrome via Claude in Chrome, in front of the user.
 
 Two automated additions, each pinning a behaviour this spec introduces — within the repo's "few, high-value tests" rule.
@@ -196,7 +207,7 @@ Each stage is usable on its own.
 
 1. **World core + restaurant personas** — `cmd/devworld` (`reset`, `seed`, `verify`, `totp`, `list`), manifest, restaurant + supporting personas, CI verify.
 2. **Scenarios** — scenario client, fixed-OTP test range, the [scenario catalogue](#61-catalogue) except `journey`, bootstrap history.
-3. **Journey simulator** — routes, rider movement, pickup, proof of delivery.
+3. **Journey simulator** — route line, rider movement, and a stop when a seal cannot be bound.
 4. **Restaurant playbooks** — the [playbooks](#7-playbooks-claude-in-chrome-and-headless), plus `run-restaurant --backend`.
 
 ## 10. Extending to another app
@@ -216,7 +227,7 @@ The harness produces real realtime events (order state changes, offers, `rider.l
 
 ## 12. Risks to settle in planning
 
-- **Payout seeds vs the ledger.** The [zero-residual ledger rule (invariant 6)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) requires every order's money to decompose to zero via the append-only ledger. If payout rows need backing ledger batches the SQL cannot honestly produce, payouts move from SQL to an admin payout run over the API; any state the API cannot reach (e.g. FAILED) is listed as a gap rather than forged. Against a Stripe sandbox, Stripe's own test-mode events reach those states: the webhook worker applies `transfer.*` and `payout.*` to the payout, `account.updated` to the payout account and `charge.dispute.*` to a chargeback ([#249](https://github.com/shaiknoorullah/hg-mono/issues/249)).
+- **Payout seeds vs the ledger.** The [zero-residual ledger rule (invariant 6)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) requires every order's money to decompose to zero via the append-only ledger. If payout rows need backing ledger batches the SQL cannot honestly produce, payouts move from SQL to an admin payout run over the API; any state the API cannot reach (e.g. FAILED) is listed as a gap rather than forged. Against a Stripe sandbox, Stripe's own test-mode events reach those states: the webhook worker applies `transfer.*` and `payout.*` to the payout, `account.updated` to the payout account and `charge.dispute.*` to a chargeback ([#249](https://github.com/shaiknoorullah/hg-mono/issues/249)). Refunds in every state come from the API too: a customer's request, then staff approval or decline (`approveRefund`, `declineRefund`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)), so each approved refund carries its ledger batch and approver.
 - **Proof of delivery.** If PoD requires an uploaded object in MinIO, the simulator uploads a bundled test image through the documented presigned flow.
 - **Dispatch reach.** The journey assumes dispatch offers to an online rider within range of the restaurant. `rider-sim` starts at the route's origin inside that radius; planning confirms the radius and offer loop in `internal/dispatch`.
 - **Drift.** The world SQL must follow schema migrations. Mitigated by the world verify in CI (see [verification](#8-verification)) — a migration that breaks the world fails the build.

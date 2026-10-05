@@ -1,3 +1,8 @@
+---
+covers: []
+reviewed: 2026-10-05
+---
+
 # Restaurant Playbook: Order Handling
 
 This playbook scripts the end-to-end order processing lifecycle for restaurant operators, covering arrival, timer constraints, acceptance, rejection, prep, and tamper-evident packaging seal binding.

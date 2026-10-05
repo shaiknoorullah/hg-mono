@@ -53,10 +53,12 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 	ctx := context.Background()
 	var b basics
 
-	// account (the CHECK requires an identifier; use a unique email).
+	// account (the CHECK requires an identifier; use a unique email). The
+	// unique parts are random: a UUIDv7's leading characters are the clock, so
+	// two seeds in the same moment used to collide.
 	err := pool.QueryRow(ctx, `
 		INSERT INTO account (email, status)
-		VALUES ('it-'||substr(uuid_generate_v7()::text,1,12)||'@test.local', 'ACTIVE') RETURNING id`).Scan(&b.accountID)
+		VALUES ('it-'||substr(gen_random_uuid()::text,1,12)||'@test.local', 'ACTIVE') RETURNING id`).Scan(&b.accountID)
 	if err != nil {
 		t.Fatalf("seed account: %v", err)
 	}

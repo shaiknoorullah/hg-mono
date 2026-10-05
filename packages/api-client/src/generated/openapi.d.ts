@@ -135,6 +135,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/chargebacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Card disputes (chargebacks) raised with the customer's bank
+         * @description [Chargebacks (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172). A chargeback
+         *     is a dispute the customer raised with their bank, which Stripe reports by webhook
+         *     ([refunds, cancellations and compensation (P-18)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation)).
+         *     It is not an order dispute (`DISPUTED`). Open ones first, soonest evidence deadline
+         *     first; closed ones after, newest first. Submitting evidence to Stripe is
+         *     [#319](https://github.com/shaiknoorullah/hg-mono/issues/319); until then staff keep
+         *     their evidence notes here.
+         */
+        get: operations["listChargebacks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/chargebacks/{chargebackId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One chargeback with its evidence notes */
+        get: operations["getChargeback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/chargebacks/{chargebackId}/evidence-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an evidence note to an open chargeback
+         * @description [Chargebacks (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172). A note of
+         *     the evidence gathered for the customer's bank: what was delivered, when, the proof of
+         *     delivery, what the customer said. Notes are kept in order and never edited; the note
+         *     and its audit event commit together. A chargeback Stripe has closed takes no more
+         *     notes (`409 ALREADY_DECIDED`).
+         */
+        post: operations["addChargebackEvidenceNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/halal-certificates/{certificateId}": {
         parameters: {
             query?: never;
@@ -338,6 +405,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/ordering-pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether new orders are paused platform-wide, and why
+         * @description The platform-wide pause on new orders, for use during an incident such as payments
+         *     failing or a restore under way
+         *     ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244); the
+         *     [incident runbook](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/ops/runbook.md#pause-new-orders)
+         *     says when to use it). Read from Postgres on every request.
+         *
+         *     Support agents can read it, so they can tell a customer why checkout is refused;
+         *     only `ADMIN` and `SUPER_ADMIN` can change it (`setOrderingPause`).
+         */
+        get: operations["getOrderingPause"];
+        /**
+         * Pause or resume new orders platform-wide, with a reason
+         * @description Turns the platform-wide pause on new orders on (`paused: true`) or off
+         *     (`paused: false`) ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+         *     Both directions need a `reason`, and both write one row to the audit log in the
+         *     same transaction as the change: action `ordering.pause` or `ordering.resume`,
+         *     subject type `PLATFORM`, with the reason and the before and after state
+         *     ([the audit log](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-04--audit-log-append-only-hash-chained)).
+         *
+         *     **While paused,** `createQuote` and `createOrder` answer `409 ORDERING_PAUSED`, the
+         *     cart reports `is_quotable: false` with `ORDERING_PAUSED` in `blocking_reasons`, and
+         *     `getPublicConfig.ordering.paused` is `true`. Everything about orders already placed
+         *     carries on to the end: state changes, tracking, riders, payments, refunds and the
+         *     staff tools. Every API replica reads the switch from Postgres, so it applies on the
+         *     next request, with nothing to flush.
+         *
+         *     **Who may change it:** `ADMIN` and `SUPER_ADMIN`. It is an operations control,
+         *     like pausing a promotion or suspending a restaurant, which both roles hold
+         *     ([permission matrix](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#71-staff-access-and-platform-configuration));
+         *     it is not a platform setting, so it needs no second approver and no waiting period.
+         *     `SUPPORT_AGENT` is refused with `403 FORBIDDEN`: a support agent changes almost
+         *     nothing, and stopping every new order on the platform is not a support action.
+         *
+         *     Setting the value it already has is allowed: it records the new reason (for example
+         *     an updated estimate) and writes an audit row, and a pause keeps its original
+         *     `paused_since`.
+         */
+        put: operations["setOrderingPause"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/orders": {
         parameters: {
             query?: never;
@@ -487,7 +608,19 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * The refund review queue
+         * @description [Refund requests and their review (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172).
+         *     Every refund on every order, for staff: a customer's request waiting for review
+         *     (`REQUESTED`), a refund waiting for a second person (`PENDING_APPROVAL`), and every
+         *     later state. Support agents see failed refunds too
+         *     ([what support agents see](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *
+         *     With no `state`, the queue is what waits for a person: `REQUESTED` and
+         *     `PENDING_APPROVAL`. Oldest first, so the longest wait is at the top. Age is a range on
+         *     `requested_at`: `requested_to = now − 2 h` lists requests waiting more than two hours.
+         */
+        get: operations["listRefundsAdmin"];
         put?: never;
         /**
          * Issue a refund under an authority cap
@@ -496,9 +629,17 @@ export interface paths {
          *
          *     The authority check runs before anything reaches Stripe. A request that exceeds the
          *     caller's cap is **not rejected**: it creates an approval request and escalates, so a
-         *     customer's request is never lost. Rolling 24-hour caps are enforced by an atomic
-         *     upsert inside the authorising transaction. Nobody may approve their own above-cap
-         *     request.
+         *     customer's request is never lost. The caller's rolling 24-hour total (the refunds they
+         *     approved in the last 24 hours) is summed under a per-person lock inside the
+         *     authorising transaction, so two refunds at once cannot both slip under the cap. Nobody
+         *     may approve their own above-cap request; a goodwill refund above CAD 50.00 always
+         *     needs a second person ([goodwill approval decision](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+         *
+         *     Moving money needs a session signed in with an authenticator code (`403
+         *     MFA_REQUIRED` otherwise; [staff MFA for money actions, A-02 R4](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-02--role-based-access-control-model)).
+         *     The refund, its ledger batch, the idempotency record and the audit event commit in one
+         *     transaction. A replay with the same key returns the first response with
+         *     `Idempotency-Replayed: true`.
          *
          *     Amounts are server-computed for `FULL`, `PARTIAL_ITEMS` and `FEES_ONLY`.
          *     `amount_cents` is accepted **only** for `GOODWILL` — this is the single allowlisted
@@ -507,6 +648,72 @@ export interface paths {
          *     The customer-facing status never reads "refunded" before the provider confirms.
          */
         post: operations["issueRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/refunds/{refundId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a refund waiting for staff
+         * @description [Refund requests and their review (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172),
+         *     under the [refund authority limits (A-33)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-33--refund-issuance-and-authority-limits).
+         *
+         *     **A customer's request (`REQUESTED`).** Within the approver's rolling 24-hour limit it
+         *     is approved at once: `200`, `AUTHORISED`, its ledger batch posted, and the refund sender
+         *     sends it to Stripe. Above the limit it is **not rejected**: it becomes
+         *     `PENDING_APPROVAL` for the role one level up (`202`), and a second person decides it.
+         *
+         *     **An approval request (`PENDING_APPROVAL`).** The approver must hold
+         *     `approval_required_role` (or be a super admin), must have room under their own limit
+         *     (`409 DAILY_CAP_EXCEEDED` otherwise; a super admin has no limit), and may be neither
+         *     the person who asked for the refund nor the one who sent it up (`409
+         *     SELF_APPROVAL_FORBIDDEN`). A goodwill refund above CAD 50.00 always ends here
+         *     ([goodwill approval decision](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+         *
+         *     Approving moves money, so it needs a session signed in with an authenticator code
+         *     (`403 MFA_REQUIRED`). The decision, its reason, the ledger batch, the idempotency
+         *     record and the audit event commit in one transaction; nothing reaches Stripe until it
+         *     has. Any other state is `409 ALREADY_DECIDED`.
+         */
+        post: operations["approveRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/refunds/{refundId}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline a refund waiting for staff
+         * @description [Refund requests and their review (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172).
+         *     Ends a `REQUESTED` or `PENDING_APPROVAL` refund in `DECLINED`. Nothing is sent to
+         *     Stripe and no ledger batch is posted. An approval request is declined by the role it
+         *     was sent up to (or a super admin), as it would be approved.
+         *
+         *     `reason_text` is the staff reason, kept on the refund and in the audit trail. When the
+         *     customer asked for the refund, they are told in the same transaction (the notification
+         *     outbox), with `customer_message` when given and a plain sentence otherwise; the staff
+         *     reason is never shown to them. Any other state is `409 ALREADY_DECIDED`.
+         */
+        post: operations["declineRefund"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1382,6 +1589,11 @@ export interface paths {
          * @description Values the clients must never hardcode: support contact and hours, the default map
          *     centre, the served provinces, tip bounds, and the quote TTL. No secret, no fee
          *     parameter that could let a client compute a price.
+         *
+         *     `ordering` says whether staff have paused new orders platform-wide during an
+         *     incident ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). It is read
+         *     from Postgres on every request, so it is never older than the request: the customer
+         *     app shows "ordering is paused" from it instead of letting a checkout fail.
          */
         get: operations["getPublicConfig"];
         put?: never;
@@ -1659,6 +1871,18 @@ export interface paths {
          *
          *     `requires_action` (3-D Secure) is a normal path: the order stays `CREATED` under its
          *     15-minute deadline and the client is handed the action.
+         *
+         *     **Paused ordering.** While staff have paused new orders platform-wide
+         *     (`setOrderingPause`), this answers `409 ORDERING_PAUSED`: no order row, no
+         *     PaymentIntent. The switch is read under a row lock in the same transaction that
+         *     inserts the order, so a pause that commits while an order is being created either
+         *     waits for that order to commit first or refuses it; an order never appears after the
+         *     pause took effect. Orders placed before the pause carry on to the end.
+         *
+         *     It is a 409, not a 503: like `RESTAURANT_CLOSED`, it is a state staff chose, not a
+         *     failing server, and a 503 would read as an outage to monitoring and to clients that
+         *     retry server errors. The refusal rolls its transaction back, so the same
+         *     `Idempotency-Key` can be sent again once ordering resumes.
          */
         post: operations["createOrder"];
         delete?: never;
@@ -2072,6 +2296,10 @@ export interface paths {
          *     A quote referencing an unavailable item, a closed restaurant, an address outside the
          *     delivery radius, or a province with no effective tax rate fails loudly with a typed
          *     error listing the offending lines. It never silently zeroes a component.
+         *
+         *     While staff have paused new orders platform-wide (`setOrderingPause`), this answers
+         *     `409 ORDERING_PAUSED` and stores nothing. `getPublicConfig.ordering` says so before
+         *     the customer reaches checkout.
          */
         post: operations["createQuote"];
         delete?: never;
@@ -3535,6 +3763,56 @@ export interface components {
             refund_kind?: components["schemas"]["RefundKind"];
         };
         /**
+         * @description A refund as staff see it: the money, who bears it, who asked, and every decision with
+         *     who took it and why ([refund requests and their review, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+         *     `amount_cents` and the split are the server's calculation, the same one approval
+         *     posts to the ledger.
+         */
+        AdminRefund: {
+            amount_cents: components["schemas"]["Cents"];
+            /** @description While `PENDING_APPROVAL`: the role that must decide it (a super admin always may). */
+            approval_required_role?: components["schemas"]["Role"] | null;
+            /** Format: date-time */
+            approved_at?: string | null;
+            /** Format: uuid */
+            approved_by?: string | null;
+            currency: components["schemas"]["Currency"];
+            /** @description The staff reason for the last decision. Never shown to the customer. */
+            decision_reason?: string | null;
+            /** Format: date-time */
+            declined_at?: string | null;
+            /** Format: uuid */
+            declined_by?: string | null;
+            /** Format: date-time */
+            escalated_at?: string | null;
+            /**
+             * Format: uuid
+             * @description The member of staff who sent it up for a second person. They may not approve it.
+             */
+            escalated_by?: string | null;
+            failure_message?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["RefundKind"];
+            liability_split: components["schemas"]["RefundLiabilitySplit"];
+            /** @description What the person who asked wrote. */
+            note?: string | null;
+            /** @description The human-quotable order code, e.g. `HG-8F3K2Q`. */
+            order_code: string;
+            /** Format: uuid */
+            order_id: string;
+            reason_code: components["schemas"]["RefundReasonCode"];
+            requested_at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            requested_by: string;
+            requester_kind: components["schemas"]["RefundRequesterKind"];
+            scope?: components["schemas"]["RefundScope"] | null;
+            /** Format: date-time */
+            settled_at?: string | null;
+            state: components["schemas"]["RefundState"];
+            tax_cents: components["schemas"]["Cents"];
+        };
+        /**
          * @description `amount_cents` is the **only** inbound monetary field on any staff route and is
          *     accepted solely with `scope: PARTIAL_AMOUNT` and `reason_code: GOODWILL` (G-3's
          *     explicit allowlist). For every other scope the amount is computed from the order and
@@ -3675,8 +3953,9 @@ export interface components {
             /**
              * @description False when any line is unavailable, the restaurant is closed, the restaurant cannot
              *     take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
-             *     is not current), or no address is selected. A cart whose restaurant becomes
-             *     unavailable is kept, never emptied on the customer's behalf.
+             *     is not current), no address is selected, or staff have paused new orders
+             *     platform-wide (`ORDERING_PAUSED` in `blocking_reasons`). A cart whose restaurant
+             *     becomes unavailable is kept, never emptied on the customer's behalf.
              */
             is_quotable: boolean;
             /**
@@ -3771,6 +4050,61 @@ export interface components {
             /** Format: date-time */
             verified_at?: string | null;
         };
+        /**
+         * @description A dispute the customer raised with their bank, as Stripe reported it, with the evidence
+         *     staff have gathered ([chargebacks, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+         *     While open it is on the clock of its evidence deadline.
+         */
+        Chargeback: {
+            amount_cents: components["schemas"]["Cents"];
+            currency: components["schemas"]["Currency"];
+            /**
+             * Format: date-time
+             * @description The clock this chargeback is on while open: the evidence deadline, or a week when Stripe gave none.
+             */
+            deadline_at?: string | null;
+            /**
+             * Format: date-time
+             * @description The deadline Stripe gives for evidence.
+             */
+            evidence_due_at?: string | null;
+            /** @description Oldest first. */
+            evidence_notes: components["schemas"]["ChargebackEvidenceNote"][];
+            /** Format: date-time */
+            evidence_submitted_at?: string | null;
+            /** Format: uuid */
+            id: string;
+            opened_at: components["schemas"]["Timestamp"];
+            order_code: string;
+            /** Format: uuid */
+            order_id: string;
+            /** @description The closing status once Stripe has closed the dispute; null while it is open. */
+            outcome?: components["schemas"]["ChargebackStatus"] | null;
+            /** @description The bank's reason as Stripe reports it, e.g. `fraudulent`, `product_not_received`. */
+            reason?: string | null;
+            status: components["schemas"]["ChargebackStatus"];
+            stripe_dispute_id: string;
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        ChargebackEvidenceNote: {
+            /** Format: uuid */
+            author_account_id: string;
+            body: string;
+            created_at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            id: string;
+        };
+        ChargebackEvidenceNoteInput: {
+            body: string;
+        };
+        /**
+         * @description Stripe's dispute status, upper-cased. Open: `WARNING_NEEDS_RESPONSE`,
+         *     `WARNING_UNDER_REVIEW`, `NEEDS_RESPONSE`, `UNDER_REVIEW`. Closed: `WARNING_CLOSED`,
+         *     `WON`, `LOST`, `PREVENTED`, `CHARGE_REFUNDED`. A status Stripe adds later is reported
+         *     as `NEEDS_RESPONSE` while the dispute is open, so it is never quietly ignored.
+         * @enum {string}
+         */
+        ChargebackStatus: "WARNING_NEEDS_RESPONSE" | "WARNING_UNDER_REVIEW" | "WARNING_CLOSED" | "NEEDS_RESPONSE" | "UNDER_REVIEW" | "WON" | "LOST" | "PREVENTED" | "CHARGE_REFUNDED";
         /** @enum {string} */
         ClientSurface: "customer-app" | "rider-app" | "restaurant-web" | "admin-web" | "web";
         ConnectOnboardingLink: {
@@ -4076,7 +4410,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "MENU_LOCKED" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "ORDERING_PAUSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "MENU_LOCKED" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -4604,6 +4938,33 @@ export interface components {
             review_note?: string;
         };
         /**
+         * @description One entry in the order's money timeline, with who caused it. Staff decisions carry
+         *     their reason.
+         */
+        MoneyEvent: {
+            /** Format: uuid */
+            actor_account_id?: string | null;
+            /**
+             * @description `ACCOUNT` is a person (customer or staff); the others are the platform itself.
+             * @enum {string}
+             */
+            actor_kind: "ACCOUNT" | "SYSTEM" | "WEBHOOK" | "JOB";
+            amount_cents?: components["schemas"]["Cents"] | null;
+            at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            chargeback_id?: string | null;
+            currency: components["schemas"]["Currency"];
+            kind: components["schemas"]["MoneyEventKind"];
+            reason?: string | null;
+            /** Format: uuid */
+            refund_id?: string | null;
+        };
+        /**
+         * @description One step in an order's money: its payment, each refund and each chargeback.
+         * @enum {string}
+         */
+        MoneyEventKind: "PAYMENT_AUTHORISED" | "PAYMENT_CAPTURED" | "PAYMENT_VOIDED" | "REFUND_REQUESTED" | "REFUND_ESCALATED" | "REFUND_APPROVED" | "REFUND_DECLINED" | "REFUND_SUBMITTED" | "REFUND_SUCCEEDED" | "REFUND_FAILED" | "REFUND_SET_ASIDE" | "CHARGEBACK_OPENED" | "CHARGEBACK_UPDATED" | "CHARGEBACK_EVIDENCE_NOTE" | "CHARGEBACK_CLOSED";
+        /**
          * @description A closed enum the client maps to a screen. Routing is a server decision; an unknown
          *     value routes to "please update the app" rather than crashing.
          * @enum {string}
@@ -4676,6 +5037,8 @@ export interface components {
          */
         OrderActorKind: "CUSTOMER" | "RESTAURANT" | "RIDER" | "SUPPORT" | "ADMIN" | "SYSTEM";
         OrderAdminView: components["schemas"]["OrderCustomerView"] & {
+            /** @description The disputes the customer raised with their bank over this order. */
+            chargebacks: components["schemas"]["Chargeback"][];
             /** @description The delivery address coordinates, for LiveMapBox. */
             destination_location?: components["schemas"]["GeoPoint"] | null;
             dispatch_history?: {
@@ -4691,6 +5054,12 @@ export interface components {
             }[];
             dispatch_state?: components["schemas"]["DispatchState"] | null;
             internal_money: components["schemas"]["OrderInternalMoney"];
+            /**
+             * @description The payment, refund and chargeback history of this order, oldest first, with who
+             *     caused each step and the reason staff gave
+             *     ([order money timeline, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+             */
+            money_timeline: components["schemas"]["MoneyEvent"][];
             payment: components["schemas"]["OrderPayment"];
             /** @description True when the caller passed a justified reveal, which is itself audited. */
             pii_revealed?: boolean;
@@ -4781,6 +5150,55 @@ export interface components {
              */
             added_minutes: 5 | 10 | 15 | 20;
             reason_code: components["schemas"]["DelayReasonCode"];
+        };
+        /**
+         * @description The staff view of the platform-wide pause on new orders (`getOrderingPause`,
+         *     `setOrderingPause`; [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+         *     The full history of changes is in the audit log, actions `ordering.pause` and
+         *     `ordering.resume`.
+         */
+        OrderingPause: {
+            /**
+             * Format: date-time
+             * @description When it was last changed. Null if nobody has changed it yet.
+             */
+            changed_at: string | null;
+            /**
+             * Format: uuid
+             * @description The staff account that made the latest change. Null if nobody has changed it yet.
+             */
+            changed_by: string | null;
+            paused: boolean;
+            /**
+             * Format: date-time
+             * @description When the current pause began. Null while ordering is open.
+             */
+            paused_since: string | null;
+            /** @description The reason given with the latest change, pause or resume. Null if nobody has changed it yet. */
+            reason: string | null;
+        };
+        OrderingPauseInput: {
+            /** @description `true` pauses new orders platform-wide; `false` resumes them. */
+            paused: boolean;
+            /**
+             * @description Why, in words the next person on call understands. Recorded with the change and in the audit log.
+             * @example Stripe is refusing authorisations; pausing until their incident clears.
+             */
+            reason: string;
+        };
+        /**
+         * @description The customer-facing view of the platform-wide pause on new orders
+         *     ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+         *     the reason staff typed is for staff, and the app shows its own fixed copy.
+         */
+        OrderingStatus: {
+            /** @description True while staff have paused new orders: quotes and orders answer `409 ORDERING_PAUSED`. */
+            paused: boolean;
+            /**
+             * Format: date-time
+             * @description When the current pause began. Null while ordering is open.
+             */
+            paused_since: string | null;
         };
         /**
          * @description **No amount, total, fee or price field exists on this DTO.** A body containing one is
@@ -5372,6 +5790,7 @@ export interface components {
                 longitude: components["schemas"]["Longitude"];
             };
             max_tip_cents: components["schemas"]["Cents"];
+            ordering: components["schemas"]["OrderingStatus"];
             /**
              * Format: int32
              * @description 600. How long a quoted price is honoured before re-confirmation is required.
@@ -5633,6 +6052,12 @@ export interface components {
             state: components["schemas"]["RefundState"];
             tax_cents?: components["schemas"]["Cents"];
         };
+        /** @description Why the refund is approved. Kept on the refund and in the audit trail. */
+        RefundApprovalInput: {
+            /** Format: uuid */
+            case_id?: string | null;
+            reason_text: string;
+        };
         RefundApprovalRequest: {
             /** Format: uuid */
             case_id?: string | null;
@@ -5646,6 +6071,14 @@ export interface components {
             required_role: components["schemas"]["Role"];
             /** @enum {string} */
             status: "PENDING" | "APPROVED" | "DECLINED";
+        };
+        RefundDeclineInput: {
+            /** Format: uuid */
+            case_id?: string | null;
+            /** @description What the customer is told, when they asked for the refund. A plain sentence is sent when absent. */
+            customer_message?: string | null;
+            /** @description The staff reason. Kept on the refund and in the audit trail; never shown to the customer. */
+            reason_text: string;
         };
         /**
          * @description `amount_cents` is **absent from this DTO entirely** — customer- and support-initiated
@@ -5691,6 +6124,13 @@ export interface components {
          * @enum {string}
          */
         RefundReasonCode: "RESTAURANT_REJECTED" | "ITEM_MISSING" | "MISSING_ITEMS" | "WRONG_ITEM" | "WRONG_ITEMS" | "FOOD_QUALITY" | "FOOD_SAFETY" | "NEVER_DELIVERED" | "ORDER_NEVER_ARRIVED" | "LATE_DELIVERY" | "DAMAGED_SPILLED" | "NO_RIDER_FOUND" | "CUSTOMER_CHANGED_MIND" | "RESTAURANT_CANCELLED" | "PLATFORM_INITIATED_CANCELLATION" | "PLATFORM_ERROR" | "DUPLICATE_CHARGE" | "CHARGED_INCORRECTLY" | "PRICING_ERROR" | "HALAL_CONCERN" | "HALAL_INTEGRITY" | "GOODWILL" | "DISPUTE_RESOLUTION" | "CHARGEBACK_PREEMPTIVE" | "OTHER";
+        /**
+         * @description Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
+         *     request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
+         *     after acceptance).
+         * @enum {string}
+         */
+        RefundRequesterKind: "CUSTOMER" | "STAFF";
         /** @enum {string} */
         RefundScope: "FULL" | "PARTIAL_ITEMS" | "PARTIAL_AMOUNT";
         /**
@@ -6678,6 +7118,7 @@ export interface components {
     parameters: {
         AssignmentIdPath: string;
         CertificateIdPath: string;
+        ChargebackIdPath: string;
         /**
          * @description Registered client surface. Selects which role grant is created on first OTP sign-up
          *     and which token transport is used. **Never trusted for authorization.**
@@ -6701,6 +7142,7 @@ export interface components {
         MenuItemIdPath: string;
         OfferIdPath: string;
         OrderIdPath: string;
+        RefundIdPath: string;
         RestaurantIdPath: string;
         RiderAccountIdPath: string;
     };
@@ -6716,6 +7158,7 @@ export type SchemaAddress = components['schemas']['Address'];
 export type SchemaAddressInput = components['schemas']['AddressInput'];
 export type SchemaAddressUpdateInput = components['schemas']['AddressUpdateInput'];
 export type SchemaAdminOrderCancellationInput = components['schemas']['AdminOrderCancellationInput'];
+export type SchemaAdminRefund = components['schemas']['AdminRefund'];
 export type SchemaAdminRefundInput = components['schemas']['AdminRefundInput'];
 export type SchemaAllergenTag = components['schemas']['AllergenTag'];
 export type SchemaAssignment = components['schemas']['Assignment'];
@@ -6728,6 +7171,10 @@ export type SchemaCartLineAvailability = components['schemas']['CartLineAvailabi
 export type SchemaCartLineInput = components['schemas']['CartLineInput'];
 export type SchemaCents = components['schemas']['Cents'];
 export type SchemaCertificationPanel = components['schemas']['CertificationPanel'];
+export type SchemaChargeback = components['schemas']['Chargeback'];
+export type SchemaChargebackEvidenceNote = components['schemas']['ChargebackEvidenceNote'];
+export type SchemaChargebackEvidenceNoteInput = components['schemas']['ChargebackEvidenceNoteInput'];
+export type SchemaChargebackStatus = components['schemas']['ChargebackStatus'];
 export type SchemaClientSurface = components['schemas']['ClientSurface'];
 export type SchemaConnectOnboardingLink = components['schemas']['ConnectOnboardingLink'];
 export type SchemaConnectStatus = components['schemas']['ConnectStatus'];
@@ -6812,6 +7259,8 @@ export type SchemaMenuItemVersion = components['schemas']['MenuItemVersion'];
 export type SchemaMenuRejectionReasonCode = components['schemas']['MenuRejectionReasonCode'];
 export type SchemaMenuReviewStatus = components['schemas']['MenuReviewStatus'];
 export type SchemaMenuVersionDecisionInput = components['schemas']['MenuVersionDecisionInput'];
+export type SchemaMoneyEvent = components['schemas']['MoneyEvent'];
+export type SchemaMoneyEventKind = components['schemas']['MoneyEventKind'];
 export type SchemaNextRoute = components['schemas']['NextRoute'];
 export type SchemaNotification = components['schemas']['Notification'];
 export type SchemaNotificationChannel = components['schemas']['NotificationChannel'];
@@ -6829,6 +7278,9 @@ export type SchemaOrderCreated = components['schemas']['OrderCreated'];
 export type SchemaOrderCustomerRef = components['schemas']['OrderCustomerRef'];
 export type SchemaOrderCustomerView = components['schemas']['OrderCustomerView'];
 export type SchemaOrderDelayInput = components['schemas']['OrderDelayInput'];
+export type SchemaOrderingPause = components['schemas']['OrderingPause'];
+export type SchemaOrderingPauseInput = components['schemas']['OrderingPauseInput'];
+export type SchemaOrderingStatus = components['schemas']['OrderingStatus'];
 export type SchemaOrderInput = components['schemas']['OrderInput'];
 export type SchemaOrderInternalMoney = components['schemas']['OrderInternalMoney'];
 export type SchemaOrderLine = components['schemas']['OrderLine'];
@@ -6894,11 +7346,14 @@ export type SchemaRealtimeTicket = components['schemas']['RealtimeTicket'];
 export type SchemaReceipt = components['schemas']['Receipt'];
 export type SchemaReceiptPayment = components['schemas']['ReceiptPayment'];
 export type SchemaRefund = components['schemas']['Refund'];
+export type SchemaRefundApprovalInput = components['schemas']['RefundApprovalInput'];
 export type SchemaRefundApprovalRequest = components['schemas']['RefundApprovalRequest'];
+export type SchemaRefundDeclineInput = components['schemas']['RefundDeclineInput'];
 export type SchemaRefundInput = components['schemas']['RefundInput'];
 export type SchemaRefundKind = components['schemas']['RefundKind'];
 export type SchemaRefundLiabilitySplit = components['schemas']['RefundLiabilitySplit'];
 export type SchemaRefundReasonCode = components['schemas']['RefundReasonCode'];
+export type SchemaRefundRequesterKind = components['schemas']['RefundRequesterKind'];
 export type SchemaRefundScope = components['schemas']['RefundScope'];
 export type SchemaRefundState = components['schemas']['RefundState'];
 export type SchemaRemittableBy = components['schemas']['RemittableBy'];
@@ -6997,6 +7452,7 @@ export type ResponseRateLimited = components['responses']['RateLimited'];
 export type ResponseServerBusy = components['responses']['ServerBusy'];
 export type ParameterAssignmentIdPath = components['parameters']['AssignmentIdPath'];
 export type ParameterCertificateIdPath = components['parameters']['CertificateIdPath'];
+export type ParameterChargebackIdPath = components['parameters']['ChargebackIdPath'];
 export type ParameterClientHeader = components['parameters']['ClientHeader'];
 export type ParameterCursor = components['parameters']['Cursor'];
 export type ParameterDocumentIdPath = components['parameters']['DocumentIdPath'];
@@ -7006,6 +7462,7 @@ export type ParameterMenuCategoryIdPath = components['parameters']['MenuCategory
 export type ParameterMenuItemIdPath = components['parameters']['MenuItemIdPath'];
 export type ParameterOfferIdPath = components['parameters']['OfferIdPath'];
 export type ParameterOrderIdPath = components['parameters']['OrderIdPath'];
+export type ParameterRefundIdPath = components['parameters']['RefundIdPath'];
 export type ParameterRestaurantIdPath = components['parameters']['RestaurantIdPath'];
 export type ParameterRiderAccountIdPath = components['parameters']['RiderAccountIdPath'];
 export type $defs = Record<string, never>;
@@ -7251,6 +7708,142 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listChargebacks: {
+        parameters: {
+            query?: {
+                /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
+                limit?: components["parameters"]["Limit"];
+                /** @description `true`: only chargebacks Stripe has not closed. `false`: only closed ones. */
+                open?: boolean;
+                order_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chargebacks. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Chargeback"][];
+                        meta: components["schemas"]["PageMeta"];
+                    };
+                };
+            };
+            /** @description `VALIDATION_FAILED`: a filter is not a valid value. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getChargeback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chargebackId: components["parameters"]["ChargebackIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chargeback. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Chargeback"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    addChargebackEvidenceNote: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                chargebackId: components["parameters"]["ChargebackIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChargebackEvidenceNoteInput"];
+            };
+        };
+        responses: {
+            /** @description The chargeback, with the new note last. */
+            201: {
+                headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Chargeback"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `ALREADY_DECIDED`: Stripe has closed this chargeback. `IDEMPOTENCY_KEY_REUSE`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `body` missing or out of length. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
@@ -7621,6 +8214,77 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getOrderingPause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The switch as it stands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["OrderingPause"];
+                    };
+                };
+            };
+            403: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    setOrderingPause: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderingPauseInput"];
+            };
+        };
+        responses: {
+            /** @description The switch after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["OrderingPause"];
+                    };
+                };
+            };
+            403: components["responses"]["Error"];
+            /** @description `VALIDATION_FAILED`: `reason` missing, shorter than 10 or longer than 500 characters. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     listOrdersAdmin: {
         parameters: {
             query?: {
@@ -7894,6 +8558,52 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    listRefundsAdmin: {
+        parameters: {
+            query?: {
+                /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
+                limit?: components["parameters"]["Limit"];
+                max_amount_cents?: number;
+                min_amount_cents?: number;
+                order_id?: string;
+                reason_code?: components["schemas"]["RefundReasonCode"][];
+                requested_from?: string;
+                requested_to?: string;
+                /** @description Defaults to `REQUESTED,PENDING_APPROVAL`. */
+                state?: components["schemas"]["RefundState"][];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refunds, oldest request first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminRefund"][];
+                        meta: components["schemas"]["PageMeta"];
+                    };
+                };
+            };
+            /** @description `VALIDATION_FAILED`: a filter is not a valid value. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     issueRefund: {
         parameters: {
             query?: never;
@@ -7920,6 +8630,8 @@ export interface operations {
             /** @description Refund authorised and submitted. */
             201: {
                 headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7934,6 +8646,8 @@ export interface operations {
              */
             202: {
                 headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7951,11 +8665,198 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            /** @description `MFA_REQUIRED`: the session was not signed in with an authenticator code. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /**
              * @description `REFUND_EXCEEDS_CAPTURED`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
-             *     `PAYMENT_NOT_REFUNDABLE`.
+             *     `PAYMENT_NOT_REFUNDABLE`, `IDEMPOTENCY_KEY_REUSE`.
              */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    approveRefund: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                refundId: components["parameters"]["RefundIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundApprovalInput"];
+            };
+        };
+        responses: {
+            /** @description Approved within the approver's limit; the refund is `AUTHORISED`. */
+            200: {
+                headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminRefund"];
+                    };
+                };
+            };
+            /**
+             * @description Above the approver's limit: the request is `PENDING_APPROVAL` for
+             *     `approval_required_role`, and a second person decides it. No money has moved.
+             */
+            202: {
+                headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminRefund"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /**
+             * @description `MFA_REQUIRED`, or `FORBIDDEN`: the approval request needs a role the caller does
+             *     not hold.
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /**
+             * @description `SELF_APPROVAL_FORBIDDEN`, `ALREADY_DECIDED`, `DAILY_CAP_EXCEEDED`,
+             *     `REFUND_EXCEEDS_CAPTURED`, `IDEMPOTENCY_KEY_REUSE`.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `reason_text` missing or out of length. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    declineRefund: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                refundId: components["parameters"]["RefundIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundDeclineInput"];
+            };
+        };
+        responses: {
+            /** @description Declined; the refund is `DECLINED`. */
+            200: {
+                headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminRefund"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `FORBIDDEN`: the approval request needs a role the caller does not hold. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `ALREADY_DECIDED`, `IDEMPOTENCY_KEY_REUSE`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `reason_text` missing or out of length. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9696,7 +10597,7 @@ export interface operations {
             /**
              * @description `QUOTE_STALE` (with `details.quote`), `QUOTE_EXPIRED`,
              *     `CART_HAS_UNAVAILABLE_ITEMS`, `ACTIVE_ORDER_EXISTS`, `RESTAURANT_UNAVAILABLE`,
-             *     `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`.
+             *     `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
              */
             409: {
                 headers: {
@@ -10403,7 +11304,7 @@ export interface operations {
             };
             /**
              * @description `CART_HAS_UNAVAILABLE_ITEMS`, `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE`,
-             *     `BELOW_MINIMUM_ORDER` or `ADDRESS_OUT_OF_RANGE`.
+             *     `BELOW_MINIMUM_ORDER`, `ADDRESS_OUT_OF_RANGE` or `ORDERING_PAUSED`.
              */
             409: {
                 headers: {

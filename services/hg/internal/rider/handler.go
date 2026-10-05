@@ -305,10 +305,18 @@ SELECT id, subject_type, subject_id, rider_doc_type, state, version, created_at
 // commit, does nothing, and reads the first one's row back.
 func (r *Repo) AttachDocument(ctx context.Context, accountID, docType, storedObjectID string, expiresOn *time.Time) (kycDocumentRow, error) {
 	// Verify stored_object ownership first (IDOR: returns 404).
+	// The file must also be a compliance upload (not a delivery photo or an
+	// avatar), and not attached to another subject's documents: one upload
+	// backs one subject (https://github.com/shaiknoorullah/hg-mono/issues/359).
 	var uploaderID string
-	err := r.pool.QueryRow(ctx,
-		`SELECT uploaded_by FROM stored_object WHERE id = $1 AND state = 'READY' AND deleted_at IS NULL`,
-		storedObjectID).Scan(&uploaderID)
+	err := r.pool.QueryRow(ctx, `
+SELECT so.uploaded_by FROM stored_object so
+ WHERE so.id = $1 AND so.state = 'READY' AND so.deleted_at IS NULL
+   AND so.purpose = 'KYC_DOCUMENT'
+   AND NOT EXISTS (SELECT 1 FROM kyc_document kd
+                    WHERE kd.stored_object_id = so.id AND kd.deleted_at IS NULL
+                      AND (kd.subject_type <> 'RIDER' OR kd.subject_id <> $2))`,
+		storedObjectID, accountID).Scan(&uploaderID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return kycDocumentRow{}, ErrNotFound
 	}
