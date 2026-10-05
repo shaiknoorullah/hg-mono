@@ -47,4 +47,11 @@ const (
 	// ActionOrderCancelSupport guards cancelOrderAdmin: staff can force-cancel via
 	// the support/admin path (machine transition T11).
 	ActionOrderCancelSupport httpx.Action = "order.cancel_support"
+
+	// The platform-wide pause on new orders
+	// (https://github.com/shaiknoorullah/hg-mono/issues/244). Reading it is for
+	// every staff role; changing it is for ADMIN and SUPER_ADMIN only
+	// (ordering_pause.go says why).
+	ActionOrderingPauseRead httpx.Action = "ordering_pause.read"
+	ActionOrderingPauseSet  httpx.Action = "ordering_pause.set"
 )

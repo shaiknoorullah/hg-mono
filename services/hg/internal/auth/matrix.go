@@ -230,6 +230,10 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("halal_issuing_body.read"),
 		httpx.Action("order.cancel_support"),
 		httpx.Action("order.read_any"),
+		// Reads the platform-wide pause on new orders, never changes it: that
+		// is ADMIN and SUPER_ADMIN only (https://github.com/shaiknoorullah/hg-mono/issues/244;
+		// internal/admin/ordering_pause.go says why).
+		httpx.Action("ordering_pause.read"),
 		httpx.Action("realtime_schema.read"),
 		httpx.Action("realtime_ticket.create"),
 		httpx.Action("refund.approve"),
@@ -262,6 +266,10 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("menu_version.read"),
 		httpx.Action("order.cancel_support"),
 		httpx.Action("order.read_any"),
+		// The platform-wide pause on new orders
+		// (https://github.com/shaiknoorullah/hg-mono/issues/244).
+		httpx.Action("ordering_pause.read"),
+		httpx.Action("ordering_pause.set"),
 		httpx.Action("platform_deps.read"),
 		httpx.Action("payout_run.create"),
 		httpx.Action("payout_run.read"),
@@ -305,6 +313,8 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("menu_version.read"),
 		httpx.Action("order.cancel_support"),
 		httpx.Action("order.read_any"),
+		httpx.Action("ordering_pause.read"),
+		httpx.Action("ordering_pause.set"),
 		httpx.Action("platform_deps.read"),
 		httpx.Action("payout_run.create"),
 		httpx.Action("payout_run.read"),

@@ -65,9 +65,36 @@ One person runs commands on the server at a time. Keep a timeline as you go, in 
 
 ## Pause new orders
 
-There is no platform-wide switch yet ([#244][i244]). Until there is:
+One switch stops new orders on the whole platform and leaves everything else running ([#244][i244]). Use it before phoning restaurants and before stopping the API.
 
-- Phone each restaurant and ask them to switch off accepting orders in the restaurant app. Offers already sent keep their full 180-second window.
+**Who:** an `ADMIN` or `SUPER_ADMIN`. A support agent can see whether it is on, but cannot change it.
+
+**Turn it on** with the API (`setOrderingPause` in [the contract](../../contracts/openapi.yaml)); the admin console gets a button for it with [#389](https://github.com/shaiknoorullah/hg-mono/issues/389). The access token is the one `login` returns when you sign in with your email, password and two-step code; it lasts 15 minutes.
+
+```sh
+curl -fsS -X PUT https://<api host>/v1/admin/ordering-pause \
+  -H "Authorization: Bearer <your admin access token>" \
+  -H "Idempotency-Key: $(uuidgen)" -H 'Content-Type: application/json' \
+  -d '{"paused": true, "reason": "Stripe is refusing authorisations; see the incident timeline"}'
+```
+
+The reason is required (10 to 500 characters) and goes into the audit log with your account, as action `ordering.pause`. Write it for the next person on call. Note the UTC time in the timeline.
+
+**What changes, on every API replica, from the next request:**
+
+- New quotes and new orders are refused with `409 ORDERING_PAUSED`. Nothing is stored and nothing is charged.
+- The public config says `"ordering": {"paused": true}` and the cart says `ORDERING_PAUSED`, so the customer app can say ordering is paused instead of failing at checkout *(the app side lands with [#388](https://github.com/shaiknoorullah/hg-mono/issues/388))*.
+- Every order already placed carries on to the end: restaurant accept and reject, riders, tracking, payments (capture on acceptance, voids), refunds and the staff tools. Offers already sent keep their full 180-second window.
+
+The switch lives in Postgres, not Redis: flushing or restarting Redis does not turn it off, and nothing needs flushing to turn it on.
+
+**Check it:** `GET /v1/admin/ordering-pause` shows `paused`, `paused_since`, the reason and who changed it last. `GET /v1/config/public` shows `"ordering": {"paused": true, …}`.
+
+**Turn it off** the same way, with `"paused": false` and a reason (action `ordering.resume` in the audit log). Ordering resumes on the next request. Customers whose checkout was refused can try again with the same request.
+
+**If the API is down** the switch cannot be reached. Then:
+
+- Phone each restaurant and ask them to switch off accepting orders in the restaurant app.
 - Last resort: stop the API. That stops everything (tracking, rider updates, the staff tools), not only new orders. When it restarts, the deadline runner's outage handling covers the gap *(lands with [#222][i222])*.
 
 ## Roll back a bad deploy

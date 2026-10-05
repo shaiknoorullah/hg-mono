@@ -118,4 +118,7 @@ var expectedCovered = []string{
 	// refund review and chargebacks (#172; conformance_refund_review_test.go)
 	"listRefundsAdmin", "approveRefund", "declineRefund",
 	"listChargebacks", "getChargeback", "addChargebackEvidenceNote",
+	// the platform-wide pause on new orders, on a database of its own
+	// (conformance_ordering_pause_test.go; https://github.com/shaiknoorullah/hg-mono/issues/244).
+	"getOrderingPause", "setOrderingPause",
 }
