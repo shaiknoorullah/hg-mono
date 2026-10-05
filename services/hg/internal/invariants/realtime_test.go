@@ -3,12 +3,14 @@ package invariants
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
@@ -39,11 +41,16 @@ import (
 // shape cmd/hg/main.go wires.
 type lifecycleBridge struct{ st *orders.Store }
 
-func (b lifecycleBridge) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
-	return b.st.Transition(ctx, orders.TransitionRequest{
-		OrderID: orderID, To: machine.StatePickedUp, Actor: machine.ActorRider,
-		ActorAccountID: riderAccountID, Reason: "rider confirmed pickup",
-	})
+func (b lifecycleBridge) ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error {
+	err := b.st.PickUpTx(ctx, tx, orderID, riderAccountID)
+	var illegal *orders.IllegalTransitionError
+	switch {
+	case errors.As(err, &illegal):
+		return &dispatch.OrderNotCollectableError{OrderState: string(illegal.From)}
+	case errors.Is(err, orders.ErrRiderDoesNotHoldOrder):
+		return dispatch.ErrRiderDoesNotHoldOrder
+	}
+	return err
 }
 
 func (b lifecycleBridge) MarkArrived(ctx context.Context, orderID, riderAccountID string) error {
