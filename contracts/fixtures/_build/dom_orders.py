@@ -526,10 +526,12 @@ def _order_lists(reg) -> None:
 
 
 def _restaurant_orders(reg, synth) -> None:
-    def restaurant_order(state: str, **over: Any) -> dict:
+    def restaurant_order(state: str, *, label: str | None = None, **over: Any) -> dict:
+        # `label` gives a distinct order (its own id). Without one, the id is the state's
+        # canonical order, the same one the customer, rider and payment fixtures show.
         lines = standard_quote_lines()
         priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state)
+        base = customer_order(state, label=label)
         accepted = base["accepted_at"] is not None
         out = {
             "id": base["id"],
@@ -624,12 +626,17 @@ def _restaurant_orders(reg, synth) -> None:
         "array<OrderRestaurantView>",
         "Friday 19:00: two pending, three preparing, one late, one ready. Sorted with "
         "RESTAURANT_PENDING first by `deadline_at` ascending, per R-23.",
+        # Six different orders, so six different ids and codes (issue #31). The first order in
+        # each state keeps that state's canonical id; the others get their own.
         [
             restaurant_order("RESTAURANT_PENDING", elapsed_seconds=150, deadline_at=ts(30)),
-            restaurant_order("RESTAURANT_PENDING", elapsed_seconds=20, deadline_at=ts(160)),
+            restaurant_order(
+                "RESTAURANT_PENDING", label="queue-pending-2", code="HG-7P3R-2K",
+                elapsed_seconds=20, deadline_at=ts(160),
+            ),
             restaurant_order("PREPARING", is_late=True),
-            restaurant_order("PREPARING", is_late=False),
-            restaurant_order("PREPARING", is_late=False),
+            restaurant_order("PREPARING", label="queue-preparing-2", code="HG-5D8N-4V", is_late=False),
+            restaurant_order("PREPARING", label="queue-preparing-3", code="HG-9W6H-1F", is_late=False),
             restaurant_order("READY_FOR_PICKUP"),
         ],
         operations=["listRestaurantOrders"],
