@@ -566,9 +566,10 @@ func TestWebhookWorker_AFailingEventBacksOffThenIsDeadLettered(t *testing.T) {
 }
 
 // A partner's payout account, the transfer to it and the bank payout each
-// move their row once (#249): an older account snapshot never undoes a
-// newer one, a duplicated transfer pays once, and a bank payout the bank
-// returned stays failed when Stripe's earlier "paid" arrives after it.
+// move their row once (#249, #301): an older account snapshot never undoes a
+// newer one, a duplicated transfer moves the payout to TRANSFERRED once, and a
+// bank payout the bank returned stays failed when Stripe's earlier "paid"
+// arrives after it, its payout back to TRANSFERRED for the next run to retry.
 func TestWebhookWorker_ConnectTransferAndPayoutEventsMoveTheirRowsOnce(t *testing.T) {
 	h := newWebhookHarness(t)
 	ctx := context.Background()
@@ -597,20 +598,27 @@ func TestWebhookWorker_ConnectTransferAndPayoutEventsMoveTheirRowsOnce(t *testin
 	h.send(h.id("evt_tr"), "transfer.created", t0.Add(3*time.Minute), transfer)
 	h.send(h.id("evt_tr"), "transfer.created", t0.Add(3*time.Minute), transfer)
 	h.process()
-	if got := h.text(`SELECT state::text || '/' || coalesce(stripe_transfer_id, '') FROM payout WHERE id = $1`, payout); got != "PAID/"+tr {
-		t.Errorf("payout after its transfer: %s, want PAID/%s", got, tr)
+	if got := h.text(`SELECT state::text || '/' || coalesce(stripe_transfer_id, '') FROM payout WHERE id = $1`, payout); got != "TRANSFERRED/"+tr {
+		t.Errorf("payout after its transfer: %s, want TRANSFERRED/%s", got, tr)
 	}
 
+	// The run records its bank payout attempt before it asks Stripe.
+	if _, err := h.pool.Exec(ctx, `INSERT INTO payout_bank_attempt (payout_id, attempt, amount_cents) VALUES ($1, 1, 1200)`, payout); err != nil {
+		t.Fatal(err)
+	}
 	bankPayout := func(status string) map[string]any {
 		return map[string]any{"id": po, "object": "payout", "amount": 1200, "currency": "cad", "status": status,
-			"failure_code": "account_closed", "metadata": map[string]any{"payout_id": payout}}
+			"failure_code": "account_closed", "metadata": map[string]any{"payout_id": payout, "attempt": "1"}}
 	}
 	h.sendFrom(acct, h.id("evt_po_failed"), "payout.failed", t0.Add(5*time.Minute), bankPayout("failed"))
 	h.process()
 	h.sendFrom(acct, h.id("evt_po_paid"), "payout.paid", t0.Add(4*time.Minute), bankPayout("paid"))
 	h.process()
-	if got := h.text(`SELECT state::text || '/' || coalesce(stripe_payout_id, '') FROM payout WHERE id = $1`, payout); got != "FAILED/"+po {
-		t.Errorf("payout after the bank returned it: %s, want FAILED/%s", got, po)
+	if got := h.text(`SELECT state::text || '/' || coalesce(stripe_payout_id, '') FROM payout WHERE id = $1`, payout); got != "TRANSFERRED/" {
+		t.Errorf("payout after the bank returned it: %s, want TRANSFERRED/ (no bank payout on its way)", got)
+	}
+	if got := h.text(`SELECT state || '/' || stripe_payout_id FROM payout_bank_attempt WHERE payout_id = $1`, payout); got != "FAILED/"+po {
+		t.Errorf("bank payout attempt after the bank returned it: %s, want FAILED/%s", got, po)
 	}
 	if n := h.count(`SELECT count(*) FROM reconciliation_exception
 		WHERE kind = 'payout_failed' AND stripe_object_id = $1 AND payout_id = $2 AND resolved_at IS NULL`, po, payout); n != 1 {
@@ -630,7 +638,7 @@ func TestWebhookWorker_ConnectTransferAndPayoutEventsMoveTheirRowsOnce(t *testin
 		trail = append(trail, a)
 	}
 	// payout.created is the payout run's own audit row, written when the payout is made.
-	if want := []string{"payout.created", "payment.payout_paid", "payment.payout_failed"}; !slices.Equal(trail, want) {
+	if want := []string{"payout.created", "payment.payout_transferred", "payment.bank_payout_failed"}; !slices.Equal(trail, want) {
 		t.Errorf("payout audit trail %v, want %v", trail, want)
 	}
 	h.assertLedgerZeroSum()

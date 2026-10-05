@@ -522,21 +522,11 @@ type stripeTransferObject struct {
 	Metadata       map[string]string `json:"metadata"`
 }
 
-// payoutRank orders a payout's states by how far the money has gone. A
-// payout can still fail after it was paid (a reversed transfer, a bank
-// payout the bank returned), so FAILED is last.
-var payoutRank = map[string]int{
-	"DRAFT": 0, "READY": 0, "TRANSFERRING": 0, "HELD": 0,
-	"TRANSFERRED": 1,
-	"PAID":        2,
-	"FAILED":      3,
-}
-
 // applyTransferEvent reconciles a payout with its Stripe transfer (the
 // handled-events table: "transfer.created / transfer.reversed — reconcile
-// payout ledger"). On main a
-// transfer that went through is the end of a payout, so the payout is PAID;
-// #301 moves that to the bank payout. A FAILED payout is moved back to PAID
+// payout ledger"). A transfer that went through puts the money in the
+// partner's Stripe balance, so the payout is TRANSFERRED; it is PAID only once
+// its bank payout is (#301, applyPayoutEvent). A FAILED payout is moved on
 // only when the failure was our own call's (no transfer id recorded): a
 // transfer Stripe reversed or failed is final until a person says otherwise.
 func (s *Service) applyTransferEvent(ctx context.Context, tx pgx.Tx, ev stripeEventEnvelope) (effect, error) {
@@ -623,13 +613,13 @@ func (s *Service) applyTransferEvent(ctx context.Context, tx pgx.Tx, ev stripeEv
 		}
 		return effect{kind: effectUnchanged, label: "noop:payout_" + p.State, stripeID: tr.ID}, nil
 	}
-	if err := markPayoutPaidTx(ctx, tx, p.ID, p.State, ids); err != nil {
+	if err := markPayoutTransferredTx(ctx, tx, p.ID, p.State, ids); err != nil {
 		return effect{}, err
 	}
-	if err := s.auditPayout(ctx, tx, ev, p, "PAID", tr.ID); err != nil {
+	if err := s.auditPayout(ctx, tx, ev, p, "TRANSFERRED", tr.ID); err != nil {
 		return effect{}, err
 	}
-	return effect{kind: effectApplied, label: fmt.Sprintf("payout:%s->PAID", p.State), stripeID: tr.ID}, nil
+	return effect{kind: effectApplied, label: fmt.Sprintf("payout:%s->TRANSFERRED", p.State), stripeID: tr.ID}, nil
 }
 
 type stripePayoutObject struct {
@@ -644,9 +634,18 @@ type stripePayoutObject struct {
 
 // applyPayoutEvent follows a partner's bank payout: the money leaving their
 // Stripe balance for their bank ("P-19 — Stripe Connect: onboarding and
-// payouts (Canada)", payout execution; #301 is what will create them). The payout's status in the event is the truth: a bank can
-// return a payout after Stripe reported it paid, so a failure overrides a
-// payment, and a late "paid" never overrides a failure.
+// payouts (Canada)", payout execution; the payout run asks for it, #301).
+// It is about one bank payout attempt (payout_bank_attempt), which the run
+// recorded before asking Stripe, so an event about any other bank payout
+// changes nothing.
+//
+// The bank payout's status in the event is the truth, and an attempt's
+// status only moves forward: Stripe can fail a payout after reporting it
+// paid (the bank returned it), but a failed payout never becomes paid, so a
+// late "paid" never overrides a failure. A failure puts the money back in the
+// partner's Stripe balance: the payout is TRANSFERRED again, a person is told,
+// and the next run asks for a new bank payout. The platform's ledger does not
+// move at all: the money left the platform with the transfer.
 func (s *Service) applyPayoutEvent(ctx context.Context, tx pgx.Tx, ev stripeEventEnvelope) (effect, error) {
 	var po stripePayoutObject
 	if err := ev.object(&po); err != nil {
@@ -655,15 +654,16 @@ func (s *Service) applyPayoutEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 	if po.ID == "" {
 		return effect{}, fmt.Errorf("%s %s carries no payout id", ev.Type, ev.ID)
 	}
-	p, found, err := findPayoutForUpdate(ctx, tx, "stripe_payout_id", po.ID, po.Metadata["payout_id"])
+	a, p, found, err := findBankAttemptForUpdate(ctx, tx, po.ID, po.Metadata["payout_id"], po.Metadata["attempt"])
 	if err != nil {
 		return effect{}, err
 	}
 	if !found {
-		// Accounts are on a manual schedule, so only a payout made by hand in
-		// the partner's Stripe dashboard lands here: their own balance, not a
+		// Accounts are on a manual schedule and every bank payout the run asks
+		// for is recorded first, so only a payout made by hand in the
+		// partner's Stripe dashboard lands here: their own balance, not a
 		// payout of ours. It changes nothing, and a person is told.
-		return s.refuse(ctx, tx, ev, po.ID, "no payout here is bank payout "+po.ID)
+		return s.refuse(ctx, tx, ev, po.ID, "no payout here asked for bank payout "+po.ID)
 	}
 	// The bank payout must come from the account of the partner the payout
 	// is owed to: an event from account A never moves partner B's payout,
@@ -677,54 +677,77 @@ func (s *Service) applyPayoutEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 		return s.refuse(ctx, tx, ev, po.ID, fmt.Sprintf("it pays out %d %s against payout %s of %d cents CAD",
 			po.Amount, po.Currency, p.ID, p.AmountCents))
 	}
-	ids := payoutStripeIDs{Payout: po.ID}
-	var target string
+	// The payout's current bank payout, if it has one, is this attempt's.
+	current := p.StripePayoutID == "" || p.StripePayoutID == po.ID
+
 	switch po.Status {
 	case "paid":
-		target = "PAID"
-	case "failed", "canceled":
-		target = "FAILED"
-	default: // pending, in_transit: on its way, nothing to assert yet
-		if p.StripePayoutID == "" {
-			if err := setPayoutStripeIDs(ctx, tx, p.ID, ids); err != nil {
-				return effect{}, err
-			}
+		if a.State != "REQUESTED" {
+			return effect{kind: effectBehind, label: fmt.Sprintf("bank_payout_skipped:%s<-paid", a.State), stripeID: po.ID}, nil
 		}
-		return effect{kind: effectUnchanged, label: "bank_payout_" + po.Status + ":" + po.ID, stripeID: po.ID}, nil
-	}
-	if payoutRank[target] < payoutRank[p.State] || (target == p.State) {
-		if p.StripePayoutID == "" {
-			if err := setPayoutStripeIDs(ctx, tx, p.ID, ids); err != nil {
-				return effect{}, err
-			}
-		}
-		kind := effectUnchanged
-		if target != p.State {
-			kind = effectBehind
-		}
-		return effect{kind: kind, label: fmt.Sprintf("bank_payout_skipped:%s<-%s", p.State, target), stripeID: po.ID}, nil
-	}
-	if target == "PAID" {
-		if err := markPayoutPaidTx(ctx, tx, p.ID, p.State, ids); err != nil {
+		if err := settleBankAttemptTx(ctx, tx, a, po.ID, "PAID", "", ""); err != nil {
 			return effect{}, err
 		}
-	} else {
+		if p.State != "TRANSFERRED" || !current {
+			// A payout whose transfer was reversed, say: the attempt is
+			// recorded, the payout is a person's to look at.
+			return effect{kind: effectUnchanged, label: fmt.Sprintf("bank_payout_paid:payout_%s", p.State), stripeID: po.ID}, nil
+		}
+		if err := markPayoutPaidTx(ctx, tx, p.ID, p.State, payoutStripeIDs{Payout: po.ID}); err != nil {
+			return effect{}, err
+		}
+		if err := s.auditPayout(ctx, tx, ev, p, "PAID", po.ID); err != nil {
+			return effect{}, err
+		}
+		return effect{kind: effectApplied, label: fmt.Sprintf("payout:%s->PAID", p.State), stripeID: po.ID}, nil
+
+	case "failed", "canceled":
+		if a.State == "FAILED" {
+			return effect{kind: effectUnchanged, label: "noop:bank_payout_failed", stripeID: po.ID}, nil
+		}
 		msg := po.FailureMessage
 		if msg == "" {
 			msg = "The bank payout " + po.Status + " (" + po.FailureCode + ")."
 		}
-		if err := markPayoutFailedTx(ctx, tx, p.ID, p.State, ids, msg); err != nil {
+		if err := settleBankAttemptTx(ctx, tx, a, po.ID, "FAILED", po.FailureCode, msg); err != nil {
 			return effect{}, err
 		}
 		if _, err := fileException(ctx, tx, catchUpException{Kind: exceptionPayoutFailed, StripeObjectID: po.ID,
 			PayoutID: p.ID, ExpectedCents: int64Ptr(p.AmountCents), ActualCents: int64Ptr(po.Amount)}); err != nil {
 			return effect{}, err
 		}
+		if (p.State != "TRANSFERRED" && p.State != "PAID") || !current {
+			return effect{kind: effectUnchanged, label: fmt.Sprintf("bank_payout_failed:payout_%s", p.State), stripeID: po.ID}, nil
+		}
+		if err := markBankPayoutReturnedTx(ctx, tx, p.ID, p.State, msg); err != nil {
+			return effect{}, err
+		}
+		if err := writeWebhookAudit(ctx, tx, webhookAudit{
+			Action: "payment.bank_payout_failed", SubjectType: "payout", SubjectID: p.ID,
+			AmountCents: int64Ptr(p.AmountCents), EventID: ev.ID,
+			After: map[string]any{"state": "TRANSFERRED", "from": p.State, "stripe_object_id": po.ID,
+				"attempt": a.Attempt, "failure_code": po.FailureCode},
+		}); err != nil {
+			return effect{}, err
+		}
+		return effect{kind: effectApplied, label: fmt.Sprintf("payout:%s->TRANSFERRED (bank payout %s)", p.State, po.Status),
+			stripeID: po.ID}, nil
+
+	default: // pending, in_transit: on its way, nothing to assert yet
+		if a.StripePayoutID == "" {
+			if _, err := tx.Exec(ctx, `
+				UPDATE payout_bank_attempt SET stripe_payout_id = $3 WHERE payout_id = $1 AND attempt = $2`,
+				a.PayoutID, a.Attempt, po.ID); err != nil {
+				return effect{}, err
+			}
+		}
+		if a.State == "REQUESTED" && p.State == "TRANSFERRED" && p.StripePayoutID == "" {
+			if err := setPayoutStripeIDs(ctx, tx, p.ID, payoutStripeIDs{Payout: po.ID}); err != nil {
+				return effect{}, err
+			}
+		}
+		return effect{kind: effectUnchanged, label: "bank_payout_" + po.Status + ":" + po.ID, stripeID: po.ID}, nil
 	}
-	if err := s.auditPayout(ctx, tx, ev, p, target, po.ID); err != nil {
-		return effect{}, err
-	}
-	return effect{kind: effectApplied, label: fmt.Sprintf("payout:%s->%s", p.State, target), stripeID: po.ID}, nil
 }
 
 func (s *Service) auditPayout(ctx context.Context, tx pgx.Tx, ev stripeEventEnvelope, p payoutForStripe, to, stripeID string) error {

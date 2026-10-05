@@ -633,6 +633,8 @@ PAYOUT_RUN_OUTCOMES = {
     "ORDERS_BLOCKED": (-500, "balance below zero since 2026-07-05, more than 30 days: no new orders until it recovers"),
     "ORDERS_UNBLOCKED": (0, "the balance has recovered"),
     "ERROR": (0, "build payout: connection reset by peer"),
+    "BANK_PAYOUT": (2099, "Stripe bank payout po_1Q2w3E4r5T6y7U8i"),
+    "BANK_PAYOUT_FAILED": (650, "stripe create bank payout: balance_insufficient; the next run asks again"),
 }
 
 
@@ -699,7 +701,7 @@ def _payout_runs(reg, synth) -> None:
             "payee": {"type": "RESTAURANT" if outcome in ("PARTNER_SUSPENDED", "ORDERS_BLOCKED", "ORDERS_UNBLOCKED") else "RIDER",
                       "id": uuid_for(f"payee-{outcome}")},
             "outcome": outcome,
-            "payout_id": uuid_for(f"payout-{outcome}") if outcome in ("PAID", "HELD", "STILL_HELD", "RELEASED", "TRANSFER_FAILED", "ALREADY_PAID") else None,
+            "payout_id": uuid_for(f"payout-{outcome}") if outcome in ("PAID", "HELD", "STILL_HELD", "RELEASED", "TRANSFER_FAILED", "ALREADY_PAID", "BANK_PAYOUT", "BANK_PAYOUT_FAILED") else None,
             "amount_cents": cents,
             "detail": text,
             "at": "2026-08-10T13:00:02.517Z",

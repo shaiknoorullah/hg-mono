@@ -46,8 +46,8 @@ func TestPayoutRun_TwoMondays(t *testing.T) {
 	earn(t, db, riderC, 700, toronto(2026, 8, 13, 18, 0))
 	runAt(t, runner, toronto(2026, 8, 17, 10, 0))
 
-	assertPayouts(t, db, riderA, want{end: toronto(2026, 8, 17, 0, 0), cents: 2099, state: "PAID"})
-	assertPayouts(t, db, restaurantB, want{end: toronto(2026, 8, 17, 0, 0), cents: 4500, state: "PAID"})
+	assertPayouts(t, db, riderA, want{end: toronto(2026, 8, 17, 0, 0), cents: 2099, state: "TRANSFERRED"})
+	assertPayouts(t, db, restaurantB, want{end: toronto(2026, 8, 17, 0, 0), cents: 4500, state: "TRANSFERRED"})
 	assertPayouts(t, db, riderC, want{end: toronto(2026, 8, 17, 0, 0), cents: 700, state: "HELD"})
 
 	// Week of 17 August. Rider C fixes their Stripe account midweek; the held
@@ -60,15 +60,15 @@ func TestPayoutRun_TwoMondays(t *testing.T) {
 	runAt(t, runner, toronto(2026, 8, 24, 11, 0)) // nothing left to do
 
 	assertPayouts(t, db, riderA,
-		want{end: toronto(2026, 8, 17, 0, 0), cents: 2099, state: "PAID"},
-		want{end: toronto(2026, 8, 24, 0, 0), cents: 500, state: "PAID"})
+		want{end: toronto(2026, 8, 17, 0, 0), cents: 2099, state: "TRANSFERRED"},
+		want{end: toronto(2026, 8, 24, 0, 0), cents: 500, state: "TRANSFERRED"})
 	assertPayouts(t, db, restaurantB,
-		want{end: toronto(2026, 8, 17, 0, 0), cents: 4500, state: "PAID"},
-		want{end: toronto(2026, 8, 24, 0, 0), cents: 3000, state: "PAID"})
+		want{end: toronto(2026, 8, 17, 0, 0), cents: 4500, state: "TRANSFERRED"},
+		want{end: toronto(2026, 8, 24, 0, 0), cents: 3000, state: "TRANSFERRED"})
 	assertPayouts(t, db, riderC,
-		want{end: toronto(2026, 8, 17, 0, 0), cents: 700, state: "PAID"},
-		want{end: toronto(2026, 8, 24, 0, 0), cents: 300, state: "PAID"})
-	assertOutcomes(t, db, lastRun(t, db, toronto(2026, 8, 24, 0, 0)), riderC, OutcomeReleased, OutcomePaid)
+		want{end: toronto(2026, 8, 17, 0, 0), cents: 700, state: "TRANSFERRED"},
+		want{end: toronto(2026, 8, 24, 0, 0), cents: 300, state: "TRANSFERRED"})
+	assertOutcomes(t, db, lastRun(t, db, toronto(2026, 8, 24, 0, 0)), riderC, OutcomeReleased, OutcomeBankPayout, OutcomePaid, OutcomeBankPayout)
 
 	if n := stripe.made(); n != 6 {
 		t.Fatalf("Stripe made %d transfers, want 6: one per payout", n)
@@ -129,7 +129,7 @@ func TestPayoutRun_NeverPaysTwice(t *testing.T) {
 	}
 	wg.Wait()
 	for i, p := range riders {
-		assertPayouts(t, db, p, want{end: period, cents: int64(1000 + i), state: "PAID"})
+		assertPayouts(t, db, p, want{end: period, cents: int64(1000 + i), state: "TRANSFERRED"})
 	}
 	if n := stripe.made(); n != 3 {
 		t.Fatalf("two replicas made %d transfers, want 3", n)
@@ -208,7 +208,7 @@ func TestPayoutRun_NeverPaysTwice(t *testing.T) {
 		}(x.r, x.run)
 	}
 	wg.Wait()
-	assertPayouts(t, db, late, want{end: period, cents: 800, state: "PAID"})
+	assertPayouts(t, db, late, want{end: period, cents: 800, state: "TRANSFERRED"})
 	paid, already := 0, 0
 	for _, o := range runOutcomes(t, db, late, runA.ID, runB.ID) {
 		switch o {
@@ -236,8 +236,8 @@ func TestPayoutRun_NeverPaysTwice(t *testing.T) {
 	assertPayouts(t, db, slow, want{end: toronto(2026, 8, 24, 0, 0), cents: 650, state: "READY"})
 	stripe.forgetKeys()
 	runAt(t, r1, toronto(2026, 8, 31, 10, 0))
-	assertOutcomes(t, db, lastRun(t, db, toronto(2026, 8, 31, 0, 0)), slow, OutcomeReleased, OutcomeNothingDue)
-	assertPayouts(t, db, slow, want{end: toronto(2026, 8, 24, 0, 0), cents: 650, state: "PAID"})
+	assertOutcomes(t, db, lastRun(t, db, toronto(2026, 8, 31, 0, 0)), slow, OutcomeReleased, OutcomeBankPayout, OutcomeNothingDue)
+	assertPayouts(t, db, slow, want{end: toronto(2026, 8, 24, 0, 0), cents: 650, state: "TRANSFERRED"})
 	if n := stripe.madeFor(slow.ID); n != 1 {
 		t.Fatalf("Stripe made %d transfers for the retried payout, want 1", n)
 	}
@@ -260,12 +260,12 @@ func TestPayoutRun_CutoffBoundary(t *testing.T) {
 	assertPayouts(t, db, rider)
 
 	runAt(t, runner, toronto(2026, 8, 17, 9, 0))
-	assertPayouts(t, db, rider, want{end: cutoff, cents: 100, state: "PAID"})
+	assertPayouts(t, db, rider, want{end: cutoff, cents: 100, state: "TRANSFERRED"})
 
 	runAt(t, runner, toronto(2026, 8, 24, 9, 0))
 	assertPayouts(t, db, rider,
-		want{end: cutoff, cents: 100, state: "PAID"},
-		want{end: toronto(2026, 8, 24, 0, 0), cents: 23, state: "PAID"})
+		want{end: cutoff, cents: 100, state: "TRANSFERRED"},
+		want{end: toronto(2026, 8, 24, 0, 0), cents: 23, state: "TRANSFERRED"})
 	assertLedgerAtZero(t, db)
 }
 
@@ -296,17 +296,17 @@ func TestPayoutRun_CrashAfterTransferBeforeRecord(t *testing.T) {
 	mustExec(t, db, `UPDATE payout SET lease_until = now() - interval '1 second' WHERE state = 'TRANSFERRING'`)
 	stripe.forgetKeys()
 	runAt(t, runner, toronto(2026, 8, 24, 10, 0))
-	assertPayouts(t, db, rider, want{end: period, cents: 900, state: "PAID"})
+	assertPayouts(t, db, rider, want{end: period, cents: 900, state: "TRANSFERRED"})
 	if n := stripe.madeFor(rider.ID); n != 1 {
 		t.Fatalf("Stripe made %d transfers for one payout, want 1", n)
 	}
 	var transfer string
-	queryRow(t, db, `SELECT stripe_transfer_id FROM payout WHERE state = 'PAID'`, &transfer)
+	queryRow(t, db, `SELECT stripe_transfer_id FROM payout WHERE state = 'TRANSFERRED'`, &transfer)
 	if transfer != "tr_1" {
 		t.Fatalf("the payout recorded transfer %q, want Stripe's first and only transfer tr_1", transfer)
 	}
 	// The abandoned run was finished by the next tick.
-	assertOutcomes(t, db, lastRun(t, db, period), rider, OutcomePaid, OutcomeAlreadyPaid)
+	assertOutcomes(t, db, lastRun(t, db, period), rider, OutcomePaid, OutcomeBankPayout, OutcomeAlreadyPaid)
 	assertLedgerAtZero(t, db)
 }
 
@@ -340,8 +340,8 @@ func TestPayoutRun_PaysOnlySettledOrdersPastTheirHold(t *testing.T) {
 	earnFor(t, db, rider, riderOnTime, 700, cutoff.Add(-2*time.Hour))
 
 	runAt(t, runner, toronto(2026, 8, 17, 10, 0))
-	assertPayouts(t, db, restaurant, want{end: cutoff, cents: 500, state: "PAID"}) // 1000 settled, less the 500 refund
-	assertPayouts(t, db, rider, want{end: cutoff, cents: 700, state: "PAID"})
+	assertPayouts(t, db, restaurant, want{end: cutoff, cents: 500, state: "TRANSFERRED"}) // 1000 settled, less the 500 refund
+	assertPayouts(t, db, rider, want{end: cutoff, cents: 700, state: "TRANSFERRED"})
 
 	// The order in progress is delivered; the dispute is resolved.
 	mustExec(t, db, `UPDATE "order" SET state = 'COMPLETED', delivered_at = $2, completed_at = $2,
@@ -350,11 +350,11 @@ func TestPayoutRun_PaysOnlySettledOrdersPastTheirHold(t *testing.T) {
 	runAt(t, runner, toronto(2026, 8, 24, 10, 0))
 	next := toronto(2026, 8, 24, 0, 0)
 	assertPayouts(t, db, restaurant,
-		want{end: cutoff, cents: 500, state: "PAID"},
-		want{end: next, cents: 2000 + 4000 + 3000, state: "PAID"})
+		want{end: cutoff, cents: 500, state: "TRANSFERRED"},
+		want{end: next, cents: 2000 + 4000 + 3000, state: "TRANSFERRED"})
 	assertPayouts(t, db, rider,
-		want{end: cutoff, cents: 700, state: "PAID"},
-		want{end: next, cents: 500, state: "PAID"})
+		want{end: cutoff, cents: 700, state: "TRANSFERRED"},
+		want{end: next, cents: 500, state: "TRANSFERRED"})
 	var unpaid int
 	queryRow(t, db, `SELECT count(*) FROM ledger_entry WHERE payout_id IS NULL AND account IN ('RESTAURANT_PAYABLE', 'RIDER_PAYABLE')`, &unpaid)
 	if unpaid != 0 {
@@ -394,9 +394,9 @@ func TestPayoutRun_NegativeBalance(t *testing.T) {
 	earn(t, db, restaurant, 2000, toronto(2026, 9, 8, 12, 0))
 	earn(t, db, rider, 1000, toronto(2026, 9, 8, 12, 0))
 	runAt(t, runner, toronto(2026, 9, 14, 10, 0))
-	assertPayouts(t, db, restaurant, want{end: toronto(2026, 9, 14, 0, 0), cents: 1500, state: "PAID"})
-	assertPayouts(t, db, rider, want{end: toronto(2026, 9, 14, 0, 0), cents: 500, state: "PAID"})
-	assertOutcomes(t, db, lastRun(t, db, toronto(2026, 9, 14, 0, 0)), restaurant, OutcomePaid, OutcomeOrdersUnblocked)
+	assertPayouts(t, db, restaurant, want{end: toronto(2026, 9, 14, 0, 0), cents: 1500, state: "TRANSFERRED"})
+	assertPayouts(t, db, rider, want{end: toronto(2026, 9, 14, 0, 0), cents: 500, state: "TRANSFERRED"})
+	assertOutcomes(t, db, lastRun(t, db, toronto(2026, 9, 14, 0, 0)), restaurant, OutcomePaid, OutcomeBankPayout, OutcomeOrdersUnblocked)
 	assertBlocked(t, db, restaurant, false)
 	assertLedgerAtZero(t, db)
 }
@@ -698,17 +698,21 @@ type stripeTransfers struct {
 	byGroup   map[string]*StripeTransfer
 	transfers []CreateTransferInput
 	forget    bool
-	timeoutTo map[string]bool // destination accounts whose next transfer times out after Stripe made it
-	crashTo   map[string]bool // destination accounts whose next transfer kills the caller after Stripe made it
+	bank      []CreateBankPayoutInput // bank payouts made, in order
+	bankByKey map[string]*StripeBankPayout
+	bankFail  map[string]string // connected accounts whose next bank payout fails: "refuse" or "timeout"
+	timeoutTo map[string]bool   // destination accounts whose next transfer times out after Stripe made it
+	crashTo   map[string]bool   // destination accounts whose next transfer kills the caller after Stripe made it
 }
 
 func newStripeTransfers() *stripeTransfers {
 	return &stripeTransfers{byKey: map[string]*StripeTransfer{}, byGroup: map[string]*StripeTransfer{},
-		timeoutTo: map[string]bool{}, crashTo: map[string]bool{}}
+		timeoutTo: map[string]bool{}, crashTo: map[string]bool{},
+		bankByKey: map[string]*StripeBankPayout{}, bankFail: map[string]string{}}
 }
 
 func (s *stripeTransfers) client() *mockStripe {
-	return &mockStripe{TransferFn: s.create, FindTransferFn: s.find}
+	return &mockStripe{TransferFn: s.create, FindTransferFn: s.find, BankPayoutFn: s.createBank, FindBankPayFn: s.findBank}
 }
 
 func (s *stripeTransfers) create(in CreateTransferInput) (*StripeTransfer, error) {
@@ -729,6 +733,59 @@ func (s *stripeTransfers) create(in CreateTransferInput) (*StripeTransfer, error
 		runtime.Goexit() // the replica dies before the transfer is recorded
 	}
 	return tr, nil
+}
+
+// createBank stands in for a bank payout on a connected account: one per
+// idempotency key while Stripe remembers it.
+func (s *stripeTransfers) createBank(in CreateBankPayoutInput) (*StripeBankPayout, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if po, ok := s.bankByKey[in.IdempotencyKey]; ok && !s.forget {
+		return po, nil
+	}
+	switch s.bankFail[in.StripeAccountID] {
+	case "refuse":
+		delete(s.bankFail, in.StripeAccountID)
+		return nil, errors.New("stripe create bank payout: balance_insufficient")
+	}
+	po := &StripeBankPayout{ID: fmt.Sprintf("po_%d", len(s.bank)+1), Status: "pending"}
+	s.bankByKey[in.IdempotencyKey] = po
+	s.bank = append(s.bank, in)
+	if s.bankFail[in.StripeAccountID] == "timeout" {
+		delete(s.bankFail, in.StripeAccountID)
+		return nil, errors.New("stripe create bank payout: context deadline exceeded")
+	}
+	return po, nil
+}
+
+func (s *stripeTransfers) findBank(acct, payoutID string, attempt int) (*StripeBankPayout, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i, in := range s.bank {
+		if in.StripeAccountID == acct && in.PayoutID == payoutID && in.Attempt == attempt {
+			return &StripeBankPayout{ID: fmt.Sprintf("po_%d", i+1), Status: "pending"}, nil
+		}
+	}
+	return nil, nil
+}
+
+// bankPayouts lists the bank payouts made on a partner's account.
+func (s *stripeTransfers) bankPayouts(ownerID string) []CreateBankPayoutInput {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []CreateBankPayoutInput
+	for _, in := range s.bank {
+		if in.StripeAccountID == "acct_"+ownerID {
+			out = append(out, in)
+		}
+	}
+	return out
+}
+
+func (s *stripeTransfers) failNextBankPayout(ownerID, how string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.bankFail["acct_"+ownerID] = how
 }
 
 func (s *stripeTransfers) crashAfterCreate(ownerID string) {

@@ -5674,9 +5674,14 @@ export interface components {
          *     `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
          *     longer than the configured limit, so it takes no new orders, or it has recovered.
          *     `ERROR`: the server failed for this partner; see `detail`.
+         *     `BANK_PAYOUT`: Stripe was asked to pay a transferred payout out of the partner's Stripe
+         *     balance to their bank; the payout is `PAID` once Stripe reports the bank payout paid.
+         *     `BANK_PAYOUT_FAILED`: the bank payout could not be asked for (Stripe refused, did not
+         *     answer, or has payouts turned off for the partner); the money stays in the partner's
+         *     Stripe balance and the next run asks again.
          * @enum {string}
          */
-        PayoutRunOutcome: "PAID" | "HELD" | "STILL_HELD" | "RELEASED" | "TRANSFER_FAILED" | "ALREADY_PAID" | "NOTHING_DUE" | "CARRIED_NEGATIVE" | "NO_PAYOUT_ACCOUNT" | "PARTNER_SUSPENDED" | "ORDERS_BLOCKED" | "ORDERS_UNBLOCKED" | "ERROR";
+        PayoutRunOutcome: "PAID" | "HELD" | "STILL_HELD" | "RELEASED" | "TRANSFER_FAILED" | "ALREADY_PAID" | "NOTHING_DUE" | "CARRIED_NEGATIVE" | "NO_PAYOUT_ACCOUNT" | "PARTNER_SUSPENDED" | "ORDERS_BLOCKED" | "ORDERS_UNBLOCKED" | "ERROR" | "BANK_PAYOUT" | "BANK_PAYOUT_FAILED";
         /**
          * @description `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
          *     payout stays owed and the next run tries it again.

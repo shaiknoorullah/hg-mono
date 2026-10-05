@@ -2586,6 +2586,8 @@ func (e PayoutRunKind) Valid() bool {
 // Defines values for PayoutRunOutcome.
 const (
 	PayoutRunOutcomeALREADYPAID      PayoutRunOutcome = "ALREADY_PAID"
+	PayoutRunOutcomeBANKPAYOUT       PayoutRunOutcome = "BANK_PAYOUT"
+	PayoutRunOutcomeBANKPAYOUTFAILED PayoutRunOutcome = "BANK_PAYOUT_FAILED"
 	PayoutRunOutcomeCARRIEDNEGATIVE  PayoutRunOutcome = "CARRIED_NEGATIVE"
 	PayoutRunOutcomeERROR            PayoutRunOutcome = "ERROR"
 	PayoutRunOutcomeHELD             PayoutRunOutcome = "HELD"
@@ -2604,6 +2606,10 @@ const (
 func (e PayoutRunOutcome) Valid() bool {
 	switch e {
 	case PayoutRunOutcomeALREADYPAID:
+		return true
+	case PayoutRunOutcomeBANKPAYOUT:
+		return true
+	case PayoutRunOutcomeBANKPAYOUTFAILED:
 		return true
 	case PayoutRunOutcomeCARRIEDNEGATIVE:
 		return true
@@ -7005,6 +7011,11 @@ type PayoutRunLine struct {
 	// `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
 	// longer than the configured limit, so it takes no new orders, or it has recovered.
 	// `ERROR`: the server failed for this partner; see `detail`.
+	// `BANK_PAYOUT`: Stripe was asked to pay a transferred payout out of the partner's Stripe
+	// balance to their bank; the payout is `PAID` once Stripe reports the bank payout paid.
+	// `BANK_PAYOUT_FAILED`: the bank payout could not be asked for (Stripe refused, did not
+	// answer, or has payouts turned off for the partner); the money stays in the partner's
+	// Stripe balance and the next run asks again.
 	Outcome  PayoutRunOutcome    `json:"outcome"`
 	Payee    PayoutPayee         `json:"payee"`
 	PayoutId *openapi_types.UUID `json:"payout_id"`
@@ -7025,6 +7036,11 @@ type PayoutRunLine struct {
 // `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
 // longer than the configured limit, so it takes no new orders, or it has recovered.
 // `ERROR`: the server failed for this partner; see `detail`.
+// `BANK_PAYOUT`: Stripe was asked to pay a transferred payout out of the partner's Stripe
+// balance to their bank; the payout is `PAID` once Stripe reports the bank payout paid.
+// `BANK_PAYOUT_FAILED`: the bank payout could not be asked for (Stripe refused, did not
+// answer, or has payouts turned off for the partner); the money stays in the partner's
+// Stripe balance and the next run asks again.
 type PayoutRunOutcome string
 
 // PayoutRunState `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
