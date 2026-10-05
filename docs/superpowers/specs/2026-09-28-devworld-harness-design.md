@@ -48,7 +48,7 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 - **Purpose is declared, then checked.** Each persona declares the state it lands in; a verifier asserts it after every seed. The coverage tables (see [personas and coverage](#5-personas-and-coverage)) are data the verifier reads, so they cannot silently drift.
 - **Time-relative, not calendar-fixed.** "Expires in 10 days" is `now() + interval '10 days'` at seed time, so states stay true after any reset.
 - **Seeded history stays inside retention.** The API binary runs the hourly retention sweep ([`services/hg/internal/retention`](../../../services/hg/internal/retention/rules.go)) in every environment, local included. A seeded row older than its table's retention period (a notification over 90 days old, a quote expired over 30 days ago with no order, a sign-in attempt over 90 days old) is deleted within the hour, so a persona that depends on one would silently drift out of its declared state.
-- **Auth is exercised, not bypassed.** Personas sign in with real password + TOTP. The only dev accommodation is a fixed OTP for a reserved fictional phone range, local-only (see [scenario sign-in](#64-scenario-sign-in)).
+- **Auth is exercised, not bypassed.** Personas sign in with real password + TOTP. The only dev accommodation is a fixed OTP for a reserved fictional phone range, and only when the process environment is local or staging (see [scenario sign-in](#64-scenario-sign-in)).
 
 ## 4. Architecture
 
@@ -66,11 +66,11 @@ dev-reset                                         (make dev-reset)
        6. flush Redis only when HG_REDIS_ADDR is local. A connection failure does not fail the reset.
        7. verify: every persona in its declared state, or a non-zero exit
 
-dev-scenario                                      (not built yet)
+dev-scenario                                      (make dev-scenario s=new-order)
 dev-totp                                          (make dev-totp — prints the admin code, not the secret)
 ```
 
-`reset`, `seed`, `verify`, `list` and `totp` exist. The scenario command and the fixed phone sign-in range do not. The world is one SQL file. Service paths below are relative to `services/hg/`.
+`reset`, `seed`, `verify`, `list`, `totp` and `scenario` exist. The journey command does not. The world is one SQL file. Service paths below are relative to `services/hg/`.
 
 The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator`. The first migration recreates the roles, and goose uses the local superuser in `HG_POSTGRES_DSN`. Credentials are hashed in the command. `seedpw` is not used, because that command also marks the email verified. Connect rows for the live restaurant, the payout-pending restaurant and the sim rider are stand-ins with test account ids. They are not Stripe accounts. Payout and ledger rows are not seeded.
 
@@ -90,7 +90,7 @@ The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator
 
 ## 5. Personas and coverage
 
-Email-login personas share one local password and sign in as `<persona>@seed.hg`. Only the admin persona is enrolled in an authenticator, and only when `HG_APP_DATA_KEY` is set. That secret is derived from the email, not stored in the repository. Phone-login personas keep their reserved numbers; the fixed sign-in range is not built yet (see [scenario sign-in](#64-scenario-sign-in)). Fixed UUIDs stay the same across resets.
+Email-login personas share one local password and sign in as `<persona>@seed.hg`. Only the admin persona is enrolled in an authenticator, and only when `HG_APP_DATA_KEY` is set. That secret is derived from the email, not stored in the repository. Phone-login personas keep their reserved numbers, and the fixed sign-in range is built (see [scenario sign-in](#64-scenario-sign-in)). Fixed UUIDs stay the same across resets.
 
 ### 5.1 Restaurant personas
 
@@ -129,7 +129,14 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 
 ## 6. Scenarios
 
-All scenarios act over HTTP against the running stack (Traefik on the published port). Default target is `bismillah-grill`; `--persona` picks another restaurant; `--count=N` repeats. Each prints the order code and every observed state change, so a person or agent can follow along in any app.
+`devworld scenario <name>` calls the API at `HG_API_URL` (default `http://127.0.0.1:8080`). `devworld scenario list` prints the names the command accepts. Each run signs in as the personas it needs and prints the order code and every observed state. The command follows the API when this table and the running code disagree:
+
+- A customer cancel ends in `CANCELLED`.
+- A restaurant rejection ends in `REJECTED`.
+- Rush places one order for each of the two seeded customers, a few seconds apart, then a further order for the first customer. The API refuses that third order while one is still active. The five-order rush in the table waits until more customers exist.
+- Menu approve and reject save the draft item through the restaurant API, then ask an admin to decide it. When that save returns no version, they decide the seeded draft. The save numbers the next version from the live version only, so a draft that is not live inserts version 1 again and the database refuses it. The decision endpoint accepts only a version waiting for review, so those two scenarios exit non-zero and print both refusals. They do not insert a review row.
+
+`rider-arrives` and `journey` are the next command. Default target is `bismillah-grill`.
 
 ### 6.1 Catalogue
 
@@ -163,7 +170,7 @@ Routes are fixed JSON route lines between seeded coordinates (restaurant ↔ cus
 
 ### 6.4 Scenario sign-in
 
-Customers and riders authenticate by phone OTP. New config: phones `+15550100100` through `+15550100199` (a fictional 555 range) accept code `000000` **only when `HG_ENV=local`**; config validation refuses the setting in any other environment. Scenarios still call `/v1/auth/otp/request` and `/v1/auth/otp/verify` — the real session, refresh and role-matrix code runs. Email + password + TOTP personas (restaurant staff, admin) sign in normally using the manifest's TOTP secret. The same range lets a person or agent sign in to the customer and rider apps by hand.
+Customers and riders authenticate by phone OTP. Phones `+15550100100` through `+15550100199` (a fictional 555 range) accept code `000000` when `HG_ENV` is `local` or `staging`. Production, an empty environment, and every other value refuse that code, including for a phone in the range. The range never reaches a configured phone verifier or the SMS sender. Scenarios still call `/v1/auth/otp/request` and `/v1/auth/otp/verify` — the real session, refresh and role-matrix code runs. Email + password + authenticator personas (restaurant staff, admin) sign in through the normal login endpoint. The same range lets a person sign in to the customer and rider apps by hand on a local or staging server.
 
 ## 7. Playbooks (Claude in Chrome and headless)
 

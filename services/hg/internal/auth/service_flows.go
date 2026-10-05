@@ -45,7 +45,11 @@ func (e *otpIncorrectError) Error() string { return "otp incorrect" }
 // (or re-sends) the code, and enqueues the SMS. It fails closed (503) when Redis
 // is unreachable. The response never signals whether the number is known.
 func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string, deviceID, ip *string) (*wireOtpChallenge, error) {
-	if s.verifier != nil {
+	// A reserved development number stays on the stored-hash path even when a
+	// phone verifier is configured, and the code is not handed to the SMS
+	// sender. Every other number with a verifier keeps the provider path.
+	delivery := otpDelivery(s.env, s.verifier != nil, phone)
+	if delivery == otpViaVerifier {
 		return s.requestOTPViaVerifier(ctx, phone, purpose, deviceID, ip)
 	}
 	// Rate limits (Redis). Keys rebuild from nothing — a flush costs at most a
@@ -107,20 +111,30 @@ func (s *Service) RequestOTP(ctx context.Context, phone, purpose, client string,
 		}, nil
 	}
 
-	// No open challenge: generate a fresh code and send it.
-	code, err := GenerateOTPCode()
-	if err != nil {
-		return nil, err
+	// No open challenge: generate a fresh code and send it. A reserved
+	// development number stores the fixed code and skips the sender, so the
+	// code is neither texted nor written to the log.
+	var code string
+	var err error
+	if delivery == otpViaFixed {
+		code = TestSignInCode
+	} else {
+		code, err = GenerateOTPCode()
+		if err != nil {
+			return nil, err
+		}
 	}
 	codeHash := HMACCode(code, s.secrets.OTPPepper)
 	challenge, err := s.store.InsertChallenge(ctx, phone, purpose, codeHash, deviceID, ip)
 	if err != nil {
 		return nil, err
 	}
-	if err := s.sms.SendOTP(ctx, phone, code); err != nil {
-		s.log.WarnContext(ctx, "otp sms send failed", "error", err.Error())
-		// Delivery failure is not surfaced to the caller (no enumeration); the
-		// challenge exists and the client can request a resend.
+	if delivery != otpViaFixed {
+		if err := s.sms.SendOTP(ctx, phone, code); err != nil {
+			s.log.WarnContext(ctx, "otp sms send failed", "error", err.Error())
+			// Delivery failure is not surfaced to the caller (no enumeration); the
+			// challenge exists and the client can request a resend.
+		}
 	}
 	if err := s.rl.SetCooldown(ctx, cooldownKey, 60*time.Second); err != nil {
 		return nil, err
@@ -255,7 +269,13 @@ func randomSentinelHash() ([]byte, error) {
 // account by phone.
 func (s *Service) VerifyOTP(ctx context.Context, challengeID, code string, client ClientSurface, deviceID, userAgent, ip *string) (*issuedSession, error) {
 	if s.verifier != nil {
-		return s.verifyOTPViaVerifier(ctx, challengeID, code, client, deviceID, userAgent, ip)
+		fixed, ferr := s.challengeUsesFixedCode(ctx, challengeID)
+		if ferr != nil {
+			return nil, ferr
+		}
+		if !fixed {
+			return s.verifyOTPViaVerifier(ctx, challengeID, code, client, deviceID, userAgent, ip)
+		}
 	}
 	codeHash := HMACCode(code, s.secrets.OTPPepper)
 	outcome, err := s.store.ConsumeChallenge(ctx, challengeID, codeHash)
@@ -277,6 +297,25 @@ func (s *Service) VerifyOTP(ctx context.Context, challengeID, code string, clien
 		return nil, errAccountNotActive
 	}
 	return s.issueSession(ctx, acct, "otp", client, deviceID, userAgent, ip, isNew)
+}
+
+// challengeUsesFixedCode reports whether this challenge belongs to the
+// reserved development range. Outside local and staging it returns false
+// without reading the database. A missing challenge returns false so the
+// provider path can answer invalid. Any other read error is returned and
+// the provider is not called.
+func (s *Service) challengeUsesFixedCode(ctx context.Context, challengeID string) (bool, error) {
+	if !fixedTestEnv(s.env) {
+		return false, nil
+	}
+	ch, err := s.store.OpenChallengeByID(ctx, challengeID)
+	if errors.Is(err, ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return FixedTestCode(s.env, ch.PhoneE164), nil
 }
 
 // verifyOTPViaVerifier is the PhoneVerifier (Twilio Verify) variant of VerifyOTP.
