@@ -53,7 +53,7 @@ import (
 // duplicate transition posts nothing and writes no line; the unique index
 // earning_entry_once_per_order is the backstop, and the database refuses a
 // line that disagrees with its posting
-// (migrations/00036_rider_earnings_follow_ledger.sql).
+// (migrations/00047_rider_earnings_follow_ledger.sql).
 
 // riderPayFormulaVersion is stamped on every line, so a line can be recomputed
 // from its stored inputs.
