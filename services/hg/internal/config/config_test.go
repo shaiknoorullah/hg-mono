@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 // validEnv is a complete, valid environment. Tests mutate a copy of it so that
@@ -42,6 +43,47 @@ func TestLoadAcceptsACompleteEnvironment(t *testing.T) {
 	}
 	if cfg.Realtime.MaxSockets != 2000 {
 		t.Errorf("Realtime.MaxSockets = %d, want the 2000 default", cfg.Realtime.MaxSockets)
+	}
+}
+
+// TestLoadRiderAvailabilitySweeps pins the sweeps' defaults to the values in
+// docs/spec/04-rider.md, "D-10 — Availability: online / offline" (stale after
+// 120 s, swept every 15 s, reconciled every 60 s), and refuses a zero, negative
+// or malformed setting (https://github.com/shaiknoorullah/hg-mono/issues/255).
+func TestLoadRiderAvailabilitySweeps(t *testing.T) {
+	cfg, err := Load(getenvFrom(validEnv()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := Dispatch{RiderStaleAfter: 120 * time.Second, RiderStaleSweepEvery: 15 * time.Second, RiderReconcileEvery: 60 * time.Second}
+	if cfg.Dispatch != want {
+		t.Errorf("Dispatch = %+v, want the spec's %+v", cfg.Dispatch, want)
+	}
+
+	env := validEnv()
+	env["HG_RIDER_STALE_AFTER"] = "3m"
+	env["HG_RIDER_STALE_SWEEP_INTERVAL"] = "5s"
+	env["HG_RIDER_RECONCILE_INTERVAL"] = "2m"
+	cfg, err = Load(getenvFrom(env))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = Dispatch{RiderStaleAfter: 3 * time.Minute, RiderStaleSweepEvery: 5 * time.Second, RiderReconcileEvery: 2 * time.Minute}
+	if cfg.Dispatch != want {
+		t.Errorf("Dispatch = %+v, want the configured %+v", cfg.Dispatch, want)
+	}
+
+	for _, key := range []string{"HG_RIDER_STALE_AFTER", "HG_RIDER_STALE_SWEEP_INTERVAL", "HG_RIDER_RECONCILE_INTERVAL"} {
+		for _, bad := range []string{"0s", "-15s", "often"} {
+			env := validEnv()
+			env[key] = bad
+			_, err := Load(getenvFrom(env))
+			if err == nil {
+				t.Errorf("%s = %q was accepted", key, bad)
+			} else if !strings.Contains(err.Error(), key) {
+				t.Errorf("error does not name %s: %v", key, err)
+			}
+		}
 	}
 }
 
@@ -255,6 +297,98 @@ func TestLoadTrustedProxies(t *testing.T) {
 	if want := "172.18.0.0/16 10.0.0.2/32 fd00::/8"; strings.Join(got, " ") != want {
 		t.Errorf("TrustedProxies = %v, want %s", got, want)
 	}
+}
+
+// TestLoadTrustedProxyRanges pins which ranges HG_TRUSTED_PROXY_CIDRS may
+// name. The API's peer is always a container on the Docker network or the
+// host, so a trusted proxy lies wholly inside private, loopback or IPv6
+// unique-local space; anything reaching outside it stops the API from
+// starting, with an error that names the value and what is allowed. See
+// "Trusted proxy setting accepts public ranges"
+// (https://github.com/shaiknoorullah/hg-mono/issues/268).
+func TestLoadTrustedProxyRanges(t *testing.T) {
+	accepted := map[string]string{
+		"the .env.example default":   "172.16.0.0/12,192.168.0.0/16",
+		"the production proxy net":   "10.88.0.0/29",
+		"the dev proxy net":          "10.88.0.8/29",
+		"all of 10/8":                "10.0.0.0/8",
+		"one Docker bridge":          "172.18.0.0/16",
+		"one address":                "192.168.1.10",
+		"IPv4 loopback":              "127.0.0.1",
+		"IPv4 loopback block":        "127.0.0.0/8",
+		"IPv6 loopback":              "::1",
+		"IPv6 unique-local, all":     "fc00::/7",
+		"IPv6 unique-local, a /64":   "fd12:3456:789a:1::/64",
+		"IPv6 unique-local, address": "fd00::7",
+	}
+	for name, value := range accepted {
+		t.Run("accepts "+name, func(t *testing.T) {
+			env := validEnv()
+			env["HG_TRUSTED_PROXY_CIDRS"] = value
+			if _, err := Load(getenvFrom(env)); err != nil {
+				t.Fatalf("%q was refused: %v", value, err)
+			}
+		})
+	}
+
+	// offending is the value the error must quote. malformed marks a value that
+	// is not an address at all, whose error is about syntax, not ranges.
+	refused := map[string]struct {
+		value, offending string
+		malformed        bool
+	}{
+		"every IPv4 address":            {"0.0.0.0/0", "0.0.0.0/0", false},
+		"every IPv6 address":            {"::/0", "::/0", false},
+		"split /1, low half":            {"0.0.0.0/1", "0.0.0.0/1", false},
+		"split /1, high half":           {"172.16.0.0/12,128.0.0.0/1", "128.0.0.0/1", false},
+		"a public /24":                  {"203.0.113.0/24", "203.0.113.0/24", false},
+		"a public address":              {"8.8.8.8", "8.8.8.8", false},
+		"a public IPv6 /32":             {"2001:db8::/32", "2001:db8::/32", false},
+		"straddles 10/8 and public":     {"10.0.0.0/7", "10.0.0.0/7", false},
+		"straddles 172.16/12 and 172/8": {"172.0.0.0/8", "172.0.0.0/8", false},
+		"straddles 192.168/16":          {"192.168.0.0/15", "192.168.0.0/15", false},
+		"straddles fc00::/7":            {"fc00::/6", "fc00::/6", false},
+		"IPv6 link-local":               {"fe80::/10", "fe80::/10", false},
+		"public beside a private range": {"10.88.0.0/29, 198.51.100.7", "198.51.100.7", false},
+		"a mapped public address":       {"::ffff:8.8.8.8", "::ffff:8.8.8.8", false},
+		"not an address":                {"172.18.0.0/16,traefik", "traefik", true},
+		"prefix longer than the family": {"10.0.0.0/33", "10.0.0.0/33", true},
+	}
+	for name, tc := range refused {
+		t.Run("refuses "+name, func(t *testing.T) {
+			env := validEnv()
+			env["HG_TRUSTED_PROXY_CIDRS"] = tc.value
+			_, err := Load(getenvFrom(env))
+			if err == nil {
+				t.Fatalf("%q was accepted", tc.value)
+			}
+			msg := err.Error()
+			if !strings.Contains(msg, "HG_TRUSTED_PROXY_CIDRS") || !strings.Contains(msg, `"`+tc.offending+`"`) {
+				t.Errorf("error does not name HG_TRUSTED_PROXY_CIDRS and %q: %v", tc.offending, msg)
+			}
+			if tc.malformed {
+				return
+			}
+			for _, allowed := range []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "::1/128", "fc00::/7"} {
+				if !strings.Contains(msg, allowed) {
+					t.Errorf("error does not say %s is allowed: %v", allowed, msg)
+				}
+			}
+		})
+	}
+
+	// A mapped private range would never match, since the client-address step
+	// compares peers as plain IPv4. It is refused with the form that works. See
+	// "Trusted proxy setting accepts IPv4-mapped ranges that never match"
+	// (https://github.com/shaiknoorullah/hg-mono/issues/263).
+	t.Run("refuses a mapped private range, naming its IPv4 form", func(t *testing.T) {
+		env := validEnv()
+		env["HG_TRUSTED_PROXY_CIDRS"] = "::ffff:172.18.0.0/112"
+		_, err := Load(getenvFrom(env))
+		if err == nil || !strings.Contains(err.Error(), "172.18.0.0/16") {
+			t.Fatalf("a mapped range was not refused with its IPv4 form: %v", err)
+		}
+	})
 }
 
 // TestLoadRequiresTrustedProxiesOutsideLocal pins the fail-closed rule:

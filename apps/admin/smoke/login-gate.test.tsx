@@ -37,7 +37,7 @@ describe('admin login gate', () => {
   // Password inputs have no ARIA role, so that one field is matched by label prefix.
   const email = () => screen.getByRole('textbox', { name: 'Email' });
   const password = () => screen.getByLabelText(/^Password/);
-  const totp = () => screen.getByRole('textbox', { name: 'Authenticator code' });
+  const totp = () => screen.getAllByRole('textbox', { name: /^Authenticator code/ })[0]!;
 
   afterEach(() => {
     cleanup();
@@ -57,7 +57,7 @@ describe('admin login gate', () => {
 
     // Deny by default: nothing from the protected nav/shell is present.
     expect(screen.queryByRole('link', { name: 'Restaurants' })).toBeNull();
-    expect(screen.queryByText('HalalGoes — Admin')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull();
   });
 
   it('opens the shell once email + password + TOTP succeed', async () => {
@@ -82,12 +82,12 @@ describe('admin login gate', () => {
     fireEvent.change(password(), {
       target: { value: 'correct horse battery staple' },
     });
-    fireEvent.change(totp(), { target: { value: '123456' } });
+    fireEvent.paste(totp(), { clipboardData: { getData: () => '123456' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
     await waitFor(() => expect(isAuthed()).toBe(true));
     await waitFor(() => {
-      expect(screen.queryByText('HalalGoes — Admin')).not.toBeNull();
+      expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeNull();
     });
     expect(screen.getByRole('link', { name: 'Restaurants' })).not.toBeNull();
   });

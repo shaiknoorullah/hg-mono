@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 )
 
 // The auth-then-capture lifecycle (P-16), exposed as internal service methods
@@ -185,40 +186,84 @@ func (r *Repo) InsertConnectAccount(ctx context.Context, ownerType, ownerID stri
 			return err
 		}
 	}
+	// An approved rider whose payouts are now enabled becomes ACTIVE (can go online).
+	if ownerType == "RIDER" {
+		if err := rider.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return err
+		}
+	}
 	return tx.Commit(ctx)
 }
 
-// UpdateConnectFromStripe applies an account.updated / capability.updated
-// webhook to connect_account (P-19 §account.updated keeps it current).
-func (r *Repo) UpdateConnectFromStripe(ctx context.Context, acct *StripeAccount) error {
+// connectUpdate is what applying an account.updated snapshot did.
+type connectUpdate int
+
+const (
+	connectUnknown connectUpdate = iota // no connect_account has this Stripe id
+	connectStale                        // a newer snapshot was already applied
+	connectApplied
+)
+
+// updateConnectFromStripe applies an account.updated webhook to
+// connect_account inside the caller's transaction (docs/spec/01-platform.md,
+// "P-19 — Stripe Connect: onboarding and payouts (Canada)", step 4:
+// account.updated keeps it current). asOf is the event's creation time:
+// an account is a snapshot with no lifecycle order, so an older snapshot
+// arriving after a newer one is skipped rather than allowed to undo it.
+func updateConnectFromStripe(ctx context.Context, tx pgx.Tx, acct *StripeAccount, asOf time.Time) (connectUpdate, error) {
 	reqs, _ := json.Marshal(connectReqsMap(acct))
+	var ownerType, ownerID string
+	err := tx.QueryRow(ctx, `
+		UPDATE connect_account
+		   SET charges_enabled = $2, payouts_enabled = $3, details_submitted = $4,
+		       requirements = $5, disabled_reason = $6, last_stripe_event_created_at = $7, updated_at = now()
+		 WHERE stripe_account_id = $1
+		   AND (last_stripe_event_created_at IS NULL OR last_stripe_event_created_at <= $7)
+		RETURNING owner_type::text, owner_id::text`,
+		acct.ID, acct.ChargesEnabled, acct.PayoutsEnabled, acct.DetailsSubmitted,
+		reqs, nullStr(acct.DisabledReason), asOf).Scan(&ownerType, &ownerID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		var known bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM connect_account WHERE stripe_account_id = $1)`,
+			acct.ID).Scan(&known); err != nil {
+			return connectUnknown, err
+		}
+		if known {
+			return connectStale, nil
+		}
+		return connectUnknown, nil
+	}
+	if err != nil {
+		return connectUnknown, err
+	}
+	// A restaurant's payout account reaching READY advances PAYOUT_PENDING → MENU_PENDING (R-11).
+	if ownerType == "RESTAURANT" {
+		if err := restaurant.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return connectUnknown, err
+		}
+	}
+	// An approved rider whose payouts are now enabled becomes ACTIVE (can go online).
+	if ownerType == "RIDER" {
+		if err := rider.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return connectUnknown, err
+		}
+	}
+	return connectApplied, nil
+}
+
+// UpdateConnectFromStripe applies an account snapshot as of now, in its own
+// transaction. The webhook path does not use it (it applies each event's
+// snapshot inside the event's transaction, as of the event's time); it is for
+// callers that hold only the account, such as the rider-activation integration
+// test. An unknown account is a no-op.
+func (r *Repo) UpdateConnectFromStripe(ctx context.Context, acct *StripeAccount) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
-	if _, err := tx.Exec(ctx, `
-		UPDATE connect_account
-		   SET charges_enabled = $2, payouts_enabled = $3, details_submitted = $4,
-		       requirements = $5, disabled_reason = $6, updated_at = now()
-		 WHERE stripe_account_id = $1`,
-		acct.ID, acct.ChargesEnabled, acct.PayoutsEnabled, acct.DetailsSubmitted,
-		reqs, nullStr(acct.DisabledReason)); err != nil {
+	if _, err := updateConnectFromStripe(ctx, tx, acct, time.Now()); err != nil {
 		return err
-	}
-	var ownerType, ownerID string
-	if err := tx.QueryRow(ctx,
-		`SELECT owner_type::text, owner_id::text FROM connect_account WHERE stripe_account_id = $1`,
-		acct.ID).Scan(&ownerType, &ownerID); errors.Is(err, pgx.ErrNoRows) {
-		return tx.Commit(ctx) // unknown Stripe account — nothing to reconcile
-	} else if err != nil {
-		return err
-	}
-	// A restaurant's payout account reaching READY advances PAYOUT_PENDING → MENU_PENDING (R-11).
-	if ownerType == "RESTAURANT" {
-		if err := restaurant.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
-			return err
-		}
 	}
 	return tx.Commit(ctx)
 }

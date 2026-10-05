@@ -113,4 +113,6 @@ var expectedCovered = []string{
 	"createQuote", "createOrder", "cancelOrder",
 	"acceptOffer", "getAssignment",
 	"createRealtimeTicket", "receiveStripeWebhook",
+	// admin payout runs (conformance_payout_runs_test.go, issue #251)
+	"createPayoutRun", "getPayoutRun", "listPayoutRuns",
 }

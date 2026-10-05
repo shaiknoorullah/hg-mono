@@ -7,8 +7,12 @@
  * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
  * API but production's. How to build each: docs/release/README.md.
  *
- * `@rnmapbox/maps` stays out of autolinking (package.json `expo.autolinking.exclude`) until the
- * rider screens use a native map; its plugin only pins the SDK version.
+ * `@rnmapbox/maps` stays out of autolinking (package.json `expo.autolinking.exclude`) and has no
+ * config plugin here until the rider screens use a native map.
+ *
+ * `extra.eas.projectId` is only added when `EAS_PROJECT_ID` is set, so a local
+ * `npx expo prebuild` / gradle build does not need EAS. Run `eas init` (owner step) before using
+ * EAS Build and put the id it prints in `EAS_PROJECT_ID`.
  */
 const { expoAppEnv } = require('../../scripts/release/app-env.cjs');
 
@@ -26,14 +30,26 @@ module.exports = () => {
       scheme: 'hgrider',
       userInterfaceStyle: 'light',
       newArchEnabled: true,
+      // The HalalGoes logo. Every file under assets/ is written by
+      // `pnpm --filter @hg/brand build:assets` from the one traced geometry; do
+      // not edit them by hand. #FFFAEA is the light theme's surface.base.
+      icon: './assets/icon.png',
+      splash: {
+        image: './assets/splash.png',
+        resizeMode: 'contain',
+        backgroundColor: '#FFFAEA',
+      },
       platforms: ['ios', 'android', 'web'],
       web: {
         bundler: 'metro',
         output: 'single',
+        favicon: './assets/favicon.png',
       },
       ios: {
         supportsTablet: true,
         infoPlist: {
+          // canOpenURL for the Navigate buttons (apps/rider/src/navigate.ts).
+          LSApplicationQueriesSchemes: ['maps', 'comgooglemaps'],
           NSCameraUsageDescription: CAMERA_REASON,
           NSLocationWhenInUseUsageDescription:
             'HalalGoes uses your location to route you to pickups and drop-offs.',
@@ -52,6 +68,10 @@ module.exports = () => {
         ],
         package: `com.halalgoes.rider${env.idSuffix}`,
         versionCode: env.versionCode,
+        adaptiveIcon: {
+          foregroundImage: './assets/adaptive-icon.png',
+          backgroundColor: '#FFFAEA',
+        },
       },
       plugins: [
         'expo-dev-client',
@@ -64,13 +84,10 @@ module.exports = () => {
               "HalalGoes uses your location so dispatch can route you and find you while you're online.",
           },
         ],
-        ['@rnmapbox/maps', { RNMapboxMapsVersion: '11.8.0' }],
       ],
       extra: {
         appEnv: env.name,
-        eas: {
-          projectId: 'TODO-set-after-eas-init',
-        },
+        ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {}),
       },
     },
   };

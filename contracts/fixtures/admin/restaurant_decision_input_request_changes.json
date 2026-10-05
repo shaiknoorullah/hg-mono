@@ -1,0 +1,20 @@
+{
+  "scenario": "restaurant_decision_input_request_changes",
+  "domain": "admin",
+  "schema": "RestaurantDecisionInput",
+  "describes": "Request body for `decideRestaurantApplication`. REQUEST_CHANGES: a rejection reason and exactly which documents to redo.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "admin",
+    "request-body"
+  ],
+  "payload": {
+    "decision": "REQUEST_CHANGES",
+    "reason_code": "DOCUMENTS_INSUFFICIENT",
+    "reason_text": "Your food safety certificate has expired. Upload the renewed one to continue.",
+    "documents_to_redo": [
+      "FOOD_SAFETY"
+    ]
+  }
+}
