@@ -121,14 +121,11 @@ func moduleRoot(t *testing.T) string {
 	}
 }
 
-// TestOnlyTransitionWritesOrderState fails when any production Go file other
-// than the transition function's own writes order.state directly.
-func TestOnlyTransitionWritesOrderState(t *testing.T) {
-	root := moduleRoot(t)
-	fset := token.NewFileSet()
-	var offenders []string
-	scanned := 0
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+// walkProductionGo calls fn for every production (non-test) Go file under root,
+// with its path relative to root, skipping hidden, vendor, testdata and
+// node_modules directories. The guard tests below share it.
+func walkProductionGo(root string, fn func(path, rel string) error) error {
+	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -146,7 +143,18 @@ func TestOnlyTransitionWritesOrderState(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		rel = filepath.ToSlash(rel)
+		return fn(path, filepath.ToSlash(rel))
+	})
+}
+
+// TestOnlyTransitionWritesOrderState fails when any production Go file other
+// than the transition function's own writes order.state directly.
+func TestOnlyTransitionWritesOrderState(t *testing.T) {
+	root := moduleRoot(t)
+	fset := token.NewFileSet()
+	var offenders []string
+	scanned := 0
+	err := walkProductionGo(root, func(path, rel string) error {
 		scanned++
 		if rel == orderStateWriter {
 			return nil
@@ -233,25 +241,7 @@ func TestOnlyOrdersWritesDeadlineAndTransitionLog(t *testing.T) {
 	fset := token.NewFileSet()
 	var offenders []string
 	inOrders := 0
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			name := d.Name()
-			if path != root && (strings.HasPrefix(name, ".") || name == "vendor" || name == "testdata" || name == "node_modules") {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
-			return nil
-		}
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-		rel = filepath.ToSlash(rel)
+	err := walkProductionGo(root, func(path, rel string) error {
 		lines := sqlWrites(t, fset, path, nil, writesOrderDeadlineOrLog)
 		if strings.HasPrefix(rel, "internal/orders/") {
 			inOrders += len(lines)
