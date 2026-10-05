@@ -186,6 +186,10 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 			taxCategory:       taxCategory,
 		})
 	if err != nil {
+		if errors.Is(err, ErrUploadNotFound) {
+			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound, "No such upload.", nil)
+			return
+		}
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Restaurant or category not found.", nil)

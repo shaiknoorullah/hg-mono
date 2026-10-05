@@ -25,6 +25,8 @@ import { OrdersAdminScreen } from './screens/OrdersAdminScreen';
 import { OrderDetailScreen } from './screens/OrderDetailScreen';
 import { RefundCasesScreen } from './screens/RefundCasesScreen';
 import { DependencyDashboardScreen } from './screens/DependencyDashboardScreen';
+import { ResetPasswordScreen } from './screens/ResetPasswordScreen';
+import { AcceptInviteScreen } from './screens/AcceptInviteScreen';
 import { login, logout } from './lib/auth';
 import { isAuthed, subscribe } from './lib/token';
 
@@ -55,6 +57,17 @@ const NAV = [
   { to: '/system', label: 'System', icon: 'check' },
   { to: '/staff', label: 'Staff', icon: 'profile' },
 ] as const satisfies readonly { to: string; label: string; icon: IconName }[];
+
+/**
+ * The public-route list: the only pages reachable without signing in, besides the sign-in
+ * gate itself. They are the pages our emails link to (issue #329), and an email links to a
+ * real path (`/reset-password?token=…`), not to a `#/` route, so they are matched on
+ * `window.location.pathname` before the gate and outside the `HashRouter`.
+ */
+const PUBLIC_PAGES: Readonly<Record<string, () => React.ReactElement>> = {
+  '/reset-password': ResetPasswordScreen,
+  '/accept-invite': AcceptInviteScreen,
+};
 
 /**
  * The sign-in gate. Admin sessions require email + password + TOTP; until one is held every
@@ -131,6 +144,13 @@ function LoginGate() {
             <Button type="submit" disabled={busy} loading={busy} fullWidth>
               {busy ? 'Signing in…' : 'Sign in'}
             </Button>
+            <p className="m-0 text-body-sm text-fg-secondary">
+              Forgot your password?{' '}
+              <a href="/reset-password" className="font-semibold text-fg-link">
+                Reset it by email
+              </a>
+              .
+            </p>
           </form>
         </Card>
       </main>
@@ -218,6 +238,8 @@ function AdminShell() {
 
 export function App() {
   const authed = useSyncExternalStore(subscribe, isAuthed, isAuthed);
+  const PublicPage = PUBLIC_PAGES[window.location.pathname];
+  if (PublicPage) return <PublicPage />;
   if (!authed) return <LoginGate />;
   return <AdminShell />;
 }

@@ -1,3 +1,5 @@
+// First: an email link's token leaves the address before anything else loads (issue #329).
+import './linkTokenBoot';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 

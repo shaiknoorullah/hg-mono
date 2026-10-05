@@ -68,7 +68,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**384 scenarios** across 15 domains.
+**415 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -77,7 +77,7 @@ falling through, so a typo is visible immediately.
 | [`catalogue`](#catalogue) | 41 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 46 | `{error}` envelopes for the codes an app actually branches on. |
+| [`errors`](#errors) | 52 | `{error}` envelopes for the codes an app actually branches on. |
 | [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
 | [`onboarding`](#onboarding) | 35 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
@@ -85,7 +85,7 @@ falling through, so a typo is visible immediately.
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
 | [`platform`](#platform) | 25 | Auth, config, addresses, notifications, Connect and health. |
 | [`realtime`](#realtime) | 8 | Scripted WebSocket sequences that drive a screen through a whole lifecycle. |
-| [`refunds`](#refunds) | 14 | The 10 `RefundState` values, liability splits and approval requests. |
+| [`refunds`](#refunds) | 39 | The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. |
 | [`rider`](#rider) | 22 | Availability, dashboard, earnings and payouts. |
 
 ### admin
@@ -265,7 +265,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 46 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 52 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -277,6 +277,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_capture_failed` | `ErrorEnvelope` | 409 | `409` · `CAPTURE_FAILED`. Was `capture_failed`. The order is cancelled; nothing is owed. Pairs with `payment_failed`. |
 | `error_cart_has_unavailable_items` | `ErrorEnvelope` | 409 | `409` · `CART_HAS_UNAVAILABLE_ITEMS`. Was `cart_has_unavailable_items`. Pairs with the `cart_has_unavailable_items` fixture. |
 | `error_category_name_taken` | `ErrorEnvelope` | 409 | `409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case, on create and on rename. |
+| `error_chargeback_closed` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. Evidence notes are for open chargebacks only. |
 | `error_current_password_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry. |
 | `error_decision_approval_reason_required` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed. |
 | `error_decision_rejection_reason_required` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. A rejection or a request for changes without a rejection reason. Every decision is reasoned and audited; nothing changed. |
@@ -302,6 +303,11 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_quote_expired` | `ErrorEnvelope` | 409 | `409` · `QUOTE_EXPIRED`. Was `quote_expired`. Pairs with the `quote_expired` fixture. |
 | `error_quote_stale` | `ErrorEnvelope` | 409 | `409` · `QUOTE_STALE`. **Was `quote_stale` before the normalisation.** The server re-executes `Quote()` on `createOrder` and returns this with the new quote embedded in `details`; nothing server-signed is ever echoed back by the client (contradiction log #17). |
 | `error_rate_limited` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED`. Was `rate_limited`. Also the code on the realtime `error` control frame at the 20 frames/second soft limit. |
+| `error_refund_already_decided` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. Someone else decided it first, or it was never waiting. Reload the queue. |
+| `error_refund_approver_over_daily_limit` | `ErrorEnvelope` | 409 | `409` · `DAILY_CAP_EXCEEDED`. A second approver's own rolling 24-hour limit counts too. The request stays in the queue for someone with room. |
+| `error_refund_mfa_required` | `ErrorEnvelope` | 403 | `403` · `MFA_REQUIRED`. Money actions need a session signed in with an authenticator code (staff MFA for money actions). |
+| `error_refund_needs_higher_role` | `ErrorEnvelope` | 403 | `403` · `FORBIDDEN`. An approval request is decided by the role it was sent up to, or a super admin. |
+| `error_refund_self_approval_forbidden` | `ErrorEnvelope` | 409 | `409` · `SELF_APPROVAL_FORBIDDEN`. The person who asked for a refund, or who sent it up for a second person, tried to approve it. A goodwill refund above CAD 50.00 always needs someone else. |
 | `error_register_restaurant_rate_limited` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, "R-01 — Restaurant account signup"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds. |
 | `error_reset_token_not_valid` | `ErrorEnvelope` | 400 | `400` · `TOKEN_CONSUMED`. `resetPassword` with a token that expired (30 minutes), was already used, or never existed. One body for all three, so a link cannot be probed. The app offers "Send a new link" (`requestPasswordReset`). |
 | `error_restaurant_closed` | `ErrorEnvelope` | 409 | `409` · `RESTAURANT_CLOSED`. Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`. |
@@ -417,7 +423,7 @@ The 14 `OrderState` values, per-audience projections, tracking and receipts. —
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
 | `order_admin_view_completed` | `OrderAdminView` | 200 | The full admin projection: timeline, dispatch history across two waves, payment, the ledger decomposition and `pii_revealed: false` (unmasking needs a recorded justification). |
-| `order_admin_view_disputed` | `OrderAdminView` | 200 | A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored). |
+| `order_admin_view_disputed` | `OrderAdminView` | 200 | A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored). The money timeline shows the payment, the request, the agent sending it up, and a chargeback with one evidence note. |
 | `order_admin_view_failed_no_rider` | `OrderAdminView` | 200 | Three dispatch waves, eight riders offered, nobody accepted. The order failed and was fully refunded — the case `admin.dispatch_failure` fires on. |
 | `order_arrived` | `OrderCustomerView` | 200 | Rider is at the drop-off, proof of delivery not yet recorded. |
 | `order_authorized` | `OrderCustomerView` | 200 | Card authorised, not captured. The restaurant has not been asked yet. Cancellation is still free. |
@@ -529,10 +535,35 @@ Scripted WebSocket sequences that drive a screen through a whole lifecycle. — 
 
 ### refunds
 
-The 10 `RefundState` values, liability splits and approval requests. — 14 scenarios.
+The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. — 39 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
+| `admin_refund_approved` | `AdminRefund` | 200 | Legacy state; nothing writes it at launch. Approval goes straight to `AUTHORISED`. |
+| `admin_refund_authorised` | `AdminRefund` | 200 | Approved within the agent's limit: its ledger batch is posted and the refund sender sends it to Stripe. |
+| `admin_refund_cancelled` | `AdminRefund` | 200 | Withdrawn before anyone approved it. No money moved. |
+| `admin_refund_declined` | `AdminRefund` | 200 | Declined with a staff reason (never shown to the customer). Nothing was sent to Stripe; the customer was told through the notification outbox. |
+| `admin_refund_failed` | `AdminRefund` | 200 | Stripe refused it; support must act. `failure_message` says why. |
+| `admin_refund_goodwill_needs_second_person` | `AdminRefund` | 200 | A goodwill refund above CAD 50.00 an agent asked for: it always waits for a second person, whatever the asker's limit. |
+| `admin_refund_pending_approval` | `AdminRefund` | 202 | Above the reviewing agent's 24-hour limit: sent up to an admin (`approval_required_role`). The agent who sent it up (`escalated_by`) may not approve it. |
+| `admin_refund_queue` | `array&lt;AdminRefund&gt;` | 200 | The review queue: what waits for a person, oldest first. |
+| `admin_refund_queue_empty` | `array&lt;AdminRefund&gt;` | 200 | Nothing waiting for a person. |
+| `admin_refund_requested` | `AdminRefund` | 200 | A customer's request waiting for staff review. Nothing has moved. |
+| `admin_refund_settled` | `AdminRefund` | 200 | Back on the card. |
+| `admin_refund_submitted` | `AdminRefund` | 200 | Sent to Stripe, waiting for its answer. |
+| `admin_refund_succeeded` | `AdminRefund` | 200 | Stripe accepted it. |
+| `chargeback_charge_refunded` | `Chargeback` | 200 | Closed because the charge was refunded. |
+| `chargeback_evidence_note_added` | `Chargeback` | 201 | `201` after an evidence note: the chargeback with the new note last. |
+| `chargeback_list` | `array&lt;Chargeback&gt;` | 200 | Open chargebacks first, soonest evidence deadline first; closed ones after. |
+| `chargeback_list_empty` | `array&lt;Chargeback&gt;` | 200 | No chargebacks. |
+| `chargeback_lost` | `Chargeback` | 200 | The bank decided for the customer; Stripe has taken the money back. |
+| `chargeback_needs_response` | `Chargeback` | 200 | A dispute waiting for our evidence, on the clock of its deadline. |
+| `chargeback_prevented` | `Chargeback` | 200 | Stopped before it became a dispute. |
+| `chargeback_under_review` | `Chargeback` | 200 | Evidence was sent; the bank is deciding. |
+| `chargeback_warning_closed` | `Chargeback` | 200 | The inquiry closed without becoming a dispute. |
+| `chargeback_warning_needs_response` | `Chargeback` | 200 | An early warning from the bank (an inquiry); it may become a dispute. |
+| `chargeback_warning_under_review` | `Chargeback` | 200 | Evidence was sent for an inquiry; the bank is reviewing it. |
+| `chargeback_won` | `Chargeback` | 200 | The bank decided for us; the money stays. |
 | `refund_approval_request_pending` | `RefundApprovalRequest` | 202 | A refund over the agent's cap: `202 Accepted` with the approval request, not a `201` refund. The two-response shape of `issueRefund`. |
 | `refund_approved` | `Refund` | 200 | Approved, not yet sent to the PSP. |
 | `refund_authorised` | `Refund` | 200 | Authorised against the captured payment; the ledger entry exists. |
@@ -584,26 +615,27 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | Tag | Count | Meaning |
 |---|---:|---|
 | `state-matrix` | 65 | One fixture per member of a closed enum. |
-| `edge` | 52 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `admin` | 64 | Admin/support-facing surface. |
+| `edge` | 54 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `error-envelope` | 52 | A `{error}` body with a real `ErrorCode`. |
 | `rider` | 51 | Rider-facing surface. |
-| `error-envelope` | 46 | A `{error}` body with a real `ErrorCode`. |
 | `restaurant` | 41 | Restaurant-facing surface. |
-| `admin` | 39 | Admin/support-facing surface. |
-| `money` | 31 | Exercises the money path specifically. |
+| `money` | 32 | Exercises the money path specifically. |
 | `halal` | 30 | Touches the halal claim surface. |
-| `empty` | 25 | Zero items. The empty state, never an error. |
+| `empty` | 27 | Zero items. The empty state, never an error. |
 | `platform` | 25 | Cross-cutting platform surface. |
 | `order-state-matrix` | 24 | One per `OrderState` (all 14). |
 | `error-path` | 22 | The unhappy branch a client must handle. |
 | `onboarding-state-matrix` | 21 | One per onboarding state, restaurant and rider. |
+| `refund-state-matrix` | 20 | One per `RefundState` (all 10). |
 | `auth` | 13 | Session and identity. |
 | `review-queue` | 13 | An admin review queue item. |
 | `assignment-state-matrix` | 12 | One per `AssignmentState` (all 12). |
 | `document-state-matrix` | 12 | One per `KycDocumentState`, plus rejection reasons. |
 | `dispatch-state-matrix` | 10 | One per `DispatchState` (all 10). |
 | `menu-editing` | 10 |  |
-| `refund-state-matrix` | 10 | One per `RefundState` (all 10). |
 | `boundary` | 9 | At an exact limit (quantity cap, expiry tomorrow, zero, the maximum). |
+| `chargeback-state-matrix` | 9 |  |
 | `documents` | 9 | KYC document surface. |
 | `realtime` | 9 | WebSocket, not HTTP. |
 | `payment-state-matrix` | 8 | One per `PaymentState` (all 8). |
@@ -629,13 +661,15 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 ## Operation coverage
 
-137 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
+143 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
 
 | Operation | Default scenario | Also available |
 |---|---|---|
 | `acceptOffer` | `assignment_assigned` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_cancelled_by_platform`, `assignment_delivered`, `assignment_en_route_to_dropoff`, `assignment_en_route_to_pickup`, `assignment_picked_up`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable` |
 | `acceptOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `addCartLine` | `cart_single_line` | — |
+| `addChargebackEvidenceNote` | `chargeback_evidence_note_added` | `error_chargeback_closed` |
+| `approveRefund` | `admin_refund_authorised` | `admin_refund_pending_approval`, `error_refund_already_decided`, `error_refund_approver_over_daily_limit`, `error_refund_mfa_required`, `error_refund_needs_higher_role`, `error_refund_self_approval_forbidden` |
 | `attachRestaurantDocument` | `document_submitted` | `document_approved`, `document_expired`, `document_in_review`, `document_rejected`, `document_superseded` |
 | `bindPackageSeal` | `seal_bound` | — |
 | `cancelOrder` | `order_cancelled` | `order_arrived`, `order_authorized`, `order_completed`, `order_created`, `order_delivered`, `order_disputed`, `order_failed`, `order_picked_up`, `order_preparing`, `order_ready_for_pickup`, `order_rejected`, `order_resolved`, `order_restaurant_pending` |
@@ -664,6 +698,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `decideMenuVersion` | `menu_version_approved` | `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_already_decided`, `error_menu_version_item_deleted`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
 | `decideRestaurantApplication` | `restaurant_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required` |
 | `decideRiderApplication` | `rider_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required`, `error_rider_under_18`, `rider_application_changes_requested` |
+| `declineRefund` | `admin_refund_declined` | `error_refund_already_decided`, `error_refund_needs_higher_role` |
 | `delayOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `deleteMenuItemOnBehalf` | `error_menu_locked` | `error_menu_locked_banned` |
 | `enrollTotp` | `totp_enrolment` | — |
@@ -671,6 +706,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getAddress` | `addresses_list` | — |
 | `getAssignment` | `assignment_en_route_to_dropoff` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_delivered`, `assignment_en_route_to_pickup`, `assignment_no_instructions_no_unit`, `assignment_otp_pod_required`, `assignment_picked_up`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable` |
 | `getCart` | `cart_many_lines` | `cart_at_quantity_cap`, `cart_empty`, `cart_has_unavailable_items`, `cart_restaurant_unavailable`, `cart_single_line` |
+| `getChargeback` | `chargeback_needs_response` | `chargeback_charge_refunded`, `chargeback_lost`, `chargeback_prevented`, `chargeback_under_review`, `chargeback_warning_closed`, `chargeback_warning_needs_response`, `chargeback_warning_under_review`, `chargeback_won` |
 | `getConnectStatus` | `connect_status_complete` | `connect_status_requirements_due` |
 | `getCurrentOffer` | `offer_pending` | `offer_expired`, `offer_none`, `offer_rejected`, `offer_taken_by_another`, `offer_withdrawn`, `offer_zero_tip_low_value` |
 | `getCurrentPrincipal` | `principal_customer` | — |
@@ -706,8 +742,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRiderMe` | `rider_me` | — |
 | `getRiderOnboardingStatus` | `rider_onboarding_active` | `rider_onboarding_documents_approved`, `rider_onboarding_documents_pending`, `rider_onboarding_documents_rejected`, `rider_onboarding_documents_review`, `rider_onboarding_payout_pending`, `rider_onboarding_phone_verified`, `rider_onboarding_profile_pending`, `rider_onboarding_registered`, `rider_onboarding_vehicle_pending` |
 | `getRiderPayout` | `payout_detail_paid` | — |
-| `issueRefund` | `refund_goodwill_admin` | `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
+| `issueRefund` | `refund_goodwill_admin` | `error_refund_mfa_required`, `error_refund_self_approval_forbidden`, `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
 | `listAddresses` | `addresses_list` | `addresses_empty` |
+| `listChargebacks` | `chargeback_list` | `chargeback_list_empty` |
 | `listHalalIssuingBodies` | `halal_issuing_body_accepted` | `halal_issuing_bodies_empty`, `halal_issuing_bodies_seed`, `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
 | `listMenuReviewQueue` | `menu_review_queue` | `menu_review_queue_empty`, `menu_version_approved`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
 | `listNotifications` | `notifications_list` | `notifications_empty` |
@@ -716,6 +753,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `listPaymentMethods` | `payment_methods_list` | `payment_methods_at_limit`, `payment_methods_empty` |
 | `listPayoutRuns` | `payout_run_succeeded` | `payout_run_failed`, `payout_run_list_empty`, `payout_run_running` |
 | `listRefunds` | `refund_list_empty` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
+| `listRefundsAdmin` | `admin_refund_queue` | `admin_refund_queue_empty` |
 | `listRestaurantApplications` | `restaurant_application_queue` | `restaurant_application_queue_empty` |
 | `listRestaurantDocuments` | `restaurant_document_pack_complete` | `restaurant_document_pack_empty`, `restaurant_document_pack_incomplete` |
 | `listRestaurantOrders` | `restaurant_order_queue_busy` | `restaurant_order_picked_up`, `restaurant_order_preparing`, `restaurant_order_queue_empty`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
