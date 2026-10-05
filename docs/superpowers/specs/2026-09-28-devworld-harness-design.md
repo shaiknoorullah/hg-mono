@@ -70,18 +70,18 @@ dev-scenario                                      (make dev-scenario s=new-order
 dev-totp                                          (make dev-totp — prints the admin code, not the secret)
 ```
 
-`reset`, `seed`, `verify`, `list`, `totp` and `scenario` exist. The journey command does not. The world is one SQL file. Service paths below are relative to `services/hg/`.
+`reset`, `seed`, `verify`, `list`, `totp`, `scenario` and `journey` exist. The world is one SQL file. Service paths below are relative to `services/hg/`.
 
 The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator`. The first migration recreates the roles, and goose uses the local superuser in `HG_POSTGRES_DSN`. Credentials are hashed in the command. `seedpw` is not used, because that command also marks the email verified. Connect rows for the live restaurant, the payout-pending restaurant and the sim rider are stand-ins with test account ids. They are not Stripe accounts. Payout and ledger rows are not seeded.
 
 | Unit | Location | Responsibility | Depends on |
 |---|---|---|---|
 | World SQL | `migrations/devworld/001_personas.sql` | Static personas and their data, fixed UUIDs, idempotent | reference seed |
-| `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `totp` / `list` / `verify` | pgx, auth credential helpers |
-| Scenario client | `internal/devworld/client/` | Typed HTTP calls using generated contract types; signs in as personas | `internal/contract` |
-| Scenario registry | `internal/devworld/scenarios/` | One file per scenario, registered by name with a one-line purpose | scenario client |
-| Journey simulator | `internal/devworld/journey/` | Drives one order end-to-end, rider along a route | scenario client, route data |
-| Route data | `migrations/devworld/routes/*.json` | Fixed Toronto route lines between seeded places | — |
+| `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `journey` / `totp` / `list` / `verify` | pgx, auth credential helpers |
+| Scenario client | `internal/devworld/scenario.go` | HTTP calls that sign in as personas and place orders | auth sign-in |
+| Scenario registry | `internal/devworld/scenario.go` | Named scenarios the command accepts | scenario client |
+| Journey simulator | `internal/devworld/journey.go` | Drives one order as far as the API allows | scenario client, route line |
+| Route data | `internal/devworld/route.go` | Straight-line approach. A directions line is used only when a token is set | — |
 | Persona manifest | `internal/devworld/personas.go` | Name, app, login, declared state, purpose — the single source the verifier, `list` and the coverage docs read | — |
 | Playbooks | `playbooks/<app>/*.md` under `docs/` | Human- and Claude-readable test scripts with assertions | `devworld`, running stack |
 | Run skill | `apps/<app>/.claude/skills/run-<app>/` | Agent launch + drive recipe, gains a `--backend` mode | playbooks |
@@ -115,7 +115,7 @@ Email-login personas share one local password and sign in as `<persona>@seed.hg`
 - **Hours** — weekday standard, Friday/Saturday overnight (11:00–01:00), one closed-holiday override and one late-opening override, dated relative to now.
 - **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), one INVITED, one SUSPENDED. Manager and staff can sign in to test the role matrix.
 - **Payouts** — one per state (DRAFT, READY, TRANSFERRING, TRANSFERRED, PAID, FAILED, HELD). See the payout-seeds risk in [risks to settle in planning](#12-risks-to-settle-in-planning).
-- **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-run-by-reset)).
+- **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-not-run-by-reset)).
 
 ### 5.3 Supporting personas (shared by every app)
 
@@ -136,7 +136,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 - Rush places one order for each of the two seeded customers, a few seconds apart, then a further order for the first customer. The API refuses that third order while one is still active. The five-order rush in the table waits until more customers exist.
 - Menu approve and reject save the draft item through the restaurant API, then ask an admin to decide it. When that save returns no version, they decide the seeded draft. The save numbers the next version from the live version only, so a draft that is not live inserts version 1 again and the database refuses it. The decision endpoint accepts only a version waiting for review, so those two scenarios exit non-zero and print both refusals. They do not insert a review row.
 
-`rider-arrives` and `journey` are the next command. Default target is `bismillah-grill`.
+`journey` is `devworld journey`. Arrival at the restaurant is a step inside that command, not a separate scenario. Default target is `bismillah-grill`.
 
 ### 6.1 Catalogue
 
@@ -146,27 +146,29 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `rush` | 5 × `new-order`, a few seconds apart | busy queue sorted by deadline |
 | `order-preparing` | `new-order` + restaurant accept | PREPARING |
 | `order-ready` | … + restaurant ready | READY_FOR_PICKUP awaiting a rider |
-| `rider-arrives` | `rider-sim` accepts offer, drives to restaurant, arrives | rider at pickup, seal handoff pending |
+| `rider-arrives` | step inside `devworld journey`, not its own scenario | rider at pickup, seal handoff pending |
 | `customer-cancels` | customer cancels a pending order | offer withdrawn |
 | `docs-approve` / `docs-reject` | `admin-seed` decides `docs-review` | onboarding advances / shows reason |
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
-| `journey` | see [journey](#63-journey) | one order, whole lifecycle, live |
+| `journey` | see [journey](#63-journey) | one live order, stopped when a seal cannot be bound |
 
-### 6.2 Bootstrap (run by `reset`)
+### 6.2 Bootstrap (not run by `reset`)
 
-For `bismillah-grill`: 3 DELIVERED orders (via `journey --auto=all --speed=max`), 1 CUSTOMER_CANCELLED, 1 rejected by the restaurant (`KITCHEN_AT_CAPACITY`). Ledger, payment intents and dispatch records are whatever the real code writes.
+Reset does not run the journey. Delivered history waits until an issued seal exists, because the journey stops there and does not insert one. A cancelled order and a rejected order are the scenario commands, not part of reset.
 
 ### 6.3 Journey
 
-1. `customer-amina` orders from the target restaurant.
-2. **Restaurant steps** — default *manual*: the simulator waits and prints `waiting for restaurant to accept (178 s left)`, then `waiting for ready`. `--auto=restaurant` performs them via API.
-3. `rider-sim` is set online at the route's start point; real dispatch offers the order; the simulator accepts. (`--manual=rider` leaves the rider steps to a person or agent in the rider app instead — the hook the rider app's coverage uses, see [extending to another app](#10-extending-to-another-app).)
-4. The simulator walks the route polyline, posting `/v1/riders/me/positions` every 5 s (the contract's throttle), advancing assignment transitions at the pickup and drop-off points, entering the seal code at pickup, and submitting proof of delivery with a bundled test image.
-5. Terminates at DELIVERED (or reports the state it stopped in and why).
+`devworld journey` places one order at `bismillah-grill` and drives it as far as the API allows. `make dev-journey` runs it (`route=short`, `speed=1x`, `auto=none`; `manual=rider` leaves the rider to a person).
 
-Flags: `--route=short|long|early-rider` (early-rider arrives before the food is ready; a pickup confirmed before the kitchen taps ready marks the order ready in the same step, [early pickup](https://github.com/shaiknoorullah/hg-mono/issues/317)), `--speed=1x|4x|max` (default 1x, real pace), `--auto=none|restaurant|all`, `--manual=rider`.
+1. `customer-amina` orders from the target restaurant. An order she already has in a state this command can continue is reused.
+2. Restaurant steps default to waiting. The command prints the order state until someone accepts and marks it ready, or until the command's deadline. `--auto=restaurant` and `--auto=all` accept and mark ready.
+3. `--route=early-rider` brings `rider-sim` online at the start of the approach before the kitchen marks the order ready, posts positions up to the door, and polls for an offer. Dispatch offers only a ready order, so none arrives. The command then marks the order ready. A rider transition does not mark a preparing order ready: the running pickup refuses that state ([early pickup](https://github.com/shaiknoorullah/hg-mono/issues/317)). If the order is already ready, the command says the early arrival cannot be shown and continues with the short approach.
+4. When `--auto=all` drives the rider, `rider-sim` is online at the route start before the order is marked ready, so the first sweep can see the rider. The command polls the current offer. It does not call the sweep itself. `--manual=rider`, and any run that does not pass `--auto=all`, stops once the order is ready and leaves the rider to a person.
+5. The simulator posts positions along the pickup leg. `1x` waits 5 seconds between posts, `4x` waits a quarter of that, and `max` does not wait and may send up to 10 points at once. At the restaurant it records en route and arrived. The restaurant then tries to bind a seal. The world has no issued seal, so the bind is refused. The command prints that status and the order state, and exits non-zero. It does not insert a seal, and it does not mark the order picked up or delivered.
 
-Routes are fixed JSON route lines between seeded coordinates (restaurant ↔ customer addresses), so a run is identical every time and no external routing service is called.
+Flags: `--route=short|long|early-rider`, `--speed=1x|4x|max` (default `1x`), `--auto=none|restaurant|all`, `--manual=rider`.
+
+The default line is straight between the approach start and the restaurant door, so a run needs no network. A directions response is used only when `MAPBOX_TOKEN` or `HG_MAPBOX_TOKEN` is set. If that request fails, the command uses the straight line. The earlier draft of this section called for fixed JSON route files and no routing service.
 
 ### 6.4 Scenario sign-in
 
@@ -192,7 +194,7 @@ Two runners, same playbook:
 ## 8. Verification
 
 1. **World verify in CI** — `devworld reset` against an empty migrated database; `devworld verify` asserts every manifest persona is in its declared state (signing in through the API as each persona where the state is visible that way). Non-zero exit fails CI.
-2. **Journey integration test** — `journey --auto=all --speed=max` in the backend integration suite reaches DELIVERED; the order's ledger batches sum to zero.
+2. **Journey** — `journey --auto=all --speed=max` stops when the restaurant cannot bind a seal. Delivered, and a ledger that sums to zero, wait on an issued seal. The command does not insert one.
 3. **Acceptance** — the restaurant `journey.md` playbook run end to end in the user's Chrome via Claude in Chrome, in front of the user.
 
 Two automated additions, each pinning a behaviour this spec introduces — within the repo's "few, high-value tests" rule.
@@ -203,7 +205,7 @@ Each stage is usable on its own.
 
 1. **World core + restaurant personas** — `cmd/devworld` (`reset`, `seed`, `verify`, `totp`, `list`), manifest, restaurant + supporting personas, CI verify.
 2. **Scenarios** — scenario client, fixed-OTP test range, the [scenario catalogue](#61-catalogue) except `journey`, bootstrap history.
-3. **Journey simulator** — routes, rider movement, pickup, proof of delivery.
+3. **Journey simulator** — route line, rider movement, and a stop when a seal cannot be bound.
 4. **Restaurant playbooks** — the [playbooks](#7-playbooks-claude-in-chrome-and-headless), plus `run-restaurant --backend`.
 
 ## 10. Extending to another app
