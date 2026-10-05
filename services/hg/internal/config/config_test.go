@@ -435,3 +435,63 @@ func TestHostFromDSN(t *testing.T) {
 		}
 	}
 }
+
+// TestLoadEmailSettings pins the rules that keep email safe: no key means the
+// log sender, and outside production the allow-list is the only way out
+// (issue #235); in production an allow-list would silently drop customers'
+// mail, and links must point at the deployed apps over https.
+func TestLoadEmailSettings(t *testing.T) {
+	prod := func() map[string]string {
+		env := validEnv()
+		env["HG_ENV"] = "production"
+		env["HG_CORS_ALLOWED_ORIGINS"] = "https://app.halalgoes.com"
+		env["HG_TRUSTED_PROXY_CIDRS"] = "172.16.0.0/12"
+		env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
+		return env
+	}
+
+	cfg, err := Load(getenvFrom(validEnv()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Email.Provider != "log" || cfg.Email.Configured() {
+		t.Errorf("no key: provider = %q, configured = %v; want the log sender", cfg.Email.Provider, cfg.Email.Configured())
+	}
+
+	env := validEnv()
+	env["HG_RESEND_API_KEY"] = "re_test"
+	env["HG_EMAIL_ALLOWLIST"] = "Dev@HalalGoes.test, @example.com"
+	if cfg, err = Load(getenvFrom(env)); err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Email.Configured() || len(cfg.Email.AllowList) != 2 || cfg.Email.AllowList[0] != "dev@halalgoes.test" {
+		t.Errorf("key set: provider = %q, allow-list = %v", cfg.Email.Provider, cfg.Email.AllowList)
+	}
+
+	env = validEnv()
+	env["HG_EMAIL_PROVIDER"] = "resend"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_RESEND_API_KEY") {
+		t.Errorf("resend without a key booted (err: %v)", err)
+	}
+
+	env = prod()
+	env["HG_EMAIL_ALLOWLIST"] = "owner@example.com"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_EMAIL_ALLOWLIST") {
+		t.Errorf("production booted with an allow-list (err: %v)", err)
+	}
+
+	env = prod()
+	env["HG_RESEND_API_KEY"] = "re_live"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_RESTAURANT_WEB_URL") {
+		t.Errorf("production sent email with links to localhost (err: %v)", err)
+	}
+	env["HG_RESTAURANT_WEB_URL"] = "https://partners.halalgoes.com"
+	env["HG_ADMIN_WEB_URL"] = "https://halalgoes-admin.example.com"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_ADMIN_WEB_URL") {
+		t.Errorf("production emails linked to another domain (err: %v)", err)
+	}
+	env["HG_ADMIN_WEB_URL"] = "https://admin.halalgoes.com"
+	if _, err := Load(getenvFrom(env)); err != nil {
+		t.Errorf("a valid production email setup was refused: %v", err)
+	}
+}

@@ -15,10 +15,17 @@ const (
 	ActionRefundRequest       httpx.Action = "refund.request"
 	ActionRefundRead          httpx.Action = "refund.read"
 	ActionRefundIssueGoodwill httpx.Action = "refund.issue_goodwill"
-	ActionConnectWrite        httpx.Action = "connect.write"
-	ActionConnectRead         httpx.Action = "connect.read"
-	ActionEarningsRead        httpx.Action = "earnings.read"
-	ActionPayoutRead          httpx.Action = "payout.read"
+	// The refund review queue and its decisions, and chargebacks (#172). Staff
+	// only; the service checks the caller again (refund_approval.go).
+	ActionRefundReadAny      httpx.Action = "refund.read_any"
+	ActionRefundApprove      httpx.Action = "refund.approve"
+	ActionRefundDecline      httpx.Action = "refund.decline"
+	ActionChargebackRead     httpx.Action = "chargeback.read"
+	ActionChargebackAnnotate httpx.Action = "chargeback.annotate"
+	ActionConnectWrite       httpx.Action = "connect.write"
+	ActionConnectRead        httpx.Action = "connect.read"
+	ActionEarningsRead       httpx.Action = "earnings.read"
+	ActionPayoutRead         httpx.Action = "payout.read"
 	// ActionPayoutRunCreate queues a payout run now; ActionPayoutRunRead reads
 	// runs and their lines. Both are admin actions (issue #251).
 	ActionPayoutRunCreate httpx.Action = "payout_run.create"

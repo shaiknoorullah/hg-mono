@@ -722,3 +722,58 @@ func hashTestPool(t *testing.T) *pgxpool.Pool {
 	t.Cleanup(pool.Close)
 	return pool
 }
+
+// A password reset whose link cannot be used (made up, already used or
+// expired) is answered without taking a hashing slot or a place in the
+// sign-up gate's queue: it will never hash, so a flood of made-up links cannot
+// keep real sign-ups and resets waiting (#448). A usable link still waits for a
+// slot before it is consumed, so a busy answer leaves it working for a retry.
+func TestUnusableResetLinkNeverTakesAHashingSlot(t *testing.T) {
+	pool := hashTestPool(t)
+	svc := loginTestService(t, pool)
+	ctx := context.Background()
+	accountID := seedEmailAccount(t, pool, uniqueEmail("reset"), "a-long-enough-password", httpx.RoleRestaurantOwner)
+	used := mintLinkToken(t, pool, accountID, "PASSWORD_RESET", 30*time.Minute)
+	if _, err := pool.Exec(ctx, `UPDATE credential_token SET consumed_at = now()
+	                              WHERE account_id = $1 AND kind = 'PASSWORD_RESET'`, accountID); err != nil {
+		t.Fatal(err)
+	}
+	expired := mintLinkToken(t, pool, accountID, "PASSWORD_RESET", -time.Minute)
+	usable := mintLinkToken(t, pool, accountID, "PASSWORD_RESET", 30*time.Minute)
+
+	configureHashingForTest(t, DefaultHashConcurrency, 20*time.Millisecond)
+	held, err := acquireHashSlot(ctx, audienceSignup)
+	if err != nil {
+		t.Fatalf("fill the sign-up gate: %v", err)
+	}
+	defer held.release()
+	ip := "203.0.113.60"
+	const newPassword = "another-long-enough-password"
+	before := totalAcquired()
+	for name, tc := range map[string]struct {
+		token string
+		want  error
+	}{
+		"a made-up link":  {"hgt_made-up", ErrNotFound},
+		"a used link":     {used, errTokenUsed},
+		"an expired link": {expired, errTokenExpired},
+	} {
+		if err := svc.ResetPassword(ctx, tc.token, newPassword, &ip); !errors.Is(err, tc.want) {
+			t.Errorf("%s with the sign-up gate full = %v, want %v", name, err, tc.want)
+		}
+	}
+	if got := totalAcquired() - before; got != 0 {
+		t.Errorf("unusable links took %d hashing slots, want 0", got)
+	}
+	if got := PasswordHashingRejections()[string(audienceSignup)]; got != 0 {
+		t.Errorf("unusable links were turned away by the sign-up gate %d times, want 0", got)
+	}
+
+	if err := svc.ResetPassword(ctx, usable, newPassword, &ip); !errors.Is(err, ErrPasswordHashBusy) {
+		t.Fatalf("a usable link with the sign-up gate full = %v, want busy", err)
+	}
+	held.release()
+	if err := svc.ResetPassword(ctx, usable, newPassword, &ip); err != nil {
+		t.Fatalf("the same link once a slot is free = %v, want the password reset", err)
+	}
+}

@@ -1,0 +1,43 @@
+{
+  "scenario": "admin_refund_cancelled",
+  "domain": "refunds",
+  "schema": "AdminRefund",
+  "describes": "Withdrawn before anyone approved it. No money moved.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "admin",
+    "refund-state-matrix"
+  ],
+  "payload": {
+    "id": "660ea760-489e-40af-a73d-f286e0c106c8",
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "order_code": "HG-COED-9X",
+    "kind": "PARTIAL_ITEMS",
+    "scope": "PARTIAL_ITEMS",
+    "reason_code": "ITEM_MISSING",
+    "amount_cents": 1915,
+    "tax_cents": 220,
+    "currency": "CAD",
+    "state": "CANCELLED",
+    "liability_split": {
+      "platform_cents": 220,
+      "restaurant_cents": 1695,
+      "rider_cents": 0
+    },
+    "note": "The biryani was missing from the bag.",
+    "requested_at": "2026-08-10T18:02:11.412Z",
+    "requested_by": "c2a83f3e-d7b9-4a92-abb3-af31e948f03f",
+    "requester_kind": "CUSTOMER",
+    "approval_required_role": null,
+    "escalated_by": null,
+    "escalated_at": null,
+    "approved_by": null,
+    "approved_at": null,
+    "declined_by": null,
+    "declined_at": null,
+    "decision_reason": null,
+    "settled_at": null,
+    "failure_message": null
+  }
+}

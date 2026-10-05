@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
@@ -28,6 +29,13 @@ type Service struct {
 	// UsePhoneVerifier; never mutated after boot.
 	verifier      PhoneVerifier
 	verifyChannel string
+
+	// notify is the notification outbox the email flows enqueue into
+	// (notifications.go). Nil sends nothing; set once at wiring time.
+	notify notify.TxEnqueuer
+	// linkEmailDelay is how long an unauthenticated email request takes
+	// whatever happens (email_limits.go); tests shorten it.
+	linkEmailDelay time.Duration
 }
 
 // UsePhoneVerifier switches this service onto the PhoneVerifier (Twilio Verify)
@@ -51,6 +59,7 @@ func NewService(store *Store, rl *RateLimiter, sms SMSSender, issuer *session.Is
 	return &Service{
 		store: store, rl: rl, sms: sms, issuer: issuer, deny: deny,
 		secrets: secrets, log: log, now: func() time.Time { return time.Now().UTC() },
+		linkEmailDelay: uniformLinkDelay,
 	}
 }
 

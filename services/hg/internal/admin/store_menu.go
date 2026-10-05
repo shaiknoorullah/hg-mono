@@ -81,6 +81,12 @@ var ErrCategoryNameTaken = errors.New("admin: category name taken")
 // ErrItemDeleted is returned when the menu_item has been soft-deleted.
 var ErrItemDeleted = errors.New("admin: item deleted")
 
+// ErrUploadNotFound is returned when a menu item names an image the admin may
+// not use for this restaurant: no such upload, or one that is not a confirmed
+// menu photo belonging to the admin or to this restaurant. It is one 404 for
+// all of them (https://github.com/shaiknoorullah/hg-mono/issues/359).
+var ErrUploadNotFound = errors.New("admin: upload not found")
+
 // CreateMenuCategoryOnBehalf inserts a new menu_category for the given restaurant
 // on behalf of an admin (A-19). The restaurant must exist (returns ErrNotFound
 // otherwise). Duplicate name within the same restaurant returns ErrCategoryNameTaken.
@@ -165,6 +171,31 @@ func (r *Repo) CreateMenuItemOnBehalf(
 		}
 		if !catExists {
 			return ErrNotFound
+		}
+
+		// The image, when given, must be a confirmed menu photo uploaded by
+		// this admin or by the restaurant (someone who holds or held a grant
+		// there), or already one of its menu photos: never another account's
+		// upload (https://github.com/shaiknoorullah/hg-mono/issues/359).
+		if in.imageObjectID != nil && *in.imageObjectID != "" {
+			var usable bool
+			if err := tx.QueryRow(ctx, `
+SELECT EXISTS (
+  SELECT 1 FROM stored_object so
+   WHERE so.id = $1 AND so.purpose = 'MENU_IMAGE' AND so.state = 'READY' AND so.deleted_at IS NULL
+     AND (so.uploaded_by = $2
+          OR so.restaurant_id = $3
+          OR EXISTS (SELECT 1 FROM account_role ar
+                      WHERE ar.account_id = so.uploaded_by
+                        AND ar.scope_type = 'RESTAURANT' AND ar.scope_id = $3)
+          OR EXISTS (SELECT 1 FROM menu_item_version v
+                      WHERE v.image_object_id = so.id AND v.restaurant_id = $3)))`,
+				*in.imageObjectID, actor.staffID, restaurantID).Scan(&usable); err != nil {
+				return err
+			}
+			if !usable {
+				return ErrUploadNotFound
+			}
 		}
 
 		taxCategory := in.taxCategory

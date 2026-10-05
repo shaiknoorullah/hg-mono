@@ -1,0 +1,38 @@
+{
+  "scenario": "chargeback_needs_response",
+  "domain": "refunds",
+  "schema": "Chargeback",
+  "describes": "A dispute waiting for our evidence, on the clock of its deadline.",
+  "operations": [
+    "getChargeback"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "chargeback-state-matrix"
+  ],
+  "payload": {
+    "id": "699f4522-5ed6-4edf-a1f6-777eb18c61a9",
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "order_code": "HG-COED-9X",
+    "stripe_dispute_id": "dp_1Qkneedsrespons",
+    "amount_cents": 4696,
+    "currency": "CAD",
+    "reason": "product_not_received",
+    "status": "NEEDS_RESPONSE",
+    "outcome": null,
+    "evidence_due_at": "2026-08-15T18:42:11.412Z",
+    "deadline_at": "2026-08-15T18:42:11.412Z",
+    "evidence_submitted_at": null,
+    "opened_at": "2026-08-08T18:42:11.412Z",
+    "updated_at": "2026-08-10T17:42:11.412Z",
+    "evidence_notes": [
+      {
+        "id": "2ea7be2f-358d-48ef-adee-f2b4cee4cf75",
+        "body": "Proof of delivery photo at the front door, 19:42, matches the address on the order.",
+        "author_account_id": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+        "created_at": "2026-08-08T19:42:11.412Z"
+      }
+    ]
+  }
+}

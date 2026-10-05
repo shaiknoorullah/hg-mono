@@ -1,0 +1,31 @@
+{
+  "scenario": "chargeback_warning_needs_response",
+  "domain": "refunds",
+  "schema": "Chargeback",
+  "describes": "An early warning from the bank (an inquiry); it may become a dispute.",
+  "operations": [
+    "getChargeback"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "chargeback-state-matrix"
+  ],
+  "payload": {
+    "id": "b5d3c13a-775d-4d5c-ab07-d58fd86361eb",
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "order_code": "HG-COED-9X",
+    "stripe_dispute_id": "dp_1Qkwarningneeds",
+    "amount_cents": 4696,
+    "currency": "CAD",
+    "reason": "product_not_received",
+    "status": "WARNING_NEEDS_RESPONSE",
+    "outcome": null,
+    "evidence_due_at": "2026-08-15T18:42:11.412Z",
+    "deadline_at": "2026-08-15T18:42:11.412Z",
+    "evidence_submitted_at": null,
+    "opened_at": "2026-08-08T18:42:11.412Z",
+    "updated_at": "2026-08-10T17:42:11.412Z",
+    "evidence_notes": []
+  }
+}
