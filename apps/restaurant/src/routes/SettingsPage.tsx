@@ -7,7 +7,7 @@ import { PageLoading } from '../components/PageLoading';
 import { StatusChip } from '../components/StatusChip';
 import { IconSettings } from '../lib/icons';
 import { AddressSearch } from '../components/AddressSearch';
-import type { GeocodeResult } from '../lib/geocode';
+import { applyPick, type GeocodeResult } from '../lib/geocode';
 
 const PROVINCES: Schema['Province'][] = ['ON', 'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'PE', 'QC', 'SK', 'YT'];
 const PROVINCE_OPTIONS = PROVINCES.map((p) => ({ value: p, label: p }));
@@ -70,13 +70,7 @@ function ProfileForm({ profile, onSaved }: { profile: Schema['RestaurantProfile'
   }
 
   function onPick(r: GeocodeResult) {
-    setForm((f) => ({
-      ...f,
-      line1: r.line1,
-      city: r.city || f.city,
-      province: (r.province as Schema['Province'] | null) ?? f.province,
-      postal_code: r.postalCode || f.postal_code,
-    }));
+    setForm((f) => applyPick(f, r));
     setPoint({ latitude: r.latitude, longitude: r.longitude });
   }
 

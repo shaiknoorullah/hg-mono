@@ -3,7 +3,7 @@ import { isApiError, type Schema } from '@hg/api-client';
 import { Button, Card, Input, Select, Textarea } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../../lib/apiHelpers';
 import { AddressSearch } from '../../components/AddressSearch';
-import { MAPBOX_TOKEN, type GeocodeResult } from '../../lib/geocode';
+import { MAPBOX_TOKEN, applyPick, type GeocodeResult } from '../../lib/geocode';
 
 /** Only without a Mapbox token: the listing is saved as "location not verified". */
 const UNVERIFIED_POINT = { latitude: 43.6532, longitude: -79.3832 };
@@ -34,13 +34,7 @@ export function ProfileStep({ onSaved }: { onSaved: () => void }) {
   }
 
   function onPick(r: GeocodeResult) {
-    setForm((f) => ({
-      ...f,
-      line1: r.line1,
-      city: r.city || f.city,
-      province: (r.province as Schema['Province'] | null) ?? f.province,
-      postal_code: r.postalCode || f.postal_code,
-    }));
+    setForm((f) => applyPick(f, r));
     setPoint({ latitude: r.latitude, longitude: r.longitude });
   }
 

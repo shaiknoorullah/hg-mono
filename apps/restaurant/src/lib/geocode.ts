@@ -90,3 +90,17 @@ export async function searchAddresses(query: string, signal?: AbortSignal): Prom
     return { kind: 'network' };
   }
 }
+
+/** A form's address fields with a picked search result applied (kept as-is where Mapbox has none). */
+export function applyPick<T extends { line1: string; city: string; province: string; postal_code: string }>(
+  f: T,
+  r: GeocodeResult,
+): T {
+  return {
+    ...f,
+    line1: r.line1,
+    city: r.city || f.city,
+    province: r.province ?? f.province,
+    postal_code: r.postalCode || f.postal_code,
+  };
+}
