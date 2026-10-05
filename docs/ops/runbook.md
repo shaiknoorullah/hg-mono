@@ -2,7 +2,7 @@
 covers:
   - deploy/**
   - services/hg/internal/orders/runner*.go
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Incident runbook
@@ -139,9 +139,10 @@ If it came back by itself after a crash, nothing was lost. The runner's outage h
 1. Find what grew: `df -h /`, `docker system df`, `du -xh --max-depth=2 /var/lib/docker/volumes | sort -h | tail`.
 2. Safe to clear: old images (`docker image prune -af --filter until=168h`), the build cache (`docker builder prune -f`), the journal (`journalctl --vacuum-size=200M`), and dev's data (it resets from the fixtures).
 3. **Never delete by hand:** anything in Postgres's data folder, `pg_wal` included; the pgBackRest repository (use `pgbackrest expire`); the restic repository (use `restic forget --prune`); Silo's data folder.
-4. A growing `pg_wal` means WAL archiving is failing. Run `pgbackrest --stanza=<stanza> check` and fix the archive; don't remove WAL.
-5. If Postgres stopped, free space and start it again. It recovers by itself.
-6. Afterwards, apply the disk trigger in [the hosting plan][i207]: over 70% full, or due to reach 85% within 60 days, means a bigger disk.
+4. Silo keeps the old version of every overwritten or deleted file, in every bucket, for 35 days, so space freed by deleting files comes back only as those versions expire. Don't remove versions by hand: within those 35 days they are how a file deleted by mistake comes back.
+5. A growing `pg_wal` means WAL archiving is failing. Run `pgbackrest --stanza=<stanza> check` and fix the archive; don't remove WAL.
+6. If Postgres stopped, free space and start it again. It recovers by itself.
+7. Afterwards, apply the disk trigger in [the hosting plan][i207]: over 70% full, or due to reach 85% within 60 days, means a bigger disk.
 
 ## Certificates are expiring
 

@@ -14,7 +14,7 @@ reviewed: 2026-10-05
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
 
-**Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Redis 7, [Silo](https://github.com/pgsty/silo) object storage (MinIO-compatible S3 API; [object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)), Traefik v3, docker compose.
+**Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Valkey 9 (Redis-compatible), [Silo](https://github.com/pgsty/silo) object storage (the maintained fork of MinIO, with its S3 API; [object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)), Traefik v3, docker compose.
 **Currency**: CAD only. **Market**: Canada; launch in Ontario only ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 **Status**: normative. Every domain module (restaurant, menu, cart, order, dispatch, payments, admin) depends on this layer and may not re-implement any part of it.
 
@@ -2121,11 +2121,13 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
 
   | Bucket | Visibility | Contents | Versioning | Retention |
   |---|---|---|---|---|
-  | `hg-kyc` | **private** | restaurant business licence, halal certificate, food-safety cert, owner ID; rider licence, vehicle registration, insurance, profile photo | on | 7 years after account closure |
-  | `hg-pod` | **private** | proof-of-delivery photos and signatures | off | 90 days, then delete |
-  | `hg-media` | **private**, read through presigned URLs | menu item photos, restaurant logos and covers, rider profile photos (the cropped public one) | off | lifetime of the entity |
-  | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | off | 30 days |
-  | `hg-tmp` | **private** | unconfirmed uploads | off | 24 h lifecycle rule |
+  | `hg-kyc` | **private** | restaurant business licence, halal certificate, food-safety cert, owner ID; rider licence, vehicle registration, insurance, profile photo | on, old versions kept 35 days | 7 years after account closure |
+  | `hg-pod` | **private** | proof-of-delivery photos and signatures | on, old versions kept 35 days | 90 days, then delete |
+  | `hg-media` | **private**, read through presigned URLs | menu item photos, restaurant logos and covers, rider profile photos (the cropped public one) | on, old versions kept 35 days | lifetime of the entity |
+  | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | on, old versions kept 35 days | 30 days |
+  | `hg-tmp` | **private** | unconfirmed uploads | on, old versions kept 35 days | 24 h lifecycle rule |
+
+  Every bucket is versioned so an overwrite or a delete made by hand in the console can be undone; a version that is no longer current is deleted 35 days later. When the API deletes an object (a rejected upload, or a deletion under the [document lifecycle and retention rules](#p-29--document-lifecycle-review-and-retention)), it deletes every version of that key, so the bytes are gone at once rather than kept for 35 days. The retention column applies to the current version ([object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). Until `hg-media` is private ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)), the compose file serves it public-read, and an anonymous reader may fetch an object by its key and nothing else: no bucket listing and no version listing, so an old or deleted version cannot be found or downloaded.
 
   Object keys are server-generated and unguessable:
   ```
