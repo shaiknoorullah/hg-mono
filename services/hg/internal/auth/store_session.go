@@ -92,12 +92,18 @@ func (s *Store) CreateSession(ctx context.Context, p NewSessionParams) (*Session
 // hash, or ErrNotFound. It returns the row regardless of revoked/rotated state so
 // the caller can implement reuse detection (P-04).
 func (s *Store) SessionByRefreshHash(ctx context.Context, hash []byte) (*SessionRow, error) {
+	return s.sessionWhere(ctx, "refresh_hash = $1", hash)
+}
+
+// sessionWhere returns the one session matching where (a predicate on $1),
+// in any state, or ErrNotFound.
+func (s *Store) sessionWhere(ctx context.Context, where string, arg any) (*SessionRow, error) {
 	var row SessionRow
 	err := s.pool.QueryRow(ctx, `
 		SELECT id, family_id, account_id, amr, client, device_id, ip_city,
 		       issued_at, last_used_at, idle_expires_at, absolute_expires_at,
 		       revoked_at, rotated_at
-		FROM session WHERE refresh_hash = $1`, hash).Scan(
+		FROM session WHERE `+where, arg).Scan(
 		&row.ID, &row.FamilyID, &row.AccountID, &row.AMR, &row.Client, &row.DeviceID,
 		&row.IPCity, &row.IssuedAt, &row.LastUsedAt, &row.IdleExpires, &row.AbsExpires,
 		&row.RevokedAt, &row.RotatedAt)
@@ -164,22 +170,7 @@ var ErrRotateRace = errors.New("auth: session already rotated")
 // SessionByID returns any session by id (no ownership predicate; internal use in
 // rotation). Handler-facing reads use the account-scoped variants below.
 func (s *Store) SessionByID(ctx context.Context, id string) (*SessionRow, error) {
-	var row SessionRow
-	err := s.pool.QueryRow(ctx, `
-		SELECT id, family_id, account_id, amr, client, device_id, ip_city,
-		       issued_at, last_used_at, idle_expires_at, absolute_expires_at,
-		       revoked_at, rotated_at
-		FROM session WHERE id = $1`, id).Scan(
-		&row.ID, &row.FamilyID, &row.AccountID, &row.AMR, &row.Client, &row.DeviceID,
-		&row.IPCity, &row.IssuedAt, &row.LastUsedAt, &row.IdleExpires, &row.AbsExpires,
-		&row.RevokedAt, &row.RotatedAt)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotFound
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &row, nil
+	return s.sessionWhere(ctx, "id = $1", id)
 }
 
 // RevokeFamily revokes every session sharing a family id (reuse detection,
