@@ -702,7 +702,10 @@ func run() error {
 	// Restaurant staff get no invitation email in 1.0: restaurant accounts are
 	// owner-only at launch (docs/decisions/README.md, "Staff accounts").
 	// Staff invitations are for HalalGoes's own admin staff (issue #170).
-	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
+	// ordersStore carries the realtime emitter, so accept, reject and
+	// mark-ready reach the customer like every other order move
+	// (https://github.com/shaiknoorullah/hg-mono/issues/337).
+	restaurantRepo := restaurant.NewRepo(st.DB().Pool, ordersStore)
 	restaurantPay := restaurantPayAdapter{svc: paymentsSvc}
 	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil, restaurantPay))
 

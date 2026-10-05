@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -233,7 +233,7 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
   - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued.
   - `POST /v1/auth/totp/enroll` / `verify` / `disable` (step-up required).
 
-  Password hashing: **argon2id**, `t=3, m=64 MiB, p=2, saltLen=16, keyLen=32`, encoded in the standard `$argon2id$v=19$m=65536,t=3,p=2$…` string so parameters can be upgraded per-user on next successful login. Policy: minimum 12 characters, maximum 256 bytes, no composition rules, rejected against a bundled top-10k breached-password list.
+  Password hashing: **argon2id**, `t=3, m=64 MiB, p=2, saltLen=16, keyLen=32`, encoded in the standard `$argon2id$v=19$m=65536,t=3,p=2$…` string so parameters can be upgraded per-user on next successful login. Policy: minimum 12 characters, maximum 256 bytes, no composition rules, rejected against a bundled top-10k breached-password list. Each hash or verification allocates 64 MiB, so at most 3 run at once per replica (`HG_AUTH_HASH_CONCURRENCY`, at least 3), split across three gates so a flood on one public form cannot lock anyone else out: sign-up (restaurant sign-up and password reset), login (sign-in from every surface except the staff web app, and the password change of a session with no staff role), and staff (sign-in from the staff web app, `X-HG-Client: admin-web`, and the password change of a session holding `SUPPORT_AGENT`, `ADMIN` or `SUPER_ADMIN`), each with at least one slot. The gate is chosen from the request (its surface, or the session's roles), never from the account an email belongs to, so a `503` or the time spent waiting never tells which emails are registered or belong to staff. The per-IP, per-email and per-account rate limits run before a slot is taken, so a limited request never holds one. A caller that waits more than 2 s for a slot (`HG_AUTH_HASH_WAIT`, at most 5 s), or finds the gate's queue full (`HG_AUTH_HASH_MAX_WAITERS`, default 4 per slot), gets `503` with `Retry-After` and error code `TIMEOUT`, nothing was executed, and the server logs one `password hashing at capacity` warning naming the gate. A busy login is not a failed attempt and never counts toward the lockout. Login for an email with no account, or an account with no password, verifies against a dummy hash on the request's gate, so its timing and its answer under load match a wrong password ([#216](https://github.com/shaiknoorullah/hg-mono/issues/216)).
 
   Tokens for email verification and password reset: 32 random bytes, base64url; stored as SHA-256; single-use; verification TTL 24 h, reset TTL 30 min.
 
@@ -263,7 +263,9 @@ CREATE TABLE login_attempt (
 CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
 ```
 
-  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account.
+  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min); over either cap ⟹ 429 `rate_limited` with `Retry-After`, and the attempt is not evaluated or recorded. Both fail open when Redis is unreachable (login never answers 503). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account.
+
+  Password change: `rl:password_change:account:{account_id}` (5/15 min), checked before the current password is verified; over the cap ⟹ 429 `rate_limited` with `Retry-After`. It fails open like login's limits; the hashing gate still bounds the work.
 
 - **Rules & invariants**:
   - **I-03.1** Plaintext passwords never appear in logs, audit payloads, error messages or panics. A `String()` method on the password type returns `"[REDACTED]"`.
@@ -1063,7 +1065,9 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
   | T20 | `DISPUTED` | `RESOLVED` | support resolves (refund / partial / no action) | support/admin (`dispute.resolve`) | refund + adjustment batch |
   | T21 | `PREPARING`/`READY_FOR_PICKUP` | `DISPUTED` | restaurant reports an unrecoverable problem | restaurant staff | none yet |
 
-  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal.
+  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal, but it is the one unfinished state that is not the customer's active order: every problem report puts an order there, and an order under review after a problem report does not block a new checkout ([narrowed one-active-order rule](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). Its only way out is T20 to `RESOLVED`, so an order that stopped counting as active never counts again.
+
+  A support agent or admin may also cancel an order before the restaurant accepts it, from `CREATED`, `AUTHORIZED` or `RESTAURANT_PENDING`, recorded with actor `ADMIN` ([admin order intervention](05-admin.md#a-38--order-lookup-and-admin-order-intervention)).
 
   **The dispatch sub-machine** (table `dispatch`, one row per order, created at T6):
 
@@ -2405,6 +2409,12 @@ SELECT r.account_id,
 ```
   `ST_DWithin` on `geography` uses the GiST index. Waves: **3 000 m → 6 000 m → 10 000 m**, 20 s each, `LIMIT 8` per wave, offers broadcast **in parallel** (the old code looped riders sequentially, B71/B82). Exhausting all three waves sets `dispatch.state='NO_RIDER_FOUND'`, which arms the order's `READY_FOR_PICKUP` escalation (P-15) and raises `admin.dispatch_failure`.
 
+  **A wave that finds nobody still counts** ([#294](https://github.com/shaiknoorullah/hg-mono/issues/294)). It is recorded with no offers and holds the search for the `SEARCHING` deadline (20 s, in the dispatch deadline table of [deadlines and timeout actions](#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable)), and the next wave searches one radius wider. So with nobody online the search runs 3 km, then 6 km, then 10 km until its wave or time budget, and a rider who comes online inside the radius meanwhile is offered the order. After a wave whose riders all let it lapse, the next wave searches the same radius again and widens at once while a radius has nobody left. Only the budget ends the search in `NO_RIDER_FOUND`, never one pass that found nobody.
+
+  **At `NO_RIDER_FOUND` the order is untouched.** It stays `READY_FOR_PICKUP` on its own pickup deadline, which escalates every 10 minutes ([#293](https://github.com/shaiknoorullah/hg-mono/issues/293)) and, at its cap, cancels the order with a full refund to the customer (the no-rider row of [the order transition table](#p-14--order-lifecycle-states-and-transitions); automating that cancel is [#336](https://github.com/shaiknoorullah/hg-mono/issues/336)). No money moves when the search ends: the payment was captured when the restaurant accepted, and its refund belongs to that cancel. The same transaction that ends the search writes `dispatch.state_changed` to the order's channel and `admin.dispatch_failure` to `admin:ops`.
+
+  **Every replica runs the dispatch runner.** Two sweeps of the same new order queue on the dispatch row the first wave creates, and the second finds the wave already run. A search that is due for its next wave is claimed under the dispatch row's lease (`lease_until`, as in the runner mechanics of [deadlines and timeout actions](#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable)), so each wave runs once and the search ends once.
+
   **Acceptance is a race resolved in Postgres**, not in a workflow signal:
 ```sql
 UPDATE dispatch
@@ -2715,12 +2725,13 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 
-  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day.
+  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day. The one-active-order rule is enforced in the order-creation transaction, not by the limiter: the transaction first takes a per-customer lock, so two checkouts racing for the same customer queue, and the second counts only after the first has committed. The active order that `getActiveOrder` returns is the one that refuses a second checkout, so a lone order under review is not it; the order history's active section still lists every unfinished order.
 
   Responses carry `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and, on 429, `Retry-After`.
 
   **Redis-down policy** is explicit per class, and this is where the disposability rule needs care: rate limiting is *protection*, not *correctness*, so losing counters is acceptable — but not for authentication.
-  - `AUTH`: **fail closed** (503). A brute-force window is worse than a brief outage, and the Postgres-backed lockout in P-03 still applies.
+  - `AUTH`, OTP request/verify: **fail closed** (503). A brute-force window on a 6-digit code is worse than a brief outage (P-02).
+  - `AUTH`, everything else (login, restaurant sign-up, email resend, password change): fail open with an alert. Login's lockout lives in Postgres (P-03) and survives the outage; a sign-up issues no session. This matches the contract, where only `requestOtp` and `verifyOtp` declare a 503.
   - `MONEY`: fail open, because idempotency (P-37) and the state machine already prevent duplicate effects; an alert fires.
   - All other classes: fail open with an alert.
 
@@ -2734,7 +2745,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   - **I-38.4** Webhook endpoints are never rate-limited below Stripe's retry rate.
 - **Acceptance criteria**:
   1. Given 11 OTP requests in 15 minutes from one IP, Then the 11th is 429 with `Retry-After` and no SMS is sent.
-  2. Given Redis is stopped, When a login is attempted, Then 503 `rate_limiter_unavailable`; When a search is attempted, Then it succeeds with an alert recorded.
+  2. Given Redis is stopped, When an OTP is requested, Then 503 `rate_limiter_unavailable`; When a login or a search is attempted, Then it proceeds with an alert recorded, and the Postgres login lockout still applies.
   3. Given a 429, Then no partial effect exists — no order row, no Stripe call, no ledger entry.
   4. Given the rate-limit headers, Then `RateLimit-Remaining` decreases monotonically within a window and resets exactly at `RateLimit-Reset`.
 - **Version**: V1 · **Size**: M
