@@ -427,6 +427,34 @@ func TestWebhookWorker_OutOfOrderEventsReachTheRightState(t *testing.T) {
 	})
 }
 
+// capturedOrderForDispute seeds a completed order whose payment Stripe captured
+// (the capture webhook already processed) and returns what a dispute test needs:
+// the intent and dispute ids, the order, when the capture was sent, the evidence
+// deadline, and a builder for the dispute object in a given Stripe status. The
+// rows a dispute creates are removed when the test ends.
+func (h *webhookHarness) capturedOrderForDispute(ctx context.Context, piKey, disputeKey, captureEvent string) (
+	pi, dispute, order string, t0, due time.Time, disputeObject func(status string) map[string]any,
+) {
+	t := h.t
+	pi, dispute = h.id(piKey), h.id(disputeKey)
+	order = seedOrderWithIntent(t, h.pool, pi, "COMPLETED", "REQUIRES_CAPTURE")
+	t.Cleanup(func() {
+		_, _ = h.pool.Exec(ctx, `DELETE FROM reconciliation_exception WHERE stripe_object_id = $1`, dispute)
+		_, _ = h.pool.Exec(ctx, `DELETE FROM chargeback WHERE stripe_dispute_id = $1`, dispute)
+	})
+	t0 = time.Now().Add(-10 * time.Minute)
+	h.send(h.id(captureEvent), "payment_intent.succeeded", t0, piObject(pi, "succeeded", 3919))
+	h.process()
+
+	due = time.Now().Add(7 * 24 * time.Hour).Truncate(time.Second).UTC()
+	disputeObject = func(status string) map[string]any {
+		return map[string]any{"id": dispute, "object": "dispute", "amount": 3919, "currency": "cad",
+			"payment_intent": pi, "reason": "fraudulent", "status": status,
+			"evidence_details": map[string]any{"due_by": due.Unix()}}
+	}
+	return pi, dispute, order, t0, due, disputeObject
+}
+
 // A chargeback opens its chargeback row, the record that holds the
 // partners' payout up to the disputed amount ("P-18 — Refunds, cancellations
 // and compensation"), with the
@@ -437,22 +465,7 @@ func TestWebhookWorker_OutOfOrderEventsReachTheRightState(t *testing.T) {
 func TestWebhookWorker_ADisputeOpensTheChargebackHoldAndIsAudited(t *testing.T) {
 	h := newWebhookHarness(t)
 	ctx := context.Background()
-	pi, dispute := h.id("pi_dispute"), h.id("dp")
-	order := seedOrderWithIntent(t, h.pool, pi, "COMPLETED", "REQUIRES_CAPTURE")
-	t.Cleanup(func() {
-		_, _ = h.pool.Exec(ctx, `DELETE FROM reconciliation_exception WHERE stripe_object_id = $1`, dispute)
-		_, _ = h.pool.Exec(ctx, `DELETE FROM chargeback WHERE stripe_dispute_id = $1`, dispute)
-	})
-	t0 := time.Now().Add(-10 * time.Minute)
-	h.send(h.id("evt_dp_cap"), "payment_intent.succeeded", t0, piObject(pi, "succeeded", 3919))
-	h.process()
-
-	due := time.Now().Add(7 * 24 * time.Hour).Truncate(time.Second).UTC()
-	disputeObject := func(status string) map[string]any {
-		return map[string]any{"id": dispute, "object": "dispute", "amount": 3919, "currency": "cad",
-			"payment_intent": pi, "reason": "fraudulent", "status": status,
-			"evidence_details": map[string]any{"due_by": due.Unix()}}
-	}
+	_, dispute, order, t0, due, disputeObject := h.capturedOrderForDispute(ctx, "pi_dispute", "dp", "evt_dp_cap")
 	opened := h.id("evt_dp_created")
 	h.send(opened, "charge.dispute.created", t0.Add(time.Minute), disputeObject("needs_response"))
 	h.process()
@@ -530,22 +543,7 @@ func TestWebhookWorker_ADisputeOpensTheChargebackHoldAndIsAudited(t *testing.T) 
 func TestWebhookWorker_ADisputeClosedAsPreventedIsClosed(t *testing.T) {
 	h := newWebhookHarness(t)
 	ctx := context.Background()
-	pi, dispute := h.id("pi_prevented"), h.id("dp_prevented")
-	order := seedOrderWithIntent(t, h.pool, pi, "COMPLETED", "REQUIRES_CAPTURE")
-	t.Cleanup(func() {
-		_, _ = h.pool.Exec(ctx, `DELETE FROM reconciliation_exception WHERE stripe_object_id = $1`, dispute)
-		_, _ = h.pool.Exec(ctx, `DELETE FROM chargeback WHERE stripe_dispute_id = $1`, dispute)
-	})
-	t0 := time.Now().Add(-10 * time.Minute)
-	h.send(h.id("evt_pv_cap"), "payment_intent.succeeded", t0, piObject(pi, "succeeded", 3919))
-	h.process()
-
-	due := time.Now().Add(7 * 24 * time.Hour).Truncate(time.Second).UTC()
-	disputeObject := func(status string) map[string]any {
-		return map[string]any{"id": dispute, "object": "dispute", "amount": 3919, "currency": "cad",
-			"payment_intent": pi, "reason": "fraudulent", "status": status,
-			"evidence_details": map[string]any{"due_by": due.Unix()}}
-	}
+	_, dispute, order, t0, _, disputeObject := h.capturedOrderForDispute(ctx, "pi_prevented", "dp_prevented", "evt_pv_cap")
 	h.send(h.id("evt_pv_created"), "charge.dispute.created", t0.Add(time.Minute), disputeObject("needs_response"))
 	h.process()
 	closed := h.id("evt_pv_closed")
