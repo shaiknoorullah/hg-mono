@@ -40,7 +40,7 @@ ALTER TABLE refund
 -- limit, the admin cancel after acceptance) did it in the request itself, and
 -- an approval request approved since #318 is dated no earlier than that. The
 -- refund triggers deferred to COMMIT run at once here, because a table with
--- trigger events still pending cannot be altered below (as in 00035).
+-- trigger events still pending cannot be altered below (as in 00046).
 SET CONSTRAINTS ALL IMMEDIATE;
 UPDATE refund SET approved_at = requested_at WHERE approved_by IS NOT NULL AND approved_at IS NULL;
 

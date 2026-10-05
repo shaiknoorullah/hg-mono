@@ -1,0 +1,10 @@
+# Managed by Ansible (deploy/host/roles/aide).
+[Unit]
+Description=AIDE file integrity check
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hg-aide-check
+Nice=15
+IOSchedulingClass=idle
+MemoryMax=512M

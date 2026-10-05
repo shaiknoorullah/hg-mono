@@ -389,6 +389,10 @@ paths:
           $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/email/verify:
@@ -478,6 +482,10 @@ paths:
         return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
         sets `error.details.email_verification_required` **only after** the credentials
         were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
+
+        A `503` means password checking is at capacity. The staff web app (`X-HG-Client:
+        admin-web`) has capacity of its own; which capacity a request uses depends only on
+        that header, never on the email, so a `503` says nothing about the account.
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -515,6 +523,8 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/refresh:
@@ -729,6 +739,10 @@ paths:
           $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/password/change:
@@ -745,6 +759,9 @@ paths:
         account lockout, or sign the person out instead of saying the password is wrong.
         The backend still answers `401` until
         [#238](https://github.com/shaiknoorullah/hg-mono/issues/238) is fixed.
+
+        At most 5 attempts per account in 15 minutes; past that, `429` with `Retry-After`,
+        before the current password is checked.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V0
       requestBody:
@@ -778,6 +795,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/totp/enroll:
@@ -1653,6 +1674,13 @@ paths:
         the current cart's restaurant and line count. `replace=true` performs clear + add as
         **one atomic call** — a two-call clear-then-add is prohibited because it can leave an
         empty cart on failure.
+
+        `409 RESTAURANT_UNAVAILABLE` when the item's restaurant cannot take orders: it is not
+        listed and live (delisted, suspended or banned), or its halal certificate is not
+        current **as of this request**, computed from admin-verified certificate data. A
+        client that still holds the item id from an old cart or a cached menu gets the same
+        answer. Quoting and placing an order check it again in their own transaction, and a
+        cart already holding the restaurant's items is kept but stops being quotable.
       x-roles: [CUSTOMER]
       x-version: V0
       parameters:
@@ -1685,7 +1713,8 @@ paths:
         '409':
           description: |
             `DIFFERENT_RESTAURANT`, `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`,
-            `ADDON_UNAVAILABLE` or `RESTAURANT_CLOSED`. The cart is unchanged.
+            `ADDON_UNAVAILABLE`, `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`. The cart is
+            unchanged.
           content:
             application/json:
               schema:
@@ -3106,6 +3135,11 @@ paths:
         returned flagged `is_active: false`, out-of-stock and hidden items are returned with
         their state, and each item carries its `pending_version` when a reviewed field has
         been edited but not yet approved. Customers only ever see `live_version`.
+
+        Readable while the restaurant is `SUSPENDED`: the menu lock refuses changes, never
+        reads. The restaurant learns the menu is locked from `account_state` on its profile
+        (`getRestaurantProfile`) before it tries a save, and from `403 MENU_LOCKED` if a
+        save races a suspension.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
       x-version: V0
       responses:
@@ -3152,6 +3186,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: '`CATEGORY_NAME_TAKEN`.'
           content:
@@ -3201,6 +3241,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '409':
@@ -3249,7 +3295,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`.'
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -3294,6 +3340,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written: no price, photo or other field changes, and a version already waiting in menu review stays as it is.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '422':
@@ -3334,7 +3386,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`ITEM_BLOCKED_BY_ADMIN` with the admin''s reason.'
+          description: '`ITEM_BLOCKED_BY_ADMIN` with the admin''s reason. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included, so an item cannot be marked out of stock or back in stock; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -3534,6 +3586,14 @@ paths:
         Expiry is server-authoritative. A late accept is `409 OFFER_EXPIRED` with the final
         state — never a partial success. Closing the dialog, refreshing, or losing the
         socket never rejects an order.
+
+        `409 RESTAURANT_UNAVAILABLE` when the restaurant cannot take orders **as of this
+        request**: it is not listed and live (suspended, banned, delisted), or its halal
+        certificate is not current, computed from admin-verified certificate data. Nothing is
+        captured; the order stays `RESTAURANT_PENDING` until its deadline cancels it and
+        releases the authorisation. The check holds the restaurant row locked until the
+        accept commits, so a concurrent suspension either lands first and refuses the accept,
+        or waits for it and then treats the order as accepted.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
       x-version: V0
       x-rate-class: MONEY
@@ -3559,7 +3619,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/OrderRestaurantView'
         '409':
-          description: '`OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`.'
+          description: '`OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`, `RESTAURANT_UNAVAILABLE`.'
           content:
             application/json:
               schema:
@@ -4657,6 +4717,11 @@ paths:
         to the authenticated admin — no code path accepts an `admin_id` from a request body.
         A second decision on a decided application is `409 ALREADY_DECIDED`, never a silent
         overwrite.
+
+        Each decision has its own body (`RestaurantDecisionInput`): an approval carries an
+        approval reason, a rejection or a request for changes carries a rejection reason, and a
+        request for changes names the documents to redo. A missing reason, or a reason that
+        does not fit the decision, is `422 VALIDATION_FAILED`.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5108,6 +5173,11 @@ paths:
         Rejection reason text is sent verbatim to the rider with the specific remediation
         step. A support agent may re-open a rejected application only for a remediable
         reason, and may never approve.
+
+        Each decision has its own body (`RiderDecisionInput`): an approval carries an approval
+        reason, a rejection or a request for changes carries a document rejection reason, and a
+        request for changes names the documents to redo. A missing reason, or a reason that
+        does not fit the decision, is `422 VALIDATION_FAILED`.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5138,7 +5208,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`.'
+          description: '`AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`, `VALIDATION_FAILED`.'
           content:
             application/json:
               schema:
@@ -5188,6 +5258,10 @@ paths:
         category's `created_by`. The restaurant is named in the path, which is the only
         place in the contract where a restaurant id is accepted from the caller — and it is
         gated by a global admin action, not by scope.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5211,6 +5285,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '409':
@@ -5227,6 +5307,10 @@ paths:
         `HALAL_CERTIFIED` assertion, no alcohol, no pork keyword, price inside the permitted
         band. An item created by an admin is created already approved, because the reviewer
         and the author are the same accountable person; that fact is recorded on the version.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5250,6 +5334,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
+        '403':
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '422':
@@ -5281,6 +5371,10 @@ paths:
         `PENDING_REVIEW` and the body carries a claim-bearing field, the call is
         `409 MENU_VERSION_PENDING` — decide that version first (`decideMenuVersion`). An item
         that is not on this restaurant's menu is `404`, the same as one that does not exist.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       requestBody:
@@ -5302,7 +5396,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`.'
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -5338,11 +5432,21 @@ paths:
         `ITEM_DELETED`, never silently removed. A version of the item still waiting for
         review is withdrawn, and deciding it afterwards is `409 ITEM_DELETED`. Removing an
         item that is already removed, or that is not on this restaurant's menu, is `404`.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       responses:
         '204':
           description: Item removed.
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is removed, and a version waiting in menu review stays as it is.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         default:
@@ -5358,6 +5462,10 @@ paths:
         the queue is never the bottleneck of a dinner service. **Claim-bearing fields are
         never auto-approved** (decision R-05): silence must not become consent on a halal
         claim.
+
+        A suspended or banned restaurant's pending versions stay in the queue and stay
+        readable; deciding one is refused with `403 MENU_LOCKED` until the suspension is
+        lifted (`decideMenuVersion`).
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5396,6 +5504,12 @@ paths:
         A-19 / R-17. Approval repoints `live_version_id` and clears `pending_version_id` in
         one transaction. Rejection requires a reason code, which the restaurant sees
         verbatim and may resubmit against without limit.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included, and a version waiting for review stays as it is
+        (`docs/decisions/README.md`, round 2, "A suspended or banned restaurant's menu"):
+        approving or rejecting it is `403 MENU_LOCKED`. Decide it once the suspension is
+        lifted. A `DELISTED` restaurant's versions can be decided.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5424,6 +5538,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemVersion'
+        '403':
+          description: '`MENU_LOCKED`: the version''s restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. The version stays `PENDING_REVIEW`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: '`ITEM_DELETED`, `ALREADY_DECIDED`.'
           content:
@@ -6109,6 +6229,163 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         default:
           $ref: '#/components/responses/Error'
+  /v1/admin/payout-runs:
+    post:
+      operationId: createPayoutRun
+      tags: [admin]
+      summary: Run the weekly payout now, for one partner or for every partner
+      description: |
+        Queues a payout run and returns it at once; the server's payout worker runs it
+        within seconds, the same code as the automatic Monday run (`GET` the run to follow
+        it). Payouts are weekly, every Monday, automatic, with no minimum
+        ([payout cadence](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--client-decisions)).
+        A run pays the period that closed by `as_of`: Monday 00:00 to Monday 00:00,
+        America/Toronto. Every unpaid earning created before that Monday is included, so
+        balances carried from earlier weeks are paid too.
+
+        Running twice never pays twice: a partner gets at most one payout per period, a
+        ledger entry belongs to at most one payout, and every Stripe transfer is keyed by
+        its payout's id. A payout held because Stripe has payouts turned off for the partner
+        is released by the first run for a later period
+        ([held payouts](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+
+        What is paid comes from the ledger only; the request names who and as of when, never
+        an amount. An earning tied to an order is paid once the order is settled and its hold
+        has passed: an hour after delivery for a rider, three days for a restaurant. Refunds
+        and chargebacks are netted at once, and a balance at or below zero is carried, never
+        paid.
+
+        `as_of` defaults to now and may not be in the future, so a run can never pay an
+        earning before its week has closed. A replay with the same `Idempotency-Key` returns
+        the run as it was first queued; the same key with a different body is
+        `409 IDEMPOTENCY_KEY_REUSE`. The session must have signed in with two-step sign-in,
+        and an admin may not run a payout for a partner they are, or belong to.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V1
+      x-rate-class: MONEY
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutRunInput'
+      responses:
+        '202':
+          description: The run is queued.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PayoutRun'
+        '400':
+          description: '`IDEMPOTENCY_KEY_REQUIRED`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: |
+            `MFA_REQUIRED`: the session did not sign in with two-step sign-in. `FORBIDDEN`: the
+            payee is the caller, or a restaurant the caller belongs to.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: '`NOT_FOUND`: the payee is neither a restaurant nor a rider.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: '`IDEMPOTENCY_KEY_REUSE`: this key was used with a different body.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: '`VALIDATION_FAILED`: `reason` is missing or too short, or `as_of` is in the future.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Stripe is not configured on this server, so nothing can be paid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
+    get:
+      operationId: listPayoutRuns
+      tags: [admin]
+      summary: Payout runs, newest first
+      description: |
+        Every run, automatic or requested by an admin, with what it paid, held and carried.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V1
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Runs, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayoutRun'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/admin/payout-runs/{runId}:
+    get:
+      operationId: getPayoutRun
+      tags: [admin]
+      summary: One payout run and what it did for each partner
+      description: |
+        The audit trail of one run: one line per action per partner — paid, held, released,
+        carried because the balance was not positive, skipped and why — with the payout it
+        created or moved.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V1
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The run and its lines.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PayoutRunDetail'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
   /v1/orders/{orderId}/handoff/seal:
     post:
       operationId: bindPackageSeal
@@ -6501,6 +6778,25 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
+    ServerBusy:
+      description: |
+        The server is temporarily unable to take this request. The request was **not**
+        executed — no partial effect exists. With `error.code` `TIMEOUT`, the work it needs
+        (for example argon2id password hashing, which is capped per replica) stayed at
+        capacity for the whole wait; retry after `Retry-After` seconds.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            format: int32
+        X-Request-ID:
+          description: 'ULID correlating this response with the server log and the audit trail.'
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     RateLimited:
       description: 'Rate limit exceeded. The request was **not** executed — no partial effect exists.'
       headers:
@@ -6642,6 +6938,7 @@ components:
                 `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
                 `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                 `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+                `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
                 `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
                 `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                 `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
@@ -6826,6 +7123,12 @@ components:
         - ITEM_DELETED
         - NO_LIVE_MENU_ITEM
         - MENU_VERSION_PENDING
+        # A write to a SUSPENDED or BANNED restaurant's menu, by its staff or by an admin
+        # on its behalf. Not ACCOUNT_SUSPENDED, which means the caller's own account is
+        # suspended and sends the app to the suspension screen; here the caller stays
+        # signed in and only the menu is locked
+        # (https://github.com/shaiknoorullah/hg-mono/issues/256).
+        - MENU_LOCKED
         - DOCUMENTS_INCOMPLETE
         - DOCUMENT_EXPIRES_TOO_SOON
         - UNDERAGE
@@ -7350,6 +7653,14 @@ components:
     RestaurantApproveReasonCode:
       type: string
       enum: [ALL_CHECKS_PASSED, APPROVED_WITH_NOTES]
+    RiderApproveReasonCode:
+      type: string
+      description: |
+        Why a rider application was approved. The same two reasons as a restaurant approval
+        (`RestaurantApproveReasonCode`), because the rider review is built the same way
+        ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+        `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
+      enum: [ALL_CHECKS_PASSED, APPROVED_WITH_NOTES]
     RestaurantRejectApplicationReasonCode:
       type: string
       enum:
@@ -7490,6 +7801,52 @@ components:
       type: string
       enum: [DAILY, WEEKLY]
       description: 'Decision S-04: weekly, Monday, automatic, **no minimum**, for both partner types.'
+    PayoutPayeeType:
+      type: string
+      enum: [RESTAURANT, RIDER]
+      description: 'Who a payout is paid to. A restaurant is identified by its restaurant id, a rider by their account id.'
+    PayoutRunKind:
+      type: string
+      enum: [SCHEDULED, ADMIN]
+      description: '`SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.'
+    PayoutRunState:
+      type: string
+      enum: [QUEUED, RUNNING, SUCCEEDED, FAILED]
+      description: |
+        `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+        payout stays owed and the next run tries it again.
+    PayoutRunOutcome:
+      type: string
+      enum:
+        - PAID
+        - HELD
+        - STILL_HELD
+        - RELEASED
+        - TRANSFER_FAILED
+        - ALREADY_PAID
+        - NOTHING_DUE
+        - CARRIED_NEGATIVE
+        - NO_PAYOUT_ACCOUNT
+        - PARTNER_SUSPENDED
+        - ORDERS_BLOCKED
+        - ORDERS_UNBLOCKED
+        - ERROR
+      description: |
+        What a run did for one partner.
+        `PAID`: a payout for this period was created and transferred.
+        `HELD`: a payout was created but Stripe has payouts turned off for the partner, so no
+        transfer was made; `STILL_HELD`: an earlier held payout is still blocked;
+        `RELEASED`: an earlier held or unfinished payout was transferred.
+        `TRANSFER_FAILED`: Stripe refused the transfer; the payout stays owed for the next run.
+        `ALREADY_PAID`: this partner already has a payout for this period.
+        `NOTHING_DUE`: no unpaid earnings before the cutoff.
+        `CARRIED_NEGATIVE`: the unpaid balance is zero or below, so it is carried and netted
+        against later earnings.
+        `NO_PAYOUT_ACCOUNT`: no Stripe account yet; the balance waits for onboarding.
+        `PARTNER_SUSPENDED`: a suspended or banned restaurant is not paid until reinstated.
+        `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
+        longer than the configured limit, so it takes no new orders, or it has recovered.
+        `ERROR`: the server failed for this partner; see `detail`.
     EarningEntryType:
       type: string
       enum: [DELIVERY, TIP, CANCELLATION_COMPENSATION, BONUS, ADJUSTMENT, CLAWBACK]
@@ -8624,7 +8981,11 @@ components:
           $ref: '#/components/schemas/Currency'
         is_quotable:
           type: boolean
-          description: 'False when any line is unavailable, the restaurant is closed, or no address is selected.'
+          description: |
+            False when any line is unavailable, the restaurant is closed, the restaurant cannot
+            take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
+            is not current), or no address is selected. A cart whose restaurant becomes
+            unavailable is kept, never emptied on the customer's behalf.
         blocking_reasons:
           type: array
           items:
@@ -10025,6 +10386,143 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/EarningEntry'
+    PayoutPayee:
+      type: object
+      additionalProperties: false
+      required: [type, id]
+      properties:
+        type:
+          $ref: '#/components/schemas/PayoutPayeeType'
+        id:
+          type: string
+          format: uuid
+          description: 'The restaurant id, or the rider''s account id.'
+    PayoutRunInput:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      description: |
+        Who to pay and as of when; never an amount. Every amount comes from the ledger.
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: 'Why the run is needed now. Kept on the run and in the audit trail.'
+        payee:
+          $ref: '#/components/schemas/PayoutPayee'
+          description: 'Run for this partner only. Omit it to run for every partner.'
+        as_of:
+          $ref: '#/components/schemas/Timestamp'
+          description: |
+            Run as if it were this moment: the run pays the period that closed by then.
+            Defaults to now; a time in the future is `422 VALIDATION_FAILED`.
+    PayoutRun:
+      type: object
+      # `additionalProperties: false` is intentionally absent: PayoutRunDetail extends this
+      # schema with `allOf` (see the note on Payout).
+      required: [id, kind, state, payee, period_start, period_end, as_of, due_at, requested_by,
+                 reason, started_at, finished_at, attempts, partners, paid, held, released, carried,
+                 failed, paid_cents, held_cents, error, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/PayoutRunKind'
+        state:
+          $ref: '#/components/schemas/PayoutRunState'
+        payee:
+          description: 'The one partner this run is for, or null for every partner.'
+          oneOf:
+            - $ref: '#/components/schemas/PayoutPayee'
+            - type: 'null'
+        period_start:
+          $ref: '#/components/schemas/Timestamp'
+        period_end:
+          $ref: '#/components/schemas/Timestamp'
+          description: 'The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid.'
+        as_of:
+          $ref: '#/components/schemas/Timestamp'
+        due_at:
+          $ref: '#/components/schemas/Timestamp'
+          description: 'When the run was due: Monday 09:00 America/Toronto for a scheduled run, the request time for an admin one.'
+        requested_by:
+          type: [string, 'null']
+          format: uuid
+          description: 'The admin who requested it; null for a scheduled run.'
+        reason:
+          type: [string, 'null']
+          description: 'Why the admin requested it; null for a scheduled run.'
+        started_at:
+          type: [string, 'null']
+          format: date-time
+        finished_at:
+          type: [string, 'null']
+          format: date-time
+        attempts:
+          type: integer
+          format: int32
+          description: 'How many times a worker started it. Above 1 means a worker stopped mid-run and another finished it.'
+        partners:
+          type: integer
+          format: int32
+          description: 'Partners the run looked at.'
+        paid:
+          type: integer
+          format: int32
+          description: 'Payouts transferred, new and released.'
+        held:
+          type: integer
+          format: int32
+        released:
+          type: integer
+          format: int32
+        carried:
+          type: integer
+          format: int32
+          description: 'Partners whose unpaid balance was zero or below, carried to a later run.'
+        failed:
+          type: integer
+          format: int32
+        paid_cents:
+          $ref: '#/components/schemas/Cents'
+        held_cents:
+          $ref: '#/components/schemas/Cents'
+        error:
+          type: [string, 'null']
+          description: 'Why the run itself stopped, when it did. Per-partner failures are lines.'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    PayoutRunLine:
+      type: object
+      additionalProperties: false
+      required: [payee, outcome, payout_id, amount_cents, detail, at]
+      properties:
+        payee:
+          $ref: '#/components/schemas/PayoutPayee'
+        outcome:
+          $ref: '#/components/schemas/PayoutRunOutcome'
+        payout_id:
+          type: [string, 'null']
+          format: uuid
+        amount_cents:
+          $ref: '#/components/schemas/Cents'
+          description: 'The payout''s amount, or the balance carried or owed.'
+        detail:
+          type: [string, 'null']
+        at:
+          $ref: '#/components/schemas/Timestamp'
+    PayoutRunDetail:
+      allOf:
+        - $ref: '#/components/schemas/PayoutRun'
+        - type: object
+          required: [lines]
+          properties:
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/PayoutRunLine'
     RestaurantOnboardingStatus:
       type: object
       additionalProperties: false
@@ -11711,30 +12209,98 @@ components:
               type: [string, 'null']
               description: 'Soft warning when the map pin is more than 5 km from the postal-code centroid.'
     RestaurantDecisionInput:
+      description: |
+        The decision on a restaurant application
+        ([restaurant approval or rejection](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-18--restaurant-approval--rejection-decision)).
+        One body shape per `decision`, chosen by the `decision` field, so each decision can
+        carry only the reason codes that fit it:
+
+        - `APPROVE` carries an approval reason (`RestaurantApproveReasonCode`).
+        - `REJECT` carries a rejection reason (`RestaurantRejectApplicationReasonCode`).
+        - `REQUEST_CHANGES` carries a rejection reason and names the documents to redo.
+
+        Every state-changing admin action requires both a `reason_code` from a closed enum and
+        a `reason_text`
+        ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+        missing either, or a code that does not fit the decision, is a `422`. `reason_text` is
+        sent verbatim to the restaurant — internal remarks go in `internal_note`, which is
+        never transmitted. The rider application decision has the same shape
+        (`RiderDecisionInput`).
+      oneOf:
+        - $ref: '#/components/schemas/RestaurantApplicationApproveInput'
+        - $ref: '#/components/schemas/RestaurantApplicationRejectInput'
+        - $ref: '#/components/schemas/RestaurantApplicationRequestChangesInput'
+      discriminator:
+        propertyName: decision
+        mapping:
+          APPROVE: '#/components/schemas/RestaurantApplicationApproveInput'
+          REJECT: '#/components/schemas/RestaurantApplicationRejectInput'
+          REQUEST_CHANGES: '#/components/schemas/RestaurantApplicationRequestChangesInput'
+    RestaurantApplicationApproveInput:
       type: object
       additionalProperties: false
       required: [decision, reason_code, reason_text]
-      description: |
-        Every state-changing admin action requires both a `reason_code` from a closed enum and
-        a `reason_text`; missing either is a `422`. `reason_text` is sent verbatim to the
-        restaurant — internal remarks go in `internal_note`, which is never transmitted.
+      description: 'Approve a restaurant application. Approval does not make the restaurant live.'
       properties:
         decision:
-          $ref: '#/components/schemas/RestaurantDecision'
+          type: string
+          enum: [APPROVE]
         reason_code:
-          oneOf:
-            - $ref: '#/components/schemas/RestaurantApproveReasonCode'
-            - $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+          $ref: '#/components/schemas/RestaurantApproveReasonCode'
         reason_text:
           type: string
           minLength: 10
           maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
         internal_note:
           type: string
           maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
+    RestaurantApplicationRejectInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text]
+      description: 'Reject a restaurant application. Rejection is final for this application.'
+      properties:
+        decision:
+          type: string
+          enum: [REJECT]
+        reason_code:
+          $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
+        internal_note:
+          type: string
+          maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
+    RestaurantApplicationRequestChangesInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text, documents_to_redo]
+      description: 'Send a restaurant application back for changes, naming the documents to redo.'
+      properties:
+        decision:
+          type: string
+          enum: [REQUEST_CHANGES]
+        reason_code:
+          $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
+        internal_note:
+          type: string
+          maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
         documents_to_redo:
           type: array
-          description: 'Required for `REQUEST_CHANGES`: names exactly which documents to redo.'
+          minItems: 1
+          uniqueItems: true
+          description: 'Names exactly which documents to redo.'
           items:
             $ref: '#/components/schemas/RestaurantDocType'
     DocumentReviewInput:
@@ -12047,12 +12613,77 @@ components:
               items:
                 type: string
     RiderDecisionInput:
+      description: |
+        The decision on a rider application
+        ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+        One body shape per `decision`, chosen by the `decision` field, so each decision can
+        carry only the reason codes that fit it:
+
+        - `APPROVE` carries an approval reason (`RiderApproveReasonCode`). Until
+          [#163](https://github.com/shaiknoorullah/hg-mono/issues/163) every decision had to
+          carry a document rejection reason, and none of those fits an approval.
+        - `REJECT` carries a document rejection reason (`DocumentRejectionReasonCode`).
+        - `REQUEST_CHANGES` carries a document rejection reason and names the documents to redo.
+
+        Every state-changing admin action requires both a `reason_code` from a closed enum and
+        a `reason_text`
+        ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+        missing either, or a code that does not fit the decision, is a `422`. The same shape
+        as the restaurant application decision (`RestaurantDecisionInput`).
+      oneOf:
+        - $ref: '#/components/schemas/RiderApplicationApproveInput'
+        - $ref: '#/components/schemas/RiderApplicationRejectInput'
+        - $ref: '#/components/schemas/RiderApplicationRequestChangesInput'
+      discriminator:
+        propertyName: decision
+        mapping:
+          APPROVE: '#/components/schemas/RiderApplicationApproveInput'
+          REJECT: '#/components/schemas/RiderApplicationRejectInput'
+          REQUEST_CHANGES: '#/components/schemas/RiderApplicationRequestChangesInput'
+    RiderApplicationApproveInput:
       type: object
       additionalProperties: false
       required: [decision, reason_code, reason_text]
+      description: |
+        Approve a rider application. A rider under 18 cannot be approved
+        (`422 AGE_REQUIREMENT_NOT_MET`), and approval moves the rider to `PAYOUT_PENDING`, not
+        straight to dispatchable.
       properties:
         decision:
-          $ref: '#/components/schemas/RestaurantDecision'
+          type: string
+          enum: [APPROVE]
+        reason_code:
+          $ref: '#/components/schemas/RiderApproveReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the rider.'
+    RiderApplicationRejectInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text]
+      description: 'Reject a rider application.'
+      properties:
+        decision:
+          type: string
+          enum: [REJECT]
+        reason_code:
+          $ref: '#/components/schemas/DocumentRejectionReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the rider with the specific remediation step.'
+    RiderApplicationRequestChangesInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text, documents_to_redo]
+      description: 'Send a rider application back for changes, naming the documents to redo.'
+      properties:
+        decision:
+          type: string
+          enum: [REQUEST_CHANGES]
         reason_code:
           $ref: '#/components/schemas/DocumentRejectionReasonCode'
         reason_text:
@@ -12062,6 +12693,9 @@ components:
           description: 'Sent verbatim to the rider with the specific remediation step.'
         documents_to_redo:
           type: array
+          minItems: 1
+          uniqueItems: true
+          description: 'Names exactly which documents to redo.'
           items:
             $ref: '#/components/schemas/RiderDocType'
     OrderAdminView:

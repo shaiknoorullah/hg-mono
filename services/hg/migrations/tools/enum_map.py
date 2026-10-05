@@ -143,6 +143,9 @@ MAPPED_IN_MIGRATION = {
     "HandoffEventType":                   ("handoff_event_type", "00027_handoff.sql"),
     "HandoffActor":                       ("handoff_actor", "00027_handoff.sql"),
     "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
+    "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
+    "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
+    "PayoutRunOutcome":                   ("payout_run_outcome", "00030_payout_run.sql"),
 }
 
 # Contract enums with no persisted counterpart. Each needs a reason.
@@ -169,6 +172,30 @@ EXCLUSIONS = {
         "Request-only verb; outcome lands in kyc_document.state.",
     "HalalDecisionInput/properties/decision":
         "Request-only verb; outcome lands in halal_certificate.status.",
+    # The application decision bodies are one shape per decision (issue #163,
+    # https://github.com/shaiknoorullah/hg-mono/issues/163). Each shape pins its
+    # `decision` to one value so the body can only carry the reasons that fit it.
+    "RestaurantApplicationApproveInput/properties/decision":
+        "Single-value request discriminator; the decision is stored as "
+        "restaurant_application.decision (restaurant_decision).",
+    "RestaurantApplicationRejectInput/properties/decision":
+        "Single-value request discriminator; the decision is stored as "
+        "restaurant_application.decision (restaurant_decision).",
+    "RestaurantApplicationRequestChangesInput/properties/decision":
+        "Single-value request discriminator; the decision is stored as "
+        "restaurant_application.decision (restaurant_decision).",
+    "RiderApplicationApproveInput/properties/decision":
+        "Single-value request discriminator; the outcome lands in "
+        "rider_profile.onboarding_state.",
+    "RiderApplicationRejectInput/properties/decision":
+        "Single-value request discriminator; the outcome lands in "
+        "rider_profile.onboarding_state.",
+    "RiderApplicationRequestChangesInput/properties/decision":
+        "Single-value request discriminator; the outcome lands in "
+        "rider_profile.onboarding_state.",
+    "RiderApproveReasonCode":
+        "rider_application has no approval-reason column (only reject_reason_code); the "
+        "approval reason is kept as text on the decision's audit_event.reason_code.",
     "MenuItemAvailabilityInput/properties/availability_state":
         "Writable subset of menu_item_availability_state (HIDDEN/BLOCKED are not "
         "restaurant-settable). Enforced at the boundary.",
@@ -192,6 +219,9 @@ EXCLUSIONS = {
         "audit_event.actor_kind's CHECK-constrained text values, read through. Not a type.",
     "RestaurantStaffUser/properties/role":
         "Restaurant-scoped subset of role_name; stored as an account_role grant.",
+    "PayoutPayeeType":
+        "Stored as CHECK-constrained text, matching connect_account.owner_type, "
+        "which predates it.",
     "FoodRating/properties/tags/items":
         "Rating tag vocabulary. Stored as free text[] on the rating row; the "
         "allowed set is enforced at the API boundary.",

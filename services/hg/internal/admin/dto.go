@@ -240,8 +240,9 @@ type restaurantApplication struct {
 	AddressPinWarning *string           `json:"address_pin_warning"`
 }
 
-// restaurantDecisionInput is the contract's RestaurantDecisionInput. No admin_id
-// is ever present: the decider is the authenticated principal.
+// restaurantDecisionInput is the contract's RestaurantDecisionInput: the union of
+// its three per-decision shapes, which validDecision tells apart by Decision. No
+// admin_id is ever present: the decider is the authenticated principal.
 type restaurantDecisionInput struct {
 	Decision        string   `json:"decision"`
 	ReasonCode      string   `json:"reason_code"`
@@ -282,7 +283,8 @@ type riderApplication struct {
 	Blockers         []string      `json:"blockers"`
 }
 
-// riderDecisionInput is the contract's RiderDecisionInput.
+// riderDecisionInput is the contract's RiderDecisionInput: the union of its three
+// per-decision shapes, which validDecision tells apart by Decision.
 type riderDecisionInput struct {
 	Decision        string   `json:"decision"`
 	ReasonCode      string   `json:"reason_code"`

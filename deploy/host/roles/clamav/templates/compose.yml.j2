@@ -1,0 +1,45 @@
+# Managed by Ansible (deploy/host/roles/clamav). Virus scanning for KYC uploads (#218).
+{% if hg_clamav_on_standby %}
+# On the standby: clamd listens only on the WireGuard address; prod's API connects to
+# {{ hg_wg_address }}:3310 over the tunnel.
+{% else %}
+# clamd listens only on the internal {{ hg_networks.scan.name }} network, at {{ hg_clamd_address }}:3310, which the
+# API joins (#208). The {{ hg_networks.ops.name }} network is only freshclam's way out to the signature mirror;
+# clamd does not listen there.
+{% endif %}
+name: hg-clamav
+
+services:
+  clamav:
+    image: "{{ hg_images.clamav }}"
+    restart: unless-stopped
+    environment:
+      FRESHCLAM_CHECKS: "{{ hg_clamav_signature_checks_per_day }}"
+    volumes:
+      - clamav-db:/var/lib/clamav
+      - ./clamd.conf:/etc/clamav/clamd.conf:ro
+      - ./freshclam.conf:/etc/clamav/freshclam.conf:ro
+    mem_limit: {{ hg_clamav_memory }}
+    memswap_limit: {{ hg_clamav_memory }}
+    cpus: 2
+{% if hg_clamav_on_standby %}
+    ports:
+      - "{{ hg_wg_address }}:3310:3310"
+    networks: [{{ hg_networks.ops.name }}]
+{% else %}
+    networks:
+      {{ hg_networks.scan.name }}:
+        ipv4_address: {{ hg_clamd_address }}
+      {{ hg_networks.ops.name }}: {}
+{% endif %}
+
+volumes:
+  clamav-db:
+
+networks:
+{% if not hg_clamav_on_standby %}
+  {{ hg_networks.scan.name }}:
+    external: true
+{% endif %}
+  {{ hg_networks.ops.name }}:
+    external: true

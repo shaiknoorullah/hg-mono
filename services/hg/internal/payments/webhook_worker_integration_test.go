@@ -236,11 +236,16 @@ func (h *webhookHarness) seedPayout(rider string, cents int64) string {
 		}}); err != nil {
 		h.t.Fatalf("post the rider's earning: %v", err)
 	}
-	payout, _, err := repo.RunPayout(ctx, "RIDER", rider, time.Now().Add(-7*24*time.Hour), time.Now().Add(time.Minute))
-	if err != nil || payout == "" {
-		h.t.Fatalf("make the payout: id %q, err %v", payout, err)
+	// The weekly run's own step, for one rider and a period that has just
+	// closed (the run itself is payout_run.go, issue #251).
+	now := time.Now()
+	pp, err := repo.createPeriodPayout(ctx, PayeeRef{Type: "RIDER", ID: rider},
+		PayoutPeriod{Start: now.Add(-7 * 24 * time.Hour), End: now.Add(time.Minute)},
+		0, now.Add(time.Hour), now.Add(time.Hour), runActor{})
+	if err != nil || pp.PayoutID == "" {
+		h.t.Fatalf("make the payout: id %q, err %v", pp.PayoutID, err)
 	}
-	return payout
+	return pp.PayoutID
 }
 
 func piObject(id, status string, amountReceived int64) map[string]any {
@@ -624,7 +629,8 @@ func TestWebhookWorker_ConnectTransferAndPayoutEventsMoveTheirRowsOnce(t *testin
 		}
 		trail = append(trail, a)
 	}
-	if want := []string{"payment.payout_paid", "payment.payout_failed"}; !slices.Equal(trail, want) {
+	// payout.created is the payout run's own audit row, written when the payout is made.
+	if want := []string{"payout.created", "payment.payout_paid", "payment.payout_failed"}; !slices.Equal(trail, want) {
 		t.Errorf("payout audit trail %v, want %v", trail, want)
 	}
 	h.assertLedgerZeroSum()

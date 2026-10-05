@@ -68,16 +68,16 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**389 scenarios** across 15 domains.
+**413 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
-| [`admin`](#admin) | 17 | Review queues, applications, staff and the menu-review workflow. |
-| [`cart`](#cart) | 12 | Cart and quote — every blocking reason, the quantity cap, and the money edges. |
+| [`admin`](#admin) | 32 | Review queues, applications, staff, the menu-review workflow and payout runs. |
+| [`cart`](#cart) | 13 | Cart and quote — every blocking reason, the quantity cap, and the money edges. |
 | [`catalogue`](#catalogue) | 41 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 42 | `{error}` envelopes for the codes an app actually branches on. |
+| [`errors`](#errors) | 50 | `{error}` envelopes for the codes an app actually branches on. |
 | [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
 | [`onboarding`](#onboarding) | 35 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
@@ -90,7 +90,7 @@ falling through, so a typo is visible immediately.
 
 ### admin
 
-Review queues, applications, staff and the menu-review workflow. — 17 scenarios.
+Review queues, applications, staff, the menu-review workflow and payout runs. — 32 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -102,19 +102,34 @@ Review queues, applications, staff and the menu-review workflow. — 17 scenario
 | `menu_version_rejected` | `MenuItemVersion` | 200 | `REJECTED`. Refused with `UNSUBSTANTIATED_HALAL_CLAIM`. |
 | `menu_version_superseded` | `MenuItemVersion` | 200 | `SUPERSEDED`. A newer version replaced it in the queue. |
 | `menu_version_withdrawn` | `MenuItemVersion` | 200 | `WITHDRAWN`. Pulled by the owner before review. |
+| `payout_run_detail_every_outcome` | `PayoutRunDetail` | 200 | A run's audit trail with one line for every outcome a run can record. |
+| `payout_run_failed` | `PayoutRun` | 200 | One transfer failed. The payout stays owed and the next run tries it again. |
+| `payout_run_list_empty` | `array&lt;PayoutRun&gt;` | 200 | No payout run has happened yet. |
+| `payout_run_queued` | `PayoutRun` | 202 | An admin asked to run the payout now; the worker picks it up within seconds. |
+| `payout_run_running` | `PayoutRun` | 200 | The Monday run is paying partners. A worker that stops mid-run is relieved by the next. |
+| `payout_run_succeeded` | `PayoutRun` | 200 | The Monday run paid everyone it could; holds and carried balances are not failures. |
+| `restaurant_application_approved` | `RestaurantApplication` | 200 | `decideRestaurantApplication` with `restaurant_decision_input_approve`: approved and moved to `PAYOUT_PENDING`. **Approval does not make the restaurant live**: `account_state` stays `PENDING` until payouts are enabled and a menu is approved. |
 | `restaurant_application_none_to_take` | `RestaurantApplication|null` | 200 | `takeNextRestaurantApplication` with an empty queue — null, not an error. |
 | `restaurant_application_pending_review` | `RestaurantApplication` | 200 | A complete application sitting in the queue: five documents, a halal certificate awaiting the seven checks, and no decision yet. |
 | `restaurant_application_queue` | `array&lt;RestaurantApplicationSummary&gt;` | 200 | Four applications waiting, oldest first. |
 | `restaurant_application_queue_empty` | `array&lt;RestaurantApplicationSummary&gt;` | 200 | Queue drained. `takeNextRestaurantApplication` returns **null data**, not 404. |
+| `restaurant_decision_input_approve` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. APPROVE: an approval reason; `internal_note` stays with staff. |
+| `restaurant_decision_input_reject` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. REJECT: a rejection reason. Final for this application. |
+| `restaurant_decision_input_request_changes` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. REQUEST_CHANGES: a rejection reason and exactly which documents to redo. |
+| `rider_application_approved` | `RiderApplication` | 200 | `decideRiderApplication` with `rider_decision_input_approve`: the rider moves to `PAYOUT_PENDING`, not straight to dispatchable. They are offered orders only once Stripe reports payouts enabled. |
+| `rider_application_changes_requested` | `RiderApplication` | 200 | `decideRiderApplication` with `rider_decision_input_request_changes`: the licence is rejected with its reason and the rider redoes exactly that document. |
 | `rider_application_none_to_take` | `RiderApplication|null` | 200 | Empty rider queue — null data. |
 | `rider_application_pending_review` | `RiderApplication` | 200 | A rider application with six documents and a vehicle on file. |
 | `rider_application_queue` | `array&lt;RiderApplicationSummary&gt;` | 200 | Nine rider applications waiting. |
+| `rider_decision_input_approve` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. APPROVE: an approval reason, never a rejection reason. The text reaches the rider. |
+| `rider_decision_input_reject` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. REJECT: a document rejection reason and the sentence the rider reads. |
+| `rider_decision_input_request_changes` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. REQUEST_CHANGES: a document rejection reason and exactly which documents to redo. |
 | `staff_list` | `array&lt;StaffUser&gt;` | 200 | Platform staff across every `StaffStatus`. The invitee has never signed in and has no two-step sign-in yet. |
 | `staff_user_invited` | `StaffUser` | 200 | What `createStaffUser` returns: a new account in `INVITED`. The super admin set no password; it becomes `ACTIVE` once the invitee sets one and enrols two-step sign-in. |
 
 ### cart
 
-Cart and quote — every blocking reason, the quantity cap, and the money edges. — 12 scenarios.
+Cart and quote — every blocking reason, the quantity cap, and the money edges. — 13 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -122,6 +137,7 @@ Cart and quote — every blocking reason, the quantity cap, and the money edges.
 | `cart_empty` | `Cart` | 200 | No lines, no restaurant pinned. `is_quotable: false` with an empty `blocking_reasons` — nothing is wrong, there is simply nothing in it. |
 | `cart_has_unavailable_items` | `Cart` | 200 | Three lines: one fine, one 86'd, one repriced upward since it was added. `blocking_reasons: [CART_HAS_UNAVAILABLE_ITEMS, PRICE_CHANGED]` and `is_quotable: false`. This is the error code that used to be spelled `cart_has_unavailable_items` before the normalisation. |
 | `cart_many_lines` | `Cart` | 200 | Six lines including a family platter with a variant, three add-on groups and a special request. Tests the cart's densest row and the sticky total bar. |
+| `cart_restaurant_unavailable` | `Cart` | 200 | The restaurant's halal certificate expired after these items were added. The cart is kept as it was, the badge reads `EXPIRED` (cool slate, never a red one) and `blocking_reasons: [RESTAURANT_UNAVAILABLE]` with `is_quotable: false`. Adding, quoting and ordering answer `409 RESTAURANT_UNAVAILABLE` (`error_restaurant_unavailable`). |
 | `cart_single_line` | `Cart` | 200 | Exactly one line, quantity 1, below the $15.00 minimum order — `blocking_reasons: [BELOW_MINIMUM_ORDER]`. |
 | `quote_expired` | `Quote` | 200 | `expires_at` is 40 seconds in the past. Checking out with it is `409 QUOTE_EXPIRED`; see the `error_quote_stale` fixture for the re-quote path. |
 | `quote_large_tip` | `Quote` | 200 | A CAD 100.00 tip on a CAD 60 order — larger than the subtotal. Catches tip percentage displays that assume tip < total and currency fields sized for two digits. |
@@ -249,11 +265,12 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 42 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 50 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
 | `error_active_order_exists` | `ErrorEnvelope` | 409 | `409` · `ACTIVE_ORDER_EXISTS`. One active order per customer (contradiction log #24). `getActiveOrder` returns zero or one — see `order_no_active`. |
+| `error_application_already_decided` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. A second decision on a decided application is refused, never applied over the first. |
 | `error_authentication_required` | `ErrorEnvelope` | 401 | `401` · `AUTHENTICATION_REQUIRED`. Was `authentication_required`. Triggers the client's refresh-then-retry-once path. |
 | `error_below_minimum_order` | `ErrorEnvelope` | 422 | `422` · `BELOW_MINIMUM_ORDER`. Pairs with `cart_single_line`. The amount is server-computed — the client renders the sentence, it does not do the subtraction. |
 | `error_breached_password` | `ErrorEnvelope` | 422 | `422` · `BREACHED_PASSWORD`. The new password is on the breached-password list. Same body on reset and change. |
@@ -262,12 +279,16 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_category_name_taken` | `ErrorEnvelope` | 409 | `409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case, on create and on rename. |
 | `error_chargeback_closed` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. Evidence notes are for open chargebacks only. |
 | `error_current_password_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry. |
+| `error_decision_approval_reason_required` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed. |
+| `error_decision_rejection_reason_required` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. A rejection or a request for changes without a rejection reason. Every decision is reasoned and audited; nothing changed. |
 | `error_documents_incomplete` | `ErrorEnvelope` | 422 | `422` · `INCOMPLETE_DOCUMENT_PACK`. Was `incomplete_document_pack`. Pairs with `restaurant_document_pack_incomplete`. |
 | `error_forbidden` | `ErrorEnvelope` | 403 | `403` · `FORBIDDEN`. Was `forbidden`. Note the English word 'forbidden' in prose was **not** rewritten by the normalisation — only code tokens were. |
 | `error_halal_tag_not_writable` | `ErrorEnvelope` | 403 | `403` · `FIELD_NOT_WRITABLE`. Nobody types the halal claim onto a dish, not even an admin: it comes from the restaurant's approved certificate. A missing claim shows no badge, never an optimistic one. |
 | `error_idempotency_key_reuse` | `ErrorEnvelope` | 409 | `409` · `IDEMPOTENCY_KEY_REUSE`. Never a silent replay of the wrong result. Was `idempotency_key_reuse`. |
 | `error_internal_error` | `ErrorEnvelope` | 500 | `500` · `INTERNAL_ERROR`. Was `internal_error`. The only correct client behaviour is retry-with-backoff and show `request_id` in the support sheet. |
 | `error_item_blocked_by_admin` | `ErrorEnvelope` | 403 | `403` · `ITEM_BLOCKED_BY_ADMIN`. `setMenuItemAvailability` on a `BLOCKED` item. The kitchen cannot un-block it; the message carries the admin's reason. |
+| `error_menu_locked` | `ErrorEnvelope` | 403 | `403` · `MENU_LOCKED`. A menu change while the restaurant is suspended, by its own staff or by an admin on its behalf. The menu still reads normally; every edit control shows the locked-menu state. Opening hours stay editable. Nothing was written. |
+| `error_menu_locked_banned` | `ErrorEnvelope` | 403 | `403` · `MENU_LOCKED`. An admin changing a banned restaurant's menu, or deciding one of its versions waiting for review. A banned restaurant's own staff cannot sign in, so only admins meet this one. |
 | `error_menu_version_already_decided` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. Two reviewers on one version: the second decision is refused, never applied twice. |
 | `error_menu_version_item_deleted` | `ErrorEnvelope` | 409 | `409` · `ITEM_DELETED`. The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review. |
 | `error_menu_version_pending` | `ErrorEnvelope` | 409 | `409` · `MENU_VERSION_PENDING`. `updateMenuItemOnBehalf` with a claim-bearing field while the restaurant's own edit is in the review queue. A restaurant's edit is never silently discarded. |
@@ -287,10 +308,13 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_refund_mfa_required` | `ErrorEnvelope` | 403 | `403` · `MFA_REQUIRED`. Money actions need a session signed in with an authenticator code (staff MFA for money actions). |
 | `error_refund_needs_higher_role` | `ErrorEnvelope` | 403 | `403` · `FORBIDDEN`. An approval request is decided by the role it was sent up to, or a super admin. |
 | `error_refund_self_approval_forbidden` | `ErrorEnvelope` | 409 | `409` · `SELF_APPROVAL_FORBIDDEN`. The person who asked for a refund, or who sent it up for a second person, tried to approve it. A goodwill refund above CAD 50.00 always needs someone else. |
+| `error_register_restaurant_rate_limited` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, "R-01 — Restaurant account signup"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds. |
 | `error_reset_token_not_valid` | `ErrorEnvelope` | 400 | `400` · `TOKEN_CONSUMED`. `resetPassword` with a token that expired (30 minutes), was already used, or never existed. One body for all three, so a link cannot be probed. The app offers "Send a new link" (`requestPasswordReset`). |
 | `error_restaurant_closed` | `ErrorEnvelope` | 409 | `409` · `RESTAURANT_CLOSED`. Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`. |
+| `error_restaurant_unavailable` | `ErrorEnvelope` | 409 | `409` · `RESTAURANT_UNAVAILABLE`. From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed and live, or its halal certificate is not current as of the request, computed from admin-verified certificate data. The apps show the halal copy and keep the cart. Pairs with `cart_restaurant_unavailable`. |
 | `error_review_edit_window_closed` | `ErrorEnvelope` | 409 | `409` · `REVIEW_EDIT_WINDOW_CLOSED`. C-38 rule 2: a rating is editable for 24 h from its own `created_at`, then frozen — replacing it past that window is rejected rather than silently overwritten. |
 | `error_review_window_closed` | `ErrorEnvelope` | 409 | `409` · `REVIEW_WINDOW_CLOSED`. C-38 rule 4 (scoped): `submitOrderRating` on an order that is not DELIVERED/COMPLETED, has no rider assigned for the rider half, or is more than 14 days past `delivered_at`. |
+| `error_rider_under_18` | `ErrorEnvelope` | 422 | `422` · `AGE_REQUIREMENT_NOT_MET`. Approving a rider whose date of birth makes them under 18. No role can override it, and the application stays in review. |
 | `error_staff_email_in_use` | `ErrorEnvelope` | 409 | `409` · `EMAIL_IN_USE`. `createStaffUser` for an email that already has a live account. No invite is sent. |
 | `error_totp_code_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `verifyTotpEnrolment` with a code that does not match the authenticator. Enrolment stays open: the person types the next code, they do not start again. |
 | `error_unknown_field` | `ErrorEnvelope` | 422 | `422` · `UNKNOWN_FIELD`. The decoder runs with `DisallowUnknownFields`. `is_accepting` against `is_accepting_orders` is a 422 at the boundary, not a cheerful 200 over an unchanged row — the exact bug this contract exists to kill. |
@@ -588,20 +612,20 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 | Tag | Count | Meaning |
 |---|---:|---|
-| `state-matrix` | 64 | One fixture per member of a closed enum. |
-| `edge` | 53 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
-| `admin` | 49 | Admin/support-facing surface. |
-| `rider` | 49 | Rider-facing surface. |
-| `error-envelope` | 42 | A `{error}` body with a real `ErrorCode`. |
-| `restaurant` | 40 | Restaurant-facing surface. |
-| `halal` | 29 | Touches the halal claim surface. |
-| `money` | 27 | Exercises the money path specifically. |
-| `empty` | 26 | Zero items. The empty state, never an error. |
+| `state-matrix` | 65 | One fixture per member of a closed enum. |
+| `admin` | 64 | Admin/support-facing surface. |
+| `edge` | 54 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `rider` | 51 | Rider-facing surface. |
+| `error-envelope` | 50 | A `{error}` body with a real `ErrorCode`. |
+| `restaurant` | 41 | Restaurant-facing surface. |
+| `money` | 32 | Exercises the money path specifically. |
+| `halal` | 30 | Touches the halal claim surface. |
+| `empty` | 27 | Zero items. The empty state, never an error. |
 | `platform` | 25 | Cross-cutting platform surface. |
 | `order-state-matrix` | 24 | One per `OrderState` (all 14). |
+| `error-path` | 22 | The unhappy branch a client must handle. |
 | `onboarding-state-matrix` | 21 | One per onboarding state, restaurant and rider. |
 | `refund-state-matrix` | 20 | One per `RefundState` (all 10). |
-| `error-path` | 19 | The unhappy branch a client must handle. |
 | `auth` | 13 | Session and identity. |
 | `review-queue` | 13 | An admin review queue item. |
 | `assignment-state-matrix` | 12 | One per `AssignmentState` (all 12). |
@@ -616,11 +640,13 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `script` | 8 | A realtime event sequence, not a response body. |
 | `payout-state-matrix` | 7 | One per `PayoutState` (all 7). |
 | `certificate-status-matrix` | 6 | One per `HalalCertificateStatus` (all 6). |
+| `request-body` | 6 | A request body a client sends, not a response. Registered against no operation, so the mock never serves it. |
 | `tracking` | 6 | The live order-tracking screen. |
 | `handoff-event-matrix` | 5 |  |
 | `offer-state-matrix` | 5 | One per `OfferState` (all 5). |
 | `seal-state-matrix` | 5 |  |
 | `certificate` | 4 | A `HalalCertificate` at a specific point in its life. |
+| `payout-run-state-matrix` | 4 | One per `PayoutRunState` (all 4). |
 | `dense` | 3 | Deliberately busy — the worst case for a list or a card. |
 | `ratings` | 3 |  |
 | `missing-media` | 2 | No image where one is normally present. |
@@ -633,7 +659,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 ## Operation coverage
 
-139 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
+143 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
 
 | Operation | Default scenario | Also available |
 |---|---|---|
@@ -654,11 +680,12 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `createCertificateViewUrl` | `presigned_download` | — |
 | `createConnectAccount` | `connect_status_complete` | — |
 | `createDocumentDownloadUrl` | `presigned_download` | — |
-| `createMenuCategory` | `menu_category_created` | `error_category_name_taken` |
-| `createMenuCategoryOnBehalf` | `menu_category_created` | `error_category_name_taken` |
-| `createMenuItem` | `menu_item_created_pending_review` | `error_halal_tag_not_writable`, `error_price_out_of_range`, `error_prohibited_ingredient` |
-| `createMenuItemOnBehalf` | `menu_item_created_by_admin` | `error_halal_tag_not_writable`, `error_price_out_of_range`, `error_prohibited_ingredient` |
+| `createMenuCategory` | `menu_category_created` | `error_category_name_taken`, `error_menu_locked` |
+| `createMenuCategoryOnBehalf` | `menu_category_created` | `error_category_name_taken`, `error_menu_locked`, `error_menu_locked_banned` |
+| `createMenuItem` | `menu_item_created_pending_review` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_price_out_of_range`, `error_prohibited_ingredient` |
+| `createMenuItemOnBehalf` | `menu_item_created_by_admin` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_menu_locked_banned`, `error_price_out_of_range`, `error_prohibited_ingredient` |
 | `createPaymentMethodSetupIntent` | `setup_intent` | — |
+| `createPayoutRun` | `payout_run_queued` | — |
 | `createQuote` | `quote_standard` | `quote_large_tip`, `quote_pickup`, `quote_single_line_minimum`, `quote_with_discount`, `quote_zero_tip` |
 | `createRealtimeTicket` | `realtime_ticket` | — |
 | `createRefund` | `refund_requested` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
@@ -666,16 +693,17 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `createStaffUser` | `staff_user_invited` | `error_staff_email_in_use` |
 | `createUpload` | `presigned_upload` | — |
 | `decideHalalCertificate` | `halal_certificate_status_approved` | `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
-| `decideMenuVersion` | `menu_version_approved` | `error_menu_version_already_decided`, `error_menu_version_item_deleted`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
-| `decideRestaurantApplication` | `restaurant_application_pending_review` | — |
-| `decideRiderApplication` | `rider_application_pending_review` | — |
+| `decideMenuVersion` | `menu_version_approved` | `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_already_decided`, `error_menu_version_item_deleted`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
+| `decideRestaurantApplication` | `restaurant_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required` |
+| `decideRiderApplication` | `rider_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required`, `error_rider_under_18`, `rider_application_changes_requested` |
 | `declineRefund` | `admin_refund_declined` | `error_refund_already_decided`, `error_refund_needs_higher_role` |
 | `delayOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
+| `deleteMenuItemOnBehalf` | `error_menu_locked` | `error_menu_locked_banned` |
 | `enrollTotp` | `totp_enrolment` | — |
 | `getActiveOrder` | `order_preparing` | `dispatch_assigned`, `dispatch_at_customer`, `dispatch_at_restaurant`, `dispatch_carrying`, `dispatch_completed`, `dispatch_no_rider_found`, `dispatch_offered`, `dispatch_pending`, `dispatch_searching`, `dispatch_unassigned`, `order_arrived`, `order_authorized`, `order_cancelled`, `order_completed`, `order_created`, `order_delivered`, `order_disputed`, `order_failed`, `order_no_active`, `order_picked_up`, `order_ready_for_pickup`, `order_rejected`, `order_resolved`, `order_restaurant_pending` |
 | `getAddress` | `addresses_list` | — |
 | `getAssignment` | `assignment_en_route_to_dropoff` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_delivered`, `assignment_en_route_to_pickup`, `assignment_no_instructions_no_unit`, `assignment_otp_pod_required`, `assignment_picked_up`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable` |
-| `getCart` | `cart_many_lines` | `cart_at_quantity_cap`, `cart_empty`, `cart_has_unavailable_items`, `cart_single_line` |
+| `getCart` | `cart_many_lines` | `cart_at_quantity_cap`, `cart_empty`, `cart_has_unavailable_items`, `cart_restaurant_unavailable`, `cart_single_line` |
 | `getChargeback` | `chargeback_needs_response` | `chargeback_charge_refunded`, `chargeback_lost`, `chargeback_prevented`, `chargeback_under_review`, `chargeback_warning_closed`, `chargeback_warning_needs_response`, `chargeback_warning_under_review`, `chargeback_won` |
 | `getConnectStatus` | `connect_status_complete` | `connect_status_requirements_due` |
 | `getCurrentOffer` | `offer_pending` | `offer_expired`, `offer_none`, `offer_rejected`, `offer_taken_by_another`, `offer_withdrawn`, `offer_zero_tip_low_value` |
@@ -692,12 +720,13 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getOrderReceipt` | `receipt_standard` | `receipt_pickup_zero_tip`, `receipt_with_refund` |
 | `getOrderTracking` | `tracking_picked_up` | `tracking_arrived`, `tracking_degraded_gps`, `tracking_delivered`, `tracking_preparing`, `tracking_ready_for_pickup` |
 | `getOwnMenu` | `owned_menu_with_pending_version` | — |
+| `getPayoutRun` | `payout_run_detail_every_outcome` | — |
 | `getPublicConfig` | `public_config` | — |
 | `getQuote` | `quote_standard` | `quote_expired`, `quote_large_tip`, `quote_pickup`, `quote_with_discount`, `quote_zero_tip` |
 | `getReadiness` | `readiness_ok` | — |
 | `getRefund` | `refund_settled` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_full_never_delivered`, `refund_pending_approval`, `refund_requested`, `refund_submitted`, `refund_succeeded` |
 | `getRestaurant` | `restaurant_detail_certified` | `restaurant_detail_closed`, `restaurant_detail_expired`, `restaurant_detail_expiring_soon`, `restaurant_detail_no_menu`, `restaurant_detail_unverified` |
-| `getRestaurantApplication` | `restaurant_application_pending_review` | — |
+| `getRestaurantApplication` | `restaurant_application_pending_review` | `restaurant_application_approved` |
 | `getRestaurantAvailability` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_paused` |
 | `getRestaurantCertification` | `certification_panel_certified` | `certification_panel_expired`, `certification_panel_expiring_soon`, `certification_panel_unverified` |
 | `getRestaurantHours` | `restaurant_hours_standard` | — |
@@ -705,7 +734,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRestaurantOnboardingStatus` | `restaurant_onboarding_active` | `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_documents_review`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
 | `getRestaurantOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `getRestaurantProfile` | `restaurant_profile` | — |
-| `getRiderApplication` | `rider_application_pending_review` | — |
+| `getRiderApplication` | `rider_application_pending_review` | `rider_application_approved`, `rider_application_changes_requested` |
 | `getRiderDashboard` | `rider_dashboard_active` | `rider_dashboard_zero_earnings` |
 | `getRiderEarningsSummary` | `earnings_summary_week` | `earnings_summary_zero` |
 | `getRiderMe` | `rider_me` | — |
@@ -720,6 +749,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `listOrders` | `order_list_active` | `order_list_empty`, `order_list_past` |
 | `listOrdersAdmin` | `order_list_past` | `order_list_active` |
 | `listPaymentMethods` | `payment_methods_list` | `payment_methods_at_limit`, `payment_methods_empty` |
+| `listPayoutRuns` | `payout_run_succeeded` | `payout_run_failed`, `payout_run_list_empty`, `payout_run_running` |
 | `listRefunds` | `refund_list_empty` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
 | `listRefundsAdmin` | `admin_refund_queue` | `admin_refund_queue_empty` |
 | `listRestaurantApplications` | `restaurant_application_queue` | `restaurant_application_queue_empty` |
@@ -738,7 +768,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `proposeHalalIssuingBody` | `halal_issuing_body_accepted` | `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
 | `recordHalalChecks` | `halal_certificate_status_approved` | `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
 | `refreshSession` | `session_grant_customer` | `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
-| `registerRestaurant` | `restaurant_registration` | — |
+| `registerRestaurant` | `restaurant_registration` | `error_register_restaurant_rate_limited` |
 | `rejectOrder` | `restaurant_order_rejected` | `restaurant_order_picked_up`, `restaurant_order_preparing`, `restaurant_order_ready_for_pickup`, `restaurant_order_restaurant_pending` |
 | `reportRiderPositions` | `rider_position_ack` | — |
 | `reportTamper` | `handoff_tamper_report` | — |
@@ -753,7 +783,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `setDefaultAddress` | `addresses_list` | — |
 | `setDefaultPaymentMethod` | `payment_methods_list` | — |
 | `setHalalIssuingBodyStatus` | `halal_issuing_body_accepted` | `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
-| `setMenuItemAvailability` | `menu_item_marked_out_of_stock_until` | `error_item_blocked_by_admin`, `menu_item_marked_available`, `menu_item_marked_out_of_stock_indefinitely` |
+| `setMenuItemAvailability` | `menu_item_marked_out_of_stock_until` | `error_item_blocked_by_admin`, `error_menu_locked`, `menu_item_marked_available`, `menu_item_marked_out_of_stock_indefinitely` |
 | `setRestaurantAcceptingOrders` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_paused` |
 | `setRestaurantHours` | `restaurant_hours_standard` | — |
 | `setRiderAvailability` | `rider_availability_online_idle` | `rider_availability_offline`, `rider_availability_on_delivery`, `rider_availability_online_stale` |
@@ -770,9 +800,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `updateAddress` | `addresses_list` | — |
 | `updateCartLine` | `cart_at_quantity_cap` | — |
 | `updateCustomerProfile` | `customer_profile` | — |
-| `updateMenuCategory` | `menu_category_updated` | `error_category_name_taken` |
-| `updateMenuItem` | `menu_item_edit_pending_review` | `error_halal_tag_not_writable`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
-| `updateMenuItemOnBehalf` | `menu_item_edited_by_admin` | `error_halal_tag_not_writable`, `error_menu_version_pending`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
+| `updateMenuCategory` | `menu_category_updated` | `error_category_name_taken`, `error_menu_locked` |
+| `updateMenuItem` | `menu_item_edit_pending_review` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
+| `updateMenuItemOnBehalf` | `menu_item_edited_by_admin` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_pending`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `verifyEmail` | `session_grant_customer` | — |
 | `verifyOtp` | `session_grant_customer` | `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
 | `verifyTotpEnrolment` | `error_totp_code_incorrect` | — |
@@ -796,6 +826,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | All 8 `PaymentState` values incl. `REQUIRES_ACTION` and `FAILED` | `payments/payment_*` |
 | All 10 `RefundState` values | `refunds/refund_*` |
 | All 7 `PayoutState` values | `rider/payout_*` |
+| All 4 `PayoutRunState` values, and a run with every `PayoutRunOutcome` | `admin/payout_run_*` |
 | All 7 `RestaurantOpenState` values | `onboarding/restaurant_open_state_*` |
 | Empty lists | every `*_empty` scenario (tag `empty`) |
 | Exactly-one-item lists | `restaurant_list_single`, `menu_single_item`, `cart_single_line`, `order_list_active` |

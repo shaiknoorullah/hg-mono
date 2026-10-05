@@ -158,6 +158,18 @@ ERRORS = [
         "Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`.",
     ),
     (
+        "restaurant_unavailable",
+        409,
+        "RESTAURANT_UNAVAILABLE",
+        "This restaurant cannot take orders: it is not listed, or its halal certification is "
+        "not current. Your cart is saved.",
+        None,
+        "From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed "
+        "and live, or its halal certificate is not current as of the request, computed from "
+        "admin-verified certificate data. The apps show the halal copy and keep the cart. "
+        "Pairs with `cart_restaurant_unavailable`.",
+    ),
+    (
         "below_minimum_order",
         422,
         "BELOW_MINIMUM_ORDER",
@@ -415,12 +427,80 @@ LAUNCH_ERRORS = [
         "The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review.",
         ["decideMenuVersion"],
     ),
+    # The menu lock: while a restaurant is SUSPENDED or BANNED nobody changes its menu,
+    # its own staff and admins acting on its behalf alike, and a version waiting for
+    # review stays as it is. A DELISTED restaurant is not locked
+    # (docs/decisions/README.md, round 2, "A suspended or banned restaurant's menu";
+    # https://github.com/shaiknoorullah/hg-mono/issues/256).
+    (
+        "menu_locked",
+        403,
+        "MENU_LOCKED",
+        "This restaurant's menu is locked while the restaurant is suspended.",
+        {"account_state": "SUSPENDED"},
+        "A menu change while the restaurant is suspended, by its own staff or by an admin "
+        "on its behalf. The menu still reads normally; every edit control shows the "
+        "locked-menu state. Opening hours stay editable. Nothing was written.",
+        [
+            "createMenuCategory",
+            "updateMenuCategory",
+            "createMenuItem",
+            "updateMenuItem",
+            "setMenuItemAvailability",
+            "createMenuCategoryOnBehalf",
+            "createMenuItemOnBehalf",
+            "updateMenuItemOnBehalf",
+            "deleteMenuItemOnBehalf",
+            "decideMenuVersion",
+        ],
+    ),
+    (
+        "menu_locked_banned",
+        403,
+        "MENU_LOCKED",
+        "This restaurant's menu is locked while the restaurant is banned.",
+        {"account_state": "BANNED"},
+        "An admin changing a banned restaurant's menu, or deciding one of its versions "
+        "waiting for review. A banned restaurant's own staff cannot sign in, so only "
+        "admins meet this one.",
+        [
+            "createMenuCategoryOnBehalf",
+            "createMenuItemOnBehalf",
+            "updateMenuItemOnBehalf",
+            "deleteMenuItemOnBehalf",
+            "decideMenuVersion",
+        ],
+    ),
 ]
 
 
 def build(reg, synth) -> None:
     _errors(reg)
+    _operation_errors(reg)
     _realtime(reg)
+
+
+def _operation_errors(reg) -> None:
+    """Error answers pinned to the one operation that gives them."""
+    reg.add(
+        "error_register_restaurant_rate_limited",
+        "errors",
+        "ErrorEnvelope",
+        "`429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups "
+        "from one client address in an hour (docs/spec/03-restaurant.md, \"R-01 — Restaurant "
+        "account signup\"). Checked before the password is hashed, "
+        "so nothing was created; the response carries `Retry-After` in seconds.",
+        {
+            "error": {
+                "code": "RATE_LIMITED",
+                "message": "Too many sign-ups from this network. Please wait before trying again.",
+                "request_id": ulid_for("request:register_restaurant_rate_limited"),
+            }
+        },
+        operations=["registerRestaurant"],
+        status=429,
+        tags=["error-envelope", "error-path"],
+    )
 
 
 def _errors(reg) -> None:

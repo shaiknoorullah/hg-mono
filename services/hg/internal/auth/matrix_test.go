@@ -70,6 +70,8 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("payment_method.read"):               {},
 		httpx.Action("payment_method.write"):              {},
 		httpx.Action("payout.read"):                       {},
+		httpx.Action("payout_run.create"):                 {},
+		httpx.Action("payout_run.read"):                   {},
 		httpx.Action("platform_deps.read"):                {},
 		httpx.Action("quote.create"):                      {},
 		httpx.Action("quote.read"):                        {},

@@ -427,12 +427,11 @@ var adminCancellableStates = map[machine.State]bool{
 
 // CancelOrder executes the admin/support cancellation of an order.
 //
-// For post-acceptance states (PREPARING) the transition goes through the shared
-// Store.Transition (T11: ActorSupport allowed). For pre-acceptance states
-// (CREATED, AUTHORIZED, RESTAURANT_PENDING) the machine actor table only lists
-// CUSTOMER and SYSTEM (T3/T5/T8); we perform the transition directly via SQL
-// inside the same invariants (deadline cleared, cancel_reason set, transition row
-// appended) to support the A-38 admin override.
+// Every cancel goes through the orders module's one transition function, inside
+// this transaction (TransitionInTx): after acceptance (PREPARING) as SUPPORT,
+// before it (CREATED, AUTHORIZED, RESTAURANT_PENDING) as ADMIN, the staff cancel
+// the machine lists on those edges (docs/spec/05-admin.md, "A-38 — Order lookup
+// and admin order intervention").
 //
 // Returns ErrNotFound when the order does not exist, *orders.IllegalTransitionError
 // when the state is terminal or not cancellable.
@@ -471,42 +470,32 @@ func (r *OrdersRepo) CancelOrder(ctx context.Context, actor auditActor, orderID,
 		}
 
 		// Determine which actor kind to use. T11 (PREPARING→CANCELLED) accepts
-		// ActorSupport and ActorAdmin. For pre-acceptance states T3/T5/T8 accept only
-		// CUSTOMER/SYSTEM, so we write the transition row directly as ADMIN actor.
+		// ActorSupport and ActorAdmin. Before acceptance the machine lists ADMIN
+		// on the cancel edges for this staff cancel (docs/spec/05-admin.md,
+		// "A-38 — Order lookup and admin order intervention").
 		actorKind := machine.ActorAdmin
 		if from == machine.StatePreparing {
 			actorKind = machine.ActorSupport // T11 lists SUPPORT/ADMIN; SUPPORT covers both
 		}
 
-		// Write the state change: clear the deadline (CANCELLED is terminal) AND
-		// reset the lease/escalation columns the shared machine transition resets
-		// (I-14/I-15), so a cancelled order can never remain claimable by the
-		// deadline runner or carry a stale escalation count.
-		_, err := tx.Exec(ctx, `
-UPDATE "order"
-   SET state               = 'CANCELLED',
-       state_since         = now(),
-       deadline_at         = NULL,
-       deadline_action     = NULL,
-       deadline_escalations = 0,
-       lease_until         = NULL,
-       lease_owner         = NULL,
-       cancel_reason       = $2::order_cancellation_reason_code,
-       cancelled_at        = now()
- WHERE id = $1 AND state::text = $3`,
-			orderID, reasonCode, string(from))
-		if err != nil {
-			return fmt.Errorf("cancel order: %w", err)
-		}
-
-		// Append the transition row.
-		fromStr := string(from)
-		_, err = tx.Exec(ctx, `
-INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason, request_id)
-VALUES ($1, $2::order_state, 'CANCELLED', $3::order_actor_kind, $4, $5, $6)`,
-			orderID, fromStr, string(actorKind), nilIfEmpty(actor.staffID), in.ReasonText, nilIfEmpty(actor.requestID))
-		if err != nil {
-			return fmt.Errorf("insert order_transition: %w", err)
+		// Move the order through the one transition function, in this
+		// transaction: it clears the deadline (CANCELLED is terminal), resets
+		// the lease and escalation columns so the deadline runner can never
+		// claim a cancelled order, sets cancel_reason and cancelled_at, and
+		// appends the order_transition row (docs/spec/01-platform.md, "P-14 —
+		// Order lifecycle states and transitions";
+		// https://github.com/shaiknoorullah/hg-mono/issues/337).
+		cancelReason := reasonCode
+		if err := r.st.TransitionInTx(ctx, tx, orders.TransitionRequest{
+			OrderID:        orderID,
+			To:             machine.StateCancelled,
+			Actor:          actorKind,
+			ActorAccountID: actor.staffID,
+			Reason:         in.ReasonText,
+			RequestID:      actor.requestID,
+			CancelReason:   &cancelReason,
+		}); err != nil {
+			return err
 		}
 
 		// MONEY (contract A-38 / T11): "Cancelling after acceptance always issues a

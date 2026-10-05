@@ -74,14 +74,11 @@ func requireStaff(s Staff) error {
 // with an authenticator code.
 func requireMoneyMFA(s Staff) error {
 	if !s.MFA {
-		return domainErr(codeMFARequired, 403,
+		return domainErr(string(codeMFARequired), 403,
 			"Refunds need a session signed in with your authenticator code. Sign in again with it.")
 	}
 	return nil
 }
-
-// codeMFARequired is the contract's MFA_REQUIRED.
-const codeMFARequired = "MFA_REQUIRED"
 
 // codeAlreadyDecided is the contract's ALREADY_DECIDED: the refund or
 // chargeback is no longer waiting for this decision.

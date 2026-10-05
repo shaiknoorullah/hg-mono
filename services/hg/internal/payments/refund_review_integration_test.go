@@ -74,7 +74,7 @@ func TestRefundReview_SupportApprovesWithinItsLimitAndOverItNeedsASecondPerson(t
 
 	within := h.request(small)
 	_, err := h.svc.ApproveRefund(ctx, within.ID, Staff{AccountID: agent, Roles: []string{"SUPPORT_AGENT"}}, reason, nil)
-	wantDomainErr(t, err, codeMFARequired)
+	wantDomainErr(t, err, string(codeMFARequired))
 	out, err := h.svc.ApproveRefund(ctx, within.ID, staffAs(agent, "SUPPORT_AGENT"), reason, nil)
 	if err != nil || out.Status != 200 || out.Data.(AdminRefundDTO).State != string(RefundAuthorised) {
 		t.Fatalf("approve within the limit: %+v err=%v; want 200 AUTHORISED", out, err)

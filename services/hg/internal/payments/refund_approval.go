@@ -164,7 +164,7 @@ func (s *Service) ApproveRefund(ctx context.Context, refundID string, by Staff, 
 // approver, the reason and the sender's clock, with its audit event, in the
 // caller's transaction. Until it commits nothing about the refund reaches
 // Stripe, and the schema refuses a refund that moves money without an
-// approver (refund_money_needs_approver, 00035) or one approved by whoever
+// approver (refund_money_needs_approver, 00046) or one approved by whoever
 // sent it up (refund_second_person, 00039).
 func (s *Service) authoriseTx(ctx context.Context, tx pgx.Tx, p pendingRefund, by Staff, reason string, caseID *string, authority map[string]any) (Outcome, error) {
 	money, _, err := getOrderMoney(ctx, tx, p.OrderID)

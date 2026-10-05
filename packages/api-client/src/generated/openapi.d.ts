@@ -363,6 +363,10 @@ export interface paths {
          *     the queue is never the bottleneck of a dinner service. **Claim-bearing fields are
          *     never auto-approved** (decision R-05): silence must not become consent on a halal
          *     claim.
+         *
+         *     A suspended or banned restaurant's pending versions stay in the queue and stay
+         *     readable; deciding one is refused with `403 MENU_LOCKED` until the suspension is
+         *     lifted (`decideMenuVersion`).
          */
         get: operations["listMenuReviewQueue"];
         put?: never;
@@ -387,6 +391,12 @@ export interface paths {
          * @description A-19 / R-17. Approval repoints `live_version_id` and clears `pending_version_id` in
          *     one transaction. Rejection requires a reason code, which the restaurant sees
          *     verbatim and may resubmit against without limit.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included, and a version waiting for review stays as it is
+         *     (`docs/decisions/README.md`, round 2, "A suspended or banned restaurant's menu"):
+         *     approving or rejecting it is `403 MENU_LOCKED`. Decide it once the suspension is
+         *     lifted. A `DELISTED` restaurant's versions can be decided.
          */
         post: operations["decideMenuVersion"];
         delete?: never;
@@ -461,6 +471,76 @@ export interface paths {
          *     escalate.
          */
         post: operations["cancelOrderAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/payout-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payout runs, newest first
+         * @description Every run, automatic or requested by an admin, with what it paid, held and carried.
+         */
+        get: operations["listPayoutRuns"];
+        put?: never;
+        /**
+         * Run the weekly payout now, for one partner or for every partner
+         * @description Queues a payout run and returns it at once; the server's payout worker runs it
+         *     within seconds, the same code as the automatic Monday run (`GET` the run to follow
+         *     it). Payouts are weekly, every Monday, automatic, with no minimum
+         *     ([payout cadence](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--client-decisions)).
+         *     A run pays the period that closed by `as_of`: Monday 00:00 to Monday 00:00,
+         *     America/Toronto. Every unpaid earning created before that Monday is included, so
+         *     balances carried from earlier weeks are paid too.
+         *
+         *     Running twice never pays twice: a partner gets at most one payout per period, a
+         *     ledger entry belongs to at most one payout, and every Stripe transfer is keyed by
+         *     its payout's id. A payout held because Stripe has payouts turned off for the partner
+         *     is released by the first run for a later period
+         *     ([held payouts](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *
+         *     What is paid comes from the ledger only; the request names who and as of when, never
+         *     an amount. An earning tied to an order is paid once the order is settled and its hold
+         *     has passed: an hour after delivery for a rider, three days for a restaurant. Refunds
+         *     and chargebacks are netted at once, and a balance at or below zero is carried, never
+         *     paid.
+         *
+         *     `as_of` defaults to now and may not be in the future, so a run can never pay an
+         *     earning before its week has closed. A replay with the same `Idempotency-Key` returns
+         *     the run as it was first queued; the same key with a different body is
+         *     `409 IDEMPOTENCY_KEY_REUSE`. The session must have signed in with two-step sign-in,
+         *     and an admin may not run a payout for a partner they are, or belong to.
+         */
+        post: operations["createPayoutRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/payout-runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One payout run and what it did for each partner
+         * @description The audit trail of one run: one line per action per partner — paid, held, released,
+         *     carried because the balance was not positive, skipped and why — with the payout it
+         *     created or moved.
+         */
+        get: operations["getPayoutRun"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -653,6 +733,11 @@ export interface paths {
          *     to the authenticated admin — no code path accepts an `admin_id` from a request body.
          *     A second decision on a decided application is `409 ALREADY_DECIDED`, never a silent
          *     overwrite.
+         *
+         *     Each decision has its own body (`RestaurantDecisionInput`): an approval carries an
+         *     approval reason, a rejection or a request for changes carries a rejection reason, and a
+         *     request for changes names the documents to redo. A missing reason, or a reason that
+         *     does not fit the decision, is `422 VALIDATION_FAILED`.
          */
         post: operations["decideRestaurantApplication"];
         delete?: never;
@@ -722,6 +807,10 @@ export interface paths {
          *     category's `created_by`. The restaurant is named in the path, which is the only
          *     place in the contract where a restaurant id is accepted from the caller — and it is
          *     gated by a global admin action, not by scope.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+         *     restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
          */
         post: operations["createMenuCategoryOnBehalf"];
         delete?: never;
@@ -745,6 +834,10 @@ export interface paths {
          *     `HALAL_CERTIFIED` assertion, no alcohol, no pork keyword, price inside the permitted
          *     band. An item created by an admin is created already approved, because the reviewer
          *     and the author are the same accountable person; that fact is recorded on the version.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+         *     restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
          */
         post: operations["createMenuItemOnBehalf"];
         delete?: never;
@@ -778,6 +871,10 @@ export interface paths {
          *     `ITEM_DELETED`, never silently removed. A version of the item still waiting for
          *     review is withdrawn, and deciding it afterwards is `409 ITEM_DELETED`. Removing an
          *     item that is already removed, or that is not on this restaurant's menu, is `404`.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+         *     restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
          */
         delete: operations["deleteMenuItemOnBehalf"];
         options?: never;
@@ -800,6 +897,10 @@ export interface paths {
          *     `PENDING_REVIEW` and the body carries a claim-bearing field, the call is
          *     `409 MENU_VERSION_PENDING` — decide that version first (`decideMenuVersion`). An item
          *     that is not on this restaurant's menu is `404`, the same as one that does not exist.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+         *     restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
          */
         patch: operations["updateMenuItemOnBehalf"];
         trace?: never;
@@ -860,6 +961,11 @@ export interface paths {
          *     Rejection reason text is sent verbatim to the rider with the specific remediation
          *     step. A support agent may re-open a rejected application only for a remediable
          *     reason, and may never approve.
+         *
+         *     Each decision has its own body (`RiderDecisionInput`): an approval carries an approval
+         *     reason, a rejection or a request for changes carries a document rejection reason, and a
+         *     request for changes names the documents to redo. A missing reason, or a reason that
+         *     does not fit the decision, is `422 VALIDATION_FAILED`.
          */
         post: operations["decideRiderApplication"];
         delete?: never;
@@ -985,6 +1091,10 @@ export interface paths {
          *     return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
          *     sets `error.details.email_verification_required` **only after** the credentials
          *     were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
+         *
+         *     A `503` means password checking is at capacity. The staff web app (`X-HG-Client:
+         *     admin-web`) has capacity of its own; which capacity a request uses depends only on
+         *     that header, never on the email, so a `503` says nothing about the account.
          */
         post: operations["login"];
         delete?: never;
@@ -1127,6 +1237,9 @@ export interface paths {
          *     account lockout, or sign the person out instead of saying the password is wrong.
          *     The backend still answers `401` until
          *     [#238](https://github.com/shaiknoorullah/hg-mono/issues/238) is fixed.
+         *
+         *     At most 5 attempts per account in 15 minutes; past that, `429` with `Retry-After`,
+         *     before the current password is checked.
          */
         post: operations["changePassword"];
         delete?: never;
@@ -1361,6 +1474,13 @@ export interface paths {
          *     the current cart's restaurant and line count. `replace=true` performs clear + add as
          *     **one atomic call** — a two-call clear-then-add is prohibited because it can leave an
          *     empty cart on failure.
+         *
+         *     `409 RESTAURANT_UNAVAILABLE` when the item's restaurant cannot take orders: it is not
+         *     listed and live (delisted, suspended or banned), or its halal certificate is not
+         *     current **as of this request**, computed from admin-verified certificate data. A
+         *     client that still holds the item id from an old cart or a cached menu gets the same
+         *     answer. Quoting and placing an order check it again in their own transaction, and a
+         *     cart already holding the restaurant's items is kept but stops being quotable.
          */
         post: operations["addCartLine"];
         delete?: never;
@@ -2373,6 +2493,11 @@ export interface paths {
          *     returned flagged `is_active: false`, out-of-stock and hidden items are returned with
          *     their state, and each item carries its `pending_version` when a reviewed field has
          *     been edited but not yet approved. Customers only ever see `live_version`.
+         *
+         *     Readable while the restaurant is `SUSPENDED`: the menu lock refuses changes, never
+         *     reads. The restaurant learns the menu is locked from `account_state` on its profile
+         *     (`getRestaurantProfile`) before it tries a save, and from `403 MENU_LOCKED` if a
+         *     save races a suspension.
          */
         get: operations["getOwnMenu"];
         put?: never;
@@ -2602,6 +2727,14 @@ export interface paths {
          *     Expiry is server-authoritative. A late accept is `409 OFFER_EXPIRED` with the final
          *     state — never a partial success. Closing the dialog, refreshing, or losing the
          *     socket never rejects an order.
+         *
+         *     `409 RESTAURANT_UNAVAILABLE` when the restaurant cannot take orders **as of this
+         *     request**: it is not listed and live (suspended, banned, delisted), or its halal
+         *     certificate is not current, computed from admin-verified certificate data. Nothing is
+         *     captured; the order stays `RESTAURANT_PENDING` until its deadline cancels it and
+         *     releases the authorisation. The check holds the restaurant row locked until the
+         *     accept commits, so a concurrent suspension either lands first and refuses the accept,
+         *     or waits for it and then treats the order as accepted.
          */
         post: operations["acceptOrder"];
         delete?: never;
@@ -3732,7 +3865,12 @@ export interface components {
             /** Format: uuid */
             id: string;
             indicative_subtotal_cents: components["schemas"]["Cents"];
-            /** @description False when any line is unavailable, the restaurant is closed, or no address is selected. */
+            /**
+             * @description False when any line is unavailable, the restaurant is closed, the restaurant cannot
+             *     take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
+             *     is not current), or no address is selected. A cart whose restaurant becomes
+             *     unavailable is kept, never emptied on the customer's behalf.
+             */
             is_quotable: boolean;
             /**
              * Format: int32
@@ -4186,7 +4324,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "MENU_LOCKED" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -4198,6 +4336,7 @@ export interface components {
                  *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
                  *     `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                  *     `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+                 *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
                  *     `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
                  *     `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                  *     `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
@@ -5285,6 +5424,130 @@ export interface components {
          * @enum {string}
          */
         PayoutInterval: "DAILY" | "WEEKLY";
+        PayoutPayee: {
+            /**
+             * Format: uuid
+             * @description The restaurant id, or the rider's account id.
+             */
+            id: string;
+            type: components["schemas"]["PayoutPayeeType"];
+        };
+        /**
+         * @description Who a payout is paid to. A restaurant is identified by its restaurant id, a rider by their account id.
+         * @enum {string}
+         */
+        PayoutPayeeType: "RESTAURANT" | "RIDER";
+        PayoutRun: {
+            as_of: components["schemas"]["Timestamp"];
+            /**
+             * Format: int32
+             * @description How many times a worker started it. Above 1 means a worker stopped mid-run and another finished it.
+             */
+            attempts: number;
+            /**
+             * Format: int32
+             * @description Partners whose unpaid balance was zero or below, carried to a later run.
+             */
+            carried: number;
+            created_at: components["schemas"]["Timestamp"];
+            /** @description When the run was due: Monday 09:00 America/Toronto for a scheduled run, the request time for an admin one. */
+            due_at: components["schemas"]["Timestamp"];
+            /** @description Why the run itself stopped, when it did. Per-partner failures are lines. */
+            error: string | null;
+            /** Format: int32 */
+            failed: number;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: int32 */
+            held: number;
+            held_cents: components["schemas"]["Cents"];
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["PayoutRunKind"];
+            /**
+             * Format: int32
+             * @description Payouts transferred, new and released.
+             */
+            paid: number;
+            paid_cents: components["schemas"]["Cents"];
+            /**
+             * Format: int32
+             * @description Partners the run looked at.
+             */
+            partners: number;
+            /** @description The one partner this run is for, or null for every partner. */
+            payee: components["schemas"]["PayoutPayee"] | null;
+            /** @description The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid. */
+            period_end: components["schemas"]["Timestamp"];
+            period_start: components["schemas"]["Timestamp"];
+            /** @description Why the admin requested it; null for a scheduled run. */
+            reason: string | null;
+            /** Format: int32 */
+            released: number;
+            /**
+             * Format: uuid
+             * @description The admin who requested it; null for a scheduled run.
+             */
+            requested_by: string | null;
+            /** Format: date-time */
+            started_at: string | null;
+            state: components["schemas"]["PayoutRunState"];
+        };
+        PayoutRunDetail: components["schemas"]["PayoutRun"] & {
+            lines: components["schemas"]["PayoutRunLine"][];
+        };
+        /** @description Who to pay and as of when; never an amount. Every amount comes from the ledger. */
+        PayoutRunInput: {
+            /**
+             * @description Run as if it were this moment: the run pays the period that closed by then.
+             *     Defaults to now; a time in the future is `422 VALIDATION_FAILED`.
+             */
+            as_of?: components["schemas"]["Timestamp"];
+            /** @description Run for this partner only. Omit it to run for every partner. */
+            payee?: components["schemas"]["PayoutPayee"];
+            /** @description Why the run is needed now. Kept on the run and in the audit trail. */
+            reason: string;
+        };
+        /**
+         * @description `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+         * @enum {string}
+         */
+        PayoutRunKind: "SCHEDULED" | "ADMIN";
+        PayoutRunLine: {
+            /** @description The payout's amount, or the balance carried or owed. */
+            amount_cents: components["schemas"]["Cents"];
+            at: components["schemas"]["Timestamp"];
+            detail: string | null;
+            outcome: components["schemas"]["PayoutRunOutcome"];
+            payee: components["schemas"]["PayoutPayee"];
+            /** Format: uuid */
+            payout_id: string | null;
+        };
+        /**
+         * @description What a run did for one partner.
+         *     `PAID`: a payout for this period was created and transferred.
+         *     `HELD`: a payout was created but Stripe has payouts turned off for the partner, so no
+         *     transfer was made; `STILL_HELD`: an earlier held payout is still blocked;
+         *     `RELEASED`: an earlier held or unfinished payout was transferred.
+         *     `TRANSFER_FAILED`: Stripe refused the transfer; the payout stays owed for the next run.
+         *     `ALREADY_PAID`: this partner already has a payout for this period.
+         *     `NOTHING_DUE`: no unpaid earnings before the cutoff.
+         *     `CARRIED_NEGATIVE`: the unpaid balance is zero or below, so it is carried and netted
+         *     against later earnings.
+         *     `NO_PAYOUT_ACCOUNT`: no Stripe account yet; the balance waits for onboarding.
+         *     `PARTNER_SUSPENDED`: a suspended or banned restaurant is not paid until reinstated.
+         *     `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
+         *     longer than the configured limit, so it takes no new orders, or it has recovered.
+         *     `ERROR`: the server failed for this partner; see `detail`.
+         * @enum {string}
+         */
+        PayoutRunOutcome: "PAID" | "HELD" | "STILL_HELD" | "RELEASED" | "TRANSFER_FAILED" | "ALREADY_PAID" | "NOTHING_DUE" | "CARRIED_NEGATIVE" | "NO_PAYOUT_ACCOUNT" | "PARTNER_SUSPENDED" | "ORDERS_BLOCKED" | "ORDERS_UNBLOCKED" | "ERROR";
+        /**
+         * @description `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+         *     payout stays owed and the next run tries it again.
+         * @enum {string}
+         */
+        PayoutRunState: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
         /**
          * @description `HELD` carries a reason and is what `payouts_enabled=false` produces.
          * @enum {string}
@@ -5763,6 +6026,47 @@ export interface components {
             halal_certificate?: components["schemas"]["HalalCertificate"] | null;
             profile: components["schemas"]["RestaurantProfile"];
         };
+        /** @description Approve a restaurant application. Approval does not make the restaurant live. */
+        RestaurantApplicationApproveInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "APPROVE";
+            /** @description For staff only; never sent to the restaurant. */
+            internal_note?: string;
+            reason_code: components["schemas"]["RestaurantApproveReasonCode"];
+            /** @description Sent verbatim to the restaurant. */
+            reason_text: string;
+        };
+        /** @description Reject a restaurant application. Rejection is final for this application. */
+        RestaurantApplicationRejectInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "REJECT";
+            /** @description For staff only; never sent to the restaurant. */
+            internal_note?: string;
+            reason_code: components["schemas"]["RestaurantRejectApplicationReasonCode"];
+            /** @description Sent verbatim to the restaurant. */
+            reason_text: string;
+        };
+        /** @description Send a restaurant application back for changes, naming the documents to redo. */
+        RestaurantApplicationRequestChangesInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "REQUEST_CHANGES";
+            /** @description Names exactly which documents to redo. */
+            documents_to_redo: components["schemas"]["RestaurantDocType"][];
+            /** @description For staff only; never sent to the restaurant. */
+            internal_note?: string;
+            reason_code: components["schemas"]["RestaurantRejectApplicationReasonCode"];
+            /** @description Sent verbatim to the restaurant. */
+            reason_text: string;
+        };
         RestaurantApplicationSummary: {
             /** Format: uuid */
             assigned_admin_id?: string | null;
@@ -5858,18 +6162,24 @@ export interface components {
         /** @enum {string} */
         RestaurantDecision: "APPROVE" | "REQUEST_CHANGES" | "REJECT";
         /**
-         * @description Every state-changing admin action requires both a `reason_code` from a closed enum and
-         *     a `reason_text`; missing either is a `422`. `reason_text` is sent verbatim to the
-         *     restaurant — internal remarks go in `internal_note`, which is never transmitted.
+         * @description The decision on a restaurant application
+         *     ([restaurant approval or rejection](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-18--restaurant-approval--rejection-decision)).
+         *     One body shape per `decision`, chosen by the `decision` field, so each decision can
+         *     carry only the reason codes that fit it:
+         *
+         *     - `APPROVE` carries an approval reason (`RestaurantApproveReasonCode`).
+         *     - `REJECT` carries a rejection reason (`RestaurantRejectApplicationReasonCode`).
+         *     - `REQUEST_CHANGES` carries a rejection reason and names the documents to redo.
+         *
+         *     Every state-changing admin action requires both a `reason_code` from a closed enum and
+         *     a `reason_text`
+         *     ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+         *     missing either, or a code that does not fit the decision, is a `422`. `reason_text` is
+         *     sent verbatim to the restaurant — internal remarks go in `internal_note`, which is
+         *     never transmitted. The rider application decision has the same shape
+         *     (`RiderDecisionInput`).
          */
-        RestaurantDecisionInput: {
-            decision: components["schemas"]["RestaurantDecision"];
-            /** @description Required for `REQUEST_CHANGES`: names exactly which documents to redo. */
-            documents_to_redo?: components["schemas"]["RestaurantDocType"][];
-            internal_note?: string;
-            reason_code: components["schemas"]["RestaurantApproveReasonCode"] | components["schemas"]["RestaurantRejectApplicationReasonCode"];
-            reason_text: string;
-        };
+        RestaurantDecisionInput: components["schemas"]["RestaurantApplicationApproveInput"] | components["schemas"]["RestaurantApplicationRejectInput"] | components["schemas"]["RestaurantApplicationRequestChangesInput"];
         RestaurantDetail: components["schemas"]["RestaurantCard"] & {
             address: components["schemas"]["PublicAddress"];
             certification: components["schemas"]["CertificationPanel"];
@@ -6093,6 +6403,45 @@ export interface components {
             profile: components["schemas"]["RiderProfile"];
             vehicle?: components["schemas"]["RiderVehicle"] | null;
         };
+        /**
+         * @description Approve a rider application. A rider under 18 cannot be approved
+         *     (`422 AGE_REQUIREMENT_NOT_MET`), and approval moves the rider to `PAYOUT_PENDING`, not
+         *     straight to dispatchable.
+         */
+        RiderApplicationApproveInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "APPROVE";
+            reason_code: components["schemas"]["RiderApproveReasonCode"];
+            /** @description Sent verbatim to the rider. */
+            reason_text: string;
+        };
+        /** @description Reject a rider application. */
+        RiderApplicationRejectInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "REJECT";
+            reason_code: components["schemas"]["DocumentRejectionReasonCode"];
+            /** @description Sent verbatim to the rider with the specific remediation step. */
+            reason_text: string;
+        };
+        /** @description Send a rider application back for changes, naming the documents to redo. */
+        RiderApplicationRequestChangesInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "REQUEST_CHANGES";
+            /** @description Names exactly which documents to redo. */
+            documents_to_redo: components["schemas"]["RiderDocType"][];
+            reason_code: components["schemas"]["DocumentRejectionReasonCode"];
+            /** @description Sent verbatim to the rider with the specific remediation step. */
+            reason_text: string;
+        };
         RiderApplicationSummary: {
             /** Format: uuid */
             assigned_admin_id?: string | null;
@@ -6108,6 +6457,14 @@ export interface components {
             submitted_at: components["schemas"]["Timestamp"];
             vehicle_type?: components["schemas"]["VehicleType"];
         };
+        /**
+         * @description Why a rider application was approved. The same two reasons as a restaurant approval
+         *     (`RestaurantApproveReasonCode`), because the rider review is built the same way
+         *     ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+         *     `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
+         * @enum {string}
+         */
+        RiderApproveReasonCode: "ALL_CHECKS_PASSED" | "APPROVED_WITH_NOTES";
         RiderAvailability: {
             availability_state: components["schemas"]["RiderAvailabilityState"];
             /** @description Machine codes so the app can deep-link to each fix. */
@@ -6146,13 +6503,25 @@ export interface components {
             };
             tracking_health?: components["schemas"]["TrackingHealth"] | null;
         };
-        RiderDecisionInput: {
-            decision: components["schemas"]["RestaurantDecision"];
-            documents_to_redo?: components["schemas"]["RiderDocType"][];
-            reason_code: components["schemas"]["DocumentRejectionReasonCode"];
-            /** @description Sent verbatim to the rider with the specific remediation step. */
-            reason_text: string;
-        };
+        /**
+         * @description The decision on a rider application
+         *     ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+         *     One body shape per `decision`, chosen by the `decision` field, so each decision can
+         *     carry only the reason codes that fit it:
+         *
+         *     - `APPROVE` carries an approval reason (`RiderApproveReasonCode`). Until
+         *       [#163](https://github.com/shaiknoorullah/hg-mono/issues/163) every decision had to
+         *       carry a document rejection reason, and none of those fits an approval.
+         *     - `REJECT` carries a document rejection reason (`DocumentRejectionReasonCode`).
+         *     - `REQUEST_CHANGES` carries a document rejection reason and names the documents to redo.
+         *
+         *     Every state-changing admin action requires both a `reason_code` from a closed enum and
+         *     a `reason_text`
+         *     ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+         *     missing either, or a code that does not fit the decision, is a `422`. The same shape
+         *     as the restaurant application decision (`RestaurantDecisionInput`).
+         */
+        RiderDecisionInput: components["schemas"]["RiderApplicationApproveInput"] | components["schemas"]["RiderApplicationRejectInput"] | components["schemas"]["RiderApplicationRequestChangesInput"];
         /**
          * @description D-05 / A-23. Motorised riders need licence, registration, insurance and a photo;
          *     bicycle and on-foot couriers need a government ID and a photo.
@@ -6592,6 +6961,23 @@ export interface components {
                 "application/json": components["schemas"]["ErrorEnvelope"];
             };
         };
+        /**
+         * @description The server is temporarily unable to take this request. The request was **not**
+         *     executed — no partial effect exists. With `error.code` `TIMEOUT`, the work it needs
+         *     (for example argon2id password hashing, which is capped per replica) stayed at
+         *     capacity for the whole wait; retry after `Retry-After` seconds.
+         */
+        ServerBusy: {
+            headers: {
+                "Retry-After"?: number;
+                /** @description ULID correlating this response with the server log and the audit trail. */
+                "X-Request-ID"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
     };
     parameters: {
         AssignmentIdPath: string;
@@ -6786,6 +7172,15 @@ export type SchemaPaymentState = components['schemas']['PaymentState'];
 export type SchemaPayout = components['schemas']['Payout'];
 export type SchemaPayoutDetail = components['schemas']['PayoutDetail'];
 export type SchemaPayoutInterval = components['schemas']['PayoutInterval'];
+export type SchemaPayoutPayee = components['schemas']['PayoutPayee'];
+export type SchemaPayoutPayeeType = components['schemas']['PayoutPayeeType'];
+export type SchemaPayoutRun = components['schemas']['PayoutRun'];
+export type SchemaPayoutRunDetail = components['schemas']['PayoutRunDetail'];
+export type SchemaPayoutRunInput = components['schemas']['PayoutRunInput'];
+export type SchemaPayoutRunKind = components['schemas']['PayoutRunKind'];
+export type SchemaPayoutRunLine = components['schemas']['PayoutRunLine'];
+export type SchemaPayoutRunOutcome = components['schemas']['PayoutRunOutcome'];
+export type SchemaPayoutRunState = components['schemas']['PayoutRunState'];
 export type SchemaPayoutState = components['schemas']['PayoutState'];
 export type SchemaPhoneE164 = components['schemas']['PhoneE164'];
 export type SchemaPickupScanInput = components['schemas']['PickupScanInput'];
@@ -6825,6 +7220,9 @@ export type SchemaRefundState = components['schemas']['RefundState'];
 export type SchemaRemittableBy = components['schemas']['RemittableBy'];
 export type SchemaRestaurantAccountState = components['schemas']['RestaurantAccountState'];
 export type SchemaRestaurantApplication = components['schemas']['RestaurantApplication'];
+export type SchemaRestaurantApplicationApproveInput = components['schemas']['RestaurantApplicationApproveInput'];
+export type SchemaRestaurantApplicationRejectInput = components['schemas']['RestaurantApplicationRejectInput'];
+export type SchemaRestaurantApplicationRequestChangesInput = components['schemas']['RestaurantApplicationRequestChangesInput'];
 export type SchemaRestaurantApplicationSummary = components['schemas']['RestaurantApplicationSummary'];
 export type SchemaRestaurantApproveReasonCode = components['schemas']['RestaurantApproveReasonCode'];
 export type SchemaRestaurantAvailability = components['schemas']['RestaurantAvailability'];
@@ -6855,7 +7253,11 @@ export type SchemaRestaurantStaffUser = components['schemas']['RestaurantStaffUs
 export type SchemaRestaurantStaffUserInput = components['schemas']['RestaurantStaffUserInput'];
 export type SchemaRiderAccountStatus = components['schemas']['RiderAccountStatus'];
 export type SchemaRiderApplication = components['schemas']['RiderApplication'];
+export type SchemaRiderApplicationApproveInput = components['schemas']['RiderApplicationApproveInput'];
+export type SchemaRiderApplicationRejectInput = components['schemas']['RiderApplicationRejectInput'];
+export type SchemaRiderApplicationRequestChangesInput = components['schemas']['RiderApplicationRequestChangesInput'];
 export type SchemaRiderApplicationSummary = components['schemas']['RiderApplicationSummary'];
+export type SchemaRiderApproveReasonCode = components['schemas']['RiderApproveReasonCode'];
 export type SchemaRiderAvailability = components['schemas']['RiderAvailability'];
 export type SchemaRiderAvailabilityInput = components['schemas']['RiderAvailabilityInput'];
 export type SchemaRiderAvailabilityState = components['schemas']['RiderAvailabilityState'];
@@ -6908,6 +7310,7 @@ export type SchemaVariantPricingMode = components['schemas']['VariantPricingMode
 export type SchemaVehicleType = components['schemas']['VehicleType'];
 export type ResponseError = components['responses']['Error'];
 export type ResponseRateLimited = components['responses']['RateLimited'];
+export type ResponseServerBusy = components['responses']['ServerBusy'];
 export type ParameterAssignmentIdPath = components['parameters']['AssignmentIdPath'];
 export type ParameterCertificateIdPath = components['parameters']['CertificateIdPath'];
 export type ParameterChargebackIdPath = components['parameters']['ChargebackIdPath'];
@@ -7651,6 +8054,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `MENU_LOCKED`: the version's restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. The version stays `PENDING_REVIEW`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description `ITEM_DELETED`, `ALREADY_DECIDED`. */
             409: {
                 headers: {
@@ -7784,6 +8196,155 @@ export interface operations {
                 };
             };
             409: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listPayoutRuns: {
+        parameters: {
+            query?: {
+                /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Runs, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRun"][];
+                        meta: components["schemas"]["PageMeta"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createPayoutRun: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutRunInput"];
+            };
+        };
+        responses: {
+            /** @description The run is queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRun"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /**
+             * @description `MFA_REQUIRED`: the session did not sign in with two-step sign-in. `FORBIDDEN`: the
+             *     payee is the caller, or a restaurant the caller belongs to.
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `NOT_FOUND`: the payee is neither a restaurant nor a rider. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REUSE`: this key was used with a different body. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `reason` is missing or too short, or `as_of` is in the future. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Stripe is not configured on this server, so nothing can be paid. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPayoutRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run and its lines. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRunDetail"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };
@@ -8312,6 +8873,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             404: components["responses"]["Error"];
             409: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -8353,6 +8923,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             404: components["responses"]["Error"];
             422: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -8376,6 +8955,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is removed, and a version waiting in menu review stays as it is. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
             };
             404: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -8408,7 +8996,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. */
+            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8540,7 +9128,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description `AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`. */
+            /** @description `AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`, `VALIDATION_FAILED`. */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -8788,6 +9376,7 @@ export interface operations {
             403: components["responses"]["Error"];
             423: components["responses"]["Error"];
             429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };
     };
@@ -8962,6 +9551,8 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };
     };
@@ -9018,6 +9609,8 @@ export interface operations {
             };
             400: components["responses"]["Error"];
             422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };
     };
@@ -9094,6 +9687,8 @@ export interface operations {
             };
             409: components["responses"]["Error"];
             422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServerBusy"];
             default: components["responses"]["Error"];
         };
     };
@@ -9303,7 +9898,8 @@ export interface operations {
             };
             /**
              * @description `DIFFERENT_RESTAURANT`, `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`,
-             *     `ADDON_UNAVAILABLE` or `RESTAURANT_CLOSED`. The cart is unchanged.
+             *     `ADDON_UNAVAILABLE`, `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`. The cart is
+             *     unchanged.
              */
             409: {
                 headers: {
@@ -11021,6 +11617,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description `CATEGORY_NAME_TAKEN`. */
             409: {
                 headers: {
@@ -11057,6 +11662,15 @@ export interface operations {
                     "application/json": {
                         data: components["schemas"]["MenuCategory"];
                     };
+                };
+            };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             404: components["responses"]["Error"];
@@ -11106,7 +11720,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. */
+            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11153,6 +11767,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written: no price, photo or other field changes, and a version already waiting in menu review stays as it is. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             404: components["responses"]["Error"];
             422: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -11184,7 +11807,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description `ITEM_BLOCKED_BY_ADMIN` with the admin's reason. */
+            /** @description `ITEM_BLOCKED_BY_ADMIN` with the admin's reason. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included, so an item cannot be marked out of stock or back in stock; `details.account_state` names the state and nothing is written. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11313,7 +11936,7 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
-            /** @description `OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`. */
+            /** @description `OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`, `RESTAURANT_UNAVAILABLE`. */
             409: {
                 headers: {
                     [name: string]: unknown;
