@@ -7,7 +7,7 @@ reviewed: 2026-10-05
 
 This playbook tests the restaurant operator onboarding flow across every lifecycle state defined in the [dev world harness design](../../superpowers/specs/2026-09-28-devworld-harness-design.md). Each persona proves a specific screen and gating behavior against the real backend.
 
-The reset also seeds a [Toronto catalogue](../../superpowers/specs/2026-09-28-devworld-harness-design.md#51a-toronto-catalogue) of live restaurants. Its owners sign in as `<slug>@seed.hg` with the same password. Their restaurants are already live, so they skip onboarding.
+The reset also seeds a [Toronto catalogue](../../superpowers/specs/2026-09-28-devworld-harness-design.md#51a-toronto-catalogue) of live restaurants. Its owners sign in as `<slug>@seed.hg` with the same password. Their restaurants are already live, so they skip onboarding. You don't need to keep a restaurant console open for them to read open to customers: `make run` sends their heartbeat once a minute, and it leaves `paused` alone.
 
 ---
 

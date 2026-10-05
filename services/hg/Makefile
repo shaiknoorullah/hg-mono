@@ -51,6 +51,7 @@ build: ## Compile the binary into ./bin/hg
 run: ensure-env ## Run the API on the host against the compose dependencies
 	@set -a; . $(ENV_FILE); set +a; \
 	HG_ENV=$${HG_ENV:-local} \
+	HG_DEVWORLD_TABLETS=$${HG_DEVWORLD_TABLETS:-$$([ "$${HG_ENV:-local}" = local ] && echo on || echo off)} \
 	HG_SERVICE_VERSION=$(VERSION) \
 	HG_HTTP_ADDR=$${HG_HTTP_ADDR:-:8080} \
 	HG_POSTGRES_DSN="postgres://hg_app:$${HG_DB_APP_PASSWORD}@localhost:$(HOST_POSTGRES_PORT)/$${POSTGRES_DB}?sslmode=disable" \
