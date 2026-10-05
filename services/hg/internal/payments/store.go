@@ -197,6 +197,10 @@ func (r *Repo) SetDefaultPaymentMethod(ctx context.Context, accountID, methodID 
 
 // IntentRow is the payment_intent row the module reads back.
 type IntentRow struct {
+	// ClientSecret is Stripe's client secret for the intent, passed straight
+	// from Stripe's answer to the caller that created the intent. It is never
+	// stored: GetOrderIntent and other reads leave it empty.
+	ClientSecret          string
 	ID                    string
 	OrderID               string
 	Kind                  string
