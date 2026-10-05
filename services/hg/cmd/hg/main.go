@@ -217,12 +217,15 @@ func (e *orderRealtimeEmitter) notifyRestaurantStaff(ctx context.Context, tx pgx
 // (e.g. dispatch has not yet matched a rider by the time the restaurant marks
 // ready) is a deliberate no-op: there is no recipient to tell yet, and the
 // dispatch module's own ready-check drives the rider once one is assigned.
+// Nor is a rider who already has the food told it is ready: a pickup before
+// the kitchen tapped ready marks the order ready in the pickup's own
+// transaction (orders.Store.PickUpTx).
 func (e *orderRealtimeEmitter) notifyAssignedRider(ctx context.Context, tx pgx.Tx, orderID uuid.UUID, ev notify.OrderEvent) error {
 	var riderAccountID uuid.UUID
 	err := tx.QueryRow(ctx, `
 		SELECT rider_account_id
 		  FROM assignment
-		 WHERE order_id = $1 AND terminated_at IS NULL`, orderID).
+		 WHERE order_id = $1 AND terminated_at IS NULL AND picked_up_at IS NULL`, orderID).
 		Scan(&riderAccountID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
@@ -318,6 +321,9 @@ type orderLifecycleAdapter struct {
 	store *orders.Store
 }
 
+// ConfirmPickup is the handoff seal scan's pickup (handoff.OrderLifecycle). The
+// rider's own pickup step moves the order inside its transaction instead, with
+// ConfirmPickupTx (pickup.go).
 func (a *orderLifecycleAdapter) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
 	return a.store.Transition(ctx, orders.TransitionRequest{
 		OrderID:        orderID,
@@ -615,7 +621,10 @@ func run() error {
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
 	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
-	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr)
+	// A ready order nobody collects is escalated on each lapse of its pickup
+	// deadline: re-dispatch, an ops alert, a customer notice (pickup.go).
+	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr).
+		WithPickupEscalator(&pickupEscalator{notify: notifyClient.Enqueue})
 	go deadlineRunner.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
