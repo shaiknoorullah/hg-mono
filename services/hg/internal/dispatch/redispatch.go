@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // SearchStatus says where an order's search for a rider stood when its pickup
@@ -73,4 +75,58 @@ UPDATE dispatch
 		return "", fmt.Errorf("re-open search: %w", err)
 	}
 	return SearchReopened, nil
+}
+
+// EndSearchTx closes an order's search for a rider because the order is being
+// cancelled at the pickup escalation cap, inside the caller's transaction
+// (https://github.com/shaiknoorullah/hg-mono/issues/336). The dispatch ends in
+// NO_RIDER_FOUND with no deadline, so the dispatch runner never offers the
+// order again, and every offer still waiting for an answer is withdrawn and
+// its rider told. It reports false, and changes nothing, when a rider holds
+// the order: someone may be at the counter, so a person decides
+// (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions": the
+// cancel is for a ready order with no rider).
+func EndSearchTx(ctx context.Context, tx pgx.Tx, orderID string) (bool, error) {
+	var state string
+	var assigned bool
+	err := tx.QueryRow(ctx, `
+SELECT state::text, rider_account_id IS NOT NULL
+  FROM dispatch WHERE order_id = $1
+   FOR UPDATE`, orderID).Scan(&state, &assigned)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return true, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("lock dispatch: %w", err)
+	}
+	if assigned {
+		return false, nil
+	}
+	if state != "NO_RIDER_FOUND" && state != "COMPLETED" {
+		var at time.Time
+		if err := tx.QueryRow(ctx, `
+UPDATE dispatch
+   SET state = 'NO_RIDER_FOUND', state_since = now(), deadline_at = NULL, deadline_action = NULL,
+       lease_until = NULL, lease_owner = NULL
+ WHERE order_id = $1
+RETURNING state_since`, orderID).Scan(&at); err != nil {
+			return false, fmt.Errorf("end search: %w", err)
+		}
+		if err := emitDispatchState(ctx, tx, orderID, state, "NO_RIDER_FOUND", at); err != nil {
+			return false, err
+		}
+	}
+	rows, err := tx.Query(ctx, `
+UPDATE dispatch_offer
+   SET state = 'WITHDRAWN', outcome = 'WITHDRAWN', outcome_at = now()
+ WHERE order_id = $1 AND state = 'PENDING'
+RETURNING id::text, order_id::text, rider_account_id::text`, orderID)
+	if err != nil {
+		return false, fmt.Errorf("withdraw offers: %w", err)
+	}
+	withdrawn, err := scanWithdrawn(rows)
+	if err != nil {
+		return false, err
+	}
+	return true, emitWithdrawn(ctx, tx, withdrawn, realtime.DispatchWithdrawnCancelled)
 }
