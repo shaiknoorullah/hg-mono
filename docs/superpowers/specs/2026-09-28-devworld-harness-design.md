@@ -1,7 +1,8 @@
 ---
 covers:
-  - services/hg/cmd/**
-  - services/hg/migrations/**
+  - services/hg/cmd/devworld/**
+  - services/hg/internal/devworld/**
+  - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
 reviewed: 2026-10-05
@@ -234,3 +235,6 @@ The harness produces real realtime events (order state changes, offers, `rider.l
 - **One document per rider file.** The world SQL cannot give a rider two live `kyc_document` rows for the same document type and `stored_object`; the database refuses the second (`kyc_document_rider_file_once`, `services/hg/migrations/00038_rider_document_attached_once.sql`). Each seeded rider document needs its own file.
 - **CORS.** `HG_CORS_ALLOWED_ORIGINS` must include each app's dev origin (restaurant `http://localhost:5183`); `.env.example` has them, and `devworld reset` warns when the running config lacks one.
 - **Trusted proxy.** The compose stack refuses to start without `HG_TRUSTED_PROXY_CIDRS`, the networks whose forwarded client address the API believes (see the client-address step of the [middleware chain](../../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)). A `deploy/.env` copied before the setting existed needs the line from `.env.example`. Without it every request would carry Traefik's address, and the per-address sign-in limit would throttle every persona as one caller.
+
+**The platform account.** Migration `00056` creates the platform's own account (`platform@halalgoes.invalid`, `SUSPENDED`, no role and no credentials). The pickup-cap canceller (`services/hg/cmd/hg/pickup.go`) names it as the requester and approver of the refund a deadline owes ([#336](https://github.com/shaiknoorullah/hg-mono/issues/336)). `make dev-reset` keeps it, because the migrations create it, so no persona or scenario needs to seed it.
+

@@ -1218,7 +1218,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   | `AUTHORIZED` | `+60 s` | `OFFER_RESTAURANT` — emit the offer, transition T4 (or T5 if the restaurant is closed/paused) | 3 (retry every 60 s) | T5 `CANCELLED` + void |
   | `RESTAURANT_PENDING` | `+180 s` | `RESTAURANT_TIMEOUT` — transition T8, void auth, notify customer, decrement the restaurant's acceptance SLA | 0 | — |
   | `PREPARING` | `accepted_at + prep_eta + 10 min` | `PREP_OVERDUE` — notify customer with a new ETA, alert ops, re-arm `+10 min` | 3 | T11 `CANCELLED`, full customer refund, restaurant paid per policy |
-  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (restart a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` (pickup escalation, shipped) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
+  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (restart a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` (pickup escalation, shipped) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` (shipped, [#336](https://github.com/shaiknoorullah/hg-mono/issues/336); only when no rider holds the order, otherwise ops are alerted and it keeps escalating) |
   | `PICKED_UP` | `picked_up_at + 75 min` | `DELIVERY_OVERDUE` — ping rider, alert ops, re-arm `+15 min` | 3 | T17 `DISPUTED` + ops case. **Never auto-delivers.** |
   | `ARRIVED` | `+15 min` | `HANDOVER_OVERDUE` — notify customer, alert ops, re-arm `+10 min` | 2 | T17 `DISPUTED` + ops case |
   | `DELIVERED` | `+2 min` | `SETTLE` — post the settlement batch, transition T18; on failure re-arm with exponential backoff (2 m, 4 m, 8 m, …) | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
@@ -1275,7 +1275,9 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 
 > **Decided:** customer fully refunded, restaurant paid in full, the platform absorbs the cost ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
-> **Open:** is the customer offered a pickup option before the order is cancelled? ([cancel at the pickup cap](https://github.com/shaiknoorullah/hg-mono/issues/336))
+> **Open:** is the customer offered a pickup option before the order is cancelled? ([cancel at the pickup cap](https://github.com/shaiknoorullah/hg-mono/issues/336)) As built, they are not: they are told of the delay on each lapse, and at the cap the order is cancelled and refunded.
+
+  As built ([#336](https://github.com/shaiknoorullah/hg-mono/issues/336)): at the third lapse, in the deadline runner's one transaction, the search for a rider is closed (`NO_RIDER_FOUND`, pending offers withdrawn), the full refund is posted `AUTHORISED` with its balanced REFUND batch (`payments.RefundSystemCancelTx`), and the order moves to `CANCELLED` with `cancel_reason = NO_RIDER_FOUND`, so `order.cancelled` carries the refund and the refund sender sends it to Stripe. A refund needs an account that asked for it and one that approved it; a deadline has no person, so both are the platform's own account (migration `00056`), which cannot sign in and holds no role. An order a rider holds is not cancelled: the rider may be at the counter, so ops decide.
 
 > **DECISION REQUIRED — prep overdue cancellation**: When a kitchen blows through three escalations, is the restaurant still paid? · **Proposed default**: no — full customer refund, no restaurant payout, incident recorded against the restaurant's SLA. · **Why**: unlike the no-rider case, the failure is the restaurant's.
 
@@ -1639,6 +1641,8 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
   - **I-19.4** Every Stripe transfer/payout call is idempotency-keyed by `payout.id`.
   - **I-19.5** No partner takes a first order or offer before Stripe onboarding completes; a partner restricted later keeps working, and its balance accrues until payouts are re-enabled.
   - **I-19.6** Rider `date_of_birth` implies age ≥ 18 at onboarding.
+  - **I-19.7** A payout run on request is authorised on the database's live state, not on the access token alone. The account must be active, hold a live platform-wide `ADMIN` or `SUPER_ADMIN` grant, and not be suspended staff, both when the run is queued and again when it starts. An admin's run never pays the admin's own rider account or restaurants ([#457](https://github.com/shaiknoorullah/hg-mono/issues/457)).
+  - **I-19.8** Whether to pay a restaurant is decided inside the transaction that builds or claims its payout, under a lock on the restaurant row. A restaurant suspended partway through a run is not paid; its balance is kept until it is reinstated.
 - **Acceptance criteria**:
   1. Given a restaurant completes Express onboarding, Then `charges_enabled` remains false, `payouts_enabled` becomes true, and `capabilities.transfers` is `active`.
   2. Given a weekly payout run, Then every included ledger entry is stamped with the payout id and a second run produces `amount_cents = 0` for the same period.
@@ -2692,7 +2696,9 @@ CREATE INDEX audit_event_action ON audit_event(action, at DESC);
 
   The record is written in the **same transaction** as the business effect, so "money moved but the idempotency record did not commit" cannot happen.
 
-  As built, the claim and replay run for `issueRefund`, `approveRefund`, `declineRefund` and `addChargebackEvidenceNote` (`internal/payments/idempotency.go`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)): the response body is stored as the exact bytes sent, so a replay is byte-identical. Every other route still only requires the header.
+  As built, the claim and replay live in `internal/idempotency` and run for `createOrder`, `createRefund`, `issueRefund`, `approveRefund`, `declineRefund` and `addChargebackEvidenceNote` ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172), [#363](https://github.com/shaiknoorullah/hg-mono/issues/363)): the response body is stored as the exact bytes sent, so a replay is byte-identical. Every other route still only requires the header; on those a retry is stopped by the effect's own guard (a state check, a unique index or a deterministic Stripe key), not replayed.
+
+  `createOrder` claims the key first in the order's transaction, before the one-active-order check, so a retried checkout gets the first answer (order and `client_secret`) rather than `ACTIVE_ORDER_EXISTS`. The PaymentIntent is a network call made after that transaction commits, so the record commits `IN_PROGRESS` with the order attached (`resource_id`) and is completed with the answer once the gateway replies; that work finishes even if the client has disconnected. If the process dies in between, a retry after the one-minute lease takes the record over and finishes the same order: the PaymentIntent is keyed by the order id, so asking again creates no second authorisation. A server error other than the gateway's 503 is not recorded, so it is never replayed.
 
   Routes requiring a key: `POST /v1/orders`, `POST /v1/quotes`, `POST /v1/payments/*`, `POST /v1/refunds`, `POST /v1/payouts/*`, `POST /v1/tips`, `POST /v1/connect/account`, `POST /v1/uploads`, `POST /v1/disputes`, and every admin money action.
 

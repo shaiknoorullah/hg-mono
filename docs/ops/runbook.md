@@ -253,7 +253,8 @@ Each password check takes 64 MiB, so each API replica runs at most `HG_AUTH_HASH
 
 - **Signs:** an `admin.alert` of kind `PICKUP_OVERDUE` on the ops channel. The first comes 15 minutes after the kitchen marked the order ready, then one every 10 minutes until a rider picks it up ([pickup escalation][i293]). The customer is told each time.
 - **What the system has already done:** if the search for a rider had found nobody, it is searching again from the nearest radius. The alert says so, or says that a rider is assigned but late, or that no search has started.
-- **From the third alert** (45 minutes after ready, severity `CRITICAL`) the order needs a person. Cancelling with a full refund is not automatic yet, and the admin console cannot cancel a ready order ([#336][i336]): call on-call, and call the restaurant and the customer meanwhile.
+- **At the third lapse** (45 minutes after ready), if no rider holds the order, the system cancels it (`NO_RIDER_FOUND`), refunds the customer in full, pays the restaurant in full and puts the cost on the platform ([#336][i336]). The search for a rider is closed, and a `WARNING` alert says the order was cancelled. Nothing to do but check the refund reaches Stripe (it is sent like any approved refund).
+- **If a rider holds it** at the third alert (severity `CRITICAL`), it is not cancelled automatically, because the rider may be at the counter. The order needs a person, and the admin console cannot cancel a ready order: call on-call, call the rider, and call the restaurant and the customer meanwhile.
 - **Never** edit the order's state or `deadline_at` by hand ([deadlines spec][p15]).
 
 ## A suspected breach

@@ -203,13 +203,13 @@ const (
 // refreshTTL returns the idle and absolute refresh-token TTLs for a role class
 // (P-04 table). The most privileged role in the session decides the class, so a
 // short-lived admin session cannot be extended by a co-held customer grant.
+// Every staff role (support, admin, super admin) ends after 30 minutes idle and
+// 12 hours in total — docs/decisions/README.md "Staff session length".
 func refreshTTL(roles []string) (idle, absolute time.Duration) {
 	class := roleClass(roles)
 	switch class {
-	case classAdmin:
-		return 8 * time.Hour, 24 * time.Hour
-	case classSupport:
-		return 12 * time.Hour, 7 * 24 * time.Hour
+	case classAdmin, classSupport:
+		return 30 * time.Minute, 12 * time.Hour
 	case classRestaurant:
 		return 14 * 24 * time.Hour, 90 * 24 * time.Hour
 	default: // customer / rider
