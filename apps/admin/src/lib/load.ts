@@ -46,7 +46,12 @@ export async function unwrap<T>(result: Promise<FetchResult<T>> | FetchResult<T>
   return settled.data;
 }
 
-export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload: () => void } {
+/**
+ * `reload` re-runs the request through the loading state; `refresh` re-runs it silently,
+ * keeping the current data on screen and on failure — the live screens' path, so a realtime
+ * signal or a poll never flashes a skeleton or replaces a good view with an error.
+ */
+export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload: () => void; refresh: () => Promise<void> } {
   const [state, setState] = useState<AsyncState<T>>({
     status: 'loading',
     data: null,
@@ -73,5 +78,17 @@ export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload:
     void run();
   }, [run]);
 
-  return { ...state, reload: () => void run() };
+  // A silent refresh takes a ticket too: it refreshes the record now on screen, and an answer
+  // that arrives after the screen moved on (or after a newer run) is dropped.
+  const refresh = useCallback(async () => {
+    const ticket = ++latest.current;
+    try {
+      const data = await fetcher();
+      if (ticket === latest.current) setState({ status: 'ready', data, error: null });
+    } catch {
+      /* keep the last good view; the next signal or poll tries again */
+    }
+  }, [fetcher]);
+
+  return { ...state, reload: () => void run(), refresh };
 }

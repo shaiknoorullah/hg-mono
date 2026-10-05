@@ -14,6 +14,7 @@ import { PayoutsPage } from './routes/PayoutsPage';
 import { StaffPage } from './routes/StaffPage';
 import { SettingsPage } from './routes/SettingsPage';
 import { Shell } from './components/Shell';
+import { RestaurantRealtime } from './lib/realtime';
 
 const SCHEME = 'light' as const;
 const THEME = 'restaurant' as const;
@@ -58,7 +59,9 @@ export function App() {
           <Route
             element={
               <RequireAuth>
-                <Shell />
+                <RestaurantRealtime>
+                  <Shell />
+                </RestaurantRealtime>
               </RequireAuth>
             }
           >
