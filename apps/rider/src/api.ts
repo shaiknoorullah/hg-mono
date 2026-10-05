@@ -32,7 +32,7 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || DEFAULT_BASE
 export const IS_MOCK = API_BASE_URL === DEFAULT_BASE_URL;
 
 /** A client with no 401 handler, used only to call the refresh operation itself. */
-const refreshClient = createHgClient({
+export const refreshClient = createHgClient({
   baseUrl: API_BASE_URL,
   getToken: () => null,
   clientSurface: 'rider-app',
@@ -47,7 +47,7 @@ let refreshingEpoch = -1;
  * the server revokes the family on reuse). `true` tells the client to retry the request once;
  * on failure the session is cleared, which sends the rider back to sign-in.
  */
-async function onUnauthorized(): Promise<boolean> {
+export async function onUnauthorized(): Promise<boolean> {
   const rt = getRefreshToken();
   if (!rt) {
     // Signed in without a refresh token (or not signed in): a 401 means the session is over.
