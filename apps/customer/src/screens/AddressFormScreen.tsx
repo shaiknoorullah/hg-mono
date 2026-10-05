@@ -10,8 +10,19 @@
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppBar, Banner, Button, ErrorState, Input, Select, Spinner, Switch, Toast, useTheme } from '@hg/ui-native';
-import type { SelectOption } from '@hg/ui-native';
+import {
+  AppBar,
+  Button,
+  Checkbox,
+  ErrorState,
+  Input,
+  Spinner,
+  Toast,
+  useTheme,
+  useTypeStyle,
+} from '@hg/ui-native';
+
+import { InlineAlert } from '../components/InlineAlert';
 
 import {
   createAddress,
@@ -23,10 +34,14 @@ import { useAsync } from '../api/async';
 import { searchAddresses, MAPBOX_TOKEN, type GeocodeResult } from '../api/geocode';
 import { useNavigation } from '../navigation/stack';
 
+function provinceName(code: string): string {
+  return PROVINCES.find((p) => p.value === code)?.label ?? code;
+}
+
 /** Only used with no Mapbox token: the address is saved as "location not verified". */
 const UNVERIFIED_POINT = { latitude: 43.6532, longitude: -79.3832 };
 
-const PROVINCES: SelectOption[] = [
+const PROVINCES: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'ON', label: 'Ontario' },
   { value: 'AB', label: 'Alberta' },
   { value: 'BC', label: 'British Columbia' },
@@ -86,11 +101,14 @@ function Form({
   bottomInset: number;
   onSaved: () => void;
 }): React.ReactElement {
+  const theme = useTheme();
+  const bodySm = useTypeStyle('body.sm');
   const [label, setLabel] = React.useState(existing?.label ?? '');
   const [line1, setLine1] = React.useState(existing?.line1 ?? '');
   const [unit, setUnit] = React.useState(existing?.unit ?? '');
   const [buzzer, setBuzzer] = React.useState(existing?.buzzer ?? '');
   const [city, setCity] = React.useState(existing?.city ?? 'Toronto');
+  // Ontario only at launch (canvas: province fixed ON); an edit keeps what was saved.
   const [province, setProvince] = React.useState<string>(existing?.province ?? 'ON');
   const [postalCode, setPostalCode] = React.useState(existing?.postal_code ?? '');
   const [notes, setNotes] = React.useState(existing?.delivery_notes ?? '');
@@ -182,30 +200,41 @@ function Form({
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 + bottomInset, gap: 14 }}>
+    <ScrollView
+      style={{ backgroundColor: theme.color.surface.base }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 16 + bottomInset, gap: 16 }}
+      keyboardShouldPersistTaps="handled"
+    >
       {noToken ? (
-        <Banner
-          variant="warning"
-          title="Location not verified"
-          description="Address search isn't available in this build. You can type the address, but we can't confirm where it is."
+        // Address search (#179) is not in the contract yet, so this is the canvas's manual
+        // path ("Address — manual"). Said plainly, in a neutral notice: nothing is wrong.
+        <InlineAlert
+          role="status"
+          icon="map"
+          title="Type your address"
+          body="Address search isn't available in this version, so we can't check the spot on a map yet. Riders use the street address and your notes."
+          testID="AddressForm-manualNotice"
         />
       ) : (
         <View style={{ gap: 8 }}>
           <Input
-            label="Search your address"
+            label="Search for your address"
+            variant="search"
             value={query}
             onChange={setQuery}
-            placeholder="Start typing a street address"
+            placeholder="Street and number, or a place"
             helperText={hasPoint ? 'Location confirmed. Search again to change it.' : undefined}
           />
           {search.kind === 'loading' ? <Spinner label="Searching" /> : null}
           {search.kind === 'network' ? (
-            <Text style={{ color: '#B42318' }}>
+            <Text style={[bodySm, { color: theme.color.text.secondary }]}>
               Couldn't reach address search. Check your connection and keep typing to retry.
             </Text>
           ) : null}
           {search.kind === 'results' && search.results.length === 0 ? (
-            <Text>No matching addresses. Check the spelling or add the street number.</Text>
+            <Text style={[bodySm, { color: theme.color.text.secondary }]}>
+              No matching addresses. Check the spelling or add the street number.
+            </Text>
           ) : null}
           {search.kind === 'results'
             ? search.results.map((r) => (
@@ -216,24 +245,54 @@ function Form({
             : null}
         </View>
       )}
-      <Input label="Label" value={label} onChange={setLabel} placeholder="Home, Work…" />
       <Input label="Street address" value={line1} onChange={setLine1} required />
-      <Input label="Unit / apt." value={unit} onChange={setUnit} />
-      <Input label="Buzzer code" value={buzzer} onChange={setBuzzer} />
+      <Input label="Unit (optional)" value={unit} onChange={setUnit} />
+      <Input label="Buzzer (optional)" value={buzzer} onChange={setBuzzer} />
       <Input label="City" value={city} onChange={setCity} required />
-      <Select label="Province" options={PROVINCES} value={province} onChange={setProvince} required />
+      <Input
+        label="Province"
+        value={provinceName(province)}
+        onChange={() => undefined}
+        readOnly
+        helperText="We deliver in Ontario only for now."
+      />
       <Input
         label="Postal code"
         value={postalCode}
         onChange={setPostalCode}
-        placeholder="M5H 2N2"
+        helperText="For example M1R 4E7."
         required
       />
-      <Input label="Delivery notes" value={notes} onChange={setNotes} placeholder="Leave at the door…" />
-      <Switch checked={isDefault} onChange={setIsDefault} label="Set as default address" />
-      {errorText ? <Text style={{ color: '#B42318' }}>{errorText}</Text> : null}
-      <Button variant="primary" onPress={save} loading={saving} disabled={!valid} fullWidth>
-        {addressId ? 'Save changes' : 'Add address'}
+      <Input
+        label="Label (optional)"
+        value={label}
+        onChange={setLabel}
+        helperText="For example Home or Work."
+      />
+      <Input
+        label="Notes for the rider (optional)"
+        value={notes}
+        onChange={setNotes}
+        helperText="For example the entrance or where to park."
+        maxLength={200}
+        characterCount
+      />
+      <Checkbox checked={isDefault} onChange={setIsDefault} label="Make this my default address" />
+      {errorText ? (
+        <Text accessibilityRole="alert" style={[bodySm, { color: theme.color.feedback.danger.text }]}>
+          {errorText}
+        </Text>
+      ) : null}
+      <Button
+        variant="primary"
+        size="lg"
+        onPress={save}
+        loading={saving}
+        disabled={!valid}
+        fullWidth
+        testID="AddressForm-save"
+      >
+        {addressId ? 'Save changes' : 'Save address'}
       </Button>
       {toast ? <Toast variant="danger" title={toast} onDismiss={() => setToast(null)} /> : null}
     </ScrollView>
