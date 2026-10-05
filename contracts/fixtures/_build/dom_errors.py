@@ -240,8 +240,30 @@ ERRORS = [
 # (docs/decisions/README.md, "Settled — redesign decisions, round 2", "Launch scope and
 # contract"). Same tuple as ERRORS plus the operations each one is registered for, so the
 # mock lists them under the operation that returns them. Codes and messages match what
-# services/hg returns today.
+# services/hg returns today. verifyEmail's link errors are here too: its success is a bare
+# 204 with no session (https://github.com/shaiknoorullah/hg-mono/issues/356), so its
+# errors are its only fixtures.
 LAUNCH_ERRORS = [
+    (
+        "verification_token_expired",
+        410,
+        "VERIFICATION_TOKEN_EXPIRED",
+        "This verification link has expired.",
+        None,
+        "`verifyEmail` with a token older than 24 hours. A token that never existed gets the "
+        "same code. The page offers \"Send a new link\" (`resendEmailVerification`).",
+        ["verifyEmail"],
+    ),
+    (
+        "verification_token_used",
+        410,
+        "VERIFICATION_TOKEN_USED",
+        "This verification link has already been used.",
+        None,
+        "`verifyEmail` with a token that was already used: the email is verified, so the page "
+        "sends the owner to sign in. Using the link never signs anyone in.",
+        ["verifyEmail"],
+    ),
     (
         "reset_token_not_valid",
         400,
