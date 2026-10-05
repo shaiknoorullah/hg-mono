@@ -87,6 +87,31 @@ func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.T
 	return e.enqueueLifecycleNotification(ctx, tx, orderID, newState)
 }
 
+var _ orders.DelayNotifier = (*orderRealtimeEmitter)(nil)
+
+// EmitOrderDelay tells the customer the restaurant delayed their order
+// (orders.DelayNotifier), inside the delay's transaction
+// (https://github.com/shaiknoorullah/hg-mono/issues/351).
+func (e *orderRealtimeEmitter) EmitOrderDelay(ctx context.Context, tx pgx.Tx, orderID string, delayNo, addedMinutes int) error {
+	if e.notify == nil {
+		return nil
+	}
+	oid, err := uuid.Parse(orderID)
+	if err != nil {
+		return fmt.Errorf("notify: parse order id %q: %w", orderID, err)
+	}
+	ev := notify.OrderEvent{OrderID: oid}
+	if err := tx.QueryRow(ctx, `
+		SELECT o.code, o.account_id, r.display_name
+		  FROM "order" o
+		  JOIN restaurant r ON r.id = o.restaurant_id
+		 WHERE o.id = $1`, oid).Scan(&ev.OrderShortCode, &ev.AccountID, &ev.RestaurantName); err != nil {
+		return fmt.Errorf("notify: load order %s for delay notification: %w", orderID, err)
+	}
+	_, err = e.notify.Enqueue(ctx, tx, notify.NotifyPrepDelayed(ev, delayNo, addedMinutes))
+	return err
+}
+
 // enqueueLifecycleNotification maps an order state transition to its notify
 // builder(s) and enqueues them inside the transition tx. Order details (code,
 // customer account, restaurant id/name, deadline_at) are read from the SAME

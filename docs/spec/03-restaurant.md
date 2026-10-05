@@ -1750,6 +1750,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   6. Messages are rate-limited to 10 per order per actor.
   7. `ORDER_READY` is emitted automatically by R-25 and cannot be sent manually (prevents duplicate
      pings).
+  8. The orders module applies the delay, not the restaurant module: `Store.DelayInTx` in
+     `internal/orders` counts the order's `order_delay` rows under its row lock, moves `deadline_at`
+     and `promised_ready_at`, writes the `order_delay` row and the `PREPARING → PREPARING`
+     `order_transition` row, emits `order.state_changed` (reason: the delay's reason code, with the
+     new `deadline_at`) and enqueues the customer's `ORDER_PREP_DELAYED` notification, in one
+     transaction ([#351](https://github.com/shaiknoorullah/hg-mono/issues/351)). Telling the
+     assigned rider by push, and the `delay_not_allowed_in_status` error code, are not built yet.
 
 - **Acceptance criteria**:
   1. **Given** an order with `promised_ready_at = T`, **when** a +10 delay with `reason_code='HIGH_VOLUME'` is applied, **then** `promised_ready_at = T+10m`, one `order_delay` row exists, and both the rider and the customer receive an ETA update within 5 s.

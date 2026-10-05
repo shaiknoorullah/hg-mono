@@ -67,6 +67,7 @@ const (
 	KindOrderRejected        Kind = "ORDER_REJECTED"
 	KindOrderReady           Kind = "ORDER_READY"
 	KindOrderPickupDelayed   Kind = "ORDER_PICKUP_DELAYED"
+	KindOrderPrepDelayed     Kind = "ORDER_PREP_DELAYED"
 	KindOrderPickedUp        Kind = "ORDER_PICKED_UP"
 	KindOrderDelivered       Kind = "ORDER_DELIVERED"
 	KindOrderCancelled       Kind = "ORDER_CANCELLED"
