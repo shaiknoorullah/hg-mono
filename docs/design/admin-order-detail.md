@@ -30,6 +30,12 @@ reach any party. Captured Aug 2026 from product direction._
   falls back to last-known + timestamp if the rider is offline. Redis-flush safe (position is
   ephemeral; last-known persists).
 - **Expand:** the box opens to a larger map with full detail when clicked.
+- **Built (2026-10-05):** `apps/admin/src/components/LiveMapBox.tsx` on the shared `LiveMap`
+  (`packages/ui-web/src/live/`). The rider pin glides between `rider.location` fixes on
+  `order:{id}`; a fix older than 30 s says `last updated 42s ago`; state and dispatch events refetch
+  the order silently; with the socket down it polls `getOrderAdmin` every 5 s. Not built yet: the
+  route line, the current leg and heading. The same map drives the **live operations map**
+  (`#/live`, [A-38](../spec/05-admin.md#a-38--order-lookup-and-admin-order-intervention)).
 
 ## Parties & contacts (all three)
 
