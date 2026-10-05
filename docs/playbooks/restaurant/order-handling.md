@@ -21,7 +21,7 @@ This playbook scripts the end-to-end order processing lifecycle for restaurant o
    - Note: If live socket updates are not connected in your environment, click **Refresh**.
 3. **Visible assertion**:
    - A new order card appears displaying the order code (e.g. `#HG-…`), customer name, delivery destination, and ordered items.
-   - A 180-second countdown timer is active (enforcing [Platform Invariant 4](../../spec/01-platform.md#non-negotiable-invariants) — non-terminal states have a deadline).
+   - A 180-second countdown timer is active (enforcing [Platform Invariant 4](../../../AGENTS.md#3-non-negotiable-invariants) — non-terminal states have a deadline).
    - An attention ring highlights newly arrived orders.
 
 ---

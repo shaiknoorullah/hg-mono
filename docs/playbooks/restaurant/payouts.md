@@ -16,7 +16,7 @@ This playbook tests the partner payouts interface, verifying weekly cadence, fin
    - Open `/payouts`.
 2. **Visible assertion**:
    - Header displays **Payouts**.
-   - Subtitle reads: `Weekly, every Monday, automatic — no minimum balance required.` (confirming [Platform Rule P-19](../../spec/01-platform.md#p-19--weekly-monday-payouts-automatic-no-minimum)).
+   - Subtitle reads: `Weekly, every Monday, automatic — no minimum balance required.` (confirming [Platform Rule P-19](../../spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada)).
    - Action button **Refresh** is present.
 
 ---
