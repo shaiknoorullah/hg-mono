@@ -22,13 +22,14 @@ import (
 // Scheduling lives entirely in Postgres so a Redis flush cannot lose a timeout
 // (P-15). There is no external orchestrator.
 type DeadlineRunner struct {
-	store   *Store
-	pickup  PickupEscalator // runner_pickup.go; nil re-arms a lapsed pickup only
-	log     *slog.Logger
-	owner   string
-	batch   int
-	tick    time.Duration
-	gateway PaymentGateway
+	store       *Store
+	pickup      PickupEscalator      // runner_pickup.go; nil re-arms a lapsed pickup only
+	uncollected UncollectedCanceller // runner_pickup.go; nil keeps escalating at the cap
+	log         *slog.Logger
+	owner       string
+	batch       int
+	tick        time.Duration
+	gateway     PaymentGateway
 }
 
 // NewDeadlineRunner builds a runner. owner names this worker in the lease.

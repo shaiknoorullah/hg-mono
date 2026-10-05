@@ -15,6 +15,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
@@ -112,8 +113,8 @@ func alertPickupOverdue(ctx context.Context, tx pgx.Tx, e orders.PickupEscalatio
 	message := fmt.Sprintf("Order %s is ready and has not been picked up (lapse %d). %s", code, e.Lapse, found)
 	if e.CapReached {
 		severity = "CRITICAL"
-		message += " The escalation cap is reached and cancelling with a full refund is not automatic yet: " +
-			"assign a rider or cancel and refund the order."
+		message += " The escalation cap is reached but a rider holds the order, so it is not cancelled " +
+			"automatically: reach the rider, or reassign or cancel the order."
 	}
 	payload, err := json.Marshal(map[string]any{
 		"severity":     severity,
@@ -131,4 +132,46 @@ func alertPickupOverdue(ctx context.Context, tx pgx.Tx, e orders.PickupEscalatio
 		return fmt.Errorf("alert ops about the pickup: %w", err)
 	}
 	return nil
+}
+
+// uncollectedCanceller implements orders.UncollectedCanceller: at the pickup
+// escalation cap, a ready order no rider holds is cancelled with a full refund
+// (https://github.com/shaiknoorullah/hg-mono/issues/336). In the deadline
+// runner's transaction, before the order moves to CANCELLED, it closes the
+// search for a rider (dispatch.EndSearchTx), posts the refund the platform
+// absorbs (payments.RefundSystemCancelTx) and tells ops. The customer and the
+// restaurant hear of it from the cancellation itself: order.cancelled, with
+// the refund, and the customer's ORDER_CANCELLED notice.
+type uncollectedCanceller struct{}
+
+func (uncollectedCanceller) CancelUncollectedTx(ctx context.Context, tx pgx.Tx, orderID string) (bool, error) {
+	ended, err := dispatch.EndSearchTx(ctx, tx, orderID)
+	if err != nil || !ended {
+		return false, err
+	}
+	if err := payments.RefundSystemCancelTx(ctx, tx, orderID, "NO_RIDER_FOUND",
+		"No rider collected the order by the pickup escalation cap; cancelled and refunded in full."); err != nil {
+		return false, err
+	}
+	var code string
+	if err := tx.QueryRow(ctx, `SELECT code FROM "order" WHERE id = $1`, orderID).Scan(&code); err != nil {
+		return false, fmt.Errorf("load order %s for the cancel alert: %w", orderID, err)
+	}
+	payload, err := json.Marshal(map[string]any{
+		"severity":     "WARNING",
+		"kind":         machine.ActionPickupOverdue,
+		"subject_type": "ORDER",
+		"subject_id":   orderID,
+		"message": fmt.Sprintf("Order %s was never collected: no rider by the escalation cap. "+
+			"It is cancelled, the customer is refunded in full and the restaurant is paid.", code),
+		"at": httpx.Timestamp(time.Now()),
+	})
+	if err != nil {
+		return false, err
+	}
+	oid := orderID
+	if _, _, err := realtime.EmitInTx(ctx, tx, realtime.AdminOpsChannel, "admin.alert", 1, nil, payload, &oid, nil); err != nil {
+		return false, fmt.Errorf("alert ops about the cancel: %w", err)
+	}
+	return true, nil
 }
