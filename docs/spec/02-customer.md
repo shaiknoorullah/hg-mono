@@ -765,6 +765,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   3. PDF generation is on-demand and cached to Silo under `receipts/{year}/{receipt_number}.pdf`; the share link is a presigned GET with a **15 min** TTL.
   4. The receipt is available for orders that were cancelled after capture (showing the charge and the refund), and is **not** issued for orders that never captured.
   5. Tax registration number comes from `platform_config.tax_registration_number`; if it is empty the receipt renders without a tax line and the build emits a warning — it never prints a placeholder.
+  6. In the app, a delivered or completed order's tracking screen loads the receipt with `getOrderReceipt` and shows its lines (quantity, name, variant, add-ons, special request, line total), each fee, the tax lines, the total and the payment; until the order completes the server answers 409, and the app says calmly that the receipt will be ready when the order is complete, never an error ([#60](https://github.com/shaiknoorullah/hg-mono/issues/60)).
 - **Acceptance criteria**:
   1. Given a delivered order, when the receipt is opened, then every C-22 line and the payment method's last4 are present and the totals sum exactly to `amount charged`.
   2. Given the restaurant later renames itself, when the old receipt is reopened, then it shows the original name from `snapshot`.
