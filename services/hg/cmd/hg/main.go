@@ -822,7 +822,11 @@ func run() error {
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
 	admin.Routes(router, admin.NewHandler(
-		admin.NewRepo(st.DB().Pool).WithNotifications(notifyClient.Enqueue, authModule.StaffInviter()),
+		// ordersStore carries the notification emitter, so a staff cancel
+		// tells the customer like every other transition
+		// (https://github.com/shaiknoorullah/hg-mono/issues/352).
+		admin.NewRepo(st.DB().Pool).WithNotifications(notifyClient.Enqueue, authModule.StaffInviter()).
+			WithOrdersStore(ordersStore),
 		admin.DefaultConfig()))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
