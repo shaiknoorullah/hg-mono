@@ -473,6 +473,8 @@ func addAdmin(t *testing.T, db *pgxpool.Pool) string {
 		RETURNING id::text`).Scan(&id); err != nil {
 		t.Fatalf("seed admin: %v", err)
 	}
+	// The live grant the payout run checks, as sign-in would have found it.
+	mustExec(t, db, `INSERT INTO account_role (account_id, role, scope_type) VALUES ($1, 'ADMIN', 'GLOBAL')`, id)
 	return id
 }
 
@@ -703,11 +705,15 @@ type stripeTransfers struct {
 	bankFail  map[string]string // connected accounts whose next bank payout fails: "refuse" or "timeout"
 	timeoutTo map[string]bool   // destination accounts whose next transfer times out after Stripe made it
 	crashTo   map[string]bool   // destination accounts whose next transfer kills the caller after Stripe made it
+	refuseTo  map[string]bool   // destination accounts whose next transfer Stripe refuses, making none
+	// afterCreate, when set, runs after Stripe made a transfer: the world
+	// changing while a run is mid-flight.
+	afterCreate func(CreateTransferInput)
 }
 
 func newStripeTransfers() *stripeTransfers {
 	return &stripeTransfers{byKey: map[string]*StripeTransfer{}, byGroup: map[string]*StripeTransfer{},
-		timeoutTo: map[string]bool{}, crashTo: map[string]bool{},
+		timeoutTo: map[string]bool{}, crashTo: map[string]bool{}, refuseTo: map[string]bool{},
 		bankByKey: map[string]*StripeBankPayout{}, bankFail: map[string]string{}}
 }
 
@@ -716,8 +722,20 @@ func (s *stripeTransfers) client() *mockStripe {
 }
 
 func (s *stripeTransfers) create(in CreateTransferInput) (*StripeTransfer, error) {
+	tr, err := s.record(in)
+	if err == nil && s.afterCreate != nil {
+		s.afterCreate(in)
+	}
+	return tr, err
+}
+
+func (s *stripeTransfers) record(in CreateTransferInput) (*StripeTransfer, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.refuseTo[in.DestinationAcct] {
+		delete(s.refuseTo, in.DestinationAcct)
+		return nil, errors.New("stripe create transfer: insufficient platform balance")
+	}
 	if tr, ok := s.byKey[in.IdempotencyKey]; ok && !s.forget {
 		return tr, nil
 	}
@@ -798,6 +816,12 @@ func (s *stripeTransfers) find(group string) (*StripeTransfer, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.byGroup[group], nil
+}
+
+func (s *stripeTransfers) refuseNext(ownerID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.refuseTo["acct_"+ownerID] = true
 }
 
 func (s *stripeTransfers) timeoutAfterCreate(ownerID string) {

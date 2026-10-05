@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // ErrNotFound is returned by the repository when a row does not exist.
@@ -27,6 +28,10 @@ type Repo struct {
 	// nothing, which only tests rely on.
 	notify  notify.TxEnqueuer
 	inviter notify.StaffInviter
+
+	// orders is the orders module's store with its notification emitter
+	// (WithOrdersStore). Nil builds one with none, which only tests rely on.
+	orders *orders.Store
 }
 
 // NewRepo builds the repository over the shared pool.
@@ -37,6 +42,14 @@ func NewRepo(pool *pgxpool.Pool) *Repo { return &Repo{pool: pool} }
 func (r *Repo) WithNotifications(enq notify.TxEnqueuer, inviter notify.StaffInviter) *Repo {
 	r.notify = enq
 	r.inviter = inviter
+	return r
+}
+
+// WithOrdersStore wires the orders module's store that carries the
+// notification emitter (cmd/hg/main.go), so a staff cancel notifies the
+// customer like every other order transition. Call once at boot.
+func (r *Repo) WithOrdersStore(st *orders.Store) *Repo {
+	r.orders = st
 	return r
 }
 

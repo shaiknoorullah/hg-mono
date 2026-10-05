@@ -7,7 +7,7 @@
 //
 // <customer key> is a key under `customers` in world.json (written by tools/e2e/seed/seed.sh).
 import { randomBytes } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { waitForCode } from './otp.mjs';
 import { OUT } from './paths.mjs';
@@ -17,7 +17,11 @@ export const API = process.env.E2E_API_URL ?? 'http://localhost:8080';
 
 /** world.json: the seeded people and places, and their sign-in details. */
 export function world() {
-  return JSON.parse(readFileSync(path.join(OUT, 'world.json'), 'utf8'));
+  const p = path.join(OUT, 'world.json');
+  if (!existsSync(p)) {
+    throw new Error(`world.json not found at ${p}: run tools/e2e/seed/seed.sh first`);
+  }
+  return JSON.parse(readFileSync(p, 'utf8'));
 }
 
 /** A fresh Idempotency-Key (the API wants 16–128 characters). */

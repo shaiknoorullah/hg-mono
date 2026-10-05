@@ -310,9 +310,9 @@ func Guard(az Authorizer) Middleware {
 // commit in the same transaction as the business effect, so it belongs in the
 // store, not in a middleware that has no transaction.
 //
-// TODO(orders/payments siblings): implement the claim/replay per P-37 and call
-// it from the handler's transaction; then extend this to emit the
-// Idempotency-Replayed header.
+// The claim and replay are internal/idempotency, called from the handler's
+// transaction; a route that does not call it only requires the header
+// (https://github.com/shaiknoorullah/hg-mono/issues/363).
 func IdempotencyKey() Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

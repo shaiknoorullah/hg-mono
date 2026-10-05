@@ -707,9 +707,11 @@ func run() error {
 	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
 	// A ready order nobody collects is escalated on each lapse of its pickup
-	// deadline: re-dispatch, an ops alert, a customer notice (pickup.go).
+	// deadline: re-dispatch, an ops alert, a customer notice; at the cap, if
+	// no rider holds it, it is cancelled with a full refund (pickup.go).
 	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr).
-		WithPickupEscalator(&pickupEscalator{notify: notifyClient.Enqueue})
+		WithPickupEscalator(&pickupEscalator{notify: notifyClient.Enqueue}).
+		WithUncollectedCanceller(uncollectedCanceller{})
 	go deadlineRunner.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
@@ -822,7 +824,11 @@ func run() error {
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
 	admin.Routes(router, admin.NewHandler(
-		admin.NewRepo(st.DB().Pool).WithNotifications(notifyClient.Enqueue, authModule.StaffInviter()),
+		// ordersStore carries the notification emitter, so a staff cancel
+		// tells the customer like every other transition
+		// (https://github.com/shaiknoorullah/hg-mono/issues/352).
+		admin.NewRepo(st.DB().Pool).WithNotifications(notifyClient.Enqueue, authModule.StaffInviter()).
+			WithOrdersStore(ordersStore),
 		admin.DefaultConfig()))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,

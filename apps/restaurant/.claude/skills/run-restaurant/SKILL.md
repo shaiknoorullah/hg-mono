@@ -23,10 +23,11 @@ Paths below are relative to `apps/restaurant/`.
 
 ```bash
 D=.claude/skills/run-restaurant/driver.sh
-$D smoke          # start mock + vite if down, sign in, screenshot orders/menu/hours, click Accept, print network + console errors
-$D shot /payouts  # screenshot any route with the signed-in session (/staff, /settings, /onboarding, /login ...)
-$D up             # only start the servers (the browser part is yours: agent-browser --session hg-restaurant ...)
-$D down           # close the browser, kill whatever listens on 4010 and 5183
+$D smoke                           # start mock + vite if down, sign in, screenshot orders/menu/hours, click Accept, print network + console errors
+$D --backend local smoke           # run against local Go backend (http://localhost:8080)
+$D shot /payouts                   # screenshot any route with the signed-in session (/staff, /settings, /onboarding, /login ...)
+$D up                              # only start the servers (the browser part is yours: agent-browser --session hg-restaurant ...)
+$D down                            # close the browser, kill whatever listens on 4010 and 5183
 ```
 
 - Screenshots and logs go to `/tmp/hg-restaurant-run/` (override with `OUT=...`): `orders.png`, `menu.png`, `hours.png`, `mock.log`, `vite.log`. **Open the PNGs and look at them.**

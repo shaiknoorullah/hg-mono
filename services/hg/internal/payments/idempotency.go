@@ -3,34 +3,20 @@ package payments
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/idempotency"
 )
 
-// Idempotency is a request's Idempotency-Key with the scope the contract gives
-// it: (account, method, path template, key), plus a hash of the request, so
-// the same key on a different request is refused rather than replayed
-// (contracts/openapi.yaml, the IdempotencyKeyRequired parameter;
-// docs/spec/01-platform.md, "P-37 — Idempotency keys"). The router requires the
-// header on every money route; the record itself is written here, in the
-// transaction of the effect it guards. Nothing else claims idempotency_record
-// yet (internal/httpx/doc.go), so these refund and chargeback routes are the
-// first to replay.
-type Idempotency struct {
-	AccountID    string
-	Method       string
-	PathTemplate string
-	Key          string
-	RequestHash  []byte
-}
+// Idempotency is a request's Idempotency-Key with its scope and request hash
+// (internal/idempotency). The router requires the header on every money route;
+// the record itself is written in the transaction of the effect it guards.
+type Idempotency = idempotency.Key
 
 // Outcome is what a deciding service call produced: the status the contract
 // gives it and the response's data member. On a replay Body holds the first
@@ -48,9 +34,6 @@ type errReplay struct{ out Outcome }
 
 func (e *errReplay) Error() string { return "idempotent replay" }
 
-// idempotencyTTL is how long a key is remembered (the contract: 24 h).
-const idempotencyTTL = "24 hours"
-
 // once runs fn in one transaction with the request's idempotency record. The
 // first request with a key runs fn, and the record of its response commits
 // with its effect, or neither does. A request with the same key and the same
@@ -63,14 +46,21 @@ func (r *Repo) once(ctx context.Context, idem *Idempotency, fn func(tx pgx.Tx) (
 	err := r.tx(ctx, func(tx pgx.Tx) error {
 		var recordID string
 		if idem != nil {
-			id, replay, err := claimIdempotency(ctx, tx, idem)
-			if err != nil {
+			c, err := idempotency.Claim(ctx, tx, idem)
+			switch {
+			case errors.Is(err, idempotency.ErrKeyReuse):
+				return domainErr(string(httpx.CodeIdempotencyKeyReuse), 409,
+					"This Idempotency-Key was already used for a different request.")
+			case errors.Is(err, idempotency.ErrInProgress):
+				return domainErr(string(httpx.CodeIdempotencyInProgress), 409,
+					"A request with this Idempotency-Key is still in progress.")
+			case err != nil:
 				return err
 			}
-			if replay != nil {
-				return &errReplay{out: *replay}
+			if c.Replay != nil {
+				return &errReplay{out: Outcome{Status: c.Replay.Status, Replayed: true, Body: c.Replay.Body}}
 			}
-			recordID = id
+			recordID = c.RecordID
 		}
 		o, err := fn(tx)
 		if err != nil {
@@ -86,15 +76,7 @@ func (r *Repo) once(ctx context.Context, idem *Idempotency, fn func(tx pgx.Tx) (
 		if err != nil {
 			return err
 		}
-		// The response is kept as a JSON string holding the exact bytes sent,
-		// because jsonb would reorder its keys and the contract promises the
-		// replay byte for byte.
-		_, err = tx.Exec(ctx, `
-			UPDATE idempotency_record
-			   SET state = 'COMPLETED', response_status = $2, response_body = to_jsonb($3::text),
-			       completed_at = now(), lease_until = NULL
-			 WHERE id = $1`, recordID, o.Status, string(body))
-		return err
+		return idempotency.Complete(ctx, tx, recordID, idempotency.Response{Status: o.Status, Body: body})
 	})
 	var rep *errReplay
 	if errors.As(err, &rep) {
@@ -103,85 +85,10 @@ func (r *Repo) once(ctx context.Context, idem *Idempotency, fn func(tx pgx.Tx) (
 	return out, err
 }
 
-// claimIdempotency records the key as in progress, or reports the response
-// already recorded for it.
-func claimIdempotency(ctx context.Context, tx pgx.Tx, idem *Idempotency) (string, *Outcome, error) {
-	for attempt := 0; attempt < 2; attempt++ {
-		var id string
-		err := tx.QueryRow(ctx, `
-			INSERT INTO idempotency_record (account_id, method, path_template, key, request_hash, state,
-			                                lease_until, expires_at)
-			VALUES ($1, $2, $3, $4, $5, 'IN_PROGRESS', now() + interval '1 minute', now() + $6::interval)
-			ON CONFLICT (account_id, method, path_template, key) DO NOTHING
-			RETURNING id::text`,
-			idem.AccountID, idem.Method, idem.PathTemplate, idem.Key, idem.RequestHash, idempotencyTTL).Scan(&id)
-		if err == nil {
-			return id, nil, nil
-		}
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return "", nil, err
-		}
-		// Someone used this key first; their transaction has finished, since
-		// the insert waited on it.
-		var (
-			hash    []byte
-			state   string
-			status  *int
-			body    *string
-			expired bool
-		)
-		err = tx.QueryRow(ctx, `
-			SELECT id::text, request_hash, state, response_status, response_body #>> '{}', expires_at < now()
-			  FROM idempotency_record
-			 WHERE account_id = $1 AND method = $2 AND path_template = $3 AND key = $4`,
-			idem.AccountID, idem.Method, idem.PathTemplate, idem.Key).Scan(&id, &hash, &state, &status, &body, &expired)
-		if errors.Is(err, pgx.ErrNoRows) {
-			continue // removed in between; claim it again
-		}
-		if err != nil {
-			return "", nil, err
-		}
-		if expired {
-			// Past its 24 hours: the key is free again.
-			if _, err := tx.Exec(ctx, `DELETE FROM idempotency_record WHERE id = $1`, id); err != nil {
-				return "", nil, err
-			}
-			continue
-		}
-		if !bytes.Equal(hash, idem.RequestHash) {
-			return "", nil, domainErr(string(httpx.CodeIdempotencyKeyReuse), 409,
-				"This Idempotency-Key was already used for a different request.")
-		}
-		if state != "COMPLETED" || status == nil || body == nil {
-			return "", nil, domainErr(string(httpx.CodeIdempotencyInProgress), 409,
-				"A request with this Idempotency-Key is still in progress.")
-		}
-		return "", &Outcome{Status: *status, Replayed: true, Body: []byte(*body)}, nil
-	}
-	return "", nil, fmt.Errorf("idempotency key %q could not be claimed", idem.Key)
-}
-
 // readIdempotentBody reads a request body once, for both the hash and the
 // decoder, and builds the request's Idempotency.
 func readIdempotentBody(r *http.Request, pathTemplate string) ([]byte, *Idempotency, error) {
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err != nil {
-		return nil, nil, err
-	}
-	key, ok := httpx.IdempotencyKeyFrom(r.Context())
-	if !ok {
-		return body, nil, nil
-	}
-	h := sha256.New()
-	fmt.Fprintf(h, "%s %s\n", r.Method, r.URL.Path)
-	h.Write(body)
-	return body, &Idempotency{
-		AccountID:    httpx.PrincipalFrom(r.Context()).AccountID,
-		Method:       r.Method,
-		PathTemplate: pathTemplate,
-		Key:          key,
-		RequestHash:  h.Sum(nil),
-	}, nil
+	return idempotency.FromRequest(r, pathTemplate)
 }
 
 // writeOutcome writes a deciding call's response: the first time through the
@@ -191,14 +98,7 @@ func writeOutcome(w http.ResponseWriter, r *http.Request, out Outcome) {
 		httpx.Respond(w, r, out.Status, out.Data)
 		return
 	}
-	if rid := httpx.RequestIDFrom(r.Context()); rid != "" {
-		w.Header().Set("X-Request-ID", rid)
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("Idempotency-Replayed", "true")
-	w.WriteHeader(out.Status)
-	_, _ = w.Write(out.Body)
+	idempotency.WriteReplay(w, r, idempotency.Response{Status: out.Status, Body: out.Body})
 }
 
 // decodeStrict decodes a body read by readIdempotentBody, refusing unknown

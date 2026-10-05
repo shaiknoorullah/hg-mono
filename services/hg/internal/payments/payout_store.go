@@ -296,26 +296,79 @@ func (r *Repo) runPayees(ctx context.Context, cutoff time.Time) ([]PayeeRef, err
 
 // isOwnPayee reports whether the account is the payee: the rider themselves,
 // or anyone holding a live role at the restaurant.
-func (r *Repo) isOwnPayee(ctx context.Context, accountID string, p PayeeRef) (bool, error) {
+func isOwnPayee(ctx context.Context, q rowQuerier, accountID string, p PayeeRef) (bool, error) {
 	if p.Type == PayeeRider {
 		return accountID == p.ID, nil
 	}
 	var own bool
-	err := r.pool.QueryRow(ctx, `
+	err := q.QueryRow(ctx, `
 		SELECT EXISTS (SELECT 1 FROM account_role
 		                WHERE account_id = $1 AND scope_id = $2 AND revoked_at IS NULL)`,
 		accountID, p.ID).Scan(&own)
 	return own, err
 }
 
+// ownPayees lists the partners an account is: itself as a rider, and every
+// restaurant it holds a live role at. An admin run never pays them.
+func ownPayees(ctx context.Context, q querierRows, accountID string) (map[PayeeRef]bool, error) {
+	own := map[PayeeRef]bool{{Type: PayeeRider, ID: accountID}: true}
+	rows, err := q.Query(ctx, `
+		SELECT scope_id::text FROM account_role
+		 WHERE account_id = $1 AND scope_type = 'RESTAURANT' AND revoked_at IS NULL`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		own[PayeeRef{Type: PayeeRestaurant, ID: id}] = true
+	}
+	return own, rows.Err()
+}
+
+// querierRows is a pool or a transaction that can run a query.
+type querierRows interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
 // payeeExists reports whether the id names a restaurant or a rider.
-func (r *Repo) payeeExists(ctx context.Context, p PayeeRef) (bool, error) {
-	q := `SELECT EXISTS (SELECT 1 FROM restaurant WHERE id = $1)`
+func payeeExists(ctx context.Context, q rowQuerier, p PayeeRef) (bool, error) {
+	sql := `SELECT EXISTS (SELECT 1 FROM restaurant WHERE id = $1)`
 	if p.Type == PayeeRider {
-		q = `SELECT EXISTS (SELECT 1 FROM rider_profile WHERE account_id = $1)`
+		sql = `SELECT EXISTS (SELECT 1 FROM rider_profile WHERE account_id = $1)`
 	}
 	var ok bool
-	err := r.pool.QueryRow(ctx, q, p.ID).Scan(&ok)
+	err := q.QueryRow(ctx, sql, p.ID).Scan(&ok)
+	return ok, err
+}
+
+// livePayoutAdmin reports whether the account may run a payout right now, as
+// the database has it rather than as the access token said up to 15 minutes
+// ago: the account is active, holds a live platform-wide ADMIN or SUPER_ADMIN
+// grant, and is not a suspended or deactivated member of staff
+// (docs/spec/05-admin.md, "7.5 Money": retrying a payout is
+// Super Admin and Admin only). Inside a transaction it share-locks the account
+// and the grant, so a suspension or a revocation waits for the transaction
+// instead of slipping in between the check and the write it allows.
+func livePayoutAdmin(ctx context.Context, q rowQuerier, accountID string, lock bool) (bool, error) {
+	locking := ""
+	if lock {
+		locking = ` FOR SHARE OF a, ar`
+	}
+	var ok bool
+	err := q.QueryRow(ctx, `
+		SELECT count(*) > 0 FROM (
+		  SELECT 1
+		    FROM account a
+		    JOIN account_role ar ON ar.account_id = a.id
+		    LEFT JOIN staff_profile sp ON sp.account_id = a.id
+		   WHERE a.id = $1 AND a.status = 'ACTIVE' AND a.deleted_at IS NULL
+		     AND ar.revoked_at IS NULL AND ar.scope_type = 'GLOBAL' AND ar.role IN ('ADMIN', 'SUPER_ADMIN')
+		     AND (sp.account_id IS NULL OR (sp.status NOT IN ('SUSPENDED', 'DEACTIVATED') AND sp.deleted_at IS NULL))`+
+		locking+`) live`, accountID).Scan(&ok)
 	return ok, err
 }
 
@@ -323,9 +376,29 @@ func (r *Repo) payeeExists(ctx context.Context, p PayeeRef) (bool, error) {
 // suspended restaurant is not paid until it is reinstated
 // (docs/spec/03-restaurant.md, "R-32 — Payout schedule, preferences and
 // payout requests", rule 2); its balance stays intact.
+//
+// Read outside a transaction it is only a hint. The decision that pays is
+// taken inside the transaction that builds or claims the payout, by
+// lockedRestaurantSuspended, so a suspension that lands mid-run stops every
+// transfer claimed after it.
 func (r *Repo) restaurantSuspended(ctx context.Context, restaurantID string) (bool, string, error) {
+	return restaurantSuspendedIn(ctx, r.pool, restaurantID, false)
+}
+
+// lockedRestaurantSuspended is restaurantSuspended inside a transaction: it
+// share-locks the restaurant row, so a suspension waits for the transaction
+// to commit and the decision it took stays true until then.
+func lockedRestaurantSuspended(ctx context.Context, tx pgx.Tx, restaurantID string) (bool, string, error) {
+	return restaurantSuspendedIn(ctx, tx, restaurantID, true)
+}
+
+func restaurantSuspendedIn(ctx context.Context, q rowQuerier, restaurantID string, lock bool) (bool, string, error) {
+	sql := `SELECT account_state::text FROM restaurant WHERE id = $1`
+	if lock {
+		sql += ` FOR SHARE`
+	}
 	var state string
-	err := r.pool.QueryRow(ctx, `SELECT account_state::text FROM restaurant WHERE id = $1`, restaurantID).Scan(&state)
+	err := q.QueryRow(ctx, sql, restaurantID).Scan(&state)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, "", nil
 	}
@@ -377,7 +450,7 @@ type periodPayout struct {
 	Outcome     PayoutRunOutcome
 	Ready       bool
 	PayoutID    string
-	State       string // the payout's state when it already existed or was created
+	State       string // the payout's state when it already existed or was created; the restaurant's when suspended
 	AmountCents int64  // the payout, or the balance carried
 	HoldReason  string
 }
@@ -418,6 +491,19 @@ func (r *Repo) createPeriodPayout(ctx context.Context, payee PayeeRef, period Pa
 			return err
 		}
 		c.CurrentlyDue, c.EventuallyDue, c.PastDue, _ = parseRequirements(reqs)
+
+		// A suspended restaurant gets no payout, decided here on the row as it
+		// is now, not on the run's earlier read.
+		if payee.Type == PayeeRestaurant {
+			suspended, state, err := lockedRestaurantSuspended(ctx, tx, payee.ID)
+			if err != nil {
+				return err
+			}
+			if suspended {
+				out.Outcome, out.State = OutcomePartnerSuspended, state
+				return nil
+			}
+		}
 
 		// One payout per partner per period. The connect_account row lock
 		// above serialises runs for this partner, so this read cannot race;
@@ -510,6 +596,7 @@ func holdReasonFor(c ConnectRow) string {
 // transferClaim is a payout claimed for its Stripe transfer.
 type transferClaim struct {
 	Claimed         bool   // this worker may call Stripe
+	Suspended       string // the restaurant's state when it is suspended or banned: no transfer
 	Held            bool   // payouts are off for the partner: the payout is (still) HELD
 	WasHeld         bool   // it was HELD before this claim
 	State           string // the payout's state when it was not claimed
@@ -530,11 +617,12 @@ func (r *Repo) claimTransfer(ctx context.Context, payoutID, owner string, heldUn
 		// takes them in.
 		var c ConnectRow
 		var reqs []byte
+		var ownerType, ownerID string
 		err := tx.QueryRow(ctx, `
-			SELECT ca.id::text, ca.stripe_account_id, ca.payouts_enabled, ca.requirements
+			SELECT ca.id::text, ca.stripe_account_id, ca.payouts_enabled, ca.requirements, ca.owner_type, ca.owner_id::text
 			  FROM connect_account ca
 			 WHERE ca.id = (SELECT connect_account_id FROM payout WHERE id = $1)
-			 FOR UPDATE`, payoutID).Scan(&c.ID, &c.StripeAccountID, &c.PayoutsEnabled, &reqs)
+			 FOR UPDATE`, payoutID).Scan(&c.ID, &c.StripeAccountID, &c.PayoutsEnabled, &reqs, &ownerType, &ownerID)
 		if err != nil {
 			return err
 		}
@@ -556,6 +644,28 @@ func (r *Repo) claimTransfer(ctx context.Context, payoutID, owner string, heldUn
 			}
 		default:
 			return nil // PAID or FAILED: nothing to do
+		}
+
+		// A restaurant suspended since the run looked at it is not paid: the
+		// payout stays owed (a lapsed transfer goes back to READY, its attempts
+		// kept, so a later claim still looks for a transfer Stripe may have)
+		// and the run after reinstatement pays it.
+		if ownerType == PayeeRestaurant {
+			suspended, state, err := lockedRestaurantSuspended(ctx, tx, ownerID)
+			if err != nil {
+				return err
+			}
+			if suspended {
+				out.Suspended = state
+				_, err := tx.Exec(ctx, `
+					UPDATE payout
+					   SET state = CASE WHEN state = 'HELD' THEN 'HELD'::payout_state ELSE 'READY'::payout_state END,
+					       deadline_at = $2,
+					       deadline_action = CASE WHEN state = 'HELD' THEN 'release_held' ELSE 'execute_transfer' END,
+					       lease_until = NULL, lease_owner = NULL
+					 WHERE id = $1`, payoutID, heldUntil)
+				return err
+			}
 		}
 
 		if !c.PayoutsEnabled {
@@ -911,14 +1021,42 @@ func (r *Repo) closeCollection(ctx context.Context, restaurantID string, act run
 // insertAdminRun queues a run an admin asked for, with its audit event, in
 // one transaction. A retried request (same admin, same Idempotency-Key)
 // returns the first run and inserted=false.
+//
+// Who may ask is decided in the same transaction, on the database's state
+// and under a share lock, never on the access token alone: the admin still
+// holds the role (ErrNotPayoutAdmin), the partner exists (ErrNotFound) and is
+// not the admin (ErrOwnPayout).
 func (r *Repo) insertAdminRun(ctx context.Context, period PayoutPeriod, asOf, due time.Time, payee *PayeeRef,
 	reason, requestedBy, key, fingerprint string, actor adminActor) (PayoutRunRow, bool, error) {
 	var run PayoutRunRow
 	inserted := false
 	err := r.tx(ctx, func(tx pgx.Tx) error {
+		live, err := livePayoutAdmin(ctx, tx, requestedBy, true)
+		if err != nil {
+			return err
+		}
+		if !live {
+			return ErrNotPayoutAdmin
+		}
 		var payeeType, payeeID any
 		if payee != nil {
 			payeeType, payeeID = payee.Type, payee.ID
+			ok, err := payeeExists(ctx, tx, *payee)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return ErrNotFound
+			}
+			// Nobody runs their own payout: not a rider admin for themselves,
+			// not an admin who holds a role at the restaurant.
+			own, err := isOwnPayee(ctx, tx, requestedBy, *payee)
+			if err != nil {
+				return err
+			}
+			if own {
+				return ErrOwnPayout
+			}
 		}
 		row, err := scanPayoutRun(tx.QueryRow(ctx, `
 			INSERT INTO payout_run (kind, period_start, period_end, as_of, due_at, payee_type, payee_id,
@@ -944,6 +1082,36 @@ func (r *Repo) insertAdminRun(ctx context.Context, period PayoutPeriod, asOf, du
 		return writeAdminAudit(ctx, tx, actor, "payout_run.request", "payout_run", run.ID, reason, after)
 	})
 	return run, inserted, err
+}
+
+// adminRunAllowed decides, as the run starts, whether an admin run may still
+// pay: the admin who asked must still hold the role, and a run for one
+// partner must not be for the admin. A run waits in the queue, behind another
+// run or a crash, for as long as it takes; the request's check is not enough.
+// own is the admin's own partners, whom a run for every partner leaves out.
+func (r *Repo) adminRunAllowed(ctx context.Context, run PayoutRunRow) (refusal string, own map[PayeeRef]bool, err error) {
+	if run.Kind != RunAdmin || run.RequestedBy == nil {
+		return "", nil, nil
+	}
+	err = r.tx(ctx, func(tx pgx.Tx) error {
+		live, err := livePayoutAdmin(ctx, tx, *run.RequestedBy, true)
+		if err != nil {
+			return err
+		}
+		if !live {
+			refusal = "the admin who requested this run no longer holds the role; nothing was paid"
+			return nil
+		}
+		own, err = ownPayees(ctx, tx, *run.RequestedBy)
+		if err != nil {
+			return err
+		}
+		if run.Payee != nil && own[*run.Payee] {
+			refusal = "this run is for the requesting admin's own payout; nothing was paid"
+		}
+		return nil
+	})
+	return refusal, own, err
 }
 
 // GetPayoutRun returns one run, or ErrNotFound.
