@@ -659,7 +659,7 @@ func resetTokenErr(res ConsumeCredentialTokenResult) error {
 // invitation setting a first password: the user signs in afterwards with Login,
 // with the authenticator code where the account requires one
 // (https://github.com/shaiknoorullah/hg-mono/issues/356).
-func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, ip *string) error {
+func (s *Service) ResetPassword(ctx context.Context, token, newPassword, totpCode string, ip *string) error {
 	// 10 resets per hour per IP, checked before a hashing slot is taken, so a
 	// flood of made-up tokens never holds one (#216). The token itself is 256
 	// random bits, so this limit is about the hashing cost, not guessing. With
@@ -682,6 +682,14 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 	}
 	if err := resetTokenErr(state); err != nil {
 		return err
+	}
+	// A staff invitation confirming its authenticator (startInviteTotpEnrolment):
+	// check the code before the link is spent, so a mistyped code can be retried.
+	var pendingTOTP []byte
+	if totpCode != "" {
+		if pendingTOTP, err = s.checkPendingTOTP(ctx, state.AccountID, totpCode); err != nil {
+			return err
+		}
 	}
 	// Take the hashing slot before consuming the single-use token: if hashing
 	// is busy the caller gets 503 and the reset link still works on retry.
@@ -709,7 +717,65 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 		return err
 	}
 	s.deny.AddAccount(res.AccountID)
+	if pendingTOTP != nil {
+		// Only the secret the code was checked against: a second
+		// startInviteTotpEnrolment in between replaced it, and that one is unconfirmed.
+		return s.store.ActivateTOTPSecret(ctx, res.AccountID, pendingTOTP)
+	}
 	return nil
+}
+
+// StartInviteTOTP starts the authenticator enrolment for the account behind an
+// unused PASSWORD_RESET link (a staff invitation), when that account's roles
+// need one and it has none. The link is not spent: resetPassword with the
+// first code spends it. Rate-limited like resetPassword.
+func (s *Service) StartInviteTOTP(ctx context.Context, token string, ip *string) (*wireTotpEnrolment, error) {
+	if err := s.rl.Allow(ctx, Limit{Name: "invite-totp:ip", Subject: ipSubject(ip),
+		Max: 10, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
+		return nil, err
+	}
+	state, err := s.store.CredentialTokenState(ctx, "PASSWORD_RESET", HashOpaqueToken(token))
+	if err != nil {
+		return nil, err
+	}
+	if err := resetTokenErr(state); err != nil {
+		return nil, err
+	}
+	grants, err := s.store.RolesFor(ctx, state.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	if !requiresTOTP(grants) {
+		return nil, errInviteTOTPNotAvailable
+	}
+	rec, err := s.store.GetTOTPRecord(ctx, state.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	if rec.EnrolledAt != nil {
+		return nil, errInviteTOTPNotAvailable
+	}
+	return s.EnrollTOTP(ctx, state.AccountID)
+}
+
+// checkPendingTOTP validates code against the account's enrolment started but
+// not yet confirmed, and returns that sealed secret. It activates nothing.
+func (s *Service) checkPendingTOTP(ctx context.Context, accountID, code string) ([]byte, error) {
+	rec, err := s.store.GetTOTPRecord(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	if len(rec.SecretEnc) == 0 || rec.EnrolledAt != nil {
+		return nil, errTOTPNotEnrolled
+	}
+	plain, err := OpenAESGCM(s.secrets.AppDataKey, rec.SecretEnc)
+	if err != nil {
+		return nil, fmt.Errorf("check totp: open: %w", err)
+	}
+	if !totp_.Validate(code, string(plain)) {
+		return nil, errTOTPInvalidCode
+	}
+	return rec.SecretEnc, nil
 }
 
 // Refresh rotates a refresh token with reuse detection (P-04).
@@ -1001,7 +1067,10 @@ func (s *Service) DisableTOTP(ctx context.Context, accountID, code string) error
 // sentinel errors for TOTP flows.
 var (
 	errTOTPNotEnrolled = errors.New("totp not enrolled")
-	errTOTPInvalidCode = errors.New("totp invalid code")
+	// errInviteTOTPNotAvailable: the link's account needs no authenticator, or
+	// already has one (startInviteTotpEnrolment answers 409).
+	errInviteTOTPNotAvailable = errors.New("invite totp enrolment not available")
+	errTOTPInvalidCode        = errors.New("totp invalid code")
 	// errTOTPMandatory is returned when a caller whose role policy requires TOTP
 	// attempts disableTotp. Mapped to 403 MFA_REQUIRED per the contract.
 	errTOTPMandatory = errors.New("totp mandatory for role")

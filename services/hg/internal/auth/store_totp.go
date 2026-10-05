@@ -68,6 +68,23 @@ func (s *Store) ActivateTOTP(ctx context.Context, accountID string) error {
 	return nil
 }
 
+// ActivateTOTPSecret is ActivateTOTP for one exact sealed secret: it confirms
+// the enrolment only while that secret is still the one stored, so a secret
+// replaced after its code was checked is never confirmed.
+func (s *Store) ActivateTOTPSecret(ctx context.Context, accountID string, secretEnc []byte) error {
+	ct, err := s.pool.Exec(ctx, `
+		UPDATE account
+		SET totp_enrolled_at = now()
+		WHERE id = $1 AND deleted_at IS NULL AND totp_secret_enc = $2`, accountID, secretEnc)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return errTOTPNotEnrolled
+	}
+	return nil
+}
+
 // ClearTOTP removes the TOTP secret and enrolled_at, disabling TOTP for the
 // account. Ownership is enforced by the accountID predicate.
 func (s *Store) ClearTOTP(ctx context.Context, accountID string) error {
