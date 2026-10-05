@@ -344,7 +344,7 @@ func TestIntegration_RiderEarnings_RefundReversesTheEarnings(t *testing.T) {
 	if _, err := repo.CreateRefund(ctx, CreateRefundParams{
 		OrderID: o.OrderID, PaymentIntentID: intentID, Kind: RefundFull, Scope: ScopeFull,
 		ReasonCode: "NEVER_DELIVERED", AmountCents: o.TotalCents, Split: split,
-		State: RefundAuthorised, RequestedBy: fxAccountID, DeadlineAction: "submit_refund_to_stripe",
+		State: RefundAuthorised, RequestedBy: fxAccountID, ApprovedBy: fxAccountID, DeadlineAction: "submit_refund_to_stripe",
 		Ledger: &batch,
 	}); err != nil {
 		t.Fatalf("refund: %v", err)
@@ -416,6 +416,11 @@ func TestIntegration_RiderEarnings_EndpointsShowTheAmounts(t *testing.T) {
 		                             charges_enabled, payouts_enabled, details_submitted)
 		VALUES ('RIDER', $1, $2, true, true, true)`, o.RiderID, "acct_test_"+o.RiderID); err != nil {
 		t.Fatalf("seed connect account: %v", err)
+	}
+	// Only a finished order's earnings are paid out (payouts.go previewPayout).
+	if _, err := pool.Exec(ctx, `UPDATE "order" SET state = 'COMPLETED', completed_at = now(),
+	                                 deadline_at = NULL, deadline_action = NULL WHERE id = $1`, o.OrderID); err != nil {
+		t.Fatalf("complete the order: %v", err)
 	}
 	repo := NewRepo(pool)
 	now := time.Now()
