@@ -80,6 +80,10 @@ describe('admin live operations map', () => {
   it('follows each active order live and raises a banner on a dispatch failure', async () => {
     const socket = await renderOps([active]);
     expect(await screen.findByText(active.code)).toBeTruthy();
+    // One list read, not one per render: useLoad reloads whenever its fetcher changes.
+    await act(async () => new Promise((r) => setTimeout(r, 200)));
+    const listReads = vi.mocked(globalThis.fetch).mock.calls.filter(([input]) => String(input instanceof Request ? input.url : input).includes('/v1/admin/orders?'));
+    expect(listReads).toHaveLength(1);
     expect(screen.getByText(/Bilal S\. — last updated \d+s ago/)).toBeTruthy();
     expect(socket.sent).toContainEqual({ type: 'subscribe', channel: 'admin:ops' });
     expect(socket.sent).toContainEqual({ type: 'subscribe', channel: `order:${active.id}` });

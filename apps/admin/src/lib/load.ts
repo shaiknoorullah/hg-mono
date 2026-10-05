@@ -7,7 +7,7 @@
  * matches on. `HgApiError` is unwrapped into a stable `{ code, message }` so the feedback
  * components can drive their copy off the code.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { HgApiError, isApiError } from '@hg/api-client';
 
 export interface AsyncError {
@@ -58,31 +58,35 @@ export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload:
     error: null,
   });
 
+  // Callers memoise `fetcher` on the route parameter it reads (useCallback with `[certificateId]`
+  // and the like), so a new fetcher means the screen moved to another record: load that one. Each
+  // run takes a ticket and only the newest may set state, so a slower answer for the record the
+  // screen left can never overwrite the one now on it.
+  const latest = useRef(0);
   const run = useCallback(async () => {
+    const ticket = ++latest.current;
     setState({ status: 'loading', data: null, error: null });
     try {
       const data = await fetcher();
-      setState({ status: 'ready', data, error: null });
+      if (ticket === latest.current) setState({ status: 'ready', data, error: null });
     } catch (err) {
-      setState({ status: 'error', data: null, error: toAsyncError(err) });
+      if (ticket === latest.current) setState({ status: 'error', data: null, error: toAsyncError(err) });
     }
-    // fetcher is provided fresh per render by callers via useCallback; intentionally excluded.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetcher]);
 
   useEffect(() => {
     void run();
   }, [run]);
 
   const refresh = useCallback(async () => {
+    const ticket = ++latest.current;
     try {
       const data = await fetcher();
-      setState({ status: 'ready', data, error: null });
+      if (ticket === latest.current) setState({ status: 'ready', data, error: null });
     } catch {
       /* keep the last good view; the next signal or poll tries again */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetcher]);
 
   return { ...state, reload: () => void run(), refresh };
 }

@@ -102,7 +102,9 @@ export function LiveOpsScreen() {
   const status = useRealtimeStatus();
   /** Orders a discovery pass may keep as they are (set only while the socket is up). */
   const reuseRef = useRef<ReadonlyMap<string, OrderAdminView> | null>(null);
-  const { status: loadStatus, data, error, reload, refresh } = useLoad(() => loadActiveOrders(reuseRef.current));
+  // Stable on purpose: useLoad reloads whenever its fetcher changes.
+  const fetchActive = useCallback(() => loadActiveOrders(reuseRef.current), []);
+  const { status: loadStatus, data, error, reload, refresh } = useLoad(fetchActive);
   /** Per-order overrides from realtime: a newer fix, or a re-read order. */
   const [liveFix, setLiveFix] = useState<Record<string, RiderFix | null>>({});
   const [patched, setPatched] = useState<Record<string, OrderAdminView | null>>({});
