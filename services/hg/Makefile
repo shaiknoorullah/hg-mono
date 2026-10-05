@@ -242,7 +242,10 @@ dev-totp: ## Print the current local admin sign-in code
 
 .PHONY: dev-scenario
 dev-scenario: ## Drive one API scenario against a running local API (s=new-order)
-	@s="$${s:-new-order}"; \
+	@if [ -f $(ENV_FILE) ]; then set -a; . $(ENV_FILE); set +a; fi; \
+	export HG_ENV="$${HG_ENV:-local}"; \
+	export HG_POSTGRES_DSN="postgres://$${POSTGRES_USER:-hg}:$${POSTGRES_PASSWORD:-hg}@127.0.0.1:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$${POSTGRES_DB:-hg}?sslmode=disable"; \
+	s="$${s:-new-order}"; \
 	HG_API_URL="$${HG_API_URL:-http://127.0.0.1:8080}" $(GO) run ./cmd/devworld scenario "$$s"
 
 .PHONY: dev-journey

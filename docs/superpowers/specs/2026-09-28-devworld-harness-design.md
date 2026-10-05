@@ -153,6 +153,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `customer-cancels` | customer cancels a pending order | offer withdrawn |
 | `docs-approve` / `docs-reject` | `admin-seed` decides `docs-review` | onboarding advances / shows reason |
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
+| `onboard-restaurant` | a new restaurant signs up and onboards; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
 | `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
 
 ### 6.2 Bootstrap (not run by `reset`)
