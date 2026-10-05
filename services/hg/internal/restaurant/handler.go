@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/contract"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
@@ -481,6 +482,76 @@ func (h *Handler) UpdateMenuCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.Respond(w, r, http.StatusOK, cat)
+}
+
+// DeleteMenuCategory implements DELETE /v1/restaurant/menu/categories/{categoryId}.
+// x-roles: OWNER, MANAGER only. Only an empty category can be deleted (R-14): one
+// that still holds items is 409 CATEGORY_NOT_EMPTY with details.item_count.
+func (h *Handler) DeleteMenuCategory(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
+		return
+	}
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
+		return
+	}
+	categoryID := chi.URLParam(r, "categoryId")
+	if !isValidUUID(categoryID) {
+		// A malformed id names no category on this menu: the same 404 as a foreign one.
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
+	err := h.repo.DeleteCategory(r.Context(), restaurantID, categoryID)
+	var notEmpty *CategoryNotEmptyError
+	switch {
+	case err == nil:
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, ErrNotFound):
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+	case errors.As(err, &notEmpty):
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode(contract.ErrorCodeCATEGORYNOTEMPTY),
+			"Move or delete the items in this category before deleting it.",
+			map[string]any{"item_count": notEmpty.ItemCount})
+	case RespondMenuLocked(w, r, err):
+	default:
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+	}
+}
+
+// DeleteMenuItem implements DELETE /v1/restaurant/menu/items/{itemId}.
+// x-roles: OWNER, MANAGER only. A soft delete (R-15): order lines keep their own
+// snapshot, so no order in flight changes.
+func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
+		return
+	}
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
+		return
+	}
+	itemID := chi.URLParam(r, "itemId")
+	if !isValidUUID(itemID) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	err := h.repo.DeleteMenuItem(r.Context(), restaurantID, itemID)
+	switch {
+	case err == nil:
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, ErrNotFound):
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+	case RespondMenuLocked(w, r, err):
+	default:
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+	}
 }
 
 // CreateMenuItem implements POST /v1/restaurant/menu/items.

@@ -6,11 +6,11 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 166
-- **Validated (covered):** 164
+- **Total contract operations:** 168
+- **Validated (covered):** 166
 - **Not yet validated (uncovered):** 2
 
-## Covered (164)
+## Covered (166)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
@@ -51,6 +51,8 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `declineRefund` — POST /v1/admin/refunds/{refundId}/decline
 - `delayOrder` — POST /v1/restaurant/orders/{orderId}/delay
 - `deleteAddress` — DELETE /v1/addresses/{addressId}
+- `deleteMenuCategory` — DELETE /v1/restaurant/menu/categories/{categoryId}
+- `deleteMenuItem` — DELETE /v1/restaurant/menu/items/{itemId}
 - `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
 - `deletePaymentMethod` — DELETE /v1/payment-methods/{paymentMethodId}
 - `disableTotp` — POST /v1/auth/totp/disable

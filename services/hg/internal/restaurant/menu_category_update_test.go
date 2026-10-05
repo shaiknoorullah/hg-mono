@@ -29,7 +29,8 @@ func TestIntegration_UpdateMenuCategory(t *testing.T) {
 	h := newHandler(pool)
 	ctx := context.Background()
 
-	// The fixture's "Mains" (sort_order 0) plus Starters and Desserts, with gaps.
+	// The fixture's "Mains" (sort_order 0) and "Specials" (1), plus Starters and
+	// Desserts, with gaps.
 	var starters, desserts, foreign string
 	if err := pool.QueryRow(ctx, `INSERT INTO menu_category (restaurant_id, name, sort_order)
 		VALUES ($1, 'Starters', 5) RETURNING id`, f.restaurantID).Scan(&starters); err != nil {
@@ -80,7 +81,7 @@ func TestIntegration_UpdateMenuCategory(t *testing.T) {
 	if got.Data.Name != "Sweets" || got.Data.SortOrder != 0 || got.Data.IsActive {
 		t.Errorf("response = %+v, want Sweets at 0, inactive", got.Data)
 	}
-	if want, have := "Sweets:0,Mains:1,Starters:2", strings.Join(order(), ","); have != want {
+	if want, have := "Sweets:0,Mains:1,Specials:2,Starters:3", strings.Join(order(), ","); have != want {
 		t.Errorf("order = %s, want %s", have, want)
 	}
 
@@ -88,7 +89,7 @@ func TestIntegration_UpdateMenuCategory(t *testing.T) {
 	if rec := patchCategory(h, f, desserts, `{"sort_order":99}`); rec.Code != http.StatusOK {
 		t.Fatalf("move to end: status=%d (%s)", rec.Code, rec.Body.String())
 	}
-	if want, have := "Mains:0,Starters:1,Sweets:2", strings.Join(order(), ","); have != want {
+	if want, have := "Mains:0,Specials:1,Starters:2,Sweets:3", strings.Join(order(), ","); have != want {
 		t.Errorf("order = %s, want %s", have, want)
 	}
 

@@ -109,6 +109,9 @@ var expectedCovered = []string{
 	"listOrdersAdmin", "getOrderAdmin", "listMenuReviewQueue",
 	// menu edits that had no handler (https://github.com/shaiknoorullah/hg-mono/issues/502)
 	"updateMenuCategory", "updateMenuItemOnBehalf", "deleteMenuItemOnBehalf",
+	// a restaurant deletes its own items and empty categories
+	// (https://github.com/shaiknoorullah/hg-mono/issues/239)
+	"deleteMenuItem", "deleteMenuCategory",
 	// gap-closers (conformance_gaps_test.go): the full checkout money path against
 	// the local fake payment gateway, the dispatch accept/assignment pair, the
 	// realtime ticket (seeded session), and the signed Stripe webhook.
