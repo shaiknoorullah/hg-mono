@@ -5,11 +5,12 @@
 //
 // Run from repo root: SEED_EMAIL=... SEED_PASSWORD=... node tools/verify/resto-onboarding.mjs
 import { chromium } from 'playwright';
+import { requireEnv } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5180';
 const BASE = process.env.API_BASE ?? 'http://localhost:8095';
-const EMAIL = process.env.SEED_EMAIL ?? '';
-const PASSWORD = process.env.SEED_PASSWORD ?? '';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 
 const calls = [];
 const consoleErrors = [];
