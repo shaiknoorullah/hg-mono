@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 )
 
 // The handlers for refund, dispute, Connect account, transfer and bank-payout
@@ -576,6 +578,10 @@ func (s *Service) applyTransferEvent(ctx context.Context, tx pgx.Tx, ev stripeEv
 		if err := markPayoutFailedTx(ctx, tx, p.ID, p.State, ids, msg); err != nil {
 			return effect{}, err
 		}
+		if err := notifyPayoutFailed(ctx, tx, s.outbox, p.ID, notify.PayoutStopped, "transfer:"+tr.ID,
+			time.Time{}); err != nil {
+			return effect{}, err
+		}
 		if err := s.auditPayout(ctx, tx, ev, p, "FAILED", tr.ID); err != nil {
 			return effect{}, err
 		}
@@ -696,6 +702,9 @@ func (s *Service) applyPayoutEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 		if err := markPayoutPaidTx(ctx, tx, p.ID, p.State, payoutStripeIDs{Payout: po.ID}); err != nil {
 			return effect{}, err
 		}
+		if err := notifyPayoutSent(ctx, tx, s.outbox, p.ID, po.ID); err != nil {
+			return effect{}, err
+		}
 		if err := s.auditPayout(ctx, tx, ev, p, "PAID", po.ID); err != nil {
 			return effect{}, err
 		}
@@ -720,6 +729,10 @@ func (s *Service) applyPayoutEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 			return effect{kind: effectUnchanged, label: fmt.Sprintf("bank_payout_failed:payout_%s", p.State), stripeID: po.ID}, nil
 		}
 		if err := markBankPayoutReturnedTx(ctx, tx, p.ID, p.State, msg); err != nil {
+			return effect{}, err
+		}
+		if err := notifyPayoutFailed(ctx, tx, s.outbox, p.ID, notify.PayoutBankReturned, "bank_payout:"+po.ID,
+			nextScheduledRun(s.now())); err != nil {
 			return effect{}, err
 		}
 		if err := writeWebhookAudit(ctx, tx, webhookAudit{

@@ -57,6 +57,8 @@ func TestEveryBuilderFillsItsTemplate(t *testing.T) {
 		"invite":       must(StaffInviteEmail(StaffInvite{LinkEmail: adminLink, PlatformRole: "SUPPORT_AGENT"})),
 		"payout": must(PayoutSent(Payout{AccountID: acct, Role: RoleRider, PayeeName: "Omar", PayoutID: uuid.New(),
 			AmountCents: 123456, PeriodStart: when.AddDate(0, 0, -7), PeriodEnd: when, SentAt: when})),
+		"payout held": must(PayoutHeld(Payout{AccountID: acct, Role: RoleRestaurant, PayeeName: "Al-Noor Grill",
+			PayoutID: uuid.New(), AmountCents: 98765, PeriodStart: when.AddDate(0, 0, -7), PeriodEnd: when})),
 		"reminder": CertificateRenewalReminder(certificate, 7, 7),
 		"lapsed":   CertificateLapsed(certificate),
 	}
@@ -66,6 +68,11 @@ func TestEveryBuilderFillsItsTemplate(t *testing.T) {
 			ReasonText: "Please upload a clearer licence.", DecidedAt: when}))
 		built["rider "+string(d)] = must(RiderApplicationDecided(RiderApplicationDecision{
 			AccountID: acct, FirstName: "Omar", Decision: d, ReasonText: "Your licence photo is blurry.", DecidedAt: when}))
+	}
+	for _, problem := range []PayoutProblem{PayoutRetrying, PayoutBankReturned, PayoutStopped} {
+		built["payout failed "+string(problem)] = must(PayoutFailed(PayoutFailure{Payout: Payout{AccountID: acct,
+			Role: RoleRider, PayeeName: "Omar", PayoutID: uuid.New(), AmountCents: 4200, PeriodStart: when.AddDate(0, 0, -7),
+			PeriodEnd: when, Occurrence: "transfer_attempt:1"}, Problem: problem, NextRun: when.AddDate(0, 0, 7)}))
 	}
 	for _, suspended := range []bool{true, false} {
 		built["restaurant standing "+map[bool]string{true: "suspended", false: "reinstated"}[suspended]] = must(

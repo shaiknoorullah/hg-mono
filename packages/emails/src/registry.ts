@@ -2,7 +2,7 @@ import type { Template } from './define.js';
 import { emailVerification, passwordReset, staffInvite } from './templates/account.js';
 import { generic } from './templates/generic.js';
 import { certificateLapsed, certificateRenewalReminder } from './templates/halal.js';
-import { payoutSent } from './templates/money.js';
+import { payoutFailed, payoutHeld, payoutSent } from './templates/money.js';
 import {
   restaurantApplicationApproved,
   restaurantApplicationChangesRequested,
@@ -41,6 +41,8 @@ export const templates: readonly Template[] = [
   riderSuspended,
   riderReinstated,
   payoutSent,
+  payoutHeld,
+  payoutFailed,
   certificateRenewalReminder,
   certificateLapsed,
 ];

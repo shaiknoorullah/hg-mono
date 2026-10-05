@@ -15,13 +15,12 @@ import (
 // rider_profile and payout rows the caller's change just wrote, which is why
 // they take the transaction rather than a pool.
 //
-// Callers on main today: the admin application decisions (internal/admin).
-// Waiting for open pull requests: EnqueueRestaurantStanding and
-// EnqueueRiderStanding for the account-state operations (issue #253), and
-// EnqueuePayoutSent for the payout runner (pull request #307, called from its
-// markTransferred transaction). The halal expiry job (pull request #274)
-// resolves its own recipients and calls CertificateRenewalReminder and
-// CertificateLapsed directly.
+// Callers: the admin application decisions (internal/admin), and the payout
+// messages from the payments module (internal/payments/payout_notices.go):
+// sent from the bank payout's paid webhook, held from the payout run, failed
+// from the run and the transfer and bank payout webhooks. Waiting for the
+// account-state operations (issue #253, pull request #335):
+// EnqueueRestaurantStanding and EnqueueRiderStanding.
 
 // RestaurantRecipients is every account that holds a live owner or manager
 // grant on the restaurant: the people who answer for its application, its
@@ -156,45 +155,100 @@ func EnqueueRiderStanding(ctx context.Context, tx pgx.Tx, enq TxEnqueuer, accoun
 
 // EnqueuePayoutSent tells the payee that a PAID payout left: the restaurant's
 // owners and managers, or the rider. Call it in the transaction that moves
-// the payout to PAID (pull request #307's markTransferred), after the update.
-func EnqueuePayoutSent(ctx context.Context, tx pgx.Tx, enq TxEnqueuer, payoutID uuid.UUID) error {
+// the payout to PAID, after the update. bankPayoutID names the bank payout
+// that paid it (empty when there is none), so a payout paid again after its
+// bank returned the first one is told again.
+func EnqueuePayoutSent(ctx context.Context, tx pgx.Tx, enq TxEnqueuer, payoutID uuid.UUID, bankPayoutID string) error {
+	p, owner, err := loadPayout(ctx, tx, payoutID, "PAID")
+	if err != nil {
+		return err
+	}
+	if p.PaidAt != nil {
+		p.SentAt = *p.PaidAt
+	}
+	p.Occurrence = bankPayoutID
+	return enqueueToPayee(ctx, tx, enq, owner, p.Payout, PayoutSent)
+}
+
+// EnqueuePayoutHeld tells the payee that a payout is HELD because Stripe has
+// payouts turned off for them. Call it in the transaction that holds the
+// payout, only when it was not held already.
+func EnqueuePayoutHeld(ctx context.Context, tx pgx.Tx, enq TxEnqueuer, payoutID uuid.UUID) error {
+	p, owner, err := loadPayout(ctx, tx, payoutID, "HELD")
+	if err != nil {
+		return err
+	}
+	return enqueueToPayee(ctx, tx, enq, owner, p.Payout, PayoutHeld)
+}
+
+// EnqueuePayoutFailed tells the payee that a payout did not reach them, in
+// the transaction that records the failure. occurrence names this failure
+// (see Payout.Occurrence); nextRun is when it is tried again, zero for none.
+func EnqueuePayoutFailed(ctx context.Context, tx pgx.Tx, enq TxEnqueuer, payoutID uuid.UUID,
+	problem PayoutProblem, occurrence string, nextRun time.Time) error {
+	p, owner, err := loadPayout(ctx, tx, payoutID, "")
+	if err != nil {
+		return err
+	}
+	p.Occurrence = occurrence
+	return enqueueToPayee(ctx, tx, enq, owner, p.Payout, func(q Payout) (New, error) {
+		return PayoutFailed(PayoutFailure{Payout: q, Problem: problem, NextRun: nextRun})
+	})
+}
+
+// payoutOwner is who a payout is owed to.
+type payoutOwner struct {
+	Type string // RESTAURANT or RIDER
+	ID   uuid.UUID
+}
+
+type loadedPayout struct {
+	Payout
+	PaidAt *time.Time
+}
+
+// loadPayout reads what a payout message says. state, when set, is the state
+// the caller just moved the payout to; any other state is an error, because
+// the message would not be true.
+func loadPayout(ctx context.Context, tx pgx.Tx, payoutID uuid.UUID, state string) (loadedPayout, payoutOwner, error) {
 	var (
-		ownerType  string
-		ownerID    uuid.UUID
-		amount     int64
-		start, end time.Time
-		paidAt     *time.Time
-		zoneName   string
+		p        loadedPayout
+		owner    payoutOwner
+		got      string
+		zoneName string
 	)
 	err := tx.QueryRow(ctx, `
-		SELECT ca.owner_type, ca.owner_id, p.amount_cents, p.period_start, p.period_end, p.paid_at,
+		SELECT ca.owner_type, ca.owner_id, p.state::text, p.amount_cents, p.period_start, p.period_end, p.paid_at,
 		       COALESCE((SELECT r.timezone FROM restaurant r WHERE ca.owner_type = 'RESTAURANT' AND r.id = ca.owner_id),
 		                (SELECT a.timezone FROM account a WHERE ca.owner_type = 'RIDER' AND a.id = ca.owner_id), '')
 		  FROM payout p
 		  JOIN connect_account ca ON ca.id = p.connect_account_id
-		 WHERE p.id = $1 AND p.state = 'PAID'`, payoutID).
-		Scan(&ownerType, &ownerID, &amount, &start, &end, &paidAt, &zoneName)
+		 WHERE p.id = $1`, payoutID).
+		Scan(&owner.Type, &owner.ID, &got, &p.AmountCents, &p.PeriodStart, &p.PeriodEnd, &p.PaidAt, &zoneName)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("notify: payout %s is not PAID", payoutID)
+		return p, owner, fmt.Errorf("notify: no payout %s", payoutID)
 	}
 	if err != nil {
-		return fmt.Errorf("notify: load payout %s: %w", payoutID, err)
+		return p, owner, fmt.Errorf("notify: load payout %s: %w", payoutID, err)
 	}
-	sentAt := time.Now()
-	if paidAt != nil {
-		sentAt = *paidAt
+	if state != "" && got != state {
+		return p, owner, fmt.Errorf("notify: payout %s is %s, not %s", payoutID, got, state)
 	}
-	p := Payout{
-		PayoutID: payoutID, AmountCents: amount, PeriodStart: start, PeriodEnd: end,
-		SentAt: sentAt, Zone: Zone(zoneName),
-	}
-	switch ownerType {
+	p.PayoutID, p.SentAt, p.Zone = payoutID, time.Now(), Zone(zoneName)
+	return p, owner, nil
+}
+
+// enqueueToPayee builds one payout message for each person who hears about
+// the payee's money: the restaurant's owners and managers, or the rider.
+func enqueueToPayee(ctx context.Context, tx pgx.Tx, enq TxEnqueuer, owner payoutOwner, p Payout,
+	build func(Payout) (New, error)) error {
+	switch owner.Type {
 	case "RESTAURANT":
-		name, err := restaurantName(ctx, tx, ownerID)
+		name, err := restaurantName(ctx, tx, owner.ID)
 		if err != nil {
 			return err
 		}
-		recipients, err := RestaurantRecipients(ctx, tx, ownerID)
+		recipients, err := RestaurantRecipients(ctx, tx, owner.ID)
 		if err != nil {
 			return err
 		}
@@ -202,21 +256,21 @@ func EnqueuePayoutSent(ctx context.Context, tx pgx.Tx, enq TxEnqueuer, payoutID 
 		return enqueueEach(ctx, tx, enq, recipients, func(id uuid.UUID) (New, error) {
 			q := p
 			q.AccountID = id
-			return PayoutSent(q)
+			return build(q)
 		})
 	case "RIDER":
-		first, err := riderFirstName(ctx, tx, ownerID)
+		first, err := riderFirstName(ctx, tx, owner.ID)
 		if err != nil {
 			return err
 		}
-		p.Role, p.PayeeName, p.AccountID = RoleRider, first, ownerID
-		n, err := PayoutSent(p)
+		p.Role, p.PayeeName, p.AccountID = RoleRider, first, owner.ID
+		n, err := build(p)
 		if err != nil {
 			return err
 		}
 		_, err = enq.Enqueue(ctx, tx, n)
 		return err
 	default:
-		return fmt.Errorf("notify: payout %s belongs to unknown owner type %q", payoutID, ownerType)
+		return fmt.Errorf("notify: payout %s belongs to unknown owner type %q", p.PayoutID, owner.Type)
 	}
 }
