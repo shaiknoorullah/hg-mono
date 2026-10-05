@@ -151,6 +151,27 @@ func NotifyPickupDelayed(e OrderEvent, lapse int, nextUpdateWithin time.Duration
 	}
 }
 
+// NotifyPrepDelayed tells the customer the restaurant added time to their
+// order's preparation. Every delay notifies the customer; the restaurant
+// cannot delay silently (docs/spec/03-restaurant.md, "R-26 — Delay handling
+// and rider communication", rule 3). delayNo is the order's delay count from
+// 1, so each delay is one notice however often its enqueue is retried.
+func NotifyPrepDelayed(e OrderEvent, delayNo, addedMinutes int) New {
+	return New{
+		AccountID:   e.AccountID,
+		RoleContext: RoleCustomer,
+		Kind:        KindOrderPrepDelayed,
+		Title:       "Your order is running late",
+		Body: fmt.Sprintf("%s needs about %d more minutes to prepare order %s.",
+			e.RestaurantName, addedMinutes, e.OrderShortCode),
+		Priority:  PriorityHigh,
+		Channels:  standardChannels(),
+		DedupeKey: fmt.Sprintf("order_prep_delayed:%s:%d", e.OrderID, delayNo),
+		GroupKey:  "order:" + e.OrderID.String(),
+		OrderID:   uuid.NullUUID{UUID: e.OrderID, Valid: true},
+	}
+}
+
 // NotifyRiderAssigned tells the customer a rider is on the way.
 func NotifyRiderAssigned(e OrderEvent) New {
 	return New{
