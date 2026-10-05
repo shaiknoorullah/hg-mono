@@ -2542,7 +2542,7 @@ documents lapse cannot go on shift, but is not punished.
     next offer round.
   - R7 A staff cancel tells the customer like any other cancel: it goes through the order state
     machine's one transition function, which writes the `order.state_changed` and `order.cancelled`
-    realtime events and enqueues the customer's cancellation notification in the cancel's own
+    realtime events and enqueues the customer's cancellation notification in the same
     transaction ([#352](https://github.com/shaiknoorullah/hg-mono/issues/352)).
 - **Acceptance criteria**:
   1. Given a support agent and an order in `PREPARING`, when they attempt `CANCEL_ORDER`, then
