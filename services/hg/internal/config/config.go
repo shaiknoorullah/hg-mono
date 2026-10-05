@@ -46,6 +46,7 @@ type Config struct {
 	Postgres Postgres
 	Redis    Redis
 	MinIO    MinIO
+	Dispatch Dispatch
 	Stripe   Stripe
 	SMS      SMS
 	OTP      OTP
@@ -234,6 +235,23 @@ func (b Buckets) All() []string {
 	return []string{b.KYC, b.POD, b.Media, b.Exports, b.Tmp}
 }
 
+// Dispatch holds the rider availability sweeps' threshold and schedule
+// (internal/dispatch/availability_sweeper.go). The defaults are the values
+// docs/spec/04-rider.md sets in "D-10 — Availability: online / offline".
+type Dispatch struct {
+	// RiderStaleAfter (HG_RIDER_STALE_AFTER, default 120s): an online rider
+	// whose last location is older than this is moved to ONLINE_STALE and
+	// offered no work until their next location update.
+	RiderStaleAfter time.Duration
+	// RiderStaleSweepEvery (HG_RIDER_STALE_SWEEP_INTERVAL, default 15s): how
+	// often the stale-location sweep runs.
+	RiderStaleSweepEvery time.Duration
+	// RiderReconcileEvery (HG_RIDER_RECONCILE_INTERVAL, default 60s): how often
+	// a rider stuck ON_DELIVERY with no live assignment is looked for and
+	// restored.
+	RiderReconcileEvery time.Duration
+}
+
 // Load reads the environment into a Config.
 //
 // It accumulates every problem it finds and returns them together, so a
@@ -362,6 +380,24 @@ func Load(getenv func(string) string) (*Config, error) {
 		if !cfg.OTP.Verify.Configured() {
 			l.errf("HG_OTP_PROVIDER=twilio_verify requires HG_TWILIO_VERIFY_SERVICE_SID, " +
 				"HG_TWILIO_ACCOUNT_SID, and HG_TWILIO_AUTH_TOKEN")
+		}
+	}
+
+	cfg.Dispatch = Dispatch{
+		RiderStaleAfter:      l.duration("HG_RIDER_STALE_AFTER", 120*time.Second),
+		RiderStaleSweepEvery: l.duration("HG_RIDER_STALE_SWEEP_INTERVAL", 15*time.Second),
+		RiderReconcileEvery:  l.duration("HG_RIDER_RECONCILE_INTERVAL", 60*time.Second),
+	}
+	for _, v := range []struct {
+		key string
+		d   time.Duration
+	}{
+		{"HG_RIDER_STALE_AFTER", cfg.Dispatch.RiderStaleAfter},
+		{"HG_RIDER_STALE_SWEEP_INTERVAL", cfg.Dispatch.RiderStaleSweepEvery},
+		{"HG_RIDER_RECONCILE_INTERVAL", cfg.Dispatch.RiderReconcileEvery},
+	} {
+		if v.d <= 0 {
+			l.errf("%s: %s must be more than zero", v.key, v.d)
 		}
 	}
 
