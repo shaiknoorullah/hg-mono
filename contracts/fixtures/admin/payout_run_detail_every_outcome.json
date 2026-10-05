@@ -179,6 +179,28 @@
         "amount_cents": 0,
         "detail": "build payout: connection reset by peer",
         "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "5b8e4e17-01ef-4d21-a3f8-ee14eec26aba"
+        },
+        "outcome": "BANK_PAYOUT",
+        "payout_id": "c51b794c-a51a-450e-a186-b25a805d6965",
+        "amount_cents": 2099,
+        "detail": "Stripe bank payout po_1Q2w3E4r5T6y7U8i",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "dbfa6447-fd04-4b15-a548-adb980d5a1a8"
+        },
+        "outcome": "BANK_PAYOUT_FAILED",
+        "payout_id": "dc4cbd63-1b0f-4498-a24f-09cb84bd8f17",
+        "amount_cents": 650,
+        "detail": "stripe create bank payout: balance_insufficient; the next run asks again",
+        "at": "2026-08-10T13:00:02.517Z"
       }
     ]
   }

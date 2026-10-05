@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -362,6 +363,86 @@ func markPayoutFailedTx(ctx context.Context, tx pgx.Tx, payoutID, from string, i
 		       stripe_payout_id = coalesce(stripe_payout_id, $4), failure_message = $5, last_error = $5,
 		       deadline_at = NULL, deadline_action = NULL
 		 WHERE id = $1 AND state = $2`, nullStr(ids.Transfer), nullStr(ids.Payout), msg)
+}
+
+// markPayoutTransferredTx records that the money is in the partner's Stripe
+// balance: the transfer went through. The bank payout is due at once (#301).
+func markPayoutTransferredTx(ctx context.Context, tx pgx.Tx, payoutID, from string, ids payoutStripeIDs) error {
+	return movePayout(ctx, tx, payoutID, from, `
+		UPDATE payout
+		   SET state = 'TRANSFERRED', stripe_transfer_id = coalesce(stripe_transfer_id, $3),
+		       failure_message = NULL, last_error = NULL, deadline_at = now(), deadline_action = 'create_bank_payout',
+		       lease_until = NULL, lease_owner = NULL
+		 WHERE id = $1 AND state = $2`, nullStr(ids.Transfer))
+}
+
+// markBankPayoutReturnedTx records that a payout's bank payout failed or was
+// returned: the money is back in the partner's Stripe balance, so the payout
+// is TRANSFERRED again, with no bank payout on its way, due for the next run.
+// A payout that was PAID has its rider lines owed again, until a bank payout
+// is paid.
+func markBankPayoutReturnedTx(ctx context.Context, tx pgx.Tx, payoutID, from, msg string) error {
+	if err := movePayout(ctx, tx, payoutID, from, `
+		UPDATE payout
+		   SET state = 'TRANSFERRED', stripe_payout_id = NULL, paid_at = NULL,
+		       failure_message = $3, last_error = $3, deadline_at = now(), deadline_action = 'create_bank_payout'
+		 WHERE id = $1 AND state = $2`, msg); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `UPDATE earning_entry SET status = 'AVAILABLE' WHERE payout_id = $1 AND status = 'PAID'`, payoutID)
+	return err
+}
+
+// bankAttempt is one payout_bank_attempt row, locked.
+type bankAttempt struct {
+	PayoutID       string
+	Attempt        int
+	State          string
+	StripePayoutID string
+}
+
+// findBankAttemptForUpdate finds the bank payout attempt an event is about:
+// by its Stripe id, or, when the webhook beat the run's own record of it, by
+// the payout id and attempt number the run put in its metadata. It locks the
+// payout first and then the attempt, the order the run takes them in.
+func findBankAttemptForUpdate(ctx context.Context, tx pgx.Tx, stripeID, metadataPayoutID, metadataAttempt string) (
+	bankAttempt, payoutForStripe, bool, error) {
+	attempt, _ := strconv.Atoi(metadataAttempt)
+	var a bankAttempt
+	err := tx.QueryRow(ctx, `
+		SELECT payout_id::text FROM payout_bank_attempt
+		 WHERE stripe_payout_id = $1 OR (payout_id = $2::uuid AND attempt = $3 AND stripe_payout_id IS NULL)
+		 ORDER BY (stripe_payout_id = $1) DESC NULLS LAST
+		 LIMIT 1`, stripeID, uuidOrNil(metadataPayoutID), attempt).Scan(&a.PayoutID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return a, payoutForStripe{}, false, nil
+	}
+	if err != nil {
+		return a, payoutForStripe{}, false, err
+	}
+	p, found, err := findPayoutForUpdate(ctx, tx, "stripe_payout_id", stripeID, a.PayoutID)
+	if err != nil || !found || p.ID != a.PayoutID {
+		return a, p, false, err
+	}
+	err = tx.QueryRow(ctx, `
+		SELECT attempt, state, coalesce(stripe_payout_id, '') FROM payout_bank_attempt
+		 WHERE payout_id = $1 AND (stripe_payout_id = $2 OR (attempt = $3 AND stripe_payout_id IS NULL))
+		 FOR UPDATE`, a.PayoutID, stripeID, attempt).Scan(&a.Attempt, &a.State, &a.StripePayoutID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return a, p, false, nil
+	}
+	return a, p, err == nil, err
+}
+
+// settleBankAttemptTx records Stripe's final word on a bank payout attempt:
+// PAID, or FAILED with Stripe's reason.
+func settleBankAttemptTx(ctx context.Context, tx pgx.Tx, a bankAttempt, stripeID, state, code, msg string) error {
+	_, err := tx.Exec(ctx, `
+		UPDATE payout_bank_attempt
+		   SET state = $3, stripe_payout_id = coalesce(stripe_payout_id, $4), failure_code = $5, failure_message = $6,
+		       lease_owner = NULL, lease_until = NULL
+		 WHERE payout_id = $1 AND attempt = $2`, a.PayoutID, a.Attempt, state, stripeID, nullStr(code), nullStr(msg))
+	return err
 }
 
 func movePayout(ctx context.Context, tx pgx.Tx, payoutID, from, sql string, args ...any) error {

@@ -151,7 +151,7 @@ func TestPayoutRun_AdminRunForEveryoneLeavesOutTheAdmin(t *testing.T) {
 		t.Fatal(err)
 	}
 	period := toronto(2026, 8, 17, 0, 0)
-	assertPayouts(t, db, other, want{end: period, cents: 1500, state: "PAID"})
+	assertPayouts(t, db, other, want{end: period, cents: 1500, state: "TRANSFERRED"})
 	assertPayouts(t, db, adminAsRider)
 	assertPayouts(t, db, ownRestaurant)
 	if n := stripe.madeFor(admin) + stripe.madeFor(ownRestaurant.ID); n != 0 {
@@ -160,8 +160,8 @@ func TestPayoutRun_AdminRunForEveryoneLeavesOutTheAdmin(t *testing.T) {
 
 	// The scheduled run pays them as it pays everyone.
 	runAt(t, runner, toronto(2026, 8, 17, 9, 0))
-	assertPayouts(t, db, adminAsRider, want{end: period, cents: 1500, state: "PAID"})
-	assertPayouts(t, db, ownRestaurant, want{end: period, cents: 1500, state: "PAID"})
+	assertPayouts(t, db, adminAsRider, want{end: period, cents: 1500, state: "TRANSFERRED"})
+	assertPayouts(t, db, ownRestaurant, want{end: period, cents: 1500, state: "TRANSFERRED"})
 	assertLedgerAtZero(t, db)
 }
 
@@ -196,9 +196,13 @@ func TestPayoutRun_SuspensionMidRunStopsTheTransfer(t *testing.T) {
 	runAt(t, runner, toronto(2026, 8, 24, 10, 0))
 	stripe.afterCreate = nil
 	assertOutcomes(t, db, lastRun(t, db, week2), restaurant, OutcomeReleased, OutcomePartnerSuspended)
-	assertPayouts(t, db, restaurant, want{end: week1, cents: 4000, state: "PAID"})
+	assertPayouts(t, db, restaurant, want{end: week1, cents: 4000, state: "TRANSFERRED"})
 	if n := stripe.madeFor(restaurant.ID); n != 1 {
 		t.Fatalf("Stripe made %d transfers to a restaurant suspended mid-run, want 1 (the one before it)", n)
+	}
+	// Nor is its transferred balance paid out to its bank while it is suspended.
+	if n := len(stripe.bankPayouts(restaurant.ID)); n != 0 {
+		t.Fatalf("Stripe made %d bank payouts for a restaurant suspended mid-run, want 0", n)
 	}
 
 	// Reinstated, week 3's transfer is refused; then suspended again before
@@ -208,7 +212,7 @@ func TestPayoutRun_SuspensionMidRunStopsTheTransfer(t *testing.T) {
 	stripe.refuseNext(restaurant.ID)
 	runAt(t, runner, toronto(2026, 8, 31, 10, 0))
 	assertPayouts(t, db, restaurant,
-		want{end: week1, cents: 4000, state: "PAID"}, want{end: week3, cents: 3500, state: "READY"})
+		want{end: week1, cents: 4000, state: "TRANSFERRED"}, want{end: week3, cents: 3500, state: "READY"})
 	mustExec(t, db, `UPDATE restaurant SET account_state = 'BANNED' WHERE id = $1`, restaurant.ID)
 	owed := owedPayoutID(t, db, restaurant)
 	claim, err := runner.repo.claimTransfer(ctx, owed, "test", toronto(2026, 9, 7, 9, 0), runActor{RunID: "test"})
@@ -219,15 +223,18 @@ func TestPayoutRun_SuspensionMidRunStopsTheTransfer(t *testing.T) {
 		t.Fatalf("claiming a banned restaurant's payout: claimed=%v suspended=%q, want not claimed, BANNED", claim.Claimed, claim.Suspended)
 	}
 	assertPayouts(t, db, restaurant,
-		want{end: week1, cents: 4000, state: "PAID"}, want{end: week3, cents: 3500, state: "READY"})
+		want{end: week1, cents: 4000, state: "TRANSFERRED"}, want{end: week3, cents: 3500, state: "READY"})
 
 	// Reinstated again: the next run pays what was kept, once.
 	mustExec(t, db, `UPDATE restaurant SET account_state = 'PENDING' WHERE id = $1`, restaurant.ID)
 	runAt(t, runner, toronto(2026, 9, 7, 10, 0))
 	assertPayouts(t, db, restaurant,
-		want{end: week1, cents: 4000, state: "PAID"}, want{end: week3, cents: 3500, state: "PAID"})
+		want{end: week1, cents: 4000, state: "TRANSFERRED"}, want{end: week3, cents: 3500, state: "TRANSFERRED"})
 	if n := stripe.madeFor(restaurant.ID); n != 2 {
 		t.Fatalf("Stripe made %d transfers in all, want 2: one per payout", n)
+	}
+	if n := len(stripe.bankPayouts(restaurant.ID)); n != 2 {
+		t.Fatalf("Stripe made %d bank payouts after reinstatement, want 2: one per payout", n)
 	}
 	assertLedgerAtZero(t, db)
 }

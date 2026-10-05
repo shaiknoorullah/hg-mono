@@ -81,6 +81,12 @@ const (
 	// OutcomeError: the server failed for this partner; the run's detail says
 	// how.
 	OutcomeError PayoutRunOutcome = "ERROR"
+	// OutcomeBankPayout: Stripe was asked to pay a transferred payout out of
+	// the partner's Stripe balance to their bank.
+	OutcomeBankPayout PayoutRunOutcome = "BANK_PAYOUT"
+	// OutcomeBankPayoutFailed: the bank payout could not be asked for; the
+	// money stays in the partner's Stripe balance and the next run asks again.
+	OutcomeBankPayoutFailed PayoutRunOutcome = "BANK_PAYOUT_FAILED"
 )
 
 // PayoutRunRow is one payout_run row.
@@ -205,7 +211,7 @@ func (t *runTally) add(outcome PayoutRunOutcome, cents int64) {
 		t.HeldCents += cents
 	case OutcomeCarriedNegative:
 		t.Carried++
-	case OutcomeTransferFailed, OutcomeError:
+	case OutcomeTransferFailed, OutcomeError, OutcomeBankPayoutFailed:
 		t.Failed++
 	}
 }
@@ -243,8 +249,9 @@ func (r *Repo) addRunLine(ctx context.Context, runID string, attempt int32, paye
 
 // runPayees lists the partners a run for every partner looks at: anyone with
 // unpaid earnings before the cutoff, anyone with a payout still owed (held,
-// waiting for a transfer, or mid-transfer), and every restaurant whose orders
-// are blocked, so a recovered balance lifts the block.
+// waiting for a transfer, mid-transfer, or transferred with no bank payout on
+// its way), and every restaurant whose orders are blocked, so a recovered
+// balance lifts the block.
 func (r *Repo) runPayees(ctx context.Context, cutoff time.Time) ([]PayeeRef, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT le.counterparty_type::text, le.counterparty_id::text
@@ -258,6 +265,7 @@ func (r *Repo) runPayees(ctx context.Context, cutoff time.Time) ([]PayeeRef, err
 		SELECT ca.owner_type, ca.owner_id::text
 		  FROM payout p JOIN connect_account ca ON ca.id = p.connect_account_id
 		 WHERE p.state IN ('READY', 'TRANSFERRING', 'HELD')
+		    OR (p.state = 'TRANSFERRED' AND p.stripe_payout_id IS NULL)
 		UNION
 		SELECT 'RESTAURANT', rc.restaurant_id::text
 		  FROM restaurant_collection rc
@@ -401,7 +409,8 @@ func restaurantSuspendedIn(ctx context.Context, q rowQuerier, restaurantID strin
 }
 
 // owedPayout is a payout created earlier that has not reached the partner:
-// held, waiting for a transfer, or interrupted mid-transfer.
+// held, waiting for a transfer, interrupted mid-transfer, or transferred with
+// no bank payout on its way (never asked for, refused, or failed at the bank).
 type owedPayout struct {
 	ID          string
 	State       string
@@ -409,13 +418,16 @@ type owedPayout struct {
 	AmountCents int64
 }
 
-// owedPayouts lists a partner's payouts that are not yet PAID or FAILED.
+// owedPayouts lists a partner's payouts that are not yet PAID or FAILED and
+// need the run: a TRANSFERRED payout whose bank payout is on its way waits for
+// Stripe's webhook instead.
 func (r *Repo) owedPayouts(ctx context.Context, p PayeeRef) ([]owedPayout, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT po.id::text, po.state::text, po.period_end, po.amount_cents
 		  FROM payout po JOIN connect_account ca ON ca.id = po.connect_account_id
 		 WHERE ca.owner_type = $1 AND ca.owner_id = $2
-		   AND po.state IN ('READY', 'TRANSFERRING', 'HELD')
+		   AND (po.state IN ('READY', 'TRANSFERRING', 'HELD')
+		     OR (po.state = 'TRANSFERRED' AND po.stripe_payout_id IS NULL))
 		 ORDER BY po.period_end, po.id`, p.Type, p.ID)
 	if err != nil {
 		return nil, err
@@ -689,24 +701,203 @@ func (r *Repo) claimTransfer(ctx context.Context, payoutID, owner string, heldUn
 	return out, err
 }
 
-// markTransferred records the Stripe transfer and closes the payout as PAID.
+// markTransferred records the Stripe transfer: the money is in the partner's
+// Stripe balance, and the payout is TRANSFERRED until its bank payout is paid
+// (#301). Its bank payout is due at once. Stripe's transfer.created webhook
+// may have recorded the same transfer first; that is not an error.
 func (r *Repo) markTransferred(ctx context.Context, payoutID, transferID string, act runActor, released bool, cents int64) error {
 	return r.tx(ctx, func(tx pgx.Tx) error {
 		tag, err := tx.Exec(ctx, `
 			UPDATE payout
-			   SET state = 'PAID', stripe_transfer_id = $2, paid_at = now(), last_error = NULL,
-			       failure_message = NULL, deadline_at = NULL, deadline_action = NULL,
+			   SET state = 'TRANSFERRED', stripe_transfer_id = $2, last_error = NULL,
+			       failure_message = NULL, deadline_at = now(), deadline_action = 'create_bank_payout',
 			       lease_until = NULL, lease_owner = NULL
 			 WHERE id = $1 AND state = 'TRANSFERRING'`, payoutID, transferID)
 		if err != nil {
 			return err
 		}
 		if tag.RowsAffected() != 1 {
+			var already bool
+			if err := tx.QueryRow(ctx, `
+				SELECT EXISTS (SELECT 1 FROM payout WHERE id = $1 AND stripe_transfer_id = $2
+				                                     AND state IN ('TRANSFERRED', 'PAID'))`,
+				payoutID, transferID).Scan(&already); err != nil {
+				return err
+			}
+			if already {
+				return nil // the webhook recorded this very transfer first
+			}
 			return fmt.Errorf("payout %s was not TRANSFERRING when its transfer %s returned", payoutID, transferID)
 		}
 		return writeJobAudit(ctx, tx, act, jobAudit{
 			action: "payout.transferred", subjectType: "payout", subjectID: payoutID, amountCents: &cents,
 			after: map[string]any{"stripe_transfer_id": transferID, "released": released},
+		})
+	})
+}
+
+// bankClaim is a transferred payout claimed for its bank payout.
+type bankClaim struct {
+	Claimed         bool   // this worker may call Stripe
+	Suspended       string // the restaurant's state when it is suspended or banned: no bank payout
+	Attempt         int    // the attempt to make, or to find
+	Reuse           bool   // an earlier call for this attempt may have reached Stripe: find it first
+	Since           time.Time
+	AmountCents     int64
+	StripeAccountID string
+	PayoutsOff      string // Stripe has payouts turned off for the partner: why
+}
+
+// claimBankPayout takes a TRANSFERRED payout with no bank payout on its way
+// for its bank payout. It reuses an attempt whose call was interrupted (its
+// lease lapsed with no Stripe id), so the retry finds what that call made;
+// otherwise it opens the next attempt. The partial unique index
+// payout_bank_attempt_one_live means a new attempt is possible only once
+// every earlier one has failed, so two bank payouts for one payout can never
+// be on their way at once.
+func (r *Repo) claimBankPayout(ctx context.Context, payoutID, owner string) (bankClaim, error) {
+	var out bankClaim
+	err := r.tx(ctx, func(tx pgx.Tx) error {
+		// The account first, then the payout: the order every payout write takes.
+		var c ConnectRow
+		var reqs []byte
+		var ownerType, ownerID string
+		err := tx.QueryRow(ctx, `
+			SELECT ca.id::text, ca.stripe_account_id, ca.payouts_enabled, ca.requirements, ca.owner_type, ca.owner_id::text
+			  FROM connect_account ca
+			 WHERE ca.id = (SELECT connect_account_id FROM payout WHERE id = $1)
+			 FOR UPDATE`, payoutID).Scan(&c.ID, &c.StripeAccountID, &c.PayoutsEnabled, &reqs, &ownerType, &ownerID)
+		if err != nil {
+			return err
+		}
+		c.CurrentlyDue, c.EventuallyDue, c.PastDue, _ = parseRequirements(reqs)
+
+		// A suspended or banned restaurant's balance is kept until it is
+		// reinstated, the part already in its Stripe balance too: decided here,
+		// on the row as it is now, like the transfer claim.
+		if ownerType == PayeeRestaurant {
+			suspended, rstate, err := lockedRestaurantSuspended(ctx, tx, ownerID)
+			if err != nil {
+				return err
+			}
+			if suspended {
+				out.Suspended = rstate
+				return nil
+			}
+		}
+
+		var state string
+		var stripePayout *string
+		err = tx.QueryRow(ctx, `
+			SELECT state::text, amount_cents, stripe_payout_id FROM payout WHERE id = $1 FOR UPDATE`,
+			payoutID).Scan(&state, &out.AmountCents, &stripePayout)
+		if err != nil {
+			return err
+		}
+		if state != "TRANSFERRED" || stripePayout != nil {
+			return nil // not transferred yet, already paid, or its bank payout is on its way
+		}
+		if !c.PayoutsEnabled {
+			out.PayoutsOff = holdReasonFor(c)
+			return nil
+		}
+
+		var live bool
+		var stripeID *string
+		err = tx.QueryRow(ctx, `
+			SELECT attempt, stripe_payout_id, COALESCE(lease_until > now(), false), created_at
+			  FROM payout_bank_attempt
+			 WHERE payout_id = $1 AND state = 'REQUESTED'
+			 FOR UPDATE`, payoutID).Scan(&out.Attempt, &stripeID, &live, &out.Since)
+		switch {
+		case err == nil && stripeID != nil:
+			// Stripe has it; only the payout's own record of it was lost.
+			_, err := tx.Exec(ctx, `
+				UPDATE payout SET stripe_payout_id = $2, deadline_at = now() + interval '10 days',
+				                  deadline_action = 'await_bank_payout'
+				 WHERE id = $1`, payoutID, *stripeID)
+			return err
+		case err == nil && live:
+			return nil // another worker is calling Stripe for it right now
+		case err == nil:
+			out.Reuse = true
+			_, err = tx.Exec(ctx, `
+				UPDATE payout_bank_attempt SET lease_owner = $3, lease_until = now() + interval '10 minutes'
+				 WHERE payout_id = $1 AND attempt = $2`, payoutID, out.Attempt, owner)
+		case errors.Is(err, pgx.ErrNoRows):
+			err = tx.QueryRow(ctx, `
+				INSERT INTO payout_bank_attempt (payout_id, attempt, amount_cents, lease_owner, lease_until)
+				SELECT $1, COALESCE(max(attempt), 0) + 1, $2, $3, now() + interval '10 minutes'
+				  FROM payout_bank_attempt WHERE payout_id = $1
+				RETURNING attempt, created_at`, payoutID, out.AmountCents, owner).Scan(&out.Attempt, &out.Since)
+		}
+		if err != nil {
+			return err
+		}
+		out.Claimed = true
+		out.StripeAccountID = c.StripeAccountID
+		return nil
+	})
+	return out, err
+}
+
+// recordBankPayout records the bank payout Stripe made for an attempt. The
+// payout stays TRANSFERRED until Stripe's payout.paid webhook says the money
+// reached the bank; the deadline is when a payout still not paid is worth a
+// person's look. A webhook may have recorded it first; that is not an error.
+func (r *Repo) recordBankPayout(ctx context.Context, payoutID string, attempt int, stripeID string, act runActor, cents int64) error {
+	return r.tx(ctx, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `
+			UPDATE payout_bank_attempt
+			   SET stripe_payout_id = COALESCE(stripe_payout_id, $3), lease_owner = NULL, lease_until = NULL,
+			       last_error = NULL
+			 WHERE payout_id = $1 AND attempt = $2 AND (stripe_payout_id IS NULL OR stripe_payout_id = $3)`,
+			payoutID, attempt, stripeID)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() != 1 {
+			return fmt.Errorf("bank payout attempt %d of payout %s already has another Stripe id than %s", attempt, payoutID, stripeID)
+		}
+		_, err = tx.Exec(ctx, `
+			UPDATE payout
+			   SET stripe_payout_id = $2, last_error = NULL, failure_message = NULL,
+			       deadline_at = now() + interval '10 days', deadline_action = 'await_bank_payout'
+			 WHERE id = $1 AND state = 'TRANSFERRED' AND (stripe_payout_id IS NULL OR stripe_payout_id = $2)
+			   AND EXISTS (SELECT 1 FROM payout_bank_attempt
+			                WHERE payout_id = $1 AND attempt = $3 AND state = 'REQUESTED')`,
+			payoutID, stripeID, attempt)
+		if err != nil {
+			return err
+		}
+		return writeJobAudit(ctx, tx, act, jobAudit{
+			action: "payout.bank_payout_requested", subjectType: "payout", subjectID: payoutID, amountCents: &cents,
+			after: map[string]any{"stripe_payout_id": stripeID, "attempt": attempt},
+		})
+	})
+}
+
+// bankPayoutFailed records that Stripe could not be asked for a bank payout,
+// or did not answer. The attempt is kept, its lease let go: the next run
+// reuses it, finds a payout the lost call made before asking again, and only
+// then asks with the same key. The money stays in the partner's Stripe
+// balance; the payout stays TRANSFERRED, due again at the next run.
+func (r *Repo) bankPayoutFailed(ctx context.Context, payoutID string, attempt int, msg string, act runActor, retryBy time.Time, cents int64) error {
+	return r.tx(ctx, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `
+			UPDATE payout_bank_attempt SET lease_owner = NULL, lease_until = NULL, last_error = $3
+			 WHERE payout_id = $1 AND attempt = $2 AND state = 'REQUESTED'`, payoutID, attempt, msg); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `
+			UPDATE payout SET last_error = $2, deadline_at = $3, deadline_action = 'create_bank_payout'
+			 WHERE id = $1 AND state = 'TRANSFERRED'`, payoutID, msg, retryBy); err != nil {
+			return err
+		}
+		failed := "FAILED"
+		return writeJobAudit(ctx, tx, act, jobAudit{
+			action: "payout.bank_payout_failed", subjectType: "payout", subjectID: payoutID, amountCents: &cents,
+			outcome: &failed, reason: &msg, after: map[string]any{"attempt": attempt},
 		})
 	})
 }

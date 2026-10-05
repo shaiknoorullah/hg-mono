@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
@@ -431,6 +432,23 @@ func TestIntegration_RiderEarnings_EndpointsShowTheAmounts(t *testing.T) {
 	}
 	if err := repo.markTransferred(ctx, payoutID, "tr_test_"+payoutID, runActor{}, false, claim.AmountCents); err != nil {
 		t.Fatalf("mark transferred: %v", err)
+	}
+	// The bank payout (#301): asked for, then reported paid by Stripe.
+	bank, err := repo.claimBankPayout(ctx, payoutID, "test")
+	if err != nil || !bank.Claimed {
+		t.Fatalf("claim bank payout = %+v, %v", bank, err)
+	}
+	if err := repo.recordBankPayout(ctx, payoutID, bank.Attempt, "po_test_"+payoutID, runActor{}, bank.AmountCents); err != nil {
+		t.Fatalf("record bank payout: %v", err)
+	}
+	if err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+		a := bankAttempt{PayoutID: payoutID, Attempt: bank.Attempt}
+		if err := settleBankAttemptTx(ctx, tx, a, "po_test_"+payoutID, "PAID", "", ""); err != nil {
+			return err
+		}
+		return markPayoutPaidTx(ctx, tx, payoutID, "TRANSFERRED", payoutStripeIDs{Payout: "po_test_" + payoutID})
+	}); err != nil {
+		t.Fatalf("bank payout paid: %v", err)
 	}
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("payoutId", payoutID)

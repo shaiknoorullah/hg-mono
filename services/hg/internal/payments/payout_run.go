@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
@@ -30,7 +31,9 @@ import (
 //     refused or interrupted, and a payout held in an earlier period once
 //     Stripe has payouts turned back on (a hold is released on the next
 //     Monday run, not straight away: decision log, "Settled — redesign
-//     decisions, round 2", when a held payout is released);
+//     decisions, round 2", when a held payout is released); and asks again
+//     for the bank payout of a transferred payout whose bank payout was
+//     refused, interrupted, or failed at the bank;
 //  3. builds this period's payout from every unpaid earning created before
 //     end — carried balances included — and transfers it, or holds it, or
 //     carries a balance that is not positive;
@@ -38,10 +41,19 @@ import (
 //     for longer than the configured limit, and lifts the block when it
 //     recovers.
 //
+// A payout reaches the partner in two Stripe steps (#301): the transfer, from
+// the platform's balance to the partner's connected account, makes it
+// TRANSFERRED; the bank payout, from that account's balance to the partner's
+// bank, is asked for straight after, and Stripe's payout.paid webhook makes it
+// PAID (webhook_effects.go). Connected accounts are on a manual payout
+// schedule, so without the second step the money would stay in Stripe.
+//
 // Every step is idempotent: a partner has at most one payout per period
 // (unique index), a ledger entry is stamped with at most one payout, every
 // transfer is keyed by its payout id and found by its transfer group before a
-// retry, so re-running a run, or running two, pays nobody twice.
+// retry, and every bank payout is keyed by its payout id and attempt, found by
+// its metadata before a retry, with at most one attempt on its way at a time
+// (unique index), so re-running a run, or running two, pays nobody twice.
 
 // PayoutPolicy is payout configuration the owner may still change.
 type PayoutPolicy struct {
@@ -253,7 +265,7 @@ func (r *PayoutRunner) payPayee(ctx context.Context, run PayoutRunRow, attempt i
 				slog.String("payee_type", p.Type), slog.String("payee_id", p.ID),
 				slog.String("outcome", string(o)), slog.String("error", err.Error()))
 		}
-		if o == OutcomeError || o == OutcomeTransferFailed {
+		if o == OutcomeError || o == OutcomeTransferFailed || o == OutcomeBankPayoutFailed {
 			r.log.Error("payout failed for a partner", slog.String("payout_run", run.ID),
 				slog.String("payee_type", p.Type), slog.String("payee_id", p.ID),
 				slog.String("payout_id", payoutID), slog.String("detail", detail))
@@ -286,10 +298,14 @@ func (r *PayoutRunner) payPayee(ctx context.Context, run PayoutRunRow, attempt i
 		return
 	}
 	for _, o := range owed {
-		if o.State == "HELD" && !o.PeriodEnd.Before(run.PeriodEnd) {
+		switch {
+		case o.State == "HELD" && !o.PeriodEnd.Before(run.PeriodEnd):
 			continue // held this period: released by a later period's run
+		case o.State == "TRANSFERRED":
+			r.bankPayout(ctx, run, o.ID, line) // transferred already: only the bank payout is owed
+		default:
+			r.transfer(ctx, run, o.ID, o.PeriodEnd, line)
 		}
-		r.transfer(ctx, run, o.ID, o.PeriodEnd, line)
 	}
 
 	// 3. This period's payout.
@@ -446,6 +462,78 @@ func (r *PayoutRunner) transfer(ctx context.Context, run PayoutRunRow, payoutID 
 		outcome = OutcomeReleased
 	}
 	line(outcome, payoutID, claim.AmountCents, "Stripe transfer "+tr.ID)
+	r.bankPayout(ctx, run, payoutID, line)
+}
+
+// bankPayout asks Stripe to pay a transferred payout out of the partner's
+// Stripe balance to their bank. Nothing here moves the platform's money: the
+// transfer did that, once, and no path from here makes another. A retry first
+// looks for what an interrupted call made; a refusal is kept for the next run.
+func (r *PayoutRunner) bankPayout(ctx context.Context, run PayoutRunRow, payoutID string,
+	line func(PayoutRunOutcome, string, int64, string)) {
+	claim, err := r.repo.claimBankPayout(ctx, payoutID, r.owner)
+	if err != nil {
+		line(OutcomeBankPayoutFailed, payoutID, 0, "claim bank payout: "+err.Error())
+		return
+	}
+	switch {
+	case claim.Suspended != "":
+		// Kept until reinstatement; the run's own line for this partner says
+		// so, and the run after reinstatement asks for it.
+		r.log.Info("bank payout kept: the restaurant is "+claim.Suspended, slog.String("payout_id", payoutID))
+		return
+	case claim.PayoutsOff != "":
+		line(OutcomeBankPayoutFailed, payoutID, claim.AmountCents,
+			"transferred, but Stripe has payouts to the bank turned off for this partner: "+claim.PayoutsOff+
+				"; the money waits in their Stripe balance and the next run asks again")
+		return
+	case !claim.Claimed:
+		return // its bank payout is on its way, or another worker is asking for it right now
+	}
+	if claim.AmountCents <= 0 {
+		// Unreachable while payout_amount_positive holds; never send it.
+		line(OutcomeBankPayoutFailed, payoutID, claim.AmountCents, "refused to pay out an amount that is not positive")
+		return
+	}
+	failed := func(cause error) {
+		msg := cause.Error()
+		if err := r.repo.bankPayoutFailed(ctx, payoutID, claim.Attempt, msg, runActorFor(run), nextScheduledRun(r.now()),
+			claim.AmountCents); err != nil {
+			msg += " (and recording the failure: " + err.Error() + ")"
+		}
+		line(OutcomeBankPayoutFailed, payoutID, claim.AmountCents, msg+"; the next run asks again")
+	}
+	var po *StripeBankPayout
+	if claim.Reuse {
+		// The call for this attempt may have reached Stripe: find what it made
+		// rather than trust an idempotency key Stripe may have forgotten.
+		if po, err = r.stripe.FindBankPayout(ctx, claim.StripeAccountID, payoutID, claim.Attempt,
+			claim.Since.Add(-time.Hour)); err != nil {
+			failed(err)
+			return
+		}
+	}
+	if po == nil {
+		po, err = r.stripe.CreateBankPayout(ctx, CreateBankPayoutInput{
+			StripeAccountID: claim.StripeAccountID,
+			AmountCents:     claim.AmountCents,
+			Currency:        "cad",
+			IdempotencyKey:  "pb:" + payoutID + ":" + strconv.Itoa(claim.Attempt),
+			PayoutID:        payoutID,
+			Attempt:         claim.Attempt,
+		})
+		if err != nil {
+			failed(err)
+			return
+		}
+	}
+	if err := r.repo.recordBankPayout(ctx, payoutID, claim.Attempt, po.ID, runActorFor(run), claim.AmountCents); err != nil {
+		// Stripe has it; the attempt keeps its lease until it lapses, and the
+		// next run finds the bank payout by its metadata.
+		line(OutcomeBankPayoutFailed, payoutID, claim.AmountCents, "record bank payout "+po.ID+": "+err.Error())
+		return
+	}
+	line(OutcomeBankPayout, payoutID, claim.AmountCents, "Stripe bank payout "+po.ID)
 }
 
 func (r *PayoutRunner) transferFailed(ctx context.Context, run PayoutRunRow, payoutID string, cents int64, cause error,

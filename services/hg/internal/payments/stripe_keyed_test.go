@@ -24,6 +24,8 @@ var keyedReplies = map[string]string{
 	"GET /v1/accounts/acct_stub":               `{"id":"acct_stub","object":"account"}`,
 	"POST /v1/account_links":                   `{"object":"account_link","url":"https://connect.stripe.com/setup/e/acct_stub","expires_at":1767225600}`,
 	"POST /v1/transfers":                       `{"id":"tr_stub","object":"transfer"}`,
+	"POST /v1/payouts":                         `{"id":"po_stub","object":"payout","status":"pending"}`,
+	"GET /v1/payouts":                          `{"object":"list","url":"/v1/payouts","has_more":false,"data":[{"id":"po_stub","object":"payout","status":"pending","metadata":{"payout_id":"po_1","attempt":"1"}}]}`,
 	"POST /v1/refunds":                         `{"id":"re_stub","object":"refund","status":"pending"}`,
 	"POST /v1/payment_intents":                 `{"id":"pi_stub","object":"payment_intent","status":"requires_capture"}`,
 	"POST /v1/payment_intents/pi_stub/capture": `{"id":"pi_stub","object":"payment_intent","status":"succeeded"}`,
@@ -34,7 +36,7 @@ var keyedReplies = map[string]string{
 
 // keyedRequest is one request as the stand-in received it.
 type keyedRequest struct {
-	method, path, auth, version, idempotencyKey string
+	method, path, auth, version, idempotencyKey, account string
 }
 
 // TestLiveStripeSendsTheKeyOnEveryCall drives every call the live client
@@ -57,7 +59,7 @@ func TestLiveStripeSendsTheKeyOnEveryCall(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		got = append(got, keyedRequest{r.Method, r.URL.Path, r.Header.Get("Authorization"),
-			r.Header.Get("Stripe-Version"), r.Header.Get("Idempotency-Key")})
+			r.Header.Get("Stripe-Version"), r.Header.Get("Idempotency-Key"), r.Header.Get("Stripe-Account")})
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		if r.Header.Get("Authorization") != "Bearer "+keyedTestKey {
@@ -116,6 +118,15 @@ func TestLiveStripeSendsTheKeyOnEveryCall(t *testing.T) {
 				DestinationAcct: "acct_stub", IdempotencyKey: "po:test", PayoutID: "po_1"})
 			return idOf(tr, err, func() string { return tr.ID })
 		}},
+		{"pay a partner's balance out to their bank", "POST", "/v1/payouts", "pb:po_1:1", "po_stub", func() (string, error) {
+			po, err := sc.CreateBankPayout(ctx, CreateBankPayoutInput{StripeAccountID: "acct_stub", AmountCents: 1250,
+				Currency: "cad", IdempotencyKey: "pb:po_1:1", PayoutID: "po_1", Attempt: 1})
+			return idOf(po, err, func() string { return po.ID })
+		}},
+		{"find a bank payout", "GET", "/v1/payouts", "", "po_stub", func() (string, error) {
+			po, err := sc.FindBankPayout(ctx, "acct_stub", "po_1", 1, time.Unix(1767225600, 0))
+			return idOf(po, err, func() string { return po.ID })
+		}},
 		{"refund", "POST", "/v1/refunds", "rf:test", "re_stub", func() (string, error) {
 			rf, err := sc.CreateRefund(ctx, CreateRefundInput{StripePaymentIntentID: "pi_stub",
 				AmountCents: 500, IdempotencyKey: "rf:test", RefundID: "rf_1"})
@@ -171,6 +182,11 @@ func TestLiveStripeSendsTheKeyOnEveryCall(t *testing.T) {
 			// upgrade that moves it fails here until the endpoints move with it.
 			if r.version != "2024-06-20" || StripeAPIVersion != "2024-06-20" {
 				t.Errorf("Stripe-Version = %q (StripeAPIVersion %q), want 2024-06-20", r.version, StripeAPIVersion)
+			}
+			// A bank payout moves the partner's balance, so it is made on their
+			// connected account, never on the platform's.
+			if c.path == "/v1/payouts" && r.account != "acct_stub" {
+				t.Errorf("Stripe-Account = %q, want acct_stub: a bank payout is made on the partner's account", r.account)
 			}
 			if c.idempotencyKey != "" && r.idempotencyKey != c.idempotencyKey {
 				t.Errorf("Idempotency-Key = %q, want %q", r.idempotencyKey, c.idempotencyKey)

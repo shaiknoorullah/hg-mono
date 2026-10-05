@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
 	stripe "github.com/stripe/stripe-go/v79"
@@ -58,6 +59,18 @@ type StripeClient interface {
 	// days later.
 	FindTransfer(ctx context.Context, transferGroup string) (*StripeTransfer, error)
 
+	// CreateBankPayout pays a connected account's Stripe balance out to the
+	// partner's bank (P-19: the Payout after the Transfer). It is made on the
+	// connected account, keyed by 'pb:'||payout_id||':'||attempt, and carries
+	// the payout id and the attempt in its metadata.
+	CreateBankPayout(ctx context.Context, in CreateBankPayoutInput) (*StripeBankPayout, error)
+	// FindBankPayout returns the bank payout an attempt made on the connected
+	// account, found by its metadata among those created since, or nil when
+	// there is none. As with FindTransfer, a retry after an attempt that may
+	// have reached Stripe looks before it asks again: Stripe forgets an
+	// idempotency key after 24 hours.
+	FindBankPayout(ctx context.Context, stripeAccountID, payoutID string, attempt int, since time.Time) (*StripeBankPayout, error)
+
 	// VerifyWebhook checks the Stripe-Signature header against the signing
 	// secret with a 300-second tolerance (P-17 / I-17.2) and returns the
 	// verified event. It never parses meaning before verifying.
@@ -108,6 +121,16 @@ type CreateTransferInput struct {
 	IdempotencyKey  string
 	PayoutID        string
 	TransferGroup   string
+}
+
+// CreateBankPayoutInput pays out a connected account's balance to its bank.
+type CreateBankPayoutInput struct {
+	StripeAccountID string // the connected account the payout is made on
+	AmountCents     int64
+	Currency        string
+	IdempotencyKey  string
+	PayoutID        string // stored in metadata
+	Attempt         int    // stored in metadata
 }
 
 // StripeIntent is the subset of a PaymentIntent the ledger and state machine need.
@@ -162,6 +185,12 @@ type StripeAccountLink struct {
 // StripeTransfer is the subset of a Transfer we persist.
 type StripeTransfer struct {
 	ID string
+}
+
+// StripeBankPayout is the subset of a connected account's Payout we persist.
+type StripeBankPayout struct {
+	ID     string
+	Status string // pending | in_transit | paid | failed | canceled
 }
 
 // StripeEvent is a verified webhook event.
@@ -420,6 +449,43 @@ func (s *liveStripe) FindTransfer(ctx context.Context, transferGroup string) (*S
 	}
 	if err := it.Err(); err != nil {
 		return nil, fmt.Errorf("stripe find transfer: %w", err)
+	}
+	return nil, nil
+}
+
+func (s *liveStripe) CreateBankPayout(ctx context.Context, in CreateBankPayoutInput) (*StripeBankPayout, error) {
+	params := &stripe.PayoutParams{
+		Amount:   stripe.Int64(in.AmountCents),
+		Currency: stripe.String(in.Currency),
+	}
+	params.Context = ctx
+	params.SetStripeAccount(in.StripeAccountID)
+	if in.IdempotencyKey != "" {
+		params.SetIdempotencyKey(in.IdempotencyKey)
+	}
+	params.AddMetadata("payout_id", in.PayoutID)
+	params.AddMetadata("attempt", strconv.Itoa(in.Attempt))
+	po, err := s.api.Payouts.New(params)
+	if err != nil {
+		return nil, fmt.Errorf("stripe create bank payout: %w", err)
+	}
+	return &StripeBankPayout{ID: po.ID, Status: string(po.Status)}, nil
+}
+
+func (s *liveStripe) FindBankPayout(ctx context.Context, stripeAccountID, payoutID string, attempt int, since time.Time) (*StripeBankPayout, error) {
+	params := &stripe.PayoutListParams{CreatedRange: &stripe.RangeQueryParams{GreaterThanOrEqual: since.Unix()}}
+	params.Context = ctx
+	params.SetStripeAccount(stripeAccountID)
+	params.Limit = stripe.Int64(100) // page size; the iterator follows every page
+	it := s.api.Payouts.List(params)
+	for it.Next() {
+		po := it.Payout()
+		if po.Metadata["payout_id"] == payoutID && po.Metadata["attempt"] == strconv.Itoa(attempt) {
+			return &StripeBankPayout{ID: po.ID, Status: string(po.Status)}, nil
+		}
+	}
+	if err := it.Err(); err != nil {
+		return nil, fmt.Errorf("stripe find bank payout: %w", err)
 	}
 	return nil, nil
 }
