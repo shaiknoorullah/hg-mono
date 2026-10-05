@@ -1,0 +1,14 @@
+# Managed by Ansible (deploy/host/roles/backup).
+[Unit]
+Description=HalalGoes backup job %i
+Wants=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hg-backup %i
+Nice=10
+IOSchedulingClass=idle
+MemoryMax=256M
+MemorySwapMax=0
+TimeoutStartSec=6h

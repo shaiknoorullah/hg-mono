@@ -1,0 +1,13 @@
+# syncconf applies peer changes without dropping the tunnel this playbook may be running over.
+- name: Apply the WireGuard config
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if wg show {{ hg_wg_interface }} >/dev/null 2>&1; then
+      wg syncconf {{ hg_wg_interface }} <(wg-quick strip {{ hg_wg_interface }})
+    else
+      systemctl restart wg-quick@{{ hg_wg_interface }}
+    fi
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when: not hg_in_container

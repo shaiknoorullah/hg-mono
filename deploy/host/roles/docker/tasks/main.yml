@@ -1,0 +1,203 @@
+- name: Refuse networks that overlap each other or the ones production's compose file creates
+  vars:
+    hg_docker_subnets: "{{ hg_networks.values() | items2dict(key_name='name', value_name='subnet') | combine(hg_compose_networks) }}"
+    hg_docker_clashes: "{{ hg_docker_subnets | hg_overlapping_subnets }}"
+  ansible.builtin.assert:
+    that: hg_docker_clashes | length == 0
+    fail_msg: "These Docker networks overlap: {{ hg_docker_clashes | join('; ') }}"
+    quiet: true
+
+- name: Refuse a pinned Docker Engine older than the production compose file needs
+  ansible.builtin.assert:
+    that: (hg_docker_engine_major | string) is version(hg_docker_engine_min, '>=')
+    fail_msg: >-
+      hg_docker_engine_major is {{ hg_docker_engine_major }}. The production compose file needs
+      Docker Engine {{ hg_docker_engine_min }} or later (Traefik's networks use gw_priority).
+    quiet: true
+
+- name: Create the apt keyrings folder
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Add Docker's signing key
+  ansible.builtin.get_url:
+    url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+    dest: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Add Docker's package repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/docker.sources
+    content: |
+      # Managed by Ansible (deploy/host/roles/docker). Updated by hand, monthly:
+      # unattended upgrades take security updates from the distribution only.
+      Types: deb
+      URIs: https://download.docker.com/linux/{{ ansible_distribution | lower }}
+      Suites: {{ ansible_distribution_release }}
+      Components: stable
+      Signed-By: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Keep Docker Engine on its pinned major version
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/docker
+    content: |
+      # Managed by Ansible (deploy/host/roles/docker, hg_docker_engine_major). apt prefers
+      # these releases over any newer major version, which is a reviewed change, never an
+      # upgrade on the server. Updates within the major version are monthly and by hand.
+      Package: docker-ce docker-ce-cli docker-ce-rootless-extras
+      Pin: version 5:{{ hg_docker_engine_major }}.*
+      Pin-Priority: 990
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install Docker Engine and the compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+  # A fresh server in check mode has not added the repository yet, so apt cannot find these.
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Check whether Docker is installed
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: hg_docker_binary
+
+- name: Remember whether Docker is ready (false only on a fresh server in check mode)
+  ansible.builtin.set_fact:
+    hg_docker_ready: "{{ hg_docker_binary.stat.exists }}"
+
+- name: Read the installed Docker Engine and compose versions
+  ansible.builtin.command:
+    argv: [dpkg-query, --show, "--showformat=${Version}\\n", docker-ce, docker-compose-plugin]
+  register: hg_docker_versions
+  changed_when: false
+  check_mode: false
+  when: hg_docker_ready
+
+- name: Refuse a Docker Engine or compose too old for the production compose file
+  vars:
+    # "5:29.8.2-1~debian.13~trixie" becomes "29.8.2".
+    hg_docker_engine_installed: "{{ hg_docker_versions.stdout_lines[0] | regex_replace('^[0-9]+:', '') | regex_replace('-.*$', '') }}"
+    hg_docker_compose_installed: "{{ hg_docker_versions.stdout_lines[1] | regex_replace('^[0-9]+:', '') | regex_replace('-.*$', '') }}"
+  ansible.builtin.assert:
+    that:
+      - hg_docker_engine_installed is version(hg_docker_engine_min, '>=')
+      - hg_docker_compose_installed is version(hg_docker_compose_min, '>=')
+    fail_msg: >-
+      This server has Docker Engine {{ hg_docker_engine_installed }} and compose
+      {{ hg_docker_compose_installed }}. The production compose file needs Engine
+      {{ hg_docker_engine_min }} and compose {{ hg_docker_compose_min }} or later (Traefik's
+      networks use gw_priority). Update them by hand, after a Contabo snapshot:
+      sudo apt-get install docker-ce docker-ce-cli docker-compose-plugin
+    quiet: true
+  when: hg_docker_ready
+
+- name: Create Docker's config folders
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/docker
+    - /etc/systemd/system/docker.service.d
+
+- name: Cap container logs and keep containers running across daemon restarts
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart docker
+
+- name: Start Docker only after WireGuard (dashboards are published on its address)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/docker.service.d/10-hg.conf
+    content: |
+      # Managed by Ansible (deploy/host/roles/docker).
+      # Ports published on the WireGuard address need the interface up before containers start.
+      [Unit]
+      Wants=wg-quick@{{ hg_wg_interface }}.service
+      After=wg-quick@{{ hg_wg_interface }}.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: not hg_in_container
+
+- name: Install the DOCKER-USER guard
+  ansible.builtin.template:
+    src: hg-docker-user-guard.j2
+    dest: /usr/local/sbin/hg-docker-user-guard
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Re-apply the DOCKER-USER guard
+
+- name: Install the DOCKER-USER guard service and the weekly image clean-up
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - hg-docker-user-guard.service
+    - hg-docker-prune.service
+    - hg-docker-prune.timer
+  notify:
+    - Reload systemd
+    - Re-apply the DOCKER-USER guard
+
+- name: Apply systemd and daemon changes now
+  ansible.builtin.meta: flush_handlers
+
+- name: Start Docker and the guard, now and at every boot
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - docker
+    - hg-docker-user-guard
+  when: hg_docker_ready
+
+- name: Turn the weekly image clean-up on or off
+  ansible.builtin.systemd_service:
+    name: hg-docker-prune.timer
+    enabled: "{{ hg_docker_prune }}"
+    state: "{{ 'started' if hg_docker_prune else 'stopped' }}"
+  when: hg_docker_ready
+
+- name: Create the shared Docker networks (compose projects declare them external)
+  community.docker.docker_network:
+    name: "{{ item.value.name }}"
+    driver: bridge
+    internal: "{{ item.value.internal }}"
+    ipam_config:
+      - subnet: "{{ item.value.subnet }}"
+        iprange: "{{ item.value.ip_range | default(omit) }}"
+        gateway: "{{ item.value.gateway | default(omit) }}"
+    driver_options: "{{ {'com.docker.network.bridge.name': item.value.bridge} if item.value.bridge is defined else {} }}"
+  loop: "{{ hg_networks | dict2items }}"
+  loop_control:
+    label: "{{ item.value.name }}"
+  when: hg_docker_ready

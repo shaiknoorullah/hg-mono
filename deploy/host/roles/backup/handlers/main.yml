@@ -1,0 +1,15 @@
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+# restic writes new files group-readable once the repository's config file is. The setgid
+# folders hand those files to the puller's group, which can read them and change nothing.
+- name: Let the puller's group read the repository
+  ansible.builtin.shell: |
+    set -euo pipefail
+    chgrp -R {{ hg_pull_user }} {{ hg_backup_restic_repo }}
+    find {{ hg_backup_restic_repo }} -type d -exec chmod 2750 {} +
+    find {{ hg_backup_restic_repo }} -type f -exec chmod 0440 {} +
+  args:
+    executable: /bin/bash
+  changed_when: true

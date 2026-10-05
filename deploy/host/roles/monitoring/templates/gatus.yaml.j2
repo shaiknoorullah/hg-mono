@@ -1,0 +1,36 @@
+# Managed by Ansible (deploy/host/roles/monitoring). Uptime checks, emailed through Resend.
+metrics: true
+storage:
+  type: sqlite
+  path: /data/data.db
+ui:
+  title: HalalGoes checks ({{ inventory_hostname }})
+
+alerting:
+  email:
+    from: "{{ hg_alert_email_from }}"
+    username: "{{ hg_alert_smtp_user }}"
+    password: "${GATUS_SMTP_PASSWORD}"
+    host: "{{ hg_alert_smtp_host }}"
+    port: {{ hg_alert_smtp_port }}
+    to: "{{ hg_alert_email_to }}"
+    default-alert:
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+
+endpoints:
+{% for e in hg_gatus_endpoints %}
+  - name: {{ e.name }}
+    group: {{ e.group }}
+    url: "{{ e.url }}"
+    interval: {{ e.interval | default('1m') }}
+    conditions:
+{% for c in e.conditions %}
+      - "{{ c }}"
+{% endfor %}
+{% if e.alert %}
+    alerts:
+      - type: email
+{% endif %}
+{% endfor %}

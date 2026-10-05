@@ -1,0 +1,9 @@
+# Managed by Ansible (deploy/host/roles/backup).
+{{ hg_backup_pgbackrest_logs }}/*.log {
+    weekly
+    rotate 4
+    compress
+    missingok
+    notifempty
+    copytruncate
+}

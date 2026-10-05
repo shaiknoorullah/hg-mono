@@ -1,0 +1,13 @@
+hg_docker_log_max_size: 20m
+hg_docker_log_max_file: 5
+# Docker Engine stays on this major version: apt prefers its releases over any newer one, and
+# moving to the next is a reviewed change here, never a routine upgrade. 28 is the floor: the
+# production compose file gives Traefik's networks gw_priority, which needs Engine 28 and
+# compose 2.33.1 or later. The role refuses to go on with anything older.
+hg_docker_engine_major: 29
+hg_docker_engine_min: "28.0"
+hg_docker_compose_min: "2.33.1"
+# Weekly removal of images no container uses. The standby keeps its pulled images for a
+# failover, so it sets this to false.
+hg_docker_prune: true
+hg_docker_prune_window: "Sun *-*-* 05:00:00 {{ hg_ops_timezone }}"

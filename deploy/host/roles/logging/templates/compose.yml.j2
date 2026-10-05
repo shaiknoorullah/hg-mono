@@ -1,0 +1,47 @@
+# Managed by Ansible (deploy/host/roles/logging). Container logs (#65), kept on this server:
+# Fluent Bit reads Docker's log files, redacts them, and stores them in VictoriaLogs for
+# {{ hg_logs_retention }}, capped at {{ hg_logs_max_disk }}. Search at http://{{ hg_wg_address }}:9428/select/vmui over WireGuard.
+name: hg-logging
+
+services:
+  victorialogs:
+    image: "{{ hg_images.victorialogs }}"
+    restart: unless-stopped
+    command:
+      - -storageDataPath=/vlogs
+      - -retentionPeriod={{ hg_logs_retention }}
+      - -retention.maxDiskSpaceUsageBytes={{ hg_logs_max_disk }}
+      - -memory.allowedPercent=60
+    volumes:
+      - vldata:/vlogs
+    ports: ["{{ hg_wg_address }}:9428:9428"]
+    # {{ hg_networks.monitoring.name }} (internal): Fluent Bit and VictoriaMetrics reach it there.
+    # {{ hg_networks.ops.name }}: only for the search page's port on the WireGuard address.
+    networks: [{{ hg_networks.ops.name }}, {{ hg_networks.monitoring.name }}]
+    mem_limit: 128m
+    memswap_limit: 128m
+
+  fluent-bit:
+    image: "{{ hg_images.fluent_bit }}"
+    restart: unless-stopped
+    command: ["/fluent-bit/bin/fluent-bit", "-c", "/fluent-bit/etc/hg/fluent-bit.conf"]
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./fluent-bit.conf:/fluent-bit/etc/hg/fluent-bit.conf:ro
+      - ./redact.lua:/fluent-bit/etc/hg/redact.lua:ro
+      - fbstate:/fluent-bit/state
+    # Internal only: it reads every container's log, and has no way off the box.
+    networks: [{{ hg_networks.monitoring.name }}]
+    depends_on: [victorialogs]
+    mem_limit: 48m
+    memswap_limit: 48m
+
+volumes:
+  vldata:
+  fbstate:
+
+networks:
+  {{ hg_networks.ops.name }}:
+    external: true
+  {{ hg_networks.monitoring.name }}:
+    external: true

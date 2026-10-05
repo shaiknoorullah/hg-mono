@@ -1,0 +1,199 @@
+# Managed by Ansible (deploy/host/roles/dev_env).
+#
+# The dev environment beside production (#235). Isolated from production by construction:
+#   * its own Postgres, Valkey and Silo, on {{ hg_networks.dev.name }}, an internal network nothing of
+#     production's joins, so no dev container has a route to production's data;
+#   * its own settings and TEST-mode keys ({{ hg_dev_dir }}/.env, from dev.sops.env);
+#   * every container in hg-dev.slice: {{ hg_dev_memory_max }} and {{ hg_dev_cpu_quota }} of a CPU for all of dev together;
+#   * never backed up: hg-dev-reset brings it back to the seed data.
+# Its own Silo rather than buckets on production's: separate keys and policies on one Silo
+# would still need a network path from dev to production's object store. A second small
+# Silo costs about 256 MB and removes the path.
+# Traefik (production compose, #208) joins {{ hg_networks.dev_edge.name }} and {{ hg_networks.dev_proxy.name }} to route the dev
+# hostnames; no dev container joins production's {{ hg_networks.proxy.name }}.
+name: hg-dev
+
+x-dev: &dev
+  restart: unless-stopped
+  cgroup_parent: hg-dev.slice
+
+services:
+  postgres:
+    <<: *dev
+    image: "{{ hg_images.postgis }}"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set in .env}
+      TZ: UTC
+      PGTZ: UTC
+    command: [postgres, -c, shared_buffers=128MB, -c, effective_cache_size=384MB,
+              -c, work_mem=4MB, -c, max_connections=40, -c, jit=off]
+    shm_size: 128m
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [{{ hg_networks.dev.name }}]
+    mem_limit: 768m
+    memswap_limit: 768m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    <<: *dev
+    image: "{{ hg_images.valkey }}"
+    # Disposable, like production's: no persistence.
+    # The password is fed to valkey-server on stdin, never as an argument ps could show.
+    user: valkey
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        printf 'requirepass %s\n' "$$REDISCLI_AUTH" | exec valkey-server - --save "" --appendonly no
+        --maxmemory 48mb --maxmemory-policy allkeys-lru
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?set in .env}
+    networks: [{{ hg_networks.dev.name }}]
+    mem_limit: 64m
+    memswap_limit: 64m
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  silo:
+    <<: *dev
+    image: "{{ hg_images.silo }}"
+    command: [server, /data, --console-address, ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set in .env}
+      MINIO_REGION: {{ hg_silo_region }}
+      MINIO_API_REQUESTS_MAX: "16"
+      GOMEMLIMIT: 200MiB
+    volumes:
+      - silodata:/data
+    networks: [{{ hg_networks.dev.name }}, {{ hg_networks.dev_edge.name }}]
+    mem_limit: 256m
+    memswap_limit: 256m
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ hg_networks.dev_edge.name }}
+      # Objects only: Silo's admin and metrics API stay unreachable from outside.
+      - traefik.http.routers.hg-dev-files.rule=Host(`{{ hg_dev_hosts.files }}`) && !PathPrefix(`/minio`)
+      - traefik.http.routers.hg-dev-files.entrypoints={{ hg_traefik_entrypoint }}
+      - traefik.http.routers.hg-dev-files.tls.certresolver={{ hg_traefik_certresolver }}
+      - traefik.http.services.hg-dev-files.loadbalancer.server.port=9000
+
+  # The bucket layout, as the production bucket setup has it (#202, #200).
+  createbuckets:
+    image: "{{ hg_images.mc }}"
+    cgroup_parent: hg-dev.slice
+    restart: "no"
+    depends_on:
+      silo:
+        condition: service_healthy
+    networks: [{{ hg_networks.dev.name }}]
+    entrypoint:
+      - /usr/bin/sh
+      - -c
+      - |
+        set -e
+        for b in {{ hg_buckets | join(' ') }}; do mc mb --ignore-existing "dev/$$b"; mc anonymous set none "dev/$$b"; done
+        # Anyone may fetch a media object by its key; nobody may list the bucket or its versions.
+        printf '%s' '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::hg-media/*"]}]}' > /tmp/media-read.json
+        mc anonymous set-json /tmp/media-read.json dev/hg-media
+        expire() { mc --json ilm rule ls "dev/$$1" 2>/dev/null | grep -Eq "\"Days\": *$$2[,}]" || mc ilm rule add --expire-days "$$2" "dev/$$1"; }
+        expire hg-pod 90
+        expire hg-exports 30
+        expire hg-tmp 1
+    # mc reads the alias "dev" from this variable: no credential is ever an argument.
+    environment:
+      MC_HOST_dev: http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@silo:9000
+{% if hg_dev_api_image %}
+
+  api:
+    <<: *dev
+    image: "{{ hg_dev_api_image }}"
+    env_file: .env
+    environment:
+      HG_HTTP_ADDR: ":8080"
+      HG_SERVICE_VERSION: dev
+      HG_POSTGRES_DSN: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      HG_POSTGRES_MAX_CONNS: "6"
+      HG_POSTGRES_MIN_CONNS: "1"
+      HG_REDIS_ADDR: redis:6379
+      HG_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      HG_MINIO_ENDPOINT: silo:9000
+      HG_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      HG_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      HG_MINIO_USE_SSL: "false"
+      HG_MINIO_REGION: {{ hg_silo_region }}
+      HG_MINIO_PUBLIC_BASE_URL: https://{{ hg_dev_hosts.files }}
+      HG_MINIO_PRESIGN_BASE_URL: https://{{ hg_dev_hosts.files }}
+      # Traefik reaches the dev API over {{ hg_networks.dev_proxy.name }}, which only the two of them join.
+      HG_TRUSTED_PROXY_CIDRS: {{ hg_networks.dev_proxy.subnet }}
+      GOMEMLIMIT: 256MiB
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      silo: {condition: service_healthy}
+    # dev_edge for its way out to the test-mode providers; dev_proxy for Traefik.
+    networks: [{{ hg_networks.dev.name }}, {{ hg_networks.dev_edge.name }}, {{ hg_networks.dev_proxy.name }}]
+    mem_limit: 320m
+    memswap_limit: 320m
+    cpus: 1
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ hg_networks.dev_proxy.name }}
+      - traefik.http.routers.hg-dev-api.rule=Host(`{{ hg_dev_hosts.api }}`)
+      - traefik.http.routers.hg-dev-api.entrypoints={{ hg_traefik_entrypoint }}
+      - traefik.http.routers.hg-dev-api.tls.certresolver={{ hg_traefik_certresolver }}
+      - traefik.http.routers.hg-dev-api.service=hg-dev-api
+      # /internal and /debug are never reachable from outside, as in production.
+      - traefik.http.routers.hg-dev-internal.rule=Host(`{{ hg_dev_hosts.api }}`) && (PathPrefix(`/internal`) || PathPrefix(`/debug`))
+      - traefik.http.routers.hg-dev-internal.entrypoints={{ hg_traefik_entrypoint }}
+      - traefik.http.routers.hg-dev-internal.tls.certresolver={{ hg_traefik_certresolver }}
+      - traefik.http.routers.hg-dev-internal.priority=100
+      - traefik.http.routers.hg-dev-internal.service=hg-dev-api
+      - traefik.http.routers.hg-dev-internal.middlewares=hg-dev-internal-only@docker
+      - traefik.http.middlewares.hg-dev-internal-only.ipallowlist.sourcerange=127.0.0.1/32
+      - traefik.http.services.hg-dev-api.loadbalancer.server.port=8080
+      - traefik.http.services.hg-dev-api.loadbalancer.healthcheck.path=/health/ready
+{% endif %}
+
+  web:
+    <<: *dev
+    image: "{{ hg_images.nginx }}"
+    volumes:
+      - ./web:/srv/web:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [{{ hg_networks.dev_edge.name }}]
+    mem_limit: 32m
+    memswap_limit: 32m
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ hg_networks.dev_edge.name }}
+      - traefik.http.routers.hg-dev-web.rule=Host(`{{ hg_dev_hosts.admin }}`) || Host(`{{ hg_dev_hosts.restaurant }}`)
+      - traefik.http.routers.hg-dev-web.entrypoints={{ hg_traefik_entrypoint }}
+      - traefik.http.routers.hg-dev-web.tls.certresolver={{ hg_traefik_certresolver }}
+      - traefik.http.services.hg-dev-web.loadbalancer.server.port=8080
+
+volumes:
+  pgdata:
+  silodata:
+
+networks:
+  {{ hg_networks.dev.name }}:
+    external: true
+  {{ hg_networks.dev_edge.name }}:
+    external: true
+  {{ hg_networks.dev_proxy.name }}:
+    external: true

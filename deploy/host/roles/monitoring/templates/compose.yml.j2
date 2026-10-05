@@ -1,0 +1,104 @@
+# Managed by Ansible (deploy/host/roles/monitoring). Metrics, alert rules and uptime checks
+# (#65). Dashboards are published only on the WireGuard address ({{ hg_wg_address }}).
+#
+# Networks: {{ hg_networks.monitoring.name }} (internal) carries scraping, so postgres-exporter, which holds a
+# database login, has no route off the box. {{ hg_networks.ops.name }} is the way out, for Alertmanager's email
+# and Gatus's public checks, and carries the dashboards' published ports, which an internal
+# network cannot.
+name: hg-monitoring
+
+services:
+{% if 'victoriametrics' in hg_monitoring_components %}
+  victoriametrics:
+    image: "{{ hg_images.victoriametrics }}"
+    restart: unless-stopped
+    command:
+      - -storageDataPath=/storage
+      - -retentionPeriod={{ hg_metrics_retention }}
+      - -promscrape.config=/etc/vm/scrape.yml
+      - -memory.allowedPercent=60
+    volumes:
+      - vmdata:/storage
+      - ./scrape.yml:/etc/vm/scrape.yml:ro
+    ports: ["{{ hg_wg_address }}:8428:8428"]
+    networks: [{{ hg_networks.ops.name }}, {{ hg_networks.monitoring.name }}]
+    mem_limit: 128m
+    memswap_limit: 128m
+{% endif %}
+{% if 'vmalert' in hg_monitoring_components %}
+  vmalert:
+    image: "{{ hg_images.vmalert }}"
+    restart: unless-stopped
+    command:
+      - -datasource.url=http://victoriametrics:8428
+      - -remoteWrite.url=http://victoriametrics:8428
+      - -remoteRead.url=http://victoriametrics:8428
+      - -notifier.url=http://alertmanager:9093
+      - -rule=/etc/vmalert/*.yml
+      - -evaluationInterval=30s
+      - -httpListenAddr=:8880
+      - -external.url=http://{{ hg_wg_address }}:8880
+    volumes:
+      - ./rules:/etc/vmalert:ro
+    ports: ["{{ hg_wg_address }}:8880:8880"]
+    networks: [{{ hg_networks.ops.name }}]
+    mem_limit: 32m
+    memswap_limit: 32m
+{% endif %}
+{% if 'alertmanager' in hg_monitoring_components %}
+  alertmanager:
+    image: "{{ hg_images.alertmanager }}"
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --web.external-url=http://{{ hg_wg_address }}:9093
+      - --cluster.listen-address=
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./smtp_password:/etc/alertmanager/smtp_password:ro
+      - amdata:/alertmanager
+    ports: ["{{ hg_wg_address }}:9093:9093"]
+    networks: [{{ hg_networks.ops.name }}]
+    mem_limit: 32m
+    memswap_limit: 32m
+{% endif %}
+{% if 'gatus' in hg_monitoring_components %}
+  gatus:
+    image: "{{ hg_images.gatus }}"
+    restart: unless-stopped
+    environment:
+      GATUS_CONFIG_PATH: /config/config.yaml
+    env_file: ./gatus.env
+    volumes:
+      - ./gatus.yaml:/config/config.yaml:ro
+      - gatusdata:/data
+    ports: ["{{ hg_wg_address }}:8080:8080"]
+    networks: [{{ hg_networks.ops.name }}]
+    mem_limit: 48m
+    memswap_limit: 48m
+{% endif %}
+{% if 'postgres_exporter' in hg_monitoring_components %}
+  postgres-exporter:
+    image: "{{ hg_images.postgres_exporter }}"
+    restart: unless-stopped
+    # Connects as hg_monitor, a member of pg_monitor (#215), to {{ hg_postgres_host }} on {{ hg_networks.data.name }}.
+    # Scraped on {{ hg_networks.monitoring.name }}. Both are internal: no way out.
+    env_file: ./postgres-exporter.env
+    networks: [{{ hg_networks.monitoring.name }}, {{ hg_networks.data.name }}]
+    mem_limit: 32m
+    memswap_limit: 32m
+{% endif %}
+
+volumes:
+  vmdata:
+  amdata:
+  gatusdata:
+
+networks:
+  {{ hg_networks.ops.name }}:
+    external: true
+  {{ hg_networks.monitoring.name }}:
+    external: true
+  {{ hg_networks.data.name }}:
+    external: true

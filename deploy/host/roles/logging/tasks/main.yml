@@ -1,0 +1,36 @@
+- name: Create the logging folder
+  ansible.builtin.file:
+    path: "{{ hg_logging_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write the logging configs
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ hg_logging_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - compose.yml
+    - fluent-bit.conf
+  notify: Restart the logging stack
+
+- name: Write the redaction script
+  ansible.builtin.copy:
+    src: redact.lua
+    dest: "{{ hg_logging_dir }}/redact.lua"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart the logging stack
+
+- name: Run the logging stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_logging_dir }}"
+    state: present
+    pull: missing
+    remove_orphans: true
+  when: hg_docker_ready

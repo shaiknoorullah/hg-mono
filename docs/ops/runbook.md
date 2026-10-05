@@ -113,9 +113,9 @@ If it came back by itself after a crash, nothing was lost. The runner's outage h
 
 1. **Tell people.** Phone the restaurants. The admin app goes down with the server, so tell support what to say to customers.
 2. **Get a server.** Order a Cloud VPS 6 in US-East, or reinstall the old one from Contabo's panel if only its software is broken. Note its IPv4 and IPv6 addresses.
-3. **Provision it** with the Ansible playbooks from [#209][i209] (branch `chore/server-provisioning`, landing in deploy/host): firewall, WireGuard, SSH, updates, Docker, log limits. Reuse the old server's WireGuard keys from the config backup, so peers only need the new address.
+3. **Provision it** from the owner's laptop with [the server set-up in deploy/host](../../deploy/host/README.md) ([#209][i209]): `ssh-keygen -R 10.66.0.1`, then `deploy/host/provision.sh <new IPv4>`. It brings back the firewall, WireGuard, SSH, updates, Docker, log limits, backups, monitoring and dev. The server's WireGuard key comes from the encrypted secrets, so it is the same as before: peers only change the endpoint address, in the config it writes to `deploy/host/out/`. Run it a second time once the tunnel is up, to close public SSH.
 4. **Copy the backups up** over WireGuard: the pgBackRest and restic repositories, from the owner's machine or from the rescued disk. The backup passwords are in the offline password manager.
-5. **Restore the config and secrets.** `restic -r <repo> snapshots` lists the snapshots. Restore the newest config snapshot into a scratch folder with `restic -r <repo> restore <id> --target /srv/restore/config`, then copy into place the compose files, `acme.json` (mode 600) and the WireGuard config. Do not copy the old `/etc` over the new one. Restore the secrets store: the vault or the encrypted env file, whichever is live ([#235][i235], [#54][i54]). Its unseal or decryption keys are in the offline password manager.
+5. **Restore the config and secrets.** `restic -r <repo> snapshots` lists the snapshots. Restore the newest config snapshot into a scratch folder with `restic -r <repo> restore <id> --target /srv/restore/config`, then copy into place the compose files and `acme.json` (mode 600). Do not copy the old `/etc` over the new one. Restore the secrets store: the vault or the encrypted env file, whichever is live ([#235][i235], [#54][i54]). Its unseal or decryption keys are in the offline password manager.
 6. **Pull the images** by the digests in the restored compose files: `docker compose pull`.
 7. **Restore Postgres** in a one-off container of the Postgres image, with the empty data volume mounted:
    - to the newest point the backups hold: `pgbackrest --stanza=<stanza> restore`;
@@ -222,7 +222,7 @@ On-call contains. The privacy officer and the owner decide what is reported, and
 
 ## Monthly restore drill
 
-Restore from the copy on the owner's machine: it is the one a rebuild uses. Work in a scratch folder, start containers with `--rm`, and wipe both afterwards.
+Restore from the copy on the owner's machine: it is the one a rebuild uses. Work in a scratch folder, start containers with `--rm`, and wipe both afterwards. `hg-restore-drill` does every step below: on the server it runs by itself on the first Tuesday of each month, from the server's own repository; on the owner's machine, run `sudo hg-restore-drill --config /etc/hg-offline/backup.conf --no-live` and compare the counts it prints with production.
 
 1. Restore the database to a chosen point in time in a throwaway Postgres.
 2. Check the ledger: `SELECT batch_id FROM ledger_entry GROUP BY batch_id HAVING sum(amount_cents) <> 0;` returns no rows, and the row counts of `"order"`, `ledger_entry` and `stored_object` match a count taken on prod at that point.

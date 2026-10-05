@@ -1,0 +1,48 @@
+- name: Install the sshd config checker
+  ansible.builtin.copy:
+    src: hg-sshd-validate
+    dest: /usr/local/sbin/hg-sshd-validate
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Harden sshd (keys only, no root, WireGuard peers only)
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/ssh/sshd_config.d/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "/usr/local/sbin/hg-sshd-validate %s {{ item }}"
+  loop:
+    - 00-hardening.conf
+    - 90-hg-pull.conf
+  notify: Reload sshd
+
+- name: Apply the sshd settings now
+  ansible.builtin.meta: flush_handlers
+
+- name: Read sshd's effective settings for each account
+  ansible.builtin.command: "/usr/sbin/sshd -T -C user={{ item }},host=check,addr={{ hg_wg_prefix }}.10"
+  loop:
+    - "{{ hg_admin_user }}"
+    - "{{ hg_pull_user }}"
+  register: hg_sshd_effective
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Confirm keys only, no root, and the backup account confined
+  ansible.builtin.assert:
+    that:
+      - "'permitrootlogin no' in admin"
+      - "'passwordauthentication no' in admin"
+      - "'kbdinteractiveauthentication no' in admin"
+      - "'forcecommand none' in admin"
+      - "'forcecommand internal-sftp -r' in pull"
+      - "('chrootdirectory ' ~ hg_backup_root) in pull"
+    fail_msg: "sshd's effective settings are not the hardened ones; see sshd -T."
+    quiet: true
+  vars:
+    admin: "{{ hg_sshd_effective.results[0].stdout | lower }}"
+    pull: "{{ hg_sshd_effective.results[1].stdout_lines | map('lower') | list | join('\n') }}"
+  when: not ansible_check_mode

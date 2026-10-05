@@ -1,0 +1,5 @@
+- name: Reload Postgres's access rules
+  ansible.builtin.command:
+    argv: [docker, exec, "{{ hg_postgres_container }}", psql, -U, "{{ hg_postgres_superuser }}",
+           -d, "{{ hg_postgres_db }}", -c, "SELECT pg_reload_conf()"]
+  changed_when: true

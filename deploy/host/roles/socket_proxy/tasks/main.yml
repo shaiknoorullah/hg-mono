@@ -1,0 +1,40 @@
+- name: Create the socket proxy's folder
+  ansible.builtin.file:
+    path: "{{ hg_ops_dir }}/socket-proxy"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Find the group that owns the Docker socket
+  ansible.builtin.stat:
+    path: /var/run/docker.sock
+  register: hg_socket_proxy_socket
+  when: hg_docker_ready
+
+- name: Stop if Docker is installed but its socket is missing
+  ansible.builtin.assert:
+    that: hg_socket_proxy_socket.stat.exists
+    fail_msg: Docker is installed, but /var/run/docker.sock is missing. Is the docker service running?
+    quiet: true
+  when: hg_docker_ready
+
+- name: Write the socket proxy's compose file
+  vars:
+    hg_socket_proxy_gid: "{{ hg_socket_proxy_socket.stat.gid }}"
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ hg_ops_dir }}/socket-proxy/compose.yml"
+    owner: root
+    group: root
+    mode: "0640"
+  # A fresh server in check mode has no Docker yet, so no socket group to name.
+  when: hg_docker_ready
+
+- name: Run the socket proxy
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_ops_dir }}/socket-proxy"
+    state: present
+    pull: missing
+    remove_orphans: true
+  when: hg_docker_ready

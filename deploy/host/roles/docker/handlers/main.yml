@@ -1,0 +1,15 @@
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart docker
+  ansible.builtin.systemd_service:
+    name: docker
+    state: restarted
+  when: hg_docker_ready | default(false)
+
+- name: Re-apply the DOCKER-USER guard
+  ansible.builtin.systemd_service:
+    name: hg-docker-user-guard
+    state: restarted
+  when: hg_docker_ready | default(false)
