@@ -27,7 +27,7 @@ test('admin: sign in with TOTP, open the order, open the verification register',
     await expect(page.getByRole('heading', { name: 'Admin sign in' })).toBeVisible();
     await page.getByLabel('Email').fill(w.admin.email);
     await page.getByLabel('Password').fill(w.password);
-    await page.getByLabel('Authenticator code').first().fill(await freshTotp(w.admin.totpSecret));
+    await page.getByLabel('Authenticator code, digit 1 of 6').fill(await freshTotp(w.admin.totpSecret));
   });
 
   await step(page, 'review-queue', async () => {
