@@ -22,6 +22,8 @@ type Service struct {
 	log    *slog.Logger
 	now    func() time.Time
 	orders OrderHooks
+	// payouts queues admin payout runs; nil when Stripe is not configured.
+	payouts *PayoutRunner
 }
 
 // NewService builds the payments service.
