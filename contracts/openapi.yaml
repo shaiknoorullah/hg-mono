@@ -390,6 +390,10 @@ paths:
           $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/email/verify:
@@ -475,6 +479,10 @@ paths:
         return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
         sets `error.details.email_verification_required` **only after** the credentials
         were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
+
+        A `503` means password checking is at capacity. The staff web app (`X-HG-Client:
+        admin-web`) has capacity of its own; which capacity a request uses depends only on
+        that header, never on the email, so a `503` says nothing about the account.
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -512,6 +520,8 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/refresh:
@@ -730,6 +740,10 @@ paths:
           $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/password/change:
@@ -746,6 +760,9 @@ paths:
         account lockout, or sign the person out instead of saying the password is wrong.
         The backend still answers `401` until
         [#238](https://github.com/shaiknoorullah/hg-mono/issues/238) is fixed.
+
+        At most 5 attempts per account in 15 minutes; past that, `429` with `Retry-After`,
+        before the current password is checked.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V0
       requestBody:
@@ -779,6 +796,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/totp/enroll:
@@ -3107,6 +3128,11 @@ paths:
         returned flagged `is_active: false`, out-of-stock and hidden items are returned with
         their state, and each item carries its `pending_version` when a reviewed field has
         been edited but not yet approved. Customers only ever see `live_version`.
+
+        Readable while the restaurant is `SUSPENDED`: the menu lock refuses changes, never
+        reads. The restaurant learns the menu is locked from `account_state` on its profile
+        (`getRestaurantProfile`) before it tries a save, and from `403 MENU_LOCKED` if a
+        save races a suspension.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
       x-version: V0
       responses:
@@ -3153,6 +3179,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: '`CATEGORY_NAME_TAKEN`.'
           content:
@@ -3202,6 +3234,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '409':
@@ -3250,7 +3288,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`.'
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -3295,6 +3333,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written: no price, photo or other field changes, and a version already waiting in menu review stays as it is.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '422':
@@ -3335,7 +3379,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`ITEM_BLOCKED_BY_ADMIN` with the admin''s reason.'
+          description: '`ITEM_BLOCKED_BY_ADMIN` with the admin''s reason. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included, so an item cannot be marked out of stock or back in stock; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -4658,6 +4702,11 @@ paths:
         to the authenticated admin — no code path accepts an `admin_id` from a request body.
         A second decision on a decided application is `409 ALREADY_DECIDED`, never a silent
         overwrite.
+
+        Each decision has its own body (`RestaurantDecisionInput`): an approval carries an
+        approval reason, a rejection or a request for changes carries a rejection reason, and a
+        request for changes names the documents to redo. A missing reason, or a reason that
+        does not fit the decision, is `422 VALIDATION_FAILED`.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5109,6 +5158,11 @@ paths:
         Rejection reason text is sent verbatim to the rider with the specific remediation
         step. A support agent may re-open a rejected application only for a remediable
         reason, and may never approve.
+
+        Each decision has its own body (`RiderDecisionInput`): an approval carries an approval
+        reason, a rejection or a request for changes carries a document rejection reason, and a
+        request for changes names the documents to redo. A missing reason, or a reason that
+        does not fit the decision, is `422 VALIDATION_FAILED`.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5139,7 +5193,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: '`AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`.'
+          description: '`AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`, `VALIDATION_FAILED`.'
           content:
             application/json:
               schema:
@@ -5189,6 +5243,10 @@ paths:
         category's `created_by`. The restaurant is named in the path, which is the only
         place in the contract where a restaurant id is accepted from the caller — and it is
         gated by a global admin action, not by scope.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5212,6 +5270,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '409':
@@ -5228,6 +5292,10 @@ paths:
         `HALAL_CERTIFIED` assertion, no alcohol, no pork keyword, price inside the permitted
         band. An item created by an admin is created already approved, because the reviewer
         and the author are the same accountable person; that fact is recorded on the version.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5251,6 +5319,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
+        '403':
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '422':
@@ -5282,6 +5356,10 @@ paths:
         `PENDING_REVIEW` and the body carries a claim-bearing field, the call is
         `409 MENU_VERSION_PENDING` — decide that version first (`decideMenuVersion`). An item
         that is not on this restaurant's menu is `404`, the same as one that does not exist.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       requestBody:
@@ -5303,7 +5381,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`.'
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -5339,11 +5417,21 @@ paths:
         `ITEM_DELETED`, never silently removed. A version of the item still waiting for
         review is withdrawn, and deciding it afterwards is `409 ITEM_DELETED`. Removing an
         item that is already removed, or that is not on this restaurant's menu, is `404`.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       responses:
         '204':
           description: Item removed.
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is removed, and a version waiting in menu review stays as it is.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         default:
@@ -5359,6 +5447,10 @@ paths:
         the queue is never the bottleneck of a dinner service. **Claim-bearing fields are
         never auto-approved** (decision R-05): silence must not become consent on a halal
         claim.
+
+        A suspended or banned restaurant's pending versions stay in the queue and stay
+        readable; deciding one is refused with `403 MENU_LOCKED` until the suspension is
+        lifted (`decideMenuVersion`).
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5397,6 +5489,12 @@ paths:
         A-19 / R-17. Approval repoints `live_version_id` and clears `pending_version_id` in
         one transaction. Rejection requires a reason code, which the restaurant sees
         verbatim and may resubmit against without limit.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included, and a version waiting for review stays as it is
+        (`docs/decisions/README.md`, round 2, "A suspended or banned restaurant's menu"):
+        approving or rejecting it is `403 MENU_LOCKED`. Decide it once the suspension is
+        lifted. A `DELISTED` restaurant's versions can be decided.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5425,6 +5523,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemVersion'
+        '403':
+          description: '`MENU_LOCKED`: the version''s restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. The version stays `PENDING_REVIEW`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: '`ITEM_DELETED`, `ALREADY_DECIDED`.'
           content:
@@ -6053,6 +6157,25 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
+    ServerBusy:
+      description: |
+        The server is temporarily unable to take this request. The request was **not**
+        executed — no partial effect exists. With `error.code` `TIMEOUT`, the work it needs
+        (for example argon2id password hashing, which is capped per replica) stayed at
+        capacity for the whole wait; retry after `Retry-After` seconds.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            format: int32
+        X-Request-ID:
+          description: 'ULID correlating this response with the server log and the audit trail.'
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     RateLimited:
       description: 'Rate limit exceeded. The request was **not** executed — no partial effect exists.'
       headers:
@@ -6194,6 +6317,7 @@ components:
                 `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
                 `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                 `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+                `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
                 `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
                 `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                 `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
@@ -6378,6 +6502,12 @@ components:
         - ITEM_DELETED
         - NO_LIVE_MENU_ITEM
         - MENU_VERSION_PENDING
+        # A write to a SUSPENDED or BANNED restaurant's menu, by its staff or by an admin
+        # on its behalf. Not ACCOUNT_SUSPENDED, which means the caller's own account is
+        # suspended and sends the app to the suspension screen; here the caller stays
+        # signed in and only the menu is locked
+        # (https://github.com/shaiknoorullah/hg-mono/issues/256).
+        - MENU_LOCKED
         - DOCUMENTS_INCOMPLETE
         - DOCUMENT_EXPIRES_TOO_SOON
         - UNDERAGE
@@ -6901,6 +7031,14 @@ components:
       enum: [APPROVE, REQUEST_CHANGES, REJECT]
     RestaurantApproveReasonCode:
       type: string
+      enum: [ALL_CHECKS_PASSED, APPROVED_WITH_NOTES]
+    RiderApproveReasonCode:
+      type: string
+      description: |
+        Why a rider application was approved. The same two reasons as a restaurant approval
+        (`RestaurantApproveReasonCode`), because the rider review is built the same way
+        ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+        `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
       enum: [ALL_CHECKS_PASSED, APPROVED_WITH_NOTES]
     RestaurantRejectApplicationReasonCode:
       type: string
@@ -11263,30 +11401,98 @@ components:
               type: [string, 'null']
               description: 'Soft warning when the map pin is more than 5 km from the postal-code centroid.'
     RestaurantDecisionInput:
+      description: |
+        The decision on a restaurant application
+        ([restaurant approval or rejection](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-18--restaurant-approval--rejection-decision)).
+        One body shape per `decision`, chosen by the `decision` field, so each decision can
+        carry only the reason codes that fit it:
+
+        - `APPROVE` carries an approval reason (`RestaurantApproveReasonCode`).
+        - `REJECT` carries a rejection reason (`RestaurantRejectApplicationReasonCode`).
+        - `REQUEST_CHANGES` carries a rejection reason and names the documents to redo.
+
+        Every state-changing admin action requires both a `reason_code` from a closed enum and
+        a `reason_text`
+        ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+        missing either, or a code that does not fit the decision, is a `422`. `reason_text` is
+        sent verbatim to the restaurant — internal remarks go in `internal_note`, which is
+        never transmitted. The rider application decision has the same shape
+        (`RiderDecisionInput`).
+      oneOf:
+        - $ref: '#/components/schemas/RestaurantApplicationApproveInput'
+        - $ref: '#/components/schemas/RestaurantApplicationRejectInput'
+        - $ref: '#/components/schemas/RestaurantApplicationRequestChangesInput'
+      discriminator:
+        propertyName: decision
+        mapping:
+          APPROVE: '#/components/schemas/RestaurantApplicationApproveInput'
+          REJECT: '#/components/schemas/RestaurantApplicationRejectInput'
+          REQUEST_CHANGES: '#/components/schemas/RestaurantApplicationRequestChangesInput'
+    RestaurantApplicationApproveInput:
       type: object
       additionalProperties: false
       required: [decision, reason_code, reason_text]
-      description: |
-        Every state-changing admin action requires both a `reason_code` from a closed enum and
-        a `reason_text`; missing either is a `422`. `reason_text` is sent verbatim to the
-        restaurant — internal remarks go in `internal_note`, which is never transmitted.
+      description: 'Approve a restaurant application. Approval does not make the restaurant live.'
       properties:
         decision:
-          $ref: '#/components/schemas/RestaurantDecision'
+          type: string
+          enum: [APPROVE]
         reason_code:
-          oneOf:
-            - $ref: '#/components/schemas/RestaurantApproveReasonCode'
-            - $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+          $ref: '#/components/schemas/RestaurantApproveReasonCode'
         reason_text:
           type: string
           minLength: 10
           maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
         internal_note:
           type: string
           maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
+    RestaurantApplicationRejectInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text]
+      description: 'Reject a restaurant application. Rejection is final for this application.'
+      properties:
+        decision:
+          type: string
+          enum: [REJECT]
+        reason_code:
+          $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
+        internal_note:
+          type: string
+          maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
+    RestaurantApplicationRequestChangesInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text, documents_to_redo]
+      description: 'Send a restaurant application back for changes, naming the documents to redo.'
+      properties:
+        decision:
+          type: string
+          enum: [REQUEST_CHANGES]
+        reason_code:
+          $ref: '#/components/schemas/RestaurantRejectApplicationReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the restaurant.'
+        internal_note:
+          type: string
+          maxLength: 2000
+          description: 'For staff only; never sent to the restaurant.'
         documents_to_redo:
           type: array
-          description: 'Required for `REQUEST_CHANGES`: names exactly which documents to redo.'
+          minItems: 1
+          uniqueItems: true
+          description: 'Names exactly which documents to redo.'
           items:
             $ref: '#/components/schemas/RestaurantDocType'
     DocumentReviewInput:
@@ -11599,12 +11805,77 @@ components:
               items:
                 type: string
     RiderDecisionInput:
+      description: |
+        The decision on a rider application
+        ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+        One body shape per `decision`, chosen by the `decision` field, so each decision can
+        carry only the reason codes that fit it:
+
+        - `APPROVE` carries an approval reason (`RiderApproveReasonCode`). Until
+          [#163](https://github.com/shaiknoorullah/hg-mono/issues/163) every decision had to
+          carry a document rejection reason, and none of those fits an approval.
+        - `REJECT` carries a document rejection reason (`DocumentRejectionReasonCode`).
+        - `REQUEST_CHANGES` carries a document rejection reason and names the documents to redo.
+
+        Every state-changing admin action requires both a `reason_code` from a closed enum and
+        a `reason_text`
+        ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+        missing either, or a code that does not fit the decision, is a `422`. The same shape
+        as the restaurant application decision (`RestaurantDecisionInput`).
+      oneOf:
+        - $ref: '#/components/schemas/RiderApplicationApproveInput'
+        - $ref: '#/components/schemas/RiderApplicationRejectInput'
+        - $ref: '#/components/schemas/RiderApplicationRequestChangesInput'
+      discriminator:
+        propertyName: decision
+        mapping:
+          APPROVE: '#/components/schemas/RiderApplicationApproveInput'
+          REJECT: '#/components/schemas/RiderApplicationRejectInput'
+          REQUEST_CHANGES: '#/components/schemas/RiderApplicationRequestChangesInput'
+    RiderApplicationApproveInput:
       type: object
       additionalProperties: false
       required: [decision, reason_code, reason_text]
+      description: |
+        Approve a rider application. A rider under 18 cannot be approved
+        (`422 AGE_REQUIREMENT_NOT_MET`), and approval moves the rider to `PAYOUT_PENDING`, not
+        straight to dispatchable.
       properties:
         decision:
-          $ref: '#/components/schemas/RestaurantDecision'
+          type: string
+          enum: [APPROVE]
+        reason_code:
+          $ref: '#/components/schemas/RiderApproveReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the rider.'
+    RiderApplicationRejectInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text]
+      description: 'Reject a rider application.'
+      properties:
+        decision:
+          type: string
+          enum: [REJECT]
+        reason_code:
+          $ref: '#/components/schemas/DocumentRejectionReasonCode'
+        reason_text:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: 'Sent verbatim to the rider with the specific remediation step.'
+    RiderApplicationRequestChangesInput:
+      type: object
+      additionalProperties: false
+      required: [decision, reason_code, reason_text, documents_to_redo]
+      description: 'Send a rider application back for changes, naming the documents to redo.'
+      properties:
+        decision:
+          type: string
+          enum: [REQUEST_CHANGES]
         reason_code:
           $ref: '#/components/schemas/DocumentRejectionReasonCode'
         reason_text:
@@ -11614,6 +11885,9 @@ components:
           description: 'Sent verbatim to the rider with the specific remediation step.'
         documents_to_redo:
           type: array
+          minItems: 1
+          uniqueItems: true
+          description: 'Names exactly which documents to redo.'
           items:
             $ref: '#/components/schemas/RiderDocType'
     OrderAdminView:

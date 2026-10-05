@@ -92,16 +92,29 @@ func clientSurface(r *http.Request) (ClientSurface, bool) {
 	return c, c.valid()
 }
 
-// clientIPPtr is the client address as the router's RealIP stage resolved it
-// (the forwarded address when the peer is a trusted proxy), or nil when it is
-// unknown. It keys the per-IP OTP limit, so behind Traefik it must not be the
-// proxy's own address.
+// clientIPPtr is the client's address as resolved by the router's RealIP stage
+// (internal/httpx/realip.go): the forwarded address when the peer is a trusted
+// proxy, never Traefik's own. It keys every per-IP limit (through ipSubject);
+// keying a limit on the TCP peer would make one limit for the whole platform.
 func clientIPPtr(r *http.Request) *string {
 	host := httpx.ClientIP(r)
 	if host == "" {
 		return nil
 	}
 	return &host
+}
+
+// failRateLimited writes the 429 for an over-the-cap limiter answer, with a
+// Retry-After of the seconds left in the window (rounded up, at least 1).
+func failRateLimited(w http.ResponseWriter, r *http.Request, err error, message string) {
+	retry := 60 * time.Second
+	var limited *RateLimitedError
+	if errors.As(err, &limited) && limited.RetryAfter > 0 {
+		retry = limited.RetryAfter
+	}
+	secs := int64((retry + time.Second - 1) / time.Second)
+	w.Header().Set("Retry-After", strconv.FormatInt(secs, 10))
+	httpx.Fail(w, r, http.StatusTooManyRequests, httpx.CodeRateLimited, message, nil)
 }
 
 func userAgentPtr(r *http.Request) *string {
@@ -113,6 +126,33 @@ func userAgentPtr(r *http.Request) *string {
 		ua = ua[:512]
 	}
 	return &ua
+}
+
+// failHashBusy answers 503 when every password-hashing slot of the request's
+// gate stayed taken (hashgate.go). Nothing was executed, so the client may
+// retry after Retry-After seconds. TIMEOUT is the contract's code for "the
+// server could not do this in time" (contracts/openapi.yaml, ErrorCode).
+//
+// Every rejection writes one WARN line naming the gate and the operation, with
+// the gate's running total, so ops can see a flood and which form it targets
+// rather than a bare 503 in the request log (#216).
+func (h *Handler) failHashBusy(w http.ResponseWriter, r *http.Request, err error, operationID string) {
+	retry := DefaultHashWait
+	gate, reason := "unknown", "unknown"
+	var busy *HashBusyError
+	if errors.As(err, &busy) {
+		retry, gate, reason = busy.RetryAfter, busy.Gate, busy.Reason
+	}
+	secs := int64((retry + time.Second - 1) / time.Second)
+	if secs < 1 {
+		secs = 1
+	}
+	h.svc.log.WarnContext(r.Context(), "password hashing at capacity",
+		"gate", gate, "reason", reason, "operation_id", operationID,
+		"retry_after_s", secs, "rejected_total", PasswordHashingRejections()[gate])
+	w.Header().Set("Retry-After", strconv.FormatInt(secs, 10))
+	httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeTimeout,
+		"The server is busy. Please try again in a moment.", nil)
 }
 
 // ---- OTP request (P-02) -----------------------------------------------------
@@ -152,9 +192,7 @@ func (h *Handler) RequestOTP(w http.ResponseWriter, r *http.Request) {
 			"Verification is temporarily unavailable. Please try again shortly.", nil)
 		return
 	case errors.Is(err, ErrRateLimited):
-		w.Header().Set("Retry-After", "60")
-		httpx.Fail(w, r, http.StatusTooManyRequests, httpx.CodeRateLimited,
-			"Too many verification requests. Please wait before trying again.", nil)
+		failRateLimited(w, r, err, "Too many verification requests. Please wait before trying again.")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
@@ -215,7 +253,10 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 // ---- login (P-03) -----------------------------------------------------------
 
 // Login implements login. Argon2id verification, status check, TOTP where
-// enrolled, Postgres-backed lockout.
+// enrolled, Postgres-backed lockout. Per-IP and per-email request limits answer
+// 429 with Retry-After; they fail open when Redis is down (the lockout does not
+// live in Redis), so the limiter never makes login answer 503. The only 503 is
+// password hashing at capacity, which is reached only after the limits pass.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	client, ok := clientSurface(r)
 	if !ok {
@@ -261,9 +302,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusForbidden, CodeAccountNotActive,
 			"This account is not active.", nil)
 		return
-	case errors.Is(err, ErrLimiterUnavailable):
-		httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeRateLimiterUnavailable,
-			"Sign-in is temporarily unavailable. Please try again shortly.", nil)
+	case errors.Is(err, ErrRateLimited):
+		failRateLimited(w, r, err, "Too many sign-in attempts. Please wait before trying again.")
+		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		h.failHashBusy(w, r, err, "login")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
@@ -302,8 +345,11 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName)
+	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName, clientIPPtr(r))
 	switch {
+	case errors.Is(err, ErrRateLimited):
+		failRateLimited(w, r, err, "Too many sign-ups from this network. Please wait before trying again.")
+		return
 	case errors.Is(err, ErrEmailInUse):
 		httpx.Fail(w, r, http.StatusConflict, CodeEmailAlreadyRegistered,
 			"An account with this email already exists.", nil)
@@ -311,6 +357,9 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, errBreachedPassword):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeBreachedPassword,
 			"This password has appeared in a data breach. Choose another.", nil)
+		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		h.failHashBusy(w, r, err, "registerRestaurant")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
@@ -371,9 +420,7 @@ func (h *Handler) ResendEmailVerification(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err := h.svc.ResendEmailVerification(r.Context(), in.Email); errors.Is(err, ErrRateLimited) {
-		w.Header().Set("Retry-After", "60")
-		httpx.Fail(w, r, http.StatusTooManyRequests, httpx.CodeRateLimited,
-			"Please wait before requesting another email.", nil)
+		failRateLimited(w, r, err, "Please wait before requesting another email.")
 		return
 	}
 	httpx.Respond(w, r, http.StatusAccepted, wireAcknowledgement{Acknowledged: true})
@@ -408,8 +455,11 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			"Password must be between 12 and 256 characters.", nil)
 		return
 	}
-	err := h.svc.ResetPassword(r.Context(), in.Token, in.NewPassword)
+	err := h.svc.ResetPassword(r.Context(), in.Token, in.NewPassword, clientIPPtr(r))
 	switch {
+	case errors.Is(err, ErrRateLimited):
+		failRateLimited(w, r, err, "Too many password resets from this network. Please wait before trying again.")
+		return
 	case errors.Is(err, errTokenExpired), errors.Is(err, errTokenUsed), errors.Is(err, ErrNotFound):
 		httpx.Fail(w, r, http.StatusBadRequest, CodeTokenConsumed,
 			"This reset link is not valid.", nil)
@@ -417,6 +467,9 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, errBreachedPassword):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeBreachedPassword,
 			"This password has appeared in a data breach. Choose another.", nil)
+		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		h.failHashBusy(w, r, err, "resetPassword")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,

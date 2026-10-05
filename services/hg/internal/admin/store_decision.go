@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 )
 
 // restaurantProfileRow is the full restaurant projection the review screen needs.
@@ -538,8 +539,12 @@ func (r *Repo) DecideRiderApplication(ctx context.Context, actor auditActor, acc
 		if actor.staffID != "" {
 			decidedBy = actor.staffID
 		}
+		// Only a rejection or a request for changes carries a document rejection
+		// reason; an approval's reason (RiderApproveReasonCode) has no column here
+		// and is kept on the audit row below (issue #163:
+		// https://github.com/shaiknoorullah/hg-mono/issues/163).
 		var rc any
-		if reasonCode != "" {
+		if decision != "APPROVE" && reasonCode != "" {
 			rc = reasonCode
 		}
 		if _, err := tx.Exec(ctx, `
@@ -553,6 +558,10 @@ UPDATE rider_application
 			if _, err := tx.Exec(ctx, `
 UPDATE rider_profile SET onboarding_state=$2::rider_onboarding_state, approved_by=$3, approved_at=now()
  WHERE account_id=$1`, accountID, toState, decidedBy); err != nil {
+				return err
+			}
+			// Payouts may already be enabled: go straight to ACTIVE.
+			if err := rider.RecomputeOnboarding(ctx, tx, accountID); err != nil {
 				return err
 			}
 		} else {

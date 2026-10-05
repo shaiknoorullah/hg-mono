@@ -121,7 +121,7 @@ func requireSignedIn(t *testing.T, resp *http.Response) {
 	t.Fatalf("login set no hg_rt cookie: %q", resp.Header.Values("Set-Cookie"))
 }
 
-func errorCode(t *testing.T, resp *http.Response) (status int, code string, details map[string]any) {
+func linkErrorCode(t *testing.T, resp *http.Response) (status int, code string, details map[string]any) {
 	t.Helper()
 	var out struct {
 		Error struct {
@@ -164,7 +164,7 @@ func TestVerifyEmailIssuesNoSession(t *testing.T) {
 
 	email := uniqueEmail("verify_link")
 	const pw = "VerifyLinkPass12!"
-	hash, err := HashPassword(pw)
+	hash, err := HashPassword(context.Background(), pw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +236,7 @@ func TestResetPasswordIssuesNoSession(t *testing.T) {
 	requireNoSession(t, pool, accountID, resp)
 
 	// The password alone is not a sign-in for an admin.
-	status, code, _ := errorCode(t, postAs(t, srv, "/v1/auth/login", ClientAdminWeb,
+	status, code, _ := linkErrorCode(t, postAs(t, srv, "/v1/auth/login", ClientAdminWeb,
 		map[string]any{"email": email, "password": newPW}))
 	if status != http.StatusForbidden || code != string(CodeMFARequired) {
 		t.Fatalf("login without a code = %d %s, want 403 %s", status, code, CodeMFARequired)
@@ -295,7 +295,7 @@ func TestAcceptInviteIssuesNoSession(t *testing.T) {
 	// also marks the invitee's email verified
 	// (https://github.com/shaiknoorullah/hg-mono/pull/350), the email
 	// verification, which login only reveals after a correct password.
-	status, code, details := errorCode(t, postAs(t, srv, "/v1/auth/login", ClientAdminWeb,
+	status, code, details := linkErrorCode(t, postAs(t, srv, "/v1/auth/login", ClientAdminWeb,
 		map[string]any{"email": email, "password": pw}))
 	mfa := status == http.StatusForbidden && code == string(CodeMFARequired)
 	unverified := status == http.StatusUnauthorized && code == string(CodeInvalidCredentials) &&

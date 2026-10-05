@@ -117,7 +117,7 @@ func newAuthHarness(t *testing.T, pool *pgxpool.Pool) *authHarness {
 	sms := newCaptureSMS()
 
 	store := auth.NewStore(pool)
-	rl := auth.NewRateLimiter(nil) // nil redis → limiter no-ops (never fail-closed here)
+	rl := auth.NewRateLimiter(nil, nil) // nil redis → limiter no-ops (never fail-closed here)
 	deny := session.NewDenySet()
 	issuer := session.NewIssuer(secrets.SigningKID, secrets.SigningPriv, "hg-api")
 
@@ -244,7 +244,7 @@ func authUniquePhone() string {
 func (a *authHarness) seedActiveEmailAccount(t *testing.T, email, password string, role string) (accountID string) {
 	t.Helper()
 	ctx := context.Background()
-	hash, err := auth.HashPassword(password)
+	hash, err := auth.HashPassword(ctx, password)
 	if err != nil {
 		t.Fatalf("HashPassword: %v", err)
 	}
@@ -274,7 +274,7 @@ func (a *authHarness) seedActiveEmailAccount(t *testing.T, email, password strin
 func (a *authHarness) seedUnverifiedEmailAccount(t *testing.T, email, password string) (accountID string) {
 	t.Helper()
 	ctx := context.Background()
-	hash, err := auth.HashPassword(password)
+	hash, err := auth.HashPassword(ctx, password)
 	if err != nil {
 		t.Fatalf("HashPassword: %v", err)
 	}

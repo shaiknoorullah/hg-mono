@@ -5,16 +5,33 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // OrderLifecycle is the seam from dispatch to the orders module. Dispatch calls
 // through this interface to advance the order state machine when the assignment
-// reaches PICKED_UP or DELIVERED; the orders module owns order.state (P-14) and
-// is the only writer of it. Keeping this as an interface (not a direct import)
+// reaches PICKED_UP, ARRIVED_AT_DROPOFF or DELIVERED; the orders module owns
+// order.state (P-14) and is the only writer of it. These are the only three
+// pushes dispatch may make (docs/spec/01-platform.md, "P-14 — Order lifecycle
+// states and transitions": carrying ⇒ picked up, at the customer ⇒ arrived,
+// completed ⇒ delivered). Keeping this as an interface (not a direct import)
 // keeps the dependency direction clean and lets tests inject a fake.
 type OrderLifecycle interface {
-	// ConfirmPickup advances the order from READY_FOR_PICKUP to PICKED_UP (T12).
-	ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error
+	// ConfirmPickupTx moves the order to PICKED_UP (T12) inside the rider's
+	// PICKED_UP step's own transaction, so the two commit together or not at
+	// all (pickup.go). A state the pickup cannot move the order out of,
+	// PREPARING included, is *OrderNotCollectableError, and a rider who does
+	// not hold the order's delivery is ErrRiderDoesNotHoldOrder; either
+	// refuses the step.
+	ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error
+	// MarkArrived advances the order from PICKED_UP to ARRIVED (row T14 of the
+	// transition table in that spec section) when the rider taps "I'm here" at
+	// the drop-off: the assignment's ARRIVED_AT_DROPOFF, the dispatch
+	// sub-machine's AT_CUSTOMER. Entering ARRIVED arms the 15-minute
+	// handover-overdue deadline (docs/spec/01-platform.md, "P-15 — Deadlines
+	// and timeout actions"; issue #250).
+	MarkArrived(ctx context.Context, orderID, riderAccountID string) error
 	// CompleteDelivery advances the order from PICKED_UP (or ARRIVED) to DELIVERED (T15/T16).
 	CompleteDelivery(ctx context.Context, orderID, riderAccountID string) error
 }
@@ -133,12 +150,15 @@ func (s *Service) GetAssignment(ctx context.Context, riderAccountID, assignmentI
 	return s.store.LoadAssignment(ctx, riderAccountID, assignmentID)
 }
 
-// Transition advances an assignment one step. After the dispatch transaction
-// commits, it calls the OrderLifecycle bridge for PICKED_UP and DELIVERED to
-// keep the order state machine in sync (P-14: only the orders module writes
-// order.state; dispatch calls it via the interface, never directly).
+// Transition advances an assignment one step, keeping the order state machine
+// in sync through the OrderLifecycle bridge (P-14: only the orders module
+// writes order.state; dispatch calls it via the interface, never directly).
+// PICKED_UP moves the order inside the step's own transaction (pickup.go);
+// ARRIVED_AT_DROPOFF and DELIVERED call the bridge after the dispatch
+// transaction commits (advanceOrder). Every other assignment step leaves the
+// order where it is.
 func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput) (*Assignment, error) {
-	asn, transitioned, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now())
+	asn, transitioned, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now(), s.pickupStepFor(riderAccountID))
 	if err != nil {
 		return nil, err
 	}
@@ -148,24 +168,46 @@ func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID s
 	// advance the assignment): re-firing it would attempt an already-applied
 	// order transition, which the orders machine rejects as illegal and which
 	// would otherwise log a spurious bridge failure on a normal retry.
-	if s.lifecycle != nil && transitioned {
-		switch in.ToState {
-		case "PICKED_UP":
-			if lcErr := s.lifecycle.ConfirmPickup(ctx, asn.OrderID, riderAccountID); lcErr != nil {
-				// Log-and-swallow: the dispatch assignment is committed and must not
-				// roll back on an orders-module failure. But the order is now stranded
-				// (assignment PICKED_UP, order.state not advanced) and there is no
-				// automatic retry for an already-dispatched order, so this is an
-				// operational incident that must be visible, never silent.
-				s.logBridgeFailure(asn.OrderID, riderAccountID, "confirm_pickup", lcErr)
-			}
-		case "DELIVERED":
-			if lcErr := s.lifecycle.CompleteDelivery(ctx, asn.OrderID, riderAccountID); lcErr != nil {
-				s.logBridgeFailure(asn.OrderID, riderAccountID, "complete_delivery", lcErr)
-			}
-		}
+	if transitioned {
+		s.advanceOrder(ctx, in.ToState, asn.OrderID, riderAccountID)
 	}
 	return asn, nil
+}
+
+// advanceOrder is the bridge after commit: it maps the assignment step the
+// rider just committed to the one order transition it implies, if any. Only
+// three steps move the order. Picked up has already moved it, inside the
+// step's own transaction (pickup.go), so it is not here; arrived at the
+// drop-off and delivered move it now. Every other step (setting off, arriving
+// at the restaurant, leaving it, the undeliverable/return path, platform
+// cancel or reassign) leaves order.state alone.
+//
+// Each call is log-and-swallow: the dispatch assignment is committed and must
+// not roll back on an orders-module failure. But the order is then stranded
+// (assignment advanced, order.state not) and there is no automatic retry for an
+// already-dispatched order, so a failure is an operational incident that must
+// be visible, never silent.
+func (s *Service) advanceOrder(ctx context.Context, assignmentState, orderID, riderAccountID string) {
+	if s.lifecycle == nil {
+		return
+	}
+	var step string
+	var err error
+	switch assignmentState {
+	case "ARRIVED_AT_DROPOFF":
+		// The rider is at the customer: PICKED_UP -> ARRIVED. Without this the
+		// order skipped straight to DELIVERED, so "your rider is here", the
+		// delivery-code reveal and the handover-overdue deadline never happened
+		// (issue #250).
+		step, err = "mark_arrived", s.lifecycle.MarkArrived(ctx, orderID, riderAccountID)
+	case "DELIVERED":
+		step, err = "complete_delivery", s.lifecycle.CompleteDelivery(ctx, orderID, riderAccountID)
+	default:
+		return
+	}
+	if err != nil {
+		s.logBridgeFailure(orderID, riderAccountID, step, err)
+	}
 }
 
 // logBridgeFailure records a swallowed OrderLifecycle error. The dispatch side
@@ -236,20 +278,45 @@ type RunWaveResult struct {
 // top wave_size. It returns how many offers went out. The caller (the deadline
 // runner) sequences waves with the inter-wave gap and widens the radius ladder.
 //
+// When nobody qualifies, the wave is still written, empty, and holds the search
+// for emptyWaveHold (Exhausted is set). That creates the order's dispatch row
+// on the first wave, so the search goes on to the wider radii and ends in
+// NO_RIDER_FOUND at its wave or time budget, instead of retrying the first
+// radius forever (https://github.com/shaiknoorullah/hg-mono/issues/294).
+// errWaveNotOpen means another replica already ran this wave.
+//
 // This is the single Postgres candidate query plus a deterministic Go ranking —
 // no Redis GEO, per the seam resolution. ETA and score use the haversine fallback
 // (the routing provider integration is a later slice).
 func (s *Service) RunWave(ctx context.Context, orderID string, waveNo, radiusM int) (*RunWaveResult, error) {
+	return s.runWave(ctx, orderID, waveNo, []int{radiusM})
+}
+
+// runWave runs wave waveNo over radii, nearest first: it offers the order at
+// the first radius anyone qualifies within, or, when none of them has anyone,
+// writes the wave empty at the last (widest) one.
+func (s *Service) runWave(ctx context.Context, orderID string, waveNo int, radii []int) (*RunWaveResult, error) {
 	now := s.now()
 	info, err := s.store.LoadOrderDispatchInfo(ctx, orderID)
 	if err != nil {
 		return nil, err
 	}
-	cands, err := s.store.FindCandidates(ctx, orderID, info.PickupLng, info.PickupLat, radiusM, candidateLimit)
-	if err != nil {
-		return nil, err
+	var cands []Candidate
+	radiusM := radii[len(radii)-1]
+	for _, r := range radii {
+		cands, err = s.store.FindCandidates(ctx, orderID, info.PickupLng, info.PickupLat, r, candidateLimit)
+		if err != nil {
+			return nil, err
+		}
+		if len(cands) > 0 {
+			radiusM = r
+			break
+		}
 	}
 	if len(cands) == 0 {
+		if _, err := s.store.CreateWave(ctx, info, waveNo, radiusM, nil, nil, now.Add(emptyWaveHold)); err != nil {
+			return nil, err
+		}
 		return &RunWaveResult{Offered: 0, RadiusM: radiusM, Exhausted: true}, nil
 	}
 

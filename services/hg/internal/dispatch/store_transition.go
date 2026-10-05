@@ -63,7 +63,11 @@ type TransitionInput struct {
 // The returned bool reports whether a real forward transition was persisted;
 // it is false for the idempotent no-op (repeating the current state) so the
 // caller can skip firing the OrderLifecycle bridge on a duplicate request.
-func (s *Store) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput, now time.Time) (*Assignment, bool, error) {
+//
+// pickup moves the order for a PICKED_UP step in this same transaction
+// (pickup.go); a refusal rolls the step back. A nil pickup (no OrderLifecycle
+// wired) leaves the order alone.
+func (s *Store) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput, now time.Time, pickup pickupStep) (*Assignment, bool, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return nil, false, err
@@ -178,6 +182,18 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 		return nil, false, err
 	}
 	_ = geofenceOK // flagged-for-ops signalling is emitted via the outbox in a later slice.
+
+	// PICKED_UP moves the order in this transaction, after the assignment row:
+	// the lock order every pickup path uses. The orders module checks that this
+	// rider holds the order's delivery and that the kitchen marked it ready; an
+	// order still PREPARING is refused until the kitchen's pickup code is
+	// checked (https://github.com/shaiknoorullah/hg-mono/issues/413). A refusal
+	// rolls the step back (pickup.go).
+	if in.ToState == "PICKED_UP" && pickup != nil {
+		if err := pickup(ctx, tx, orderID); err != nil {
+			return nil, false, pickupRefusal(err, cur)
+		}
+	}
 
 	// Terminal ⇒ restore availability in the same transaction (D-10). The rider
 	// returns to ONLINE_IDLE, or OFFLINE if they asked to end the shift.

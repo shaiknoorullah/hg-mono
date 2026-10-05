@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // validMenuDecision is the closed set of allowed decision values.
@@ -67,6 +68,9 @@ func (h *Handler) CreateMenuCategoryOnBehalf(w http.ResponseWriter, r *http.Requ
 		if errors.Is(err, ErrCategoryNameTaken) {
 			httpx.Fail(w, r, http.StatusConflict, CodeCategoryNameTaken,
 				"A category with this name already exists for this restaurant.", nil)
+			return
+		}
+		if restaurant.RespondMenuLocked(w, r, err) {
 			return
 		}
 		h.failInternal(w, r, err)
@@ -185,6 +189,9 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Restaurant or category not found.", nil)
+			return
+		}
+		if restaurant.RespondMenuLocked(w, r, err) {
 			return
 		}
 		h.failInternal(w, r, err)
@@ -365,6 +372,9 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrItemDeleted) {
 			httpx.Fail(w, r, http.StatusConflict, CodeItemDeleted,
 				"The menu item has been deleted.", nil)
+			return
+		}
+		if restaurant.RespondMenuLocked(w, r, err) {
 			return
 		}
 		h.failInternal(w, r, err)
