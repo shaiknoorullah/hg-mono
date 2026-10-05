@@ -354,6 +354,8 @@ On-call contains. The privacy officer and the owner decide what is reported, and
 - **WireGuard is broken.** Get in through Contabo's rescue system, or switch on the VNC console in the panel for that emergency only. VNC is unencrypted and uses only the first 8 characters of its password. Log in with the local account's long password, then switch VNC off.
 - **Changing plan.** Contabo doesn't resize in place. Until the standby runs, a plan change is a planned rebuild (a fresh backup, new orders paused, then [the rebuild steps](#rebuild-on-a-new-server)) or Contabo's paid live migration. Take the free snapshot first. Never during Ramadan.
 
+- **The data ports.** Postgres, Valkey and Silo publish on `127.0.0.1` only ([deploy/docker-compose.yml](../../deploy/docker-compose.yml)). To reach Postgres from a laptop, open an SSH tunnel: `ssh -L 15432:127.0.0.1:5432 <server>`. A server started before this setting still has them on every interface (the provider's firewall filters them) until those containers are recreated. Recreate them in the quiet window, after a backup.
+
 ## Monthly restore drill
 
 Restore from the copy on the owner's machine: it is the one a rebuild uses. Work in a scratch folder, start containers with `--rm`, and wipe both afterwards. `hg-restore-drill` does every step below: on the server it runs by itself on the first Tuesday of each month, from the server's own repository; on the owner's machine, run `sudo hg-restore-drill --config /etc/hg-offline/backup.conf --no-live` and compare the counts it prints with production.

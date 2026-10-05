@@ -261,8 +261,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      # Published for psql and migrations from the host. Drop this in production.
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Published on 127.0.0.1 only, for psql and migrations from this host: another
+      # machine never reaches it. On the server, reach it through an SSH tunnel.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     networks: [hg-net]
     healthcheck:
       # Over TCP, not the socket. On an empty volume the image first runs a
@@ -295,7 +296,7 @@ services:
     volumes:
       - redisdata:/data
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     networks: [hg-net]
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
@@ -320,8 +321,8 @@ services:
     volumes:
       - miniodata:/data
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     networks: [hg-net]
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]

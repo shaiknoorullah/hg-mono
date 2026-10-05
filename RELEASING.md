@@ -142,6 +142,11 @@ ledger's triggers off; its hourly partition upkeep goes through two narrow funct
 [`services/hg/migrations/roles/roles.sql`](services/hg/migrations/roles/roles.sql); the reasons
 are in [the migrations README](services/hg/migrations/README.md#who-connects-as-whom).
 
+Postgres, Valkey and Silo publish their ports on `127.0.0.1` only, so `psql` and the migrations
+work from the host but no other machine can reach them. On the server, open an SSH tunnel
+(`ssh -L 15432:127.0.0.1:5432 <host>`) to reach Postgres from your laptop. A server started
+before this change keeps its old binding until those three containers are recreated.
+
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
 or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
