@@ -996,6 +996,7 @@ func seedOrder(t *testing.T, pool *pgxpool.Pool, restaurantID, menuItemID, state
 
 	t.Cleanup(func() {
 		c := context.Background()
+		_, _ = pool.Exec(c, `DELETE FROM order_delay WHERE order_id=$1`, orderID)
 		_, _ = pool.Exec(c, `DELETE FROM "order" WHERE id=$1`, orderID)
 		_, _ = pool.Exec(c, `DELETE FROM quote WHERE id=$1`, quoteID)
 		_, _ = pool.Exec(c, `DELETE FROM cart_line WHERE cart_id=$1`, cartID)
