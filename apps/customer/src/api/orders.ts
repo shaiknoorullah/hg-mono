@@ -102,6 +102,30 @@ export function isReceiptNotReady(e: unknown): boolean {
   return isApiError(e) && e.status === 409;
 }
 
+export type OrderCancellationInput = Schema['OrderCancellationInput'];
+export type CustomerCancellationReasonCode = Schema['CustomerCancellationReasonCode'];
+
+/**
+ * Free cancellation before the restaurant accepts (customer cancellation, docs/spec/02-customer.md
+ * "C-29 — Order cancellation by the customer"): the server voids the card authorisation, so
+ * nothing was charged. The caller owns the `Idempotency-Key` so a retry after a dropped response
+ * replays the same request rather than starting a new one. A restaurant that accepted first
+ * answers `409 CANCELLATION_WINDOW_CLOSED`.
+ */
+export async function cancelOrder(
+  orderId: string,
+  input: OrderCancellationInput,
+  key: string,
+): Promise<OrderCustomerView> {
+  const body = await unwrap(
+    api.POST('/v1/orders/{orderId}/cancel', {
+      params: { path: { orderId }, header: { 'Idempotency-Key': key } },
+      body: input,
+    }),
+  );
+  return body.data as unknown as OrderCustomerView;
+}
+
 /**
  * The customer's order history (C-26 adjacent). `status_group` narrows to `ACTIVE` or `PAST`;
  * omitted, the mock's default fixture serves a mixed page. Keyset-paged via `meta.next_cursor` —
