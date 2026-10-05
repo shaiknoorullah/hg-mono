@@ -43,6 +43,7 @@ import { unwrap, useLoad } from '../lib/load.js';
 import { CRITICAL_BOOT_PROBES, connectedHealth, dependencyReportHealth, probeHealth } from '../lib/health.js';
 import { enumLabel } from '../lib/format.js';
 import { HealthPill } from '../components/HealthPill.js';
+import { OrderingPausePanel } from '../components/OrderingPausePanel.js';
 
 type DependencyReport = Schema['DependencyReport'];
 type Readiness = Schema['ReadinessStatus'];
@@ -163,6 +164,8 @@ export function DependencyDashboardScreen() {
           </Card>
         </>
       ) : null}
+
+      <OrderingPausePanel />
     </section>
   );
 }
