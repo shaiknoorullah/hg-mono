@@ -603,12 +603,22 @@ func (c *apiClient) place(ctx context.Context) (placedOrder, error) {
 		return placedOrder{}, fmt.Errorf("devworld: order: %w", err)
 	}
 	var created struct {
-		Order placedOrder `json:"order"`
+		Order        placedOrder `json:"order"`
+		ClientSecret string      `json:"client_secret"`
 	}
 	if jerr := json.Unmarshal(orderData, &created); jerr != nil || created.Order.ID == "" {
 		return placedOrder{}, errors.New("devworld: order returned no id")
 	}
 	fmt.Printf("placed  %s  %s\n", created.Order.Code, created.Order.State)
+	if created.Order.State == "CREATED" {
+		secret := created.ClientSecret
+		created.ClientSecret = ""
+		if secret == "" {
+			fmt.Println("card confirm skipped  no client secret")
+		} else if err := confirmTestCard(ctx, secret); err != nil {
+			return placedOrder{}, err
+		}
+	}
 	return created.Order, nil
 }
 
