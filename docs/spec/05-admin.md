@@ -2174,9 +2174,15 @@ documents lapse cannot go on shift, but is not punished.
     rest; `LATE_DELIVERY`, `PRICING_ERROR`, `PLATFORM_INITIATED_CANCELLATION`, `GOODWILL`,
     `DUPLICATE_CHARGE`, `OTHER` → platform bears it. The split feeds settlement (A-36) and is visible to the
     bearing party.
-  - R5 A refund is submitted to the payment provider only after `AUTHORISED`; provider failures move
-    to `FAILED` with the provider's code, are retried with exponential backoff up to 24 hours, and
-    raise a P1 case at Tier 2 on final failure. **The customer-facing refund status never shows
+  - R5 Only an approved refund is submitted to the payment provider: `AUTHORISED`, with the member of
+    staff who approved it on the row (a cancellation's refund is approved by whoever cancelled the
+    order). A customer's own request and one waiting for a second approver are never sent. The refund
+    sender submits each refund once, keyed by the refund, from one replica at a time
+    ([sending a refund](01-platform.md#p-18--refunds-cancellations-and-compensation)). A provider
+    refusal moves the refund to `FAILED` with the provider's code, an admin alert and a reconciliation
+    exception; a refund the sender could not deliver after eight attempts, with backoff, stays
+    `AUTHORISED` and is set aside with an admin alert for a person to review.
+    **The customer-facing refund status never shows
     "completed" before the provider confirms.** (This closes defects B48/B54, where refunds only ever
     logged "refund would be initiated here".)
   - R6 Refunds require the session's MFA to be verified within 12 hours (A-02 R4).
