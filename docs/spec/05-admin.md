@@ -2498,7 +2498,7 @@ documents lapse cannot go on shift, but is not punished.
 - **Live tracking**: the order-detail map follows the rider over `order:{id}` (`rider.location`,
   precise for support and admin per the
   [per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)), gliding
-  between fixes and saying "last updated Ns ago" after 30 s; state and dispatch events refetch the
+  between fixes and saying `last updated 42s ago` once a fix is older than 30 s; state and dispatch events refetch the
   order. While the socket is down it polls `getOrderAdmin` every 5 s. The **live operations map**
   (`#/live`) shows every active order (`RESTAURANT_PENDING` to `ARRIVED`, up to 40) with its
   restaurant, destination and rider, live on each order's channel plus `admin:ops` (a dispatch

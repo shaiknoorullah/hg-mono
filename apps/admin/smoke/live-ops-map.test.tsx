@@ -1,8 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { installDomShims } from '@hg/ui-web/testing';
-import type { SocketLike } from '@hg/ui-web/live';
+import { FakeRealtimeSocket as FakeSocket, installDomShims } from '@hg/ui-web/testing';
 
 import completed from '../../../contracts/fixtures/orders/order_admin_view_completed.json';
 import { setToken } from '../src/lib/token';
@@ -13,24 +12,6 @@ import { setToken } from '../src/lib/token';
  * order's rider (the text list beneath the map is its accessible alternative), and a dispatch
  * failure raises a banner.
  */
-
-class FakeSocket implements SocketLike {
-  readyState = 0;
-  sent: Record<string, unknown>[] = [];
-  onopen: ((ev: unknown) => void) | null = null;
-  onmessage: ((ev: { data: unknown }) => void) | null = null;
-  onclose: ((ev: { code: number }) => void) | null = null;
-  onerror: ((ev: unknown) => void) | null = null;
-  send(data: string) {
-    this.sent.push(JSON.parse(data));
-  }
-  close() {
-    this.readyState = 3;
-  }
-  push(frame: Record<string, unknown>) {
-    this.onmessage?.({ data: JSON.stringify({ v: 1, ts: '2026-10-05T12:00:00Z', ...frame }) });
-  }
-}
 
 const recorded = new Date(Date.now() - 5_000).toISOString();
 const active = {
@@ -76,10 +57,7 @@ async function renderOps(orders: unknown[]) {
   );
   await act(async () => {});
   const socket = sockets[0]!;
-  await act(async () => {
-    socket.readyState = 1;
-    socket.onopen?.({});
-  });
+  await act(async () => socket.open());
   return socket;
 }
 

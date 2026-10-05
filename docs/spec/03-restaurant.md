@@ -1517,7 +1517,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      card shows a live map: the restaurant pin and the rider's **coarse** position as a ~100 m disc,
      never a pin, fed by `rider.location` on `order:{id}` in the restaurant projection
      ([per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)). The
-     marker glides between fixes and says "last updated Ns ago" after 30 s. Rider name, vehicle and
+     marker glides between fixes and says `last updated 42s ago` once a fix is older than 30 s. Rider name, vehicle and
      pickup time come from the order, never from the position. The contract gives the restaurant no
      REST read of the rider's position, so while the socket is down the map keeps the last fix and
      says it is reconnecting; the order itself keeps refreshing over REST. Without

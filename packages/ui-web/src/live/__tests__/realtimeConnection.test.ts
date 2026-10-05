@@ -1,32 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RealtimeConnection, resolveSocketUrl, type ChannelSignal, type SocketLike } from '../realtimeConnection.js';
-
-class FakeSocket implements SocketLike {
-  readyState = 0;
-  sent: Record<string, unknown>[] = [];
-  onopen: ((ev: unknown) => void) | null = null;
-  onmessage: ((ev: { data: unknown }) => void) | null = null;
-  onclose: ((ev: { code: number; reason?: string }) => void) | null = null;
-  onerror: ((ev: unknown) => void) | null = null;
-  constructor(readonly url: string) {}
-  send(data: string) {
-    this.sent.push(JSON.parse(data));
-  }
-  close() {
-    this.readyState = 3;
-  }
-  open() {
-    this.readyState = 1;
-    this.onopen?.({});
-  }
-  receive(frame: Record<string, unknown>) {
-    this.onmessage?.({ data: JSON.stringify(frame) });
-  }
-  drop(code = 1006) {
-    this.readyState = 3;
-    this.onclose?.({ code });
-  }
-}
+import { RealtimeConnection, resolveSocketUrl, type ChannelSignal } from '../realtimeConnection.js';
+import { FakeRealtimeSocket as FakeSocket } from '../../testing/index.js';
 
 const loc = (id: string, seq: number, lat = 43.65) => ({
   id,
@@ -72,7 +46,7 @@ describe('RealtimeConnection', () => {
     expect(sockets[0]!.url).toBe('ws://localhost:4010/v1/ws?ticket=t1&client=admin-web&v=1');
     sockets[0]!.open();
     expect(sockets[0]!.sent).toContainEqual({ type: 'subscribe', channel: 'order:o1' });
-    sockets[0]!.receive(loc('e1', 7));
+    sockets[0]!.push(loc('e1', 7));
 
     sockets[0]!.drop();
     expect(conn.status).toBe('reconnecting');
@@ -94,12 +68,12 @@ describe('RealtimeConnection', () => {
     await vi.advanceTimersByTimeAsync(0);
     const s = sockets[0]!;
     s.open();
-    s.receive({ id: 'c', seq: 0, channel: '', type: 'subscribed', v: 1, ts: '', data: { channel: 'order:o1', cursor_seq: 3 } });
-    s.receive(loc('e4', 4));
-    s.receive(loc('e4', 4)); // at-least-once redelivery
-    s.receive(loc('e9', 9)); // 5–8 missing
-    s.receive({ id: 'p', seq: 0, channel: '', type: 'ping', v: 1, ts: '', data: { t: 42 } });
-    s.receive({ ...loc('e10', 10), v: 2 }); // a payload version this client does not know
+    s.push({ id: 'c', seq: 0, channel: '', type: 'subscribed', v: 1, ts: '', data: { channel: 'order:o1', cursor_seq: 3 } });
+    s.push(loc('e4', 4));
+    s.push(loc('e4', 4)); // at-least-once redelivery
+    s.push(loc('e9', 9)); // 5–8 missing
+    s.push({ id: 'p', seq: 0, channel: '', type: 'ping', v: 1, ts: '', data: { t: 42 } });
+    s.push({ ...loc('e10', 10), v: 2 }); // a payload version this client does not know
 
     expect(got.map((g) => (g.kind === 'event' ? g.event.id : g.kind))).toEqual(['e4', 'e9']);
     expect(s.sent).toContainEqual({ type: 'resume', channel: 'order:o1', after_seq: 4 });
@@ -112,7 +86,7 @@ describe('RealtimeConnection', () => {
     conn.start();
     await vi.advanceTimersByTimeAsync(0);
     sockets[0]!.open();
-    sockets[0]!.receive({
+    sockets[0]!.push({
       id: 'r',
       seq: 0,
       channel: '',
