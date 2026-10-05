@@ -52,6 +52,26 @@ type Config struct {
 	OTP      OTP
 	Tax      Tax
 	Realtime Realtime
+	Payouts  Payouts
+}
+
+// Payouts holds the payout settings the owner may still change.
+type Payouts struct {
+	// RestaurantNegativeBalanceBlockDays: a restaurant whose payout balance
+	// has been below zero for longer than this many days takes no new orders
+	// until it recovers; 0 turns the block off. The default, 30, is the
+	// documented behaviour (docs/spec/01-platform.md, "P-19 — Stripe Connect:
+	// onboarding and payouts (Canada)", Schedules). Whether to block at all is
+	// still the owner's open question:
+	// https://github.com/shaiknoorullah/hg-mono/issues/164.
+	RestaurantNegativeBalanceBlockDays int
+	// RestaurantHoldHours: a restaurant's earning from an order is paid once
+	// the order has been settled this long, so a dispute raised inside the
+	// window is netted before the money leaves. The default, 72, is the
+	// proposed three-day hold that stands until the owner decides
+	// (docs/spec/03-restaurant.md, "R-32 — Payout schedule, preferences and
+	// payout requests").
+	RestaurantHoldHours int
 }
 
 // Realtime holds the WebSocket gateway's per-replica limits.
@@ -411,6 +431,18 @@ func Load(getenv func(string) string) (*Config, error) {
 	}
 	if cfg.Realtime.MaxSockets < 1 {
 		l.errf("HG_REALTIME_MAX_SOCKETS: %d must be at least 1", cfg.Realtime.MaxSockets)
+	}
+
+	cfg.Payouts = Payouts{
+		RestaurantNegativeBalanceBlockDays: l.intVal("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS", 30),
+		RestaurantHoldHours:                l.intVal("HG_PAYOUT_RESTAURANT_HOLD_HOURS", 72),
+	}
+	if cfg.Payouts.RestaurantHoldHours < 0 {
+		l.errf("HG_PAYOUT_RESTAURANT_HOLD_HOURS: %d must be 0 or more", cfg.Payouts.RestaurantHoldHours)
+	}
+	if cfg.Payouts.RestaurantNegativeBalanceBlockDays < 0 {
+		l.errf("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: %d must be 0 (off) or more",
+			cfg.Payouts.RestaurantNegativeBalanceBlockDays)
 	}
 
 	// G-7: outside local, no dependency may point at loopback. This is the
