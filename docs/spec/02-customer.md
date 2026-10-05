@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -133,7 +133,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   2. The request/response field names are **`first_name` / `last_name`** in snake_case. There is no `name` field anywhere (the current app sends `{name,...}` against a `first_name/last_name` contract).
   3. `phone` is read-only on this endpoint; sending it returns `400 FIELD_NOT_EDITABLE`.
   4. Email is **not unique** (matches the existing schema — phone is the identity). Two accounts may share an email.
-  5. Avatar upload uses a Silo presigned PUT (`POST /users/:id/avatar/upload-url` → PUT → `POST /users/:id/avatar/confirm`); max 5 MB, `image/jpeg|png|webp` only, server re-encodes to 512×512 webp.
+  5. The profile's avatar is only the caller's own `READY` `AVATAR` upload: any other file is `404`, the same as one that does not exist, and a malformed id is `422` ([who may attach an upload](01-platform.md#p-28--presigned-upload-and-download)). Avatar upload uses a Silo presigned PUT (`POST /users/:id/avatar/upload-url` → PUT → `POST /users/:id/avatar/confirm`); max 5 MB, `image/jpeg|png|webp` only, server re-encodes to 512×512 webp.
   6. Profile completion is required before any cart or order endpoint will accept a request: those return `409 PROFILE_INCOMPLETE`.
 - **Acceptance criteria**:
   1. Given a user in `PROFILE_PENDING`, when a valid profile is submitted, then `onboarding_state='ACTIVE'` and the onboarding token is consumed and rejected on reuse.
@@ -657,6 +657,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   6. The success screen is reached only on a server response of `AWAITING_RESTAURANT` or later. On any error the customer stays on checkout with the specific reason.
   7. `orders.short_code` = 6-character Crockford base-32, unique per day, shown to the customer and used in support.
   8. When an unpaid order is cancelled, expires or fails payment, the app offers "Put these items back in your cart": it re-adds the lines through the cart operations, and the server prices them again ([cart after an unpaid order](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+  9. While staff have paused new orders platform-wide ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)), the app reads `ordering.paused` from `getPublicConfig` at launch and on every return to the foreground, says plainly that ordering is paused for now on home, the restaurant page, the cart and checkout, and offers no checkout; the cart shows the same when `blocking_reasons` contains `ORDERING_PAUSED`, and a `409 ORDERING_PAUSED` from `createQuote` or `createOrder` shows that message and that nothing was charged, never a generic error ([#388](https://github.com/shaiknoorullah/hg-mono/issues/388)).
 - **Acceptance criteria**:
   1. Given a valid cart and a working payment method, when Place order is pressed, then exactly one `orders` row exists, the cart row is deleted, and the app shows the pending screen only after the server responds.
   2. Given the payment authorisation fails, when the response returns, then `orders.status='PAYMENT_FAILED'`, the customer remains on checkout with a retry affordance, and the app offers "Put these items back in your cart".
@@ -878,6 +879,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Behaviour**: One tracking screen per order, reachable from the resume banner (C-26), the post-checkout flow, and order history. It shows: a status stepper, a map, the ETA, the rider card (once assigned), the delivery address, delivery instructions, an order summary, and contextual actions (cancel → C-29 while eligible; call rider → C-34; get help → C-08). The order view and this screen also show the 4-digit delivery code, with a push when the rider arrives; the rider is never shown it (needs a new contract field; [delivery code](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   The stepper has **five** steps, mapped from `orders.status`: **Confirmed** (`AWAITING_RESTAURANT`, `CONFIRMED`) → **Preparing** (`PREPARING`) → **Ready / Rider assigned** (`READY_FOR_PICKUP`, `RIDER_ASSIGNED`) → **On the way** (`PICKED_UP`, `ON_THE_WAY`) → **Delivered** (`DELIVERED`). Terminal failures (`REJECTED`, `CANCELLED`, `NO_RIDER_FOUND`, `PAYMENT_FAILED`) replace the stepper with a full-screen outcome state.
   The map shows the restaurant marker, the delivery marker, and the rider marker once `RIDER_ASSIGNED`; a route polyline is drawn from the rider to the current leg's destination.
+  **V0 build (customer app):** while the order is `PICKED_UP` or `ARRIVED` the screen shows a live native Mapbox map (`@rnmapbox/maps`) with the restaurant pin, the drop-off pin and the rider marker, plus the ETA text. The rider's position arrives on the realtime channel `order:{orderId}` as `rider.location` ([websocket contract](../../contracts/websocket.md)); when the socket is not open the screen polls `GET /v1/orders/{orderId}/tracking` every 5 s instead (its `rider_location`), and the newest fix wins on either path. The marker glides between fixes, the camera fits the three points, and a fix older than 30 s adds "Rider location updated N seconds ago". The rider is not exposed before pickup (the contract), so until then the map shows the restaurant and the drop-off. No route polyline yet. The map exists only in a build with the Mapbox native SDK and `EXPO_PUBLIC_MAPBOX_TOKEN` ([how the SDK is built or left out](../release/README.md)); without either, the ETA text remains. If the first read fails the card says live tracking is unavailable and offers "Try again".
 - **Data**: `orders`, `order_status_events`, `riders` (via the slim projection in C-18 rule 3), Redis `rider:{id}:location`, socket topic `order:{orderId}`.
 - **States**: as C-23. The client subscribes to `order:{orderId}` and receives typed events: `order.status_changed`, `order.rider_assigned`, `order.rider_location`, `order.eta_updated`, `order.cancelled`.
 - **Rules**:
@@ -1106,6 +1108,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   - **In-app realtime** when the app is foregrounded (the socket already carries the event; the app renders a toast instead of a system notification).
   - **In-app inbox** — a persisted, cursor-paginated list of every notification ever sent to the customer, with read/unread state and a tab-bar/header unread badge. The inbox and its bell stay hidden at launch, until Alerts ships ([bottom navigation](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [later-version operations](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   Permission is requested **contextually**, immediately after the first successful order placement ("Get updates on your order?"), never at app launch.
+  An open app learns of a new inbox row, and of a read on another device, from `notification.created` and `notification.read` on the customer's own `account:{id}` channel ([realtime contract](../../contracts/websocket.md#4-event-catalogue)); only the first read sends one.
 - **Data**: `push_tokens(id, user_id, token, platform ENUM(IOS,ANDROID), device_id, app_version, is_active, last_seen_at, created_at)`; `notifications(id, user_id, type, title, body, data jsonb, order_id NULL, created_at, read_at, push_sent_at, push_status)`; `user_preferences` (C-04) for the promotional opt-outs.
 - **States**: `notifications.read_at` null/set. `push_tokens.is_active` flips to false on a provider `DeviceNotRegistered` error.
 - **Rules**:

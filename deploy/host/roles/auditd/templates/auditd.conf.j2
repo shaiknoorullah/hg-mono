@@ -1,0 +1,17 @@
+# Managed by Ansible (deploy/host/roles/auditd). Bounded: num_logs x max_log_file MB.
+log_file = /var/log/audit/audit.log
+log_format = ENRICHED
+log_group = adm
+priority_boost = 4
+flush = INCREMENTAL_ASYNC
+freq = 50
+max_log_file = {{ hg_auditd_max_log_file_mb }}
+num_logs = {{ hg_auditd_num_logs }}
+max_log_file_action = ROTATE
+space_left = 500
+space_left_action = SYSLOG
+admin_space_left = 200
+admin_space_left_action = SUSPEND
+disk_full_action = SUSPEND
+disk_error_action = SYSLOG
+name_format = HOSTNAME

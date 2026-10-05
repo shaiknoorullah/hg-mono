@@ -169,42 +169,6 @@
     }
   }
 
-  .adm-map-box {
-    position: relative;
-    inline-size: 100%;
-    block-size: 16rem;
-    border-radius: var(--hg-radius-md, var(--hg-radius-sm));
-    border: 1px solid var(--hg-border-decorative);
-    overflow: hidden;
-    background-color: var(--hg-surface-sunken);
-  }
-
-  .adm-map-box[data-expanded='true'] {
-    block-size: 28rem;
-  }
-
-  .adm-map-canvas {
-    position: absolute;
-    inset: 0;
-  }
-
-  .adm-map-eta {
-    position: absolute;
-    inset-block-start: var(--hg-space-3);
-    inset-inline-start: var(--hg-space-3);
-    padding: var(--hg-space-1) var(--hg-space-3);
-    border-radius: var(--hg-radius-sm);
-    background-color: var(--hg-surface-base);
-    border: 1px solid var(--hg-border-decorative);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  }
-
-  .adm-map-expand {
-    position: absolute;
-    inset-block-start: var(--hg-space-3);
-    inset-inline-end: var(--hg-space-3);
-  }
-
   .adm-party-card {
     display: flex;
     flex-direction: column;
@@ -224,12 +188,6 @@
     flex-wrap: wrap;
     align-items: end;
     gap: var(--hg-space-3);
-  }
-
-  .adm-grid-box {
-    border: 1px solid var(--hg-border-decorative);
-    border-radius: var(--hg-radius-sm);
-    overflow: hidden;
   }
 
   .adm-form-grid {

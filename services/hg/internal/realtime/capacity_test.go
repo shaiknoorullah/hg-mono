@@ -17,7 +17,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
@@ -355,8 +354,8 @@ func (f *fakeUpgradeStore) registered(accountID string) bool {
 }
 
 // countingLimiter is auth.RateLimiter's fixed window without Redis: each call
-// counts against key, and a count over limit is auth.ErrRateLimited. The window
-// never rolls over within a test.
+// counts against the name and subject, and a count over limit is refused. The
+// window never rolls over within a test.
 type countingLimiter struct {
 	mu sync.Mutex
 	n  map[string]int64
@@ -364,14 +363,12 @@ type countingLimiter struct {
 
 func newCountingLimiter() *countingLimiter { return &countingLimiter{n: map[string]int64{}} }
 
-func (l *countingLimiter) Allow(_ context.Context, key string, limit int64, _ time.Duration) error {
+func (l *countingLimiter) Allow(_ context.Context, name, subject string, limit int64, _ time.Duration) (bool, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	key := name + ":" + subject
 	l.n[key]++
-	if l.n[key] > limit {
-		return auth.ErrRateLimited
-	}
-	return nil
+	return l.n[key] <= limit, nil
 }
 
 // serveUpgrades serves h.Upgrade and signals done each time a handler returns,

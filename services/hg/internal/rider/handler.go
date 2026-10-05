@@ -296,14 +296,37 @@ SELECT id, subject_type, subject_id, rider_doc_type, state, version, created_at
 
 // AttachDocument creates a kyc_document row for the rider, verifying the
 // stored_object was uploaded by the same account (IDOR guard).
-// Returns the created document row. Idempotent: if a document for the same
-// (rider, doc_type, stored_object_id) already exists, the existing row is returned.
+//
+// One file is attached once per document type: when a live row for the same
+// (rider, doc_type, stored_object_id) exists, that row is returned and nothing
+// is written. The database holds the rule (unique index
+// kyc_document_rider_file_once, migration 00038), so two attaches of the same
+// file at once cannot both insert: the second INSERT waits for the first to
+// commit, does nothing, and reads the first one's row back.
+//
+// A new file of a type replaces the earlier upload of that type, in one
+// transaction (docs/spec/04-rider.md, "D-05 — Document upload";
+// https://github.com/shaiknoorullah/hg-mono/issues/358): the rider's pending
+// row of that type (SUBMITTED or IN_REVIEW) becomes SUPERSEDED and leaves the
+// review queue, and the new row takes the latest row's version + 1 and points
+// at it with supersedes_id. An APPROVED row stays in force until its
+// replacement is approved (docs/decisions/README.md, "a replacement document
+// that is turned down"). Attaches for one rider and type take a transaction
+// lock first, so two files attached at once leave one pending row.
 func (r *Repo) AttachDocument(ctx context.Context, accountID, docType, storedObjectID string, expiresOn *time.Time) (kycDocumentRow, error) {
 	// Verify stored_object ownership first (IDOR: returns 404).
+	// The file must also be a compliance upload (not a delivery photo or an
+	// avatar), and not attached to another subject's documents: one upload
+	// backs one subject (https://github.com/shaiknoorullah/hg-mono/issues/359).
 	var uploaderID string
-	err := r.pool.QueryRow(ctx,
-		`SELECT uploaded_by FROM stored_object WHERE id = $1 AND state = 'READY' AND deleted_at IS NULL`,
-		storedObjectID).Scan(&uploaderID)
+	err := r.pool.QueryRow(ctx, `
+SELECT so.uploaded_by FROM stored_object so
+ WHERE so.id = $1 AND so.state = 'READY' AND so.deleted_at IS NULL
+   AND so.purpose = 'KYC_DOCUMENT'
+   AND NOT EXISTS (SELECT 1 FROM kyc_document kd
+                    WHERE kd.stored_object_id = so.id AND kd.deleted_at IS NULL
+                      AND (kd.subject_type <> 'RIDER' OR kd.subject_id <> $2))`,
+		storedObjectID, accountID).Scan(&uploaderID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return kycDocumentRow{}, ErrNotFound
 	}
@@ -314,43 +337,57 @@ func (r *Repo) AttachDocument(ctx context.Context, accountID, docType, storedObj
 		return kycDocumentRow{}, ErrNotFound
 	}
 
-	// Idempotency: check if an identical document row already exists.
-	var existing kycDocumentRow
-	errExist := r.pool.QueryRow(ctx,
-		`SELECT id, subject_type, subject_id, rider_doc_type, state, version, created_at
-		   FROM kyc_document
-		  WHERE subject_type = 'RIDER' AND subject_id = $1
-		    AND rider_doc_type = $2::rider_doc_type AND stored_object_id = $3
-		    AND deleted_at IS NULL
-		  ORDER BY created_at DESC LIMIT 1`,
-		accountID, docType, storedObjectID).Scan(
-		&existing.ID, &existing.SubjectType, &existing.SubjectID,
-		&existing.DocType, &existing.State, &existing.Version, &existing.CreatedAt,
-	)
-	if errExist == nil {
-		// Already exists — return idempotently.
-		return existing, nil
-	}
-	if !errors.Is(errExist, pgx.ErrNoRows) {
-		return kycDocumentRow{}, errExist
-	}
+	const existing = `
+SELECT id, subject_type, subject_id, rider_doc_type, state, version, created_at
+  FROM kyc_document
+ WHERE subject_type = 'RIDER' AND subject_id = $1
+   AND rider_doc_type = $2::rider_doc_type AND stored_object_id = $3
+   AND deleted_at IS NULL`
 
-	var validUntil *time.Time
-	if expiresOn != nil {
-		validUntil = expiresOn
-	}
-
-	const ins = `
-INSERT INTO kyc_document (subject_type, subject_id, rider_doc_type, stored_object_id, state,
-                           valid_until, deadline_at, deadline_action)
-VALUES ('RIDER', $1, $2::rider_doc_type, $3, 'SUBMITTED',
-        $4,
-        now() + interval '72 hours', 'ESCALATE')
-RETURNING id, subject_type, subject_id, rider_doc_type, state, version, created_at`
 	var d kycDocumentRow
-	err = r.pool.QueryRow(ctx, ins, accountID, docType, storedObjectID, validUntil).Scan(
-		&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State, &d.Version, &d.CreatedAt,
-	)
+	err = pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
+			"rider_document:"+accountID+":"+docType); err != nil {
+			return err
+		}
+		// Already attached: return that row and write nothing.
+		err := tx.QueryRow(ctx, existing, accountID, docType, storedObjectID).Scan(
+			&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State, &d.Version, &d.CreatedAt)
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+
+		// The latest row of this type, which the new one follows.
+		var prevID *string
+		version := 1
+		err = tx.QueryRow(ctx, `
+SELECT id, version + 1
+  FROM kyc_document
+ WHERE subject_type = 'RIDER' AND subject_id = $1 AND rider_doc_type = $2::rider_doc_type
+   AND deleted_at IS NULL
+ ORDER BY version DESC, created_at DESC
+ LIMIT 1`, accountID, docType).Scan(&prevID, &version)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `
+UPDATE kyc_document
+   SET state = 'SUPERSEDED', deadline_at = NULL, deadline_action = NULL,
+       lease_until = NULL, lease_owner = NULL
+ WHERE subject_type = 'RIDER' AND subject_id = $1 AND rider_doc_type = $2::rider_doc_type
+   AND state IN ('SUBMITTED', 'IN_REVIEW') AND deleted_at IS NULL`, accountID, docType); err != nil {
+			return err
+		}
+		return tx.QueryRow(ctx, `
+INSERT INTO kyc_document (subject_type, subject_id, rider_doc_type, stored_object_id, state,
+                           valid_until, version, supersedes_id, deadline_at, deadline_action)
+VALUES ('RIDER', $1, $2::rider_doc_type, $3, 'SUBMITTED',
+        $4, $5, $6,
+        now() + interval '72 hours', 'ESCALATE')
+RETURNING id, subject_type, subject_id, rider_doc_type, state, version, created_at`,
+			accountID, docType, storedObjectID, expiresOn, version, prevID).Scan(
+			&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State, &d.Version, &d.CreatedAt)
+	})
 	return d, err
 }
 

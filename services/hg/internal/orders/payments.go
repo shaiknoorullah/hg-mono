@@ -1,6 +1,43 @@
 package orders
 
-import "context"
+import (
+	"context"
+	"errors"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+)
+
+// PaymentAuthorised moves an order still waiting for its payment (CREATED) to
+// AUTHORIZED and on to RESTAURANT_PENDING (docs/spec/01-platform.md, "P-14 —
+// Order lifecycle states and transitions": the system's first two edges)
+// inside a transaction the payments module owns. It implements
+// payments.OrderHooks: in production the payment_intent.amount_capturable_updated
+// webhook is what presents a paid order to the restaurant, and the stored
+// event is marked processed in this same transaction (#231). It reports
+// whether the order moved; an order already past CREATED, or cancelled by its
+// deadline, is left as it is, so applying the event twice moves it once.
+func (s *Store) PaymentAuthorised(ctx context.Context, tx pgx.Tx, orderID string) (bool, error) {
+	err := s.transitionTx(ctx, tx, TransitionRequest{
+		OrderID: orderID, To: machine.StateAuthorized, Actor: machine.ActorSystem,
+		Reason: "payment authorised (Stripe webhook)",
+	})
+	var illegal *IllegalTransitionError
+	if errors.As(err, &illegal) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if err := s.transitionTx(ctx, tx, TransitionRequest{
+		OrderID: orderID, To: machine.StateRestaurantPending, Actor: machine.ActorSystem,
+		Reason: "presented to restaurant",
+	}); err != nil {
+		return false, err
+	}
+	return true, nil
+}
 
 // PaymentGateway is the boundary to the payments module (P-16). The orders
 // module owns the order and its state machine; the Stripe PaymentIntent is

@@ -2,12 +2,15 @@ package orders
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // The integration tests run against a real, migrated + seeded Postgres named by
@@ -51,22 +54,26 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 	ctx := context.Background()
 	var b basics
 
-	// account (the CHECK requires an identifier; use a unique email).
+	// account (the CHECK requires an identifier; use a unique email). The
+	// unique parts are random: a UUIDv7's leading characters are the clock, so
+	// two seeds in the same moment used to collide.
 	err := pool.QueryRow(ctx, `
 		INSERT INTO account (email, status)
-		VALUES ('it-'||substr(uuid_generate_v7()::text,1,12)||'@test.local', 'ACTIVE') RETURNING id`).Scan(&b.accountID)
+		VALUES ('it-'||substr(gen_random_uuid()::text,1,12)||'@test.local', 'ACTIVE') RETURNING id`).Scan(&b.accountID)
 	if err != nil {
 		t.Fatalf("seed account: %v", err)
 	}
 
-	// restaurant: LIVE + accepting + Ontario + a Toronto location.
+	// restaurant: LIVE + accepting + Ontario + a Toronto location. The slug is
+	// random: a UUIDv7's first eight characters are its timestamp and repeat
+	// for about a minute, so two restaurants seeded in that minute collided.
 	err = pool.QueryRow(ctx, `
 		INSERT INTO restaurant (
 			slug, legal_name, display_name, province, city, line1, postal_code,
 			location, onboarding_state, account_state, is_accepting_orders,
 			commission_rate_bps, tax_role, minimum_order_cents
 		) VALUES (
-			'it-'||substr(uuid_generate_v7()::text,1,8), 'Test Co', 'Test Kitchen', 'ON', 'Toronto', '1 King St', 'M5J0C3',
+			'it-'||substr(md5(random()::text),1,12), 'Test Co', 'Test Kitchen', 'ON', 'Toronto', '1 King St', 'M5J0C3',
 			ST_SetSRID(ST_MakePoint(-79.3810, 43.6412), 4326)::geography,
 			'ACTIVE', 'LIVE', true, 0, 'RESTAURANT_IS_SUPPLIER', 0
 		) RETURNING id`).Scan(&b.restaurantID)
@@ -100,23 +107,11 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 		t.Fatalf("seed address: %v", err)
 	}
 
-	t.Cleanup(func() {
-		// Order matters for FKs; delete the leaf rows first.
-		_, _ = pool.Exec(ctx, `DELETE FROM order_line_addon WHERE order_id IN (SELECT id FROM "order" WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM order_line WHERE order_id IN (SELECT id FROM "order" WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM order_transition WHERE order_id IN (SELECT id FROM "order" WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM deadline_audit WHERE subject_id IN (SELECT id FROM "order" WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM "order" WHERE account_id=$1`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM quote WHERE account_id=$1`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM cart_line_addon WHERE cart_line_id IN (SELECT cl.id FROM cart_line cl JOIN cart c ON c.id=cl.cart_id WHERE c.account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM cart_line WHERE cart_id IN (SELECT id FROM cart WHERE account_id=$1)`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM cart WHERE account_id=$1`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM address WHERE account_id=$1`, b.accountID)
-		_, _ = pool.Exec(ctx, `DELETE FROM menu_item WHERE restaurant_id=$1`, b.restaurantID)
-		_, _ = pool.Exec(ctx, `DELETE FROM menu_category WHERE restaurant_id=$1`, b.restaurantID)
-		_, _ = pool.Exec(ctx, `DELETE FROM restaurant WHERE id=$1`, b.restaurantID)
-		_, _ = pool.Exec(ctx, `DELETE FROM account WHERE id=$1`, b.accountID)
-	})
+	testseed.CleanUpOrderFixtures(t, pool, b.accountID, b.restaurantID)
+	// Certified through the real chain (an admin-verified certificate): the
+	// order path refuses a restaurant the platform cannot vouch for.
+	// https://github.com/shaiknoorullah/hg-mono/issues/292
+	testseed.CertifyRestaurant(t, pool, b.restaurantID, 300)
 	return b
 }
 
@@ -253,6 +248,109 @@ func TestIntegrationQuoteStaleOnPriceChange(t *testing.T) {
 	}
 }
 
+// A menu item deleted after it was put in a cart stays in the cart annotated
+// ITEM_DELETED (never silently removed), is refused by the quote exactly as an
+// unavailable item is, and cannot reach an order through a quote taken before
+// the delete. An item never deleted still quotes
+// (https://github.com/shaiknoorullah/hg-mono/issues/513). It runs on a database
+// of its own so it runs in CI too, where HG_TEST_POSTGRES_DSN is unset and
+// FreshDatabase starts a container.
+func TestIntegrationDeletedItemUnavailableInCartAndRefusedByQuote(t *testing.T) {
+	pool, err := pgxpool.New(context.Background(), testseed.FreshDatabase(t, "hg_orders_deleted_item"))
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	t.Cleanup(pool.Close)
+	st := NewStore(pool)
+	ctx := context.Background()
+	b := seedBasics(t, pool)
+
+	// A second item in the same restaurant that is never deleted.
+	var keptItemID string
+	err = pool.QueryRow(ctx, `
+		INSERT INTO menu_item (restaurant_id, category_id, price_cents, availability_state, tax_category)
+		SELECT restaurant_id, category_id, 900, 'AVAILABLE', 'PREPARED_FOOD' FROM menu_item WHERE id = $1
+		RETURNING id`, b.menuItemID).Scan(&keptItemID)
+	if err != nil {
+		t.Fatalf("seed second menu_item: %v", err)
+	}
+
+	if _, err := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false); err != nil {
+		t.Fatalf("add deleted-to-be item: %v", err)
+	}
+	cart, err := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: keptItemID, Quantity: 1}, false)
+	if err != nil {
+		t.Fatalf("add kept item: %v", err)
+	}
+	quoteReq := QuoteRequest{AccountID: b.accountID, CartID: cart.ID, DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"}
+	preDelete, err := st.CreateQuote(ctx, quoteReq)
+	if err != nil {
+		t.Fatalf("quote before delete: %v", err)
+	}
+
+	// The restaurant (deleteMenuItem) or an admin on its behalf
+	// (deleteMenuItemOnBehalf) soft-deletes the item; the row stays AVAILABLE.
+	if _, err := pool.Exec(ctx, `UPDATE menu_item SET deleted_at = now() WHERE id = $1`, b.menuItemID); err != nil {
+		t.Fatalf("delete item: %v", err)
+	}
+
+	// The cart keeps the line, annotated unavailable with ITEM_DELETED.
+	got, err := st.GetCart(ctx, b.accountID)
+	if err != nil {
+		t.Fatalf("get cart: %v", err)
+	}
+	if len(got.Lines) != 2 {
+		t.Fatalf("cart lines = %d, want 2 (a deleted item's line is never silently removed)", len(got.Lines))
+	}
+	var deletedLineID string
+	for _, l := range got.Lines {
+		switch l.MenuItemID {
+		case b.menuItemID:
+			deletedLineID = l.ID
+			if l.IsAvailable {
+				t.Error("deleted item's line is_available = true, want false")
+			}
+			if l.UnavailReason == nil || *l.UnavailReason != "ITEM_DELETED" {
+				t.Errorf("deleted item's unavailable_reason = %v, want ITEM_DELETED", l.UnavailReason)
+			}
+		case keptItemID:
+			if !l.IsAvailable || l.UnavailReason != nil {
+				t.Errorf("kept item's line available=%v reason=%v, want available with no reason", l.IsAvailable, l.UnavailReason)
+			}
+		}
+	}
+
+	// The quote refuses it exactly as it refuses an unavailable item.
+	if _, err := st.CreateQuote(ctx, quoteReq); !errors.Is(err, ErrItemUnavailable) {
+		t.Fatalf("quote with deleted item error = %v, want ErrItemUnavailable", err)
+	}
+
+	// A quote taken before the delete cannot carry the item into an order.
+	var fresh *Quote
+	if _, err := st.CreateOrder(ctx, OrderInput{AccountID: b.accountID, QuoteID: preDelete.ID}, &fresh); !errors.Is(err, ErrItemUnavailable) {
+		t.Fatalf("order from pre-delete quote error = %v, want ErrItemUnavailable", err)
+	}
+	var n int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM "order" WHERE account_id=$1`, b.accountID).Scan(&n); err != nil {
+		t.Fatalf("count orders: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("an order was created holding a deleted item: %d", n)
+	}
+
+	// Once the customer removes the deleted line, the never-deleted item quotes.
+	if _, err := st.RemoveCartLine(ctx, b.accountID, deletedLineID); err != nil {
+		t.Fatalf("remove deleted line: %v", err)
+	}
+	q, err := st.CreateQuote(ctx, quoteReq)
+	if err != nil {
+		t.Fatalf("quote with only the kept item: %v", err)
+	}
+	if q.SubtotalCents != 900 {
+		t.Errorf("subtotal = %d, want 900", q.SubtotalCents)
+	}
+}
+
 func TestIntegrationExpiredQuoteRejected(t *testing.T) {
 	pool := testPool(t)
 	st := NewStore(pool)
@@ -326,3 +424,55 @@ func TestIntegrationDeadlineRunnerExpiresCreatedOrder(t *testing.T) {
 func testLogger() *slog.Logger { return slog.New(slog.NewTextHandler(os.Stderr, nil)) }
 
 var _ = time.Second
+
+// A restaurant the weekly payout run has blocked for a balance below zero too
+// long (restaurant_collection, internal/payments/payout_run.go) gets no quote,
+// and so no order, until the block is lifted. Whether to block at all is the
+// owner's open question: https://github.com/shaiknoorullah/hg-mono/issues/164.
+func TestIntegrationQuoteRefusedWhileRestaurantBlockedForNegativeBalance(t *testing.T) {
+	pool := testPool(t)
+	st := NewStore(pool)
+	ctx := context.Background()
+	b := seedBasics(t, pool)
+
+	cart, err := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
+	if err != nil {
+		t.Fatalf("add cart line: %v", err)
+	}
+	quote := func() error {
+		_, err := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart.ID,
+			DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
+		return err
+	}
+	if err := quote(); err != nil {
+		t.Fatalf("quote before the block: %v", err)
+	}
+
+	var runID string
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO payout_run (kind, period_start, period_end, as_of, due_at)
+		VALUES ('SCHEDULED', now() - interval '7 days', now(), now(), now()) RETURNING id`).Scan(&runID); err != nil {
+		t.Fatalf("seed payout run: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM restaurant_collection WHERE restaurant_id = $1`, b.restaurantID)
+		_, _ = pool.Exec(ctx, `DELETE FROM payout_run WHERE id = $1`, runID)
+	})
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO restaurant_collection (restaurant_id, balance_cents, negative_since, opened_by_run)
+		VALUES ($1, -500, now() - interval '31 days', $2)`, b.restaurantID, runID); err != nil {
+		t.Fatalf("block: %v", err)
+	}
+	if err := quote(); err != ErrRestaurantClosed {
+		t.Fatalf("quote while blocked: err = %v, want ErrRestaurantClosed", err)
+	}
+
+	if _, err := pool.Exec(ctx, `
+		UPDATE restaurant_collection SET closed_at = now(), closed_by_run = $2, close_reason = 'BALANCE_RECOVERED'
+		 WHERE restaurant_id = $1`, b.restaurantID, runID); err != nil {
+		t.Fatalf("lift: %v", err)
+	}
+	if err := quote(); err != nil {
+		t.Fatalf("quote after the block lifts: %v", err)
+	}
+}

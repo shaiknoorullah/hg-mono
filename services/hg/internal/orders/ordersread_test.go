@@ -333,7 +333,7 @@ func seedOrderInState(t *testing.T, pool *pgxpool.Pool, state string) orderSeedR
 	var riderAccountID string
 	err = pool.QueryRow(ctx, `
 		INSERT INTO account (email, status)
-		VALUES ('rider-'||substr(uuid_generate_v7()::text,1,12)||'@test.local', 'ACTIVE')
+		VALUES ('rider-'||right(uuid_generate_v7()::text, 12)||'@test.local', 'ACTIVE')
 		RETURNING id`).Scan(&riderAccountID)
 	if err != nil {
 		t.Fatalf("seed rider account: %v", err)

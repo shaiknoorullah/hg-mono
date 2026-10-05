@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -103,9 +103,9 @@ edit a menu while orders are in flight" — see R-15.
 |---|---|---|---|---|
 | `PENDING` | system on signup | no | n/a | yes |
 | `ACTIVE` | admin approval + payout account ready | yes (subject to hours/toggle) | continue | yes |
-| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours; the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours; the menu is locked for everyone, admins included: every menu write is `403 MENU_LOCKED` ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [how it is enforced](#r-15--menu-item-authoring)) |
 | `REJECTED` | admin at onboarding review | no | n/a | yes, to re-submit documents |
-| `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no; the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no; the menu is locked for everyone, admins included: every menu write is `403 MENU_LOCKED` ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [how it is enforced](#r-15--menu-item-authoring)) |
 | `CLOSED` | restaurant self-service offboarding | no | continue to completion | yes for 90 days |
 
 Full transition and in-flight-order semantics are specified in **R-36**.
@@ -201,9 +201,12 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Behaviour**: The signup email contains a link to `{APP_ORIGIN}/verify-email?token=…`. The web app
   POSTs the token once. On success the server sets `email_verified_at`, advances
-  `onboarding_state REGISTERED → EMAIL_VERIFIED`, issues an access + refresh token pair (R-03), and
-  returns the onboarding status object so the client can route to the next step. The token is
-  single-use and is consumed atomically (`UPDATE … WHERE consumed_at IS NULL RETURNING`).
+  `onboarding_state REGISTERED → EMAIL_VERIFIED` and answers `204`. It **issues no session and sets
+  no cookie**: an emailed link never signs anyone in, or an attacker could send the owner the link
+  for the attacker's own account and have them work in it
+  ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The page says the email is
+  verified and sends the owner to sign in ([R-03](#r-03--login-session-and-token-lifecycle)). The
+  token is single-use and is consumed atomically (`UPDATE … WHERE consumed_at IS NULL RETURNING`).
 
 - **Data**: `email_verification_token(id, restaurant_user_id, token_hash sha256, expires_at, consumed_at, created_at, requested_ip)`. The raw token is a 32-byte CSPRNG value, base64url; only its SHA-256 is stored.
 
@@ -223,12 +226,24 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      for re-registration.
 
 - **Acceptance criteria**:
-  1. **Given** a fresh verification token, **when** it is POSTed once, **then** `200` returns `{access_token, refresh_token, onboarding_state:"EMAIL_VERIFIED", next_step:"PROFILE"}` and `email_verified_at` is set.
+  1. **Given** a fresh verification token, **when** it is POSTed once, **then** `204` returns no body and no `Set-Cookie`, no session row is created, and `email_verified_at` is set; signing in afterwards with the password succeeds.
   2. **Given** the same token, **when** it is POSTed a second time within 1 s (double-submit), **then** exactly one of the two requests succeeds and the other returns `410 verification_token_used` — verified under a concurrent 2-request test.
   3. **Given** a token issued 25 hours ago, **when** it is POSTed, **then** `410 verification_token_expired` is returned and no session is created.
   4. **Given** an account with `email_verified_at IS NULL`, **when** it calls `GET /v1/restaurant/menu/items` with a forged bearer token, **then** `403 email_not_verified` is returned.
 
 - **Out of scope**: magic-link login; email change flow; verification by SMS; deliverability/bounce handling beyond writing a `bounced` flag (V2).
+
+- **As built (Oct 2026)**: the link opens `/verify-email` in the restaurant web app
+  ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)). The token is handled like a
+  password: the app takes it out of the address bar before anything else loads or calls the network,
+  switches the page's referrer policy to `no-referrer`, keeps the token in memory only, and sends it
+  once, in the body of `POST /v1/auth/email/verify`. Opening the link never signs anyone in: the page
+  drops the session the API still returns ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356))
+  and sends the owner to the normal sign-in. If someone is already signed in on the device, the page
+  asks before it uses the link. A used link says so; an expired, incomplete or cut-short link offers
+  a new one by email, and that request answers the same whether or not the account exists. The token
+  capture, the calls and the form state are shared with the admin console's link pages, in
+  `@hg/ui-web/link-token` and `@hg/ui-web/email-links`.
 
 - **Version**: V1
 - **Size**: S
@@ -283,6 +298,16 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Out of scope**: SSO/SAML; MFA (V2; it issues no recovery codes, and a super admin resets a lost
   authenticator after a phone call-back check: [recovery codes](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [manual resets](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); device-trust / "remember this device"; biometric; session
   transfer between the web app and a future mobile app.
+
+- **As built (Oct 2026)**: "Forgot your password?" on the sign-in page and the reset email both open
+  `/reset-password` ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)). Without a token,
+  the page asks for the email and then shows "Check your email", the same whether or not the account
+  exists. With one, it takes a new password, checks its length (12 characters to 256 bytes) before
+  using the link, and shows a breached password as an error on the field. An expired, used or unknown
+  link gets one page, because `resetPassword` answers all three alike. Setting the password signs
+  nobody in: the owner signs in again, and the page says the order screen was signed out too. A 429
+  disables the button until the time the server gives, shown as a 12-hour clock time. The token is
+  handled as on the verify-email page ([email verification, as built](#r-02--email-verification-and-account-activation)).
 
 - **Version**: V1
 - **Size**: M
@@ -538,6 +563,19 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   9. Uploads are permitted only in `onboarding_state ∈ {DOCUMENTS_PENDING, DOCUMENTS_REJECTED}` or,
      post-activation, for renewal (R-10). Otherwise `409 step_not_available`.
   10. Rate limit 20 `upload-url` calls per hour per restaurant.
+  11. A document is attached only from the caller's own confirmed compliance upload: uploaded by
+      the owner or manager attaching it, `READY`, not deleted, uploaded as a `KYC_DOCUMENT`, and
+      not attached to another restaurant's or rider's documents. Anything else is `404`, the same
+      answer as a file that does not exist, and nothing is written. A download link goes to whoever
+      owns the document, so attaching a file another account uploaded would hand over its bytes
+      ([#359](https://github.com/shaiknoorullah/hg-mono/issues/359)). The download link is also
+      refused when a document's file is not its restaurant's own upload, and restaurant staff, who
+      cannot list the documents, cannot download them either.
+  12. Attaching a file that is already attached as that type, including two attaches of it at once,
+      returns the existing document and adds nothing: no second review item, and for a halal
+      certificate no second certificate superseding the first. The database refuses a second
+      document for one file ([#360](https://github.com/shaiknoorullah/hg-mono/issues/360)). A
+      different file is a re-upload, as in rule 8.
 
 - **Acceptance criteria**:
   1. **Given** a presigned URL minted for `HALAL_CERTIFICATE` with a 10 MB limit, **when** the client `PUT`s an 11 MB file, **then** Silo rejects the upload with `EntityTooLarge` and `confirm` subsequently returns `409 upload_not_found`.
@@ -630,6 +668,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   `GET /v1/restaurant/onboarding/status` as a fallback, and every terminal decision additionally
   sends an email. The status endpoint is the single source of truth; SSE is a latency optimisation,
   never the only delivery path.
+
+  > **Built (Oct 2026):** the events travel on each owner's and manager's own WebSocket channel, `account:{id}` ([realtime contract, account and onboarding](../../contracts/websocket.md#4-event-catalogue)), not a separate SSE stream: `onboarding.state_changed` on an admin decision and on each automatic step (payouts on, menu approved), `document.review_state_changed` on each document review (with the rejection code, never the reviewer's note), and `connect.requirements_changed` when Stripe's requirements change. Other restaurant staff get none of them.
 
   > **Definition of done for "real-time"**: p95 latency from the admin's decision commit to the
   > restaurant UI reflecting it is **≤ 5 seconds** while SSE is connected, and **≤ 20 seconds**
@@ -941,8 +981,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Rules**:
   1. `name` 1–60 chars, unique per restaurant case-insensitively (`UNIQUE (restaurant_id, lower(name)) WHERE deleted_at IS NULL`). Duplicate → `409 category_name_taken`.
   2. Max **40** categories per restaurant.
-  3. `sort_order` is a dense integer sequence maintained server-side; the reorder endpoint accepts the full ordered id list and rewrites it in one transaction. Partial/sparse client-supplied orders are rejected.
-  4. Deleting a non-empty category → `409 category_not_empty` with `item_count`. Items must be moved or deleted first. **Deleting a category never deletes items.**
+  3. `sort_order` is a dense integer sequence maintained server-side; the reorder endpoint accepts the full ordered id list and rewrites it in one transaction. Partial/sparse client-supplied orders are rejected. *At launch the contract has no full-list reorder: a category moves with `updateMenuCategory`, whose `sort_order` is the position to move it to (past the end is the end), and the server rewrites the whole menu as `0..n-1` in the same transaction, with the categories locked so two moves queue rather than interleave ([#502](https://github.com/shaiknoorullah/hg-mono/issues/502)). The same call renames, deactivates and reactivates.*
+  4. Deleting a non-empty category → `409 category_not_empty` with `item_count`. Items must be moved or deleted first. **Deleting a category never deletes items.** *Built as `deleteMenuCategory`: a soft delete of an empty category, `409 CATEGORY_NOT_EMPTY` with `details.item_count` while it holds any item that is not deleted. The category row is locked while its items are counted, and filing an item under a category waits for that lock, so an item cannot land in a category as it is deleted ([#239](https://github.com/shaiknoorullah/hg-mono/issues/239)).*
   5. Deactivating a category hides its items from customers immediately but does not change item state; reactivating restores exactly the prior item visibility.
   6. Categories are keyed by id, never by name. *(The current system dedupes cuisines and categories by a slug stored in the display-name column; that is not ported.)*
   7. Category edits are live immediately — no admin approval (see R-17 for what is reviewed).
@@ -975,6 +1015,23 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   party pays. There is no "orders in flight" guard and no version pinning beyond the snapshot. Only the
   account state locks the menu: nobody edits it while the restaurant is suspended or banned ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
+  **The menu lock.** While `account_state` is `SUSPENDED` or `BANNED`, every menu write answers
+  `403 MENU_LOCKED`, with the state in `details.account_state`, and writes nothing. That is every
+  write to [categories](#r-14--menu-and-category-management), items and prices (this section),
+  [photos](#r-16--menu-item-images), [availability](#r-18--item-availability-and-out-of-stock-management),
+  and every save that would send a change to [menu review](#r-17--menu-change-approval-workflow-admin)
+  or replace one already waiting there: a version waiting for review stays as it is. The
+  restaurant's own staff and admins acting on its behalf are refused alike, and admins cannot decide
+  the restaurant's waiting versions either. A `DELISTED` restaurant is not locked: delisting is not a penalty, and the restaurant
+  keeps its menu ready to be listed again. Reading the menu is never locked; the restaurant learns the
+  menu is locked from `account_state` on its profile before it saves. Each write takes a share lock on
+  the restaurant row and reads `account_state` in the transaction that makes the write, so a save that
+  races a suspension either commits before the suspension or is refused, never after it. `MENU_LOCKED`
+  is not `ACCOUNT_SUSPENDED`: that code means the caller's own account is suspended and sends the app
+  to the suspension screen, while here the caller stays signed in and only the menu is locked
+  ([#256](https://github.com/shaiknoorullah/hg-mono/issues/256)).
+  *Built in the restaurant app ([#381](https://github.com/shaiknoorullah/hg-mono/issues/381)): while the profile's `account_state` is `SUSPENDED` or `BANNED`, or a save comes back `403 MENU_LOCKED`, the Menu screen still lists the menu, disables every edit control and shows one amber notice that says why it is locked and to contact support; opening hours stay editable.*
+
 - **Data**:
   ```
   menu_item(id, restaurant_id, category_id, live_version_id NULL, pending_version_id NULL,
@@ -1005,6 +1062,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   5. `allergen_tags` may be empty but the UI must force an explicit "no listed allergens" acknowledgement; the API records `allergens_declared_at`.
   6. Deleting an item is a soft delete. Items referenced by any order are never hard-deleted.
      *(The current system's menu-item delete calls a route that does not exist; this one does.)*
+     *Built as `deleteMenuItem` ([#239](https://github.com/shaiknoorullah/hg-mono/issues/239)): the item leaves the restaurant's menu and every customer read at once, order lines keep their snapshot, and a version waiting for review is withdrawn. The restaurant app has no delete control yet: the approved menu screen design does not show one.*
   7. **Price changes are instant and do not require review**, but each is written to `price_change_log`.
 
   > **DECISION REQUIRED — price-change guardrail**: Should a large price increase be blocked, flagged, or ignored? · **Proposed default**: instant and never blocked, but any increase where `new > old × 1.30` within a rolling 24 h window sets `flagged=true` and raises an admin **compliance** flag (SOW: *"Compliance Monitoring… e.g., pricing"*); more than 5 flagged changes in 7 days raises a review task. · **Why**: bait-and-switch pricing is the main abuse vector when price edits bypass review, and blocking edits outright breaks legitimate supplier-cost changes. *(D-04)*
@@ -1020,6 +1078,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   3. **Given** a create payload with `dietary_tags:["HALAL_CERTIFIED"]`, **when** it is submitted, **then** `403 field_not_writable` and the item is not created.
   4. **Given** an item whose `ingredients_text` contains "pork belly", **when** it is submitted, **then** `422 prohibited_ingredient` naming the matched term.
   5. **Given** an item referenced by a delivered order, **when** it is deleted, **then** `deleted_at` is set, the customer menu omits it, and the historical order still renders its name and price from the snapshot.
+  6. **Given** a suspended restaurant, **when** its owner changes an item's price or marks it out of stock, **then** `403 MENU_LOCKED` with `details.account_state:"SUSPENDED"` and the item is unchanged; **when** the restaurant is delisted instead, **then** the same change succeeds.
+  7. **Given** a save that holds the restaurant row's share lock, **when** an admin suspends the restaurant, **then** the suspension waits and commits after the save; **given** a suspension in progress, **when** a save arrives, **then** it waits and is refused with `403 MENU_LOCKED`.
 
 - **Out of scope**: nutritional information / calorie counts (SOW mentions it for the *customer* app — deferred to V2 and sourced from the restaurant then); structured ingredient lists with quantities; recipe/inventory deduction; item-level tax codes (**D-19**); multi-language item names (V3); CSV/bulk menu import (V2); menu scraping from a photographed menu.
 
@@ -1095,9 +1155,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   |---|---|---|
   | — | `PENDING_REVIEW` | restaurant saves a reviewed field; no drafts at launch ([menu drafts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
   | — | `APPROVED` | an admin creates the item on the restaurant's behalf; the creator is the reviewer ([menu approval](../decisions/README.md#settled--reconciliations)). Never while the restaurant is suspended or banned ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
-  | `PENDING_REVIEW` | `APPROVED` | admin approves |
-  | `PENDING_REVIEW` | `REJECTED` | admin rejects with a reason code |
-  | `PENDING_REVIEW` | `WITHDRAWN` | restaurant saves again (creates a newer pending version) or cancels |
+  | `PENDING_REVIEW` | `APPROVED` | admin approves. Not while the restaurant is suspended or banned: the version waits, and deciding it is `403 MENU_LOCKED` ([menu lock](#r-15--menu-item-authoring)) |
+  | `PENDING_REVIEW` | `REJECTED` | admin rejects with a reason code. Not while the restaurant is suspended or banned, as above |
+  | `PENDING_REVIEW` | `WITHDRAWN` | restaurant saves again (creates a newer pending version) or cancels. Not while the restaurant is suspended or banned, as above |
   | `APPROVED` | `SUPERSEDED` | a newer version is approved |
 
 - **Rules**:
@@ -1470,6 +1530,16 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `late` and appears in the delay prompt (R-26).
   7. The dashboard is read-authorised by session `rid` only. There is no order id that a different
      restaurant can read. *(Currently any caller can read any order by id.)*
+  8. **Rider approaching.** Once a rider is assigned (`PREPARING` / `READY_FOR_PICKUP`), the order
+     card shows a live map: the restaurant pin and the rider's **coarse** position as a ~100 m disc,
+     never a pin, fed by `rider.location` on `order:{id}` in the restaurant projection
+     ([per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)). The
+     marker glides between fixes and says `last updated 42s ago` once a fix is older than 30 s. Rider name, vehicle and
+     pickup time come from the order, never from the position. The contract gives the restaurant no
+     REST read of the rider's position, so while the socket is down the map keeps the last fix and
+     says it is reconnecting; the order itself keeps refreshing over REST. Without
+     `VITE_MAPBOX_TOKEN` the map shows its empty state and the text facts remain
+     (`apps/restaurant/src/components/RiderApproachMap.tsx`).
 
 - **Acceptance criteria**:
   1. **Given** an order in `PENDING_RESTAURANT`, **when** the restaurant fetches the dashboard, **then** `delivery_address_short` contains city and distance band but no street address, and `customer_phone_masked` is null.
@@ -1543,6 +1613,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `CANCELLED_PAYMENT_FAILED`, the restaurant is notified, and rider dispatch is **not** enqueued.
      There is no path where a failed money operation lets the flow continue. *(Today the saga falls
      through to rider assignment when cancel/refund returns false.)*
+     Accept first checks that the restaurant can still take orders, under the same lock as checkout
+     ([one check for every order path](01-platform.md#p-09--canonical-price-computation-the-quote)): if it is
+     not listed, not `LIVE`, or its halal certificate is not current at that moment, accept answers
+     `409 RESTAURANT_UNAVAILABLE`, nothing is captured, and the order times out and releases its authorisation.
   4. **Reject** performs, in one transaction: status → `CANCELLED_BY_RESTAURANT`; store reason;
      void the authorisation; notify the customer; release any offer budget (R-21). A void failure
      leaves the order in `CANCELLED_BY_RESTAURANT` and raises an operational alert with a retry job —
@@ -1580,6 +1654,14 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Behaviour**: After acceptance the restaurant advances the order through exactly two
   restaurant-owned transitions: `ACCEPTED → PREPARING` and `PREPARING → READY_FOR_PICKUP`. Marking
   ready notifies the assigned rider (R-26) and the customer. All later statuses belong to the rider.
+
+  Marking ready starts the order's pickup deadline from the [platform deadline table](./01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable):
+  when no rider has collected the order 15 minutes later, and every 10 minutes after that, the
+  search for a rider is re-opened, ops are alerted and the customer is told
+  ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)). A rider cannot pick
+  up an order the kitchen has not marked ready: the pickup is refused and the rider is told to wait
+  for the kitchen, until the kitchen's pickup code is checked
+  ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
 
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,
@@ -1672,6 +1754,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   6. Messages are rate-limited to 10 per order per actor.
   7. `ORDER_READY` is emitted automatically by R-25 and cannot be sent manually (prevents duplicate
      pings).
+  8. The orders module applies the delay, not the restaurant module: `Store.DelayInTx` in
+     `internal/orders` counts the order's `order_delay` rows under its row lock, moves `deadline_at`
+     and `promised_ready_at`, writes the `order_delay` row and the `PREPARING → PREPARING`
+     `order_transition` row, emits `order.state_changed` (reason: the delay's reason code, with the
+     new `deadline_at`) and enqueues the customer's `ORDER_PREP_DELAYED` notification, in one
+     transaction ([#351](https://github.com/shaiknoorullah/hg-mono/issues/351)). Telling the
+     assigned rider by push, and the `delay_not_allowed_in_status` error code, are not built yet.
 
 - **Acceptance criteria**:
   1. **Given** an order with `promised_ready_at = T`, **when** a +10 delay with `reason_code='HIGH_VOLUME'` is applied, **then** `promised_ready_at = T+10m`, one `order_delay` row exists, and both the rider and the customer receive an ETA update within 5 s.
@@ -2382,6 +2471,7 @@ Aggressive exclusions that apply across every feature above:
 3. **Staff sub-accounts and roles.** The `role` column exists (`OWNER|MANAGER|STAFF`) but only
    `OWNER` is issued at launch and the Staff screen is hidden; restaurant staff come in a later
    version ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+   Creating a restaurant staff account through the API sends no invitation email in 1.0.
 4. **Pickup / dine-in / table ordering.** Delivery only.
 5. **Scheduled and pre-orders.** Immediate orders only.
 6. **Inventory quantities, recipes, food-cost accounting, supplier integration.**

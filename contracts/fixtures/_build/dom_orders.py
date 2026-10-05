@@ -299,6 +299,86 @@ def _order_payment(order_state: str, priced: dict, **over: Any) -> dict:
     return out
 
 
+def _money_event(kind: str, at: str, amount: int | None, actor_kind: str, *, actor: str | None = None,
+                 refund_id: str | None = None, chargeback_id: str | None = None, reason: str | None = None) -> dict:
+    return {
+        "kind": kind,
+        "at": at,
+        "amount_cents": amount,
+        "currency": "CAD",
+        "actor_kind": actor_kind,
+        "actor_account_id": actor,
+        "refund_id": refund_id,
+        "chargeback_id": chargeback_id,
+        "reason": reason,
+    }
+
+
+def _money_timeline(payment: dict, extra: list[dict] | None = None) -> list[dict]:
+    """The admin view's money timeline: the payment's steps, then whatever the scenario adds."""
+    events = []
+    if payment.get("authorized_at"):
+        events.append(_money_event("PAYMENT_AUTHORISED", payment["authorized_at"], payment["amount_authorized_cents"], "SYSTEM"))
+    if payment.get("captured_at"):
+        events.append(_money_event("PAYMENT_CAPTURED", payment["captured_at"], payment["amount_captured_cents"], "SYSTEM"))
+    if payment["state"] == "CANCELED" and payment["amount_authorized_cents"]:
+        events.append(_money_event("PAYMENT_VOIDED", ts(-30 * MINUTE), payment["amount_authorized_cents"], "SYSTEM"))
+    return events + (extra or [])
+
+
+SUPPORT_AGENT = uuid_for("account:support:yusuf")
+ADMIN_STAFF = uuid_for("account:admin:amina")
+CUSTOMER = uuid_for("account:customer:ayesha")
+
+# Stripe's dispute statuses as the contract sends them; the closed ones end a chargeback.
+CHARGEBACK_STATUSES = {
+    "WARNING_NEEDS_RESPONSE": "An early warning from the bank (an inquiry); it may become a dispute.",
+    "WARNING_UNDER_REVIEW": "Evidence was sent for an inquiry; the bank is reviewing it.",
+    "WARNING_CLOSED": "The inquiry closed without becoming a dispute.",
+    "NEEDS_RESPONSE": "A dispute waiting for our evidence, on the clock of its deadline.",
+    "UNDER_REVIEW": "Evidence was sent; the bank is deciding.",
+    "WON": "The bank decided for us; the money stays.",
+    "LOST": "The bank decided for the customer; Stripe has taken the money back.",
+    "PREVENTED": "Stopped before it became a dispute.",
+    "CHARGE_REFUNDED": "Closed because the charge was refunded.",
+}
+CHARGEBACK_CLOSED = {"WARNING_CLOSED", "WON", "LOST", "PREVENTED", "CHARGE_REFUNDED"}
+
+
+def chargeback(name: str, status: str, *, order_state: str = "COMPLETED", notes: int = 0,
+               reason: str = "product_not_received", amount: int = 4696) -> dict:
+    closed = status in CHARGEBACK_CLOSED
+    cb_id = uuid_for(f"chargeback:{name}")
+    return {
+        "id": cb_id,
+        "order_id": uuid_for(f"order:{order_state.lower()}"),
+        "order_code": customer_order(order_state)["code"],
+        "stripe_dispute_id": f"dp_1Qk{name.replace('-', '').replace('_', '')[:12]}",
+        "amount_cents": amount,
+        "currency": "CAD",
+        "reason": reason,
+        "status": status,
+        "outcome": status if closed else None,
+        "evidence_due_at": ts(5 * DAY),
+        "deadline_at": None if closed else ts(5 * DAY),
+        "evidence_submitted_at": ts(-1 * DAY) if status in ("UNDER_REVIEW", "WARNING_UNDER_REVIEW", "WON", "LOST") else None,
+        "opened_at": ts(-2 * DAY),
+        "updated_at": ts(-1 * HOUR),
+        "evidence_notes": [
+            {
+                "id": uuid_for(f"chargeback-note:{name}:{i}"),
+                "body": [
+                    "Proof of delivery photo at the front door, 19:42, matches the address on the order.",
+                    "Customer messaged support at 19:50 to thank the rider; transcript attached to the case.",
+                ][i % 2],
+                "author_account_id": SUPPORT_AGENT,
+                "created_at": ts(-(2 * DAY) + (i + 1) * HOUR),
+            }
+            for i in range(notes)
+        ],
+    }
+
+
 def build(reg, synth) -> None:
     _customer_orders(reg)
     _order_lists(reg)
@@ -308,6 +388,8 @@ def build(reg, synth) -> None:
     _receipts(reg)
     _payments(reg, synth)
     _refunds(reg, synth)
+    _refund_review(reg)
+    _chargebacks(reg)
     _ratings(reg, synth)
 
 
@@ -444,10 +526,12 @@ def _order_lists(reg) -> None:
 
 
 def _restaurant_orders(reg, synth) -> None:
-    def restaurant_order(state: str, **over: Any) -> dict:
+    def restaurant_order(state: str, *, label: str | None = None, **over: Any) -> dict:
+        # `label` gives a distinct order (its own id). Without one, the id is the state's
+        # canonical order, the same one the customer, rider and payment fixtures show.
         lines = standard_quote_lines()
         priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state)
+        base = customer_order(state, label=label)
         accepted = base["accepted_at"] is not None
         out = {
             "id": base["id"],
@@ -524,12 +608,17 @@ def _restaurant_orders(reg, synth) -> None:
         "array<OrderRestaurantView>",
         "Friday 19:00: two pending, three preparing, one late, one ready. Sorted with "
         "RESTAURANT_PENDING first by `deadline_at` ascending, per R-23.",
+        # Six different orders, so six different ids and codes (issue #31). The first order in
+        # each state keeps that state's canonical id; the others get their own.
         [
             restaurant_order("RESTAURANT_PENDING", elapsed_seconds=150, deadline_at=ts(30)),
-            restaurant_order("RESTAURANT_PENDING", elapsed_seconds=20, deadline_at=ts(160)),
+            restaurant_order(
+                "RESTAURANT_PENDING", label="queue-pending-2", code="HG-7P3R-2K",
+                elapsed_seconds=20, deadline_at=ts(160),
+            ),
             restaurant_order("PREPARING", is_late=True),
-            restaurant_order("PREPARING", is_late=False),
-            restaurant_order("PREPARING", is_late=False),
+            restaurant_order("PREPARING", label="queue-preparing-2", code="HG-5D8N-4V", is_late=False),
+            restaurant_order("PREPARING", label="queue-preparing-3", code="HG-9W6H-1F", is_late=False),
             restaurant_order("READY_FOR_PICKUP"),
         ],
         operations=["listRestaurantOrders"],
@@ -574,7 +663,9 @@ def _admin_orders(reg, synth) -> None:
             "refunds": [],
             "internal_money": internal_money(priced, ledger_entries=ledger),
             "pii_revealed": False,
+            "chargebacks": [],
         }
+        out["money_timeline"] = _money_timeline(out["payment"])
         out.update(over)
         return out
 
@@ -609,13 +700,28 @@ def _admin_orders(reg, synth) -> None:
             "failure_message": None,
         }
     ]
+    disputed_cb = chargeback("disputed", "NEEDS_RESPONSE", order_state="DISPUTED", notes=1, amount=1695)
+    disputed_cb["opened_at"] = ts(-8 * MINUTE)
+    disputed_cb["evidence_notes"][0]["created_at"] = ts(-3 * MINUTE)
+    disputed["chargebacks"] = [disputed_cb]
+    disputed["money_timeline"] = _money_timeline(disputed["payment"], [
+        _money_event("REFUND_REQUESTED", ts(-18 * MINUTE), 1695, "ACCOUNT", actor=CUSTOMER,
+                     refund_id=uuid_for("refund:disputed"), reason="Customer reports the biryani was missing from the bag."),
+        _money_event("REFUND_ESCALATED", ts(-12 * MINUTE), 1695, "ACCOUNT", actor=SUPPORT_AGENT,
+                     refund_id=uuid_for("refund:disputed"), reason="Over what I can approve today; needs an admin."),
+        _money_event("CHARGEBACK_OPENED", ts(-8 * MINUTE), 1695, "WEBHOOK",
+                     chargeback_id=disputed_cb["id"], reason="product_not_received"),
+        _money_event("CHARGEBACK_EVIDENCE_NOTE", ts(-3 * MINUTE), None, "ACCOUNT", actor=SUPPORT_AGENT,
+                     chargeback_id=disputed_cb["id"]),
+    ])
     reg.add(
         "order_admin_view_disputed",
         "orders",
         "OrderAdminView",
         "A delivered order in dispute with a partial refund awaiting approval and a "
         "liability split that puts the whole amount on the restaurant (O-04 is open; the "
-        "split is computed at authorisation and stored).",
+        "split is computed at authorisation and stored). The money timeline shows the "
+        "payment, the request, the agent sending it up, and a chargeback with one evidence note.",
         disputed,
         operations=["getOrderAdmin"],
         tags=["admin", "error-path"],
@@ -1137,5 +1243,177 @@ def _refunds(reg, synth) -> None:
         },
         operations=["issueRefund"],
         status=202,
+        tags=["admin"],
+    )
+
+
+def _admin_refund(state: str, **over: Any) -> dict:
+    """A customer's request for a missing item, at one RefundState, as staff see it (#172)."""
+    decided = state in ("APPROVED", "AUTHORISED", "SUBMITTED", "SUCCEEDED", "SETTLED", "FAILED")
+    out = {
+        "id": uuid_for(f"admin-refund:{state.lower()}"),
+        "order_id": uuid_for("order:completed"),
+        "order_code": customer_order("COMPLETED")["code"],
+        "kind": "PARTIAL_ITEMS",
+        "scope": "PARTIAL_ITEMS",
+        "reason_code": "ITEM_MISSING",
+        "amount_cents": 1915,
+        "tax_cents": 220,
+        "currency": "CAD",
+        "state": state,
+        "liability_split": {"platform_cents": 220, "restaurant_cents": 1695, "rider_cents": 0},
+        "note": "The biryani was missing from the bag.",
+        "requested_at": ts(-40 * MINUTE),
+        "requested_by": CUSTOMER,
+        "requester_kind": "CUSTOMER",
+        "approval_required_role": None,
+        "escalated_by": None,
+        "escalated_at": None,
+        "approved_by": SUPPORT_AGENT if decided else None,
+        "approved_at": ts(-30 * MINUTE) if decided else None,
+        "declined_by": None,
+        "declined_at": None,
+        "decision_reason": "The bag photo shows no biryani." if decided else None,
+        "settled_at": ts(-10 * MINUTE) if state == "SETTLED" else None,
+        "failure_message": (
+            "Stripe refused the refund: the charge is disputed." if state == "FAILED" else None
+        ),
+    }
+    if state == "PENDING_APPROVAL":
+        out.update({
+            "approval_required_role": "ADMIN",
+            "escalated_by": SUPPORT_AGENT,
+            "escalated_at": ts(-30 * MINUTE),
+            "decision_reason": "Over what I can approve today; needs an admin.",
+        })
+    if state == "DECLINED":
+        out.update({
+            "declined_by": SUPPORT_AGENT,
+            "declined_at": ts(-30 * MINUTE),
+            "decision_reason": "The proof of delivery photo shows the full bag at the door.",
+        })
+    out.update(over)
+    return out
+
+
+def _refund_review(reg) -> None:
+    notes = {
+        "REQUESTED": "A customer's request waiting for staff review. Nothing has moved.",
+        "PENDING_APPROVAL": "Above the reviewing agent's 24-hour limit: sent up to an admin "
+        "(`approval_required_role`). The agent who sent it up (`escalated_by`) may not approve it.",
+        "APPROVED": "Legacy state; nothing writes it at launch. Approval goes straight to `AUTHORISED`.",
+        "AUTHORISED": "Approved within the agent's limit: its ledger batch is posted and the refund "
+        "sender sends it to Stripe.",
+        "SUBMITTED": "Sent to Stripe, waiting for its answer.",
+        "SUCCEEDED": "Stripe accepted it.",
+        "SETTLED": "Back on the card.",
+        "FAILED": "Stripe refused it; support must act. `failure_message` says why.",
+        "DECLINED": "Declined with a staff reason (never shown to the customer). Nothing was sent to "
+        "Stripe; the customer was told through the notification outbox.",
+        "CANCELLED": "Withdrawn before anyone approved it. No money moved.",
+    }
+    ops = {"AUTHORISED": ["approveRefund"], "PENDING_APPROVAL": ["approveRefund"], "DECLINED": ["declineRefund"]}
+    for state, note in notes.items():
+        reg.add(
+            f"admin_refund_{state.lower()}",
+            "refunds",
+            "AdminRefund",
+            note,
+            _admin_refund(state),
+            operations=ops.get(state, []),
+            status=202 if state == "PENDING_APPROVAL" else 200,
+            tags=["admin", "refund-state-matrix"],
+        )
+
+    goodwill = _admin_refund(
+        "PENDING_APPROVAL",
+        id=uuid_for("admin-refund:goodwill-pending"),
+        kind="GOODWILL",
+        scope="PARTIAL_AMOUNT",
+        reason_code="GOODWILL",
+        amount_cents=6000,
+        tax_cents=0,
+        liability_split={"platform_cents": 6000, "restaurant_cents": 0, "rider_cents": 0},
+        note="Third late order this month; a retention gesture.",
+        requested_by=SUPPORT_AGENT,
+        requester_kind="STAFF",
+        escalated_by=SUPPORT_AGENT,
+        decision_reason=None,
+    )
+    reg.add(
+        "admin_refund_goodwill_needs_second_person",
+        "refunds",
+        "AdminRefund",
+        "A goodwill refund above CAD 50.00 an agent asked for: it always waits for a second "
+        "person, whatever the asker's limit.",
+        goodwill,
+        operations=[],
+        tags=["admin", "money"],
+    )
+    reg.add(
+        "admin_refund_queue",
+        "refunds",
+        "array<AdminRefund>",
+        "The review queue: what waits for a person, oldest first.",
+        [_admin_refund("REQUESTED"), _admin_refund("PENDING_APPROVAL"), goodwill],
+        operations=["listRefundsAdmin"],
+        meta={"next_cursor": None, "has_more": False},
+        tags=["admin"],
+    )
+    reg.add(
+        "admin_refund_queue_empty",
+        "refunds",
+        "array<AdminRefund>",
+        "Nothing waiting for a person.",
+        [],
+        operations=["listRefundsAdmin"],
+        meta={"next_cursor": None, "has_more": False},
+        tags=["admin", "edge", "empty"],
+    )
+
+
+def _chargebacks(reg) -> None:
+    for status, note in CHARGEBACK_STATUSES.items():
+        reg.add(
+            f"chargeback_{status.lower()}",
+            "refunds",
+            "Chargeback",
+            note,
+            chargeback(status.lower(), status, notes=1 if status == "NEEDS_RESPONSE" else 0),
+            operations=["getChargeback"],
+            tags=["admin", "chargeback-state-matrix"],
+        )
+    reg.add(
+        "chargeback_list",
+        "refunds",
+        "array<Chargeback>",
+        "Open chargebacks first, soonest evidence deadline first; closed ones after.",
+        [
+            chargeback("list-needs-response", "NEEDS_RESPONSE", notes=1),
+            chargeback("list-warning", "WARNING_NEEDS_RESPONSE", reason="general"),
+            chargeback("list-lost", "LOST", reason="fraudulent"),
+        ],
+        operations=["listChargebacks"],
+        meta={"next_cursor": None, "has_more": False},
+        tags=["admin"],
+    )
+    reg.add(
+        "chargeback_list_empty",
+        "refunds",
+        "array<Chargeback>",
+        "No chargebacks.",
+        [],
+        operations=["listChargebacks"],
+        meta={"next_cursor": None, "has_more": False},
+        tags=["admin", "edge", "empty"],
+    )
+    reg.add(
+        "chargeback_evidence_note_added",
+        "refunds",
+        "Chargeback",
+        "`201` after an evidence note: the chargeback with the new note last.",
+        chargeback("note-added", "NEEDS_RESPONSE", notes=2),
+        operations=["addChargebackEvidenceNote"],
+        status=201,
         tags=["admin"],
     )

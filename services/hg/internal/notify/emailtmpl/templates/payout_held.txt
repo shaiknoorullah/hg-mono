@@ -1,0 +1,18 @@
+HalalGoes
+
+Your payout is on hold
+
+Stripe, who pays out for HalalGoes, needs more information from you before we can send this payout. Nothing you earned is lost: it is kept for you.
+
+Payout on hold
+
+{{.Amount}} to {{.PayeeName}}
+For {{.PeriodText}}
+
+Sign in to HalalGoes and finish your payout setup. We pay you on the next payout run after that.
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

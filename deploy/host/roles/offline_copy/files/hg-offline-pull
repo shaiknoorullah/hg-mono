@@ -1,0 +1,27 @@
+#!/bin/bash
+# hg-offline-pull [--now]: copy the server's new restic snapshots into this machine's own
+# repository, over WireGuard, then apply the same retention (48 hours of every snapshot,
+# then one a day for 35 days). Run hourly; does the work at most once per period, and only
+# when the server answers. The server's account here is read-only: it can't delete anything.
+# Managed by Ansible (deploy/host/roles/offline_copy).
+set -euo pipefail
+# shellcheck source=/dev/null
+source /etc/hg-offline/backup.conf
+marker=/var/lib/hg-offline/last-success
+
+if [ "${1:-}" != --now ] && [ -f "$marker" ] \
+   && [ $(( $(date +%s) - $(stat -c %Y "$marker") )) -lt $(( PULL_MIN_HOURS * 3600 )) ]; then
+  exit 0
+fi
+if ! timeout 15 bash -c "exec 3<>/dev/tcp/$SERVER_WG_ADDRESS/22" 2>/dev/null; then
+  echo "server not reachable over WireGuard; will try again next hour"
+  exit 0
+fi
+
+restic copy --no-lock --from-repo sftp:hg-backup-server:/restic \
+  --from-password-file /etc/hg-offline/source.pass
+restic forget --group-by host,tags "${KEEP[@]}" --prune
+# A structural check once a week; the monthly drill also reads the data.
+if [ "$(date +%u)" = 3 ]; then restic check; fi
+touch "$marker"
+echo "pulled and pruned"

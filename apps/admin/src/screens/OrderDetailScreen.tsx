@@ -12,9 +12,11 @@
  *
  * The live-map box reads `restaurant_location` / `destination_location` / `rider_location`
  * directly off `OrderAdminView` (widened alongside `getOrderTracking`'s customer-scoped
- * shape — admin is not subject to the customer's PICKED_UP/ARRIVED rider-visibility gate).
- * A rider pin is absent, honestly, until a rider is assigned and has reported a position —
- * never a fabricated one.
+ * shape — admin is not subject to the customer's PICKED_UP/ARRIVED rider-visibility gate),
+ * then follows the rider live over `order:{id}` and refetches this order silently on every
+ * state or dispatch event (polling every 5 s while the socket is down). A rider pin is
+ * absent, honestly, until a rider is assigned and has reported a position — never a
+ * fabricated one.
  */
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -39,7 +41,7 @@ import {
 import { api } from '../lib/api.js';
 import { toAsyncError, unwrap, useLoad } from '../lib/load.js';
 import { formatCountdown, formatMoney, formatTimestamp, enumLabel } from '../lib/format.js';
-import { LiveMapBox, type MapPin } from '../components/LiveMapBox.js';
+import { LiveMapBox } from '../components/LiveMapBox.js';
 
 type OrderAdminView = Schema['OrderAdminView'];
 
@@ -95,7 +97,7 @@ export function OrderDetailScreen() {
       (await unwrap(api.GET('/v1/admin/orders/{orderId}', { params: { path: { orderId } } }))).data as OrderAdminView,
     [orderId],
   );
-  const { status, data, error, reload } = useLoad(fetcher);
+  const { status, data, error, reload, refresh } = useLoad(fetcher);
 
   const [cancelOpen, setCancelOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
@@ -159,43 +161,6 @@ export function OrderDetailScreen() {
 
   if (!data) return null;
 
-  const pins: MapPin[] = [];
-  if (data.delivery_address?.latitude != null && data.delivery_address?.longitude != null) {
-    pins.push({
-      kind: 'customer',
-      label: 'Delivery address',
-      latitude: data.delivery_address.latitude,
-      longitude: data.delivery_address.longitude,
-    });
-  } else if (data.destination_location) {
-    pins.push({
-      kind: 'customer',
-      label: 'Delivery address',
-      latitude: data.destination_location.latitude,
-      longitude: data.destination_location.longitude,
-    });
-  }
-  if (data.restaurant_location) {
-    pins.push({
-      kind: 'restaurant',
-      label: data.restaurant?.name ?? 'Restaurant',
-      latitude: data.restaurant_location.latitude,
-      longitude: data.restaurant_location.longitude,
-    });
-  }
-  if (data.rider_location) {
-    pins.push({
-      kind: 'rider',
-      label: 'Rider (live)',
-      latitude: data.rider_location.latitude,
-      longitude: data.rider_location.longitude,
-    });
-  }
-  const missingLabel =
-    data.restaurant_location || data.rider_location
-      ? null
-      : 'No live rider position yet — a rider has not been assigned or has not reported a location.';
-
   return (
     <section aria-labelledby="order-heading" className="adm-stack">
       <Button variant="tertiary" size="sm" iconStart={<Icon name="back" size={16} />} onPress={() => navigate('/orders')}>
@@ -219,10 +184,10 @@ export function OrderDetailScreen() {
       <div className="adm-order-layout">
         <div className="adm-stack">
           <LiveMapBox
-            pins={pins}
+            order={data}
             etaLabel={data.eta_at ? `ETA ${formatTimestamp(data.eta_at)}` : null}
             countdownLabel={data.deadline_at ? formatCountdown(data.deadline_at) : null}
-            missingLabel={missingLabel}
+            onOrderChanged={refresh}
           />
 
           <Card header={<h2 className="text-heading-sm text-fg-primary">Customer</h2>}>

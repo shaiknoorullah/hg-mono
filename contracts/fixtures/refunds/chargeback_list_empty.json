@@ -1,0 +1,20 @@
+{
+  "scenario": "chargeback_list_empty",
+  "domain": "refunds",
+  "schema": "array<Chargeback>",
+  "describes": "No chargebacks.",
+  "operations": [
+    "listChargebacks"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false
+  },
+  "payload": []
+}

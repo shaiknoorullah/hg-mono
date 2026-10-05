@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 )
@@ -14,11 +17,19 @@ import (
 // Repo and the StripeClient and enforces the P-16..P-21 rules. It never reads an
 // *http.Request and never trusts a client-supplied amount.
 type Service struct {
+	// riderPay holds the rider pay rules the owner has not settled
+	// (rider_earnings.go): config.DefaultRiderPay until WithRiderPay.
+	riderPay config.RiderPay
+
 	repo   *Repo
 	stripe StripeClient
 	cfg    config.Stripe
 	log    *slog.Logger
 	now    func() time.Time
+	orders OrderHooks
+	// payouts queues admin payout runs; nil when Stripe is not configured.
+	payouts *PayoutRunner
+	outbox  Outbox
 }
 
 // NewService builds the payments service.
@@ -26,7 +37,36 @@ func NewService(repo *Repo, sc StripeClient, cfg config.Stripe, log *slog.Logger
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Service{repo: repo, stripe: sc, cfg: cfg, log: log, now: time.Now}
+	return &Service{repo: repo, stripe: sc, cfg: cfg, log: log, now: time.Now,
+		riderPay: config.DefaultRiderPay()}
+}
+
+// WithRiderPay sets the rider pay rules the owner has not settled yet and
+// returns the service.
+func (s *Service) WithRiderPay(p config.RiderPay) *Service {
+	s.riderPay = p
+	return s
+}
+
+// OrderHooks is how a stored Stripe event moves an order. The orders module
+// owns the order and its state machine; payments never writes "order"
+// itself. The server wires it to the orders store (cmd/hg).
+type OrderHooks interface {
+	// PaymentAuthorised moves an order still waiting for its payment
+	// (CREATED) to AUTHORIZED and on to RESTAURANT_PENDING, inside tx
+	// (docs/spec/01-platform.md, "P-14 — Order lifecycle states and
+	// transitions": created to authorised, then to restaurant pending). It
+	// reports whether the order moved; an
+	// order already past CREATED, or ended, is left as it is.
+	PaymentAuthorised(ctx context.Context, tx pgx.Tx, orderID string) (bool, error)
+}
+
+// WithOrderHooks sets the hooks stored Stripe events move orders through.
+// Without them an event still updates the payment, and the order is left to
+// its own deadline.
+func (s *Service) WithOrderHooks(h OrderHooks) *Service {
+	s.orders = h
+	return s
 }
 
 // DomainError carries an error code the handler maps to an HTTP status.
@@ -162,11 +202,40 @@ func (s *Service) GetOrderPayment(ctx context.Context, orderID, accountID string
 // ---------------------------------------------------------------------------
 
 // RequestRefund handles POST /v1/refunds for the non-GOODWILL kinds. It computes
-// the amount and liability split, writes the refund and its balanced ledger
-// batch in one transaction (transactional compensation), and returns the refund.
-// The Stripe Refund.create call is performed by the deadline runner from the
-// AUTHORISED state so a slow or failing provider never rolls back the ledger.
+// the amount and liability split and records the request in REQUESTED, for a
+// member of staff to review: a request moves no money, posts no ledger batch
+// and is never sent to Stripe (docs/spec/02-customer.md, "C-37 — Refund
+// requests and refund tracking": a request is created in REQUESTED, and at
+// launch every one is human-reviewed, because approving them automatically
+// without a fraud signal is an open cash tap). Until #318 nothing was sent, so
+// a request written straight into AUTHORISED did no harm; now that approved
+// refunds reach Stripe (refund_sender.go) it would pay out on the customer's
+// word alone. Staff who decide a refund at once issue it through
+// IssueAdminRefund, under their authority cap. The review of a request is
+// #172.
 func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy string) (RefundDTO, error) {
+	out, err := s.RequestRefundOnce(ctx, in, requestedBy, nil)
+	if err != nil {
+		return RefundDTO{}, err
+	}
+	return out.Data.(RefundDTO), nil
+}
+
+// RequestRefundOnce is RequestRefund under the request's Idempotency-Key: the
+// key is claimed before anything is read, so a retried request gets the first
+// answer back rather than a second refund, or a refusal computed from the
+// refund the first one made (https://github.com/shaiknoorullah/hg-mono/issues/363).
+func (s *Service) RequestRefundOnce(ctx context.Context, in RefundInput, requestedBy string, idem *Idempotency) (Outcome, error) {
+	return s.repo.once(ctx, idem, func(tx pgx.Tx) (Outcome, error) {
+		dto, err := s.requestRefund(ctx, tx, in, requestedBy)
+		if err != nil {
+			return Outcome{}, err
+		}
+		return Outcome{Status: http.StatusCreated, Data: dto}, nil
+	})
+}
+
+func (s *Service) requestRefund(ctx context.Context, tx pgx.Tx, in RefundInput, requestedBy string) (RefundDTO, error) {
 	if in.Kind == RefundGoodwill {
 		// GOODWILL carries an amount and is admin-only; it is not created here.
 		return RefundDTO{}, domainErr(string(CodePaymentNotRefundable), 422,
@@ -217,13 +286,10 @@ func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy
 	}
 
 	// Liability split: item-fault reasons charge the restaurant its item net.
+	// It is computed now so the reviewer sees who would pay; the REFUND batch
+	// is posted only when the refund is approved.
 	itemNet := computed.AmountCents - computed.TaxCents
 	split := ComputeLiabilitySplit(in.ReasonCode, computed.AmountCents, itemNet, money.RiderEarningsCents)
-
-	// The refund enters AUTHORISED with a balanced REFUND ledger batch already
-	// posted: the money movement is a database fact before Stripe is called.
-	batch := BuildRefundBatch(money, split, computed.AmountCents,
-		fmt.Sprintf("refund:%s:%d", in.OrderID, s.now().UnixNano()), "system:refund")
 
 	params := CreateRefundParams{
 		OrderID:         in.OrderID,
@@ -235,19 +301,18 @@ func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy
 		AmountCents:     computed.AmountCents,
 		TaxCents:        computed.TaxCents,
 		Split:           split,
-		State:           RefundAuthorised,
+		State:           RefundRequested,
 		RequestedBy:     requestedBy,
-		DeadlineAction:  "submit_refund_to_stripe",
+		DeadlineAction:  refundActionReview,
 		Lines:           computed.Lines,
-		Ledger:          &batch,
 		Money:           money,
 	}
-	refundID, err := s.repo.CreateRefund(ctx, params)
+	refundID, err := insertRefund(ctx, tx, params)
 	if err != nil {
 		return RefundDTO{}, err
 	}
 
-	rr, err := s.repo.GetRefund(ctx, refundID)
+	rr, err := scanRefund(tx.QueryRow(ctx, refundSelect+` WHERE r.id = $1`, refundID))
 	if err != nil {
 		return RefundDTO{}, err
 	}
@@ -277,25 +342,66 @@ func scopeToKind(scope RefundScope, reasonCode string) RefundKind {
 	}
 }
 
+// hasRole reports whether roles holds r.
+func hasRole(roles []string, r string) bool {
+	for _, x := range roles {
+		if x == r {
+			return true
+		}
+	}
+	return false
+}
+
 // operatorCap returns the trailing-24h authority cap for the highest role the
 // operator holds. A SUPER_ADMIN is the terminal approver and is uncapped.
 func operatorCap(roles []string) (cap int64, uncapped bool) {
-	has := func(r string) bool {
-		for _, x := range roles {
-			if x == r {
-				return true
-			}
-		}
-		return false
-	}
 	switch {
-	case has("SUPER_ADMIN"):
+	case hasRole(roles, "SUPER_ADMIN"):
 		return 0, true
-	case has("ADMIN"):
+	case hasRole(roles, "ADMIN"):
 		return CapAdminCents, false
 	default:
 		return CapSupportAgentCents, false
 	}
+}
+
+// orderLimits is what the highest role a person holds may approve alone on
+// one order (A-33). Zero is no limit of that kind: an admin's per-order limit
+// is the order total, which the capture already bounds.
+type orderLimits struct {
+	PerOrderCents int64
+	MaxOrderAge   time.Duration
+}
+
+func operatorOrderLimits(roles []string) orderLimits {
+	switch {
+	case hasRole(roles, "SUPER_ADMIN"):
+		return orderLimits{}
+	case hasRole(roles, "ADMIN"):
+		return orderLimits{MaxOrderAge: MaxOrderAgeAdmin}
+	default:
+		return orderLimits{PerOrderCents: PerOrderCapSupportAgentCents, MaxOrderAge: MaxOrderAgeSupportAgent}
+	}
+}
+
+// Which order limit a refund is past, as audited (limit_exceeded).
+const (
+	limitPerOrder = "per_order"
+	limitOrderAge = "order_age"
+)
+
+// orderLimitExceeded is the pure per-order and order-age half of the A-33
+// authority decision: the limit this refund is past, or "". approvedOnOrder
+// is what the same person already approved on the order, so one refund split
+// in two is held to the same limit.
+func orderLimitExceeded(l orderLimits, amount, approvedOnOrder int64, orderAge time.Duration) string {
+	if l.PerOrderCents > 0 && approvedOnOrder+amount > l.PerOrderCents {
+		return limitPerOrder
+	}
+	if l.MaxOrderAge > 0 && orderAge > l.MaxOrderAge {
+		return limitOrderAge
+	}
+	return ""
 }
 
 // requiresApproval is the pure A-33 authority decision: does this refund need a
@@ -305,6 +411,7 @@ func operatorCap(roles []string) (cap int64, uncapped bool) {
 // window, so the very first large goodwill of the day still gets a second pair
 // of eyes. A SUPER_ADMIN (uncapped) still escalates a large goodwill, because
 // the threshold is about the *nature* of the refund, not the operator's balance.
+// The per-order and order-age limits are orderLimitExceeded.
 func requiresApproval(kind RefundKind, amount, issued24h, cap int64, uncapped bool) bool {
 	if kind == RefundGoodwill && amount > GoodwillApprovalThresholdCents {
 		return true
@@ -316,17 +423,10 @@ func requiresApproval(kind RefundKind, amount, issued24h, cap int64, uncapped bo
 }
 
 // escalationRole returns the role that must approve an above-cap request by the
-// given operator (one level up the authority ladder).
-func escalationRole(roles []string) string {
-	has := func(r string) bool {
-		for _, x := range roles {
-			if x == r {
-				return true
-			}
-		}
-		return false
-	}
-	if has("ADMIN") {
+// given operator: one level up the authority ladder, or a super admin when the
+// order is past an admin's age limit too, as nobody below could approve it.
+func escalationRole(roles []string, orderAge time.Duration) string {
+	if hasRole(roles, "ADMIN") || orderAge > MaxOrderAgeAdmin {
 		return "SUPER_ADMIN"
 	}
 	return "ADMIN"
@@ -336,36 +436,42 @@ func escalationRole(roles []string) string {
 // rolling-24h cap BEFORE anything reaches Stripe. Amounts are server-computed
 // for every scope except a GOODWILL PARTIAL_AMOUNT, which carries the sole
 // allowlisted inbound amount (G-3). A request within the caller's cap is
-// authorised: a balanced REFUND batch is posted and the refund enters AUTHORISED
-// (201). A request above the caller's cap — or any GOODWILL over the dual-approval
-// threshold — creates a PENDING_APPROVAL refund and escalates, returning the
-// approval request (202); no refund is lost and no transfer is attempted.
+// authorised: a balanced REFUND batch is posted and the refund enters
+// AUTHORISED (201). A request above the caller's cap, or any GOODWILL over the
+// dual-approval threshold, creates a PENDING_APPROVAL refund and escalates,
+// returning the approval request (202); no refund is lost and no transfer is
+// attempted.
 //
-// The returned bool reports whether an approval request (202) was created rather
-// than an authorised refund (201).
-func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, operatorID string, operatorRoles []string) (RefundDTO, RefundApprovalRequestDTO, bool, error) {
-	var (
-		zRefund   RefundDTO
-		zApproval RefundApprovalRequestDTO
-	)
+// The caller must be staff signed in with an authenticator code
+// (docs/spec/05-admin.md, "A-33 — Refund issuance and authority limits" R6).
+// Their rolling total is summed under their lock inside the transaction that
+// writes the refund (A-33 R3), and the refund, its batch, the idempotency
+// record and the audit event (A-33 R7) commit together.
+func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, by Staff, idem *Idempotency) (Outcome, error) {
+	if err := requireStaff(by); err != nil {
+		return Outcome{}, err
+	}
+	if err := requireMoneyMFA(by); err != nil {
+		return Outcome{}, err
+	}
 
 	money, _, err := s.repo.GetOrderMoney(ctx, in.OrderID)
 	if errors.Is(err, ErrNotFound) {
-		return zRefund, zApproval, false, domainErr(httpxNotFound, 404, "No such order.")
+		return Outcome{}, domainErr(httpxNotFound, 404, "No such order.")
 	}
 	if err != nil {
-		return zRefund, zApproval, false, err
+		return Outcome{}, err
 	}
 
 	intent, err := s.repo.GetOrderIntent(ctx, in.OrderID)
 	if errors.Is(err, ErrNotFound) {
-		return zRefund, zApproval, false, domainErr(string(CodePaymentNotRefundable), 409, "This order has no payment.")
+		return Outcome{}, domainErr(string(CodePaymentNotRefundable), 409, "This order has no payment.")
 	}
 	if err != nil {
-		return zRefund, zApproval, false, err
+		return Outcome{}, err
 	}
 	if intent.AmountCapturedCents <= 0 {
-		return zRefund, zApproval, false, domainErr(string(CodePaymentNotRefundable), 409,
+		return Outcome{}, domainErr(string(CodePaymentNotRefundable), 409,
 			"This order was never captured; cancel it instead of refunding.")
 	}
 
@@ -374,7 +480,7 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 	// Compute (or accept, for GOODWILL) the amount and split.
 	prior, err := s.repo.PriorRefundedCents(ctx, nil, in.OrderID)
 	if err != nil {
-		return zRefund, zApproval, false, err
+		return Outcome{}, err
 	}
 
 	var (
@@ -384,6 +490,9 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 	)
 	if kind == RefundGoodwill {
 		// G-3: amount_cents is mandatory and is the only accepted amount here.
+		if in.AmountCents == nil {
+			return Outcome{}, domainErr("VALIDATION_FAILED", 422, "amount_cents is required for a GOODWILL refund.")
+		}
 		amount = *in.AmountCents
 		tax = 0
 	} else {
@@ -393,11 +502,11 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 		}
 		orderLines, err := s.repo.GetOrderLines(ctx, in.OrderID)
 		if err != nil {
-			return zRefund, zApproval, false, err
+			return Outcome{}, err
 		}
 		computed, cerr := ComputeRefundAmount(money, kind, refLines, orderLines, prior)
 		if cerr != nil {
-			return zRefund, zApproval, false, domainErr("VALIDATION_FAILED", 422, cerr.Error())
+			return Outcome{}, domainErr("VALIDATION_FAILED", 422, cerr.Error())
 		}
 		amount = computed.AmountCents
 		tax = computed.TaxCents
@@ -405,14 +514,14 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 	}
 
 	if amount <= 0 {
-		return zRefund, zApproval, false, domainErr("VALIDATION_FAILED", 422, "Refund amount must be positive.")
+		return Outcome{}, domainErr("VALIDATION_FAILED", 422, "Refund amount must be positive.")
 	}
 
 	// I-18.1: an order's refunds may never exceed what was captured. This is
 	// checked before the cap so an incoherent request fails fast, and again by
 	// the deferred trigger at COMMIT.
 	if prior+amount > intent.AmountCapturedCents {
-		return zRefund, zApproval, false, domainErr(string(CodeRefundExceedsCaptured), 409,
+		return Outcome{}, domainErr(string(CodeRefundExceedsCaptured), 409,
 			fmt.Sprintf("Refund of %d would exceed the captured %d (already refunded %d).",
 				amount, intent.AmountCapturedCents, prior))
 	}
@@ -420,82 +529,93 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 	itemNet := amount - tax
 	split := ComputeLiabilitySplit(in.ReasonCode, amount, itemNet, money.RiderEarningsCents)
 
-	// Authority: sum the operator's trailing-24h issued refunds and add this one.
-	cap, uncapped := operatorCap(operatorRoles)
-	windowStart := s.now().Add(-24 * time.Hour)
-	issued, err := s.repo.IssuedByOperatorSince(ctx, operatorID, windowStart)
-	if err != nil {
-		return zRefund, zApproval, false, err
-	}
-	note := in.ReasonText
-
-	if requiresApproval(kind, amount, issued, cap, uncapped) {
-		// Above authority: create a PENDING_APPROVAL refund (the approval request)
-		// and escalate. No ledger batch is posted and no Stripe call is made — the
-		// money only moves once an authorised approver acts.
-		params := CreateRefundParams{
-			OrderID:         in.OrderID,
-			PaymentIntentID: intent.ID,
-			Kind:            kind,
-			Scope:           in.Scope,
-			ReasonCode:      in.ReasonCode,
-			Note:            note,
-			AmountCents:     amount,
-			TaxCents:        tax,
-			Split:           split,
-			State:           RefundPendingApproval,
-			ApprovalStatus:  "PENDING",
-			RequestedBy:     operatorID,
-			DeadlineAction:  "await_refund_approval",
-			Lines:           lines,
-		}
-		refundID, err := s.repo.CreateRefund(ctx, params)
+	return s.repo.once(ctx, idem, func(tx pgx.Tx) (Outcome, error) {
+		// Authority: the caller's approvals in the last 24 hours, summed
+		// under their lock, plus this one.
+		cap, uncapped := operatorCap(by.Roles)
+		used, err := authorityUsed(ctx, tx, by.AccountID, s.now())
 		if err != nil {
-			return zRefund, zApproval, false, err
+			return Outcome{}, err
 		}
-		return zRefund, RefundApprovalRequestDTO{
-			ID:                  refundID,
-			OrderID:             in.OrderID,
-			ProposedAmountCents: amount,
-			Currency:            intent.Currency,
-			RequiredRole:        escalationRole(operatorRoles),
-			CaseID:              in.CaseID,
-			Status:              "PENDING",
-			RequestedAt:         tsFor(s.now()),
-		}, true, nil
-	}
+		limits := operatorOrderLimits(by.Roles)
+		onOrder, age, err := orderAuthority(ctx, tx, by.AccountID, in.OrderID, s.now())
+		if err != nil {
+			return Outcome{}, err
+		}
+		over := orderLimitExceeded(limits, amount, onOrder, age)
+		after := map[string]any{"cap_applied_cents": cap, "uncapped": uncapped, "used_24h_cents": used,
+			"per_order_cap_cents": limits.PerOrderCents, "max_order_age_days": int(limits.MaxOrderAge.Hours() / 24),
+			"approved_on_order_cents": onOrder, "order_age_days": int(age.Hours() / 24),
+			"kind": kind, "scope": in.Scope, "case_id": in.CaseID}
 
-	// Within authority: authorise immediately with a balanced REFUND batch.
-	batch := BuildRefundBatch(money, split, amount,
-		fmt.Sprintf("refund:%s:%d", in.OrderID, s.now().UnixNano()), "admin:"+operatorID)
-	params := CreateRefundParams{
-		OrderID:         in.OrderID,
-		PaymentIntentID: intent.ID,
-		Kind:            kind,
-		Scope:           in.Scope,
-		ReasonCode:      in.ReasonCode,
-		Note:            note,
-		AmountCents:     amount,
-		TaxCents:        tax,
-		Split:           split,
-		State:           RefundAuthorised,
-		ApprovalStatus:  "APPROVED",
-		RequestedBy:     operatorID,
-		ApprovedBy:      operatorID,
-		DeadlineAction:  "submit_refund_to_stripe",
-		Lines:           lines,
-		Ledger:          &batch,
-		Money:           money,
-	}
-	refundID, err := s.repo.CreateRefund(ctx, params)
-	if err != nil {
-		return zRefund, zApproval, false, err
-	}
-	rr, err := s.repo.GetRefund(ctx, refundID)
-	if err != nil {
-		return zRefund, zApproval, false, err
-	}
-	return refundToDTO(rr), zApproval, false, nil
+		if requiresApproval(kind, amount, used, cap, uncapped) || over != "" {
+			// Above authority: create a PENDING_APPROVAL refund (the approval
+			// request) and escalate. No ledger batch is posted and no Stripe
+			// call is made: the money only moves once an authorised approver
+			// acts (ApproveRefund). The row keeps the role it was escalated
+			// to, which the approver must hold, and who sent it up, who may
+			// not approve it.
+			required := escalationRole(by.Roles, age)
+			if over != "" {
+				after["limit_exceeded"] = over
+			}
+			refundID, err := insertRefund(ctx, tx, CreateRefundParams{
+				OrderID: in.OrderID, PaymentIntentID: intent.ID, Kind: kind, Scope: in.Scope,
+				ReasonCode: in.ReasonCode, Note: in.ReasonText, AmountCents: amount, TaxCents: tax, Split: split,
+				State: RefundPendingApproval, ApprovalStatus: "PENDING", RequestedBy: by.AccountID,
+				EscalatedBy: by.AccountID, RequiredRole: required, DeadlineAction: awaitApprovalAction, Lines: lines,
+			})
+			if err != nil {
+				return Outcome{}, err
+			}
+			why := "EXCEEDS_REFUND_CAP"
+			if kind == RefundGoodwill && amount > GoodwillApprovalThresholdCents {
+				why = "GOODWILL_NEEDS_SECOND_APPROVER"
+			}
+			after["state"], after["required_role"] = RefundPendingApproval, required
+			if err := writeStaffAudit(ctx, tx, by, staffAudit{
+				Action: "refund.escalate", SubjectType: "refund", SubjectID: refundID,
+				ReasonCode: why, Reason: in.ReasonText, AmountCents: int64Ptr(amount), After: after,
+			}); err != nil {
+				return Outcome{}, err
+			}
+			return Outcome{Status: http.StatusAccepted, Data: RefundApprovalRequestDTO{
+				ID:                  refundID,
+				OrderID:             in.OrderID,
+				ProposedAmountCents: amount,
+				Currency:            intent.Currency,
+				RequiredRole:        required,
+				CaseID:              in.CaseID,
+				Status:              "PENDING",
+				RequestedAt:         tsFor(s.now()),
+			}}, nil
+		}
+
+		// Within authority: authorise immediately with a balanced REFUND batch.
+		batch := BuildRefundBatch(money, split, amount,
+			fmt.Sprintf("refund:%s:%d", in.OrderID, s.now().UnixNano()), "admin:"+by.AccountID)
+		refundID, err := insertRefund(ctx, tx, CreateRefundParams{
+			OrderID: in.OrderID, PaymentIntentID: intent.ID, Kind: kind, Scope: in.Scope,
+			ReasonCode: in.ReasonCode, Note: in.ReasonText, AmountCents: amount, TaxCents: tax, Split: split,
+			State: RefundAuthorised, ApprovalStatus: "APPROVED", RequestedBy: by.AccountID, ApprovedBy: by.AccountID,
+			DeadlineAction: RefundActionSubmit, Lines: lines, Ledger: &batch, Money: money,
+		})
+		if err != nil {
+			return Outcome{}, err
+		}
+		after["state"], after["approver_ids"] = RefundAuthorised, []string{by.AccountID}
+		if err := writeStaffAudit(ctx, tx, by, staffAudit{
+			Action: "refund.approve", SubjectType: "refund", SubjectID: refundID,
+			Reason: in.ReasonText, AmountCents: int64Ptr(amount), After: after,
+		}); err != nil {
+			return Outcome{}, err
+		}
+		rr, err := scanRefund(tx.QueryRow(ctx, refundSelect+` WHERE r.id = $1`, refundID))
+		if err != nil {
+			return Outcome{}, err
+		}
+		return Outcome{Status: http.StatusCreated, Data: refundToDTO(rr)}, nil
+	})
 }
 
 // GetRefund reads one refund, enforcing customer ownership unless privileged.

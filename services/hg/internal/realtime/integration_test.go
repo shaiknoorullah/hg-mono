@@ -133,26 +133,26 @@ func TestIntegrationSubscribeAuthz(t *testing.T) {
 	// The owner may always subscribe to its own account channel; a stranger gets
 	// not_found (the channel does not exist for them).
 	ch, _ := ParseChannel(AccountChannel(owner))
-	if res, err := store.AuthorizeSubscribe(ctx, owner, []string{"CUSTOMER"}, ch); err != nil || res != SubAllowed {
-		t.Errorf("owner account subscribe = %v (err %v), want SubAllowed", res, err)
+	if g, err := store.AuthorizeSubscribe(ctx, owner, []string{"CUSTOMER"}, ch); err != nil || g.Result != SubAllowed || g.Viewer != ViewAccountOwner {
+		t.Errorf("owner account subscribe = %v (err %v), want SubAllowed", g, err)
 	}
-	if res, err := store.AuthorizeSubscribe(ctx, stranger, []string{"CUSTOMER"}, ch); err != nil || res != SubNotFound {
-		t.Errorf("stranger account subscribe = %v (err %v), want SubNotFound", res, err)
+	if g, err := store.AuthorizeSubscribe(ctx, stranger, []string{"CUSTOMER"}, ch); err != nil || g.Result != SubNotFound || g.Viewer != ViewNone {
+		t.Errorf("stranger account subscribe = %v (err %v), want SubNotFound", g, err)
 	}
 
 	// admin:ops requires a privileged role.
 	adminCh, _ := ParseChannel(AdminOpsChannel)
-	if res, _ := store.AuthorizeSubscribe(ctx, owner, []string{"CUSTOMER"}, adminCh); res != SubForbidden {
-		t.Errorf("customer admin:ops = %v, want SubForbidden", res)
+	if g, _ := store.AuthorizeSubscribe(ctx, owner, []string{"CUSTOMER"}, adminCh); g.Result != SubForbidden {
+		t.Errorf("customer admin:ops = %v, want SubForbidden", g)
 	}
-	if res, _ := store.AuthorizeSubscribe(ctx, owner, []string{"ADMIN"}, adminCh); res != SubAllowed {
-		t.Errorf("admin admin:ops = %v, want SubAllowed", res)
+	if g, _ := store.AuthorizeSubscribe(ctx, owner, []string{"ADMIN"}, adminCh); g.Result != SubAllowed || g.Viewer != ViewSupport {
+		t.Errorf("admin admin:ops = %v, want SubAllowed", g)
 	}
 
 	// A non-existent order is not_found for anyone (404-vs-403: existence hidden).
 	orderCh, _ := ParseChannel(OrderChannel("00000000-0000-7000-8000-000000000000"))
-	if res, _ := store.AuthorizeSubscribe(ctx, owner, []string{"CUSTOMER"}, orderCh); res != SubNotFound {
-		t.Errorf("nonexistent order = %v, want SubNotFound", res)
+	if g, _ := store.AuthorizeSubscribe(ctx, owner, []string{"CUSTOMER"}, orderCh); g.Result != SubNotFound {
+		t.Errorf("nonexistent order = %v, want SubNotFound", g)
 	}
 }
 

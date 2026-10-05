@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
@@ -25,11 +24,13 @@ const (
 	ActionSchemaRead httpx.Action = "realtime_schema.read"
 )
 
-// RateLimiter counts requests against a key in fixed windows. auth.RateLimiter
-// implements it over Redis: Allow returns nil within the limit,
-// auth.ErrRateLimited over it, and any other error when Redis cannot answer.
+// RateLimiter counts requests in fixed windows, one counter per name and
+// subject. Allow reports whether this request is within limit, and an error
+// only when it cannot answer (Redis is down). cmd/hg implements it over
+// auth.RateLimiter; this package cannot import auth, which imports it through
+// notify.
 type RateLimiter interface {
-	Allow(ctx context.Context, key string, limit int64, window time.Duration) error
+	Allow(ctx context.Context, name, subject string, limit int64, window time.Duration) (bool, error)
 }
 
 // rateWindow is the window every realtime request limit is counted over.
@@ -65,29 +66,25 @@ func NewHandler(store *Store, gw *Gateway, log *slog.Logger, corsOrigins []strin
 	return &Handler{store: store, upgrades: store, gw: gw, log: log, corsOrigins: set, limiter: limiter}
 }
 
-// allow counts one request against key and reports whether it is within limit
-// for the current rateWindow.
+// allow counts one request against the name and subject's counter and reports
+// whether it is within limit for the current rateWindow.
 //
 // A limiter that cannot answer (Redis is down) lets the request through, as
 // the rate-limiting spec requires for every class except sign-in
 // (docs/spec/01-platform.md, "P-38 — Rate limiting", Redis-down policy:
 // https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting).
 // The socket caps are counted in memory and still hold without Redis.
-func (h *Handler) allow(r *http.Request, key string, limit int) bool {
+func (h *Handler) allow(r *http.Request, name, subject string, limit int) bool {
 	if h.limiter == nil {
 		return true
 	}
-	err := h.limiter.Allow(r.Context(), key, int64(limit), rateWindow)
-	switch {
-	case err == nil:
-		return true
-	case errors.Is(err, auth.ErrRateLimited):
-		return false
-	default:
+	ok, err := h.limiter.Allow(r.Context(), name, subject, int64(limit), rateWindow)
+	if err != nil {
 		h.log.Warn("realtime rate limiter unavailable; allowing the request",
-			slog.String("key", key), slog.String("error", err.Error()))
+			slog.String("limit", name), slog.String("error", err.Error()))
 		return true
 	}
+	return ok
 }
 
 // refuseRateLimited answers a request over one of the realtime request limits
@@ -97,19 +94,21 @@ func refuseRateLimited(w http.ResponseWriter, r *http.Request, message string) {
 	httpx.Fail(w, r, http.StatusTooManyRequests, httpx.CodeRateLimited, message, nil)
 }
 
-// ticketMintKey is the Redis counter for ticket mints by one session. Rebuild
-// source: none needed. A flush grants each session one fresh window, never a
-// socket past the per-session cap, which is counted in memory.
-func ticketMintKey(sessionID string) string {
-	return "rl:rt_ticket:session:" + sessionID
+// ticketMintLimit names the Redis counter for ticket mints by one session
+// (rl:rt_ticket:session:<id>). Rebuild source: none needed. A flush grants each
+// session one fresh window, never a socket past the per-session cap, which is
+// counted in memory.
+func ticketMintLimit(sessionID string) (name, subject string) {
+	return "rt_ticket", "session:" + sessionID
 }
 
-// upgradeAttemptKey is the Redis counter for upgrade attempts from one client
-// address. httpx.RateLimitKey buckets it: an IPv6 caller is counted per /64,
-// and an address that could not be resolved shares one "unknown" budget.
-// Rebuild source: none needed; a flush grants one fresh window.
-func upgradeAttemptKey(r *http.Request) string {
-	return "rl:rt_upgrade:addr:" + httpx.RateLimitKey(httpx.ClientIP(r))
+// upgradeAttemptLimit names the Redis counter for upgrade attempts from one
+// client address (rl:rt_upgrade:addr:<bucket>). httpx.RateLimitKey buckets it:
+// an IPv6 caller is counted per /64, and an address that could not be resolved
+// shares one "unknown" budget. Rebuild source: none needed; a flush grants one
+// fresh window.
+func upgradeAttemptLimit(r *http.Request) (name, subject string) {
+	return "rt_upgrade", "addr:" + httpx.RateLimitKey(httpx.ClientIP(r))
 }
 
 // realtimeTicketResponse is the RealtimeTicket contract schema (§1.1).
@@ -138,7 +137,7 @@ func (h *Handler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	// Each ticket is a Postgres write and opens one socket, so one session may
 	// mint only so many a minute (issue #288,
 	// https://github.com/shaiknoorullah/hg-mono/issues/288).
-	if !h.allow(r, ticketMintKey(p.SessionID), h.gw.limits.TicketsPerSession) {
+	if name, subject := ticketMintLimit(p.SessionID); !h.allow(r, name, subject, h.gw.limits.TicketsPerSession) {
 		refuseRateLimited(w, r, "Too many realtime tickets for this session. Please wait before trying again.")
 		return
 	}
@@ -210,7 +209,7 @@ func (h *Handler) Schema(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Upgrade(w http.ResponseWriter, r *http.Request) {
 	// Count every attempt from this address first, ticket or not, so a flood of
 	// upgrades cannot keep ticket lookups, audit writes and handshakes busy.
-	if !h.allow(r, upgradeAttemptKey(r), h.gw.limits.UpgradesPerAddress) {
+	if name, subject := upgradeAttemptLimit(r); !h.allow(r, name, subject, h.gw.limits.UpgradesPerAddress) {
 		refuseRateLimited(w, r, "Too many realtime connection attempts from this address. Please wait before trying again.")
 		return
 	}

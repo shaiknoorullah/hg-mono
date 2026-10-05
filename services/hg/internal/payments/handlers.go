@@ -136,8 +136,13 @@ func (h *Handler) GetOrderPayment(w http.ResponseWriter, r *http.Request) {
 // CreateRefund implements POST /v1/refunds.
 func (h *Handler) CreateRefund(w http.ResponseWriter, r *http.Request) {
 	p := httpx.PrincipalFrom(r.Context())
+	body, idem, err := readIdempotentBody(r, "/v1/refunds")
+	if err != nil {
+		invalidBody(w, r, err)
+		return
+	}
 	var in RefundInput
-	if err := decodeJSON(r, &in); err != nil {
+	if err := decodeStrict(body, &in); err != nil {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"The request body is not valid.", []httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
 		return
@@ -159,12 +164,12 @@ func (h *Handler) CreateRefund(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	dto, err := h.svc.RequestRefund(r.Context(), in, p.AccountID)
+	out, err := h.svc.RequestRefundOnce(r.Context(), in, p.AccountID, idem)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	httpx.Respond(w, r, http.StatusCreated, dto)
+	writeOutcome(w, r, out)
 }
 
 // ListRefunds implements GET /v1/refunds.
@@ -214,11 +219,14 @@ func (h *Handler) GetRefund(w http.ResponseWriter, r *http.Request) {
 // customer's request is never lost. amount_cents is accepted ONLY for a GOODWILL
 // PARTIAL_AMOUNT (G-3); anywhere else it is 422 UNKNOWN_FIELD.
 func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
+	body, idem, err := readIdempotentBody(r, "/v1/admin/refunds")
+	if err != nil {
+		invalidBody(w, r, err)
+		return
+	}
 	var in AdminRefundInput
-	if err := decodeJSON(r, &in); err != nil {
-		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"The request body is not valid.", []httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
+	if err := decodeStrict(body, &in); err != nil {
+		invalidBody(w, r, err)
 		return
 	}
 	// Required fields (AdminRefundInput.required).
@@ -257,21 +265,14 @@ func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := make([]string, 0, len(p.Roles))
-	for _, rr := range p.Roles {
-		roles = append(roles, string(rr))
-	}
-	refund, approval, escalated, err := h.svc.IssueAdminRefund(r.Context(), in, p.AccountID, roles)
+	// Within the caller's cap: the authorised refund, 201. Above it: the
+	// approval request, 202 Accepted. A replay: the first answer.
+	out, err := h.svc.IssueAdminRefund(r.Context(), in, StaffFrom(r), idem)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	if escalated {
-		// Above the caller's cap: the approval request, 202 Accepted.
-		httpx.Respond(w, r, http.StatusAccepted, approval)
-		return
-	}
-	httpx.Respond(w, r, http.StatusCreated, refund)
+	writeOutcome(w, r, out)
 }
 
 // ---------------------------------------------------------------------------
@@ -284,6 +285,7 @@ func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ReceiveStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	payload, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
+		h.svc.logWebhookRejected(r.Context(), "unreadable body", "")
 		httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed, "Unreadable body.", nil)
 		return
 	}
@@ -292,7 +294,8 @@ func (h *Handler) ReceiveStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var de *DomainError
 		if errors.As(err, &de) {
-			// A signature or livemode failure is a 400; the body is not logged.
+			// A signature or livemode failure is a 400, logged once by the
+			// service with its reason (#516); the body is not logged.
 			httpx.Fail(w, r, de.Status, httpx.ErrorCode(de.Code), de.Message, nil)
 			return
 		}

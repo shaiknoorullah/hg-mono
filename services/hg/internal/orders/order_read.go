@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/money"
 )
 
 // OrderView is the customer projection (P-07) of an order, in the shape the
@@ -231,6 +232,9 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 			&tl.BaseCents, &tl.AmountCents, &tl.RebateApplied, &tl.RemittableBy); err != nil {
 			return nil, err
 		}
+		// The rate was read and dropped, so the order view and the receipt
+		// printed every rate as "0" (https://github.com/shaiknoorullah/hg-mono/issues/511).
+		tl.Rate, _ = money.RateFromDecimalString(rateStr)
 		v.TaxLines = append(v.TaxLines, tl)
 	}
 	if err := taxRows.Err(); err != nil {
@@ -274,8 +278,11 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 	return &v, nil
 }
 
-// GetActiveOrder returns the customer's single active (non-terminal) order or
-// nil (C-26).
+// GetActiveOrder returns the customer's one active order or nil: the order that
+// refuses a second checkout, so an order under review after a problem report is
+// not it (machine.CountsAsActive; issue
+// https://github.com/shaiknoorullah/hg-mono/issues/260). The order history's
+// Active section still lists every unfinished order (ListOrders).
 func (s *Store) GetActiveOrder(ctx context.Context, accountID string) (*OrderView, error) {
 	var out *OrderView
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
@@ -283,8 +290,8 @@ func (s *Store) GetActiveOrder(ctx context.Context, accountID string) (*OrderVie
 		err := tx.QueryRow(ctx, `
 			SELECT id FROM "order"
 			 WHERE account_id = $1
-			   AND state NOT IN ('COMPLETED','CANCELLED','REJECTED','FAILED','RESOLVED')
-			 ORDER BY placed_at DESC LIMIT 1`, accountID).Scan(&orderID)
+			   AND state::text = ANY($2)
+			 ORDER BY placed_at DESC LIMIT 1`, accountID, machine.ActiveStates()).Scan(&orderID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil // out stays nil
 		}

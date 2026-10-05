@@ -59,14 +59,42 @@ One person runs commands on the server at a time. Keep a timeline as you go, in 
 | "No space left on device" in the logs | [The disk is full](#the-disk-is-full) |
 | A certificate warning in the browser | [Certificates are expiring](#certificates-are-expiring) |
 | New sign-ins fail; a sticky banner on every admin page | [The sign-in code sender is down](#the-sign-in-code-sender-is-down) |
+| `/health/ready` names Redis; sign-in codes answer 503 | [The cache is down](#the-cache-is-down) |
 | Checkout fails; `/health/ready` names Stripe; reconciliation exceptions | [Payments are failing](#payments-are-failing) |
 | Access nobody can explain, or a leaked secret | [A suspected breach](#a-suspected-breach) |
 
 ## Pause new orders
 
-There is no platform-wide switch yet ([#244][i244]). Until there is:
+One switch stops new orders on the whole platform and leaves everything else running ([#244][i244]). Use it before phoning restaurants and before stopping the API.
 
-- Phone each restaurant and ask them to switch off accepting orders in the restaurant app. Offers already sent keep their full 180-second window.
+**Who:** an `ADMIN` or `SUPER_ADMIN`. A support agent can see whether it is on, but cannot change it.
+
+**Turn it on** with the API (`setOrderingPause` in [the contract](../../contracts/openapi.yaml)); the admin console gets a button for it with [#389](https://github.com/shaiknoorullah/hg-mono/issues/389). The access token is the one `login` returns when you sign in with your email, password and two-step code; it lasts 15 minutes.
+
+```sh
+curl -fsS -X PUT https://<api host>/v1/admin/ordering-pause \
+  -H "Authorization: Bearer <your admin access token>" \
+  -H "Idempotency-Key: $(uuidgen)" -H 'Content-Type: application/json' \
+  -d '{"paused": true, "reason": "Stripe is refusing authorisations; see the incident timeline"}'
+```
+
+The reason is required (10 to 500 characters) and goes into the audit log with your account, as action `ordering.pause`. Write it for the next person on call. Note the UTC time in the timeline.
+
+**What changes, on every API replica, from the next request:**
+
+- New quotes and new orders are refused with `409 ORDERING_PAUSED`. Nothing is stored and nothing is charged.
+- The public config says `"ordering": {"paused": true}` and the cart says `ORDERING_PAUSED`, so the customer app can say ordering is paused instead of failing at checkout *(the app side lands with [#388](https://github.com/shaiknoorullah/hg-mono/issues/388))*.
+- Every order already placed carries on to the end: restaurant accept and reject, riders, tracking, payments (capture on acceptance, voids), refunds and the staff tools. Offers already sent keep their full 180-second window.
+
+The switch lives in Postgres, not Redis: flushing or restarting Redis does not turn it off, and nothing needs flushing to turn it on.
+
+**Check it:** `GET /v1/admin/ordering-pause` shows `paused`, `paused_since`, the reason and who changed it last. `GET /v1/config/public` shows `"ordering": {"paused": true, …}`.
+
+**Turn it off** the same way, with `"paused": false` and a reason (action `ordering.resume` in the audit log). Ordering resumes on the next request. Customers whose checkout was refused can try again with the same request.
+
+**If the API is down** the switch cannot be reached. Then:
+
+- Phone each restaurant and ask them to switch off accepting orders in the restaurant app.
 - Last resort: stop the API. That stops everything (tracking, rider updates, the staff tools), not only new orders. When it restarts, the deadline runner's outage handling covers the gap *(lands with [#222][i222])*.
 
 ## Roll back a bad deploy
@@ -113,9 +141,9 @@ If it came back by itself after a crash, nothing was lost. The runner's outage h
 
 1. **Tell people.** Phone the restaurants. The admin app goes down with the server, so tell support what to say to customers.
 2. **Get a server.** Order a Cloud VPS 6 in US-East, or reinstall the old one from Contabo's panel if only its software is broken. Note its IPv4 and IPv6 addresses.
-3. **Provision it** with the Ansible playbooks from [#209][i209] (branch `chore/server-provisioning`, landing in deploy/host): firewall, WireGuard, SSH, updates, Docker, log limits. Reuse the old server's WireGuard keys from the config backup, so peers only need the new address.
+3. **Provision it** from the owner's laptop with [the server set-up in deploy/host](../../deploy/host/README.md) ([#209][i209]): `ssh-keygen -R 10.66.0.1`, then `deploy/host/provision.sh <new IPv4>`. It brings back the firewall, WireGuard, SSH, updates, Docker, log limits, backups, monitoring and dev. The server's WireGuard key comes from the encrypted secrets, so it is the same as before: peers only change the endpoint address, in the config it writes to `deploy/host/out/`. Run it a second time once the tunnel is up, to close public SSH.
 4. **Copy the backups up** over WireGuard: the pgBackRest and restic repositories, from the owner's machine or from the rescued disk. The backup passwords are in the offline password manager.
-5. **Restore the config and secrets.** `restic -r <repo> snapshots` lists the snapshots. Restore the newest config snapshot into a scratch folder with `restic -r <repo> restore <id> --target /srv/restore/config`, then copy into place the compose files, `acme.json` (mode 600) and the WireGuard config. Do not copy the old `/etc` over the new one. Restore the secrets store: the vault or the encrypted env file, whichever is live ([#235][i235], [#54][i54]). Its unseal or decryption keys are in the offline password manager.
+5. **Restore the config and secrets.** `restic -r <repo> snapshots` lists the snapshots. Restore the newest config snapshot into a scratch folder with `restic -r <repo> restore <id> --target /srv/restore/config`, then copy into place the compose files and `acme.json` (mode 600). Do not copy the old `/etc` over the new one. Restore the secrets store: the vault or the encrypted env file, whichever is live ([#235][i235], [#54][i54]). Its unseal or decryption keys are in the offline password manager.
 6. **Pull the images** by the digests in the restored compose files: `docker compose pull`.
 7. **Restore Postgres** in a one-off container of the Postgres image, with the empty data volume mounted:
    - to the newest point the backups hold: `pgbackrest --stanza=<stanza> restore`;
@@ -139,19 +167,24 @@ If it came back by itself after a crash, nothing was lost. The runner's outage h
 1. Find what grew: `df -h /`, `docker system df`, `du -xh --max-depth=2 /var/lib/docker/volumes | sort -h | tail`.
 2. Safe to clear: old images (`docker image prune -af --filter until=168h`), the build cache (`docker builder prune -f`), the journal (`journalctl --vacuum-size=200M`), and dev's data (it resets from the fixtures).
 3. **Never delete by hand:** anything in Postgres's data folder, `pg_wal` included; the pgBackRest repository (use `pgbackrest expire`); the restic repository (use `restic forget --prune`); Silo's data folder.
-4. A growing `pg_wal` means WAL archiving is failing. Run `pgbackrest --stanza=<stanza> check` and fix the archive; don't remove WAL.
-5. If Postgres stopped, free space and start it again. It recovers by itself.
-6. Afterwards, apply the disk trigger in [the hosting plan][i207]: over 70% full, or due to reach 85% within 60 days, means a bigger disk.
+4. Silo keeps the old version of every overwritten or deleted file, in every bucket, for 35 days, so space freed by deleting files comes back only as those versions expire. Don't remove versions by hand: within those 35 days they are how a file deleted by mistake comes back.
+5. A growing `pg_wal` means WAL archiving is failing. Run `pgbackrest --stanza=<stanza> check` and fix the archive; don't remove WAL.
+6. If Postgres stopped, free space and start it again. It recovers by itself.
+7. Afterwards, apply the disk trigger in [the hosting plan][i207]: over 70% full, or due to reach 85% within 60 days, means a bigger disk.
 
 ## Certificates are expiring
 
 Traefik renews the Let's Encrypt certificates itself, about 30 days before they expire, through port 443 ([#51][i51]). Let's Encrypt [stopped sending expiry emails in 2025](https://letsencrypt.org/2025/01/22/ending-expiration-emails/), so the watchers must check expiry dates ([#65][i65]).
+
+Every HTTPS host (the API, `files.`, partner and admin) sends `Strict-Transport-Security: max-age=31536000; includeSubDomains`; the domain is not yet on the browsers' built-in HTTPS list ([#460](https://github.com/shaiknoorullah/hg-mono/issues/460)). Each container that routes HTTPS defines the same `hg-hsts` middleware, so when one container is down the other containers' routers keep it. Check with `curl -sI https://<host>/ | grep -i strict-transport`.
 
 1. Check one: `echo | openssl s_client -connect <host>:443 -servername <host> 2>/dev/null | openssl x509 -noout -enddate`.
 2. Read `docker compose logs traefik | grep -i acme`. The usual causes: port 443 blocked; an A or AAAA record pointing somewhere else; `acme.json` missing or not mode 600.
 3. Don't delete `acme.json` to force a new certificate: Let's Encrypt allows 5 certificates a week for the same names.
 
 A restaurant's halal certificate expiring is a product state, not an incident. The app shows it in cool slate ("we can't currently vouch"), never red ([never red for a halal state (invariant 9)](../../AGENTS.md#3-non-negotiable-invariants)).
+
+The API delists the restaurant just after midnight, Toronto time, on the day after its certificate expires, and lists it again when a renewed certificate is approved ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252)). If a restaurant still shows a badge after its certificate expired, check that the job runs: `SELECT started_at, claimed, failed, error FROM job_run WHERE job = 'halal_certificate_expiry' ORDER BY id DESC LIMIT 5;` should show a pass in the last hour. `SELECT * FROM halal_status_inconsistency;` lists every badge shown without a valid certificate; it must be empty.
 
 ## The sign-in code sender is down
 
@@ -165,14 +198,48 @@ If only WhatsApp fails, switch to text messages: set `HG_TWILIO_VERIFY_CHANNEL=s
 
 If Twilio itself is down or the account is blocked, there is nothing to switch to: the owner contacts Twilio and support tells customers. Don't change `HG_OTP_PROVIDER` during an incident: the other path sends through Twilio's message sender, which needs its own registered number and has never run in production.
 
-If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0`: the API refuses to start with it ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
+A plain-text `429 Too Many Requests` on a `/v1/auth/` route, without the API's JSON error body, comes from Traefik's per-address limit in front of the sign-in routes (120 a minute, bursts of 60; [rate limiting][p38]). One address hitting it is a flood or a broken client. Many customers hitting it at once means they reach Traefik from one address: for IPv6 visitors that is [#267][i267].
+
+If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7` ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
+
+## The cache is down
+
+Redis (Valkey in production) holds only what can be lost: rate-limit counts, cached reads, realtime fan-out. The system stays correct without it ([Redis is disposable](../spec/01-platform.md#0-ground-rules-that-bind-every-section)).
+
+- **What breaks:** customers and riders can't get a sign-in code. Requesting one answers 503 "Verification is temporarily unavailable" on purpose: those limits never go unchecked ([rate limiting, Redis-down policy][p38]). Restaurant sign-up answers 503 and no sign-up, verification or password-reset email is sent: the emailed-link limits also fail closed. Staff sign-in, setting a new password from a reset link and changing a password keep working and stay limited: each API replica counts them in its own memory, so a caller gets at most twice the usual limit.
+- **Signs:** `/health/ready` names Redis. The API logs `rate limiter unavailable; counting in this replica's memory` at error level, once per limit per window (every 15 minutes for login), not once per request.
+- **Fix:** `docker compose ps redis` and `docker compose logs --since 30m redis`, then `docker compose up -d redis`. It starts empty, which is fine. The replicas go back to Redis's counts on its next answer; nothing needs resetting.
+
+## Emails are not arriving
+
+Sign-up confirmations, password resets, staff invitations, application decisions, payouts and halal certificate reminders go out by email through Resend ([SMS and email spec](../spec/01-platform.md#p-26--sms-and-email)).
+
+- **What breaks:** restaurants can't confirm their email or reset a password, and invited staff can't set one. Orders are unaffected; every message is also in the in-app inbox.
+- **Signs:** the API logs `email provider: log` at start-up (no `HG_RESEND_API_KEY`), or email deliveries fail: `SELECT state, error_code, count(*) FROM notification_delivery WHERE channel = 'EMAIL' AND queued_at > now() - interval '1 hour' GROUP BY 1, 2;`
+- **Check** [Resend's status page](https://resend-status.com/) and the Resend dashboard: the API key, the sending domain's verification, and the account's sending limits.
+- A failed email retries by itself with backoff, up to 12 tries. A refused address (`PROVIDER_REJECTED`) is not retried. After fixing the key, put it in the secrets store and restart the replicas one at a time; emails still waiting for a retry go out.
+- Never set `HG_EMAIL_ALLOWLIST` in production: the API refuses to start with it, because it would stop email to everyone not on it.
+
+## Password sign-in answers "busy"
+
+Each password check takes 64 MiB, so each API replica runs at most `HG_AUTH_HASH_CONCURRENCY` (default 3) at once, in three separate queues: restaurant sign-up and password reset, login, and staff (sign-in from the admin web app, and staff password changes). A full queue answers `503` with `Retry-After`, and the client retries ([password hashing cap][i216]).
+
+- **What breaks:** email and password sign-in, restaurant sign-up or password reset on that replica, for a few seconds at a time. Phone sign-in is unaffected. Admin login has its own queue, so a sign-up or login flood does not lock staff out.
+- **Signs:** `password hashing at capacity` warnings in the API logs, each naming its gate (`signup`, `login` or `staff`).
+- **Check** which gate is full. If it is `signup` or `login` and the requests come from a few addresses, it is a flood: the per-address and per-email limits already turn those away before they reach a queue, so let them run out. If it is `staff`, someone is sending sign-ins as the admin web app, which anyone can: each address is turned away after 30 attempts in 15 minutes, so if it persists, block the sending addresses at Traefik. If it is steady real traffic, raise `HG_AUTH_HASH_CONCURRENCY` in the secrets store only when the replica's memory limit has room for another 64 MiB per step, and restart the replicas one at a time.
 
 ## Payments are failing
 
 - **Signs:** checkout errors; `/health/ready` names Stripe; failed deliveries under the webhook endpoint in Stripe's dashboard; reconciliation exceptions on the System page.
 - **Check** [Stripe's status page](https://status.stripe.com/), API errors and webhook deliveries in Stripe's dashboard, and the API logs.
 - **Stripe is down:** [pause new orders](#pause-new-orders). Orders already authorised stay authorised, and nothing is charged until a restaurant accepts ([authorise then capture (invariant 5)](../../AGENTS.md#3-non-negotiable-invariants)). When Stripe is back, run the Stripe catch-up from the start of the outage ([#223][i223]) and work through the reconciliation exceptions.
-- **Stripe shows our endpoint answering 400:** the webhook signing secret doesn't match, usually after a rotation. Put the right `HG_STRIPE_WEBHOOK_SECRET` in the secrets store and restart the replicas one at a time. Stripe retries for up to three days, so the events arrive; run the catch-up anyway.
+- **Stripe shows our endpoint answering 400:** the API logs have a `stripe webhook rejected` line with the reason. `reason=signature detail="no valid signature"`: the webhook signing secret doesn't match, usually after a rotation. Put the right `HG_STRIPE_WEBHOOK_SECRET` in the secrets store and restart the replicas one at a time. Stripe retries for up to three days, so the events arrive; run the catch-up anyway.
+- **A Stripe event was set aside** (an admin alert of kind `webhook_dead_letter`): its effect failed eight times, so the payment, refund, payout or chargeback it carries is not applied. The alert names the event and the error; the row is in `webhook_event` with `dead_lettered_at` set. Fix the cause, then run the Stripe catch-up from just before the event's time, which retries it through the same step ([#231](https://github.com/shaiknoorullah/hg-mono/issues/231)). Never set `processed_at` by hand.
+- **A refund was set aside** (an admin alert of kind `refund_dead_letter`): the refund sender could not reach Stripe for it eight times, so the customer has not been paid. The alert names the refund and the last error; the row is still `AUTHORISED`, with deadline action `review_unsent_refund`, and its money stays counted against the capture so no second refund can take its place. Fix the cause first. Then look in Stripe's dashboard for a refund whose metadata `refund_id` is this refund: if one exists, it did reach Stripe, so run the Stripe catch-up from before the first attempt and its refund event moves the row on. If none exists, it has to be sent again: staff retries are [#186](https://github.com/shaiknoorullah/hg-mono/issues/186), and until they exist ask engineering rather than changing the row by hand ([#318](https://github.com/shaiknoorullah/hg-mono/issues/318)).
+- **A refund failed** (an admin alert of kind `refund_failed`, with an open `reconciliation_exception` of that kind): Stripe refused it, or the sender would not send it because it was more than is left of the capture. The refund is `FAILED` and its failure says why; the ledger still books it, so the exception stays open until a person decides what replaces it.
+- **Monday's payout run left someone unpaid** (the run failed, or Stripe was down at 09:00 Toronto time): an admin starts the run again for that partner or for everyone (`POST /v1/admin/payout-runs`) and reads what each run did (`GET /v1/admin/payout-runs`). A partner is paid at most once a week, so running it again never pays anyone twice.
+- **A refund request has waited more than a day** (deadline action `await_refund_review` or `await_refund_approval` past due): it is in the review queue (`GET /v1/admin/refunds`, oldest first). A `PENDING_APPROVAL` one needs someone with its `approval_required_role` who neither asked for it nor sent it up; a super admin can always decide it. `DAILY_CAP_EXCEEDED` on approval means the approver has used their 24-hour limit; `MFA_REQUIRED` means they signed in without their authenticator code and must sign in again ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+- **A chargeback is open** (an admin alert of kind `chargeback_opened`): it is in `GET /v1/admin/chargebacks`, soonest evidence deadline first. Gather the evidence (proof of delivery, the order's money timeline in the admin order view, what the customer said) and add it as evidence notes before the deadline. Submitting it to Stripe is still done in Stripe's dashboard until [#319](https://github.com/shaiknoorullah/hg-mono/issues/319).
 - Card declines are not an incident.
 - **Never** write payment states or ledger rows by hand, and never refund outside the admin refund flow: the ledger is append-only ([ledger spec][p13]).
 
@@ -201,6 +268,21 @@ Order screens get their live updates over a WebSocket to one API replica. Each r
 
 The per-socket caps are counted in each replica's memory, so they hold even when Redis is down; the two per-minute limits are counted in Redis and let requests through while it is down.
 
+## A ready order nobody collects
+
+- **Signs:** an `admin.alert` of kind `PICKUP_OVERDUE` on the ops channel. The first comes 15 minutes after the kitchen marked the order ready, then one every 10 minutes until a rider picks it up ([pickup escalation][i293]). The customer is told each time.
+- **What the system has already done:** if the search for a rider had found nobody, it is searching again from the nearest radius. The alert says so, or says that a rider is assigned but late, or that no search has started.
+- **At the third lapse** (45 minutes after ready), if no rider holds the order, the system cancels it (`NO_RIDER_FOUND`), refunds the customer in full, pays the restaurant in full and puts the cost on the platform ([#336][i336]). The search for a rider is closed, and a `WARNING` alert says the order was cancelled. Nothing to do but check the refund reaches Stripe (it is sent like any approved refund).
+- **If a rider holds it** at the third alert (severity `CRITICAL`), it is not cancelled automatically, because the rider may be at the counter. The order needs a person, and the admin console cannot cancel a ready order: call on-call, call the rider, and call the restaurant and the customer meanwhile.
+- **Never** edit the order's state or `deadline_at` by hand ([deadlines spec][p15]).
+
+## A delivered order never completes
+
+- **Signs:** an order stays `DELIVERED` well past 2 minutes, the customer's receipt answers `RECEIPT_NOT_READY`, and the API logs `deadline action failed` with `action=SETTLE` every 2 minutes for that order.
+- **What the system does:** 2 minutes after delivery it completes the order and issues its receipt, in one step, and posts no money (the charge was split at capture and the rider paid at delivery: [ledger spec][p13], [#511][i511]). When the receipt cannot be issued, the order stays `DELIVERED` and the step is retried every 2 minutes; nothing is lost. The usual cause is an order with no payment record, so there is no charge to print.
+- **What to do:** read the logged error for the order. A missing payment record is a payments fault: go to [the payments section](#payments-are-failing). An order disputed in the meantime is not completed, by design; it follows its dispute.
+- **Never** write `receipt_snapshot` or the state by hand: an issued receipt can never be replaced ([receipt spec][p10]).
+
 ## A suspected breach
 
 PIPEDA covers this ([the Privacy Commissioner's guidance][opc-breach]; [#214][i214]). The loss of personal information counts too, not only access by someone else.
@@ -225,7 +307,7 @@ On-call contains. The privacy officer and the owner decide what is reported, and
 
 ## Monthly restore drill
 
-Restore from the copy on the owner's machine: it is the one a rebuild uses. Work in a scratch folder, start containers with `--rm`, and wipe both afterwards.
+Restore from the copy on the owner's machine: it is the one a rebuild uses. Work in a scratch folder, start containers with `--rm`, and wipe both afterwards. `hg-restore-drill` does every step below: on the server it runs by itself on the first Tuesday of each month, from the server's own repository; on the owner's machine, run `sudo hg-restore-drill --config /etc/hg-offline/backup.conf --no-live` and compare the counts it prints with production.
 
 1. Restore the database to a chosen point in time in a throwaway Postgres.
 2. Check the ledger: `SELECT batch_id FROM ledger_entry GROUP BY batch_id HAVING sum(amount_cents) <> 0;` returns no rows, and the row counts of `"order"`, `ledger_entry` and `stored_object` match a count taken on prod at that point.
@@ -260,6 +342,9 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [i171]: https://github.com/shaiknoorullah/hg-mono/issues/171
 [i244]: https://github.com/shaiknoorullah/hg-mono/issues/244
 [i222]: https://github.com/shaiknoorullah/hg-mono/issues/222
+[i293]: https://github.com/shaiknoorullah/hg-mono/issues/293
+[i336]: https://github.com/shaiknoorullah/hg-mono/issues/336
+[i511]: https://github.com/shaiknoorullah/hg-mono/issues/511
 [i78]: https://github.com/shaiknoorullah/hg-mono/issues/78
 [i208]: https://github.com/shaiknoorullah/hg-mono/issues/208
 [i209]: https://github.com/shaiknoorullah/hg-mono/issues/209
@@ -269,12 +354,16 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [i245]: https://github.com/shaiknoorullah/hg-mono/issues/245
 [i51]: https://github.com/shaiknoorullah/hg-mono/issues/51
 [i228]: https://github.com/shaiknoorullah/hg-mono/issues/228
+[i267]: https://github.com/shaiknoorullah/hg-mono/issues/267
 [i66-plan]: https://github.com/shaiknoorullah/hg-mono/issues/66#issuecomment-5936436860
 [p02]: ../spec/01-platform.md#p-02--phone-otp-authentication-customers-riders
+[p38]: ../spec/01-platform.md#p-38--rate-limiting
 [p15]: ../spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable
 [p13]: ../spec/01-platform.md#p-13--the-ledger-and-the-zero-residual-invariant
+[p10]: ../spec/01-platform.md#p-10--fee-breakdown-presented-to-the-customer
 [p17]: ../spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation
 [dec-support]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
 [dec-sms]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
 [dec-recon]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
 [opc-breach]: https://www.priv.gc.ca/en/privacy-topics/business-privacy/breaches-and-safeguards/privacy-breaches-at-your-business/gd_pb_201810/
+[i216]: https://github.com/shaiknoorullah/hg-mono/issues/216

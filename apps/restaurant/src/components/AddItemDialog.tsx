@@ -4,15 +4,19 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { idempotencyKey, isApiError, type Schema } from '@hg/api-client';
 import { Button, Icon, IconButton, Input, Select, Textarea, cx } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
+import { menuLockFromError, type MenuLockState } from './MenuLockedNotice';
 
 export function AddItemDialog({
   categories,
   onClose,
   onCreated,
+  onLocked,
 }: {
   categories: Schema['MenuCategory'][];
   onClose: () => void;
   onCreated: () => void;
+  /** A save refused with `403 MENU_LOCKED`: the page shows the locked-menu notice instead of an error. */
+  onLocked: (state: MenuLockState) => void;
 }) {
   const [mode, setMode] = useState<'existing' | 'new'>(categories.length ? 'existing' : 'new');
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
@@ -51,6 +55,11 @@ export function AddItemDialog({
       );
       onCreated();
     } catch (e) {
+      const refused = menuLockFromError(e);
+      if (refused) {
+        onLocked(refused);
+        return;
+      }
       setError(isApiError(e) ? e.message : e instanceof Error ? e.message : 'Could not add this item.');
     } finally {
       setBusy(false);

@@ -28,6 +28,7 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // ─── Test infrastructure ──────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ type fixtures struct {
 	restaurantID     string
 	otherRestID      string // the other restaurant — never visible to ownerAccount
 	categoryID       string
+	emptyCategoryID  string // a second category holding no item
 	menuItemID       string
 	menuVersionID    string // pending version for the item above
 }
@@ -122,6 +124,11 @@ func seedFixtures(t *testing.T, pool *pgxpool.Pool) fixtures {
 		f.restaurantID).Scan(&f.categoryID); err != nil {
 		t.Fatalf("seed category: %v", err)
 	}
+	if err := pool.QueryRow(ctx,
+		`INSERT INTO menu_category (restaurant_id, name, sort_order) VALUES ($1, 'Specials', 1) RETURNING id`,
+		f.restaurantID).Scan(&f.emptyCategoryID); err != nil {
+		t.Fatalf("seed empty category: %v", err)
+	}
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO menu_item (restaurant_id, category_id, price_cents, availability_state, tax_category)
 		VALUES ($1, $2, 1500, 'AVAILABLE', 'PREPARED_FOOD') RETURNING id`,
@@ -152,6 +159,25 @@ func seedFixtures(t *testing.T, pool *pgxpool.Pool) fixtures {
 		_, _ = pool.Exec(c, `DELETE FROM account WHERE id IN ($1,$2,$3,$4)`,
 			f.ownerAccountID, f.managerAccountID, f.staffAccountID, f.otherAccountID)
 	})
+	return f
+}
+
+// seedOrderableFixtures is seedFixtures with a primary restaurant that can take
+// orders: LIVE, with a location, and certified through the real chain (an
+// admin-verified certificate). Accepting an order refuses any other restaurant
+// (https://github.com/shaiknoorullah/hg-mono/issues/328).
+func seedOrderableFixtures(t *testing.T, pool *pgxpool.Pool) fixtures {
+	t.Helper()
+	f := seedFixtures(t, pool)
+	if _, err := pool.Exec(context.Background(), `
+		UPDATE restaurant
+		   SET province = 'ON', city = 'Toronto', line1 = '1 King St', postal_code = 'M5J0C3',
+		       location = ST_SetSRID(ST_MakePoint(-79.3810, 43.6412), 4326)::geography,
+		       onboarding_state = 'ACTIVE', account_state = 'LIVE'
+		 WHERE id = $1`, f.restaurantID); err != nil {
+		t.Fatalf("make the restaurant live: %v", err)
+	}
+	testseed.CertifyRestaurant(t, pool, f.restaurantID, 300)
 	return f
 }
 
@@ -233,7 +259,7 @@ func TestIntegration_GetOnboardingStatus_NoGrant_Returns404(t *testing.T) {
 	// completely unscoped account:
 	var noGrantAccountID string
 	if err := pool.QueryRow(context.Background(),
-		`INSERT INTO account (email, status) VALUES ('ng-'||substr(uuid_generate_v7()::text,1,8)||'@test.local','ACTIVE') RETURNING id`,
+		`INSERT INTO account (email, status) VALUES ('ng-'||right(uuid_generate_v7()::text, 12)||'@test.local','ACTIVE') RETURNING id`,
 	).Scan(&noGrantAccountID); err != nil {
 		t.Fatalf("seed no-grant account: %v", err)
 	}
@@ -976,6 +1002,7 @@ func seedOrder(t *testing.T, pool *pgxpool.Pool, restaurantID, menuItemID, state
 
 	t.Cleanup(func() {
 		c := context.Background()
+		_, _ = pool.Exec(c, `DELETE FROM order_delay WHERE order_id=$1`, orderID)
 		_, _ = pool.Exec(c, `DELETE FROM "order" WHERE id=$1`, orderID)
 		_, _ = pool.Exec(c, `DELETE FROM quote WHERE id=$1`, quoteID)
 		_, _ = pool.Exec(c, `DELETE FROM cart_line WHERE cart_id=$1`, cartID)
@@ -1016,7 +1043,7 @@ func TestIntegration_GetOrder_IDOR_Returns404(t *testing.T) {
 // already PREPARING must return 409 ILLEGAL_TRANSITION.
 func TestIntegration_AcceptOrder_IllegalTransition(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID, "PREPARING", "now() + interval '30 minutes'")
 
 	h := newHandler(pool)
@@ -1047,7 +1074,7 @@ func TestIntegration_AcceptOrder_IllegalTransition(t *testing.T) {
 // must return 409 OFFER_EXPIRED.
 func TestIntegration_AcceptOrder_OfferExpired(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	// deadline_at is in the past — the 180 s window has closed.
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID, "RESTAURANT_PENDING", "now() - interval '1 second'")
 
@@ -1135,3 +1162,63 @@ func withChiParam(r *http.Request, key, val string) *http.Request {
 
 // Ensure time import is used (needed if any test uses it).
 var _ = time.Second
+
+// A restaurant stuck at MENU_PENDING must advance to ACTIVE (and go LIVE) once
+// it has a menu item and opening hours, without waiting for an admin action.
+func TestIntegration_MenuItemAndHours_AdvanceOnboarding(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+	ctx := context.Background()
+
+	// Payouts ready, state MENU_PENDING, and no menu item yet.
+	if _, err := pool.Exec(ctx, `UPDATE menu_item SET live_version_id=NULL WHERE restaurant_id=$1`, f.restaurantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE restaurant SET onboarding_state='MENU_PENDING', province='ON', location=ST_SetSRID(ST_MakePoint(-79.34,43.68),4326)::geography WHERE id=$1`, f.restaurantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO connect_account (owner_type, owner_id, stripe_account_id, payouts_enabled, details_submitted)
+		VALUES ('RESTAURANT', $1::uuid, 'acct_it_'||$1::uuid::text, true, true)`, f.restaurantID); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		c := context.Background()
+		_, _ = pool.Exec(c, `DELETE FROM restaurant_hours WHERE restaurant_id=$1`, f.restaurantID)
+		_, _ = pool.Exec(c, `DELETE FROM restaurant_onboarding_transition WHERE restaurant_id=$1`, f.restaurantID)
+		_, _ = pool.Exec(c, `DELETE FROM connect_account WHERE owner_id=$1`, f.restaurantID)
+	})
+	state := func() string {
+		var s string
+		if err := pool.QueryRow(ctx, `SELECT onboarding_state::text FROM restaurant WHERE id=$1`, f.restaurantID).Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+
+	body := fmt.Sprintf(`{"name":"Lamb Biryani","category_id":%q,"price_cents":2200,"dietary_tags":[],"allergen_tags":[]}`, f.categoryID)
+	req := httptest.NewRequest(http.MethodPost, "/v1/restaurant/menu/items", strings.NewReader(body))
+	req.Header.Set("Idempotency-Key", "test-idem-onboarding-item-1")
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	rec := httptest.NewRecorder()
+	h.CreateMenuItem(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create item status=%d (%s)", rec.Code, rec.Body.String())
+	}
+	if s := state(); s != "MENU_PENDING" {
+		t.Fatalf("item but no hours: state=%s, want MENU_PENDING", s)
+	}
+
+	hours := `{"intervals":[{"day_of_week":1,"opens_at":"09:00","closes_at":"22:00"}],"overrides":[]}`
+	req = httptest.NewRequest(http.MethodPut, "/v1/restaurant/hours", strings.NewReader(hours))
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	rec = httptest.NewRecorder()
+	h.SetRestaurantHours(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("set hours status=%d (%s)", rec.Code, rec.Body.String())
+	}
+	if s := state(); s != "ACTIVE" {
+		t.Fatalf("item and hours: state=%s, want ACTIVE", s)
+	}
+}

@@ -1,0 +1,10 @@
+# Managed by Ansible (deploy/host/roles/docker).
+[Unit]
+Description=Weekly Docker image clean-up
+
+[Timer]
+OnCalendar={{ hg_docker_prune_window }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

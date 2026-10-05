@@ -1,0 +1,62 @@
+hg_backup_restic_repo: "{{ hg_backup_root }}/restic"
+hg_backup_pgbackrest_repo: "{{ hg_backup_root }}/pgbackrest"
+hg_backup_staging: "{{ hg_backup_root }}/staging"
+hg_backup_pgbackrest_spool: /var/spool/hg-pgbackrest
+hg_backup_pgbackrest_logs: /var/log/hg/pgbackrest
+# The uid Postgres runs as inside the official image, and so the owner of its backup files.
+hg_postgres_uid: 999
+
+# What the config snapshot holds: /etc and the production compose folder (compose files,
+# .env, acme.json). Dev is never backed up: it resets to the seed data.
+hg_backup_config_paths: ["/etc", "{{ hg_app_dir }}"]
+hg_backup_config_excludes: ["{{ hg_dev_dir }}", "/etc/.git"]
+
+# Extra databases to dump nightly into restic, once they exist (GlitchTip, Umami):
+#   - {name: umami, container: hg-analytics-db-1, user: umami, db: umami}
+hg_backup_pg_dumps: []
+
+# Retention: every snapshot for 48 hours, then one a day for 35 days. Personal data deleted
+# on request leaves every copy within 35 days.
+hg_backup_keep: [--keep-within, 48h, --keep-within-daily, 35d]
+
+# Buckets copied through the S3 API and snapshotted. hg-tmp is scratch that expires in a
+# day, so it is left out.
+hg_backup_buckets:
+  - {bucket: hg-kyc, when: "*-*-* *:00/15:00"}
+  - {bucket: hg-pod, when: "*-*-* *:07/15:00"}
+  - {bucket: hg-media, when: "*-*-* *:50:00"}
+  - {bucket: hg-exports, when: "*-*-* *:55:00"}
+
+hg_backup_schedule:
+  - {job: pg-full, when: "Sun *-*-* 03:30:00 {{ hg_ops_timezone }}"}
+  - {job: pg-diff, when: "Mon..Sat *-*-* 03:30:00 {{ hg_ops_timezone }}"}
+  - {job: pg-verify, when: "*-*-* *:20:00"}
+  - {job: pgrepo, when: "*-*-* *:40:00"}
+  - {job: config, when: "*-*-* 04:10:00 {{ hg_ops_timezone }}"}
+  - {job: forget, when: "*-*-* 05:15:00 {{ hg_ops_timezone }}"}
+  - {job: prune, when: "Sun *-*-* 05:45:00 {{ hg_ops_timezone }}"}
+  - {job: check, when: "Wed *-*-* 05:00:00 {{ hg_ops_timezone }}"}
+hg_backup_dumps_when: "*-*-* 03:50:00 {{ hg_ops_timezone }}"
+
+# Seconds after a job's last success before "overdue" alerts.
+hg_backup_max_age:
+  pgbackrest: 93600          # a full or differential backup every night
+  pgbackrest-full: 691200    # a full backup every week
+  pg-verify: 10800
+  pgrepo: 10800
+  config: 93600
+  dumps: 93600
+  forget: 93600
+  prune: 691200
+  check: 691200
+  drill: 3024000             # monthly, on the first Tuesday
+  silo-hg-kyc: 2700          # every 15 minutes
+  silo-hg-pod: 2700
+  silo-hg-media: 10800       # hourly
+  silo-hg-exports: 10800
+
+# The monthly restore drill, in the small hours of the first Tuesday.
+hg_backup_drill_when: "Tue *-*-01..07 04:00:00 {{ hg_ops_timezone }}"
+
+# SSH public keys of the owner's machines that pull the off-server copy (offline.yml sets it).
+hg_offline_pull_ssh_keys: []
