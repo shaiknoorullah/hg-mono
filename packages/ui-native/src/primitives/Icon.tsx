@@ -14,7 +14,7 @@ import solarIconXml from './generated/solar-icons.json';
  * see `certification/HalalShield.tsx`) and for the handful of structural glyphs in
  * `feedback/internal/glyphs.tsx` (close cross, chevron, tick, bang — kept as `View` geometry so
  * chrome that must never be blank has zero third-party surface). Product iconography is a
- * different problem: fourteen semantic names, resolved from Solar's actual path data, is not
+ * different problem: two dozen semantic names, resolved from Solar's actual path data, is not
  * something four `View` borders can draw. `react-native-svg` is now a real dependency for that
  * reason alone.
  *
@@ -54,7 +54,15 @@ export type IconName =
   | 'check'
   | 'star'
   | 'clock'
-  | 'menu';
+  | 'menu'
+  | 'chevron-down'
+  | 'chevron-right'
+  | 'minus'
+  | 'info'
+  | 'warning'
+  | 'error'
+  | 'refresh'
+  | 'plate';
 
 /**
  * The semantic name -> Solar icon id map, read from `solar-icon-map.json` — the single

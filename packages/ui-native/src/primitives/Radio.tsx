@@ -16,6 +16,12 @@ import { focusRing, tokens, useFontScale, useTheme, useTypeStyle } from '../toke
 import { StateOverlay, useGuardedPress, useInteraction } from './internal/interaction';
 import { formatCentsDelta } from './Checkbox';
 
+/** "$45.99" from int64 cents, for an option that carries its own price. */
+function formatCentsAbsolute(cents: number): string {
+  const abs = Math.abs(Math.trunc(cents));
+  return `${cents < 0 ? '-' : ''}$${Math.trunc(abs / 100)}.${String(abs % 100).padStart(2, '0')}`;
+}
+
 interface RadioGroupContextValue {
   name: string;
   value: string | null;
@@ -71,7 +77,9 @@ export function RadioGroup({
         style={{
           flexDirection: orientation === 'horizontal' ? 'row' : 'column',
           gap: orientation === 'horizontal' ? tokens.space['3'] : 0,
-          flexWrap: 'wrap',
+          // Wrapping only applies across a row. A wrapping column shrinks each option to its
+          // content on web, which strands an option's price mid-row instead of at the end.
+          flexWrap: orientation === 'horizontal' ? 'wrap' : 'nowrap',
         }}
       >
         <RadioGroupContext.Provider value={{ name, value, onChange, disabled }}>
@@ -99,6 +107,12 @@ export interface RadioProps {
   description?: string;
   /** int64 cents. Never a float (L-5). */
   priceDeltaCents?: number;
+  /**
+   * An option's own price, not a difference — a variant that *replaces* the base price
+   * (`pricing_mode: ABSOLUTE`) shows "$45.99", never "+$21.00". Joins the accessible name
+   * ("For two, $45.99") so the price is not a separate node. int64 cents.
+   */
+  priceCents?: number;
   disabled?: boolean;
   disabledReason?: string;
   error?: boolean;
@@ -114,6 +128,7 @@ export function Radio({
   label,
   description,
   priceDeltaCents,
+  priceCents,
   disabled: disabledProp = false,
   disabledReason,
   error = false,
@@ -159,7 +174,9 @@ export function Radio({
       onFocus={handlers.onFocus}
       onBlur={handlers.onBlur}
       accessibilityRole="radio"
-      accessibilityLabel={label}
+      accessibilityLabel={
+        priceCents !== undefined ? `${label}, ${formatCentsAbsolute(priceCents)}` : label
+      }
       accessibilityHint={
         [description, disabled ? disabledReason : undefined].filter(Boolean).join('. ') ||
         undefined
@@ -211,7 +228,9 @@ export function Radio({
         {disabled && disabledReason ? (
           <Text
             testID={`${testID}-disabled-reason`}
-            style={{ ...captionType, color: theme.color.text.tertiary }}
+            // Secondary, not tertiary: the reason carries a decision ("Sold out"), and
+            // tertiary misses 4.5:1 on the raised surface in dark mode.
+            style={{ ...captionType, color: theme.color.text.secondary }}
           >
             {disabledReason}
           </Text>
@@ -229,6 +248,18 @@ export function Radio({
           }}
         >
           {formatCentsDelta(priceDeltaCents)}
+        </Text>
+      ) : priceCents !== undefined ? (
+        <Text
+          testID={`${testID}-price`}
+          style={{
+            ...bodyType,
+            color: theme.color.text.primary,
+            marginStart: 'auto',
+            fontVariant: ['tabular-nums'],
+          }}
+        >
+          {formatCentsAbsolute(priceCents)}
         </Text>
       ) : null}
     </Pressable>
