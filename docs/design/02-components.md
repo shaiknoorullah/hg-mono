@@ -85,9 +85,11 @@ These are stated once. No entry below re-litigates them.
 
 **Purpose.** Single-line text entry.
 
-**Variants.** `text` · `email` · `tel` (E.164 `+1`, mask `+1 (___) ___-____`, C-01) · `numeric` · `password` · `search` · `otp` (6 discrete cells, one hidden field, paste-aware, `autoComplete="one-time-code"`).
+**Variants.** `text` · `email` · `tel` (Canadian national format behind a fixed `+1` prefix the field draws itself, `416 555 0134`; a pasted international number is kept as typed so the screen can refuse it, C-01) · `numeric` · `password` · `search` · `otp` (6 discrete cells, one hidden field, paste-aware, `autoComplete="one-time-code"`).
 
-**Sizes.** `md` 44h · `lg` 52h (rider default).
+**Sizes.** `md` 44h · `lg` 52h (rider default). Radius `md`, on `surface.raised` (white on the cream page).
+
+Helper and character-count text use `text.secondary`: `text.tertiary` is 4.18:1 on the cream page.
 
 **Props.** `label` (**required, always visible — never placeholder-as-label**), `value`, `onChange`, `placeholder`, `helperText`, `errorText`, `required`, `disabled`, `readOnly`, `loading`, `prefix`, `suffix`, `maxLength`, `characterCount`, `autoComplete`, `inputMode`, `textContentType`.
 
@@ -463,7 +465,7 @@ There is **no** `value: number` prop and **no** `formatted: string` prop. A comp
 ### 27. `AppBar`
 
 **Variants.** `default` (title + optional back + actions) · `large` (collapsing, customer home) · `search` (an `Input` in place of the title) · `contextual` (selection mode, admin) · `transparent` (over a hero, with a scrim).
-**Props.** `title`, `subtitle`, `back`, `actions`, `variant`, `elevated`, `progress`.
+**Props.** `title`, `subtitle`, `back`, `actions`, `variant`, `tone`, `elevated`, `progress`. `tone` is `chrome` (the dark forest bar, the default) or `cream` (`surface.base` with `text.primary` and a `heading.md` title, so the bar reads as part of the page; the customer Sign-in and Account canvases use it). `contextual` and `transparent` ignore `tone`.
 **States.** at-rest (no shadow) · scrolled (elevation 1 + a hairline) · loading (an indeterminate 2px `progress` bar at the bottom edge).
 **Accessibility.** `role="banner"` / `accessibilityRole="header"`. The title is the page's `h1` on web. Back has the label "Back to {previous}" where known. Actions are `IconButton`s with real labels. Never a scroll-hidden AppBar on the rider or restaurant surfaces — an operational chrome that disappears is a control that cannot be found in a hurry.
 
