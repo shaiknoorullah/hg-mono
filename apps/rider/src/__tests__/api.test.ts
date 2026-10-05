@@ -316,3 +316,37 @@ describe('api.ts - clientFor function', () => {
     expect(client1).not.toBe(client2);
   });
 });
+
+describe('api.ts - the refresh request itself', () => {
+  it('sends no bearer and a 401 from refresh signs the rider out without re-entering refresh', async () => {
+    // The client captures `globalThis.fetch` when api.ts is first imported, and the suite above
+    // stubs refreshClient.POST, so load a fresh copy of api.ts (and its token mock) behind a spy.
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response('{}', { status: 401 }));
+    let api!: typeof import('../api');
+    let token!: jest.Mocked<typeof import('../token')>;
+    jest.isolateModules(() => {
+      token = require('../token');
+      api = require('../api');
+    });
+    token.getEpoch.mockReturnValue(0);
+    token.getRefreshToken.mockReturnValue('refresh_token_123');
+    token.getToken.mockReturnValue('expired_access_token');
+
+    try {
+      const result = await api.onUnauthorized();
+
+      expect(result).toBe(false);
+      expect(fetchSpy).toHaveBeenCalledTimes(1); // one refresh, no 401 → refresh → 401 loop
+      const req = fetchSpy.mock.calls[0][0] as Request;
+      expect(req.url).toMatch(/\/v1\/auth\/refresh$/);
+      expect(req.headers.get('Authorization')).toBeNull(); // the expired token never rides along
+      expect(req.headers.get('X-HG-Client')).toBe('rider-app');
+      expect(await req.json()).toEqual({ refresh_token: 'refresh_token_123' });
+      expect(token.setToken).toHaveBeenCalledWith(null);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+});
