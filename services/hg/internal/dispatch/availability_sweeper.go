@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // The two rider availability sweeps of docs/spec/04-rider.md, "D-10 —
@@ -204,49 +206,53 @@ func (s *AvailabilitySweeper) logReconcile(res SweepResult, err error) {
 	}
 }
 
+// leasePollEvery is how long a "sweep now" call waits between attempts at a
+// lease another replica holds. It holds no connection while it waits.
+const leasePollEvery = 50 * time.Millisecond
+
 // withLease runs sweep while this replica holds the job's lease: a session
 // advisory lock on a pooled connection of its own, taken and released exactly
 // as internal/partitions takes its lease. A crashed holder's lock goes with its
 // connection. With wait false a lease held elsewhere skips the sweep (ran is
-// false); with wait true the call queues for it, bounded by ctx.
+// false); with wait true the call retries until it gets the lease, bounded by
+// ctx.
+//
+// The lease is only ever tried (pg_try_advisory_lock), never queued for
+// (pg_advisory_lock): a waiter gives its connection back to the pool between
+// attempts. The sweep itself runs on a second pooled connection, so a waiter
+// blocking on the server while holding one would let enough concurrent "sweep
+// now" callers take every connection and leave the holder none to sweep with
+// (https://github.com/shaiknoorullah/hg-mono/issues/525).
 //
 // A pass that moved a rider or failed is recorded in job_run, the background
 // runtime's observability table (docs/spec/01-platform.md, "P-39 — Background
 // runtime"). Passes that moved nobody are not: at four a minute they would only
 // bury the ones that matter, and nothing prunes another job's rows.
 func (s *AvailabilitySweeper) withLease(ctx context.Context, job string, wait bool, sweep func() (int64, error)) (ran bool, err error) {
-	c, err := s.svc.store.db.Acquire(ctx)
-	if err != nil {
+	key := "hg." + job
+	c, err := s.tryLease(ctx, key)
+	for err == nil && c == nil && wait {
+		t := time.NewTimer(leasePollEvery)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return false, ctx.Err()
+		case <-t.C:
+		}
+		c, err = s.tryLease(ctx, key)
+	}
+	if err != nil || c == nil {
 		return false, err
 	}
 	conn := c.Conn()
-	key := "hg." + job
 	defer func() {
 		// The lock belongs to the session, so a connection that could not
 		// unlock must not go back to the pool still holding it.
-		if ran {
-			if _, uerr := conn.Exec(context.WithoutCancel(ctx), `SELECT pg_advisory_unlock(hashtextextended($1, 0))`, key); uerr != nil {
-				_ = conn.Close(context.WithoutCancel(ctx))
-			}
+		if _, uerr := conn.Exec(context.WithoutCancel(ctx), `SELECT pg_advisory_unlock(hashtextextended($1, 0))`, key); uerr != nil {
+			_ = conn.Close(context.WithoutCancel(ctx))
 		}
 		c.Release()
 	}()
-
-	if wait {
-		_, err = conn.Exec(ctx, `SELECT pg_advisory_lock(hashtextextended($1, 0))`, key)
-		ran = err == nil
-	} else {
-		err = conn.QueryRow(ctx, `SELECT pg_try_advisory_lock(hashtextextended($1, 0))`, key).Scan(&ran)
-	}
-	if err != nil {
-		// A call cut short (by ctx, say) may still have been granted the lock
-		// on the server; closing the session guarantees it is not kept.
-		_ = conn.Close(context.WithoutCancel(ctx))
-		return false, err
-	}
-	if !ran {
-		return false, nil
-	}
 
 	started := time.Now()
 	moved, err := sweep()
@@ -266,4 +272,27 @@ func (s *AvailabilitySweeper) withLease(ctx context.Context, job string, wait bo
 		}
 	}
 	return true, err
+}
+
+// tryLease makes one attempt at the lease named key. It returns the pooled
+// connection holding the lock, or nil (and no connection held) when another
+// session holds it.
+func (s *AvailabilitySweeper) tryLease(ctx context.Context, key string) (*pgxpool.Conn, error) {
+	c, err := s.svc.store.db.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var got bool
+	if err := c.QueryRow(ctx, `SELECT pg_try_advisory_lock(hashtextextended($1, 0))`, key).Scan(&got); err != nil {
+		// A call cut short (by ctx, say) may still have been granted the lock
+		// on the server; closing the session guarantees it is not kept.
+		_ = c.Conn().Close(context.WithoutCancel(ctx))
+		c.Release()
+		return nil, err
+	}
+	if !got {
+		c.Release()
+		return nil, nil
+	}
+	return c, nil
 }
