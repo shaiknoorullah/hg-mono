@@ -4,6 +4,12 @@ import { Input, formatTel } from '../Input';
 import { getHidden, renderThemed, styleOf, themes } from './harness';
 
 describe('Input', () => {
+  // A bare string inside a View crashes iOS and Android; a "$" prefix must sit in a Text.
+  it('wraps a string prefix in a Text node', () => {
+    renderThemed(<Input label="Tip amount" value="" onChange={() => {}} prefix="$" />);
+    expect(screen.getByText('$').type).toBe('Text');
+  });
+
   it('renders the label as a real visible node, never as a placeholder', () => {
     renderThemed(<Input label="Delivery address" value="" onChange={() => {}} placeholder="123 Main St" />);
     expect(screen.getByText('Delivery address')).toBeTruthy();
