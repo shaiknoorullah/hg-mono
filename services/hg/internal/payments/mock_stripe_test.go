@@ -25,6 +25,7 @@ type mockStripe struct {
 	AccountLinkFn   func(id, ret, ref string) (*StripeAccountLink, error)
 	GetConnectFn    func(id string) (*StripeAccount, error)
 	TransferFn      func(CreateTransferInput) (*StripeTransfer, error)
+	FindTransferFn  func(group string) (*StripeTransfer, error)
 	VerifyWebhookFn func(payload []byte, sig string) (StripeEvent, error)
 	ListEventsFn    func(since time.Time) ([]StripeEvent, error)
 
@@ -111,6 +112,13 @@ func (m *mockStripe) CreateTransfer(_ context.Context, in CreateTransferInput) (
 		return m.TransferFn(in)
 	}
 	return &StripeTransfer{ID: "tr_test"}, nil
+}
+
+func (m *mockStripe) FindTransfer(_ context.Context, group string) (*StripeTransfer, error) {
+	if m.FindTransferFn != nil {
+		return m.FindTransferFn(group)
+	}
+	return nil, nil
 }
 
 func (m *mockStripe) VerifyWebhook(payload []byte, sig string) (StripeEvent, error) {

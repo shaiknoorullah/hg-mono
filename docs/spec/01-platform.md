@@ -565,6 +565,8 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
   `POST /v1/orders` `{ "quote_id":"…", "payment_method_id":"…", "delivery_instructions":[…], "idempotency_key" via header }`.
   The server **re-executes** `Quote()` at order time and compares to the stored quote. Identical ⟹ proceed. Different (price changed, item went unavailable, address changed) ⟹ `409 quote_stale` with the new quote embedded; the client must show the difference and get explicit re-confirmation. Expired ⟹ `409 quote_expired`.
 
+  **The restaurant must be able to take the order, at every step.** Adding a cart line, quoting (`POST /v1/quotes`), placing the order (`POST /v1/orders`) and the restaurant accepting it each lock the restaurant row `FOR SHARE` inside their own transaction, then refuse with `409 RESTAURANT_UNAVAILABLE` unless the restaurant is listed, `LIVE`, and its halal certificate is current as of that transaction. "Current" is computed from the admin-verified certificate data at that moment (`halal_certification_at(restaurant, now())`), not read from the stored `halal_status`, which can lag behind the calendar: the stored state can refuse an order but never admit one on its own. A suspension, ban, delisting or certificate expiry writes the same row, so it either commits first and is seen, or waits until the order's transaction has committed and then finds the order. The saved cart is kept, but cannot be quoted until the restaurant can take orders again ([halal display, rule 3](02-customer.md#c-12--halal-certification-display-and-verification--critical)).
+
   **The computation, in order. Each step is a pure function of DB state; none of it reads the request body for money.**
 
   **Step 1 — line unit price.** For each cart line, with the menu item, chosen variant and chosen add-ons re-read from Postgres inside the quote transaction (`FOR SHARE` on the menu item so a concurrent price edit cannot interleave):
@@ -1209,7 +1211,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   | `AUTHORIZED` | `+60 s` | `OFFER_RESTAURANT` — emit the offer, transition T4 (or T5 if the restaurant is closed/paused) | 3 (retry every 60 s) | T5 `CANCELLED` + void |
   | `RESTAURANT_PENDING` | `+180 s` | `RESTAURANT_TIMEOUT` — transition T8, void auth, notify customer, decrement the restaurant's acceptance SLA | 0 | — |
   | `PREPARING` | `accepted_at + prep_eta + 10 min` | `PREP_OVERDUE` — notify customer with a new ETA, alert ops, re-arm `+10 min` | 3 | T11 `CANCELLED`, full customer refund, restaurant paid per policy |
-  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (re-open a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
+  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (restart a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
   | `PICKED_UP` | `picked_up_at + 75 min` | `DELIVERY_OVERDUE` — ping rider, alert ops, re-arm `+15 min` | 3 | T17 `DISPUTED` + ops case. **Never auto-delivers.** |
   | `ARRIVED` | `+15 min` | `HANDOVER_OVERDUE` — notify customer, alert ops, re-arm `+10 min` | 2 | T17 `DISPUTED` + ops case |
   | `DELIVERED` | `+2 min` | `SETTLE` — post the settlement batch, transition T18; on failure re-arm with exponential backoff (2 m, 4 m, 8 m, …) | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
@@ -1641,7 +1643,7 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
 
 > **Decided (riders):** no automatic block at launch; operations follow up by hand ([rider balance below zero](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
-> **Open:** is a restaurant negative for 30 days blocked from new orders, and is a partner's bank account never debited?
+> **Open:** is a restaurant negative for 30 days blocked from new orders, and is a partner's bank account never debited? Until the owner answers ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)), the weekly payout run blocks it after `HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS` days (default 30; 0 turns the block off) and lifts the block once the balance recovers ([#251](https://github.com/shaiknoorullah/hg-mono/issues/251)).
 
 ---
 
@@ -2767,8 +2769,10 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | Notification sender | 500 ms | `notification_delivery WHERE state='QUEUED'` |
   | Push receipt poller | 30 s | Expo receipts |
   | Reconciliation | daily 03:00 ET | Stripe balance transactions vs ledger |
-  | Payout run | per schedule | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances |
+  | Payout run | Mondays 09:00 America/Toronto, and on request (`createPayoutRun`) | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances, held and unfinished payouts |
   | Expiry sweeps | hourly | quotes, tickets, OTP challenges, certificates, unconfirmed uploads |
+  | Rider stale-location sweep | at start-up, then every 15 s (`HG_RIDER_STALE_SWEEP_INTERVAL`) | `ONLINE` riders whose last location is older than 120 s (`HG_RIDER_STALE_AFTER`) move to `ONLINE_STALE` and are offered nothing until their next location update; one replica at a time, under an advisory-lock lease |
+  | Rider availability reconciliation | at start-up, then every 60 s (`HG_RIDER_RECONCILE_INTERVAL`) | riders still `ON_DELIVERY` with no live assignment go back online, or offline if they asked to stop after the delivery, each recorded as `RECONCILED` in `rider_availability_event`; same lease |
   | Partition maintenance | at start-up, then hourly | create `realtime_event`, `rider_position_history`, `audit_event` partitions ahead of the clock, drop the expired ones (`audit_event` never), and alert on any row in a `*_default` partition |
   | Audit chain verification | daily | `verify_audit_chain(yesterday)` |
 

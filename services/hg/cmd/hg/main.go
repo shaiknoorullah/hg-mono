@@ -632,8 +632,22 @@ func run() error {
 	} else {
 		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
 	}
-	paymentsSvc := payments.NewService(payments.NewRepo(st.DB().Pool), stripeClient, cfg.Stripe, log).
+	paymentsRepo := payments.NewRepo(st.DB().Pool)
+	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log).
 		WithOrderHooks(ordersStore)
+	// The weekly payout run (issue #251): Monday 09:00 America/Toronto, for
+	// every rider and restaurant, and on demand through createPayoutRun. It
+	// needs Stripe, so without a client there is no runner and createPayoutRun
+	// answers 503. Started with the other background loops below.
+	var payoutRunner *payments.PayoutRunner
+	if stripeClient != nil {
+		host, _ := os.Hostname()
+		payoutRunner = payments.NewPayoutRunner(paymentsRepo, stripeClient, payments.PayoutPolicy{
+			RestaurantNegativeBlockDays: cfg.Payouts.RestaurantNegativeBalanceBlockDays,
+			RestaurantHold:              time.Duration(cfg.Payouts.RestaurantHoldHours) * time.Hour,
+		}, host, log)
+		paymentsSvc.WithPayoutRunner(payoutRunner)
+	}
 	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
 	// The webhook worker applies stored Stripe events from the database: one
 	// replica at a time under an advisory-lock lease, each event's effect and
@@ -661,6 +675,17 @@ func run() error {
 	dispatch.Routes(router, dispatch.NewHandler(dispatchSvc))
 	dispatchRunner := dispatch.NewDispatchRunner(dispatchSvc, log, 3000, 5*time.Second)
 	go dispatchRunner.Run(ctx)
+	// Rider availability sweeps (issue #255; docs/spec/04-rider.md, "D-10 —
+	// Availability: online / offline"): a silent online rider goes ONLINE_STALE,
+	// and a rider stuck ON_DELIVERY with no live assignment is restored. Every
+	// replica runs them; a lease lets one sweep at a time. riderSweeps.RunOnce is
+	// the "sweep now" hook for the dev environment's controls (issue #235).
+	riderSweeps := dispatch.NewAvailabilitySweeper(dispatchSvc, log, dispatch.AvailabilitySweepConfig{
+		StaleAfter:     cfg.Dispatch.RiderStaleAfter,
+		StaleEvery:     cfg.Dispatch.RiderStaleSweepEvery,
+		ReconcileEvery: cfg.Dispatch.RiderReconcileEvery,
+	})
+	go riderSweeps.Run(ctx)
 
 	// B11 — Handoff (internal/handoff, migration 00027): package-seal chain of
 	// custody. Reuses the same orderLifecycleAdapter instance dispatch is wired
@@ -715,6 +740,13 @@ func run() error {
 	// replica runs it; a job_run claim lets one pass run per hour across the
 	// fleet. It never deletes ledger, order, audit or KYC rows.
 	go retention.New(st.DB().Pool, log).Run(ctx)
+
+	// Payouts: every replica checks each minute for a due payout run; a
+	// session advisory lock lets one run at a time, and a run a replica
+	// abandons is finished by the next (internal/payments/payout_run.go).
+	if payoutRunner != nil {
+		go payoutRunner.Run(ctx)
+	}
 
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works

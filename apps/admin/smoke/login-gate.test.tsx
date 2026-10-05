@@ -37,7 +37,7 @@ describe('admin login gate', () => {
   // Password inputs have no ARIA role, so that one field is matched by label prefix.
   const email = () => screen.getByRole('textbox', { name: 'Email' });
   const password = () => screen.getByLabelText(/^Password/);
-  const totp = () => screen.getByRole('textbox', { name: 'Authenticator code' });
+  const totp = () => screen.getAllByRole('textbox', { name: /^Authenticator code/ })[0]!;
 
   afterEach(() => {
     cleanup();
@@ -82,7 +82,7 @@ describe('admin login gate', () => {
     fireEvent.change(password(), {
       target: { value: 'correct horse battery staple' },
     });
-    fireEvent.change(totp(), { target: { value: '123456' } });
+    fireEvent.paste(totp(), { clipboardData: { getData: () => '123456' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
     await waitFor(() => expect(isAuthed()).toBe(true));
