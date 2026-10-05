@@ -75,10 +75,23 @@ type restaurantRow struct {
 	hoursOverrides  []hoursOverride
 }
 
-// tradingTargets are the scan targets for tradingColumns, in order.
-func (rr *restaurantRow) tradingTargets() []any {
-	return []any{&rr.trading.accountState, &rr.trading.isAcceptingOrders, &rr.trading.pauseUntil,
-		&rr.trading.lastHeartbeatAt, &rr.collectionBlock, &rr.weeklyHours, &rr.hoursOverrides}
+// cardTargets are the scan targets for cardColumns, in order, ending with
+// tradingColumns'.
+func (rr *restaurantRow) cardTargets() []any {
+	return []any{
+		&rr.id, &rr.slug, &rr.displayName, &rr.description,
+		&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
+		&rr.publicPhone,
+		&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
+		&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
+		&rr.logoObjectID, &rr.coverObjectID,
+		&rr.logoObjectBucket, &rr.logoObjectKey,
+		&rr.coverObjectBucket, &rr.coverObjectKey,
+		&rr.cuisines,
+		&rr.certifyingBody, &rr.certExpiresOn,
+		&rr.trading.accountState, &rr.trading.isAcceptingOrders, &rr.trading.pauseUntil,
+		&rr.trading.lastHeartbeatAt, &rr.collectionBlock, &rr.weeklyHours, &rr.hoursOverrides,
+	}
 }
 
 // cardColumns is the shared SELECT list for a restaurant card. It never includes
@@ -137,19 +150,7 @@ const cardJoins = `
 // caller supplies whether the distance/geo columns are present.
 func scanCard(row pgx.Row, withDistance, withGeo bool) (restaurantRow, error) {
 	var rr restaurantRow
-	dest := []any{
-		&rr.id, &rr.slug, &rr.displayName, &rr.description,
-		&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
-		&rr.publicPhone,
-		&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
-		&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
-		&rr.logoObjectID, &rr.coverObjectID,
-		&rr.logoObjectBucket, &rr.logoObjectKey,
-		&rr.coverObjectBucket, &rr.coverObjectKey,
-		&rr.cuisines,
-		&rr.certifyingBody, &rr.certExpiresOn,
-	}
-	dest = append(dest, rr.tradingTargets()...)
+	dest := rr.cardTargets()
 	if withGeo {
 		dest = append(dest, &rr.latitude, &rr.longitude)
 	}
