@@ -31,6 +31,9 @@ const (
 	codeValidationFailed    httpx.ErrorCode = "VALIDATION_FAILED"
 	codeDifferentRestaurant httpx.ErrorCode = "DIFFERENT_RESTAURANT"
 	codeItemUnavailable     httpx.ErrorCode = "ITEM_UNAVAILABLE"
+	codeVariantUnavailable  httpx.ErrorCode = "VARIANT_UNAVAILABLE"
+	codeAddonUnavailable    httpx.ErrorCode = "ADDON_UNAVAILABLE"
+	codeInvalidAddon        httpx.ErrorCode = "INVALID_ADDON"
 	codeRestaurantClosed    httpx.ErrorCode = "RESTAURANT_CLOSED"
 	codeRestaurantUnavail   httpx.ErrorCode = "RESTAURANT_UNAVAILABLE"
 	codeCartHasUnavailable  httpx.ErrorCode = "CART_HAS_UNAVAILABLE_ITEMS"
@@ -139,22 +142,13 @@ func (h *Handler) AddCartLine(w http.ResponseWriter, r *http.Request) {
 	if !decodeStrict(w, r, &in) {
 		return
 	}
-	if in.MenuItemID == "" || in.Quantity < 1 || in.Quantity > 20 {
+	li, problems := in.toInput()
+	if len(problems) > 0 {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
-			"menu_item_id is required and quantity must be 1..20.", nil)
+			"The cart line is not valid.", problems)
 		return
 	}
 	replace := r.URL.Query().Get("replace") == "true"
-	li := CartLineInput{
-		MenuItemID: in.MenuItemID, VariantID: in.VariantID, Quantity: in.Quantity, SpecialRequest: in.SpecialRequest,
-	}
-	for _, a := range in.Addons {
-		qty := 1
-		if a.Quantity != nil {
-			qty = *a.Quantity
-		}
-		li.Addons = append(li.Addons, CartAddonInput{AddonID: a.AddonID, Quantity: qty})
-	}
 	c, err := h.store.AddCartLine(r.Context(), h.accountID(r), "", li, replace)
 	if err != nil {
 		h.fail(w, r, err)
@@ -493,11 +487,35 @@ func (h *Handler) GetOrderRiderPublicProfile(w http.ResponseWriter, r *http.Requ
 func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	var taxMissing *pricing.TaxProfileMissing
 	var illegal *IllegalTransitionError
+	var lineInvalid *LineValidationError
+	var variantGone *VariantUnavailableError
+	var addonGone *AddonUnavailableError
+	var otherRestaurant *DifferentRestaurantError
 	switch {
 	case errors.Is(err, ErrCartNotFound), errors.Is(err, ErrOrderNotFound), errors.Is(err, ErrQuoteNotFound):
 		httpx.Fail(w, r, http.StatusNotFound, codeNotFound, "No such resource.", nil)
 	case errors.Is(err, ErrReceiptNotReady):
 		httpx.Fail(w, r, http.StatusConflict, codeReceiptNotReady, "This order does not have a receipt yet.", nil)
+	case errors.As(err, &lineInvalid):
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, lineInvalid.Code,
+			"This item cannot be added with these choices.", lineInvalid.Fields)
+	case errors.As(err, &variantGone):
+		httpx.Fail(w, r, http.StatusConflict, codeVariantUnavailable, "A choice on this item is no longer available.",
+			map[string]any{"variant_id": variantGone.VariantID})
+	case errors.As(err, &addonGone):
+		httpx.Fail(w, r, http.StatusConflict, codeAddonUnavailable, "An extra on this item is no longer available.",
+			map[string]any{"addon_id": addonGone.AddonID})
+	case errors.As(err, &otherRestaurant):
+		// The "Start a new cart?" dialog names the current restaurant and its
+		// size from these (C-20; https://github.com/shaiknoorullah/hg-mono/issues/629).
+		httpx.Fail(w, r, http.StatusConflict, codeDifferentRestaurant,
+			"Your cart contains items from a different restaurant. Start a new cart to add this item.",
+			map[string]any{
+				"current_restaurant_id":   otherRestaurant.RestaurantID,
+				"current_restaurant_name": otherRestaurant.RestaurantName,
+				"current_line_count":      otherRestaurant.LineCount,
+				"current_item_count":      otherRestaurant.ItemCount,
+			})
 	case errors.Is(err, ErrDifferentRestaurant):
 		httpx.Fail(w, r, http.StatusConflict, codeDifferentRestaurant,
 			"Your cart contains items from a different restaurant. Start a new cart to add this item.", nil)

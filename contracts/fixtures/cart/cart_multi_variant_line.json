@@ -1,0 +1,109 @@
+{
+  "scenario": "cart_multi_variant_line",
+  "domain": "cart",
+  "schema": "Cart",
+  "describes": "One line of a dish with three required variant groups, one choice from each: `For two` (ABSOLUTE $42.99 replaces the base), `No rice` (DELTA −$2.00) and `Medium` (DELTA $0.00), plus the one sauce the group requires. `unit_price_cents` = 4299 − 200 + 0 + 149. The deprecated `variant` is null because the line has more than one; render `variants`.",
+  "operations": [
+    "addCartLine",
+    "getCart"
+  ],
+  "status": 200,
+  "tags": [
+    "variants"
+  ],
+  "payload": {
+    "id": "9f476e04-be7d-4315-a7a1-91a65c2c5870",
+    "restaurant": {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "slug": "karachi-kitchen",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 1200,
+        "out_of_range_reason": null
+      }
+    },
+    "delivery_address_id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+    "lines": [
+      {
+        "id": "aa0409f3-a2ee-4e83-afff-ca9f91d23391",
+        "menu_item_id": "c5ec6eae-ceb5-4957-a9e2-0e1ab3a4ef1c",
+        "name": "Mixed Charcoal Grill Platter",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+        "variant": null,
+        "variants": [
+          {
+            "variant_group_id": "ec4c482e-beea-41f7-ac67-ff52bac02aa3",
+            "group_name": "Platter size",
+            "variant_id": "8dbd507f-30a2-44bb-a77e-f89de84f9da8",
+            "variant_name": "For two",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 4299,
+            "delta_cents": null
+          },
+          {
+            "variant_group_id": "65f25cbd-0eb0-4146-a0c8-831086f4ffe8",
+            "group_name": "Rice",
+            "variant_id": "f6c5f9a4-314f-4e62-ae36-5926ddba4226",
+            "variant_name": "No rice",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": -200
+          },
+          {
+            "variant_group_id": "bc59d4db-de3b-4d7c-aa62-01407241b5bd",
+            "group_name": "Heat level",
+            "variant_id": "a5dd3a2a-7a3f-4358-a0c2-29929d858523",
+            "variant_name": "Medium",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0
+          }
+        ],
+        "addons": [
+          {
+            "addon_id": "8db167ea-0291-44f2-aee3-dd9770e9a263",
+            "name": "Mint raita",
+            "quantity": 1
+          }
+        ],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 4248,
+        "line_total_cents": 4248,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      }
+    ],
+    "item_count": 1,
+    "indicative_subtotal_cents": 4248,
+    "currency": "CAD",
+    "is_quotable": true,
+    "blocking_reasons": []
+  }
+}
