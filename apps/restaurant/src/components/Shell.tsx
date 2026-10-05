@@ -1,14 +1,15 @@
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { AppShell, Icon, SideNav, cx, type IconName, type SideNavItem } from '@hg/ui-web';
+import { AppShell, Icon, SideNav, Wordmark, cx, type IconName, type SideNavItem } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
 import { IconMenuBook, IconWallet, IconUsers, IconSettings, IconLogout } from '../lib/icons';
 
 /**
  * The persistent restaurant-operator chrome, on the shared `AppShell` + `SideNav` frame
  * (`@hg/ui-web` navigation tier) instead of a bespoke aside. `SideNav` is glass — a
- * translucent surface with a real backdrop blur — and its active row is a soft orange tint
- * with a solid 4px orange accent bar, never green (RULE H-1: solid green is reserved to
- * `color.halal.*` alone; this is wayfinding chrome, not a certification).
+ * translucent surface with a real backdrop blur — and its current page is a filled tile in the
+ * soft orange selected tint with a bold label, never an edge bar (issue #398), and never green
+ * (solid green is reserved to `color.halal.*` alone; this is wayfinding chrome, not a
+ * certification).
  *
  * Semantic `Icon` names cover Orders (checklist) and Hours (clock); Menu, Payouts, Staff and
  * Settings have no match in the shared primitive's small cross-platform set, so those keep
@@ -73,14 +74,9 @@ export function Shell() {
               groups={[{ key: 'main', items }]}
               activeKey={activeKey}
               header={
-                <div className="flex items-center gap-2 px-1 py-1">
-                  <div className="grid size-9 place-items-center rounded-md bg-action-primary-bg text-action-primary-fg shadow-e1">
-                    <Icon name="check" weight="bold" size={18} />
-                  </div>
-                  <div>
-                    <p className="text-label-lg font-extrabold leading-tight text-fg-primary">HalalGoes</p>
-                    <p className="text-label-sm text-fg-tertiary">for restaurants</p>
-                  </div>
+                <div className="flex flex-col items-start gap-0.5 px-1 py-1">
+                  <Wordmark height={34} />
+                  <p className="text-label-sm text-fg-tertiary">for restaurants</p>
                 </div>
               }
               footer={

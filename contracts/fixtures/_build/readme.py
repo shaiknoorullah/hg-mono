@@ -223,6 +223,8 @@ def write_readme(manifest: dict) -> None:
         "dense": "Deliberately busy — the worst case for a list or a card.",
         "degraded": "A partially-broken real-world condition (stale GPS, lost tracking).",
         "review-queue": "An admin review queue item.",
+        "request-body": "A request body a client sends, not a response. Registered against "
+        "no operation, so the mock never serves it.",
         "script": "A realtime event sequence, not a response body.",
         "control": "Realtime control frames.",
         "realtime": "WebSocket, not HTTP.",

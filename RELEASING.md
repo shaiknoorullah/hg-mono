@@ -81,7 +81,8 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 7. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
    (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
    address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
-   Never `0.0.0.0/0` (refused at boot).
+   Never `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside
+   `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7`.
 
 ## 4. Deploy the stack (on your host)
 
@@ -92,6 +93,15 @@ make up            # Traefik + 2× API + Postgres/PostGIS + Valkey + Silo
 make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
+
+The database has three logins, each with its own password in `deploy/.env`: the Postgres
+superuser (`POSTGRES_PASSWORD`) only creates the roles; goose runs as `hg_migrator`
+(`HG_DB_MIGRATOR_PASSWORD`), which owns the schema; the API runs as `hg_app`
+(`HG_DB_APP_PASSWORD`), which can read and write rows but cannot change the schema or switch the
+ledger's triggers off; its hourly partition upkeep goes through two narrow functions that run as
+`hg_migrator`. `make up` and `make migrate` create and update the roles first, from
+[`services/hg/migrations/roles/roles.sql`](services/hg/migrations/roles/roles.sql); the reasons
+are in [the migrations README](services/hg/migrations/README.md#who-connects-as-whom).
 
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
