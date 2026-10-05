@@ -1278,6 +1278,8 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 
 # 5. Payments (Stripe, CAD, Canada)
 
+**One keyed Stripe client.** Every Stripe call the server makes (PaymentIntents, SetupIntents, refunds, Connect accounts and onboarding links, transfers) goes through the one client built from `HG_STRIPE_SECRET_KEY`. The SDK's package-level functions read a global key that nothing sets, so a call made through one would reach Stripe with no key and fail with 401; they are not used, and a test fails if one comes back ([issue #338](https://github.com/shaiknoorullah/hg-mono/issues/338)). Every call is made in the Stripe API version that the stripe-go major version pins, which the server logs at startup (`api_version`); the webhook endpoints are created in that same version, because signature verification refuses an event sent in any other, and a test pins the version so a library upgrade that moves it fails until the endpoints move with it.
+
 ### P-16 — PaymentIntent lifecycle and capture timing
 
 - **Behaviour**: **Auth-then-capture.** The PaymentIntent is created with `capture_method: 'manual'` when the order is created; funds are *authorised* immediately and *captured* only when the restaurant accepts. If the restaurant rejects or times out, the authorisation is cancelled and the customer is never charged — no refund is needed, so there is no refund to fail. This is the single most important payment design choice: it removes the entire "we charged them and then failed to refund" class that the old system lived in.
