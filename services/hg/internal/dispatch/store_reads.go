@@ -236,15 +236,18 @@ func addressLine(line string, city *string) string {
 }
 
 func customerDisplayName(ctx context.Context, s *Store, orderID string) string {
-	// First name + last initial only. Derived from the rider_profile of the
-	// customer account if present; otherwise a neutral placeholder. The customer
-	// profile lives in another module, so we read only the account's public label.
+	// The customer's first name and last initial only, from their customer
+	// profile ("Ayesha R."), so the rider greets the right person at the door
+	// and never learns the full surname (contracts/openapi.yaml,
+	// customer_display_name; https://github.com/shaiknoorullah/hg-mono/issues/420).
+	// No profile, or no first name: a neutral placeholder.
 	var name string
 	err := s.db.QueryRow(ctx, `
 SELECT COALESCE(
-         (SELECT rp.first_name || ' ' || left(rp.last_name, 1) || '.'
-            FROM rider_profile rp
-            JOIN "order" o ON o.account_id = rp.account_id
+         (SELECT NULLIF(btrim(cp.first_name), '')
+                 || COALESCE(' ' || upper(left(NULLIF(btrim(cp.last_name), ''), 1)) || '.', '')
+            FROM customer_profile cp
+            JOIN "order" o ON o.account_id = cp.account_id
            WHERE o.id = $1),
          'Customer')`, orderID).Scan(&name)
 	if err != nil {

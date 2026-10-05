@@ -34,9 +34,17 @@ export default defineConfig({
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
     actionTimeout: 20_000,
+    launchOptions: {
+      ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+        ? {
+            executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+          }
+        : {}),
+    },
   },
   projects: [
-    { name: 'restaurant', testMatch: /restaurant\.spec\.ts/, use: { baseURL: 'http://localhost:4173' } },
-    { name: 'admin', testMatch: /admin\.spec\.ts/, use: { baseURL: 'http://localhost:4174' } },
+    { name: 'restaurant', testMatch: /restaurant\.spec\.ts/, use: { baseURL: process.env.E2E_PARTNER_URL ?? process.env.BASE_URL ?? 'http://localhost:4173' } },
+    { name: 'admin', testMatch: /admin\.spec\.ts/, use: { baseURL: process.env.E2E_ADMIN_URL ?? process.env.BASE_URL ?? 'http://localhost:4174' } },
   ],
 });

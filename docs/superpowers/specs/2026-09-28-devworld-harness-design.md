@@ -3,6 +3,7 @@ covers:
   - services/hg/cmd/**
   - services/hg/migrations/**
   - apps/restaurant/.claude/skills/**
+  - docs/playbooks/**
 reviewed: 2026-10-05
 ---
 

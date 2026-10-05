@@ -1639,6 +1639,8 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
   - **I-19.4** Every Stripe transfer/payout call is idempotency-keyed by `payout.id`.
   - **I-19.5** No partner takes a first order or offer before Stripe onboarding completes; a partner restricted later keeps working, and its balance accrues until payouts are re-enabled.
   - **I-19.6** Rider `date_of_birth` implies age ≥ 18 at onboarding.
+  - **I-19.7** A payout run on request is authorised on the database's live state, not on the access token alone. The account must be active, hold a live platform-wide `ADMIN` or `SUPER_ADMIN` grant, and not be suspended staff, both when the run is queued and again when it starts. An admin's run never pays the admin's own rider account or restaurants ([#457](https://github.com/shaiknoorullah/hg-mono/issues/457)).
+  - **I-19.8** Whether to pay a restaurant is decided inside the transaction that builds or claims its payout, under a lock on the restaurant row. A restaurant suspended partway through a run is not paid; its balance is kept until it is reinstated.
 - **Acceptance criteria**:
   1. Given a restaurant completes Express onboarding, Then `charges_enabled` remains false, `payouts_enabled` becomes true, and `capabilities.transfers` is `active`.
   2. Given a weekly payout run, Then every included ledger entry is stamped with the payout id and a second run produces `amount_cents = 0` for the same period.
@@ -2692,7 +2694,9 @@ CREATE INDEX audit_event_action ON audit_event(action, at DESC);
 
   The record is written in the **same transaction** as the business effect, so "money moved but the idempotency record did not commit" cannot happen.
 
-  As built, the claim and replay run for `issueRefund`, `approveRefund`, `declineRefund` and `addChargebackEvidenceNote` (`internal/payments/idempotency.go`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)): the response body is stored as the exact bytes sent, so a replay is byte-identical. Every other route still only requires the header.
+  As built, the claim and replay live in `internal/idempotency` and run for `createOrder`, `createRefund`, `issueRefund`, `approveRefund`, `declineRefund` and `addChargebackEvidenceNote` ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172), [#363](https://github.com/shaiknoorullah/hg-mono/issues/363)): the response body is stored as the exact bytes sent, so a replay is byte-identical. Every other route still only requires the header; on those a retry is stopped by the effect's own guard (a state check, a unique index or a deterministic Stripe key), not replayed.
+
+  `createOrder` claims the key first in the order's transaction, before the one-active-order check, so a retried checkout gets the first answer (order and `client_secret`) rather than `ACTIVE_ORDER_EXISTS`. The PaymentIntent is a network call made after that transaction commits, so the record commits `IN_PROGRESS` with the order attached (`resource_id`) and is completed with the answer once the gateway replies; that work finishes even if the client has disconnected. If the process dies in between, a retry after the one-minute lease takes the record over and finishes the same order: the PaymentIntent is keyed by the order id, so asking again creates no second authorisation. A server error other than the gateway's 503 is not recorded, so it is never replayed.
 
   Routes requiring a key: `POST /v1/orders`, `POST /v1/quotes`, `POST /v1/payments/*`, `POST /v1/refunds`, `POST /v1/payouts/*`, `POST /v1/tips`, `POST /v1/connect/account`, `POST /v1/uploads`, `POST /v1/disputes`, and every admin money action.
 

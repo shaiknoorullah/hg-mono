@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # End-to-end flows
@@ -47,6 +47,11 @@ flows run in this order, because steps 2 to 4 share one order (the cross-app smo
 | 3 | Restaurant | Playwright | Accepts that order within its 180 seconds |
 | 4 | Rider and restaurant | Maestro and Playwright | The rider signs in, goes online standing at the restaurant and waits on the offer screen; meanwhile the restaurant marks the order ready for pickup, and the rider receives the dispatch offer for it |
 | 5 | Admin | Playwright | Signs in with email, password and the authenticator code, finds and opens the order, then opens the verification register: the review queue and the seven-check halal verification of each restaurant's certificate |
+
+Beyond the cross-app smoke, the browser specs walk the partner and admin apps' own journeys:
+onboarding review, the seven-check halal verification, menus, operating hours, the order
+lifecycle, and navigation at phone width. They read every person and record from the seeded
+`world.json` and fail clearly when it is missing.
 
 A flow that needs an earlier one is skipped, with the reason, when that one failed. The run's
 summary page lists each flow's result. A pull request run (web flows only) does steps 1 and 5.
@@ -159,3 +164,8 @@ on macOS runners and are not part of this workflow
 | [`lib/`](lib/) | The API client, the sign-in code reader, the TOTP generator, the run summary |
 | [`android/allow-cleartext.sh`](android/allow-cleartext.sh) | Lets the emulator's APKs reach the runner over plain HTTP |
 | [`run.sh`](run.sh) | Runs the flows in order and records each result |
+
+## API journey runner
+
+`tools/e2e/api/run.mjs` drives the launch path through the API alone (no app UI): an admin, a restaurant, a rider and a customer, from sign-up to a delivered and refunded order. It needs an explicit `--base`, and it refuses unless the API itself reports a non-production environment. It signs in only with the fictional `+1 NPA 555 0100-0199` numbers and a dedicated test staff login from environment variables. Its README is [tools/e2e/api/README.md](api/README.md); it shares the TOTP helper in `lib/totp.mjs`.
+
