@@ -26,6 +26,7 @@ type LineValidationError struct {
 	Fields []httpx.FieldError
 }
 
+// Error reports how many problems the line has; the handler answers with each one.
 func (e *LineValidationError) Error() string {
 	return fmt.Sprintf("cart line not allowed by the menu: %d problem(s)", len(e.Fields))
 }
@@ -34,6 +35,7 @@ func (e *LineValidationError) Error() string {
 // ordered now (switched off or removed): 409 VARIANT_UNAVAILABLE {variant_id}.
 type VariantUnavailableError struct{ VariantID string }
 
+// Error names the variant that cannot be ordered now.
 func (e *VariantUnavailableError) Error() string {
 	return "variant " + e.VariantID + " is unavailable"
 }
@@ -42,6 +44,7 @@ func (e *VariantUnavailableError) Error() string {
 // ordered now: 409 ADDON_UNAVAILABLE {addon_id}.
 type AddonUnavailableError struct{ AddonID string }
 
+// Error names the add-on that cannot be ordered now.
 func (e *AddonUnavailableError) Error() string {
 	return "add-on " + e.AddonID + " is unavailable"
 }
@@ -56,6 +59,7 @@ type DifferentRestaurantError struct {
 	ItemCount      int
 }
 
+// Error is ErrDifferentRestaurant's message, so logs read the same either way.
 func (e *DifferentRestaurantError) Error() string { return ErrDifferentRestaurant.Error() }
 
 // Is lets errors.Is(err, ErrDifferentRestaurant) match.
