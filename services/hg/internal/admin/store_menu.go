@@ -84,18 +84,13 @@ var ErrItemDeleted = errors.New("admin: item deleted")
 // CreateMenuCategoryOnBehalf inserts a new menu_category for the given restaurant
 // on behalf of an admin (A-19). The restaurant must exist (returns ErrNotFound
 // otherwise). Duplicate name within the same restaurant returns ErrCategoryNameTaken.
+// While the restaurant is suspended or banned it returns restaurant.ErrMenuLocked.
 func (r *Repo) CreateMenuCategoryOnBehalf(ctx context.Context, actor auditActor, restaurantID, name string, description *string, sortOrder int) (menuCategoryRow, error) {
 	var out menuCategoryRow
 	err := r.inTx(ctx, func(tx pgx.Tx) error {
-		// Verify restaurant exists.
-		var exists bool
-		if err := tx.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM restaurant WHERE id=$1)`, restaurantID,
-		).Scan(&exists); err != nil {
+		// The restaurant must exist, and its menu must not be locked.
+		if err := lockMenuOnBehalf(ctx, tx, restaurantID); err != nil {
 			return err
-		}
-		if !exists {
-			return ErrNotFound
 		}
 
 		const ins = `
@@ -147,22 +142,17 @@ type menuItemCreate struct {
 // CreateMenuItemOnBehalf inserts a new menu_item + a version pre-approved by the
 // admin (A-19: reviewer == author, so it is immediately APPROVED with live_version_id
 // set). The restaurant and category must exist. Price validation (50..50000 cents)
-// and enum/length validation are done at the handler layer.
+// and enum/length validation are done at the handler layer. While the restaurant is
+// suspended or banned it returns restaurant.ErrMenuLocked.
 func (r *Repo) CreateMenuItemOnBehalf(
 	ctx context.Context, actor auditActor, in menuItemCreate,
 ) (menuItemRow, error) {
 	restaurantID := in.restaurantID
 	var out menuItemRow
 	err := r.inTx(ctx, func(tx pgx.Tx) error {
-		// Verify restaurant exists.
-		var exists bool
-		if err := tx.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM restaurant WHERE id=$1)`, restaurantID,
-		).Scan(&exists); err != nil {
+		// The restaurant must exist, and its menu must not be locked.
+		if err := lockMenuOnBehalf(ctx, tx, restaurantID); err != nil {
 			return err
-		}
-		if !exists {
-			return ErrNotFound
 		}
 
 		// Verify category belongs to restaurant.
@@ -352,7 +342,9 @@ type decideMenuVersionResult struct {
 // On APPROVE: sets review_status=APPROVED, advances live_version_id, clears pending_version_id.
 // On REJECT: sets review_status=REJECTED with reason_code.
 // Returns ErrNotFound if the version does not exist, ErrAlreadyDecided if not PENDING_REVIEW,
-// ErrItemDeleted if the menu_item has been soft-deleted.
+// ErrItemDeleted if the menu_item has been soft-deleted, and restaurant.ErrMenuLocked
+// while the restaurant is suspended or banned: a version waiting for review stays as
+// it is until the suspension is lifted (https://github.com/shaiknoorullah/hg-mono/issues/256).
 func (r *Repo) DecideMenuVersion(
 	ctx context.Context, actor auditActor,
 	versionID, decision string,
@@ -360,14 +352,38 @@ func (r *Repo) DecideMenuVersion(
 ) (decideMenuVersionResult, error) {
 	var out decideMenuVersionResult
 	err := r.inTx(ctx, func(tx pgx.Tx) error {
+		// The menu lock comes first, so this write takes its locks in the same order
+		// as every other menu write: the restaurant row, then the menu rows. A
+		// version's restaurant never changes, so reading it unlocked is safe.
+		var restaurantID string
+		if err := tx.QueryRow(ctx,
+			`SELECT restaurant_id FROM menu_item_version WHERE id=$1`, versionID,
+		).Scan(&restaurantID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		// Approving can complete onboarding, which updates the restaurant row
+		// (restaurant.RecomputeOnboarding, below), so an approval takes the row
+		// FOR UPDATE from the start: two approvals for one restaurant must not both
+		// hold a share lock and then each wait for the other to update the row.
+		lock := restaurant.LockMenuForWrite
+		if decision == "APPROVE" {
+			lock = restaurant.LockMenuForWriteExclusive
+		}
+		if err := mapMenuLockErr(lock(ctx, tx, restaurantID)); err != nil {
+			return err
+		}
+
 		// Lock the version row.
-		var menuItemID, restaurantID, currentStatus string
+		var menuItemID, currentStatus string
 		if err := tx.QueryRow(ctx, `
-SELECT menu_item_id, restaurant_id, review_status::text
+SELECT menu_item_id, review_status::text
   FROM menu_item_version
  WHERE id=$1
    FOR UPDATE`, versionID,
-		).Scan(&menuItemID, &restaurantID, &currentStatus); err != nil {
+		).Scan(&menuItemID, &currentStatus); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -491,4 +507,22 @@ func isUniqueViolation(err error) bool {
 		return pe.SQLState() == "23505"
 	}
 	return false
+}
+
+// lockMenuOnBehalf is the menu lock for an admin's menu write: the shared check in
+// internal/restaurant (menu_lock.go), with a missing restaurant mapped to this
+// package's ErrNotFound. While the restaurant is suspended or banned it returns
+// restaurant.ErrMenuLocked: admins cannot change the menu either
+// (https://github.com/shaiknoorullah/hg-mono/issues/256). Call it as the first
+// statement of every admin menu write's transaction, including the update and
+// remove operations still to be built.
+func lockMenuOnBehalf(ctx context.Context, tx pgx.Tx, restaurantID string) error {
+	return mapMenuLockErr(restaurant.LockMenuForWrite(ctx, tx, restaurantID))
+}
+
+func mapMenuLockErr(err error) error {
+	if errors.Is(err, restaurant.ErrNotFound) {
+		return ErrNotFound
+	}
+	return err
 }

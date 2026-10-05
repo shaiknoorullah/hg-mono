@@ -49,6 +49,15 @@ export const api: HgClient = createHgClient({
   clientSurface: 'restaurant-web',
   clientVersion: '0.1.0',
   getToken: () => session?.accessToken ?? null,
+  // A 401 on an authenticated request means the token is dead: clear it and go to /login.
+  // (A bad-password 401 on the login form has no session yet, so it is left alone.)
+  onUnauthorized: () => {
+    if (session) {
+      setSession(null);
+      if (!window.location.pathname.startsWith('/login')) window.location.assign('/login');
+    }
+    return false;
+  },
   onError: (err) => {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console

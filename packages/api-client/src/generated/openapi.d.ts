@@ -296,6 +296,10 @@ export interface paths {
          *     the queue is never the bottleneck of a dinner service. **Claim-bearing fields are
          *     never auto-approved** (decision R-05): silence must not become consent on a halal
          *     claim.
+         *
+         *     A suspended or banned restaurant's pending versions stay in the queue and stay
+         *     readable; deciding one is refused with `403 MENU_LOCKED` until the suspension is
+         *     lifted (`decideMenuVersion`).
          */
         get: operations["listMenuReviewQueue"];
         put?: never;
@@ -320,6 +324,12 @@ export interface paths {
          * @description A-19 / R-17. Approval repoints `live_version_id` and clears `pending_version_id` in
          *     one transaction. Rejection requires a reason code, which the restaurant sees
          *     verbatim and may resubmit against without limit.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included, and a version waiting for review stays as it is
+         *     (`docs/decisions/README.md`, round 2, "A suspended or banned restaurant's menu"):
+         *     approving or rejecting it is `403 MENU_LOCKED`. Decide it once the suspension is
+         *     lifted. A `DELISTED` restaurant's versions can be decided.
          */
         post: operations["decideMenuVersion"];
         delete?: never;
@@ -574,6 +584,10 @@ export interface paths {
          *     category's `created_by`. The restaurant is named in the path, which is the only
          *     place in the contract where a restaurant id is accepted from the caller — and it is
          *     gated by a global admin action, not by scope.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+         *     restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
          */
         post: operations["createMenuCategoryOnBehalf"];
         delete?: never;
@@ -597,6 +611,10 @@ export interface paths {
          *     `HALAL_CERTIFIED` assertion, no alcohol, no pork keyword, price inside the permitted
          *     band. An item created by an admin is created already approved, because the reviewer
          *     and the author are the same accountable person; that fact is recorded on the version.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+         *     restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
          */
         post: operations["createMenuItemOnBehalf"];
         delete?: never;
@@ -630,6 +648,10 @@ export interface paths {
          *     `ITEM_DELETED`, never silently removed. A version of the item still waiting for
          *     review is withdrawn, and deciding it afterwards is `409 ITEM_DELETED`. Removing an
          *     item that is already removed, or that is not on this restaurant's menu, is `404`.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+         *     restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
          */
         delete: operations["deleteMenuItemOnBehalf"];
         options?: never;
@@ -652,6 +674,10 @@ export interface paths {
          *     `PENDING_REVIEW` and the body carries a claim-bearing field, the call is
          *     `409 MENU_VERSION_PENDING` — decide that version first (`decideMenuVersion`). An item
          *     that is not on this restaurant's menu is `404`, the same as one that does not exist.
+         *
+         *     While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+         *     admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+         *     restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
          */
         patch: operations["updateMenuItemOnBehalf"];
         trace?: never;
@@ -2237,6 +2263,11 @@ export interface paths {
          *     returned flagged `is_active: false`, out-of-stock and hidden items are returned with
          *     their state, and each item carries its `pending_version` when a reviewed field has
          *     been edited but not yet approved. Customers only ever see `live_version`.
+         *
+         *     Readable while the restaurant is `SUSPENDED`: the menu lock refuses changes, never
+         *     reads. The restaurant learns the menu is locked from `account_state` on its profile
+         *     (`getRestaurantProfile`) before it tries a save, and from `403 MENU_LOCKED` if a
+         *     save races a suspension.
          */
         get: operations["getOwnMenu"];
         put?: never;
@@ -3945,7 +3976,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "MENU_LOCKED" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -3957,6 +3988,7 @@ export interface components {
                  *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
                  *     `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                  *     `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+                 *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
                  *     `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
                  *     `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                  *     `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
@@ -7335,6 +7367,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `MENU_LOCKED`: the version's restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. The version stays `PENDING_REVIEW`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description `ITEM_DELETED`, `ALREADY_DECIDED`. */
             409: {
                 headers: {
@@ -7759,6 +7800,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             404: components["responses"]["Error"];
             409: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -7800,6 +7850,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             404: components["responses"]["Error"];
             422: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -7823,6 +7882,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is removed, and a version waiting in menu review stays as it is. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
             };
             404: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -7855,7 +7923,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. */
+            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10475,6 +10543,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description `CATEGORY_NAME_TAKEN`. */
             409: {
                 headers: {
@@ -10511,6 +10588,15 @@ export interface operations {
                     "application/json": {
                         data: components["schemas"]["MenuCategory"];
                     };
+                };
+            };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             404: components["responses"]["Error"];
@@ -10560,7 +10646,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. */
+            /** @description `FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10607,6 +10693,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written: no price, photo or other field changes, and a version already waiting in menu review stays as it is. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             404: components["responses"]["Error"];
             422: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -10638,7 +10733,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description `ITEM_BLOCKED_BY_ADMIN` with the admin's reason. */
+            /** @description `ITEM_BLOCKED_BY_ADMIN` with the admin's reason. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included, so an item cannot be marked out of stock or back in stock; `details.account_state` names the state and nothing is written. */
             403: {
                 headers: {
                     [name: string]: unknown;

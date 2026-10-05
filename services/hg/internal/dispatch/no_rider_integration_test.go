@@ -339,8 +339,10 @@ func TestNoRider_TimeBudgetEndsTheSearch(t *testing.T) {
 	if _, err := svc.RunWave(ctx, o.id, 1, 3000); err != nil {
 		t.Fatalf("first wave: %v", err)
 	}
-	// The search started the budget ago (on the test clock).
-	mustExec(t, pool, `UPDATE dispatch SET created_at=$2 WHERE order_id=$1`, o.id, clk.Now().Add(-maxTotalSearch))
+	// The search started the budget ago (on the test clock). The budget is
+	// counted from state_since, when the search last entered SEARCHING
+	// (ClaimWavesToEscalate).
+	mustExec(t, pool, `UPDATE dispatch SET state_since=$2 WHERE order_id=$1`, o.id, clk.Now().Add(-maxTotalSearch))
 	clk.Advance(untilNextWave)
 	if err := runner.EscalateAndExpire(ctx); err != nil {
 		t.Fatalf("EscalateAndExpire: %v", err)

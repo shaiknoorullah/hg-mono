@@ -156,7 +156,7 @@ For `bismillah-grill`: 3 DELIVERED orders (via `journey --auto=all --speed=max`)
 4. The simulator walks the route polyline, posting `/v1/riders/me/positions` every 5 s (the contract's throttle), advancing assignment transitions at the pickup and drop-off points, entering the seal code at pickup, and submitting proof of delivery with a bundled test image.
 5. Terminates at DELIVERED (or reports the state it stopped in and why).
 
-Flags: `--route=short|long|early-rider` (early-rider arrives before the food is ready), `--speed=1x|4x|max` (default 1x, real pace), `--auto=none|restaurant|all`, `--manual=rider`.
+Flags: `--route=short|long|early-rider` (early-rider arrives before the food is ready; a pickup confirmed before the kitchen taps ready marks the order ready in the same step, [early pickup](https://github.com/shaiknoorullah/hg-mono/issues/317)), `--speed=1x|4x|max` (default 1x, real pace), `--auto=none|restaurant|all`, `--manual=rider`.
 
 Routes are fixed JSON route lines between seeded coordinates (restaurant ↔ customer addresses), so a run is identical every time and no external routing service is called.
 
