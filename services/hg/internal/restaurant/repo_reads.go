@@ -100,6 +100,15 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 		   AND state = 'APPROVED' AND deleted_at IS NULL`,
 		restaurantID, requiredRestaurantDocTypes).Scan(&approvedDocs)
 
+	// Payout account: the same test RecomputeOnboarding applies (onboarding_state.go).
+	var payoutReady bool
+	_ = r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM connect_account
+			 WHERE owner_type = 'RESTAURANT' AND owner_id = $1
+			   AND payouts_enabled AND details_submitted)`,
+		restaurantID).Scan(&payoutReady)
+
 	// Menu published: at least one approved menu item version.
 	var menuPublished bool
 	_ = r.db.QueryRow(ctx, `
@@ -114,7 +123,7 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 		DocumentsUploaded:  distinctRequiredDocs > 0,
 		DocumentsSubmitted: submittedDocs >= required,
 		DocumentsApproved:  approvedDocs >= required,
-		PayoutAccount:      false,
+		PayoutAccount:      payoutReady,
 		MenuPublished:      menuPublished,
 	}
 

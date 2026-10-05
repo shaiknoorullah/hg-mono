@@ -188,8 +188,21 @@ func TestIntegrationCartQuoteOrderFlow(t *testing.T) {
 		t.Error("CREATED order should be cancellable")
 	}
 
+	// Placing the order consumed the cart (C-23 rule 1).
+	after, err := st.GetCart(ctx, b.accountID)
+	if err != nil {
+		t.Fatalf("get cart after order: %v", err)
+	}
+	if len(after.Lines) != 0 || after.ItemCount != 0 {
+		t.Errorf("cart after order: %d lines, %d items; want an empty cart", len(after.Lines), after.ItemCount)
+	}
+
 	// A second order for the same customer is ACTIVE_ORDER_EXISTS.
-	q2, _ := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart.ID, DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
+	cart2, err := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
+	if err != nil {
+		t.Fatalf("add to a fresh cart: %v", err)
+	}
+	q2, _ := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart2.ID, DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
 	if q2 != nil {
 		if _, err := st.CreateOrder(ctx, OrderInput{AccountID: b.accountID, QuoteID: q2.ID}, &fresh); err != ErrActiveOrderExists {
 			t.Errorf("second order error = %v, want ErrActiveOrderExists", err)

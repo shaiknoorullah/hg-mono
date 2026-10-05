@@ -784,7 +784,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   platform stores only the Stripe account id and the derived capability flags. The restaurant clicks
   "Set up payouts", the server creates or reuses a Connect account and an Account Link, and redirects
   the browser to Stripe. Stripe returns to `/onboarding/payouts/complete`; the authoritative state
-  comes from the `account.updated` **webhook**, not from the return URL.
+  comes from the `account.updated` **webhook**, not from the return URL. The onboarding status's
+  `steps_completed.payout_account` is true once the restaurant's payout account has payouts enabled
+  and details submitted, the same test that moves `PAYOUT_PENDING` on.
 
 - **Data**:
   ```
