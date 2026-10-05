@@ -223,6 +223,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   2. Client `PUT`s the bytes directly to `upload_url`.
   3. `POST /api/v1/riders/:id/documents/:document_id/confirm {expires_on?}` → server HEADs the object, verifies size + content-type + magic bytes, stores metadata, sets `status=UPLOADED`.
   Then `POST /api/v1/riders/:id/onboarding/documents` submits the complete set for review.
+  A document takes only the rider's own `READY` `KYC_DOCUMENT` upload that is not already another subject's document; any other file is `404`, the same as one that does not exist ([who may attach an upload](01-platform.md#p-28--presigned-upload-and-download)).
 - **Data**: `rider_document(id, rider_id, document_type, object_key, bucket, file_name, content_type, size_bytes, sha256, expires_on, status, uploaded_at, reviewed_at, reviewed_by, rejection_code, rejection_note, superseded_by, version, created_at)`
   - `document_type ∈ {DRIVERS_LICENCE, VEHICLE_REGISTRATION, VEHICLE_INSURANCE, PROFILE_PHOTO, GOVERNMENT_ID}`
   - `status ∈ {PENDING_UPLOAD, UPLOADED, UNDER_REVIEW, APPROVED, REJECTED, EXPIRED, SUPERSEDED}`

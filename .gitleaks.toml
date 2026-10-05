@@ -37,6 +37,16 @@ regexes = [
   '''^hgseal\.[0-9a-f-]+\.[0-9a-f-]+$''',
 ]
 
+# The conformance harness sends a Request's IdemKey as the Idempotency-Key
+# header, so its values are the same made-up request ids that the Idempotency-Key
+# entry allows. Only in the conformance tests.
+[[allowlists]]
+description = "IdemKey values in the conformance tests are Idempotency-Key header values"
+condition = "AND"
+paths = ['''^services/hg/internal/conformance/''']
+regexTarget = "line"
+regexes = ['''\bIdemKey:\s*"''']
+
 # The local persona password. It is the same for every @seed.hg account so a
 # developer can sign in after make dev-reset. Exact value, and only in the
 # devworld package, so a copy pasted anywhere else is still caught.

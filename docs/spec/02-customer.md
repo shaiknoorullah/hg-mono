@@ -133,7 +133,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   2. The request/response field names are **`first_name` / `last_name`** in snake_case. There is no `name` field anywhere (the current app sends `{name,...}` against a `first_name/last_name` contract).
   3. `phone` is read-only on this endpoint; sending it returns `400 FIELD_NOT_EDITABLE`.
   4. Email is **not unique** (matches the existing schema — phone is the identity). Two accounts may share an email.
-  5. Avatar upload uses a Silo presigned PUT (`POST /users/:id/avatar/upload-url` → PUT → `POST /users/:id/avatar/confirm`); max 5 MB, `image/jpeg|png|webp` only, server re-encodes to 512×512 webp.
+  5. The profile's avatar is only the caller's own `READY` `AVATAR` upload: any other file is `404`, the same as one that does not exist, and a malformed id is `422` ([who may attach an upload](01-platform.md#p-28--presigned-upload-and-download)). Avatar upload uses a Silo presigned PUT (`POST /users/:id/avatar/upload-url` → PUT → `POST /users/:id/avatar/confirm`); max 5 MB, `image/jpeg|png|webp` only, server re-encodes to 512×512 webp.
   6. Profile completion is required before any cart or order endpoint will accept a request: those return `409 PROFILE_INCOMPLETE`.
 - **Acceptance criteria**:
   1. Given a user in `PROFILE_PENDING`, when a valid profile is submitted, then `onboarding_state='ACTIVE'` and the onboarding token is consumed and rejected on reuse.
