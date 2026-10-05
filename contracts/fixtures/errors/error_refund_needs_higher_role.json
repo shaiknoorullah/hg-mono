@@ -1,0 +1,21 @@
+{
+  "scenario": "error_refund_needs_higher_role",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `FORBIDDEN`. An approval request is decided by the role it was sent up to, or a super admin.",
+  "operations": [
+    "approveRefund",
+    "declineRefund"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "FORBIDDEN",
+      "message": "This refund needs approval from someone with the ADMIN role.",
+      "request_id": "T9ASCD04SNXHADZDBQ95QWRGXS"
+    }
+  }
+}
