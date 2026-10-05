@@ -191,8 +191,17 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
   admin sends at most 20. The invitee sets a first password through the reset-password operation, which
   also marks the email verified, then enrols two-step sign-in. `staff_invitation` is not written yet,
   and an expired link answers with the reset operation's expired-token error rather than
-  `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170),
-  and the web pages the link opens are [#329](https://github.com/shaiknoorullah/hg-mono/issues/329).
+  `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
+  The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
+  `/accept-invite` sets the first password and stops there: two-step enrolment cannot start from the
+  link until the acceptance flow exists, so the page says the inviting super admin will set it up
+  with the invitee.
+  `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
+  opens. Both take the token the way the restaurant app's link pages do (see
+  [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),
+  with the same shared code: out of the address before anything loads, in memory only, sent once
+  in a POST body, and never a sign-in. If the console is already signed in in that tab, the page
+  asks before it uses the link.
 - **Version**: V1 · **Size**: M
 
 > **Decided:** no warning above 25 active staff accounts at launch ([staff account warning](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).

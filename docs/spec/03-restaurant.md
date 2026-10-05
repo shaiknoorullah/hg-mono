@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -230,6 +230,18 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Out of scope**: magic-link login; email change flow; verification by SMS; deliverability/bounce handling beyond writing a `bounced` flag (V2).
 
+- **As built (Oct 2026)**: the link opens `/verify-email` in the restaurant web app
+  ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)). The token is handled like a
+  password: the app takes it out of the address bar before anything else loads or calls the network,
+  switches the page's referrer policy to `no-referrer`, keeps the token in memory only, and sends it
+  once, in the body of `POST /v1/auth/email/verify`. Opening the link never signs anyone in: the page
+  drops the session the API still returns ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356))
+  and sends the owner to the normal sign-in. If someone is already signed in on the device, the page
+  asks before it uses the link. A used link says so; an expired, incomplete or cut-short link offers
+  a new one by email, and that request answers the same whether or not the account exists. The token
+  capture, the calls and the form state are shared with the admin console's link pages, in
+  `@hg/ui-web/link-token` and `@hg/ui-web/email-links`.
+
 - **Version**: V1
 - **Size**: S
 
@@ -283,6 +295,16 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Out of scope**: SSO/SAML; MFA (V2; it issues no recovery codes, and a super admin resets a lost
   authenticator after a phone call-back check: [recovery codes](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [manual resets](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); device-trust / "remember this device"; biometric; session
   transfer between the web app and a future mobile app.
+
+- **As built (Oct 2026)**: "Forgot your password?" on the sign-in page and the reset email both open
+  `/reset-password` ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)). Without a token,
+  the page asks for the email and then shows "Check your email", the same whether or not the account
+  exists. With one, it takes a new password, checks its length (12 characters to 256 bytes) before
+  using the link, and shows a breached password as an error on the field. An expired, used or unknown
+  link gets one page, because `resetPassword` answers all three alike. Setting the password signs
+  nobody in: the owner signs in again, and the page says the order screen was signed out too. A 429
+  disables the button until the time the server gives, shown as a 12-hour clock time. The token is
+  handled as on the verify-email page ([email verification, as built](#r-02--email-verification-and-account-activation)).
 
 - **Version**: V1
 - **Size**: M
