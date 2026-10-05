@@ -1599,6 +1599,14 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   restaurant-owned transitions: `ACCEPTED → PREPARING` and `PREPARING → READY_FOR_PICKUP`. Marking
   ready notifies the assigned rider (R-26) and the customer. All later statuses belong to the rider.
 
+  Marking ready starts the order's pickup deadline from the [platform deadline table](./01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable):
+  when no rider has collected the order 15 minutes later, and every 10 minutes after that, the
+  search for a rider is re-opened, ops are alerted and the customer is told
+  ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)). A rider cannot pick
+  up an order the kitchen has not marked ready: the pickup is refused and the rider is told to wait
+  for the kitchen, until the kitchen's pickup code is checked
+  ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
+
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,
   and the only status endpoint casts the incoming string `as any` with no validation and no auth.
