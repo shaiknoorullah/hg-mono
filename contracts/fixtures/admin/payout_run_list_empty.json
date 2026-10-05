@@ -1,0 +1,21 @@
+{
+  "scenario": "payout_run_list_empty",
+  "domain": "admin",
+  "schema": "array<PayoutRun>",
+  "describes": "No payout run has happened yet.",
+  "operations": [
+    "listPayoutRuns"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

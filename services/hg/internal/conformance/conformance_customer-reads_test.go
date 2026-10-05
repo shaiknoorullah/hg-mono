@@ -42,6 +42,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // ─── Local seed helpers (scoped to this file) ────────────────────────────────
@@ -140,6 +141,10 @@ func seedCRBasics(t *testing.T, pool *pgxpool.Pool) crBasics {
 		_, _ = pool.Exec(ctx, `DELETE FROM customer_profile WHERE account_id=$1`, b.accountID)
 		_, _ = pool.Exec(ctx, `DELETE FROM account WHERE id=$1`, b.accountID)
 	})
+	// Certified through the real chain (an admin-verified certificate): the
+	// order path refuses a restaurant the platform cannot vouch for.
+	// https://github.com/shaiknoorullah/hg-mono/issues/292
+	testseed.CertifyRestaurant(t, pool, b.restaurantID, 300)
 	return b
 }
 

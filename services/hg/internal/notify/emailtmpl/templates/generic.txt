@@ -1,0 +1,11 @@
+HalalGoes
+
+{{.Title}}
+
+{{.Body}}
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

@@ -237,6 +237,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Accepted MIME: `image/jpeg`, `image/png`, `image/heic`, `application/pdf`. Max 15 MB per file, max 20 pages for PDF. Anything else ⇒ `415 UNSUPPORTED_MEDIA_TYPE`. Magic-byte check must match the declared content-type (`422 CONTENT_TYPE_MISMATCH`).
   - `expires_on` required for every type except `PROFILE_PHOTO`; must be ≥ 30 days in the future at submission (`422 DOCUMENT_EXPIRES_TOO_SOON`).
   - Re-uploading a type marks the previous row `SUPERSEDED` and increments `version`; history is never deleted.
+  - Attaching a file that is already attached as that type, including two attaches of it at once, returns the existing document and adds nothing. The database refuses a second document for one file ([#229](https://github.com/shaiknoorullah/hg-mono/issues/229)). A different file is a re-upload, as in the rule above ([#358](https://github.com/shaiknoorullah/hg-mono/issues/358)).
   - Objects live in a **private** bucket. Reads are only ever via a 5-minute presigned GET issued to the owning rider or to an admin/support principal, with an access-log row. No public URLs.
   - Submission is blocked with `422 DOCUMENTS_INCOMPLETE` and `details.missing[]` naming each missing type/expiry.
   - **Expiry enforcement**: a nightly job sets `status=EXPIRED` at `expires_on`. At `expires_on - 30d`, `-7d`, `-1d` the rider gets a push + inbox notice. On expiry the rider is forced `OFFLINE` and `account_status=SUSPENDED` with reason `DOCUMENT_EXPIRED` until a replacement is approved.
@@ -708,6 +709,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 - **SOW trace**: *"Real-Time Navigation: Integration with Google Maps or similar services for turn-by-turn directions and optimized routes."*
 - **Behaviour**: In-app the rider sees a map (Mapbox map tiles) with their position, the active waypoint (restaurant, then customer), and a route polyline with distance and ETA, refreshed every 30 s or on a >200 m deviation. Turn-by-turn is **handed off** to the rider's installed navigation app via a deep link (`google.navigation:q=lat,lng&mode=d|b|w`, iOS fallback `comgooglemaps://`, then Apple Maps `maps://`, then a universal `https://www.google.com/maps/dir/?api=1` URL). The route polyline and ETA come from **the server**: `GET /api/v1/riders/:id/assignments/:id/route?leg=PICKUP|DROPOFF` returns `{polyline, distance_m, duration_s, provider, computed_at}`.
+  **V0 build (rider app):** the active-delivery screen has two buttons, **Navigate to restaurant** and **Navigate to customer**, that hand the assignment's pickup or drop-off coordinates to the phone's maps app (Android `google.navigation:` then `geo:`; iOS `maps://` then Google Maps; then the https URL). There is no in-app map or route polyline yet.
 - **Data**: `assignment_route(id, assignment_id, leg, provider, polyline, distance_m, duration_s, computed_at)` — one row per recomputation, retained for distance auditing.
 - **States**: none.
 - **Rules**:
@@ -813,7 +815,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   delivery        = the order's delivery fee as priced at checkout              // $2.99 + $1.00/km
   gross           = round(delivery × surge_multiplier) + tip_cents + adjustment_cents
   ```
-  The delivery fee passes through in full: no rate card and no floor ([rider pay](../decisions/README.md#settled--reconciliations), [delivery fee](../decisions/README.md#settled--client-decisions)); `wait_cents` and `guarantee_topup_cents` stay at zero. `surge_multiplier` is the value frozen on the accepted offer (D-13); the surge model is still open, so it is 1.0 at launch and pay stays a pure pass-through ([open, non-blocking](../decisions/README.md#open--non-blocking)). `tip_cents` is 100 % pass-through and may increase after delivery (post-delivery tipping window of 24 h creates a second ledger entry of type `TIP`). Every component is stored, not just the total, and the formula version is stamped.
+  The delivery fee passes through in full: no rate card and no floor ([rider pay](../decisions/README.md#settled--reconciliations), [delivery fee](../decisions/README.md#settled--client-decisions)); `wait_cents` and `guarantee_topup_cents` stay at zero. `surge_multiplier` is the value frozen on the accepted offer (D-13); the surge model is still open, so it is 1.0 at launch and pay stays a pure pass-through ([open, non-blocking](../decisions/README.md#open--non-blocking)). `tip_cents` is 100 % pass-through and may increase after delivery (post-delivery tipping window of 24 h creates a second ledger entry of type `TIP`). Every component is stored, not just the total, and the formula version is stamped. Each component is its own line, mirroring one `RIDER_PAYABLE` ledger posting: a `DELIVERY` line for the delivery fee and a `TIP` line for the tip, written in the rider's own transition of the order to `DELIVERED`, for the rider whose assignment is `DELIVERED` with its proof of delivery ([#306](https://github.com/shaiknoorullah/hg-mono/issues/306)). Until the surge model is decided, the multiplier paid is 1.00.
 - **Data**: `earning_entry(id, rider_id, assignment_id, type, base_cents, distance_cents, wait_cents, surge_multiplier, subtotal_cents, guarantee_topup_cents, tip_cents, adjustment_cents, gross_cents, currency='CAD', formula_version, status, earned_at, payout_id, created_at)`
   - `type ∈ {DELIVERY, TIP, CANCELLATION_COMPENSATION, BONUS, ADJUSTMENT, CLAWBACK}`
   - `status ∈ {PENDING, AVAILABLE, PAID, REVERSED}`
@@ -826,7 +828,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Earnings are gross to the rider as an independent contractor; the platform withholds nothing and reports per the tax decision below.
   - Every entry is reproducible: given `formula_version` and the stored inputs, recomputation must yield the identical `gross_cents` (property test).
 - **Acceptance criteria**:
-  1. Given an order whose delivery fee is 799, `surge=1.0` and `tip=200`, When the entry is written, Then `gross_cents=999`, and `wait_cents` and `guarantee_topup_cents` are 0.
+  1. Given an order whose delivery fee is 799, `surge=1.0` and `tip=200`, When the entries are written, Then the `DELIVERY` line is 799 and the `TIP` line 200 (`gross_cents` 999 in all), and `wait_cents` and `guarantee_topup_cents` are 0.
   2. Given a 0.4 km trip, When the entry is written, Then `guarantee_topup_cents=0` and `gross` is the delivery fee plus tip: there is no floor.
   3. Given surge 1.5 frozen at offer time and surge 1.0 at delivery time, When the entry is written, Then `surge_multiplier=1.5` was applied.
   4. Given an order cancelled after `ARRIVED_AT_PICKUP`, When it terminates, Then no `CANCELLATION_COMPENSATION` entry is written at launch.
@@ -838,7 +840,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 > **DECISION REQUIRED — surge**: who sets the multiplier and how? · **Proposed default**: V1 ships a manual, admin-set surge per zone per time window (multiplier 1.0–2.5, 0.1 steps), frozen onto each offer; automatic demand-based surge is V3. · **Why**: an automatic surge engine needs demand data the platform will not have until it is live.
 
-> **Decided:** the offer shows the tip so far ([tip shown to riders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). Still open: whether the platform makes up a tip the customer later lowers.
+> **Decided:** the offer shows the tip so far ([tip shown to riders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). Still open: whether the platform makes up a tip the customer later lowers ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)). Until it is decided, it does not: `HG_RIDER_TIP_MAKEUP` is off.
 
 > **DECISION REQUIRED — contractor tax handling**: does the platform issue T4A slips and collect GST/HST numbers from riders? · **Proposed default**: collect an optional GST/HST number at payout onboarding, issue annual earnings summaries, no withholding; formal T4A generation deferred pending the client's accountant. · **Why**: it is a legal/accounting decision, but the data model must reserve the fields now.
 
@@ -979,7 +981,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Rules**:
   - **A rider must always have a forward path that is not "falsely mark delivered".** Every screen from `ASSIGNED` onward exposes the exception action. This is the single most important rider-safety and data-integrity rule in the domain.
   - Unless the customer chose "leave at door", `CUSTOMER_UNREACHABLE` requires: ≥2 call attempts via `contact_session` at least 60 s apart, a 5-minute countdown that the server times (not the client), and a photo. Only then does the option to finish appear.
-  - `RETURNING` requires the rider to bring the food back to the restaurant; on `RETURNED` the rider is paid the full delivery earnings (they did the work) and the customer's refund is decided by the dispute policy.
+  - `RETURNING` requires the rider to bring the food back to the restaurant; on `RETURNED` the rider is paid the full delivery earnings (they did the work) and the customer's refund is decided by the dispute policy. Not paid automatically: the rider's own exception steps move no money (the rule below), so this pay waits for a server-side decision. Rider pay on interrupted deliveries is still open ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)).
   - Every exception notifies the customer with honest copy and updates their order status.
   - Ops receives every exception in a queue with the evidence attached; `ACCIDENT`/`UNSAFE_SITUATION` page immediately.
   - Exceptions are never resolvable by the rider alone when money moves — the rider triggers, the server decides.

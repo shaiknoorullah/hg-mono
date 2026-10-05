@@ -296,8 +296,13 @@ SELECT id, subject_type, subject_id, rider_doc_type, state, version, created_at
 
 // AttachDocument creates a kyc_document row for the rider, verifying the
 // stored_object was uploaded by the same account (IDOR guard).
-// Returns the created document row. Idempotent: if a document for the same
-// (rider, doc_type, stored_object_id) already exists, the existing row is returned.
+//
+// One file is attached once per document type: when a live row for the same
+// (rider, doc_type, stored_object_id) exists, that row is returned and nothing
+// is written. The database holds the rule (unique index
+// kyc_document_rider_file_once, migration 00038), so two attaches of the same
+// file at once cannot both insert: the second INSERT waits for the first to
+// commit, does nothing, and reads the first one's row back.
 func (r *Repo) AttachDocument(ctx context.Context, accountID, docType, storedObjectID string, expiresOn *time.Time) (kycDocumentRow, error) {
 	// Verify stored_object ownership first (IDOR: returns 404).
 	// The file must also be a compliance upload (not a delivery photo or an
@@ -322,41 +327,36 @@ SELECT so.uploaded_by FROM stored_object so
 		return kycDocumentRow{}, ErrNotFound
 	}
 
-	// Idempotency: check if an identical document row already exists.
-	var existing kycDocumentRow
-	errExist := r.pool.QueryRow(ctx,
-		`SELECT id, subject_type, subject_id, rider_doc_type, state, version, created_at
-		   FROM kyc_document
-		  WHERE subject_type = 'RIDER' AND subject_id = $1
-		    AND rider_doc_type = $2::rider_doc_type AND stored_object_id = $3
-		    AND deleted_at IS NULL
-		  ORDER BY created_at DESC LIMIT 1`,
-		accountID, docType, storedObjectID).Scan(
-		&existing.ID, &existing.SubjectType, &existing.SubjectID,
-		&existing.DocType, &existing.State, &existing.Version, &existing.CreatedAt,
-	)
-	if errExist == nil {
-		// Already exists — return idempotently.
-		return existing, nil
-	}
-	if !errors.Is(errExist, pgx.ErrNoRows) {
-		return kycDocumentRow{}, errExist
-	}
-
-	var validUntil *time.Time
-	if expiresOn != nil {
-		validUntil = expiresOn
-	}
-
+	// The conflict target names the partial index's predicate so Postgres
+	// matches kyc_document_rider_file_once.
 	const ins = `
 INSERT INTO kyc_document (subject_type, subject_id, rider_doc_type, stored_object_id, state,
                            valid_until, deadline_at, deadline_action)
 VALUES ('RIDER', $1, $2::rider_doc_type, $3, 'SUBMITTED',
         $4,
         now() + interval '72 hours', 'ESCALATE')
+ON CONFLICT (subject_id, rider_doc_type, stored_object_id)
+   WHERE subject_type = 'RIDER' AND deleted_at IS NULL
+   DO NOTHING
 RETURNING id, subject_type, subject_id, rider_doc_type, state, version, created_at`
+	// A separate statement, so it sees a row committed by a concurrent attach
+	// after the INSERT began.
+	const existing = `
+SELECT id, subject_type, subject_id, rider_doc_type, state, version, created_at
+  FROM kyc_document
+ WHERE subject_type = 'RIDER' AND subject_id = $1
+   AND rider_doc_type = $2::rider_doc_type AND stored_object_id = $3
+   AND deleted_at IS NULL`
+
 	var d kycDocumentRow
-	err = r.pool.QueryRow(ctx, ins, accountID, docType, storedObjectID, validUntil).Scan(
+	err = r.pool.QueryRow(ctx, ins, accountID, docType, storedObjectID, expiresOn).Scan(
+		&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State, &d.Version, &d.CreatedAt,
+	)
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return d, err
+	}
+	// Already attached: return that row.
+	err = r.pool.QueryRow(ctx, existing, accountID, docType, storedObjectID).Scan(
 		&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State, &d.Version, &d.CreatedAt,
 	)
 	return d, err

@@ -14,7 +14,7 @@ reviewed: 2026-10-05
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
 
-**Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Redis 7, [Silo](https://github.com/pgsty/silo) object storage (MinIO-compatible S3 API; [object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)), Traefik v3, docker compose.
+**Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Valkey 9 (Redis-compatible), [Silo](https://github.com/pgsty/silo) object storage (the maintained fork of MinIO, with its S3 API; [object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)), Traefik v3, docker compose.
 **Currency**: CAD only. **Market**: Canada; launch in Ontario only ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 **Status**: normative. Every domain module (restaurant, menu, cart, order, dispatch, payments, admin) depends on this layer and may not re-implement any part of it.
 
@@ -224,15 +224,16 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
 
 - **Behaviour**:
   - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.**
-  - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, issues a session.
-  - `POST /v1/auth/email/resend` — rate limited 1/min, 5/day per account.
+  - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, answers `204`. **Issues no session and sets no cookie**: an emailed link never signs anyone in, or an attacker could send someone the link for the attacker's own account and have them work in it ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The owner then signs in with `login`.
+  - `POST /v1/auth/email/resend` — rate limited like the reset email below; a 429 only when the caller is over its own limits.
   - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when enrolled/required, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
   - `POST /v1/auth/password/forgot` `{email}` → always 200; sends reset token if the account exists.
-  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email.
+  - **Link email limits** (verification and reset alike, as built Oct 2026): 3 an hour per address and client address (an IPv4 address or an IPv6 /64), so an attacker cannot use up the owner's own quota; 10 an hour per client address over all addresses; and a last-resort cap of 10 an hour and 20 a day per address, which answers generically and logs an alert. Addresses are counted in lower case with any `+tag` removed. Both operations answer in the same content and time whether or not the account exists. A new link does not cancel the earlier ones; at most 3 are live per account, and using one ends the rest.
+  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email. Answers `204` with no session and no cookie, also for a staff invitation setting a first password; the user then signs in with `login` (with the authenticator code where required).
   - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued.
   - `POST /v1/auth/totp/enroll` / `verify` / `disable` (step-up required).
 
-  Password hashing: **argon2id**, `t=3, m=64 MiB, p=2, saltLen=16, keyLen=32`, encoded in the standard `$argon2id$v=19$m=65536,t=3,p=2$…` string so parameters can be upgraded per-user on next successful login. Policy: minimum 12 characters, maximum 256 bytes, no composition rules, rejected against a bundled top-10k breached-password list.
+  Password hashing: **argon2id**, `t=3, m=64 MiB, p=2, saltLen=16, keyLen=32`, encoded in the standard `$argon2id$v=19$m=65536,t=3,p=2$…` string so parameters can be upgraded per-user on next successful login. Policy: minimum 12 characters, maximum 256 bytes, no composition rules, rejected against a bundled top-10k breached-password list. Each hash or verification allocates 64 MiB, so at most 3 run at once per replica (`HG_AUTH_HASH_CONCURRENCY`, at least 3), split across three gates so a flood on one public form cannot lock anyone else out: sign-up (restaurant sign-up and password reset), login (sign-in from every surface except the staff web app, and the password change of a session with no staff role), and staff (sign-in from the staff web app, `X-HG-Client: admin-web`, and the password change of a session holding `SUPPORT_AGENT`, `ADMIN` or `SUPER_ADMIN`), each with at least one slot. The gate is chosen from the request (its surface, or the session's roles), never from the account an email belongs to, so a `503` or the time spent waiting never tells which emails are registered or belong to staff. The per-IP, per-email and per-account rate limits run before a slot is taken, so a limited request never holds one. A caller that waits more than 2 s for a slot (`HG_AUTH_HASH_WAIT`, at most 5 s), or finds the gate's queue full (`HG_AUTH_HASH_MAX_WAITERS`, default 4 per slot), gets `503` with `Retry-After` and error code `TIMEOUT`, nothing was executed, and the server logs one `password hashing at capacity` warning naming the gate. A busy login is not a failed attempt and never counts toward the lockout. Login for an email with no account, or an account with no password, verifies against a dummy hash on the request's gate, so its timing and its answer under load match a wrong password ([#216](https://github.com/shaiknoorullah/hg-mono/issues/216)).
 
   Tokens for email verification and password reset: 32 random bytes, base64url; stored as SHA-256; single-use; verification TTL 24 h, reset TTL 30 min.
 
@@ -262,7 +263,9 @@ CREATE TABLE login_attempt (
 CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
 ```
 
-  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account.
+  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min); over either cap ⟹ 429 `rate_limited` with `Retry-After`, and the attempt is not evaluated or recorded. Both fail open when Redis is unreachable (login never answers 503). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account.
+
+  Password change: `rl:password_change:account:{account_id}` (5/15 min), checked before the current password is verified; over the cap ⟹ 429 `rate_limited` with `Retry-After`. It fails open like login's limits; the hashing gate still bounds the work.
 
 - **Rules & invariants**:
   - **I-03.1** Plaintext passwords never appear in logs, audit payloads, error messages or panics. A `String()` method on the password type returns `"[REDACTED]"`.
@@ -562,6 +565,8 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
   Response: the full `Quote` (below). The quote is persisted, has an `expires_at` (**10 minutes**), and its `id` is the only thing checkout accepts:
   `POST /v1/orders` `{ "quote_id":"…", "payment_method_id":"…", "delivery_instructions":[…], "idempotency_key" via header }`.
   The server **re-executes** `Quote()` at order time and compares to the stored quote. Identical ⟹ proceed. Different (price changed, item went unavailable, address changed) ⟹ `409 quote_stale` with the new quote embedded; the client must show the difference and get explicit re-confirmation. Expired ⟹ `409 quote_expired`.
+
+  **The restaurant must be able to take the order, at every step.** Adding a cart line, quoting (`POST /v1/quotes`), placing the order (`POST /v1/orders`) and the restaurant accepting it each lock the restaurant row `FOR SHARE` inside their own transaction, then refuse with `409 RESTAURANT_UNAVAILABLE` unless the restaurant is listed, `LIVE`, and its halal certificate is current as of that transaction. "Current" is computed from the admin-verified certificate data at that moment (`halal_certification_at(restaurant, now())`), not read from the stored `halal_status`, which can lag behind the calendar: the stored state can refuse an order but never admit one on its own. A suspension, ban, delisting or certificate expiry writes the same row, so it either commits first and is seen, or waits until the order's transaction has committed and then finds the order. The saved cart is kept, but cannot be quoted until the restaurant can take orders again ([halal display, rule 3](02-customer.md#c-12--halal-certification-display-and-verification--critical)).
 
   **The computation, in order. Each step is a pure function of DB state; none of it reads the request body for money.**
 
@@ -954,6 +959,9 @@ CREATE TABLE quote_tax_line (
 
   The customer's $42.28 decomposes to restaurant $27.00 + restaurant tax $3.51 + rider $10.99 (incl. $5.00 tip) + platform tax $0.78 = $42.28. Zero residual; with commission and service fee at zero the platform posts no revenue row. (Stripe fees are posted separately against `PLATFORM_REVENUE` when the balance-transaction webhook arrives, keeping the customer-facing decomposition clean.)
 
+  **When the rider's share is posted.** The rider is not known at capture, so the capture batch leaves the delivery fee and the tip in `PLATFORM_REVENUE`, where a cancelled order's refund finds them. The rider's own `DELIVERED` transition then posts, in the same transaction, one balanced pair per earning: the delivery fee and the tip, exactly as priced, move from that held share to the `RIDER_PAYABLE` of the rider whose assignment is `DELIVERED` with its proof of delivery, read and locked from the database (the rider named on the request is only checked against it). One rider earning line mirrors each posting ([earnings formula and per-delivery ledger](04-rider.md#d-26--earnings-formula-and-per-delivery-ledger)). The batch is keyed by the order, so a replay posts nothing. No other path pays a rider: not a cancelled order, not one refunded in full before delivery, not a reassigned or returned assignment, not another actor's state change. A later refund that charges the rider back writes the reversing `RIDER_PAYABLE` entry and a mirroring `CLAWBACK` line; nothing is updated or deleted. Whether the platform makes up a tip lowered after the rider accepts is the owner's open question ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)); until it is decided it does not (`HG_RIDER_TIP_MAKEUP`, off).
+  Built in [#306](https://github.com/shaiknoorullah/hg-mono/issues/306).
+
 - **Data**:
 
 ```sql
@@ -1062,7 +1070,9 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
   | T20 | `DISPUTED` | `RESOLVED` | support resolves (refund / partial / no action) | support/admin (`dispute.resolve`) | refund + adjustment batch |
   | T21 | `PREPARING`/`READY_FOR_PICKUP` | `DISPUTED` | restaurant reports an unrecoverable problem | restaurant staff | none yet |
 
-  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal.
+  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal, but it is the one unfinished state that is not the customer's active order: every problem report puts an order there, and an order under review after a problem report does not block a new checkout ([narrowed one-active-order rule](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). Its only way out is T20 to `RESOLVED`, so an order that stopped counting as active never counts again.
+
+  A support agent or admin may also cancel an order before the restaurant accepts it, from `CREATED`, `AUTHORIZED` or `RESTAURANT_PENDING`, recorded with actor `ADMIN` ([admin order intervention](05-admin.md#a-38--order-lookup-and-admin-order-intervention)).
 
   **The dispatch sub-machine** (table `dispatch`, one row per order, created at T6):
 
@@ -1072,7 +1082,7 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
                  └──────────┘         └────────────┴─────────────┴──► UNASSIGNED → SEARCHING
                  └───────────────────────────────────────────────────► NO_RIDER_FOUND
   ```
-  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13).
+  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13). A pickup moves the order in the same transaction as the dispatch step, so a refused order move refuses the pickup ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317)). Only the rider who holds the order's delivery can move it, checked where the order is locked. A pickup while the order is still `PREPARING` is refused until the kitchen's pickup code is checked: marking ready is the kitchen's step, never the rider's word alone ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
 
   **Enforcement.** A single function owns every transition:
   ```go
@@ -1185,7 +1195,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   1. Given an order in `RESTAURANT_PENDING`, When a `PUT` attempts to set it to `DELIVERED`, Then 409 `illegal_transition` listing `["PREPARING","REJECTED","CANCELLED"]`, and no row changes.
   2. Given restaurant staff scoped to R1 and an order for R2 in `RESTAURANT_PENDING`, When they accept it, Then 404 and no transition occurs. (Old system: any caller with two ids could accept.)
   3. Given an order accepted by the restaurant, When capture fails permanently, Then the order does not enter `PREPARING`; it reaches `CANCELLED` with `cancel_reason='capture_failed'` and the restaurant is notified.
-  4. Given an order in `PREPARING`, When the rider marks pickup before the restaurant marks ready, Then 409 — `PREPARING → PICKED_UP` is not in the table; the rider sees "waiting for the kitchen".
+  4. Given an order in `PREPARING`, When the rider marks pickup before the restaurant marks ready, Then 409 — `PREPARING → PICKED_UP` is not in the table; the rider sees "waiting for the kitchen", and neither the assignment nor the order moves. The same holds for an order the rider cannot collect (cancelled, rejected, disputed or not yet accepted). A rider who does not hold the order's delivery gets 404, as for any assignment that is not theirs ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317); the early handover with the kitchen's code is [#413](https://github.com/shaiknoorullah/hg-mono/issues/413)).
   5. Given the state machine, When the exhaustive transition test runs (all 14 × 14 ordered pairs × 6 actor kinds), Then exactly the 21 rows above are permitted and all 1155 other combinations are rejected.
   6. Given an order reaching `DELIVERED`, When settlement fails, Then the order stays `DELIVERED` with an armed deadline and retries; it never silently sits without a deadline.
 
@@ -1205,7 +1215,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   | `AUTHORIZED` | `+60 s` | `OFFER_RESTAURANT` — emit the offer, transition T4 (or T5 if the restaurant is closed/paused) | 3 (retry every 60 s) | T5 `CANCELLED` + void |
   | `RESTAURANT_PENDING` | `+180 s` | `RESTAURANT_TIMEOUT` — transition T8, void auth, notify customer, decrement the restaurant's acceptance SLA | 0 | — |
   | `PREPARING` | `accepted_at + prep_eta + 10 min` | `PREP_OVERDUE` — notify customer with a new ETA, alert ops, re-arm `+10 min` | 3 | T11 `CANCELLED`, full customer refund, restaurant paid per policy |
-  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (widen radius / manual assign), alert ops, re-arm `+10 min` | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
+  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (restart a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
   | `PICKED_UP` | `picked_up_at + 75 min` | `DELIVERY_OVERDUE` — ping rider, alert ops, re-arm `+15 min` | 3 | T17 `DISPUTED` + ops case. **Never auto-delivers.** |
   | `ARRIVED` | `+15 min` | `HANDOVER_OVERDUE` — notify customer, alert ops, re-arm `+10 min` | 2 | T17 `DISPUTED` + ops case |
   | `DELIVERED` | `+2 min` | `SETTLE` — post the settlement batch, transition T18; on failure re-arm with exponential backoff (2 m, 4 m, 8 m, …) | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
@@ -1262,7 +1272,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 
 > **Decided:** customer fully refunded, restaurant paid in full, the platform absorbs the cost ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
-> **Open:** is the customer offered a pickup option before the order is cancelled?
+> **Open:** is the customer offered a pickup option before the order is cancelled? ([cancel at the pickup cap](https://github.com/shaiknoorullah/hg-mono/issues/336))
 
 > **DECISION REQUIRED — prep overdue cancellation**: When a kitchen blows through three escalations, is the restaurant still paid? · **Proposed default**: no — full customer refund, no restaurant payout, incident recorded against the restaurant's SLA. · **Why**: unlike the no-rider case, the failure is the restaurant's.
 
@@ -1273,6 +1283,8 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 ---
 
 # 5. Payments (Stripe, CAD, Canada)
+
+**One keyed Stripe client.** Every Stripe call the server makes (PaymentIntents, SetupIntents, refunds, Connect accounts and onboarding links, transfers) goes through the one client built from `HG_STRIPE_SECRET_KEY`. The SDK's package-level functions read a global key that nothing sets, so a call made through one would reach Stripe with no key and fail with 401; they are not used, and a test fails if one comes back ([issue #338](https://github.com/shaiknoorullah/hg-mono/issues/338)). Every call is made in the Stripe API version that the stripe-go major version pins, which the server logs at startup (`api_version`); the webhook endpoints are created in that same version, because signature verification refuses an event sent in any other, and a test pins the version so a library upgrade that moves it fails until the endpoints move with it.
 
 ### P-16 — PaymentIntent lifecycle and capture timing
 
@@ -1379,8 +1391,8 @@ CREATE TABLE saved_payment_method (
 
   Processing is **store-then-process**:
   1. Verify signature. Insert `webhook_event {stripe_event_id UNIQUE, type, payload, received_at}`. A duplicate `stripe_event_id` returns `200` immediately — this is the idempotency boundary, and it is a Postgres unique index, not a Redis key.
-  2. Commit, return `200` within the request. Processing happens in the deadline-runner loop (`webhook_event.deadline_at`), so a slow handler never causes Stripe to retry against a half-done state.
-  3. The handler processes the event under `FOR UPDATE SKIP LOCKED`, applies it, sets `processed_at`, and re-arms on failure with backoff (1 m, 2 m, 4 m … cap 8 attempts, then ops page).
+  2. Commit, return `200` within the request. Processing happens in the webhook worker, from the stored row, once its `webhook_event.deadline_at` comes due, so a slow handler never causes Stripe to retry against a half-done state.
+  3. The handler processes the event under `FOR UPDATE SKIP LOCKED`, applies it, sets `processed_at`, and re-arms on failure with backoff (1 m, 2 m, 4 m … cap 8 attempts, then ops page). One replica works at a time, holding an advisory-lock lease; the effect and `processed_at` commit in one transaction. The eighth failure sets the event aside (`dead_lettered_at`, its error kept) and pages on-call with an `admin.alert` in the same transaction; the catch-up below retries it once the cause is fixed ([#231](https://github.com/shaiknoorullah/hg-mono/issues/231)).
   4. **Out-of-order safety**: every handler is a *state assertion*, not a delta. `handleAmountCapturableUpdated` sets state to `REQUIRES_CAPTURE` only if the local state is earlier in the lifecycle; it never moves a PI backwards. Each `payment_intent` row carries `last_stripe_event_created_at`; events older than the last applied one are recorded and skipped.
 
   **Handled events:**
@@ -1393,16 +1405,16 @@ CREATE TABLE saved_payment_method (
   | `payment_intent.payment_failed` | → `FAILED`, order T2/T3 per retry policy, notify |
   | `payment_intent.canceled` | → `CANCELED` |
   | `charge.refunded` | reconcile `refund` rows, post the REFUND batch if not already posted |
-  | `charge.dispute.created` / `.closed` | open/close a chargeback record, freeze affected payouts |
+  | `charge.dispute.created` / `.updated` / `.closed` | open, update or close a chargeback record, freeze affected payouts, notify ops; a lost dispute is a `reconciliation_exception`. The order's state is left alone: T19 is the customer's, the restaurant's or support's, and ops review the chargeback |
   | `balance.available` | trigger payout reconciliation |
   | `account.updated` (Connect) | update `connect_account` capabilities, `charges_enabled`, `payouts_enabled`, requirements |
-  | `capability.updated` | same |
+  | `capability.updated` | none: Stripe sends `account.updated` for every capability change, and that event carries `payouts_enabled` |
   | `transfer.created` / `transfer.reversed` | reconcile payout ledger |
   | `payout.paid` / `payout.failed` | update partner payout state, notify |
 
   **Reconciliation** (nightly, and on demand): pull Stripe balance transactions for the day and compare against `ledger_entry` on `PSP_CLEARING` and `PSP_FEES`. Any order present in one and not the other, or with an amount mismatch, is written to `reconciliation_exception` and paged. This is the backstop for a webhook that never arrived.
 
-  **Catch-up after a failover or a restore** (on demand): a failover or a restore from backup loses the last moments of writes, and with them any webhook stored in that window. `hg stripe-catchup --since <time>` closes the gap without waiting for the nightly run. It lists the Stripe events created since `<time>` and stores each one through the same store step a delivered webhook takes, so the unique index on the event id drops the ones already here, then applies every stored event in that window that has not been applied yet, oldest first. Next it reads back from Stripe every payment intent written in the last 24 hours (or since `<time>`, if that is earlier) and asserts its state through the same handlers; it never writes a payment state directly. It applies only the event types that have a payment intent effect; any other stored event (a refund, a dispute, a Connect account or a payout) stays pending for the handler that will own it. It prints the transitions it applied. Each disagreement it will not settle by itself (a payment Stripe knows and the database does not, one the database has further along than Stripe, or a captured payment Stripe reports cancelled or the other way round, which it never moves by itself) is written to `reconciliation_exception` in the same transaction that marks its event applied, at most one open row per kind and payment. A late decline for a payment already captured or cancelled is an old event, not a disagreement. Every run lists all the open ones and exits non-zero while any remain, until a person resolves them. It is a command of the `hg` binary, not an HTTP route, so only someone holding the server's own secrets can run it. A second run changes nothing.
+  **Catch-up after a failover or a restore** (on demand): a failover or a restore from backup loses the last moments of writes, and with them any webhook stored in that window. `hg stripe-catchup --since <time>` closes the gap without waiting for the nightly run. It lists the Stripe events created since `<time>` and stores each one through the same store step a delivered webhook takes, so the unique index on the event id drops the ones already here, then applies every stored event in that window that has not been applied yet, oldest first. Next it reads back from Stripe every payment intent written in the last 24 hours (or since `<time>`, if that is earlier) and asserts its state through the same handlers; it never writes a payment state directly. It applies every stored event through the same step the webhook worker takes, including one the worker set aside after repeated failures, so running it is also how such an event is retried ([#249](https://github.com/shaiknoorullah/hg-mono/issues/249)). It prints the transitions it applied. Each disagreement it will not settle by itself (a payment Stripe knows and the database does not, one the database has further along than Stripe, or a captured payment Stripe reports cancelled or the other way round, which it never moves by itself) is written to `reconciliation_exception` in the same transaction that marks its event applied, at most one unresolved row per kind and payment. A late decline for a payment already captured or cancelled is an old event, not a disagreement. Every run lists all the unresolved ones and exits non-zero while any remain, until a person resolves them. It is a command of the `hg` binary, not an HTTP route, so only someone holding the server's own secrets can run it. A second run changes nothing.
 
 - **Data**:
 
@@ -1482,6 +1494,8 @@ CREATE TABLE reconciliation_exception (
   | `PLATFORM_ERROR` | full | — | — | full |
 
   **Compensation is transactional, not best-effort.** Every cancelling transition writes the refund request, the ledger batch and the state change in **one** Postgres transaction; the Stripe call happens afterwards from the outbox with retries. A Stripe refund that fails permanently leaves `refund.state='FAILED'`, pages on-call, and keeps the order out of `COMPLETED` — it is never silently swallowed. This is the direct replacement for the old `"Payment refund would be initiated here"` TODO and the saga branch that fell through to rider assignment when compensation returned false (B48, §7.6).
+
+  **Sending a refund** ([#318](https://github.com/shaiknoorullah/hg-mono/issues/318)). Only an approved refund is sent: `AUTHORISED`, with the member of staff who approved it recorded on the row (the schema refuses a refund that moves money without one). A customer's own request (`POST /v1/refunds`) is recorded in `REQUESTED` with no ledger batch and waits for staff review ([C-37](02-customer.md#c-37--refund-requests-and-refund-tracking): human-reviewed at launch); an approval request (`PENDING_APPROVAL`, a goodwill refund above CAD 50 or one past the requester's cap) waits for a second person holding the role it was escalated to, never the requester. Approval posts the REFUND batch and puts the refund on the sender's clock in one transaction. The refund sender works on one replica at a time, holding an advisory-lock lease. For each due refund it first commits the attempt (counted, the row leased, the next retry time set), then calls `Refund.create` keyed `rf:<refund id>` with `metadata.refund_id`, then records `stripe_refund_id` and `SUBMITTED`; the refund webhooks ([P-17](#p-17--webhooks-idempotency-and-reconciliation)) take it on to `SUCCEEDED` or `FAILED`. Before calling Stripe it checks the payment was captured (an uncaptured authorisation is voided, never refunded) and that the refund is no more than the capture minus what is already refunded, by this system or in Stripe's dashboard; a refund that fails either check is `FAILED` without a call. A network error, a Stripe 5xx, a rate limit or a request still in flight is retried after 1 m, 2 m, 4 m …; the eighth failure sets the refund aside (still `AUTHORISED`, its money still counted against the capture, deadline action `review_unsent_refund`) and pages on-call. A refund Stripe refuses outright is `FAILED`, filed as a `reconciliation_exception` and paged.
 
   **Chargebacks** (`charge.dispute.created`): freeze the restaurant's and rider's next payout up to the disputed amount, open a `chargeback` row with the evidence-due deadline, auto-attach the receipt, POD photo, delivery GPS track and timeline as evidence, and notify ops.
 
@@ -1635,7 +1649,7 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
 
 > **Decided (riders):** no automatic block at launch; operations follow up by hand ([rider balance below zero](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
-> **Open:** is a restaurant negative for 30 days blocked from new orders, and is a partner's bank account never debited?
+> **Owner question:** is a restaurant negative for 30 days barred from new orders, and is a partner's bank account never debited? Until the owner answers ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)), the weekly payout run stops new orders for that restaurant after `HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS` days (default 30; 0 turns this off) and allows them again once the balance recovers ([#251](https://github.com/shaiknoorullah/hg-mono/issues/251)).
 
 ---
 
@@ -2089,7 +2103,8 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
 - **Behaviour**:
   - **SMS**: one provider behind a `SMSSender` interface (Twilio at launch; sign-in codes through Twilio Verify, as in the phone sign-in feature above), Canadian long code or toll-free number **registered for A2P/short-code compliance**, which is still open ([SMS registration](../decisions/README.md#open--blocking)); Canadian carriers require pre-registration for application-to-person traffic. Messages: OTP, `must_reach` escalations, critical account/security. Every SMS includes the brand name; no marketing SMS in V1. Per-message cost is recorded in `notification_delivery.cost_cents`, with a daily spend circuit breaker.
   - **Email**: one provider behind an `EmailSender` interface ([Resend](https://resend.com), on HalalGoes's Resend accounts: [email decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) on a subdomain (`mail.halalgoes.com`) with **SPF, DKIM and DMARC** configured and a boot-time DNS probe that alerts if any is missing. Transactional and marketing streams are separated so a marketing complaint cannot damage transactional deliverability.
-  - **Templates**: built with [React Email](https://react.email) and stored in the repo, exported to HTML + plaintext, versioned, rendered server-side, localised `en-CA` / `fr-CA`, with a golden-file test per template per locale. Admin-editable templates (`A37`) are V2 and, when added, are stored as `email_template` rows with a version history and a preview/approval step — never free-form HTML injected without sanitisation.
+  - **Templates**: built with [React Email](https://react.email) and stored in the repo, exported to HTML + plaintext, versioned, rendered server-side, localised `en-CA` / `fr-CA`, with a golden-file test per template per locale. They live in [`packages/emails`](../../packages/emails) and are exported with `{{.Var}}` slots to [`services/hg/internal/notify/emailtmpl/templates`](../../services/hg/internal/notify/emailtmpl), which the Go binary embeds and fills with `html/template`, so no Node runs in production; CI fails when the export is stale. Only `en-CA` exists so far.
+  - **Outside production, email reaches only an allow-list.** With a Resend key set, an address not on `HG_EMAIL_ALLOWLIST` is logged and recorded `SUPPRESSED` (`NOT_ON_ALLOW_LIST`), never sent; with no key, every email is logged instead of sent. The list is refused in production ([dev environment beside production](https://github.com/shaiknoorullah/hg-mono/issues/235)). Admin-editable templates (`A37`) are V2 and, when added, are stored as `email_template` rows with a version history and a preview/approval step — never free-form HTML injected without sanitisation.
   - Required templates at launch: email verification, password reset, security alert, order receipt, order cancelled + refund, refund settled, restaurant application approved/rejected, rider application approved/rejected, payout statement, Connect requirements due, monthly commission invoice.
 
 - **Data**: `notification_delivery` (P-24) carries provider ids and cost. `email_suppression (email, reason, at)` records bounces and complaints; a suppressed address is never emailed again for marketing and only for critical transactional mail.
@@ -2117,11 +2132,13 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
 
   | Bucket | Visibility | Contents | Versioning | Retention |
   |---|---|---|---|---|
-  | `hg-kyc` | **private** | restaurant business licence, halal certificate, food-safety cert, owner ID; rider licence, vehicle registration, insurance, profile photo | on | 7 years after account closure |
-  | `hg-pod` | **private** | proof-of-delivery photos and signatures | off | 90 days, then delete |
-  | `hg-media` | **private**, read through presigned URLs | menu item photos, restaurant logos and covers, rider profile photos (the cropped public one) | off | lifetime of the entity |
-  | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | off | 30 days |
-  | `hg-tmp` | **private** | unconfirmed uploads | off | 24 h lifecycle rule |
+  | `hg-kyc` | **private** | restaurant business licence, halal certificate, food-safety cert, owner ID; rider licence, vehicle registration, insurance, profile photo | on, old versions kept 35 days | 7 years after account closure |
+  | `hg-pod` | **private** | proof-of-delivery photos and signatures | on, old versions kept 35 days | 90 days, then delete |
+  | `hg-media` | **private**, read through presigned URLs | menu item photos, restaurant logos and covers, rider profile photos (the cropped public one) | on, old versions kept 35 days | lifetime of the entity |
+  | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | on, old versions kept 35 days | 30 days |
+  | `hg-tmp` | **private** | unconfirmed uploads | on, old versions kept 35 days | 24 h lifecycle rule |
+
+  Every bucket is versioned so an overwrite or a delete made by hand in the console can be undone; a version that is no longer current is deleted 35 days later. When the API deletes an object (a rejected upload, or a deletion under the [document lifecycle and retention rules](#p-29--document-lifecycle-review-and-retention)), it deletes every version of that key, so the bytes are gone at once rather than kept for 35 days. The retention column applies to the current version ([object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). Until `hg-media` is private ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)), the compose file serves it public-read, and an anonymous reader may fetch an object by its key and nothing else: no bucket listing and no version listing, so an old or deleted version cannot be found or downloaded.
 
   Object keys are server-generated and unguessable:
   ```
@@ -2720,12 +2737,13 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 
-  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day.
+  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day. The one-active-order rule is enforced in the order-creation transaction, not by the limiter: the transaction first takes a per-customer lock, so two checkouts racing for the same customer queue, and the second counts only after the first has committed. The active order that `getActiveOrder` returns is the one that refuses a second checkout, so a lone order under review is not it; the order history's active section still lists every unfinished order.
 
   Responses carry `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and, on 429, `Retry-After`.
 
   **Redis-down policy** is explicit per class, and this is where the disposability rule needs care: rate limiting is *protection*, not *correctness*, so losing counters is acceptable — but not for authentication.
-  - `AUTH`: **fail closed** (503). A brute-force window is worse than a brief outage, and the Postgres-backed lockout in P-03 still applies.
+  - `AUTH`, OTP request/verify: **fail closed** (503). A brute-force window on a 6-digit code is worse than a brief outage (P-02).
+  - `AUTH`, everything else (login, restaurant sign-up, email resend, password change): fail open with an alert. Login's lockout lives in Postgres (P-03) and survives the outage; a sign-up issues no session. This matches the contract, where only `requestOtp` and `verifyOtp` declare a 503.
   - `MONEY`: fail open, because idempotency (P-37) and the state machine already prevent duplicate effects; an alert fires.
   - All other classes: fail open with an alert.
 
@@ -2739,7 +2757,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   - **I-38.4** Webhook endpoints are never rate-limited below Stripe's retry rate.
 - **Acceptance criteria**:
   1. Given 11 OTP requests in 15 minutes from one IP, Then the 11th is 429 with `Retry-After` and no SMS is sent.
-  2. Given Redis is stopped, When a login is attempted, Then 503 `rate_limiter_unavailable`; When a search is attempted, Then it succeeds with an alert recorded.
+  2. Given Redis is stopped, When an OTP is requested, Then 503 `rate_limiter_unavailable`; When a login or a search is attempted, Then it proceeds with an alert recorded, and the Postgres login lockout still applies.
   3. Given a 429, Then no partial effect exists — no order row, no Stripe call, no ledger entry.
   4. Given the rate-limit headers, Then `RateLimit-Remaining` decreases monotonically within a window and resets exactly at `RateLimit-Reset`.
 - **Version**: V1 · **Size**: M
@@ -2759,8 +2777,10 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | Notification sender | 500 ms | `notification_delivery WHERE state='QUEUED'` |
   | Push receipt poller | 30 s | Expo receipts |
   | Reconciliation | daily 03:00 ET | Stripe balance transactions vs ledger |
-  | Payout run | per schedule | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances |
+  | Payout run | Mondays 09:00 America/Toronto, and on request (`createPayoutRun`) | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances, held and unfinished payouts |
   | Expiry sweeps | hourly | quotes, tickets, OTP challenges, certificates, unconfirmed uploads |
+  | Rider stale-location sweep | at start-up, then every 15 s (`HG_RIDER_STALE_SWEEP_INTERVAL`) | `ONLINE` riders whose last location is older than 120 s (`HG_RIDER_STALE_AFTER`) move to `ONLINE_STALE` and are offered nothing until their next location update; one replica at a time, under an advisory-lock lease |
+  | Rider availability reconciliation | at start-up, then every 60 s (`HG_RIDER_RECONCILE_INTERVAL`) | riders still `ON_DELIVERY` with no live assignment go back online, or offline if they asked to stop after the delivery, each recorded as `RECONCILED` in `rider_availability_event`; same lease |
   | Partition maintenance | at start-up, then hourly | create `realtime_event`, `rider_position_history`, `audit_event` partitions ahead of the clock, drop the expired ones (`audit_event` never), and alert on any row in a `*_default` partition |
   | Audit chain verification | daily | `verify_audit_chain(yesterday)` |
 

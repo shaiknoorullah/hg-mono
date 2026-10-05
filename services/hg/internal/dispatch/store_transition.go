@@ -63,7 +63,11 @@ type TransitionInput struct {
 // The returned bool reports whether a real forward transition was persisted;
 // it is false for the idempotent no-op (repeating the current state) so the
 // caller can skip firing the OrderLifecycle bridge on a duplicate request.
-func (s *Store) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput, now time.Time) (*Assignment, bool, error) {
+//
+// pickup moves the order for a PICKED_UP step in this same transaction
+// (pickup.go); a refusal rolls the step back. A nil pickup (no OrderLifecycle
+// wired) leaves the order alone.
+func (s *Store) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput, now time.Time, pickup pickupStep) (*Assignment, bool, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return nil, false, err
@@ -178,6 +182,18 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 		return nil, false, err
 	}
 	_ = geofenceOK // flagged-for-ops signalling is emitted via the outbox in a later slice.
+
+	// PICKED_UP moves the order in this transaction, after the assignment row:
+	// the lock order every pickup path uses. The orders module checks that this
+	// rider holds the order's delivery and that the kitchen marked it ready; an
+	// order still PREPARING is refused until the kitchen's pickup code is
+	// checked (https://github.com/shaiknoorullah/hg-mono/issues/413). A refusal
+	// rolls the step back (pickup.go).
+	if in.ToState == "PICKED_UP" && pickup != nil {
+		if err := pickup(ctx, tx, orderID); err != nil {
+			return nil, false, pickupRefusal(err, cur)
+		}
+	}
 
 	// Terminal ⇒ restore availability in the same transaction (D-10). The rider
 	// returns to ONLINE_IDLE, or OFFLINE if they asked to end the shift.
@@ -380,11 +396,23 @@ func (s *Store) verifyDeliveryOtpTx(ctx context.Context, tx pgx.Tx, assignmentID
 // Reconciliation sweep (D-10). Backstop, not the mechanism.
 // ---------------------------------------------------------------------------
 
-// ReconcileAvailability returns any rider stuck in ON_DELIVERY whose assignment
-// is no longer in a non-terminal state to ONLINE_IDLE/OFFLINE, and logs the
-// anomaly count. Idempotent; safe to run every 60s from a single leader.
-func (s *Store) ReconcileAvailability(ctx context.Context) (int64, error) {
-	tag, err := s.db.Exec(ctx, `
+// ReconcileAvailability returns every rider stuck in ON_DELIVERY with no live
+// assignment (one is live until its terminated_at is set) to ONLINE_IDLE, or
+// OFFLINE if they asked to go offline after the delivery. Each one is an anomaly, since an
+// assignment's terminal step restores its rider in the same transaction
+// (restoreAvailabilityTx), so each is written to rider_availability_event with
+// reason RECONCILED, in the transaction that moves it. It returns the riders it
+// restored. Idempotent: a restored rider no longer matches, so a second run
+// restores nobody. AvailabilitySweeper runs it every 60 s
+// (availability_sweeper.go, https://github.com/shaiknoorullah/hg-mono/issues/255).
+func (s *Store) ReconcileAvailability(ctx context.Context) ([]string, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	rows, err := tx.Query(ctx, `
 UPDATE rider_profile rp
    SET availability_state = (CASE WHEN rp.go_offline_after_delivery THEN 'OFFLINE' ELSE 'ONLINE_IDLE' END)::rider_availability_state,
        is_online = NOT rp.go_offline_after_delivery,
@@ -393,11 +421,35 @@ UPDATE rider_profile rp
    AND NOT EXISTS (
          SELECT 1 FROM assignment a
           WHERE a.rider_account_id = rp.account_id
-            AND a.terminated_at IS NULL)`)
+            AND a.terminated_at IS NULL)
+RETURNING rp.account_id::text, rp.availability_state::text`)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return tag.RowsAffected(), nil
+	var ids, states []string
+	for rows.Next() {
+		var id, to string
+		if err := rows.Scan(&id, &to); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids, states = append(ids, id), append(states, to)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for i, id := range ids {
+		if _, err := tx.Exec(ctx, `
+INSERT INTO rider_availability_event (account_id, from_state, to_state, reason, actor_kind)
+VALUES ($1, 'ON_DELIVERY', $2, 'RECONCILED', 'SYSTEM')`, id, states[i]); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 // SweepStaleOnline moves ONLINE_IDLE riders whose location fix is older than the

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Managed by Ansible (deploy/host/roles/lynis). Weekly Lynis audit. Reports are kept in /var/log/lynis;
+# the hardening index becomes a metric and a one-line summary.
+set -euo pipefail
+dir=/var/log/lynis
+metrics=/var/lib/prometheus/node-exporter/hg_lynis.prom
+stamp=$(date -u +%Y%m%d)
+mkdir -p "$dir"
+lynis audit system --cronjob --quiet --no-colors \
+  --report-file "$dir/report-$stamp.dat" --logfile "$dir/lynis-$stamp.log" || true   # a nonzero status only means findings
+idx=$(sed -n 's/^hardening_index=//p' "$dir/report-$stamp.dat")
+warn=$(grep -c '^warning\[\]=' "$dir/report-$stamp.dat" || true)
+sugg=$(grep -c '^suggestion\[\]=' "$dir/report-$stamp.dat" || true)
+echo "$(date -u +%FT%TZ) hardening_index=${idx:-unknown} warnings=$warn suggestions=$sugg report=$dir/report-$stamp.dat" | tee -a "$dir/summary.txt"
+cp "$dir/report-$stamp.dat" "$dir/report-latest.dat"
+{ echo "hg_lynis_hardening_index ${idx:-0}"
+  echo "hg_lynis_warnings $warn"
+  echo "hg_lynis_suggestions $sugg"
+  echo "hg_lynis_last_run_timestamp_seconds $(date +%s)"
+  echo "hg_lynis_last_run_success $([ -n "${idx:-}" ] && echo 1 || echo 0)"
+} > "$metrics.tmp" && mv "$metrics.tmp" "$metrics"
+find "$dir" -maxdepth 1 -type f \( -name 'report-2*.dat' -o -name 'lynis-2*.log' \) -mtime +90 -delete

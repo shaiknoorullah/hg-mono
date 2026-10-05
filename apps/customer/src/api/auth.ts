@@ -35,7 +35,7 @@ export async function verifyOtp(challengeId: string, code: string): Promise<void
       `OTP verification failed (${response.status})`;
     throw new Error(message);
   }
-  setToken(data.data.access_token);
+  setToken(data.data.access_token, data.data.refresh_token ?? null);
 }
 
 export function logout(): void {

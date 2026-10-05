@@ -47,6 +47,7 @@ const JS = [
   { name: 'admin', dir: 'apps/admin', runner: 'vitest' },
   { name: 'restaurant', dir: 'apps/restaurant', runner: 'vitest' },
   { name: 'ui-web', dir: 'packages/ui-web', runner: 'vitest' },
+  { name: 'emails', dir: 'packages/emails', runner: 'vitest' },
   { name: 'customer', dir: 'apps/customer', runner: 'jest' },
   { name: 'rider', dir: 'apps/rider', runner: 'jest' },
   { name: 'ui-native', dir: 'packages/ui-native', runner: 'jest' },
@@ -365,7 +366,10 @@ function check(opts) {
     floorRows.push({ name, floor: area.floor, ...c, ok: c.total > 0 && c.pct + EPSILON >= area.floor });
   }
 
-  const failed = drops.length > 0 || floorRows.some((r) => !r.ok);
+  // HG_COVERAGE_RATCHET=warn reports per-file drops without failing; the money and safety floors
+  // still fail. Set in ci.yml for the 6 Oct launch week only; issue #446 turns the ratchet back on.
+  const ratchetBlocks = process.env.HG_COVERAGE_RATCHET !== 'warn';
+  const failed = (ratchetBlocks && drops.length > 0) || floorRows.some((r) => !r.ok);
   const lines = ['<!-- coverage-report -->', `## Coverage ${failed ? '— failing' : '— ok'}`, ''];
   lines.push('**Money and safety floors** (fixed minimums, [issue #118](https://github.com/shaiknoorullah/hg-mono/issues/118))', '');
   lines.push('| Area | Coverage | Floor | |', '|---|---:|---:|---|');

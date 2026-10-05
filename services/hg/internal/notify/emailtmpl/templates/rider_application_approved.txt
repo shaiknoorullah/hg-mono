@@ -1,0 +1,15 @@
+HalalGoes
+
+You are approved to deliver
+
+Hi {{.FirstName}},
+
+We checked your documents, and your application to deliver with HalalGoes is approved.
+
+Open the HalalGoes rider app and set up payouts. Once that is done, you can go online and take deliveries.
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario
