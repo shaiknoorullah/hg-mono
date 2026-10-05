@@ -20,7 +20,8 @@ every major flow of every app tested end to end. This is the first set of flows:
 [#77](https://github.com/shaiknoorullah/hg-mono/issues/77) (the mobile apps emulated in CI) and of
 [#91](https://github.com/shaiknoorullah/hg-mono/issues/91) (the regression pass with screenshots).
 The full list of journeys still to cover is the harness plan in
-[#34](https://github.com/shaiknoorullah/hg-mono/issues/34).
+[#34](https://github.com/shaiknoorullah/hg-mono/issues/34); the
+[launch flows](../../docs/testing/launch-flows.md) list each flow and the test that covers it.
 
 ## When it runs
 
