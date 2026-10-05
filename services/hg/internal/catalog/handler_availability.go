@@ -111,11 +111,13 @@ func (h *Handler) SetRestaurantAcceptingOrders(w http.ResponseWriter, r *http.Re
 		pause = &t
 	}
 
-	a, err := h.repo.setAcceptingOrders(r.Context(), restaurantID, *in.IsAcceptingOrders, pause)
+	now := h.now()
+	a, err := h.repo.setAcceptingOrders(r.Context(), restaurantID, *in.IsAcceptingOrders, pause,
+		httpx.PrincipalFrom(r.Context()).AccountID, now)
 	if h.mapErr(w, r, err) {
 		return
 	}
-	verdict := deriveOpenState(a, h.now(), true, false)
+	verdict := deriveOpenState(a, now, true, false)
 	httpx.Respond(w, r, http.StatusOK, toRestaurantAvailability(a, verdict))
 }
 

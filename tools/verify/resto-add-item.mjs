@@ -1,14 +1,11 @@
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow } from './env.mjs';
 const APP = 'http://localhost:5183';
-function totpNow() {
-  return execSync(`cd /home/devsupreme/work/hg-mono/services/hg && SECRET=MSRMDH22NRZ7KJKFSWTXTHCDPULSEBPH go run ./cmd/totpnow`, { encoding: 'utf8' }).trim();
-}
 const browser = await chromium.launch({ args: ['--disable-web-security'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 await page.goto(APP, { waitUntil: 'networkidle' });
-await page.fill('#email', 'resto-qa@demo.hg');
-await page.fill('#password', 'RestoQA@1234');
+await page.fill('#email', requireEnv('SEED_EMAIL'));
+await page.fill('#password', requireEnv('SEED_PASSWORD'));
 await page.click('button[type="submit"]');
 await page.waitForTimeout(800);
 if (await page.locator('#totp').count()) {
