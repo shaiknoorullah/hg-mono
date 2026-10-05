@@ -1,0 +1,21 @@
+{
+  "scenario": "error_application_already_decided",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ALREADY_DECIDED`. A second decision on a decided application is refused, never applied over the first.",
+  "operations": [
+    "decideRiderApplication",
+    "decideRestaurantApplication"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ALREADY_DECIDED",
+      "message": "The application is already decided.",
+      "request_id": "6KD8BD2AS7V64N87V0G9WXGRMQ"
+    }
+  }
+}
