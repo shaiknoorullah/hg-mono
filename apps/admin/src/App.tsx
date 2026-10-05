@@ -23,11 +23,13 @@ import { RiderQueueScreen } from './screens/RiderQueueScreen';
 import { RiderApplicationDetailScreen } from './screens/RiderApplicationDetailScreen';
 import { OrdersAdminScreen } from './screens/OrdersAdminScreen';
 import { OrderDetailScreen } from './screens/OrderDetailScreen';
+import { LiveOpsScreen } from './screens/LiveOpsScreen';
 import { RefundCasesScreen } from './screens/RefundCasesScreen';
 import { DependencyDashboardScreen } from './screens/DependencyDashboardScreen';
 import { ResetPasswordScreen } from './screens/ResetPasswordScreen';
 import { AcceptInviteScreen } from './screens/AcceptInviteScreen';
 import { login, logout } from './lib/auth';
+import { AdminRealtime } from './lib/realtime';
 import { isAuthed, subscribe } from './lib/token';
 
 /**
@@ -46,13 +48,15 @@ import { isAuthed, subscribe } from './lib/token';
  * cross-platform subset, not the full catalogue). None of these are a literal match for
  * "restaurant" or "dispute" — the set is deliberately small — so the closest legible stand-in
  * is used rather than extending the foundation's icon map from an app-level sweep: Restaurants
- * as the home surface of the marketplace, Riders as the on-map fleet, Refunds & disputes as
- * the thing raising a flag, System as a health check, Staff as people.
+ * as the home surface of the marketplace, Riders as the on-map fleet, Live map as the map
+ * itself, Refunds & disputes as the thing raising a flag, System as a health check, Staff as
+ * people.
  */
 const NAV = [
   { to: '/', label: 'Restaurants', icon: 'home' },
   { to: '/riders', label: 'Riders', icon: 'map' },
   { to: '/orders', label: 'Orders', icon: 'orders' },
+  { to: '/live', label: 'Live map', icon: 'map' },
   { to: '/refunds', label: 'Refunds & disputes', icon: 'bell' },
   { to: '/system', label: 'System', icon: 'check' },
   { to: '/staff', label: 'Staff', icon: 'profile' },
@@ -226,6 +230,7 @@ function AdminShell() {
             <Route path="/riders/:riderAccountId" element={<RiderApplicationDetailScreen />} />
             <Route path="/orders" element={<OrdersAdminScreen />} />
             <Route path="/orders/:orderId" element={<OrderDetailScreen />} />
+            <Route path="/live" element={<LiveOpsScreen />} />
             <Route path="/refunds" element={<RefundCasesScreen />} />
             <Route path="/system" element={<DependencyDashboardScreen />} />
             <Route path="/staff" element={<StaffListScreen />} />
@@ -241,7 +246,11 @@ export function App() {
   const PublicPage = PUBLIC_PAGES[window.location.pathname];
   if (PublicPage) return <PublicPage />;
   if (!authed) return <LoginGate />;
-  return <AdminShell />;
+  return (
+    <AdminRealtime>
+      <AdminShell />
+    </AdminRealtime>
+  );
 }
 
 export function Root() {

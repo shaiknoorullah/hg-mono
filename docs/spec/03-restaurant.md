@@ -1513,6 +1513,16 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `late` and appears in the delay prompt (R-26).
   7. The dashboard is read-authorised by session `rid` only. There is no order id that a different
      restaurant can read. *(Currently any caller can read any order by id.)*
+  8. **Rider approaching.** Once a rider is assigned (`PREPARING` / `READY_FOR_PICKUP`), the order
+     card shows a live map: the restaurant pin and the rider's **coarse** position as a ~100 m disc,
+     never a pin, fed by `rider.location` on `order:{id}` in the restaurant projection
+     ([per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)). The
+     marker glides between fixes and says `last updated 42s ago` once a fix is older than 30 s. Rider name, vehicle and
+     pickup time come from the order, never from the position. The contract gives the restaurant no
+     REST read of the rider's position, so while the socket is down the map keeps the last fix and
+     says it is reconnecting; the order itself keeps refreshing over REST. Without
+     `VITE_MAPBOX_TOKEN` the map shows its empty state and the text facts remain
+     (`apps/restaurant/src/components/RiderApproachMap.tsx`).
 
 - **Acceptance criteria**:
   1. **Given** an order in `PENDING_RESTAURANT`, **when** the restaurant fetches the dashboard, **then** `delivery_address_short` contains city and distance band but no street address, and `customer_phone_masked` is null.
