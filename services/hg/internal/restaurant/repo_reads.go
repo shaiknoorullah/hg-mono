@@ -1761,65 +1761,37 @@ func (r *Repo) DelayOrder(ctx context.Context, restaurantID, orderID, actorAccou
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
-	var state string
-	var currentDeadline *time.Time
-	var acceptedAt *time.Time
-	err = tx.QueryRow(ctx, `SELECT state::text, deadline_at, accepted_at FROM "order" WHERE id=$1 AND restaurant_id=$2 FOR UPDATE`,
-		orderID, restaurantID).Scan(&state, &currentDeadline, &acceptedAt)
+	// Ownership first: the order must be this restaurant's.
+	var exists bool
+	err = tx.QueryRow(ctx, `SELECT true FROM "order" WHERE id=$1 AND restaurant_id=$2 FOR UPDATE`,
+		orderID, restaurantID).Scan(&exists)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	if state != "PREPARING" {
+
+	// The orders module checks the limits (R-26: at most 3 delays and 45
+	// minutes in total), moves the deadline, logs the delay and tells the
+	// customer, in this transaction
+	// (https://github.com/shaiknoorullah/hg-mono/issues/351).
+	err = r.orders.DelayInTx(ctx, tx, orders.DelayRequest{
+		OrderID:        orderID,
+		AddedMinutes:   delayMinutes,
+		ReasonCode:     reason,
+		ActorAccountID: actorAccountID,
+	})
+	var illegal *orders.IllegalTransitionError
+	switch {
+	case errors.As(err, &illegal):
 		return nil, ErrIllegalTransition
-	}
-
-	// R-26: at most 3 delays AND at most +45 minutes cumulative per order.
-	// Count prior delay transitions and sum their added minutes. The added
-	// minutes are encoded as "delay:<minutes>:<reason>" in the transition reason.
-	var delayCount, cumulativeMinutes int
-	_ = tx.QueryRow(ctx, `
-		SELECT count(*),
-		       COALESCE(SUM((split_part(reason,':',2))::int),0)
-		  FROM order_transition
-		 WHERE order_id=$1 AND from_state='PREPARING' AND to_state='PREPARING'
-		   AND reason LIKE 'delay:%'`,
-		orderID).Scan(&delayCount, &cumulativeMinutes)
-
-	// An order that was never properly accepted (accepted_at IS NULL) means
-	// it was not transitioned through the restaurant acceptance flow. Such orders
-	// count as having exhausted delays (they are not in a delayable state).
-	if acceptedAt == nil || delayCount >= 3 {
+	case errors.Is(err, orders.ErrDelayLimitReached):
 		return nil, ErrDelayLimitReached
-	}
-	// Enforce the cumulative +45-minute cap: this delay must not push the running
-	// total past 45. Three 20-minute delays (60 min) must NOT all succeed.
-	if cumulativeMinutes+delayMinutes > 45 {
-		return nil, ErrDelayLimitReached
-	}
-
-	// Extend the deadline.
-	base := time.Now().UTC()
-	if currentDeadline != nil && currentDeadline.After(base) {
-		base = *currentDeadline
-	}
-	newDeadline := base.Add(time.Duration(delayMinutes) * time.Minute)
-
-	_, err = tx.Exec(ctx, `
-		UPDATE "order" SET deadline_at=$2, updated_at=now() WHERE id=$1`,
-		orderID, newDeadline)
-	if err != nil {
-		return nil, fmt.Errorf("extend deadline: %w", err)
-	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason)
-		VALUES ($1,'PREPARING','PREPARING','RESTAURANT',$2,$3)`,
-		orderID, actorAccountID, fmt.Sprintf("delay:%d:%s", delayMinutes, reason))
-	if err != nil {
-		return nil, fmt.Errorf("insert delay transition: %w", err)
+	case errors.Is(err, orders.ErrOrderNotFound):
+		return nil, ErrNotFound
+	case err != nil:
+		return nil, fmt.Errorf("delay order: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

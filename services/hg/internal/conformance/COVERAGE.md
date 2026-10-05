@@ -182,5 +182,5 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
-- `getDependencyStatus` — GET /internal/deps
-- `getReadiness` — GET /health/ready
+- `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
+- `getReadiness` — GET /health/ready — needs Redis and the object store
