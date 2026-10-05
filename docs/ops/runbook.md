@@ -69,7 +69,7 @@ One switch stops new orders on the whole platform and leaves everything else run
 
 **Who:** an `ADMIN` or `SUPER_ADMIN`. A support agent can see whether it is on, but cannot change it.
 
-**Turn it on** with the API (`setOrderingPause` in [the contract](../../contracts/openapi.yaml)); the admin console gets a button for it with [#389](https://github.com/shaiknoorullah/hg-mono/issues/389). The access token is the one `login` returns when you sign in with your email, password and two-step code; it lasts 15 minutes.
+**Turn it on** from the admin console: **System → New orders → Pause new orders**, with a reason ([#389](https://github.com/shaiknoorullah/hg-mono/issues/389)). If the console is down, use the API (`setOrderingPause` in [the contract](../../contracts/openapi.yaml)). The access token is the one `login` returns when you sign in with your email, password and two-step code; it lasts 15 minutes.
 
 ```sh
 curl -fsS -X PUT https://<api host>/v1/admin/ordering-pause \
@@ -83,7 +83,7 @@ The reason is required (10 to 500 characters) and goes into the audit log with y
 **What changes, on every API replica, from the next request:**
 
 - New quotes and new orders are refused with `409 ORDERING_PAUSED`. Nothing is stored and nothing is charged.
-- The public config says `"ordering": {"paused": true}` and the cart says `ORDERING_PAUSED`, so the customer app can say ordering is paused instead of failing at checkout *(the app side lands with [#388](https://github.com/shaiknoorullah/hg-mono/issues/388))*.
+- The public config says `"ordering": {"paused": true}` and the cart says `ORDERING_PAUSED`, so the customer app says ordering is paused instead of failing at checkout ([#388](https://github.com/shaiknoorullah/hg-mono/issues/388)). A phone running an app build from before #388 still shows checkout and gets the refusal.
 - Every order already placed carries on to the end: restaurant accept and reject, riders, tracking, payments (capture on acceptance, voids), refunds and the staff tools. Offers already sent keep their full 180-second window.
 
 The switch lives in Postgres, not Redis: flushing or restarting Redis does not turn it off, and nothing needs flushing to turn it on.
@@ -115,6 +115,7 @@ The server works; the data doesn't.
    - **Fix forward** with a new migration, when no data was lost. Preferred.
    - **The migration's own down step**, only if it is known safe and loses nothing.
    - **Point-in-time restore**, when data was destroyed. Every write after the restore point is lost.
+   - **Today there is no point-in-time restore.** pgBackRest isn't set up yet ([#78][i78]). The server has only the nightly dump: follow [Restore from the nightly backups](#restore-from-the-nightly-backups). Every write after 07:00 UTC that day is lost. Step 3 applies once pgBackRest exists.
 3. Restore to a point in time:
    1. Pick the target: the UTC time just before the migration or the damage.
    2. Stop Postgres.
@@ -124,6 +125,51 @@ The server works; the data doesn't.
 4. Then run [steps 9 to 12 of the rebuild](#rebuild-on-a-new-server): the API with the runner held, the Stripe catch-up from the restore point, the missing-file check, the runner released.
 
 A Contabo snapshot reverts the **whole** server, the backups on it included, to the moment it was taken. Use one only when the server itself is broken (a failed OS or Docker update), not for the database.
+
+## Restore from the nightly backups
+
+This is what the server runs **today**, until the pgBackRest and restic set-up in the rest of this runbook exists ([#64][i64]).
+
+**What is backed up.** At 07:00 UTC every day, the `hg-backup-current.timer` systemd timer runs `/usr/local/sbin/hg-backup-current` (settings in `/etc/hg/backup-current.conf`). It writes:
+
+- `/srv/backup/pg/db-<UTC stamp>.sql.gz`: a `pg_dump` of the app database.
+- `/srv/backup/pg/globals-<UTC stamp>.sql.gz`: the roles (`pg_dumpall --globals-only`).
+- `/srv/backup/silo/buckets-<UTC stamp>.tar.gz`: every bucket in object storage, one folder per bucket.
+
+Files are kept 14 days. They live **on the same disk**: there is no off-server copy yet (the owner's backup key, [#64][i64]). If the disk is lost, so are they. Each run writes `hg_backup_last_success_timestamp_seconds` for the monitoring stack. `systemctl status hg-backup-current.service` shows the last run.
+
+Run every step from `/srv/hg/repo`, with `C="docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.server.yml"`. Write each step's UTC time in the timeline.
+
+**The database:**
+
+1. [Pause new orders](#pause-new-orders), then `$C stop api`.
+2. Pick the dump: the newest `db-*.sql.gz` from before the damage. Its stamp is the **restore point**.
+3. Keep the damaged database for later: `docker exec hg-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "ALTER DATABASE \"$POSTGRES_DB\" RENAME TO damaged_<stamp>"'`. If Postgres says the database is being accessed by other users, end those sessions first with `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '<database>' AND pid <> pg_backend_pid();`. Drop the renamed database only once the incident is closed.
+4. Create an empty one: `docker exec hg-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE \"$POSTGRES_DB\""'`.
+5. Only if Postgres itself was rebuilt (the roles are gone): `gunzip -c /srv/backup/pg/globals-<stamp>.sql.gz | docker exec -i hg-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d postgres'`. An error for a role that already exists is fine.
+6. Load the dump: `gunzip -c /srv/backup/pg/db-<stamp>.sql.gz | docker exec -i hg-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -q'`.
+7. Bring the schema to the current release: `$C --profile tools run --rm pgroles`, then `$C --profile tools run --rm migrate up`.
+8. Check the ledger: `SELECT batch_id FROM ledger_entry GROUP BY batch_id HAVING sum(amount_cents) <> 0;` returns no rows.
+9. Run [steps 9 to 12 of the rebuild](#rebuild-on-a-new-server): the API with the runner held, the Stripe catch-up from the restore point, the missing-file check, the runner released. The Stripe catch-up brings back every payment, refund and payout that Stripe saw after the restore point.
+
+Tried on 5 Oct on a local stack, which has the same container names: a dump made the backup script's way and loaded into a scratch database had the same 136 tables, the same migration version and the same rows.
+
+**The buckets.** Restore only the buckets that lost files, so newer uploads are kept:
+
+1. Unpack: `mkdir -p /srv/restore && tar -C /srv/restore -xzf /srv/backup/silo/buckets-<stamp>.tar.gz`. There is one folder per bucket.
+2. Copy a bucket back, adding what's missing and keeping what's there:
+
+   ```sh
+   U=$(docker exec hg-minio-1 printenv MINIO_ROOT_USER); P=$(docker exec hg-minio-1 printenv MINIO_ROOT_PASSWORD)
+   docker run --rm --network hg-net -e MC_HOST_s="http://$U:$P@hg-minio-1:9000" -v /srv/restore:/restore \
+     --entrypoint mc "$(grep ^HG_MC_IMAGE= /etc/hg/backup-current.conf | cut -d= -f2)" mirror /restore/<bucket> s/<bucket>
+   unset P
+   ```
+
+   Never add `--remove` here: it deletes every file uploaded after the backup.
+3. Remove `/srv/restore` once the incident is closed. It holds KYC documents.
+
+Tried on 5 Oct on the local stack: a bucket mirrored the backup script's way and copied back into a scratch bucket came back whole.
 
 ## The server is down
 
