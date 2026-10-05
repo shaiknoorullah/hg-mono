@@ -76,6 +76,11 @@ func (fakeStripe) CreateTransfer(_ context.Context, _ CreateTransferInput) (*Str
 	return &StripeTransfer{ID: fakeID("tr_fake_")}, nil
 }
 
+// FindTransfer finds nothing: the fake keeps no transfers.
+func (fakeStripe) FindTransfer(_ context.Context, _ string) (*StripeTransfer, error) {
+	return nil, nil
+}
+
 // VerifyWebhook is unsupported by the fake — there is no real signing secret.
 func (fakeStripe) VerifyWebhook(_ []byte, _ string) (StripeEvent, error) {
 	return StripeEvent{}, ErrStripeNotConfigured

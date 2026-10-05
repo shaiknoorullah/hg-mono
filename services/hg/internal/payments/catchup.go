@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // The on-demand Stripe catch-up, for after a failover or a restore from
@@ -22,7 +24,9 @@ import (
 //     each one through the same path a delivered webhook takes (storeEvent),
 //     so the (provider, stripe_event_id) unique index drops the ones already
 //     here. Then apply every stored event in that window that has not been
-//     applied yet, oldest first.
+//     applied yet, oldest first, through the same step the webhook worker
+//     takes (applyStoredEvent, webhook_worker.go). A row the worker is
+//     applying at that moment is skipped, not applied twice.
 //  2. Reconcile. Read back from Stripe every PaymentIntent written in the last
 //     24 hours (or since the replay start, if that is earlier) and assert its
 //     state through the same transition code the webhooks use. Nothing here
@@ -59,10 +63,13 @@ const (
 	exceptionDatabaseAhead = "database_ahead_of_stripe"
 )
 
-// catchUpExceptionKinds is every kind above: the open exceptions the report
-// lists.
+// catchUpExceptionKinds is every kind above, and every kind applying a stored
+// event files (webhook_effects.go): the open exceptions the report lists.
 var catchUpExceptionKinds = []string{
 	exceptionUnknownIntent, exceptionSettledConflict, exceptionUnmappedStatus, exceptionDatabaseAhead,
+	exceptionUnrecordedRefund, exceptionRefundConflict, exceptionRefundFailed, exceptionChargebackLost,
+	exceptionUnknownTransfer, exceptionTransferMismatch, exceptionTransferReversed, exceptionTransferFailed,
+	exceptionPayoutFailed,
 }
 
 // CatchUpReport is what a catch-up did, for the operator who ran it.
@@ -116,6 +123,10 @@ func exceptionFor(eff effect, fromStripeNow bool) *catchUpException {
 	case eff.kind == effectBehind && fromStripeNow:
 		kind = exceptionDatabaseAhead
 	default:
+		return nil
+	}
+	if kind == "" {
+		// A handler that filed its own exception (webhook_effects.go).
 		return nil
 	}
 	return &catchUpException{Kind: kind, StripeObjectID: eff.stripeID, OrderID: eff.orderID}
@@ -201,20 +212,16 @@ func (s *Service) replayEvents(ctx context.Context, rep *CatchUpReport, envIsLiv
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		eff, err := s.processEvent(ctx, e.Payload)
-		if err != nil {
-			rep.fail(e.StripeEventID, err)
-			if rerr := s.repo.RecordWebhookEventFailure(ctx, e.ID, err.Error()); rerr != nil {
-				rep.fail(e.StripeEventID, rerr)
-			}
-			continue
+		// The same step the webhook worker takes: apply and mark processed in
+		// one transaction, or count a failed attempt with its backoff.
+		res := s.applyStoredEvent(ctx, e.ID, envIsLive)
+		switch res.outcome {
+		case outcomeApplied:
+			rep.EventsProcessed++
+			rep.note(e.StripeEventID, res.effect)
+		case outcomeFailed, outcomeDeadLettered:
+			rep.fail(e.StripeEventID, res.err)
 		}
-		if err := s.repo.MarkWebhookEventProcessed(ctx, e.ID, exceptionFor(eff, false)); err != nil {
-			rep.fail(e.StripeEventID, err)
-			continue
-		}
-		rep.EventsProcessed++
-		rep.note(e.StripeEventID, eff)
 	}
 	return nil
 }
@@ -235,39 +242,29 @@ func (s *Service) reconcileIntents(ctx context.Context, rep *CatchUpReport) erro
 		}
 		rep.IntentsChecked++
 		var eff effect
-		if target, ok := reconcileTarget(pi); ok {
-			if eff, err = s.assertIntentState(ctx, id, target, pi.AmountReceivedCents); err != nil {
-				rep.fail(id, err)
-				continue
+		// The assertion and the exception it leaves commit together.
+		err = s.repo.tx(ctx, func(tx pgx.Tx) error {
+			if target, ok := stripeIntentTarget(pi.Status, pi.FailureCode != ""); ok {
+				// Stripe's current view is as new as anything can be.
+				if eff, err = s.assertIntentState(ctx, tx, id, target, pi.AmountReceivedCents, s.now(), nil); err != nil {
+					return err
+				}
+			} else {
+				eff = effect{kind: effectMismatch, label: exceptionUnmappedStatus + ":" + pi.Status,
+					exception: exceptionUnmappedStatus, stripeID: id}
 			}
-		} else {
-			eff = effect{kind: effectMismatch, label: exceptionUnmappedStatus + ":" + pi.Status,
-				exception: exceptionUnmappedStatus, stripeID: id}
+			if exc := exceptionFor(eff, true); exc != nil {
+				if _, err := fileException(ctx, tx, *exc); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			rep.fail(id, err)
+			continue
 		}
 		rep.note(id, eff)
-		if exc := exceptionFor(eff, true); exc != nil {
-			if err := s.repo.FileCatchUpException(ctx, *exc); err != nil {
-				rep.fail(id, err)
-			}
-		}
 	}
 	return nil
-}
-
-// reconcileTarget is the payment state Stripe's current view of an intent
-// asserts. A status this code does not know asserts nothing: guessing a
-// payment state is how money goes missing.
-func reconcileTarget(pi *StripeIntent) (PaymentState, bool) {
-	switch pi.Status {
-	case "requires_payment_method":
-		// After a decline Stripe puts the intent back to needing a card and
-		// sends payment_intent.payment_failed; the webhook records FAILED.
-		if pi.FailureCode != "" {
-			return StateFailed, true
-		}
-		return StateRequiresPaymentMethod, true
-	case "requires_confirmation", "requires_action", "processing", "requires_capture", "succeeded", "canceled":
-		return stateFromStripe(pi.Status), true
-	}
-	return "", false
 }
