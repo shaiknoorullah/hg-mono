@@ -37,6 +37,7 @@ import { api } from '../api/client';
 import { addToCart, getCart } from '../api/cart';
 import { useAsync } from '../api/async';
 import { useNavigation } from '../navigation/stack';
+import { OrderingPausedNotice, useOrderingPause } from '../ordering/orderingPause';
 
 type Detail = Schema['RestaurantDetail'];
 type Menu = Schema['Menu'];
@@ -44,6 +45,7 @@ type Menu = Schema['Menu'];
 export function RestaurantScreen({ restaurantId }: { restaurantId: string }): React.ReactElement {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { paused: orderingPaused } = useOrderingPause();
   const nav = useNavigation();
 
   const detail = useAsync<Detail>(
@@ -116,6 +118,8 @@ export function RestaurantScreen({ restaurantId }: { restaurantId: string }): Re
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: 96 + insets.bottom, gap: 16 }}
         >
+          {orderingPaused ? <OrderingPausedNotice /> : null}
+
           <HalalCertificationPanel
             restaurantId={restaurantId}
             loading={detail.state.kind === 'loading'}
