@@ -115,7 +115,7 @@ Email-login personas share one local password and sign in as `<persona>@seed.hg`
 - **Hours** — weekday standard, Friday/Saturday overnight (11:00–01:00), one closed-holiday override and one late-opening override, dated relative to now.
 - **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), one INVITED, one SUSPENDED. Manager and staff can sign in to test the role matrix.
 - **Payouts** — one per state (DRAFT, READY, TRANSFERRING, TRANSFERRED, PAID, FAILED, HELD). See the payout-seeds risk in [risks to settle in planning](#12-risks-to-settle-in-planning).
-- **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-run-by-reset)).
+- **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-not-run-by-reset)).
 
 ### 5.3 Supporting personas (shared by every app)
 
@@ -152,7 +152,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `journey` | see [journey](#63-journey) | one live order, stopped when a seal cannot be bound |
 
-### 6.2 Bootstrap (run by `reset`)
+### 6.2 Bootstrap (not run by `reset`)
 
 Reset does not run the journey. Delivered history waits until an issued seal exists, because the journey stops there and does not insert one. A cancelled order and a rejected order are the scenario commands, not part of reset.
 
@@ -205,7 +205,7 @@ Each stage is usable on its own.
 
 1. **World core + restaurant personas** — `cmd/devworld` (`reset`, `seed`, `verify`, `totp`, `list`), manifest, restaurant + supporting personas, CI verify.
 2. **Scenarios** — scenario client, fixed-OTP test range, the [scenario catalogue](#61-catalogue) except `journey`, bootstrap history.
-3. **Journey simulator** — routes, rider movement, pickup, proof of delivery.
+3. **Journey simulator** — route line, rider movement, and a stop when a seal cannot be bound.
 4. **Restaurant playbooks** — the [playbooks](#7-playbooks-claude-in-chrome-and-headless), plus `run-restaurant --backend`.
 
 ## 10. Extending to another app
