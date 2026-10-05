@@ -15,10 +15,7 @@ Terminal commands run from `services/hg`. The browser is the restaurant console 
 
 ## 0. Setup
 
-1. **Setup command** (terminal, repository root):
-   ```bash
-   apps/restaurant/.claude/skills/run-restaurant/driver.sh --backend local up
-   ```
+1. **Setup command**: the same as step 1 of the [journey playbook's setup](journey.md#0-setup), which starts the stack, resets the dev world and starts the console.
 2. **Visible assertion**:
    - The driver prints `backend (local) ready`, `dev world reset: personas 20 ok` and `vite up: http://localhost:5183`.
 
