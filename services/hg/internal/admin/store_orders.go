@@ -21,12 +21,15 @@ type OrdersRepo struct {
 	st   *orders.Store
 }
 
-// NewOrdersRepo builds the admin order repository. cancelled, when set,
-// releases a cancelled order's rider in the cancel's transaction.
-func NewOrdersRepo(pool *pgxpool.Pool, cancelled ...orders.OrderCancelled) *OrdersRepo {
-	st := orders.NewStore(pool)
-	if len(cancelled) > 0 && cancelled[0] != nil {
-		st.WithOrderCancelled(cancelled[0])
+// NewOrdersRepo builds the admin order repository. st is the orders module's
+// store wired with its notification emitter in cmd/hg/main.go, so a staff
+// cancel tells the customer in the cancel's own transaction
+// (https://github.com/shaiknoorullah/hg-mono/issues/352). With a nil st the
+// cancel still moves through the one transition function and writes its
+// realtime events, but sends no notification, which is right only for tests.
+func NewOrdersRepo(pool *pgxpool.Pool, st *orders.Store) *OrdersRepo {
+	if st == nil {
+		st = orders.NewStore(pool)
 	}
 	return &OrdersRepo{pool: pool, st: st}
 }

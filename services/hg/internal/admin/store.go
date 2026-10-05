@@ -29,8 +29,9 @@ type Repo struct {
 	notify  notify.TxEnqueuer
 	inviter notify.StaffInviter
 
-	// orderCancelled is the dispatch half of a staff cancel (orders.OrderCancelled).
-	orderCancelled orders.OrderCancelled
+	// orders is the orders module's store with its notification emitter
+	// (WithOrdersStore). Nil builds one with none, which only tests rely on.
+	orders *orders.Store
 }
 
 // NewRepo builds the repository over the shared pool.
@@ -44,11 +45,11 @@ func (r *Repo) WithNotifications(enq notify.TxEnqueuer, inviter notify.StaffInvi
 	return r
 }
 
-// WithOrderCancelled attaches the dispatch half of a staff cancel: the order's
-// rider is released in the cancel's transaction
-// (https://github.com/shaiknoorullah/hg-mono/issues/415).
-func (r *Repo) WithOrderCancelled(h orders.OrderCancelled) *Repo {
-	r.orderCancelled = h
+// WithOrdersStore wires the orders module's store that carries the
+// notification emitter (cmd/hg/main.go), so a staff cancel notifies the
+// customer like every other order transition. Call once at boot.
+func (r *Repo) WithOrdersStore(st *orders.Store) *Repo {
+	r.orders = st
 	return r
 }
 
