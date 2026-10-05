@@ -595,8 +595,10 @@ func run() error {
 	var stripeClient payments.StripeClient
 	if cfg.Stripe.Configured() {
 		stripeClient = payments.NewLiveStripe(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
+		// The API version every call is made in, never the key.
 		log.Info("stripe configured",
 			slog.Bool("livemode", cfg.Stripe.LiveMode()),
+			slog.String("api_version", payments.StripeAPIVersion),
 			slog.Bool("webhook_secret_set", cfg.Stripe.WebhookSecret != ""))
 	} else if cfg.Env.IsLocal() {
 		// Local dev only: a fake payment client so orders can be placed end-to-end
@@ -639,7 +641,10 @@ func run() error {
 	// restaurantPay bridges restaurant.PaymentActions to the payments sibling so
 	// AcceptOrder captures (T6) and RejectOrder voids (T7) without importing the
 	// payments package from the restaurant package (modular-monolith seam).
-	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
+	// ordersStore carries the realtime emitter, so accept, reject and
+	// mark-ready reach the customer like every other order move
+	// (https://github.com/shaiknoorullah/hg-mono/issues/337).
+	restaurantRepo := restaurant.NewRepo(st.DB().Pool, ordersStore)
 	restaurantPay := restaurantPayAdapter{svc: paymentsSvc}
 	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil, restaurantPay))
 
