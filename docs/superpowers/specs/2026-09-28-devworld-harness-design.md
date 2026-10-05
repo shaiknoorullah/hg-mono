@@ -1,7 +1,8 @@
 ---
 covers:
-  - services/hg/cmd/**
-  - services/hg/migrations/**
+  - services/hg/cmd/devworld/**
+  - services/hg/internal/devworld/**
+  - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
 reviewed: 2026-10-05
