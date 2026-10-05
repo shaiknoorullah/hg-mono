@@ -2259,7 +2259,7 @@ documents lapse cannot go on shift, but is not punished.
 > **DECISION REQUIRED — D-23 · Support agent refund cap**: What is the maximum a front-line support
 > agent may refund without approval — per order and per day? · **Proposed default**: CAD 25.00 per
 > order, CAD 150.00 per rolling 24 hours, orders up to 14 days old. *Shipping on this default until
-> the owner confirms it ([decisions](../decisions/README.md#open--non-blocking), [#364](https://github.com/shaiknoorullah/hg-mono/issues/364)).* · **Why**: Covers the great
+> the owner confirms it ([decisions](../decisions/README.md#open--non-blocking)). Enforced since [#364](https://github.com/shaiknoorullah/hg-mono/issues/364).* · **Why**: Covers the great
 > majority of missing-item and late-delivery goodwill without creating a meaningful loss surface from
 > a single compromised or careless account.
 
