@@ -13,6 +13,11 @@
  *
  * "Place order" POSTs `/v1/orders` with the `quote_id` only (no amount, G-3). On success it routes
  * to tracking with the returned order id. A failure shows its real error code; nothing is faked.
+ *
+ * While staff have paused new orders (#388) there is no "Place order": the screen says ordering
+ * is paused, and a `409 ORDERING_PAUSED` from the quote or the order says the same, plus that
+ * nothing was charged, never a generic error. An order already created and awaiting payment is
+ * not new, so its "Retry payment" stays.
  */
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -38,6 +43,7 @@ import { payWithSheet } from '../payments/pay';
 import { isFakeClientSecret } from '../payments/types';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
+import { ORDERING_PAUSED, OrderingPausedNotice, useOrderingPause } from '../ordering/orderingPause';
 
 type Quote = Schema['Quote'];
 
@@ -57,6 +63,7 @@ export function CheckoutScreen(): React.ReactElement {
   // Set once the order exists but is not yet paid: retrying pays THIS order, never a new one.
   const [unpaid, setUnpaid] = React.useState<{ orderId: string; secret: string } | null>(null);
   const [payError, setPayError] = React.useState<string | null>(null);
+  const { paused: configPaused, markPaused } = useOrderingPause();
 
   const pay = React.useCallback(
     async (orderId: string, secret: string) => {
@@ -144,6 +151,13 @@ export function CheckoutScreen(): React.ReactElement {
     }
   }, [state, nav, unpaid, pay]);
 
+  const refused =
+    (state.kind === 'error' && state.code === ORDERING_PAUSED) || placeError === ORDERING_PAUSED;
+  React.useEffect(() => {
+    if (refused) markPaused();
+  }, [refused, markPaused]);
+  const showPaused = !unpaid && (configPaused || refused);
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
       <AppBar
@@ -152,7 +166,14 @@ export function CheckoutScreen(): React.ReactElement {
         loading={state.kind === 'loading'}
       />
 
-      {state.kind === 'loading' ? (
+      {showPaused ? (
+        <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 16 }}>
+          <OrderingPausedNotice refused={refused} />
+          <Button variant="secondary" fullWidth onPress={nav.back}>
+            Back to cart
+          </Button>
+        </View>
+      ) : state.kind === 'loading' ? (
         <View style={{ flex: 1, padding: 16 }}>
           <Spinner label="Pricing your order" />
         </View>
