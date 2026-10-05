@@ -220,10 +220,11 @@ leaves the restaurant's queue.
 
 Set up: dev world, `make dev-scenario s=customer-cancels`.
 
-Tests: **Partly covered.** Server:
+Tests: **Partly covered.** App:
+[`TrackingScreen.test.tsx`](../../apps/customer/src/screens/__tests__/TrackingScreen.test.tsx) (cancel with a reason and an `Idempotency-Key`, "you were not charged", and the `409 CANCELLATION_WINDOW_CLOSED` notice). Server:
 [`internal/orders/integration_test.go`](../../services/hg/internal/orders/integration_test.go) `TestIntegrationCartQuoteOrderFlow` (cancels a new order),
 [`internal/orders/realtime_integration_test.go`](../../services/hg/internal/orders/realtime_integration_test.go) (the cancel event).
-**Not covered:** the customer app has no cancel button on `main`.
+**Not covered:** a cancel on a device, end to end, against a running API.
 
 ### 8. Order history and receipt
 
