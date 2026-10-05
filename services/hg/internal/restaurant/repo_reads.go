@@ -414,6 +414,10 @@ func (r *Repo) SetHours(ctx context.Context, restaurantID string, in hoursInputD
 		}
 	}
 
+	// Hours are one of the gates to ACTIVE (R-06): re-evaluate in this transaction.
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -971,6 +975,11 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 		return nil, fmt.Errorf("set live_version_id: %w", err)
 	}
 
+	// A live item is one of the gates to ACTIVE (R-17): re-evaluate in this transaction.
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -1085,6 +1094,9 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 		return nil, fmt.Errorf("set live_version: %w", err)
 	}
 
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -1350,12 +1362,12 @@ func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAcco
 		return nil, ErrOfferExpired
 	}
 
-	// Compute PREPARING deadline (prep_eta + 10 minutes).
+	// The transition function arms the PREPARING deadline from the prep ETA
+	// (accepted_at + prep ETA + 10 minutes, PREP_OVERDUE).
 	prepMins := 30
 	if promisedReadyMinutes != nil {
 		prepMins = *promisedReadyMinutes
 	}
-	newDeadline := time.Now().UTC().Add(time.Duration(prepMins)*time.Minute + 10*time.Minute)
 
 	var promisedReadyAt *time.Time
 	if promisedReadyMinutes != nil {
@@ -1363,25 +1375,18 @@ func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAcco
 		promisedReadyAt = &t
 	}
 
-	_, err = tx.Exec(ctx, `
-		UPDATE "order" SET
-			state='PREPARING', state_since=now(),
-			deadline_at=$2, deadline_action='PREP_OVERDUE',
-			accepted_at=now(), promised_ready_at=$3,
-			prep_eta_minutes=$4,
-			updated_at=now()
-		WHERE id=$1`,
-		orderID, newDeadline, promisedReadyAt, prepMins)
-	if err != nil {
-		return nil, fmt.Errorf("accept order: %w", err)
+	// The prep ETA and promised ready time are the restaurant's own columns;
+	// they commit in the transition's transaction, after the state change.
+	recordPrep := func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `
+			UPDATE "order" SET promised_ready_at=$2, prep_eta_minutes=$3 WHERE id=$1`,
+			orderID, promisedReadyAt, prepMins); err != nil {
+			return fmt.Errorf("record prep eta: %w", err)
+		}
+		return nil
 	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason)
-		VALUES ($1,'RESTAURANT_PENDING','PREPARING','RESTAURANT',$2,'restaurant accepted')`,
-		orderID, actorAccountID)
-	if err != nil {
-		return nil, fmt.Errorf("insert transition: %w", err)
+	if err := r.acceptTx(ctx, tx, orderID, actorAccountID, prepMins, recordPrep); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -1415,24 +1420,9 @@ func (r *Repo) RejectOrder(ctx context.Context, restaurantID, orderID, actorAcco
 	// CANCELLED, so cancel_reason must stay NULL (there is no RESTAURANT_REJECTED
 	// member of order_cancellation_reason_code; setting it 22P02'd → 500 on every
 	// real rejection). The CHECK order_reject_has_reason is satisfied by
-	// reject_reason alone.
-	_, err = tx.Exec(ctx, `
-		UPDATE "order" SET
-			state='REJECTED', state_since=now(),
-			deadline_at=NULL, deadline_action=NULL,
-			reject_reason=$2::restaurant_reject_reason_code, reject_note=$3,
-			updated_at=now()
-		WHERE id=$1`, orderID, reason, note)
-	if err != nil {
-		return nil, fmt.Errorf("reject order: %w", err)
-	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason)
-		VALUES ($1,'RESTAURANT_PENDING','REJECTED','RESTAURANT',$2,'restaurant rejected')`,
-		orderID, actorAccountID)
-	if err != nil {
-		return nil, fmt.Errorf("insert transition: %w", err)
+	// reject_reason alone. The transition function clears the deadline.
+	if err := r.rejectTx(ctx, tx, orderID, actorAccountID, reason, note); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -1462,24 +1452,9 @@ func (r *Repo) MarkOrderReady(ctx context.Context, restaurantID, orderID, actorA
 		return nil, ErrIllegalTransition
 	}
 
-	// READY_FOR_PICKUP: rider pickup expected within 15 minutes.
-	newDeadline := time.Now().UTC().Add(15 * time.Minute)
-	_, err = tx.Exec(ctx, `
-		UPDATE "order" SET
-			state='READY_FOR_PICKUP', state_since=now(),
-			deadline_at=$2, deadline_action='RIDER_NO_SHOW',
-			ready_at=now(), updated_at=now()
-		WHERE id=$1`, orderID, newDeadline)
-	if err != nil {
-		return nil, fmt.Errorf("mark ready: %w", err)
-	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason)
-		VALUES ($1,'PREPARING','READY_FOR_PICKUP','RESTAURANT',$2,'order ready')`,
-		orderID, actorAccountID)
-	if err != nil {
-		return nil, fmt.Errorf("insert transition: %w", err)
+	// READY_FOR_PICKUP takes its deadline from the deadline table (readyTx).
+	if err := r.readyTx(ctx, tx, orderID, actorAccountID); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
