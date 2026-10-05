@@ -193,7 +193,7 @@ Playbooks describe the app **as it behaves today**. Where the app does not yet u
 Two runners, same playbook:
 
 - **Claude in Chrome** — the user connects the extension to the Claude Code session (`/chrome`); Claude runs the terminal commands and drives the user's visible Chrome, reporting each assertion.
-- **Headless** — `agent-browser`, via the app's run skill (`apps/restaurant/.claude/skills/run-restaurant/`), which gains a `--backend` mode (servers up against the Go stack instead of the mock).
+- **Headless** — `agent-browser`, via the app's run skill (`apps/restaurant/.claude/skills/run-restaurant/`), which gains a `--backend` mode (servers up against the Go stack instead of the mock). `--backend local` runs `make up` when `/health/ready` does not answer, then `make dev-reset` (`RESET=0` skips it), then starts the console against `:8080`.
 
 ## 8. Verification
 
