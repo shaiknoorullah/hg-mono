@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Releasing the apps
@@ -155,6 +155,18 @@ machine as an emulator sees it: `API_BASE_URL=http://10.0.2.2:8080`.
 The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
 `MAPBOX_PUBLIC_TOKEN_MOBILE`). No Mapbox download token is needed: Mapbox serves the native SDK
 without one.
+
+## Building with EAS instead
+
+The rider's `eas.json` `preview` and `production` profiles set `EXPO_PUBLIC_API_BASE_URL` to the
+placeholder `https://api.halalgoes.com`. To point a build elsewhere, edit that value in
+`apps/rider/eas.json`, or override it for one build with
+`EXPO_PUBLIC_API_BASE_URL=https://… eas build -p android --profile preview` (a variable set in
+your shell wins over the profile's `env`).
+
+`extra.eas.projectId` is only written into the app config when `EAS_PROJECT_ID` is set, so a local
+`npx expo prebuild` or Gradle build never needs EAS. Using EAS Build is an owner step: run
+`eas init` once, then export the id it prints as `EAS_PROJECT_ID` (or set it in the profile's `env`).
 
 ## The release key
 

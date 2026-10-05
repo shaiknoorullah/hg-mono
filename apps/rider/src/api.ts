@@ -13,7 +13,7 @@
  */
 import { createHgClient, type HgClient } from '@hg/api-client';
 
-import { getToken } from './token';
+import { getRefreshToken, getToken, setToken, setTokens } from './token';
 
 const DEFAULT_BASE_URL = 'http://localhost:4010';
 
@@ -31,11 +31,53 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || DEFAULT_BASE
  */
 export const IS_MOCK = API_BASE_URL === DEFAULT_BASE_URL;
 
+/** A client with no 401 handler, used only to call the refresh operation itself. */
+const refreshClient = createHgClient({
+  baseUrl: API_BASE_URL,
+  getToken: () => null,
+  clientSurface: 'rider-app',
+  clientVersion: '0.0.0',
+});
+
+let refreshing: Promise<boolean> | null = null;
+
+/**
+ * On a 401: exchange the refresh token once (single-flight, so parallel 401s share one rotation —
+ * the server revokes the family on reuse). `true` tells the client to retry the request once;
+ * on failure the session is cleared, which sends the rider back to sign-in.
+ */
+async function onUnauthorized(): Promise<boolean> {
+  const rt = getRefreshToken();
+  if (!rt) {
+    // Signed in without a refresh token (or not signed in): a 401 means the session is over.
+    if (getToken()) setToken(null);
+    return false;
+  }
+  refreshing ??= (async () => {
+    try {
+      const { data } = await refreshClient.POST('/v1/auth/refresh', { body: { refresh_token: rt } });
+      const grant = data?.data;
+      if (!grant) {
+        setToken(null);
+        return false;
+      }
+      setTokens(grant.access_token, grant.refresh_token ?? null);
+      return true;
+    } catch {
+      return false; // transient transport failure: keep the session, the next call retries
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
+}
+
 export const api = createHgClient({
   baseUrl: API_BASE_URL,
   getToken,
   clientSurface: 'rider-app',
   clientVersion: '0.0.0',
+  onUnauthorized,
 });
 
 const scenarioClients = new Map<string, HgClient>();
@@ -54,6 +96,7 @@ export function clientFor(scenario?: string): HgClient {
     getToken,
     clientSurface: 'rider-app',
     clientVersion: '0.0.0',
+    onUnauthorized,
     mockScenario: scenario,
   });
   scenarioClients.set(scenario, client);
