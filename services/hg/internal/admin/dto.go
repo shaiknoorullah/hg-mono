@@ -581,6 +581,23 @@ type menuItemInput struct {
 	SortOrder         *int     `json:"sort_order"`
 }
 
+// menuItemUpdateInput is the contract's MenuItemUpdateInput
+// (updateMenuItemOnBehalf): every field optional, so every field is a pointer
+// (or a nil slice) and an unsent field is told apart from a sent zero.
+type menuItemUpdateInput struct {
+	CategoryID        *string  `json:"category_id"`
+	Name              *string  `json:"name"`
+	Description       *string  `json:"description"`
+	IngredientsText   *string  `json:"ingredients_text"`
+	PriceCents        *int64   `json:"price_cents"`
+	DietaryTags       []string `json:"dietary_tags"`
+	AllergenTags      []string `json:"allergen_tags"`
+	AllergensDeclared *bool    `json:"allergens_declared"`
+	ImageObjectID     *string  `json:"image_object_id"`
+	PrepMinutes       *int     `json:"prep_minutes"`
+	SortOrder         *int     `json:"sort_order"`
+}
+
 // menuItemVersion is the contract's MenuItemVersion. The schema is
 // additionalProperties:false and names neither reviewed_by nor updated_at, so
 // neither is emitted; reviewed_by remains internal to the audit log only.

@@ -107,6 +107,8 @@ var expectedCovered = []string{
 	"listAddresses", "listNotifications",
 	// admin (replaces handler_orders_conformance_test.go / handler_menu_conformance_test.go)
 	"listOrdersAdmin", "getOrderAdmin", "listMenuReviewQueue",
+	// menu edits that had no handler (https://github.com/shaiknoorullah/hg-mono/issues/502)
+	"updateMenuCategory", "updateMenuItemOnBehalf", "deleteMenuItemOnBehalf",
 	// gap-closers (conformance_gaps_test.go): the full checkout money path against
 	// the local fake payment gateway, the dispatch accept/assignment pair, the
 	// realtime ticket (seeded session), and the signed Stripe webhook.
