@@ -1163,8 +1163,9 @@ func withChiParam(r *http.Request, key, val string) *http.Request {
 // Ensure time import is used (needed if any test uses it).
 var _ = time.Second
 
-// A restaurant stuck at MENU_PENDING must advance to ACTIVE (and go LIVE) once
-// it has a menu item and opening hours, without waiting for an admin action.
+// A restaurant at MENU_PENDING advances to ACTIVE (and goes LIVE) once it has
+// opening hours and a live menu item. The item it creates waits for review, so
+// the last step is the admin's approval (docs/spec/03-restaurant.md, "R-17").
 func TestIntegration_MenuItemAndHours_AdvanceOnboarding(t *testing.T) {
 	pool := testPool(t)
 	f := seedFixtures(t, pool)
@@ -1218,7 +1219,121 @@ func TestIntegration_MenuItemAndHours_AdvanceOnboarding(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("set hours status=%d (%s)", rec.Code, rec.Body.String())
 	}
+	// The item waits for review: customers see nothing yet, so not ACTIVE (R-17 rule 1).
+	if s := state(); s != "MENU_PENDING" {
+		t.Fatalf("item waiting for review and hours: state=%s, want MENU_PENDING", s)
+	}
+	var live, pending *string
+	if err := pool.QueryRow(ctx, `SELECT live_version_id::text, pending_version_id::text FROM menu_item
+		WHERE restaurant_id=$1 AND deleted_at IS NULL AND pending_version_id IS NOT NULL`, f.restaurantID).Scan(&live, &pending); err != nil {
+		t.Fatalf("new item: %v", err)
+	}
+	if live != nil || pending == nil {
+		t.Fatalf("new item live=%v pending=%v; want no live version and one waiting", live, pending)
+	}
+
+	// An admin approves it (what decideMenuVersion writes), and the gate re-runs.
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	var adminID string
+	if err := tx.QueryRow(ctx, `INSERT INTO account (email, status) VALUES ('menu-reviewer-'||gen_random_uuid()||'@halalgoes.test', 'ACTIVE')
+		RETURNING id::text`).Scan(&adminID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE menu_item_version SET review_status='APPROVED', reviewed_by=$2, reviewed_at=now() WHERE id=$1`,
+		*pending, adminID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE menu_item SET live_version_id=pending_version_id, pending_version_id=NULL
+		WHERE pending_version_id=$1`, *pending); err != nil {
+		t.Fatal(err)
+	}
+	if err := restaurant.RecomputeOnboarding(ctx, tx, f.restaurantID); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
 	if s := state(); s != "ACTIVE" {
-		t.Fatalf("item and hours: state=%s, want ACTIVE", s)
+		t.Fatalf("approved item and hours: state=%s, want ACTIVE", s)
+	}
+}
+
+// A restaurant's change to a reviewed field waits for review and never touches
+// what customers see; operational fields apply at once (docs/spec/03-restaurant.md,
+// "R-17 — Menu change approval workflow (admin)"). The new version is numbered
+// after every earlier one, so an item with no live version no longer reuses
+// version 1 and fails (https://github.com/shaiknoorullah/hg-mono/issues/594).
+func TestIntegration_UpdateMenuItem_ReviewedFieldsWaitForReview(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+	ctx := context.Background()
+
+	patch := func(body string) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPatch, "/v1/restaurant/menu/items/"+f.menuItemID, strings.NewReader(body))
+		req = withChiParam(withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner)), "itemId", f.menuItemID)
+		rec := httptest.NewRecorder()
+		h.UpdateMenuItem(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("PATCH %s = %d (%s), want 200", body, rec.Code, rec.Body.String())
+		}
+	}
+	type item struct {
+		live, pending *string
+		price         int64
+		versions      int
+	}
+	read := func() item {
+		t.Helper()
+		var it item
+		if err := pool.QueryRow(ctx, `SELECT live_version_id::text, pending_version_id::text, price_cents,
+			(SELECT count(*) FROM menu_item_version WHERE menu_item_id = mi.id)
+			FROM menu_item mi WHERE id = $1`, f.menuItemID).Scan(&it.live, &it.pending, &it.price, &it.versions); err != nil {
+			t.Fatal(err)
+		}
+		return it
+	}
+	before := read()
+
+	// Price only: instant, no new version.
+	patch(`{"price_cents":1999}`)
+	if it := read(); it.price != 1999 || it.versions != before.versions || it.pending != before.pending {
+		t.Fatalf("price change: %+v, want price 1999 and no new version", it)
+	}
+
+	// A new name: a version waiting for review; the live one is unchanged.
+	patch(`{"name":"Chicken Biryani Royale"}`)
+	first := read()
+	if first.pending == nil || first.versions != before.versions+1 || (before.live == nil) != (first.live == nil) ||
+		(before.live != nil && *first.live != *before.live) {
+		t.Fatalf("name change: %+v (before %+v), want one more version, pending, live unchanged", first, before)
+	}
+
+	// Edited again before review, with no live version at all: the newer
+	// version replaces the older one and takes the next number.
+	if _, err := pool.Exec(ctx, `UPDATE menu_item SET live_version_id = NULL WHERE id = $1`, f.menuItemID); err != nil {
+		t.Fatal(err)
+	}
+	patch(`{"description":"Slow-cooked, with saffron."}`)
+	second := read()
+	var name, status string
+	var number, maxNumber int
+	if err := pool.QueryRow(ctx, `SELECT name, review_status::text, version,
+		(SELECT max(version) FROM menu_item_version WHERE menu_item_id = $2)
+		FROM menu_item_version WHERE id = $1`, *second.pending, f.menuItemID).Scan(&name, &status, &number, &maxNumber); err != nil {
+		t.Fatal(err)
+	}
+	if name != "Chicken Biryani Royale" || status != "PENDING_REVIEW" || number != maxNumber || second.live != nil {
+		t.Fatalf("second change: name=%q status=%s version=%d of %d live=%v; want the earlier name kept, PENDING_REVIEW, the newest number, still not live",
+			name, status, number, maxNumber, second.live)
+	}
+	var older string
+	if err := pool.QueryRow(ctx, `SELECT review_status::text FROM menu_item_version WHERE id = $1`, *first.pending).Scan(&older); err != nil || older != "WITHDRAWN" {
+		t.Fatalf("the older pending version is %q (err %v), want WITHDRAWN", older, err)
 	}
 }
