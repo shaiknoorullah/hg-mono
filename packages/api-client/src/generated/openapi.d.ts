@@ -628,8 +628,11 @@ export interface paths {
          *     refund a retried support click would otherwise cause.
          *
          *     The authority check runs before anything reaches Stripe. A request that exceeds the
-         *     caller's cap is **not rejected**: it creates an approval request and escalates, so a
-         *     customer's request is never lost. The caller's rolling 24-hour total (the refunds they
+         *     caller's cap — their rolling 24-hour total, their per-order limit (what they approved on
+         *     the order plus this one) or the order-age limit, per the
+         *     [refund authority limits (A-33)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-33--refund-issuance-and-authority-limits) —
+         *     is **not rejected**: it creates an approval request and escalates (to a super admin when
+         *     the order is past an admin's age limit), so a customer's request is never lost. The caller's rolling 24-hour total (the refunds they
          *     approved in the last 24 hours) is summed under a per-person lock inside the
          *     authorising transaction, so two refunds at once cannot both slip under the cap. Nobody
          *     may approve their own above-cap request; a goodwill refund above CAD 50.00 always
@@ -668,8 +671,8 @@ export interface paths {
          * @description [Refund requests and their review (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172),
          *     under the [refund authority limits (A-33)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-33--refund-issuance-and-authority-limits).
          *
-         *     **A customer's request (`REQUESTED`).** Within the approver's rolling 24-hour limit it
-         *     is approved at once: `200`, `AUTHORISED`, its ledger batch posted, and the refund sender
+         *     **A customer's request (`REQUESTED`).** Within the approver's limits (rolling 24 hours,
+         *     per order and order age) it is approved at once: `200`, `AUTHORISED`, its ledger batch posted, and the refund sender
          *     sends it to Stripe. Above the limit it is **not rejected**: it becomes
          *     `PENDING_APPROVAL` for the role one level up (`202`), and a second person decides it.
          *
@@ -8779,7 +8782,7 @@ export interface operations {
             };
             /**
              * @description `MFA_REQUIRED`, or `FORBIDDEN`: the approval request needs a role the caller does
-             *     not hold.
+             *     not hold, or the order is past the caller's order-age limit.
              */
             403: {
                 headers: {

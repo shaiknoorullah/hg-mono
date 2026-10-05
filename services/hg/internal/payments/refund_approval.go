@@ -133,12 +133,23 @@ func (s *Service) ApproveRefund(ctx context.Context, refundID string, by Staff, 
 		if err != nil {
 			return Outcome{}, err
 		}
-		authority := map[string]any{"cap_applied_cents": cap, "uncapped": uncapped, "used_24h_cents": used}
+		limits := operatorOrderLimits(by.Roles)
+		onOrder, age, err := orderAuthority(ctx, tx, by.AccountID, p.OrderID, s.now())
+		if err != nil {
+			return Outcome{}, err
+		}
+		over := orderLimitExceeded(limits, p.AmountCents, onOrder, age)
+		authority := map[string]any{"cap_applied_cents": cap, "uncapped": uncapped, "used_24h_cents": used,
+			"per_order_cap_cents": limits.PerOrderCents, "max_order_age_days": int(limits.MaxOrderAge.Hours() / 24),
+			"approved_on_order_cents": onOrder, "order_age_days": int(age.Hours() / 24)}
 
 		switch RefundState(p.State) {
 		case RefundRequested:
-			if requiresApproval(RefundKind(p.Kind), p.AmountCents, used, cap, uncapped) {
-				return s.escalateTx(ctx, tx, p, by, in, authority)
+			if requiresApproval(RefundKind(p.Kind), p.AmountCents, used, cap, uncapped) || over != "" {
+				if over != "" {
+					authority["limit_exceeded"] = over
+				}
+				return s.escalateTx(ctx, tx, p, by, in, escalationRole(by.Roles, age), authority)
 			}
 		case RefundPendingApproval:
 			if by.AccountID == p.EscalatedBy {
@@ -148,6 +159,12 @@ func (s *Service) ApproveRefund(ctx context.Context, refundID string, by Staff, 
 			if !by.has(p.RequiredRole) && !by.has("SUPER_ADMIN") {
 				return Outcome{}, domainErr(string(httpx.CodeForbidden), 403,
 					fmt.Sprintf("This refund needs approval from someone with the %s role.", p.RequiredRole))
+			}
+			// The approver's own per-order and order-age limits hold too; past
+			// them, only a super admin decides (A-33, #364).
+			if over != "" {
+				return Outcome{}, domainErr(string(httpx.CodeForbidden), 403,
+					"This refund is past your per-order or order-age refund limit; a super admin can approve it.")
 			}
 			if !uncapped && used+p.AmountCents > cap {
 				return Outcome{}, domainErr(string(CodeDailyCapExceeded), 409,
@@ -219,8 +236,7 @@ func (s *Service) authoriseTx(ctx context.Context, tx pgx.Tx, p pendingRefund, b
 // escalateTx sends a customer's request above the reviewer's limit up one
 // level: PENDING_APPROVAL for the next role, naming who sent it up, on a
 // clock. No money moves.
-func (s *Service) escalateTx(ctx context.Context, tx pgx.Tx, p pendingRefund, by Staff, in RefundDecisionInput, authority map[string]any) (Outcome, error) {
-	required := escalationRole(by.Roles)
+func (s *Service) escalateTx(ctx context.Context, tx pgx.Tx, p pendingRefund, by Staff, in RefundDecisionInput, required string, authority map[string]any) (Outcome, error) {
 	if _, err := tx.Exec(ctx, `
 		UPDATE refund
 		   SET state = 'PENDING_APPROVAL', approval_status = 'PENDING', approval_required_role = $2::role_name,

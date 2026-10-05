@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
@@ -73,11 +74,44 @@ func TestRequiresApproval(t *testing.T) {
 }
 
 func TestEscalationRole(t *testing.T) {
-	if got := escalationRole([]string{"SUPPORT_AGENT"}); got != "ADMIN" {
+	if got := escalationRole([]string{"SUPPORT_AGENT"}, 0); got != "ADMIN" {
 		t.Fatalf("support agent escalates to %s, want ADMIN", got)
 	}
-	if got := escalationRole([]string{"ADMIN"}); got != "SUPER_ADMIN" {
+	if got := escalationRole([]string{"ADMIN"}, 0); got != "SUPER_ADMIN" {
 		t.Fatalf("admin escalates to %s, want SUPER_ADMIN", got)
+	}
+	// Past an admin's age limit, nobody below a super admin may approve it.
+	if got := escalationRole([]string{"SUPPORT_AGENT"}, MaxOrderAgeAdmin+time.Hour); got != "SUPER_ADMIN" {
+		t.Fatalf("support agent on an order past 90 days escalates to %s, want SUPER_ADMIN", got)
+	}
+}
+
+// The per-order and order-age limits (docs/spec/05-admin.md, "A-33 — Refund
+// issuance and authority limits", #364).
+func TestOrderLimitExceeded(t *testing.T) {
+	agent, admin, super := operatorOrderLimits([]string{"SUPPORT_AGENT"}),
+		operatorOrderLimits([]string{"ADMIN", "SUPPORT_AGENT"}), operatorOrderLimits([]string{"SUPER_ADMIN"})
+	day := 24 * time.Hour
+	cases := []struct {
+		name             string
+		limits           orderLimits
+		amount, approved int64
+		age              time.Duration
+		want             string
+	}{
+		{"agent at the per-order limit", agent, PerOrderCapSupportAgentCents, 0, day, ""},
+		{"agent a cent over it", agent, PerOrderCapSupportAgentCents + 1, 0, day, limitPerOrder},
+		{"agent splitting one refund in two", agent, 1500, 1500, day, limitPerOrder},
+		{"agent on the last day", agent, 100, 0, MaxOrderAgeSupportAgent, ""},
+		{"agent past 14 days", agent, 100, 0, MaxOrderAgeSupportAgent + time.Minute, limitOrderAge},
+		{"admin refunds a whole order", admin, 200000, 0, 30 * day, ""},
+		{"admin past 90 days", admin, 100, 0, MaxOrderAgeAdmin + time.Minute, limitOrderAge},
+		{"super admin has neither limit", super, 500000, 500000, 400 * day, ""},
+	}
+	for _, c := range cases {
+		if got := orderLimitExceeded(c.limits, c.amount, c.approved, c.age); got != c.want {
+			t.Errorf("%s: %q, want %q", c.name, got, c.want)
+		}
 	}
 }
 

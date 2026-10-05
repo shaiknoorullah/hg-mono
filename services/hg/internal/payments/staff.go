@@ -108,6 +108,28 @@ func authorityUsed(ctx context.Context, tx pgx.Tx, staffID string, now time.Time
 	return used, err
 }
 
+// orderAuthority returns what a person already approved on an order (refunds
+// not declined or cancelled) and how old the order is: since its delivery, or
+// since it was placed if it was never delivered. Read inside the authorising
+// transaction, after authorityUsed has taken the person's lock, so two of
+// their refunds on one order take turns.
+func orderAuthority(ctx context.Context, tx pgx.Tx, staffID, orderID string, now time.Time) (int64, time.Duration, error) {
+	var (
+		approved int64
+		since    time.Time
+	)
+	err := tx.QueryRow(ctx, `
+		SELECT coalesce((SELECT sum(r.amount_cents) FROM refund r
+		                  WHERE r.order_id = o.id AND r.approved_by = $1
+		                    AND r.state NOT IN ('DECLINED', 'CANCELLED')), 0)::bigint,
+		       coalesce(o.delivered_at, o.placed_at)
+		  FROM "order" o WHERE o.id = $2`, staffID, orderID).Scan(&approved, &since)
+	if err != nil {
+		return 0, 0, err
+	}
+	return approved, now.Sub(since), nil
+}
+
 // staffAudit is one audit event for a staff action on money.
 type staffAudit struct {
 	Action      string
