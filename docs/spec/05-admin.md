@@ -1334,7 +1334,11 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     suspended or banned: then nobody changes its menu, admins included; a delisted restaurant's menu
     stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). An item an admin creates
     is approved on creation and audited, with the creating admin recorded as its reviewer
-    ([menu approval](../decisions/README.md#settled--reconciliations)). Updating or removing an item on
+    ([menu approval](../decisions/README.md#settled--reconciliations)). Its photo must be a confirmed
+    `MENU_IMAGE` the admin or someone at the restaurant uploaded, or one of the restaurant's photos
+    already; anything else is `404` and nothing is written
+    ([#450](https://github.com/shaiknoorullah/hg-mono/issues/450),
+    [presigned upload](01-platform.md#p-28--presigned-upload-and-download)). Updating or removing an item on
     a restaurant's behalf is a launch operation ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
     [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)) the contract has and the backend
     does not build yet; it never silently discards a restaurant edit that is waiting for review.
