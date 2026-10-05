@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 )
 
 // The auth-then-capture lifecycle (P-16), exposed as internal service methods
@@ -185,6 +186,12 @@ func (r *Repo) InsertConnectAccount(ctx context.Context, ownerType, ownerID stri
 			return err
 		}
 	}
+	// An approved rider whose payouts are now enabled becomes ACTIVE (can go online).
+	if ownerType == "RIDER" {
+		if err := rider.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return err
+		}
+	}
 	return tx.Commit(ctx)
 }
 
@@ -235,7 +242,30 @@ func updateConnectFromStripe(ctx context.Context, tx pgx.Tx, acct *StripeAccount
 			return connectUnknown, err
 		}
 	}
+	// An approved rider whose payouts are now enabled becomes ACTIVE (can go online).
+	if ownerType == "RIDER" {
+		if err := rider.RecomputeOnboarding(ctx, tx, ownerID); err != nil {
+			return connectUnknown, err
+		}
+	}
 	return connectApplied, nil
+}
+
+// UpdateConnectFromStripe applies an account snapshot as of now, in its own
+// transaction. The webhook path does not use it (it applies each event's
+// snapshot inside the event's transaction, as of the event's time); it is for
+// callers that hold only the account, such as the rider-activation integration
+// test. An unknown account is a no-op.
+func (r *Repo) UpdateConnectFromStripe(ctx context.Context, acct *StripeAccount) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if _, err := updateConnectFromStripe(ctx, tx, acct, time.Now()); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // connectReqsMap builds the requirements JSONB map to store. The

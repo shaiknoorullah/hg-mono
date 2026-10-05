@@ -1,0 +1,20 @@
+{
+  "scenario": "rider_decision_input_request_changes",
+  "domain": "admin",
+  "schema": "RiderDecisionInput",
+  "describes": "Request body for `decideRiderApplication`. REQUEST_CHANGES: a document rejection reason and exactly which documents to redo.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "admin",
+    "request-body"
+  ],
+  "payload": {
+    "decision": "REQUEST_CHANGES",
+    "reason_code": "ILLEGIBLE",
+    "reason_text": "Your licence photo is too dark to read. Retake it in daylight, showing all four corners.",
+    "documents_to_redo": [
+      "DRIVERS_LICENCE"
+    ]
+  }
+}

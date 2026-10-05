@@ -1,0 +1,128 @@
+{
+  "scenario": "rider_application_approved",
+  "domain": "admin",
+  "schema": "RiderApplication",
+  "describes": "`decideRiderApplication` with `rider_decision_input_approve`: the rider moves to `PAYOUT_PENDING`, not straight to dispatchable. They are offered orders only once Stripe reports payouts enabled.",
+  "operations": [
+    "decideRiderApplication",
+    "getRiderApplication"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "rider"
+  ],
+  "payload": {
+    "rider_account_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+    "display_name": "Ayesha R.",
+    "vehicle_type": "CAR",
+    "onboarding_state": "PAYOUT_PENDING",
+    "attempt_number": 1,
+    "assigned_admin_id": "138fa339-791b-4547-ae91-5fb049a39a3c",
+    "review_lock_expires_at": null,
+    "submitted_at": "2026-08-09T16:42:11.412Z",
+    "sla_due_at": "2026-08-11T16:42:11.412Z",
+    "profile": {
+      "account_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+      "first_name": "Ayesha",
+      "last_name": "Rahman",
+      "email": "ayesha.r@example.com",
+      "date_of_birth": "1994-03-17",
+      "timezone": "America/Toronto"
+    },
+    "vehicle": {
+      "id": "f357de8b-9b71-4406-a7ac-69d1612c5b63",
+      "vehicle_type": "CAR",
+      "make": "Toyota",
+      "model": "Corolla",
+      "year": 2019,
+      "colour": "Silver",
+      "licence_plate": "CJHK812",
+      "is_active": true
+    },
+    "documents": [
+      {
+        "id": "0508fd9e-d9fb-4f45-a635-baa0a252f29c",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "DRIVERS_LICENCE",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "12564912-06c5-4cf9-af62-e20faafacc6a",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "VEHICLE_REGISTRATION",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "30e6f4e8-6360-431d-a0c2-011f200d79e0",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "VEHICLE_INSURANCE",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "d0feffd8-30cf-4a3e-a6e6-0d10d5d66330",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "WORK_ELIGIBILITY",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": "2027-09-14",
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      },
+      {
+        "id": "0029c657-9114-43b9-a212-3723852fd267",
+        "subject_type": "RIDER",
+        "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+        "doc_type": "PROFILE_PHOTO",
+        "state": "APPROVED",
+        "issuer": "Province of Ontario",
+        "certificate_number": null,
+        "issued_on": "2026-03-09",
+        "valid_until": null,
+        "version": 1,
+        "rejection_reason_code": null,
+        "review_note": null,
+        "reviewed_at": "2026-08-08T18:42:11.412Z",
+        "created_at": "2026-08-04T18:42:11.412Z"
+      }
+    ],
+    "computed_age_years": 32,
+    "blockers": []
+  }
+}

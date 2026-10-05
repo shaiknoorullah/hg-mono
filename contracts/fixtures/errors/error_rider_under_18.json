@@ -1,0 +1,20 @@
+{
+  "scenario": "error_rider_under_18",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `AGE_REQUIREMENT_NOT_MET`. Approving a rider whose date of birth makes them under 18. No role can override it, and the application stays in review.",
+  "operations": [
+    "decideRiderApplication"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "AGE_REQUIREMENT_NOT_MET",
+      "message": "The rider is under 18; approval is refused and cannot be overridden.",
+      "request_id": "GFYW3DGP64AEK1K0WBY901WQ2B"
+    }
+  }
+}

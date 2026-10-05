@@ -1,0 +1,17 @@
+{
+  "scenario": "rider_decision_input_reject",
+  "domain": "admin",
+  "schema": "RiderDecisionInput",
+  "describes": "Request body for `decideRiderApplication`. REJECT: a document rejection reason and the sentence the rider reads.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "admin",
+    "request-body"
+  ],
+  "payload": {
+    "decision": "REJECT",
+    "reason_code": "SUSPECTED_ALTERATION",
+    "reason_text": "The date of birth on your licence appears to have been edited, so we cannot accept this application."
+  }
+}
