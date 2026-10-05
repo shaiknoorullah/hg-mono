@@ -44,6 +44,15 @@ var restaurantMenuWrites = []menuWriteCase{
 		},
 	},
 	{
+		// A rename, a move and a deactivation in one save.
+		op: "updateMenuCategory", route: "PATCH /v1/restaurant/menu/categories/{categoryId}", success: http.StatusOK,
+		call: func(h *restaurant.Handler, f fixtures) *httptest.ResponseRecorder {
+			body := fmt.Sprintf(`{"name":"Lock test %d","sort_order":0,"is_active":false}`, time.Now().UnixNano())
+			req := httptest.NewRequest(http.MethodPatch, "/v1/restaurant/menu/categories/"+f.categoryID, strings.NewReader(body))
+			return serveAsOwner(h.UpdateMenuCategory, withChiParam(req, "categoryId", f.categoryID), f)
+		},
+	},
+	{
 		op: "createMenuItem", route: "POST /v1/restaurant/menu/items", success: http.StatusCreated,
 		call: func(h *restaurant.Handler, f fixtures) *httptest.ResponseRecorder {
 			body := fmt.Sprintf(`{"name":"Lamb Karahi","category_id":%q,"price_cents":2100}`, f.categoryID)

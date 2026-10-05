@@ -54,9 +54,11 @@ func ParseJourneyArgs(args []string) (JourneyOptions, error) {
 	return opts, nil
 }
 
-// RunJourney places one order at the seeded restaurant and drives it through
-// the API. It stops when the restaurant cannot bind a seal. It does not insert
-// a seal and it does not mark the order picked up.
+// RunJourney places one order and drives it through the API. auto=all rides it
+// from the restaurant through pickup, a proof photo and DELIVERED, then reads
+// the receipt, a rating, the restaurant order and a refund request. A refused
+// seal is recorded and the ride continues. The command does not insert a seal.
+// Without a driven rider it returns once the order is ready.
 func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if baseURL == "" {
@@ -76,6 +78,7 @@ func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error 
 	if err != nil {
 		return err
 	}
+	fmt.Printf("order  %s  %s  %s\n", order.ID, order.Code, order.State)
 
 	var kitchen *apiClient
 	if restaurantAuto || driveRider {
@@ -117,7 +120,6 @@ func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error 
 	if early && order.State == "PREPARING" {
 		leg, how := pickupLeg(ctx, "early-rider", mapToken(), &http.Client{Timeout: 8 * time.Second})
 		fmt.Printf("route early-rider  %s  %d points\n", howLabel(how), len(leg))
-		fmt.Printf("dropoff pin %.4f,%.4f is not walked\n", customerPoint.Lat, customerPoint.Lng)
 		if err = riderClient.walk(ctx, leg, "", stepWait(opts.Speed)); err != nil {
 			return err
 		}
@@ -134,7 +136,7 @@ func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error 
 		fmt.Printf("ready  %s  %s\n", order.Code, order.State)
 	}
 	if order.State != "READY_FOR_PICKUP" {
-		order, err = waitForReady(ctx, cust, order)
+		order, err = waitForReady(ctx, cust, kitchen, order, restaurantAuto)
 		if err != nil {
 			return err
 		}
@@ -179,7 +181,6 @@ func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error 
 			leg[len(leg)-1] = pickupAt
 		}
 		fmt.Printf("route %s  %s  %d points\n", opts.Route, howLabel(how), len(leg))
-		fmt.Printf("dropoff pin %.4f,%.4f is not walked\n", customerPoint.Lat, customerPoint.Lng)
 		if err = riderClient.walk(ctx, leg, assignmentID, stepWait(opts.Speed)); err != nil {
 			return err
 		}
@@ -199,7 +200,7 @@ func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error 
 	if serr == nil && seen.ID != "" {
 		order = seen
 	}
-	return kitchen.bindSeal(ctx, order)
+	return deliverLeg(ctx, cust, kitchen, riderClient, order, assignmentID, pickupAt)
 }
 
 func howLabel(how string) string {
@@ -226,17 +227,57 @@ func journeyOrder(ctx context.Context, cust *apiClient) (placedOrder, error) {
 	}
 }
 
-func waitForReady(ctx context.Context, cust *apiClient, order placedOrder) (placedOrder, error) {
+func waitForReady(ctx context.Context, cust, kitchen *apiClient, order placedOrder, restaurantAuto bool) (placedOrder, error) {
 	last := ""
+	var paySince time.Time
 	tick := time.NewTicker(2 * time.Second)
 	defer tick.Stop()
 	for {
 		if order.State != last {
 			fmt.Printf("waiting  %s  %s\n", order.Code, order.State)
+			if v, verr := cust.getOrder(ctx, order.ID); verr == nil {
+				printOrderView(v)
+			}
 			last = order.State
 		}
-		if order.State == "READY_FOR_PICKUP" {
+		switch order.State {
+		case "READY_FOR_PICKUP", "PICKED_UP", "ARRIVED", "DELIVERED", "COMPLETED":
 			return order, nil
+		case "CANCELLED", "REJECTED", "FAILED", "DISPUTED", "RESOLVED":
+			return order, fmt.Errorf("devworld: %s is %s", order.Code, order.State)
+		case "RESTAURANT_PENDING":
+			if restaurantAuto && kitchen != nil {
+				next, err := kitchen.accept(ctx, order.ID)
+				if err != nil {
+					return order, err
+				}
+				fmt.Printf("accept  %s  %s\n", next.Code, next.State)
+				if next.State != "" && next.State != order.State {
+					order = next
+					continue
+				}
+				order = next
+			}
+		case "PREPARING":
+			if restaurantAuto && kitchen != nil {
+				next, err := kitchen.ready(ctx, order.ID)
+				if err != nil {
+					return order, err
+				}
+				fmt.Printf("ready  %s  %s\n", next.Code, next.State)
+				if next.State != "" && next.State != order.State {
+					order = next
+					continue
+				}
+				order = next
+			}
+		case "CREATED", "AUTHORIZED":
+			if paySince.IsZero() {
+				paySince = time.Now()
+			}
+			if time.Since(paySince) >= paymentAuthoriseWait {
+				return order, fmt.Errorf("devworld: payment was not authorised; %s is %s", order.Code, order.State)
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -472,23 +513,6 @@ func (c *apiClient) stamps(ctx context.Context, n int) ([]time.Time, error) {
 		out[i] = end.Add(-time.Duration(n-1-i) * time.Second)
 	}
 	return out, nil
-}
-
-func (c *apiClient) bindSeal(ctx context.Context, order placedOrder) error {
-	_, _, err := c.call(ctx, http.MethodPost, "/v1/orders/"+order.ID+"/handoff/seal", map[string]string{
-		"seal_code": "DEVWORLD",
-	}, true)
-	if err == nil {
-		fmt.Printf("seal bound  %s  %s\n", order.Code, order.State)
-		return fmt.Errorf("devworld: seal bind succeeded for %s; this command stops before pickup and does not mark the order delivered", order.Code)
-	}
-	var api *apiError
-	status := 0
-	if errors.As(err, &api) {
-		status = api.Status
-	}
-	fmt.Printf("seal refused  http %d  %s  %s\n", status, order.Code, order.State)
-	return fmt.Errorf("devworld: stopped before pickup. The restaurant cannot bind a seal (http %d). %s is %s. This world has no issued seal and this command does not insert one. The pickup step would move a ready order without a seal; this command does not send that step", status, order.Code, order.State)
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) error {

@@ -190,8 +190,12 @@ UPDATE "order" SET state = 'CANCELLED', cancel_reason = 'SUPPORT_CANCELLED', can
                    deadline_at = NULL, deadline_action = NULL
  WHERE id = $1`, o.id)
 			}
-			if d := readDispatch(t, pool, o.id); d.state != "ASSIGNED" {
-				t.Fatalf("dispatch = %+v; the test needs the row still ASSIGNED, as it is after any end but delivery", d)
+			// The assignment's own end releases the row (#415); the order's
+			// cancel above is written straight to the row, past the orders
+			// module's cancel hook, so its row still names the rider and the
+			// live-assignment check is what stops the fix.
+			if d := readDispatch(t, pool, o.id); end == "the platform cancels the assignment" && d.state == "ASSIGNED" {
+				t.Fatalf("dispatch = %+v; an assignment that ended must not leave the row ASSIGNED", d)
 			}
 
 			// Remove the earlier event, so the 5-second throttle cannot be what

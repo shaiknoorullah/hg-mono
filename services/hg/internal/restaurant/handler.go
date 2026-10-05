@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 
@@ -416,6 +417,70 @@ func (h *Handler) CreateMenuCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.Respond(w, r, http.StatusCreated, cat)
+}
+
+// UpdateMenuCategory implements PATCH /v1/restaurant/menu/categories/{categoryId}:
+// rename, reorder, deactivate or reactivate one of the caller's own categories.
+// x-roles: OWNER, MANAGER only. A category carries no halal claim and no price, so
+// the change is live at once and never goes to review (R-14).
+func (h *Handler) UpdateMenuCategory(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
+		return
+	}
+	var body categoryUpdateDTO
+	if !decodeStrict(w, r, &body) {
+		return
+	}
+	// Contract MenuCategoryUpdateInput: name 1–60 characters, description at most 500.
+	if body.Name != nil {
+		name := strings.TrimSpace(*body.Name)
+		body.Name = &name
+		if n := utf8.RuneCountInString(name); n < 1 || n > 60 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"name must be between 1 and 60 characters.",
+				[]httpx.FieldError{{Field: "name", Code: "invalid", Message: "must be 1 to 60 characters"}})
+			return
+		}
+	}
+	if body.Description != nil && utf8.RuneCountInString(*body.Description) > 500 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"description must be at most 500 characters.",
+			[]httpx.FieldError{{Field: "description", Code: "invalid", Message: "at most 500 characters"}})
+		return
+	}
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
+		return
+	}
+	categoryID := chi.URLParam(r, "categoryId")
+	if !isValidUUID(categoryID) {
+		// A malformed id names no category on this menu: the same 404 as a foreign one.
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
+	cat, err := h.repo.UpdateCategory(r.Context(), restaurantID, categoryID, body)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
+	if errors.Is(err, ErrCategoryNameTaken) {
+		httpx.Fail(w, r, http.StatusConflict,
+			httpx.ErrorCode("CATEGORY_NAME_TAKEN"),
+			"A category with this name already exists.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, cat)
 }
 
 // CreateMenuItem implements POST /v1/restaurant/menu/items.

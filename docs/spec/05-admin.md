@@ -1347,10 +1347,16 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     `MENU_IMAGE` the admin or someone at the restaurant uploaded, or one of the restaurant's photos
     already; anything else is `404` and nothing is written
     ([#450](https://github.com/shaiknoorullah/hg-mono/issues/450),
-    [presigned upload](01-platform.md#p-28--presigned-upload-and-download)). Updating or removing an item on
-    a restaurant's behalf is a launch operation ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
-    [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)) the contract has and the backend
-    does not build yet; it never silently discards a restaurant edit that is waiting for review.
+    [presigned upload](01-platform.md#p-28--presigned-upload-and-download)). Admins also update and remove
+    items on a restaurant's behalf, a launch operation ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
+    [#182](https://github.com/shaiknoorullah/hg-mono/issues/182), built in
+    [#502](https://github.com/shaiknoorullah/hg-mono/issues/502)), with the same permission, photo rule
+    and audit event as creating one. An update applies price, category, prep time and order at once and
+    approves claim-bearing fields on save, the admin recorded as reviewer, keeping any field it does not
+    send from the live version. It never silently discards a restaurant edit that is waiting for review:
+    a claim-bearing update to an item with one is `409 MENU_VERSION_PENDING`, and the admin decides that
+    version first. Removing an item is a soft delete: the item leaves the menu at once, order lines keep
+    their snapshot, and a version waiting for review is withdrawn, so deciding it is `409 ITEM_DELETED`.
   - R8 The menu lock is enforced, not advisory ([#256](https://github.com/shaiknoorullah/hg-mono/issues/256)).
     While the restaurant's `account_state` is `SUSPENDED` or `BANNED`, every menu write on its behalf
     answers `403 MENU_LOCKED`, with the state in `details.account_state`, and writes nothing: creating,
@@ -2531,7 +2537,10 @@ documents lapse cannot go on shift, but is not punished.
     acceptance: staff may do that without a case, and the reason goes on the audit log
     ([cancellation policy](../decisions/README.md#settled--client-decisions); needs a contract change).
   - R2 Cancelling after acceptance always issues a refund per A-29 R1 and A-33; the two are one
-    transaction from the operator's point of view.
+    transaction from the operator's point of view. The same transaction releases the order's
+    rider: a live assignment ends `CANCELLED_BY_PLATFORM`, the rider is available again, the
+    dispatch row stops naming them and `dispatch.unassigned` is written
+    ([#415](https://github.com/shaiknoorullah/hg-mono/issues/415)).
   - R3 `FORCE_STATUS` writes an `audit_event` with severity `DESTRUCTIVE`, requires re-authentication
     (A-02 R4), and raises a P3 case at Tier 3 for after-the-fact review.
   - R4 ETA extension is customer-visible and notifies the customer; it never changes any SLA

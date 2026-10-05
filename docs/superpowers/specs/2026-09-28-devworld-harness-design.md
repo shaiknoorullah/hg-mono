@@ -153,21 +153,22 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `customer-cancels` | customer cancels a pending order | offer withdrawn |
 | `docs-approve` / `docs-reject` | `admin-seed` decides `docs-review` | onboarding advances / shows reason |
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
-| `journey` | see [journey](#63-journey) | one live order, stopped when a seal cannot be bound |
+| `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
 
 ### 6.2 Bootstrap (not run by `reset`)
 
-Reset does not run the journey. Delivered history waits until an issued seal exists, because the journey stops there and does not insert one. A cancelled order and a rejected order are the scenario commands, not part of reset.
+Reset does not run the journey. A cancelled order and a rejected order are the scenario commands, not part of reset.
 
 ### 6.3 Journey
 
 `devworld journey` places one order at `bismillah-grill` and drives it as far as the API allows. `make dev-journey` runs it (`route=short`, `speed=1x`, `auto=none`; `manual=rider` leaves the rider to a person).
 
-1. `customer-amina` orders from the target restaurant. An order she already has in a state this command can continue is reused.
-2. Restaurant steps default to waiting. The command prints the order state until someone accepts and marks it ready, or until the command's deadline. `--auto=restaurant` and `--auto=all` accept and mark ready.
+1. `customer-amina` orders from the target restaurant. An order she already has in a state this command can continue is reused. When that order is still waiting for payment and the process has a test Stripe secret, the command confirms the test card and prints only the status word. It refuses a live secret. It prints neither the secret nor the intent id. With no secret set, it skips the confirm.
+2. Restaurant steps default to waiting. The command prints the order state until someone accepts and marks it ready, or until the command's deadline. `--auto=restaurant` and `--auto=all` accept a pending order and mark a preparing order ready, including when the order becomes pending during the wait. A created order that is still unpaid after about 90 seconds stops the wait.
 3. `--route=early-rider` brings `rider-sim` online at the start of the approach before the kitchen marks the order ready, posts positions up to the door, and polls for an offer. Dispatch offers only a ready order, so none arrives. The command then marks the order ready. A rider transition does not mark a preparing order ready: the running pickup refuses that state ([early pickup](https://github.com/shaiknoorullah/hg-mono/issues/317)). If the order is already ready, the command says the early arrival cannot be shown and continues with the short approach.
 4. When `--auto=all` drives the rider, `rider-sim` is online at the route start before the order is marked ready, so the first sweep can see the rider. The command polls the current offer. It does not call the sweep itself. `--manual=rider`, and any run that does not pass `--auto=all`, stops once the order is ready and leaves the rider to a person.
-5. The simulator posts positions along the pickup leg. `1x` waits 5 seconds between posts, `4x` waits a quarter of that, and `max` does not wait and may send up to 10 points at once. At the restaurant it records en route and arrived. The restaurant then tries to bind a seal. The world has no issued seal, so the bind is refused. The command prints that status and the order state, and exits non-zero. It does not insert a seal, and it does not mark the order picked up or delivered.
+5. The simulator posts positions along the pickup leg. `1x` waits 5 seconds between posts, `4x` waits a quarter of that, and `max` does not wait and may send up to 10 points at once. At the restaurant it records en route and arrived. The restaurant then tries to bind a seal. The world has no issued seal, so the bind is refused, the command prints that status, and the ride continues. It does not insert a seal. The rider marks the order picked up, walks to the drop-off, uploads a proof-of-delivery photo, and records delivered.
+6. The command then waits for the order to complete. As the customer it reads the receipt, submits a food rating and a rider rating, and requests a full refund. As the restaurant it reads the order back. It keeps going through those reads when one of them is refused, and exits non-zero if any of them fails or the order never completes.
 
 Flags: `--route=short|long|early-rider`, `--speed=1x|4x|max` (default `1x`), `--auto=none|restaurant|all`, `--manual=rider`.
 

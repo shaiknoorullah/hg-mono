@@ -85,6 +85,13 @@ INSERT INTO dispatch (order_id, state, rider_account_id, assigned_at, deadline_a
 VALUES ($1, 'ASSIGNED', $2, now(), now()+interval '20 min', 'RIDER_NOT_ARRIVING')`, f.orderID, f.riderID); err != nil {
 		t.Fatalf("seed dispatch: %v", err)
 	}
+	// The rider holds the order through a live assignment, which the order
+	// channel's ownership check requires (#415).
+	if _, err := pool.Exec(ctx, `
+INSERT INTO assignment (order_id, rider_account_id, state, state_since, assigned_at)
+VALUES ($1, $2, 'ASSIGNED', now(), now())`, f.orderID, f.riderID); err != nil {
+		t.Fatalf("seed assignment: %v", err)
+	}
 
 	t.Cleanup(func() {
 		c := context.Background()
@@ -92,6 +99,7 @@ VALUES ($1, 'ASSIGNED', $2, now(), now()+interval '20 min', 'RIDER_NOT_ARRIVING'
 		_, _ = pool.Exec(c, `DELETE FROM outbox_message WHERE channel = $1`, ch)
 		_, _ = pool.Exec(c, `DELETE FROM realtime_event WHERE channel = $1`, ch)
 		_, _ = pool.Exec(c, `DELETE FROM channel_cursor WHERE channel = $1`, ch)
+		_, _ = pool.Exec(c, `DELETE FROM assignment WHERE order_id = $1`, f.orderID)
 		_, _ = pool.Exec(c, `DELETE FROM dispatch WHERE order_id = $1`, f.orderID)
 		_, _ = pool.Exec(c, `DELETE FROM "order" WHERE id = $1`, f.orderID)
 		_, _ = pool.Exec(c, `DELETE FROM quote WHERE id = $1`, quoteID)

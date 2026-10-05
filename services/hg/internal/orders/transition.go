@@ -154,6 +154,14 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 		}
 	}
 
+	// A cancelled order needs no rider: the dispatch half runs here, in the
+	// cancel's transaction, whoever cancelled it.
+	if req.To == machine.StateCancelled && s.orderCancelled != nil {
+		if err := s.orderCancelled.OrderCancelledTx(ctx, tx, req.OrderID); err != nil {
+			return fmt.Errorf("release the cancelled order's rider: %w", err)
+		}
+	}
+
 	// Emit a realtime outbox event in the same transaction so the customer's
 	// tracking, the restaurant's queue and the rider see the change, in the
 	// contract's shapes, whoever called this function (events.go; issue #247).
