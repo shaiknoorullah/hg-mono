@@ -1,0 +1,10 @@
+# Managed by Ansible (deploy/host/roles/backup). The bucket backups read production's Silo
+# through its S3 API, by its production-only alias, from a container on the internal
+# {{ hg_networks.storage.name }} network, with a read-only account.
+[silo]
+type = s3
+provider = Minio
+endpoint = {{ hg_silo_endpoint }}
+region = {{ hg_silo_region }}
+access_key_id = {{ hg_backup_silo_access_key }}
+secret_access_key = {{ hg_backup_silo_secret_key }}

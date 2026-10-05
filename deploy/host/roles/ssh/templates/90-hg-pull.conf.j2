@@ -1,0 +1,11 @@
+# Managed by Ansible (deploy/host/roles/ssh).
+# The owner's backup machine logs in as {{ hg_pull_user }} to copy the restic repository
+# (roles/backup, roles/offline_copy). Read-only SFTP, locked in {{ hg_backup_root }}: it can
+# read the encrypted repository and nothing else, and can never delete from it.
+# A Match block in an included file ends at the end of that file.
+Match User {{ hg_pull_user }}
+    ChrootDirectory {{ hg_backup_root }}
+    ForceCommand internal-sftp -R
+    AllowTcpForwarding no
+    PermitTTY no
+    X11Forwarding no

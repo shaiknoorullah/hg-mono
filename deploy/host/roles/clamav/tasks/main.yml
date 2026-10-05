@@ -1,0 +1,43 @@
+- name: Create ClamAV's folder
+  ansible.builtin.file:
+    path: "{{ hg_ops_dir }}/clamav"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: hg_clamav_enabled
+
+- name: Write ClamAV's compose file and configs
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ hg_ops_dir }}/clamav/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - compose.yml
+    - clamd.conf
+    - freshclam.conf
+  register: hg_clamav_files
+  when: hg_clamav_enabled
+
+- name: Run ClamAV here
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_ops_dir }}/clamav"
+    state: present
+    pull: missing
+    remove_orphans: true
+    recreate: "{{ 'always' if hg_clamav_files is changed else 'auto' }}"
+  when: hg_clamav_enabled and hg_docker_ready
+
+- name: Look for a ClamAV this host no longer runs
+  ansible.builtin.stat:
+    path: "{{ hg_ops_dir }}/clamav/compose.yml"
+  register: hg_clamav_old
+  when: not hg_clamav_enabled
+
+- name: Stop ClamAV here, now that it runs on {{ hg_clamav_host }}
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_ops_dir }}/clamav"
+    state: absent
+  when: not hg_clamav_enabled and hg_clamav_old.stat.exists and hg_docker_ready

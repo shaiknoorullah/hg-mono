@@ -1,0 +1,82 @@
+- name: Create the backup root, root-owned because the pull account is locked inside it
+  ansible.builtin.file:
+    path: "{{ hg_backup_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Set up the read-only off-server pull account
+  ansible.builtin.include_role:
+    name: backup
+    tasks_from: pull_access.yml
+
+- name: Create the backup folders (readable by the pull account, nobody else)
+  ansible.builtin.file:
+    path: "{{ hg_backup_root }}/{{ item }}"
+    state: directory
+    owner: root
+    group: "{{ hg_pull_user }}"
+    mode: "0750"
+  loop: [pg, silo]
+
+- name: Create the metrics folder
+  ansible.builtin.file:
+    path: "{{ hg_textfile_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create the settings folder
+  ansible.builtin.file:
+    path: /etc/hg
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write the settings
+  ansible.builtin.template:
+    src: backup-current.conf.j2
+    dest: /etc/hg/backup-current.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the backup and drill scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [hg-backup-current, hg-backup-drill]
+
+- name: Install the service and timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [hg-backup-current.service, hg-backup-current.timer]
+  notify: Reload systemd
+
+- name: Tell the alerts how old each job's last success may be
+  ansible.builtin.template:
+    src: hg_backup_expected.prom.j2
+    dest: "{{ hg_textfile_dir }}/hg_backup_expected.prom"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Apply systemd changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the nightly timer
+  ansible.builtin.systemd_service:
+    name: hg-backup-current.timer
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

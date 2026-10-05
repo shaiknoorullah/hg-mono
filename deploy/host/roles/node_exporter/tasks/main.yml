@@ -1,0 +1,57 @@
+- name: Install node-exporter from the distribution (security updates come with the OS)
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+    install_recommends: false
+
+- name: Create the folder for metrics written by the backup scripts
+  ansible.builtin.file:
+    path: "{{ hg_textfile_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Listen on the WireGuard address and read the backup scripts' metrics
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus-node-exporter
+    content: |
+      # Managed by Ansible (deploy/host/roles/node_exporter).
+      ARGS="--web.listen-address={{ hg_node_exporter_listen }} --collector.textfile.directory={{ hg_textfile_dir }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart node-exporter
+
+- name: Create node-exporter's drop-in folder
+  ansible.builtin.file:
+    path: /etc/systemd/system/prometheus-node-exporter.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Start node-exporter after WireGuard, whose address it listens on
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/prometheus-node-exporter.service.d/10-hg.conf
+    content: |
+      # Managed by Ansible (deploy/host/roles/node_exporter).
+      [Unit]
+      Wants=wg-quick@{{ hg_wg_interface }}.service
+      After=wg-quick@{{ hg_wg_interface }}.service
+      [Service]
+      Restart=always
+      RestartSec=5
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart node-exporter
+  when: not hg_in_container
+
+- name: Run node-exporter now and at every boot
+  ansible.builtin.systemd_service:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started
+  # On a fresh server in check mode the package is not installed yet.
+  ignore_errors: "{{ ansible_check_mode }}"

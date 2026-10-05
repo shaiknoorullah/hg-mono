@@ -1,0 +1,40 @@
+# Managed by Ansible (deploy/host/roles/logging).
+[SERVICE]
+    Flush             2
+    Log_Level         warn
+    Parsers_File      /fluent-bit/etc/parsers.conf
+    HTTP_Server       On
+    HTTP_Listen       0.0.0.0
+    HTTP_Port         2020
+    storage.path      /fluent-bit/state/buffer
+    storage.max_chunks_up 16
+
+[INPUT]
+    Name              tail
+    Path              /var/lib/docker/containers/*/*-json.log
+    Parser            docker
+    Tag               docker.*
+    DB                /fluent-bit/state/tail.db
+    Mem_Buf_Limit     16MB
+    Skip_Long_Lines   On
+    Refresh_Interval  10
+    storage.type      filesystem
+
+# Name each line's compose project and service, strip signed-link credentials, and redact
+# phone numbers and email addresses before anything is stored.
+[FILTER]
+    Name              lua
+    Match             docker.*
+    script            /fluent-bit/etc/hg/redact.lua
+    call              hg_record
+
+[OUTPUT]
+    Name              http
+    Match             docker.*
+    Host              victorialogs
+    Port              9428
+    URI               /insert/jsonline?_stream_fields=project,service&_msg_field=log&_time_field=date
+    Format            json_lines
+    Json_Date_Key     date
+    Json_Date_Format  iso8601
+    Retry_Limit       5

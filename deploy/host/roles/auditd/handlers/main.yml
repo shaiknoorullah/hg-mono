@@ -1,0 +1,13 @@
+- name: Reload audit rules
+  ansible.builtin.shell: |
+    augenrules --load || echo "rules are locked, so the new rules load at the next reboot"
+  register: hg_audit_load
+  changed_when: "'locked' in hg_audit_load.stdout"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart auditd
+  # systemctl refuses to stop auditd by design; the service wrapper is the supported way.
+  ansible.builtin.command: service auditd restart  # noqa: command-instead-of-module
+  failed_when: false
+  changed_when: true
+  ignore_errors: "{{ ansible_check_mode }}"
