@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — database schema
@@ -16,9 +16,15 @@ migrations/
   roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 99 assertions about what the DB refuses
+  test/              invariant tests: 101 assertions about what the DB refuses
   tools/             contract-enum generator and checker
+  devworld/          local personas; loaded only by cmd/devworld
 ```
+
+`devworld/` is not a goose migration. `make migrate`, `make seed`, the reference
+loader, and a deploy never apply it. `make dev-reset` (or `go run ./cmd/devworld reset`
+from `services/hg`) is the only loader, and it refuses every environment other
+than local and every database that is not on this machine.
 
 ## Running
 
@@ -83,6 +89,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 8 | The API cannot switch any of the above off. | The API logs in as `hg_app`, which owns nothing and holds no `TRUNCATE`, `TRIGGER`, `CREATE` or `TEMPORARY` privilege (a temp table named `ledger_entry` would otherwise hide the real one from the zero-sum check); the ledger and audit trigger functions search `public` before the temporary schema; `hg_migrator` owns the schema ([`roles/roles.sql`](roles/roles.sql), `00032`). The hourly partition upkeep, the API's only DDL, goes through two `SECURITY DEFINER` functions owned by `hg_migrator` (`hg_partition_ensure`, `hg_partition_drop_before`, also `00032`): only the three partitioned tables, one whole UTC period per call, at most 400 days ahead, never a drop inside a table's retention by the database's clock, and never an `audit_event` partition. Section 12 of the invariant tests tries each way out as `hg_app`. |
 | 9 | A refund moves money only once a named member of staff approved it, and a goodwill refund above CAD 50 only once a second person did. A refund recorded as at Stripe carries Stripe's id. | `refund_money_needs_approver`, `refund_goodwill_second_approver` ([goodwill approval decision](../../../docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)), `refund_at_stripe_has_id` and `refund_approval_names_role` CHECKs on `refund` (`00046`, [#318](https://github.com/shaiknoorullah/hg-mono/issues/318)). A customer's request and an approval request carry no approver, so the refund sender can never send one. |
 | 10 | A rider's earning line mirrors exactly one `RIDER_PAYABLE` posting; an order has at most one delivery line and one tip line; a payout's claim and payment reach the lines. | `00047_rider_earnings_follow_ledger.sql`: the `earning_entry_matches_ledger` trigger refuses a line whose rider, order or amount disagrees with its posting, the `earning_entry_once_per_order` unique index, and the `ledger_entry_stamps_earning` and `payout_pays_earnings` triggers. The lines are written with the posting when the order is delivered ([#306](https://github.com/shaiknoorullah/hg-mono/issues/306)). |
+| 11 | Whoever sent a refund up for a second person never approves it, and a declined refund says who declined it, when and why. | `refund_second_person` and `refund_decline_recorded` CHECKs on `refund` (`00048`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)). The service refuses both first; the schema refuses them if it ever does not. |
 
 The two schema lints are also runnable on their own:
 

@@ -6,7 +6,7 @@ covers:
   - .github/workflows/claude.yml
   - .github/workflows/claude-code-review.yml
   - scripts/ci/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # CI on self-hosted runners
@@ -52,6 +52,8 @@ Jobs that hold a secret or a write token never run on our machines.
 | [`ci`](../../.github/workflows/ci.yml) | `changes`, `contract-kit`, `js`, `go`, `coverage`, `gate` | `coverage-comment`, `coverage-baseline`, `coverage-issues`: write tokens |
 | [`docs`](../../.github/workflows/docs.yml) | `doc and PR checks` | `labels` and `weekly`: write tokens |
 | [`migrations`](../../.github/workflows/migrations.yml) | `schema` | |
+
+The `schema` job applies migrations, runs the invariant tests, proves a full rollback, then resets and checks the local persona database on that job's Postgres. The reset command itself refuses every environment other than local.
 | any of the above, for an untrusted run | | `gate`, `doc and PR checks` and `schema` run only their first step, which fails (see below) |
 | [`release-builds`](../../.github/workflows/release-builds.yml) | | every job: the release signing secrets never reach our machines |
 | [`Claude Code`](../../.github/workflows/claude.yml), [`Claude Code Review`](../../.github/workflows/claude-code-review.yml) | | they need the Claude token |

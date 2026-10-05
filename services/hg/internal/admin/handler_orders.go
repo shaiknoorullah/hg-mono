@@ -247,6 +247,15 @@ func isUUID(s string) bool {
 	return true
 }
 
+// nonNil makes a missing list an empty one: the contract's arrays are
+// required, never null.
+func nonNil[T any](v []T) []T {
+	if v == nil {
+		return []T{}
+	}
+	return v
+}
+
 // buildAdminOrderView converts an adminOrderRow to the wire adminOrderView.
 func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 	lines := make([]adminOrderLine, 0, len(row.Lines))
@@ -427,6 +436,8 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 		Payment:             payment,
 		Refunds:             refunds,
 		PiiRevealed:         piiRevealed,
+		MoneyTimeline:       nonNil(row.Money.Timeline),
+		Chargebacks:         nonNil(row.Money.Chargebacks),
 		RestaurantLocation:  restaurantLocation,
 		DestinationLocation: destinationLocation,
 		RiderLocation:       riderLocation,

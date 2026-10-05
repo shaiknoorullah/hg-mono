@@ -233,6 +233,18 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Out of scope**: magic-link login; email change flow; verification by SMS; deliverability/bounce handling beyond writing a `bounced` flag (V2).
 
+- **As built (Oct 2026)**: the link opens `/verify-email` in the restaurant web app
+  ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)). The token is handled like a
+  password: the app takes it out of the address bar before anything else loads or calls the network,
+  switches the page's referrer policy to `no-referrer`, keeps the token in memory only, and sends it
+  once, in the body of `POST /v1/auth/email/verify`. Opening the link never signs anyone in: the page
+  drops the session the API still returns ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356))
+  and sends the owner to the normal sign-in. If someone is already signed in on the device, the page
+  asks before it uses the link. A used link says so; an expired, incomplete or cut-short link offers
+  a new one by email, and that request answers the same whether or not the account exists. The token
+  capture, the calls and the form state are shared with the admin console's link pages, in
+  `@hg/ui-web/link-token` and `@hg/ui-web/email-links`.
+
 - **Version**: V1
 - **Size**: S
 
@@ -286,6 +298,16 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Out of scope**: SSO/SAML; MFA (V2; it issues no recovery codes, and a super admin resets a lost
   authenticator after a phone call-back check: [recovery codes](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [manual resets](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); device-trust / "remember this device"; biometric; session
   transfer between the web app and a future mobile app.
+
+- **As built (Oct 2026)**: "Forgot your password?" on the sign-in page and the reset email both open
+  `/reset-password` ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)). Without a token,
+  the page asks for the email and then shows "Check your email", the same whether or not the account
+  exists. With one, it takes a new password, checks its length (12 characters to 256 bytes) before
+  using the link, and shows a breached password as an error on the field. An expired, used or unknown
+  link gets one page, because `resetPassword` answers all three alike. Setting the password signs
+  nobody in: the owner signs in again, and the page says the order screen was signed out too. A 429
+  disables the button until the time the server gives, shown as a 12-hour clock time. The token is
+  handled as on the verify-email page ([email verification, as built](#r-02--email-verification-and-account-activation)).
 
 - **Version**: V1
 - **Size**: M
@@ -1491,6 +1513,16 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `late` and appears in the delay prompt (R-26).
   7. The dashboard is read-authorised by session `rid` only. There is no order id that a different
      restaurant can read. *(Currently any caller can read any order by id.)*
+  8. **Rider approaching.** Once a rider is assigned (`PREPARING` / `READY_FOR_PICKUP`), the order
+     card shows a live map: the restaurant pin and the rider's **coarse** position as a ~100 m disc,
+     never a pin, fed by `rider.location` on `order:{id}` in the restaurant projection
+     ([per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)). The
+     marker glides between fixes and says `last updated 42s ago` once a fix is older than 30 s. Rider name, vehicle and
+     pickup time come from the order, never from the position. The contract gives the restaurant no
+     REST read of the rider's position, so while the socket is down the map keeps the last fix and
+     says it is reconnecting; the order itself keeps refreshing over REST. Without
+     `VITE_MAPBOX_TOKEN` the map shows its empty state and the text facts remain
+     (`apps/restaurant/src/components/RiderApproachMap.tsx`).
 
 - **Acceptance criteria**:
   1. **Given** an order in `PENDING_RESTAURANT`, **when** the restaurant fetches the dashboard, **then** `delivery_address_short` contains city and distance band but no street address, and `customer_phone_masked` is null.
@@ -2415,6 +2447,7 @@ Aggressive exclusions that apply across every feature above:
 3. **Staff sub-accounts and roles.** The `role` column exists (`OWNER|MANAGER|STAFF`) but only
    `OWNER` is issued at launch and the Staff screen is hidden; restaurant staff come in a later
    version ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+   Creating a restaurant staff account through the API sends no invitation email in 1.0.
 4. **Pickup / dine-in / table ordering.** Delivery only.
 5. **Scheduled and pre-orders.** Immediate orders only.
 6. **Inventory quantities, recipes, food-cost accounting, supplier integration.**

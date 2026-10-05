@@ -184,6 +184,24 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
      `410 INVITATION_EXPIRED` and the account remains `INVITED`.
 - **Out of scope**: SSO/SAML/OIDC; SCIM provisioning; per-user custom permission overrides (V3, see
   A-02); staff org-chart/manager hierarchy; hard deletion of staff rows.
+- **As built (Oct 2026)**: the invitation is a 72-hour single-use token stored like a password-reset
+  token and emailed through the notification outbox in the transaction that creates the account. The
+  address is read from the invited account itself, the email quotes nothing the super admin typed
+  (only the role, from a fixed list), and one account gets at most 3 invitations a day and one super
+  admin sends at most 20. The invitee sets a first password through the reset-password operation, which
+  also marks the email verified, then enrols two-step sign-in. `staff_invitation` is not written yet,
+  and an expired link answers with the reset operation's expired-token error rather than
+  `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
+  The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
+  `/accept-invite` sets the first password and stops there: two-step enrolment cannot start from the
+  link until the acceptance flow exists, so the page says the inviting super admin will set it up
+  with the invitee.
+  `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
+  opens. Both take the token the way the restaurant app's link pages do (see
+  [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),
+  with the same shared code: out of the address before anything loads, in memory only, sent once
+  in a POST body, and never a sign-in. If the console is already signed in in that tab, the page
+  asks before it uses the link.
 - **Version**: V1 · **Size**: M
 
 > **Decided:** no warning above 25 active staff accounts at launch ([staff account warning](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
@@ -1210,6 +1228,9 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   becomes `READY` and `account_state = LIVE` only when a menu version is approved (A-19). `REJECT` is
   terminal for that application (re-application per A-13 R7) and requires a reason code plus text that
   is sent verbatim to the restaurant. `REQUEST_CHANGES` names the specific documents to redo.
+  The decision notifies the restaurant's owners and managers by email and in-app inbox, in the same
+  transaction. The reason text goes in the inbox row the restaurant app shows; the email only says
+  there is a decision and links to it, so no text typed outside HalalGoes's templates is ever emailed.
 - **Data**: `restaurant_application` (A-13); `restaurant { id, ..., onboarding_state, account_state, halal_status, delist_reasons[], approved_by, approved_at, rejected_by, rejected_at, rejection_reason_code, rejection_reason_text }`.
   Decision reason codes — approve: `ALL_CHECKS_PASSED`, `APPROVED_WITH_NOTES`; reject:
   `HALAL_CERTIFICATION_INVALID`, `DOCUMENTS_INSUFFICIENT`, `IDENTITY_UNVERIFIED`,
@@ -1322,7 +1343,11 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     suspended or banned: then nobody changes its menu, admins included; a delisted restaurant's menu
     stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). An item an admin creates
     is approved on creation and audited, with the creating admin recorded as its reviewer
-    ([menu approval](../decisions/README.md#settled--reconciliations)). Updating or removing an item on
+    ([menu approval](../decisions/README.md#settled--reconciliations)). Its photo must be a confirmed
+    `MENU_IMAGE` the admin or someone at the restaurant uploaded, or one of the restaurant's photos
+    already; anything else is `404` and nothing is written
+    ([#450](https://github.com/shaiknoorullah/hg-mono/issues/450),
+    [presigned upload](01-platform.md#p-28--presigned-upload-and-download)). Updating or removing an item on
     a restaurant's behalf is a launch operation ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
     [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)) the contract has and the backend
     does not build yet; it never silently discards a restaurant edit that is waiting for review.
@@ -1612,6 +1637,7 @@ documents lapse cannot go on shift, but is not punished.
   - R6 Rejection reason text is sent verbatim to the rider along with the specific remediation step —
     this is the SOW's "Support: Get support on verification rejections".
   - R7 Rejecting a single document does not notify the rider; only the application decision does
+    (push, inbox and email; the email carries no reason text, which the rider app shows)
     ([rider document rejection](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
   - R8 After a rider's third resubmission the only decisions are approve or reject; requesting changes
     is no longer offered ([third resubmission](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
@@ -2188,6 +2214,13 @@ documents lapse cannot go on shift, but is not punished.
   - R6 Refunds require the session's MFA to be verified within 12 hours (A-02 R4).
   - R7 Every refund state change writes an `audit_event` including the authority path used
     (`role`, `cap_applied`, `approver_ids`).
+  - As built ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)): the approval request is
+    the `PENDING_APPROVAL` refund itself (no separate table), with the role that must decide it and
+    who sent it up; the rolling total counts the refunds a person *approved* (`refund.approved_by`,
+    `approved_at`) and is summed under a per-person advisory lock rather than a `staff_refund_ledger`
+    upsert; a customer's request is reviewed through `approveRefund` and `declineRefund`; the caps are
+    the platform's 24-hour figures in `internal/payments/types.go`, and the per-order and order-age
+    limits in the table above are not enforced yet.
   - R8 A refund against an order whose payment is not `CAPTURED` is rejected
     `409 PAYMENT_NOT_REFUNDABLE`; a cancellation before capture voids the authorisation instead and is
     a different operation.
@@ -2466,6 +2499,16 @@ documents lapse cannot go on shift, but is not punished.
   `CONTACT_RIDER`, `CONTACT_RESTAURANT`, `UPDATE_DELIVERY_INSTRUCTIONS`, `REASSIGN_RIDER`,
   `EXTEND_ETA`, `CANCEL_ORDER`, `FORCE_STATUS` (super admin only, emergency).
 - **Data**: read model over the order aggregate; `order_intervention` (A-29) records every action.
+- **Live tracking**: the order-detail map follows the rider over `order:{id}` (`rider.location`,
+  precise for support and admin per the
+  [per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)), gliding
+  between fixes and saying `last updated 42s ago` once a fix is older than 30 s; state and dispatch events refetch the
+  order. While the socket is down it polls `getOrderAdmin` every 5 s. The **live operations map**
+  (`#/live`) shows every active order (`RESTAURANT_PENDING` to `ARRIVED`, up to 40) with its
+  restaurant, destination and rider, live on each order's channel plus `admin:ops` (a dispatch
+  failure raises a banner). It re-reads the list every 30 s to find new orders, because no admin-wide
+  "order created" event exists, and every 15 s while the socket is down. Riders online without an
+  order are not shown: no operation or event reports their position.
 - **Role**:
 
   | Intervention | Support Agent | Admin | Super Admin |

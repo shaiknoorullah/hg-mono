@@ -80,6 +80,8 @@ jobs:
               - 'contracts/**'
               - 'tools/contract-tools/**'
               - 'tools/mock-server/**'
+              # Exported by packages/emails; contract-kit checks they were not hand-edited.
+              - 'services/hg/internal/notify/emailtmpl/templates/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
@@ -175,6 +177,12 @@ jobs:
 
       - name: typecheck
         run: pnpm -r typecheck
+
+      # The email templates the Go service embeds are exactly what packages/emails
+      # exports. A hand edit to services/hg/internal/notify/emailtmpl/templates/**,
+      # or a template changed without re-exporting, fails here.
+      - name: email templates are not hand-edited
+        run: pnpm emails:check
 
       # 5. The mock actually boots and serves the contract. It runs in its own process
       #    group, so the cleanup step below stops all of it.
