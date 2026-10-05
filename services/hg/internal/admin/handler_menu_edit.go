@@ -57,20 +57,7 @@ func (h *Handler) UpdateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
-	if in.Description != nil && runeLen(*in.Description) > menuItemDescMax {
-		fieldFail(w, r, "description", "description must be at most 600 characters")
-		return
-	}
-	if in.IngredientsText != nil && runeLen(*in.IngredientsText) > menuIngredientsMax {
-		fieldFail(w, r, "ingredients_text", "ingredients_text must be at most 1000 characters")
-		return
-	}
-	if in.PrepMinutes != nil && (*in.PrepMinutes < menuPrepMinutesMin || *in.PrepMinutes > menuPrepMinutesMax) {
-		fieldFail(w, r, "prep_minutes", "prep_minutes must be between 1 and 120")
-		return
-	}
-	if in.ImageObjectID != nil && !isValidUUIDStr(*in.ImageObjectID) {
-		fieldFail(w, r, "image_object_id", "image_object_id must be a UUID")
+	if !menuItemOptionalFieldsOK(w, r, in.Description, in.IngredientsText, in.PrepMinutes, in.ImageObjectID) {
 		return
 	}
 

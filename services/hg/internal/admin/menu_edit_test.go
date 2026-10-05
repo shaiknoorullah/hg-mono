@@ -10,12 +10,40 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant/menulocktest"
 )
+
+// menuEditTest is two seeded restaurants, each with an item and a version
+// waiting for review, and a server acting as a fresh ADMIN.
+type menuEditTest struct {
+	ctx      context.Context
+	pool     *pgxpool.Pool
+	sa       string
+	d, other menuTestRestaurant
+	admin    httpx.Principal
+	srv      *httptest.Server
+	itemURL  string // d's item, on d's path
+}
+
+func newMenuEditTest(t *testing.T) menuEditTest {
+	t.Helper()
+	e := menuEditTest{ctx: context.Background(), pool: dialTestPool(t)}
+	e.sa = seedSuperAdmin(t, e.ctx, e.pool)
+	e.d = seedMenuRestaurantFull(t, e.ctx, e.pool, e.sa)
+	e.other = seedMenuRestaurantFull(t, e.ctx, e.pool, e.sa)
+	e.admin = principalFor(t, e.pool, httpx.RoleAdmin)
+	e.srv = buildAdminTestServer(t, e.pool, e.admin)
+	t.Cleanup(e.srv.Close)
+	e.itemURL = e.srv.URL + "/v1/admin/restaurants/" + e.d.restaurantID + "/menu/items/" + e.d.menuItemID
+	return e
+}
 
 func sendJSON(t *testing.T, method, url string, body any) (int, string) {
 	t.Helper()
@@ -40,15 +68,8 @@ func sendJSON(t *testing.T, method, url string, body any) (int, string) {
 // waiting for review is a 409 and stays; HALAL_CERTIFIED, another account's photo
 // and another restaurant's item are refused and write nothing.
 func TestUpdateMenuItemOnBehalf(t *testing.T) {
-	ctx := context.Background()
-	pool := dialTestPool(t)
-	sa := seedSuperAdmin(t, ctx, pool)
-	d := seedMenuRestaurantFull(t, ctx, pool, sa)
-	other := seedMenuRestaurantFull(t, ctx, pool, sa)
-	admin := principalFor(t, pool, httpx.RoleAdmin)
-	srv := buildAdminTestServer(t, pool, admin)
-	t.Cleanup(srv.Close)
-	itemURL := srv.URL + "/v1/admin/restaurants/" + d.restaurantID + "/menu/items/" + d.menuItemID
+	e := newMenuEditTest(t)
+	ctx, pool, sa, d, other, admin, srv, itemURL := e.ctx, e.pool, e.sa, e.d, e.other, e.admin, e.srv, e.itemURL
 
 	// The restaurant's version is waiting for review: a claim-bearing edit is refused.
 	before := menulocktest.Fingerprint(t, pool, d.restaurantID)
@@ -147,15 +168,8 @@ RETURNING id`, stranger).Scan(&strangerPhoto); err != nil {
 // review is withdrawn and deciding it is 409 ITEM_DELETED; removing it again, or
 // another restaurant's item, is 404.
 func TestDeleteMenuItemOnBehalf(t *testing.T) {
-	ctx := context.Background()
-	pool := dialTestPool(t)
-	sa := seedSuperAdmin(t, ctx, pool)
-	d := seedMenuRestaurantFull(t, ctx, pool, sa)
-	other := seedMenuRestaurantFull(t, ctx, pool, sa)
-	admin := principalFor(t, pool, httpx.RoleAdmin)
-	srv := buildAdminTestServer(t, pool, admin)
-	t.Cleanup(srv.Close)
-	itemURL := srv.URL + "/v1/admin/restaurants/" + d.restaurantID + "/menu/items/" + d.menuItemID
+	e := newMenuEditTest(t)
+	ctx, pool, sa, d, other, admin, srv, itemURL := e.ctx, e.pool, e.sa, e.d, e.other, e.admin, e.srv, e.itemURL
 
 	if status, body := sendJSON(t, http.MethodDelete, itemURL, nil); status != http.StatusNoContent {
 		t.Fatalf("delete: status=%d (%s), want 204", status, body)
