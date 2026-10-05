@@ -10,6 +10,7 @@
 
   vars:
     hg_layout: current
+    hg_ssh_public: true                # no WireGuard-only SSH today (group_vars would outrank the inventory)
     hg_docker_upstream: false          # keep Ubuntu's docker.io: no engine change on a live stack
     hg_docker_prune: false             # never remove images the stack may need
     hg_networks_enabled: [socket, ops, monitoring]
