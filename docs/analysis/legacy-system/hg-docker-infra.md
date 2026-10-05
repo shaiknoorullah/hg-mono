@@ -1,10 +1,10 @@
-# hg-docker — Infrastructure Repo Analysis (Halal Goes Platform)
+# hg-docker — Infrastructure Repo Analysis (HalalGoes Platform)
 
 Analyzed: `/home/user/hg-docker` (all 8 files). Cross-referenced against `/home/user/hg-api` where required by scope.
 
 ## 1. Purpose & Role in the Platform
 
-`hg-docker` is the **standalone deployment/distribution repo** for the Halal Goes platform. It exists so that anyone (frontend devs, testers, ops) can stand up the *entire* backend stack — database, cache, object storage, workflow engine, and the API itself — with a single `docker-compose up -d`, **without needing the `hg-api` source code**. The key difference from the compose file inside `hg-api` is that here the API runs from a **pre-built Docker Hub image** (`devsupreme0/halalgoes-api:${API_VERSION:-latest}`) instead of building from `./api` source. Everything else in the compose file is otherwise byte-for-byte the same as `/home/user/hg-api/docker-compose.yml` (verified by diff; only the `api` service `build:` → `image:` block and two blank lines differ).
+`hg-docker` is the **standalone deployment/distribution repo** for the HalalGoes platform. It exists so that anyone (frontend devs, testers, ops) can stand up the *entire* backend stack — database, cache, object storage, workflow engine, and the API itself — with a single `docker-compose up -d`, **without needing the `hg-api` source code**. The key difference from the compose file inside `hg-api` is that here the API runs from a **pre-built Docker Hub image** (`devsupreme0/halalgoes-api:${API_VERSION:-latest}`) instead of building from `./api` source. Everything else in the compose file is otherwise byte-for-byte the same as `/home/user/hg-api/docker-compose.yml` (verified by diff; only the `api` service `build:` → `image:` block and two blank lines differ).
 
 The repo also doubles as the **integration documentation hub** for client-app teams: it ships the 2,498-line `ORDERS_API_INTEGRATION_GUIDE.md` (REST + WebSocket contract for the user/restaurant/rider apps) and the Hoppscotch API collection `API v1.2.25.json`.
 

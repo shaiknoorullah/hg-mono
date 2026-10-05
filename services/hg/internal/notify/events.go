@@ -121,6 +121,57 @@ func NotifyOrderReady(e OrderEvent) New {
 	return withDeadline(n, e.DeadlineAt, true)
 }
 
+// NotifyPickupDelayed tells the customer their ready order has waited too long
+// for pickup, and when they will hear next. The deadline runner sends it on
+// every lapse of the order's pickup deadline, so the dedupe key carries the
+// lapse: one notice per lapse, however often the lapse is retried. It follows
+// the no-rider notice in docs/spec/04-rider.md, "D-15 — Offer expiry, wave
+// escalation, and the no-rider-found path", in words that also fit a rider
+// who is assigned but late. Whether the customer is offered to collect the
+// order is still open (docs/spec/01-platform.md, "P-15 — Deadlines and
+// timeout actions"; https://github.com/shaiknoorullah/hg-mono/issues/336), so
+// it offers nothing.
+func NotifyPickupDelayed(e OrderEvent, lapse int, nextUpdateWithin time.Duration) New {
+	minutes := int(nextUpdateWithin / time.Minute)
+	if minutes < 1 {
+		minutes = 1
+	}
+	return New{
+		AccountID:   e.AccountID,
+		RoleContext: RoleCustomer,
+		Kind:        KindOrderPickupDelayed,
+		Title:       "Your order is waiting for pickup",
+		Body: fmt.Sprintf("Order %s is ready at %s, but its pickup is running late. We're on it, "+
+			"and you'll hear from us again within %d minutes.", e.OrderShortCode, e.RestaurantName, minutes),
+		Priority:  PriorityHigh,
+		Channels:  standardChannels(),
+		DedupeKey: fmt.Sprintf("order_pickup_delayed:%s:%d", e.OrderID, lapse),
+		GroupKey:  "order:" + e.OrderID.String(),
+		OrderID:   uuid.NullUUID{UUID: e.OrderID, Valid: true},
+	}
+}
+
+// NotifyPrepDelayed tells the customer the restaurant added time to their
+// order's preparation. Every delay notifies the customer; the restaurant
+// cannot delay silently (docs/spec/03-restaurant.md, "R-26 — Delay handling
+// and rider communication", rule 3). delayNo is the order's delay count from
+// 1, so each delay is one notice however often its enqueue is retried.
+func NotifyPrepDelayed(e OrderEvent, delayNo, addedMinutes int) New {
+	return New{
+		AccountID:   e.AccountID,
+		RoleContext: RoleCustomer,
+		Kind:        KindOrderPrepDelayed,
+		Title:       "Your order is running late",
+		Body: fmt.Sprintf("%s needs about %d more minutes to prepare order %s.",
+			e.RestaurantName, addedMinutes, e.OrderShortCode),
+		Priority:  PriorityHigh,
+		Channels:  standardChannels(),
+		DedupeKey: fmt.Sprintf("order_prep_delayed:%s:%d", e.OrderID, delayNo),
+		GroupKey:  "order:" + e.OrderID.String(),
+		OrderID:   uuid.NullUUID{UUID: e.OrderID, Valid: true},
+	}
+}
+
 // NotifyRiderAssigned tells the customer a rider is on the way.
 func NotifyRiderAssigned(e OrderEvent) New {
 	return New{
@@ -184,6 +235,39 @@ func NotifyOrderCancelled(e OrderEvent, reason string) New {
 		Priority:    PriorityHigh,
 		Channels:    standardChannels(),
 		DedupeKey:   "order_cancelled:" + e.OrderID.String(),
+		GroupKey:    "order:" + e.OrderID.String(),
+		OrderID:     uuid.NullUUID{UUID: e.OrderID, Valid: true},
+	}
+}
+
+// RefundEvent is the input of the refund builders. Like OrderEvent it carries
+// display strings the caller already has; it never restates an amount.
+type RefundEvent struct {
+	RefundID       string
+	OrderID        uuid.UUID
+	OrderShortCode string
+	AccountID      uuid.UUID // the customer who asked for the refund
+}
+
+// NotifyRefundDeclined tells a customer that staff declined their refund
+// request (https://github.com/shaiknoorullah/hg-mono/issues/172). message is
+// what staff chose to tell them; when it is empty they get a plain sentence.
+// The staff reason for the decline is never sent: it is internal.
+func NotifyRefundDeclined(e RefundEvent, message string) New {
+	body := fmt.Sprintf("We reviewed your refund request for order %s and could not approve it. "+
+		"Contact support if you have questions.", e.OrderShortCode)
+	if message != "" {
+		body = fmt.Sprintf("Your refund request for order %s was not approved: %s", e.OrderShortCode, message)
+	}
+	return New{
+		AccountID:   e.AccountID,
+		RoleContext: RoleCustomer,
+		Kind:        KindRefundDeclined,
+		Title:       "Refund request not approved",
+		Body:        body,
+		Priority:    PriorityNormal,
+		Channels:    standardChannels(),
+		DedupeKey:   "refund_declined:" + e.RefundID,
 		GroupKey:    "order:" + e.OrderID.String(),
 		OrderID:     uuid.NullUUID{UUID: e.OrderID, Valid: true},
 	}

@@ -36,6 +36,12 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "listRefunds": "refund_list_empty",
     "createRefund": "refund_requested",
     "issueRefund": "refund_goodwill_admin",
+    "listRefundsAdmin": "admin_refund_queue",
+    "approveRefund": "admin_refund_authorised",
+    "declineRefund": "admin_refund_declined",
+    "listChargebacks": "chargeback_list",
+    "getChargeback": "chargeback_needs_response",
+    "addChargebackEvidenceNote": "chargeback_evidence_note_added",
     "getCurrentOffer": "offer_pending",
     "acceptOffer": "assignment_assigned",
     "getAssignment": "assignment_en_route_to_dropoff",
@@ -46,8 +52,11 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "getRiderEarningsSummary": "earnings_summary_week",
     "listRiderEarningEntries": "earning_entries_mixed",
     "listRiderPayouts": "payout_paid",
-    "listRestaurantPayouts": "payout_paid",
+    "listRestaurantPayouts": "restaurant_payout_history",
     "getRiderPayout": "payout_detail_paid",
+    "createPayoutRun": "payout_run_queued",
+    "listPayoutRuns": "payout_run_succeeded",
+    "getPayoutRun": "payout_run_detail_every_outcome",
     "getRestaurantOnboardingStatus": "restaurant_onboarding_active",
     "getRiderOnboardingStatus": "rider_onboarding_active",
     "submitRestaurantDocuments": "restaurant_onboarding_documents_review",
@@ -80,10 +89,19 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "getHomeFeed": "feed_sections",
     "listRestaurantApplications": "restaurant_application_queue",
     "takeNextRestaurantApplication": "restaurant_application_pending_review",
+    "getRestaurantApplication": "restaurant_application_pending_review",
+    "decideRestaurantApplication": "restaurant_application_approved",
     "listRiderApplications": "rider_application_queue",
     "takeNextRiderApplication": "rider_application_pending_review",
-    "listMenuReviewQueue": "menu_version_pending_review",
+    "getRiderApplication": "rider_application_pending_review",
+    "decideRiderApplication": "rider_application_approved",
+    "listMenuReviewQueue": "menu_review_queue",
     "decideMenuVersion": "menu_version_approved",
+    "createMenuItem": "menu_item_created_pending_review",
+    "updateMenuItem": "menu_item_edit_pending_review",
+    "updateMenuItemOnBehalf": "menu_item_edited_by_admin",
+    "setMenuItemAvailability": "menu_item_marked_out_of_stock_until",
+    "changePassword": "session_grant_password_changed",
     "getConnectStatus": "connect_status_complete",
     "confirmUpload": "stored_object_ready",
 }
@@ -210,7 +228,12 @@ class Registry:
                         score += cost
                 return (score, name)
 
-            defaults[op] = min(scenarios, key=weight)
+            best = min(scenarios, key=weight)
+            # An error is never a default. An operation whose only fixtures are errors (one
+            # that answers 204, such as resetPassword) gets no default, so the mock answers
+            # with its success status and the error stays one `?scenario=` away.
+            if self.fixtures[best].status < 300:
+                defaults[op] = best
 
         manifest = {
             "generated_by": "contracts/fixtures/_build/build.py",

@@ -1,10 +1,19 @@
+---
+covers:
+  - docs/design/tokens.json
+  - packages/design-tokens/tokens/**
+  - packages/ui-web/src/lint/l4-no-green-solids.ts
+  - packages/ui-native/src/lint/rules/no-green-solids.cjs
+reviewed: 2026-09-28
+---
+
 # Decision: old-brand green palette + amendment to invariant #10
 
 _Sep 2026, client-confirmed. Supersedes the interim Crimson direction for the product brand._
 
 ## Decision
 
-Adopt the **cleaned old-brand (Halal Goes) palette** — recovered from the old project's deployed
+Adopt the **cleaned old-brand (HalalGoes) palette** — recovered from the old project's deployed
 site — kept ≥90% faithful, refined for cleaner ramps and contrast:
 
 | Role | Token | Hex |

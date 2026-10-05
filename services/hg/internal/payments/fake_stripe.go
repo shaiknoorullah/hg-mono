@@ -76,7 +76,28 @@ func (fakeStripe) CreateTransfer(_ context.Context, _ CreateTransferInput) (*Str
 	return &StripeTransfer{ID: fakeID("tr_fake_")}, nil
 }
 
+// FindTransfer finds nothing: the fake keeps no transfers.
+func (fakeStripe) FindTransfer(_ context.Context, _ string) (*StripeTransfer, error) {
+	return nil, nil
+}
+
+// CreateBankPayout fabricates a bank payout on its way; no webhook will say it
+// arrived, so a local payout stays TRANSFERRED.
+func (fakeStripe) CreateBankPayout(_ context.Context, _ CreateBankPayoutInput) (*StripeBankPayout, error) {
+	return &StripeBankPayout{ID: fakeID("po_fake_"), Status: "pending"}, nil
+}
+
+// FindBankPayout finds nothing: the fake keeps no bank payouts.
+func (fakeStripe) FindBankPayout(_ context.Context, _, _ string, _ int, _ time.Time) (*StripeBankPayout, error) {
+	return nil, nil
+}
+
 // VerifyWebhook is unsupported by the fake — there is no real signing secret.
 func (fakeStripe) VerifyWebhook(_ []byte, _ string) (StripeEvent, error) {
 	return StripeEvent{}, ErrStripeNotConfigured
+}
+
+// ListEventsSince returns nothing: the fake never emitted an event to replay.
+func (fakeStripe) ListEventsSince(_ context.Context, _ time.Time) ([]StripeEvent, error) {
+	return nil, nil
 }

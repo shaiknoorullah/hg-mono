@@ -137,8 +137,8 @@ directory.
 - **There is no `DESIGN.md`.** Step 3 says to map accents to "the active DESIGN.md". This
   repo's equivalents are `docs/design/tokens.json` (system of record),
   `apps/marketing/src/styles/marketing-tokens.css` (marketing type and colour), and the
-  Halal Goes design system artifact.
-- **Do not carry the reference's palette into Halal Goes work.** `example.html` uses lime
+  HalalGoes design system artifact.
+- **Do not carry the reference's palette into HalalGoes work.** `example.html` uses lime
   `#63fe13` as a full-bleed accent. Invariant 10 reserves solid green to `color.halal.*`
   and lint rule L-4 enforces it, so that accent would fail the gate. The example also uses
   `backdrop-filter: blur(6px)`, which the design system rules out ("No backdrop blur; no

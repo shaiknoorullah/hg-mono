@@ -1,6 +1,11 @@
+---
+covers: []
+reviewed: 2026-10-04
+---
+
 # Technical telemetry plane — OpenTelemetry + ClickStack
 
-_Halal Goes. **Scope: technical/operational telemetry** — metrics, logs, traces (+ session replay)
+_HalalGoes. **Scope: technical/operational telemetry** — metrics, logs, traces (+ session replay)
 for running the system. Distinct from the **marketing-intelligence plane**
 (`growth-stack.md`) and from the **OLTP source of truth**. This plane can and should land
 **earlier than the v2 marketing plane** — it's launch/ops infrastructure, not growth._
@@ -19,7 +24,7 @@ backend is swappable. Emit **metrics, logs, and traces** with **semantic convent
 correlated by `trace_id`.
 
 - **Traces** — every request is a span tree: chi HTTP middleware → handler → pgx query spans →
-  Redis spans → MinIO spans → Stripe calls → the dispatch ticker goroutine. This is where the
+  Redis spans → object-storage spans (Silo, S3 API) → Stripe calls → the dispatch ticker goroutine. This is where the
   modular-monolith pays off: no network hops means one clean in-process trace per order action.
 - **Metrics** — RED (Rate/Errors/Duration) per route; business gauges (orders in each state,
   dispatch offers outstanding, `deadline_at` breaches, capture/void success); infra (pgx pool,
@@ -51,7 +56,7 @@ option exists if we ever want it.
 
 ## Instrumentation plan
 
-- **Go backend** — OTel SDK + `otelhttp` (chi), `otelpgx` (pgx), Redis + MinIO + Stripe
+- **Go backend** — OTel SDK + `otelhttp` (chi), `otelpgx` (pgx), Redis + S3 client (Silo) + Stripe
   instrumentation, custom spans/metrics for the order machine and dispatch ticker. Propagate
   context through every package call (trivial — it's a monolith).
 - **Apps** — OTel web / React Native SDKs for the two consoles + two Expo apps: crash/error,

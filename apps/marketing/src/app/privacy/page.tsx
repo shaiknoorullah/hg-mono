@@ -27,7 +27,7 @@ const EFFECTIVE = '19 September 2026';
 export const metadata = pageMetadata({
   title: 'Privacy policy',
   description:
-    'What Halal Goes collects from this pre-launch website, why, how long we keep it, and how to get it removed. Ontario, Canada.',
+    'What HalalGoes collects from this pre-launch website, why, how long we keep it, and how to get it removed. Ontario, Canada.',
   path: '/privacy',
 });
 

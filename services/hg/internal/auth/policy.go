@@ -5,9 +5,9 @@ package auth
 //
 //   - otp       → CUSTOMER, RIDER only. An account also holding ADMIN that signs
 //     in by phone OTP receives CUSTOMER only (P-01 acceptance #2).
-//   - pwd       → the email/password roles: restaurant staff and (until MFA is
-//     enforced) support. Admin/super-admin require pwd+totp.
-//   - pwd+totp  → every email/password role including admin.
+//   - pwd       → restaurant staff only. Support, admin and super admin require
+//     pwd+totp (P-01: TOTP required for every staff role).
+//   - pwd+totp  → every email/password role including support and admin.
 //
 // This is policy, not client choice: the filter runs server-side on the grants
 // read from account_role.
@@ -31,7 +31,6 @@ func permittedRoles(amr string) map[string]struct{} {
 			"RESTAURANT_OWNER":   {},
 			"RESTAURANT_MANAGER": {},
 			"RESTAURANT_STAFF":   {},
-			"SUPPORT_AGENT":      {},
 		}
 	case "pwd+totp":
 		return map[string]struct{}{
@@ -47,14 +46,16 @@ func permittedRoles(amr string) map[string]struct{} {
 	}
 }
 
-// requiresTOTP reports whether an account's grant set forces pwd+totp: admin and
-// super-admin cannot obtain a token without TOTP (P-01 admin-MFA default). The
+// requiresTOTP reports whether an account's grant set forces pwd+totp: support,
+// admin and super-admin cannot obtain a token without TOTP (P-01 account model:
+// TOTP required for every staff role). The
 // service enforces this on login; roles requiring TOTP that a pwd-only session
 // cannot carry are simply filtered out by rolesForAMR, but a login that would
 // yield *no* roles surfaces MFA_REQUIRED rather than an empty session.
 func requiresTOTP(grants []RoleGrant) bool {
 	for _, g := range grants {
-		if g.Role == "ADMIN" || g.Role == "SUPER_ADMIN" {
+		switch g.Role {
+		case "SUPPORT_AGENT", "ADMIN", "SUPER_ADMIN":
 			return true
 		}
 	}

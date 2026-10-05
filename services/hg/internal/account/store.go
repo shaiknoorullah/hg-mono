@@ -20,8 +20,15 @@ var errNotFound = errors.New("not found")
 // account's email (account.email is UNIQUE). It maps to 422 EMAIL_IN_USE.
 var errEmailInUse = errors.New("email in use")
 
-func isNotFound(err error) bool   { return errors.Is(err, errNotFound) }
-func isEmailInUse(err error) bool { return errors.Is(err, errEmailInUse) }
+// errUploadNotFound is returned when avatar_object_id names a file the caller
+// may not use: no such upload, or one that is not the caller's own confirmed
+// AVATAR upload. All of these are one 404, so the answer says nothing about
+// whether the file exists (https://github.com/shaiknoorullah/hg-mono/issues/359).
+var errUploadNotFound = errors.New("upload not found")
+
+func isNotFound(err error) bool       { return errors.Is(err, errNotFound) }
+func isEmailInUse(err error) bool     { return errors.Is(err, errEmailInUse) }
+func isUploadNotFound(err error) bool { return errors.Is(err, errUploadNotFound) }
 
 // pgUniqueViolation is the SQLSTATE for a unique-constraint violation (23505).
 const pgUniqueViolation = "23505"
@@ -62,6 +69,24 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 		return customerProfileResponse{}, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck // rollback after Commit is a no-op
+
+	// An avatar must be the caller's own confirmed avatar upload: never another
+	// account's file, and never a document or a delivery photo
+	// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+	if in.AvatarObjectID != nil {
+		var usable bool
+		if err := tx.QueryRow(ctx, `
+			SELECT EXISTS (
+			  SELECT 1 FROM stored_object
+			   WHERE id = $1 AND uploaded_by = $2
+			     AND purpose = 'AVATAR' AND state = 'READY' AND deleted_at IS NULL)`,
+			*in.AvatarObjectID, callerID).Scan(&usable); err != nil {
+			return customerProfileResponse{}, err
+		}
+		if !usable {
+			return customerProfileResponse{}, errUploadNotFound
+		}
+	}
 
 	// Single UPDATE … RETURNING, scoped to the caller AND to a live (not
 	// soft-deleted) row. A CASE-based SET overwrites a column only when the

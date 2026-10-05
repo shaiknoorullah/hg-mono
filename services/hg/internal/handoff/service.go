@@ -10,12 +10,14 @@ import (
 )
 
 // OrderLifecycle is the seam from handoff to the orders module (P-14: orders is
-// the only writer of order.state). It is the same shape internal/dispatch
-// already declares for its own PICKED_UP/DELIVERED bridge, plus OpenDispute for
-// the tamper-report path — kept as an interface, not a direct import, for the
-// same reason dispatch's is: it keeps the dependency direction clean and lets
-// tests inject a fake. cmd/hg/main.go wires one concrete adapter that satisfies
-// both this interface and dispatch.OrderLifecycle.
+// the only writer of order.state). It reuses the pickup and delivery methods
+// internal/dispatch declares for its own bridge, plus OpenDispute for the
+// tamper-report path. The picked-up to arrived step is not part of this seam:
+// arrival is the rider's "I'm here" tap, which goes through dispatch (issue
+// #250). Kept as an interface, not a direct
+// import, for the same reason dispatch's is: it keeps the dependency direction
+// clean and lets tests inject a fake. cmd/hg/main.go wires one concrete adapter
+// that satisfies both this interface and dispatch.OrderLifecycle.
 type OrderLifecycle interface {
 	// ConfirmPickup advances the order from READY_FOR_PICKUP to PICKED_UP (T12).
 	ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error
@@ -176,7 +178,7 @@ func (s *Service) DeliveryScan(ctx context.Context, riderAccountID, orderID stri
 // verifyProof runs the checks shared by both scans: the rider holds the live
 // assignment for this order (P-07), the token's signature verifies, its
 // order_id matches the path, and — when a photo was attached — it is a READY
-// POD object scoped to this order.
+// POD object scoped to this order and uploaded by this rider.
 func (s *Service) verifyProof(ctx context.Context, riderAccountID, orderID string, in scanInput) (SealClaims, error) {
 	assigned, err := s.store.RiderAssignedToOrder(ctx, riderAccountID, orderID)
 	if err != nil {
@@ -193,7 +195,7 @@ func (s *Service) verifyProof(ctx context.Context, riderAccountID, orderID strin
 		return SealClaims{}, newError(http.StatusUnprocessableEntity, CodeSealOrderMismatch, "This seal belongs to a different order.", nil)
 	}
 	if in.PhotoObjectID != nil {
-		ready, err := s.store.PodObjectReady(ctx, *in.PhotoObjectID, orderID)
+		ready, err := s.store.PodObjectReady(ctx, *in.PhotoObjectID, orderID, riderAccountID)
 		if err != nil {
 			return SealClaims{}, err
 		}
@@ -222,7 +224,7 @@ func (s *Service) TamperReport(ctx context.Context, customerAccountID, orderID, 
 	if scope.AccountID != customerAccountID {
 		return HandoffScanResult{}, newError(http.StatusNotFound, httpxNotFound, "No such order.", nil)
 	}
-	ready, err := s.store.PodObjectReady(ctx, photoObjectID, orderID)
+	ready, err := s.store.PodObjectReady(ctx, photoObjectID, orderID, customerAccountID)
 	if err != nil {
 		return HandoffScanResult{}, err
 	}

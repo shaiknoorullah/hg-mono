@@ -1,5 +1,7 @@
 package admin
 
+import "github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+
 // Wire DTOs. Every shape here is the contract's schema verbatim
 // (contracts/openapi.yaml) with additionalProperties:false honoured by not
 // emitting fields the schema does not name. Money is never present in an admin
@@ -238,8 +240,9 @@ type restaurantApplication struct {
 	AddressPinWarning *string           `json:"address_pin_warning"`
 }
 
-// restaurantDecisionInput is the contract's RestaurantDecisionInput. No admin_id
-// is ever present: the decider is the authenticated principal.
+// restaurantDecisionInput is the contract's RestaurantDecisionInput: the union of
+// its three per-decision shapes, which validDecision tells apart by Decision. No
+// admin_id is ever present: the decider is the authenticated principal.
 type restaurantDecisionInput struct {
 	Decision        string   `json:"decision"`
 	ReasonCode      string   `json:"reason_code"`
@@ -280,7 +283,8 @@ type riderApplication struct {
 	Blockers         []string      `json:"blockers"`
 }
 
-// riderDecisionInput is the contract's RiderDecisionInput.
+// riderDecisionInput is the contract's RiderDecisionInput: the union of its three
+// per-decision shapes, which validDecision tells apart by Decision.
 type riderDecisionInput struct {
 	Decision        string   `json:"decision"`
 	ReasonCode      string   `json:"reason_code"`
@@ -433,6 +437,10 @@ type adminOrderView struct {
 	Refunds       []adminRefund           `json:"refunds"`
 	PiiRevealed   bool                    `json:"pii_revealed"`
 
+	// The order's money timeline and chargebacks (#172).
+	MoneyTimeline []payments.MoneyEventDTO `json:"money_timeline"`
+	Chargebacks   []payments.ChargebackDTO `json:"chargebacks"`
+
 	// LiveMapBox fields (admin-only widening of the customer-scoped OrderTracking
 	// shape): restaurant + destination coordinates and the rider's live position.
 	RestaurantLocation  *adminGeoPoint      `json:"restaurant_location"`
@@ -565,6 +573,23 @@ type menuItemInput struct {
 	Description       *string  `json:"description"`
 	IngredientsText   *string  `json:"ingredients_text"`
 	PriceCents        int64    `json:"price_cents"`
+	DietaryTags       []string `json:"dietary_tags"`
+	AllergenTags      []string `json:"allergen_tags"`
+	AllergensDeclared *bool    `json:"allergens_declared"`
+	ImageObjectID     *string  `json:"image_object_id"`
+	PrepMinutes       *int     `json:"prep_minutes"`
+	SortOrder         *int     `json:"sort_order"`
+}
+
+// menuItemUpdateInput is the contract's MenuItemUpdateInput
+// (updateMenuItemOnBehalf): every field optional, so every field is a pointer
+// (or a nil slice) and an unsent field is told apart from a sent zero.
+type menuItemUpdateInput struct {
+	CategoryID        *string  `json:"category_id"`
+	Name              *string  `json:"name"`
+	Description       *string  `json:"description"`
+	IngredientsText   *string  `json:"ingredients_text"`
+	PriceCents        *int64   `json:"price_cents"`
 	DietaryTags       []string `json:"dietary_tags"`
 	AllergenTags      []string `json:"allergen_tags"`
 	AllergensDeclared *bool    `json:"allergens_declared"`

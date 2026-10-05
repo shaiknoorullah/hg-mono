@@ -25,25 +25,63 @@ type connection struct {
 
 	mu        sync.Mutex
 	sessionID string
-	subs      map[string]Viewer // channel → this connection's viewer relation
+	subs      map[string]Viewer // channel → the one role its subscription was granted as
 
 	lastReauth   time.Time
 	lastPong     time.Time
 	sentPingAt   time.Time
 	awaitingPong bool
+
+	// outbound is the bounded fan-out queue drained by writeLoop (send.go).
+	outbound chan []byte
+	// quit is closed by stop; closeCode and closeReason are set before it closes
+	// and read by the writer only after.
+	quit        chan struct{}
+	writerDone  chan struct{} // closed when writeLoop has closed the socket
+	stopOnce    sync.Once
+	closeCode   int
+	closeReason string
+}
+
+// newConnection builds a connection with its fan-out queue. serve starts the
+// writer.
+func newConnection(gw *Gateway, ws *wsConn, log *slog.Logger, connID, accountID, sessionID string, roles []string) *connection {
+	return &connection{
+		gw:         gw,
+		ws:         ws,
+		log:        log,
+		ctx:        context.Background(),
+		connID:     connID,
+		accountID:  accountID,
+		roles:      roles,
+		sessionID:  sessionID,
+		subs:       map[string]Viewer{},
+		outbound:   make(chan []byte, outboundQueueFrames),
+		quit:       make(chan struct{}),
+		writerDone: make(chan struct{}),
+	}
 }
 
 // serve runs the whole connection lifecycle: hello, then a read loop with the
 // heartbeat, reauth and session-revocation timers running alongside. It returns
 // when the socket closes for any reason.
 func (c *connection) serve() {
-	defer c.gw.unregister(c)
-	defer c.ws.close()
+	// Whatever ends the read loop also ends the writer. The writer, not this
+	// goroutine, closes the socket, so a close frame already handed to it
+	// (4429 from the read loop, say) still goes out first.
+	defer func() {
+		c.stop(0, "")
+		c.gw.unregister(c)
+		<-c.writerDone
+	}()
 
 	now := time.Now()
 	c.lastReauth = now
 	c.lastPong = now
 
+	// The writer starts before register: from then on the gateway may queue
+	// fan-out frames for this connection.
+	go c.writeLoop()
 	c.gw.register(c)
 
 	// hello: the principal, the roles, and the allowed channel set. The account
@@ -174,24 +212,32 @@ func (c *connection) handleSubscribe(channelStr string) {
 		return
 	}
 
-	res, err := c.gw.store.AuthorizeSubscribe(c.ctx, c.accountID, c.roles, ch)
+	grant, err := c.gw.store.AuthorizeSubscribe(c.ctx, c.accountID, c.roles, ch)
 	if err != nil {
 		c.log.Warn("subscribe authz failed", slog.String("channel", ch.Raw), slog.String("error", err.Error()))
 		c.sendSubscribeError(ch.Raw, SubErrNotFound, "Not found.")
 		return
 	}
-	switch res {
-	case SubNotFound:
+	switch grant.Result {
+	case SubAllowed:
+	case SubForbidden:
+		c.sendSubscribeError(ch.Raw, SubErrForbidden, "You may not subscribe to that channel.")
+		return
+	default:
 		c.sendSubscribeError(ch.Raw, SubErrNotFound, "Not found.")
 		return
-	case SubForbidden:
+	}
+	// An allowed check always names the role it allowed. If it ever did not,
+	// the subscription would receive nothing, so refuse it outright.
+	if _, known := allowList[grant.Viewer]; !known {
+		c.log.Warn("subscribe allowed without a known role; refused",
+			slog.String("channel", ch.Raw), slog.String("role", grant.Viewer.String()))
 		c.sendSubscribeError(ch.Raw, SubErrForbidden, "You may not subscribe to that channel.")
 		return
 	}
 
-	viewer := c.resolveViewer(ch)
 	c.mu.Lock()
-	c.subs[ch.Raw] = viewer
+	c.subs[ch.Raw] = grant.Viewer
 	c.mu.Unlock()
 	c.gw.indexSubscribe(c, ch.Raw)
 
@@ -227,13 +273,22 @@ func (c *connection) handleResume(channelStr string, afterSeq int64) {
 	}
 
 	// Re-authorize: a resume must not become a back door to a channel the
-	// principal cannot subscribe to.
-	res, err := c.gw.store.AuthorizeSubscribe(c.ctx, c.accountID, c.roles, ch)
-	if err != nil || res != SubAllowed {
+	// principal cannot subscribe to. The replay is projected for the role this
+	// fresh check names, never for an older one.
+	grant, err := c.gw.store.AuthorizeSubscribe(c.ctx, c.accountID, c.roles, ch)
+	if err != nil || grant.Result != SubAllowed {
 		c.sendSubscribeError(ch.Raw, SubErrNotFound, "Not found.")
 		return
 	}
 
+	// The head is read before the replay, so the range the reply reports covers
+	// at least everything that existed when the client asked.
+	head, err := c.gw.store.ChannelHead(c.ctx, ch.Raw)
+	if err != nil {
+		c.log.Warn("replay head failed", slog.String("channel", ch.Raw), slog.String("error", err.Error()))
+		c.sendError(ErrCodeValidationFailed, "Replay failed.", true)
+		return
+	}
 	events, truncated, err := c.gw.store.Replay(c.ctx, ch.Raw, afterSeq)
 	if err != nil {
 		c.log.Warn("replay failed", slog.String("channel", ch.Raw), slog.String("error", err.Error()))
@@ -241,18 +296,23 @@ func (c *connection) handleResume(channelStr string, afterSeq int64) {
 		return
 	}
 
-	viewer := c.resolveViewer(ch)
-	var fromSeq, toSeq int64
+	// resume_complete reports the range the replay covered — from the first seq
+	// after the client's cursor to the channel's head — not just the events this
+	// viewer was sent. Events outside the viewer's audience still take a seq on
+	// the channel (contracts/websocket.md section 4: audiences are per event),
+	// so a client that sets its cursor to to_seq moves past them instead of
+	// seeing the same "gap" again. When truncated, to_seq is the head the client
+	// resets its cursor to after refetching over REST (section 6.3).
+	fromSeq, toSeq := afterSeq+1, head
 	replayed := 0
 	for _, e := range events {
-		projected, deliver := Project(e.Type, viewer, e.Audience, e.Payload)
+		if e.Seq > toSeq {
+			toSeq = e.Seq
+		}
+		projected, deliver := c.project(ch.Raw, e.Type, grant.Viewer, e.Audience, e.Payload)
 		if !deliver {
 			continue
 		}
-		if replayed == 0 {
-			fromSeq = e.Seq
-		}
-		toSeq = e.Seq
 		replayed++
 		c.send(Envelope{
 			ID:      e.ULID,
@@ -346,47 +406,30 @@ func (c *connection) runTimers(ctx context.Context) {
 	}
 }
 
-// resolveViewer maps a channel and the principal's roles to the projection
-// relationship used at send time. It is resolved at subscribe (or resume) time
-// so the ownership decision and the projection are made from the same facts.
-func (c *connection) resolveViewer(ch Channel) Viewer {
-	priv := hasAny(c.roles, "SUPPORT_AGENT", "ADMIN", "SUPER_ADMIN")
-	switch ch.Kind {
-	case KindAccount, KindRider, KindAdminOps:
-		if priv && ch.Subject != c.accountID {
-			return ViewSupport
-		}
-		return ViewSelf
-	case KindRestaurant:
-		if priv {
-			return ViewSupport
-		}
-		return ViewRestaurant
-	case KindOrder:
-		if priv {
-			return ViewSupport
-		}
-		// Distinguish customer vs restaurant vs rider by relationship. The
-		// authorize step already proved one of them holds; a follow-up cheap
-		// check picks which. Default to the least-privileged customer view.
-		return c.orderViewer(ch.Subject)
+// project runs the per-role projection for one event on one of this
+// connection's channels, and logs a drop that failed closed: an unknown role,
+// an event type no role may receive, or a source that does not decode. A role
+// simply not being in an event's audience is the contract working, not a
+// fault, and is logged at debug.
+func (c *connection) project(channel, eventType string, viewer Viewer, audience []string, payload json.RawMessage) (json.RawMessage, bool) {
+	out, why := project(eventType, viewer, audience, payload)
+	switch {
+	case why == delivered:
+		return out, true
+	case why.failedClosed():
+		c.log.Warn("realtime event dropped: projection failed closed",
+			slog.String("channel", channel), slog.String("type", eventType),
+			slog.String("role", viewer.String()), slog.String("reason", why.String()))
+	default:
+		c.log.Debug("realtime event not for this role",
+			slog.String("channel", channel), slog.String("type", eventType),
+			slog.String("role", viewer.String()), slog.String("reason", why.String()))
 	}
-	return ViewSelf
+	return nil, false
 }
 
-// orderViewer classifies the principal's relationship to an order for
-// projection. It is a best-effort read; on error it defaults to the customer
-// view, which is the most restrictive of the participant projections.
-func (c *connection) orderViewer(orderID string) Viewer {
-	v, err := c.gw.store.OrderViewer(c.ctx, c.accountID, orderID)
-	if err != nil {
-		return ViewCustomer
-	}
-	return v
-}
-
-// viewerFor returns the projection relation for a channel this connection is
-// subscribed to. ok is false when it is not subscribed.
+// viewerFor returns the role a channel's subscription was granted as. ok is
+// false when the connection is not subscribed to it.
 func (c *connection) viewerFor(channel string) (Viewer, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -395,11 +438,13 @@ func (c *connection) viewerFor(channel string) (Viewer, bool) {
 }
 
 // autoSubscribeAccount subscribes the principal to its own account channel at
-// hello, no ownership check needed — it is derived, not asserted (§3.1).
+// hello, no ownership check needed — it is derived, not asserted
+// (contracts/websocket.md section 3.1, "Channels"). Its role is the account's
+// owner.
 func (c *connection) autoSubscribeAccount() {
 	ch := AccountChannel(c.accountID)
 	c.mu.Lock()
-	c.subs[ch] = ViewSelf
+	c.subs[ch] = ViewAccountOwner
 	c.mu.Unlock()
 	c.gw.indexSubscribe(c, ch)
 }
@@ -412,10 +457,13 @@ func (c *connection) notePong() {
 	c.mu.Unlock()
 }
 
-// closeWith sends a close frame and tears down. Safe to call concurrently.
+// closeWith records the close and hands the close frame to the writer, which
+// sends it and tears down. It never waits on the socket, and only the first
+// close is recorded and sent. Safe to call concurrently.
 func (c *connection) closeWith(code int, reason string) {
-	c.gw.store.CloseConnection(c.ctx, c.connID, code, reason)
-	_ = c.ws.writeClose(code, reason)
+	if c.stop(code, reason) {
+		c.gw.store.CloseConnection(c.ctx, c.connID, code, reason)
+	}
 }
 
 // isUnknownField reports whether a json decode error is the DisallowUnknownFields

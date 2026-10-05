@@ -36,6 +36,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/store"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
@@ -85,7 +86,15 @@ func miNewSystemServer(t *testing.T) (*Harness, *store.Store) {
 		Authenticator: testAuthenticator{},
 		Authorizer:    authMatrix(),
 	})
-	system.Routes(router, system.NewHandler(cfg, st, time.Now().UTC(), nil), cfg)
+	// getPublicConfig reads the platform-wide pause on new orders from Postgres
+	// (https://github.com/shaiknoorullah/hg-mono/issues/244), whatever store.Open did.
+	pool, err := pgxpool.New(context.Background(), os.Getenv("HG_TEST_POSTGRES_DSN"))
+	if err != nil {
+		t.Fatalf("miNewSystemServer: pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+	system.Routes(router, system.NewHandler(cfg, st, time.Now().UTC(), nil).
+		WithOrderingStatus(orders.NewStore(pool).OrderingStatus), cfg)
 	if err := router.Verify(); err != nil {
 		t.Fatalf("system router verify: %v", err)
 	}

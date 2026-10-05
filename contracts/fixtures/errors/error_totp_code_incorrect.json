@@ -1,0 +1,20 @@
+{
+  "scenario": "error_totp_code_incorrect",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `INVALID_CREDENTIALS`. `verifyTotpEnrolment` with a code that does not match the authenticator. Enrolment stays open: the person types the next code, they do not start again.",
+  "operations": [
+    "verifyTotpEnrolment"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "INVALID_CREDENTIALS",
+      "message": "The TOTP code is incorrect.",
+      "request_id": "MD54S7AT5TAPB89SBXDY0B289R"
+    }
+  }
+}

@@ -14,7 +14,7 @@
 
 ## 1. Purpose & Role in the Platform
 
-This documentation set is the **written contract layer** of the Halal Goes backend. It captures:
+This documentation set is the **written contract layer** of the HalalGoes backend. It captures:
 
 1. **The build plan** (`PLAN.md`) — the original 14-day implementation roadmap for the NestJS + Temporal + Redis backend.
 2. **The as-built architecture** (`COMPREHENSIVE_ORDER_FLOW_DOCUMENTATION.md`, dated 2025-10-05, "Version 1.0, Maintained By: Development Team") — a very detailed cart-to-delivery order-flow reference with workflow signatures, signal/update types, Redis keys, endpoints, retry policies, and 7 Mermaid diagrams.

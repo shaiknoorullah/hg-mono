@@ -1,0 +1,8 @@
+# Managed by Ansible (deploy/host/roles/backup).
+[Unit]
+Description=Measure WAL archiving and the off-server copy for the alerts
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hg-backup-metrics
+MemoryMax=64M

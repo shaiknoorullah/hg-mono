@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,7 +17,13 @@ import (
 
 // MinIO is the object-store client (P-27) plus the address it actually dialled.
 type MinIO struct {
+	// Client talks to the store over the internal network (minio:9000). It is
+	// for server-side calls only; a link it signed would name a host no phone
+	// can reach.
 	Client *minio.Client
+	// Signer only signs. It is configured for the public host phones reach
+	// (config.MinIO.PresignBaseURL) and never opens a connection: see NewSigner.
+	Signer *minio.Client
 
 	rec      *addrRecorder
 	endpoint string
@@ -43,12 +50,50 @@ func openMinIO(ctx context.Context, cfg config.MinIO) (*MinIO, error) {
 		return nil, err
 	}
 
+	signer, err := NewSigner(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	listCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if _, err := client.ListBuckets(listCtx); err != nil {
 		return nil, err
 	}
-	return &MinIO{Client: client, rec: rec, endpoint: cfg.Endpoint, secure: cfg.UseSSL}, nil
+	return &MinIO{Client: client, Signer: signer, rec: rec, endpoint: cfg.Endpoint, secure: cfg.UseSSL}, nil
+}
+
+// NewSigner builds the client that mints presigned links. A SigV4 signature
+// covers the Host header, so the host must be the public one at signing time;
+// rewriting the host of a link signed for minio:9000 breaks the signature.
+//
+// Signing is offline. The region is fixed, so the client never asks the store
+// for a bucket's location, and its transport refuses every request, so the
+// signer cannot be used by mistake for a server-side call that should stay on
+// the internal network. Path-style addressing keeps the bucket in the path,
+// where the proxy in front of the store expects it.
+func NewSigner(cfg config.MinIO) (*minio.Client, error) {
+	if cfg.Region == "" {
+		return nil, errors.New("minio signer: a region is required so that signing never calls the store")
+	}
+	u, err := url.Parse(cfg.PresignBaseURL)
+	if err != nil || u.Host == "" {
+		return nil, fmt.Errorf("minio signer: presign base URL %q is not scheme://host", cfg.PresignBaseURL)
+	}
+	return minio.New(u.Host, &minio.Options{
+		Creds:        credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
+		Secure:       u.Scheme == "https",
+		Region:       cfg.Region,
+		BucketLookup: minio.BucketLookupPath,
+		Transport:    refuseTransport{},
+	})
+}
+
+// refuseTransport fails every request. The signer only signs.
+type refuseTransport struct{}
+
+func (refuseTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	return nil, fmt.Errorf("minio signer: refusing %s %s — the signing client never sends requests; use MinIO.Client", r.Method, r.URL.Host)
 }
 
 // RemoteAddr returns the peer address of the last connection the client dialled.

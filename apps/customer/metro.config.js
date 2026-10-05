@@ -1,7 +1,6 @@
 /* eslint-env node */
 /**
- * Metro for a pnpm workspace, plus one deliberate stub — mirrors apps/gallery-native, with one
- * addition this app requires.
+ * Metro for a pnpm workspace, plus one deliberate stub.
  *
  * 0. SINGLETON block (FIRST branch of resolveRequest). `@hg/ui-native` is consumed as SOURCE, so
  *    its own `react-native` import would otherwise resolve to a *second* physical copy under the
@@ -43,8 +42,7 @@ const UI_NATIVE_SRC = path.resolve(monorepoRoot, 'packages/ui-native/src');
 
 /**
  * Modules inside `@hg/ui-native` that cannot run under react-native-web as written, mapped to a
- * host-side adapter with the same export contract. Both are documented in `shims/` and mirror the
- * gallery; neither changes a component's behaviour, and neither is applied on native.
+ * host-side adapter with the same export contract. Both are documented in `shims/`; neither changes a component's behaviour, and neither is applied on native.
  */
 const WEB_SHIMS = [
   { match: /(^|\/)internal\/clipboard$/, filePath: CLIPBOARD_SHIM },

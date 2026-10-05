@@ -212,13 +212,13 @@ def certification_panel(state: str = "CERTIFIED", **over: Any) -> dict:
         "expires_on": halal_badge(state)["expires_on"],
         "verified_at": ts(-152 * DAY) if known else None,
         "certificate_viewable": known,
-        # C-12: fixed copy. Halal Goes verifies certification; it does not certify food.
+        # C-12: fixed copy. HalalGoes verifies certification; it does not certify food.
         "disclaimer": (
-            "Certification verified by Halal Goes on 9 March 2026. "
-            "Halal Goes does not itself certify food."
+            "Certification verified by HalalGoes on 9 March 2026. "
+            "HalalGoes does not itself certify food."
             if known
             else "This kitchen has not provided a halal certificate we can verify. "
-            "Halal Goes does not itself certify food."
+            "HalalGoes does not itself certify food."
         ),
     }
     out.update(over)

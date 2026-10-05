@@ -1,0 +1,62 @@
+{
+  "scenario": "menu_item_edited_by_admin",
+  "domain": "catalogue",
+  "schema": "MenuItemOwnerView",
+  "describes": "`updateMenuItemOnBehalf` renamed the dish: version 4 is approved on save and is already what customers see. The note records that HalalGoes made the change.",
+  "operations": [
+    "updateMenuItemOnBehalf"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "menu-editing"
+  ],
+  "payload": {
+    "id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+    "name": "Beef Nihari (Large)",
+    "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+    "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+    "price_cents": 2145,
+    "currency": "CAD",
+    "availability_state": "AVAILABLE",
+    "out_of_stock_until": null,
+    "dietary_tags": [
+      "HALAL_CERTIFIED",
+      "SPICY"
+    ],
+    "allergen_tags": [
+      "WHEAT_TRITICALE"
+    ],
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "tax_category": "PREPARED_FOOD",
+    "prep_minutes": 18,
+    "variant_groups": [],
+    "addon_groups": [],
+    "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+    "sort_order": 1,
+    "live_version": {
+      "id": "9e3bf772-86fd-44e6-a0a8-8fc502056f5e",
+      "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+      "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "version": 4,
+      "name": "Beef Nihari (Large)",
+      "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+      "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+      "dietary_tags": [
+        "HALAL_CERTIFIED",
+        "SPICY"
+      ],
+      "allergen_tags": [
+        "WHEAT_TRITICALE"
+      ],
+      "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+      "review_status": "APPROVED",
+      "rejection_reason_code": null,
+      "review_note": "Edited by HalalGoes at the restaurant's request (phone, 10 Aug).",
+      "submitted_at": "2026-08-10T18:41:11.412Z",
+      "reviewed_at": "2026-08-10T18:41:11.412Z",
+      "created_at": "2026-08-10T18:41:11.412Z"
+    },
+    "pending_version": null
+  }
+}

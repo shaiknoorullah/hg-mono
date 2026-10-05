@@ -33,10 +33,24 @@ import { getOrder } from '../api/orders';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
 import { TamperReportCard } from '../components/TamperReportCard';
+import { TrackingMap } from '../components/TrackingMap';
 
 // Delivery-phase states where the customer has (or has just received) the sealed bag and can
 // report a broken seal.
 const DELIVERY_PHASE: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED', 'DELIVERED']);
+
+// The contract's five terminal states (OrderState); polling stops at these.
+const TERMINAL_STATES: ReadonlySet<string> = new Set([
+  'COMPLETED',
+  'CANCELLED',
+  'REJECTED',
+  'FAILED',
+  'RESOLVED',
+]);
+const POLL_MS = 10_000;
+
+// Out for delivery: the rider has the bag. Only then does the map poll.
+const ON_ITS_WAY: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED']);
 
 type Order = Schema['OrderCustomerView'];
 
@@ -61,6 +75,25 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
   }, [orderId]);
 
   React.useEffect(() => load(), [load]);
+
+  // Poll every 10 s until the order is terminal. A failed poll keeps the last good order on
+  // screen (the next tick retries); the cleanup stops the timer when the screen closes.
+  const terminal = state.kind === 'ready' && TERMINAL_STATES.has(state.order.state);
+  React.useEffect(() => {
+    if (state.kind !== 'ready' || terminal) return;
+    let live = true;
+    const timer = setInterval(() => {
+      getOrder(orderId)
+        .then((order) => {
+          if (live && order) setState({ kind: 'ready', order });
+        })
+        .catch(() => undefined);
+    }, POLL_MS);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [orderId, state.kind, terminal]);
 
   const title =
     state.kind === 'ready' ? `Order ${state.order.code}` : 'Your order';
@@ -97,6 +130,7 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
           contentContainerStyle={{ padding: 16, paddingBottom: 24 + insets.bottom, gap: 16 }}
         >
           <StateHeader order={state.order} />
+          {ON_ITS_WAY.has(state.order.state) ? <TrackingMap orderId={orderId} /> : null}
 
           <View
             style={{

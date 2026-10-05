@@ -1,4 +1,4 @@
-# Halal Goes — Restaurant Mobile App (`apps/restaurant`) + Restaurant Web (`apps/restaurant-web`)
+# HalalGoes — Restaurant Mobile App (`apps/restaurant`) + Restaurant Web (`apps/restaurant-web`)
 
 Analysis scope: `/home/user/halal-goes/apps/restaurant` (Expo/React Native app) and `/home/user/halal-goes/apps/restaurant-web` (Next.js 15 App Router web portal). Every source/config file in scope was read.
 
@@ -6,7 +6,7 @@ Analysis scope: `/home/user/halal-goes/apps/restaurant` (Expo/React Native app) 
 
 ## 1. Purpose & Role in the Platform
 
-These are the two **restaurant-facing frontends** of the Halal Goes food-delivery platform:
+These are the two **restaurant-facing frontends** of the HalalGoes food-delivery platform:
 
 - **`apps/restaurant` (mobile, Expo SDK 52)** — a *registration/onboarding-only* app. A restaurant owner authenticates via phone OTP (Supabase), fills a 4-step registration wizard (basic info → business details → menu & operations → document uploads), uploads images to a Supabase Storage bucket, and submits the collected data to a **Payload CMS form endpoint** (`https://halalgoes.com/api/form-submissions`, form id `4`). After submission the app permanently shows an "In Review" screen. There is **no order management, no menu management, no dashboard** in the mobile app — it is purely a lead-capture / KYC funnel. Notably, it does **not** talk to the `hg-api` backend at all (except indirectly via the shared `@halal-goes/auth` package, whose axios-based OTP endpoints it does not actually use — see §8).
 
@@ -177,7 +177,7 @@ Persistence: `utils/submissionState.ts` (`SubmissionStateManager`) writes `resta
 
 `onboarding/page.tsx` + `onboarding-store.ts`:
 
-1. **Profile (step 1)** — zod `profileSchema` (first/last name, phone ≥10, description ≥20, HH:MM times, address fields, lat∈[-90,90], lng∈[-180,180]); defaults country `MY`, coords **Kuala Lumpur 3.1478, 101.7128**; Google-Maps modal with draggable marker (script injected with **hardcoded API key `AIzaSyD614SHSgC6FnrGsIj00_8SZJF5WznveSU`** — committed secret); `POST .../profile` → state `DOCUMENTS_PENDING`.
+1. **Profile (step 1)** — zod `profileSchema` (first/last name, phone ≥10, description ≥20, HH:MM times, address fields, lat∈[-90,90], lng∈[-180,180]); defaults country `MY`, coords **Kuala Lumpur 3.1478, 101.7128**; Google-Maps modal with draggable marker (script injected with **hardcoded API key [REDACTED: Google Maps key, see [#130](https://github.com/shaiknoorullah/hg-mono/issues/130)]** — committed secret); `POST .../profile` → state `DOCUMENTS_PENDING`.
 2. **Documents (step 2)** — 4 required docs; per-file ≤10MB, `image/*,.pdf`; upload via `restaurantDocumentService.uploadDocument`: `POST .../documents/upload-url` → `PUT` file to S3/MinIO presigned URL → `POST .../documents/confirm` (with size_bytes); then `POST .../documents/submit` with the four `*_id`s → state `DOCUMENTS_REVIEW`.
 3. **Stripe (step 3)** — banner while under review; once `steps_completed.documents_approved`, `POST .../stripe/connect` `{refresh_url: origin+'/onboarding/stripe/refresh', return_url: origin+'/onboarding/stripe/complete'}` → redirect to Stripe onboarding URL; status via `GET .../stripe/status`. On `stripe_complete` → `router.push('/menu-items')`.
 
@@ -226,7 +226,7 @@ A dev-only debug panel prints backend state/progress (`NODE_ENV === 'development
 
 ## 5. Security findings
 
-1. **Committed Google Maps API key** — `GOOGLE_MAPS_API_KEY = 'AIzaSyD614SHSgC6FnrGsIj00_8SZJF5WznveSU'` hardcoded in `restaurant-web/src/app/onboarding/page.tsx:38` (env var exists but is ignored).
+1. **Committed Google Maps API key** — `GOOGLE_MAPS_API_KEY = '[REDACTED]'` (see [#130](https://github.com/shaiknoorullah/hg-mono/issues/130)) hardcoded in `restaurant-web/src/app/onboarding/page.tsx:38` (env var exists but is ignored).
 2. **Tokens in localStorage + non-HttpOnly cookies** (restaurant-web) — access/refresh JWTs readable by any XSS; refresh token also duplicated in cookie.
 3. **Unauthenticated Payload form endpoint** (mobile) — anyone can POST arbitrary registrations to `https://halalgoes.com/api/form-submissions` form 4; uploaded docs land in a **public** Supabase bucket (public URLs for KYC documents: licenses, certificates).
 4. **Example env leaks infra IP** — `98.130.76.223` (API :3456, WS :9080, Temporal UI :8080) in `.env.example`.

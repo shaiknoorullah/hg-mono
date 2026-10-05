@@ -69,7 +69,7 @@ export function VerificationSheet() {
           </h2>
         </div>
         <p className="mt-4 mb-0 text-body-lg leading-relaxed text-mk-ink lg:mt-0 lg:mb-1.5 lg:text-[19px]">
-          Before a restaurant can appear on Halal Goes, a reviewer reads its halal certificate and records
+          Before a restaurant can appear on HalalGoes, a reviewer reads its halal certificate and records
           seven checks against it. This is the sheet they fill in. Nothing on it is inferred, scanned or
           auto-approved.
         </p>

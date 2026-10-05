@@ -3,10 +3,8 @@ package admin
 import (
 	"encoding/json"
 	"io"
-	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
@@ -44,7 +42,7 @@ type Handler struct {
 func NewHandler(repo *Repo, cfg Config) *Handler {
 	return &Handler{
 		repo:       repo,
-		ordersRepo: NewOrdersRepo(repo.pool),
+		ordersRepo: NewOrdersRepo(repo.pool, repo.orders),
 		cfg:        cfg,
 		now:        func() time.Time { return time.Now().UTC() },
 	}
@@ -74,33 +72,9 @@ func actorFrom(r *http.Request) auditActor {
 		roles:     roles,
 		sessionID: p.SessionID,
 		requestID: httpx.RequestIDFrom(r.Context()),
-		ip:        clientIP(r),
+		ip:        httpx.ClientIP(r),
 		userAgent: r.Header.Get("User-Agent"),
 	}
-}
-
-func clientIP(r *http.Request) string {
-	// The peer address; X-Forwarded-For is trusted only behind the Traefik
-	// allowlist (P-06 stage 3), which is not this module's to configure.
-	//
-	// RemoteAddr is host:port. For IPv6 the host is bracketed ("[::1]:54321");
-	// net.SplitHostPort correctly returns the unbracketed host ("::1"), which is
-	// what the audit_event.ip inet column requires — a bracketed literal is
-	// SQLSTATE 22P02. A naive last-colon split leaves the brackets, so it is not
-	// used here.
-	host := r.RemoteAddr
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = h
-	}
-	// Belt and braces: strip any residual brackets and an IPv6 zone suffix so a
-	// value that never reaches SplitHostPort (already a bare "[::1]") is still
-	// a valid inet literal.
-	host = strings.TrimPrefix(host, "[")
-	host = strings.TrimSuffix(host, "]")
-	if i := strings.IndexByte(host, '%'); i >= 0 {
-		host = host[:i]
-	}
-	return host
 }
 
 // decodeJSON strictly decodes the request body, refusing unknown fields

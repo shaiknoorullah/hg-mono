@@ -1,0 +1,22 @@
+{
+  "scenario": "ordering_pause_open",
+  "domain": "admin",
+  "schema": "OrderingPause",
+  "describes": "Ordering is open again: the on-call admin resumed it 20 minutes ago, with a reason. `paused_since` is null once ordering resumes; the audit log keeps the pause.",
+  "operations": [
+    "getOrderingPause",
+    "setOrderingPause"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "state-matrix"
+  ],
+  "payload": {
+    "paused": false,
+    "paused_since": null,
+    "reason": "Stripe's incident is resolved and a test checkout went through end to end.",
+    "changed_at": "2026-08-10T18:22:11.412Z",
+    "changed_by": "bf15b10c-08ab-47bd-a892-e5daa2ce1e82"
+  }
+}

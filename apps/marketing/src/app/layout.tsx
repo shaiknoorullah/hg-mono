@@ -43,12 +43,12 @@ export const metadata: Metadata = {
   // relative values, which scrapers ignore.
   metadataBase: new URL(SITE.origin),
   title: {
-    default: 'Halal Goes — verified halal, delivered',
+    default: 'HalalGoes — verified halal, delivered',
     // Child pages set their own full title; this is for any that do not.
-    template: '%s — Halal Goes',
+    template: '%s — HalalGoes',
   },
   description:
-    'Every restaurant on Halal Goes passes seven checks against its halal certificate before it goes live. Ontario first.',
+    'Every restaurant on HalalGoes passes seven checks against its halal certificate before it goes live. Ontario first.',
   applicationName: SITE.name,
   alternates: { canonical: absolute('/') },
   openGraph: {

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
-import { WORDMARK } from '@/lib/wordmark-art';
+import { WORDMARK } from '@hg/brand';
 
 /**
  * The social card, generated rather than designed in a file.
@@ -22,7 +22,7 @@ import { WORDMARK } from '@/lib/wordmark-art';
 
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
-export const alt = 'Halal Goes — verified halal, delivered';
+export const alt = 'HalalGoes — verified halal, delivered';
 
 const SURFACE = '#FFFAEA'; // surface.base
 const INK = '#232323'; // text.primary

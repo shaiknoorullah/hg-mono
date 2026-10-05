@@ -3,7 +3,6 @@ package httpx
 import (
 	"context"
 	"log/slog"
-	"net"
 	"net/http"
 	"runtime/debug"
 	"strconv"
@@ -106,7 +105,7 @@ func AccessLog(log *slog.Logger) Middleware {
 				slog.Int("status", rr.status),
 				slog.Int64("bytes", rr.written),
 				slog.Float64("duration_ms", float64(time.Since(start).Microseconds())/1000),
-				slog.String("remote_ip", clientIP(r)),
+				slog.String("remote_ip", ClientIP(r)),
 			}
 			if ri, ok := RouteFrom(r.Context()); ok {
 				attrs = append(attrs,
@@ -140,17 +139,6 @@ func toAttrs(vals []any) []slog.Attr {
 		}
 	}
 	return out
-}
-
-func clientIP(r *http.Request) string {
-	// TODO(P-06 stage 3): trust X-Forwarded-For only when the peer is Traefik's
-	// IP. Until that allowlist is configured, report the direct peer, which
-	// cannot be spoofed.
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
 }
 
 // CORS is stage 8: an exact-origin allowlist, credentials allowed, never a
@@ -322,9 +310,9 @@ func Guard(az Authorizer) Middleware {
 // commit in the same transaction as the business effect, so it belongs in the
 // store, not in a middleware that has no transaction.
 //
-// TODO(orders/payments siblings): implement the claim/replay per P-37 and call
-// it from the handler's transaction; then extend this to emit the
-// Idempotency-Replayed header.
+// The claim and replay are internal/idempotency, called from the handler's
+// transaction; a route that does not call it only requires the header
+// (https://github.com/shaiknoorullah/hg-mono/issues/363).
 func IdempotencyKey() Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

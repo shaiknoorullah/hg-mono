@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
-from content import DAY, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
-from synth import int_for, uuid_for
+from content import DAY, DISHES, HOUR, IMAGE_BASE, ISSUING_BODIES, MINUTE, day, ts
+from synth import int_for, ulid_for, uuid_for
 from world import certification_panel, public_address, slug
 
 # state -> (current_step, progress_percent, note). `current_step` is its own closed enum
@@ -665,7 +666,7 @@ def _applications(reg, synth) -> None:
         "A complete application sitting in the queue: five documents, a halal certificate "
         "awaiting the seven checks, and no decision yet.",
         app_template,
-        operations=["getRestaurantApplication", "takeNextRestaurantApplication", "decideRestaurantApplication"],
+        operations=["getRestaurantApplication", "takeNextRestaurantApplication"],
         tags=["admin", "review-queue"],
     )
 
@@ -707,7 +708,7 @@ def _applications(reg, synth) -> None:
         "RiderApplication",
         "A rider application with six documents and a vehicle on file.",
         synth.make("RiderApplication", "rider-app"),
-        operations=["getRiderApplication", "takeNextRiderApplication", "decideRiderApplication"],
+        operations=["getRiderApplication", "takeNextRiderApplication"],
         tags=["admin", "review-queue"],
     )
 
@@ -730,6 +731,282 @@ def _applications(reg, synth) -> None:
         None,
         operations=["takeNextRiderApplication"],
         tags=["admin", "edge", "empty"],
+    )
+
+    _decisions(reg, synth, app_template)
+
+
+# Issue #163 (https://github.com/shaiknoorullah/hg-mono/issues/163): the rider decision
+# used to demand a document rejection reason even for an approval. Each decision now has
+# its own body shape, so the fixtures carry one request body per decision (registered
+# against no operation, so the mock never serves a request body as a response) and the
+# response each decision produces.
+RIDER_DECISIONS = [
+    (
+        "approve",
+        "APPROVE: an approval reason, never a rejection reason. The text reaches the rider.",
+        {
+            "decision": "APPROVE",
+            "reason_code": "ALL_CHECKS_PASSED",
+            "reason_text": "Welcome to HalalGoes. Your documents are approved; set up payouts "
+            "to start delivering.",
+        },
+    ),
+    (
+        "reject",
+        "REJECT: a document rejection reason and the sentence the rider reads.",
+        {
+            "decision": "REJECT",
+            "reason_code": "SUSPECTED_ALTERATION",
+            "reason_text": "The date of birth on your licence appears to have been edited, so "
+            "we cannot accept this application.",
+        },
+    ),
+    (
+        "request_changes",
+        "REQUEST_CHANGES: a document rejection reason and exactly which documents to redo.",
+        {
+            "decision": "REQUEST_CHANGES",
+            "reason_code": "ILLEGIBLE",
+            "reason_text": "Your licence photo is too dark to read. Retake it in daylight, "
+            "showing all four corners.",
+            "documents_to_redo": ["DRIVERS_LICENCE"],
+        },
+    ),
+]
+
+RESTAURANT_DECISIONS = [
+    (
+        "approve",
+        "APPROVE: an approval reason; `internal_note` stays with staff.",
+        {
+            "decision": "APPROVE",
+            "reason_code": "ALL_CHECKS_PASSED",
+            "reason_text": "Every document and your halal certificate checked out. Set up "
+            "payouts next.",
+            "internal_note": "Certificate number confirmed with the certifier by phone.",
+        },
+    ),
+    (
+        "reject",
+        "REJECT: a rejection reason. Final for this application.",
+        {
+            "decision": "REJECT",
+            "reason_code": "OUTSIDE_SERVICE_AREA",
+            "reason_text": "We do not deliver in your area yet. We will email you when we do.",
+        },
+    ),
+    (
+        "request_changes",
+        "REQUEST_CHANGES: a rejection reason and exactly which documents to redo.",
+        {
+            "decision": "REQUEST_CHANGES",
+            "reason_code": "DOCUMENTS_INSUFFICIENT",
+            "reason_text": "Your food safety certificate has expired. Upload the renewed one "
+            "to continue.",
+            "documents_to_redo": ["FOOD_SAFETY"],
+        },
+    ),
+]
+
+# What the server says when a decision body does not fit its decision, or the decision
+# cannot be made: (scenario suffix, status, ErrorCode, message, details, note, operations),
+# the tuple dom_errors.LAUNCH_ERRORS uses. Codes and messages match
+# services/hg/internal/admin. Kept beside the decisions they belong to.
+_APPROVE_REASON = (
+    "reason_code must be an approval reason (ALL_CHECKS_PASSED or APPROVED_WITH_NOTES) "
+    "for an APPROVE decision"
+)
+_REJECT_REASON = "reason_code must be a rejection reason for this decision"
+DECISION_ERRORS = [
+    (
+        "decision_approval_reason_required",
+        422,
+        "VALIDATION_FAILED",
+        _APPROVE_REASON,
+        [{"field": "reason_code", "code": "invalid", "message": _APPROVE_REASON}],
+        "An approval sent with a rejection reason (or none). An approval carries "
+        "`ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed.",
+        ["decideRiderApplication", "decideRestaurantApplication"],
+    ),
+    (
+        "decision_rejection_reason_required",
+        422,
+        "VALIDATION_FAILED",
+        _REJECT_REASON,
+        [{"field": "reason_code", "code": "invalid", "message": _REJECT_REASON}],
+        "A rejection or a request for changes without a rejection reason. Every decision "
+        "is reasoned and audited; nothing changed.",
+        ["decideRiderApplication", "decideRestaurantApplication"],
+    ),
+    (
+        "rider_under_18",
+        422,
+        "AGE_REQUIREMENT_NOT_MET",
+        "The rider is under 18; approval is refused and cannot be overridden.",
+        None,
+        "Approving a rider whose date of birth makes them under 18. No role can override "
+        "it, and the application stays in review.",
+        ["decideRiderApplication"],
+    ),
+    (
+        "application_already_decided",
+        409,
+        "ALREADY_DECIDED",
+        "The application is already decided.",
+        None,
+        "A second decision on a decided application is refused, never applied over the "
+        "first.",
+        ["decideRiderApplication", "decideRestaurantApplication"],
+    ),
+]
+
+# A car rider's document set: licence, registration and insurance instead of the
+# government ID a bicycle or on-foot courier sends.
+CAR_RIDER_DOCS = ["DRIVERS_LICENCE", "VEHICLE_REGISTRATION", "VEHICLE_INSURANCE", "WORK_ELIGIBILITY", "PROFILE_PHOTO"]
+
+
+def _decided_rider(synth, state: str, documents: list[dict]) -> dict:
+    """A rider application just after its decision: no review lock, no blockers."""
+    app = synth.make("RiderApplication", "rider-app")
+    rider_id = uuid_for("subject:rider")  # the documents' subject_id
+    app.update(
+        {
+            "rider_account_id": rider_id,
+            "display_name": "Ayesha R.",
+            "vehicle_type": "CAR",
+            "onboarding_state": state,
+            "attempt_number": 1,
+            "assigned_admin_id": uuid_for("account:admin:reviewer"),
+            "review_lock_expires_at": None,
+            "submitted_at": ts(-26 * HOUR),
+            "sla_due_at": ts(22 * HOUR),
+            "documents": documents,
+            "computed_age_years": 32,
+            "blockers": [],
+        }
+    )
+    app["profile"].update(
+        {
+            "account_id": rider_id,
+            "first_name": "Ayesha",
+            "last_name": "Rahman",
+            "email": "ayesha.r@example.com",
+            "date_of_birth": "1994-03-17",
+        }
+    )
+    app["vehicle"].update(
+        {"vehicle_type": "CAR", "make": "Toyota", "model": "Corolla", "year": 2019, "colour": "Silver", "licence_plate": "CJHK812"}
+    )
+    return app
+
+
+def _decisions(reg, synth, app_template: dict) -> None:
+    for suffix, status, code, message, details, note, operations in DECISION_ERRORS:
+        error: dict[str, Any] = {"code": code, "message": message, "request_id": ulid_for(f"request:{suffix}")}
+        if details is not None:
+            error["details"] = details
+        reg.add(
+            f"error_{suffix}",
+            "errors",
+            "ErrorEnvelope",
+            f"`{status}` · `{code}`. {note}",
+            {"error": error},
+            operations=operations,
+            status=status,
+            tags=["error-envelope"],
+        )
+
+    for name, note, body in RIDER_DECISIONS:
+        reg.add(
+            f"rider_decision_input_{name}",
+            "admin",
+            "RiderDecisionInput",
+            f"Request body for `decideRiderApplication`. {note}",
+            body,
+            tags=["admin", "request-body"],
+        )
+    for name, note, body in RESTAURANT_DECISIONS:
+        reg.add(
+            f"restaurant_decision_input_{name}",
+            "admin",
+            "RestaurantDecisionInput",
+            f"Request body for `decideRestaurantApplication`. {note}",
+            body,
+            tags=["admin", "request-body"],
+        )
+
+    reg.add(
+        "rider_application_approved",
+        "admin",
+        "RiderApplication",
+        "`decideRiderApplication` with `rider_decision_input_approve`: the rider moves to "
+        "`PAYOUT_PENDING`, not straight to dispatchable. They are offered orders only once "
+        "Stripe reports payouts enabled.",
+        _decided_rider(synth, "PAYOUT_PENDING", [_document(t, "APPROVED", subject="rider") for t in CAR_RIDER_DOCS]),
+        operations=["decideRiderApplication", "getRiderApplication"],
+        tags=["admin", "rider"],
+    )
+
+    rejected_docs = [_document(t, "APPROVED", subject="rider") for t in CAR_RIDER_DOCS if t != "DRIVERS_LICENCE"]
+    rejected_docs.insert(
+        0,
+        _document(
+            "DRIVERS_LICENCE",
+            "REJECTED",
+            subject="rider",
+            rejection_reason_code="ILLEGIBLE",
+            review_note="Your licence photo is too dark to read. Retake it in daylight, showing all four corners.",
+        ),
+    )
+    reg.add(
+        "rider_application_changes_requested",
+        "admin",
+        "RiderApplication",
+        "`decideRiderApplication` with `rider_decision_input_request_changes`: the licence "
+        "is rejected with its reason and the rider redoes exactly that document.",
+        _decided_rider(synth, "DOCUMENTS_REJECTED", rejected_docs),
+        operations=["decideRiderApplication", "getRiderApplication"],
+        tags=["admin", "rider", "error-path"],
+    )
+
+    restaurant_id = uuid_for("subject:restaurant")  # the documents' subject_id
+    certificate = copy.deepcopy(reg.fixtures["halal_certificate_valid"].payload)
+    certificate["restaurant_id"] = restaurant_id
+    approved_restaurant = copy.deepcopy(app_template)
+    approved_restaurant.update(
+        {
+            "restaurant_id": restaurant_id,
+            "onboarding_state": "PAYOUT_PENDING",
+            "submission_count": 1,
+            "assigned_admin_id": uuid_for("account:admin:reviewer"),
+            "review_lock_expires_at": None,
+            "documents": [_document(t, "APPROVED", subject="restaurant") for t in RESTAURANT_DOCS],
+            "halal_certificate": certificate,
+            "blockers": [],
+            "address_pin_warning": None,
+        }
+    )
+    approved_restaurant["profile"].update(
+        {
+            "id": restaurant_id,
+            "legal_name": "Al-Noor Shawarma House Inc.",
+            "display_name": "Al-Noor Shawarma House",
+            "onboarding_state": "PAYOUT_PENDING",
+            "account_state": "PENDING",
+        }
+    )
+    approved_restaurant["display_name"] = "Al-Noor Shawarma House"
+    reg.add(
+        "restaurant_application_approved",
+        "admin",
+        "RestaurantApplication",
+        "`decideRestaurantApplication` with `restaurant_decision_input_approve`: approved "
+        "and moved to `PAYOUT_PENDING`. **Approval does not make the restaurant live**: "
+        "`account_state` stays `PENDING` until payouts are enabled and a menu is approved.",
+        approved_restaurant,
+        operations=["decideRestaurantApplication", "getRestaurantApplication"],
+        tags=["admin", "restaurant"],
     )
 
     for status, note in [
@@ -764,18 +1041,88 @@ def _applications(reg, synth) -> None:
         tags=["admin", "edge", "empty"],
     )
 
+    # The review queue as `listMenuReviewQueue` returns it: only `PENDING_REVIEW`
+    # versions, oldest first, across restaurants.
+    queue = []
+    for i, (dish, restaurant, waited_hours, version) in enumerate(
+        [(1, "karachi-kitchen", 7, 4), (3, "beirut-shawarma", 3, 1), (14, "karachi-kitchen", 1, 2)]
+    ):
+        name, description, _, _, dietary, allergens = DISHES[dish]
+        item_id = uuid_for(f"item:{restaurant}:{slug(name)}")
+        queue.append(
+            {
+                "id": uuid_for(f"menu-version:queue:{i}"),
+                "menu_item_id": item_id,
+                "restaurant_id": uuid_for(f"restaurant:{restaurant}"),
+                "version": version,
+                "name": name,
+                "description": description,
+                "ingredients_text": None,
+                "dietary_tags": dietary,
+                "allergen_tags": allergens,
+                "image_url": f"{IMAGE_BASE}/dish/{slug(name)}.webp",
+                "review_status": "PENDING_REVIEW",
+                "rejection_reason_code": None,
+                "review_note": None,
+                "submitted_at": ts(-waited_hours * HOUR),
+                "reviewed_at": None,
+                "created_at": ts(-waited_hours * HOUR - 4 * MINUTE),
+            }
+        )
+    reg.add(
+        "menu_review_queue",
+        "admin",
+        "array<MenuItemVersion>",
+        "Three edits waiting, oldest first, from two restaurants. Only the words, the "
+        "photo and the dietary and allergen tags wait here; price and availability went "
+        "live on save. Nothing here is ever approved by waiting.",
+        queue,
+        operations=["listMenuReviewQueue"],
+        meta={"next_cursor": None, "has_more": False, "total": len(queue)},
+        tags=["admin", "review-queue"],
+    )
+
+    staff = []
+    for i, (role, status) in enumerate(
+        [("SUPER_ADMIN", "ACTIVE"), ("ADMIN", "INVITED"), ("SUPPORT_AGENT", "SUSPENDED"), ("ADMIN", "DEACTIVATED")]
+    ):
+        member = {**synth.make("StaffUser", f"staff-{i}"), "role": role, "status": status}
+        if status == "INVITED":
+            # An invitee has not set a password or enrolled two-step sign-in yet.
+            member["mfa_enrolled"] = False
+            member["last_login_at"] = None
+        staff.append(member)
     reg.add(
         "staff_list",
         "admin",
         "array<StaffUser>",
-        "Platform staff across every `StaffStatus`.",
-        [
-            {**synth.make("StaffUser", f"staff-{i}"), "status": status}
-            for i, status in enumerate(["ACTIVE", "INVITED", "SUSPENDED", "DEACTIVATED"])
-        ],
-        operations=["listStaff", "createStaffUser"],
-        meta={"next_cursor": None, "has_more": False, "total": 4},
+        "Platform staff across every `StaffStatus`. The invitee has never signed in and has "
+        "no two-step sign-in yet.",
+        staff,
+        operations=["listStaff"],
+        meta={"next_cursor": None, "has_more": False, "total": len(staff)},
         tags=["admin", "state-matrix"],
+    )
+
+    reg.add(
+        "staff_user_invited",
+        "admin",
+        "StaffUser",
+        "What `createStaffUser` returns: a new account in `INVITED`. The super admin set no "
+        "password; it becomes `ACTIVE` once the invitee sets one and enrols two-step "
+        "sign-in.",
+        {
+            "id": uuid_for("staff:invited:hamza"),
+            "email": "hamza.siddiqui@halalgoes.ca",
+            "full_name": "Hamza Siddiqui",
+            "role": "SUPPORT_AGENT",
+            "status": "INVITED",
+            "mfa_enrolled": False,
+            "last_login_at": None,
+            "created_at": ts(),
+        },
+        operations=["createStaffUser"],
+        tags=["admin"],
     )
 
     reg.add(
@@ -859,7 +1206,57 @@ def _auth_and_config(reg, synth) -> None:
         "A customer session issued by phone OTP, with `next_route` telling the app where to "
         "land — the client contains no branching tree of its own (P-04).",
         synth.make("SessionGrant", "session-customer"),
-        operations=["verifyOtp", "login", "refreshSession", "verifyEmail", "changePassword"],
+        operations=["verifyOtp", "login", "refreshSession"],
+        tags=["platform", "auth"],
+    )
+
+    staff_grant = synth.make("SessionGrant", "session-password-changed")
+    staff_grant.update(
+        {
+            "refresh_token": None,
+            "expires_in": 900,
+            "is_new_account": False,
+            "principal": {
+                "account_id": uuid_for("account:admin:amina"),
+                "session_id": uuid_for("session:admin:amina:after-password-change"),
+                "roles": [{"role": "ADMIN", "scope_type": "GLOBAL", "scope_id": None}],
+                "amr": "pwd+totp",
+                "status": "ACTIVE",
+                "locale": "en-CA",
+                "timezone": "America/Toronto",
+                "next_route": "HOME",
+            },
+        }
+    )
+    reg.add(
+        "session_grant_password_changed",
+        "platform",
+        "SessionGrant",
+        "`changePassword` from the admin console: every other session was revoked and this "
+        "one re-issued. Web, so the refresh token is in the `hg_rt` cookie and null here.",
+        staff_grant,
+        operations=["changePassword"],
+        tags=["platform", "auth"],
+    )
+
+    reg.add(
+        "totp_enrolment",
+        "platform",
+        "TotpEnrolment",
+        "Two-step sign-in enrolment, step one: the authenticator URI and ten recovery codes, "
+        "shown **once**. Step two is `verifyTotpEnrolment` with a live code.",
+        {
+            "provisioning_uri": (
+                "otpauth://totp/HalalGoes:amina.rahman%40halalgoes.ca"
+                "?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=HalalGoes"
+                "&algorithm=SHA1&digits=6&period=30"
+            ),
+            "recovery_codes": [
+                f"{int_for(f'recovery:{i}:a', 1000, 9999)}-{int_for(f'recovery:{i}:b', 1000, 9999)}"
+                for i in range(10)
+            ],
+        },
+        operations=["enrollTotp"],
         tags=["platform", "auth"],
     )
 

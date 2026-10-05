@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 )
 
 // mockStripe is a test double for StripeClient. It never fabricates ids the way
@@ -24,7 +25,11 @@ type mockStripe struct {
 	AccountLinkFn   func(id, ret, ref string) (*StripeAccountLink, error)
 	GetConnectFn    func(id string) (*StripeAccount, error)
 	TransferFn      func(CreateTransferInput) (*StripeTransfer, error)
+	FindTransferFn  func(group string) (*StripeTransfer, error)
+	BankPayoutFn    func(CreateBankPayoutInput) (*StripeBankPayout, error)
+	FindBankPayFn   func(acct, payoutID string, attempt int) (*StripeBankPayout, error)
 	VerifyWebhookFn func(payload []byte, sig string) (StripeEvent, error)
+	ListEventsFn    func(since time.Time) ([]StripeEvent, error)
 
 	// Recorded idempotency keys, to assert exactly-once behaviour.
 	TransferKeys []string
@@ -111,11 +116,39 @@ func (m *mockStripe) CreateTransfer(_ context.Context, in CreateTransferInput) (
 	return &StripeTransfer{ID: "tr_test"}, nil
 }
 
+func (m *mockStripe) FindTransfer(_ context.Context, group string) (*StripeTransfer, error) {
+	if m.FindTransferFn != nil {
+		return m.FindTransferFn(group)
+	}
+	return nil, nil
+}
+
+func (m *mockStripe) CreateBankPayout(_ context.Context, in CreateBankPayoutInput) (*StripeBankPayout, error) {
+	if m.BankPayoutFn != nil {
+		return m.BankPayoutFn(in)
+	}
+	return &StripeBankPayout{ID: "po_test", Status: "pending"}, nil
+}
+
+func (m *mockStripe) FindBankPayout(_ context.Context, acct, payoutID string, attempt int, _ time.Time) (*StripeBankPayout, error) {
+	if m.FindBankPayFn != nil {
+		return m.FindBankPayFn(acct, payoutID, attempt)
+	}
+	return nil, nil
+}
+
 func (m *mockStripe) VerifyWebhook(payload []byte, sig string) (StripeEvent, error) {
 	if m.VerifyWebhookFn != nil {
 		return m.VerifyWebhookFn(payload, sig)
 	}
 	return StripeEvent{}, errors.New("no webhook verifier set")
+}
+
+func (m *mockStripe) ListEventsSince(_ context.Context, since time.Time) ([]StripeEvent, error) {
+	if m.ListEventsFn != nil {
+		return m.ListEventsFn(since)
+	}
+	return nil, nil
 }
 
 var _ StripeClient = (*mockStripe)(nil)

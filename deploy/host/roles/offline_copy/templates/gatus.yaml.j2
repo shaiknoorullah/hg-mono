@@ -1,0 +1,46 @@
+# Managed by Ansible (deploy/host/roles/offline_copy).
+storage:
+  type: sqlite
+  path: /data/data.db
+ui:
+  title: HalalGoes from outside ({{ inventory_hostname }})
+
+alerting:
+  email:
+    from: "{{ hg_alert_email_from }}"
+    username: "{{ hg_alert_smtp_user }}"
+    password: "${GATUS_SMTP_PASSWORD}"
+    host: "{{ hg_alert_smtp_host }}"
+    port: {{ hg_alert_smtp_port }}
+    to: "{{ hg_alert_email_to }}"
+    default-alert:
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+
+endpoints:
+  - name: api
+    group: production
+    url: "https://api.{{ hg_domain }}/health/ready"
+    interval: 1m
+    conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"]
+    alerts: [{type: email}]
+  - name: website
+    group: production
+    url: "https://{{ hg_domain }}/"
+    interval: 1m
+    conditions: ["[STATUS] == 200"]
+    alerts: [{type: email}]
+  # Over WireGuard: the server's own alerting is alive.
+  - name: server-alerting
+    group: server
+    url: "http://{{ hostvars[hg_offline_server].hg_wg_address }}:9093/-/healthy"
+    interval: 2m
+    conditions: ["[STATUS] == 200"]
+    alerts: [{type: email}]
+  - name: server-checks
+    group: server
+    url: "http://{{ hostvars[hg_offline_server].hg_wg_address }}:8080/health"
+    interval: 2m
+    conditions: ["[STATUS] == 200"]
+    alerts: [{type: email}]

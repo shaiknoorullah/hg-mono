@@ -1,6 +1,6 @@
 # `contracts/` — the single source of truth for every API shape
 
-Two files define the entire wire surface of Halal Goes:
+Two files define the entire wire surface of HalalGoes:
 
 | File | What it defines |
 |---|---|
@@ -173,7 +173,37 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **121 V0, 23 V1**.
+a V0 screen coherent, but not itself launch-blocking). Current counts: **149 V0, 12 V1**
+(`pnpm validate:contract` prints them).
+
+On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
+one capability ([round-2 decisions, "Launch scope and contract"](../docs/decisions/README.md#launch-scope-and-contract),
+issue [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)):
+
+| What | Operations |
+|---|---|
+| Forgot and reset password; change your own password | `requestPasswordReset`, `resetPassword`, `changePassword` |
+| Two-step sign-in enrolment for staff | `enrollTotp`, `verifyTotpEnrolment` |
+| The staff list and staff invites | `listStaff`, `createStaffUser` |
+| Sign out everywhere | `logoutAll` |
+| Restaurant payout history | `listRestaurantPayouts` |
+| Marking an item out of stock | `setMenuItemAvailability` |
+| Restaurants edit their own menu | `createMenuCategory`, `createMenuItem`, `updateMenuItem` |
+| **New:** a restaurant renames, reorders, deactivates or reactivates its own category | `updateMenuCategory` |
+| The menu review queue | `listMenuReviewQueue`, `decideMenuVersion` |
+| **New:** an admin updates or removes a menu item on a restaurant's behalf | `updateMenuItemOnBehalf`, `deleteMenuItemOnBehalf` |
+
+Then, for launch, staff review refunds and see chargebacks ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)):
+
+| What | Operations |
+|---|---|
+| **New:** the refund review queue; approve a refund (within the approver's 24-hour limit, or sent up for a second person) or decline it with a reason | `listRefundsAdmin`, `approveRefund`, `declineRefund` |
+| **New:** chargebacks (disputes raised with the customer's bank) and the evidence notes staff keep for them | `listChargebacks`, `getChargeback`, `addChargebackEvidenceNote` |
+| **Widened:** the admin order view carries the order's money timeline and its chargebacks | `getOrderAdmin` |
+
+Still later-version: turning two-step sign-in off, listing and ending single sessions,
+dependency status, the in-app inbox, restaurant staff, ratings, the home feed and a restaurant
+adding delay to an order (`delayOrder`).
 
 ---
 
@@ -278,9 +308,11 @@ either way, but the **values** need a human before launch:
 | `x-roles` and `x-version` present | Any operation omits either — this is the deny-by-default gate expressed in the contract |
 | Money invariant | A `_cents` field is not `integer/int64`, or a money-shaped field lacks the suffix, or a `number`-typed field has a money-shaped name |
 | Mass-assignment invariant | A request body contains a price-shaped field outside the three-item allowlist |
+| Menu lock declared | A write under a menu path (`/menu`, `/menu/…`, `/menu-reviews/…`) has no `403` naming `MENU_LOCKED`, the refusal while the restaurant is suspended or banned ([menu lock](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#256](https://github.com/shaiknoorullah/hg-mono/issues/256)) |
 | Component reachability | A schema, parameter or response is declared and never referenced |
 | Contract drift | The document generated from the route registry differs from the committed one |
 | Fixture validity | Any fixture under `contracts/fixtures/` does not validate against its named schema (`pnpm validate:fixtures`) |
+| Distinct list rows | A list fixture (`array<…>`) has two rows with the same `id`, i.e. one record shown twice (`pnpm validate:fixtures`, [issue #31](https://github.com/shaiknoorullah/hg-mono/issues/31)) |
 | Error-code casing | Any `ErrorCode` member is not `SCREAMING_SNAKE_CASE`, or the enum contains a duplicate |
 | YAML 1.1 truthy scalars | An unquoted `ON`/`OFF`/`YES`/`NO` appears in an `enum`, `examples` or `default` — see §"Two contract defects" |
 | Unsatisfiable `allOf` | An `allOf` extends a base that sets `additionalProperties: false` |

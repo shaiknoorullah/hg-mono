@@ -7,8 +7,8 @@
  * one per call. The request DTOs carry item identifiers and quantities only — there is no price
  * field to send (G-3), which is the invariant the whole money model rests on.
  *
- * The `as unknown as Cart` at each boundary is the same single-widening the discovery screen and
- * the galleries do: `openapi-fetch` reconstructs the response as a structural mapped type, which
+ * The `as unknown as Cart` at each boundary is the same single-widening the discovery screen
+ * does: `openapi-fetch` reconstructs the response as a structural mapped type, which
  * drops the nominal identity of the branded `Cents` fields. The shape is identical; the cast
  * re-brands it once, here, so no screen has to.
  */

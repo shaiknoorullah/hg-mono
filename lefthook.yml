@@ -1,0 +1,86 @@
+# Git hooks, run by lefthook (https://lefthook.dev). Installed by `pnpm install`
+# (the root `prepare` script). CI runs the same checks, so a skipped hook
+# (`LEFTHOOK=0 git ...`) only delays the failure to the pull request.
+#
+#   commit-msg  the title prefix that also sets the PR label
+#   pre-commit  fast, staged files only, in parallel
+#   pre-push    lint + tests for the packages this push changes
+
+commit-msg:
+  commands:
+    conventional-prefix:
+      # Same prefixes as the PR-title rule that sets the PR label (#40).
+      # Git's own merge / revert / fixup / squash / amend messages pass through.
+      run: |
+        subject="$(grep -v '^#' {1} | head -n 1)"
+        if printf '%s\n' "$subject" | grep -qE '^(Merge |Revert "|fixup! |squash! |amend! )'; then exit 0; fi
+        if printf '%s\n' "$subject" | grep -qE '^(fix|feat|docs|refactor|perf|chore|ci|build|test)(\([a-z0-9._/-]+\))?!?: [^ ]'; then exit 0; fi
+        echo "commit message: \"$subject\""
+        echo "must start with <type>[(scope)][!]: <summary>"
+        echo "  type = fix | feat | docs | refactor | perf | chore | ci | build | test"
+        echo "  e.g.  fix(auth): refresh token expires too early"
+        exit 1
+
+pre-commit:
+  parallel: true
+  skip:
+    - merge
+    - rebase
+  commands:
+    gofmt:
+      glob: "services/hg/**/*.go"
+      run: |
+        unformatted="$(gofmt -l {staged_files})"
+        if [ -n "$unformatted" ]; then
+          echo "not gofmt-formatted (run: gofmt -w <file>):"
+          echo "$unformatted"
+          exit 1
+        fi
+
+    tokens-drift:
+      # Generated token files must match docs/design/tokens.json.
+      glob: "docs/design/tokens.json"
+      run: pnpm generate:tokens:check
+
+    contract-client-drift:
+      # packages/api-client/src/generated must match contracts/openapi.yaml.
+      # On failure the regenerated client is left in the working tree: stage it.
+      glob: "contracts/openapi.yaml"
+      run: pnpm generate:check
+
+    # Upcoming checks. Each is enabled when its CI check lands.
+    # doc coverage (#119): enabled when that check lands
+    # links (#120): enabled when that check lands
+    # sanitisation (#121): enabled when that check lands
+    # duplication (#122): enabled when that check lands
+    # stale docs (#123): enabled when that check lands
+
+pre-push:
+  commands:
+    # Lint, then test, the workspace packages changed since origin/main plus
+    # the packages that depend on them (pnpm's `...` prefix).
+    #
+    # Why not `pnpm --filter "...[origin/main]"`: in a `git worktree` it
+    # matches no package (pnpm resolves the repo root wrongly there), so the
+    # hook would silently pass. Listing the changed package directories
+    # ourselves works in clones and worktrees alike.
+    packages:
+      glob: "{apps,packages,tools}/**"
+      run: |
+        base="$(git merge-base origin/main HEAD)" || exit 1
+        filters=""
+        for dir in $(git diff --name-only "$base" HEAD -- apps packages tools | cut -d/ -f1,2 | sort -u); do
+          if [ -f "$dir/package.json" ]; then filters="$filters --filter ...{./$dir}"; fi
+        done
+        if [ -z "$filters" ]; then echo "no workspace package changed"; exit 0; fi
+        echo "changed:$filters"
+        pnpm $filters --if-present run lint && pnpm $filters --if-present run test
+
+    go-test:
+      root: services/hg/
+      glob: "services/hg/**"
+      run: go test ./...
+
+    # Upcoming checks. Each is enabled when its CI check lands.
+    # coverage (#118): enabled when that check lands
+    # PR rules (#40): enabled when that check lands
