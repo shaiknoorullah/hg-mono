@@ -76,6 +76,17 @@ x-api-env: &api-env
   HG_AUTH_HASH_WAIT: ${HG_AUTH_HASH_WAIT:-2s}
   HG_AUTH_HASH_MAX_WAITERS: ${HG_AUTH_HASH_MAX_WAITERS:-}
 
+  # Email (internal/notify). Optional: with no Resend key the API logs every
+  # email instead of sending it, and outside production only allow-listed
+  # addresses are ever really emailed (see .env.example).
+  HG_EMAIL_PROVIDER: ${HG_EMAIL_PROVIDER:-}
+  HG_RESEND_API_KEY: ${HG_RESEND_API_KEY:-}
+  HG_EMAIL_FROM: ${HG_EMAIL_FROM:-}
+  HG_EMAIL_REPLY_TO: ${HG_EMAIL_REPLY_TO:-}
+  HG_EMAIL_ALLOWLIST: ${HG_EMAIL_ALLOWLIST:-}
+  HG_RESTAURANT_WEB_URL: ${HG_RESTAURANT_WEB_URL:-http://localhost:5183}
+  HG_ADMIN_WEB_URL: ${HG_ADMIN_WEB_URL:-http://localhost:5175}
+
 services:
   # ---------------------------------------------------------------------------
   # Edge
