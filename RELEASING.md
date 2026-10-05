@@ -88,6 +88,9 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    `HG_PAYOUT_RESTAURANT_HOLD_HOURS` (72, the proposed three-day hold before a restaurant's earning
    is paid) and `HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS` (30: a restaurant whose payout balance
    stays below zero longer takes no new orders; 0 turns the block off).
+   Also on #164: whether a restaurant is also suspended some days after its halal certificate
+   expires. Default: never; it is delisted only. Set `HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS`
+   (e.g. `14`) if the owner decides otherwise.
 6. **Production hosting** — one Contabo server ([the owner's decision](https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570)) + domain/DNS + TLS for Traefik, set up with one command: [deploy/host](deploy/host/README.md), "Day 1". Include the public
    host for file links: `HG_MINIO_PRESIGN_BASE_URL` (e.g. `https://files.halalgoes.com`), routed
    by Traefik to the object store with the Host header unchanged. Upload and download links are

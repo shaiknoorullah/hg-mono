@@ -156,6 +156,8 @@ Every HTTPS host (the API, `files.`, partner and admin) sends `Strict-Transport-
 
 A restaurant's halal certificate expiring is a product state, not an incident. The app shows it in cool slate ("we can't currently vouch"), never red ([never red for a halal state (invariant 9)](../../AGENTS.md#3-non-negotiable-invariants)).
 
+The API delists the restaurant just after midnight, Toronto time, on the day after its certificate expires, and lists it again when a renewed certificate is approved ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252)). If a restaurant still shows a badge after its certificate expired, check that the job runs: `SELECT started_at, claimed, failed, error FROM job_run WHERE job = 'halal_certificate_expiry' ORDER BY id DESC LIMIT 5;` should show a pass in the last hour. `SELECT * FROM halal_status_inconsistency;` lists every badge shown without a valid certificate; it must be empty.
+
 ## The sign-in code sender is down
 
 Sign-in codes go through Twilio Verify, by WhatsApp or text message ([phone sign-in spec][p02]).

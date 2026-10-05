@@ -16,7 +16,7 @@ migrations/
   roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 101 assertions about what the DB refuses
+  test/              invariant tests: 105 assertions about what the DB refuses
   tools/             contract-enum generator and checker
   devworld/          local personas; loaded only by cmd/devworld
 ```
@@ -90,6 +90,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 9 | A refund moves money only once a named member of staff approved it, and a goodwill refund above CAD 50 only once a second person did. A refund recorded as at Stripe carries Stripe's id. | `refund_money_needs_approver`, `refund_goodwill_second_approver` ([goodwill approval decision](../../../docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)), `refund_at_stripe_has_id` and `refund_approval_names_role` CHECKs on `refund` (`00046`, [#318](https://github.com/shaiknoorullah/hg-mono/issues/318)). A customer's request and an approval request carry no approver, so the refund sender can never send one. |
 | 10 | A rider's earning line mirrors exactly one `RIDER_PAYABLE` posting; an order has at most one delivery line and one tip line; a payout's claim and payment reach the lines. | `00047_rider_earnings_follow_ledger.sql`: the `earning_entry_matches_ledger` trigger refuses a line whose rider, order or amount disagrees with its posting, the `earning_entry_once_per_order` unique index, and the `ledger_entry_stamps_earning` and `payout_pays_earnings` triggers. The lines are written with the posting when the order is delivered ([#306](https://github.com/shaiknoorullah/hg-mono/issues/306)). |
 | 11 | Whoever sent a refund up for a second person never approves it, and a declined refund says who declined it, when and why. | `refund_second_person` and `refund_decline_recorded` CHECKs on `refund` (`00048`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)). The service refuses both first; the schema refuses them if it ever does not. |
+| 12 | A listed restaurant never carries an expired halal state. | `restaurant_live_not_halal_expired` CHECK (`00049`): a `LIVE` restaurant cannot be `EXPIRED`. `halal_refresh_restaurant_status(restaurant, at)` derives the state in the restaurant's timezone and delists on a lapse in the same `UPDATE`; the expiry job ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252), `internal/halalexpiry`) runs it as dates pass. `halal_status_inconsistency` lists any certified or expiring-soon badge without a live certificate and must return zero rows. Each renewal reminder is a unique `(certificate, days_before)` row in `halal_certificate_reminder`, so it is sent once; only 30, 14, 7 and 1 days are accepted, inside the reminder's window. A NULL or past instant is refused rather than defaulted. |
 
 The two schema lints are also runnable on their own:
 
@@ -138,7 +139,7 @@ unaccounted for, and `gen_enums.py` refuses to generate.
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
-- **Tested**: 99 invariant assertions pass (`test/run_invariant_tests.sh`).
+- **Tested**: 105 invariant assertions pass (`test/run_invariant_tests.sh`).
 - **Environment caveat**: Docker was not available, so this was verified
   against a locally installed **Postgres 16.13 with PostGIS 3.4.2**, not the
   spec's Postgres 17 + PostGIS 3.6. Nothing here uses a 17-only or 3.6-only
