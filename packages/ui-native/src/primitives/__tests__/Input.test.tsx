@@ -68,13 +68,23 @@ describe('Input', () => {
     expect(count.props.accessibilityLabel).toBe('1 characters remaining');
   });
 
-  it('masks a phone number to the E.164 +1 display form and stores digits only', () => {
+  it('formats a phone number nationally behind a fixed +1 and stores digits only', () => {
     const onChange = jest.fn();
-    expect(formatTel('4165550123')).toBe('+1 (416) 555-0123');
+    expect(formatTel('4165550123')).toBe('416 555 0123');
     renderThemed(<Input label="Phone" variant="tel" value="4165550123" onChange={onChange} />);
-    expect(screen.getByTestId('Input-field').props.value).toBe('+1 (416) 555-0123');
+    expect(screen.getByTestId('Input-field').props.value).toBe('416 555 0123');
+    expect(getHidden('Input-tel-prefix')).toBeTruthy();
+    // A pasted +1 number loses its country code; the field already draws it.
     fireEvent.changeText(screen.getByTestId('Input-field'), '+1 (416) 555-9999');
     expect(onChange).toHaveBeenCalledWith('4165559999');
+  });
+
+  it('keeps a pasted international number as typed instead of forcing +1 onto it', () => {
+    const onChange = jest.fn();
+    renderThemed(<Input label="Phone" variant="tel" value="" onChange={onChange} />);
+    fireEvent.changeText(screen.getByTestId('Input-field'), '+44 7700 900123');
+    expect(onChange).toHaveBeenCalledWith('+44 7700 900123');
+    expect(formatTel('+44 7700 900123')).toBe('+44 7700 900123');
   });
 
   it('renders the otp variant as six cells over one paste-aware field', () => {

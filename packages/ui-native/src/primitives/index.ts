@@ -22,7 +22,7 @@ export type { IconButtonProps, IconButtonVariant, IconButtonSize } from './IconB
 export { Badge } from './Badge';
 export type { BadgeProps, BadgeVariant, BadgeStyle, BadgeSize } from './Badge';
 
-export { Input, formatTel } from './Input';
+export { Input, formatTel, isInternationalTel } from './Input';
 export type { InputProps, InputVariant, InputSize } from './Input';
 
 export { Select } from './Select';

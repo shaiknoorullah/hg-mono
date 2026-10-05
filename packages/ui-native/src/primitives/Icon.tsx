@@ -54,13 +54,20 @@ export type IconName =
   | 'check'
   | 'star'
   | 'clock'
-  | 'menu';
+  | 'menu'
+  // The design system's extension names (Claude Design `solar-glyphs.js`, marked `extension`),
+  // added for the customer sign-in and Account canvases: row chevrons, banner glyphs, retry.
+  | 'chevron-right'
+  | 'lock'
+  | 'info'
+  | 'warning'
+  | 'refresh';
 
 /**
  * The semantic name -> Solar icon id map, read from `solar-icon-map.json` — the single
- * hand-authored source of truth `scripts/generate-icons.mjs` also reads. Kept in lockstep with
- * `@hg/ui-web`'s copy (`packages/ui-web/src/primitives/Icon.tsx`) by construction — same keys,
- * same Solar ids.
+ * hand-authored source of truth `scripts/generate-icons.mjs` also reads. The first fourteen keys
+ * match `@hg/ui-web`'s copy (`packages/ui-web/src/primitives/Icon.tsx`) — same keys, same Solar
+ * ids; the five extension names use the Solar ids the design system's own map gives them.
  */
 export const SOLAR_ICON_IDS = solarIconMap as Record<IconName, Record<IconWeight, string>>;
 
