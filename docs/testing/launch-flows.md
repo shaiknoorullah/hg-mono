@@ -675,7 +675,7 @@ Spec: [menu approval queue (A-19)](../spec/05-admin.md#a-19--menu-approval-queue
 
 Expected: an approved change goes live; a rejected one shows its reason to the restaurant.
 
-Set up: dev world, `bismillah-grill` (a pending item); `make dev-scenario s=menu-approve` or `s=menu-reject`.
+Set up: dev world, the `menu` restaurant (two items waiting for review after each reset); `make dev-scenario s=menu-approve` or `s=menu-reject`.
 
 Tests: **Partly covered.** Server:
 [`internal/admin/handler_menu_test.go`](../../services/hg/internal/admin/handler_menu_test.go) (`TestListMenuReviewQueue_*`),
