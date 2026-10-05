@@ -143,6 +143,9 @@ MAPPED_IN_MIGRATION = {
     "HandoffEventType":                   ("handoff_event_type", "00027_handoff.sql"),
     "HandoffActor":                       ("handoff_actor", "00027_handoff.sql"),
     "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
+    "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
+    "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
+    "PayoutRunOutcome":                   ("payout_run_outcome", "00030_payout_run.sql"),
 }
 
 # Contract enums with no persisted counterpart. Each needs a reason.
@@ -205,6 +208,9 @@ EXCLUSIONS = {
         "CHECK-constrained text to avoid a near-duplicate type.",
     "RestaurantStaffUser/properties/role":
         "Restaurant-scoped subset of role_name; stored as an account_role grant.",
+    "PayoutPayeeType":
+        "Stored as CHECK-constrained text, matching connect_account.owner_type, "
+        "which predates it.",
     "FoodRating/properties/tags/items":
         "Rating tag vocabulary. Stored as free text[] on the rating row; the "
         "allowed set is enforced at the API boundary.",

@@ -1643,7 +1643,7 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
 
 > **Decided (riders):** no automatic block at launch; operations follow up by hand ([rider balance below zero](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
-> **Open:** is a restaurant negative for 30 days blocked from new orders, and is a partner's bank account never debited?
+> **Owner question:** is a restaurant negative for 30 days barred from new orders, and is a partner's bank account never debited? Until the owner answers ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)), the weekly payout run stops new orders for that restaurant after `HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS` days (default 30; 0 turns this off) and allows them again once the balance recovers ([#251](https://github.com/shaiknoorullah/hg-mono/issues/251)).
 
 ---
 
@@ -2769,7 +2769,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | Notification sender | 500 ms | `notification_delivery WHERE state='QUEUED'` |
   | Push receipt poller | 30 s | Expo receipts |
   | Reconciliation | daily 03:00 ET | Stripe balance transactions vs ledger |
-  | Payout run | per schedule | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances |
+  | Payout run | Mondays 09:00 America/Toronto, and on request (`createPayoutRun`) | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances, held and unfinished payouts |
   | Expiry sweeps | hourly | quotes, tickets, OTP challenges, certificates, unconfirmed uploads |
   | Rider stale-location sweep | at start-up, then every 15 s (`HG_RIDER_STALE_SWEEP_INTERVAL`) | `ONLINE` riders whose last location is older than 120 s (`HG_RIDER_STALE_AFTER`) move to `ONLINE_STALE` and are offered nothing until their next location update; one replica at a time, under an advisory-lock lease |
   | Rider availability reconciliation | at start-up, then every 60 s (`HG_RIDER_RECONCILE_INTERVAL`) | riders still `ON_DELIVERY` with no live assignment go back online, or offline if they asked to stop after the delivery, each recorded as `RECONCILED` in `rider_availability_event`; same lease |
