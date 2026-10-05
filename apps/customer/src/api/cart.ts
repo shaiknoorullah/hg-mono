@@ -18,20 +18,39 @@ import type { Schema } from '@hg/api-client';
 import { api } from './client';
 
 export type Cart = Schema['Cart'];
+/** The add-line DTO: identifiers, quantities and a note. The contract has no price field. */
+export type CartLineInput = Schema['CartLineInput'];
 
 export async function getCart(): Promise<Cart> {
   const body = await unwrap(api.GET('/v1/cart'));
   return body.data as unknown as Cart;
 }
 
-export async function addToCart(menuItemId: string, quantity = 1): Promise<Cart> {
+/**
+ * `addCartLine`. `replace: true` is the "Start a new cart" path after `409 DIFFERENT_RESTAURANT`:
+ * the server clears the old cart and adds this line in one transaction, so a failed add can
+ * never leave the customer with an empty cart (C-20 rule 2). Never clear-then-add.
+ *
+ * `idempotencyKey` lets a retry of the same intent reuse its key; a new intent mints one.
+ */
+export async function addCartLine(
+  line: CartLineInput,
+  opts: { replace?: boolean; idempotencyKey?: string } = {},
+): Promise<Cart> {
   const body = await unwrap(
     api.POST('/v1/cart/lines', {
-      params: { header: { 'Idempotency-Key': idempotencyKey() } },
-      body: { menu_item_id: menuItemId, quantity },
+      params: {
+        header: { 'Idempotency-Key': opts.idempotencyKey ?? idempotencyKey() },
+        query: opts.replace ? { replace: true } : undefined,
+      },
+      body: line,
     }),
   );
   return body.data as unknown as Cart;
+}
+
+export async function addToCart(menuItemId: string, quantity = 1): Promise<Cart> {
+  return addCartLine({ menu_item_id: menuItemId, quantity });
 }
 
 export async function setLineQuantity(lineId: string, quantity: number): Promise<Cart> {
