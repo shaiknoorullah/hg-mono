@@ -8,6 +8,12 @@
  */
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
+let epoch = 0;
+
+/** Bumped on every sign-in/out, so an in-flight refresh can tell its session was replaced. */
+export function getEpoch(): number {
+  return epoch;
+}
 const listeners = new Set<() => void>();
 
 /** The api-client `getToken` hook: the current bearer, or `null` when signed out. */
@@ -27,6 +33,7 @@ export function setTokens(access: string, refresh: string | null): void {
 }
 
 export function setToken(token: string | null, refresh: string | null = null): void {
+  epoch += 1;
   accessToken = token;
   refreshToken = token === null ? null : refresh;
   for (const fn of listeners) fn();

@@ -13,7 +13,7 @@
  */
 import { createHgClient, type HgClient } from '@hg/api-client';
 
-import { getRefreshToken, getToken, setToken, setTokens } from './token';
+import { getEpoch, getRefreshToken, getToken, setToken, setTokens } from './token';
 
 const DEFAULT_BASE_URL = 'http://localhost:4010';
 
@@ -40,6 +40,7 @@ const refreshClient = createHgClient({
 });
 
 let refreshing: Promise<boolean> | null = null;
+let refreshingEpoch = -1;
 
 /**
  * On a 401: exchange the refresh token once (single-flight, so parallel 401s share one rotation —
@@ -53,9 +54,15 @@ async function onUnauthorized(): Promise<boolean> {
     if (getToken()) setToken(null);
     return false;
   }
-  refreshing ??= (async () => {
+  // A refresh started for a session that has since ended must not be shared with the new one.
+  if (refreshing && refreshingEpoch !== getEpoch()) refreshing = null;
+  refreshingEpoch = getEpoch();
+  const mine = (refreshing ??= (async () => {
+    const epoch = getEpoch();
     try {
       const { data } = await refreshClient.POST('/v1/auth/refresh', { body: { refresh_token: rt } });
+      // The rider signed out or in again meanwhile: this result belongs to the old session.
+      if (getEpoch() !== epoch) return false;
       const grant = data?.data;
       if (!grant) {
         setToken(null);
@@ -64,12 +71,13 @@ async function onUnauthorized(): Promise<boolean> {
       setTokens(grant.access_token, grant.refresh_token ?? null);
       return true;
     } catch {
-      return false; // transient transport failure: keep the session, the next call retries
+      if (getEpoch() === epoch) setToken(null); // refresh failed: back to sign-in, no retry loop
+      return false;
     } finally {
-      refreshing = null;
+      if (refreshingEpoch === epoch) refreshing = null;
     }
-  })();
-  return refreshing;
+  })());
+  return mine;
 }
 
 export const api = createHgClient({
