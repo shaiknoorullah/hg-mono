@@ -72,7 +72,7 @@ describe('DiscoveryScreen — loading, empty, error', () => {
 
     renderDiscovery();
 
-    expect(await screen.findByTestId('Spinner')).toBeTruthy();
+    expect(await screen.findByTestId('Discovery-loading')).toBeTruthy();
   });
 
   it('shows the empty state for zero restaurants', async () => {
@@ -82,7 +82,22 @@ describe('DiscoveryScreen — loading, empty, error', () => {
 
     renderDiscovery();
 
-    expect(await screen.findByText('No restaurants nearby')).toBeTruthy();
+    expect(await screen.findByText('No restaurants listed yet')).toBeTruthy();
+  });
+
+  it('leads a customer with no address to add one, and still lists restaurants', async () => {
+    fetchSpy.mockImplementation(async (input) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.includes('/v1/addresses')) return stubOk({ data: [] });
+      return stubOk({ data: restaurantList.payload, meta: restaurantList.meta });
+    });
+
+    renderDiscovery();
+
+    expect(await screen.findByText('Set your delivery address')).toBeTruthy();
+    expect(screen.getByText('Add an address')).toBeTruthy();
+    expect(screen.getByText('Set an address')).toBeTruthy();
+    expect(screen.getAllByText('Karachi Kitchen').length).toBeGreaterThan(0);
   });
 
   it('shows the error state with a retry action on failure', async () => {
@@ -107,6 +122,6 @@ describe('DiscoveryScreen — loading, empty, error', () => {
 
     renderDiscovery();
 
-    expect(await screen.findByText('Karachi Kitchen')).toBeTruthy();
+    expect((await screen.findAllByText('Karachi Kitchen')).length).toBeGreaterThan(0);
   });
 });
