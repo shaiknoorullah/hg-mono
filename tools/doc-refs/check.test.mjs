@@ -17,6 +17,7 @@ function repo(doc) {
   put('services/hg/Makefile', '.PHONY: up\nup: ## start\n\tdocker compose up\nmigrate: up\n\tgoose up\n');
   put('services/hg/internal/config/config.go', 'package config\nvar _ = "HG_DB_URL"\n');
   put('deploy/.env.example', 'HG_REDIS_URL=redis://redis:6379\n');
+  put('.github/workflows/ci.yml', 'jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.HG_RUNS_ON || \'"ubuntu-latest"\') }}\n');
   put('package.json', JSON.stringify({ name: 'root', scripts: { check: 'x', mock: 'x' } }));
   put('apps/web/package.json', JSON.stringify({ name: '@hg/web', scripts: { dev: 'x' } }));
   put('apps/web/src/main.ts', '');
@@ -34,6 +35,7 @@ const CLEAN = [
   '```bash\npnpm check\npnpm --filter @hg/web dev\npnpm --filter web dev\n```',
   'Code is in `apps/web/src/main.ts`, `apps/*/src/**`, `apps/<app>/src/` and `apps/…`.',
   'Config: `HG_DB_URL`, `HG_REDIS_URL`, all of `HG_REDIS_*`.',
+  'Runners: the repository variable `HG_RUNS_ON`.',
 ].join('\n\n');
 
 test('a clean doc passes', () => {

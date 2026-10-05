@@ -36,7 +36,9 @@ x-api-env: &api-env
   # one limit for the whole platform (see .env.example).
   HG_TRUSTED_PROXY_CIDRS: ${HG_TRUSTED_PROXY_CIDRS:?set HG_TRUSTED_PROXY_CIDRS in .env (see .env.example)}
 
-  HG_POSTGRES_DSN: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+  # hg logs in as hg_app: no superuser, no owner, no DDL, so it cannot switch
+  # off the ledger's append-only trigger. The pgroles service below creates it.
+  HG_POSTGRES_DSN: postgres://hg_app:${HG_DB_APP_PASSWORD:?set HG_DB_APP_PASSWORD in .env}@postgres:5432/${POSTGRES_DB}?sslmode=disable
   HG_POSTGRES_MAX_CONNS: ${HG_POSTGRES_MAX_CONNS:-10}
   HG_POSTGRES_MIN_CONNS: ${HG_POSTGRES_MIN_CONNS:-2}
 
@@ -66,7 +68,9 @@ services:
   # Edge
   # ---------------------------------------------------------------------------
   traefik:
-    image: traefik:v3.3
+    # Pinned by digest, the same image as the production override. v3.3 speaks
+    # Docker API 1.24, which Docker 29 refuses, so routing silently 404s (#228).
+    image: docker.io/library/traefik:v3.7.13@sha256:24841fe2de7304c149343d877d2923b4c8800a38ba015dea9174c23b20e344a0
     restart: unless-stopped
     command:
       - --api.dashboard=true
@@ -121,6 +125,8 @@ services:
         condition: service_healthy
       createbuckets:
         condition: service_completed_successfully
+      pgroles:
+        condition: service_completed_successfully
     networks: [hg-net]
     labels:
       - traefik.enable=true
@@ -172,7 +178,11 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     networks: [hg-net]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      # Over TCP, not the socket. On an empty volume the image first runs a
+      # socket-only server to initialise the database, then restarts. A socket
+      # check passes against that first server, and `pgroles`, the first thing
+      # to connect over the network, then finds the port closed.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -248,6 +258,30 @@ services:
       echo 'buckets ready: hg-kyc, hg-pod, hg-exports, hg-tmp private; hg-media public-read';
       "
 
+  # Creates the database roles, as the superuser, before anything else logs in:
+  # hg_migrator, which owns the schema and is the only role goose runs as;
+  # hg_app, the least-privilege role the API runs as; and hg_monitor, for a
+  # metrics exporter. Idempotent; it runs on every `up` and before every
+  # `migrate`. The SQL and the reasons are in services/hg/migrations/roles/roles.sql.
+  pgroles:
+    image: postgis/postgis:17-3.5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [hg-net]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      HG_DB_MIGRATOR_PASSWORD: ${HG_DB_MIGRATOR_PASSWORD:?set HG_DB_MIGRATOR_PASSWORD in .env}
+      HG_DB_APP_PASSWORD: ${HG_DB_APP_PASSWORD:?set HG_DB_APP_PASSWORD in .env}
+      # Optional: hg_monitor may log in only when this is set.
+      HG_DB_MONITOR_PASSWORD: ${HG_DB_MONITOR_PASSWORD:-}
+    volumes:
+      - ../services/hg/migrations/roles:/roles:ro
+    entrypoint: ["psql", "-v", "ON_ERROR_STOP=1", "-f", "/roles/roles.sql"]
+
   # ---------------------------------------------------------------------------
   # Migrations — profile-gated, run on demand:
   #   docker compose --profile tools run --rm migrate
@@ -265,11 +299,12 @@ services:
       target: migrate
     profiles: ["tools"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      pgroles:
+        condition: service_completed_successfully
     environment:
       GOOSE_DRIVER: postgres
-      GOOSE_DBSTRING: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      # goose runs as hg_migrator, the schema's owner — never as the superuser.
+      GOOSE_DBSTRING: postgres://hg_migrator:${HG_DB_MIGRATOR_PASSWORD:?set HG_DB_MIGRATOR_PASSWORD in .env}@postgres:5432/${POSTGRES_DB}?sslmode=disable
       GOOSE_MIGRATION_DIR: /migrations
     volumes:
       # Read-only: a migration runner has no business writing to the source tree.

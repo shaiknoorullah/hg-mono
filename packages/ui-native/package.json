@@ -25,7 +25,8 @@
     "generate:icons:check": "node scripts/generate-icons.mjs --check"
   },
   "dependencies": {
-    "@hg/api-client": "workspace:*"
+    "@hg/api-client": "workspace:*",
+    "@hg/brand": "workspace:*"
   },
   "peerDependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "*",
