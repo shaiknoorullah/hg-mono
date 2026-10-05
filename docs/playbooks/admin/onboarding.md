@@ -18,10 +18,7 @@ The scenario writes no database row. It reads one value from the local database:
 
 ## 0. Setup
 
-1. **Setup command** (terminal): with the local stack up (`make up`, `make migrate`), reset the dev world:
-   ```bash
-   make dev-reset
-   ```
+1. **Setup command** (terminal): reset the dev world as in step 1 of the [rider playbook's setup](../rider/onboarding.md#0-setup).
 2. **Setup command** (second terminal, `apps/admin`): the admin console against the local API.
    ```bash
    VITE_API_BASE_URL=http://localhost:8080 ./node_modules/.bin/vite
