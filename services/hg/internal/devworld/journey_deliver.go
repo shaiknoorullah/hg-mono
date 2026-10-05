@@ -446,6 +446,9 @@ func confirmTestCard(ctx context.Context, clientSecret string) error {
 	}
 	form := url.Values{}
 	form.Set("payment_method", "pm_card_visa")
+	// The intent allows redirect-based methods, so Stripe refuses a confirm
+	// that has no return URL. The test card does not redirect.
+	form.Set("return_url", "http://127.0.0.1:8080/pay/return")
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		"https://api.stripe.com/v1/payment_intents/"+intentID+"/confirm",
 		strings.NewReader(form.Encode()))
@@ -472,16 +475,23 @@ func confirmTestCard(ctx context.Context, clientSecret string) error {
 	var parsed struct {
 		Status string `json:"status"`
 		Error  *struct {
-			Code string `json:"code"`
+			Code    string `json:"code"`
+			Type    string `json:"type"`
+			Param   string `json:"param"`
+			Message string `json:"message"`
 		} `json:"error"`
 	}
 	_ = json.Unmarshal(raw, &parsed)
 	if res.StatusCode >= 300 {
-		code := ""
+		detail := ""
 		if parsed.Error != nil {
-			code = parsed.Error.Code
+			detail = strings.TrimSpace(strings.Join([]string{parsed.Error.Type, parsed.Error.Code, parsed.Error.Param, parsed.Error.Message}, " "))
 		}
-		return fmt.Errorf("devworld: card confirm http %d %s", res.StatusCode, redactSecrets(code))
+		detail = redactSecrets(detail)
+		if len(detail) > 180 {
+			detail = detail[:180]
+		}
+		return fmt.Errorf("devworld: card confirm http %d %s", res.StatusCode, detail)
 	}
 	status := parsed.Status
 	if !statusWord.MatchString(status) {
