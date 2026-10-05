@@ -32,7 +32,9 @@ const { ItemSheet } = require('../ItemSheet') as typeof import('../ItemSheet');
 const { ThemeProvider } = require('@hg/ui-native') as typeof import('@hg/ui-native');
 
 type Item = import('../../ordering/itemSelection').MenuItem;
-const items = menuFull.payload.categories.flatMap((c) => c.items) as unknown as Item[];
+// The JSON import's inferred types differ per category; read it as the contract's shape.
+const categories = menuFull.payload.categories as unknown as Array<{ items: Item[] }>;
+const items = categories.flatMap((c) => c.items);
 const byName = (n: string): Item => items.find((i) => i.name === n)!;
 
 const OPEN = {
