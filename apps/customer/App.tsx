@@ -28,6 +28,7 @@ import { ThemeProvider, useTheme, setClientErrorReporter, Wordmark } from '@hg/u
 import { useHgFonts } from '@hg/ui-native/fonts';
 
 import { Router } from './src/navigation/Router';
+import { StripeRoot } from './src/payments/StripeRoot';
 import { requestOtp, verifyOtp } from './src/api/auth';
 import { subscribe, isAuthed } from './src/api/token';
 
@@ -247,11 +248,13 @@ export default function App(): React.ReactElement | null {
   // one, so the sign-in gate — the first screen every customer sees — rendered
   // with no design system at all and hard-coded its own palette.
   return (
+    <StripeRoot>
     <SafeAreaProvider>
       <ThemeProvider theme="customer" scheme="light">
         <StatusBar style="dark" />
         {authed ? <Router /> : <LoginGate />}
       </ThemeProvider>
     </SafeAreaProvider>
+    </StripeRoot>
   );
 }

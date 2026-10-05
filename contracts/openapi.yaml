@@ -391,6 +391,8 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/email/verify:
@@ -480,6 +482,10 @@ paths:
         return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
         sets `error.details.email_verification_required` **only after** the credentials
         were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
+
+        A `503` means password checking is at capacity. The staff web app (`X-HG-Client:
+        admin-web`) has capacity of its own; which capacity a request uses depends only on
+        that header, never on the email, so a `503` says nothing about the account.
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -517,6 +523,8 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/refresh:
@@ -731,6 +739,10 @@ paths:
           $ref: '#/components/responses/Error'
         '422':
           $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/password/change:
@@ -747,6 +759,9 @@ paths:
         account lockout, or sign the person out instead of saying the password is wrong.
         The backend still answers `401` until
         [#238](https://github.com/shaiknoorullah/hg-mono/issues/238) is fixed.
+
+        At most 5 attempts per account in 15 minutes; past that, `429` with `Retry-After`,
+        before the current password is checked.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V0
       requestBody:
@@ -780,6 +795,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServerBusy'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/totp/enroll:
@@ -6129,6 +6148,25 @@ components:
         containing `error` never ships with a 2xx status, and `{"success": false}` is not a
         representable response shape.
       headers:
+        X-Request-ID:
+          description: 'ULID correlating this response with the server log and the audit trail.'
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ServerBusy:
+      description: |
+        The server is temporarily unable to take this request. The request was **not**
+        executed — no partial effect exists. With `error.code` `TIMEOUT`, the work it needs
+        (for example argon2id password hashing, which is capped per replica) stayed at
+        capacity for the whole wait; retry after `Retry-After` seconds.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            format: int32
         X-Request-ID:
           description: 'ULID correlating this response with the server log and the audit trail.'
           schema:

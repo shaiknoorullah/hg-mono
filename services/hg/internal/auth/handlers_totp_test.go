@@ -133,7 +133,7 @@ func seedEmailAccount(t *testing.T, pool *pgxpool.Pool, email, password string, 
 	t.Helper()
 	ctx := context.Background()
 
-	hash, err := HashPassword(password)
+	hash, err := HashPassword(ctx, password)
 	if err != nil {
 		t.Fatal(err)
 	}
