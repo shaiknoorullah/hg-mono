@@ -2,7 +2,7 @@
   "scenario": "order_arrived_meet_in_lobby",
   "domain": "orders",
   "schema": "OrderCustomerView",
-  "describes": "The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen leads with the code. The same moment sends `order.rider_arrived` and a push.",
+  "describes": "The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen leads with the code. The same moment sends `order.rider_arrived` and a push that say only \"Your rider is here\"; this authenticated view is where the app reads the code, because no push or event carries it.",
   "operations": [
     "getOrder",
     "getActiveOrder"

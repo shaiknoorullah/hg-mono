@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import * as Switch from '@radix-ui/react-switch';
 import { isApiError, type Schema } from '@hg/api-client';
-import { Button, Card, ErrorState, cx } from '@hg/ui-web';
+import { Button, Card, ErrorState, HG_FOCUS_FIELD, cx } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
 import { useAsync } from '../lib/useAsync';
 import { PageLoading } from '../components/PageLoading';
@@ -9,6 +9,16 @@ import { StatusChip } from '../components/StatusChip';
 import { IconPower, IconStore } from '../lib/icons';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/**
+ * A trading-hours time field. Focus is the field's own border at 2px in the theme's focus colour,
+ * the same as every other bordered field (`HG_FOCUS_FIELD`; see docs/decisions/focus-indicator.md
+ * and issue #33).
+ */
+const TIME_FIELD = cx(
+  'rounded-sm border border-line-interactive bg-control-bg px-2 py-1.5 text-body-sm text-fg-primary',
+  HG_FOCUS_FIELD,
+);
 
 const OPEN_STATE_LABEL: Record<Schema['RestaurantOpenState'], string> = {
   OPEN: 'Open',
@@ -160,14 +170,14 @@ function WeeklyHours() {
                     type="time"
                     value={interval.opens_at}
                     onChange={(e) => updateDay(day, 'opens_at', e.target.value)}
-                    className="rounded-sm border border-line-interactive bg-control-bg px-2 py-1.5 text-body-sm text-fg-primary outline-none focus:border-line-brand"
+                    className={TIME_FIELD}
                   />
                   <span className="text-fg-tertiary">–</span>
                   <input
                     type="time"
                     value={interval.closes_at}
                     onChange={(e) => updateDay(day, 'closes_at', e.target.value)}
-                    className="rounded-sm border border-line-interactive bg-control-bg px-2 py-1.5 text-body-sm text-fg-primary outline-none focus:border-line-brand"
+                    className={TIME_FIELD}
                   />
                   {interval.crosses_midnight && <StatusChip tone="accent">Overnight</StatusChip>}
                 </div>

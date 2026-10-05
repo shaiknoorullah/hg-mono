@@ -2,22 +2,22 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 382,
+  "count": 405,
   "counts_by_domain": {
-    "admin": 17,
+    "admin": 26,
     "cart": 12,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 42,
+    "errors": 50,
     "geo": 11,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
-    "orders": 50,
+    "orders": 55,
     "payments": 12,
     "platform": 25,
-    "realtime": 9,
+    "realtime": 10,
     "refunds": 14,
     "rider": 22
   },
@@ -156,6 +156,22 @@
       "file": "admin/menu_version_withdrawn.json"
     },
     {
+      "scenario": "restaurant_application_approved",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "`decideRestaurantApplication` with `restaurant_decision_input_approve`: approved and moved to `PAYOUT_PENDING`. **Approval does not make the restaurant live**: `account_state` stays `PENDING` until payouts are enabled and a menu is approved.",
+      "operations": [
+        "decideRestaurantApplication",
+        "getRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "restaurant"
+      ],
+      "file": "admin/restaurant_application_approved.json"
+    },
+    {
       "scenario": "restaurant_application_none_to_take",
       "domain": "admin",
       "schema": "RestaurantApplication|null",
@@ -178,8 +194,7 @@
       "describes": "A complete application sitting in the queue: five documents, a halal certificate awaiting the seven checks, and no decision yet.",
       "operations": [
         "getRestaurantApplication",
-        "takeNextRestaurantApplication",
-        "decideRestaurantApplication"
+        "takeNextRestaurantApplication"
       ],
       "status": 200,
       "tags": [
@@ -220,6 +235,78 @@
       "file": "admin/restaurant_application_queue_empty.json"
     },
     {
+      "scenario": "restaurant_decision_input_approve",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. APPROVE: an approval reason; `internal_note` stays with staff.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_approve.json"
+    },
+    {
+      "scenario": "restaurant_decision_input_reject",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. REJECT: a rejection reason. Final for this application.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_reject.json"
+    },
+    {
+      "scenario": "restaurant_decision_input_request_changes",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. REQUEST_CHANGES: a rejection reason and exactly which documents to redo.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_request_changes.json"
+    },
+    {
+      "scenario": "rider_application_approved",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "`decideRiderApplication` with `rider_decision_input_approve`: the rider moves to `PAYOUT_PENDING`, not straight to dispatchable. They are offered orders only once Stripe reports payouts enabled.",
+      "operations": [
+        "decideRiderApplication",
+        "getRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "rider"
+      ],
+      "file": "admin/rider_application_approved.json"
+    },
+    {
+      "scenario": "rider_application_changes_requested",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "`decideRiderApplication` with `rider_decision_input_request_changes`: the licence is rejected with its reason and the rider redoes exactly that document.",
+      "operations": [
+        "decideRiderApplication",
+        "getRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "rider",
+        "error-path"
+      ],
+      "file": "admin/rider_application_changes_requested.json"
+    },
+    {
       "scenario": "rider_application_none_to_take",
       "domain": "admin",
       "schema": "RiderApplication|null",
@@ -242,8 +329,7 @@
       "describes": "A rider application with six documents and a vehicle on file.",
       "operations": [
         "getRiderApplication",
-        "takeNextRiderApplication",
-        "decideRiderApplication"
+        "takeNextRiderApplication"
       ],
       "status": 200,
       "tags": [
@@ -266,6 +352,45 @@
         "review-queue"
       ],
       "file": "admin/rider_application_queue.json"
+    },
+    {
+      "scenario": "rider_decision_input_approve",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. APPROVE: an approval reason, never a rejection reason. The text reaches the rider.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_approve.json"
+    },
+    {
+      "scenario": "rider_decision_input_reject",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. REJECT: a document rejection reason and the sentence the rider reads.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_reject.json"
+    },
+    {
+      "scenario": "rider_decision_input_request_changes",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. REQUEST_CHANGES: a document rejection reason and exactly which documents to redo.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_request_changes.json"
     },
     {
       "scenario": "staff_list",
@@ -1196,7 +1321,7 @@
       "scenario": "assignment_otp_pod_required",
       "domain": "dispatch",
       "schema": "Assignment",
-      "describes": "`MEET_AT_DOOR` maps to **OTP** proof of delivery (contradiction log #6), not a photo. The rider must be shown a code entry, and a photo must not satisfy it (`POD_METHOD_MISMATCH`).",
+      "describes": "`MEET_AT_DOOR` maps to **OTP** proof of delivery (contradiction log #6), not a photo. The rider must be shown a code entry, and neither a photo nor a photo with a statement satisfies it (`POD_METHOD_MISMATCH`), before or after the code locks. The assignment carries no code: the customer reads it out.",
       "operations": [
         "getAssignment",
         "submitProofOfDelivery"
@@ -1919,6 +2044,21 @@
       "file": "errors/error_active_order_exists.json"
     },
     {
+      "scenario": "error_application_already_decided",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. A second decision on a decided application is refused, never applied over the first.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_application_already_decided.json"
+    },
+    {
       "scenario": "error_authentication_required",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2012,6 +2152,64 @@
       "file": "errors/error_current_password_incorrect.json"
     },
     {
+      "scenario": "error_decision_approval_reason_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_decision_approval_reason_required.json"
+    },
+    {
+      "scenario": "error_decision_rejection_reason_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. A rejection or a request for changes without a rejection reason. Every decision is reasoned and audited; nothing changed.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_decision_rejection_reason_required.json"
+    },
+    {
+      "scenario": "error_delivery_code_incorrect",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `DELIVERY_CODE_INCORRECT`. **Wrong code** at a met handover. The attempt is counted and committed in Postgres per order; no proof is recorded. Neither the code sent nor the expected code is in the body.",
+      "operations": [
+        "submitProofOfDelivery"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_delivery_code_incorrect.json"
+    },
+    {
+      "scenario": "error_delivery_code_locked",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`423` · `DELIVERY_CODE_LOCKED`. **Limit reached.** The fifth wrong delivery code locks it for this order and hands the order to support (`HANDOVER_CODE_LOCKED` on `admin:ops`). There is no photo fallback: support or an admin confirms the delivery with `overrideHandoverCode` (see `handover_override_delivery`).",
+      "operations": [
+        "submitProofOfDelivery"
+      ],
+      "status": 423,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_delivery_code_locked.json"
+    },
+    {
       "scenario": "error_documents_incomplete",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2098,6 +2296,20 @@
         "error-envelope"
       ],
       "file": "errors/error_halal_tag_not_writable.json"
+    },
+    {
+      "scenario": "error_handover_override_not_pending",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ILLEGAL_TRANSITION`. `overrideHandoverCode` for a handover that already happened (here a `DELIVERY` override on a delivered order). Nothing is written and no audit record is created.",
+      "operations": [
+        "overrideHandoverCode"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_handover_override_not_pending.json"
     },
     {
       "scenario": "error_idempotency_key_reuse",
@@ -2219,7 +2431,7 @@
       "scenario": "error_otp_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Disambiguate by endpoint, not by code.",
+      "describes": "`401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Since superseded: proof of delivery now answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`), so this is sign-in only.",
       "operations": [],
       "status": 401,
       "tags": [
@@ -2231,7 +2443,7 @@
       "scenario": "error_pickup_code_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`422` · `PICKUP_CODE_INCORRECT`. A wrong pickup code. The attempt is counted and committed in Postgres; the assignment's state does not change. `details.attempts_remaining` drives the counter on the rider's screen.",
+      "describes": "`422` · `PICKUP_CODE_INCORRECT`. **Wrong code.** The attempt is counted and committed in Postgres per order; the assignment's state does not change. `details.attempts_remaining` drives the counter on the rider's screen. Neither the code sent nor the expected code is in the body.",
       "operations": [
         "createAssignmentTransition"
       ],
@@ -2245,7 +2457,7 @@
       "scenario": "error_pickup_code_locked",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`423` · `PICKUP_CODE_LOCKED`. The fifth wrong pickup code locks it for this order, so a reassignment does not reset the count. Every later `PICKED_UP` without an `override_reason` gets this answer, with or without a code. The rider is never trapped at the counter: `PICKED_UP` with an `override_reason` and no code is accepted and flagged for operations.",
+      "describes": "`423` · `PICKUP_CODE_LOCKED`. **Limit reached.** The fifth wrong pickup code locks it for this order, so a reassignment does not reset the count, and hands the order to support (`HANDOVER_CODE_LOCKED` on `admin:ops`). Every later `PICKED_UP` gets this answer, with or without a code. The rider has no override: support or an admin confirms the pickup with `overrideHandoverCode` (see `handover_override_pickup_locked`).",
       "operations": [
         "createAssignmentTransition"
       ],
@@ -2259,7 +2471,7 @@
       "scenario": "error_pickup_code_required",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`422` · `PICKUP_CODE_REQUIRED`. `PICKED_UP` sent without `pickup_code` before the code has locked. Nothing is recorded; the rider app asks for the code the kitchen reads out. Once locked, the same request is `PICKUP_CODE_LOCKED`, never this.",
+      "describes": "`422` · `PICKUP_CODE_REQUIRED`. `PICKED_UP` sent without `pickup_code`. The code is a required field of `PickupTransitionInput`, the only shape that can confirm a pickup, so this is never accepted. Nothing is counted; the rider app asks for the code the kitchen reads out.",
       "operations": [
         "createAssignmentTransition"
       ],
@@ -2273,7 +2485,7 @@
       "scenario": "error_pod_method_mismatch",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`422` · `POD_METHOD_MISMATCH`. `MEET_AT_DOOR`/`MEET_IN_LOBBY` map to OTP proof of delivery; the rest map to photo (contradiction log #6). Pairs with `assignment_otp_pod_required`.",
+      "describes": "`422` · `POD_METHOD_MISMATCH`. `MEET_AT_DOOR`/`MEET_IN_LOBBY` map to OTP proof of delivery; the rest map to photo (contradiction log #6). A photo, or a photo with a statement, never replaces the customer's code, before or after it locks. Pairs with `assignment_otp_pod_required`.",
       "operations": [],
       "status": 422,
       "tags": [
@@ -2364,6 +2576,21 @@
       "file": "errors/error_rate_limited.json"
     },
     {
+      "scenario": "error_register_restaurant_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, \"R-01 — Restaurant account signup\"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds.",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path"
+      ],
+      "file": "errors/error_register_restaurant_rate_limited.json"
+    },
+    {
       "scenario": "error_reset_token_not_valid",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2412,6 +2639,20 @@
         "error-envelope"
       ],
       "file": "errors/error_review_window_closed.json"
+    },
+    {
+      "scenario": "error_rider_under_18",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `AGE_REQUIREMENT_NOT_MET`. Approving a rider whose date of birth makes them under 18. No role can override it, and the application stays in review.",
+      "operations": [
+        "decideRiderApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_rider_under_18.json"
     },
     {
       "scenario": "error_staff_email_in_use",
@@ -3740,6 +3981,36 @@
       "file": "onboarding/rider_vehicle_scooter.json"
     },
     {
+      "scenario": "handover_override_delivery",
+      "domain": "orders",
+      "schema": "HandoverOverride",
+      "describes": "**Admin override at a met handover.** The customer's phone died in the lobby, so they could not read their delivery code after two wrong guesses. Support reached the customer, who confirmed they had the order, and an admin confirmed the delivery: `ARRIVED` → `DELIVERED` with `actor_kind: ADMIN`. The rider could not have done this: a photo never replaces the code at a met handover.",
+      "operations": [
+        "overrideHandoverCode"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "delivery-code"
+      ],
+      "file": "orders/handover_override_delivery.json"
+    },
+    {
+      "scenario": "handover_override_pickup_locked",
+      "domain": "orders",
+      "schema": "HandoverOverride",
+      "describes": "**Admin override after the limit.** Five wrong pickup codes locked the code (`error_pickup_code_locked`); a support agent called the kitchen, who confirmed the bag went to the assigned rider, and confirmed the pickup. The order moved `READY_FOR_PICKUP` → `PICKED_UP` with `actor_kind: SUPPORT`. The record names the agent, the reason, the case and the 5 wrong attempts — never the code.",
+      "operations": [
+        "overrideHandoverCode"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "error-path"
+      ],
+      "file": "orders/handover_override_pickup_locked.json"
+    },
+    {
       "scenario": "order_admin_view_completed",
       "domain": "orders",
       "schema": "OrderAdminView",
@@ -3753,6 +4024,21 @@
         "admin"
       ],
       "file": "orders/order_admin_view_completed.json"
+    },
+    {
+      "scenario": "order_admin_view_delivery_overridden",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The order after `handover_override_delivery`: the timeline's `DELIVERED` step is `actor_kind: ADMIN` with the reason and the case, and `delivery_code` is null, as it always is for support and admin.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "delivery-code"
+      ],
+      "file": "orders/order_admin_view_delivery_overridden.json"
     },
     {
       "scenario": "order_admin_view_disputed",
@@ -3804,7 +4090,7 @@
       "scenario": "order_arrived_delivery_code_locked",
       "domain": "orders",
       "schema": "OrderCustomerView",
-      "describes": "A met handover where five wrong codes have **locked** the delivery code: `delivery_code` is null, so the screen stops asking the customer to read it out. The rider falls back to a photo with a statement.",
+      "describes": "A met handover where five wrong codes have **locked** the delivery code: `delivery_code` is null, so the screen stops asking the customer to read it out. The order is now with support, who confirm the handover with `overrideHandoverCode`; the rider has no fallback of their own.",
       "operations": [
         "getOrder",
         "getActiveOrder"
@@ -3821,7 +4107,7 @@
       "scenario": "order_arrived_meet_in_lobby",
       "domain": "orders",
       "schema": "OrderCustomerView",
-      "describes": "The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen leads with the code. The same moment sends `order.rider_arrived` and a push.",
+      "describes": "The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen leads with the code. The same moment sends `order.rider_arrived` and a push that say only \"Your rider is here\"; this authenticated view is where the app reads the code, because no push or event carries it.",
       "operations": [
         "getOrder",
         "getActiveOrder"
@@ -4295,6 +4581,23 @@
       "file": "orders/restaurant_order_picked_up.json"
     },
     {
+      "scenario": "restaurant_order_pickup_code_locked",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "On the pass, but five wrong pickup codes have **locked** the code: `pickup_code` is null, so the screen stops showing it, and the order is with HalalGoes support, who confirm the pickup with `overrideHandoverCode` after checking with the kitchen.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "edge",
+        "error-path"
+      ],
+      "file": "orders/restaurant_order_pickup_code_locked.json"
+    },
+    {
       "scenario": "restaurant_order_preparing",
       "domain": "orders",
       "schema": "OrderRestaurantView",
@@ -4434,6 +4737,22 @@
         "delivery-code"
       ],
       "file": "orders/tracking_arrived_delivery_code.json"
+    },
+    {
+      "scenario": "tracking_arrived_delivery_code_locked",
+      "domain": "orders",
+      "schema": "OrderTracking",
+      "describes": "The rider is in the lobby, but five wrong codes have **locked** the delivery code: `delivery_code` is null and the order is with support. The screen says HalalGoes support will confirm the handover, and stops showing a code.",
+      "operations": [
+        "getOrderTracking"
+      ],
+      "status": 200,
+      "tags": [
+        "tracking",
+        "delivery-code",
+        "error-path"
+      ],
+      "file": "orders/tracking_arrived_delivery_code_locked.json"
     },
     {
       "scenario": "tracking_degraded_gps",
@@ -5126,10 +5445,26 @@
       "file": "realtime/realtime_gap_and_resume.json"
     },
     {
+      "scenario": "realtime_order_delivery_code_locked",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "A met handover where **five wrong delivery codes** hand the order to support. The rider's fifth wrong code (`error_delivery_code_locked`) raises `HANDOVER_CODE_LOCKED` on `admin:ops`, which names the order and the handover, never the code. Support checks with the customer and confirms the delivery with `overrideHandoverCode` (`handover_override_delivery`): the order moves to `DELIVERED` with `actor_kind: SUPPORT` and the reason. The rider never had a fallback of their own.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "delivery-code",
+        "admin",
+        "error-path"
+      ],
+      "file": "realtime/realtime_order_delivery_code_locked.json"
+    },
+    {
       "scenario": "realtime_order_happy_path",
       "domain": "realtime",
       "schema": "RealtimeEvent[]",
-      "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 25 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted (with the kitchen's pickup code) → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived (with `order.rider_arrived`; left at the door, so no delivery code) → delivered → completed. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
+      "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 25 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted (with the kitchen's pickup code) → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived (with `order.rider_arrived`, which never carries a code) → delivered → completed. The pickup code appears only on the restaurant channel. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
       "operations": [],
       "status": 200,
       "tags": [
@@ -5142,7 +5477,7 @@
       "scenario": "realtime_order_met_handover",
       "domain": "realtime",
       "schema": "RealtimeEvent[]",
-      "describes": "A **met handover** (`MEET_IN_LOBBY`) from pickup to delivery. On arrival the customer receives `order.rider_arrived` carrying the 4-digit `delivery_code` (also sent as a push) and reads it to the rider, who records it as proof of delivery. The rider is never sent the code.",
+      "describes": "A **met handover** (`MEET_IN_LOBBY`) from pickup to delivery. On arrival the customer receives `order.rider_arrived` and a push that say only \"Your rider is here\"; neither carries the code. The app then fetches `delivery_code` from the customer's own order view (`order_arrived_meet_in_lobby`, `tracking_arrived_delivery_code`), and the customer reads it to the rider, who records it as proof of delivery. No event on this channel ever carries a code, because the rider subscribes to it too.",
       "operations": [],
       "status": 200,
       "tags": [
@@ -5964,10 +6299,18 @@
       "menu_version_withdrawn"
     ],
     "decideRestaurantApplication": [
-      "restaurant_application_pending_review"
+      "error_application_already_decided",
+      "error_decision_approval_reason_required",
+      "error_decision_rejection_reason_required",
+      "restaurant_application_approved"
     ],
     "decideRiderApplication": [
-      "rider_application_pending_review"
+      "error_application_already_decided",
+      "error_decision_approval_reason_required",
+      "error_decision_rejection_reason_required",
+      "error_rider_under_18",
+      "rider_application_approved",
+      "rider_application_changes_requested"
     ],
     "delayOrder": [
       "restaurant_order_picked_up",
@@ -6112,6 +6455,7 @@
     ],
     "getOrderAdmin": [
       "order_admin_view_completed",
+      "order_admin_view_delivery_overridden",
       "order_admin_view_disputed",
       "order_admin_view_failed_no_rider"
     ],
@@ -6138,6 +6482,7 @@
     "getOrderTracking": [
       "tracking_arrived",
       "tracking_arrived_delivery_code",
+      "tracking_arrived_delivery_code_locked",
       "tracking_degraded_gps",
       "tracking_delivered",
       "tracking_picked_up",
@@ -6194,6 +6539,7 @@
       "restaurant_detail_unverified"
     ],
     "getRestaurantApplication": [
+      "restaurant_application_approved",
       "restaurant_application_pending_review"
     ],
     "getRestaurantAvailability": [
@@ -6234,6 +6580,7 @@
     ],
     "getRestaurantOrder": [
       "restaurant_order_picked_up",
+      "restaurant_order_pickup_code_locked",
       "restaurant_order_preparing",
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
@@ -6243,6 +6590,8 @@
       "restaurant_profile"
     ],
     "getRiderApplication": [
+      "rider_application_approved",
+      "rider_application_changes_requested",
       "rider_application_pending_review"
     ],
     "getRiderDashboard": [
@@ -6350,6 +6699,7 @@
     ],
     "listRestaurantOrders": [
       "restaurant_order_picked_up",
+      "restaurant_order_pickup_code_locked",
       "restaurant_order_preparing",
       "restaurant_order_queue_busy",
       "restaurant_order_queue_empty",
@@ -6420,6 +6770,11 @@
       "restaurant_order_rejected",
       "restaurant_order_restaurant_pending"
     ],
+    "overrideHandoverCode": [
+      "error_handover_override_not_pending",
+      "handover_override_delivery",
+      "handover_override_pickup_locked"
+    ],
     "proposeHalalIssuingBody": [
       "halal_issuing_body_accepted",
       "halal_issuing_body_proposed",
@@ -6447,6 +6802,7 @@
       "session_next_route_suspended"
     ],
     "registerRestaurant": [
+      "error_register_restaurant_rate_limited",
       "restaurant_registration"
     ],
     "rejectOrder": [
@@ -6565,7 +6921,9 @@
       "assignment_reassigned",
       "assignment_returned",
       "assignment_returning",
-      "assignment_undeliverable"
+      "assignment_undeliverable",
+      "error_delivery_code_incorrect",
+      "error_delivery_code_locked"
     ],
     "submitRestaurantDocuments": [
       "restaurant_onboarding_active",
@@ -6701,8 +7059,8 @@
     "createUpload": "presigned_upload",
     "decideHalalCertificate": "halal_certificate_status_approved",
     "decideMenuVersion": "menu_version_approved",
-    "decideRestaurantApplication": "restaurant_application_pending_review",
-    "decideRiderApplication": "rider_application_pending_review",
+    "decideRestaurantApplication": "restaurant_application_approved",
+    "decideRiderApplication": "rider_application_approved",
     "delayOrder": "restaurant_order_preparing",
     "enrollTotp": "totp_enrolment",
     "getActiveOrder": "order_preparing",
@@ -6766,6 +7124,7 @@
     "listStaff": "staff_list",
     "login": "session_grant_customer",
     "markOrderReady": "restaurant_order_ready_for_pickup",
+    "overrideHandoverCode": "handover_override_delivery",
     "proposeHalalIssuingBody": "halal_issuing_body_accepted",
     "recordHalalChecks": "halal_certificate_status_approved",
     "refreshSession": "session_grant_customer",

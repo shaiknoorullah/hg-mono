@@ -2,7 +2,7 @@
   "scenario": "order_arrived_delivery_code_locked",
   "domain": "orders",
   "schema": "OrderCustomerView",
-  "describes": "A met handover where five wrong codes have **locked** the delivery code: `delivery_code` is null, so the screen stops asking the customer to read it out. The rider falls back to a photo with a statement.",
+  "describes": "A met handover where five wrong codes have **locked** the delivery code: `delivery_code` is null, so the screen stops asking the customer to read it out. The order is now with support, who confirm the handover with `overrideHandoverCode`; the rider has no fallback of their own.",
   "operations": [
     "getOrder",
     "getActiveOrder"
