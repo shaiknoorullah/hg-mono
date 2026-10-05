@@ -457,11 +457,12 @@ func identity(slug string) (Identity, error) {
 }
 
 type apiClient struct {
-	base      string
-	surface   string
-	token     string
-	addressID string
-	http      *http.Client
+	base              string
+	surface           string
+	token             string
+	addressID         string
+	http              *http.Client
+	positionNotBefore time.Time
 }
 
 func newAPI(base, surface string) *apiClient {
