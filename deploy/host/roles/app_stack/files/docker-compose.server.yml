@@ -38,7 +38,8 @@ services:
       - traefik.http.routers.hg-api-tls.service=hg-api
       - traefik.http.routers.hg-api-tls.middlewares=hg-hsts@docker
       # HSTS for every HTTPS host: one year, subdomains included, no preload yet (#460).
-      # The middleware is defined once here; every HTTPS router below references it.
+      # Each container that routes HTTPS defines the same middleware (Traefik merges identical
+      # definitions), so a router never loses it when another container is down.
       - traefik.http.middlewares.hg-hsts.headers.stsseconds=31536000
       - traefik.http.middlewares.hg-hsts.headers.stsincludesubdomains=true
       - traefik.http.middlewares.hg-hsts.headers.stspreload=false
@@ -50,6 +51,9 @@ services:
       - traefik.http.routers.hg-files.entrypoints=websecure
       - traefik.http.routers.hg-files.tls.certresolver=le
       - traefik.http.routers.hg-files.middlewares=hg-hsts@docker
+      - traefik.http.middlewares.hg-hsts.headers.stsseconds=31536000
+      - traefik.http.middlewares.hg-hsts.headers.stsincludesubdomains=true
+      - traefik.http.middlewares.hg-hsts.headers.stspreload=false
       - traefik.http.services.hg-files.loadbalancer.server.port=9000
 
   partner-web:
@@ -65,6 +69,9 @@ services:
       - traefik.http.routers.hg-partner.entrypoints=websecure
       - traefik.http.routers.hg-partner.tls.certresolver=le
       - traefik.http.routers.hg-partner.middlewares=hg-hsts@docker
+      - traefik.http.middlewares.hg-hsts.headers.stsseconds=31536000
+      - traefik.http.middlewares.hg-hsts.headers.stsincludesubdomains=true
+      - traefik.http.middlewares.hg-hsts.headers.stspreload=false
       - traefik.http.services.hg-partner.loadbalancer.server.port=80
 
   admin-web:
@@ -80,6 +87,9 @@ services:
       - traefik.http.routers.hg-admin.entrypoints=websecure
       - traefik.http.routers.hg-admin.tls.certresolver=le
       - traefik.http.routers.hg-admin.middlewares=hg-hsts@docker
+      - traefik.http.middlewares.hg-hsts.headers.stsseconds=31536000
+      - traefik.http.middlewares.hg-hsts.headers.stsincludesubdomains=true
+      - traefik.http.middlewares.hg-hsts.headers.stspreload=false
       - traefik.http.services.hg-admin.loadbalancer.server.port=80
 
 volumes:
