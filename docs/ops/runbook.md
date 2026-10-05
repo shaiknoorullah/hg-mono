@@ -175,11 +175,15 @@ If it came back by itself after a crash, nothing was lost. The runner's outage h
 
 Traefik renews the Let's Encrypt certificates itself, about 30 days before they expire, through port 443 ([#51][i51]). Let's Encrypt [stopped sending expiry emails in 2025](https://letsencrypt.org/2025/01/22/ending-expiration-emails/), so the watchers must check expiry dates ([#65][i65]).
 
+Every HTTPS host (the API, `files.`, partner and admin) sends `Strict-Transport-Security: max-age=31536000; includeSubDomains`; the domain is not yet on the browsers' built-in HTTPS list ([#460](https://github.com/shaiknoorullah/hg-mono/issues/460)). Each container that routes HTTPS defines the same `hg-hsts` middleware, so when one container is down the other containers' routers keep it. Check with `curl -sI https://<host>/ | grep -i strict-transport`.
+
 1. Check one: `echo | openssl s_client -connect <host>:443 -servername <host> 2>/dev/null | openssl x509 -noout -enddate`.
 2. Read `docker compose logs traefik | grep -i acme`. The usual causes: port 443 blocked; an A or AAAA record pointing somewhere else; `acme.json` missing or not mode 600.
 3. Don't delete `acme.json` to force a new certificate: Let's Encrypt allows 5 certificates a week for the same names.
 
 A restaurant's halal certificate expiring is a product state, not an incident. The app shows it in cool slate ("we can't currently vouch"), never red ([never red for a halal state (invariant 9)](../../AGENTS.md#3-non-negotiable-invariants)).
+
+The API delists the restaurant just after midnight, Toronto time, on the day after its certificate expires, and lists it again when a renewed certificate is approved ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252)). If a restaurant still shows a badge after its certificate expired, check that the job runs: `SELECT started_at, claimed, failed, error FROM job_run WHERE job = 'halal_certificate_expiry' ORDER BY id DESC LIMIT 5;` should show a pass in the last hour. `SELECT * FROM halal_status_inconsistency;` lists every badge shown without a valid certificate; it must be empty.
 
 ## The sign-in code sender is down
 

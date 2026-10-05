@@ -38,7 +38,7 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 **Non-goals (stated, not hidden)**
 
 - Any product feature, including live updates in any app. The world and simulator produce real events; whether an app *shows* them live is each app's feature work (companion spec for restaurant; issues for the others).
-- Time-passage states: prep overdue, pickup overdue, certificate lapsing on its own. The API cannot move the clock; forging `deadline_at` is exactly what [every non-terminal order state carries a deadline (invariant 4)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) exists to prevent. Reached by waiting; a dev-only clock is a possible later spec.
+- Time-passage states: prep overdue, pickup overdue, certificate lapsing on its own. The API cannot move the clock; forging `deadline_at` is exactly what [every non-terminal order state carries a deadline (invariant 4)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) exists to prevent. Reached by waiting; a dev-only clock is a possible later spec. The exception is the certificate: the expiry job runs "as of" any future instant (`RunAt` in `services/hg/internal/halalexpiry/`), which the dev controls in [#235](https://github.com/shaiknoorullah/hg-mono/issues/235) can call.
 - A timed-out order in seeded history (would add 180 s to every reset). A timeout is produced live by leaving a `new-order` alone.
 - Changing production behaviour. Everything new is gated to `HG_ENV=local` or lives in dev tooling.
 
@@ -106,7 +106,7 @@ Email-login personas share one local password and sign in as `<persona>@seed.hg`
 | `menu-setup` | MENU_PENDING, empty menu | PENDING | — | — | first-menu creation |
 | **`bismillah-grill`** | ACTIVE | LIVE | CERTIFIED | OPEN | the operating surface (see [its depth below](#52-bismillah-grill-depth)) |
 | `expiring-halal` | ACTIVE | LIVE | EXPIRING_SOON (expires now + 10 d) | OPEN | expiring warning |
-| `expired-halal` | ACTIVE | LIVE | EXPIRED (expired now − 7 d) | — | slate, never red ([never red for a halal state (invariant 9)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)); hidden from customers |
+| `expired-halal` | ACTIVE | DELISTED (reason `HALAL_CERTIFICATE_EXPIRED`) | EXPIRED (expired now − 7 d) | — | slate, never red ([never red for a halal state (invariant 9)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)); hidden from customers. Not `LIVE`: the schema refuses a listed restaurant with an expired certificate ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252)) |
 | `paused` | ACTIVE | LIVE | CERTIFIED | PAUSED, with reason | availability toggle + reason |
 | `suspended` | ACTIVE | SUSPENDED | CERTIFIED | CLOSED_SUSPENDED | what a suspended operator sees |
 
