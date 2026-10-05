@@ -661,6 +661,17 @@ func run() error {
 	dispatch.Routes(router, dispatch.NewHandler(dispatchSvc))
 	dispatchRunner := dispatch.NewDispatchRunner(dispatchSvc, log, 3000, 5*time.Second)
 	go dispatchRunner.Run(ctx)
+	// Rider availability sweeps (issue #255; docs/spec/04-rider.md, "D-10 —
+	// Availability: online / offline"): a silent online rider goes ONLINE_STALE,
+	// and a rider stuck ON_DELIVERY with no live assignment is restored. Every
+	// replica runs them; a lease lets one sweep at a time. riderSweeps.RunOnce is
+	// the "sweep now" hook for the dev environment's controls (issue #235).
+	riderSweeps := dispatch.NewAvailabilitySweeper(dispatchSvc, log, dispatch.AvailabilitySweepConfig{
+		StaleAfter:     cfg.Dispatch.RiderStaleAfter,
+		StaleEvery:     cfg.Dispatch.RiderStaleSweepEvery,
+		ReconcileEvery: cfg.Dispatch.RiderReconcileEvery,
+	})
+	go riderSweeps.Run(ctx)
 
 	// B11 — Handoff (internal/handoff, migration 00027): package-seal chain of
 	// custody. Reuses the same orderLifecycleAdapter instance dispatch is wired
