@@ -1,9 +1,12 @@
 package files
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -14,6 +17,12 @@ import (
 
 // ErrNotFound is returned when an object or document row does not exist.
 var ErrNotFound = errors.New("files: not found")
+
+// ErrNotScannedClean is returned when a download is asked for a document whose
+// file the virus scanner has not passed: still pending, infected, too large or
+// unscannable, or found changed since its scan. No URL is minted for it
+// (https://github.com/shaiknoorullah/hg-mono/issues/218).
+var ErrNotScannedClean = errors.New("files: file not virus-scanned clean")
 
 // Presigner is the narrow slice of the MinIO client this module needs. Keeping
 // it an interface means the key/DB logic is unit-testable without a live MinIO,
@@ -62,6 +71,8 @@ type storedObjectRow struct {
 // a one-hour deadline, then returns a presigned PUT whose TTL is 300 s (P-28).
 // The signature binds the object key, the content type, the length and the
 // checksum; the client supplies only the bytes, and only the declared ones.
+// Reusing the link after confirm or after the virus scan therefore cannot
+// swap the file (https://github.com/shaiknoorullah/hg-mono/issues/218).
 func (r *Repo) AllocateUpload(ctx context.Context, actor Actor, p Purpose, in keyInputs, contentType string, byteSize int64, sha256hex string) (uploadResult, error) {
 	var out uploadResult
 	bucket, ok := bucketFor(p, r.buckets)
@@ -160,16 +171,23 @@ type uploadResult struct {
 // the request id in the audit trail. Ownership/authorization is decided by the
 // caller before this runs; a document the caller may not see returns ErrNotFound
 // so no URL is minted and existence is not leaked.
+//
+// Only a file the virus scanner passed is served, and only while its bytes are
+// still the ones that were scanned: the object is re-read and its SHA-256
+// compared with the scanned one before the URL is minted. A file that changed
+// gets a new content version, which sends its verdict back to PENDING and any
+// approved document on it back to review (see migration 00031_virus_scan). Both
+// refusals are ErrNotScannedClean
+// (https://github.com/shaiknoorullah/hg-mono/issues/218).
 func (r *Repo) DownloadURL(ctx context.Context, actor Actor, documentID string, canReadAny bool) (downloadResult, error) {
 	var out downloadResult
-	var bucket, key, subjectType, subjectID string
+	var objectID, subjectType, subjectID string
 	err := inTx(ctx, r.pool, func(tx pgx.Tx) error {
 		const q = `
-SELECT so.bucket, so.object_key, kd.subject_type::text, kd.subject_id::text
+SELECT kd.stored_object_id::text, kd.subject_type::text, kd.subject_id::text
   FROM kyc_document kd
-  JOIN stored_object so ON so.id = kd.stored_object_id
  WHERE kd.id = $1 AND kd.deleted_at IS NULL`
-		err := tx.QueryRow(ctx, q, documentID).Scan(&bucket, &key, &subjectType, &subjectID)
+		err := tx.QueryRow(ctx, q, documentID).Scan(&objectID, &subjectType, &subjectID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -180,6 +198,29 @@ SELECT so.bucket, so.object_key, kd.subject_type::text, kd.subject_id::text
 		// kyc_document.download action (admins) bypasses the ownership check.
 		if !canReadAny && !r.ownsSubject(ctx, tx, actor.AccountID, subjectType, subjectID) {
 			return ErrNotFound
+		}
+		return nil
+	})
+	if err != nil {
+		return out, err
+	}
+	file, err := r.verifyScannedFile(ctx, actor, objectID, "checksum mismatch at download")
+	if err != nil {
+		return out, err
+	}
+
+	err = inTx(ctx, r.pool, func(tx pgx.Tx) error {
+		// Still passing now, and still the contents whose bytes were just
+		// checked: a re-scan or a recorded change may have landed meanwhile.
+		var passed bool
+		var version int64
+		if err := tx.QueryRow(ctx, `
+SELECT virus_scan_passed(so), so.content_version FROM stored_object so WHERE so.id = $1 FOR SHARE`,
+			objectID).Scan(&passed, &version); err != nil {
+			return err
+		}
+		if !passed || version != file.version {
+			return ErrNotScannedClean
 		}
 		return writeAudit(ctx, tx, auditEntry{
 			actor:       actor,
@@ -195,13 +236,98 @@ SELECT so.bucket, so.object_key, kd.subject_type::text, kd.subject_id::text
 
 	params := url.Values{}
 	params.Set("response-content-disposition", "attachment")
-	u, err := r.presigner.PresignedGetObject(ctx, bucket, key, 120*time.Second, params)
+	u, err := r.presigner.PresignedGetObject(ctx, file.bucket, file.key, 120*time.Second, params)
 	if err != nil {
 		return out, err
 	}
 	out.URL = u.String()
 	out.ExpiresAt = time.Now().UTC().Add(120 * time.Second)
 	return out, nil
+}
+
+// CheckScannedFile re-reads a file from the object store and reports whether it
+// is still the file the virus scanner passed, and at which content_version. The
+// admin review calls it before approving a document (wired in cmd/hg/main.go),
+// so approval, like download, refuses bytes that are not the scanned bytes.
+// clean is false, with a nil error, when the file has not passed its scan or
+// its bytes changed; a change is recorded first (see markContentChanged), with
+// the reviewer as the actor. An error means the file could not be checked.
+func (r *Repo) CheckScannedFile(ctx context.Context, objectID, actorAccountID, requestID string) (version int64, clean bool, err error) {
+	f, err := r.verifyScannedFile(ctx, Actor{AccountID: actorAccountID, RequestID: requestID},
+		objectID, "checksum mismatch at approval")
+	switch {
+	case errors.Is(err, ErrNotScannedClean):
+		return 0, false, nil
+	case err != nil:
+		return 0, false, err
+	}
+	return f.version, true, nil
+}
+
+// scannedFile is a file whose stored bytes were just found to be the bytes its
+// CLEAN verdict is about, at content version version.
+type scannedFile struct {
+	bucket, key string
+	version     int64
+}
+
+// verifyScannedFile checks that a file has passed its virus scan and that the
+// bytes at its key are still the scanned bytes. A file that has not passed is
+// ErrNotScannedClean. A file whose bytes differ is recorded as changed (reason
+// names where it was found) and is ErrNotScannedClean too. Fail closed: a file
+// the store cannot read is an error, never a pass.
+func (r *Repo) verifyScannedFile(ctx context.Context, actor Actor, objectID, reason string) (scannedFile, error) {
+	var f scannedFile
+	var size int64
+	var scanned []byte
+	var passed bool
+	err := r.pool.QueryRow(ctx, `
+SELECT so.bucket, so.object_key, so.byte_size, so.virus_scan_sha256, so.content_version,
+       virus_scan_passed(so)
+  FROM stored_object so
+ WHERE so.id = $1 AND so.deleted_at IS NULL`, objectID).
+		Scan(&f.bucket, &f.key, &size, &scanned, &f.version, &passed)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return f, ErrNotFound
+	}
+	if err != nil {
+		return f, err
+	}
+	if !passed {
+		return f, ErrNotScannedClean
+	}
+	if r.objects == nil {
+		return f, errNotConfigured
+	}
+	same, err := sameBytes(ctx, r.objects, f.bucket, f.key, size, scanned)
+	if err != nil {
+		return f, err
+	}
+	if !same {
+		if err := inTx(ctx, r.pool, func(tx pgx.Tx) error {
+			return markContentChanged(ctx, tx, actor, objectID, f.version, reason)
+		}); err != nil {
+			return f, err
+		}
+		return f, ErrNotScannedClean
+	}
+	return f, nil
+}
+
+// sameBytes reports whether the object at key is exactly size bytes with the
+// given SHA-256. An error means the store could not be read, not a mismatch.
+func sameBytes(ctx context.Context, objects ObjectStore, bucket, key string, size int64, sha []byte) (bool, error) {
+	rc, err := objects.Open(ctx, bucket, key)
+	if err != nil {
+		return false, err
+	}
+	defer rc.Close()
+	h := sha256.New()
+	n, err := io.Copy(h, rc)
+	if err != nil {
+		return false, err
+	}
+	return n == size && bytes.Equal(h.Sum(nil), sha), nil
 }
 
 type downloadResult struct {

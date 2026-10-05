@@ -89,7 +89,7 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 ```bash
 cp deploy/.env.example deploy/.env      # edit secrets + §3 flips; HG_ENV=production
 cd services/hg
-make up            # Traefik + 2× API + Postgres/PostGIS + Redis + MinIO
+make up            # Traefik + 2× API + Postgres/PostGIS + Redis + MinIO + ClamAV
 make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
@@ -105,7 +105,10 @@ are in [the migrations README](services/hg/migrations/README.md#who-connects-as-
 
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
-or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
+if `HG_SMS_PROVIDER=twilio` with incomplete creds, or if `HG_CLAMD_ADDR` is unset — misconfig fails
+loudly, never silently. The `clamav` service downloads its signature database on first start
+(a few minutes, about 1 GB of memory); until it is healthy, uploaded KYC documents wait to be scanned
+and cannot be approved.
 
 ## 5. Verify the gate (any time)
 

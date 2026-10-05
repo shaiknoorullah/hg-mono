@@ -23,6 +23,20 @@
 //	hg-pod/{yyyy}/{mm}/{order_id}/{ulid}.jpg
 //	hg-media/menu-item/{menu_item_id}/{ulid}_{variant}.webp
 //
+// Virus scanning: ConfirmUpload marks a KYC object READY with
+// virus_scan_state=PENDING; ScanWorker streams it to clamd (INSTREAM) and
+// records CLEAN, INFECTED, TOO_LARGE or UNSCANNABLE — or ERROR when the bytes
+// it read are not the confirmed ones — together with the SHA-256 of those bytes
+// and the object's content_version. While clamd is down documents wait in
+// PENDING. Only a CLEAN file's document can be approved or downloaded, and only
+// while the file is unchanged: approval and download re-read the bytes, and
+// bytes that differ move content_version on, which resets the verdict to
+// PENDING. Migration 00031_virus_scan makes the database refuse an approval
+// unless the file passes (CLEAN, bound to its current SHA-256 and version),
+// keeps a verdict write-once except through Rescan, and sends an approved
+// document back to review when its file stops passing
+// (https://github.com/shaiknoorullah/hg-mono/issues/218).
+//
 // Retention: hg-kyc 7 years after account closure with versioning on; hg-pod 90
 // days; hg-exports 30 days; hg-tmp a 24 h lifecycle rule.
 //

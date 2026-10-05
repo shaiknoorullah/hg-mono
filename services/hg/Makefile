@@ -1,6 +1,6 @@
 # HalalGoes API — developer entry points.
 #
-#   make up        bring the whole stack up (Traefik, Postgres+PostGIS, Redis, MinIO, 2× API)
+#   make up        bring the whole stack up (Traefik, Postgres+PostGIS, Redis, MinIO, ClamAV, 2× API)
 #   make run       run the API on the host against the compose dependencies, as hg_app
 #   make test      go test ./...
 #   make lint      gofmt check, go vet, golangci-lint when installed
@@ -25,6 +25,7 @@ VERSION    ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 HOST_POSTGRES_PORT ?= 5432
 HOST_REDIS_PORT    ?= 6379
 HOST_MINIO_PORT    ?= 9000
+HOST_CLAMD_PORT    ?= 3310
 
 .PHONY: help
 help: ## List the available targets
@@ -52,6 +53,7 @@ run: ensure-env ## Run the API on the host against the compose dependencies
 	HG_MINIO_ENDPOINT="localhost:$(HOST_MINIO_PORT)" \
 	HG_MINIO_ACCESS_KEY="$${MINIO_ROOT_USER}" \
 	HG_MINIO_SECRET_KEY="$${MINIO_ROOT_PASSWORD}" \
+	HG_CLAMD_ADDR="localhost:$(HOST_CLAMD_PORT)" \
 	$(GO) run ./cmd/hg
 
 # ---------------------------------------------------------------------------

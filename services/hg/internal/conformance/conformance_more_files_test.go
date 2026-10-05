@@ -23,8 +23,8 @@ package conformance
 // ValidateResponse oracle; write bodies are additionally ValidateRequest-checked.
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -63,22 +63,22 @@ func (mfFilesPresigner) PresignedGetObject(_ context.Context, _, _ string, _ tim
 }
 
 // mfObjectStore implements files.ObjectStore. It is non-nil (so confirmUpload
-// does not answer 503 on the honest-unwired path) but is never invoked: the
-// confirmUpload test drives the state=READY idempotent short-circuit, which
-// returns the object without stat/open/remove.
+// does not answer 503 on the honest-unwired path). The confirmUpload test drives
+// the state=READY idempotent short-circuit, which never touches the store; the
+// download-url test reads mfKycBytes back, because a download is issued only
+// while the stored bytes still match the confirmed SHA-256.
 type mfObjectStore struct{}
 
 func (mfObjectStore) Stat(context.Context, string, string) (files.ObjectStat, error) {
-	return files.ObjectStat{}, nil
+	return files.ObjectStat{Size: int64(len(mfKycBytes))}, nil
 }
 func (mfObjectStore) Open(context.Context, string, string) (io.ReadCloser, error) {
-	return nil, errMfObjectStoreUnused
+	return io.NopCloser(bytes.NewReader(mfKycBytes)), nil
 }
 func (mfObjectStore) Remove(context.Context, string, string) error { return nil }
 
-// errMfObjectStoreUnused is returned by the stub Open, which the READY
-// short-circuit never reaches; if it ever fires the test would surface it.
-var errMfObjectStoreUnused = errors.New("mf object store Open should not be called on the READY path")
+// mfKycBytes is the content of every object the stub store serves.
+var mfKycBytes = []byte("%PDF-1.7 a scanned KYC document")
 
 // mfBuckets returns the P-27 bucket names the files module keys objects under.
 func mfBuckets() files.Buckets {
@@ -246,18 +246,19 @@ RETURNING id`, ownerID).Scan(&id); err != nil {
 	return id
 }
 
-// mfSeedKycDocument inserts a READY stored_object + a kyc_document for a RIDER
-// subject (subject_id = ownerID) and returns the document id — the target of
-// createDocumentDownloadUrl. A SUPER_ADMIN caller (canReadAny) bypasses ownership.
+// mfSeedKycDocument inserts a READY, virus-scanned CLEAN stored_object holding
+// mfKycBytes + a kyc_document for a RIDER subject (subject_id = ownerID) and
+// returns the document id — the target of createDocumentDownloadUrl. A SUPER_ADMIN caller (canReadAny) bypasses ownership.
 func mfSeedKycDocument(t *testing.T, pool *pgxpool.Pool, subjectAccountID string) string {
 	t.Helper()
 	ctx := context.Background()
 	var storedID string
 	if err := pool.QueryRow(ctx, `
-INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, owner_account_id, uploaded_by, confirmed_at)
-VALUES ('hg-kyc','mf/'||md5(random()::text),'KYC_DOCUMENT','application/pdf',2048,
-        decode(repeat('e5',32),'hex'),'READY',$1,$1,now())
-RETURNING id`, subjectAccountID).Scan(&storedID); err != nil {
+INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, owner_account_id, uploaded_by, confirmed_at,
+                           virus_scan_state, virus_scan_sha256, virus_scan_version)
+VALUES ('hg-kyc','mf/'||md5(random()::text),'KYC_DOCUMENT','application/pdf',$2,
+        digest($3::bytea,'sha256'),'READY',$1,$1,now(),'CLEAN',digest($3::bytea,'sha256'),1)
+RETURNING id`, subjectAccountID, len(mfKycBytes), mfKycBytes).Scan(&storedID); err != nil {
 		t.Fatalf("mfSeedKycDocument stored_object: %v", err)
 	}
 	var docID string

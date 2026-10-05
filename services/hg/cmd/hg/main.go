@@ -712,13 +712,13 @@ func run() error {
 	rider.Routes(router, rider.NewHandler(rider.NewService(rider.NewRepo(st.DB().Pool))))
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
-	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
-	files.Routes(router, files.NewHandler(files.NewRepo(
+	fileObjects := files.NewMinIOObjectStore(st.Objects().Client)
+	filesRepo := files.NewRepo(
 		st.DB().Pool,
 		// Links are signed for the public host phones reach; server-side
 		// reads and deletes stay on the internal client.
 		st.Objects().Signer,
-		files.NewMinIOObjectStore(st.Objects().Client),
+		fileObjects,
 		files.Buckets{
 			KYC:     cfg.MinIO.Buckets.KYC,
 			POD:     cfg.MinIO.Buckets.POD,
@@ -726,10 +726,30 @@ func run() error {
 			Exports: cfg.MinIO.Buckets.Exports,
 			Tmp:     cfg.MinIO.Buckets.Tmp,
 		},
-	)))
+	)
+	// Approving a KYC document re-reads its file and refuses bytes that are
+	// not the bytes the virus scanner passed, as download does
+	// (https://github.com/shaiknoorullah/hg-mono/issues/218).
+	admin.Routes(router, admin.NewHandler(
+		admin.NewRepo(st.DB().Pool).WithScannedFileCheck(filesRepo.CheckScannedFile),
+		admin.DefaultConfig()))
+	files.Routes(router, files.NewHandler(filesRepo))
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),
 	// payments.Routes(router, …), realtime.Routes(router, …).
+
+	// Virus-scan every confirmed KYC upload (spec: docs/spec/01-platform.md#p-28--presigned-upload-and-download).
+	// An admin cannot approve a document until its file is CLEAN, so without a
+	// scanner documents wait — config refuses to boot that way outside local.
+	if cfg.Clamd.Addr != "" && fileObjects != nil {
+		scanner := files.NewClamdScanner(cfg.Clamd.Addr, cfg.Clamd.Timeout)
+		go files.NewScanWorker(st.DB().Pool, fileObjects, scanner, cfg.Clamd.MaxBytes, log).Run(ctx)
+		log.Info("virus scan worker started",
+			slog.String("clamd", cfg.Clamd.Addr), slog.Int64("max_bytes", cfg.Clamd.MaxBytes))
+	} else {
+		log.Warn("virus scan worker not started (HG_CLAMD_ADDR unset or no object store) — " +
+			"KYC documents stay PENDING and cannot be approved")
+	}
 
 	if err := router.Verify(); err != nil {
 		return err

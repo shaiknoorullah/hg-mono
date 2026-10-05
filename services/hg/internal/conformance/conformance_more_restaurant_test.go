@@ -135,9 +135,9 @@ func mrSeedStoredObject(t *testing.T, pool *pgxpool.Pool, uploader string) strin
 	var id string
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256,
-		                           state, virus_scan_state, uploaded_by, confirmed_at)
+		                           state, virus_scan_state, virus_scan_sha256, virus_scan_version, uploaded_by, confirmed_at)
 		VALUES ('hg-kyc', 'mr/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 2048,
-		        decode(repeat('c3',32),'hex'), 'READY', 'CLEAN', $1, now())
+		        decode(repeat('c3',32),'hex'), 'READY', 'CLEAN', decode(repeat('c3',32),'hex'), 1, $1, now())
 		RETURNING id`, uploader).Scan(&id); err != nil {
 		t.Fatalf("mrSeedStoredObject: %v", err)
 	}

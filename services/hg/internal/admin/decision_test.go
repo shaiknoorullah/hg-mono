@@ -37,8 +37,10 @@ VALUES ($1, 1, now() - interval '2 hours', now() + interval '46 hours')`, restau
 	for _, dt := range requiredRestaurantDocs {
 		var soID string
 		if err := pool.QueryRow(ctx, `
-INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
-VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024, decode(repeat('a1',32),'hex'), 'READY', $1, now())
+INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at,
+                           virus_scan_state, virus_scan_sha256, virus_scan_version)
+VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024, decode(repeat('a1',32),'hex'), 'READY', $1, now(),
+        'CLEAN', decode(repeat('a1',32),'hex'), 1)
 RETURNING id`, superAdmin).Scan(&soID); err != nil {
 			t.Fatalf("seed stored object: %v", err)
 		}
@@ -67,8 +69,10 @@ VALUES ('HMA '||substr(md5(random()::text),1,6), 'CA', 'ACCEPTED', $1, now()) RE
 		}
 		var soID string
 		if err := pool.QueryRow(ctx, `
-INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
-VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024, decode(repeat('a1',32),'hex'), 'READY', $1, now())
+INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at,
+                           virus_scan_state, virus_scan_sha256, virus_scan_version)
+VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024, decode(repeat('a1',32),'hex'), 'READY', $1, now(),
+        'CLEAN', decode(repeat('a1',32),'hex'), 1)
 RETURNING id`, superAdmin).Scan(&soID); err != nil {
 			t.Fatalf("seed cert object: %v", err)
 		}
@@ -185,8 +189,10 @@ VALUES ($1, 1, now() - interval '1 hour', now() + interval '47 hours')`, account
 	}
 	var soID string
 	if err := pool.QueryRow(ctx, `
-INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
-VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024, decode(repeat('a1',32),'hex'), 'READY', $1, now())
+INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at,
+                           virus_scan_state, virus_scan_sha256, virus_scan_version)
+VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024, decode(repeat('a1',32),'hex'), 'READY', $1, now(),
+        'CLEAN', decode(repeat('a1',32),'hex'), 1)
 RETURNING id`, superAdmin).Scan(&soID); err != nil {
 		t.Fatalf("seed rider stored object: %v", err)
 	}
