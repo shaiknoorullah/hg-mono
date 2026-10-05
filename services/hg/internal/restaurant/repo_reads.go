@@ -1068,6 +1068,7 @@ func lockOwnedCategory(ctx context.Context, tx pgx.Tx, restaurantID, categoryID 
 // an item).
 type CategoryNotEmptyError struct{ ItemCount int }
 
+// Error names the count, for logs; the handler sends ItemCount as details.
 func (e *CategoryNotEmptyError) Error() string {
 	return fmt.Sprintf("category not empty: %d items", e.ItemCount)
 }
