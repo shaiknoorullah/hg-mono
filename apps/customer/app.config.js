@@ -54,11 +54,22 @@ module.exports = () => {
           backgroundColor: '#FFFAEA',
         },
       },
-      plugins: ['expo-dev-client', ['@stripe/stripe-react-native', {}], ...mapboxPlugins()],
+      plugins: [
+        'expo-dev-client',
+        ['@stripe/stripe-react-native', {}],
+        // Order updates by push (src/api/push.ts). Android delivery also needs the project's FCM
+        // credentials in Expo; without them, or without EAS_PROJECT_ID, there is no push token
+        // and the app works without push.
+        'expo-notifications',
+        ...mapboxPlugins(),
+      ],
       extra: {
         appEnv: env.name,
         // So `npx expo config --type public` shows whether a map token was present at build time.
         mapboxPublicTokenConfigured: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
+        // The EAS project the push token is issued for. Only set when EAS_PROJECT_ID is, so a
+        // local prebuild or Gradle build never needs EAS (docs/release/README.md).
+        ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {}),
       },
     },
   };
