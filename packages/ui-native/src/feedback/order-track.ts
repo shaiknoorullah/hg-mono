@@ -68,6 +68,8 @@ export interface TrackStepDef {
   label: string;
   /** Label while the order is sitting in this step, when the present tense differs. */
   currentLabel?: string;
+  /** A present-tense label for one of the step's states, where it reads differently. */
+  currentLabelByState?: Partial<Record<OrderState, string>>;
   /** The contract states that collapse into this step. */
   states: readonly OrderState[];
 }
@@ -87,9 +89,10 @@ export interface OrderTrack {
  * step of its own — settlement is not a customer concern (02-components.md §23).
  *
  * `READY_FOR_PICKUP` has no entry in the specified five-word vocabulary. It stays inside the
- * "Preparing" step with its own present-tense label rather than being promoted to a sixth step,
- * because the step count is load-bearing: the loading skeleton renders the correct number of
- * steps before the data arrives (03-patterns.md §1.7).
+ * "Preparing" step with its own present-tense label ("Your food is ready", the Track & After
+ * canvas's copy, so a ready order never reads "Preparing your food") rather than being promoted
+ * to a sixth step, because the step count is load-bearing: the loading skeleton renders the
+ * correct number of steps before the data arrives (03-patterns.md §1.7).
  */
 const CUSTOMER_TRACK: OrderTrack = {
   audience: 'customer',
@@ -106,6 +109,7 @@ const CUSTOMER_TRACK: OrderTrack = {
       key: 'preparing',
       label: 'Preparing',
       currentLabel: 'Preparing your food',
+      currentLabelByState: { READY_FOR_PICKUP: 'Your food is ready' },
       states: ['PREPARING', 'READY_FOR_PICKUP'],
     },
     { key: 'on_the_way', label: 'On the way', states: ['PICKED_UP', 'ARRIVED'] },
@@ -529,7 +533,10 @@ export function resolveTimeline(input: ResolveTimelineInput): ResolvedTimeline {
       stepState = failed ? 'unreached' : 'upcoming';
     }
 
-    const label = stepState === 'current' || stepState === 'stalled' ? (def.currentLabel ?? def.label) : def.label;
+    const label =
+      stepState === 'current' || stepState === 'stalled'
+        ? (def.currentLabelByState?.[state] ?? def.currentLabel ?? def.label)
+        : def.label;
     return at ? { key: def.key, label, state: stepState, at } : { key: def.key, label, state: stepState };
   });
 

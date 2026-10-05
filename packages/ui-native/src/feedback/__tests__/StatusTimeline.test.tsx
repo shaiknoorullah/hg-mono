@@ -104,6 +104,13 @@ describe('StatusTimeline', () => {
     expect(r.steps.some((s) => s.state === 'skipped')).toBe(false);
   });
 
+  it('never tells a customer a ready order is still being prepared', () => {
+    const label = (state: 'PREPARING' | 'READY_FOR_PICKUP') =>
+      resolveTimeline({ audience: 'customer', state }).steps.find((s) => s.key === 'preparing')?.label;
+    expect(label('PREPARING')).toBe('Preparing your food');
+    expect(label('READY_FOR_PICKUP')).toBe('Your food is ready');
+  });
+
   it('marks the current step stalled once its deadline has passed', () => {
     const now = Date.parse('2026-08-11T12:00:00Z');
     const live = resolveTimeline({
