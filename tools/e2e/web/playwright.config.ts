@@ -35,13 +35,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     actionTimeout: 20_000,
     launchOptions: {
-      executablePath:
-        process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ??
-        path.join(
-          process.env.HOME ?? '',
-          'work/hg-wt/_cache/ms-playwright/chromium-1155/chrome-linux/chrome',
-        ),
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+      ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+        ? {
+            executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+          }
+        : {}),
     },
   },
   projects: [

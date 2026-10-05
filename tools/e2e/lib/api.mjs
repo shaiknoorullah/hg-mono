@@ -15,69 +15,13 @@ import { freshTotp } from './totp.mjs';
 
 export const API = process.env.E2E_API_URL ?? 'http://localhost:8080';
 
-export function loadAdminSecrets() {
-  const file = path.join(process.env.HOME ?? '', '.config/halalgoes/secrets/admin-login.env');
-  if (existsSync(file)) {
-    const content = readFileSync(file, 'utf8');
-    const env = {};
-    for (const line of content.split('\n')) {
-      const m = line.match(/^([A-Z_]+)=(.*)$/);
-      if (m) env[m[1]] = m[2].trim();
-    }
-    return {
-      email: env.SEED_EMAIL,
-      password: env.SEED_PASSWORD,
-      totpSecret: env.TOTP_SECRET,
-    };
-  }
-  return null;
-}
-
 /** world.json: the seeded people and places, and their sign-in details. */
 export function world() {
   const p = path.join(OUT, 'world.json');
-  if (existsSync(p)) {
-    return JSON.parse(readFileSync(p, 'utf8'));
+  if (!existsSync(p)) {
+    throw new Error(`world.json not found at ${p}: run tools/e2e/seed/seed.sh first`);
   }
-  const admin = loadAdminSecrets();
-  return {
-    password: admin?.password ?? process.env.E2E_PASSWORD ?? '',
-    admin: {
-      email: admin?.email ?? process.env.ADMIN_EMAIL ?? '',
-      totpSecret: admin?.totpSecret ?? process.env.ADMIN_TOTP ?? '',
-    },
-    restaurant: {
-      id: 'e2e00000-0000-4000-8000-0000000000a1',
-      name: 'Bismillah Grill',
-      ownerEmail: 'owner@bismillah-grill.e2e.halalgoes.test',
-      latitude: 43.6532,
-      longitude: -79.3832,
-      certificateId: 'e2e00000-0000-4000-8000-00000000ce01',
-      certificateNumber: 'E2E-HMA-999',
-      menuItemId: 'e2e00000-0000-4000-8000-0000000005a1',
-      menuItemName: 'Chicken Biryani',
-    },
-    onboardingRestaurant: {
-      id: 'e2e00000-0000-4000-8000-0000000000a3',
-      name: 'E2E Al-Barakah Grill',
-      ownerEmail: 'owner@albarakah.e2e.halalgoes.test',
-      certificateId: 'e2e00000-0000-4000-8000-00000000ce01',
-      certificateNumber: 'E2E-HMA-999',
-    },
-    onboardingRider: {
-      id: 'e2e00000-0000-4000-8000-00000000d002',
-      name: 'Tariq Rider',
-    },
-    order: {
-      id: '01a10a19-ea25-7982-aa98-091b8f3f9f71',
-      code: 'HG-99Q8ZJ',
-    },
-    liveOrder: {
-      id: 'e2e00000-0000-4000-8000-000000009002',
-      code: 'HG-E2E02',
-    },
-    customers: {},
-  };
+  return JSON.parse(readFileSync(p, 'utf8'));
 }
 
 /** A fresh Idempotency-Key (the API wants 16–128 characters). */
