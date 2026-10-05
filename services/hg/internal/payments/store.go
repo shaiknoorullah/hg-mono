@@ -425,7 +425,13 @@ func (r *Repo) CreateRefund(ctx context.Context, p CreateRefundParams) (string, 
 		}
 		if p.Ledger != nil {
 			p.Ledger.RefundID = refundID
-			if err := insertBatch(ctx, tx, *p.Ledger); err != nil {
+			posted, err := postBatchTx(ctx, tx, *p.Ledger)
+			if err != nil {
+				return err
+			}
+			// A rider chargeback reverses the rider's earnings with a
+			// CLAWBACK line in the same transaction (rider_earnings.go).
+			if err := writeRiderClawbacksTx(ctx, tx, *p.Ledger, posted); err != nil {
 				return err
 			}
 		}
@@ -732,8 +738,23 @@ func ledgerBatchPosted(ctx context.Context, q rowQuerier, idempotencyKey string)
 }
 
 func insertBatch(ctx context.Context, tx pgx.Tx, b LedgerBatch) error {
+	_, err := postBatchTx(ctx, tx, b)
+	return err
+}
+
+// postedBatch is a batch this call wrote: its id and its entries' ids, in the
+// order of LedgerBatch.Entries.
+type postedBatch struct {
+	ID       string
+	EntryIDs []int64
+}
+
+// postBatchTx inserts a balanced batch and its entries. A batch whose
+// idempotency key is already posted is a no-op and returns nil, so a caller
+// that writes rows alongside the batch (rider earnings) writes them once.
+func postBatchTx(ctx context.Context, tx pgx.Tx, b LedgerBatch) (*postedBatch, error) {
 	if !b.Balanced() {
-		return fmt.Errorf("refusing to post unbalanced batch (residual=%d, entries=%d)", b.Residual(), len(b.Entries))
+		return nil, fmt.Errorf("refusing to post unbalanced batch (residual=%d, entries=%d)", b.Residual(), len(b.Entries))
 	}
 	var batchID string
 	err := tx.QueryRow(ctx, `
@@ -745,22 +766,26 @@ func insertBatch(ctx context.Context, tx pgx.Tx, b LedgerBatch) error {
 		b.IdempotencyKey, b.PostedBy, nullStr(b.Memo)).Scan(&batchID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Duplicate idempotency key: the batch is already posted. No-op.
-		return nil
+		return nil, nil
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
+	posted := &postedBatch{ID: batchID, EntryIDs: make([]int64, 0, len(b.Entries))}
 	for _, e := range b.Entries {
-		if _, err := tx.Exec(ctx, `
+		var id int64
+		if err := tx.QueryRow(ctx, `
 			INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, counterparty_id,
 			                          amount_cents, component, memo)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			RETURNING id`,
 			batchID, nullUUID(b.OrderID), string(e.Account), nullStr(string(e.CounterpartyType)),
-			nullUUID(e.CounterpartyID), e.AmountCents, string(e.Component), nullStr(e.Memo)); err != nil {
-			return err
+			nullUUID(e.CounterpartyID), e.AmountCents, string(e.Component), nullStr(e.Memo)).Scan(&id); err != nil {
+			return nil, err
 		}
+		posted.EntryIDs = append(posted.EntryIDs, id)
 	}
-	return nil
+	return posted, nil
 }
 
 // ---------------------------------------------------------------------------
