@@ -91,6 +91,8 @@ These are stated once. No entry below re-litigates them.
 
 **Props.** `label` (**required, always visible — never placeholder-as-label**), `value`, `onChange`, `placeholder`, `helperText`, `errorText`, `required`, `disabled`, `readOnly`, `loading`, `prefix`, `suffix`, `maxLength`, `characterCount`, `autoComplete`, `inputMode`, `textContentType`.
 
+A string or number `prefix` / `suffix` (`$`, `kg`) is wrapped in a `Text` in `text.secondary`: a bare string inside a `View` is a hard crash on iOS and Android. Any other node renders as given.
+
 **States.** default (`border.interactive` 1px) · hover (`border.strong`) · pressed n/a · focus-visible (2px `border.brand` border **only** — no ring, rule 3; when `error`, the danger border stays and the two-layer ring marks focus) · disabled (`surface.subtle` fill, 60% opacity) · loading (trailing spinner, input stays editable unless `readOnly`) · **error** (2px `color.danger.500` border + `errorText` below in `color.danger.600` with a `alert-circle` icon) · **success** (checkmark in `color.success.600`, **no green fill** per RULE H-1).
 
 **Accessibility.** Label is programmatically associated (`htmlFor`/`nativeID` + `accessibilityLabelledBy`). `errorText` is `role="alert"` / `accessibilityLiveRegion="assertive"` and is linked via `aria-describedby`; the field gets `aria-invalid`. Errors are never colour-only — icon + text always. Placeholder contrast is 3.33:1 and placeholder is never the only label. `maxLength` announces remaining characters at 80% and at the limit.
@@ -394,7 +396,8 @@ There is **no** `value: number` prop and **no** `formatted: string` prop. A comp
 
 ### 22. `QuantityStepper`
 
-**Props.** `value`, `min` (0), `max`, `onChange`, `size`, `loading`, `disabled`, `removeAtZero`.
+**Variants.** `outlined` (the default: the bordered segment, as in the item sheet) · `tonal` (a cart line: two round `surface.subtle` buttons either side of the number, no frame; with `removeAtZero` the `−` at 1 shows a close glyph instead of the trash, with the same "Remove {item}" name).
+**Props.** `value`, `min` (0), `max`, `onChange`, `size`, `variant`, `loading`, `disabled`, `removeAtZero`.
 **Sizes.** `sm` 32 · `md` 40 · `lg` 48. Each button ≥44 hit area regardless.
 **States.** default · hover · pressed · focus-visible (ring on the focused button) · disabled at bounds (the `−`/`+` disables individually, with the reason available) · **loading** (value freezes, both buttons block, spinner replaces the number — cart mutations are server-authoritative and an optimistic stepper that reverts is worse than a 200 ms wait) · **`removeAtZero`** (the `−` becomes a trash glyph at 1 and announces "Remove {item}").
 **Accessibility.** `role="group"` with a name ("Quantity for {item}"). Buttons are "Increase quantity" / "Decrease quantity". The value is `aria-live="polite"`. On web the numeral is also a focusable `spinbutton` accepting direct entry.
@@ -463,7 +466,7 @@ There is **no** `value: number` prop and **no** `formatted: string` prop. A comp
 ### 27. `AppBar`
 
 **Variants.** `default` (title + optional back + actions) · `large` (collapsing, customer home) · `search` (an `Input` in place of the title) · `contextual` (selection mode, admin) · `transparent` (over a hero, with a scrim).
-**Props.** `title`, `subtitle`, `back`, `actions`, `variant`, `elevated`, `progress`.
+**Props.** `title`, `subtitle`, `back`, `actions`, `variant`, `tone`, `elevated`, `progress`. `tone` is `chrome` (the dark forest bar, the default) or `cream` (`surface.base` with `text.primary` and the subtitle in `text.secondary`, so the bar reads as part of the page; the customer Cart, Checkout, Track and Orders canvases use it). `contextual` and `transparent` ignore `tone`.
 **States.** at-rest (no shadow) · scrolled (elevation 1 + a hairline) · loading (an indeterminate 2px `progress` bar at the bottom edge).
 **Accessibility.** `role="banner"` / `accessibilityRole="header"`. The title is the page's `h1` on web. Back has the label "Back to {previous}" where known. Actions are `IconButton`s with real labels. Never a scroll-hidden AppBar on the rider or restaurant surfaces — an operational chrome that disappears is a control that cannot be found in a hurry.
 
