@@ -117,8 +117,6 @@ func signatureFailureKind(err error) string {
 		return "no valid signature"
 	case errors.Is(err, webhook.ErrTooOld):
 		return "timestamp outside tolerance"
-	case strings.Contains(err.Error(), "expects API version"):
-		return "api version mismatch"
 	default:
 		return "unverifiable"
 	}
