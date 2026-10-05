@@ -66,9 +66,14 @@ func emailLink(ctx context.Context, email, kind string) (string, error) {
 // presigned PUT, confirmUpload) and returns the stored object id.
 func (c *apiClient) uploadPDF(ctx context.Context, title string) (string, error) {
 	body := []byte("%PDF-1.4\n% devworld onboarding: " + title + "\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n")
+	return c.uploadFile(ctx, title, "application/pdf", body)
+}
+
+// uploadFile is uploadPDF for any KYC content type.
+func (c *apiClient) uploadFile(ctx context.Context, title, contentType string, body []byte) (string, error) {
 	sum := sha256.Sum256(body)
 	_, data, err := c.call(ctx, http.MethodPost, "/v1/uploads", map[string]any{
-		"purpose": "KYC_DOCUMENT", "content_type": "application/pdf",
+		"purpose": "KYC_DOCUMENT", "content_type": contentType,
 		"byte_size": len(body), "sha256": hex.EncodeToString(sum[:]),
 	}, true)
 	if err != nil {
