@@ -449,6 +449,11 @@ func (s *Service) recordSucceeded(ctx context.Context, tx pgx.Tx, cur IntentRow,
 	if err != nil {
 		return effect{}, err
 	}
+	// The rider's share is credited once, at delivery, by the rider earnings
+	// batch (rider_earnings.go, issue #306). A capture recorded late, after
+	// the delivery, must leave it parked in platform revenue like any other
+	// capture, or the rider would be credited twice.
+	money.RiderID = ""
 	batch := BuildCaptureBatch(money, key, "system:capture")
 	if err := recordCapture(ctx, tx, cur.StripePaymentIntentID, captured, asOf, batch); err != nil {
 		return effect{}, err

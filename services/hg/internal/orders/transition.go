@@ -143,13 +143,26 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 		return fmt.Errorf("insert transition: %w", err)
 	}
 
-	// Emit a realtime outbox event in the same transaction so the customer's
-	// order channel receives a live update. The emitter is optional (nil when
-	// the realtime module is not wired, e.g. in unit tests).
-	if s.emitter != nil {
-		if err := s.emitter.EmitOrderTransition(ctx, tx, req.OrderID, string(req.To)); err != nil {
-			return fmt.Errorf("emit order transition: %w", err)
+	// The rider who delivered is paid in the same transaction as the
+	// delivery, and only by the rider's own DELIVERED transition: no other
+	// actor's state change writes earnings, and a failed write rolls the
+	// delivery back (https://github.com/shaiknoorullah/hg-mono/issues/306).
+	// DELIVERED is reachable once per order, so this runs once.
+	if req.To == machine.StateDelivered && req.Actor == machine.ActorRider && s.riderEarnings != nil {
+		if err := s.riderEarnings.CreditDeliveryTx(ctx, tx, req.OrderID, req.ActorAccountID); err != nil {
+			return fmt.Errorf("rider earnings: %w", err)
 		}
+	}
+
+	// Emit a realtime outbox event in the same transaction so the customer's
+	// tracking, the restaurant's queue and the rider see the change, in the
+	// contract's shapes, whoever called this function (events.go; issue #247).
+	// The notifier behind s.emitter is optional (nil in unit tests).
+	if err := s.emitTransition(ctx, tx, transitionFacts{
+		OrderID: req.OrderID, From: &fromCopy, To: req.To, Actor: req.Actor,
+		ActorAccountID: req.ActorAccountID, PrepEtaMinutes: req.PrepEtaMinutes,
+	}); err != nil {
+		return fmt.Errorf("emit order transition: %w", err)
 	}
 
 	for _, eff := range effects {

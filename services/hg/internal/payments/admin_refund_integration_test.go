@@ -40,7 +40,7 @@ func TestIntegration_IssueRefund_WithinCap_Authorises(t *testing.T) {
 		ReasonText:  "small goodwill, retention gesture",
 		AmountCents: &amount,
 	}
-	refund, approval, escalated, err := svc.IssueAdminRefund(ctx, in, fxAccountID, []string{"SUPER_ADMIN"})
+	refund, approval, escalated, err := issueAs(ctx, svc, in, fxAccountID, "SUPER_ADMIN")
 	if err != nil {
 		t.Fatalf("IssueAdminRefund within cap: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestIntegration_IssueRefund_ExceedsCaptured_Rejected(t *testing.T) {
 		ReasonText:  "goodwill exceeding the captured amount should be refused",
 		AmountCents: &over,
 	}
-	_, _, _, err := svc.IssueAdminRefund(ctx, in, fxAccountID, []string{"SUPER_ADMIN"})
+	_, _, _, err := issueAs(ctx, svc, in, fxAccountID, "SUPER_ADMIN")
 	if err == nil {
 		t.Fatal("expected REFUND_EXCEEDS_CAPTURED for an over-capture goodwill refund")
 	}

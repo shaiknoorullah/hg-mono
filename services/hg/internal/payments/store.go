@@ -316,22 +316,6 @@ func (r *Repo) PriorRefundedCents(ctx context.Context, q querier, orderID string
 	return sum, err
 }
 
-// IssuedByOperatorSince returns the sum of refund amounts an operator has issued
-// (as requested_by) since `since`, over refunds that still count against the
-// cap. It is the numerator of the A-33 rolling authority window: the cap is a
-// 24-hour window, not a per-request limit, so many small refunds still trip it.
-// DECLINED and CANCELLED refunds never happened for the customer, so they do not
-// consume the window.
-func (r *Repo) IssuedByOperatorSince(ctx context.Context, operatorID string, since time.Time) (int64, error) {
-	var sum int64
-	err := r.pool.QueryRow(ctx, `
-		SELECT coalesce(sum(amount_cents),0) FROM refund
-		 WHERE requested_by = $1
-		   AND requested_at >= $2
-		   AND state NOT IN ('DECLINED','CANCELLED')`, operatorID, since).Scan(&sum)
-	return sum, err
-}
-
 // ---------------------------------------------------------------------------
 // Refunds — write path.
 // ---------------------------------------------------------------------------
@@ -352,6 +336,9 @@ type CreateRefundParams struct {
 	ApprovalStatus  string // "", PENDING, APPROVED, DECLINED
 	RequestedBy     string
 	ApprovedBy      string
+	// EscalatedBy names who sent the refund up for a second person; they may
+	// not approve it (refund_second_person, 00048).
+	EscalatedBy string
 	// RequiredRole is the role that must decide an approval request
 	// (PENDING_APPROVAL); empty otherwise.
 	RequiredRole   string
@@ -375,63 +362,67 @@ const refundWaitForReview = 24 * time.Hour
 func (r *Repo) CreateRefund(ctx context.Context, p CreateRefundParams) (string, error) {
 	var refundID string
 	err := r.tx(ctx, func(tx pgx.Tx) error {
-		var deadlineIn *float64
-		if !terminalRefund(p.State) {
-			wait := refundWaitForReview.Seconds()
-			if p.State == RefundAuthorised {
-				wait = 0
-			}
-			deadlineIn = &wait
-		}
-		var requiredRole *string
-		if p.RequiredRole != "" {
-			requiredRole = &p.RequiredRole
-		}
-		var approval *string
-		if p.ApprovalStatus != "" {
-			approval = &p.ApprovalStatus
-		}
-		var approvedBy *string
-		if p.ApprovedBy != "" {
-			approvedBy = &p.ApprovedBy
-		}
-		var action *string
-		if p.DeadlineAction != "" {
-			action = &p.DeadlineAction
-		}
-		err := tx.QueryRow(ctx, `
-			INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
-			                    amount_cents, tax_cents,
-			                    restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
-			                    state, approval_status, requested_by, approved_by, approval_required_role,
-			                    deadline_at, deadline_action)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::role_name,
-			        now() + make_interval(secs => $17::float8),$18)
-			RETURNING id::text`,
-			p.OrderID, p.PaymentIntentID, string(p.Kind), string(p.Scope), p.ReasonCode, nullStr(p.Note),
-			p.AmountCents, p.TaxCents,
-			p.Split.RestaurantChargebackCents, p.Split.RiderChargebackCents, p.Split.PlatformAbsorbedCents,
-			string(p.State), approval, p.RequestedBy, approvedBy, requiredRole,
-			deadlineIn, action).Scan(&refundID)
-		if err != nil {
-			return err
-		}
-		for _, l := range p.Lines {
-			if _, err := tx.Exec(ctx, `
-				INSERT INTO refund_line (refund_id, order_line_no, quantity, amount_cents)
-				VALUES ($1,$2,$3,$4)`, refundID, l.OrderLineNo, l.Quantity, l.AmountCents); err != nil {
-				return err
-			}
-		}
-		if p.Ledger != nil {
-			p.Ledger.RefundID = refundID
-			if err := insertBatch(ctx, tx, *p.Ledger); err != nil {
-				return err
-			}
-		}
-		return nil
+		id, err := insertRefund(ctx, tx, p)
+		refundID = id
+		return err
 	})
 	return refundID, err
+}
+
+// insertRefund writes the refund, its lines and its ledger batch in the
+// caller's transaction. An approved refund is dated (approved_at, which its
+// approver's rolling 24-hour total counts) and one sent up for a second person
+// names who sent it.
+func insertRefund(ctx context.Context, tx pgx.Tx, p CreateRefundParams) (string, error) {
+	var deadlineIn *float64
+	if !terminalRefund(p.State) {
+		wait := refundWaitForReview.Seconds()
+		if p.State == RefundAuthorised {
+			wait = 0
+		}
+		deadlineIn = &wait
+	}
+	var refundID string
+	err := tx.QueryRow(ctx, `
+		INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
+		                    amount_cents, tax_cents,
+		                    restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
+		                    state, approval_status, requested_by, approved_by, approval_required_role,
+		                    deadline_at, deadline_action,
+		                    approved_at, escalated_by, escalated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::role_name,
+		        now() + make_interval(secs => $17::float8),$18,
+		        CASE WHEN $15::uuid IS NULL THEN NULL ELSE now() END,
+		        $19::uuid, CASE WHEN $19::uuid IS NULL THEN NULL ELSE now() END)
+		RETURNING id::text`,
+		p.OrderID, p.PaymentIntentID, string(p.Kind), string(p.Scope), p.ReasonCode, nullStr(p.Note),
+		p.AmountCents, p.TaxCents,
+		p.Split.RestaurantChargebackCents, p.Split.RiderChargebackCents, p.Split.PlatformAbsorbedCents,
+		string(p.State), nullStr(p.ApprovalStatus), p.RequestedBy, nullUUID(p.ApprovedBy), nullStr(p.RequiredRole),
+		deadlineIn, nullStr(p.DeadlineAction), nullUUID(p.EscalatedBy)).Scan(&refundID)
+	if err != nil {
+		return "", err
+	}
+	for _, l := range p.Lines {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO refund_line (refund_id, order_line_no, quantity, amount_cents)
+			VALUES ($1,$2,$3,$4)`, refundID, l.OrderLineNo, l.Quantity, l.AmountCents); err != nil {
+			return "", err
+		}
+	}
+	if p.Ledger != nil {
+		p.Ledger.RefundID = refundID
+		posted, err := postBatchTx(ctx, tx, *p.Ledger)
+		if err != nil {
+			return "", err
+		}
+		// A rider chargeback reverses the rider's earnings with a CLAWBACK
+		// line in the same transaction (rider_earnings.go).
+		if err := writeRiderClawbacksTx(ctx, tx, *p.Ledger, posted); err != nil {
+			return "", err
+		}
+	}
+	return refundID, nil
 }
 
 // RefundRow is a refund read back for the API.
@@ -732,8 +723,23 @@ func ledgerBatchPosted(ctx context.Context, q rowQuerier, idempotencyKey string)
 }
 
 func insertBatch(ctx context.Context, tx pgx.Tx, b LedgerBatch) error {
+	_, err := postBatchTx(ctx, tx, b)
+	return err
+}
+
+// postedBatch is a batch this call wrote: its id and its entries' ids, in the
+// order of LedgerBatch.Entries.
+type postedBatch struct {
+	ID       string
+	EntryIDs []int64
+}
+
+// postBatchTx inserts a balanced batch and its entries. A batch whose
+// idempotency key is already posted is a no-op and returns nil, so a caller
+// that writes rows alongside the batch (rider earnings) writes them once.
+func postBatchTx(ctx context.Context, tx pgx.Tx, b LedgerBatch) (*postedBatch, error) {
 	if !b.Balanced() {
-		return fmt.Errorf("refusing to post unbalanced batch (residual=%d, entries=%d)", b.Residual(), len(b.Entries))
+		return nil, fmt.Errorf("refusing to post unbalanced batch (residual=%d, entries=%d)", b.Residual(), len(b.Entries))
 	}
 	var batchID string
 	err := tx.QueryRow(ctx, `
@@ -745,22 +751,26 @@ func insertBatch(ctx context.Context, tx pgx.Tx, b LedgerBatch) error {
 		b.IdempotencyKey, b.PostedBy, nullStr(b.Memo)).Scan(&batchID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Duplicate idempotency key: the batch is already posted. No-op.
-		return nil
+		return nil, nil
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
+	posted := &postedBatch{ID: batchID, EntryIDs: make([]int64, 0, len(b.Entries))}
 	for _, e := range b.Entries {
-		if _, err := tx.Exec(ctx, `
+		var id int64
+		if err := tx.QueryRow(ctx, `
 			INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, counterparty_id,
 			                          amount_cents, component, memo)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			RETURNING id`,
 			batchID, nullUUID(b.OrderID), string(e.Account), nullStr(string(e.CounterpartyType)),
-			nullUUID(e.CounterpartyID), e.AmountCents, string(e.Component), nullStr(e.Memo)); err != nil {
-			return err
+			nullUUID(e.CounterpartyID), e.AmountCents, string(e.Component), nullStr(e.Memo)).Scan(&id); err != nil {
+			return nil, err
 		}
+		posted.EntryIDs = append(posted.EntryIDs, id)
 	}
-	return nil
+	return posted, nil
 }
 
 // ---------------------------------------------------------------------------

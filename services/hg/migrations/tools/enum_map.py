@@ -206,6 +206,17 @@ EXCLUSIONS = {
     "RefundApprovalRequest/properties/status":
         "Approval sub-state of refund_state; stored on refund.approval_status as a "
         "CHECK-constrained text to avoid a near-duplicate type.",
+    "RefundRequesterKind":
+        "Derived per read: CUSTOMER when refund.requested_by is the order's own account, "
+        "STAFF otherwise. Not stored.",
+    "ChargebackStatus":
+        "Stripe's dispute status, stored as Stripe sends it (lower case text) on "
+        "chargeback.state and chargeback.outcome; upper-cased at the API boundary.",
+    "MoneyEventKind":
+        "The admin order view's money timeline, derived per read from payment_intent, "
+        "refund, chargeback and audit_event rows. Not stored.",
+    "MoneyEvent/properties/actor_kind":
+        "audit_event.actor_kind's CHECK-constrained text values, read through. Not a type.",
     "RestaurantStaffUser/properties/role":
         "Restaurant-scoped subset of role_name; stored as an account_role grant.",
     "PayoutPayeeType":

@@ -1,7 +1,7 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-09-28
+reviewed: 2026-10-05
 ---
 
 # Restaurant app — live updates and rider map
@@ -70,7 +70,9 @@ On orders with an assigned rider (READY_FOR_PICKUP and the approach to pickup), 
 
 Alongside the map: rider first name, vehicle, pickup ETA (from `order.eta_updated` / `dispatch.assigned`, never computed), and **Rider arrived** when that state arrives.
 
-Engine and styles follow `apps/admin/src/components/LiveMapBox.tsx` (`mapbox-gl`, `VITE_MAPBOX_TOKEN`). Without a token the map renders its empty state and the text facts still show. Colours obey the halal colour rules: no solid green outside `color.halal.*`.
+Engine and styles: the shared `LiveMap` in `packages/ui-web/src/live/` (`mapbox-gl`, `VITE_MAPBOX_TOKEN`), used by the admin maps too. Without a token the map renders its empty state and the text facts still show. Colours obey the halal colour rules: no solid green outside `color.halal.*`.
+
+> **2026-10-05 — built** (`apps/restaurant/src/components/RiderApproachMap.tsx`, owner request for live maps at launch). The socket (`src/lib/realtime.tsx`) carries only the `order:{id}` channels of cards with an assigned rider; the queue itself still polls every 7 s, so the queue-side events in [events are signals](#4-events-are-signals-rest-is-truth) remain to do. The contract has no restaurant-scoped REST read of the rider's position, so with the socket down the map keeps the last fix, aged, and says it is reconnecting.
 
 > **2026-10-01:** Mapbox is SaaS, which [the self-hosted, open-source rule](../../decisions/README.md#settled--platform-decisions-owner-2026-10-01) now rules out. Replacing it is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
 

@@ -73,7 +73,7 @@ jobs:
           distribution: temurin
           java-version: 17
       - name: Environments, versions and app identities
-        run: node --test scripts/release/app-env.test.cjs
+        run: node --test scripts/release/app-env.test.cjs scripts/release/mapbox.test.cjs
       - name: The owner's release-key script, against a stand-in gh
         run: bash scripts/release/make-android-keystore.test.sh
 
@@ -228,9 +228,20 @@ jobs:
       - name: Set the environment
         run: node scripts/release/app-env.cjs "$APP_ENV" --print | tee -a "$GITHUB_ENV"
 
+      # RNMAPBOX_MAPS_DOWNLOAD_TOKEN (secret `sk.`, DOWNLOADS:READ) is set on the two steps that
+      # need it and no others: prebuild decides from it whether to add the Mapbox plugin, and
+      # Gradle reads it to fetch Mapbox's native SDK. Without the secret the module stays out of
+      # the build and the app shows its ETA-only fallback; the build still passes (scripts/release/mapbox.cjs).
       - name: Generate the native project
         working-directory: apps/${{ env.APP }}
+        env:
+          RNMAPBOX_MAPS_DOWNLOAD_TOKEN: ${{ secrets.RNMAPBOX_MAPS_DOWNLOAD_TOKEN }}
         run: |
+          if [ -n "$RNMAPBOX_MAPS_DOWNLOAD_TOKEN" ]; then
+            echo "Mapbox native SDK: linked (download token present)."
+          else
+            echo "::notice title=Mapbox native SDK left out::RNMAPBOX_MAPS_DOWNLOAD_TOKEN is not set, so the app is built without the live map and shows the ETA only."
+          fi
           pnpm exec expo prebuild --platform android --no-install
           # Room for Gradle and Kotlin on a small runner.
           printf '\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError\norg.gradle.workers.max=2\n' \
@@ -249,6 +260,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ env.PROD == 'true' && secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
           ANDROID_KEY_ALIAS: ${{ env.PROD == 'true' && secrets.ANDROID_KEY_ALIAS || '' }}
           ANDROID_KEY_PASSWORD: ${{ env.PROD == 'true' && secrets.ANDROID_KEY_PASSWORD || '' }}
+          RNMAPBOX_MAPS_DOWNLOAD_TOKEN: ${{ secrets.RNMAPBOX_MAPS_DOWNLOAD_TOKEN }}
         run: |
           if [ "$PROD" = true ]; then
             # Real phones only: 64-bit and 32-bit ARM.

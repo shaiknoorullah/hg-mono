@@ -7,6 +7,8 @@ build/
 *.log
 .DS_Store
 tmp/
+# End-to-end runs (tools/e2e): screenshots, reports, logs, the run's world.json
+e2e-out/
 bin/
 vendor/
 .idea/

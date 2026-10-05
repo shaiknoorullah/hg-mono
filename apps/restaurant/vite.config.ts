@@ -16,6 +16,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    chunkSizeWarningLimit: 1500,
+    // mapbox-gl is ~1.9 MB minified; it is a lazy chunk loaded only when a rider map shows.
+    chunkSizeWarningLimit: 2000,
   },
 });

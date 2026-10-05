@@ -254,9 +254,10 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 
 // Login implements login. Argon2id verification, status check, TOTP where
 // enrolled, Postgres-backed lockout. Per-IP and per-email request limits answer
-// 429 with Retry-After; they fail open when Redis is down (the lockout does not
-// live in Redis), so the limiter never makes login answer 503. The only 503 is
-// password hashing at capacity, which is reached only after the limits pass.
+// 429 with Retry-After; when Redis is down they count in this replica's memory
+// instead (FallBackLocally; the lockout does not live in Redis), so the limiter
+// never makes login answer 503. The only 503 is password hashing at capacity,
+// which is reached only after the limits pass.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	client, ok := clientSurface(r)
 	if !ok {
@@ -345,10 +346,17 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName, clientIPPtr(r))
+	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName,
+		httpx.RateLimitKey(httpx.ClientIP(r)))
 	switch {
 	case errors.Is(err, ErrRateLimited):
 		failRateLimited(w, r, err, "Too many sign-ups from this network. Please wait before trying again.")
+		return
+	case errors.Is(err, ErrLimiterUnavailable):
+		// Only the email limits fail closed here (email_limits.go): with no
+		// counter, no verification email, so no account is created either.
+		httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeRateLimiterUnavailable,
+			"Sign-up is briefly unavailable. Please try again shortly.", nil)
 		return
 	case errors.Is(err, ErrEmailInUse):
 		httpx.Fail(w, r, http.StatusConflict, CodeEmailAlreadyRegistered,
@@ -419,7 +427,7 @@ func (h *Handler) ResendEmailVerification(w http.ResponseWriter, r *http.Request
 			"A valid email is required.", nil)
 		return
 	}
-	if err := h.svc.ResendEmailVerification(r.Context(), in.Email); errors.Is(err, ErrRateLimited) {
+	if err := h.svc.ResendEmailVerification(r.Context(), in.Email, httpx.RateLimitKey(httpx.ClientIP(r))); errors.Is(err, ErrRateLimited) {
 		failRateLimited(w, r, err, "Please wait before requesting another email.")
 		return
 	}
@@ -435,7 +443,7 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 			"A valid email is required.", nil)
 		return
 	}
-	_ = h.svc.RequestPasswordReset(r.Context(), in.Email)
+	_ = h.svc.RequestPasswordReset(r.Context(), in.Email, httpx.RateLimitKey(httpx.ClientIP(r)))
 	httpx.Respond(w, r, http.StatusOK, wireAcknowledgement{Acknowledged: true})
 }
 

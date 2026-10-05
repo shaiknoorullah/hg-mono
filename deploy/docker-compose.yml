@@ -10,6 +10,8 @@
 #   * The API runs 2 replicas and Traefik load-balances them. Anything that only
 #     works with one replica — in-memory sessions, a local rate-limit counter, a
 #     per-process WebSocket registry — breaks here rather than in production.
+#     (The sign-in limits count in each replica's memory only while Redis is
+#     down, so a caller then gets at most twice a limit; that is by design.)
 #   * Every dependency is addressed by its compose service name, never by
 #     localhost. G-7 refuses to boot on a loopback dependency outside local, and
 #     /debug/deps shows the address actually connected to.
@@ -69,9 +71,53 @@ x-api-env: &api-env
   HG_AUTH_SIGNING_KID: ${HG_AUTH_SIGNING_KID:-k1}
   HG_AUTH_TERMS_VERSION: ${HG_AUTH_TERMS_VERSION:-2026-01}
   HG_APP_DATA_KEY: ${HG_APP_DATA_KEY:-}
+  HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: ${HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS:-0}
+  # Rider pay the owner has not settled (#164); the default is the documented
+  # behaviour.
+  HG_RIDER_TIP_MAKEUP: ${HG_RIDER_TIP_MAKEUP:-false}
   HG_AUTH_HASH_CONCURRENCY: ${HG_AUTH_HASH_CONCURRENCY:-3}
   HG_AUTH_HASH_WAIT: ${HG_AUTH_HASH_WAIT:-2s}
   HG_AUTH_HASH_MAX_WAITERS: ${HG_AUTH_HASH_MAX_WAITERS:-}
+
+  # Email (internal/notify). Optional: with no Resend key the API logs every
+  # email instead of sending it, and outside production only allow-listed
+  # addresses are ever really emailed (see .env.example).
+  HG_EMAIL_PROVIDER: ${HG_EMAIL_PROVIDER:-}
+  HG_RESEND_API_KEY: ${HG_RESEND_API_KEY:-}
+  HG_EMAIL_FROM: ${HG_EMAIL_FROM:-}
+  HG_EMAIL_REPLY_TO: ${HG_EMAIL_REPLY_TO:-}
+  HG_EMAIL_ALLOWLIST: ${HG_EMAIL_ALLOWLIST:-}
+  HG_RESTAURANT_WEB_URL: ${HG_RESTAURANT_WEB_URL:-http://localhost:5183}
+  HG_ADMIN_WEB_URL: ${HG_ADMIN_WEB_URL:-http://localhost:5175}
+
+  # Payments (internal/payments). Without a secret key the payment routes answer 503.
+  HG_STRIPE_SECRET_KEY: ${HG_STRIPE_SECRET_KEY:-}
+  HG_STRIPE_WEBHOOK_SECRET: ${HG_STRIPE_WEBHOOK_SECRET:-}
+  HG_STRIPE_CONNECT_RETURN_URL: ${HG_STRIPE_CONNECT_RETURN_URL:-}
+  HG_STRIPE_CONNECT_REFRESH_URL: ${HG_STRIPE_CONNECT_REFRESH_URL:-}
+
+  # Phone sign-in (internal/auth): the SMS sender and Twilio Verify.
+  HG_SMS_PROVIDER: ${HG_SMS_PROVIDER:-}
+  HG_OTP_PROVIDER: ${HG_OTP_PROVIDER:-}
+  HG_TWILIO_ACCOUNT_SID: ${HG_TWILIO_ACCOUNT_SID:-}
+  HG_TWILIO_AUTH_TOKEN: ${HG_TWILIO_AUTH_TOKEN:-}
+  HG_TWILIO_FROM_NUMBER: ${HG_TWILIO_FROM_NUMBER:-}
+  HG_TWILIO_MESSAGING_SERVICE_SID: ${HG_TWILIO_MESSAGING_SERVICE_SID:-}
+  HG_TWILIO_VERIFY_SERVICE_SID: ${HG_TWILIO_VERIFY_SERVICE_SID:-}
+  HG_TWILIO_VERIFY_CHANNEL: ${HG_TWILIO_VERIFY_CHANNEL:-}
+
+  # Tax (internal/orders/pricing): HST registration, once there is one.
+  HG_TAX_HST_REGISTRATION_NUMBER: ${HG_TAX_HST_REGISTRATION_NUMBER:-}
+  HG_TAX_PLATFORM_LEGAL_NAME: ${HG_TAX_PLATFORM_LEGAL_NAME:-}
+
+  # Object storage buckets and public base URL; empty keeps the code's defaults.
+  HG_MINIO_BUCKET_KYC: ${HG_MINIO_BUCKET_KYC:-}
+  HG_MINIO_BUCKET_MEDIA: ${HG_MINIO_BUCKET_MEDIA:-}
+  HG_MINIO_BUCKET_POD: ${HG_MINIO_BUCKET_POD:-}
+  HG_MINIO_BUCKET_EXPORTS: ${HG_MINIO_BUCKET_EXPORTS:-}
+  HG_MINIO_BUCKET_TMP: ${HG_MINIO_BUCKET_TMP:-}
+  HG_MINIO_PUBLIC_BASE_URL: ${HG_MINIO_PUBLIC_BASE_URL:-}
+  HG_POSTGRES_CONNECT_TIMEOUT: ${HG_POSTGRES_CONNECT_TIMEOUT:-}
 
 services:
   # ---------------------------------------------------------------------------
@@ -157,6 +203,28 @@ services:
       - traefik.http.routers.hg-internal.service=hg-api
       - traefik.http.routers.hg-internal.middlewares=hg-internal-only@docker
       - traefik.http.middlewares.hg-internal-only.ipallowlist.sourcerange=127.0.0.1/32
+
+      # Sign-in router: the same service with a per-address limit at the edge,
+      # on every /v1/auth/ route (restaurant sign-up is /v1/auth/register/restaurant).
+      # A backstop against floods, independent of Redis, not the real limits:
+      # the API's own per-address limits are 30 logins and 20 sign-in codes per
+      # 15 minutes and 5 sign-ups an hour, and they hold, counted per replica,
+      # while Redis is down (docs/spec/01-platform.md, "P-38 — Rate limiting").
+      # 120 a minute with bursts of 60 is far above any of them, so households,
+      # offices and phone carriers sharing one address are never stopped here.
+      # The address is the connection's own, never X-Forwarded-For, which only a
+      # client could have written: Traefik is the edge, with nothing in front.
+      # IPv6 is counted per /64, as the API counts it. Until IPv6 clients reach
+      # Traefik with their own address (issue #267), they share one bucket here.
+      - traefik.http.routers.hg-auth.rule=PathPrefix(`/v1/auth/`)
+      - traefik.http.routers.hg-auth.entrypoints=web
+      - traefik.http.routers.hg-auth.priority=5
+      - traefik.http.routers.hg-auth.service=hg-api
+      - traefik.http.routers.hg-auth.middlewares=hg-auth-ratelimit@docker
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.average=120
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.period=1m
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.burst=60
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.sourcecriterion.ipstrategy.ipv6subnet=64
 
       - traefik.http.services.hg-api.loadbalancer.server.port=8080
       # Traefik polls readiness and pulls an unready replica out of rotation —

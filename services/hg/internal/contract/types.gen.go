@@ -219,6 +219,45 @@ func (e CartLineAvailabilityReason) Valid() bool {
 	}
 }
 
+// Defines values for ChargebackStatus.
+const (
+	ChargebackStatusCHARGEREFUNDED       ChargebackStatus = "CHARGE_REFUNDED"
+	ChargebackStatusLOST                 ChargebackStatus = "LOST"
+	ChargebackStatusNEEDSRESPONSE        ChargebackStatus = "NEEDS_RESPONSE"
+	ChargebackStatusPREVENTED            ChargebackStatus = "PREVENTED"
+	ChargebackStatusUNDERREVIEW          ChargebackStatus = "UNDER_REVIEW"
+	ChargebackStatusWARNINGCLOSED        ChargebackStatus = "WARNING_CLOSED"
+	ChargebackStatusWARNINGNEEDSRESPONSE ChargebackStatus = "WARNING_NEEDS_RESPONSE"
+	ChargebackStatusWARNINGUNDERREVIEW   ChargebackStatus = "WARNING_UNDER_REVIEW"
+	ChargebackStatusWON                  ChargebackStatus = "WON"
+)
+
+// Valid indicates whether the value is a known member of the ChargebackStatus enum.
+func (e ChargebackStatus) Valid() bool {
+	switch e {
+	case ChargebackStatusCHARGEREFUNDED:
+		return true
+	case ChargebackStatusLOST:
+		return true
+	case ChargebackStatusNEEDSRESPONSE:
+		return true
+	case ChargebackStatusPREVENTED:
+		return true
+	case ChargebackStatusUNDERREVIEW:
+		return true
+	case ChargebackStatusWARNINGCLOSED:
+		return true
+	case ChargebackStatusWARNINGNEEDSRESPONSE:
+		return true
+	case ChargebackStatusWARNINGUNDERREVIEW:
+		return true
+	case ChargebackStatusWON:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientSurface.
 const (
 	ClientSurfaceAdminWeb      ClientSurface = "admin-web"
@@ -795,6 +834,7 @@ const (
 	ErrorCodeOFFERWITHDRAWN                 ErrorCode = "OFFER_WITHDRAWN"
 	ErrorCodeONBOARDINGINCOMPLETE           ErrorCode = "ONBOARDING_INCOMPLETE"
 	ErrorCodeORDERCANCELLED                 ErrorCode = "ORDER_CANCELLED"
+	ErrorCodeORDERINGPAUSED                 ErrorCode = "ORDERING_PAUSED"
 	ErrorCodeORIGINNOTALLOWED               ErrorCode = "ORIGIN_NOT_ALLOWED"
 	ErrorCodeOTPINCORRECT                   ErrorCode = "OTP_INCORRECT"
 	ErrorCodeOTPINVALIDOREXPIRED            ErrorCode = "OTP_INVALID_OR_EXPIRED"
@@ -1044,6 +1084,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeONBOARDINGINCOMPLETE:
 		return true
 	case ErrorCodeORDERCANCELLED:
+		return true
+	case ErrorCodeORDERINGPAUSED:
 		return true
 	case ErrorCodeORIGINNOTALLOWED:
 		return true
@@ -1887,6 +1929,87 @@ func (e MenuVersionDecisionInputDecision) Valid() bool {
 	case MenuVersionDecisionInputDecisionAPPROVE:
 		return true
 	case MenuVersionDecisionInputDecisionREJECT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MoneyEventActorKind.
+const (
+	MoneyEventActorKindACCOUNT MoneyEventActorKind = "ACCOUNT"
+	MoneyEventActorKindJOB     MoneyEventActorKind = "JOB"
+	MoneyEventActorKindSYSTEM  MoneyEventActorKind = "SYSTEM"
+	MoneyEventActorKindWEBHOOK MoneyEventActorKind = "WEBHOOK"
+)
+
+// Valid indicates whether the value is a known member of the MoneyEventActorKind enum.
+func (e MoneyEventActorKind) Valid() bool {
+	switch e {
+	case MoneyEventActorKindACCOUNT:
+		return true
+	case MoneyEventActorKindJOB:
+		return true
+	case MoneyEventActorKindSYSTEM:
+		return true
+	case MoneyEventActorKindWEBHOOK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MoneyEventKind.
+const (
+	CHARGEBACKCLOSED       MoneyEventKind = "CHARGEBACK_CLOSED"
+	CHARGEBACKEVIDENCENOTE MoneyEventKind = "CHARGEBACK_EVIDENCE_NOTE"
+	CHARGEBACKOPENED       MoneyEventKind = "CHARGEBACK_OPENED"
+	CHARGEBACKUPDATED      MoneyEventKind = "CHARGEBACK_UPDATED"
+	PAYMENTAUTHORISED      MoneyEventKind = "PAYMENT_AUTHORISED"
+	PAYMENTCAPTURED        MoneyEventKind = "PAYMENT_CAPTURED"
+	PAYMENTVOIDED          MoneyEventKind = "PAYMENT_VOIDED"
+	REFUNDAPPROVED         MoneyEventKind = "REFUND_APPROVED"
+	REFUNDDECLINED         MoneyEventKind = "REFUND_DECLINED"
+	REFUNDESCALATED        MoneyEventKind = "REFUND_ESCALATED"
+	REFUNDFAILED           MoneyEventKind = "REFUND_FAILED"
+	REFUNDREQUESTED        MoneyEventKind = "REFUND_REQUESTED"
+	REFUNDSETASIDE         MoneyEventKind = "REFUND_SET_ASIDE"
+	REFUNDSUBMITTED        MoneyEventKind = "REFUND_SUBMITTED"
+	REFUNDSUCCEEDED        MoneyEventKind = "REFUND_SUCCEEDED"
+)
+
+// Valid indicates whether the value is a known member of the MoneyEventKind enum.
+func (e MoneyEventKind) Valid() bool {
+	switch e {
+	case CHARGEBACKCLOSED:
+		return true
+	case CHARGEBACKEVIDENCENOTE:
+		return true
+	case CHARGEBACKOPENED:
+		return true
+	case CHARGEBACKUPDATED:
+		return true
+	case PAYMENTAUTHORISED:
+		return true
+	case PAYMENTCAPTURED:
+		return true
+	case PAYMENTVOIDED:
+		return true
+	case REFUNDAPPROVED:
+		return true
+	case REFUNDDECLINED:
+		return true
+	case REFUNDESCALATED:
+		return true
+	case REFUNDFAILED:
+		return true
+	case REFUNDREQUESTED:
+		return true
+	case REFUNDSETASIDE:
+		return true
+	case REFUNDSUBMITTED:
+		return true
+	case REFUNDSUCCEEDED:
 		return true
 	default:
 		return false
@@ -2868,6 +2991,24 @@ func (e RefundReasonCode) Valid() bool {
 	case RefundReasonCodeWRONGITEM:
 		return true
 	case RefundReasonCodeWRONGITEMS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RefundRequesterKind.
+const (
+	RefundRequesterKindCUSTOMER RefundRequesterKind = "CUSTOMER"
+	RefundRequesterKindSTAFF    RefundRequesterKind = "STAFF"
+)
+
+// Valid indicates whether the value is a known member of the RefundRequesterKind enum.
+func (e RefundRequesterKind) Valid() bool {
+	switch e {
+	case RefundRequesterKindCUSTOMER:
+		return true
+	case RefundRequesterKindSTAFF:
 		return true
 	default:
 		return false
@@ -3914,19 +4055,19 @@ func (e TaxKind) Valid() bool {
 
 // Defines values for TrackingHealth.
 const (
-	DEGRADED TrackingHealth = "DEGRADED"
-	HEALTHY  TrackingHealth = "HEALTHY"
-	LOST     TrackingHealth = "LOST"
+	TrackingHealthDEGRADED TrackingHealth = "DEGRADED"
+	TrackingHealthHEALTHY  TrackingHealth = "HEALTHY"
+	TrackingHealthLOST     TrackingHealth = "LOST"
 )
 
 // Valid indicates whether the value is a known member of the TrackingHealth enum.
 func (e TrackingHealth) Valid() bool {
 	switch e {
-	case DEGRADED:
+	case TrackingHealthDEGRADED:
 		return true
-	case HEALTHY:
+	case TrackingHealthHEALTHY:
 		return true
-	case LOST:
+	case TrackingHealthLOST:
 		return true
 	default:
 		return false
@@ -4131,6 +4272,85 @@ type AdminOrderCancellationInput struct {
 	RefundKind *RefundKind `json:"refund_kind,omitempty"`
 }
 
+// AdminRefund A refund as staff see it: the money, who bears it, who asked, and every decision with
+// who took it and why ([refund requests and their review, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+// `amount_cents` and the split are the server's calculation, the same one approval
+// posts to the ledger.
+type AdminRefund struct {
+	// AmountCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	AmountCents Cents `json:"amount_cents"`
+
+	// ApprovalRequiredRole While `PENDING_APPROVAL`: the role that must decide it (a super admin always may).
+	ApprovalRequiredRole *Role               `json:"approval_required_role,omitempty"`
+	ApprovedAt           *time.Time          `json:"approved_at,omitempty"`
+	ApprovedBy           *openapi_types.UUID `json:"approved_by,omitempty"`
+
+	// Currency CAD only at V0. Present on every monetary object so V2 multi-currency is additive.
+	Currency Currency `json:"currency"`
+
+	// DecisionReason The staff reason for the last decision. Never shown to the customer.
+	DecisionReason *string             `json:"decision_reason,omitempty"`
+	DeclinedAt     *time.Time          `json:"declined_at,omitempty"`
+	DeclinedBy     *openapi_types.UUID `json:"declined_by,omitempty"`
+	EscalatedAt    *time.Time          `json:"escalated_at,omitempty"`
+
+	// EscalatedBy The member of staff who sent it up for a second person. They may not approve it.
+	EscalatedBy    *openapi_types.UUID `json:"escalated_by,omitempty"`
+	FailureMessage *string             `json:"failure_message,omitempty"`
+	Id             openapi_types.UUID  `json:"id"`
+
+	// Kind P-18. The caller sends **no amount** for `FULL`, `PARTIAL_ITEMS` or `FEES_ONLY` — the
+	// server computes it from the order. `GOODWILL` is the only kind that carries an
+	// explicit amount, and it is capped, action-gated and dual-approved above CAD 50.00.
+	Kind RefundKind `json:"kind"`
+
+	// LiabilitySplit P-18 / A-33. Computed at authorisation from the reason code and stored, because this
+	// table is what makes the ledger balance and what the bearing party may dispute.
+	LiabilitySplit RefundLiabilitySplit `json:"liability_split"`
+
+	// Note What the person who asked wrote.
+	Note *string `json:"note,omitempty"`
+
+	// OrderCode The human-quotable order code, e.g. `HG-8F3K2Q`.
+	OrderCode string             `json:"order_code"`
+	OrderId   openapi_types.UUID `json:"order_id"`
+
+	// ReasonCode P-18 §"who is charged back" and A-33. Each code determines the liability split
+	// (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
+	// the table is what makes the ledger balance. The specs enumerate overlapping sets; this
+	// is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+	ReasonCode RefundReasonCode `json:"reason_code"`
+
+	// RequestedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	RequestedAt Timestamp          `json:"requested_at"`
+	RequestedBy openapi_types.UUID `json:"requested_by"`
+
+	// RequesterKind Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
+	// request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
+	// after acceptance).
+	RequesterKind RefundRequesterKind `json:"requester_kind"`
+	Scope         *RefundScope        `json:"scope,omitempty"`
+	SettledAt     *time.Time          `json:"settled_at,omitempty"`
+
+	// State P-18 / A-33. `SETTLED`/`SUCCEEDED` is terminal and irreversible — there is no
+	// "unrefund". A `FAILED` refund pages on-call, keeps the order out of `COMPLETED`, and
+	// shows the customer "refund in progress", never "refunded".
+	State RefundState `json:"state"`
+
+	// TaxCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	TaxCents Cents `json:"tax_cents"`
+}
+
 // AdminRefundInput `amount_cents` is the **only** inbound monetary field on any staff route and is
 // accepted solely with `scope: PARTIAL_AMOUNT` and `reason_code: GOODWILL` (G-3's
 // explicit allowlist). For every other scope the amount is computed from the order and
@@ -4318,8 +4538,9 @@ type Cart struct {
 
 	// IsQuotable False when any line is unavailable, the restaurant is closed, the restaurant cannot
 	// take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
-	// is not current), or no address is selected. A cart whose restaurant becomes
-	// unavailable is kept, never emptied on the customer's behalf.
+	// is not current), no address is selected, or staff have paused new orders
+	// platform-wide (`ORDERING_PAUSED` in `blocking_reasons`). A cart whose restaurant
+	// becomes unavailable is kept, never emptied on the customer's behalf.
 	IsQuotable bool `json:"is_quotable"`
 
 	// ItemCount Sum of quantities, not the number of distinct lines.
@@ -4428,6 +4649,75 @@ type CertificationPanel struct {
 	Scope      *HalalCertificateScope `json:"scope,omitempty"`
 	VerifiedAt *time.Time             `json:"verified_at,omitempty"`
 }
+
+// Chargeback A dispute the customer raised with their bank, as Stripe reported it, with the evidence
+// staff have gathered ([chargebacks, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+// While open it is on the clock of its evidence deadline.
+type Chargeback struct {
+	// AmountCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	AmountCents Cents `json:"amount_cents"`
+
+	// Currency CAD only at V0. Present on every monetary object so V2 multi-currency is additive.
+	Currency Currency `json:"currency"`
+
+	// DeadlineAt The clock this chargeback is on while open: the evidence deadline, or a week when Stripe gave none.
+	DeadlineAt *time.Time `json:"deadline_at,omitempty"`
+
+	// EvidenceDueAt The deadline Stripe gives for evidence.
+	EvidenceDueAt *time.Time `json:"evidence_due_at,omitempty"`
+
+	// EvidenceNotes Oldest first.
+	EvidenceNotes       []ChargebackEvidenceNote `json:"evidence_notes"`
+	EvidenceSubmittedAt *time.Time               `json:"evidence_submitted_at,omitempty"`
+	Id                  openapi_types.UUID       `json:"id"`
+
+	// OpenedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	OpenedAt  Timestamp          `json:"opened_at"`
+	OrderCode string             `json:"order_code"`
+	OrderId   openapi_types.UUID `json:"order_id"`
+
+	// Outcome The closing status once Stripe has closed the dispute; null while it is open.
+	Outcome *ChargebackStatus `json:"outcome,omitempty"`
+
+	// Reason The bank's reason as Stripe reports it, e.g. `fraudulent`, `product_not_received`.
+	Reason *string `json:"reason,omitempty"`
+
+	// Status Stripe's dispute status, upper-cased. Open: `WARNING_NEEDS_RESPONSE`,
+	// `WARNING_UNDER_REVIEW`, `NEEDS_RESPONSE`, `UNDER_REVIEW`. Closed: `WARNING_CLOSED`,
+	// `WON`, `LOST`, `PREVENTED`, `CHARGE_REFUNDED`. A status Stripe adds later is reported
+	// as `NEEDS_RESPONSE` while the dispute is open, so it is never quietly ignored.
+	Status          ChargebackStatus `json:"status"`
+	StripeDisputeId string           `json:"stripe_dispute_id"`
+
+	// UpdatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	UpdatedAt Timestamp `json:"updated_at"`
+}
+
+// ChargebackEvidenceNote defines model for ChargebackEvidenceNote.
+type ChargebackEvidenceNote struct {
+	AuthorAccountId openapi_types.UUID `json:"author_account_id"`
+	Body            string             `json:"body"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+}
+
+// ChargebackEvidenceNoteInput defines model for ChargebackEvidenceNoteInput.
+type ChargebackEvidenceNoteInput struct {
+	Body string `json:"body"`
+}
+
+// ChargebackStatus Stripe's dispute status, upper-cased. Open: `WARNING_NEEDS_RESPONSE`,
+// `WARNING_UNDER_REVIEW`, `NEEDS_RESPONSE`, `UNDER_REVIEW`. Closed: `WARNING_CLOSED`,
+// `WON`, `LOST`, `PREVENTED`, `CHARGE_REFUNDED`. A status Stripe adds later is reported
+// as `NEEDS_RESPONSE` while the dispute is open, so it is never quietly ignored.
+type ChargebackStatus string
 
 // ClientSurface defines model for ClientSurface.
 type ClientSurface string
@@ -5558,6 +5848,34 @@ type MenuVersionDecisionInput struct {
 // MenuVersionDecisionInputDecision defines model for MenuVersionDecisionInput.Decision.
 type MenuVersionDecisionInputDecision string
 
+// MoneyEvent One entry in the order's money timeline, with who caused it. Staff decisions carry
+// their reason.
+type MoneyEvent struct {
+	ActorAccountId *openapi_types.UUID `json:"actor_account_id,omitempty"`
+
+	// ActorKind `ACCOUNT` is a person (customer or staff); the others are the platform itself.
+	ActorKind   MoneyEventActorKind `json:"actor_kind"`
+	AmountCents *Cents              `json:"amount_cents,omitempty"`
+
+	// At RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	At           Timestamp           `json:"at"`
+	ChargebackId *openapi_types.UUID `json:"chargeback_id,omitempty"`
+
+	// Currency CAD only at V0. Present on every monetary object so V2 multi-currency is additive.
+	Currency Currency `json:"currency"`
+
+	// Kind One step in an order's money: its payment, each refund and each chargeback.
+	Kind     MoneyEventKind      `json:"kind"`
+	Reason   *string             `json:"reason,omitempty"`
+	RefundId *openapi_types.UUID `json:"refund_id,omitempty"`
+}
+
+// MoneyEventActorKind `ACCOUNT` is a person (customer or staff); the others are the platform itself.
+type MoneyEventActorKind string
+
+// MoneyEventKind One step in an order's money: its payment, each refund and each chargeback.
+type MoneyEventKind string
+
 // NextRoute A closed enum the client maps to a screen. Routing is a server decision; an unknown
 // value routes to "please update the app" rather than crashing.
 type NextRoute string
@@ -5674,14 +5992,17 @@ type OrderAdminView struct {
 	AcceptedAt *time.Time `json:"accepted_at,omitempty"`
 
 	// CanCancel Server-decided. True only while cancellation is free (before restaurant acceptance).
-	CanCancel            *bool                        `json:"can_cancel,omitempty"`
-	CancelReason         *OrderCancellationReasonCode `json:"cancel_reason,omitempty"`
-	Code                 string                       `json:"code"`
-	CompletedAt          *time.Time                   `json:"completed_at,omitempty"`
-	DeadlineAt           *time.Time                   `json:"deadline_at,omitempty"`
-	DeliveredAt          *time.Time                   `json:"delivered_at,omitempty"`
-	DeliveryAddress      *Address                     `json:"delivery_address,omitempty"`
-	DeliveryInstructions *[]DeliveryInstruction       `json:"delivery_instructions,omitempty"`
+	CanCancel    *bool                        `json:"can_cancel,omitempty"`
+	CancelReason *OrderCancellationReasonCode `json:"cancel_reason,omitempty"`
+
+	// Chargebacks The disputes the customer raised with their bank over this order.
+	Chargebacks          []Chargeback           `json:"chargebacks"`
+	Code                 string                 `json:"code"`
+	CompletedAt          *time.Time             `json:"completed_at,omitempty"`
+	DeadlineAt           *time.Time             `json:"deadline_at,omitempty"`
+	DeliveredAt          *time.Time             `json:"delivered_at,omitempty"`
+	DeliveryAddress      *Address               `json:"delivery_address,omitempty"`
+	DeliveryInstructions *[]DeliveryInstruction `json:"delivery_instructions,omitempty"`
 
 	// DestinationLocation The delivery address coordinates, for LiveMapBox.
 	DestinationLocation *GeoPoint `json:"destination_location,omitempty"`
@@ -5710,9 +6031,14 @@ type OrderAdminView struct {
 	Lines         []OrderLine        `json:"lines"`
 
 	// Money The frozen copy of the quote's customer-facing decomposition. Renders in the fixed P-10 order.
-	Money      OrderMoney   `json:"money"`
-	Payment    OrderPayment `json:"payment"`
-	PickedUpAt *time.Time   `json:"picked_up_at,omitempty"`
+	Money OrderMoney `json:"money"`
+
+	// MoneyTimeline The payment, refund and chargeback history of this order, oldest first, with who
+	// caused each step and the reason staff gave
+	// ([order money timeline, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+	MoneyTimeline []MoneyEvent `json:"money_timeline"`
+	Payment       OrderPayment `json:"payment"`
+	PickedUpAt    *time.Time   `json:"picked_up_at,omitempty"`
 
 	// PiiRevealed True when the caller passed a justified reveal, which is itself audited.
 	PiiRevealed *bool `json:"pii_revealed,omitempty"`
@@ -6273,6 +6599,47 @@ type OrderTransition struct {
 	ToState OrderState `json:"to_state"`
 }
 
+// OrderingPause The staff view of the platform-wide pause on new orders (`getOrderingPause`,
+// `setOrderingPause`; [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+// The full history of changes is in the audit log, actions `ordering.pause` and
+// `ordering.resume`.
+type OrderingPause struct {
+	// ChangedAt When it was last changed. Null if nobody has changed it yet.
+	ChangedAt *time.Time `json:"changed_at"`
+
+	// ChangedBy The staff account that made the latest change. Null if nobody has changed it yet.
+	ChangedBy *openapi_types.UUID `json:"changed_by"`
+	Paused    bool                `json:"paused"`
+
+	// PausedSince When the current pause began. Null while ordering is open.
+	PausedSince *time.Time `json:"paused_since"`
+
+	// Reason The reason given with the latest change, pause or resume. Null if nobody has changed it yet.
+	Reason *string `json:"reason"`
+}
+
+// OrderingPauseInput defines model for OrderingPauseInput.
+type OrderingPauseInput struct {
+	// Paused `true` pauses new orders platform-wide; `false` resumes them.
+	Paused bool `json:"paused"`
+
+	// Reason Why, in words the next person on call understands. Recorded with the change and in the audit log.
+	//
+	// Examples: Stripe is refusing authorisations; pausing until their incident clears.
+	Reason string `json:"reason"`
+}
+
+// OrderingStatus The customer-facing view of the platform-wide pause on new orders
+// ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+// the reason staff typed is for staff, and the app shows its own fixed copy.
+type OrderingStatus struct {
+	// Paused True while staff have paused new orders: quotes and orders answer `409 ORDERING_PAUSED`.
+	Paused bool `json:"paused"`
+
+	// PausedSince When the current pause began. Null while ordering is open.
+	PausedSince *time.Time `json:"paused_since"`
+}
+
 // OtpChallenge defines model for OtpChallenge.
 type OtpChallenge struct {
 	ChallengeId openapi_types.UUID `json:"challenge_id"`
@@ -6812,6 +7179,11 @@ type PublicConfig struct {
 	// Examples: 4696
 	MaxTipCents Cents `json:"max_tip_cents"`
 
+	// Ordering The customer-facing view of the platform-wide pause on new orders
+	// ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+	// the reason staff typed is for staff, and the app shows its own fixed copy.
+	Ordering OrderingStatus `json:"ordering"`
+
 	// QuoteTtlSeconds 600. How long a quoted price is honoured before re-confirmation is required.
 	QuoteTtlSeconds int32 `json:"quote_ttl_seconds"`
 
@@ -7246,6 +7618,12 @@ type Refund struct {
 	TaxCents *Cents `json:"tax_cents,omitempty"`
 }
 
+// RefundApprovalInput Why the refund is approved. Kept on the refund and in the audit trail.
+type RefundApprovalInput struct {
+	CaseId     *openapi_types.UUID `json:"case_id,omitempty"`
+	ReasonText string              `json:"reason_text"`
+}
+
 // RefundApprovalRequest defines model for RefundApprovalRequest.
 type RefundApprovalRequest struct {
 	CaseId *openapi_types.UUID `json:"case_id,omitempty"`
@@ -7275,6 +7653,17 @@ type RefundApprovalRequest struct {
 
 // RefundApprovalRequestStatus defines model for RefundApprovalRequest.Status.
 type RefundApprovalRequestStatus string
+
+// RefundDeclineInput defines model for RefundDeclineInput.
+type RefundDeclineInput struct {
+	CaseId *openapi_types.UUID `json:"case_id,omitempty"`
+
+	// CustomerMessage What the customer is told, when they asked for the refund. A plain sentence is sent when absent.
+	CustomerMessage *string `json:"customer_message,omitempty"`
+
+	// ReasonText The staff reason. Kept on the refund and in the audit trail; never shown to the customer.
+	ReasonText string `json:"reason_text"`
+}
 
 // RefundInput `amount_cents` is **absent from this DTO entirely** — customer- and support-initiated
 // refunds never propose an amount. The admin `issueRefund` operation carries the single
@@ -7340,6 +7729,11 @@ type RefundLiabilitySplit struct {
 // the table is what makes the ledger balance. The specs enumerate overlapping sets; this
 // is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
 type RefundReasonCode string
+
+// RefundRequesterKind Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
+// request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
+// after acceptance).
+type RefundRequesterKind string
 
 // RefundScope defines model for RefundScope.
 type RefundScope string
@@ -8580,6 +8974,9 @@ type AssignmentIdPath = openapi_types.UUID
 // CertificateIdPath defines model for CertificateIdPath.
 type CertificateIdPath = openapi_types.UUID
 
+// ChargebackIdPath defines model for ChargebackIdPath.
+type ChargebackIdPath = openapi_types.UUID
+
 // ClientHeader defines model for ClientHeader.
 type ClientHeader = ClientSurface
 
@@ -8603,6 +9000,9 @@ type OfferIdPath = openapi_types.UUID
 
 // OrderIdPath defines model for OrderIdPath.
 type OrderIdPath = openapi_types.UUID
+
+// RefundIdPath defines model for RefundIdPath.
+type RefundIdPath = openapi_types.UUID
 
 // RestaurantIdPath defines model for RestaurantIdPath.
 type RestaurantIdPath = openapi_types.UUID
@@ -8630,6 +9030,30 @@ type ListAddressesParams struct {
 
 // CreateAddressParams defines parameters for CreateAddress.
 type CreateAddressParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ListChargebacksParams defines parameters for ListChargebacks.
+type ListChargebacksParams struct {
+	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Open `true`: only chargebacks Stripe has not closed. `false`: only closed ones.
+	Open    *bool               `form:"open,omitempty" json:"open,omitempty"`
+	OrderId *openapi_types.UUID `form:"order_id,omitempty" json:"order_id,omitempty"`
+}
+
+// AddChargebackEvidenceNoteParams defines parameters for AddChargebackEvidenceNote.
+type AddChargebackEvidenceNoteParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
 	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
 	// produce exactly one business effect; a replay returns the original status and body
@@ -8725,6 +9149,17 @@ type DecideMenuVersionParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// SetOrderingPauseParams defines parameters for SetOrderingPause.
+type SetOrderingPauseParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // ListOrdersAdminParams defines parameters for ListOrdersAdmin.
 type ListOrdersAdminParams struct {
 	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
@@ -8780,8 +9215,48 @@ type CreatePayoutRunParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// ListRefundsAdminParams defines parameters for ListRefundsAdmin.
+type ListRefundsAdminParams struct {
+	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// State Defaults to `REQUESTED,PENDING_APPROVAL`.
+	State          *[]RefundState      `form:"state,omitempty" json:"state,omitempty"`
+	ReasonCode     *[]RefundReasonCode `form:"reason_code,omitempty" json:"reason_code,omitempty"`
+	MinAmountCents *int64              `form:"min_amount_cents,omitempty" json:"min_amount_cents,omitempty"`
+	MaxAmountCents *int64              `form:"max_amount_cents,omitempty" json:"max_amount_cents,omitempty"`
+	RequestedFrom  *time.Time          `form:"requested_from,omitempty" json:"requested_from,omitempty"`
+	RequestedTo    *time.Time          `form:"requested_to,omitempty" json:"requested_to,omitempty"`
+	OrderId        *openapi_types.UUID `form:"order_id,omitempty" json:"order_id,omitempty"`
+}
+
 // IssueRefundParams defines parameters for IssueRefund.
 type IssueRefundParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ApproveRefundParams defines parameters for ApproveRefund.
+type ApproveRefundParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// DeclineRefundParams defines parameters for DeclineRefund.
+type DeclineRefundParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
 	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
 	// produce exactly one business effect; a replay returns the original status and body
@@ -9499,6 +9974,9 @@ type CreateAddressJSONRequestBody = AddressInput
 // UpdateAddressJSONRequestBody defines body for UpdateAddress for application/json ContentType.
 type UpdateAddressJSONRequestBody = AddressUpdateInput
 
+// AddChargebackEvidenceNoteJSONRequestBody defines body for AddChargebackEvidenceNote for application/json ContentType.
+type AddChargebackEvidenceNoteJSONRequestBody = ChargebackEvidenceNoteInput
+
 // RecordHalalChecksJSONRequestBody defines body for RecordHalalChecks for application/json ContentType.
 type RecordHalalChecksJSONRequestBody = HalalChecksInput
 
@@ -9517,6 +9995,9 @@ type SetHalalIssuingBodyStatusJSONRequestBody = HalalIssuingBodyStatusInput
 // DecideMenuVersionJSONRequestBody defines body for DecideMenuVersion for application/json ContentType.
 type DecideMenuVersionJSONRequestBody = MenuVersionDecisionInput
 
+// SetOrderingPauseJSONRequestBody defines body for SetOrderingPause for application/json ContentType.
+type SetOrderingPauseJSONRequestBody = OrderingPauseInput
+
 // CancelOrderAdminJSONRequestBody defines body for CancelOrderAdmin for application/json ContentType.
 type CancelOrderAdminJSONRequestBody = AdminOrderCancellationInput
 
@@ -9525,6 +10006,12 @@ type CreatePayoutRunJSONRequestBody = PayoutRunInput
 
 // IssueRefundJSONRequestBody defines body for IssueRefund for application/json ContentType.
 type IssueRefundJSONRequestBody = AdminRefundInput
+
+// ApproveRefundJSONRequestBody defines body for ApproveRefund for application/json ContentType.
+type ApproveRefundJSONRequestBody = RefundApprovalInput
+
+// DeclineRefundJSONRequestBody defines body for DeclineRefund for application/json ContentType.
+type DeclineRefundJSONRequestBody = RefundDeclineInput
 
 // DecideRestaurantApplicationJSONRequestBody defines body for DecideRestaurantApplication for application/json ContentType.
 type DecideRestaurantApplicationJSONRequestBody = RestaurantDecisionInput
