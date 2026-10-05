@@ -501,12 +501,19 @@ func stripeTestKey() string {
 }
 
 func paymentIntentID(clientSecret string) (string, error) {
-	const mark = "_secret_"
-	i := strings.Index(clientSecret, mark)
-	if i < 4 || !strings.HasPrefix(clientSecret, "pi_") {
+	if !strings.HasPrefix(clientSecret, "pi_") {
 		return "", errors.New("devworld: card confirm: client secret is not a payment intent secret")
 	}
-	return clientSecret[:i], nil
+	// Stripe's own client secret is pi_<id>_secret_<tail>. This API instead
+	// returns the intent id with a _secret suffix (cmd/hg/main.go).
+	if i := strings.Index(clientSecret, "_secret_"); i >= 4 {
+		return clientSecret[:i], nil
+	}
+	const suffix = "_secret"
+	if strings.HasSuffix(clientSecret, suffix) && len(clientSecret) > len("pi_")+len(suffix) {
+		return strings.TrimSuffix(clientSecret, suffix), nil
+	}
+	return "", errors.New("devworld: card confirm: client secret is not a payment intent secret")
 }
 
 var (

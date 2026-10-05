@@ -46,9 +46,11 @@ func TestRedactSecrets(t *testing.T) {
 }
 
 func TestPaymentIntentID(t *testing.T) {
-	id, err := paymentIntentID("pi_abc_secret_def")
-	if err != nil || id != "pi_abc" {
-		t.Fatalf("id %q err %v", id, err)
+	for _, secret := range []string{"pi_abc_secret_def", "pi_abc_secret"} {
+		id, err := paymentIntentID(secret)
+		if err != nil || id != "pi_abc" {
+			t.Fatalf("secret form %q -> id %q err %v", secret, id, err)
+		}
 	}
 	for _, bad := range []string{"not-a-secret", "pi_only", "seti_abc_secret_def"} {
 		if _, err := paymentIntentID(bad); err == nil || strings.Contains(err.Error(), bad) {
