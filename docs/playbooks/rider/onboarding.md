@@ -5,7 +5,7 @@ reviewed: 2026-10-05
 
 # Rider Playbook: Full Onboarding
 
-A brand-new rider goes from a first phone sign-in to online and offerable through the real API, using the [dev world simulator](../../superpowers/specs/2026-09-28-devworld-harness-design.md#61-catalogue). `make dev-scenario s=onboard-rider` plays both sides. As the rider it signs in with a fresh number from the local fixed-code range, then submits the profile, a bicycle and the two documents a bicycle needs, sets up payouts and goes online. As `admin-seed` it approves each document and the application. The browser step then checks what the rider sees in the rider app.
+A brand-new rider goes from a first phone sign-in to online and able to receive offers through the real API, using the [dev world simulator](../../superpowers/specs/2026-09-28-devworld-harness-design.md#61-catalogue). `make dev-scenario s=onboard-rider` plays both sides. As the rider it signs in with a fresh number from the local fixed-code range, then submits the profile, a bicycle and the two documents a bicycle needs, sets up payouts and goes online. As `admin-seed` it approves each document and the application. The browser step then checks what the rider sees in the rider app.
 
 The scenario writes no database row. Terminal commands run from `services/hg`.
 
