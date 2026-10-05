@@ -412,6 +412,16 @@ LAUNCH_ERRORS = [
         ["createMenuCategory", "updateMenuCategory", "createMenuCategoryOnBehalf"],
     ),
     (
+        "category_not_empty",
+        409,
+        "CATEGORY_NOT_EMPTY",
+        "Move or delete the 3 items in Desserts before deleting it.",
+        {"item_count": 3},
+        "`deleteMenuCategory` on a category that still holds items. Deleting a category "
+        "never deletes an item, so nothing changed; `details.item_count` says how many.",
+        ["deleteMenuCategory"],
+    ),
+    (
         "item_blocked_by_admin",
         403,
         "ITEM_BLOCKED_BY_ADMIN",
@@ -466,8 +476,10 @@ LAUNCH_ERRORS = [
         [
             "createMenuCategory",
             "updateMenuCategory",
+            "deleteMenuCategory",
             "createMenuItem",
             "updateMenuItem",
+            "deleteMenuItem",
             "setMenuItemAvailability",
             "createMenuCategoryOnBehalf",
             "createMenuItemOnBehalf",

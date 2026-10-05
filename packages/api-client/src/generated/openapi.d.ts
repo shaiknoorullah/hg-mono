@@ -2624,7 +2624,18 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete an empty menu category
+         * @description R-14, menu and category management (`docs/spec/03-restaurant.md`): the restaurant
+         *     deletes its own category. A soft delete: the category leaves the restaurant's menu
+         *     and every customer read at once, and its name is free to use again.
+         *
+         *     Only an empty category can be deleted. While it still holds an item that is not
+         *     deleted, the call is `409 CATEGORY_NOT_EMPTY` with `details.item_count`, and nothing
+         *     changes: move or delete the items first. Deleting a category never deletes an item.
+         *     A category that is not on the caller's menu, or is already deleted, is `404`.
+         */
+        delete: operations["deleteMenuCategory"];
         options?: never;
         head?: never;
         /**
@@ -2684,7 +2695,16 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete a menu item
+         * @description R-15, menu item authoring (`docs/spec/03-restaurant.md`): the restaurant deletes its
+         *     own item. A soft delete: the item leaves every customer read and the restaurant's
+         *     own menu at once. Nothing a customer already bought changes: order lines snapshot
+         *     their content and price, so an order in flight is unaffected. A version of the item
+         *     waiting for review is withdrawn and leaves the review queue. An item that is not on
+         *     the caller's menu, or is already deleted, is `404`.
+         */
+        delete: operations["deleteMenuItem"];
         options?: never;
         head?: never;
         /**
@@ -11849,6 +11869,46 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    deleteMenuCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoryId: components["parameters"]["MenuCategoryIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is deleted. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `CATEGORY_NOT_EMPTY`: the category still holds items; `details.item_count` says how many. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     updateMenuCategory: {
         parameters: {
             query?: never;
@@ -11949,6 +12009,37 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteMenuItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["MenuItemIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Item deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is deleted, and a version waiting in menu review stays as it is. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

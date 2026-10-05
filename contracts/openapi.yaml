@@ -3279,6 +3279,42 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         default:
           $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteMenuCategory
+      tags: [restaurant]
+      summary: Delete an empty menu category
+      description: |
+        R-14, menu and category management (`docs/spec/03-restaurant.md`): the restaurant
+        deletes its own category. A soft delete: the category leaves the restaurant's menu
+        and every customer read at once, and its name is free to use again.
+
+        Only an empty category can be deleted. While it still holds an item that is not
+        deleted, the call is `409 CATEGORY_NOT_EMPTY` with `details.item_count`, and nothing
+        changes: move or delete the items first. Deleting a category never deletes an item.
+        A category that is not on the caller's menu, or is already deleted, is `404`.
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/MenuCategoryIdPath'
+      responses:
+        '204':
+          description: Category deleted.
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is deleted.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          description: '`CATEGORY_NOT_EMPTY`: the category still holds items; `details.item_count` says how many.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
   /v1/restaurant/menu/items:
     post:
       operationId: createMenuItem
@@ -3371,6 +3407,34 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
         '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteMenuItem
+      tags: [restaurant]
+      summary: Delete a menu item
+      description: |
+        R-15, menu item authoring (`docs/spec/03-restaurant.md`): the restaurant deletes its
+        own item. A soft delete: the item leaves every customer read and the restaurant's
+        own menu at once. Nothing a customer already bought changes: order lines snapshot
+        their content and price, so an order in flight is unaffected. A version of the item
+        waiting for review is withdrawn and leaves the review queue. An item that is not on
+        the caller's menu, or is already deleted, is `404`.
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/MenuItemIdPath'
+      responses:
+        '204':
+          description: Item deleted.
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is deleted, and a version waiting in menu review stays as it is.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
           $ref: '#/components/responses/Error'
         default:
           $ref: '#/components/responses/Error'

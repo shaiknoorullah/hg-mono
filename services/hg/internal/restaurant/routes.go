@@ -75,10 +75,14 @@ func Routes(r *httpx.Router, h *Handler) {
 		write(ActionMenuCategoryWrite, "createMenuCategory"), h.CreateMenuCategory)
 	r.Patch("/v1/restaurant/menu/categories/{categoryId}",
 		writeNoIdem(ActionMenuCategoryWrite, "updateMenuCategory"), h.UpdateMenuCategory)
+	r.Delete("/v1/restaurant/menu/categories/{categoryId}",
+		writeNoIdem(ActionMenuCategoryWrite, "deleteMenuCategory"), h.DeleteMenuCategory)
 	r.Post("/v1/restaurant/menu/items",
 		write(ActionMenuItemWrite, "createMenuItem"), h.CreateMenuItem)
 	r.Patch("/v1/restaurant/menu/items/{itemId}",
 		writeNoIdem(ActionMenuItemWrite, "updateMenuItem"), h.UpdateMenuItem)
+	r.Delete("/v1/restaurant/menu/items/{itemId}",
+		writeNoIdem(ActionMenuItemWrite, "deleteMenuItem"), h.DeleteMenuItem)
 	r.Put("/v1/restaurant/menu/items/{itemId}/availability",
 		writeNoIdem(ActionMenuItemAvail, "setMenuItemAvailability"), h.SetMenuItemAvailability)
 
