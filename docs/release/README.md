@@ -186,6 +186,10 @@ The customer app pays with Stripe's payment sheet, which needs the PUBLIC key
 the customer app skips it. When the API runs its local fake gateway (`HG_ENV=local`, no Stripe
 key) it returns `pi_fake_…` client secrets and the app skips the sheet too.
 
+The customer app registers for push notifications only when the build has `EAS_PROJECT_ID`
+(`apps/customer/app.config.js` writes it into `extra.eas.projectId`) and, on Android, the Expo
+project has FCM credentials; otherwise it gets no push token and works without push.
+
 ## Building with EAS instead
 
 The rider's `eas.json` `preview` and `production` profiles set `EXPO_PUBLIC_API_BASE_URL` to the
