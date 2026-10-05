@@ -159,9 +159,11 @@ var rules = []rule{
 		// reconciliation"). The row is the dedupe boundary for redeliveries, and
 		// Stripe stops redelivering after 3 days, but it is also the raw record
 		// of a money event, so it is kept a full year after processing. An event
-		// not yet processed is never deleted. Inert until the deadline runner
-		// processes stored webhooks and sets processed_at; see
-		// https://github.com/shaiknoorullah/hg-mono/issues/231.
+		// not yet processed is never deleted, and neither is one set aside
+		// after repeated failures (dead_lettered_at): it is still unprocessed.
+		// The webhook worker sets processed_at in the transaction that applies
+		// the event (internal/payments/webhook_worker.go,
+		// https://github.com/shaiknoorullah/hg-mono/issues/231).
 		table: "webhook_event",
 		keep:  365 * day,
 		sql: `DELETE FROM webhook_event WHERE id IN (

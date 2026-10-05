@@ -352,3 +352,4 @@ ws
 (?i)zset(?:'s)?
 (?i)zustand(?:'s)?
 OTel
+https

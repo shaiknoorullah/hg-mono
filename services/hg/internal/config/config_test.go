@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 // validEnv is a complete, valid environment. Tests mutate a copy of it so that
@@ -42,6 +43,47 @@ func TestLoadAcceptsACompleteEnvironment(t *testing.T) {
 	}
 	if cfg.Realtime.MaxSockets != 2000 {
 		t.Errorf("Realtime.MaxSockets = %d, want the 2000 default", cfg.Realtime.MaxSockets)
+	}
+}
+
+// TestLoadRiderAvailabilitySweeps pins the sweeps' defaults to the values in
+// docs/spec/04-rider.md, "D-10 — Availability: online / offline" (stale after
+// 120 s, swept every 15 s, reconciled every 60 s), and refuses a zero, negative
+// or malformed setting (https://github.com/shaiknoorullah/hg-mono/issues/255).
+func TestLoadRiderAvailabilitySweeps(t *testing.T) {
+	cfg, err := Load(getenvFrom(validEnv()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := Dispatch{RiderStaleAfter: 120 * time.Second, RiderStaleSweepEvery: 15 * time.Second, RiderReconcileEvery: 60 * time.Second}
+	if cfg.Dispatch != want {
+		t.Errorf("Dispatch = %+v, want the spec's %+v", cfg.Dispatch, want)
+	}
+
+	env := validEnv()
+	env["HG_RIDER_STALE_AFTER"] = "3m"
+	env["HG_RIDER_STALE_SWEEP_INTERVAL"] = "5s"
+	env["HG_RIDER_RECONCILE_INTERVAL"] = "2m"
+	cfg, err = Load(getenvFrom(env))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = Dispatch{RiderStaleAfter: 3 * time.Minute, RiderStaleSweepEvery: 5 * time.Second, RiderReconcileEvery: 2 * time.Minute}
+	if cfg.Dispatch != want {
+		t.Errorf("Dispatch = %+v, want the configured %+v", cfg.Dispatch, want)
+	}
+
+	for _, key := range []string{"HG_RIDER_STALE_AFTER", "HG_RIDER_STALE_SWEEP_INTERVAL", "HG_RIDER_RECONCILE_INTERVAL"} {
+		for _, bad := range []string{"0s", "-15s", "often"} {
+			env := validEnv()
+			env[key] = bad
+			_, err := Load(getenvFrom(env))
+			if err == nil {
+				t.Errorf("%s = %q was accepted", key, bad)
+			} else if !strings.Contains(err.Error(), key) {
+				t.Errorf("error does not name %s: %v", key, err)
+			}
+		}
 	}
 }
 
