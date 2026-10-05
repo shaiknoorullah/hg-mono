@@ -58,6 +58,11 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Get("/v1/admin/menu-reviews", read(ActionMenuReviewRead, "listMenuReviewQueue"), h.ListMenuReviewQueue)
 	r.Post("/v1/admin/menu-reviews/{versionId}/decision", write(ActionMenuReviewDecide, "decideMenuVersion"), h.DecideMenuVersion)
 
+	// The platform-wide pause on new orders, for incidents
+	// (https://github.com/shaiknoorullah/hg-mono/issues/244).
+	r.Get("/v1/admin/ordering-pause", read(ActionOrderingPauseRead, "getOrderingPause"), h.GetOrderingPause)
+	r.Put("/v1/admin/ordering-pause", write(ActionOrderingPauseSet, "setOrderingPause"), h.SetOrderingPause)
+
 	// Order oversight (A-38): staff can view any order and cancel with a reason.
 	// cancelOrderAdmin is MONEY class (idempotency key required, I-37.4).
 	money := func(action httpx.Action, op string) httpx.Policy {

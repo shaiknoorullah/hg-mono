@@ -1,14 +1,15 @@
 {
-  "scenario": "public_config",
+  "scenario": "public_config_ordering_paused",
   "domain": "platform",
   "schema": "PublicConfig",
-  "describes": "Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05).",
+  "describes": "Staff have paused new orders platform-wide. The customer app says ordering is paused instead of letting checkout fail; `ordering` carries no reason, which is for staff.",
   "operations": [
     "getPublicConfig"
   ],
   "status": 200,
   "tags": [
-    "platform"
+    "platform",
+    "degraded"
   ],
   "payload": {
     "currency": "CAD",
@@ -16,8 +17,8 @@
       "ON"
     ],
     "ordering": {
-      "paused": false,
-      "paused_since": null
+      "paused": true,
+      "paused_since": "2026-08-10T18:30:11.412Z"
     },
     "quote_ttl_seconds": 11,
     "restaurant_response_window_seconds": 180,

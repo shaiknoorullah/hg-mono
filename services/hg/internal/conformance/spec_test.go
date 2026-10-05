@@ -29,8 +29,10 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// createPayoutRun/listPayoutRuns/getPayoutRun (issue #251) +
 	// listRefundsAdmin/approveRefund/declineRefund and
 	// listChargebacks/getChargeback/addChargebackEvidenceNote (staff review
-	// refund requests and keep evidence on chargebacks, #172).
-	const wantOps = 164
+	// refund requests and keep evidence on chargebacks, #172) +
+	// getOrderingPause/setOrderingPause (staff pause and resume new orders
+	// platform-wide during an incident, https://github.com/shaiknoorullah/hg-mono/issues/244).
+	const wantOps = 166
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

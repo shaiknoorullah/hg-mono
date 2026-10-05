@@ -233,6 +233,11 @@ paths:
         Values the clients must never hardcode: support contact and hours, the default map
         centre, the served provinces, tip bounds, and the quote TTL. No secret, no fee
         parameter that could let a client compute a price.
+
+        `ordering` says whether staff have paused new orders platform-wide during an
+        incident ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). It is read
+        from Postgres on every request, so it is never older than the request: the customer
+        app shows "ordering is paused" from it instead of letting a checkout fail.
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -1815,6 +1820,10 @@ paths:
         A quote referencing an unavailable item, a closed restaurant, an address outside the
         delivery radius, or a province with no effective tax rate fails loudly with a typed
         error listing the offending lines. It never silently zeroes a component.
+
+        While staff have paused new orders platform-wide (`setOrderingPause`), this answers
+        `409 ORDERING_PAUSED` and stores nothing. `getPublicConfig.ordering` says so before
+        the customer reaches checkout.
       x-roles: [CUSTOMER]
       x-version: V0
       x-rate-class: MONEY
@@ -1841,7 +1850,7 @@ paths:
         '409':
           description: |
             `CART_HAS_UNAVAILABLE_ITEMS`, `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE`,
-            `BELOW_MINIMUM_ORDER` or `ADDRESS_OUT_OF_RANGE`.
+            `BELOW_MINIMUM_ORDER`, `ADDRESS_OUT_OF_RANGE` or `ORDERING_PAUSED`.
           content:
             application/json:
               schema:
@@ -1911,6 +1920,18 @@ paths:
 
         `requires_action` (3-D Secure) is a normal path: the order stays `CREATED` under its
         15-minute deadline and the client is handed the action.
+
+        **Paused ordering.** While staff have paused new orders platform-wide
+        (`setOrderingPause`), this answers `409 ORDERING_PAUSED`: no order row, no
+        PaymentIntent. The switch is read under a row lock in the same transaction that
+        inserts the order, so a pause that commits while an order is being created either
+        waits for that order to commit first or refuses it; an order never appears after the
+        pause took effect. Orders placed before the pause carry on to the end.
+
+        It is a 409, not a 503: like `RESTAURANT_CLOSED`, it is a state staff chose, not a
+        failing server, and a 503 would read as an outage to monitoring and to clients that
+        retry server errors. The refusal rolls its transaction back, so the same
+        `Idempotency-Key` can be sent again once ordering resumes.
       x-roles: [CUSTOMER]
       x-version: V0
       x-rate-class: MONEY
@@ -1949,7 +1970,7 @@ paths:
           description: |
             `QUOTE_STALE` (with `details.quote`), `QUOTE_EXPIRED`,
             `CART_HAS_UNAVAILABLE_ITEMS`, `ACTIVE_ORDER_EXISTS`, `RESTAURANT_UNAVAILABLE`,
-            `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`.
+            `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
           content:
             application/json:
               schema:
@@ -5553,6 +5574,99 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         default:
           $ref: '#/components/responses/Error'
+  /v1/admin/ordering-pause:
+    get:
+      operationId: getOrderingPause
+      tags: [admin]
+      summary: Whether new orders are paused platform-wide, and why
+      description: |
+        The platform-wide pause on new orders, for use during an incident such as payments
+        failing or a restore under way
+        ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244); the
+        [incident runbook](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/ops/runbook.md#pause-new-orders)
+        says when to use it). Read from Postgres on every request.
+
+        Support agents can read it, so they can tell a customer why checkout is refused;
+        only `ADMIN` and `SUPER_ADMIN` can change it (`setOrderingPause`).
+      x-roles: [SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
+      x-version: V0
+      responses:
+        '200':
+          description: The switch as it stands.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OrderingPause'
+        '403':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: setOrderingPause
+      tags: [admin]
+      summary: Pause or resume new orders platform-wide, with a reason
+      description: |
+        Turns the platform-wide pause on new orders on (`paused: true`) or off
+        (`paused: false`) ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+        Both directions need a `reason`, and both write one row to the audit log in the
+        same transaction as the change: action `ordering.pause` or `ordering.resume`,
+        subject type `PLATFORM`, with the reason and the before and after state
+        ([the audit log](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-04--audit-log-append-only-hash-chained)).
+
+        **While paused,** `createQuote` and `createOrder` answer `409 ORDERING_PAUSED`, the
+        cart reports `is_quotable: false` with `ORDERING_PAUSED` in `blocking_reasons`, and
+        `getPublicConfig.ordering.paused` is `true`. Everything about orders already placed
+        carries on to the end: state changes, tracking, riders, payments, refunds and the
+        staff tools. Every API replica reads the switch from Postgres, so it applies on the
+        next request, with nothing to flush.
+
+        **Who may change it:** `ADMIN` and `SUPER_ADMIN`. It is an operations control,
+        like pausing a promotion or suspending a restaurant, which both roles hold
+        ([permission matrix](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#71-staff-access-and-platform-configuration));
+        it is not a platform setting, so it needs no second approver and no waiting period.
+        `SUPPORT_AGENT` is refused with `403 FORBIDDEN`: a support agent changes almost
+        nothing, and stopping every new order on the platform is not a support action.
+
+        Setting the value it already has is allowed: it records the new reason (for example
+        an updated estimate) and writes an audit row, and a pause keeps its original
+        `paused_since`.
+      x-roles: [ADMIN, SUPER_ADMIN]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderingPauseInput'
+      responses:
+        '200':
+          description: The switch after the change.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OrderingPause'
+        '403':
+          $ref: '#/components/responses/Error'
+        '422':
+          description: '`VALIDATION_FAILED`: `reason` missing, shorter than 10 or longer than 500 characters.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        default:
+          $ref: '#/components/responses/Error'
   /v1/admin/orders:
     get:
       operationId: listOrdersAdmin
@@ -7074,6 +7188,10 @@ components:
         - TRANSITION_NOT_PERMITTED_FOR_ACTOR
         - ACTIVE_ORDER_EXISTS
         - CANCELLATION_WINDOW_CLOSED
+        # Staff paused new orders platform-wide (setOrderingPause,
+        # https://github.com/shaiknoorullah/hg-mono/issues/244). Always a 409; createOrder
+        # says why it is not a 503.
+        - ORDERING_PAUSED
         - DELAY_LIMIT_REACHED
         - DELAY_NOT_ALLOWED_IN_STATUS
         - REVIEW_WINDOW_CLOSED
@@ -7995,6 +8113,7 @@ components:
         - max_tip_cents
         - support_enabled
         - default_map_center
+        - ordering
       properties:
         currency:
           $ref: '#/components/schemas/Currency'
@@ -8003,6 +8122,8 @@ components:
           description: 'Ontario only at launch. Addresses elsewhere are rejected at quote time.'
           items:
             $ref: '#/components/schemas/Province'
+        ordering:
+          $ref: '#/components/schemas/OrderingStatus'
         quote_ttl_seconds:
           type: integer
           format: int32
@@ -8985,8 +9106,9 @@ components:
           description: |
             False when any line is unavailable, the restaurant is closed, the restaurant cannot
             take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
-            is not current), or no address is selected. A cart whose restaurant becomes
-            unavailable is kept, never emptied on the customer's behalf.
+            is not current), no address is selected, or staff have paused new orders
+            platform-wide (`ORDERING_PAUSED` in `blocking_reasons`). A cart whose restaurant
+            becomes unavailable is kept, never emptied on the customer's behalf.
         blocking_reasons:
           type: array
           items:
@@ -12075,6 +12197,63 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Cents'
             - type: 'null'
+    OrderingStatus:
+      type: object
+      additionalProperties: false
+      required: [paused, paused_since]
+      description: |
+        The customer-facing view of the platform-wide pause on new orders
+        ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+        the reason staff typed is for staff, and the app shows its own fixed copy.
+      properties:
+        paused:
+          type: boolean
+          description: 'True while staff have paused new orders: quotes and orders answer `409 ORDERING_PAUSED`.'
+        paused_since:
+          type: [string, 'null']
+          format: date-time
+          description: 'When the current pause began. Null while ordering is open.'
+    OrderingPause:
+      type: object
+      additionalProperties: false
+      required: [paused, paused_since, reason, changed_at, changed_by]
+      description: |
+        The staff view of the platform-wide pause on new orders (`getOrderingPause`,
+        `setOrderingPause`; [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+        The full history of changes is in the audit log, actions `ordering.pause` and
+        `ordering.resume`.
+      properties:
+        paused:
+          type: boolean
+        paused_since:
+          type: [string, 'null']
+          format: date-time
+          description: 'When the current pause began. Null while ordering is open.'
+        reason:
+          type: [string, 'null']
+          description: 'The reason given with the latest change, pause or resume. Null if nobody has changed it yet.'
+        changed_at:
+          type: [string, 'null']
+          format: date-time
+          description: 'When it was last changed. Null if nobody has changed it yet.'
+        changed_by:
+          type: [string, 'null']
+          format: uuid
+          description: 'The staff account that made the latest change. Null if nobody has changed it yet.'
+    OrderingPauseInput:
+      type: object
+      additionalProperties: false
+      required: [paused, reason]
+      properties:
+        paused:
+          type: boolean
+          description: '`true` pauses new orders platform-wide; `false` resumes them.'
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: 'Why, in words the next person on call understands. Recorded with the change and in the audit log.'
+          examples: ['Stripe is refusing authorisations; pausing until their incident clears.']
     StaffUser:
       type: object
       additionalProperties: false

@@ -59,14 +59,42 @@ One person runs commands on the server at a time. Keep a timeline as you go, in 
 | "No space left on device" in the logs | [The disk is full](#the-disk-is-full) |
 | A certificate warning in the browser | [Certificates are expiring](#certificates-are-expiring) |
 | New sign-ins fail; a sticky banner on every admin page | [The sign-in code sender is down](#the-sign-in-code-sender-is-down) |
+| `/health/ready` names Redis; sign-in codes answer 503 | [The cache is down](#the-cache-is-down) |
 | Checkout fails; `/health/ready` names Stripe; reconciliation exceptions | [Payments are failing](#payments-are-failing) |
 | Access nobody can explain, or a leaked secret | [A suspected breach](#a-suspected-breach) |
 
 ## Pause new orders
 
-There is no platform-wide switch yet ([#244][i244]). Until there is:
+One switch stops new orders on the whole platform and leaves everything else running ([#244][i244]). Use it before phoning restaurants and before stopping the API.
 
-- Phone each restaurant and ask them to switch off accepting orders in the restaurant app. Offers already sent keep their full 180-second window.
+**Who:** an `ADMIN` or `SUPER_ADMIN`. A support agent can see whether it is on, but cannot change it.
+
+**Turn it on** with the API (`setOrderingPause` in [the contract](../../contracts/openapi.yaml)); the admin console gets a button for it with [#389](https://github.com/shaiknoorullah/hg-mono/issues/389). The access token is the one `login` returns when you sign in with your email, password and two-step code; it lasts 15 minutes.
+
+```sh
+curl -fsS -X PUT https://<api host>/v1/admin/ordering-pause \
+  -H "Authorization: Bearer <your admin access token>" \
+  -H "Idempotency-Key: $(uuidgen)" -H 'Content-Type: application/json' \
+  -d '{"paused": true, "reason": "Stripe is refusing authorisations; see the incident timeline"}'
+```
+
+The reason is required (10 to 500 characters) and goes into the audit log with your account, as action `ordering.pause`. Write it for the next person on call. Note the UTC time in the timeline.
+
+**What changes, on every API replica, from the next request:**
+
+- New quotes and new orders are refused with `409 ORDERING_PAUSED`. Nothing is stored and nothing is charged.
+- The public config says `"ordering": {"paused": true}` and the cart says `ORDERING_PAUSED`, so the customer app can say ordering is paused instead of failing at checkout *(the app side lands with [#388](https://github.com/shaiknoorullah/hg-mono/issues/388))*.
+- Every order already placed carries on to the end: restaurant accept and reject, riders, tracking, payments (capture on acceptance, voids), refunds and the staff tools. Offers already sent keep their full 180-second window.
+
+The switch lives in Postgres, not Redis: flushing or restarting Redis does not turn it off, and nothing needs flushing to turn it on.
+
+**Check it:** `GET /v1/admin/ordering-pause` shows `paused`, `paused_since`, the reason and who changed it last. `GET /v1/config/public` shows `"ordering": {"paused": true, …}`.
+
+**Turn it off** the same way, with `"paused": false` and a reason (action `ordering.resume` in the audit log). Ordering resumes on the next request. Customers whose checkout was refused can try again with the same request.
+
+**If the API is down** the switch cannot be reached. Then:
+
+- Phone each restaurant and ask them to switch off accepting orders in the restaurant app.
 - Last resort: stop the API. That stops everything (tracking, rider updates, the staff tools), not only new orders. When it restarts, the deadline runner's outage handling covers the gap *(lands with [#222][i222])*.
 
 ## Roll back a bad deploy
@@ -170,7 +198,17 @@ If only WhatsApp fails, switch to text messages: set `HG_TWILIO_VERIFY_CHANNEL=s
 
 If Twilio itself is down or the account is blocked, there is nothing to switch to: the owner contacts Twilio and support tells customers. Don't change `HG_OTP_PROVIDER` during an incident: the other path sends through Twilio's message sender, which needs its own registered number and has never run in production.
 
+A plain-text `429 Too Many Requests` on a `/v1/auth/` route, without the API's JSON error body, comes from Traefik's per-address limit in front of the sign-in routes (120 a minute, bursts of 60; [rate limiting][p38]). One address hitting it is a flood or a broken client. Many customers hitting it at once means they reach Traefik from one address: for IPv6 visitors that is [#267][i267].
+
 If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7` ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
+
+## The cache is down
+
+Redis (Valkey in production) holds only what can be lost: rate-limit counts, cached reads, realtime fan-out. The system stays correct without it ([Redis is disposable](../spec/01-platform.md#0-ground-rules-that-bind-every-section)).
+
+- **What breaks:** customers and riders can't get a sign-in code. Requesting one answers 503 "Verification is temporarily unavailable" on purpose: those limits never go unchecked ([rate limiting, Redis-down policy][p38]). Restaurant sign-up answers 503 and no sign-up, verification or password-reset email is sent: the emailed-link limits also fail closed. Staff sign-in, setting a new password from a reset link and changing a password keep working and stay limited: each API replica counts them in its own memory, so a caller gets at most twice the usual limit.
+- **Signs:** `/health/ready` names Redis. The API logs `rate limiter unavailable; counting in this replica's memory` at error level, once per limit per window (every 15 minutes for login), not once per request.
+- **Fix:** `docker compose ps redis` and `docker compose logs --since 30m redis`, then `docker compose up -d redis`. It starts empty, which is fine. The replicas go back to Redis's counts on its next answer; nothing needs resetting.
 
 ## Emails are not arriving
 
@@ -288,8 +326,10 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [i245]: https://github.com/shaiknoorullah/hg-mono/issues/245
 [i51]: https://github.com/shaiknoorullah/hg-mono/issues/51
 [i228]: https://github.com/shaiknoorullah/hg-mono/issues/228
+[i267]: https://github.com/shaiknoorullah/hg-mono/issues/267
 [i66-plan]: https://github.com/shaiknoorullah/hg-mono/issues/66#issuecomment-5936436860
 [p02]: ../spec/01-platform.md#p-02--phone-otp-authentication-customers-riders
+[p38]: ../spec/01-platform.md#p-38--rate-limiting
 [p15]: ../spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable
 [p13]: ../spec/01-platform.md#p-13--the-ledger-and-the-zero-residual-invariant
 [p17]: ../spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation
