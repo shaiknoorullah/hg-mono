@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # End-to-end flows
@@ -159,3 +159,8 @@ on macOS runners and are not part of this workflow
 | [`lib/`](lib/) | The API client, the sign-in code reader, the TOTP generator, the run summary |
 | [`android/allow-cleartext.sh`](android/allow-cleartext.sh) | Lets the emulator's APKs reach the runner over plain HTTP |
 | [`run.sh`](run.sh) | Runs the flows in order and records each result |
+
+## API journey runner
+
+`tools/e2e/api/run.mjs` drives the launch path through the API alone (no app UI): an admin, a restaurant, a rider and a customer, from sign-up to a delivered and refunded order. It needs an explicit `--base`, and it refuses unless the API itself reports a non-production environment. It signs in only with the fictional `+1 NPA 555 0100-0199` numbers and a dedicated test staff login from environment variables. Its README is [tools/e2e/api/README.md](api/README.md); it shares the TOTP helper in `lib/totp.mjs`.
+
