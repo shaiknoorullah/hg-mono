@@ -669,6 +669,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   sends an email. The status endpoint is the single source of truth; SSE is a latency optimisation,
   never the only delivery path.
 
+  > **Built (Oct 2026):** the events travel on each owner's and manager's own WebSocket channel, `account:{id}` ([realtime contract, account and onboarding](../../contracts/websocket.md#4-event-catalogue)), not a separate SSE stream: `onboarding.state_changed` on an admin decision and on each automatic step (payouts on, menu approved), `document.review_state_changed` on each document review (with the rejection code, never the reviewer's note), and `connect.requirements_changed` when Stripe's requirements change. Other restaurant staff get none of them.
+
   > **Definition of done for "real-time"**: p95 latency from the admin's decision commit to the
   > restaurant UI reflecting it is **≤ 5 seconds** while SSE is connected, and **≤ 20 seconds**
   > with SSE unavailable (poll fallback). This is an asserted, measured number.
