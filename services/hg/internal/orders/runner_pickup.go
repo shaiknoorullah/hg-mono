@@ -20,9 +20,9 @@ type PickupEscalation struct {
 	// Lapse counts the lapses of this order's pickup deadline, from 1.
 	Lapse int
 	// CapReached is set from the lapse that reaches the escalation cap (the
-	// third, 45 minutes after the order was ready). The spec's action at the cap
-	// cancels the order with a full refund; that is not automated yet
-	// (https://github.com/shaiknoorullah/hg-mono/issues/336), so ops must act.
+	// third, 45 minutes after the order was ready). At the cap an order no
+	// rider holds is cancelled with a full refund instead (UncollectedCanceller);
+	// one a rider holds keeps escalating, for ops to decide.
 	CapReached bool
 	// NextDeadlineAt is when the deadline lapses again if still nobody comes.
 	NextDeadlineAt time.Time
@@ -44,6 +44,31 @@ type PickupEscalator interface {
 	EscalatePickup(ctx context.Context, tx pgx.Tx, e PickupEscalation) error
 }
 
+// UncollectedCanceller ends a ready order nobody collected, at the pickup
+// escalation cap: the order is cancelled (T13, NO_RIDER_FOUND), the customer
+// is refunded in full, the restaurant is paid in full and the platform absorbs
+// the cost (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions",
+// the READY_FOR_PICKUP row and acceptance criterion 5;
+// https://github.com/shaiknoorullah/hg-mono/issues/336).
+//
+// CancelUncollectedTx runs in the deadline runner's transaction, before the
+// order moves to CANCELLED: it closes the search for a rider and posts the
+// refund, so the refund, the cancellation and the events that announce both
+// commit together. It reports false, having changed nothing, when a rider
+// holds the order; the escalation then carries on. Like PickupEscalator, the
+// effects belong to the dispatch and payments modules, so cmd/hg composes them.
+type UncollectedCanceller interface {
+	CancelUncollectedTx(ctx context.Context, tx pgx.Tx, orderID string) (bool, error)
+}
+
+// WithUncollectedCanceller attaches the cap's cancellation. With none attached
+// the cap keeps escalating, as before: an order is never cancelled without its
+// refund.
+func (r *DeadlineRunner) WithUncollectedCanceller(c UncollectedCanceller) *DeadlineRunner {
+	r.uncollected = c
+	return r
+}
+
 // WithPickupEscalator attaches the effects of a lapsed pickup deadline. With
 // none attached, a lapse is still audited and re-armed, never left to fail.
 func (r *DeadlineRunner) WithPickupEscalator(e PickupEscalator) *DeadlineRunner {
@@ -59,9 +84,11 @@ func (r *DeadlineRunner) WithPickupEscalator(e PickupEscalator) *DeadlineRunner 
 // saw, and a deadline that has passed. A rider who picked the order up in the
 // meantime, or a second run of the same claim, finds nothing to do.
 //
-// From the cap on, the lapse is recorded as CAP_REACHED and keeps escalating
-// every 10 minutes: the order is never abandoned, and ops are told on every
-// lapse until someone acts (see PickupEscalation.CapReached).
+// At the cap, an order no rider holds is cancelled with a full refund
+// (UncollectedCanceller), recorded as TRANSITIONED. One a rider holds, or any
+// order when no canceller is attached, is recorded as CAP_REACHED and keeps
+// escalating every 10 minutes: the order is never abandoned, and ops are told
+// on every lapse until someone acts.
 func (r *DeadlineRunner) escalatePickup(ctx context.Context, c claimedOrder) error {
 	spec, _ := machine.DeadlineFor(machine.StateReadyForPickup)
 	return r.store.inTx(ctx, func(tx pgx.Tx) error {
@@ -83,6 +110,12 @@ func (r *DeadlineRunner) escalatePickup(ctx context.Context, c claimedOrder) err
 			Lapse:          c.escalations + 1,
 			CapReached:     c.escalations+1 >= spec.EscalationCap,
 			NextDeadlineAt: now.Add(spec.ReArm),
+		}
+		if e.CapReached && r.uncollected != nil {
+			cancelled, err := r.cancelUncollected(ctx, tx, c)
+			if err != nil || cancelled {
+				return err
+			}
 		}
 		outcome := "RE_ARMED"
 		if e.CapReached {
@@ -111,3 +144,28 @@ func (r *DeadlineRunner) escalatePickup(ctx context.Context, c claimedOrder) err
 		return err
 	})
 }
+
+// cancelUncollected is the cap's action for an order no rider holds: the
+// refund and the closed search first, then the one transition function moves
+// the order to CANCELLED, so order.cancelled carries the refund. It reports
+// false when a rider holds the order.
+func (r *DeadlineRunner) cancelUncollected(ctx context.Context, tx pgx.Tx, c claimedOrder) (bool, error) {
+	ok, err := r.uncollected.CancelUncollectedTx(ctx, tx, c.id)
+	if err != nil {
+		return false, fmt.Errorf("cancel uncollected order: %w", err)
+	}
+	if !ok {
+		return false, nil
+	}
+	if err := r.recordAudit(ctx, tx, c, machine.ActionPickupOverdue, "TRANSITIONED"); err != nil {
+		return false, err
+	}
+	reason := noRiderFound
+	return true, r.store.transitionTx(ctx, tx, TransitionRequest{
+		OrderID: c.id, To: machine.StateCancelled, Actor: machine.ActorSystem,
+		Reason: "no rider collected the order by the pickup escalation cap", CancelReason: &reason,
+	})
+}
+
+// noRiderFound is the order's cancel reason and the refund's reason code.
+const noRiderFound = "NO_RIDER_FOUND"

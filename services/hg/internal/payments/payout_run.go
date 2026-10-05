@@ -195,11 +195,34 @@ func (r *PayoutRunner) execute(ctx context.Context, run PayoutRunRow) error {
 		slog.String("period_end", run.PeriodEnd.Format(time.RFC3339)), slog.Int("attempt", int(attempt)))
 	log.Info("payout run started")
 
+	// An admin run pays only if its admin may still ask for it, decided now,
+	// not when it was queued.
+	refusal, own, err := r.repo.adminRunAllowed(ctx, run)
+	if err != nil {
+		return fmt.Errorf("check payout run %s: %w", run.ID, err)
+	}
+	if refusal != "" {
+		log.Warn("payout run refused", slog.String("reason", refusal))
+		return r.repo.finishRun(context.WithoutCancel(ctx), run.ID, runTally{}, errors.New(refusal))
+	}
+
 	var payees []PayeeRef
 	if run.Payee != nil {
 		payees = []PayeeRef{*run.Payee}
 	} else if payees, err = r.repo.runPayees(ctx, run.PeriodEnd); err != nil {
 		return r.repo.finishRun(context.WithoutCancel(ctx), run.ID, runTally{}, fmt.Errorf("list partners: %w", err))
+	}
+	// Nobody runs their own payout, by naming themselves or by asking for
+	// everyone: an admin run leaves out the admin's own rider account and
+	// restaurants, which the scheduled Monday run pays.
+	if len(own) > 0 {
+		payees = slices.DeleteFunc(payees, func(p PayeeRef) bool {
+			if own[p] {
+				log.Info("payout run leaves out the requesting admin's own payout",
+					slog.String("payee_type", p.Type), slog.String("payee_id", p.ID))
+			}
+			return own[p]
+		})
 	}
 
 	t := runTally{Partners: int32(len(payees))}
@@ -240,7 +263,10 @@ func (r *PayoutRunner) payPayee(ctx context.Context, run PayoutRunRow, attempt i
 
 	// 1. A suspended or banned restaurant is not paid until it is reinstated
 	// (docs/spec/03-restaurant.md, "R-32 — Payout schedule, preferences and
-	// payout requests", rule 2). Riders are always paid for work done.
+	// payout requests", rule 2). Riders are always paid for work done. This
+	// read only saves work: building and claiming a payout check again, in
+	// their own transactions, so a suspension that lands after it still
+	// stops the transfer.
 	if p.Type == PayeeRestaurant {
 		suspended, state, err := r.repo.restaurantSuspended(ctx, p.ID)
 		if err != nil {
@@ -290,6 +316,9 @@ func (r *PayoutRunner) payPayee(ctx context.Context, run PayoutRunRow, attempt i
 		r.transfer(ctx, run, pp.PayoutID, run.PeriodEnd, line)
 	case pp.Outcome == OutcomeHeld:
 		line(OutcomeHeld, pp.PayoutID, pp.AmountCents, "Stripe has payouts turned off for this partner: "+pp.HoldReason)
+	case pp.Outcome == OutcomePartnerSuspended:
+		line(OutcomePartnerSuspended, "", 0, "the restaurant is "+pp.State+"; its balance is kept until it is reinstated")
+		return
 	case pp.Outcome == OutcomeAlreadyPaid:
 		line(OutcomeAlreadyPaid, pp.PayoutID, pp.AmountCents, "this period's payout already exists ("+pp.State+")")
 	case pp.Outcome == OutcomeCarriedNegative:
@@ -363,6 +392,10 @@ func (r *PayoutRunner) transfer(ctx context.Context, run PayoutRunRow, payoutID 
 		return
 	}
 	switch {
+	case claim.Suspended != "":
+		line(OutcomePartnerSuspended, payoutID, claim.AmountCents,
+			"the restaurant is "+claim.Suspended+"; this payout is kept until it is reinstated")
+		return
 	case claim.Held && claim.WasHeld:
 		line(OutcomeStillHeld, payoutID, claim.AmountCents, "Stripe still has payouts turned off: "+claim.HoldReason)
 		return
@@ -483,24 +516,9 @@ func (r *PayoutRunner) Request(ctx context.Context, req PayoutRunRequest) (run P
 		}
 		asOf = *req.AsOf
 	}
-	if req.Payee != nil {
-		ok, err := r.repo.payeeExists(ctx, *req.Payee)
-		if err != nil {
-			return run, false, err
-		}
-		if !ok {
-			return run, false, ErrNotFound
-		}
-		// Nobody runs their own payout: not a rider admin for themselves, not
-		// an admin who holds a role at the restaurant.
-		own, err := r.repo.isOwnPayee(ctx, actor.AccountID, *req.Payee)
-		if err != nil {
-			return run, false, err
-		}
-		if own {
-			return run, false, ErrOwnPayout
-		}
-	}
+	// The token said admin; the database decides, in the transaction that
+	// queues the run, that the admin still is one and that the partner is
+	// not the admin.
 	fp := requestFingerprint(req)
 	run, inserted, err := r.repo.insertAdminRun(ctx, closedPeriodAt(asOf), asOf, now, req.Payee,
 		req.Reason, actor.AccountID, req.IdempotencyKey, fp, actor)
