@@ -256,6 +256,8 @@ func TestLoadRejectsMalformedValues(t *testing.T) {
 		"proxy not a CIDR":      {"HG_TRUSTED_PROXY_CIDRS", "172.18.0.0/16,traefik", "HG_TRUSTED_PROXY_CIDRS"},
 		"proxy trusts all IPv4": {"HG_TRUSTED_PROXY_CIDRS", "0.0.0.0/0", "HG_TRUSTED_PROXY_CIDRS"},
 		"proxy trusts all IPv6": {"HG_TRUSTED_PROXY_CIDRS", "::/0", "HG_TRUSTED_PROXY_CIDRS"},
+		// A negative suspension delay must not boot as "suspend at once" or "never".
+		"negative halal suspension": {"HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS", "-14", "HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
