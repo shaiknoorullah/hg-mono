@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/money"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
 )
 
 // Cart is the customer's single cart (C-19), in the shape the handler renders to
@@ -48,11 +51,14 @@ type Cart struct {
 
 // CartLine is one line with its current availability and price (C-19).
 type CartLine struct {
-	ID             string
-	MenuItemID     string
-	Name           string
-	ImageURL       *string
+	ID         string
+	MenuItemID string
+	Name       string
+	ImageURL   *string
+	// Variant is the deprecated one-variant field: set only when the line has
+	// exactly one variant. Variants carries every one, in the menu's group order.
 	Variant        *SelectedVariant
+	Variants       []pricing.VariantChoice
 	Addons         []SelectedAddon
 	Quantity       int
 	SpecialRequest *string
@@ -86,12 +92,30 @@ type SelectedAddon struct {
 }
 
 // CartLineInput is the validated addCartLine body (item ids + quantity only).
+// VariantIDs holds one chosen variant per variant group; the handler folds the
+// deprecated single variant_id into it.
 type CartLineInput struct {
 	MenuItemID     string
-	VariantID      *string
+	VariantIDs     []string
 	Addons         []CartAddonInput
 	Quantity       int
 	SpecialRequest *string
+}
+
+// normalised returns the input as it is stored: an add-on quantity below 1 is
+// stored as 1. Line identity is computed from this, so what is fingerprinted is
+// what is written.
+func (in CartLineInput) normalised() CartLineInput {
+	out := in
+	out.VariantIDs = append([]string(nil), in.VariantIDs...)
+	out.Addons = make([]CartAddonInput, len(in.Addons))
+	for i, a := range in.Addons {
+		if a.Quantity <= 0 {
+			a.Quantity = 1
+		}
+		out.Addons[i] = a
+	}
+	return out
 }
 
 // CartAddonInput is one chosen add-on in an add request.
@@ -220,70 +244,77 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	rows, err := tx.Query(ctx, `
 		SELECT cl.id, cl.menu_item_id, COALESCE(miv.name, ''), mi.price_cents, mi.availability_state::text,
 		       mi.deleted_at IS NOT NULL,
-		       cl.variant_id, v.name, v.pricing_mode::text, v.price_cents, v.delta_cents, v.is_available,
 		       cl.quantity, cl.special_request,
 		       so_img.bucket, so_img.object_key
 		  FROM cart_line cl
 		  JOIN menu_item mi ON mi.id = cl.menu_item_id
 		  LEFT JOIN menu_item_version miv ON miv.id = mi.live_version_id
 		  LEFT JOIN stored_object so_img ON so_img.id = miv.image_object_id AND so_img.state = 'READY'
-		  LEFT JOIN variant v ON v.id = cl.variant_id
 		 WHERE cl.cart_id = $1 ORDER BY cl.created_at`, cartID)
 	if err != nil {
 		return nil, fmt.Errorf("load cart lines: %w", err)
 	}
 	defer rows.Close()
-	anyUnavailable := false
+	type lineMenu struct {
+		itemPrice    int64
+		availability string
+		itemDeleted  bool
+	}
+	var menus []lineMenu
 	for rows.Next() {
 		var l CartLine
-		var itemPrice int64
-		var availability string
-		var itemDeleted bool
-		var variantID, variantName, variantMode *string
-		var variantPrice, variantDelta *int64
-		var variantAvail *bool
+		var m lineMenu
 		var imgBucket, imgKey *string
-		if err := rows.Scan(&l.ID, &l.MenuItemID, &l.Name, &itemPrice, &availability, &itemDeleted,
-			&variantID, &variantName, &variantMode, &variantPrice, &variantDelta, &variantAvail,
+		if err := rows.Scan(&l.ID, &l.MenuItemID, &l.Name, &m.itemPrice, &m.availability, &m.itemDeleted,
 			&l.Quantity, &l.SpecialRequest,
 			&imgBucket, &imgKey); err != nil {
 			return nil, err
 		}
 		l.Currency = "CAD"
 		l.ImageURL = s.mediaURL(imgBucket, imgKey)
-		unit := itemPrice
-		if variantID != nil && variantMode != nil {
-			l.Variant = &SelectedVariant{VariantID: *variantID, Name: derefStr(variantName), PricingMode: *variantMode}
-			switch *variantMode {
-			case "ABSOLUTE":
-				if variantPrice != nil {
-					unit = *variantPrice
-				}
-			case "DELTA":
-				if variantDelta != nil {
-					unit = itemPrice + *variantDelta
-				}
-			}
-		}
-		l.IsAvailable = !itemDeleted && availability == "AVAILABLE" && (variantAvail == nil || *variantAvail)
-		if !l.IsAvailable {
-			anyUnavailable = true
-			reason := "OUT_OF_STOCK"
-			switch {
-			case itemDeleted:
-				reason = "ITEM_DELETED"
-			case variantAvail != nil && !*variantAvail:
-				reason = "VARIANT_UNAVAILABLE"
-			}
-			l.UnavailReason = &reason
-		}
 		c.Lines = append(c.Lines, l)
-		c.tmpUnit = append(c.tmpUnit, unit)
+		menus = append(menus, m)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	rows.Close()
+
+	variants, variantGone, err := loadCartLineVariants(ctx, tx, cartID)
+	if err != nil {
+		return nil, err
+	}
+	anyUnavailable := false
+	for i := range c.Lines {
+		l := &c.Lines[i]
+		m := menus[i]
+		l.Variants = variants[l.ID]
+		if len(l.Variants) == 1 {
+			v := l.Variants[0]
+			l.Variant = &SelectedVariant{VariantID: v.VariantID, Name: v.Name, PricingMode: v.PricingMode}
+		}
+		// The indicative price comes from the same rule the quote uses.
+		unit := m.itemPrice
+		variantOK := !variantGone[l.ID]
+		if part, perr := pricing.VariantPart(money.Amount(m.itemPrice), l.Variants); perr == nil {
+			unit = part.Cents()
+		} else {
+			variantOK = false
+		}
+		l.IsAvailable = !m.itemDeleted && m.availability == "AVAILABLE" && variantOK
+		if !l.IsAvailable {
+			anyUnavailable = true
+			reason := "OUT_OF_STOCK"
+			switch {
+			case m.itemDeleted:
+				reason = "ITEM_DELETED"
+			case !variantOK:
+				reason = "VARIANT_UNAVAILABLE"
+			}
+			l.UnavailReason = &reason
+		}
+		c.tmpUnit = append(c.tmpUnit, unit)
+	}
 
 	// Add-ons per line, and the indicative unit/line totals.
 	for i := range c.Lines {
@@ -375,6 +406,7 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 // server-side (C-16): adding from a different restaurant returns
 // ErrDifferentRestaurant unless replace=true, which atomically clears then adds.
 func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string, in CartLineInput, replace bool) (*Cart, error) {
+	in = in.normalised()
 	var out *Cart
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
 		// The menu item's restaurant is authoritative; the caller passes it but
@@ -385,11 +417,12 @@ func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string,
 		// https://github.com/shaiknoorullah/hg-mono/issues/292
 		// https://github.com/shaiknoorullah/hg-mono/issues/328
 		var itemRestaurant, availability string
+		var basePrice int64
 		err := tx.QueryRow(ctx, `
-			SELECT restaurant_id, availability_state::text
+			SELECT restaurant_id, availability_state::text, price_cents
 			  FROM menu_item
 			 WHERE id = $1 AND deleted_at IS NULL`,
-			in.MenuItemID).Scan(&itemRestaurant, &availability)
+			in.MenuItemID).Scan(&itemRestaurant, &availability, &basePrice)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrItemUnavailable
 		}
@@ -401,6 +434,12 @@ func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string,
 		}
 		if availability != "AVAILABLE" {
 			return ErrItemUnavailable
+		}
+		// The line must be one the menu allows, before the cart is touched, so
+		// the "Start a new cart?" dialog only ever offers a line that can be added.
+		chosen, err := checkLineAgainstMenu(ctx, tx, in, basePrice)
+		if err != nil {
+			return err
 		}
 
 		// Existing open cart, if any.
@@ -414,7 +453,7 @@ func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string,
 
 		if hasCart && cartRestaurant != itemRestaurant {
 			if !replace {
-				return ErrDifferentRestaurant
+				return differentRestaurant(ctx, tx, cartID)
 			}
 			// Atomic clear + add: soft-delete the old cart, drop through to create.
 			if _, err := tx.Exec(ctx, `UPDATE cart SET deleted_at = now() WHERE id = $1`, cartID); err != nil {
@@ -432,8 +471,9 @@ func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string,
 			}
 		}
 
-		// Line identity is (menu_item_id, variant_id, sorted(addons), special_request):
-		// an identical add increments quantity, any difference is a new line.
+		// Line identity is (menu_item_id, sorted(variant_ids), sorted(addons),
+		// special_request): an identical add increments quantity, any difference
+		// is a new line.
 		fp := lineFingerprint(in)
 		existingID, existingQty, found, err := s.findMatchingLine(ctx, tx, cartID, in, fp)
 		if err != nil {
@@ -450,20 +490,23 @@ func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string,
 		} else {
 			var lineID string
 			err = tx.QueryRow(ctx, `
-				INSERT INTO cart_line (cart_id, menu_item_id, variant_id, quantity, special_request)
-				VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-				cartID, in.MenuItemID, in.VariantID, in.Quantity, in.SpecialRequest).Scan(&lineID)
+				INSERT INTO cart_line (cart_id, menu_item_id, quantity, special_request)
+				VALUES ($1,$2,$3,$4) RETURNING id`,
+				cartID, in.MenuItemID, in.Quantity, in.SpecialRequest).Scan(&lineID)
 			if err != nil {
 				return fmt.Errorf("insert cart_line: %w", err)
 			}
-			for _, a := range in.Addons {
-				qty := a.Quantity
-				if qty <= 0 {
-					qty = 1
+			for _, v := range chosen {
+				if _, err := tx.Exec(ctx, `
+					INSERT INTO cart_line_variant (cart_line_id, variant_id, variant_group_id)
+					VALUES ($1,$2,$3)`, lineID, v.VariantID, v.VariantGroupID); err != nil {
+					return fmt.Errorf("insert cart_line_variant: %w", err)
 				}
+			}
+			for _, a := range in.Addons {
 				if _, err := tx.Exec(ctx, `
 					INSERT INTO cart_line_addon (cart_line_id, addon_id, addon_quantity)
-					VALUES ($1,$2,$3)`, lineID, a.AddonID, qty); err != nil {
+					VALUES ($1,$2,$3)`, lineID, a.AddonID, a.Quantity); err != nil {
 					return fmt.Errorf("insert cart_line_addon: %w", err)
 				}
 			}
@@ -525,14 +568,17 @@ func (s *Store) ClearCart(ctx context.Context, accountID string) error {
 	return err
 }
 
-// lineFingerprint builds the identity string for a candidate line.
+// lineFingerprint builds the identity string for a candidate line: the item,
+// its variant ids sorted, its add-ons sorted with their quantities, and the
+// special request. Callers pass a normalised input (CartLineInput.normalised),
+// so an add-on quantity is fingerprinted as it is stored.
 func lineFingerprint(in CartLineInput) string {
 	var b strings.Builder
 	b.WriteString(in.MenuItemID)
 	b.WriteString("|")
-	if in.VariantID != nil {
-		b.WriteString(*in.VariantID)
-	}
+	variantIDs := append([]string(nil), in.VariantIDs...)
+	sort.Strings(variantIDs)
+	b.WriteString(strings.Join(variantIDs, ","))
 	b.WriteString("|")
 	addons := append([]CartAddonInput(nil), in.Addons...)
 	sort.Slice(addons, func(i, j int) bool { return addons[i].AddonID < addons[j].AddonID })
@@ -549,22 +595,26 @@ func lineFingerprint(in CartLineInput) string {
 // findMatchingLine looks for an existing line with the same identity fingerprint.
 func (s *Store) findMatchingLine(ctx context.Context, tx pgx.Tx, cartID string, in CartLineInput, fp string) (string, int, bool, error) {
 	rows, err := tx.Query(ctx, `
-		SELECT cl.id, cl.variant_id, cl.quantity, cl.special_request
-		  FROM cart_line cl WHERE cl.cart_id = $1 AND cl.menu_item_id = $2`, cartID, in.MenuItemID)
+		SELECT cl.id, cl.quantity, cl.special_request,
+		       COALESCE(array_agg(clv.variant_id::text) FILTER (WHERE clv.variant_id IS NOT NULL), '{}')
+		  FROM cart_line cl
+		  LEFT JOIN cart_line_variant clv ON clv.cart_line_id = cl.id
+		 WHERE cl.cart_id = $1 AND cl.menu_item_id = $2
+		 GROUP BY cl.id, cl.quantity, cl.special_request`, cartID, in.MenuItemID)
 	if err != nil {
 		return "", 0, false, err
 	}
 	defer rows.Close()
 	type cand struct {
 		id             string
-		variantID      *string
+		variantIDs     []string
 		qty            int
 		specialRequest *string
 	}
 	var cands []cand
 	for rows.Next() {
 		var c cand
-		if err := rows.Scan(&c.id, &c.variantID, &c.qty, &c.specialRequest); err != nil {
+		if err := rows.Scan(&c.id, &c.qty, &c.specialRequest, &c.variantIDs); err != nil {
 			return "", 0, false, err
 		}
 		cands = append(cands, c)
@@ -574,7 +624,7 @@ func (s *Store) findMatchingLine(ctx context.Context, tx pgx.Tx, cartID string, 
 	}
 	rows.Close()
 	for _, c := range cands {
-		lineIn := CartLineInput{MenuItemID: in.MenuItemID, VariantID: c.variantID, SpecialRequest: c.specialRequest}
+		lineIn := CartLineInput{MenuItemID: in.MenuItemID, VariantIDs: c.variantIDs, SpecialRequest: c.specialRequest}
 		addonRows, err := tx.Query(ctx, `SELECT addon_id, addon_quantity FROM cart_line_addon WHERE cart_line_id = $1`, c.id)
 		if err != nil {
 			return "", 0, false, err

@@ -334,6 +334,24 @@ reject "a line total that is not unit x quantity is rejected" "order_line_identi
      base_price_cents, variant_part_cents, addons_part_cents, line_unit_cents, line_total_cents, tax_category)
    VALUES ('88888888-8888-4888-8888-888888888888',9,'55555555-5555-4555-8555-555555555555',
      'Bad Line',2,1500,1500,0,1500,1,'PREPARED_FOOD');"
+# A line's variant part is its variants' money: the ABSOLUTE price (else the
+# base) plus the DELTAs (00069, https://github.com/shaiknoorullah/hg-mono/issues/628).
+reject "a variant part its variants do not add up to is rejected" "order_line_variant_part_mismatch" \
+  "INSERT INTO order_line (order_id, line_no, menu_item_id, name_snapshot, quantity,
+     base_price_cents, variant_part_cents, addons_part_cents, line_unit_cents, line_total_cents, tax_category)
+   VALUES ('88888888-8888-4888-8888-888888888888',9,'55555555-5555-4555-8555-555555555555',
+     'Bad Line',1,1500,1800,0,1800,1800,'PREPARED_FOOD');"
+reject "a line with two ABSOLUTE variants is rejected" "quote_line_variant_one_absolute" \
+  "INSERT INTO variant_group (id, menu_item_id, name) VALUES
+     ('ff000000-0000-4000-8000-0000000000a1','55555555-5555-4555-8555-555555555555','Size'),
+     ('ff000000-0000-4000-8000-0000000000a2','55555555-5555-4555-8555-555555555555','Box');
+   INSERT INTO variant (id, variant_group_id, name, pricing_mode, price_cents) VALUES
+     ('ff000000-0000-4000-8000-0000000000b1','ff000000-0000-4000-8000-0000000000a1','Large','ABSOLUTE',2000),
+     ('ff000000-0000-4000-8000-0000000000b2','ff000000-0000-4000-8000-0000000000a2','Gift','ABSOLUTE',2500);
+   INSERT INTO quote_line_variant (quote_id, line_no, variant_id, variant_group_id, group_name, variant_name,
+     pricing_mode, price_cents, sort_no) VALUES
+     ('77777777-7777-4777-8777-777777777777',1,'ff000000-0000-4000-8000-0000000000b1','ff000000-0000-4000-8000-0000000000a1','Size','Large','ABSOLUTE',2000,1),
+     ('77777777-7777-4777-8777-777777777777',1,'ff000000-0000-4000-8000-0000000000b2','ff000000-0000-4000-8000-0000000000a2','Box','Gift','ABSOLUTE',2500,2);"
 reject "a receipt snapshot cannot be rewritten" "receipt_snapshot_is_immutable" \
   "UPDATE \"order\" SET receipt_snapshot = '{\"v\":1}' WHERE id='88888888-8888-4888-8888-888888888888';
    UPDATE \"order\" SET receipt_snapshot = '{\"v\":2}' WHERE id='88888888-8888-4888-8888-888888888888';"
