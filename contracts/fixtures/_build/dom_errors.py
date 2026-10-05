@@ -505,6 +505,18 @@ LAUNCH_ERRORS = [
             "decideMenuVersion",
         ],
     ),
+    (
+        "receipt_not_ready",
+        409,
+        "RECEIPT_NOT_READY",
+        "This order does not have a receipt yet.",
+        None,
+        "`getOrderReceipt` before the order reaches COMPLETED: the receipt is written once "
+        "at COMPLETED (docs/spec/01-platform.md, \"P-10 — Fee breakdown presented to the "
+        "customer\"). The customer app shows the receipt as not ready yet rather than as an "
+        "error; an order that never captured never gets one.",
+        ["getOrderReceipt"],
+    ),
 ]
 
 
