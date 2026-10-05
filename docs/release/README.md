@@ -153,7 +153,9 @@ A dev build can be pointed at another API with `API_BASE_URL`, for example an AP
 machine as an emulator sees it: `API_BASE_URL=http://10.0.2.2:8080`.
 
 The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
-`MAPBOX_PUBLIC_TOKEN_MOBILE`).
+`MAPBOX_PUBLIC_TOKEN_MOBILE`). The rider app also calls the Mapbox Directions API with it for the
+route line. Both apps' configs record only whether it was set (`extra.mapboxPublicTokenConfigured`);
+the token itself is inlined into the JS bundle, as a public token is meant to be.
 
 **The live map needs a second, secret Mapbox token to build for Android.** Mapbox's Maven
 repository serves the native SDK (`@rnmapbox/maps`) only with a download token: a secret `sk.`
@@ -162,10 +164,10 @@ the repo secret of the same name, passed to the Android project-generation and b
 Gradle fails with "Could not find com.mapbox.maps:android-ndk27" ([#468](https://github.com/shaiknoorullah/hg-mono/issues/468)),
 so the build leaves the SDK out instead:
 
-| `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` | The build | The customer app |
-|---|---|---|
-| set | links `@rnmapbox/maps` and adds its config plugin | live tracking map |
-| not set | `react-native.config.js` excludes it from autolinking; no plugin | ETA text only |
+| `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` | The build | The customer app | The rider app |
+|---|---|---|---|
+| set | links `@rnmapbox/maps` and adds its config plugin | live tracking map | live map on the offer and the active delivery |
+| not set | `react-native.config.js` excludes it from autolinking; no plugin | ETA text only | distance and ETA text only |
 
 Both builds pass; a build without the token prints a notice saying the map is left out. The switch
 is `scripts/release/mapbox.cjs`, read by each app's `app.config.js` (the plugin) and

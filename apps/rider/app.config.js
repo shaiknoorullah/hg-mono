@@ -89,6 +89,7 @@ module.exports = () => {
       ],
       extra: {
         appEnv: env.name,
+        mapboxPublicTokenConfigured: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
         ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {}),
       },
     },
