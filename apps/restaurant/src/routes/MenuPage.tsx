@@ -9,6 +9,12 @@ import { StatusChip } from '../components/StatusChip';
 import { IconEdit, IconMenuBook } from '../lib/icons';
 import { AddItemDialog } from '../components/AddItemDialog';
 import { EditItemDialog, type EditableMenuItem } from '../components/EditItemDialog';
+import {
+  MenuLockedNotice,
+  menuLockFromAccountState,
+  menuLockFromError,
+  type MenuLockState,
+} from '../components/MenuLockedNotice';
 
 /**
  * See the note in `OrdersPage.tsx`: values read back through `unwrapOrThrow` lose the
@@ -20,7 +26,18 @@ function money(value: unknown) {
 }
 
 export function MenuPage() {
-  const { status, data, error, reload } = useAsync(() => unwrapOrThrow(api.GET('/v1/restaurant/menu', {})), []);
+  // The profile's `account_state` says whether the menu is locked before any save is tried.
+  const { status, data, error, reload } = useAsync(
+    () =>
+      Promise.all([unwrapOrThrow(api.GET('/v1/restaurant/menu', {})), unwrapOrThrow(api.GET('/v1/restaurant/profile', {}))]).then(
+        ([menu, profile]) => ({ ...menu, lock: menuLockFromAccountState(profile.account_state) }),
+      ),
+    [],
+  );
+  // A save refused with `MENU_LOCKED` (it raced a suspension) locks the page the same way.
+  const [refusedLock, setRefusedLock] = useState<MenuLockState | null>(null);
+  const lock = refusedLock ?? data?.lock ?? null;
+  const locked = lock !== null;
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -56,6 +73,11 @@ export function MenuPage() {
       );
       reload();
     } catch (e) {
+      const refused = menuLockFromError(e);
+      if (refused) {
+        setRefusedLock(refused);
+        return;
+      }
       // Surfaced inline rather than a global toast — keeps the failing row identifiable.
       alert(isApiError(e) ? e.message : 'Could not update availability.'); // eslint-disable-line no-alert
     } finally {
@@ -70,10 +92,16 @@ export function MenuPage() {
           <h1 className="text-heading-md font-extrabold text-fg-primary">Menu</h1>
           <p className="text-body-sm text-fg-secondary">Out-of-stock and hidden items stay listed — they just can't be added to a cart.</p>
         </div>
-        <Button iconStart={<Icon name="plus" size={15} />} onPress={() => setAddOpen(true)}>
+        <Button iconStart={<Icon name="plus" size={15} />} disabled={locked} onPress={() => setAddOpen(true)}>
           Add item
         </Button>
       </header>
+
+      {lock && (
+        <div className="mb-6">
+          <MenuLockedNotice state={lock} />
+        </div>
+      )}
       <span id={`${ids}-available`} hidden>
         available
       </span>
@@ -82,8 +110,8 @@ export function MenuPage() {
         <EmptyState
           illustration={<IconMenuBook size={32} />}
           title="No categories yet"
-          description="Add your first category and item to get one step closer to going live."
-          primaryAction={{ label: 'Add your first item', onPress: () => setAddOpen(true) }}
+          description={locked ? 'There is nothing on your menu yet.' : 'Add your first category and item to get one step closer to going live.'}
+          primaryAction={locked ? undefined : { label: 'Add your first item', onPress: () => setAddOpen(true) }}
         />
       ) : (
         <div className="flex gap-6">
@@ -110,7 +138,11 @@ export function MenuPage() {
 
           <div className="min-w-0 flex-1 space-y-3">
             {(selected?.items ?? []).length === 0 && (
-              <EmptyState title="No items in this category" description="Add an item to fill it in." variant="inline" />
+              <EmptyState
+                title="No items in this category"
+                description={locked ? 'Nothing can be added while the menu is locked.' : 'Add an item to fill it in.'}
+                variant="inline"
+              />
             )}
             {(selected?.items ?? []).map((item) => (
               <Card key={item.id} className="flex items-center gap-4">
@@ -142,7 +174,7 @@ export function MenuPage() {
                   </span>
                   <Switch.Root
                     checked={item.availability_state === 'AVAILABLE'}
-                    disabled={busyItem === item.id || item.availability_state === 'BLOCKED' || item.availability_state === 'HIDDEN'}
+                    disabled={locked || busyItem === item.id || item.availability_state === 'BLOCKED' || item.availability_state === 'HIDDEN'}
                     onCheckedChange={() => toggleAvailability(item)}
                     aria-labelledby={`${ids}-item-${item.id} ${ids}-available`}
                     className={cx(
@@ -159,6 +191,7 @@ export function MenuPage() {
                     size="sm"
                     accessibilityLabel={`Edit ${item.name}`}
                     icon={<IconEdit size={16} />}
+                    disabled={locked}
                     onPress={() => setEditItem(item)}
                   />
                 </div>
@@ -172,6 +205,10 @@ export function MenuPage() {
         <AddItemDialog
           categories={categories}
           onClose={() => setAddOpen(false)}
+          onLocked={(refused) => {
+            setAddOpen(false);
+            setRefusedLock(refused);
+          }}
           onCreated={() => {
             setAddOpen(false);
             reload();
@@ -183,6 +220,10 @@ export function MenuPage() {
         <EditItemDialog
           item={editItem}
           onClose={() => setEditItem(null)}
+          onLocked={(refused) => {
+            setEditItem(null);
+            setRefusedLock(refused);
+          }}
           onSaved={() => {
             setEditItem(null);
             reload();
