@@ -420,7 +420,8 @@ func (s *Store) verifyDeliveryOtpTx(ctx context.Context, tx pgx.Tx, assignmentID
 // OFFLINE if they asked to go offline after the delivery. Each one is an anomaly, since an
 // assignment's terminal step restores its rider in the same transaction
 // (restoreAvailabilityTx), so each is written to rider_availability_event with
-// reason RECONCILED, in the transaction that moves it. It returns the riders it
+// reason RECONCILED and sent rider.availability_changed (events.go), in the
+// transaction that moves it. It returns the riders it
 // restored. Idempotent: a restored rider no longer matches, so a second run
 // restores nobody. AvailabilitySweeper runs it every 60 s
 // (availability_sweeper.go, https://github.com/shaiknoorullah/hg-mono/issues/255).
@@ -462,6 +463,12 @@ RETURNING rp.account_id::text, rp.availability_state::text`)
 		if _, err := tx.Exec(ctx, `
 INSERT INTO rider_availability_event (account_id, from_state, to_state, reason, actor_kind)
 VALUES ($1, 'ON_DELIVERY', $2, 'RECONCILED', 'SYSTEM')`, id, states[i]); err != nil {
+			return nil, err
+		}
+		// The rider app hears of the restore like any other availability
+		// change, in this transaction
+		// (https://github.com/shaiknoorullah/hg-mono/issues/379).
+		if err := emitAvailability(ctx, tx, id); err != nil {
 			return nil, err
 		}
 	}
