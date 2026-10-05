@@ -28,8 +28,15 @@ x-api-env: &api-env
   HG_HTTP_ADDR: ":8080"
   HG_LOG_LEVEL: ${HG_LOG_LEVEL:-info}
   HG_SHUTDOWN_TIMEOUT: ${HG_SHUTDOWN_TIMEOUT:-20s}
+  # Rider availability sweeps (docs/spec/04-rider.md, "D-10 — Availability:
+  # online / offline"; see .env.example).
+  HG_RIDER_STALE_AFTER: ${HG_RIDER_STALE_AFTER:-120s}
+  HG_RIDER_STALE_SWEEP_INTERVAL: ${HG_RIDER_STALE_SWEEP_INTERVAL:-15s}
+  HG_RIDER_RECONCILE_INTERVAL: ${HG_RIDER_RECONCILE_INTERVAL:-60s}
   HG_CORS_ALLOWED_ORIGINS: ${HG_CORS_ALLOWED_ORIGINS:?set HG_CORS_ALLOWED_ORIGINS in .env}
   HG_REALTIME_MAX_SOCKETS: ${HG_REALTIME_MAX_SOCKETS:-2000}
+  HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: ${HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS:-30}
+  HG_PAYOUT_RESTAURANT_HOLD_HOURS: ${HG_PAYOUT_RESTAURANT_HOLD_HOURS:-72}
   # Traefik's network, so the API reads the client address Traefik forwards
   # rather than Traefik's own. Required, not defaulted: this stack always runs
   # the API behind Traefik, and an empty list there makes every per-IP limit
@@ -62,6 +69,9 @@ x-api-env: &api-env
   HG_AUTH_SIGNING_KID: ${HG_AUTH_SIGNING_KID:-k1}
   HG_AUTH_TERMS_VERSION: ${HG_AUTH_TERMS_VERSION:-2026-01}
   HG_APP_DATA_KEY: ${HG_APP_DATA_KEY:-}
+  # Rider pay the owner has not settled (#164); the default is the documented
+  # behaviour.
+  HG_RIDER_TIP_MAKEUP: ${HG_RIDER_TIP_MAKEUP:-false}
   HG_AUTH_HASH_CONCURRENCY: ${HG_AUTH_HASH_CONCURRENCY:-3}
   HG_AUTH_HASH_WAIT: ${HG_AUTH_HASH_WAIT:-2s}
   HG_AUTH_HASH_MAX_WAITERS: ${HG_AUTH_HASH_MAX_WAITERS:-}

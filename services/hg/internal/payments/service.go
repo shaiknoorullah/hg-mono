@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 )
 
@@ -14,11 +16,18 @@ import (
 // Repo and the StripeClient and enforces the P-16..P-21 rules. It never reads an
 // *http.Request and never trusts a client-supplied amount.
 type Service struct {
+	// riderPay holds the rider pay rules the owner has not settled
+	// (rider_earnings.go): config.DefaultRiderPay until WithRiderPay.
+	riderPay config.RiderPay
+
 	repo   *Repo
 	stripe StripeClient
 	cfg    config.Stripe
 	log    *slog.Logger
 	now    func() time.Time
+	orders OrderHooks
+	// payouts queues admin payout runs; nil when Stripe is not configured.
+	payouts *PayoutRunner
 }
 
 // NewService builds the payments service.
@@ -26,7 +35,36 @@ func NewService(repo *Repo, sc StripeClient, cfg config.Stripe, log *slog.Logger
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Service{repo: repo, stripe: sc, cfg: cfg, log: log, now: time.Now}
+	return &Service{repo: repo, stripe: sc, cfg: cfg, log: log, now: time.Now,
+		riderPay: config.DefaultRiderPay()}
+}
+
+// WithRiderPay sets the rider pay rules the owner has not settled yet and
+// returns the service.
+func (s *Service) WithRiderPay(p config.RiderPay) *Service {
+	s.riderPay = p
+	return s
+}
+
+// OrderHooks is how a stored Stripe event moves an order. The orders module
+// owns the order and its state machine; payments never writes "order"
+// itself. The server wires it to the orders store (cmd/hg).
+type OrderHooks interface {
+	// PaymentAuthorised moves an order still waiting for its payment
+	// (CREATED) to AUTHORIZED and on to RESTAURANT_PENDING, inside tx
+	// (docs/spec/01-platform.md, "P-14 — Order lifecycle states and
+	// transitions": created to authorised, then to restaurant pending). It
+	// reports whether the order moved; an
+	// order already past CREATED, or ended, is left as it is.
+	PaymentAuthorised(ctx context.Context, tx pgx.Tx, orderID string) (bool, error)
+}
+
+// WithOrderHooks sets the hooks stored Stripe events move orders through.
+// Without them an event still updates the payment, and the order is left to
+// its own deadline.
+func (s *Service) WithOrderHooks(h OrderHooks) *Service {
+	s.orders = h
+	return s
 }
 
 // DomainError carries an error code the handler maps to an HTTP status.
@@ -162,10 +200,17 @@ func (s *Service) GetOrderPayment(ctx context.Context, orderID, accountID string
 // ---------------------------------------------------------------------------
 
 // RequestRefund handles POST /v1/refunds for the non-GOODWILL kinds. It computes
-// the amount and liability split, writes the refund and its balanced ledger
-// batch in one transaction (transactional compensation), and returns the refund.
-// The Stripe Refund.create call is performed by the deadline runner from the
-// AUTHORISED state so a slow or failing provider never rolls back the ledger.
+// the amount and liability split and records the request in REQUESTED, for a
+// member of staff to review: a request moves no money, posts no ledger batch
+// and is never sent to Stripe (docs/spec/02-customer.md, "C-37 — Refund
+// requests and refund tracking": a request is created in REQUESTED, and at
+// launch every one is human-reviewed, because approving them automatically
+// without a fraud signal is an open cash tap). Until #318 nothing was sent, so
+// a request written straight into AUTHORISED did no harm; now that approved
+// refunds reach Stripe (refund_sender.go) it would pay out on the customer's
+// word alone. Staff who decide a refund at once issue it through
+// IssueAdminRefund, under their authority cap. The review of a request is
+// #172.
 func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy string) (RefundDTO, error) {
 	if in.Kind == RefundGoodwill {
 		// GOODWILL carries an amount and is admin-only; it is not created here.
@@ -217,13 +262,10 @@ func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy
 	}
 
 	// Liability split: item-fault reasons charge the restaurant its item net.
+	// It is computed now so the reviewer sees who would pay; the REFUND batch
+	// is posted only when the refund is approved.
 	itemNet := computed.AmountCents - computed.TaxCents
 	split := ComputeLiabilitySplit(in.ReasonCode, computed.AmountCents, itemNet, money.RiderEarningsCents)
-
-	// The refund enters AUTHORISED with a balanced REFUND ledger batch already
-	// posted: the money movement is a database fact before Stripe is called.
-	batch := BuildRefundBatch(money, split, computed.AmountCents,
-		fmt.Sprintf("refund:%s:%d", in.OrderID, s.now().UnixNano()), "system:refund")
 
 	params := CreateRefundParams{
 		OrderID:         in.OrderID,
@@ -235,11 +277,10 @@ func (s *Service) RequestRefund(ctx context.Context, in RefundInput, requestedBy
 		AmountCents:     computed.AmountCents,
 		TaxCents:        computed.TaxCents,
 		Split:           split,
-		State:           RefundAuthorised,
+		State:           RefundRequested,
 		RequestedBy:     requestedBy,
-		DeadlineAction:  "submit_refund_to_stripe",
+		DeadlineAction:  refundActionReview,
 		Lines:           computed.Lines,
-		Ledger:          &batch,
 		Money:           money,
 	}
 	refundID, err := s.repo.CreateRefund(ctx, params)
@@ -432,7 +473,9 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 	if requiresApproval(kind, amount, issued, cap, uncapped) {
 		// Above authority: create a PENDING_APPROVAL refund (the approval request)
 		// and escalate. No ledger batch is posted and no Stripe call is made — the
-		// money only moves once an authorised approver acts.
+		// money only moves once an authorised approver acts (ApproveRefund). The
+		// row keeps the role it was escalated to, which the approver must hold.
+		required := escalationRole(operatorRoles)
 		params := CreateRefundParams{
 			OrderID:         in.OrderID,
 			PaymentIntentID: intent.ID,
@@ -446,6 +489,7 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 			State:           RefundPendingApproval,
 			ApprovalStatus:  "PENDING",
 			RequestedBy:     operatorID,
+			RequiredRole:    required,
 			DeadlineAction:  "await_refund_approval",
 			Lines:           lines,
 		}
@@ -458,7 +502,7 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 			OrderID:             in.OrderID,
 			ProposedAmountCents: amount,
 			Currency:            intent.Currency,
-			RequiredRole:        escalationRole(operatorRoles),
+			RequiredRole:        required,
 			CaseID:              in.CaseID,
 			Status:              "PENDING",
 			RequestedAt:         tsFor(s.now()),
@@ -482,7 +526,7 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, ope
 		ApprovalStatus:  "APPROVED",
 		RequestedBy:     operatorID,
 		ApprovedBy:      operatorID,
-		DeadlineAction:  "submit_refund_to_stripe",
+		DeadlineAction:  RefundActionSubmit,
 		Lines:           lines,
 		Ledger:          &batch,
 		Money:           money,

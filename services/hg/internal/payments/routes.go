@@ -63,6 +63,13 @@ func Routes(r *httpx.Router, h *Handler) {
 
 	// Restaurant payouts (P-19 / S-04).
 	r.Get("/v1/restaurant/payouts", read(ActionPayoutRead, "listRestaurantPayouts"), h.ListRestaurantPayouts)
+
+	// Payout runs, for admins (issue #251): run the weekly payout now for one
+	// partner or for all, and read what every run did. Requesting a run moves
+	// money, so it is MONEY-class with a mandatory Idempotency-Key.
+	r.Post("/v1/admin/payout-runs", money(ActionPayoutRunCreate, "createPayoutRun"), h.CreatePayoutRun)
+	r.Get("/v1/admin/payout-runs", read(ActionPayoutRunRead, "listPayoutRuns"), h.ListPayoutRuns)
+	r.Get("/v1/admin/payout-runs/{runId}", read(ActionPayoutRunRead, "getPayoutRun"), h.GetPayoutRun)
 }
 
 // PublicRouteAllowlist is the checked-in set of PUBLIC routes this module adds,

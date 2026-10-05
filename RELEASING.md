@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Releasing HalalGoes
@@ -82,8 +82,13 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    on receipts only when set. (Tax is already computed.)
 4. **Mapbox token(s)** — §2.
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
-   self-declared halal (default hide), O-04 refund liability.
-6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik, including the public
+   self-declared halal (default hide), O-04 refund liability. Settings that also hold coded
+   defaults until the owner decides ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)):
+   `HG_RIDER_TIP_MAKEUP` (default `false`: a tip lowered after the rider accepts is not made up),
+   `HG_PAYOUT_RESTAURANT_HOLD_HOURS` (72, the proposed three-day hold before a restaurant's earning
+   is paid) and `HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS` (30: a restaurant whose payout balance
+   stays below zero longer takes no new orders; 0 turns the block off).
+6. **Production hosting** — one Contabo server ([the owner's decision](https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570)) + domain/DNS + TLS for Traefik, set up with one command: [deploy/host](deploy/host/README.md), "Day 1". Include the public
    host for file links: `HG_MINIO_PRESIGN_BASE_URL` (e.g. `https://files.halalgoes.com`), routed
    by Traefik to the object store with the Host header unchanged. Upload and download links are
    signed for that host, so phones can use them.
@@ -93,13 +98,16 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    start with a key and localhost links). With no key the API logs each email instead of sending
    it. Outside production only the addresses in `HG_EMAIL_ALLOWLIST` are ever really emailed;
    that list is refused in production.
-8. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
-   (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
+8. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from.
+   On the production server that is `hg-proxy`, `10.88.0.0/29`, which only Traefik and the API join
+   ([deploy/host](deploy/host/README.md#what-productions-compose-file-must-do)). Unset, the stack refuses to start: every request's client
    address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
    Never `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside
    `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7`.
 
 ## 4. Deploy the stack (on your host)
+
+On the production server, provision first with [deploy/host](deploy/host/README.md): it installs Docker, the firewall, backups and monitoring, and writes production's `.env` from the encrypted `prod.sops.env` rather than a copy edited on the server. The commands below are the stack itself, on any host:
 
 ```bash
 cp deploy/.env.example deploy/.env      # edit secrets + §3 flips; HG_ENV=production

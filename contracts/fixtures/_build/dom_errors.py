@@ -158,6 +158,18 @@ ERRORS = [
         "Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`.",
     ),
     (
+        "restaurant_unavailable",
+        409,
+        "RESTAURANT_UNAVAILABLE",
+        "This restaurant cannot take orders: it is not listed, or its halal certification is "
+        "not current. Your cart is saved.",
+        None,
+        "From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed "
+        "and live, or its halal certificate is not current as of the request, computed from "
+        "admin-verified certificate data. The apps show the halal copy and keep the cart. "
+        "Pairs with `cart_restaurant_unavailable`.",
+    ),
+    (
         "below_minimum_order",
         422,
         "BELOW_MINIMUM_ORDER",
