@@ -19,6 +19,8 @@ type Service struct {
 	cfg    config.Stripe
 	log    *slog.Logger
 	now    func() time.Time
+	// payouts queues admin payout runs; nil when Stripe is not configured.
+	payouts *PayoutRunner
 }
 
 // NewService builds the payments service.
