@@ -351,58 +351,6 @@ func TestIntegrationDeletedItemUnavailableInCartAndRefusedByQuote(t *testing.T) 
 	}
 }
 
-// A restaurant the weekly payout run has blocked for a balance below zero too
-// long (restaurant_collection, internal/payments/payout_run.go) gets no quote,
-// and so no order, until the block is lifted. Whether to block at all is the
-// owner's open question: https://github.com/shaiknoorullah/hg-mono/issues/164.
-func TestIntegrationQuoteRefusedWhileRestaurantBlockedForNegativeBalance(t *testing.T) {
-	pool := testPool(t)
-	st := NewStore(pool)
-	ctx := context.Background()
-	b := seedBasics(t, pool)
-
-	cart, err := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
-	if err != nil {
-		t.Fatalf("add cart line: %v", err)
-	}
-	quote := func() error {
-		_, err := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart.ID,
-			DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
-		return err
-	}
-	if err := quote(); err != nil {
-		t.Fatalf("quote before the block: %v", err)
-	}
-
-	var runID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO payout_run (kind, period_start, period_end, as_of, due_at)
-		VALUES ('SCHEDULED', now() - interval '7 days', now(), now(), now()) RETURNING id`).Scan(&runID); err != nil {
-		t.Fatalf("seed payout run: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM restaurant_collection WHERE restaurant_id = $1`, b.restaurantID)
-		_, _ = pool.Exec(ctx, `DELETE FROM payout_run WHERE id = $1`, runID)
-	})
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO restaurant_collection (restaurant_id, balance_cents, negative_since, opened_by_run)
-		VALUES ($1, -500, now() - interval '31 days', $2)`, b.restaurantID, runID); err != nil {
-		t.Fatalf("block: %v", err)
-	}
-	if err := quote(); err != ErrRestaurantClosed {
-		t.Fatalf("quote while blocked: err = %v, want ErrRestaurantClosed", err)
-	}
-
-	if _, err := pool.Exec(ctx, `
-		UPDATE restaurant_collection SET closed_at = now(), closed_by_run = $2, close_reason = 'BALANCE_RECOVERED'
-		 WHERE restaurant_id = $1`, b.restaurantID, runID); err != nil {
-		t.Fatalf("lift: %v", err)
-	}
-	if err := quote(); err != nil {
-		t.Fatalf("quote after the block lifts: %v", err)
-	}
-}
-
 func TestIntegrationExpiredQuoteRejected(t *testing.T) {
 	pool := testPool(t)
 	st := NewStore(pool)
@@ -476,3 +424,55 @@ func TestIntegrationDeadlineRunnerExpiresCreatedOrder(t *testing.T) {
 func testLogger() *slog.Logger { return slog.New(slog.NewTextHandler(os.Stderr, nil)) }
 
 var _ = time.Second
+
+// A restaurant the weekly payout run has blocked for a balance below zero too
+// long (restaurant_collection, internal/payments/payout_run.go) gets no quote,
+// and so no order, until the block is lifted. Whether to block at all is the
+// owner's open question: https://github.com/shaiknoorullah/hg-mono/issues/164.
+func TestIntegrationQuoteRefusedWhileRestaurantBlockedForNegativeBalance(t *testing.T) {
+	pool := testPool(t)
+	st := NewStore(pool)
+	ctx := context.Background()
+	b := seedBasics(t, pool)
+
+	cart, err := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
+	if err != nil {
+		t.Fatalf("add cart line: %v", err)
+	}
+	quote := func() error {
+		_, err := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart.ID,
+			DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
+		return err
+	}
+	if err := quote(); err != nil {
+		t.Fatalf("quote before the block: %v", err)
+	}
+
+	var runID string
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO payout_run (kind, period_start, period_end, as_of, due_at)
+		VALUES ('SCHEDULED', now() - interval '7 days', now(), now(), now()) RETURNING id`).Scan(&runID); err != nil {
+		t.Fatalf("seed payout run: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM restaurant_collection WHERE restaurant_id = $1`, b.restaurantID)
+		_, _ = pool.Exec(ctx, `DELETE FROM payout_run WHERE id = $1`, runID)
+	})
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO restaurant_collection (restaurant_id, balance_cents, negative_since, opened_by_run)
+		VALUES ($1, -500, now() - interval '31 days', $2)`, b.restaurantID, runID); err != nil {
+		t.Fatalf("block: %v", err)
+	}
+	if err := quote(); err != ErrRestaurantClosed {
+		t.Fatalf("quote while blocked: err = %v, want ErrRestaurantClosed", err)
+	}
+
+	if _, err := pool.Exec(ctx, `
+		UPDATE restaurant_collection SET closed_at = now(), closed_by_run = $2, close_reason = 'BALANCE_RECOVERED'
+		 WHERE restaurant_id = $1`, b.restaurantID, runID); err != nil {
+		t.Fatalf("lift: %v", err)
+	}
+	if err := quote(); err != nil {
+		t.Fatalf("quote after the block lifts: %v", err)
+	}
+}
