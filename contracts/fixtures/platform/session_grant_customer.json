@@ -6,8 +6,7 @@
   "operations": [
     "verifyOtp",
     "login",
-    "refreshSession",
-    "verifyEmail"
+    "refreshSession"
   ],
   "status": 200,
   "tags": [

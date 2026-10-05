@@ -68,7 +68,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**374 scenarios** across 15 domains.
+**376 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -77,7 +77,7 @@ falling through, so a typo is visible immediately.
 | [`catalogue`](#catalogue) | 41 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 43 | `{error}` envelopes for the codes an app actually branches on. |
+| [`errors`](#errors) | 45 | `{error}` envelopes for the codes an app actually branches on. |
 | [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
 | [`onboarding`](#onboarding) | 35 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
@@ -258,7 +258,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 43 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 45 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -305,6 +305,8 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_totp_code_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `verifyTotpEnrolment` with a code that does not match the authenticator. Enrolment stays open: the person types the next code, they do not start again. |
 | `error_unknown_field` | `ErrorEnvelope` | 422 | `422` · `UNKNOWN_FIELD`. The decoder runs with `DisallowUnknownFields`. `is_accepting` against `is_accepting_orders` is a 422 at the boundary, not a cheerful 200 over an unchanged row — the exact bug this contract exists to kill. |
 | `error_validation_failed` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. Per-field detail lives in `error.details` as `FieldError[]` (contradiction log #2). Note the enum message: `CALL_ON_ARRIVAL` was dropped in favour of the platform's five values (contradiction log #6). |
+| `error_verification_token_expired` | `ErrorEnvelope` | 410 | `410` · `VERIFICATION_TOKEN_EXPIRED`. `verifyEmail` with a token older than 24 hours. A token that never existed gets the same code. The page offers "Send a new link" (`resendEmailVerification`). |
+| `error_verification_token_used` | `ErrorEnvelope` | 410 | `410` · `VERIFICATION_TOKEN_USED`. `verifyEmail` with a token that was already used: the email is verified, so the page sends the owner to sign in. Using the link never signs anyone in. |
 
 ### halal
 
@@ -576,7 +578,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `state-matrix` | 64 | One fixture per member of a closed enum. |
 | `edge` | 51 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `rider` | 51 | Rider-facing surface. |
-| `error-envelope` | 43 | A `{error}` body with a real `ErrorCode`. |
+| `error-envelope` | 45 | A `{error}` body with a real `ErrorCode`. |
 | `restaurant` | 41 | Restaurant-facing surface. |
 | `admin` | 33 | Admin/support-facing surface. |
 | `halal` | 29 | Touches the halal claim surface. |
@@ -753,7 +755,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `updateMenuCategory` | `menu_category_updated` | `error_category_name_taken`, `error_menu_locked` |
 | `updateMenuItem` | `menu_item_edit_pending_review` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `updateMenuItemOnBehalf` | `menu_item_edited_by_admin` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_pending`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
-| `verifyEmail` | `session_grant_customer` | — |
+| `verifyEmail` | `error_verification_token_expired` | `error_verification_token_used` |
 | `verifyOtp` | `session_grant_customer` | `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
 | `verifyTotpEnrolment` | `error_totp_code_incorrect` | — |
 

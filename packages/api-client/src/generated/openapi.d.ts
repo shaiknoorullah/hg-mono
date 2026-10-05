@@ -841,9 +841,14 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Consume an email-verification token and issue a session
-         * @description P-03 / R-02. Single-use, consumed atomically. TTL 24 h. Advances the restaurant
-         *     onboarding state to `PROFILE_PENDING` and issues a session.
+         * Consume an email-verification token
+         * @description P-03 / R-02. Single-use, consumed atomically. TTL 24 h. Marks the email verified and
+         *     advances the restaurant onboarding state to `PROFILE_PENDING`.
+         *
+         *     **Issues no session and sets no cookie.** An emailed link must never sign anyone in:
+         *     otherwise an attacker could send someone the link for the attacker's own account and
+         *     the victim would land signed in to it (login cross-site request forgery). The owner
+         *     signs in afterwards with `login`, like any other sign-in.
          */
         post: operations["verifyEmail"];
         delete?: never;
@@ -1057,6 +1062,10 @@ export interface paths {
         /**
          * Set a new password from a reset token
          * @description P-03. Revokes **every** session in the account's family and sends a security email.
+         *
+         *     **Issues no session and sets no cookie**, also when the link is a staff invitation
+         *     setting a first password. The user signs in afterwards with `login` (with the
+         *     authenticator code where the account requires one).
          */
         post: operations["resetPassword"];
         delete?: never;
@@ -1102,7 +1111,8 @@ export interface paths {
          * Register a restaurant account (email + password)
          * @description P-03 / R-01. Creates one `account` (unverified), one `restaurant` in
          *     `onboarding_state=REGISTERED`, and one `RESTAURANT_OWNER` grant, then sends a
-         *     verification email. **No session is issued until the email is verified.**
+         *     verification email. **No session is issued**, and verifying the email issues none
+         *     either: the owner signs in with `login` once the email is verified.
          */
         post: operations["registerRestaurant"];
         delete?: never;
@@ -8252,16 +8262,12 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Email verified and session issued. */
-            200: {
+            /** @description Email verified. No session issued and no cookie set. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["SessionGrant"];
-                    };
-                };
+                content?: never;
             };
             410: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -8527,7 +8533,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Password set; all sessions revoked. */
+            /** @description Password set; all sessions revoked. No session issued and no cookie set. */
             204: {
                 headers: {
                     [name: string]: unknown;

@@ -201,9 +201,12 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Behaviour**: The signup email contains a link to `{APP_ORIGIN}/verify-email?token=…`. The web app
   POSTs the token once. On success the server sets `email_verified_at`, advances
-  `onboarding_state REGISTERED → EMAIL_VERIFIED`, issues an access + refresh token pair (R-03), and
-  returns the onboarding status object so the client can route to the next step. The token is
-  single-use and is consumed atomically (`UPDATE … WHERE consumed_at IS NULL RETURNING`).
+  `onboarding_state REGISTERED → EMAIL_VERIFIED` and answers `204`. It **issues no session and sets
+  no cookie**: an emailed link never signs anyone in, or an attacker could send the owner the link
+  for the attacker's own account and have them work in it
+  ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The page says the email is
+  verified and sends the owner to sign in ([R-03](#r-03--login-session-and-token-lifecycle)). The
+  token is single-use and is consumed atomically (`UPDATE … WHERE consumed_at IS NULL RETURNING`).
 
 - **Data**: `email_verification_token(id, restaurant_user_id, token_hash sha256, expires_at, consumed_at, created_at, requested_ip)`. The raw token is a 32-byte CSPRNG value, base64url; only its SHA-256 is stored.
 
@@ -223,7 +226,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      for re-registration.
 
 - **Acceptance criteria**:
-  1. **Given** a fresh verification token, **when** it is POSTed once, **then** `200` returns `{access_token, refresh_token, onboarding_state:"EMAIL_VERIFIED", next_step:"PROFILE"}` and `email_verified_at` is set.
+  1. **Given** a fresh verification token, **when** it is POSTed once, **then** `204` returns no body and no `Set-Cookie`, no session row is created, and `email_verified_at` is set; signing in afterwards with the password succeeds.
   2. **Given** the same token, **when** it is POSTed a second time within 1 s (double-submit), **then** exactly one of the two requests succeeds and the other returns `410 verification_token_used` — verified under a concurrent 2-request test.
   3. **Given** a token issued 25 hours ago, **when** it is POSTed, **then** `410 verification_token_expired` is returned and no session is created.
   4. **Given** an account with `email_verified_at IS NULL`, **when** it calls `GET /v1/restaurant/menu/items` with a forged bearer token, **then** `403 email_not_verified` is returned.

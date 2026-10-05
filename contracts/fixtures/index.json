@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 374,
+  "count": 376,
   "counts_by_domain": {
     "admin": 26,
     "cart": 12,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 43,
+    "errors": 45,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -2616,6 +2616,34 @@
       "file": "errors/error_validation_failed.json"
     },
     {
+      "scenario": "error_verification_token_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`410` · `VERIFICATION_TOKEN_EXPIRED`. `verifyEmail` with a token older than 24 hours. A token that never existed gets the same code. The page offers \"Send a new link\" (`resendEmailVerification`).",
+      "operations": [
+        "verifyEmail"
+      ],
+      "status": 410,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_verification_token_expired.json"
+    },
+    {
+      "scenario": "error_verification_token_used",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`410` · `VERIFICATION_TOKEN_USED`. `verifyEmail` with a token that was already used: the email is verified, so the page sends the owner to sign in. Using the link never signs anyone in.",
+      "operations": [
+        "verifyEmail"
+      ],
+      "status": 410,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_verification_token_used.json"
+    },
+    {
       "scenario": "certification_panel_certified",
       "domain": "halal",
       "schema": "CertificationPanel",
@@ -4806,8 +4834,7 @@
       "operations": [
         "verifyOtp",
         "login",
-        "refreshSession",
-        "verifyEmail"
+        "refreshSession"
       ],
       "status": 200,
       "tags": [
@@ -6525,7 +6552,8 @@
       "menu_item_edited_by_admin"
     ],
     "verifyEmail": [
-      "session_grant_customer"
+      "error_verification_token_expired",
+      "error_verification_token_used"
     ],
     "verifyOtp": [
       "session_grant_customer",
@@ -6672,7 +6700,6 @@
     "updateMenuCategory": "menu_category_updated",
     "updateMenuItem": "menu_item_edit_pending_review",
     "updateMenuItemOnBehalf": "menu_item_edited_by_admin",
-    "verifyEmail": "session_grant_customer",
     "verifyOtp": "session_grant_customer"
   }
 }
