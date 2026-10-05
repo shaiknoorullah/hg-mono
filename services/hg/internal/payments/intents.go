@@ -52,7 +52,14 @@ func (s *Service) Authorise(ctx context.Context, in AuthoriseInput) (IntentRow, 
 	if err != nil {
 		return IntentRow{}, err
 	}
-	return s.repo.UpsertOrderIntent(ctx, in.OrderID, pi)
+	row, err := s.repo.UpsertOrderIntent(ctx, in.OrderID, pi)
+	if err != nil {
+		return IntentRow{}, err
+	}
+	// The app confirms the payment with Stripe's own client secret
+	// (https://github.com/shaiknoorullah/hg-mono/issues/509).
+	row.ClientSecret = pi.ClientSecret
+	return row, nil
 }
 
 // Capture captures a previously authorised intent when the restaurant accepts.

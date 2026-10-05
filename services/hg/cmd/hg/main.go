@@ -330,7 +330,10 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 			Reason: "presented to restaurant",
 		})
 	}
-	return orders.CreateIntentResult{ClientSecret: row.StripePaymentIntentID + "_secret"}, nil
+	// Stripe's own client secret, never one built from the intent id: Stripe.js
+	// and the mobile SDK confirm the payment with it
+	// (https://github.com/shaiknoorullah/hg-mono/issues/509).
+	return orders.CreateIntentResult{ClientSecret: row.ClientSecret}, nil
 }
 
 // orderLifecycleAdapter implements dispatch.OrderLifecycle by forwarding to the
