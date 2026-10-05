@@ -1,16 +1,16 @@
-// Launch-path journey against the staging API.
+// Launch-path journey against an explicit non-production API.
 // Secrets stay in memory. Step records are redacted before they are written.
 import { randomBytes } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ApiError, Session, pace, sleep } from './lib/client.mjs';
-import { apiLogs, findEmailToken, findOtp, remoteStripeEnv } from './lib/logs.mjs';
+import { assertFictionalPhone, classifyEnvironment, fictionalLines, fictionalPhone } from './lib/guard.mjs';
+import { apiLogs, findEmailToken, findOtp } from './lib/logs.mjs';
 import { hostOf, redact } from './lib/redact.mjs';
 import { freshTotp } from './lib/totp.mjs';
 import { padJpeg, tinyPdf, uploadBytes } from './lib/upload.mjs';
 
-const HOME = process.env.HOME || '';
-const ADMIN_ENV = `${HOME}/.config/halalgoes/secrets/admin-login.env`;
-const STRIPE_ENV = `${HOME}/.config/halalgoes/secrets/test.env`;
 const RESTAURANT_PIN = { latitude: 43.6532, longitude: -79.3832, accuracy_m: 10 };
 const CUSTOMER_PIN = { latitude: 43.6525, longitude: -79.3817, accuracy_m: 10 };
 const HALAL_CHECKS = [
@@ -22,24 +22,39 @@ const HALAL_CHECKS = [
 ];
 
 const args = process.argv.slice(2);
-let base = process.env.HG_API || 'https://api.halalgoes.com';
-let reportPath = '/tmp/grok-1-steps.md';
+let base = '';
+let reportDirOverride = '';
 for (let i = 0; i < args.length; i += 1) {
-  if (args[i] === '--base') base = args[++i];
-  else if (args[i] === '--report') reportPath = args[++i];
+  if (args[i] === '--base') base = args[++i] || '';
+  else if (args[i] === '--report-dir') reportDirOverride = args[++i] || '';
+  else {
+    console.log('unknown argument');
+    process.exit(2);
+  }
 }
-const jsonPath = '/tmp/grok-1-report.json';
+if (!base) {
+  console.log('pass --base with the API origin; there is no default');
+  process.exit(2);
+}
+
+const reportStamp = new Date().toISOString().replace(/[:.]/g, '-');
+const reportDir = reportDirOverride || join(dirname(fileURLToPath(import.meta.url)), '.reports', reportStamp);
+const reportPath = join(reportDir, 'steps.md');
+const jsonPath = join(reportDir, 'report.json');
 
 const stamp = `${Date.now().toString(36)}${randomBytes(1).toString('hex')}`;
+const [restaurantLine, riderLine, customerLine] = fictionalLines(3, randomBytes(1)[0]);
 let restaurantPassword = '';
 let stripeKey = '';
 
 const ctx = {
   stamp,
   email: `e2e-${stamp}@halalgoes.test`,
-  restaurantPhone: phone('416'),
-  riderPhone: phone('437'),
-  customerPhone: phone('647'),
+  restaurantPhone: fictionalPhone('416', restaurantLine),
+  riderPhone: fictionalPhone('437', riderLine),
+  customerPhone: fictionalPhone('647', customerLine),
+  acceptingOrders: false,
+  createdOrderIds: [],
   restaurantId: null,
   issuerId: null,
   legalName: `E2E Kitchen ${stamp}`,
@@ -78,10 +93,13 @@ class StepFail extends Error {
   }
 }
 
-function phone(npa) {
-  const exchange = 200 + (Date.now() % 800);
-  const line = String(randomBytes(2).readUInt16BE(0) % 10000).padStart(4, '0');
-  return `+1${npa}${exchange}${line}`;
+class StepBlocked extends Error {
+  constructor(message, extra = {}) {
+    super(message);
+    this.name = 'StepBlocked';
+    this.code = extra.code || null;
+    this.detail = extra.detail ?? { message };
+  }
 }
 
 function parseEnv(text) {
@@ -143,7 +161,7 @@ function hintFor(id, err) {
     return 'Payouts stay off until a person finishes the Stripe-hosted form. charges_enabled stays false by design. That is a human step when the API returned the onboarding link.';
   }
   if (id === 'issuing-body' || code === 'ISSUER_NOT_ACCEPTED') {
-    return 'Only an accepted issuing body satisfies the issuer check. Promoting a body is limited to a super-admin, so a super-admin has to accept one.';
+    return 'No accepted issuing body was listed. This runner does not propose one and does not accept one.';
   }
   if (id === 'customer-receipt') {
     return 'The receipt read can be empty when the snapshot row was never written. A completed order has to write that snapshot.';
@@ -190,25 +208,32 @@ async function step(id, title, fn, opts = {}) {
     steps.push({ id, title, status: 'pass', ms: Date.now() - started, detail: redact(detail ?? null) });
     console.log(`pass ${id}`);
   } catch (err) {
+    if (err instanceof StepBlocked) {
+      steps.push({
+        id,
+        title,
+        status: 'blocked',
+        blocked_by: [],
+        error_code: err.code,
+        detail: redact(err.detail ?? null),
+      });
+      for (const key of provides) blocked.add(key);
+      console.log(`blocked ${id}`);
+      return;
+    }
     steps.push(failRecord(id, title, err, Date.now() - started));
     for (const key of provides) blocked.add(key);
     console.log(`fail ${id}${err.code ? ` ${err.code}` : ''}`);
   }
 }
 
-async function loadStripeKey() {
+function loadStripeKey() {
+  const direct = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || process.env.STRIPE_SECRET || '';
+  if (direct) return direct;
+  const path = process.env.E2E_STRIPE_ENV || '';
+  if (!path) return '';
   try {
-    const env = loadEnv(STRIPE_ENV);
-    const named = env.STRIPE_SECRET_KEY || env.STRIPE_API_KEY || env.STRIPE_SECRET;
-    if (named) return named;
-    const found = Object.values(env).find((value) => typeof value === 'string' && value.startsWith('sk_'));
-    if (found) return found;
-  } catch {
-    // The server env file is the fallback.
-  }
-  try {
-    const text = await remoteStripeEnv();
-    const env = parseEnv(text);
+    const env = loadEnv(path);
     return env.STRIPE_SECRET_KEY || env.STRIPE_API_KEY || env.STRIPE_SECRET || '';
   } catch {
     return '';
@@ -233,6 +258,11 @@ async function waitForOtp(target) {
 }
 
 async function otpSignup(session, target) {
+  try {
+    assertFictionalPhone(target);
+  } catch (err) {
+    throw new StepFail(err.message, { code: err.code || 'PHONE_NOT_FICTIONAL' });
+  }
   const requested = await session.call('POST', '/v1/auth/otp/request', {
     auth: false,
     body: { phone_e164: target, purpose: 'SIGN_IN' },
@@ -352,6 +382,7 @@ async function placeOrder() {
     expect: [201],
   });
   const orderId = created.data?.order?.id;
+  if (orderId) ctx.createdOrderIds.push(orderId);
   let secret = created.data?.client_secret;
   if (!secret && orderId) {
     const pay = await customer.call('GET', `/v1/orders/${orderId}/payment`);
@@ -507,6 +538,7 @@ function writeReports(fatal) {
       detail: row.detail ?? null,
     })), '```', '');
   }
+  mkdirSync(reportDir, { recursive: true });
   writeFileSync(reportPath, lines.join('\n'));
   writeFileSync(jsonPath, JSON.stringify(redact({
     started: startedAt,
@@ -518,26 +550,37 @@ function writeReports(fatal) {
   }), null, 2));
 }
 
-async function run() {
-  stripeKey = await loadStripeKey();
-  const mode = stripeMode(stripeKey);
-  if (mode === 'live' || mode === 'unrecognized') {
-    console.log(`stripe key mode: ${mode}; refusing to run`);
-    writeReports(`stripe key mode: ${mode}; refusing to run`);
-    process.exit(2);
-  }
-  console.log(`stripe key mode: ${mode}`);
-  restaurantPassword = `E2e-${randomBytes(18).toString('base64url')}!9a`;
+function environmentUnknown(status) {
+  return new StepFail('the API did not report its environment', {
+    code: 'ENV_UNKNOWN',
+    status: status || 0,
+    method: 'GET',
+    path: '/internal/deps',
+    detail: {
+      http_status: status || 0,
+      note: 'GET /internal/deps is the contract report. The edge allowlists /internal and /debug to loopback, so a public host cannot answer.',
+    },
+  });
+}
 
-  await step('admin-sign-in', 'Admin signs in with email, password, and a one-time code', async () => {
-    const env = loadEnv(ADMIN_ENV);
-    if (!env.SEED_EMAIL || !env.SEED_PASSWORD || !env.TOTP_SECRET) {
-      throw new StepFail('admin login file is missing a required value', { code: 'ADMIN_ENV_MISSING' });
+async function signInAdmin() {
+  if (admin.access) return;
+  const started = Date.now();
+  const id = 'admin-sign-in';
+  const title = 'Test staff account signs in';
+  try {
+    const email = process.env.E2E_ADMIN_EMAIL || '';
+    const password = process.env.E2E_ADMIN_PASSWORD || '';
+    const secret = process.env.E2E_ADMIN_TOTP_SECRET || '';
+    if (!email || !password || !secret) {
+      throw new StepFail('set E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, and E2E_ADMIN_TOTP_SECRET', {
+        code: 'ADMIN_ENV_MISSING',
+      });
     }
     const bodyFor = async () => ({
-      email: env.SEED_EMAIL,
-      password: env.SEED_PASSWORD,
-      totp_code: await freshTotp(env.TOTP_SECRET),
+      email,
+      password,
+      totp_code: await freshTotp(secret),
     });
     let res = await admin.call('POST', '/v1/auth/login', {
       auth: false,
@@ -551,52 +594,150 @@ async function run() {
       res = await admin.call('POST', '/v1/auth/login', { auth: false, body: await bodyFor(), expect: [200] });
     }
     admin.absorb(res.data);
-    return {
-      account_id: res.data?.principal?.account_id || null,
-      roles: (res.data?.principal?.roles || []).map((role) => role.role),
-    };
-  }, { provides: 'admin' });
+    const roles = (res.data?.principal?.roles || []).map((role) => role.role);
+    if (!roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')) {
+      admin.access = null;
+      admin.refresh = null;
+      throw new StepFail('the staff account must be ADMIN and must not be the owner role', {
+        code: 'ADMIN_ROLE_REFUSED',
+        detail: { roles },
+      });
+    }
+    steps.push({
+      id,
+      title,
+      status: 'pass',
+      ms: Date.now() - started,
+      detail: redact({ account_id: res.data?.principal?.account_id || null, roles }),
+    });
+    console.log(`pass ${id}`);
+  } catch (err) {
+    if (!steps.some((row) => row.id === id)) {
+      steps.push(failRecord(id, title, err, Date.now() - started));
+      console.log(`fail ${id}${err.code ? ` ${err.code}` : ''}`);
+    }
+    throw err;
+  }
+}
 
-  await step('issuing-body', 'Admin finds or proposes an accepted halal issuing body', async () => {
+async function ensureEnvironment() {
+  const started = Date.now();
+  const id = 'environment';
+  const title = 'API reports a non-production environment';
+  try {
+    let res = await admin.call('GET', '/internal/deps', { auth: false, expect: [200, 401, 403, 404] });
+    if (res.status === 401) {
+      await signInAdmin();
+      try {
+        res = await admin.call('GET', '/internal/deps', { expect: [200] });
+      } catch (err) {
+        throw environmentUnknown(err.status);
+      }
+    } else if (res.status !== 200) {
+      throw environmentUnknown(res.status);
+    }
+    let name;
+    try {
+      name = classifyEnvironment(res.data?.environment);
+    } catch (err) {
+      throw new StepFail(err.message, {
+        code: err.code || 'ENV_UNKNOWN',
+        method: 'GET',
+        path: '/internal/deps',
+        detail: { environment: res.data?.environment ?? null },
+      });
+    }
+    steps.push({ id, title, status: 'pass', ms: Date.now() - started, detail: { environment: name } });
+    console.log(`pass ${id} ${name}`);
+  } catch (err) {
+    if (!steps.some((row) => row.id === id)) {
+      steps.push(failRecord(id, title, err, Date.now() - started));
+      console.log(`fail ${id}${err.code ? ` ${err.code}` : ''}`);
+    }
+    throw err;
+  }
+}
+
+async function cleanup() {
+  const notes = [];
+  for (const orderId of ctx.createdOrderIds) {
+    if (!customer.access) {
+      notes.push({ order_id: orderId, cancel: 'no customer session' });
+      continue;
+    }
+    try {
+      const res = await customer.call('POST', `/v1/orders/${orderId}/cancel`, {
+        body: { reason_code: 'CHANGED_MIND' },
+        expect: [200, 409],
+      });
+      notes.push({ order_id: orderId, cancel: res.status });
+    } catch (err) {
+      notes.push({ order_id: orderId, cancel: err.code || 'failed' });
+    }
+  }
+  if (ctx.acceptingOrders) {
+    if (!restaurant.access) {
+      notes.push({ accepting_orders: 'no restaurant session' });
+    } else {
+      try {
+        await restaurant.call('PATCH', '/v1/restaurant/availability', {
+          body: { is_accepting_orders: false },
+          expect: [200],
+        });
+        ctx.acceptingOrders = false;
+        notes.push({ accepting_orders: false });
+      } catch (err) {
+        notes.push({ accepting_orders: err.code || 'failed' });
+      }
+    }
+  }
+  notes.push({
+    leftover: 'The API has no delete for the restaurant, the accounts, or the documents. Point this runner at a database that a dev-world reset wipes.',
+  });
+  const failed = notes.some((note) => (
+    note.cancel === 'failed'
+    || note.cancel === 'no customer session'
+    || note.accepting_orders === 'failed'
+    || note.accepting_orders === 'no restaurant session'
+  ));
+  return { notes, failed };
+}
+
+async function run() {
+  stripeKey = loadStripeKey();
+  const mode = stripeMode(stripeKey);
+  if (mode !== 'test') {
+    const err = new StepFail(`stripe key mode: ${mode}; refusing to run`, { code: 'STRIPE_KEY_REFUSED' });
+    steps.push(failRecord('stripe-key', 'Local test-mode payment key', err, 0));
+    console.log(`fail stripe-key ${mode}`);
+    throw err;
+  }
+  console.log(`stripe key mode: ${mode}`);
+  for (const phone of [ctx.restaurantPhone, ctx.riderPhone, ctx.customerPhone]) {
+    assertFictionalPhone(phone);
+  }
+  restaurantPassword = `E2e-${randomBytes(18).toString('base64url')}!9a`;
+
+  await ensureEnvironment();
+  if (!admin.access) await signInAdmin();
+
+  await step('issuing-body', 'Admin uses an existing accepted halal issuing body', async () => {
     const list = await admin.call('GET', '/v1/admin/halal-issuing-bodies', { query: { status: 'ACCEPTED', limit: 50 } });
     const bodies = asList(list.data);
-    const chosen = bodies.find((body) => body.requires_issuer_confirmation === false) || bodies[0];
-    if (chosen) {
-      ctx.issuerId = chosen.id;
-      return { source: 'existing', id: chosen.id, requires_issuer_confirmation: chosen.requires_issuer_confirmation ?? null };
-    }
-    const proposed = await admin.call('POST', '/v1/admin/halal-issuing-bodies', {
-      body: {
-        name: `E2E Halal Registry ${stamp}`,
-        justification: 'E2E staging journey needs one accepted issuing body so the certificate checks can be recorded.',
-        country: 'CA',
-        region: 'ON',
-      },
-      expect: [201],
-    });
-    const id = proposed.data?.id;
-    try {
-      await admin.call('POST', `/v1/admin/halal-issuing-bodies/${id}/status`, {
-        body: {
-          status: 'ACCEPTED',
-          justification: 'E2E staging journey accepts this body so the certificate review can proceed.',
-          requires_issuer_confirmation: false,
-        },
-        expect: [200],
+    const chosen = bodies.find((body) => !body.status || body.status === 'ACCEPTED');
+    if (!chosen?.id) {
+      throw new StepBlocked('no accepted issuing body is on this API', {
+        code: 'ISSUER_NOT_ACCEPTED',
+        detail: { count: bodies.length },
       });
-    } catch (err) {
-      if (err.status === 403) {
-        throw new StepFail('issuing body was proposed and a super-admin still has to accept it', {
-          code: 'ISSUER_NOT_ACCEPTED',
-          status: 403,
-          detail: { body_id: id },
-        });
-      }
-      throw err;
     }
-    ctx.issuerId = id;
-    return { source: 'created', id };
-  }, { needs: ['admin'] });
+    ctx.issuerId = chosen.id;
+    return {
+      source: 'existing',
+      id: chosen.id,
+      requires_issuer_confirmation: chosen.requires_issuer_confirmation ?? null,
+    };
+  }, { needs: ['admin'], provides: 'issuer' });
 
   await step('restaurant-register', 'Partner registers with email', async () => {
     const config = await restaurant.call('GET', '/v1/config/public', { auth: false });
@@ -776,7 +917,7 @@ async function run() {
     }
     const submitted = await restaurant.call('POST', '/v1/restaurant/documents/submit', { expect: [200] });
     return { documents: attached, onboarding_state: submitted.data?.onboarding_state || null };
-  }, { needs: ['restaurant'], provides: 'docs' });
+  }, { needs: ['restaurant', 'issuer'], provides: 'docs' });
 
   await step('menu-create', 'Partner creates a category and two items', async () => {
     const created = await createMenu();
@@ -839,7 +980,7 @@ async function run() {
       expect: [200],
     });
     return { certificate_id: certificateId, checks: checks.length };
-  }, { needs: ['admin', 'restaurant', 'docs'] });
+  }, { needs: ['admin', 'restaurant', 'docs', 'issuer'] });
 
   await step('admin-approve-application', 'Admin approves the partner application', async () => {
     const before = await admin.call('GET', `/v1/admin/restaurant-applications/${ctx.restaurantId}`);
@@ -893,6 +1034,7 @@ async function run() {
       body: { is_accepting_orders: true },
       expect: [200],
     });
+    ctx.acceptingOrders = true;
     const status = await restaurant.call('GET', '/v1/restaurant/onboarding/status');
     const detail = {
       onboarding_state: status.data?.onboarding_state || null,
@@ -1226,6 +1368,24 @@ try {
   fatal = err.message || 'runner stopped';
   console.log(`fail runner${err.code ? ` ${err.code}` : ''}`);
 } finally {
+  if (!steps.some((row) => row.id === 'cleanup')) {
+    const started = Date.now();
+    const title = 'Stop accepting orders and cancel orders this run created';
+    try {
+      const result = await cleanup();
+      steps.push({
+        id: 'cleanup',
+        title,
+        status: result.failed ? 'fail' : 'pass',
+        ms: Date.now() - started,
+        detail: redact(result.notes),
+      });
+      console.log(`${result.failed ? 'fail' : 'pass'} cleanup`);
+    } catch (err) {
+      steps.push(failRecord('cleanup', title, err, Date.now() - started));
+      console.log('fail cleanup');
+    }
+  }
   writeReports(fatal);
 }
 const bad = steps.some((row) => row.status !== 'pass') || fatal;

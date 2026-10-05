@@ -24,3 +24,6 @@ next-env.d.ts
 .expo/
 *.tsbuildinfo
 .neon
+
+# Journey reports. Each run writes a timestamped folder here.
+tools/e2e/api/.reports/

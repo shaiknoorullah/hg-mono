@@ -4,11 +4,27 @@ import { execFile } from 'node:child_process';
 
 const MARKER = 'otp sms enqueued';
 
-function ssh(remote) {
+function sshTarget() {
+  const host = process.env.E2E_SSH_HOST || '';
+  const repo = process.env.E2E_SSH_REPO || '';
+  if (!host || !repo) {
+    const err = new Error('set E2E_SSH_HOST and E2E_SSH_REPO to read API logs');
+    err.code = 'SSH_ENV_MISSING';
+    throw err;
+  }
+  if (!/^[\w.-]+$/.test(host) || !/^\/[\w./-]+$/.test(repo) || repo.includes('..')) {
+    const err = new Error('ssh host or repo path is not usable');
+    err.code = 'SSH_ENV_REFUSED';
+    throw err;
+  }
+  return { host, repo };
+}
+
+function ssh(host, remote) {
   return new Promise((resolve, reject) => {
     execFile(
       'ssh',
-      ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', 'hg-prod', remote],
+      ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', host, remote],
       { maxBuffer: 32 * 1024 * 1024, timeout: 60_000 },
       (err, stdout, stderr) => {
         if (err) {
@@ -24,14 +40,14 @@ function ssh(remote) {
 
 /** API container logs. `since` is a compose duration such as `2m`. */
 export function apiLogs(since = '2m') {
-  const remote = `cd /srv/hg/repo && docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.server.yml logs --since ${since} api`;
-  return ssh(remote);
-}
-
-/** Stripe key assignment lines from the server env file. The caller must not print them. */
-export function remoteStripeEnv() {
-  const remote = "grep -E '^(STRIPE_SECRET_KEY|STRIPE_API_KEY|STRIPE_SECRET)=' /srv/hg/repo/deploy/.env || true";
-  return ssh(remote);
+  if (!/^\d+[smh]$/.test(since)) {
+    const err = new Error('log window is not a compose duration');
+    err.code = 'SSH_ENV_REFUSED';
+    throw err;
+  }
+  const { host, repo } = sshTarget();
+  const remote = `cd ${repo} && docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.server.yml logs --since ${since} api`;
+  return ssh(host, remote);
 }
 
 function jsonOn(line) {

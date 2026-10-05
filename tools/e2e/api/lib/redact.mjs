@@ -16,7 +16,7 @@ const SECRET_KEYS = new Set([
   'totp_secret',
 ]);
 
-const SECRET_VALUE = /sk_(?:test|live)_[A-Za-z0-9]+|hgrt_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|pi_[A-Za-z0-9]+_secret_[A-Za-z0-9]+/;
+const SECRET_VALUE = /sk_(?:test|live)_[A-Za-z0-9]+|rk_(?:test|live)_[A-Za-z0-9]+|whsec_[A-Za-z0-9]+|hgrt_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|pi_[A-Za-z0-9]+_secret_[A-Za-z0-9]+/;
 
 export function redact(value, depth = 0) {
   if (value == null || depth > 8) return value;
