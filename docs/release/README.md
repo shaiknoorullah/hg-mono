@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Releasing the apps
@@ -155,6 +155,13 @@ machine as an emulator sees it: `API_BASE_URL=http://10.0.2.2:8080`.
 The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
 `MAPBOX_PUBLIC_TOKEN_MOBILE`). No Mapbox download token is needed: Mapbox serves the native SDK
 without one.
+
+The customer app pays with Stripe's payment sheet, which needs the PUBLIC key
+`EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_…` or `pk_live_…`; in CI, the repo secret
+`STRIPE_PUBLISHABLE_KEY_MOBILE`). It must be from the same Stripe account and mode as the API's
+`HG_STRIPE_SECRET_KEY`, or the sheet cannot confirm the payment. The sheet is native-only: on web
+the customer app skips it. When the API runs its local fake gateway (`HG_ENV=local`, no Stripe
+key) it returns `pi_fake_…` client secrets and the app skips the sheet too.
 
 ## The release key
 

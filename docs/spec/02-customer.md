@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -878,6 +878,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Behaviour**: One tracking screen per order, reachable from the resume banner (C-26), the post-checkout flow, and order history. It shows: a status stepper, a map, the ETA, the rider card (once assigned), the delivery address, delivery instructions, an order summary, and contextual actions (cancel → C-29 while eligible; call rider → C-34; get help → C-08). The order view and this screen also show the 4-digit delivery code, with a push when the rider arrives; the rider is never shown it (needs a new contract field; [delivery code](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   The stepper has **five** steps, mapped from `orders.status`: **Confirmed** (`AWAITING_RESTAURANT`, `CONFIRMED`) → **Preparing** (`PREPARING`) → **Ready / Rider assigned** (`READY_FOR_PICKUP`, `RIDER_ASSIGNED`) → **On the way** (`PICKED_UP`, `ON_THE_WAY`) → **Delivered** (`DELIVERED`). Terminal failures (`REJECTED`, `CANCELLED`, `NO_RIDER_FOUND`, `PAYMENT_FAILED`) replace the stepper with a full-screen outcome state.
   The map shows the restaurant marker, the delivery marker, and the rider marker once `RIDER_ASSIGNED`; a route polyline is drawn from the rider to the current leg's destination.
+  **V0 build (customer app):** while the order is `PICKED_UP` or `ARRIVED` the screen polls `GET /v1/orders/{orderId}/tracking` every 10 s and draws a Mapbox Static Images picture (restaurant, drop-off and, when present, rider markers) with the ETA text. No native map SDK and no route polyline. Without `EXPO_PUBLIC_MAPBOX_TOKEN` the picture is hidden and the ETA text remains.
 - **Data**: `orders`, `order_status_events`, `riders` (via the slim projection in C-18 rule 3), Redis `rider:{id}:location`, socket topic `order:{orderId}`.
 - **States**: as C-23. The client subscribes to `order:{orderId}` and receives typed events: `order.status_changed`, `order.rider_assigned`, `order.rider_location`, `order.eta_updated`, `order.cancelled`.
 - **Rules**:
