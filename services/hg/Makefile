@@ -13,7 +13,9 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 DEPLOY_DIR := ../../deploy
-COMPOSE    := docker compose --project-directory $(DEPLOY_DIR) -f $(DEPLOY_DIR)/docker-compose.yml
+# docker-compose.local.yml lets this machine reach /internal and /debug through the published
+# port (issue #487). Local only: the server runs docker-compose.yml with docker-compose.server.yml.
+COMPOSE    := docker compose --project-directory $(DEPLOY_DIR) -f $(DEPLOY_DIR)/docker-compose.yml -f $(DEPLOY_DIR)/docker-compose.local.yml
 ENV_FILE   := $(DEPLOY_DIR)/.env
 
 GO         ?= go
@@ -122,7 +124,7 @@ up: ensure-env ## Build and start the whole stack
 	@echo "stack up. Traefik fronts 2 API replicas:"
 	@echo "  API        http://localhost:$${HG_HTTP_PORT:-8080}/health"
 	@echo "  readiness  http://localhost:$${HG_HTTP_PORT:-8080}/health/ready"
-	@echo "  deps       docker compose exec -it \$$(docker compose ps -q api | head -1) — /debug/deps is blocked at the edge"
+	@echo "  deps       http://localhost:$${HG_HTTP_PORT:-8080}/debug/deps (allowed from this machine)"
 	@echo "  dashboard  http://localhost:$${TRAEFIK_DASHBOARD_PORT:-8081}/dashboard/"
 
 .PHONY: down
