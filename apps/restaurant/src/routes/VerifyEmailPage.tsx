@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Icon, Input, Spinner } from '@hg/ui-web';
-import { isSignedIn, useAuth } from '../lib/auth';
 import {
   formatClockTime,
   isWellFormedToken,
-  resendVerification,
   useLinkToken,
+  useRequestLinkForm,
   useRetryWindow,
-  verifyEmail,
-} from '../lib/emailLinks';
+} from '@hg/ui-web/email-links';
+import { isSignedIn, useAuth } from '../lib/auth';
+import { resendVerification, verifyEmail } from '../lib/emailLinks';
 import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner, SignedInPrompt } from '../components/AuthFrame';
 
 /**
@@ -148,32 +148,9 @@ export function VerifyEmailPage() {
 
 /** Verify-Expired and its sending, error and sent states: `resendEmailVerification`. */
 function SendNewLink({ incomplete }: { incomplete: boolean }) {
-  const [email, setEmail] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [problem, setProblem] = useState<'unreachable' | 'invalid-email' | null>(null);
-  const wait = useRetryWindow();
-  const bannerRef = useRef<HTMLDivElement>(null);
+  const { email, setEmail, busy, sentTo, problem, wait, waiting, bannerRef, send } =
+    useRequestLinkForm(resendVerification);
 
-  useEffect(() => {
-    if (problem === 'unreachable' || wait.until) bannerRef.current?.focus();
-  }, [problem, wait.until]);
-
-  async function send(e?: FormEvent) {
-    e?.preventDefault();
-    setProblem(null);
-    setBusy(true);
-    const outcome = await resendVerification(email.trim());
-    setBusy(false);
-    if (outcome.ok) {
-      setSentTo(email.trim());
-      return;
-    }
-    if (outcome.kind === 'rate-limited') wait.start(outcome.retryAt);
-    else setProblem(outcome.kind === 'invalid-email' ? 'invalid-email' : 'unreachable');
-  }
-
-  const waiting = wait.until !== null;
   const waitLine = wait.until ? (
     <p id="resend-wait" className="m-0 text-body-sm text-fg-secondary">
       You can send another at {formatClockTime(wait.until)}.

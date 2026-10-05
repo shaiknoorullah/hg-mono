@@ -8,10 +8,16 @@
  * - the page's referrer policy switched to `no-referrer` while a link page is open;
  * - kept in this module's memory only, and handed to the page for that one path.
  *
- * Nothing here logs it. This module imports nothing, so `linkTokenBoot.ts` can run it first.
+ * Nothing here logs it. This module imports nothing, so each app's `linkTokenBoot.ts` can run
+ * it first: import it as `@hg/ui-web/link-token`, never through `@hg/ui-web/email-links`,
+ * whose other modules load React and the API client.
  */
 let captured: { path: string; token: string } | null = null;
 
+/**
+ * Takes the token out of the address when the page is one of `linkPaths` (the app's pages an
+ * email links to), and switches that page's referrer policy to `no-referrer`.
+ */
 export function captureLinkToken(linkPaths: readonly string[]): void {
   captured = null;
   const url = new URL(window.location.href);

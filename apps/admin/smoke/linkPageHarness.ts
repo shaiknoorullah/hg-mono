@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { installDomShims as installJsdomShims } from '@hg/ui-web/testing';
 
 /**
  * Shared set-up for the email-link page tests: a scripted `fetch` and a well-formed token.
@@ -59,7 +60,7 @@ export function openAddress(pathAndQuery: string) {
 export async function openLink(address: string) {
   // Imported before the address is set: the boot module captures once, on first import.
   const { LINK_PATHS } = await import('../src/linkTokenBoot');
-  const { captureLinkToken } = await import('../src/lib/linkToken');
+  const { captureLinkToken } = await import('@hg/ui-web/link-token');
   openAddress(address);
   captureLinkToken(LINK_PATHS);
 }
@@ -70,18 +71,9 @@ export function resetAddress() {
   document.querySelector('meta[name="referrer"]')?.remove();
 }
 
+/** jsdom's missing browser APIs (`@hg/ui-web/testing`), and a `fetch` that answers an empty 200. */
 export function installDomShims() {
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: (query: string) => ({
-      matches: false, media: query, onchange: null,
-      addListener: () => {}, removeListener: () => {},
-      addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
-    }),
-  });
-  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
-    observe() {} unobserve() {} disconnect() {}
-  };
+  installJsdomShims();
   // The module graph touches `fetch` at import time (see login-gate.test.tsx): stub it first.
   vi.stubGlobal(
     'fetch',

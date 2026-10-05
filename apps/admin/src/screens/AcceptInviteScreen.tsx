@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Button, Icon } from '@hg/ui-web';
+import { isWellFormedToken, useLinkToken } from '@hg/ui-web/email-links';
 
 import { logout } from '../lib/auth';
-import { isWellFormedToken, useLinkToken } from '../lib/emailLinks';
 import { isAuthed } from '../lib/token';
 import { AuthCard, AuthHeading, SignedInPrompt } from '../components/AuthFrame';
 import { SetPasswordForm } from './ResetPasswordScreen';

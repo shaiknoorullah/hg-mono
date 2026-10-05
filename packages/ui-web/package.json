@@ -14,7 +14,10 @@
     "./navigation": "./src/navigation/index.ts",
     "./feedback": "./src/feedback/index.ts",
     "./data": "./src/data/index.ts",
+    "./email-links": "./src/emailLinks/index.ts",
+    "./link-token": "./src/emailLinks/linkToken.ts",
     "./lint": "./src/lint/index.ts",
+    "./testing": "./src/testing/index.ts",
     "./styles.css": "./src/styles/globals.css",
     "./tokens.css": "./src/tokens/tokens.css",
     "./theme.css": "./src/tokens/theme.css"

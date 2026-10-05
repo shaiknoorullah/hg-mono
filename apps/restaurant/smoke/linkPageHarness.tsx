@@ -93,20 +93,7 @@ export function resetAddress() {
   document.querySelector('meta[name="referrer"]')?.remove();
 }
 
-export function installDomShims() {
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: (query: string) => ({
-      matches: false, media: query, onchange: null,
-      addListener: () => {}, removeListener: () => {},
-      addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
-    }),
-  });
-  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
-    observe() {} unobserve() {} disconnect() {}
-  };
-  Element.prototype.scrollIntoView = function scrollIntoView() {};
-}
+export { installDomShims } from '@hg/ui-web/testing';
 
 /** A 12-hour clock time as `formatClockTime` writes it in en-CA, e.g. "2:05 p.m.". */
 export const TWELVE_HOUR = /\b(1[0-2]|[1-9]):[0-5]\d\s?[ap]\.?m\.?/i;

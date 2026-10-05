@@ -1,16 +1,14 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button, Icon, Input } from '@hg/ui-web';
-
 import {
-  PASSWORD_MIN,
   formatClockTime,
   isWellFormedToken,
-  passwordTooLong,
-  requestPasswordReset,
-  resetPassword,
   useLinkToken,
-  useRetryWindow,
-} from '../lib/emailLinks';
+  useRequestLinkForm,
+  useSetPasswordForm,
+} from '@hg/ui-web/email-links';
+
+import { requestPasswordReset, resetPassword } from '../lib/emailLinks';
 import { logout } from '../lib/auth';
 import { isAuthed } from '../lib/token';
 import { AuthCard, AuthHeading, BackToSignIn, ProblemBanner, SignedInPrompt } from '../components/AuthFrame';
@@ -92,30 +90,8 @@ export function ResetPasswordScreen() {
 
 /** Forgot password: `requestPasswordReset`, the same answer whether or not the account exists. */
 function RequestLink() {
-  const [email, setEmail] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [problem, setProblem] = useState<'unreachable' | 'invalid-email' | null>(null);
-  const wait = useRetryWindow();
-  const bannerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (problem === 'unreachable' || wait.until) bannerRef.current?.focus();
-  }, [problem, wait.until]);
-
-  async function send(e: FormEvent) {
-    e.preventDefault();
-    setProblem(null);
-    setBusy(true);
-    const outcome = await requestPasswordReset(email.trim());
-    setBusy(false);
-    if (outcome.ok) {
-      setSentTo(email.trim());
-      return;
-    }
-    if (outcome.kind === 'rate-limited') wait.start(outcome.retryAt);
-    else setProblem(outcome.kind === 'invalid-email' ? 'invalid-email' : 'unreachable');
-  }
+  const { email, setEmail, busy, sentTo, startOver, problem, wait, waiting, bannerRef, send } =
+    useRequestLinkForm(requestPasswordReset);
 
   if (sentTo !== null) {
     return (
@@ -128,7 +104,7 @@ function RequestLink() {
           The link works for 30 minutes and only once. Can't find it? Check your spam folder, or ask for another.
         </p>
         <div className="flex flex-wrap items-center gap-4">
-          <Button variant="tertiary" onPress={() => setSentTo(null)}>
+          <Button variant="tertiary" onPress={startOver}>
             Send another link
           </Button>
           <BackToSignIn />
@@ -137,7 +113,6 @@ function RequestLink() {
     );
   }
 
-  const waiting = wait.until !== null;
   return (
     <AuthCard>
       <form onSubmit={send} className="flex flex-col gap-5" aria-busy={busy}>
@@ -214,63 +189,17 @@ export function SetPasswordForm({
   onInvalid: () => void;
   onDone: () => void;
 }) {
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [fieldError, setFieldError] = useState<string | null>(null);
-  const [unreachable, setUnreachable] = useState(false);
-  const wait = useRetryWindow();
-  const fieldRef = useRef<HTMLInputElement>(null);
-  const bannerRef = useRef<HTMLDivElement>(null);
+  // No session follows `onDone`: the person signs in again on the sign-in gate.
+  const { password, changePassword, busy, fieldError, unreachable, wait, waiting, fieldRef, bannerRef, save } =
+    useSetPasswordForm({
+      token,
+      reset: resetPassword,
+      breachedMessage:
+        "This password has appeared in a data breach, so it isn't safe. Choose a different one of at least 12 characters.",
+      onInvalid,
+      onDone,
+    });
 
-  useEffect(() => {
-    if (fieldError) fieldRef.current?.focus();
-  }, [fieldError]);
-  useEffect(() => {
-    if (unreachable || wait.until) bannerRef.current?.focus();
-  }, [unreachable, wait.until]);
-
-  async function save(e: FormEvent) {
-    e.preventDefault();
-    setUnreachable(false);
-    const length = [...password].length;
-    if (length < PASSWORD_MIN) {
-      setFieldError(`Use at least ${PASSWORD_MIN} characters. This one has ${length}.`);
-      return;
-    }
-    if (passwordTooLong(password)) {
-      setFieldError('Use a shorter password: this one is over the 256-character limit.');
-      return;
-    }
-    setFieldError(null);
-    setBusy(true);
-    const outcome = await resetPassword(token, password);
-    setBusy(false);
-    if (outcome.ok) {
-      // No session follows: the person signs in again on the sign-in gate.
-      onDone();
-      return;
-    }
-    switch (outcome.kind) {
-      case 'breached':
-        setFieldError(
-          "This password has appeared in a data breach, so it isn't safe. Choose a different one of at least 12 characters.",
-        );
-        return;
-      case 'invalid-password':
-        setFieldError(`Use at least ${PASSWORD_MIN} characters.`);
-        return;
-      case 'rate-limited':
-        wait.start(outcome.retryAt);
-        return;
-      case 'unreachable':
-        setUnreachable(true);
-        return;
-      default:
-        onInvalid();
-    }
-  }
-
-  const waiting = wait.until !== null;
   return (
     <AuthCard>
       <form onSubmit={save} className="flex flex-col gap-5" aria-busy={busy}>
@@ -299,10 +228,7 @@ export function SetPasswordForm({
           autoComplete="new-password"
           required
           value={password}
-          onChange={(v) => {
-            setPassword(v);
-            if (fieldError) setFieldError(null);
-          }}
+          onChange={changePassword}
           readOnly={busy}
           helperText="At least 12 characters. We check it against passwords exposed in data breaches."
           errorText={fieldError ?? undefined}
