@@ -57,11 +57,16 @@ type Outbox interface {
 	Enqueue(ctx context.Context, tx pgx.Tx, n notify.New) (notify.EnqueueResult, error)
 }
 
-// WithOutbox sets where customer notifications about refund decisions go.
-// The server wires the notify module's enqueuer (cmd/hg). Declining a
-// customer's request without it is refused: the customer must be told.
+// WithOutbox sets where the service's notifications go: customers told about
+// refund decisions, and partners told about their payouts (payout_notices.go;
+// it sets the repo's outbox too, which the payout run shares). The server
+// wires the notify module's enqueuer (cmd/hg). Declining a customer's request
+// without it is refused: the customer must be told.
 func (s *Service) WithOutbox(o Outbox) *Service {
 	s.outbox = o
+	if s.repo != nil {
+		s.repo.WithOutbox(o)
+	}
 	return s
 }
 

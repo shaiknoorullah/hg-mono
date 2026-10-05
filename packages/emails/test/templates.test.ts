@@ -54,6 +54,8 @@ describe('every exported template', () => {
         'rider_suspended',
         'rider_reinstated',
         'payout_sent',
+        'payout_held',
+        'payout_failed',
         'certificate_renewal_reminder',
         'certificate_lapsed',
       ]),

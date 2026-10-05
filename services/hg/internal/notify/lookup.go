@@ -27,17 +27,20 @@ type PgAccountLookup struct {
 // ResolveTargets implements AccountLookup.
 func (l PgAccountLookup) ResolveTargets(ctx context.Context, accountID uuid.UUID, role RoleContext) (AccountTargets, error) {
 	var t AccountTargets
+	var zone string
 	err := l.DB.QueryRow(ctx, `
 		SELECT CASE WHEN phone_verified_at IS NOT NULL THEN COALESCE(phone_e164, '') ELSE '' END,
-		       CASE WHEN email_verified_at IS NOT NULL THEN COALESCE(email::text, '') ELSE '' END
+		       CASE WHEN email_verified_at IS NOT NULL THEN COALESCE(email::text, '') ELSE '' END,
+		       timezone
 		  FROM account
-		 WHERE id = $1 AND deleted_at IS NULL`, accountID).Scan(&t.PhoneE164, &t.Email)
+		 WHERE id = $1 AND deleted_at IS NULL`, accountID).Scan(&t.PhoneE164, &t.Email, &zone)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AccountTargets{}, nil
 	}
 	if err != nil {
 		return AccountTargets{}, fmt.Errorf("notify: resolve targets for %s: %w", accountID, err)
 	}
+	t.Zone = Zone(zone)
 	rows, err := l.DB.Query(ctx, `
 		SELECT expo_push_token
 		  FROM device

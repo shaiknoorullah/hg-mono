@@ -20,6 +20,9 @@ type AccountTargets struct {
 	PhoneE164  string
 	Email      string
 	PushTokens []string // active device.expo_push_token rows for the notification's role_context
+	// Zone is the account's own timezone, for quiet hours (quiet.go); nil
+	// means the platform's default.
+	Zone *time.Location
 }
 
 // AccountLookup resolves delivery targets for an account. The auth/catalog
@@ -78,6 +81,8 @@ type DeliveryWorker struct {
 	// LeaseTTL bounds how long a crashed worker's lease blocks a retry; it
 	// defaults to two minutes, longer than every provider timeout.
 	LeaseTTL time.Duration
+	// Now is the clock quiet hours are judged by; nil is time.Now.
+	Now func() time.Time
 }
 
 // terminal delivery states that mean "this channel already succeeded" —
@@ -287,6 +292,16 @@ func (w *DeliveryWorker) attempt(ctx context.Context, log *slog.Logger, n Notifi
 	}
 	if target == "" {
 		if err := w.Repo.SuppressDelivery(ctx, w.DB, deliveryID, "NO_TARGET", 0); err != nil {
+			return attemptOutcome{}, fmt.Errorf("notify worker: %w", err)
+		}
+		return attemptOutcome{result: attemptSuppressed}, nil
+	}
+	now := time.Now
+	if w.Now != nil {
+		now = w.Now
+	}
+	if quietHoursSuppress(n, ch, now(), targets.Zone) {
+		if err := w.Repo.SuppressDelivery(ctx, w.DB, deliveryID, "QUIET_HOURS", 0); err != nil {
 			return attemptOutcome{}, fmt.Errorf("notify worker: %w", err)
 		}
 		return attemptOutcome{result: attemptSuppressed}, nil

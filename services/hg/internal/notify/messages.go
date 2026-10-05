@@ -54,6 +54,8 @@ const (
 	KindRiderSuspended                     Kind = "RIDER_SUSPENDED"
 	KindRiderReinstated                    Kind = "RIDER_REINSTATED"
 	KindPayoutSent                         Kind = "PAYOUT_SENT"
+	KindPayoutHeld                         Kind = "PAYOUT_HELD"
+	KindPayoutFailed                       Kind = "PAYOUT_FAILED"
 	// The two halal certificate kinds match the ones the expiry job in pull
 	// request #274 already writes (internal/halalexpiry/messages.go there).
 	KindHalalCertificateExpiring Kind = "HALAL_CERTIFICATE_EXPIRING"
@@ -454,6 +456,10 @@ type Payout struct {
 	PeriodStart, PeriodEnd time.Time
 	SentAt                 time.Time
 	Zone                   *time.Location
+	// Occurrence names one sending or failure of the payout, so each is one
+	// message however often it is retried: the bank payout that paid it, or
+	// the transfer attempt or bank payout that failed. Required for a failure.
+	Occurrence string
 }
 
 // PayoutSent tells a partner their payout left (router matrix row
@@ -466,10 +472,6 @@ func PayoutSent(a Payout) (New, error) {
 	a.PayeeName = SafeName(a.PayeeName, "you")
 	amount := FormatCents(a.AmountCents)
 	period := periodText(a.PeriodStart, a.PeriodEnd, a.Zone)
-	channels := []Channel{ChannelEmail, ChannelInApp}
-	if a.Role == RoleRider {
-		channels = []Channel{ChannelPush, ChannelEmail, ChannelInApp}
-	}
 	return New{
 		AccountID:   a.AccountID,
 		RoleContext: a.Role,
@@ -477,14 +479,149 @@ func PayoutSent(a Payout) (New, error) {
 		Title:       "Payout sent",
 		Body:        fmt.Sprintf("We sent you %s for %s.", amount, period),
 		Priority:    PriorityNormal,
-		Channels:    channels,
-		DedupeKey:   "payout_sent:" + a.PayoutID.String(),
+		Channels:    payoutChannels(a.Role),
+		DedupeKey:   payoutSentKey(a),
+		GroupKey:    "payout:" + a.PayoutID.String(),
 		Data:        map[string]any{"payout_id": a.PayoutID.String(), "amount_cents": a.AmountCents},
 		Email: &EmailSpec{Template: "payout_sent", Vars: map[string]string{
 			"PayeeName": a.PayeeName, "Amount": amount, "PeriodText": period,
 			"SentAt": FormatDateTime(a.SentAt, a.Zone),
 		}},
 	}, nil
+}
+
+func payoutChannels(role RoleContext) []Channel {
+	if role == RoleRider {
+		return []Channel{ChannelPush, ChannelEmail, ChannelInApp}
+	}
+	return []Channel{ChannelEmail, ChannelInApp}
+}
+
+// PayoutHeld tells a partner that a payout is held because Stripe has payouts
+// turned off for them: Stripe needs something from them first (router matrix
+// row connect.requirements_changed / payouts_enabled=false). It names no
+// Stripe requirement code: the payout setup screen shows what is due.
+func PayoutHeld(a Payout) (New, error) {
+	if a.Role != RoleRestaurant && a.Role != RoleRider {
+		return New{}, fmt.Errorf("notify: payouts go to restaurants and riders, not %s", a.Role)
+	}
+	a.PayeeName = SafeName(a.PayeeName, "you")
+	amount := FormatCents(a.AmountCents)
+	period := periodText(a.PeriodStart, a.PeriodEnd, a.Zone)
+	// One template for restaurants and riders, so no button: riders have no
+	// web app to link to (as for payout_sent).
+	spec := &EmailSpec{Template: "payout_held", Vars: map[string]string{
+		"PayeeName": a.PayeeName, "Amount": amount, "PeriodText": period,
+	}}
+	return New{
+		AccountID:   a.AccountID,
+		RoleContext: a.Role,
+		Kind:        KindPayoutHeld,
+		Title:       "Payout on hold",
+		Body: fmt.Sprintf("Your payout of %s for %s is on hold: Stripe needs more information before we can pay you. "+
+			"Finish your payout setup and we pay you on the next payout run.", amount, period),
+		Priority:  PriorityHigh,
+		Channels:  payoutChannels(a.Role),
+		DedupeKey: "payout_held:" + a.PayoutID.String(),
+		GroupKey:  "payout:" + a.PayoutID.String(),
+		Data:      map[string]any{"payout_id": a.PayoutID.String(), "amount_cents": a.AmountCents},
+		Email:     spec,
+	}, nil
+}
+
+// PayoutProblem is why a payout did not reach the partner, which decides what
+// the message asks of them.
+type PayoutProblem string
+
+// The three ways a payout fails.
+const (
+	// PayoutRetrying: our request to Stripe failed. Nothing is asked of the
+	// partner; the next payout run tries again.
+	PayoutRetrying PayoutProblem = "RETRYING"
+	// PayoutBankReturned: the bank payout failed or the bank returned it. The
+	// money is back in the partner's Stripe balance; they check their bank
+	// details, and the next run pays it out again.
+	PayoutBankReturned PayoutProblem = "BANK_RETURNED"
+	// PayoutStopped: Stripe failed or reversed the transfer. It is final until
+	// a person at HalalGoes looks at it.
+	PayoutStopped PayoutProblem = "STOPPED"
+)
+
+// PayoutFailure is the input to the payout-failed message.
+type PayoutFailure struct {
+	Payout
+	Problem PayoutProblem
+	// NextRun is when the next payout run tries again (RETRYING and
+	// BANK_RETURNED); zero leaves the date out.
+	NextRun time.Time
+}
+
+// PayoutFailed tells a partner a payout did not reach them and what happens
+// next (router matrix row payout.failed: email and inbox for restaurants;
+// push, email and inbox for riders). It never shows Stripe's own error text.
+func PayoutFailed(a PayoutFailure) (New, error) {
+	if a.Role != RoleRestaurant && a.Role != RoleRider {
+		return New{}, fmt.Errorf("notify: payouts go to restaurants and riders, not %s", a.Role)
+	}
+	if a.Occurrence == "" {
+		return New{}, fmt.Errorf("notify: a payout failure needs an occurrence for its dedupe key")
+	}
+	a.PayeeName = SafeName(a.PayeeName, "you")
+	amount := FormatCents(a.AmountCents)
+	period := periodText(a.PeriodStart, a.PeriodEnd, a.Zone)
+	when := "on the next payout run"
+	if !a.NextRun.IsZero() {
+		when = "on the next payout run, " + FormatDateOnly(a.NextRun.In(zoneOrDefault(a.Zone)))
+	}
+	var title, nextStep string
+	switch a.Problem {
+	case PayoutRetrying:
+		title = "Payout delayed"
+		nextStep = "We could not send it this time. You do not need to do anything: we try again " + when + "."
+	case PayoutBankReturned:
+		title = "Payout returned by your bank"
+		nextStep = "Your bank did not accept it, so the money is back in your Stripe balance. Check your bank " +
+			"details in your payout setup; we pay it out again " + when + "."
+	case PayoutStopped:
+		title = "Payout not completed"
+		nextStep = "Our team is looking into it and will contact you. Nothing you earned is lost."
+	default:
+		return New{}, fmt.Errorf("notify: unknown payout problem %q", a.Problem)
+	}
+	spec := &EmailSpec{Template: "payout_failed", Vars: map[string]string{
+		"PayeeName": a.PayeeName, "Amount": amount, "PeriodText": period, "NextStep": nextStep,
+	}}
+	return New{
+		AccountID:   a.AccountID,
+		RoleContext: a.Role,
+		Kind:        KindPayoutFailed,
+		Title:       title,
+		Body:        fmt.Sprintf("Your payout of %s for %s did not reach you. %s", amount, period, nextStep),
+		Priority:    PriorityHigh,
+		Channels:    payoutChannels(a.Role),
+		DedupeKey:   "payout_failed:" + a.PayoutID.String() + ":" + a.Occurrence,
+		GroupKey:    "payout:" + a.PayoutID.String(),
+		Data: map[string]any{"payout_id": a.PayoutID.String(), "amount_cents": a.AmountCents,
+			"problem": string(a.Problem)},
+		Email: spec,
+	}, nil
+}
+
+func zoneOrDefault(loc *time.Location) *time.Location {
+	if loc == nil {
+		return defaultZone
+	}
+	return loc
+}
+
+// payoutSentKey is one message per payout, and one more each time its bank
+// payout is made again after the bank returned one: Occurrence, when set,
+// names the bank payout.
+func payoutSentKey(a Payout) string {
+	if a.Occurrence == "" {
+		return "payout_sent:" + a.PayoutID.String()
+	}
+	return "payout_sent:" + a.PayoutID.String() + ":" + a.Occurrence
 }
 
 // periodText is "28 Sep – 4 Oct 2026": the start date through the day before
