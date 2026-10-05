@@ -7,6 +7,7 @@ import { PageLoading } from '../components/PageLoading';
 import { StatusChip } from '../components/StatusChip';
 import { RejectDialog, type RejectableOrder } from '../components/RejectDialog';
 import { SealBindRow } from '../components/SealBindRow';
+import { RiderApproachMap } from '../components/RiderApproachMap';
 import { idempotencyKey, isApiError } from '@hg/api-client';
 
 const STATE_LABEL: Partial<Record<Schema['OrderState'], string>> = {
@@ -113,6 +114,23 @@ export function OrdersPage() {
       window.removeEventListener('focus', onVisibility);
     };
   }, [reload]);
+  // The restaurant's own coordinates, for the "rider approaching" map. Best-effort: without
+  // them the map still shows the rider's approximate area.
+  const [restaurantSpot, setRestaurantSpot] = useState<{ name: string; latitude: number; longitude: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    unwrapOrThrow(api.GET('/v1/restaurant/profile', {}))
+      .then((p) => {
+        if (!cancelled) setRestaurantSpot({ name: p.display_name, latitude: p.address.latitude, longitude: p.address.longitude });
+      })
+      .catch(() => {
+        /* the map degrades to the rider alone */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<RejectableOrder | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -266,6 +284,14 @@ export function OrdersPage() {
               )}
               {(order.state === 'PREPARING' || order.state === 'READY_FOR_PICKUP') && (
                 <SealBindRow orderId={order.id} />
+              )}
+              {order.rider && (order.state === 'PREPARING' || order.state === 'READY_FOR_PICKUP') && (
+                <RiderApproachMap
+                  orderId={order.id}
+                  rider={order.rider}
+                  restaurant={restaurantSpot}
+                  onOrderChanged={() => void reload()}
+                />
               )}
             </Card>
           ))}

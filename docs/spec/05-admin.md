@@ -2495,6 +2495,16 @@ documents lapse cannot go on shift, but is not punished.
   `CONTACT_RIDER`, `CONTACT_RESTAURANT`, `UPDATE_DELIVERY_INSTRUCTIONS`, `REASSIGN_RIDER`,
   `EXTEND_ETA`, `CANCEL_ORDER`, `FORCE_STATUS` (super admin only, emergency).
 - **Data**: read model over the order aggregate; `order_intervention` (A-29) records every action.
+- **Live tracking**: the order-detail map follows the rider over `order:{id}` (`rider.location`,
+  precise for support and admin per the
+  [per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)), gliding
+  between fixes and saying "last updated Ns ago" after 30 s; state and dispatch events refetch the
+  order. While the socket is down it polls `getOrderAdmin` every 5 s. The **live operations map**
+  (`#/live`) shows every active order (`RESTAURANT_PENDING` to `ARRIVED`, up to 40) with its
+  restaurant, destination and rider, live on each order's channel plus `admin:ops` (a dispatch
+  failure raises a banner). It re-reads the list every 30 s to find new orders, because no admin-wide
+  "order created" event exists, and every 15 s while the socket is down. Riders online without an
+  order are not shown: no operation or event reports their position.
 - **Role**:
 
   | Intervention | Support Agent | Admin | Super Admin |

@@ -46,7 +46,12 @@ export async function unwrap<T>(result: Promise<FetchResult<T>> | FetchResult<T>
   return settled.data;
 }
 
-export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload: () => void } {
+/**
+ * `reload` re-runs the request through the loading state; `refresh` re-runs it silently,
+ * keeping the current data on screen and on failure — the live screens' path, so a realtime
+ * signal or a poll never flashes a skeleton or replaces a good view with an error.
+ */
+export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload: () => void; refresh: () => Promise<void> } {
   const [state, setState] = useState<AsyncState<T>>({
     status: 'loading',
     data: null,
@@ -69,5 +74,15 @@ export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload:
     void run();
   }, [run]);
 
-  return { ...state, reload: () => void run() };
+  const refresh = useCallback(async () => {
+    try {
+      const data = await fetcher();
+      setState({ status: 'ready', data, error: null });
+    } catch {
+      /* keep the last good view; the next signal or poll tries again */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return { ...state, reload: () => void run(), refresh };
 }
