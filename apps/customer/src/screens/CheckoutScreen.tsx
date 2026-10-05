@@ -12,14 +12,12 @@
  * sheet (native-only SDK) and goes straight to tracking.
  *
  * "Place order" POSTs `/v1/orders` with the `quote_id` only (no amount, G-3). On success it routes
- * to tracking with the returned order id. Against the mock, `createOrder` has no fixture and
- * returns `INTERNAL_ERROR`; the screen recognises that known gap and recovers the order to track
- * from `getActiveOrder` (a real fixture), so the journey completes end-to-end on real data.
+ * to tracking with the returned order id. A failure shows its real error code; nothing is faked.
  */
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { cents, isApiError } from '@hg/api-client';
+import { cents } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 import {
   AppBar,
@@ -35,7 +33,7 @@ import {
 
 import { getCart } from '../api/cart';
 import { ensureDeliveryAddress } from '../api/addresses';
-import { createQuote, getActiveOrder, getOrderPayment, placeOrder } from '../api/orders';
+import { createQuote, getOrderPayment, placeOrder } from '../api/orders';
 import { payWithSheet } from '../payments/pay';
 import { isFakeClientSecret } from '../payments/types';
 import { errorCodeOf } from '../api/async';
@@ -125,19 +123,6 @@ export function CheckoutScreen(): React.ReactElement {
       setUnpaid({ orderId: created.order.id, secret: created.client_secret });
       await pay(created.order.id, created.client_secret);
     } catch (e) {
-      // Known mock gap: `createOrder` has no fixture and 500s. Recover the order to track from
-      // the active-order endpoint, which is served from a real fixture, so the demo completes.
-      if (isApiError(e) && e.status >= 500) {
-        try {
-          const active = await getActiveOrder();
-          if (active) {
-            nav.reset({ name: 'tracking', orderId: active.id });
-            return;
-          }
-        } catch {
-          /* fall through to the error banner */
-        }
-      }
       setPlaceError(errorCodeOf(e) ?? 'ORDER_FAILED');
     } finally {
       setPlacing(false);
@@ -171,7 +156,7 @@ export function CheckoutScreen(): React.ReactElement {
               <Banner
                 variant="danger"
                 title="We couldn't place your order"
-                description="Nothing was charged. Please try again."
+                description={`${placeError}. Nothing was charged. Please try again.`}
               />
             ) : null}
           </ScrollView>

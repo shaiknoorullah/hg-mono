@@ -39,6 +39,16 @@ import { TrackingMap } from '../components/TrackingMap';
 // report a broken seal.
 const DELIVERY_PHASE: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED', 'DELIVERED']);
 
+// The contract's five terminal states (OrderState); polling stops at these.
+const TERMINAL_STATES: ReadonlySet<string> = new Set([
+  'COMPLETED',
+  'CANCELLED',
+  'REJECTED',
+  'FAILED',
+  'RESOLVED',
+]);
+const POLL_MS = 10_000;
+
 // Out for delivery: the rider has the bag. Only then does the map poll.
 const ON_ITS_WAY: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED']);
 
@@ -65,6 +75,25 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
   }, [orderId]);
 
   React.useEffect(() => load(), [load]);
+
+  // Poll every 10 s until the order is terminal. A failed poll keeps the last good order on
+  // screen (the next tick retries); the cleanup stops the timer when the screen closes.
+  const terminal = state.kind === 'ready' && TERMINAL_STATES.has(state.order.state);
+  React.useEffect(() => {
+    if (state.kind !== 'ready' || terminal) return;
+    let live = true;
+    const timer = setInterval(() => {
+      getOrder(orderId)
+        .then((order) => {
+          if (live && order) setState({ kind: 'ready', order });
+        })
+        .catch(() => undefined);
+    }, POLL_MS);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [orderId, state.kind, terminal]);
 
   const title =
     state.kind === 'ready' ? `Order ${state.order.code}` : 'Your order';
