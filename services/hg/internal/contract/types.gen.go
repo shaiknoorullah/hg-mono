@@ -782,6 +782,7 @@ const (
 	ErrorCodeITEMUNAVAILABLE                ErrorCode = "ITEM_UNAVAILABLE"
 	ErrorCodeLASTOWNERREQUIRED              ErrorCode = "LAST_OWNER_REQUIRED"
 	ErrorCodeLEDGERBATCHUNBALANCED          ErrorCode = "LEDGER_BATCH_UNBALANCED"
+	ErrorCodeMENULOCKED                     ErrorCode = "MENU_LOCKED"
 	ErrorCodeMENUVERSIONPENDING             ErrorCode = "MENU_VERSION_PENDING"
 	ErrorCodeMETHODNOTALLOWED               ErrorCode = "METHOD_NOT_ALLOWED"
 	ErrorCodeMFAREQUIRED                    ErrorCode = "MFA_REQUIRED"
@@ -1017,6 +1018,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeLASTOWNERREQUIRED:
 		return true
 	case ErrorCodeLEDGERBATCHUNBALANCED:
+		return true
+	case ErrorCodeMENULOCKED:
 		return true
 	case ErrorCodeMENUVERSIONPENDING:
 		return true
@@ -4779,6 +4782,7 @@ type ErrorEnvelope struct {
 		// `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
 		// `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
 		// `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+		// `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
 		// `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
 		// `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 		// `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
@@ -4807,6 +4811,7 @@ type ErrorEnvelopeErrorDetails1 = []FieldError
 // `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
 // `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
 // `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+// `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
 // `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
 // `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 // `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
