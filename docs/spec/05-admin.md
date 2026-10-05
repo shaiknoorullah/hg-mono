@@ -2225,8 +2225,13 @@ documents lapse cannot go on shift, but is not punished.
     who sent it up; the rolling total counts the refunds a person *approved* (`refund.approved_by`,
     `approved_at`) and is summed under a per-person advisory lock rather than a `staff_refund_ledger`
     upsert; a customer's request is reviewed through `approveRefund` and `declineRefund`; the caps are
-    the platform's 24-hour figures in `internal/payments/types.go`, and the per-order and order-age
-    limits in the table above are not enforced yet.
+    the figures in the table above, in `internal/payments/types.go`. The per-order and order-age
+    limits are enforced as the 24-hour one is: a refund past them is sent up, never rejected. A
+    person's per-order total counts what they already approved on that order, so a refund split in
+    two is held to the same limit; an order's age counts from delivery, or from when it was placed
+    if it was never delivered; a refund on an order past an admin's 90 days is sent straight to a
+    super admin; and an admin approving a sent-up refund past their own age limit gets `403
+    FORBIDDEN` ([per-order and order-age limits](https://github.com/shaiknoorullah/hg-mono/issues/364)).
   - R8 A refund against an order whose payment is not `CAPTURED` is rejected
     `409 PAYMENT_NOT_REFUNDABLE`; a cancellation before capture voids the authorisation instead and is
     a different operation.
@@ -2253,7 +2258,8 @@ documents lapse cannot go on shift, but is not punished.
 
 > **DECISION REQUIRED — D-23 · Support agent refund cap**: What is the maximum a front-line support
 > agent may refund without approval — per order and per day? · **Proposed default**: CAD 25.00 per
-> order, CAD 150.00 per rolling 24 hours, orders up to 14 days old. · **Why**: Covers the great
+> order, CAD 150.00 per rolling 24 hours, orders up to 14 days old. *Shipping on this default until
+> the owner confirms it ([decisions](../decisions/README.md#open--non-blocking), [#364](https://github.com/shaiknoorullah/hg-mono/issues/364)).* · **Why**: Covers the great
 > majority of missing-item and late-delivery goodwill without creating a meaningful loss surface from
 > a single compromised or careless account.
 
