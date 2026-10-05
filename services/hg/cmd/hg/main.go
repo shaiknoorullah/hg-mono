@@ -613,8 +613,10 @@ func run() error {
 	var stripeClient payments.StripeClient
 	if cfg.Stripe.Configured() {
 		stripeClient = payments.NewLiveStripe(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
+		// The API version every call is made in, never the key.
 		log.Info("stripe configured",
 			slog.Bool("livemode", cfg.Stripe.LiveMode()),
+			slog.String("api_version", payments.StripeAPIVersion),
 			slog.Bool("webhook_secret_set", cfg.Stripe.WebhookSecret != ""))
 	} else if cfg.Env.IsLocal() {
 		// Local dev only: a fake payment client so orders can be placed end-to-end

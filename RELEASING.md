@@ -36,11 +36,20 @@ files are committed and carry **no real secrets**.
 
 | Surface | Copy to | Key vars |
 |---|---|---|
-| Backend / compose | `deploy/.env.example` → `deploy/.env` | DB/Redis/MinIO + auth keys + the **§3 go-live flips** |
+| Backend / compose | `deploy/.env.example` → `deploy/.env` | DB/cache (Valkey)/object storage (Silo) + auth keys + the **§3 go-live flips** |
 | Admin (`@hg/admin`, Vite) | `apps/admin/.env.example` → `apps/admin/.env.local` | `VITE_API_BASE_URL`, `VITE_MAPBOX_TOKEN` |
 | Restaurant (`@hg/restaurant`, Vite) | `apps/restaurant/.env.example` → `apps/restaurant/.env.local` | `VITE_API_BASE_URL` |
 | Customer (`@hg/customer`, Expo) | `apps/customer/.env.example` → `apps/customer/.env` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_MAPBOX_TOKEN` |
 | Rider (`@hg/rider`, Expo) | `apps/rider/.env.example` → `apps/rider/.env` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_MAPBOX_TOKEN` |
+
+**Password hashing cap.** Each password hash takes 64 MiB, so each API replica runs at most
+`HG_AUTH_HASH_CONCURRENCY` (default `3`, minimum `3`) at once, split into separate sign-up, login
+and staff gates so a sign-up flood cannot lock admins out. A sign-up or login that waits longer than
+`HG_AUTH_HASH_WAIT` (default `2s`, at most `5s`), or finds more than `HG_AUTH_HASH_MAX_WAITERS`
+(default 4 per slot) already waiting, is answered `503` with `Retry-After`, and the server logs a
+`password hashing at capacity` warning with the gate name: alert on it. Raise the cap only if the
+replica's memory limit has room for another 64 MiB per step
+([#216](https://github.com/shaiknoorullah/hg-mono/issues/216)).
 
 **Mapbox tokens** (create at https://account.mapbox.com/access-tokens):
 - Make **public tokens** (`pk.…`) with **public scopes only** (STYLES:TILES, STYLES:READ,
@@ -93,7 +102,7 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
 ```bash
 cp deploy/.env.example deploy/.env      # edit secrets + §3 flips; HG_ENV=production
 cd services/hg
-make up            # Traefik + 2× API + Postgres/PostGIS + Redis + MinIO
+make up            # Traefik + 2× API + Postgres/PostGIS + Valkey + Silo
 make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
