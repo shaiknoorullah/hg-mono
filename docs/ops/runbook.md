@@ -168,6 +168,14 @@ If Twilio itself is down or the account is blocked, there is nothing to switch t
 
 If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7` ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
 
+## Password sign-in answers "busy"
+
+Each password check takes 64 MiB, so each API replica runs at most `HG_AUTH_HASH_CONCURRENCY` (default 3) at once, in three separate queues: restaurant sign-up and password reset, login, and staff (sign-in from the admin web app, and staff password changes). A full queue answers `503` with `Retry-After`, and the client retries ([password hashing cap][i216]).
+
+- **What breaks:** email and password sign-in, restaurant sign-up or password reset on that replica, for a few seconds at a time. Phone sign-in is unaffected. Admin login has its own queue, so a sign-up or login flood does not lock staff out.
+- **Signs:** `password hashing at capacity` warnings in the API logs, each naming its gate (`signup`, `login` or `staff`).
+- **Check** which gate is full. If it is `signup` or `login` and the requests come from a few addresses, it is a flood: the per-address and per-email limits already turn those away before they reach a queue, so let them run out. If it is `staff`, someone is sending sign-ins as the admin web app, which anyone can: each address is turned away after 30 attempts in 15 minutes, so if it persists, block the sending addresses at Traefik. If it is steady real traffic, raise `HG_AUTH_HASH_CONCURRENCY` in the secrets store only when the replica's memory limit has room for another 64 MiB per step, and restart the replicas one at a time.
+
 ## Payments are failing
 
 - **Signs:** checkout errors; `/health/ready` names Stripe; failed deliveries under the webhook endpoint in Stripe's dashboard; reconciliation exceptions on the System page.
@@ -260,3 +268,4 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [dec-sms]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
 [dec-recon]: ../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01
 [opc-breach]: https://www.priv.gc.ca/en/privacy-topics/business-privacy/breaches-and-safeguards/privacy-breaches-at-your-business/gd_pb_201810/
+[i216]: https://github.com/shaiknoorullah/hg-mono/issues/216
