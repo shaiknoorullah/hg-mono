@@ -41,6 +41,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 )
 
 // ─── seed helpers (scoped to this file, mr* prefix) ──────────────────────────
@@ -437,6 +439,21 @@ func TestConformance_MoreRestaurant_OrderReady(t *testing.T) {
 
 	h.CheckResponse(t, Request{Method: "POST", Path: "/v1/restaurant/orders/" + orderID + "/ready",
 		AccountID: b.managerID, Roles: mrRoles, IdemKey: fmt.Sprintf("mr-ready-%d", time.Now().UnixNano())}, 200)
+
+	// The ready order carries the deadline action the deadline runner handles,
+	// with a fresh escalation count. A hand-written RIDER_NO_SHOW had no handler,
+	// and the order never moved (https://github.com/shaiknoorullah/hg-mono/issues/293).
+	spec, _ := machine.DeadlineFor(machine.StateReadyForPickup)
+	var action string
+	var escalations int
+	if err := pool.QueryRow(context.Background(),
+		`SELECT deadline_action, deadline_escalations FROM "order" WHERE id = $1`, orderID).
+		Scan(&action, &escalations); err != nil {
+		t.Fatalf("read the ready order's deadline: %v", err)
+	}
+	if action != spec.Action || escalations != 0 {
+		t.Errorf("ready order deadline_action = %q with %d escalations, want %q with 0", action, escalations, spec.Action)
+	}
 }
 
 // ─── shared helper ───────────────────────────────────────────────────────────

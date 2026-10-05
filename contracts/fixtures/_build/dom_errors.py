@@ -370,6 +370,50 @@ LAUNCH_ERRORS = [
         "The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review.",
         ["decideMenuVersion"],
     ),
+    # The menu lock: while a restaurant is SUSPENDED or BANNED nobody changes its menu,
+    # its own staff and admins acting on its behalf alike, and a version waiting for
+    # review stays as it is. A DELISTED restaurant is not locked
+    # (docs/decisions/README.md, round 2, "A suspended or banned restaurant's menu";
+    # https://github.com/shaiknoorullah/hg-mono/issues/256).
+    (
+        "menu_locked",
+        403,
+        "MENU_LOCKED",
+        "This restaurant's menu is locked while the restaurant is suspended.",
+        {"account_state": "SUSPENDED"},
+        "A menu change while the restaurant is suspended, by its own staff or by an admin "
+        "on its behalf. The menu still reads normally; every edit control shows the "
+        "locked-menu state. Opening hours stay editable. Nothing was written.",
+        [
+            "createMenuCategory",
+            "updateMenuCategory",
+            "createMenuItem",
+            "updateMenuItem",
+            "setMenuItemAvailability",
+            "createMenuCategoryOnBehalf",
+            "createMenuItemOnBehalf",
+            "updateMenuItemOnBehalf",
+            "deleteMenuItemOnBehalf",
+            "decideMenuVersion",
+        ],
+    ),
+    (
+        "menu_locked_banned",
+        403,
+        "MENU_LOCKED",
+        "This restaurant's menu is locked while the restaurant is banned.",
+        {"account_state": "BANNED"},
+        "An admin changing a banned restaurant's menu, or deciding one of its versions "
+        "waiting for review. A banned restaurant's own staff cannot sign in, so only "
+        "admins meet this one.",
+        [
+            "createMenuCategoryOnBehalf",
+            "createMenuItemOnBehalf",
+            "updateMenuItemOnBehalf",
+            "deleteMenuItemOnBehalf",
+            "decideMenuVersion",
+        ],
+    ),
 ]
 
 

@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { AppShell, Icon, SideNav, Wordmark, cx, type IconName, type SideNavItem } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 import { IconMenuBook, IconWallet, IconUsers, IconSettings, IconLogout } from '../lib/icons';
 
 /**
@@ -48,8 +50,23 @@ function navGlyph(icon: (typeof NAV)[number]['icon'], active: boolean) {
   }
 }
 
+/** Keeps the restaurant "online": without a heartbeat in 5 minutes it computes to CLOSED_OFFLINE. */
+const HEARTBEAT_MS = 60_000;
+
 export function Shell() {
   const { logout, principal } = useAuth();
+
+  useEffect(() => {
+    const beat = () => {
+      api.POST('/v1/restaurant/heartbeat', {}).catch(() => {
+        /* transient; the next tick retries */
+      });
+    };
+    beat();
+    const id = window.setInterval(beat, HEARTBEAT_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
   const location = useLocation();
   const navigate = useNavigate();
   const activeKey = NAV.find((item) => location.pathname.startsWith(item.to))?.key;

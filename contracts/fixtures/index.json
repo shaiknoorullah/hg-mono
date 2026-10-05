@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 374,
+  "count": 376,
   "counts_by_domain": {
     "admin": 26,
     "cart": 13,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 42,
+    "errors": 44,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -2273,6 +2273,47 @@
         "error-envelope"
       ],
       "file": "errors/error_item_blocked_by_admin.json"
+    },
+    {
+      "scenario": "error_menu_locked",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MENU_LOCKED`. A menu change while the restaurant is suspended, by its own staff or by an admin on its behalf. The menu still reads normally; every edit control shows the locked-menu state. Opening hours stay editable. Nothing was written.",
+      "operations": [
+        "createMenuCategory",
+        "updateMenuCategory",
+        "createMenuItem",
+        "updateMenuItem",
+        "setMenuItemAvailability",
+        "createMenuCategoryOnBehalf",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf",
+        "deleteMenuItemOnBehalf",
+        "decideMenuVersion"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_locked.json"
+    },
+    {
+      "scenario": "error_menu_locked_banned",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MENU_LOCKED`. An admin changing a banned restaurant's menu, or deciding one of its versions waiting for review. A banned restaurant's own staff cannot sign in, so only admins meet this one.",
+      "operations": [
+        "createMenuCategoryOnBehalf",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf",
+        "deleteMenuItemOnBehalf",
+        "decideMenuVersion"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_locked_banned.json"
     },
     {
       "scenario": "error_menu_version_already_decided",
@@ -5753,20 +5794,26 @@
     ],
     "createMenuCategory": [
       "error_category_name_taken",
+      "error_menu_locked",
       "menu_category_created"
     ],
     "createMenuCategoryOnBehalf": [
       "error_category_name_taken",
+      "error_menu_locked",
+      "error_menu_locked_banned",
       "menu_category_created"
     ],
     "createMenuItem": [
       "error_halal_tag_not_writable",
+      "error_menu_locked",
       "error_price_out_of_range",
       "error_prohibited_ingredient",
       "menu_item_created_pending_review"
     ],
     "createMenuItemOnBehalf": [
       "error_halal_tag_not_writable",
+      "error_menu_locked",
+      "error_menu_locked_banned",
       "error_price_out_of_range",
       "error_prohibited_ingredient",
       "menu_item_created_by_admin"
@@ -5816,6 +5863,8 @@
       "halal_certificate_status_superseded"
     ],
     "decideMenuVersion": [
+      "error_menu_locked",
+      "error_menu_locked_banned",
       "error_menu_version_already_decided",
       "error_menu_version_item_deleted",
       "menu_version_approved",
@@ -5845,6 +5894,10 @@
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
       "restaurant_order_restaurant_pending"
+    ],
+    "deleteMenuItemOnBehalf": [
+      "error_menu_locked",
+      "error_menu_locked_banned"
     ],
     "enrollTotp": [
       "totp_enrolment"
@@ -6375,6 +6428,7 @@
     ],
     "setMenuItemAvailability": [
       "error_item_blocked_by_admin",
+      "error_menu_locked",
       "menu_item_marked_available",
       "menu_item_marked_out_of_stock_indefinitely",
       "menu_item_marked_out_of_stock_until"
@@ -6477,10 +6531,12 @@
     ],
     "updateMenuCategory": [
       "error_category_name_taken",
+      "error_menu_locked",
       "menu_category_updated"
     ],
     "updateMenuItem": [
       "error_halal_tag_not_writable",
+      "error_menu_locked",
       "error_price_out_of_range",
       "error_prohibited_ingredient",
       "menu_item_edit_pending_review",
@@ -6488,6 +6544,8 @@
     ],
     "updateMenuItemOnBehalf": [
       "error_halal_tag_not_writable",
+      "error_menu_locked",
+      "error_menu_locked_banned",
       "error_menu_version_pending",
       "error_price_out_of_range",
       "error_prohibited_ingredient",
