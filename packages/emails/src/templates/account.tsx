@@ -78,3 +78,34 @@ export const staffInvite = defineTemplate({
     </Layout>
   ),
 });
+
+/**
+ * The security alert: the account's password was changed or reset, or it
+ * signed in on a device it has not used before (docs/spec/01-platform.md,
+ * "P-24 — Notification router": new-device sign-in and password changed go by
+ * email to every role). It has no link and no button, so it can never be used
+ * to sign anyone in, and it never names an IP address: only what happened,
+ * when, the coarse place when known, and what to do if it wasn't the reader.
+ */
+export const securityAlert = defineTemplate({
+  name: 'security_alert',
+  vars: ['Heading', 'Summary', 'When', 'Place', 'IfNotYou'] as const,
+  subject: (v) => v.Heading,
+  render: (v) => (
+    <Layout
+      preview={v.Summary}
+      heading={v.Heading}
+      footer="You are receiving this because it is about the security of your HalalGoes account. We send it for every password change and every new device."
+    >
+      <P>{v.Summary}</P>
+      <P>
+        When: {v.When}
+        <br />
+        Where: {v.Place}
+      </P>
+      <P>If this was you, there is nothing to do.</P>
+      <P>{v.IfNotYou}</P>
+      <P muted>HalalGoes will never ask for your password or a sign-in code by email, text or phone.</P>
+    </Layout>
+  ),
+});

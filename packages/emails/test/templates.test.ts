@@ -45,6 +45,7 @@ describe('every exported template', () => {
         'email_verification',
         'password_reset',
         'staff_invite',
+        'security_alert',
         'restaurant_application_approved',
         'restaurant_application_rejected',
         'rider_application_approved',
@@ -93,4 +94,13 @@ describe('every exported template', () => {
       });
     });
   }
+});
+
+describe('security_alert', () => {
+  it('carries no link, so it can never sign anyone in', () => {
+    const t = exported.find((e) => e.name === 'security_alert')!;
+    expect(t.vars).not.toContain('ActionURL');
+    expect(t.html).not.toMatch(/<a\b|href=/i);
+    expect(t.text).not.toMatch(/https?:\/\//);
+  });
 });

@@ -2055,6 +2055,7 @@ CREATE TABLE notification_delivery (
   - **I-24.4** No marketing message is sent without a `marketing_consent_at` and a working unsubscribe link.
   - **I-24.5** No notification body contains an OTP code except the OTP SMS itself, and no notification body contains a full address, card details or a token.
   - **I-24.6** Every notification kind in the matrix has a producer and a template in both `en-CA` and `fr-CA`.
+  - The security alert email ([#348](https://github.com/shaiknoorullah/hg-mono/issues/348)): a password change, a password reset and a sign-in from a new device each queue one `security_alert` email (a staff invitee setting a first password gets none), in the same transaction as the change and beside the realtime `account.security_event`, to the account's verified address only and through the non-production allow-list like every email. It says what happened, when, and the coarse place when known, has no link, never names an IP address or a token, and says what to do if it wasn't the reader. The push for customers and riders in the matrix row is not sent yet.
 - **Acceptance criteria**:
   1. Given a restaurant with no live socket and no push token, When an order is offered, Then an SMS is sent within 60 s and `notification_delivery` records the escalation chain RT→P→S.
   2. Given a customer reads their inbox twice, Then both reads return the same notifications and none are deleted. (Old system: the second reader got nothing.)

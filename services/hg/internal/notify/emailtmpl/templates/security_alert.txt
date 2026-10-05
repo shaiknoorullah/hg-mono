@@ -1,0 +1,20 @@
+HalalGoes
+
+{{.Heading}}
+
+{{.Summary}}
+
+When: {{.When}}
+Where: {{.Place}}
+
+If this was you, there is nothing to do.
+
+{{.IfNotYou}}
+
+HalalGoes will never ask for your password or a sign-in code by email, text or phone.
+
+----------------------------------------
+
+You are receiving this because it is about the security of your HalalGoes account. We send it for every password change and every new device.
+
+HalalGoes · Halal food delivery in Ontario

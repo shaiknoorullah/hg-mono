@@ -26,7 +26,12 @@ const staffInviteTTL = 72 * time.Hour
 
 // UseNotifications wires the outbox. Without it (tests that build a bare
 // Service) the flows still issue tokens but send nothing, and say so in the log.
-func (s *Service) UseNotifications(enq notify.TxEnqueuer) { s.notify = enq }
+func (s *Service) UseNotifications(enq notify.TxEnqueuer) {
+	s.notify = enq
+	if s.store != nil {
+		s.store.alerts = enq
+	}
+}
 
 // UseNotifications wires the outbox into the module's service. Call it once
 // at boot, before serving.
