@@ -19,6 +19,12 @@
     - 90-hg-pull.conf
   notify: Reload sshd
 
+- name: Remove the drop-in written by hand before these roles existed (this role's files replace it)
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/00-halalgoes.conf
+    state: absent
+  notify: Reload sshd
+
 - name: Apply the sshd settings now
   ansible.builtin.meta: flush_handlers
 

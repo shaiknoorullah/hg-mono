@@ -1,0 +1,9 @@
+# Ubuntu's own Docker packages, kept as they are on the running server (hg_docker_upstream: false).
+# Switching to Docker's repository means a major engine change on a live stack: a reviewed change.
+- name: Install Docker and compose from the distribution
+  ansible.builtin.apt:
+    name: [docker.io, docker-compose-v2, python3-docker]
+    state: present
+  # A fresh server in check mode has not installed them yet.
+  ignore_errors: "{{ ansible_check_mode }}"
+

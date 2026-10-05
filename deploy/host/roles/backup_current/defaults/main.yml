@@ -1,0 +1,16 @@
+# Backups for the layout running today (#64): a nightly logical dump of Postgres and a copy of
+# the Silo buckets, kept 14 days. The production layout's pgBackRest + restic (roles/backup)
+# needs a Postgres image with pgBackRest and WAL archiving, which is not running yet.
+hg_backup_current_time: "*-*-* 07:00:00 UTC"
+hg_backup_keep_days: 14
+hg_backup_current_project: hg
+hg_backup_current_postgres: hg-postgres-1
+hg_backup_current_silo: hg-minio-1
+hg_backup_current_network: hg-net
+# Tables whose row counts the restore drill compares (a table missing from the live
+# database is skipped).
+hg_backup_drill_tables: [goose_db_version, spatial_ref_sys, users, orders, restaurants, ledger_entries, stored_object]
+# A backup is overdue after a day and a half.
+hg_backup_current_max_age: 129600
+# Where the off-server pull account may read (it has no key until the owner adds one).
+hg_offline_pull_ssh_keys: []

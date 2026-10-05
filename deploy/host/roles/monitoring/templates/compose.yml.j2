@@ -1,5 +1,5 @@
 # Managed by Ansible (deploy/host/roles/monitoring). Metrics, alert rules and uptime checks
-# (#65). Dashboards are published only on the WireGuard address ({{ hg_wg_address }}).
+# (#65). Dashboards are published only on the WireGuard address ({{ hg_dashboard_bind }}).
 #
 # Networks: {{ hg_networks.monitoring.name }} (internal) carries scraping, so postgres-exporter, which holds a
 # database login, has no route off the box. {{ hg_networks.ops.name }} is the way out, for Alertmanager's email
@@ -20,7 +20,7 @@ services:
     volumes:
       - vmdata:/storage
       - ./scrape.yml:/etc/vm/scrape.yml:ro
-    ports: ["{{ hg_wg_address }}:8428:8428"]
+    ports: ["{{ hg_dashboard_bind }}:8428:8428"]
     networks: [{{ hg_networks.ops.name }}, {{ hg_networks.monitoring.name }}]
     mem_limit: 128m
     memswap_limit: 128m
@@ -37,10 +37,10 @@ services:
       - -rule=/etc/vmalert/*.yml
       - -evaluationInterval=30s
       - -httpListenAddr=:8880
-      - -external.url=http://{{ hg_wg_address }}:8880
+      - -external.url=http://{{ hg_dashboard_bind }}:8880
     volumes:
       - ./rules:/etc/vmalert:ro
-    ports: ["{{ hg_wg_address }}:8880:8880"]
+    ports: ["{{ hg_dashboard_bind }}:8880:8880"]
     networks: [{{ hg_networks.ops.name }}]
     mem_limit: 32m
     memswap_limit: 32m
@@ -52,13 +52,13 @@ services:
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --storage.path=/alertmanager
-      - --web.external-url=http://{{ hg_wg_address }}:9093
+      - --web.external-url=http://{{ hg_dashboard_bind }}:9093
       - --cluster.listen-address=
     volumes:
       - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./smtp_password:/etc/alertmanager/smtp_password:ro
       - amdata:/alertmanager
-    ports: ["{{ hg_wg_address }}:9093:9093"]
+    ports: ["{{ hg_dashboard_bind }}:9093:9093"]
     networks: [{{ hg_networks.ops.name }}]
     mem_limit: 32m
     memswap_limit: 32m
@@ -73,7 +73,7 @@ services:
     volumes:
       - ./gatus.yaml:/config/config.yaml:ro
       - gatusdata:/data
-    ports: ["{{ hg_wg_address }}:8080:8080"]
+    ports: ["{{ hg_dashboard_bind }}:8080:8080"]
     networks: [{{ hg_networks.ops.name }}]
     mem_limit: 48m
     memswap_limit: 48m
@@ -88,6 +88,22 @@ services:
     networks: [{{ hg_networks.monitoring.name }}, {{ hg_networks.data.name }}]
     mem_limit: 32m
     memswap_limit: 32m
+{% endif %}
+{% if 'cadvisor' in hg_monitoring_components %}
+  cadvisor:
+    image: "{{ hg_images.cadvisor }}"
+    restart: unless-stopped
+    # Per-container CPU, memory and restarts, for the "container down" alerts. Read-only mounts;
+    # scraped on the internal monitoring network, no published port.
+    command: [--housekeeping_interval=30s, --docker_only=true, --store_container_labels=false, --disable_metrics=disk,tcp,udp,percpu,sched,process,hugetlb,referenced_memory,cpu_topology,resctrl]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks: [{{ hg_networks.monitoring.name }}]
+    mem_limit: 96m
+    memswap_limit: 96m
 {% endif %}
 
 volumes:

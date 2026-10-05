@@ -3,12 +3,18 @@ groups:
   - name: services
     rules:
 {% raw %}
+{% endraw %}
+{% if hg_layout == 'production' %}
+{% raw %}
       - alert: PostgresDown
         expr: pg_up == 0
         for: 5m
         annotations:
           summary: "The monitor cannot reach production Postgres"
           description: "Before the app is deployed, or until the hg_monitor role exists (#215), this is expected."
+{% endraw %}
+{% endif %}
+{% raw %}
       - alert: CertificateExpiresSoon
         expr: gatus_results_certificate_expiration_seconds > 0 and gatus_results_certificate_expiration_seconds < 14 * 86400
         for: 1h
@@ -16,3 +22,19 @@ groups:
           summary: "The certificate for {{ $labels.name }} expires in under 14 days"
           description: "Traefik renews at 30 days left, so renewal is failing. Runbook: 'Certificates are expiring'."
 {% endraw %}
+{% if hg_layout == 'current' %}
+{% raw %}
+      - alert: ContainerDown
+        expr: time() - container_last_seen{name=~"hg-.*"} > 120
+        for: 2m
+        annotations:
+          summary: "Container {{ $labels.name }} is not running on {{ $labels.host }}"
+          description: "docker compose ps on the server shows which one; its restart policy has not brought it back."
+      - alert: CoreContainerMissing
+        expr: count(container_last_seen{name=~"hg-(api|traefik|postgres|redis|minio)-.*"}) < 6
+        for: 5m
+        annotations:
+          summary: "A core container is missing: fewer than 6 of api x2, traefik, postgres, redis, minio"
+          description: "cAdvisor forgets a removed container after a few minutes, so ContainerDown alone would resolve."
+{% endraw %}
+{% endif %}

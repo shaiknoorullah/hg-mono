@@ -1,0 +1,61 @@
+#!/bin/bash
+# Managed by Ansible (deploy/host/roles/backup_current). Nightly backup, run by hg-backup-current.service.
+#   pg:   pg_dumpall --globals-only and pg_dump of the app database, gzipped
+#   silo: mc mirror of every bucket through the S3 API, then a gzipped tar of the mirror
+# Output: /srv/backup/{pg,silo}/<kind>-<UTC stamp>.*, kept hg_backup_keep_days days.
+set -euo pipefail
+. /etc/hg/backup-current.conf
+umask 027
+stamp=$(date -u +%Y%m%dT%H%M%SZ)
+status=0
+metrics=$HG_TEXTFILE_DIR/hg_backup_current.prom
+mkdir -p "$HG_BACKUP_ROOT/pg" "$HG_BACKUP_ROOT/silo"
+
+run() { # run <name> <function>
+  local name=$1 fn=$2 start rc=0
+  start=$(date +%s)
+  "$fn" || rc=$?
+  { echo "hg_backup_last_run_success{backup=\"$name\"} $([ $rc -eq 0 ] && echo 1 || echo 0)"
+    echo "hg_backup_last_run_duration_seconds{backup=\"$name\"} $(( $(date +%s) - start ))"
+    [ $rc -ne 0 ] || echo "hg_backup_last_success_timestamp_seconds{backup=\"$name\"} $(date +%s)"
+  } >> "$metrics.tmp"
+  [ $rc -eq 0 ] || { echo "backup $name FAILED ($rc)" >&2; status=1; }
+}
+
+pg() {
+  local out=$HG_BACKUP_ROOT/pg
+  docker exec "$HG_POSTGRES" sh -c 'pg_dumpall -U "$POSTGRES_USER" --globals-only' | gzip -9 > "$out/globals-$stamp.sql.gz.part"
+  docker exec "$HG_POSTGRES" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip -9 > "$out/db-$stamp.sql.gz.part"
+  gzip -t "$out/globals-$stamp.sql.gz.part" "$out/db-$stamp.sql.gz.part"
+  # A dump that is only a header is a failure, not a backup.
+  [ "$(stat -c %s "$out/db-$stamp.sql.gz.part")" -gt 2000 ]
+  mv "$out/globals-$stamp.sql.gz.part" "$out/globals-$stamp.sql.gz"
+  mv "$out/db-$stamp.sql.gz.part" "$out/db-$stamp.sql.gz"
+}
+
+silo() {
+  local out=$HG_BACKUP_ROOT/silo user pass
+  user=$(docker exec "$HG_SILO" printenv MINIO_ROOT_USER)
+  pass=$(docker exec "$HG_SILO" printenv MINIO_ROOT_PASSWORD)
+  mkdir -p "$out/mirror"
+  # The credentials travel in the environment of this process only, never in an argument list.
+  MC_HOST_src="http://$user:$pass@$HG_SILO_ENDPOINT" docker run --rm --network "$HG_NETWORK" \
+    --memory 256m --cpus 0.5 --user 0:0 -e MC_HOST_src -v "$out/mirror:/mirror" \
+    --entrypoint mc "$HG_MC_IMAGE" mirror --quiet --overwrite --remove src /mirror
+  tar -C "$out/mirror" -czf "$out/buckets-$stamp.tar.gz.part" .
+  gzip -t "$out/buckets-$stamp.tar.gz.part"
+  mv "$out/buckets-$stamp.tar.gz.part" "$out/buckets-$stamp.tar.gz"
+}
+
+: > "$metrics.tmp"
+run pg pg
+run silo silo
+mv "$metrics.tmp" "$metrics"
+
+# Retention: only files this script wrote, by name.
+find "$HG_BACKUP_ROOT/pg" "$HG_BACKUP_ROOT/silo" -maxdepth 1 -type f \
+  \( -name 'globals-*.sql.gz' -o -name 'db-*.sql.gz' -o -name 'buckets-*.tar.gz' -o -name '*.part' \) \
+  -mtime "+$HG_KEEP_DAYS" -delete
+chgrp -R "$HG_PULL_GROUP" "$HG_BACKUP_ROOT/pg" "$HG_BACKUP_ROOT/silo" 2>/dev/null || true
+chmod -R g+rX,o-rwx "$HG_BACKUP_ROOT/pg" "$HG_BACKUP_ROOT/silo"
+exit $status

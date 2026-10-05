@@ -39,7 +39,7 @@
 # Alertmanager runs as nobody (65534): the password file is readable by that group only.
 - name: Write the SMTP password for Alertmanager
   ansible.builtin.copy:
-    content: "{{ hg_alert_smtp_password }}"
+    content: "{{ hg_alert_smtp_password | default('') }}"
     dest: "{{ hg_monitoring_dir }}/smtp_password"
     owner: root
     group: "65534"
@@ -57,12 +57,13 @@
     mode: "0600"
   loop:
     - dest: gatus.env
-      content: "GATUS_SMTP_PASSWORD={{ hg_alert_smtp_password }}\n"
+      content: "GATUS_SMTP_PASSWORD={{ hg_alert_smtp_password | default('') }}\n"
     - dest: postgres-exporter.env
       content: >-
-        DATA_SOURCE_NAME=postgresql://hg_monitor:{{ hg_monitor_postgres_password | urlencode }}@{{ hg_postgres_host }}:5432/{{ hg_postgres_db }}?sslmode=disable
+        DATA_SOURCE_NAME=postgresql://hg_monitor:{{ hg_monitor_postgres_password | default("") | urlencode }}@{{ hg_postgres_host }}:5432/{{ hg_postgres_db }}?sslmode=disable
   loop_control:
     label: "{{ item.dest }}"
+  when: item.dest != 'postgres-exporter.env' or 'postgres_exporter' in hg_monitoring_components
   no_log: true
   diff: false
   notify: Restart the monitoring stack
@@ -74,3 +75,5 @@
     pull: missing
     remove_orphans: true
   when: hg_docker_ready
+  # In check mode the folder above was not created.
+  ignore_errors: "{{ ansible_check_mode }}"

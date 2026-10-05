@@ -1,0 +1,53 @@
+# The server running today (Contabo VPS 6, Mumbai): the base compose file plus the single-server
+# override, not the production layout of #296. Safe to run again at any time.
+#   ansible-playbook -i inventory/current.yml current.yml --check --diff
+#   ansible-playbook -i inventory/current.yml current.yml --tags base,firewall
+# Roles are tagged by name. README, "Day 1 / rebuild", has the order and the checks between roles.
+- name: Set up the server running today
+  hosts: prod
+  become: true
+  gather_facts: true
+
+  vars:
+    hg_layout: current
+    hg_docker_upstream: false          # keep Ubuntu's docker.io: no engine change on a live stack
+    hg_docker_prune: false             # never remove images the stack may need
+    hg_networks_enabled: [socket, ops, monitoring]
+    hg_secrets_env_files: []           # app secrets stay in /srv/hg/repo/deploy/.env, the owner's
+    hg_dashboard_bind: 127.0.0.1       # dashboards: ssh -L only (or WireGuard, once a peer exists)
+    hg_monitoring_components: [victoriametrics, vmalert, alertmanager, gatus, cadvisor]
+    hg_gatus_endpoints:
+      - {name: api, group: production, url: "https://api.{{ hg_domain }}/health/ready", conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
+      - {name: partner, group: production, url: "https://partner.{{ hg_domain }}/", conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
+      - {name: admin, group: production, url: "https://admin.{{ hg_domain }}/", conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
+      - {name: files, group: production, url: "https://files.{{ hg_domain }}/", conditions: ["[CONNECTED] == true", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
+      - {name: alertmanager, group: monitoring, url: "http://alertmanager:9093/-/healthy", conditions: ["[STATUS] == 200"], alert: true}
+      - {name: victoriametrics, group: monitoring, url: "http://victoriametrics:8428/health", conditions: ["[STATUS] == 200"], alert: true}
+      - {name: vmalert, group: monitoring, url: "http://vmalert:8880/health", conditions: ["[STATUS] == 200"], alert: true}
+
+  pre_tasks:
+    - name: Is Docker installed? (roles that start containers need to know even when only they run)
+      ansible.builtin.stat: {path: /usr/bin/docker}
+      register: hg_docker_bin
+      tags: [always]
+    - ansible.builtin.set_fact:
+        hg_docker_ready: "{{ hg_docker_bin.stat.exists }}"
+      tags: [always]
+
+  roles:
+    - {role: secrets, tags: [secrets, always]}
+    - {role: base, tags: [base]}
+    - {role: wireguard, tags: [wireguard]}
+    - {role: firewall, tags: [firewall]}
+    - {role: ssh, tags: [ssh]}
+    - {role: hardening, tags: [hardening]}
+    - {role: docker, tags: [docker]}
+    - {role: socket_proxy, tags: [socket_proxy]}
+    - {role: app_stack, tags: [app_stack]}
+    - {role: node_exporter, tags: [node_exporter, monitoring]}
+    - {role: backup_current, tags: [backup]}
+    - {role: auditd, tags: [auditd]}
+    - {role: lynis, tags: [lynis]}
+    - {role: aide, tags: [aide]}
+    - {role: monitoring, tags: [monitoring]}
+    - {role: logging, tags: [logging]}

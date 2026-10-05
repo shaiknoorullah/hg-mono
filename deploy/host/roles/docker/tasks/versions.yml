@@ -1,0 +1,26 @@
+- name: Read the installed Docker Engine and compose versions
+  ansible.builtin.command:
+    argv: [dpkg-query, --show, "--showformat=${Version}\\n", docker-ce, docker-compose-plugin]
+  register: hg_docker_versions
+  changed_when: false
+  check_mode: false
+  when: hg_docker_ready
+
+- name: Refuse a Docker Engine or compose too old for the production compose file
+  vars:
+    # "5:29.8.2-1~debian.13~trixie" becomes "29.8.2".
+    hg_docker_engine_installed: "{{ hg_docker_versions.stdout_lines[0] | regex_replace('^[0-9]+:', '') | regex_replace('-.*$', '') }}"
+    hg_docker_compose_installed: "{{ hg_docker_versions.stdout_lines[1] | regex_replace('^[0-9]+:', '') | regex_replace('-.*$', '') }}"
+  ansible.builtin.assert:
+    that:
+      - hg_docker_engine_installed is version(hg_docker_engine_min, '>=')
+      - hg_docker_compose_installed is version(hg_docker_compose_min, '>=')
+    fail_msg: >-
+      This server has Docker Engine {{ hg_docker_engine_installed }} and compose
+      {{ hg_docker_compose_installed }}. The production compose file needs Engine
+      {{ hg_docker_engine_min }} and compose {{ hg_docker_compose_min }} or later (Traefik's
+      networks use gw_priority). Update them by hand, after a Contabo snapshot:
+      sudo apt-get install docker-ce docker-ce-cli docker-compose-plugin
+    quiet: true
+  when: hg_docker_ready
+

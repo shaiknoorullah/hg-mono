@@ -1,0 +1,70 @@
+- name: Write the sysctl hardening (Docker's forwarding stays on)
+  ansible.builtin.template:
+    src: 90-hg-hardening.conf.j2
+    dest: /etc/sysctl.d/90-hg-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: hg_sysctl_file
+  when: not hg_in_container
+
+- name: Apply it now
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+  when: hg_sysctl_file is changed and not hg_in_container and not ansible_check_mode
+
+- name: Install fail2ban
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+
+- name: Find fail2ban jail files written by hand
+  ansible.builtin.find:
+    paths: /etc/fail2ban/jail.d
+    patterns: ["*.conf", "*.local"]
+    excludes: ["20-hg.conf", "defaults-debian.conf"]
+  register: hg_f2b_old
+
+- name: Replace them with this role's one file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ hg_f2b_old.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  notify: Restart fail2ban
+
+- name: Write the fail2ban jail
+  ansible.builtin.template:
+    src: fail2ban-hg.conf.j2
+    dest: /etc/fail2ban/jail.d/20-hg.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Keep fail2ban running
+  ansible.builtin.systemd_service:
+    name: fail2ban
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Rotate the logs this server's roles add under /var/log
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/hg-roles
+    content: |
+      # Managed by Ansible (deploy/host/roles/hardening). Weekly, compressed, bounded.
+      /var/log/hg-backup-drill.err /var/log/lynis/*.log /var/log/aide/*.log {
+        weekly
+        rotate 8
+        compress
+        delaycompress
+        missingok
+        notifempty
+        maxsize 50M
+      }
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/logrotate -d %s

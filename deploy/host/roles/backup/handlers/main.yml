@@ -4,6 +4,8 @@
 
 # restic writes new files group-readable once the repository's config file is. The setgid
 # folders hand those files to the puller's group, which can read them and change nothing.
+  ignore_errors: "{{ ansible_check_mode }}"
+
 - name: Let the puller's group read the repository
   ansible.builtin.shell: |
     set -euo pipefail
@@ -13,3 +15,4 @@
   args:
     executable: /bin/bash
   changed_when: true
+  ignore_errors: "{{ ansible_check_mode }}"

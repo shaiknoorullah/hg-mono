@@ -29,7 +29,7 @@ all:
           ansible_host: 10.66.0.11
           ansible_user: __OWNER_BACKUP_USER__
   vars:
-    ansible_user: ops
+    ansible_user: hg
     hg_admin_ssh_keys:
       - "__ADMIN_SSH_PUBLIC_KEY__"
     # WireGuard peers of the server. Only public keys here.

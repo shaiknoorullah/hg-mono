@@ -1,6 +1,6 @@
 # Managed by Ansible (deploy/host/roles/logging). Container logs (#65), kept on this server:
 # Fluent Bit reads Docker's log files, redacts them, and stores them in VictoriaLogs for
-# {{ hg_logs_retention }}, capped at {{ hg_logs_max_disk }}. Search at http://{{ hg_wg_address }}:9428/select/vmui over WireGuard.
+# {{ hg_logs_retention }}, capped at {{ hg_logs_max_disk }}. Search at http://{{ hg_dashboard_bind | default(hg_wg_address) }}:9428/select/vmui over WireGuard.
 name: hg-logging
 
 services:
@@ -14,7 +14,7 @@ services:
       - -memory.allowedPercent=60
     volumes:
       - vldata:/vlogs
-    ports: ["{{ hg_wg_address }}:9428:9428"]
+    ports: ["{{ hg_dashboard_bind | default(hg_wg_address) }}:9428:9428"]
     # {{ hg_networks.monitoring.name }} (internal): Fluent Bit and VictoriaMetrics reach it there.
     # {{ hg_networks.ops.name }}: only for the search page's port on the WireGuard address.
     networks: [{{ hg_networks.ops.name }}, {{ hg_networks.monitoring.name }}]

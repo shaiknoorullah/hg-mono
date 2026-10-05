@@ -1,0 +1,26 @@
+# The server running today. No secrets: an address and the owner's SSH public key.
+all:
+  children:
+    hg_servers:
+      children:
+        prod:
+          hosts:
+            hg-prod:
+              ansible_host: 13.140.57.152
+              hg_public_ipv4: 13.140.57.152
+              hg_wg_address: 10.66.0.1
+              hg_port_mbit: 300
+        standby:
+          hosts: {}
+    offline:
+      hosts: {}
+  vars:
+    ansible_user: hg
+    ansible_ssh_private_key_file: ~/.ssh/halalgoes_vps
+    hg_admin_user: hg
+    hg_ssh_public: true            # no WireGuard-only SSH today
+    hg_admin_ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN/mMdotJKjceInEK+CDWoD3hf5zyZeMHILETv/DPvAD halalgoes-prod"
+    # WireGuard peers: add the owner's key when there is one (README, "WireGuard").
+    hg_wg_peers: []
+    hg_alert_email_to: shaiknooru247@gmail.com

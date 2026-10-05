@@ -14,6 +14,9 @@ groups:
         annotations:
           summary: "Backup job {{ $labels.backup }} has not succeeded in time on {{ $labels.host }}"
           description: "Its last success was {{ $value | humanizeDuration }} ago."
+{% endraw %}
+{% if hg_layout == 'production' %}
+{% raw %}
       - alert: WalArchiveStale
         expr: hg_pgbackrest_wal_segments_waiting > 0 and hg_pgbackrest_wal_newest_age_seconds > 300
         for: 5m
@@ -37,4 +40,7 @@ groups:
         annotations:
           summary: "The owner's machine has never pulled the off-server copy"
           description: "Set it up with offline.yml (deploy/host/README.md)."
+{% endraw %}
+{% endif %}
+{% raw %}
 {% endraw %}

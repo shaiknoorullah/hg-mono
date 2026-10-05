@@ -6,6 +6,7 @@ storage:
 ui:
   title: HalalGoes checks ({{ inventory_hostname }})
 
+{% if hg_alert_email_enabled | bool %}
 alerting:
   email:
     from: "{{ hg_alert_email_from }}"
@@ -18,6 +19,7 @@ alerting:
       failure-threshold: 3
       success-threshold: 2
       send-on-resolved: true
+{% endif %}
 
 endpoints:
 {% for e in hg_gatus_endpoints %}
@@ -29,7 +31,7 @@ endpoints:
 {% for c in e.conditions %}
       - "{{ c }}"
 {% endfor %}
-{% if e.alert %}
+{% if e.alert and hg_alert_email_enabled | bool %}
     alerts:
       - type: email
 {% endif %}

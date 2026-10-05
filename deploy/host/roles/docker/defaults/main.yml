@@ -11,3 +11,6 @@ hg_docker_compose_min: "2.33.1"
 # failover, so it sets this to false.
 hg_docker_prune: true
 hg_docker_prune_window: "Sun *-*-* 05:00:00 {{ hg_ops_timezone }}"
+# true: Docker's own repository (production layout, needs Engine 28+). false: Ubuntu's docker.io
+# and docker-compose-v2, as installed on the server running today.
+hg_docker_upstream: true

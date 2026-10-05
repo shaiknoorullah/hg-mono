@@ -1,0 +1,39 @@
+# The application stack running today: the base compose file plus the single-server override
+# (README, "Today's layout"). App secrets stay in {{ hg_app_repo }}/deploy/.env, edited by the
+# owner; this role never reads or writes it.
+- name: Own /srv/hg as the deploy user (rsync deploys run as {{ hg_admin_user }}); modes are left as they are
+  # No mode: deploy/.env stays 0600. Without this, a re-run would hand the tree back to root.
+  ansible.builtin.file:
+    path: "{{ hg_app_dir }}"
+    state: directory
+    owner: "{{ hg_admin_user }}"
+    group: "{{ hg_admin_user }}"
+    recurse: true
+
+- name: Put the single-server override in place (the old one is kept beside it)
+  ansible.builtin.copy:
+    src: docker-compose.server.yml
+    dest: "{{ hg_app_repo }}/deploy/docker-compose.server.yml"
+    owner: "{{ hg_admin_user }}"
+    group: "{{ hg_admin_user }}"
+    mode: "0644"
+    backup: true
+  register: hg_app_override
+
+- name: Apply it to Traefik only (the one service whose wiring changed; nothing else restarts)
+  ansible.builtin.command:
+    chdir: "{{ hg_app_repo }}"
+    argv: [docker, compose, -f, deploy/docker-compose.yml, -f, deploy/docker-compose.server.yml, up, -d, --no-deps, --no-build, traefik]
+  register: hg_app_up
+  changed_when: "'Recreated' in hg_app_up.stderr or 'Created' in hg_app_up.stderr"
+  when: hg_app_override is changed and not ansible_check_mode
+
+- name: Wait until Traefik is healthy again
+  ansible.builtin.command:
+    argv: [docker, inspect, --format, "{{ '{{.State.Health.Status}}' }}", hg-traefik-1]
+  register: hg_app_traefik
+  until: hg_app_traefik.stdout == 'healthy'
+  retries: 20
+  delay: 3
+  changed_when: false
+  when: hg_app_override is changed and not ansible_check_mode

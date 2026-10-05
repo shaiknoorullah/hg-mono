@@ -11,7 +11,7 @@ hg_ops_timezone: America/Toronto
 hg_in_container: false
 
 # ---------------------------------------------------------------------------- access
-hg_admin_user: ops
+hg_admin_user: hg
 # Set in the inventory, never here (these group_vars outrank the inventory's): hg_admin_ssh_keys,
 # hg_wg_peers (the owner's laptop and backup machine) and hg_alert_email_to.
 hg_pull_user: hg-pull
@@ -148,4 +148,10 @@ hg_images:
   mc: pgsty/mc:RELEASE.2026-09-16T00-00-00Z@sha256:cfc83108c3abb371f8fb84d99c1fdc88f8c237e022409b0081fb7c0a3be634dd
   postgis: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
   valkey: valkey/valkey:9.0.6-alpine@sha256:187679e3bd4036959631e3f03983ab2ba503ab21e6fd0454d508e909db2ee989
+  cadvisor: gcr.io/cadvisor/cadvisor:v0.55.1@sha256:3de2bd5203120b866d74a9b283b2ffb8ec382fbf9dc321814700c6ea6f44ec57
   nginx: nginx:1.30.5-alpine-slim@sha256:32463212baf0e7d91aded2e9b843a4f2b9e017804b8c9d5bae7b51dcef64389c
+
+# Which of hg_networks the docker role creates. The production compose file (#296) needs all of
+# them; the layout running today (current.yml) needs only these three.
+hg_networks_enabled: "{{ hg_networks.keys() | list }}"
+hg_app_repo: /srv/hg/repo

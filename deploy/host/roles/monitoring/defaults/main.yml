@@ -1,7 +1,15 @@
 hg_monitoring_dir: "{{ hg_ops_dir }}/monitoring"
 hg_metrics_retention: 90d
+# Where the dashboards listen on the host. The WireGuard address by default; 127.0.0.1 (reach
+# them with ssh -L) while no tunnel exists yet. Never a public address.
+hg_dashboard_bind: "{{ hg_wg_address }}"
+# Alert email works once the Resend key is set; until then alerts show in the dashboards only.
+hg_alert_email_enabled: "{{ (hg_alert_smtp_password | default('')) | length > 0 }}"
+# "production": the layout #296 describes (Postgres exporter, pgBackRest, off-server pull).
+# "current": the base compose file plus the single-server override running today.
+hg_layout: production
 # What this host runs. The standby (#210) runs only Gatus, watching prod from outside it.
-hg_monitoring_components: [victoriametrics, vmalert, alertmanager, gatus, postgres_exporter]
+hg_monitoring_components: [victoriametrics, vmalert, alertmanager, gatus, postgres_exporter, cadvisor]
 
 # Gatus checks, from this server. The machine that pulls the off-server copy runs a second
 # Gatus (roles/offline_copy): the only watcher that can say this whole server is down.

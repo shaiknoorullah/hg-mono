@@ -11,8 +11,14 @@ scrape_configs:
         labels: {host: {{ host }}}
 {% endif %}
 {% endfor %}
+{% if 'postgres_exporter' in hg_monitoring_components %}
   - job_name: postgres
     static_configs: [{targets: ["postgres-exporter:9187"]}]
+{% endif %}
+{% if 'cadvisor' in hg_monitoring_components %}
+  - job_name: cadvisor
+    static_configs: [{targets: ["cadvisor:8080"], labels: {host: {{ inventory_hostname }}}}]
+{% endif %}
   - job_name: victoriametrics
     static_configs: [{targets: ["victoriametrics:8428"]}]
   - job_name: vmalert

@@ -3,12 +3,6 @@
     name: nftables
     state: present
 
-- name: Turn ufw off if the image has it (this table is the host firewall)
-  ansible.builtin.command: ufw --force disable
-  register: hg_ufw
-  changed_when: "'stopped and disabled' in hg_ufw.stdout"
-  when: ansible_facts.packages['ufw'] is defined and not ansible_check_mode
-
 - name: Create the nftables drop-in folder
   ansible.builtin.file:
     path: /etc/systemd/system/nftables.service.d
@@ -52,3 +46,13 @@
     state: started
   # On a fresh server in check mode the unit is not installed yet.
   ignore_errors: "{{ ansible_check_mode }}"
+
+# After the new table is live, so there is no moment without a filter.
+- name: Gather installed packages (is ufw here?)
+  ansible.builtin.package_facts:
+
+- name: Turn ufw off if the image has it (this table is the host firewall)
+  ansible.builtin.command: ufw --force disable
+  register: hg_ufw
+  changed_when: "'stopped and disabled' in hg_ufw.stdout"
+  when: ansible_facts.packages['ufw'] is defined and not ansible_check_mode

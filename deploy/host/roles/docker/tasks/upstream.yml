@@ -1,0 +1,66 @@
+- name: Refuse a pinned Docker Engine older than the production compose file needs
+  ansible.builtin.assert:
+    that: (hg_docker_engine_major | string) is version(hg_docker_engine_min, '>=')
+    fail_msg: >-
+      hg_docker_engine_major is {{ hg_docker_engine_major }}. The production compose file needs
+      Docker Engine {{ hg_docker_engine_min }} or later (Traefik's networks use gw_priority).
+    quiet: true
+
+- name: Create the apt keyrings folder
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Add Docker's signing key
+  ansible.builtin.get_url:
+    url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+    dest: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Add Docker's package repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/docker.sources
+    content: |
+      # Managed by Ansible (deploy/host/roles/docker). Updated by hand, monthly:
+      # unattended upgrades take security updates from the distribution only.
+      Types: deb
+      URIs: https://download.docker.com/linux/{{ ansible_distribution | lower }}
+      Suites: {{ ansible_distribution_release }}
+      Components: stable
+      Signed-By: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Keep Docker Engine on its pinned major version
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/docker
+    content: |
+      # Managed by Ansible (deploy/host/roles/docker, hg_docker_engine_major). apt prefers
+      # these releases over any newer major version, which is a reviewed change, never an
+      # upgrade on the server. Updates within the major version are monthly and by hand.
+      Package: docker-ce docker-ce-cli docker-ce-rootless-extras
+      Pin: version 5:{{ hg_docker_engine_major }}.*
+      Pin-Priority: 990
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install Docker Engine and the compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+  # A fresh server in check mode has not added the repository yet, so apt cannot find these.
+  ignore_errors: "{{ ansible_check_mode }}"
+

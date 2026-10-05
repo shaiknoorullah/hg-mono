@@ -38,3 +38,5 @@
     pull: missing
     remove_orphans: true
   when: hg_docker_ready
+  # In check mode the folder above was not created.
+  ignore_errors: "{{ ansible_check_mode }}"

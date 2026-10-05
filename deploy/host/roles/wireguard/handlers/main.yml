@@ -11,3 +11,4 @@
     executable: /bin/bash
   changed_when: true
   when: not hg_in_container
+  ignore_errors: "{{ ansible_check_mode }}"
