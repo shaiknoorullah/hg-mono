@@ -336,6 +336,7 @@ either way, but the **values** need a human before launch:
 | Component reachability | A schema, parameter or response is declared and never referenced |
 | Contract drift | The document generated from the route registry differs from the committed one |
 | Fixture validity | Any fixture under `contracts/fixtures/` does not validate against its named schema (`pnpm validate:fixtures`) |
+| Distinct list rows | A list fixture (`array<…>`) has two rows with the same `id`, i.e. one record shown twice (`pnpm validate:fixtures`, [issue #31](https://github.com/shaiknoorullah/hg-mono/issues/31)) |
 | Error-code casing | Any `ErrorCode` member is not `SCREAMING_SNAKE_CASE`, or the enum contains a duplicate |
 | YAML 1.1 truthy scalars | An unquoted `ON`/`OFF`/`YES`/`NO` appears in an `enum`, `examples` or `default` — see §"Two contract defects" |
 | Unsatisfiable `allOf` | An `allOf` extends a base that sets `additionalProperties: false` |

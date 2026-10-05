@@ -59,13 +59,17 @@ func (s *Store) Transition(ctx context.Context, req TransitionRequest, effects .
 	})
 }
 
-// TransitionInTx is Transition inside a transaction the caller already holds,
-// for a caller that must lock other rows first and commit its own records with
-// the state change: the support override of a handover code locks the
-// assignment, then moves the order here, then writes its audit record, all in
-// one transaction (contracts/openapi.yaml, overrideHandoverCode;
-// https://github.com/shaiknoorullah/hg-mono/issues/310). It is the same single
-// function as Transition, not a second writer of order.state.
+// TransitionInTx is Transition inside a transaction the caller already holds.
+// It is for a caller that must lock its own rows first and commit its own
+// records with the state change: the restaurant's accept, reject and
+// mark-ready lock the order under the restaurant's ownership predicate, then
+// move it here (https://github.com/shaiknoorullah/hg-mono/issues/337); the
+// support override of a handover code locks the assignment, then moves the
+// order here, then writes its audit record (contracts/openapi.yaml,
+// overrideHandoverCode; https://github.com/shaiknoorullah/hg-mono/issues/310).
+// It is the same single function as Transition, not a second writer of
+// order.state (docs/spec/01-platform.md, "P-14 — Order lifecycle states and
+// transitions"). The caller commits or rolls back tx.
 func (s *Store) TransitionInTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
 	return s.transitionTx(ctx, tx, req, effects...)
 }
@@ -178,8 +182,8 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 //     the customer reads to the rider, for a met handover.
 //   - DELIVERED, and every terminal state: delete whatever code is left.
 //
-// The restaurant's accept path writes the order directly and mints the pickup
-// code itself (internal/restaurant, AcceptOrder).
+// The restaurant's accept moves the order to PREPARING through TransitionInTx,
+// so this hook mints its pickup code too; accept mints nothing of its own.
 func handoverCodesTx(ctx context.Context, tx pgx.Tx, orderID string, to machine.State, fulfilment string, instructions []string) error {
 	switch {
 	case to == machine.StatePreparing:

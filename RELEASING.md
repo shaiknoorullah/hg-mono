@@ -94,6 +94,15 @@ make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
 
+The database has three logins, each with its own password in `deploy/.env`: the Postgres
+superuser (`POSTGRES_PASSWORD`) only creates the roles; goose runs as `hg_migrator`
+(`HG_DB_MIGRATOR_PASSWORD`), which owns the schema; the API runs as `hg_app`
+(`HG_DB_APP_PASSWORD`), which can read and write rows but cannot change the schema or switch the
+ledger's triggers off; its hourly partition upkeep goes through two narrow functions that run as
+`hg_migrator`. `make up` and `make migrate` create and update the roles first, from
+[`services/hg/migrations/roles/roles.sql`](services/hg/migrations/roles/roles.sql); the reasons
+are in [the migrations README](services/hg/migrations/README.md#who-connects-as-whom).
+
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
 or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.

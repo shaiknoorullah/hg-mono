@@ -11,7 +11,7 @@ covers:
   - packages/ui-native/src/content/**
   - packages/ui-native/src/feedback/**
   - packages/ui-native/src/navigation/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — Component Inventory
@@ -39,6 +39,7 @@ These are stated once. No entry below re-litigates them.
 9. **Server state only.** No component derives a business state client-side. Notably: the halal badge renders from `halal_display_state` in the payload or renders nothing and logs a client error (C-12 R4 — "there is no 'assume certified'"); countdowns derive from server `expires_at` minus measured clock skew, never a local constant (D-14).
 10. **Unknown enum values do not crash.** Any component switching on a server enum has a documented fallback branch and reports it (rider spec §0.1: "Client must treat unknown enum values as 'unsupported — refresh app', never crash").
 11. **Every component ships a `testID` / `data-testid`** derived from its name, and snapshot coverage in both themes and both density modes.
+12. **Current and selected are a fill, never an edge.** A current page, active nav item, selected row or selected card is never marked with a bar, border or stripe on its inline-start edge. On the dark chrome it is an inverted tile: fill `text.onAccent`, with the label and icon in `surface.chrome`. On any other surface it is a `state.selectedTint` fill. Either way the label is bold and the state is in the markup (`aria-current` / `aria-selected`), so it never rests on colour alone. Owner decision, 1 Oct 2026; [issue #398](https://github.com/shaiknoorullah/hg-mono/issues/398) moved the web `SideNav` off its edge bar.
 
 ---
 

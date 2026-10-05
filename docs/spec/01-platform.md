@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -1062,7 +1062,9 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
   | T20 | `DISPUTED` | `RESOLVED` | support resolves (refund / partial / no action) | support/admin (`dispute.resolve`) | refund + adjustment batch |
   | T21 | `PREPARING`/`READY_FOR_PICKUP` | `DISPUTED` | restaurant reports an unrecoverable problem | restaurant staff | none yet |
 
-  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal.
+  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal, but it is the one unfinished state that is not the customer's active order: every problem report puts an order there, and an order under review after a problem report does not block a new checkout ([narrowed one-active-order rule](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). Its only way out is T20 to `RESOLVED`, so an order that stopped counting as active never counts again.
+
+  A support agent or admin may also cancel an order before the restaurant accepts it, from `CREATED`, `AUTHORIZED` or `RESTAURANT_PENDING`, recorded with actor `ADMIN` ([admin order intervention](05-admin.md#a-38--order-lookup-and-admin-order-intervention)).
 
   **The dispatch sub-machine** (table `dispatch`, one row per order, created at T6):
 
@@ -1829,14 +1831,7 @@ CREATE TABLE realtime_connection (
   | `notification.created` | `{notification_id, kind, title, body, deep_link, created_at}` |
   | `notification.read` | `{notification_id, read_at}` |
 
-  **Admin (channel `admin:ops`)**
-
-  | Type | Payload |
-  |---|---|
-  | `admin.alert` | `{severity, kind, subject_type, subject_id, message, at}` |
-  | `admin.dispatch_failure` | `{order_id, waves, riders_offered, radius_m}` |
-  | `admin.reconciliation_exception` | `{kind, order_id, expected_cents, actual_cents}` |
-  | `admin.queue_depth` | `{pending_restaurant_reviews, pending_rider_reviews, open_disputes, failed_refunds}` |
+  **Admin (channel `admin:ops`)**: `admin.alert`, `admin.dispatch_failure`, `admin.reconciliation_exception` and `admin.queue_depth`. Their payloads, and which alert kinds exist, are listed once, in [the websocket contract's admin section](../../contracts/websocket.md#47-admin--channel-adminops).
 
   Payload schemas are generated from Go structs into a versioned JSON-Schema bundle served at `GET /v1/realtime/schema` and consumed by the generated TypeScript client, so a field rename cannot silently break four apps (which is exactly how the old `CHANNEL_JOIN`-wrapped-in-`order_request` mess arose, §7.16).
 
@@ -2403,6 +2398,12 @@ SELECT r.account_id,
 ```
   `ST_DWithin` on `geography` uses the GiST index. Waves: **3 000 m → 6 000 m → 10 000 m**, 20 s each, `LIMIT 8` per wave, offers broadcast **in parallel** (the old code looped riders sequentially, B71/B82). Exhausting all three waves sets `dispatch.state='NO_RIDER_FOUND'`, which arms the order's `READY_FOR_PICKUP` escalation (P-15) and raises `admin.dispatch_failure`.
 
+  **A wave that finds nobody still counts** ([#294](https://github.com/shaiknoorullah/hg-mono/issues/294)). It is recorded with no offers and holds the search for the `SEARCHING` deadline (20 s, in the dispatch deadline table of [deadlines and timeout actions](#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable)), and the next wave searches one radius wider. So with nobody online the search runs 3 km, then 6 km, then 10 km until its wave or time budget, and a rider who comes online inside the radius meanwhile is offered the order. After a wave whose riders all let it lapse, the next wave searches the same radius again and widens at once while a radius has nobody left. Only the budget ends the search in `NO_RIDER_FOUND`, never one pass that found nobody.
+
+  **At `NO_RIDER_FOUND` the order is untouched.** It stays `READY_FOR_PICKUP` on its own pickup deadline, which escalates every 10 minutes ([#293](https://github.com/shaiknoorullah/hg-mono/issues/293)) and, at its cap, cancels the order with a full refund to the customer (the no-rider row of [the order transition table](#p-14--order-lifecycle-states-and-transitions); automating that cancel is [#336](https://github.com/shaiknoorullah/hg-mono/issues/336)). No money moves when the search ends: the payment was captured when the restaurant accepted, and its refund belongs to that cancel. The same transaction that ends the search writes `dispatch.state_changed` to the order's channel and `admin.dispatch_failure` to `admin:ops`.
+
+  **Every replica runs the dispatch runner.** Two sweeps of the same new order queue on the dispatch row the first wave creates, and the second finds the wave already run. A search that is due for its next wave is claimed under the dispatch row's lease (`lease_until`, as in the runner mechanics of [deadlines and timeout actions](#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable)), so each wave runs once and the search ends once.
+
   **Acceptance is a race resolved in Postgres**, not in a workflow signal:
 ```sql
 UPDATE dispatch
@@ -2713,7 +2714,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 
-  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day.
+  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day. The one-active-order rule is enforced in the order-creation transaction, not by the limiter: the transaction first takes a per-customer lock, so two checkouts racing for the same customer queue, and the second counts only after the first has committed. The active order that `getActiveOrder` returns is the one that refuses a second checkout, so a lone order under review is not it; the order history's active section still lists every unfinished order.
 
   Responses carry `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and, on 429, `Retry-After`.
 

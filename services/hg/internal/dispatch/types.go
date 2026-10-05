@@ -61,6 +61,19 @@ const (
 	locationFreshness = 90 * time.Second
 	geoArrivalRadiusM = 150
 	candidateLimit    = 50
+
+	// emptyWaveHold is how long a wave that found nobody holds the search
+	// before the next, wider wave runs: the SEARCHING row of the dispatch
+	// deadline table, "+20 s, NEXT_WAVE — widen radius (3 → 6 → 10 km),
+	// re-offer" (docs/spec/01-platform.md, "P-15 — Deadlines and timeout
+	// actions"). Holding is what lets a rider who comes online meanwhile be
+	// found (https://github.com/shaiknoorullah/hg-mono/issues/294).
+	emptyWaveHold = 20 * time.Second
+	// escalationLease is how long a replica holds a due search it claimed to
+	// run the next wave: the dispatch row's lease_until, as in the runner
+	// mechanics of "P-15 — Deadlines and timeout actions" (docs/spec/01-platform.md).
+	// A replica that dies mid-wave lets the search go after this.
+	escalationLease = 30 * time.Second
 )
 
 // radiusLadderM is the widening search ladder in metres (D-13).
