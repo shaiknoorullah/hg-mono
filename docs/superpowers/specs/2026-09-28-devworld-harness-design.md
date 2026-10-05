@@ -188,7 +188,7 @@ Each playbook step is: **setup command** (terminal) → **action** (in browser) 
 > 2. In the queue, the card `HG-…` appears; countdown < 180 s.
 > 3. Click **Accept** → card shows **Preparing**.
 
-Playbooks describe the app **as it behaves today**. Where the app does not yet update live, the step says "press Refresh"; the companion feature spec rewrites those steps to "appears without Refresh" when it lands.
+Playbooks describe the app **as it behaves today**. Where the app does not yet update live, the step says "press Refresh"; the companion feature spec rewrites those steps to "appears without Refresh" when it lands. *Done for the restaurant order queue (Oct 2026, [#27](https://github.com/shaiknoorullah/hg-mono/issues/27)): `journey.md` and `order-handling.md` wait for orders to appear on their own; **Refresh** stays as a manual option.*
 
 Two runners, same playbook:
 
