@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // Handler serves the restaurant-partner HTTP operations (R-01 … R-26).
@@ -601,12 +602,12 @@ func (h *Handler) ListRestaurantOrders(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	orders, hasMore, err := h.repo.ListOrders(r.Context(), restaurantID, 20, nil)
+	list, hasMore, err := h.repo.ListOrders(r.Context(), restaurantID, 20, nil)
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
 	}
-	httpx.RespondList(w, r, http.StatusOK, orders, httpx.Meta{HasMore: hasMore})
+	httpx.RespondList(w, r, http.StatusOK, list, httpx.Meta{HasMore: hasMore})
 }
 
 // GetRestaurantOrder implements GET /v1/restaurant/orders/{orderId}.
@@ -664,6 +665,13 @@ func (h *Handler) AcceptOrder(w http.ResponseWriter, r *http.Request) {
 	order, err := h.repo.AcceptOrder(r.Context(), restaurantID, orderID, p.AccountID, body.PrepEtaMinutes)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Order not found.", nil)
+		return
+	}
+	if errors.Is(err, orders.ErrRestaurantUnavailable) {
+		// Nothing is captured: the order times out and its authorisation is
+		// released. https://github.com/shaiknoorullah/hg-mono/issues/328
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode("RESTAURANT_UNAVAILABLE"),
+			"This restaurant cannot take orders: it is not live, or its halal certification is not current.", nil)
 		return
 	}
 	if errors.Is(err, ErrOfferExpired) {
