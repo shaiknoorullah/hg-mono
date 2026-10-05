@@ -1,0 +1,30 @@
+{
+  "//": "Fixed minimum coverage, only where money and safety live (owner decision, 28 Sep 2026, issue #118). Each floor is the value measured on 28 Sep 2026 rounded down to the nearest 5%. Go counts statements; test files are not counted. There is no repo-wide percentage.",
+  "floors": {
+    "pricing": {
+      "//": "Pricing and money: the server prices every order, in integer cents. Measured 84.7%.",
+      "floor": 80,
+      "paths": ["services/hg/internal/orders/pricing/", "services/hg/internal/orders/money/"]
+    },
+    "ledger": {
+      "//": "Ledger: the double-entry postings every order's money must sum to zero in. Measured 100%.",
+      "floor": 100,
+      "paths": ["services/hg/internal/payments/ledger*"]
+    },
+    "order state machine": {
+      "//": "Order state machine: which transitions are legal and when each state times out. Measured 64.1%.",
+      "floor": 60,
+      "paths": ["services/hg/internal/orders/machine/"]
+    },
+    "auth": {
+      "//": "Auth: phone OTP, password + TOTP, sessions, the deny-by-default role matrix. Measured 16.5%.",
+      "floor": 15,
+      "paths": ["services/hg/internal/auth/"]
+    },
+    "payments": {
+      "//": "Payments: authorise, capture, void, refunds, payouts, Stripe webhooks. Measured 14.4%.",
+      "floor": 10,
+      "paths": ["services/hg/internal/payments/"]
+    }
+  }
+}

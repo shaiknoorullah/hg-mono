@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Invariant tests for the Halal Goes schema.
+# Invariant tests for the HalalGoes schema.
 #
 # Each case asserts that the DATABASE refuses something, or that an invariant
 # query returns zero rows. These are the claims the migrations make; this script
@@ -114,6 +114,54 @@ reject "a terminal order carrying a deadline is rejected" "order_deadline_requir
      now()+interval '10 minutes','PREP_OVERDUE','CUSTOMER_CANCELLED',3000,0,419,0,444,500,4363);"
 reject "a non-terminal dispatch with no deadline is rejected" "dispatch_deadline_required" \
   "INSERT INTO dispatch (order_id, state) VALUES ('88888888-8888-4888-8888-888888888888','SEARCHING');"
+reject "an unprocessed Stripe webhook with no retry time is rejected" "webhook_event_deadline_required" \
+  "INSERT INTO webhook_event (stripe_event_id, type, payload, livemode, event_created_at)
+   VALUES ('evt_inv_nodl', 'payment_intent.succeeded', '{}', false, now());"
+reject "a dead-lettered Stripe webhook without the error that put it there is rejected" \
+  "webhook_event_dead_letter_has_error" \
+  "INSERT INTO webhook_event (stripe_event_id, type, payload, livemode, event_created_at, dead_lettered_at)
+   VALUES ('evt_inv_dead', 'payment_intent.succeeded', '{}', false, now(), now());"
+reject "an open chargeback with no evidence deadline is rejected" "chargeback_deadline_required" \
+  "INSERT INTO chargeback (order_id, stripe_dispute_id, amount_cents, state)
+   VALUES ('88888888-8888-4888-8888-888888888888', 'dp_inv_nodl', 100, 'needs_response');"
+reject "a closed chargeback still on a clock is rejected" "chargeback_deadline_required" \
+  "INSERT INTO chargeback (order_id, stripe_dispute_id, amount_cents, state, outcome, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', 'dp_inv_closed', 100, 'lost', 'lost', now(), 'submit_dispute_evidence');"
+reject "a refund that moves money with no approver is rejected" "refund_money_needs_approver" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'AUTHORISED', '11111111-1111-4111-8111-111111111111', now(), 'submit_refund_to_stripe');"
+reject "a goodwill refund above CAD 50 approved by the person who asked for it is rejected" \
+  "refund_goodwill_second_approver" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by, approved_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'GOODWILL',
+           'GOODWILL', 5001, 'AUTHORISED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), 'submit_refund_to_stripe');"
+reject "a refund recorded as at Stripe without Stripe's refund id is rejected" "refund_at_stripe_has_id" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by, approved_by,
+                       deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'SUBMITTED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), 'await_refund_settlement');"
+reject "a refund approval request that names no approving role is rejected" "refund_approval_names_role" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, approval_status,
+                       requested_by, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'GOODWILL',
+           'GOODWILL', 100, 'PENDING_APPROVAL', 'PENDING', '11111111-1111-4111-8111-111111111111',
+           now(), 'await_refund_approval');"
+reject "a refund approved by the person who sent it up for a second person is rejected" "refund_second_person" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by,
+                       escalated_by, escalated_at, approved_by, approved_at, deadline_at, deadline_action)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'AUTHORISED', '11111111-1111-4111-8111-111111111111',
+           '11111111-1111-4111-8111-111111111111', now(), '11111111-1111-4111-8111-111111111111', now(),
+           now(), 'submit_refund_to_stripe');"
+reject "a declined refund that does not say who declined it and why is rejected" "refund_decline_recorded" \
+  "INSERT INTO refund (order_id, payment_intent_id, kind, reason_code, amount_cents, state, requested_by)
+   VALUES ('88888888-8888-4888-8888-888888888888', '99999999-9999-4999-8999-999999999999', 'FULL',
+           'PLATFORM_ERROR', 100, 'DECLINED', '11111111-1111-4111-8111-111111111111');"
 zero_rows "no live order lacks a deadline" "SELECT * FROM order_without_deadline"
 zero_rows "no live dispatch lacks a deadline" "SELECT * FROM dispatch_without_deadline"
 
@@ -245,8 +293,17 @@ reject "H5 and H7 are not overridable" "halal_check_hard_computed_flags" \
              '11111111-1111-4111-8111-111111111111',now());"
 n_rows "the three accepted issuing bodies are seeded" "3" \
   "SELECT 1 FROM halal_issuing_body WHERE status='ACCEPTED'"
-zero_rows "no restaurant claims CERTIFIED without a live certificate" \
+zero_rows "no restaurant shows a halal badge (certified or expiring soon) without a live certificate" \
   "SELECT * FROM halal_status_inconsistency"
+reject "a live restaurant cannot carry an expired halal state" "restaurant_live_not_halal_expired" \
+  "UPDATE restaurant SET halal_status = 'EXPIRED' WHERE id = '33333333-3333-4333-8333-333333333333';"
+reject "the halal state is never derived without an instant" "instant" \
+  "SELECT halal_refresh_restaurant_status('33333333-3333-4333-8333-333333333333'::uuid, NULL);"
+reject "the halal state is never derived as of the past" "in the past" \
+  "SELECT halal_refresh_restaurant_status('33333333-3333-4333-8333-333333333333'::uuid, now() - interval '1 day');"
+reject "a renewal reminder outside 30, 14, 7 or 1 days is refused" "halal_certificate_reminder_days_before_check" \
+  "INSERT INTO halal_certificate_reminder (halal_certificate_id, restaurant_id, days_before, expires_on, sent_on)
+     VALUES ('33333333-3333-4333-8333-3333333300a3','33333333-3333-4333-8333-333333333333',5,current_date+5,current_date);"
 
 echo
 echo "7. Quote and order money identities"
@@ -281,6 +338,17 @@ reject "a receipt snapshot cannot be rewritten" "receipt_snapshot_is_immutable" 
   "UPDATE \"order\" SET receipt_snapshot = '{\"v\":1}' WHERE id='88888888-8888-4888-8888-888888888888';
    UPDATE \"order\" SET receipt_snapshot = '{\"v\":2}' WHERE id='88888888-8888-4888-8888-888888888888';"
 zero_rows "no quote taxes the tip" "SELECT * FROM quote_tip_taxed"
+# The platform-wide pause on new orders: one row, never removed, and a pause
+# always says when and why (https://github.com/shaiknoorullah/hg-mono/issues/244).
+n_rows "there is exactly one ordering-pause row" "1" "SELECT 1 FROM ordering_pause"
+reject "a second ordering-pause row is rejected" "ordering_pause_pkey" \
+  "INSERT INTO ordering_pause (id) VALUES (true);"
+reject "any ordering-pause row but the one is rejected" "ordering_pause_id_check" \
+  "INSERT INTO ordering_pause (id) VALUES (false);"
+reject "a pause with no reason or start time is rejected" "ordering_pause_explained" \
+  "UPDATE ordering_pause SET paused = true;"
+reject "the API role cannot delete the ordering-pause row" "permission denied" \
+  "SET LOCAL ROLE hg_app; DELETE FROM ordering_pause;"
 
 echo
 echo "8. Dispatch: exactly one rider"
@@ -329,9 +397,31 @@ reject "a document under review must carry its 72h SLA deadline" "kyc_document_d
    INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state)
      VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
              '15000000-0000-4000-8000-000000000002','IN_REVIEW');"
+reject "a rider's file is attached once per document type" "kyc_document_rider_file_once" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at)
+     VALUES ('15000000-0000-4000-8000-000000000229','hg-kyc','kyc/t/p.jpg','KYC_DOCUMENT',
+             'image/jpeg',10,digest('p','sha256'),'READY','019ffe57-fbd0-7355-ade8-b03ea7943578',now());
+   INSERT INTO kyc_document (subject_type, subject_id, rider_doc_type, stored_object_id, state,
+                             deadline_at, deadline_action)
+     VALUES ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','PROFILE_PHOTO',
+             '15000000-0000-4000-8000-000000000229','SUBMITTED',now()+interval '72 hours','ESCALATE'),
+            ('RIDER','019ffe57-fbd0-7355-ade8-b03ea7943578','PROFILE_PHOTO',
+             '15000000-0000-4000-8000-000000000229','SUBMITTED',now()+interval '72 hours','ESCALATE');"
 reject "a live restaurant with no location is rejected" "restaurant_live_needs_location" \
   "INSERT INTO restaurant (slug, legal_name, display_name, onboarding_state, account_state)
      VALUES ('no-location','No Location Inc.','No Location','ACTIVE','LIVE');"
+reject "a restaurant's file is attached once per document type" "kyc_document_restaurant_file_once" \
+  "INSERT INTO stored_object (id, bucket, object_key, purpose, content_type, byte_size, sha256,
+       state, uploaded_by, confirmed_at)
+     VALUES ('15000000-0000-4000-8000-000000000360','hg-kyc','kyc/t/r.pdf','KYC_DOCUMENT',
+             'application/pdf',10,digest('r','sha256'),'READY','11111111-1111-4111-8111-111111111111',now());
+   INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+                             deadline_at, deadline_action)
+     VALUES ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
+             '15000000-0000-4000-8000-000000000360','SUBMITTED',now()+interval '72 hours','ESCALATE'),
+            ('RESTAURANT','33333333-3333-4333-8333-333333333333','BUSINESS_LICENCE',
+             '15000000-0000-4000-8000-000000000360','SUBMITTED',now()+interval '72 hours','ESCALATE');"
 
 echo
 echo "10. Realtime and idempotency"
@@ -354,6 +444,115 @@ if python3 "$HERE/../tools/check_enums.py" >/tmp/hg_enum_check.txt 2>&1; then
 else
   fail "contract enum check" "$(tail -5 /tmp/hg_enum_check.txt | tr '\n' ' ')"
 fi
+
+echo
+echo "12. The API's role cannot switch the invariants off (00032, roles/roles.sql)"
+# The API logs in as hg_app. SET LOCAL ROLE gives this superuser session exactly
+# hg_app's rights for one transaction, so each case is what a compromised API
+# could try.
+AS_APP="SET LOCAL ROLE hg_app;"
+reject "hg_app cannot disable the ledger's triggers" "must be owner" \
+  "$AS_APP ALTER TABLE ledger_entry DISABLE TRIGGER ALL;"
+reject "hg_app cannot drop the append-only trigger" "must be owner" \
+  "$AS_APP DROP TRIGGER ledger_entry_append_only ON ledger_entry;"
+reject "hg_app cannot replace the trigger function" "permission denied for schema public" \
+  "$AS_APP CREATE OR REPLACE FUNCTION ledger_reject_mutation() RETURNS trigger
+     LANGUAGE plpgsql AS 'BEGIN RETURN NULL; END';"
+reject "hg_app cannot skip triggers with session_replication_role" "permission denied to set parameter" \
+  "$AS_APP SET LOCAL session_replication_role = replica;"
+reject "hg_app cannot TRUNCATE the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP TRUNCATE ledger_entry;"
+reject "hg_app cannot UPDATE an amount on the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP UPDATE ledger_entry SET amount_cents = 1;"
+reject "hg_app cannot DELETE from the ledger" "permission denied for table ledger_entry" \
+  "$AS_APP DELETE FROM ledger_entry;"
+reject "hg_app cannot add a trigger" "permission denied for table ledger_entry" \
+  "$AS_APP CREATE TRIGGER probe BEFORE INSERT ON ledger_entry
+     FOR EACH ROW EXECUTE FUNCTION ledger_reject_mutation();"
+reject "hg_app cannot ALTER a table" "must be owner" \
+  "$AS_APP ALTER TABLE \"order\" DROP CONSTRAINT order_deadline_required;"
+reject "hg_app cannot CREATE in the schema" "permission denied for schema public" \
+  "$AS_APP CREATE TABLE probe (id int);"
+# A temp table named ledger_entry would hide the real one from the zero-sum
+# check, which then sums fake rows and lets an unbalanced batch commit.
+reject "hg_app cannot shadow a table with a temp table" "permission denied to create temporary tables" \
+  "$AS_APP CREATE TEMP TABLE ledger_entry (batch_id uuid, amount_cents bigint);"
+accept "hg_app can still read and write rows" \
+  "$AS_APP SELECT count(*) FROM ledger_entry;
+   SELECT next_channel_seq('order:hg-app-probe');"
+n_rows "hg_app is no superuser, cannot create roles or databases, cannot bypass RLS" "0" \
+  "SELECT 1 FROM pg_roles WHERE rolname = 'hg_app'
+     AND (rolsuper OR rolcreaterole OR rolcreatedb OR rolbypassrls OR rolreplication)"
+n_rows "hg_app owns nothing in the schema" "0" \
+  "SELECT 1 FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relowner = 'hg_app'::regrole
+   UNION ALL SELECT 1 FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND proowner = 'hg_app'::regrole
+   UNION ALL SELECT 1 FROM pg_type WHERE typnamespace = 'public'::regnamespace AND typowner = 'hg_app'::regrole"
+n_rows "hg_app is a member of no other role" "0" \
+  "SELECT 1 FROM pg_auth_members WHERE member = 'hg_app'::regrole"
+n_rows "hg_app holds no TRUNCATE, TRIGGER or REFERENCES grant anywhere" "0" \
+  "SELECT 1 FROM information_schema.table_privileges
+     WHERE grantee = 'hg_app' AND privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')"
+reject "hg_monitor, the exporter's role, cannot read a table" "permission denied for table ledger_entry" \
+  "SET LOCAL ROLE hg_monitor; SELECT count(*) FROM ledger_entry;"
+n_rows "every role that logs in, other than the superuser, has a connection limit" "0" \
+  "SELECT 1 FROM pg_roles WHERE rolname IN ('hg_app','hg_migrator','hg_monitor')
+     AND rolconnlimit < 0"
+# Partition upkeep is the only DDL hg_app may ask for, and only through the two
+# functions in 00032. internal/partitions' tests run the whole loop as hg_app.
+AS_APP_UTC="SET LOCAL ROLE hg_app; SET LOCAL TimeZone = 'UTC';"
+reject "hg_app cannot create a partition itself" "permission denied for schema public" \
+  "$AS_APP CREATE TABLE realtime_event_p20990101 PARTITION OF realtime_event
+     FOR VALUES FROM ('2099-01-01 00:00Z') TO ('2099-01-02 00:00Z');"
+reject "hg_app cannot drop a partition itself" "must be owner" \
+  "$AS_APP DROP TABLE realtime_event_default;"
+reject "partition upkeep refuses a table outside its list" "not a partitioned table it maintains" \
+  "$AS_APP SELECT * FROM hg_partition_ensure('ledger_entry', '2099-01-01 00:00Z', '2099-01-02 00:00Z');"
+reject "partition upkeep refuses a range that is not one whole UTC day" "not one whole UTC day" \
+  "$AS_APP_UTC SELECT * FROM hg_partition_ensure('realtime_event',
+     date_trunc('day', now()) + interval '1 hour', date_trunc('day', now()) + interval '25 hours');"
+reject "partition upkeep refuses a range more than 400 days ahead" "more than 400 days ahead" \
+  "$AS_APP_UTC SELECT * FROM hg_partition_ensure('realtime_event',
+     date_trunc('day', now()) + interval '500 days', date_trunc('day', now()) + interval '501 days');"
+reject "partition upkeep refuses to drop inside a table's retention" "nothing after" \
+  "$AS_APP SELECT hg_partition_drop_before('realtime_event', now() - interval '6 days');"
+reject "partition upkeep never drops an audit partition" "never dropped" \
+  "$AS_APP SELECT hg_partition_drop_before('audit_event', '2000-01-01 00:00Z');"
+reject "hg_readonly cannot run partition upkeep" "permission denied for function" \
+  "SET LOCAL ROLE hg_readonly; SELECT hg_partition_drop_before('realtime_event', '2000-01-01 00:00Z');"
+accept "hg_app runs partition upkeep through the functions" \
+  "$AS_APP_UTC SELECT * FROM hg_partition_ensure('realtime_event',
+     date_trunc('day', now()) + interval '30 days', date_trunc('day', now()) + interval '31 days');
+   SELECT hg_partition_drop_before('realtime_event', now() - interval '7 days');"
+n_rows "partition upkeep runs as hg_migrator, search_path pinned, callable by hg_app alone" "2" \
+  "SELECT 1 FROM pg_proc p
+    WHERE p.proname IN ('hg_partition_ensure', 'hg_partition_drop_before')
+      AND p.prosecdef AND p.proowner = 'hg_migrator'::regrole
+      AND 'search_path=public, pg_temp' = ANY (p.proconfig)
+      AND p.proacl IS NOT NULL
+      AND has_function_privilege('hg_app', p.oid, 'EXECUTE')
+      AND NOT EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
+                       WHERE a.grantee NOT IN ('hg_app'::regrole, 'hg_migrator'::regrole))"
+n_rows "every partitioned table is one that partition upkeep maintains" "0" \
+  "SELECT 1 FROM pg_partitioned_table pt JOIN pg_class c ON c.oid = pt.partrelid
+    WHERE c.relnamespace = 'public'::regnamespace
+      AND c.relname NOT IN ('realtime_event', 'rider_position_history', 'audit_event')"
+echo "13. Rider earnings follow the ledger"
+reject "an earning line that disagrees with its ledger posting is rejected" "earning_entry_ledger_mismatch" \
+  "INSERT INTO ledger_batch (kind, order_id, idempotency_key, posted_by)
+     VALUES ('SETTLE','88888888-8888-4888-8888-888888888888','inv-rider-mismatch','system:test');
+   INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, amount_cents, component)
+     SELECT id, order_id, 'PLATFORM_REVENUE', 'PLATFORM', -419, 'COMMISSION'
+       FROM ledger_batch WHERE idempotency_key = 'inv-rider-mismatch';
+   INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, counterparty_id, amount_cents, component)
+     SELECT id, order_id, 'RIDER_PAYABLE', 'RIDER', '019ffe57-fbd0-7355-ade8-b03ea7943578', 419, 'DELIVERY_FEE'
+       FROM ledger_batch WHERE idempotency_key = 'inv-rider-mismatch';
+   INSERT INTO earning_entry (account_id, order_id, type, base_cents, gross_cents, ledger_entry_id)
+     VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',500,500,
+             currval('ledger_entry_id_seq'));"
+reject "a second DELIVERY line for one order is rejected" "earning_entry_once_per_order" \
+  "INSERT INTO earning_entry (account_id, order_id, type, base_cents, gross_cents)
+   VALUES ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',419,419),
+          ('019ffe57-fbd0-7355-ade8-b03ea7943578','88888888-8888-4888-8888-888888888888','DELIVERY',419,419);"
 
 echo
 printf 'passed %d, failed %d\n\n' "$PASS" "$FAIL"

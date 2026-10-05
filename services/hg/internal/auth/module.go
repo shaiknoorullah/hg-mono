@@ -23,13 +23,15 @@ type Module struct {
 
 	deny  *session.DenySet
 	store *Store
+	svc   *Service
 }
 
 // NewModule constructs the module from the shared pool, redis client, secrets
 // and logger. The SMS sender defaults to a LogSMSSender while O-03 is unresolved
 // (pass a real sender once a provider is chosen). echoOTP logs the code and must
-// be true only in local.
-func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSSender, phoneVerifier PhoneVerifier, verifyChannel string, echoOTP bool, log *slog.Logger) *Module {
+// be true only in local. env is the process environment; the reserved
+// development phone range accepts a fixed code only for local and staging.
+func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSSender, phoneVerifier PhoneVerifier, verifyChannel string, echoOTP bool, env string, log *slog.Logger) *Module {
 	if log == nil {
 		log = slog.Default()
 	}
@@ -37,16 +39,23 @@ func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSS
 		sms = NewLogSMSSender(log, echoOTP)
 	}
 	store := NewStore(pool)
-	rl := NewRateLimiter(rdb)
+	rl := NewRateLimiter(rdb, log)
 	deny := session.NewDenySet()
 
 	issuer := session.NewIssuer(secrets.SigningKID, secrets.SigningPriv, "hg-api")
 	verifier := session.NewVerifier(
 		map[string]ed25519.PublicKey{secrets.SigningKID: secrets.SigningPub}, "hg-api")
 
+	// Cap concurrent argon2id hashing in this process, per audience, so a burst
+	// of sign-ups or logins can neither exhaust the replica's memory nor lock
+	// staff out (hashgate.go).
+	ConfigurePasswordHashing(secrets.HashConcurrency, secrets.HashWait, secrets.HashMaxWaiters)
+
 	svc := NewService(store, rl, sms, issuer, deny, secrets, log)
+	svc.SetEnvironment(env)
 	// O-03 / phone-OTP provider: a non-nil PhoneVerifier (Twilio Verify) takes
 	// over requestOtp/verifyOtp; nil leaves the self-hosted challenge default.
+	// Reserved development numbers stay on the stored-code path either way.
 	svc.UsePhoneVerifier(phoneVerifier, verifyChannel)
 	handler := NewHandler(svc, store, deny, secrets)
 
@@ -56,6 +65,7 @@ func NewModule(pool *pgxpool.Pool, rdb *redis.Client, secrets *Secrets, sms SMSS
 		Authorizer:    Matrix{},
 		deny:          deny,
 		store:         store,
+		svc:           svc,
 	}
 }
 

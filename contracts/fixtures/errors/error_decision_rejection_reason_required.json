@@ -1,0 +1,28 @@
+{
+  "scenario": "error_decision_rejection_reason_required",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. A rejection or a request for changes without a rejection reason. Every decision is reasoned and audited; nothing changed.",
+  "operations": [
+    "decideRiderApplication",
+    "decideRestaurantApplication"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "reason_code must be a rejection reason for this decision",
+      "request_id": "BVKW73458M0TWR0NTNSC2H6N0M",
+      "details": [
+        {
+          "field": "reason_code",
+          "code": "invalid",
+          "message": "reason_code must be a rejection reason for this decision"
+        }
+      ]
+    }
+  }
+}

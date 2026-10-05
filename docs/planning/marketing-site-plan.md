@@ -2,6 +2,10 @@
 
 _Sep 2026. Client-confirmed inputs are marked **[confirmed]**._
 
+> **2026-10-01:** this plan hosts the site and Umami on Vercel, with Postgres on Neon. Both are
+> SaaS, which [the self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)
+> now rules out. Replacing them is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 > **`landing-page-plan.md` and `claude-design-brief.md` were deleted (Sep 2026).** Both specified
 > the Astro build; the site is Next.js and is built, so they described a stack that does not exist.
 > Where their content went:
@@ -76,7 +80,7 @@ inside Next but needs Postgres for content; Decap needs an OAuth broker. Keystat
 ## 3. Design system — the anti-slop problem, stated honestly
 
 Anthropic's own design guidance names the current AI-design cliché explicitly: *warm cream ground,
-serif display, terracotta accent*. Halal Goes' locked palette is a warm cream ground (`#FFFAEA`) with
+serif display, terracotta accent*. HalalGoes' locked palette is a warm cream ground (`#FFFAEA`) with
 an orange accent (`#F1521E`). The palette is not the problem — it is recovered from the old deployed
 brand and documented in a decisions entry, so it is heritage, not a default. **But it means the
 palette cannot do any differentiating work, and every other axis has to.**

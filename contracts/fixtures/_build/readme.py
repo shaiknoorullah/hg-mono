@@ -12,7 +12,7 @@ import os
 FIXTURE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 DOMAIN_BLURB = {
-    "admin": "Review queues, applications, staff and the menu-review workflow.",
+    "admin": "Review queues, applications, staff, the menu-review workflow and payout runs.",
     "cart": "Cart and quote — every blocking reason, the quantity cap, and the money edges.",
     "catalogue": "Discovery, restaurant detail, hours and menus.",
     "dispatch": "Dispatch states, rider offers and assignments.",
@@ -25,7 +25,7 @@ DOMAIN_BLURB = {
     "payments": "The 8 `PaymentState` values, saved cards and setup intents.",
     "platform": "Auth, config, addresses, notifications, Connect and health.",
     "realtime": "Scripted WebSocket sequences that drive a screen through a whole lifecycle.",
-    "refunds": "The 10 `RefundState` values, liability splits and approval requests.",
+    "refunds": "The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks.",
     "rider": "Availability, dashboard, earnings and payouts.",
 }
 
@@ -118,6 +118,7 @@ FOOTER = """
 | All 8 `PaymentState` values incl. `REQUIRES_ACTION` and `FAILED` | `payments/payment_*` |
 | All 10 `RefundState` values | `refunds/refund_*` |
 | All 7 `PayoutState` values | `rider/payout_*` |
+| All 4 `PayoutRunState` values, and a run with every `PayoutRunOutcome` | `admin/payout_run_*` |
 | All 7 `RestaurantOpenState` values | `onboarding/restaurant_open_state_*` |
 | Empty lists | every `*_empty` scenario (tag `empty`) |
 | Exactly-one-item lists | `restaurant_list_single`, `menu_single_item`, `cart_single_line`, `order_list_active` |
@@ -209,6 +210,7 @@ def write_readme(manifest: dict) -> None:
         "payment-state-matrix": "One per `PaymentState` (all 8).",
         "refund-state-matrix": "One per `RefundState` (all 10).",
         "payout-state-matrix": "One per `PayoutState` (all 7).",
+        "payout-run-state-matrix": "One per `PayoutRunState` (all 4).",
         "offer-state-matrix": "One per `OfferState` (all 5).",
         "onboarding-state-matrix": "One per onboarding state, restaurant and rider.",
         "document-state-matrix": "One per `KycDocumentState`, plus rejection reasons.",
@@ -223,6 +225,8 @@ def write_readme(manifest: dict) -> None:
         "dense": "Deliberately busy — the worst case for a list or a card.",
         "degraded": "A partially-broken real-world condition (stale GPS, lost tracking).",
         "review-queue": "An admin review queue item.",
+        "request-body": "A request body a client sends, not a response. Registered against "
+        "no operation, so the mock never serves it.",
         "script": "A realtime event sequence, not a response body.",
         "control": "Realtime control frames.",
         "realtime": "WebSocket, not HTTP.",

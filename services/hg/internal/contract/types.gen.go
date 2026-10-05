@@ -5,6 +5,7 @@ package contract
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/oapi-codegen/runtime"
@@ -212,6 +213,45 @@ func (e CartLineAvailabilityReason) Valid() bool {
 	case CartLineAvailabilityReasonRESTAURANTUNAVAILABLE:
 		return true
 	case CartLineAvailabilityReasonVARIANTUNAVAILABLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChargebackStatus.
+const (
+	ChargebackStatusCHARGEREFUNDED       ChargebackStatus = "CHARGE_REFUNDED"
+	ChargebackStatusLOST                 ChargebackStatus = "LOST"
+	ChargebackStatusNEEDSRESPONSE        ChargebackStatus = "NEEDS_RESPONSE"
+	ChargebackStatusPREVENTED            ChargebackStatus = "PREVENTED"
+	ChargebackStatusUNDERREVIEW          ChargebackStatus = "UNDER_REVIEW"
+	ChargebackStatusWARNINGCLOSED        ChargebackStatus = "WARNING_CLOSED"
+	ChargebackStatusWARNINGNEEDSRESPONSE ChargebackStatus = "WARNING_NEEDS_RESPONSE"
+	ChargebackStatusWARNINGUNDERREVIEW   ChargebackStatus = "WARNING_UNDER_REVIEW"
+	ChargebackStatusWON                  ChargebackStatus = "WON"
+)
+
+// Valid indicates whether the value is a known member of the ChargebackStatus enum.
+func (e ChargebackStatus) Valid() bool {
+	switch e {
+	case ChargebackStatusCHARGEREFUNDED:
+		return true
+	case ChargebackStatusLOST:
+		return true
+	case ChargebackStatusNEEDSRESPONSE:
+		return true
+	case ChargebackStatusPREVENTED:
+		return true
+	case ChargebackStatusUNDERREVIEW:
+		return true
+	case ChargebackStatusWARNINGCLOSED:
+		return true
+	case ChargebackStatusWARNINGNEEDSRESPONSE:
+		return true
+	case ChargebackStatusWARNINGUNDERREVIEW:
+		return true
+	case ChargebackStatusWON:
 		return true
 	default:
 		return false
@@ -781,6 +821,8 @@ const (
 	ErrorCodeITEMUNAVAILABLE                ErrorCode = "ITEM_UNAVAILABLE"
 	ErrorCodeLASTOWNERREQUIRED              ErrorCode = "LAST_OWNER_REQUIRED"
 	ErrorCodeLEDGERBATCHUNBALANCED          ErrorCode = "LEDGER_BATCH_UNBALANCED"
+	ErrorCodeMENULOCKED                     ErrorCode = "MENU_LOCKED"
+	ErrorCodeMENUVERSIONPENDING             ErrorCode = "MENU_VERSION_PENDING"
 	ErrorCodeMETHODNOTALLOWED               ErrorCode = "METHOD_NOT_ALLOWED"
 	ErrorCodeMFAREQUIRED                    ErrorCode = "MFA_REQUIRED"
 	ErrorCodeNOLIVEMENUITEM                 ErrorCode = "NO_LIVE_MENU_ITEM"
@@ -792,6 +834,7 @@ const (
 	ErrorCodeOFFERWITHDRAWN                 ErrorCode = "OFFER_WITHDRAWN"
 	ErrorCodeONBOARDINGINCOMPLETE           ErrorCode = "ONBOARDING_INCOMPLETE"
 	ErrorCodeORDERCANCELLED                 ErrorCode = "ORDER_CANCELLED"
+	ErrorCodeORDERINGPAUSED                 ErrorCode = "ORDERING_PAUSED"
 	ErrorCodeORIGINNOTALLOWED               ErrorCode = "ORIGIN_NOT_ALLOWED"
 	ErrorCodeOTPINCORRECT                   ErrorCode = "OTP_INCORRECT"
 	ErrorCodeOTPINVALIDOREXPIRED            ErrorCode = "OTP_INVALID_OR_EXPIRED"
@@ -1016,6 +1059,10 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeLEDGERBATCHUNBALANCED:
 		return true
+	case ErrorCodeMENULOCKED:
+		return true
+	case ErrorCodeMENUVERSIONPENDING:
+		return true
 	case ErrorCodeMETHODNOTALLOWED:
 		return true
 	case ErrorCodeMFAREQUIRED:
@@ -1037,6 +1084,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeONBOARDINGINCOMPLETE:
 		return true
 	case ErrorCodeORDERCANCELLED:
+		return true
+	case ErrorCodeORDERINGPAUSED:
 		return true
 	case ErrorCodeORIGINNOTALLOWED:
 		return true
@@ -1886,6 +1935,87 @@ func (e MenuVersionDecisionInputDecision) Valid() bool {
 	}
 }
 
+// Defines values for MoneyEventActorKind.
+const (
+	MoneyEventActorKindACCOUNT MoneyEventActorKind = "ACCOUNT"
+	MoneyEventActorKindJOB     MoneyEventActorKind = "JOB"
+	MoneyEventActorKindSYSTEM  MoneyEventActorKind = "SYSTEM"
+	MoneyEventActorKindWEBHOOK MoneyEventActorKind = "WEBHOOK"
+)
+
+// Valid indicates whether the value is a known member of the MoneyEventActorKind enum.
+func (e MoneyEventActorKind) Valid() bool {
+	switch e {
+	case MoneyEventActorKindACCOUNT:
+		return true
+	case MoneyEventActorKindJOB:
+		return true
+	case MoneyEventActorKindSYSTEM:
+		return true
+	case MoneyEventActorKindWEBHOOK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MoneyEventKind.
+const (
+	CHARGEBACKCLOSED       MoneyEventKind = "CHARGEBACK_CLOSED"
+	CHARGEBACKEVIDENCENOTE MoneyEventKind = "CHARGEBACK_EVIDENCE_NOTE"
+	CHARGEBACKOPENED       MoneyEventKind = "CHARGEBACK_OPENED"
+	CHARGEBACKUPDATED      MoneyEventKind = "CHARGEBACK_UPDATED"
+	PAYMENTAUTHORISED      MoneyEventKind = "PAYMENT_AUTHORISED"
+	PAYMENTCAPTURED        MoneyEventKind = "PAYMENT_CAPTURED"
+	PAYMENTVOIDED          MoneyEventKind = "PAYMENT_VOIDED"
+	REFUNDAPPROVED         MoneyEventKind = "REFUND_APPROVED"
+	REFUNDDECLINED         MoneyEventKind = "REFUND_DECLINED"
+	REFUNDESCALATED        MoneyEventKind = "REFUND_ESCALATED"
+	REFUNDFAILED           MoneyEventKind = "REFUND_FAILED"
+	REFUNDREQUESTED        MoneyEventKind = "REFUND_REQUESTED"
+	REFUNDSETASIDE         MoneyEventKind = "REFUND_SET_ASIDE"
+	REFUNDSUBMITTED        MoneyEventKind = "REFUND_SUBMITTED"
+	REFUNDSUCCEEDED        MoneyEventKind = "REFUND_SUCCEEDED"
+)
+
+// Valid indicates whether the value is a known member of the MoneyEventKind enum.
+func (e MoneyEventKind) Valid() bool {
+	switch e {
+	case CHARGEBACKCLOSED:
+		return true
+	case CHARGEBACKEVIDENCENOTE:
+		return true
+	case CHARGEBACKOPENED:
+		return true
+	case CHARGEBACKUPDATED:
+		return true
+	case PAYMENTAUTHORISED:
+		return true
+	case PAYMENTCAPTURED:
+		return true
+	case PAYMENTVOIDED:
+		return true
+	case REFUNDAPPROVED:
+		return true
+	case REFUNDDECLINED:
+		return true
+	case REFUNDESCALATED:
+		return true
+	case REFUNDFAILED:
+		return true
+	case REFUNDREQUESTED:
+		return true
+	case REFUNDSETASIDE:
+		return true
+	case REFUNDSUBMITTED:
+		return true
+	case REFUNDSUCCEEDED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NextRoute.
 const (
 	NextRouteACTIVEDELIVERY           NextRoute = "ACTIVE_DELIVERY"
@@ -2417,6 +2547,123 @@ func (e PayoutInterval) Valid() bool {
 	}
 }
 
+// Defines values for PayoutPayeeType.
+const (
+	PayoutPayeeTypeRESTAURANT PayoutPayeeType = "RESTAURANT"
+	PayoutPayeeTypeRIDER      PayoutPayeeType = "RIDER"
+)
+
+// Valid indicates whether the value is a known member of the PayoutPayeeType enum.
+func (e PayoutPayeeType) Valid() bool {
+	switch e {
+	case PayoutPayeeTypeRESTAURANT:
+		return true
+	case PayoutPayeeTypeRIDER:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PayoutRunKind.
+const (
+	PayoutRunKindADMIN     PayoutRunKind = "ADMIN"
+	PayoutRunKindSCHEDULED PayoutRunKind = "SCHEDULED"
+)
+
+// Valid indicates whether the value is a known member of the PayoutRunKind enum.
+func (e PayoutRunKind) Valid() bool {
+	switch e {
+	case PayoutRunKindADMIN:
+		return true
+	case PayoutRunKindSCHEDULED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PayoutRunOutcome.
+const (
+	PayoutRunOutcomeALREADYPAID      PayoutRunOutcome = "ALREADY_PAID"
+	PayoutRunOutcomeBANKPAYOUT       PayoutRunOutcome = "BANK_PAYOUT"
+	PayoutRunOutcomeBANKPAYOUTFAILED PayoutRunOutcome = "BANK_PAYOUT_FAILED"
+	PayoutRunOutcomeCARRIEDNEGATIVE  PayoutRunOutcome = "CARRIED_NEGATIVE"
+	PayoutRunOutcomeERROR            PayoutRunOutcome = "ERROR"
+	PayoutRunOutcomeHELD             PayoutRunOutcome = "HELD"
+	PayoutRunOutcomeNOPAYOUTACCOUNT  PayoutRunOutcome = "NO_PAYOUT_ACCOUNT"
+	PayoutRunOutcomeNOTHINGDUE       PayoutRunOutcome = "NOTHING_DUE"
+	PayoutRunOutcomeORDERSBLOCKED    PayoutRunOutcome = "ORDERS_BLOCKED"
+	PayoutRunOutcomeORDERSUNBLOCKED  PayoutRunOutcome = "ORDERS_UNBLOCKED"
+	PayoutRunOutcomePAID             PayoutRunOutcome = "PAID"
+	PayoutRunOutcomePARTNERSUSPENDED PayoutRunOutcome = "PARTNER_SUSPENDED"
+	PayoutRunOutcomeRELEASED         PayoutRunOutcome = "RELEASED"
+	PayoutRunOutcomeSTILLHELD        PayoutRunOutcome = "STILL_HELD"
+	PayoutRunOutcomeTRANSFERFAILED   PayoutRunOutcome = "TRANSFER_FAILED"
+)
+
+// Valid indicates whether the value is a known member of the PayoutRunOutcome enum.
+func (e PayoutRunOutcome) Valid() bool {
+	switch e {
+	case PayoutRunOutcomeALREADYPAID:
+		return true
+	case PayoutRunOutcomeBANKPAYOUT:
+		return true
+	case PayoutRunOutcomeBANKPAYOUTFAILED:
+		return true
+	case PayoutRunOutcomeCARRIEDNEGATIVE:
+		return true
+	case PayoutRunOutcomeERROR:
+		return true
+	case PayoutRunOutcomeHELD:
+		return true
+	case PayoutRunOutcomeNOPAYOUTACCOUNT:
+		return true
+	case PayoutRunOutcomeNOTHINGDUE:
+		return true
+	case PayoutRunOutcomeORDERSBLOCKED:
+		return true
+	case PayoutRunOutcomeORDERSUNBLOCKED:
+		return true
+	case PayoutRunOutcomePAID:
+		return true
+	case PayoutRunOutcomePARTNERSUSPENDED:
+		return true
+	case PayoutRunOutcomeRELEASED:
+		return true
+	case PayoutRunOutcomeSTILLHELD:
+		return true
+	case PayoutRunOutcomeTRANSFERFAILED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PayoutRunState.
+const (
+	PayoutRunStateFAILED    PayoutRunState = "FAILED"
+	PayoutRunStateQUEUED    PayoutRunState = "QUEUED"
+	PayoutRunStateRUNNING   PayoutRunState = "RUNNING"
+	PayoutRunStateSUCCEEDED PayoutRunState = "SUCCEEDED"
+)
+
+// Valid indicates whether the value is a known member of the PayoutRunState enum.
+func (e PayoutRunState) Valid() bool {
+	switch e {
+	case PayoutRunStateFAILED:
+		return true
+	case PayoutRunStateQUEUED:
+		return true
+	case PayoutRunStateRUNNING:
+		return true
+	case PayoutRunStateSUCCEEDED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PayoutState.
 const (
 	PayoutStateDRAFT        PayoutState = "DRAFT"
@@ -2756,6 +3003,24 @@ func (e RefundReasonCode) Valid() bool {
 	}
 }
 
+// Defines values for RefundRequesterKind.
+const (
+	RefundRequesterKindCUSTOMER RefundRequesterKind = "CUSTOMER"
+	RefundRequesterKindSTAFF    RefundRequesterKind = "STAFF"
+)
+
+// Valid indicates whether the value is a known member of the RefundRequesterKind enum.
+func (e RefundRequesterKind) Valid() bool {
+	switch e {
+	case RefundRequesterKindCUSTOMER:
+		return true
+	case RefundRequesterKindSTAFF:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RefundScope.
 const (
 	RefundScopeFULL          RefundScope = "FULL"
@@ -2870,18 +3135,63 @@ func (e RestaurantAccountState) Valid() bool {
 	}
 }
 
+// Defines values for RestaurantApplicationApproveInputDecision.
+const (
+	RestaurantApplicationApproveInputDecisionAPPROVE RestaurantApplicationApproveInputDecision = "APPROVE"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantApplicationApproveInputDecision enum.
+func (e RestaurantApplicationApproveInputDecision) Valid() bool {
+	switch e {
+	case RestaurantApplicationApproveInputDecisionAPPROVE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RestaurantApplicationRejectInputDecision.
+const (
+	RestaurantApplicationRejectInputDecisionREJECT RestaurantApplicationRejectInputDecision = "REJECT"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantApplicationRejectInputDecision enum.
+func (e RestaurantApplicationRejectInputDecision) Valid() bool {
+	switch e {
+	case RestaurantApplicationRejectInputDecisionREJECT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RestaurantApplicationRequestChangesInputDecision.
+const (
+	RestaurantApplicationRequestChangesInputDecisionREQUESTCHANGES RestaurantApplicationRequestChangesInputDecision = "REQUEST_CHANGES"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantApplicationRequestChangesInputDecision enum.
+func (e RestaurantApplicationRequestChangesInputDecision) Valid() bool {
+	switch e {
+	case RestaurantApplicationRequestChangesInputDecisionREQUESTCHANGES:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RestaurantApproveReasonCode.
 const (
-	ALLCHECKSPASSED   RestaurantApproveReasonCode = "ALL_CHECKS_PASSED"
-	APPROVEDWITHNOTES RestaurantApproveReasonCode = "APPROVED_WITH_NOTES"
+	RestaurantApproveReasonCodeALLCHECKSPASSED   RestaurantApproveReasonCode = "ALL_CHECKS_PASSED"
+	RestaurantApproveReasonCodeAPPROVEDWITHNOTES RestaurantApproveReasonCode = "APPROVED_WITH_NOTES"
 )
 
 // Valid indicates whether the value is a known member of the RestaurantApproveReasonCode enum.
 func (e RestaurantApproveReasonCode) Valid() bool {
 	switch e {
-	case ALLCHECKSPASSED:
+	case RestaurantApproveReasonCodeALLCHECKSPASSED:
 		return true
-	case APPROVEDWITHNOTES:
+	case RestaurantApproveReasonCodeAPPROVEDWITHNOTES:
 		return true
 	default:
 		return false
@@ -3227,6 +3537,69 @@ func (e RiderAccountStatus) Valid() bool {
 	case RiderAccountStatusPENDING:
 		return true
 	case RiderAccountStatusSUSPENDED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderApplicationApproveInputDecision.
+const (
+	RiderApplicationApproveInputDecisionAPPROVE RiderApplicationApproveInputDecision = "APPROVE"
+)
+
+// Valid indicates whether the value is a known member of the RiderApplicationApproveInputDecision enum.
+func (e RiderApplicationApproveInputDecision) Valid() bool {
+	switch e {
+	case RiderApplicationApproveInputDecisionAPPROVE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderApplicationRejectInputDecision.
+const (
+	RiderApplicationRejectInputDecisionREJECT RiderApplicationRejectInputDecision = "REJECT"
+)
+
+// Valid indicates whether the value is a known member of the RiderApplicationRejectInputDecision enum.
+func (e RiderApplicationRejectInputDecision) Valid() bool {
+	switch e {
+	case RiderApplicationRejectInputDecisionREJECT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderApplicationRequestChangesInputDecision.
+const (
+	RiderApplicationRequestChangesInputDecisionREQUESTCHANGES RiderApplicationRequestChangesInputDecision = "REQUEST_CHANGES"
+)
+
+// Valid indicates whether the value is a known member of the RiderApplicationRequestChangesInputDecision enum.
+func (e RiderApplicationRequestChangesInputDecision) Valid() bool {
+	switch e {
+	case RiderApplicationRequestChangesInputDecisionREQUESTCHANGES:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiderApproveReasonCode.
+const (
+	RiderApproveReasonCodeALLCHECKSPASSED   RiderApproveReasonCode = "ALL_CHECKS_PASSED"
+	RiderApproveReasonCodeAPPROVEDWITHNOTES RiderApproveReasonCode = "APPROVED_WITH_NOTES"
+)
+
+// Valid indicates whether the value is a known member of the RiderApproveReasonCode enum.
+func (e RiderApproveReasonCode) Valid() bool {
+	switch e {
+	case RiderApproveReasonCodeALLCHECKSPASSED:
+		return true
+	case RiderApproveReasonCodeAPPROVEDWITHNOTES:
 		return true
 	default:
 		return false
@@ -3688,19 +4061,19 @@ func (e TaxKind) Valid() bool {
 
 // Defines values for TrackingHealth.
 const (
-	DEGRADED TrackingHealth = "DEGRADED"
-	HEALTHY  TrackingHealth = "HEALTHY"
-	LOST     TrackingHealth = "LOST"
+	TrackingHealthDEGRADED TrackingHealth = "DEGRADED"
+	TrackingHealthHEALTHY  TrackingHealth = "HEALTHY"
+	TrackingHealthLOST     TrackingHealth = "LOST"
 )
 
 // Valid indicates whether the value is a known member of the TrackingHealth enum.
 func (e TrackingHealth) Valid() bool {
 	switch e {
-	case DEGRADED:
+	case TrackingHealthDEGRADED:
 		return true
-	case HEALTHY:
+	case TrackingHealthHEALTHY:
 		return true
-	case LOST:
+	case TrackingHealthLOST:
 		return true
 	default:
 		return false
@@ -3905,6 +4278,85 @@ type AdminOrderCancellationInput struct {
 	RefundKind *RefundKind `json:"refund_kind,omitempty"`
 }
 
+// AdminRefund A refund as staff see it: the money, who bears it, who asked, and every decision with
+// who took it and why ([refund requests and their review, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+// `amount_cents` and the split are the server's calculation, the same one approval
+// posts to the ledger.
+type AdminRefund struct {
+	// AmountCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	AmountCents Cents `json:"amount_cents"`
+
+	// ApprovalRequiredRole While `PENDING_APPROVAL`: the role that must decide it (a super admin always may).
+	ApprovalRequiredRole *Role               `json:"approval_required_role,omitempty"`
+	ApprovedAt           *time.Time          `json:"approved_at,omitempty"`
+	ApprovedBy           *openapi_types.UUID `json:"approved_by,omitempty"`
+
+	// Currency CAD only at V0. Present on every monetary object so V2 multi-currency is additive.
+	Currency Currency `json:"currency"`
+
+	// DecisionReason The staff reason for the last decision. Never shown to the customer.
+	DecisionReason *string             `json:"decision_reason,omitempty"`
+	DeclinedAt     *time.Time          `json:"declined_at,omitempty"`
+	DeclinedBy     *openapi_types.UUID `json:"declined_by,omitempty"`
+	EscalatedAt    *time.Time          `json:"escalated_at,omitempty"`
+
+	// EscalatedBy The member of staff who sent it up for a second person. They may not approve it.
+	EscalatedBy    *openapi_types.UUID `json:"escalated_by,omitempty"`
+	FailureMessage *string             `json:"failure_message,omitempty"`
+	Id             openapi_types.UUID  `json:"id"`
+
+	// Kind P-18. The caller sends **no amount** for `FULL`, `PARTIAL_ITEMS` or `FEES_ONLY` — the
+	// server computes it from the order. `GOODWILL` is the only kind that carries an
+	// explicit amount, and it is capped, action-gated and dual-approved above CAD 50.00.
+	Kind RefundKind `json:"kind"`
+
+	// LiabilitySplit P-18 / A-33. Computed at authorisation from the reason code and stored, because this
+	// table is what makes the ledger balance and what the bearing party may dispute.
+	LiabilitySplit RefundLiabilitySplit `json:"liability_split"`
+
+	// Note What the person who asked wrote.
+	Note *string `json:"note,omitempty"`
+
+	// OrderCode The human-quotable order code, e.g. `HG-8F3K2Q`.
+	OrderCode string             `json:"order_code"`
+	OrderId   openapi_types.UUID `json:"order_id"`
+
+	// ReasonCode P-18 §"who is charged back" and A-33. Each code determines the liability split
+	// (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
+	// the table is what makes the ledger balance. The specs enumerate overlapping sets; this
+	// is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+	ReasonCode RefundReasonCode `json:"reason_code"`
+
+	// RequestedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	RequestedAt Timestamp          `json:"requested_at"`
+	RequestedBy openapi_types.UUID `json:"requested_by"`
+
+	// RequesterKind Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
+	// request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
+	// after acceptance).
+	RequesterKind RefundRequesterKind `json:"requester_kind"`
+	Scope         *RefundScope        `json:"scope,omitempty"`
+	SettledAt     *time.Time          `json:"settled_at,omitempty"`
+
+	// State P-18 / A-33. `SETTLED`/`SUCCEEDED` is terminal and irreversible — there is no
+	// "unrefund". A `FAILED` refund pages on-call, keeps the order out of `COMPLETED`, and
+	// shows the customer "refund in progress", never "refunded".
+	State RefundState `json:"state"`
+
+	// TaxCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	TaxCents Cents `json:"tax_cents"`
+}
+
 // AdminRefundInput `amount_cents` is the **only** inbound monetary field on any staff route and is
 // accepted solely with `scope: PARTIAL_AMOUNT` and `reason_code: GOODWILL` (G-3's
 // explicit allowlist). For every other scope the amount is computed from the order and
@@ -4090,7 +4542,11 @@ type Cart struct {
 	// Examples: 4696
 	IndicativeSubtotalCents Cents `json:"indicative_subtotal_cents"`
 
-	// IsQuotable False when any line is unavailable, the restaurant is closed, or no address is selected.
+	// IsQuotable False when any line is unavailable, the restaurant is closed, the restaurant cannot
+	// take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
+	// is not current), no address is selected, or staff have paused new orders
+	// platform-wide (`ORDERING_PAUSED` in `blocking_reasons`). A cart whose restaurant
+	// becomes unavailable is kept, never emptied on the customer's behalf.
 	IsQuotable bool `json:"is_quotable"`
 
 	// ItemCount Sum of quantities, not the number of distinct lines.
@@ -4171,7 +4627,7 @@ type CartLineInput struct {
 type Cents = int64
 
 // CertificationPanel C-12. The platform's core promise, made inspectable. The standing disclaimer is fixed
-// copy: "Certification verified by Halal Goes on {date}. Halal Goes does not itself
+// copy: "Certification verified by HalalGoes on {date}. HalalGoes does not itself
 // certify food."
 type CertificationPanel struct {
 	CertificateNumber *string `json:"certificate_number,omitempty"`
@@ -4199,6 +4655,75 @@ type CertificationPanel struct {
 	Scope      *HalalCertificateScope `json:"scope,omitempty"`
 	VerifiedAt *time.Time             `json:"verified_at,omitempty"`
 }
+
+// Chargeback A dispute the customer raised with their bank, as Stripe reported it, with the evidence
+// staff have gathered ([chargebacks, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+// While open it is on the clock of its evidence deadline.
+type Chargeback struct {
+	// AmountCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	AmountCents Cents `json:"amount_cents"`
+
+	// Currency CAD only at V0. Present on every monetary object so V2 multi-currency is additive.
+	Currency Currency `json:"currency"`
+
+	// DeadlineAt The clock this chargeback is on while open: the evidence deadline, or a week when Stripe gave none.
+	DeadlineAt *time.Time `json:"deadline_at,omitempty"`
+
+	// EvidenceDueAt The deadline Stripe gives for evidence.
+	EvidenceDueAt *time.Time `json:"evidence_due_at,omitempty"`
+
+	// EvidenceNotes Oldest first.
+	EvidenceNotes       []ChargebackEvidenceNote `json:"evidence_notes"`
+	EvidenceSubmittedAt *time.Time               `json:"evidence_submitted_at,omitempty"`
+	Id                  openapi_types.UUID       `json:"id"`
+
+	// OpenedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	OpenedAt  Timestamp          `json:"opened_at"`
+	OrderCode string             `json:"order_code"`
+	OrderId   openapi_types.UUID `json:"order_id"`
+
+	// Outcome The closing status once Stripe has closed the dispute; null while it is open.
+	Outcome *ChargebackStatus `json:"outcome,omitempty"`
+
+	// Reason The bank's reason as Stripe reports it, e.g. `fraudulent`, `product_not_received`.
+	Reason *string `json:"reason,omitempty"`
+
+	// Status Stripe's dispute status, upper-cased. Open: `WARNING_NEEDS_RESPONSE`,
+	// `WARNING_UNDER_REVIEW`, `NEEDS_RESPONSE`, `UNDER_REVIEW`. Closed: `WARNING_CLOSED`,
+	// `WON`, `LOST`, `PREVENTED`, `CHARGE_REFUNDED`. A status Stripe adds later is reported
+	// as `NEEDS_RESPONSE` while the dispute is open, so it is never quietly ignored.
+	Status          ChargebackStatus `json:"status"`
+	StripeDisputeId string           `json:"stripe_dispute_id"`
+
+	// UpdatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	UpdatedAt Timestamp `json:"updated_at"`
+}
+
+// ChargebackEvidenceNote defines model for ChargebackEvidenceNote.
+type ChargebackEvidenceNote struct {
+	AuthorAccountId openapi_types.UUID `json:"author_account_id"`
+	Body            string             `json:"body"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+}
+
+// ChargebackEvidenceNoteInput defines model for ChargebackEvidenceNoteInput.
+type ChargebackEvidenceNoteInput struct {
+	Body string `json:"body"`
+}
+
+// ChargebackStatus Stripe's dispute status, upper-cased. Open: `WARNING_NEEDS_RESPONSE`,
+// `WARNING_UNDER_REVIEW`, `NEEDS_RESPONSE`, `UNDER_REVIEW`. Closed: `WARNING_CLOSED`,
+// `WON`, `LOST`, `PREVENTED`, `CHARGE_REFUNDED`. A status Stripe adds later is reported
+// as `NEEDS_RESPONSE` while the dispute is open, so it is never quietly ignored.
+type ChargebackStatus string
 
 // ClientSurface defines model for ClientSurface.
 type ClientSurface string
@@ -4667,6 +5192,7 @@ type ErrorEnvelope struct {
 		// `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
 		// `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
 		// `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+		// `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
 		// `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
 		// `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 		// `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
@@ -4695,6 +5221,7 @@ type ErrorEnvelopeErrorDetails1 = []FieldError
 // `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
 // `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
 // `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+// `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
 // `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
 // `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
 // `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
@@ -5125,6 +5652,16 @@ type MenuCategoryInput struct {
 	SortOrder   *int32  `json:"sort_order,omitempty"`
 }
 
+// MenuCategoryUpdateInput Partial update of a menu category — every field is optional. All of it is
+// operational and live at once: a category carries no halal claim and is never
+// reviewed.
+type MenuCategoryUpdateInput struct {
+	Description *string `json:"description,omitempty"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	SortOrder   *int32  `json:"sort_order,omitempty"`
+}
+
 // MenuCategoryWithItems defines model for MenuCategoryWithItems.
 type MenuCategoryWithItems struct {
 	Description *string            `json:"description,omitempty"`
@@ -5317,6 +5854,34 @@ type MenuVersionDecisionInput struct {
 // MenuVersionDecisionInputDecision defines model for MenuVersionDecisionInput.Decision.
 type MenuVersionDecisionInputDecision string
 
+// MoneyEvent One entry in the order's money timeline, with who caused it. Staff decisions carry
+// their reason.
+type MoneyEvent struct {
+	ActorAccountId *openapi_types.UUID `json:"actor_account_id,omitempty"`
+
+	// ActorKind `ACCOUNT` is a person (customer or staff); the others are the platform itself.
+	ActorKind   MoneyEventActorKind `json:"actor_kind"`
+	AmountCents *Cents              `json:"amount_cents,omitempty"`
+
+	// At RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	At           Timestamp           `json:"at"`
+	ChargebackId *openapi_types.UUID `json:"chargeback_id,omitempty"`
+
+	// Currency CAD only at V0. Present on every monetary object so V2 multi-currency is additive.
+	Currency Currency `json:"currency"`
+
+	// Kind One step in an order's money: its payment, each refund and each chargeback.
+	Kind     MoneyEventKind      `json:"kind"`
+	Reason   *string             `json:"reason,omitempty"`
+	RefundId *openapi_types.UUID `json:"refund_id,omitempty"`
+}
+
+// MoneyEventActorKind `ACCOUNT` is a person (customer or staff); the others are the platform itself.
+type MoneyEventActorKind string
+
+// MoneyEventKind One step in an order's money: its payment, each refund and each chargeback.
+type MoneyEventKind string
+
 // NextRoute A closed enum the client maps to a screen. Routing is a server decision; an unknown
 // value routes to "please update the app" rather than crashing.
 type NextRoute string
@@ -5433,14 +5998,17 @@ type OrderAdminView struct {
 	AcceptedAt *time.Time `json:"accepted_at,omitempty"`
 
 	// CanCancel Server-decided. True only while cancellation is free (before restaurant acceptance).
-	CanCancel            *bool                        `json:"can_cancel,omitempty"`
-	CancelReason         *OrderCancellationReasonCode `json:"cancel_reason,omitempty"`
-	Code                 string                       `json:"code"`
-	CompletedAt          *time.Time                   `json:"completed_at,omitempty"`
-	DeadlineAt           *time.Time                   `json:"deadline_at,omitempty"`
-	DeliveredAt          *time.Time                   `json:"delivered_at,omitempty"`
-	DeliveryAddress      *Address                     `json:"delivery_address,omitempty"`
-	DeliveryInstructions *[]DeliveryInstruction       `json:"delivery_instructions,omitempty"`
+	CanCancel    *bool                        `json:"can_cancel,omitempty"`
+	CancelReason *OrderCancellationReasonCode `json:"cancel_reason,omitempty"`
+
+	// Chargebacks The disputes the customer raised with their bank over this order.
+	Chargebacks          []Chargeback           `json:"chargebacks"`
+	Code                 string                 `json:"code"`
+	CompletedAt          *time.Time             `json:"completed_at,omitempty"`
+	DeadlineAt           *time.Time             `json:"deadline_at,omitempty"`
+	DeliveredAt          *time.Time             `json:"delivered_at,omitempty"`
+	DeliveryAddress      *Address               `json:"delivery_address,omitempty"`
+	DeliveryInstructions *[]DeliveryInstruction `json:"delivery_instructions,omitempty"`
 
 	// DestinationLocation The delivery address coordinates, for LiveMapBox.
 	DestinationLocation *GeoPoint `json:"destination_location,omitempty"`
@@ -5469,9 +6037,14 @@ type OrderAdminView struct {
 	Lines         []OrderLine        `json:"lines"`
 
 	// Money The frozen copy of the quote's customer-facing decomposition. Renders in the fixed P-10 order.
-	Money      OrderMoney   `json:"money"`
-	Payment    OrderPayment `json:"payment"`
-	PickedUpAt *time.Time   `json:"picked_up_at,omitempty"`
+	Money OrderMoney `json:"money"`
+
+	// MoneyTimeline The payment, refund and chargeback history of this order, oldest first, with who
+	// caused each step and the reason staff gave
+	// ([order money timeline, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+	MoneyTimeline []MoneyEvent `json:"money_timeline"`
+	Payment       OrderPayment `json:"payment"`
+	PickedUpAt    *time.Time   `json:"picked_up_at,omitempty"`
 
 	// PiiRevealed True when the caller passed a justified reveal, which is itself audited.
 	PiiRevealed *bool `json:"pii_revealed,omitempty"`
@@ -6032,6 +6605,47 @@ type OrderTransition struct {
 	ToState OrderState `json:"to_state"`
 }
 
+// OrderingPause The staff view of the platform-wide pause on new orders (`getOrderingPause`,
+// `setOrderingPause`; [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)).
+// The full history of changes is in the audit log, actions `ordering.pause` and
+// `ordering.resume`.
+type OrderingPause struct {
+	// ChangedAt When it was last changed. Null if nobody has changed it yet.
+	ChangedAt *time.Time `json:"changed_at"`
+
+	// ChangedBy The staff account that made the latest change. Null if nobody has changed it yet.
+	ChangedBy *openapi_types.UUID `json:"changed_by"`
+	Paused    bool                `json:"paused"`
+
+	// PausedSince When the current pause began. Null while ordering is open.
+	PausedSince *time.Time `json:"paused_since"`
+
+	// Reason The reason given with the latest change, pause or resume. Null if nobody has changed it yet.
+	Reason *string `json:"reason"`
+}
+
+// OrderingPauseInput defines model for OrderingPauseInput.
+type OrderingPauseInput struct {
+	// Paused `true` pauses new orders platform-wide; `false` resumes them.
+	Paused bool `json:"paused"`
+
+	// Reason Why, in words the next person on call understands. Recorded with the change and in the audit log.
+	//
+	// Examples: Stripe is refusing authorisations; pausing until their incident clears.
+	Reason string `json:"reason"`
+}
+
+// OrderingStatus The customer-facing view of the platform-wide pause on new orders
+// ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+// the reason staff typed is for staff, and the app shows its own fixed copy.
+type OrderingStatus struct {
+	// Paused True while staff have paused new orders: quotes and orders answer `409 ORDERING_PAUSED`.
+	Paused bool `json:"paused"`
+
+	// PausedSince When the current pause began. Null while ordering is open.
+	PausedSince *time.Time `json:"paused_since"`
+}
+
 // OtpChallenge defines model for OtpChallenge.
 type OtpChallenge struct {
 	ChallengeId openapi_types.UUID `json:"challenge_id"`
@@ -6200,6 +6814,239 @@ type PayoutDetail struct {
 // PayoutInterval Decision S-04: weekly, Monday, automatic, **no minimum**, for both partner types.
 type PayoutInterval string
 
+// PayoutPayee defines model for PayoutPayee.
+type PayoutPayee struct {
+	// Id The restaurant id, or the rider's account id.
+	Id openapi_types.UUID `json:"id"`
+
+	// Type Who a payout is paid to. A restaurant is identified by its restaurant id, a rider by their account id.
+	Type PayoutPayeeType `json:"type"`
+}
+
+// PayoutPayeeType Who a payout is paid to. A restaurant is identified by its restaurant id, a rider by their account id.
+type PayoutPayeeType string
+
+// PayoutRun defines model for PayoutRun.
+type PayoutRun struct {
+	// AsOf RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	AsOf Timestamp `json:"as_of"`
+
+	// Attempts How many times a worker started it. Above 1 means a worker stopped mid-run and another finished it.
+	Attempts int32 `json:"attempts"`
+
+	// Carried Partners whose unpaid balance was zero or below, carried to a later run.
+	Carried int32 `json:"carried"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp `json:"created_at"`
+
+	// DueAt When the run was due: Monday 09:00 America/Toronto for a scheduled run, the request time for an admin one.
+	DueAt Timestamp `json:"due_at"`
+
+	// Error Why the run itself stopped, when it did. Per-partner failures are lines.
+	Error      *string    `json:"error"`
+	Failed     int32      `json:"failed"`
+	FinishedAt *time.Time `json:"finished_at"`
+	Held       int32      `json:"held"`
+
+	// HeldCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	HeldCents Cents              `json:"held_cents"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Kind `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+	Kind PayoutRunKind `json:"kind"`
+
+	// Paid Payouts transferred, new and released.
+	Paid int32 `json:"paid"`
+
+	// PaidCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	PaidCents Cents `json:"paid_cents"`
+
+	// Partners Partners the run looked at.
+	Partners int32 `json:"partners"`
+
+	// Payee The one partner this run is for, or null for every partner.
+	Payee *PayoutPayee `json:"payee"`
+
+	// PeriodEnd The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid.
+	PeriodEnd Timestamp `json:"period_end"`
+
+	// PeriodStart RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	PeriodStart Timestamp `json:"period_start"`
+
+	// Reason Why the admin requested it; null for a scheduled run.
+	Reason   *string `json:"reason"`
+	Released int32   `json:"released"`
+
+	// RequestedBy The admin who requested it; null for a scheduled run.
+	RequestedBy *openapi_types.UUID `json:"requested_by"`
+	StartedAt   *time.Time          `json:"started_at"`
+
+	// State `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+	// payout stays owed and the next run tries it again.
+	State PayoutRunState `json:"state"`
+}
+
+// PayoutRunDetail defines model for PayoutRunDetail.
+type PayoutRunDetail struct {
+	// AsOf RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	AsOf Timestamp `json:"as_of"`
+
+	// Attempts How many times a worker started it. Above 1 means a worker stopped mid-run and another finished it.
+	Attempts int32 `json:"attempts"`
+
+	// Carried Partners whose unpaid balance was zero or below, carried to a later run.
+	Carried int32 `json:"carried"`
+
+	// CreatedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	CreatedAt Timestamp `json:"created_at"`
+
+	// DueAt When the run was due: Monday 09:00 America/Toronto for a scheduled run, the request time for an admin one.
+	DueAt Timestamp `json:"due_at"`
+
+	// Error Why the run itself stopped, when it did. Per-partner failures are lines.
+	Error      *string    `json:"error"`
+	Failed     int32      `json:"failed"`
+	FinishedAt *time.Time `json:"finished_at"`
+	Held       int32      `json:"held"`
+
+	// HeldCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	HeldCents Cents              `json:"held_cents"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Kind `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+	Kind  PayoutRunKind   `json:"kind"`
+	Lines []PayoutRunLine `json:"lines"`
+
+	// Paid Payouts transferred, new and released.
+	Paid int32 `json:"paid"`
+
+	// PaidCents A signed count of Canadian cents. **Every monetary value in this contract is this
+	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
+	// and no rounding to any granularity other than one cent.
+	//
+	//
+	// Examples: 4696
+	PaidCents Cents `json:"paid_cents"`
+
+	// Partners Partners the run looked at.
+	Partners int32 `json:"partners"`
+
+	// Payee The one partner this run is for, or null for every partner.
+	Payee *PayoutPayee `json:"payee"`
+
+	// PeriodEnd The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid.
+	PeriodEnd Timestamp `json:"period_end"`
+
+	// PeriodStart RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	PeriodStart Timestamp `json:"period_start"`
+
+	// Reason Why the admin requested it; null for a scheduled run.
+	Reason   *string `json:"reason"`
+	Released int32   `json:"released"`
+
+	// RequestedBy The admin who requested it; null for a scheduled run.
+	RequestedBy *openapi_types.UUID `json:"requested_by"`
+	StartedAt   *time.Time          `json:"started_at"`
+
+	// State `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+	// payout stays owed and the next run tries it again.
+	State PayoutRunState `json:"state"`
+}
+
+// PayoutRunInput Who to pay and as of when; never an amount. Every amount comes from the ledger.
+type PayoutRunInput struct {
+	// AsOf Run as if it were this moment: the run pays the period that closed by then.
+	// Defaults to now; a time in the future is `422 VALIDATION_FAILED`.
+	AsOf *Timestamp `json:"as_of,omitempty"`
+
+	// Payee Run for this partner only. Omit it to run for every partner.
+	Payee *PayoutPayee `json:"payee,omitempty"`
+
+	// Reason Why the run is needed now. Kept on the run and in the audit trail.
+	Reason string `json:"reason"`
+}
+
+// PayoutRunKind `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+type PayoutRunKind string
+
+// PayoutRunLine defines model for PayoutRunLine.
+type PayoutRunLine struct {
+	// AmountCents The payout's amount, or the balance carried or owed.
+	//
+	// Examples: 4696
+	AmountCents Cents `json:"amount_cents"`
+
+	// At RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
+	At     Timestamp `json:"at"`
+	Detail *string   `json:"detail"`
+
+	// Outcome What a run did for one partner.
+	// `PAID`: a payout for this period was created and transferred.
+	// `HELD`: a payout was created but Stripe has payouts turned off for the partner, so no
+	// transfer was made; `STILL_HELD`: an earlier held payout is still blocked;
+	// `RELEASED`: an earlier held or unfinished payout was transferred.
+	// `TRANSFER_FAILED`: Stripe refused the transfer; the payout stays owed for the next run.
+	// `ALREADY_PAID`: this partner already has a payout for this period.
+	// `NOTHING_DUE`: no unpaid earnings before the cutoff.
+	// `CARRIED_NEGATIVE`: the unpaid balance is zero or below, so it is carried and netted
+	// against later earnings.
+	// `NO_PAYOUT_ACCOUNT`: no Stripe account yet; the balance waits for onboarding.
+	// `PARTNER_SUSPENDED`: a suspended or banned restaurant is not paid until reinstated.
+	// `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
+	// longer than the configured limit, so it takes no new orders, or it has recovered.
+	// `ERROR`: the server failed for this partner; see `detail`.
+	// `BANK_PAYOUT`: Stripe was asked to pay a transferred payout out of the partner's Stripe
+	// balance to their bank; the payout is `PAID` once Stripe reports the bank payout paid.
+	// `BANK_PAYOUT_FAILED`: the bank payout could not be asked for (Stripe refused, did not
+	// answer, or has payouts turned off for the partner); the money stays in the partner's
+	// Stripe balance and the next run asks again.
+	Outcome  PayoutRunOutcome    `json:"outcome"`
+	Payee    PayoutPayee         `json:"payee"`
+	PayoutId *openapi_types.UUID `json:"payout_id"`
+}
+
+// PayoutRunOutcome What a run did for one partner.
+// `PAID`: a payout for this period was created and transferred.
+// `HELD`: a payout was created but Stripe has payouts turned off for the partner, so no
+// transfer was made; `STILL_HELD`: an earlier held payout is still blocked;
+// `RELEASED`: an earlier held or unfinished payout was transferred.
+// `TRANSFER_FAILED`: Stripe refused the transfer; the payout stays owed for the next run.
+// `ALREADY_PAID`: this partner already has a payout for this period.
+// `NOTHING_DUE`: no unpaid earnings before the cutoff.
+// `CARRIED_NEGATIVE`: the unpaid balance is zero or below, so it is carried and netted
+// against later earnings.
+// `NO_PAYOUT_ACCOUNT`: no Stripe account yet; the balance waits for onboarding.
+// `PARTNER_SUSPENDED`: a suspended or banned restaurant is not paid until reinstated.
+// `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
+// longer than the configured limit, so it takes no new orders, or it has recovered.
+// `ERROR`: the server failed for this partner; see `detail`.
+// `BANK_PAYOUT`: Stripe was asked to pay a transferred payout out of the partner's Stripe
+// balance to their bank; the payout is `PAID` once Stripe reports the bank payout paid.
+// `BANK_PAYOUT_FAILED`: the bank payout could not be asked for (Stripe refused, did not
+// answer, or has payouts turned off for the partner); the money stays in the partner's
+// Stripe balance and the next run asks again.
+type PayoutRunOutcome string
+
+// PayoutRunState `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+// payout stays owed and the next run tries it again.
+type PayoutRunState string
+
 // PayoutState `HELD` carries a reason and is what `payouts_enabled=false` produces.
 type PayoutState string
 
@@ -6347,6 +7194,11 @@ type PublicConfig struct {
 	//
 	// Examples: 4696
 	MaxTipCents Cents `json:"max_tip_cents"`
+
+	// Ordering The customer-facing view of the platform-wide pause on new orders
+	// ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)). Carries no reason:
+	// the reason staff typed is for staff, and the app shows its own fixed copy.
+	Ordering OrderingStatus `json:"ordering"`
 
 	// QuoteTtlSeconds 600. How long a quoted price is honoured before re-confirmation is required.
 	QuoteTtlSeconds int32 `json:"quote_ttl_seconds"`
@@ -6782,6 +7634,12 @@ type Refund struct {
 	TaxCents *Cents `json:"tax_cents,omitempty"`
 }
 
+// RefundApprovalInput Why the refund is approved. Kept on the refund and in the audit trail.
+type RefundApprovalInput struct {
+	CaseId     *openapi_types.UUID `json:"case_id,omitempty"`
+	ReasonText string              `json:"reason_text"`
+}
+
 // RefundApprovalRequest defines model for RefundApprovalRequest.
 type RefundApprovalRequest struct {
 	CaseId *openapi_types.UUID `json:"case_id,omitempty"`
@@ -6811,6 +7669,17 @@ type RefundApprovalRequest struct {
 
 // RefundApprovalRequestStatus defines model for RefundApprovalRequest.Status.
 type RefundApprovalRequestStatus string
+
+// RefundDeclineInput defines model for RefundDeclineInput.
+type RefundDeclineInput struct {
+	CaseId *openapi_types.UUID `json:"case_id,omitempty"`
+
+	// CustomerMessage What the customer is told, when they asked for the refund. A plain sentence is sent when absent.
+	CustomerMessage *string `json:"customer_message,omitempty"`
+
+	// ReasonText The staff reason. Kept on the refund and in the audit trail; never shown to the customer.
+	ReasonText string `json:"reason_text"`
+}
 
 // RefundInput `amount_cents` is **absent from this DTO entirely** — customer- and support-initiated
 // refunds never propose an amount. The admin `issueRefund` operation carries the single
@@ -6877,6 +7746,11 @@ type RefundLiabilitySplit struct {
 // is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
 type RefundReasonCode string
 
+// RefundRequesterKind Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
+// request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
+// after acceptance).
+type RefundRequesterKind string
+
 // RefundScope defines model for RefundScope.
 type RefundScope string
 
@@ -6926,6 +7800,54 @@ type RestaurantApplication struct {
 	// SubmittedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
 	SubmittedAt Timestamp `json:"submitted_at"`
 }
+
+// RestaurantApplicationApproveInput Approve a restaurant application. Approval does not make the restaurant live.
+type RestaurantApplicationApproveInput struct {
+	Decision RestaurantApplicationApproveInputDecision `json:"decision"`
+
+	// InternalNote For staff only; never sent to the restaurant.
+	InternalNote *string                     `json:"internal_note,omitempty"`
+	ReasonCode   RestaurantApproveReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the restaurant.
+	ReasonText string `json:"reason_text"`
+}
+
+// RestaurantApplicationApproveInputDecision defines model for RestaurantApplicationApproveInput.Decision.
+type RestaurantApplicationApproveInputDecision string
+
+// RestaurantApplicationRejectInput Reject a restaurant application. Rejection is final for this application.
+type RestaurantApplicationRejectInput struct {
+	Decision RestaurantApplicationRejectInputDecision `json:"decision"`
+
+	// InternalNote For staff only; never sent to the restaurant.
+	InternalNote *string                               `json:"internal_note,omitempty"`
+	ReasonCode   RestaurantRejectApplicationReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the restaurant.
+	ReasonText string `json:"reason_text"`
+}
+
+// RestaurantApplicationRejectInputDecision defines model for RestaurantApplicationRejectInput.Decision.
+type RestaurantApplicationRejectInputDecision string
+
+// RestaurantApplicationRequestChangesInput Send a restaurant application back for changes, naming the documents to redo.
+type RestaurantApplicationRequestChangesInput struct {
+	Decision RestaurantApplicationRequestChangesInputDecision `json:"decision"`
+
+	// DocumentsToRedo Names exactly which documents to redo.
+	DocumentsToRedo []RestaurantDocType `json:"documents_to_redo"`
+
+	// InternalNote For staff only; never sent to the restaurant.
+	InternalNote *string                               `json:"internal_note,omitempty"`
+	ReasonCode   RestaurantRejectApplicationReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the restaurant.
+	ReasonText string `json:"reason_text"`
+}
+
+// RestaurantApplicationRequestChangesInputDecision defines model for RestaurantApplicationRequestChangesInput.Decision.
+type RestaurantApplicationRequestChangesInputDecision string
 
 // RestaurantApplicationSummary defines model for RestaurantApplicationSummary.
 type RestaurantApplicationSummary struct {
@@ -7034,21 +7956,23 @@ type RestaurantCard struct {
 // RestaurantDecision defines model for RestaurantDecision.
 type RestaurantDecision string
 
-// RestaurantDecisionInput Every state-changing admin action requires both a `reason_code` from a closed enum and
-// a `reason_text`; missing either is a `422`. `reason_text` is sent verbatim to the
-// restaurant — internal remarks go in `internal_note`, which is never transmitted.
+// RestaurantDecisionInput The decision on a restaurant application
+// ([restaurant approval or rejection](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-18--restaurant-approval--rejection-decision)).
+// One body shape per `decision`, chosen by the `decision` field, so each decision can
+// carry only the reason codes that fit it:
+//
+// - `APPROVE` carries an approval reason (`RestaurantApproveReasonCode`).
+// - `REJECT` carries a rejection reason (`RestaurantRejectApplicationReasonCode`).
+// - `REQUEST_CHANGES` carries a rejection reason and names the documents to redo.
+//
+// Every state-changing admin action requires both a `reason_code` from a closed enum and
+// a `reason_text`
+// ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+// missing either, or a code that does not fit the decision, is a `422`. `reason_text` is
+// sent verbatim to the restaurant — internal remarks go in `internal_note`, which is
+// never transmitted. The rider application decision has the same shape
+// (`RiderDecisionInput`).
 type RestaurantDecisionInput struct {
-	Decision RestaurantDecision `json:"decision"`
-
-	// DocumentsToRedo Required for `REQUEST_CHANGES`: names exactly which documents to redo.
-	DocumentsToRedo *[]RestaurantDocType               `json:"documents_to_redo,omitempty"`
-	InternalNote    *string                            `json:"internal_note,omitempty"`
-	ReasonCode      RestaurantDecisionInput_ReasonCode `json:"reason_code"`
-	ReasonText      string                             `json:"reason_text"`
-}
-
-// RestaurantDecisionInput_ReasonCode defines model for RestaurantDecisionInput.ReasonCode.
-type RestaurantDecisionInput_ReasonCode struct {
 	union json.RawMessage
 }
 
@@ -7062,7 +7986,7 @@ type RestaurantDetail struct {
 	Availability RestaurantAvailabilityInfo `json:"availability"`
 
 	// Certification C-12. The platform's core promise, made inspectable. The standing disclaimer is fixed
-	// copy: "Certification verified by Halal Goes on {date}. Halal Goes does not itself
+	// copy: "Certification verified by HalalGoes on {date}. HalalGoes does not itself
 	// certify food."
 	Certification CertificationPanel `json:"certification"`
 	Cuisines      *[]string          `json:"cuisines,omitempty"`
@@ -7412,6 +8336,58 @@ type RiderApplication struct {
 	VehicleType *VehicleType `json:"vehicle_type,omitempty"`
 }
 
+// RiderApplicationApproveInput Approve a rider application. A rider under 18 cannot be approved
+// (`422 AGE_REQUIREMENT_NOT_MET`), and approval moves the rider to `PAYOUT_PENDING`, not
+// straight to dispatchable.
+type RiderApplicationApproveInput struct {
+	Decision RiderApplicationApproveInputDecision `json:"decision"`
+
+	// ReasonCode Why a rider application was approved. The same two reasons as a restaurant approval
+	// (`RestaurantApproveReasonCode`), because the rider review is built the same way
+	// ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+	// `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
+	ReasonCode RiderApproveReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the rider.
+	ReasonText string `json:"reason_text"`
+}
+
+// RiderApplicationApproveInputDecision defines model for RiderApplicationApproveInput.Decision.
+type RiderApplicationApproveInputDecision string
+
+// RiderApplicationRejectInput Reject a rider application.
+type RiderApplicationRejectInput struct {
+	Decision RiderApplicationRejectInputDecision `json:"decision"`
+
+	// ReasonCode R-08 / A-13 / D-06. A structured enum with rider- and restaurant-facing copy — never a
+	// browser `prompt()` string. `OTHER` requires a note of at least 20 characters.
+	ReasonCode DocumentRejectionReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the rider with the specific remediation step.
+	ReasonText string `json:"reason_text"`
+}
+
+// RiderApplicationRejectInputDecision defines model for RiderApplicationRejectInput.Decision.
+type RiderApplicationRejectInputDecision string
+
+// RiderApplicationRequestChangesInput Send a rider application back for changes, naming the documents to redo.
+type RiderApplicationRequestChangesInput struct {
+	Decision RiderApplicationRequestChangesInputDecision `json:"decision"`
+
+	// DocumentsToRedo Names exactly which documents to redo.
+	DocumentsToRedo []RiderDocType `json:"documents_to_redo"`
+
+	// ReasonCode R-08 / A-13 / D-06. A structured enum with rider- and restaurant-facing copy — never a
+	// browser `prompt()` string. `OTHER` requires a note of at least 20 characters.
+	ReasonCode DocumentRejectionReasonCode `json:"reason_code"`
+
+	// ReasonText Sent verbatim to the rider with the specific remediation step.
+	ReasonText string `json:"reason_text"`
+}
+
+// RiderApplicationRequestChangesInputDecision defines model for RiderApplicationRequestChangesInput.Decision.
+type RiderApplicationRequestChangesInputDecision string
+
 // RiderApplicationSummary defines model for RiderApplicationSummary.
 type RiderApplicationSummary struct {
 	AssignedAdminId     *openapi_types.UUID  `json:"assigned_admin_id,omitempty"`
@@ -7431,6 +8407,12 @@ type RiderApplicationSummary struct {
 	// (`driving` / `cycling` / `walking`).
 	VehicleType *VehicleType `json:"vehicle_type,omitempty"`
 }
+
+// RiderApproveReasonCode Why a rider application was approved. The same two reasons as a restaurant approval
+// (`RestaurantApproveReasonCode`), because the rider review is built the same way
+// ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+// `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
+type RiderApproveReasonCode string
 
 // RiderAvailability defines model for RiderAvailability.
 type RiderAvailability struct {
@@ -7496,17 +8478,24 @@ type RiderDashboard struct {
 	TrackingHealth *TrackingHealth `json:"tracking_health,omitempty"`
 }
 
-// RiderDecisionInput defines model for RiderDecisionInput.
+// RiderDecisionInput The decision on a rider application
+// ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+// One body shape per `decision`, chosen by the `decision` field, so each decision can
+// carry only the reason codes that fit it:
+//
+//   - `APPROVE` carries an approval reason (`RiderApproveReasonCode`). Until
+//     [#163](https://github.com/shaiknoorullah/hg-mono/issues/163) every decision had to
+//     carry a document rejection reason, and none of those fits an approval.
+//   - `REJECT` carries a document rejection reason (`DocumentRejectionReasonCode`).
+//   - `REQUEST_CHANGES` carries a document rejection reason and names the documents to redo.
+//
+// Every state-changing admin action requires both a `reason_code` from a closed enum and
+// a `reason_text`
+// ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+// missing either, or a code that does not fit the decision, is a `422`. The same shape
+// as the restaurant application decision (`RestaurantDecisionInput`).
 type RiderDecisionInput struct {
-	Decision        RestaurantDecision `json:"decision"`
-	DocumentsToRedo *[]RiderDocType    `json:"documents_to_redo,omitempty"`
-
-	// ReasonCode R-08 / A-13 / D-06. A structured enum with rider- and restaurant-facing copy — never a
-	// browser `prompt()` string. `OTHER` requires a note of at least 20 characters.
-	ReasonCode DocumentRejectionReasonCode `json:"reason_code"`
-
-	// ReasonText Sent verbatim to the rider with the specific remediation step.
-	ReasonText string `json:"reason_text"`
+	union json.RawMessage
 }
 
 // RiderDocType D-05 / A-23. Motorised riders need licence, registration, insurance and a photo;
@@ -8001,6 +8990,9 @@ type AssignmentIdPath = openapi_types.UUID
 // CertificateIdPath defines model for CertificateIdPath.
 type CertificateIdPath = openapi_types.UUID
 
+// ChargebackIdPath defines model for ChargebackIdPath.
+type ChargebackIdPath = openapi_types.UUID
+
 // ClientHeader defines model for ClientHeader.
 type ClientHeader = ClientSurface
 
@@ -8013,6 +9005,9 @@ type IdempotencyKeyRequired = string
 // Limit defines model for Limit.
 type Limit = int32
 
+// MenuCategoryIdPath defines model for MenuCategoryIdPath.
+type MenuCategoryIdPath = openapi_types.UUID
+
 // MenuItemIdPath defines model for MenuItemIdPath.
 type MenuItemIdPath = openapi_types.UUID
 
@@ -8021,6 +9016,9 @@ type OfferIdPath = openapi_types.UUID
 
 // OrderIdPath defines model for OrderIdPath.
 type OrderIdPath = openapi_types.UUID
+
+// RefundIdPath defines model for RefundIdPath.
+type RefundIdPath = openapi_types.UUID
 
 // RestaurantIdPath defines model for RestaurantIdPath.
 type RestaurantIdPath = openapi_types.UUID
@@ -8034,6 +9032,9 @@ type Error = ErrorEnvelope
 // RateLimited defines model for RateLimited.
 type RateLimited = ErrorEnvelope
 
+// ServerBusy defines model for ServerBusy.
+type ServerBusy = ErrorEnvelope
+
 // ListAddressesParams defines parameters for ListAddresses.
 type ListAddressesParams struct {
 	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
@@ -8045,6 +9046,30 @@ type ListAddressesParams struct {
 
 // CreateAddressParams defines parameters for CreateAddress.
 type CreateAddressParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ListChargebacksParams defines parameters for ListChargebacks.
+type ListChargebacksParams struct {
+	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Open `true`: only chargebacks Stripe has not closed. `false`: only closed ones.
+	Open    *bool               `form:"open,omitempty" json:"open,omitempty"`
+	OrderId *openapi_types.UUID `form:"order_id,omitempty" json:"order_id,omitempty"`
+}
+
+// AddChargebackEvidenceNoteParams defines parameters for AddChargebackEvidenceNote.
+type AddChargebackEvidenceNoteParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
 	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
 	// produce exactly one business effect; a replay returns the original status and body
@@ -8140,6 +9165,17 @@ type DecideMenuVersionParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// SetOrderingPauseParams defines parameters for SetOrderingPause.
+type SetOrderingPauseParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // ListOrdersAdminParams defines parameters for ListOrdersAdmin.
 type ListOrdersAdminParams struct {
 	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
@@ -8175,8 +9211,68 @@ type CancelOrderAdminParams struct {
 	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
 }
 
+// ListPayoutRunsParams defines parameters for ListPayoutRuns.
+type ListPayoutRunsParams struct {
+	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// CreatePayoutRunParams defines parameters for CreatePayoutRun.
+type CreatePayoutRunParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ListRefundsAdminParams defines parameters for ListRefundsAdmin.
+type ListRefundsAdminParams struct {
+	// Limit Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// State Defaults to `REQUESTED,PENDING_APPROVAL`.
+	State          *[]RefundState      `form:"state,omitempty" json:"state,omitempty"`
+	ReasonCode     *[]RefundReasonCode `form:"reason_code,omitempty" json:"reason_code,omitempty"`
+	MinAmountCents *int64              `form:"min_amount_cents,omitempty" json:"min_amount_cents,omitempty"`
+	MaxAmountCents *int64              `form:"max_amount_cents,omitempty" json:"max_amount_cents,omitempty"`
+	RequestedFrom  *time.Time          `form:"requested_from,omitempty" json:"requested_from,omitempty"`
+	RequestedTo    *time.Time          `form:"requested_to,omitempty" json:"requested_to,omitempty"`
+	OrderId        *openapi_types.UUID `form:"order_id,omitempty" json:"order_id,omitempty"`
+}
+
 // IssueRefundParams defines parameters for IssueRefund.
 type IssueRefundParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// ApproveRefundParams defines parameters for ApproveRefund.
+type ApproveRefundParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
+// DeclineRefundParams defines parameters for DeclineRefund.
+type DeclineRefundParams struct {
 	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
 	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
 	// produce exactly one business effect; a replay returns the original status and body
@@ -8894,6 +9990,9 @@ type CreateAddressJSONRequestBody = AddressInput
 // UpdateAddressJSONRequestBody defines body for UpdateAddress for application/json ContentType.
 type UpdateAddressJSONRequestBody = AddressUpdateInput
 
+// AddChargebackEvidenceNoteJSONRequestBody defines body for AddChargebackEvidenceNote for application/json ContentType.
+type AddChargebackEvidenceNoteJSONRequestBody = ChargebackEvidenceNoteInput
+
 // RecordHalalChecksJSONRequestBody defines body for RecordHalalChecks for application/json ContentType.
 type RecordHalalChecksJSONRequestBody = HalalChecksInput
 
@@ -8912,11 +10011,23 @@ type SetHalalIssuingBodyStatusJSONRequestBody = HalalIssuingBodyStatusInput
 // DecideMenuVersionJSONRequestBody defines body for DecideMenuVersion for application/json ContentType.
 type DecideMenuVersionJSONRequestBody = MenuVersionDecisionInput
 
+// SetOrderingPauseJSONRequestBody defines body for SetOrderingPause for application/json ContentType.
+type SetOrderingPauseJSONRequestBody = OrderingPauseInput
+
 // CancelOrderAdminJSONRequestBody defines body for CancelOrderAdmin for application/json ContentType.
 type CancelOrderAdminJSONRequestBody = AdminOrderCancellationInput
 
+// CreatePayoutRunJSONRequestBody defines body for CreatePayoutRun for application/json ContentType.
+type CreatePayoutRunJSONRequestBody = PayoutRunInput
+
 // IssueRefundJSONRequestBody defines body for IssueRefund for application/json ContentType.
 type IssueRefundJSONRequestBody = AdminRefundInput
+
+// ApproveRefundJSONRequestBody defines body for ApproveRefund for application/json ContentType.
+type ApproveRefundJSONRequestBody = RefundApprovalInput
+
+// DeclineRefundJSONRequestBody defines body for DeclineRefund for application/json ContentType.
+type DeclineRefundJSONRequestBody = RefundDeclineInput
 
 // DecideRestaurantApplicationJSONRequestBody defines body for DecideRestaurantApplication for application/json ContentType.
 type DecideRestaurantApplicationJSONRequestBody = RestaurantDecisionInput
@@ -8929,6 +10040,9 @@ type CreateMenuCategoryOnBehalfJSONRequestBody = MenuCategoryInput
 
 // CreateMenuItemOnBehalfJSONRequestBody defines body for CreateMenuItemOnBehalf for application/json ContentType.
 type CreateMenuItemOnBehalfJSONRequestBody = MenuItemInput
+
+// UpdateMenuItemOnBehalfJSONRequestBody defines body for UpdateMenuItemOnBehalf for application/json ContentType.
+type UpdateMenuItemOnBehalfJSONRequestBody = MenuItemUpdateInput
 
 // DecideRiderApplicationJSONRequestBody defines body for DecideRiderApplication for application/json ContentType.
 type DecideRiderApplicationJSONRequestBody = RiderDecisionInput
@@ -9025,6 +10139,9 @@ type SetRestaurantHoursJSONRequestBody = RestaurantHoursInput
 
 // CreateMenuCategoryJSONRequestBody defines body for CreateMenuCategory for application/json ContentType.
 type CreateMenuCategoryJSONRequestBody = MenuCategoryInput
+
+// UpdateMenuCategoryJSONRequestBody defines body for UpdateMenuCategory for application/json ContentType.
+type UpdateMenuCategoryJSONRequestBody = MenuCategoryUpdateInput
 
 // CreateMenuItemJSONRequestBody defines body for CreateMenuItem for application/json ContentType.
 type CreateMenuItemJSONRequestBody = MenuItemInput
@@ -9204,23 +10321,31 @@ func (t *KycDocument_DocType) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-// AsRestaurantApproveReasonCode returns the union data inside the RestaurantDecisionInput_ReasonCode as a RestaurantApproveReasonCode
-func (t RestaurantDecisionInput_ReasonCode) AsRestaurantApproveReasonCode() (RestaurantApproveReasonCode, error) {
-	var body RestaurantApproveReasonCode
+// AsRestaurantApplicationApproveInput returns the union data inside the RestaurantDecisionInput as a RestaurantApplicationApproveInput
+func (t RestaurantDecisionInput) AsRestaurantApplicationApproveInput() (RestaurantApplicationApproveInput, error) {
+	var body RestaurantApplicationApproveInput
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromRestaurantApproveReasonCode overwrites any union data inside the RestaurantDecisionInput_ReasonCode as the provided RestaurantApproveReasonCode
-func (t *RestaurantDecisionInput_ReasonCode) FromRestaurantApproveReasonCode(v RestaurantApproveReasonCode) error {
+// FromRestaurantApplicationApproveInput overwrites any union data inside the RestaurantDecisionInput as the provided RestaurantApplicationApproveInput
+func (t *RestaurantDecisionInput) FromRestaurantApplicationApproveInput(v RestaurantApplicationApproveInput) error {
 	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"APPROVE"}`))
 	t.union = b
 	return err
 }
 
-// MergeRestaurantApproveReasonCode performs a merge with any union data inside the RestaurantDecisionInput_ReasonCode, using the provided RestaurantApproveReasonCode
-func (t *RestaurantDecisionInput_ReasonCode) MergeRestaurantApproveReasonCode(v RestaurantApproveReasonCode) error {
+// MergeRestaurantApplicationApproveInput performs a merge with any union data inside the RestaurantDecisionInput, using the provided RestaurantApplicationApproveInput
+func (t *RestaurantDecisionInput) MergeRestaurantApplicationApproveInput(v RestaurantApplicationApproveInput) error {
 	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"APPROVE"}`))
 	if err != nil {
 		return err
 	}
@@ -9230,23 +10355,31 @@ func (t *RestaurantDecisionInput_ReasonCode) MergeRestaurantApproveReasonCode(v 
 	return err
 }
 
-// AsRestaurantRejectApplicationReasonCode returns the union data inside the RestaurantDecisionInput_ReasonCode as a RestaurantRejectApplicationReasonCode
-func (t RestaurantDecisionInput_ReasonCode) AsRestaurantRejectApplicationReasonCode() (RestaurantRejectApplicationReasonCode, error) {
-	var body RestaurantRejectApplicationReasonCode
+// AsRestaurantApplicationRejectInput returns the union data inside the RestaurantDecisionInput as a RestaurantApplicationRejectInput
+func (t RestaurantDecisionInput) AsRestaurantApplicationRejectInput() (RestaurantApplicationRejectInput, error) {
+	var body RestaurantApplicationRejectInput
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromRestaurantRejectApplicationReasonCode overwrites any union data inside the RestaurantDecisionInput_ReasonCode as the provided RestaurantRejectApplicationReasonCode
-func (t *RestaurantDecisionInput_ReasonCode) FromRestaurantRejectApplicationReasonCode(v RestaurantRejectApplicationReasonCode) error {
+// FromRestaurantApplicationRejectInput overwrites any union data inside the RestaurantDecisionInput as the provided RestaurantApplicationRejectInput
+func (t *RestaurantDecisionInput) FromRestaurantApplicationRejectInput(v RestaurantApplicationRejectInput) error {
 	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REJECT"}`))
 	t.union = b
 	return err
 }
 
-// MergeRestaurantRejectApplicationReasonCode performs a merge with any union data inside the RestaurantDecisionInput_ReasonCode, using the provided RestaurantRejectApplicationReasonCode
-func (t *RestaurantDecisionInput_ReasonCode) MergeRestaurantRejectApplicationReasonCode(v RestaurantRejectApplicationReasonCode) error {
+// MergeRestaurantApplicationRejectInput performs a merge with any union data inside the RestaurantDecisionInput, using the provided RestaurantApplicationRejectInput
+func (t *RestaurantDecisionInput) MergeRestaurantApplicationRejectInput(v RestaurantApplicationRejectInput) error {
 	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REJECT"}`))
 	if err != nil {
 		return err
 	}
@@ -9256,12 +10389,208 @@ func (t *RestaurantDecisionInput_ReasonCode) MergeRestaurantRejectApplicationRea
 	return err
 }
 
-func (t RestaurantDecisionInput_ReasonCode) MarshalJSON() ([]byte, error) {
+// AsRestaurantApplicationRequestChangesInput returns the union data inside the RestaurantDecisionInput as a RestaurantApplicationRequestChangesInput
+func (t RestaurantDecisionInput) AsRestaurantApplicationRequestChangesInput() (RestaurantApplicationRequestChangesInput, error) {
+	var body RestaurantApplicationRequestChangesInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRestaurantApplicationRequestChangesInput overwrites any union data inside the RestaurantDecisionInput as the provided RestaurantApplicationRequestChangesInput
+func (t *RestaurantDecisionInput) FromRestaurantApplicationRequestChangesInput(v RestaurantApplicationRequestChangesInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REQUEST_CHANGES"}`))
+	t.union = b
+	return err
+}
+
+// MergeRestaurantApplicationRequestChangesInput performs a merge with any union data inside the RestaurantDecisionInput, using the provided RestaurantApplicationRequestChangesInput
+func (t *RestaurantDecisionInput) MergeRestaurantApplicationRequestChangesInput(v RestaurantApplicationRequestChangesInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REQUEST_CHANGES"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RestaurantDecisionInput) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"decision"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t RestaurantDecisionInput) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "APPROVE":
+		return t.AsRestaurantApplicationApproveInput()
+	case "REJECT":
+		return t.AsRestaurantApplicationRejectInput()
+	case "REQUEST_CHANGES":
+		return t.AsRestaurantApplicationRequestChangesInput()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t RestaurantDecisionInput) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
 }
 
-func (t *RestaurantDecisionInput_ReasonCode) UnmarshalJSON(b []byte) error {
+func (t *RestaurantDecisionInput) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsRiderApplicationApproveInput returns the union data inside the RiderDecisionInput as a RiderApplicationApproveInput
+func (t RiderDecisionInput) AsRiderApplicationApproveInput() (RiderApplicationApproveInput, error) {
+	var body RiderApplicationApproveInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRiderApplicationApproveInput overwrites any union data inside the RiderDecisionInput as the provided RiderApplicationApproveInput
+func (t *RiderDecisionInput) FromRiderApplicationApproveInput(v RiderApplicationApproveInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"APPROVE"}`))
+	t.union = b
+	return err
+}
+
+// MergeRiderApplicationApproveInput performs a merge with any union data inside the RiderDecisionInput, using the provided RiderApplicationApproveInput
+func (t *RiderDecisionInput) MergeRiderApplicationApproveInput(v RiderApplicationApproveInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"APPROVE"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRiderApplicationRejectInput returns the union data inside the RiderDecisionInput as a RiderApplicationRejectInput
+func (t RiderDecisionInput) AsRiderApplicationRejectInput() (RiderApplicationRejectInput, error) {
+	var body RiderApplicationRejectInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRiderApplicationRejectInput overwrites any union data inside the RiderDecisionInput as the provided RiderApplicationRejectInput
+func (t *RiderDecisionInput) FromRiderApplicationRejectInput(v RiderApplicationRejectInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REJECT"}`))
+	t.union = b
+	return err
+}
+
+// MergeRiderApplicationRejectInput performs a merge with any union data inside the RiderDecisionInput, using the provided RiderApplicationRejectInput
+func (t *RiderDecisionInput) MergeRiderApplicationRejectInput(v RiderApplicationRejectInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REJECT"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRiderApplicationRequestChangesInput returns the union data inside the RiderDecisionInput as a RiderApplicationRequestChangesInput
+func (t RiderDecisionInput) AsRiderApplicationRequestChangesInput() (RiderApplicationRequestChangesInput, error) {
+	var body RiderApplicationRequestChangesInput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRiderApplicationRequestChangesInput overwrites any union data inside the RiderDecisionInput as the provided RiderApplicationRequestChangesInput
+func (t *RiderDecisionInput) FromRiderApplicationRequestChangesInput(v RiderApplicationRequestChangesInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REQUEST_CHANGES"}`))
+	t.union = b
+	return err
+}
+
+// MergeRiderApplicationRequestChangesInput performs a merge with any union data inside the RiderDecisionInput, using the provided RiderApplicationRequestChangesInput
+func (t *RiderDecisionInput) MergeRiderApplicationRequestChangesInput(v RiderApplicationRequestChangesInput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"decision":"REQUEST_CHANGES"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RiderDecisionInput) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"decision"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t RiderDecisionInput) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "APPROVE":
+		return t.AsRiderApplicationApproveInput()
+	case "REJECT":
+		return t.AsRiderApplicationRejectInput()
+	case "REQUEST_CHANGES":
+		return t.AsRiderApplicationRequestChangesInput()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t RiderDecisionInput) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *RiderDecisionInput) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

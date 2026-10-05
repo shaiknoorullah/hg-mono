@@ -1,6 +1,6 @@
 # hg-mono
 
-Halal Goes — the whole platform in one repository.
+HalalGoes — the whole platform in one repository.
 
 A halal food-delivery marketplace for Canada. Customers find and order from **verified halal-certified** restaurants; riders deliver; restaurants manage orders; admins verify certification.
 
@@ -11,8 +11,8 @@ One Go modular monolith, one database, five containers. Not microservices — th
 ```
 Traefik  →  hg (single Go binary: HTTP + WebSocket)
                 ├── Postgres + PostGIS   (only source of truth)
-                ├── Redis                (cache, pub/sub, rate limits — disposable)
-                └── MinIO                (documents, images — private buckets)
+                ├── Valkey (Redis)       (cache, pub/sub, rate limits — disposable)
+                └── Silo (MinIO fork)    (documents, images — private buckets)
 ```
 
 **Load-bearing rule:** Postgres is the only source of truth. Redis is disposable — flush it at any moment and the system must still be *correct*, just slower. Every Redis bug in the previous system came from violating this.

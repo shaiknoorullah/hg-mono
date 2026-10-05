@@ -48,7 +48,7 @@ func buildTOTPTestServer(t *testing.T, pool *pgxpool.Pool, principal httpx.Princ
 	t.Helper()
 	secrets := testSecrets(t)
 	store := NewStore(pool)
-	rl := NewRateLimiter(nil) // nil redis — rate limiter no-ops
+	rl := NewRateLimiter(nil, nil) // nil redis — rate limiter no-ops
 	deny := session.NewDenySet()
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -74,7 +74,7 @@ func buildTOTPTestServerAnon(t *testing.T, pool *pgxpool.Pool) *httptest.Server 
 	t.Helper()
 	secrets := testSecrets(t)
 	store := NewStore(pool)
-	rl := NewRateLimiter(nil)
+	rl := NewRateLimiter(nil, nil)
 	deny := session.NewDenySet()
 	_, priv, _ := ed25519.GenerateKey(rand.Reader)
 	issuer := session.NewIssuer("k1", priv, "hg-api")
@@ -133,7 +133,7 @@ func seedEmailAccount(t *testing.T, pool *pgxpool.Pool, email, password string, 
 	t.Helper()
 	ctx := context.Background()
 
-	hash, err := HashPassword(password)
+	hash, err := HashPassword(ctx, password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,8 +247,9 @@ func TestChangePassword_HappyPath(t *testing.T) {
 	}
 }
 
-// TestChangePassword_WrongCurrentPassword verifies 401/INVALID_CREDENTIALS
-// when current_password does not match.
+// TestChangePassword_WrongCurrentPassword verifies 422/INVALID_CREDENTIALS
+// when current_password does not match: never 401, which the shared client
+// answers by refreshing and retrying (#238).
 func TestChangePassword_WrongCurrentPassword(t *testing.T) {
 	pool := openTestPool(t)
 	email := uniqueEmail("chpw_bad_cur")
@@ -262,8 +263,8 @@ func TestChangePassword_WrongCurrentPassword(t *testing.T) {
 		"current_password": "WrongPassword!!1",
 		"new_password":     "AnotherNewPass12!",
 	})
-	if resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("changePassword wrong current: got %d, want 401", resp.StatusCode)
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("changePassword wrong current: got %d, want 422", resp.StatusCode)
 	}
 	var out struct {
 		Error struct {

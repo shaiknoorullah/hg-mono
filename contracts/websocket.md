@@ -1,4 +1,4 @@
-# Halal Goes — realtime contract
+# HalalGoes — realtime contract
 
 **Status: normative.** This document is part of `contracts/` and carries the same authority as
 `openapi.yaml`. Generated clients are produced from both; hand-edited clients are forbidden.
@@ -83,6 +83,8 @@ The server validates it exactly as the HTTP path does. Both paths converge on th
 | Subscriptions per connection | 50 |
 | Connections per session | 4 |
 | Connections per account | 10 |
+| Connections per server replica | 2,000 by default (`HG_REALTIME_MAX_SOCKETS`) ⇒ close `1013 at_capacity` |
+| Unsent server frames per connection | 64 ⇒ close `1013 slow_consumer` |
 | Heartbeat | server `ping` every 25 s; client must `pong` within 10 s |
 
 ### 1.5 Close codes
@@ -91,6 +93,7 @@ The server validates it exactly as the HTTP path does. Both paths converge on th
 |---|---|---|
 | `1000` | Normal closure | Reconnect if the app is still foregrounded |
 | `1001` | Server going away (deploy) | Reconnect with backoff |
+| `1013` | Try again later: `slow_consumer` (the client fell 64 frames behind) or `at_capacity` (this replica is full) | Reconnect with backoff, then `resume` every channel from its `last_seq` ([gap detection](#63-gap-detection--the-clients-contract)). Nothing is lost: missed events are in Postgres |
 | `4400` | Malformed frame or unknown field | Fix the client; do not retry blindly |
 | `4401` | `session_revoked`, `reauth_timeout`, or ticket invalid | Re-authenticate over REST, mint a new ticket |
 | `4403` | Origin not allowed | Fatal; do not retry |

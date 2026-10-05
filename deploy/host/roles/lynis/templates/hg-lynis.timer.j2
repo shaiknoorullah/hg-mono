@@ -1,0 +1,10 @@
+# Managed by Ansible (deploy/host/roles/lynis).
+[Unit]
+Description=Weekly Lynis security audit
+
+[Timer]
+OnCalendar={{ hg_lynis_time }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

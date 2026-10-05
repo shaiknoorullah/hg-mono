@@ -1,4 +1,4 @@
-# Git History Analysis — Halal Goes Platform (hg-api, halal-goes, hg-docker)
+# Git History Analysis — HalalGoes Platform (hg-api, halal-goes, hg-docker)
 
 Analysis date: 2026-08-09. All commands read-only against the checked-out branches
 (`claude/fleet-agents-repo-analysis-4rqpjt`, which contains `main` in all three repos).
@@ -65,8 +65,8 @@ Conclusion: within everything this repo has ever recorded, authentication was *p
 | Commits | Identity | Role (inferred) |
 |---|---|---|
 | 128 + 67 | Aaqeb11 / Aaqeb ahmed nawaz `aaqebahmed@gmail.com` | Lead frontend dev **and** primary PR merger (users, rider, admin-web, restaurant-web, repo tooling) |
-| 44 + 7 + 5 | zeezz7 / Azeezz `abdulaziz2537@gmail.com` | admin-web, restaurant-web, users UI; secondary merger |
-| 30 + 6 | Mohammed Abid Nafi / abid-websleak `abid.nafi04@gmail.com` | auth package, rider backend integration; left activity ~Oct 2025 |
+| 44 + 7 + 5 | zeezz7 / Azeezz (email removed) | admin-web, restaurant-web, users UI; secondary merger |
+| 30 + 6 | Mohammed Abid Nafi / abid-websleak (email removed) | auth package, rider backend integration; left activity ~Oct 2025 |
 | 4 | Shaik Noorullah `shaiknooru247@gmail.com` | **Backend owner** — only 4 frontend commits, all 2026-02-02, all fixing auth/Stripe-onboarding state — i.e. the person who wrote hg-api appears in the frontend repo exactly when the new private backend's auth/onboarding was being wired in |
 
 Branch naming: `{dev}websleak/hal-NNN` → PR → `frontend-merging` (integration branch) → periodic bulk PRs `frontend-merging` → `main` (e.g. PRs #101, #106–108, #111, #113, #115, #119, #122, #135). "websleak" suggests an agency (Websleak) doing frontend work for Shaik Noorullah's backend.

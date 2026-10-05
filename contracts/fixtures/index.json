@@ -2,25 +2,40 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 330,
+  "count": 422,
   "counts_by_domain": {
-    "admin": 15,
-    "cart": 12,
-    "catalogue": 31,
+    "admin": 35,
+    "cart": 14,
+    "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 23,
+    "errors": 54,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
     "orders": 44,
     "payments": 12,
-    "platform": 23,
+    "platform": 26,
     "realtime": 8,
-    "refunds": 14,
-    "rider": 21
+    "refunds": 39,
+    "rider": 22
   },
   "fixtures": [
+    {
+      "scenario": "menu_review_queue",
+      "domain": "admin",
+      "schema": "array<MenuItemVersion>",
+      "describes": "Three edits waiting, oldest first, from two restaurants. Only the words, the photo and the dietary and allergen tags wait here; price and availability went live on save. Nothing here is ever approved by waiting.",
+      "operations": [
+        "listMenuReviewQueue"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue"
+      ],
+      "file": "admin/menu_review_queue.json"
+    },
     {
       "scenario": "menu_review_queue_empty",
       "domain": "admin",
@@ -140,6 +155,166 @@
       "file": "admin/menu_version_withdrawn.json"
     },
     {
+      "scenario": "ordering_pause_never_changed",
+      "domain": "admin",
+      "schema": "OrderingPause",
+      "describes": "Ordering is open and nobody has ever paused it: every field but `paused` is null.",
+      "operations": [
+        "getOrderingPause"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "empty"
+      ],
+      "file": "admin/ordering_pause_never_changed.json"
+    },
+    {
+      "scenario": "ordering_pause_on",
+      "domain": "admin",
+      "schema": "OrderingPause",
+      "describes": "New orders are paused platform-wide during an incident. Orders already placed carry on; `createQuote` and `createOrder` answer `error_ordering_paused`.",
+      "operations": [
+        "getOrderingPause",
+        "setOrderingPause"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix",
+        "degraded"
+      ],
+      "file": "admin/ordering_pause_on.json"
+    },
+    {
+      "scenario": "ordering_pause_open",
+      "domain": "admin",
+      "schema": "OrderingPause",
+      "describes": "Ordering is open again: the on-call admin resumed it 20 minutes ago, with a reason. `paused_since` is null once ordering resumes; the audit log keeps the pause.",
+      "operations": [
+        "getOrderingPause",
+        "setOrderingPause"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "state-matrix"
+      ],
+      "file": "admin/ordering_pause_open.json"
+    },
+    {
+      "scenario": "payout_run_detail_every_outcome",
+      "domain": "admin",
+      "schema": "PayoutRunDetail",
+      "describes": "A run's audit trail with one line for every outcome a run can record.",
+      "operations": [
+        "getPayoutRun"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "state-matrix"
+      ],
+      "file": "admin/payout_run_detail_every_outcome.json"
+    },
+    {
+      "scenario": "payout_run_failed",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "One transfer failed. The payout stays owed and the next run tries it again.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_failed.json"
+    },
+    {
+      "scenario": "payout_run_list_empty",
+      "domain": "admin",
+      "schema": "array<PayoutRun>",
+      "describes": "No payout run has happened yet.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "admin/payout_run_list_empty.json"
+    },
+    {
+      "scenario": "payout_run_queued",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "An admin asked to run the payout now; the worker picks it up within seconds.",
+      "operations": [
+        "createPayoutRun"
+      ],
+      "status": 202,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_queued.json"
+    },
+    {
+      "scenario": "payout_run_running",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "The Monday run is paying partners. A worker that stops mid-run is relieved by the next.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_running.json"
+    },
+    {
+      "scenario": "payout_run_succeeded",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "The Monday run paid everyone it could; holds and carried balances are not failures.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_succeeded.json"
+    },
+    {
+      "scenario": "restaurant_application_approved",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "`decideRestaurantApplication` with `restaurant_decision_input_approve`: approved and moved to `PAYOUT_PENDING`. **Approval does not make the restaurant live**: `account_state` stays `PENDING` until payouts are enabled and a menu is approved.",
+      "operations": [
+        "decideRestaurantApplication",
+        "getRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "restaurant"
+      ],
+      "file": "admin/restaurant_application_approved.json"
+    },
+    {
       "scenario": "restaurant_application_none_to_take",
       "domain": "admin",
       "schema": "RestaurantApplication|null",
@@ -162,8 +337,7 @@
       "describes": "A complete application sitting in the queue: five documents, a halal certificate awaiting the seven checks, and no decision yet.",
       "operations": [
         "getRestaurantApplication",
-        "takeNextRestaurantApplication",
-        "decideRestaurantApplication"
+        "takeNextRestaurantApplication"
       ],
       "status": 200,
       "tags": [
@@ -204,6 +378,78 @@
       "file": "admin/restaurant_application_queue_empty.json"
     },
     {
+      "scenario": "restaurant_decision_input_approve",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. APPROVE: an approval reason; `internal_note` stays with staff.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_approve.json"
+    },
+    {
+      "scenario": "restaurant_decision_input_reject",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. REJECT: a rejection reason. Final for this application.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_reject.json"
+    },
+    {
+      "scenario": "restaurant_decision_input_request_changes",
+      "domain": "admin",
+      "schema": "RestaurantDecisionInput",
+      "describes": "Request body for `decideRestaurantApplication`. REQUEST_CHANGES: a rejection reason and exactly which documents to redo.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/restaurant_decision_input_request_changes.json"
+    },
+    {
+      "scenario": "rider_application_approved",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "`decideRiderApplication` with `rider_decision_input_approve`: the rider moves to `PAYOUT_PENDING`, not straight to dispatchable. They are offered orders only once Stripe reports payouts enabled.",
+      "operations": [
+        "decideRiderApplication",
+        "getRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "rider"
+      ],
+      "file": "admin/rider_application_approved.json"
+    },
+    {
+      "scenario": "rider_application_changes_requested",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "`decideRiderApplication` with `rider_decision_input_request_changes`: the licence is rejected with its reason and the rider redoes exactly that document.",
+      "operations": [
+        "decideRiderApplication",
+        "getRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "rider",
+        "error-path"
+      ],
+      "file": "admin/rider_application_changes_requested.json"
+    },
+    {
       "scenario": "rider_application_none_to_take",
       "domain": "admin",
       "schema": "RiderApplication|null",
@@ -226,8 +472,7 @@
       "describes": "A rider application with six documents and a vehicle on file.",
       "operations": [
         "getRiderApplication",
-        "takeNextRiderApplication",
-        "decideRiderApplication"
+        "takeNextRiderApplication"
       ],
       "status": 200,
       "tags": [
@@ -252,13 +497,51 @@
       "file": "admin/rider_application_queue.json"
     },
     {
+      "scenario": "rider_decision_input_approve",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. APPROVE: an approval reason, never a rejection reason. The text reaches the rider.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_approve.json"
+    },
+    {
+      "scenario": "rider_decision_input_reject",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. REJECT: a document rejection reason and the sentence the rider reads.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_reject.json"
+    },
+    {
+      "scenario": "rider_decision_input_request_changes",
+      "domain": "admin",
+      "schema": "RiderDecisionInput",
+      "describes": "Request body for `decideRiderApplication`. REQUEST_CHANGES: a document rejection reason and exactly which documents to redo.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "request-body"
+      ],
+      "file": "admin/rider_decision_input_request_changes.json"
+    },
+    {
       "scenario": "staff_list",
       "domain": "admin",
       "schema": "array<StaffUser>",
-      "describes": "Platform staff across every `StaffStatus`.",
+      "describes": "Platform staff across every `StaffStatus`. The invitee has never signed in and has no two-step sign-in yet.",
       "operations": [
-        "listStaff",
-        "createStaffUser"
+        "listStaff"
       ],
       "status": 200,
       "tags": [
@@ -266,6 +549,20 @@
         "state-matrix"
       ],
       "file": "admin/staff_list.json"
+    },
+    {
+      "scenario": "staff_user_invited",
+      "domain": "admin",
+      "schema": "StaffUser",
+      "describes": "What `createStaffUser` returns: a new account in `INVITED`. The super admin set no password; it becomes `ACTIVE` once the invitee sets one and enrols two-step sign-in.",
+      "operations": [
+        "createStaffUser"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "admin/staff_user_invited.json"
     },
     {
       "scenario": "cart_at_quantity_cap",
@@ -326,6 +623,36 @@
         "dense"
       ],
       "file": "cart/cart_many_lines.json"
+    },
+    {
+      "scenario": "cart_ordering_paused",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "A cart that would be quotable, while staff have paused new orders platform-wide: `is_quotable` is false and `blocking_reasons` names `ORDERING_PAUSED`.",
+      "operations": [
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "edge",
+        "degraded"
+      ],
+      "file": "cart/cart_ordering_paused.json"
+    },
+    {
+      "scenario": "cart_restaurant_unavailable",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "The restaurant's halal certificate expired after these items were added. The cart is kept as it was, the badge reads `EXPIRED` (cool slate, never a red one) and `blocking_reasons: [RESTAURANT_UNAVAILABLE]` with `is_quotable: false`. Adding, quoting and ordering answer `409 RESTAURANT_UNAVAILABLE` (`error_restaurant_unavailable`).",
+      "operations": [
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "error-path",
+        "halal"
+      ],
+      "file": "cart/cart_restaurant_unavailable.json"
     },
     {
       "scenario": "cart_single_line",
@@ -478,6 +805,37 @@
       "file": "catalogue/feed_sections.json"
     },
     {
+      "scenario": "menu_category_created",
+      "domain": "catalogue",
+      "schema": "MenuCategory",
+      "describes": "A new, empty category. Categories carry no halal claim, so they are live at once and never reviewed.",
+      "operations": [
+        "createMenuCategory",
+        "createMenuCategoryOnBehalf"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_category_created.json"
+    },
+    {
+      "scenario": "menu_category_updated",
+      "domain": "catalogue",
+      "schema": "MenuCategory",
+      "describes": "`updateMenuCategory`: renamed and deactivated in one save, live at once with no review. Customers no longer see the category or its three items; the restaurant still does, flagged `is_active: false`, and each item keeps its own state for when the category is switched back on.",
+      "operations": [
+        "updateMenuCategory"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_category_updated.json"
+    },
+    {
       "scenario": "menu_empty",
       "domain": "catalogue",
       "schema": "Menu",
@@ -529,6 +887,84 @@
       "file": "catalogue/menu_item_blocked.json"
     },
     {
+      "scenario": "menu_item_created_by_admin",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`createMenuItemOnBehalf`: approved on creation, because the reviewer and the author are the same accountable person. Live at once; the note says who added it.",
+      "operations": [
+        "createMenuItemOnBehalf"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_item_created_by_admin.json"
+    },
+    {
+      "scenario": "menu_item_created_pending_review",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`createMenuItem`: the dish exists, version 1 waits for review, and customers see nothing yet (`live_version` is null). Price is set but cannot be ordered until approval.",
+      "operations": [
+        "createMenuItem"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "review-queue"
+      ],
+      "file": "catalogue/menu_item_created_pending_review.json"
+    },
+    {
+      "scenario": "menu_item_edit_pending_review",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`updateMenuItem` changed the description: version 4 waits for review while customers keep seeing version 3. A changed word can carry a halal claim, so it is never live before a person has read it.",
+      "operations": [
+        "updateMenuItem"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "review-queue"
+      ],
+      "file": "catalogue/menu_item_edit_pending_review.json"
+    },
+    {
+      "scenario": "menu_item_edit_price_only",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "Only the price changed ($21.45 to $22.95): live at once, no review, no new version. Orders already placed keep the price they were placed at.",
+      "operations": [
+        "updateMenuItem",
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_item_edit_price_only.json"
+    },
+    {
+      "scenario": "menu_item_edited_by_admin",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`updateMenuItemOnBehalf` renamed the dish: version 4 is approved on save and is already what customers see. The note records that HalalGoes made the change.",
+      "operations": [
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "menu-editing"
+      ],
+      "file": "catalogue/menu_item_edited_by_admin.json"
+    },
+    {
       "scenario": "menu_item_hidden",
       "domain": "catalogue",
       "schema": "MenuItem",
@@ -566,6 +1002,54 @@
         "dense"
       ],
       "file": "catalogue/menu_item_many_variants_and_addons.json"
+    },
+    {
+      "scenario": "menu_item_marked_available",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`setMenuItemAvailability` → `AVAILABLE`. Back on: orderable again at once. Accepted orders and customers' carts are never changed by it.",
+      "operations": [
+        "setMenuItemAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_marked_available.json"
+    },
+    {
+      "scenario": "menu_item_marked_out_of_stock_indefinitely",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`setMenuItemAvailability` → `OUT_OF_STOCK`. Sold out until someone marks it available again. It shows in the weekly reminder of items left out of stock. Accepted orders and customers' carts are never changed by it.",
+      "operations": [
+        "setMenuItemAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_marked_out_of_stock_indefinitely.json"
+    },
+    {
+      "scenario": "menu_item_marked_out_of_stock_until",
+      "domain": "catalogue",
+      "schema": "MenuItemOwnerView",
+      "describes": "`setMenuItemAvailability` → `OUT_OF_STOCK`. Sold out for an hour; it comes back by itself at the time shown. Accepted orders and customers' carts are never changed by it.",
+      "operations": [
+        "setMenuItemAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu-editing",
+        "state-matrix"
+      ],
+      "file": "catalogue/menu_item_marked_out_of_stock_until.json"
     },
     {
       "scenario": "menu_item_out_of_stock",
@@ -1733,6 +2217,21 @@
       "file": "errors/error_active_order_exists.json"
     },
     {
+      "scenario": "error_application_already_decided",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. A second decision on a decided application is refused, never applied over the first.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_application_already_decided.json"
+    },
+    {
       "scenario": "error_authentication_required",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -1755,6 +2254,21 @@
         "error-envelope"
       ],
       "file": "errors/error_below_minimum_order.json"
+    },
+    {
+      "scenario": "error_breached_password",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `BREACHED_PASSWORD`. The new password is on the breached-password list. Same body on reset and change.",
+      "operations": [
+        "resetPassword",
+        "changePassword"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_breached_password.json"
     },
     {
       "scenario": "error_capture_failed",
@@ -1781,6 +2295,94 @@
       "file": "errors/error_cart_has_unavailable_items.json"
     },
     {
+      "scenario": "error_category_name_taken",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case, on create and on rename.",
+      "operations": [
+        "createMenuCategory",
+        "updateMenuCategory",
+        "createMenuCategoryOnBehalf"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_category_name_taken.json"
+    },
+    {
+      "scenario": "error_category_not_empty",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `CATEGORY_NOT_EMPTY`. `deleteMenuCategory` on a category that still holds items. Deleting a category never deletes an item, so nothing changed; `details.item_count` says how many.",
+      "operations": [
+        "deleteMenuCategory"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_category_not_empty.json"
+    },
+    {
+      "scenario": "error_chargeback_closed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. Evidence notes are for open chargebacks only.",
+      "operations": [
+        "addChargebackEvidenceNote"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_chargeback_closed.json"
+    },
+    {
+      "scenario": "error_current_password_incorrect",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry.",
+      "operations": [
+        "changePassword"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_current_password_incorrect.json"
+    },
+    {
+      "scenario": "error_decision_approval_reason_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_decision_approval_reason_required.json"
+    },
+    {
+      "scenario": "error_decision_rejection_reason_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. A rejection or a request for changes without a rejection reason. Every decision is reasoned and audited; nothing changed.",
+      "operations": [
+        "decideRiderApplication",
+        "decideRestaurantApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_decision_rejection_reason_required.json"
+    },
+    {
       "scenario": "error_documents_incomplete",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -1805,6 +2407,23 @@
       "file": "errors/error_forbidden.json"
     },
     {
+      "scenario": "error_halal_tag_not_writable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `FIELD_NOT_WRITABLE`. Nobody types the halal claim onto a dish, not even an admin: it comes from the restaurant's approved certificate. A missing claim shows no badge, never an optimistic one.",
+      "operations": [
+        "createMenuItem",
+        "updateMenuItem",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_halal_tag_not_writable.json"
+    },
+    {
       "scenario": "error_idempotency_key_reuse",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -1827,6 +2446,105 @@
         "error-envelope"
       ],
       "file": "errors/error_internal_error.json"
+    },
+    {
+      "scenario": "error_item_blocked_by_admin",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `ITEM_BLOCKED_BY_ADMIN`. `setMenuItemAvailability` on a `BLOCKED` item. The kitchen cannot un-block it; the message carries the admin's reason.",
+      "operations": [
+        "setMenuItemAvailability"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_item_blocked_by_admin.json"
+    },
+    {
+      "scenario": "error_menu_locked",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MENU_LOCKED`. A menu change while the restaurant is suspended, by its own staff or by an admin on its behalf. The menu still reads normally; every edit control shows the locked-menu state. Opening hours stay editable. Nothing was written.",
+      "operations": [
+        "createMenuCategory",
+        "updateMenuCategory",
+        "deleteMenuCategory",
+        "createMenuItem",
+        "updateMenuItem",
+        "deleteMenuItem",
+        "setMenuItemAvailability",
+        "createMenuCategoryOnBehalf",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf",
+        "deleteMenuItemOnBehalf",
+        "decideMenuVersion"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_locked.json"
+    },
+    {
+      "scenario": "error_menu_locked_banned",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MENU_LOCKED`. An admin changing a banned restaurant's menu, or deciding one of its versions waiting for review. A banned restaurant's own staff cannot sign in, so only admins meet this one.",
+      "operations": [
+        "createMenuCategoryOnBehalf",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf",
+        "deleteMenuItemOnBehalf",
+        "decideMenuVersion"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_locked_banned.json"
+    },
+    {
+      "scenario": "error_menu_version_already_decided",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. Two reviewers on one version: the second decision is refused, never applied twice.",
+      "operations": [
+        "decideMenuVersion"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_version_already_decided.json"
+    },
+    {
+      "scenario": "error_menu_version_item_deleted",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ITEM_DELETED`. The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review.",
+      "operations": [
+        "decideMenuVersion"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_version_item_deleted.json"
+    },
+    {
+      "scenario": "error_menu_version_pending",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `MENU_VERSION_PENDING`. `updateMenuItemOnBehalf` with a claim-bearing field while the restaurant's own edit is in the review queue. A restaurant's edit is never silently discarded.",
+      "operations": [
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_version_pending.json"
     },
     {
       "scenario": "error_not_found",
@@ -1865,6 +2583,21 @@
       "file": "errors/error_offer_expired.json"
     },
     {
+      "scenario": "error_ordering_paused",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ORDERING_PAUSED`. Staff have paused new orders platform-wide during an incident. Nothing was stored and nothing was charged; the same Idempotency-Key can be sent again once ordering resumes. A 409 like `RESTAURANT_CLOSED`, not a 503: the server is fine.",
+      "operations": [
+        "createQuote",
+        "createOrder"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_ordering_paused.json"
+    },
+    {
       "scenario": "error_otp_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -1887,6 +2620,40 @@
         "error-envelope"
       ],
       "file": "errors/error_pod_method_mismatch.json"
+    },
+    {
+      "scenario": "error_price_out_of_range",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `PRICE_OUT_OF_RANGE`. The catalogue price band. The restaurant sets its own price; it is still never a price a client sends for an order.",
+      "operations": [
+        "createMenuItem",
+        "updateMenuItem",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_price_out_of_range.json"
+    },
+    {
+      "scenario": "error_prohibited_ingredient",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `PROHIBITED_INGREDIENT`. Rejected outright, before review. The same check runs for restaurants and for admins editing on their behalf.",
+      "operations": [
+        "createMenuItem",
+        "updateMenuItem",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_prohibited_ingredient.json"
     },
     {
       "scenario": "error_province_not_served",
@@ -1937,6 +2704,109 @@
       "file": "errors/error_rate_limited.json"
     },
     {
+      "scenario": "error_refund_already_decided",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. Someone else decided it first, or it was never waiting. Reload the queue.",
+      "operations": [
+        "approveRefund",
+        "declineRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_already_decided.json"
+    },
+    {
+      "scenario": "error_refund_approver_over_daily_limit",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `DAILY_CAP_EXCEEDED`. A second approver's own rolling 24-hour limit counts too. The request stays in the queue for someone with room.",
+      "operations": [
+        "approveRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_approver_over_daily_limit.json"
+    },
+    {
+      "scenario": "error_refund_mfa_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MFA_REQUIRED`. Money actions need a session signed in with an authenticator code (staff MFA for money actions).",
+      "operations": [
+        "approveRefund",
+        "issueRefund"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_mfa_required.json"
+    },
+    {
+      "scenario": "error_refund_needs_higher_role",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `FORBIDDEN`. An approval request is decided by the role it was sent up to, or a super admin.",
+      "operations": [
+        "approveRefund",
+        "declineRefund"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_needs_higher_role.json"
+    },
+    {
+      "scenario": "error_refund_self_approval_forbidden",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `SELF_APPROVAL_FORBIDDEN`. The person who asked for a refund, or who sent it up for a second person, tried to approve it. A goodwill refund above CAD 50.00 always needs someone else.",
+      "operations": [
+        "approveRefund",
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_self_approval_forbidden.json"
+    },
+    {
+      "scenario": "error_register_restaurant_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, \"R-01 — Restaurant account signup\"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds.",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path"
+      ],
+      "file": "errors/error_register_restaurant_rate_limited.json"
+    },
+    {
+      "scenario": "error_reset_token_not_valid",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `TOKEN_CONSUMED`. `resetPassword` with a token that expired (30 minutes), was already used, or never existed. One body for all three, so a link cannot be probed. The app offers \"Send a new link\" (`requestPasswordReset`).",
+      "operations": [
+        "resetPassword"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_reset_token_not_valid.json"
+    },
+    {
       "scenario": "error_restaurant_closed",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -1947,6 +2817,18 @@
         "error-envelope"
       ],
       "file": "errors/error_restaurant_closed.json"
+    },
+    {
+      "scenario": "error_restaurant_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RESTAURANT_UNAVAILABLE`. From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed and live, or its halal certificate is not current as of the request, computed from admin-verified certificate data. The apps show the halal copy and keep the cart. Pairs with `cart_restaurant_unavailable`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_restaurant_unavailable.json"
     },
     {
       "scenario": "error_review_edit_window_closed",
@@ -1973,6 +2855,48 @@
       "file": "errors/error_review_window_closed.json"
     },
     {
+      "scenario": "error_rider_under_18",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `AGE_REQUIREMENT_NOT_MET`. Approving a rider whose date of birth makes them under 18. No role can override it, and the application stays in review.",
+      "operations": [
+        "decideRiderApplication"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_rider_under_18.json"
+    },
+    {
+      "scenario": "error_staff_email_in_use",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `EMAIL_IN_USE`. `createStaffUser` for an email that already has a live account. No invite is sent.",
+      "operations": [
+        "createStaffUser"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_staff_email_in_use.json"
+    },
+    {
+      "scenario": "error_totp_code_incorrect",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `INVALID_CREDENTIALS`. `verifyTotpEnrolment` with a code that does not match the authenticator. Enrolment stays open: the person types the next code, they do not start again.",
+      "operations": [
+        "verifyTotpEnrolment"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_totp_code_incorrect.json"
+    },
+    {
       "scenario": "error_unknown_field",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -1995,6 +2919,34 @@
         "error-envelope"
       ],
       "file": "errors/error_validation_failed.json"
+    },
+    {
+      "scenario": "error_verification_token_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`410` · `VERIFICATION_TOKEN_EXPIRED`. `verifyEmail` with a token older than 24 hours. A token that never existed gets the same code. The page offers \"Send a new link\" (`resendEmailVerification`).",
+      "operations": [
+        "verifyEmail"
+      ],
+      "status": 410,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_verification_token_expired.json"
+    },
+    {
+      "scenario": "error_verification_token_used",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`410` · `VERIFICATION_TOKEN_USED`. `verifyEmail` with a token that was already used: the email is verified, so the page sends the owner to sign in. Using the link never signs anyone in.",
+      "operations": [
+        "verifyEmail"
+      ],
+      "status": 410,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_verification_token_used.json"
     },
     {
       "scenario": "certification_panel_certified",
@@ -3126,7 +4078,7 @@
       "scenario": "order_admin_view_disputed",
       "domain": "orders",
       "schema": "OrderAdminView",
-      "describes": "A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored).",
+      "describes": "A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored). The money timeline shows the payment, the request, the agent sending it up, and a chargeback with one evidence note.",
       "operations": [
         "getOrderAdmin"
       ],
@@ -4151,6 +5103,21 @@
       "file": "platform/public_config.json"
     },
     {
+      "scenario": "public_config_ordering_paused",
+      "domain": "platform",
+      "schema": "PublicConfig",
+      "describes": "Staff have paused new orders platform-wide. The customer app says ordering is paused instead of letting checkout fail; `ordering` carries no reason, which is for staff.",
+      "operations": [
+        "getPublicConfig"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "degraded"
+      ],
+      "file": "platform/public_config_ordering_paused.json"
+    },
+    {
       "scenario": "readiness_ok",
       "domain": "platform",
       "schema": "ReadinessStatus",
@@ -4187,9 +5154,7 @@
       "operations": [
         "verifyOtp",
         "login",
-        "refreshSession",
-        "verifyEmail",
-        "changePassword"
+        "refreshSession"
       ],
       "status": 200,
       "tags": [
@@ -4197,6 +5162,21 @@
         "auth"
       ],
       "file": "platform/session_grant_customer.json"
+    },
+    {
+      "scenario": "session_grant_password_changed",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`changePassword` from the admin console: every other session was revoked and this one re-issued. Web, so the refresh token is in the `hg_rt` cookie and null here.",
+      "operations": [
+        "changePassword"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth"
+      ],
+      "file": "platform/session_grant_password_changed.json"
     },
     {
       "scenario": "session_next_route_active_delivery",
@@ -4343,6 +5323,21 @@
       "file": "platform/session_next_route_suspended.json"
     },
     {
+      "scenario": "totp_enrolment",
+      "domain": "platform",
+      "schema": "TotpEnrolment",
+      "describes": "Two-step sign-in enrolment, step one: the authenticator URI and ten recovery codes, shown **once**. Step two is `verifyTotpEnrolment` with a live code.",
+      "operations": [
+        "enrollTotp"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth"
+      ],
+      "file": "platform/totp_enrolment.json"
+    },
+    {
       "scenario": "realtime_control_frames",
       "domain": "realtime",
       "schema": "RealtimeEvent[]",
@@ -4451,6 +5446,364 @@
         "error-path"
       ],
       "file": "realtime/realtime_rider_reassigned.json"
+    },
+    {
+      "scenario": "admin_refund_approved",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Legacy state; nothing writes it at launch. Approval goes straight to `AUTHORISED`.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_approved.json"
+    },
+    {
+      "scenario": "admin_refund_authorised",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Approved within the agent's limit: its ledger batch is posted and the refund sender sends it to Stripe.",
+      "operations": [
+        "approveRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_authorised.json"
+    },
+    {
+      "scenario": "admin_refund_cancelled",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Withdrawn before anyone approved it. No money moved.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_cancelled.json"
+    },
+    {
+      "scenario": "admin_refund_declined",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Declined with a staff reason (never shown to the customer). Nothing was sent to Stripe; the customer was told through the notification outbox.",
+      "operations": [
+        "declineRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_declined.json"
+    },
+    {
+      "scenario": "admin_refund_failed",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Stripe refused it; support must act. `failure_message` says why.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_failed.json"
+    },
+    {
+      "scenario": "admin_refund_goodwill_needs_second_person",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "A goodwill refund above CAD 50.00 an agent asked for: it always waits for a second person, whatever the asker's limit.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money"
+      ],
+      "file": "refunds/admin_refund_goodwill_needs_second_person.json"
+    },
+    {
+      "scenario": "admin_refund_pending_approval",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Above the reviewing agent's 24-hour limit: sent up to an admin (`approval_required_role`). The agent who sent it up (`escalated_by`) may not approve it.",
+      "operations": [
+        "approveRefund"
+      ],
+      "status": 202,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_pending_approval.json"
+    },
+    {
+      "scenario": "admin_refund_queue",
+      "domain": "refunds",
+      "schema": "array<AdminRefund>",
+      "describes": "The review queue: what waits for a person, oldest first.",
+      "operations": [
+        "listRefundsAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "refunds/admin_refund_queue.json"
+    },
+    {
+      "scenario": "admin_refund_queue_empty",
+      "domain": "refunds",
+      "schema": "array<AdminRefund>",
+      "describes": "Nothing waiting for a person.",
+      "operations": [
+        "listRefundsAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "refunds/admin_refund_queue_empty.json"
+    },
+    {
+      "scenario": "admin_refund_requested",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "A customer's request waiting for staff review. Nothing has moved.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_requested.json"
+    },
+    {
+      "scenario": "admin_refund_settled",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Back on the card.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_settled.json"
+    },
+    {
+      "scenario": "admin_refund_submitted",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Sent to Stripe, waiting for its answer.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_submitted.json"
+    },
+    {
+      "scenario": "admin_refund_succeeded",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Stripe accepted it.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_succeeded.json"
+    },
+    {
+      "scenario": "chargeback_charge_refunded",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "Closed because the charge was refunded.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_charge_refunded.json"
+    },
+    {
+      "scenario": "chargeback_evidence_note_added",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "`201` after an evidence note: the chargeback with the new note last.",
+      "operations": [
+        "addChargebackEvidenceNote"
+      ],
+      "status": 201,
+      "tags": [
+        "admin"
+      ],
+      "file": "refunds/chargeback_evidence_note_added.json"
+    },
+    {
+      "scenario": "chargeback_list",
+      "domain": "refunds",
+      "schema": "array<Chargeback>",
+      "describes": "Open chargebacks first, soonest evidence deadline first; closed ones after.",
+      "operations": [
+        "listChargebacks"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "refunds/chargeback_list.json"
+    },
+    {
+      "scenario": "chargeback_list_empty",
+      "domain": "refunds",
+      "schema": "array<Chargeback>",
+      "describes": "No chargebacks.",
+      "operations": [
+        "listChargebacks"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "refunds/chargeback_list_empty.json"
+    },
+    {
+      "scenario": "chargeback_lost",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "The bank decided for the customer; Stripe has taken the money back.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_lost.json"
+    },
+    {
+      "scenario": "chargeback_needs_response",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "A dispute waiting for our evidence, on the clock of its deadline.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_needs_response.json"
+    },
+    {
+      "scenario": "chargeback_prevented",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "Stopped before it became a dispute.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_prevented.json"
+    },
+    {
+      "scenario": "chargeback_under_review",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "Evidence was sent; the bank is deciding.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_under_review.json"
+    },
+    {
+      "scenario": "chargeback_warning_closed",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "The inquiry closed without becoming a dispute.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_warning_closed.json"
+    },
+    {
+      "scenario": "chargeback_warning_needs_response",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "An early warning from the bank (an inquiry); it may become a dispute.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_warning_needs_response.json"
+    },
+    {
+      "scenario": "chargeback_warning_under_review",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "Evidence was sent for an inquiry; the bank is reviewing it.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_warning_under_review.json"
+    },
+    {
+      "scenario": "chargeback_won",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "The bank decided for us; the money stays.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_won.json"
     },
     {
       "scenario": "refund_approval_request_pending",
@@ -4888,6 +6241,21 @@
       "file": "rider/payout_transferring.json"
     },
     {
+      "scenario": "restaurant_payout_history",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "A restaurant's payout history, newest first: this week still accruing, last week mid-transfer on Monday's run, three paid weeks before it. Weekly, automatic, no minimum.",
+      "operations": [
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "money"
+      ],
+      "file": "rider/restaurant_payout_history.json"
+    },
+    {
       "scenario": "rider_availability_offline",
       "domain": "rider",
       "schema": "RiderAvailability",
@@ -5032,6 +6400,19 @@
     "addCartLine": [
       "cart_single_line"
     ],
+    "addChargebackEvidenceNote": [
+      "chargeback_evidence_note_added",
+      "error_chargeback_closed"
+    ],
+    "approveRefund": [
+      "admin_refund_authorised",
+      "admin_refund_pending_approval",
+      "error_refund_already_decided",
+      "error_refund_approver_over_daily_limit",
+      "error_refund_mfa_required",
+      "error_refund_needs_higher_role",
+      "error_refund_self_approval_forbidden"
+    ],
     "attachRestaurantDocument": [
       "document_approved",
       "document_expired",
@@ -5063,7 +6444,9 @@
       "order_admin_view_completed"
     ],
     "changePassword": [
-      "session_grant_customer"
+      "error_breached_password",
+      "error_current_password_incorrect",
+      "session_grant_password_changed"
     ],
     "clearCart": [
       "cart_empty"
@@ -5100,10 +6483,43 @@
     "createDocumentDownloadUrl": [
       "presigned_download"
     ],
+    "createMenuCategory": [
+      "error_category_name_taken",
+      "error_menu_locked",
+      "menu_category_created"
+    ],
+    "createMenuCategoryOnBehalf": [
+      "error_category_name_taken",
+      "error_menu_locked",
+      "error_menu_locked_banned",
+      "menu_category_created"
+    ],
+    "createMenuItem": [
+      "error_halal_tag_not_writable",
+      "error_menu_locked",
+      "error_price_out_of_range",
+      "error_prohibited_ingredient",
+      "menu_item_created_pending_review"
+    ],
+    "createMenuItemOnBehalf": [
+      "error_halal_tag_not_writable",
+      "error_menu_locked",
+      "error_menu_locked_banned",
+      "error_price_out_of_range",
+      "error_prohibited_ingredient",
+      "menu_item_created_by_admin"
+    ],
+    "createOrder": [
+      "error_ordering_paused"
+    ],
     "createPaymentMethodSetupIntent": [
       "setup_intent"
     ],
+    "createPayoutRun": [
+      "payout_run_queued"
+    ],
     "createQuote": [
+      "error_ordering_paused",
       "quote_large_tip",
       "quote_pickup",
       "quote_single_line_minimum",
@@ -5130,7 +6546,8 @@
       "restaurant_staff_list"
     ],
     "createStaffUser": [
-      "staff_list"
+      "error_staff_email_in_use",
+      "staff_user_invited"
     ],
     "createUpload": [
       "presigned_upload"
@@ -5144,6 +6561,10 @@
       "halal_certificate_status_superseded"
     ],
     "decideMenuVersion": [
+      "error_menu_locked",
+      "error_menu_locked_banned",
+      "error_menu_version_already_decided",
+      "error_menu_version_item_deleted",
       "menu_version_approved",
       "menu_version_draft",
       "menu_version_pending_review",
@@ -5152,10 +6573,23 @@
       "menu_version_withdrawn"
     ],
     "decideRestaurantApplication": [
-      "restaurant_application_pending_review"
+      "error_application_already_decided",
+      "error_decision_approval_reason_required",
+      "error_decision_rejection_reason_required",
+      "restaurant_application_approved"
     ],
     "decideRiderApplication": [
-      "rider_application_pending_review"
+      "error_application_already_decided",
+      "error_decision_approval_reason_required",
+      "error_decision_rejection_reason_required",
+      "error_rider_under_18",
+      "rider_application_approved",
+      "rider_application_changes_requested"
+    ],
+    "declineRefund": [
+      "admin_refund_declined",
+      "error_refund_already_decided",
+      "error_refund_needs_higher_role"
     ],
     "delayOrder": [
       "restaurant_order_picked_up",
@@ -5163,6 +6597,20 @@
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
       "restaurant_order_restaurant_pending"
+    ],
+    "deleteMenuCategory": [
+      "error_category_not_empty",
+      "error_menu_locked"
+    ],
+    "deleteMenuItem": [
+      "error_menu_locked"
+    ],
+    "deleteMenuItemOnBehalf": [
+      "error_menu_locked",
+      "error_menu_locked_banned"
+    ],
+    "enrollTotp": [
+      "totp_enrolment"
     ],
     "getActiveOrder": [
       "dispatch_assigned",
@@ -5215,7 +6663,20 @@
       "cart_empty",
       "cart_has_unavailable_items",
       "cart_many_lines",
+      "cart_ordering_paused",
+      "cart_restaurant_unavailable",
       "cart_single_line"
+    ],
+    "getChargeback": [
+      "chargeback_charge_refunded",
+      "chargeback_lost",
+      "chargeback_needs_response",
+      "chargeback_prevented",
+      "chargeback_under_review",
+      "chargeback_warning_closed",
+      "chargeback_warning_needs_response",
+      "chargeback_warning_under_review",
+      "chargeback_won"
     ],
     "getConnectStatus": [
       "connect_status_complete",
@@ -5321,11 +6782,20 @@
       "tracking_preparing",
       "tracking_ready_for_pickup"
     ],
+    "getOrderingPause": [
+      "ordering_pause_never_changed",
+      "ordering_pause_on",
+      "ordering_pause_open"
+    ],
     "getOwnMenu": [
       "owned_menu_with_pending_version"
     ],
+    "getPayoutRun": [
+      "payout_run_detail_every_outcome"
+    ],
     "getPublicConfig": [
-      "public_config"
+      "public_config",
+      "public_config_ordering_paused"
     ],
     "getQuote": [
       "quote_expired",
@@ -5360,6 +6830,7 @@
       "restaurant_detail_unverified"
     ],
     "getRestaurantApplication": [
+      "restaurant_application_approved",
       "restaurant_application_pending_review"
     ],
     "getRestaurantAvailability": [
@@ -5409,6 +6880,8 @@
       "restaurant_profile"
     ],
     "getRiderApplication": [
+      "rider_application_approved",
+      "rider_application_changes_requested",
       "rider_application_pending_review"
     ],
     "getRiderDashboard": [
@@ -5438,6 +6911,8 @@
       "payout_detail_paid"
     ],
     "issueRefund": [
+      "error_refund_mfa_required",
+      "error_refund_self_approval_forbidden",
       "refund_approval_request_pending",
       "refund_approved",
       "refund_authorised",
@@ -5455,6 +6930,10 @@
       "addresses_empty",
       "addresses_list"
     ],
+    "listChargebacks": [
+      "chargeback_list",
+      "chargeback_list_empty"
+    ],
     "listHalalIssuingBodies": [
       "halal_issuing_bodies_empty",
       "halal_issuing_bodies_seed",
@@ -5465,6 +6944,7 @@
       "halal_issuing_body_suspended"
     ],
     "listMenuReviewQueue": [
+      "menu_review_queue",
       "menu_review_queue_empty",
       "menu_version_approved",
       "menu_version_draft",
@@ -5491,6 +6971,12 @@
       "payment_methods_empty",
       "payment_methods_list"
     ],
+    "listPayoutRuns": [
+      "payout_run_failed",
+      "payout_run_list_empty",
+      "payout_run_running",
+      "payout_run_succeeded"
+    ],
     "listRefunds": [
       "refund_approved",
       "refund_authorised",
@@ -5503,6 +6989,10 @@
       "refund_settled",
       "refund_submitted",
       "refund_succeeded"
+    ],
+    "listRefundsAdmin": [
+      "admin_refund_queue",
+      "admin_refund_queue_empty"
     ],
     "listRestaurantApplications": [
       "restaurant_application_queue",
@@ -5530,7 +7020,8 @@
       "payout_paid",
       "payout_ready",
       "payout_transferred",
-      "payout_transferring"
+      "payout_transferring",
+      "restaurant_payout_history"
     ],
     "listRestaurantStaff": [
       "restaurant_staff_list"
@@ -5611,6 +7102,7 @@
       "session_next_route_suspended"
     ],
     "registerRestaurant": [
+      "error_register_restaurant_rate_limited",
       "restaurant_registration"
     ],
     "rejectOrder": [
@@ -5628,6 +7120,10 @@
     ],
     "requestOtp": [
       "otp_challenge"
+    ],
+    "resetPassword": [
+      "error_breached_password",
+      "error_reset_token_not_valid"
     ],
     "reviewRestaurantDocument": [
       "document_approved",
@@ -5676,6 +7172,17 @@
       "halal_issuing_body_rejected",
       "halal_issuing_body_retired",
       "halal_issuing_body_suspended"
+    ],
+    "setMenuItemAvailability": [
+      "error_item_blocked_by_admin",
+      "error_menu_locked",
+      "menu_item_marked_available",
+      "menu_item_marked_out_of_stock_indefinitely",
+      "menu_item_marked_out_of_stock_until"
+    ],
+    "setOrderingPause": [
+      "ordering_pause_on",
+      "ordering_pause_open"
     ],
     "setRestaurantAcceptingOrders": [
       "restaurant_open_state_closed_holiday",
@@ -5773,8 +7280,32 @@
     "updateCustomerProfile": [
       "customer_profile"
     ],
+    "updateMenuCategory": [
+      "error_category_name_taken",
+      "error_menu_locked",
+      "menu_category_updated"
+    ],
+    "updateMenuItem": [
+      "error_halal_tag_not_writable",
+      "error_menu_locked",
+      "error_price_out_of_range",
+      "error_prohibited_ingredient",
+      "menu_item_edit_pending_review",
+      "menu_item_edit_price_only"
+    ],
+    "updateMenuItemOnBehalf": [
+      "error_halal_tag_not_writable",
+      "error_menu_locked",
+      "error_menu_locked_banned",
+      "error_menu_version_pending",
+      "error_price_out_of_range",
+      "error_prohibited_ingredient",
+      "menu_item_edit_price_only",
+      "menu_item_edited_by_admin"
+    ],
     "verifyEmail": [
-      "session_grant_customer"
+      "error_verification_token_expired",
+      "error_verification_token_used"
     ],
     "verifyOtp": [
       "session_grant_customer",
@@ -5786,17 +7317,22 @@
       "session_next_route_order_tracking",
       "session_next_route_profile_capture",
       "session_next_route_suspended"
+    ],
+    "verifyTotpEnrolment": [
+      "error_totp_code_incorrect"
     ]
   },
   "defaults": {
     "acceptOffer": "assignment_assigned",
     "acceptOrder": "restaurant_order_preparing",
     "addCartLine": "cart_single_line",
+    "addChargebackEvidenceNote": "chargeback_evidence_note_added",
+    "approveRefund": "admin_refund_authorised",
     "attachRestaurantDocument": "document_submitted",
     "bindPackageSeal": "seal_bound",
     "cancelOrder": "order_cancelled",
     "cancelOrderAdmin": "order_admin_view_completed",
-    "changePassword": "session_grant_customer",
+    "changePassword": "session_grant_password_changed",
     "clearCart": "cart_empty",
     "confirmUpload": "stored_object_ready",
     "createAddress": "addresses_list",
@@ -5804,22 +7340,30 @@
     "createCertificateViewUrl": "presigned_download",
     "createConnectAccount": "connect_status_complete",
     "createDocumentDownloadUrl": "presigned_download",
+    "createMenuCategory": "menu_category_created",
+    "createMenuCategoryOnBehalf": "menu_category_created",
+    "createMenuItem": "menu_item_created_pending_review",
+    "createMenuItemOnBehalf": "menu_item_created_by_admin",
     "createPaymentMethodSetupIntent": "setup_intent",
+    "createPayoutRun": "payout_run_queued",
     "createQuote": "quote_standard",
     "createRealtimeTicket": "realtime_ticket",
     "createRefund": "refund_requested",
     "createRestaurantStaffUser": "restaurant_staff_list",
-    "createStaffUser": "staff_list",
+    "createStaffUser": "staff_user_invited",
     "createUpload": "presigned_upload",
     "decideHalalCertificate": "halal_certificate_status_approved",
     "decideMenuVersion": "menu_version_approved",
-    "decideRestaurantApplication": "restaurant_application_pending_review",
-    "decideRiderApplication": "rider_application_pending_review",
+    "decideRestaurantApplication": "restaurant_application_approved",
+    "decideRiderApplication": "rider_application_approved",
+    "declineRefund": "admin_refund_declined",
     "delayOrder": "restaurant_order_preparing",
+    "enrollTotp": "totp_enrolment",
     "getActiveOrder": "order_preparing",
     "getAddress": "addresses_list",
     "getAssignment": "assignment_en_route_to_dropoff",
     "getCart": "cart_many_lines",
+    "getChargeback": "chargeback_needs_response",
     "getConnectStatus": "connect_status_complete",
     "getCurrentOffer": "offer_pending",
     "getCurrentPrincipal": "principal_customer",
@@ -5834,7 +7378,9 @@
     "getOrderRating": "order_rating_food_and_rider",
     "getOrderReceipt": "receipt_standard",
     "getOrderTracking": "tracking_picked_up",
+    "getOrderingPause": "ordering_pause_open",
     "getOwnMenu": "owned_menu_with_pending_version",
+    "getPayoutRun": "payout_run_detail_every_outcome",
     "getPublicConfig": "public_config",
     "getQuote": "quote_standard",
     "getReadiness": "readiness_ok",
@@ -5856,17 +7402,20 @@
     "getRiderPayout": "payout_detail_paid",
     "issueRefund": "refund_goodwill_admin",
     "listAddresses": "addresses_list",
+    "listChargebacks": "chargeback_list",
     "listHalalIssuingBodies": "halal_issuing_body_accepted",
-    "listMenuReviewQueue": "menu_version_pending_review",
+    "listMenuReviewQueue": "menu_review_queue",
     "listNotifications": "notifications_list",
     "listOrders": "order_list_active",
     "listOrdersAdmin": "order_list_past",
     "listPaymentMethods": "payment_methods_list",
+    "listPayoutRuns": "payout_run_succeeded",
     "listRefunds": "refund_list_empty",
+    "listRefundsAdmin": "admin_refund_queue",
     "listRestaurantApplications": "restaurant_application_queue",
     "listRestaurantDocuments": "restaurant_document_pack_complete",
     "listRestaurantOrders": "restaurant_order_queue_busy",
-    "listRestaurantPayouts": "payout_paid",
+    "listRestaurantPayouts": "restaurant_payout_history",
     "listRestaurantStaff": "restaurant_staff_list",
     "listRestaurants": "restaurant_list_populated",
     "listRiderApplications": "rider_application_queue",
@@ -5893,6 +7442,8 @@
     "setDefaultAddress": "addresses_list",
     "setDefaultPaymentMethod": "payment_methods_list",
     "setHalalIssuingBodyStatus": "halal_issuing_body_accepted",
+    "setMenuItemAvailability": "menu_item_marked_out_of_stock_until",
+    "setOrderingPause": "ordering_pause_open",
     "setRestaurantAcceptingOrders": "restaurant_open_state_open",
     "setRestaurantHours": "restaurant_hours_standard",
     "setRiderAvailability": "rider_availability_online_idle",
@@ -5909,7 +7460,9 @@
     "updateAddress": "addresses_list",
     "updateCartLine": "cart_at_quantity_cap",
     "updateCustomerProfile": "customer_profile",
-    "verifyEmail": "session_grant_customer",
+    "updateMenuCategory": "menu_category_updated",
+    "updateMenuItem": "menu_item_edit_pending_review",
+    "updateMenuItemOnBehalf": "menu_item_edited_by_admin",
     "verifyOtp": "session_grant_customer"
   }
 }

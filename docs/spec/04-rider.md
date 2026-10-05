@@ -1,7 +1,14 @@
-# Halal Goes — RIDER Domain Specification
+---
+covers:
+  - apps/rider/**
+  - services/hg/internal/rider/**
+reviewed: 2026-10-05
+---
+
+# HalalGoes — RIDER Domain Specification
 
 **Status:** implementation-ready draft · **Date:** 2026-08-10
-**Target architecture:** Go modular monolith (`rider`, `dispatch`, `delivery`, `earnings`, `payouts` modules) + Postgres 16 w/ PostGIS + Redis 7 + MinIO + Traefik. Expo (React Native) rider app.
+**Target architecture:** Go modular monolith (`rider`, `dispatch`, `delivery`, `earnings`, `payouts` modules) + Postgres 16 w/ PostGIS + Redis 7 + [Silo](https://github.com/pgsty/silo), the maintained MinIO fork ([object storage](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) + Traefik. Expo (React Native) rider app.
 **Sources:** `sow.txt` (Rider section, items 1–9) · `scope/features-customer-rider.md` (§B, §C) · `fleet/hg-fe-rider-app.md` · `fleet/gap-realtime-dispatch.md`
 
 This document exists because the SOW's Rider section is nine bullet groups of undefined adjectives, and the system built against it got every hard question wrong. Every rule below is stated so that two engineers reading it independently write the same code, and a QA engineer can fail a build against it.
@@ -30,7 +37,7 @@ Every `/api/v1/riders/:riderId/...` endpoint enforces, server-side, in this orde
 
 1. Valid non-expired access JWT, `role=rider`.
 2. `jwt.sub == :riderId` (or caller has `role in (admin, support)` with an audit record written).
-3. `rider.account_status = ACTIVE` for all operational endpoints (availability, offers, deliveries, earnings, payouts). `SUSPENDED`/`DEACTIVATED` ⇒ `403 ACCOUNT_NOT_ACTIVE`.
+3. `rider.account_status = ACTIVE` to go online and take new offers. `SUSPENDED`/`DEACTIVATED` ⇒ `403 ACCOUNT_NOT_ACTIVE` there, but the rider may still finish the current delivery and see earnings and payouts: earned money is always paid, and operations may still reassign that delivery ([rider suspended or deactivated](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [suspended mid-delivery](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
 4. `rider.onboarding_state = ACTIVE` for dispatch-related endpoints ⇒ otherwise `403 ONBOARDING_INCOMPLETE` with `details.next_step`.
 
 **No client-persisted boolean (`isApproved`, `isVerified`, `isAuthenticated`) is ever load-bearing.** The app renders from server state only; a forged local flag must produce a 403 on the first call.
@@ -96,13 +103,13 @@ ASSIGNED → EN_ROUTE_TO_PICKUP → ARRIVED_AT_PICKUP → PICKED_UP → EN_ROUTE
 | `dispatch.max_total_seconds` | 300 | D-15 |
 | `dispatch.ops_queue_seconds` | 600 | D-15 |
 | `geo.arrival_radius_m` | 150 | D-20 |
-| `earn.base_fare_cents` | 350 | D-26 |
-| `earn.per_km_cents` | 80 | D-26 |
+| `earn.base_fare_cents` | 299, the delivery fee's base, passed through ([rider pay](../decisions/README.md#settled--reconciliations)) | D-26 |
+| `earn.per_km_cents` | 100, the delivery fee's per-km rate, passed through | D-26 |
 | `earn.wait_free_minutes` | 8 | D-26 |
-| `earn.wait_per_minute_cents` | 25 (cap 20 min) | D-26 |
-| `earn.min_guarantee_cents` | 600 | D-26 |
-| `earn.cancel_compensation_cents` | 300 (post-`ARRIVED_AT_PICKUP`) | D-26 |
-| `payout.min_balance_cents` | 1000 | D-28 |
+| `earn.wait_per_minute_cents` | 0 at launch: wait-time pay is deferred | D-26 |
+| `earn.min_guarantee_cents` | 0: no floor | D-26 |
+| `earn.cancel_compensation_cents` | 0 at launch: deferred with wait-time pay | D-26 |
+| `payout.min_balance_cents` | 0: no minimum ([payout minimum](../decisions/README.md#settled--reconciliations)) | D-28 |
 | `payout.schedule` | weekly, Mon 09:00 America/Toronto | D-28 |
 | `loc.active_interval_seconds` | 5 | D-12 |
 | `loc.idle_interval_seconds` | 15 | D-11 |
@@ -137,7 +144,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Out of scope**: email/password login, social sign-in (Apple/Google/Facebook buttons are removed, not stubbed), non-CA phone numbers, WhatsApp OTP.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — launch market**: Is the launch market Canada-only for riders in V1, or must the app support a second market (the current codebase mixes `+1` flags with `+91` logic and CAD/₹ currency)? · **Proposed default**: Canada only — `CA` phone, `CAD`, `America/*` timezones, English only; every other locale is a V3 i18n project. · **Why**: One coherent market removes an entire class of currency/phone/timezone defects at zero cost.
+> **Decided:** Canada only, launching in Ontario: `CA` phone numbers and CAD ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
 ---
 
@@ -212,10 +219,11 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 - **SOW trace**: *"Register with document upload… licence, phone and vehicle documents."* · *"Document Verification: Upload and submit legal documents for verification."* · *"Profile management: … Upload Documents"*
 - **Behaviour**: Three-call presigned flow per document, all through the API (no hardcoded host):
-  1. `POST /api/v1/riders/:id/documents/upload-url {document_type, file_name, content_type, size_bytes}` → `{document_id, upload_url, object_key, expires_at}` (MinIO presigned PUT, TTL 10 min).
+  1. `POST /api/v1/riders/:id/documents/upload-url {document_type, file_name, content_type, size_bytes}` → `{document_id, upload_url, object_key, expires_at}` (Silo presigned PUT, TTL 10 min).
   2. Client `PUT`s the bytes directly to `upload_url`.
   3. `POST /api/v1/riders/:id/documents/:document_id/confirm {expires_on?}` → server HEADs the object, verifies size + content-type + magic bytes, stores metadata, sets `status=UPLOADED`.
   Then `POST /api/v1/riders/:id/onboarding/documents` submits the complete set for review.
+  A document takes only the rider's own `READY` `KYC_DOCUMENT` upload that is not already another subject's document; any other file is `404`, the same as one that does not exist ([who may attach an upload](01-platform.md#p-28--presigned-upload-and-download)).
 - **Data**: `rider_document(id, rider_id, document_type, object_key, bucket, file_name, content_type, size_bytes, sha256, expires_on, status, uploaded_at, reviewed_at, reviewed_by, rejection_code, rejection_note, superseded_by, version, created_at)`
   - `document_type ∈ {DRIVERS_LICENCE, VEHICLE_REGISTRATION, VEHICLE_INSURANCE, PROFILE_PHOTO, GOVERNMENT_ID}`
   - `status ∈ {PENDING_UPLOAD, UPLOADED, UNDER_REVIEW, APPROVED, REJECTED, EXPIRED, SUPERSEDED}`
@@ -228,32 +236,33 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
     | BICYCLE / ON_FOOT | GOVERNMENT_ID (+expiry), PROFILE_PHOTO |
   - Accepted MIME: `image/jpeg`, `image/png`, `image/heic`, `application/pdf`. Max 15 MB per file, max 20 pages for PDF. Anything else ⇒ `415 UNSUPPORTED_MEDIA_TYPE`. Magic-byte check must match the declared content-type (`422 CONTENT_TYPE_MISMATCH`).
   - `expires_on` required for every type except `PROFILE_PHOTO`; must be ≥ 30 days in the future at submission (`422 DOCUMENT_EXPIRES_TOO_SOON`).
-  - Re-uploading a type marks the previous row `SUPERSEDED` and increments `version`; history is never deleted.
+  - Re-uploading a type marks the previous row `SUPERSEDED` and increments `version`; history is never deleted. The attach does this in one transaction, locked per rider and type so two files attached at once leave one pending row: a pending (`SUBMITTED` or `IN_REVIEW`) row of the type becomes `SUPERSEDED` and leaves the review queue, and the new row takes the latest row's `version` + 1 and points at it with `supersedes_id`. An `APPROVED` row stays in force until its replacement is approved ([a replacement document that is turned down](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); [#358](https://github.com/shaiknoorullah/hg-mono/issues/358)).
+  - Attaching a file that is already attached as that type, including two attaches of it at once, returns the existing document and adds nothing. The database refuses a second document for one file ([#229](https://github.com/shaiknoorullah/hg-mono/issues/229)). A different file is a re-upload, as in the rule above ([#358](https://github.com/shaiknoorullah/hg-mono/issues/358)).
   - Objects live in a **private** bucket. Reads are only ever via a 5-minute presigned GET issued to the owning rider or to an admin/support principal, with an access-log row. No public URLs.
   - Submission is blocked with `422 DOCUMENTS_INCOMPLETE` and `details.missing[]` naming each missing type/expiry.
   - **Expiry enforcement**: a nightly job sets `status=EXPIRED` at `expires_on`. At `expires_on - 30d`, `-7d`, `-1d` the rider gets a push + inbox notice. On expiry the rider is forced `OFFLINE` and `account_status=SUSPENDED` with reason `DOCUMENT_EXPIRED` until a replacement is approved.
 - **Acceptance criteria**:
-  1. Given a `.exe` renamed to `.pdf`, When confirm is called, Then `422 CONTENT_TYPE_MISMATCH` and the object is deleted from MinIO.
+  1. Given a `.exe` renamed to `.pdf`, When confirm is called, Then `422 CONTENT_TYPE_MISMATCH` and the object is deleted from Silo.
   2. Given a CAR rider missing vehicle insurance, When they submit for review, Then `422 DOCUMENTS_INCOMPLETE` with `missing:["VEHICLE_INSURANCE"]`.
   3. Given an approved rider whose insurance `expires_on` is today, When the nightly job runs, Then availability becomes OFFLINE, account_status becomes SUSPENDED(DOCUMENT_EXPIRED), and the next dispatch wave excludes them.
-  4. Given a document object key, When an unauthenticated client requests it directly from MinIO, Then the request is denied (403) — no object is publicly readable.
+  4. Given a document object key, When an unauthenticated client requests it directly from Silo, Then the request is denied (403) — no object is publicly readable.
 - **Out of scope**: OCR/auto-extraction of expiry dates, police/background checks, provincial licence-database lookups, Supabase storage (deleted).
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — background checks**: does Halal Goes require a criminal-record / driving-abstract check before a rider handles food and money? · **Proposed default**: not in V1; a `BACKGROUND_CHECK` document type and `background_check_status` column are provisioned but unused, so adding the vendor later is not a migration. · **Why**: the SOW does not mention it and it is a per-province legal question for the client's counsel.
+> **DECISION REQUIRED — background checks**: does HalalGoes require a criminal-record / driving-abstract check before a rider handles food and money? · **Proposed default**: not in V1; a `BACKGROUND_CHECK` document type and `background_check_status` column are provisioned but unused, so adding the vendor later is not a migration. · **Why**: the SOW does not mention it and it is a per-province legal question for the client's counsel.
 
 ---
 
 ### D-06 — Verification status tracking + notifications
 
 - **SOW trace**: *"Track Registration Verification Status: Notifications: Get notifications on verification status · Support: Get support on verification rejections"*
-- **Behaviour**: `GET /api/v1/riders/:id/onboarding/status` returns the whole review picture: `{state, progress_percent, next_step, next_route, is_complete, submitted_at, decided_at, documents:[{document_type, status, expires_on, rejection_code, rejection_note}], steps_completed:{phone_verified, profile, vehicle, documents_submitted, documents_approved, payout_onboarded}}`. The rider app **does not poll**: it renders from this endpoint on screen focus and updates live from the `verification.updated` WebSocket event plus a push notification for every decision.
+- **Behaviour**: `GET /api/v1/riders/:id/onboarding/status` returns the whole review picture: `{state, progress_percent, next_step, next_route, is_complete, submitted_at, decided_at, documents:[{document_type, status, expires_on, rejection_code, rejection_note}], steps_completed:{phone_verified, profile, vehicle, documents_submitted, documents_approved, payout_onboarded}}`. The rider app **does not poll**: it renders from this endpoint on screen focus and updates live from the `verification.updated` WebSocket event plus a push notification for each application decision; rejecting one document sends nothing on its own ([rejecting one rider document](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 - **Data**: `rider_verification_review(id, rider_id, submitted_at, decided_at, decided_by, decision, rejection_summary, sla_due_at)`; per-document decisions on `rider_document`.
 - **States**: `DOCUMENTS_REVIEW → DOCUMENTS_APPROVED (→ PAYOUT_PENDING)` or `→ DOCUMENTS_REJECTED`. Partial approval is allowed: individual documents can be `APPROVED` while others are `REJECTED`; the rider-level decision is `REJECTED` if ≥1 required document is rejected.
 - **Rules**:
   - Rejection uses a closed `rejection_code` taxonomy, each with rider-facing copy: `ILLEGIBLE`, `EXPIRED`, `WRONG_DOCUMENT_TYPE`, `NAME_MISMATCH`, `DOB_MISMATCH`, `PLATE_MISMATCH`, `SUSPECTED_ALTERATION`, `INCOMPLETE_PAGES`, `OTHER` (requires `rejection_note`). The **real** code and note are rendered — never a hardcoded example list.
   - Review SLA: `sla_due_at = submitted_at + 48h` (business hours America/Toronto). Breach raises an ops alert; the rider sees "under review" with the expected decision date.
-  - Notifications fired: `verification.submitted`, `verification.approved`, `verification.rejected` (lists each failed document + reason), `verification.expiring` (30/7/1 days), `verification.expired`. Each is push + in-app inbox row + WS event.
+  - Notifications fired: `verification.submitted`, `verification.approved`, `verification.rejected` (lists each failed document + reason), `verification.expiring` (30/7/1 days), `verification.expired`. Each is push + in-app inbox row + WS event. Reinstating a paused rider also notifies them ([reinstatement notice](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   - Support access from the rejection screen: a deep link that pre-fills a support ticket with `rider_id`, `review_id`, and the rejection codes (D-34).
   - `progress_percent` is server-computed from `steps_completed`; the client never invents it.
 - **Acceptance criteria**:
@@ -273,10 +282,10 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **States**: `DOCUMENTS_REJECTED → DOCUMENTS_PENDING → DOCUMENTS_REVIEW`.
 - **Rules**:
   - Only documents with `status=REJECTED` or `EXPIRED` may be replaced during resubmission; re-uploading an APPROVED document is allowed but resets that document to `UNDER_REVIEW`.
-  - Max **3** resubmission attempts per rider. On the 4th rejection the rider becomes `account_status=DEACTIVATED` with reason `VERIFICATION_EXHAUSTED`, and only support can reopen.
+  - Max **3** resubmission attempts per rider. On the 4th rejection the rider becomes `account_status=DEACTIVATED` with reason `VERIFICATION_EXHAUSTED`, and only support can reopen. The review of the third resubmission may only approve or reject, never ask for changes ([after the third resubmission](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   - Cooldown: a resubmission may not be made more than once per 30 minutes (`429 RESUBMIT_TOO_SOON`) to stop upload-spam loops.
   - A resubmission with no changed documents is rejected `422 NOTHING_TO_RESUBMIT`.
-  - An ACTIVE rider replacing a still-valid document keeps working; the new document only takes effect on approval, and rejection leaves the old (valid) document in force.
+  - An ACTIVE rider replacing a still-valid document keeps working; the new document only takes effect on approval, and rejection leaves the old (valid) document in force until it expires, with a request for a new upload ([replacement document turned down](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 - **Acceptance criteria**:
   1. Given a rejected licence, When the rider re-uploads it and resubmits, Then `attempt_number=2`, state is `DOCUMENTS_REVIEW`, and the previously approved documents are not re-reviewed.
   2. Given `attempt_number=4` rejected, When the decision is recorded, Then `account_status=DEACTIVATED` reason `VERIFICATION_EXHAUSTED` and login returns `403 ACCOUNT_DEACTIVATED`.
@@ -290,13 +299,13 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 - **SOW trace**: *"Earnings Support: Assist riders with payout related disputes/grievances."* (Support Agent) — the payout account is the precondition for every earnings feature in SOW Rider item 5.
 - **Behaviour**: After `DOCUMENTS_APPROVED` the rider enters `PAYOUT_PENDING`. `POST /api/v1/riders/:id/payout-account` creates a **Stripe Connect Express** account (country `CA`, currency `cad`, capability `transfers`) and returns a single-use Account Link URL, opened in an in-app browser (`expo-web-browser`). Stripe redirects back to `halalgoes-rider://payout/return` or `…/refresh`. The server does **not** trust the redirect: account readiness is set only from the `account.updated` webhook when `payouts_enabled=true && charges_enabled` and `requirements.currently_due` is empty. On readiness, `onboarding_state → ACTIVE` and `account_status → ACTIVE`.
-- **Data**: `rider_payout_account(id, rider_id, provider='STRIPE', provider_account_id, payouts_enabled, requirements_due jsonb, disabled_reason, default_external_account_last4, created_at, updated_at)`; `webhook_event(id, provider, provider_event_id UNIQUE, type, payload, processed_at)`.
-- **States**: `PAYOUT_PENDING → ACTIVE` (readiness) · `ACTIVE → SUSPENDED(PAYOUT_ACCOUNT_RESTRICTED)` if Stripe later reports `payouts_enabled=false`.
+- **Data**: `rider_payout_account(id, rider_id, provider='STRIPE', provider_account_id, payouts_enabled, first_enabled_at, requirements_due jsonb, disabled_reason, default_external_account_last4, created_at, updated_at)`; `webhook_event(id, provider, provider_event_id UNIQUE, type, payload, processed_at)`.
+- **States**: `PAYOUT_PENDING → ACTIVE` (readiness, which also sets `first_enabled_at`, never cleared). If Stripe later reports `payouts_enabled=false`, only transfers are held; `account_status` stays `ACTIVE`.
 - **Rules**:
   - `/stripe-onboarding` must exist as a real route (the shipped app 404'd here — riders literally could not finish signup).
   - Account Links expire; the client must request a fresh link each time rather than caching the URL.
   - Webhooks are signature-verified and deduplicated on `provider_event_id`; processing is idempotent.
-  - A rider may not go ONLINE without `payouts_enabled=true` (`403 PAYOUT_ACCOUNT_INCOMPLETE`). Riders who become restricted mid-shift finish their active delivery and are then forced OFFLINE.
+  - A rider who never finished Stripe setup (`first_enabled_at` null) may not go ONLINE (`403 PAYOUT_ACCOUNT_INCOMPLETE`), so new riders finish it before their first order. A rider whose payout account worked before and is later restricted keeps going online and taking offers, with a banner asking them to fix it ([restricted Stripe payouts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), narrowed by [which partners keep working](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
   - Earnings continue to accrue in the internal ledger while the account is restricted; only the transfer is blocked.
 - **Acceptance criteria**:
   1. Given a rider who completes Stripe onboarding, When the `account.updated` webhook arrives with `payouts_enabled=true`, Then `onboarding_state=ACTIVE` and the rider can toggle online.
@@ -318,6 +327,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Optimistic concurrency via `If-Match: <etag>`; mismatch ⇒ `412 STALE_WRITE`.
   - PII fields are audit-logged (`who, when, old→new`) with old values hashed after 90 days.
   - `preferred_zone_id` is stored but has no dispatch effect in V1 (see D-13 out-of-scope).
+  - The app follows the phone's light or dark setting ([dark theme](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 - **Acceptance criteria**:
   1. Given an online rider, When they turn off offer notifications, Then `422 REQUIRED_WHILE_ONLINE` and the toggle reverts.
   2. Given a name change, When it is saved, Then a `GET /riders/me` on a second device returns the new name (i.e. it is server-persisted, not local).
@@ -343,9 +353,9 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   | `ON_DELIVERY → OFFLINE` | as above **and** `go_offline_after_delivery=true`, or the rider was suspended mid-delivery |
   | `ONLINE_IDLE → ONLINE_STALE` | `now - coords_updated_at > 120 s` (sweeper, every 15 s) |
   | `ONLINE_STALE → ONLINE_IDLE` | any location update |
-  | `* → OFFLINE` | rider toggles off, admin suspension, document expiry, payout restriction, 12 h continuous online cap |
+  | `* → OFFLINE` | rider toggles off, admin suspension, document expiry, 12 h continuous online cap |
 - **Rules**:
-  - Going online requires: `onboarding_state=ACTIVE`, `account_status=ACTIVE`, `payouts_enabled=true`, foreground **and** background location permission granted, notification permission granted, a fresh fix. Each unmet condition appears in `blocking_reasons[]` with a machine code so the app can deep-link to the fix.
+  - Going online requires: `onboarding_state=ACTIVE`, `account_status=ACTIVE`, Stripe setup finished once (`first_enabled_at` set; a later payout restriction does not block), foreground **and** background location permission granted, notification permission granted, a fresh fix. Each unmet condition appears in `blocking_reasons[]` with a machine code so the app can deep-link to the fix.
   - Going offline while `ON_DELIVERY` ⇒ `409 ACTIVE_DELIVERY_IN_PROGRESS`; the response includes `{"suggestion":"SET_GO_OFFLINE_AFTER_DELIVERY"}`.
   - **Restoration is server-owned and guaranteed.** A reconciliation job runs every 60 s: any rider in `ON_DELIVERY` with no assignment in a non-terminal state is returned to `ONLINE_IDLE`/`OFFLINE` and an anomaly is logged. (In the old system availability was never restored — this job is the backstop, not the mechanism.)
   - Continuous-online cap: 12 h. At 11 h the rider is warned; at 12 h they are forced OFFLINE and must wait 8 h before going online again. Active deliveries always complete first.
@@ -385,7 +395,8 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 ### D-12 — Background location during an active delivery
 
 - **SOW trace**: *"Order Status Updates… in real-time"* · *"Distance Tracking: Track distance traveled for accurate payment calculations."*
-- **Behaviour**: On entering `ON_DELIVERY` the app starts a **background** location task (`expo-location` `startLocationUpdatesAsync` + `expo-task-manager`): Android — a **foreground service** with a persistent notification ("Delivery in progress — Halal Goes"), `foregroundService.killServiceOnDestroy=false`; iOS — `allowsBackgroundLocationUpdates=true`, `pausesUpdatesAutomatically=false`, `activityType=AutomotiveNavigation`, requires **Always** authorization. Cadence: every `5 s` or `25 m`, High accuracy. Points are queued locally (SQLite/AsyncStorage ring buffer) and flushed every 10 s in batches of ≤ 20; on network failure the buffer holds up to **500 points or 30 minutes**, whichever is smaller, and flushes on reconnect. The task stops when the assignment reaches a terminal state.
+- **Behaviour**: On entering `ON_DELIVERY` the app starts a **background** location task (`expo-location` `startLocationUpdatesAsync` + `expo-task-manager`): Android — a **foreground service** with a persistent notification ("Delivery in progress — HalalGoes"), `foregroundService.killServiceOnDestroy=false`; iOS — `allowsBackgroundLocationUpdates=true`, `pausesUpdatesAutomatically=false`, `activityType=AutomotiveNavigation`, requires **Always** authorization. Cadence: every `5 s` or `25 m`, High accuracy. Points are queued locally (SQLite/AsyncStorage ring buffer) and flushed every 10 s in batches of ≤ 20; on network failure the buffer holds up to **500 points or 30 minutes**, whichever is smaller, and flushes on reconnect. The task stops when the assignment reaches a terminal state.
+  **V0 build (rider app, `apps/rider/src/location.ts`):** foreground only, no background task yet. While the signed-in app is open and the dashboard shows an assignment that is being worked (`ASSIGNED` through `ARRIVED_AT_DROPOFF`, and `RETURNING`), the app posts one High-accuracy fix to `POST /v1/riders/me/positions` every 5 s, tagged with `assignment_id` and carrying `heading_deg` and `speed_mps` when the device has them; when online and idle it posts one Balanced fix every 20 s. There is no local buffer: a failed report is replaced by the next one.
 - **Data**: as D-11 with `assignment_id` set; `assignment.last_location_at`; `rider_device(id, rider_id, platform, os_version, app_version, push_token, background_permission_status, battery_optimisation_exempt, last_seen_at)`.
 - **States**: introduces `assignment.tracking_health ∈ {HEALTHY, DEGRADED, LOST}` — `HEALTHY` < 60 s since last point, `DEGRADED` 60–300 s, `LOST` > 300 s.
 - **Rules**:
@@ -401,7 +412,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Out of scope**: always-on background tracking while idle (explicitly rejected — privacy and battery), driver-behaviour telemetry (harsh braking, speed scoring).
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — tracking-loss reassignment**: after how long without location on an active delivery may ops reassign the order, and does the original rider still earn anything? · **Proposed default**: ops may reassign after 10 min of `LOST` **and** a failed phone contact attempt; the original rider is paid the cancellation compensation (`earn.cancel_compensation_cents`) if they had already reached `ARRIVED_AT_PICKUP`, nothing otherwise. · **Why**: reassigning too eagerly duplicates deliveries; never reassigning strands the customer.
+> **DECISION REQUIRED — tracking-loss reassignment**: after how long without location on an active delivery may ops reassign the order, and does the original rider still earn anything? · **Proposed default**: ops may reassign after 10 min of `LOST` **and** a failed phone contact attempt; paying the original rider waits on cancellation compensation, which is deferred ([wait-time pay and cancellation compensation](../decisions/README.md#settled--reconciliations)). · **Why**: reassigning too eagerly duplicates deliveries; never reassigning strands the customer.
 
 ---
 
@@ -415,7 +426,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   SELECT r.id,
          ST_Distance(r.coords, $pickup) AS pickup_distance_m
   FROM rider r
-  JOIN rider_payout_account p ON p.rider_id = r.id AND p.payouts_enabled
+  JOIN rider_payout_account p ON p.rider_id = r.id AND p.first_enabled_at IS NOT NULL  -- a later restriction does not exclude
   WHERE r.onboarding_state = 'ACTIVE'
     AND r.account_status   = 'ACTIVE'
     AND r.availability_state = 'ONLINE_IDLE'
@@ -454,7 +465,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Rules**:
   - **A rider is offered at most one order at a time**, enforced by the partial unique index on `offer(rider_id) WHERE state='PENDING'` and by the `availability_state='ONLINE_IDLE'` filter. A rider `ON_DELIVERY` is structurally un-offerable in V1. (The old system had neither guard; double-assignment was inevitable.)
   - A rider appears in at most one wave per order.
-  - `estimated_earnings_cents` shown on the offer is computed with the same formula as D-26 using the *routed* pickup→dropoff distance, and the **surge multiplier is frozen onto the offer row**. If the rider accepts, that frozen multiplier is what pays out, even if surge drops before delivery.
+  - `estimated_earnings_cents` shown on the offer is what the rider will be paid, the order's delivery fee plus the tip so far ([rider pay](../decisions/README.md#settled--reconciliations)), and the **surge multiplier is frozen onto the offer row**. If the rider accepts, that frozen multiplier is what pays out, even if surge drops before delivery.
   - Every candidate list and score is persisted in `candidate_snapshot` so any "why didn't I get that order" dispute is answerable.
   - Dispatch never runs before the restaurant accepts the order; the customer is never charged for a delivery that has no dispatch attempt.
   - Config values are snapshotted onto `dispatch_run` so a config change mid-run cannot alter an in-flight run.
@@ -480,7 +491,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Data**: `offer.delivered_to_device_at`, `offer.seen_at` (set by `POST /offers/:id/seen`); `push_delivery(id, offer_id, rider_id, channel, provider_message_id, sent_at, delivered_at, error)`.
 - **States**: `offer.state` stays `PENDING`; delivery telemetry only.
 - **Rules**:
-  - The offer sheet displays exactly: pickup restaurant name + address + distance to pickup, drop-off area (street + neighbourhood; **full unit number and customer phone are withheld until accept**), item count and total weight class, estimated total trip distance and duration, `estimated_earnings_cents` broken into base/distance/surge/tip-so-far, and the countdown.
+  - The offer sheet displays exactly: pickup restaurant name + address + distance to pickup, drop-off approximate area with distance and direction (**the street address, unit and customer phone come only after accept**: [the customer's address on an offer](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)), item count and total weight class, estimated total trip distance and duration, `estimated_earnings_cents` broken into base/distance/surge/tip-so-far, and the countdown.
   - The sheet **never auto-dismisses before `expires_at`**. At `expires_at` it closes and shows "Offer expired" for 3 s. (The shipped app dismissed at 7 s against a 5-minute server window — riders lost jobs they intended to take.)
   - If clock skew between device and server exceeds 5 s, the countdown uses `server_now` from the response plus monotonic elapsed time.
   - Duplicate deliveries of the same `offer_id` across paths must render one sheet (dedupe on `offer_id`).
@@ -501,7 +512,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **SOW trace**: *"Order Acceptance/Rejection: Option to accept or decline orders based on availability or preferences."* (the failure side of it) · *"Order Alerts: … order updates"*
 - **Behaviour**: Expiry is **server-authoritative**. A durable timer (Postgres `expires_at` + a 1 s sweeper on a single leader, plus an in-process timer for latency) transitions `PENDING → EXPIRED` at `expires_at`. When every offer in a wave is resolved non-positively, the run advances to the next wave (D-13). When waves, radii and `max_total_seconds` are all exhausted:
   1. `dispatch_run.state = ESCALATED_TO_OPS`; the order enters an ops **manual dispatch queue** with a countdown of `ops_queue_seconds = 600`.
-  2. The customer is notified: "We're still finding a delivery partner — you'll be updated in 10 minutes; you can cancel for a full refund now."
+  2. The customer is notified: "We're still finding a delivery partner — you'll be updated in 10 minutes." Cancelling now goes through Get help, since free cancellation ends at restaurant acceptance ([cancellation policy](../decisions/README.md#settled--client-decisions)).
   3. Ops can manually assign any ACTIVE rider (bypassing radius) or extend the window once.
   4. If the window expires unassigned: order → `CANCELLED_NO_RIDER`, and a **real refund** is issued through the payment module (full order total, including delivery fee and tip), with a `refund` record, a customer notification, and a goodwill credit. The restaurant is notified to stop preparation; if food was already prepared, the restaurant is compensated per the restaurant domain's spec.
 - **Data**: `dispatch_run.final_outcome ∈ {ASSIGNED, CANCELLED_NO_RIDER, CANCELLED_BY_CUSTOMER, CANCELLED_BY_RESTAURANT}`; `ops_dispatch_queue_item(id, order_id, dispatch_run_id, enqueued_at, deadline_at, claimed_by, resolved_at, resolution)`.
@@ -594,7 +605,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 ### D-18 — Order dashboard (active work + resume)
 
 - **SOW trace**: *"Order Dashboard: View available order with details like pickup location, drop-off location, customer name, and order items."*
-- **Behaviour**: The home screen shows one of three server-determined modes from `GET /api/v1/riders/me/dashboard`: **OFFLINE** (today's earnings, go-online button, blocking reasons), **ONLINE_IDLE** (map with own position, "waiting for offers", today's earnings + trips, current surge zone if any), **ON_DELIVERY** (a persistent card that deep-links straight into the active assignment screen at the correct step). There is no list of "available orders" to browse — dispatch is push-based, and a browsable pool would break the single-winner guarantee.
+- **Behaviour**: The home screen shows one of three server-determined modes from `GET /api/v1/riders/me/dashboard`: **OFFLINE** (today's earnings, go-online button, blocking reasons), **ONLINE_IDLE** (map with own position, "waiting for offers", today's earnings + trips, current surge zone if any), **ON_DELIVERY** (a persistent card that deep-links straight into the active assignment screen at the correct step). There is no list of "available orders" to browse — dispatch is push-based, and a browsable pool would break the single-winner guarantee. The app has three tabs: Home (this screen), Earnings (with a Deliveries view) and Account ([rider navigation](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 - **Data**: response `{mode, rider:{...}, today:{earnings_cents, trips, online_seconds}, active_assignment:{...}|null, current_offer:{...}|null, announcements:[...]}`.
 - **States**: mirrors `rider.availability_state`.
 - **Rules**:
@@ -618,12 +629,12 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Data**: assignment + order projection; `order.delivery_instructions ∈ {LEAVE_AT_DOOR, MEET_AT_DOOR, MEET_IN_LOBBY, DO_NOT_RING_BELL, CALL_ON_ARRIVAL}` (a single closed enum shared by customer app, API and rider app — the shipped system had three different vocabularies), plus `order.special_instructions` free text ≤ 280 chars.
 - **States**: none; read model. Field visibility is state-dependent (below).
 - **Rules**:
-  - **Progressive disclosure**: before accept, drop-off is street + neighbourhood only and no phone alias. After accept, the full address, unit and phone alias are visible. After the assignment reaches a terminal state, the customer's address is redacted from the rider's history to street level and the phone alias is deactivated within 30 minutes.
+  - **Progressive disclosure**: before accept, drop-off is an approximate area only and no phone alias ([address on an offer](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). After accept, the full address, unit and phone alias are visible. After the assignment reaches a terminal state, the customer's address is redacted from the rider's history to street level and the phone alias is deactivated within 30 minutes.
   - Item **prices and order totals are never shown to the rider** (prepaid orders; the rider has no reason to know the basket value and it invites disputes). Currency is `CAD` and formatted `$` everywhere — one currency, no screen showing `₹`.
   - Special instructions are displayed verbatim, never truncated silently; long text scrolls.
   - Allergen and halal notes present on an item are shown as chips so the rider does not swap bags.
 - **Acceptance criteria**:
-  1. Given an offer sheet (pre-accept), When rendered, Then the response contains no unit number and no phone alias for the customer.
+  1. Given an offer sheet (pre-accept), When rendered, Then the response contains no street address, no unit number and no phone alias for the customer.
   2. Given an accepted assignment, When the details load, Then the full address, buzzer code, phone alias and instruction enum are present and the instruction enum is one of the five canonical values.
   3. Given a delivered assignment 31 minutes later, When the rider opens it from history, Then the address is street-level only and calling the alias returns "this number is no longer available".
 - **Out of scope**: editing order contents, viewing customer order history, item price visibility.
@@ -639,15 +650,15 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **States / triggers**:
   | To state | Trigger | Precondition |
   |---|---|---|
-  | `EN_ROUTE_TO_PICKUP` | automatic on accept, or first movement | — |
+  | `EN_ROUTE_TO_PICKUP` | rider posts it on setting off for the restaurant; the server never advances a state on its own | state = `ASSIGNED` |
   | `ARRIVED_AT_PICKUP` | rider taps "I'm at the restaurant" | within `geo.arrival_radius_m` (150 m) of the restaurant, or manual override with reason |
-  | `PICKED_UP` | rider taps "Picked up" after confirming the bag checklist | state = `ARRIVED_AT_PICKUP`; restaurant order status is `READY_FOR_PICKUP` **or** rider supplies `override_reason` |
-  | `EN_ROUTE_TO_DROPOFF` | automatic on `PICKED_UP` commit | — |
+  | `PICKED_UP` | rider taps "Picked up" after confirming the bag checklist and typing the short pickup code the kitchen reads out ([how a rider confirms pickup](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) | state = `ARRIVED_AT_PICKUP` and the code matches; restaurant order status is `READY_FOR_PICKUP` **or** rider supplies `override_reason` |
+  | `EN_ROUTE_TO_DROPOFF` | rider posts it on leaving the restaurant | state = `PICKED_UP` |
   | `ARRIVED_AT_DROPOFF` | rider taps "I'm here" | within 150 m of the drop-off, or override with reason |
   | `DELIVERED` | rider completes proof of delivery (D-21) | state = `ARRIVED_AT_DROPOFF` **and** POD satisfied |
   | `UNDELIVERABLE` | rider reports an exception (D-32) | any pre-DELIVERED state |
 - **Rules**:
-  - `ARRIVED_AT_PICKUP` and `PICKED_UP` are **distinct states**. Conflating them (as the shipped app did) destroys restaurant wait-time measurement and the wait-time pay component.
+  - `ARRIVED_AT_PICKUP` and `PICKED_UP` are **distinct states**. Conflating them (as the shipped app did) destroys restaurant wait-time measurement.
   - Geofence failures do not block the rider: the transition is allowed with `geofence_ok=false` and a mandatory `override_reason`, and is flagged for ops. Repeated overrides (>3 in 7 days) trigger a review.
   - `occurred_at` is client-supplied but clamped to `[recorded_at - 120 s, recorded_at]`; the server timestamp is authoritative for pay.
   - Every transition emits `order_update` to the customer and restaurant with the mapped customer-facing status, and updates the customer ETA.
@@ -655,7 +666,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Transitions are accepted offline-first: the app queues them with `occurred_at` and replays on reconnect; the server accepts replays up to 2 h late.
 - **Acceptance criteria**:
   1. Given a rider 2 km from the restaurant, When they tap "I'm at the restaurant" without an override reason, Then `422 GEOFENCE_REQUIRED` and no transition row is written.
-  2. Given `ARRIVED_AT_PICKUP` at 10:00 and `PICKED_UP` at 10:14, When the delivery completes, Then `pickup_wait_seconds=840` and the wait-pay component is non-zero.
+  2. Given `ARRIVED_AT_PICKUP` at 10:00 and `PICKED_UP` at 10:14, When the delivery completes, Then `pickup_wait_seconds=840` is recorded.
   3. Given a rider who taps "Picked up" twice, When both requests land, Then one transition row exists and both responses are 200.
   4. Given a rider who taps "Delivered" while in `EN_ROUTE_TO_DROPOFF`, When submitted, Then `409 INVALID_TRANSITION`.
   5. Given no network at the restaurant, When the rider taps "Picked up" and regains signal 4 minutes later, Then the transition is recorded with the original `occurred_at`.
@@ -671,9 +682,9 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   | Delivery instruction | `required_pod_method` | Rider action |
   |---|---|---|
   | `MEET_AT_DOOR`, `MEET_IN_LOBBY`, `CALL_ON_ARRIVAL` | `OTP` | Rider enters the 4-digit code the customer reads out |
-  | `LEAVE_AT_DOOR`, `DO_NOT_RING_BELL` | `PHOTO` | Rider takes a photo of the placed order; uploaded before DELIVERED commits |
-  | any, when the rider reports the customer unreachable | `PHOTO_WITH_ATTESTATION` | Photo + a reason code + a mandatory 5-minute wait (D-32) |
-  The OTP is generated at `PICKED_UP`, shown in the customer app, delivered by push and SMS, and never shown to the rider.
+  | `LEAVE_AT_DOOR`, `DO_NOT_RING_BELL` | `PHOTO` | Rider takes a photo of the placed order and adds a statement, straight away with no wait; uploaded before DELIVERED commits ([leave at door](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) |
+  | any, when the rider reports the customer unreachable | `PHOTO_WITH_ATTESTATION` | Photo + a statement: straight away if the customer chose "leave at door", otherwise after the wait in [incident reporting](#d-32--incident-reporting--mid-delivery-exceptions) |
+  The OTP is generated at `PICKED_UP`, shown on the customer's order view and tracking screen, delivered by push when the rider arrives and by SMS, and never shown to the rider ([how a customer proves the handover](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 - **Data**: `delivery_otp(assignment_id, code_hash, attempts, max_attempts=5, generated_at, verified_at)`; `assignment.pod_method, pod_photo_document_id, pod_otp_verified_at, handover_method`.
   `handover_method ∈ {HANDED_TO_CUSTOMER, LEFT_AT_DOOR, LEFT_WITH_RECEPTION, HANDED_TO_OTHER_PERSON}`.
 - **States**: gates `ARRIVED_AT_DROPOFF → DELIVERED`.
@@ -691,18 +702,19 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Out of scope**: signature capture, ID check for age-restricted goods (no alcohol in scope), face/ID matching.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — POD policy**: is OTP-for-handoff / photo-for-doorstep the right split, or does the client want photo on every delivery? · **Proposed default**: as specified (OTP for met handoffs, photo for unattended). · **Why**: OTP is faster for the common case and photos of a customer at their door are a privacy problem; photos are only needed when nobody signs for the food.
+> **Decided:** the customer's code for met handovers; a photo with a statement for unattended drop-offs ([how a customer proves the handover](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [leave at door](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 
 ---
 
 ### D-22 — Navigation & maps
 
 - **SOW trace**: *"Real-Time Navigation: Integration with Google Maps or similar services for turn-by-turn directions and optimized routes."*
-- **Behaviour**: In-app the rider sees a map with their position, the active waypoint (restaurant, then customer), and a route polyline with distance and ETA, refreshed every 30 s or on a >200 m deviation. Turn-by-turn is **handed off** to the rider's installed navigation app via a deep link (`google.navigation:q=lat,lng&mode=d|b|w`, iOS fallback `comgooglemaps://`, then Apple Maps `maps://`, then a universal `https://www.google.com/maps/dir/?api=1` URL). The route polyline and ETA come from **the server**: `GET /api/v1/riders/:id/assignments/:id/route?leg=PICKUP|DROPOFF` returns `{polyline, distance_m, duration_s, provider, computed_at}`.
+- **Behaviour**: In-app the rider sees a map (Mapbox map tiles; the native map SDK is linked only in a build made with the Mapbox download token, [how](../release/README.md)) with their position, the active waypoint (restaurant, then customer), and a route polyline with distance and ETA, refreshed every 30 s or on a >200 m deviation. Turn-by-turn is **handed off** to the rider's installed navigation app via a deep link (`google.navigation:q=lat,lng&mode=d|b|w`, iOS fallback `comgooglemaps://`, then Apple Maps `maps://`, then a universal `https://www.google.com/maps/dir/?api=1` URL). The route polyline and ETA come from **the server**: `GET /api/v1/riders/:id/assignments/:id/route?leg=PICKUP|DROPOFF` returns `{polyline, distance_m, duration_s, provider, computed_at}`.
+  **V0 build (rider app, `apps/rider/src/map/`):** the offer screen and the active-delivery screen show a live Mapbox map (`@rnmapbox/maps`): the rider's own position from the device, gliding between fixes; the restaurant and drop-off pins; and the road route with its distance and ETA. The offer previews rider → pickup → drop-off area; the active delivery routes to the restaurant until `PICKED_UP`, then to the customer. One **Navigate** button hands the current stop to the phone's maps app (Android `google.navigation:` then `geo:`; iOS `maps://` then Google Maps; then the https URL). Two launch-time departures from the behaviour above, on the owner's instruction of 5 Oct 2026: the route comes from the **Mapbox Directions API called from the app with the public `pk.` token** (there is no server route endpoint in the contract yet), refreshed on a change of stop and otherwise at most every 30 s once the rider has moved more than 200 m; and the profile is always `driving`, because the app does not know the rider's vehicle type on these screens. When Directions fails the map draws a dashed straight line labelled "Route unavailable: straight-line estimate" with haversine × 1.35 distance. A fix older than 30 s is labelled with its age (`Last updated 42s ago`). The distance-and-ETA text always renders under the map, and is all that renders on web or in a build without the Mapbox SDK linked (see [Releasing the apps](../release/README.md)).
 - **Data**: `assignment_route(id, assignment_id, leg, provider, polyline, distance_m, duration_s, computed_at)` — one row per recomputation, retained for distance auditing.
 - **States**: none.
 - **Rules**:
-  - **No map/routing API key ships in the app bundle for server-computable work.** Routing, matrix and ETA calls are proxied through the API with a server-held key, rate-limited per rider. The only client-side key is the platform Maps SDK render key, which is restricted by bundle id/SHA-1 fingerprint and stored in EAS secrets, never committed.
+  - **No routing key or secret map token ships in the app bundle.** Routing, matrix and ETA calls go through the API to our self-hosted routing service, rate-limited per rider. The only client-side key is the Mapbox public token for map tiles ([#57](https://github.com/shaiknoorullah/hg-mono/issues/57)), stored in EAS secrets, never committed.
   - Routing profile follows `vehicle_type` (D-04): `driving` / `cycling` / `walking`.
   - Route recomputation is capped at 1 call per 30 s per assignment, plus one immediately on each state transition; results are cached in Redis for 30 s keyed on `(origin_cell, destination, profile)`.
   - If the routing provider fails, the map falls back to a straight line with an explicit "route unavailable" label and haversine × 1.35 distance; the assignment is still completable.
@@ -710,11 +722,11 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Acceptance criteria**:
   1. Given a rider on a BICYCLE, When the route loads, Then the provider was called with the cycling profile and the deep link uses `mode=b`.
   2. Given the routing provider returns 500, When the map loads, Then the screen still renders with a straight-line fallback and the rider can complete the delivery.
-  3. Given a grep of the built JS bundle, When searching for `AIza`, Then no routing/Directions key is present.
+  3. Given the built JS bundle, When it is scanned, Then it holds no secret Mapbox token and no routing key.
 - **Out of scope**: in-app turn-by-turn voice guidance, multi-stop route optimisation (V3 with batching), offline maps.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — maps/routing provider**: Google Maps Platform (Directions + Distance Matrix + Roads) or an OSM-based stack (Mapbox / self-hosted Valhalla + OSRM)? · **Proposed default**: Google Directions/Matrix server-side for launch, behind a `RoutingProvider` interface so a swap is one adapter. · **Why**: the client's SOW names Google and the team already has keys; the interface keeps the per-request cost negotiable later.
+> **Decided:** self-hosted routing (Valhalla or OSRM; engine not yet chosen, [#199](https://github.com/shaiknoorullah/hg-mono/issues/199)) with Mapbox map tiles ([self-hosted rule and Mapbox exception](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
 
 ---
 
@@ -728,7 +740,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - The trace is cleaned before use: points with `accuracy_m > 50` dropped; implied speeds above the vehicle profile's max (car 130 km/h, bike 45, foot 12) dropped; the remainder map-matched to the road graph (or, if the provider is unavailable, summed as haversine between consecutive cleaned points).
   - If `tracking_health` was `LOST` for more than 20 % of the delivery, `distance_source='ROUTED_ONLY'` and `billable = routed_distance_m`; the rider is never penalised for tracking gaps.
   - Distance is computed **server-side only**. The client displays it; it never derives it. (`distance × $2` in the shipped app was a fiction.)
-  - The pickup leg (rider → restaurant) is **not** paid per kilometre in V1; it is reflected in the base fare. This must be stated plainly in the rider's earnings breakdown so it is not perceived as missing pay.
+  - At launch pay does not use these distances: the rider is paid the delivery fee set when the order was priced ([rider pay](../decisions/README.md#settled--reconciliations)), and `billable_distance_m` is kept for audit and disputes. The pickup leg (rider → restaurant) is **not** paid per kilometre. This must be stated plainly in the rider's earnings breakdown so it is not perceived as missing pay.
   - Recorded to the metre; rounded only at display time.
 - **Acceptance criteria**:
   1. Given a routed distance of 4 000 m and a traced distance of 4 400 m, When earnings are computed, Then `billable_distance_m = 4400`.
@@ -738,7 +750,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Out of scope**: paying for the pickup leg per km, odometer integration, toll reimbursement.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — distance basis for pay**: routed distance, GPS-traced distance, or the capped hybrid above? · **Proposed default**: the capped hybrid (`max(routed, min(traced, routed×1.30))`). · **Why**: pure routed under-pays real detours; pure traced is trivially gameable and unstable under GPS noise.
+> **Decided:** pay is the delivery fee priced at checkout, so these distances do not set pay at launch ([rider pay](../decisions/README.md#settled--reconciliations)).
 
 ---
 
@@ -786,7 +798,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Rules**:
   - Arrival notification is idempotent and fired exactly once per assignment.
   - The rider may raise at most 3 issues per assignment.
-  - Restaurant wait clock starts at `ARRIVED_AT_PICKUP` and drives both the wait-pay component (D-26) and the restaurant's performance metrics.
+  - Restaurant wait clock starts at `ARRIVED_AT_PICKUP` and drives the restaurant's performance metrics; wait-time pay is deferred ([wait-time pay and cancellation compensation](../decisions/README.md#settled--reconciliations)).
 - **Acceptance criteria**:
   1. Given `ARRIVED_AT_PICKUP` commits, When the restaurant dashboard is open, Then it displays the rider-arrived banner within 2 s, exactly once.
   2. Given the rider raises `ORDER_NOT_READY` at 12 minutes of waiting, When 20 minutes of waiting are reached, Then an ops ticket exists.
@@ -801,14 +813,10 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **SOW trace**: *"Earnings Dashboard: View daily, weekly, and monthly earnings."* (the number has to come from somewhere)
 - **Behaviour**: On `DELIVERED` (or a compensable terminal state) the earnings module writes an immutable ledger entry computed **server-side**:
   ```
-  base            = earn.base_fare_cents                                        // 350
-  distance        = round(billable_distance_m / 1000 × earn.per_km_cents)       // 80 ¢/km
-  wait            = clamp(pickup_wait_seconds/60 - 8, 0, 20) × 25               // ¢
-  subtotal        = round((base + distance) × surge_multiplier) + wait
-  guaranteed      = max(subtotal, earn.min_guarantee_cents)                     // 600 floor
-  gross           = guaranteed + tip_cents + adjustment_cents
+  delivery        = the order's delivery fee as priced at checkout              // $2.99 + $1.00/km
+  gross           = round(delivery × surge_multiplier) + tip_cents + adjustment_cents
   ```
-  `surge_multiplier` is the value frozen on the accepted offer (D-13). `tip_cents` is 100 % pass-through and may increase after delivery (post-delivery tipping window of 24 h creates a second ledger entry of type `TIP`). Every component is stored, not just the total, and the formula version is stamped.
+  The delivery fee passes through in full: no rate card and no floor ([rider pay](../decisions/README.md#settled--reconciliations), [delivery fee](../decisions/README.md#settled--client-decisions)); `wait_cents` and `guarantee_topup_cents` stay at zero. `surge_multiplier` is the value frozen on the accepted offer (D-13); the surge model is still open, so it is 1.0 at launch and pay stays a pure pass-through ([open, non-blocking](../decisions/README.md#open--non-blocking)). `tip_cents` is 100 % pass-through and may increase after delivery (post-delivery tipping window of 24 h creates a second ledger entry of type `TIP`). Every component is stored, not just the total, and the formula version is stamped. Each component is its own line, mirroring one `RIDER_PAYABLE` ledger posting: a `DELIVERY` line for the delivery fee and a `TIP` line for the tip, written in the rider's own transition of the order to `DELIVERED`, for the rider whose assignment is `DELIVERED` with its proof of delivery ([#306](https://github.com/shaiknoorullah/hg-mono/issues/306)). Until the surge model is decided, the multiplier paid is 1.00.
 - **Data**: `earning_entry(id, rider_id, assignment_id, type, base_cents, distance_cents, wait_cents, surge_multiplier, subtotal_cents, guarantee_topup_cents, tip_cents, adjustment_cents, gross_cents, currency='CAD', formula_version, status, earned_at, payout_id, created_at)`
   - `type ∈ {DELIVERY, TIP, CANCELLATION_COMPENSATION, BONUS, ADJUSTMENT, CLAWBACK}`
   - `status ∈ {PENDING, AVAILABLE, PAID, REVERSED}`
@@ -816,24 +824,24 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Rules**:
   - **The client never computes earnings.** Any client-side arithmetic on money is a build-breaking review failure. (The shipped app invented `distance × $2 + $5`.)
   - Ledger entries are append-only and immutable; corrections are new `ADJUSTMENT`/`CLAWBACK` rows referencing the original.
-  - `CANCELLATION_COMPENSATION` (`earn.cancel_compensation_cents = 300`) is paid when an order is cancelled by the customer, restaurant, or platform **after** the rider reached `ARRIVED_AT_PICKUP`; nothing is paid for a cancellation before arrival.
-  - Tips are visible to the rider only **after** delivery (the offer shows tip-so-far only if the client decides tips are pre-visible — see decision), and 100 % of a tip reaches the rider with no platform deduction.
+  - `CANCELLATION_COMPENSATION` is not paid at launch: it is deferred with wait-time pay ([wait-time pay and cancellation compensation](../decisions/README.md#settled--reconciliations)). The entry type stays so it can be turned on later.
+  - The offer shows the tip so far before the rider accepts ([tip shown before accepting](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)), and 100 % of a tip reaches the rider with no platform deduction.
   - Earnings are gross to the rider as an independent contractor; the platform withholds nothing and reports per the tax decision below.
   - Every entry is reproducible: given `formula_version` and the stored inputs, recomputation must yield the identical `gross_cents` (property test).
 - **Acceptance criteria**:
-  1. Given `billable_distance_m=4400`, `pickup_wait_seconds=840`, `surge=1.0`, `tip=200`, When the entry is written, Then `base=350, distance=352, wait=150, subtotal=852, gross=1052`.
-  2. Given a 0.4 km trip with no wait and no surge, When the entry is written, Then `guarantee_topup_cents` brings `gross` to at least 600.
+  1. Given an order whose delivery fee is 799, `surge=1.0` and `tip=200`, When the entries are written, Then the `DELIVERY` line is 799 and the `TIP` line 200 (`gross_cents` 999 in all), and `wait_cents` and `guarantee_topup_cents` are 0.
+  2. Given a 0.4 km trip, When the entry is written, Then `guarantee_topup_cents=0` and `gross` is the delivery fee plus tip: there is no floor.
   3. Given surge 1.5 frozen at offer time and surge 1.0 at delivery time, When the entry is written, Then `surge_multiplier=1.5` was applied.
-  4. Given an order cancelled after `ARRIVED_AT_PICKUP`, When it terminates, Then a `CANCELLATION_COMPENSATION` entry of 300 exists.
+  4. Given an order cancelled after `ARRIVED_AT_PICKUP`, When it terminates, Then no `CANCELLATION_COMPENSATION` entry is written at launch.
   5. Given a customer tips $3 two hours after delivery, When the tip is captured, Then a second `TIP` entry of 300 exists and the original entry is unchanged.
 - **Out of scope**: hourly guarantees, referral bonuses, quest/streak bonuses, fuel surcharges.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — earnings rate card**: confirm base $3.50, $0.80/km on the drop-off leg, $0.25/min wait after 8 free minutes (20 min cap), $6.00 minimum per delivery, 100 % of tips, $3.00 cancellation compensation after arrival — all CAD. · **Proposed default**: exactly these numbers, stored as admin config so they change without a deploy. · **Why**: the rate card is a commercial decision the client owns, but the system cannot be built or tested without concrete numbers.
+> **Decided:** no rate card: the delivery fee ($2.99 + $1.00/km) plus 100 % of tips; wait pay and cancellation compensation deferred ([rider pay](../decisions/README.md#settled--reconciliations)).
 
 > **DECISION REQUIRED — surge**: who sets the multiplier and how? · **Proposed default**: V1 ships a manual, admin-set surge per zone per time window (multiplier 1.0–2.5, 0.1 steps), frozen onto each offer; automatic demand-based surge is V3. · **Why**: an automatic surge engine needs demand data the platform will not have until it is live.
 
-> **DECISION REQUIRED — tip visibility before accept**: does the offer show the tip the customer has already added? · **Proposed default**: yes, show tip-so-far in the offer's estimated earnings, and never reduce a rider's pay if the tip is later lowered (tip reductions become platform-funded adjustments). · **Why**: hiding it depresses acceptance on high-tip orders; allowing retroactive reduction invites "tip-baiting" complaints.
+> **Decided:** the offer shows the tip so far ([tip shown to riders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). Still open: whether the platform makes up a tip the customer later lowers ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)). Until it is decided, it does not: `HG_RIDER_TIP_MAKEUP` is off.
 
 > **DECISION REQUIRED — contractor tax handling**: does the platform issue T4A slips and collect GST/HST numbers from riders? · **Proposed default**: collect an optional GST/HST number at payout onboarding, issue annual earnings summaries, no withholding; formal T4A generation deferred pending the client's accountant. · **Why**: it is a legal/accounting decision, but the data model must reserve the fields now.
 
@@ -863,26 +871,26 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 ### D-28 — Payouts
 
 - **SOW trace**: *"Earnings Support: Assist riders with payout related disputes/grievances."* (Support Agent) · SOW Restaurant §6 establishes the payout pattern (request, status tracking, history, preferences) that riders inherit.
-- **Behaviour**: **Automatic weekly payout.** Every Monday at 09:00 America/Toronto a job sums each rider's `AVAILABLE` entries for the prior Monday 00:00 → Sunday 23:59:59 local, and if the total ≥ `payout.min_balance_cents` (1000) creates a `payout` row and a Stripe **Transfer** to the rider's connected account (Stripe then pays out to the bank on its own schedule). Below the minimum, the balance rolls into the next period. Riders see: current balance, next payout date and estimated amount, and a payout history with per-payout entry lists. `GET /api/v1/riders/:id/payouts`, `GET /payouts/:id`.
+- **Behaviour**: **Automatic weekly payout.** Every Monday at 09:00 America/Toronto a job sums each rider's `AVAILABLE` entries for the prior Monday 00:00 → Sunday 23:59:59 local, and for any positive total creates a `payout` row and a Stripe **Transfer** to the rider's connected account (Stripe then pays out to the bank on its own schedule). There is no minimum ([payout minimum](../decisions/README.md#settled--reconciliations)). Riders see: current balance, next payout date and estimated amount, and a payout history with per-payout entry lists. `GET /api/v1/riders/:id/payouts`, `GET /payouts/:id`.
 - **Data**: `payout(id, rider_id, period_start, period_end, gross_cents, entry_count, provider, provider_transfer_id, status, initiated_at, settled_at, failure_code, failure_message, created_at)`
   - `status ∈ {SCHEDULED, PROCESSING, PAID, FAILED, REVERSED}`
 - **States**: `SCHEDULED → PROCESSING → PAID | FAILED`; `FAILED` returns its entries to `AVAILABLE` for the next run.
 - **Rules**:
   - Entry selection and the payout row are created in one transaction that stamps `earning_entry.payout_id` and flips `status → PAID` only on the provider's success webhook. An entry can belong to at most one non-reversed payout (`UNIQUE(payout_id, id)` semantics enforced by the FK plus a partial index).
-  - Payouts are blocked (and the balance held) when `payouts_enabled=false`; the rider sees why and a link to fix it.
+  - Payouts are blocked (and the balance held) when `payouts_enabled=false`; the rider sees why and a link to fix it, and the held payout goes out on the next Monday payout after the fix ([when a held payout is released](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   - Failures are surfaced with the provider's reason mapped to rider-readable copy, retried on the next cycle, and alerted to ops after 2 consecutive failures.
-  - Negative balances (clawbacks exceeding earnings) are carried forward and netted against future earnings; the platform never debits a rider's bank account.
+  - Negative balances (clawbacks exceeding earnings) are carried forward and netted against future earnings; the platform never debits a rider's bank account. A balance that stays below zero does not block the rider at launch; operations follow up by hand ([balance below zero](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   - Idempotency: the weekly job uses `Idempotency-Key = sha256(rider_id|period_start)`; a re-run creates no duplicate transfer.
   - Every payout has a downloadable statement listing each contributing delivery.
 - **Acceptance criteria**:
   1. Given a rider with $47.20 available for the period, When the Monday job runs, Then one `payout` row exists with `gross_cents=4720`, one Stripe transfer is created, and all contributing entries carry its `payout_id`.
-  2. Given a rider with $6.40 available, When the job runs, Then no payout is created and the balance appears in the next period's total.
+  2. Given a rider with $6.40 available, When the job runs, Then a payout with `gross_cents=640` is created: there is no minimum.
   3. Given the weekly job is accidentally run twice, When the second run executes, Then no second transfer is created for the same rider/period.
   4. Given a transfer fails, When the failure webhook is processed, Then the payout is `FAILED`, its entries return to `AVAILABLE`, and the rider sees a reason.
 - **Out of scope (V1)**: rider-triggered instant/on-demand payout (V2, with a fee), payout-frequency preferences (daily/monthly) (V2), multiple bank accounts, cash-out to a card.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — payout schedule, minimum and instant cash-out**: weekly Monday transfers with a $10 minimum, no rider-triggered payout in V1 — confirm? · **Proposed default**: as specified; V2 adds on-demand payout capped at once per day with a $0.75 fee. · **Why**: automatic weekly is the lowest-operations option and matches Stripe Connect defaults; on-demand is a retention feature, not a launch blocker.
+> **Decided:** weekly, Monday, automatic, no minimum ([payout cadence](../decisions/README.md#settled--client-decisions), [payout minimum](../decisions/README.md#settled--reconciliations)). Still open: on-demand cash-out, proposed for V2 at once a day with a $0.75 fee.
 
 ---
 
@@ -960,12 +968,12 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   **(a) Blocking exceptions** — the rider cannot complete the delivery. `POST /api/v1/riders/:id/assignments/:id/exception {code, note, lat, lng, evidence_document_id?}`. The server applies a resolution policy and drives the assignment out of the live flow. Codes and resolutions:
   | code | required evidence | resolution |
   |---|---|---|
-  | `CUSTOMER_UNREACHABLE` | 2 call attempts logged + 5 min wait timer + photo | after the timer: `UNDELIVERABLE` → policy per customer instruction (leave at door if permitted, else `RETURNING`) |
+  | `CUSTOMER_UNREACHABLE` | if the customer chose "leave at door": photo + statement, no wait ([leave at door](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); otherwise 2 call attempts logged + 5 min wait timer + photo | "leave at door": left at once and delivered; otherwise after the timer `UNDELIVERABLE` → `RETURNING` |
   | `ADDRESS_NOT_FOUND` | photo of location | ops contacted; ops may supply a corrected address (assignment continues) or mark `UNDELIVERABLE` |
   | `CUSTOMER_REFUSED` | note | `UNDELIVERABLE → RETURNING` |
-  | `RESTAURANT_CLOSED` | photo | assignment `CANCELLED_BY_PLATFORM`; rider paid cancellation compensation |
-  | `ORDER_NOT_READY_TIMEOUT` | — | after 25 min waiting the rider may release the order; compensation paid; order re-dispatched |
-  | `VEHICLE_BREAKDOWN` / `RIDER_UNWELL` | note | assignment released for re-dispatch; compensation if past `ARRIVED_AT_PICKUP` |
+  | `RESTAURANT_CLOSED` | photo | assignment `CANCELLED_BY_PLATFORM`; cancellation compensation is deferred ([wait-time pay and cancellation compensation](../decisions/README.md#settled--reconciliations)) |
+  | `ORDER_NOT_READY_TIMEOUT` | — | after 25 min waiting the rider may release the order; order re-dispatched |
+  | `VEHICLE_BREAKDOWN` / `RIDER_UNWELL` | note | assignment released for re-dispatch |
   | `ACCIDENT` | note | ops paged immediately (P1), assignment released, safety follow-up |
   | `UNSAFE_SITUATION` | note | ops paged, assignment released, no penalty |
   **(b) Non-blocking incident reports** — after the fact: `POST /api/v1/riders/:id/incidents {code, assignment_id?, note, attachments[]}` creating a support ticket the rider can track.
@@ -973,15 +981,15 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **States**: exceptions drive `assignment → UNDELIVERABLE → RETURNING → RETURNED` or `→ CANCELLED_BY_PLATFORM` / `→ REASSIGNED`. Tickets: `OPEN → IN_PROGRESS → RESOLVED → CLOSED`.
 - **Rules**:
   - **A rider must always have a forward path that is not "falsely mark delivered".** Every screen from `ASSIGNED` onward exposes the exception action. This is the single most important rider-safety and data-integrity rule in the domain.
-  - `CUSTOMER_UNREACHABLE` requires: ≥2 call attempts via `contact_session` at least 60 s apart, a 5-minute countdown that the server times (not the client), and a photo. Only then does the option to finish appear.
-  - `RETURNING` requires the rider to bring the food back to the restaurant; on `RETURNED` the rider is paid the full delivery earnings (they did the work) and the customer's refund is decided by the dispute policy.
+  - Unless the customer chose "leave at door", `CUSTOMER_UNREACHABLE` requires: ≥2 call attempts via `contact_session` at least 60 s apart, a 5-minute countdown that the server times (not the client), and a photo. Only then does the option to finish appear.
+  - `RETURNING` requires the rider to bring the food back to the restaurant; on `RETURNED` the rider is paid the full delivery earnings (they did the work) and the customer's refund is decided by the dispute policy. Not paid automatically: the rider's own exception steps move no money (the rule below), so this pay waits for a server-side decision. Rider pay on interrupted deliveries is still open ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)).
   - Every exception notifies the customer with honest copy and updates their order status.
   - Ops receives every exception in a queue with the evidence attached; `ACCIDENT`/`UNSAFE_SITUATION` page immediately.
   - Exceptions are never resolvable by the rider alone when money moves — the rider triggers, the server decides.
 - **Acceptance criteria**:
   1. Given `CUSTOMER_UNREACHABLE` with only one call attempt, When submitted, Then `422 PRECONDITION_NOT_MET` naming the missing call attempt.
   2. Given the 5-minute server timer is running, When the rider tries to finish at 4:30, Then `409 WAIT_PERIOD_ACTIVE` with `remaining_seconds`.
-  3. Given `RESTAURANT_CLOSED` with a photo, When submitted, Then the assignment is `CANCELLED_BY_PLATFORM`, a `CANCELLATION_COMPENSATION` entry exists, availability returns to `ONLINE_IDLE`, and the customer is refunded.
+  3. Given `RESTAURANT_CLOSED` with a photo, When submitted, Then the assignment is `CANCELLED_BY_PLATFORM`, availability returns to `ONLINE_IDLE`, and the customer is refunded.
   4. Given `ACCIDENT`, When submitted, Then a P1 ops alert is raised within 30 s and the rider is not offered another order until support clears them.
 - **Out of scope**: in-app emergency services dialling (see SOS decision), insurance claim filing.
 - **Version**: V1 (blocking exceptions + ticket creation) · V2 (ticket threads, attachments) · **Size**: L
@@ -1054,24 +1062,24 @@ Each was raised inline; work proceeds on the proposed default until the client r
 
 | # | Topic | Question | Proposed default | Blocking? | Feature |
 |---|---|---|---|---|---|
-| 1 | Launch market | Canada-only riders in V1, or a second market? | Canada only: `CA` phone, `CAD`, `America/*`, English | BLOCKING | D-01 |
+| 1 | Launch market | Canada-only riders in V1, or a second market? | Canada only, launching in Ontario ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)) | decided | D-01 |
 | 2 | Minimum rider age | 18 nationally, or 19 where that is the age of majority? | 18 national, per-province override to 19 (BC, NS, NB, NL, NT, NU, YT) | BLOCKING | D-03 |
 | 3 | Identity-verification depth | Manual admin review, or an automated IDV vendor? | Manual review in V1; IDV vendor in V2 | no | D-03 |
 | 4 | Background checks | Criminal-record / driving-abstract check required? | Not in V1; columns provisioned | no | D-05 |
 | 5 | Account deletion & retention | Retention period for a deleted rider's data? | Deactivate now, PII redacted at 30 d, financial records 7 y, GPS traces 90 d | no | D-09 |
-| 6 | Tracking-loss reassignment | When may ops reassign a delivery whose rider stopped reporting, and is that rider paid? | After 10 min LOST + a failed call; cancellation compensation if past `ARRIVED_AT_PICKUP` | no | D-12 |
+| 6 | Tracking-loss reassignment | When may ops reassign a delivery whose rider stopped reporting, and is that rider paid? | After 10 min LOST + a failed call; rider compensation waits on deferred cancellation compensation ([wait-time pay and cancellation compensation](../decisions/README.md#settled--reconciliations)) | no | D-12 |
 | 7 | Dispatch shape | Batched-sequential vs broadcast vs strict sequential? | Batched-sequential, wave size 3, 30 s TTL, 5 waves, radii 3/6/10 km | BLOCKING | D-13 |
 | 8 | Ranking weights | Is ETA-to-pickup the primary objective? | ETA-dominant with an idle-time fairness term | BLOCKING | D-13 |
 | 9 | Offer TTL & escalation window | 30 s / 5 waves / 300 s / 600 s ops window before cancel+refund? | As specified (~15 min worst case) | BLOCKING | D-15 |
 | 10 | Late-wave incentives | Add a bonus on waves 4–5 to lift fill rate? | Not in V1; `offer.incentive_cents` exists and is 0 | no | D-15 |
-| 11 | POD policy | OTP for met handoffs + photo for unattended, or photo always? | As specified | BLOCKING | D-21 |
-| 12 | Maps/routing provider | Google Maps Platform or an OSM stack? | Google server-side behind a `RoutingProvider` interface | BLOCKING | D-22 |
-| 13 | Distance basis for pay | Routed, traced, or capped hybrid? | `max(routed, min(traced, routed × 1.30))` | BLOCKING | D-23 |
-| 14 | Earnings rate card | Confirm base $3.50 / $0.80 per km / $0.25 per min wait after 8 min / $6.00 minimum / 100 % tips / $3.00 cancellation compensation (CAD) | Exactly these, as admin config | BLOCKING | D-26 |
+| 11 | POD policy | OTP for met handoffs + photo for unattended, or photo always? | Customer's code for met handovers, photo with a statement for unattended ([how a customer proves the handover](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [leave at door](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | decided | D-21 |
+| 12 | Maps/routing provider | Google Maps Platform or an OSM stack? | Self-hosted routing (Valhalla or OSRM, engine open) with Mapbox map tiles ([self-hosted rule and Mapbox exception](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) | decided | D-22 |
+| 13 | Distance basis for pay | Routed, traced, or capped hybrid? | Neither at launch: pay is the delivery fee priced at checkout ([rider pay](../decisions/README.md#settled--reconciliations)) | decided | D-23 |
+| 14 | Earnings rate card | Confirm base $3.50 / $0.80 per km / $0.25 per min wait after 8 min / $6.00 minimum / 100 % tips / $3.00 cancellation compensation (CAD) | No rate card: delivery fee passed through plus 100 % of tips; wait pay and cancellation compensation deferred ([rider pay](../decisions/README.md#settled--reconciliations)) | decided | D-26 |
 | 15 | Surge model | Who sets the multiplier and how? | Manual admin surge per zone/window, 1.0–2.5, frozen on the offer; automatic in V3 | no | D-26 |
-| 16 | Tip visibility before accept | Show the customer's tip in the offer? | Yes; tip reductions become platform-funded adjustments | no | D-26 |
+| 16 | Tip visibility before accept | Show the customer's tip in the offer? | Shown ([tip shown to riders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) | decided | D-26 |
 | 17 | Contractor tax handling | T4A slips? GST/HST collection? | Collect optional GST/HST number, issue annual summaries, no withholding; T4A deferred | no | D-26 |
-| 18 | Payout schedule & instant cash-out | Weekly Monday transfers, $10 minimum, no on-demand payout in V1? | As specified; on-demand in V2 at $0.75, once/day | BLOCKING | D-28 |
+| 18 | Payout schedule & instant cash-out | Weekly Monday transfers, $10 minimum, no on-demand payout in V1? | Weekly, Monday, automatic, no minimum ([payout cadence](../decisions/README.md#settled--client-decisions)); on-demand cash-out still open (V2 at $0.75, once/day) | decided (cash-out open) | D-28 |
 | 19 | Performance enforcement thresholds | Do low metrics warn or deactivate? | Warn below 4.2 rating (min 20) or 80 % completion; no auto-deactivation in V1 | no | D-29 |
 | 20 | SOS / rider safety | Is an in-app emergency button in V1? | Yes, minimal: 911 dial + ops P1 with location + emergency-contact SMS | no | D-32 |
 | 21 | Undelivered food policy | What happens to the food after `UNDELIVERABLE`? | Return within 30 min if ≤5 km, else dispose; rider paid in full either way | BLOCKING | D-32 |
@@ -1081,8 +1089,8 @@ Additional decisions that fall outside the rider domain but block rider behaviou
 | # | Topic | Question | Proposed default | Owner domain |
 |---|---|---|---|---|
 | 22 | Dispatch trigger point | Does dispatch start at restaurant acceptance, or at `prep_time - travel_time` so the rider arrives as the food is ready? | Start at restaurant acceptance in V1 (simple, slightly more restaurant waiting); prep-time-aware dispatch in V2 | order |
-| 23 | Customer cancellation window | Until which order status may a customer cancel without charge, and what does the assigned rider receive? | Free cancellation until `PICKED_UP`; rider receives cancellation compensation if past `ARRIVED_AT_PICKUP` | order/payment |
-| 24 | Delivery fee vs rider pay | Is the customer's delivery fee independent of the rider's earnings (platform takes the spread), or a pass-through? | Independent: the customer fee is a pricing decision, the rider rate card is a cost; the two are never coupled in code | payment |
+| 23 | Customer cancellation window | Until which order status may a customer cancel without charge, and what does the assigned rider receive? | **Decided:** free before restaurant acceptance; after it, staff may cancel without a support case ([cancellation policy](../decisions/README.md#settled--client-decisions)); rider compensation deferred | order/payment |
+| 24 | Delivery fee vs rider pay | Is the customer's delivery fee independent of the rider's earnings (platform takes the spread), or a pass-through? | **Decided:** pass-through; the rider receives the whole delivery fee ($2.99 + $1.00/km) plus 100 % of tips ([rider pay](../decisions/README.md#settled--reconciliations), [delivery fee recipient](../decisions/README.md#settled--client-decisions)) | payment |
 
 ---
 
@@ -1095,6 +1103,6 @@ The domain is not "done" until all of these pass in CI against a live stack:
 3. **No money is computed on a client**: a static-analysis rule fails the build on arithmetic over any `*_cents` field in the mobile app.
 4. **Every rejection/refund is real**: the no-rider path is covered by an integration test asserting a provider-side refund object exists.
 5. **Offer countdowns agree**: a test asserts the client's rendered countdown and the server's `expires_at` differ by < 1 s under a 10-minute device clock skew.
-6. **Secrets**: a bundle scan finds no `AIza…`, no hardcoded base URL, no committed rider UUID.
+6. **Secrets**: a bundle scan finds no secret Mapbox token or routing key, no hardcoded base URL, no committed rider UUID.
 7. **Auth**: every `/riders/:id/...` endpoint is exercised with another rider's token and must return 403.
 8. **Offline resilience**: the full delivery flow (arrive → pick up → in transit → deliver with POD) completes with the network disabled from `ARRIVED_AT_PICKUP` onwards and reconciles correctly on reconnect.

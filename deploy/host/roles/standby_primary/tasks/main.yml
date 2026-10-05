@@ -1,0 +1,5 @@
+# Production's side of the warm standby (#210). Does nothing unless hg_standby_enabled is
+# true (group_vars/all.yml), so a single-server run exposes nothing.
+- name: Set up replication to the standby
+  ansible.builtin.include_tasks: enabled.yml
+  when: hg_standby_enabled | bool

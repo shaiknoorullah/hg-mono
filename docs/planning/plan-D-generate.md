@@ -65,7 +65,7 @@ service OrderService {
 
 Three things to notice, because they are the whole argument:
 
-1. **`(hg.server_authoritative) = true` on `Order.total`.** The single worst Halal Goes bug — the client sends the pricing snapshot and the server does not recompute — becomes a *model annotation*. The generator emits, in every service that accepts this message, a decode-time guard that zeroes and rejects client-supplied values, and emits a test that asserts a tampered request is rejected. The bug class is fixed in one place for all present and future messages. **Every production bug we have evidence of gets converted into a model constraint, not a regression test.** (Plan A encodes bugs as regression tests — one test per bug. Plan D encodes them as generator rules — one rule per bug *class*.)
+1. **`(hg.server_authoritative) = true` on `Order.total`.** The single worst HalalGoes bug — the client sends the pricing snapshot and the server does not recompute — becomes a *model annotation*. The generator emits, in every service that accepts this message, a decode-time guard that zeroes and rejects client-supplied values, and emits a test that asserts a tampered request is rejected. The bug class is fixed in one place for all present and future messages. **Every production bug we have evidence of gets converted into a model constraint, not a regression test.** (Plan A encodes bugs as regression tests — one test per bug. Plan D encodes them as generator rules — one rule per bug *class*.)
 2. **`(hg.authz)` on the RPC.** "Every REST route is unauthenticated" is not reachable: the generated interceptor table is exhaustive over the service descriptor. An RPC with no `hg.authz` option **fails generation** — there is no default-open.
 3. **`(hg.column)` / `(hg.table)`.** The DB schema is a *projection* of the domain model, not a parallel artifact that can disagree with it.
 
@@ -326,7 +326,7 @@ This also kills the four-surface divergence problem: the rider, customer, restau
 
 ---
 
-## 8. Migration from the existing Halal Goes system
+## 8. Migration from the existing HalalGoes system
 
 **Strangler fig, with the strangler routing generated.** The `migration:` field per route in the topology model is the control surface: flip `legacy → shadow → new` in one YAML line, regenerate, redeploy Traefik. No hand-edited nginx/Traefik config, and rollback is a one-line revert.
 

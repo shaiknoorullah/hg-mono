@@ -89,7 +89,8 @@ func TestIntegration_RefundWithinCapture_PostsBalancedBatch(t *testing.T) {
 		Split:           split,
 		State:           RefundAuthorised,
 		RequestedBy:     fxAccountID,
-		DeadlineAction:  "submit_refund_to_stripe",
+		ApprovedBy:      fxAccountID,
+		DeadlineAction:  RefundActionSubmit,
 		Ledger:          &batch,
 	})
 	if err != nil {
@@ -130,7 +131,8 @@ func TestIntegration_RefundExceedingCapture_Rejected(t *testing.T) {
 		Split:           split,
 		State:           RefundAuthorised,
 		RequestedBy:     fxAccountID,
-		DeadlineAction:  "submit_refund_to_stripe",
+		ApprovedBy:      fxAccountID,
+		DeadlineAction:  RefundActionSubmit,
 		Ledger:          &batch,
 	})
 	if err == nil {

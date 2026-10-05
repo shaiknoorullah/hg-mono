@@ -31,14 +31,24 @@ function neverResolves(): Promise<Response> {
 // the (singleton, already-imported) client holds.
 const fetchSpy = jest.spyOn(globalThis, 'fetch');
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 afterAll(() => {
   fetchSpy.mockRestore();
 });
 
+// Loaded at module scope, right after the spy (so the api client captures it), and NOT inside
+// the test body: the first require transforms the screen's whole module graph — this app,
+// @hg/ui-native's TypeScript source, react-native, react-native-svg — which on a cold jest
+// transform cache (every CI run) takes several seconds. Inside the test that cost was charged
+// against the 5 s test timeout and made the suite time out on CI; file evaluation has none.
+const { DiscoveryScreen } = require('../DiscoveryScreen') as typeof import('../DiscoveryScreen');
+const { NavigationProvider } = require('../../navigation/stack') as typeof import('../../navigation/stack');
+const { ThemeProvider } = require('@hg/ui-native') as typeof import('@hg/ui-native');
+
 function renderDiscovery() {
-  const { DiscoveryScreen } = require('../DiscoveryScreen');
-  const { NavigationProvider } = require('../../navigation/stack');
-  const { ThemeProvider } = require('@hg/ui-native');
   return render(
     <ThemeProvider theme="customer" scheme="light">
       <NavigationProvider initial={{ name: 'discovery' }}>
@@ -50,6 +60,14 @@ function renderDiscovery() {
 
 describe('DiscoveryScreen — loading, empty, error', () => {
   it('shows loading skeletons while the fetch is in flight', async () => {
+    // The fetch never resolves, so the skeletons' shimmer (an endless JS-driven `Animated.loop`)
+    // is still running when the test ends. On real timers its next frame fired in the gap before
+    // the library's auto-cleanup unmounted the screen, outside act(), and React logged one
+    // "not wrapped in act(...)" warning per animated block (issue #136). On fake timers a frame
+    // runs only when the test advances the clock, which this one never needs to, so the loop
+    // stays still until cleanup stops it. Same approach as
+    // packages/ui-native/src/primitives/__tests__/Toast.test.tsx.
+    jest.useFakeTimers();
     fetchSpy.mockImplementation(neverResolves);
 
     renderDiscovery();

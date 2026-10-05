@@ -1,10 +1,10 @@
-# Halal Goes
+# HalalGoes
 
-> Halal Goes is a Canadian halal food-delivery marketplace, launching in Ontario.
+> HalalGoes is a Canadian halal food-delivery marketplace, launching in Ontario.
 > A reviewer reads each restaurant's halal certificate against seven checks before
 > it is listed. The platform is pre-launch; all three sign-up forms are waitlists.
 
-## What Halal Goes is
+## What HalalGoes is
 - A food-delivery marketplace for **verified halal** restaurants.
 - The single differentiator is **verification**: a person reads each restaurant's
   halal certificate and records the result of seven separate checks, including who
@@ -13,7 +13,7 @@
 - Two of the seven checks — that the dates are valid, and that the certificate is
   not already in use by a different restaurant — are computed by the server and
   cannot be overridden by any member of staff. That is enforced in the database.
-- Halal Goes does **not** itself certify food and makes **no** religious ruling.
+- HalalGoes does **not** itself certify food and makes **no** religious ruling.
   An expired certificate means the platform's knowledge has lapsed — the restaurant
   comes off the app until it is renewed — not that the food is not halal.
 - No halal state is ever shown in red, and a missing halal record renders no badge
@@ -24,7 +24,7 @@
 - Islamic Society of North America Canada (ISNA Canada) — Ontario, Canada
 - Halal Food Standards Alliance of America (HFSAA) — United States; certificates
   issued to Canadian establishments are accepted
-Halal Goes is not affiliated with any of them and none of them endorses it. The
+HalalGoes is not affiliated with any of them and none of them endorses it. The
 registry is seeded rather than closed, and the bodies are not ranked or scored.
 
 ## Coverage and status

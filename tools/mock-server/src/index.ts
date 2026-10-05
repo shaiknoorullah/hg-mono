@@ -1,5 +1,5 @@
 /**
- * The Halal Goes mock server.
+ * The HalalGoes mock server.
  *
  *     pnpm mock            # http://localhost:4010, ws://localhost:4010/v1/ws
  *
@@ -182,6 +182,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       res.status(route.successStatus === 204 ? 204 : route.successStatus).end();
       return;
     }
+    if (route.acknowledgement) {
+      res.status(route.successStatus).json({ data: { acknowledged: true } });
+      return;
+    }
     res
       .status(501)
       .json(
@@ -245,7 +249,7 @@ attachRealtime(server, {
 server.listen(PORT, HOST, () => {
   const origin = `http://localhost:${PORT}`;
   console.log('');
-  console.log('Halal Goes mock server');
+  console.log('HalalGoes mock server');
   console.log(`  REST         ${origin}${basePath || '/v1'}`);
   console.log(`  WebSocket    ws://localhost:${PORT}${WS_PATH}?ticket=dev`);
   console.log(`  operations   ${routes.length} from contracts/openapi.yaml`);

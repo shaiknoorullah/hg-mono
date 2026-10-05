@@ -1,0 +1,61 @@
+{
+  "scenario": "menu_item_created_pending_review",
+  "domain": "catalogue",
+  "schema": "MenuItemOwnerView",
+  "describes": "`createMenuItem`: the dish exists, version 1 waits for review, and customers see nothing yet (`live_version` is null). Price is set but cannot be ordered until approval.",
+  "operations": [
+    "createMenuItem"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "menu-editing",
+    "review-queue"
+  ],
+  "payload": {
+    "id": "d40d6db6-ac99-4322-a0e3-9933d8fc3332",
+    "name": "Haleem",
+    "description": "Seven-lentil and shredded beef porridge, finished with crisp onion.",
+    "image_url": "https://cdn.halalgoes.ca/img/dish/haleem.webp",
+    "price_cents": 1299,
+    "currency": "CAD",
+    "availability_state": "AVAILABLE",
+    "out_of_stock_until": null,
+    "dietary_tags": [
+      "HALAL_CERTIFIED"
+    ],
+    "allergen_tags": [
+      "WHEAT_TRITICALE"
+    ],
+    "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+    "tax_category": "PREPARED_FOOD",
+    "prep_minutes": 10,
+    "variant_groups": [],
+    "addon_groups": [],
+    "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+    "sort_order": 9,
+    "live_version": null,
+    "pending_version": {
+      "id": "72748308-0b9f-41ca-a197-c82a0a800e4b",
+      "menu_item_id": "d40d6db6-ac99-4322-a0e3-9933d8fc3332",
+      "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "version": 1,
+      "name": "Haleem",
+      "description": "Seven-lentil and shredded beef porridge, finished with crisp onion.",
+      "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+      "dietary_tags": [
+        "HALAL_CERTIFIED"
+      ],
+      "allergen_tags": [
+        "WHEAT_TRITICALE"
+      ],
+      "image_url": "https://cdn.halalgoes.ca/img/dish/haleem.webp",
+      "review_status": "PENDING_REVIEW",
+      "rejection_reason_code": null,
+      "review_note": null,
+      "submitted_at": "2026-08-10T18:40:11.412Z",
+      "reviewed_at": null,
+      "created_at": "2026-08-10T18:40:11.412Z"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "scenario": "error_reset_token_not_valid",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`400` · `TOKEN_CONSUMED`. `resetPassword` with a token that expired (30 minutes), was already used, or never existed. One body for all three, so a link cannot be probed. The app offers \"Send a new link\" (`requestPasswordReset`).",
+  "operations": [
+    "resetPassword"
+  ],
+  "status": 400,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "TOKEN_CONSUMED",
+      "message": "This reset link is not valid.",
+      "request_id": "3SCNPQS5CWZANNWK0AW7ZTQ3JC"
+    }
+  }
+}

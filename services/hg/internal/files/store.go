@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,10 +19,19 @@ var ErrNotFound = errors.New("files: not found")
 // Presigner is the narrow slice of the MinIO client this module needs. Keeping
 // it an interface means the key/DB logic is unit-testable without a live MinIO,
 // and the presign call itself is a thin, mockable seam.
+//
+// The implementation is store.MinIO.Signer, configured for the public host
+// phones reach — never the internal client, whose links name minio:9000.
+// Uploads are signed with PresignHeader only: PresignedPutObject signs the Host
+// header alone, which lets one link upload any bytes of any size and type.
 type Presigner interface {
-	PresignedPutObject(ctx context.Context, bucket, object string, expires time.Duration) (*url.URL, error)
+	PresignHeader(ctx context.Context, method, bucket, object string, expires time.Duration, reqParams url.Values, extraHeaders http.Header) (*url.URL, error)
 	PresignedGetObject(ctx context.Context, bucket, object string, expires time.Duration, reqParams url.Values) (*url.URL, error)
 }
+
+// uploadTTL is how long a presigned upload link lives (docs/spec/01-platform.md,
+// "P-28 — Presigned upload and download").
+const uploadTTL = 300 * time.Second
 
 // Repo is the files module's data access plus the object presigner and the
 // object-store seam confirmUpload needs. It never opens its own pool or client —
@@ -50,7 +61,8 @@ type storedObjectRow struct {
 
 // AllocateUpload inserts a PENDING stored_object with a server-generated key and
 // a one-hour deadline, then returns a presigned PUT whose TTL is 300 s (P-28).
-// The signature binds the object key; the client controls only the bytes.
+// The signature binds the object key, the content type, the length and the
+// checksum; the client supplies only the bytes, and only the declared ones.
 func (r *Repo) AllocateUpload(ctx context.Context, actor Actor, p Purpose, in keyInputs, contentType string, byteSize int64, sha256hex string) (uploadResult, error) {
 	var out uploadResult
 	bucket, ok := bucketFor(p, r.buckets)
@@ -68,6 +80,11 @@ func (r *Repo) AllocateUpload(ctx context.Context, actor Actor, p Purpose, in ke
 	}
 
 	err = inTx(ctx, r.pool, func(tx pgx.Tx) error {
+		if p == PurposePOD {
+			if err := requireCarrying(ctx, tx, actor.AccountID, in.orderID); err != nil {
+				return err
+			}
+		}
 		const ins = `
 INSERT INTO stored_object
   (bucket, object_key, purpose, owner_account_id, restaurant_id, order_id,
@@ -99,21 +116,73 @@ RETURNING id`
 		return out, err
 	}
 
-	u, err := r.presigner.PresignedPutObject(ctx, bucket, key, 300*time.Second)
+	u, headers, err := presignUpload(ctx, r.presigner, bucket, key, contentType, byteSize, sha)
 	if err != nil {
 		return out, err
 	}
 	out.URL = u.String()
-	out.ExpiresAt = time.Now().UTC().Add(300 * time.Second)
-	// x-amz-checksum-sha256 binds the content checksum into the presigned
-	// signature: a signature minted for a 1 MiB JPEG cannot be reused to
-	// push a 9 MiB PDF (contract openapi.yaml PresignedUpload.required_headers).
-	out.RequiredHeaders = map[string]string{
+	out.ExpiresAt = time.Now().UTC().Add(uploadTTL)
+	out.RequiredHeaders = headers
+	return out, nil
+}
+
+// podUploadStates are the assignment states in which the order is in the
+// rider's hands, so a delivery photo can be taken: picked up, on the way, at the
+// drop-off. docs/spec/01-platform.md, "P-28 — Presigned upload and download"
+// (POD: the assigned rider only, only while carrying the order).
+const podUploadStates = `'PICKED_UP', 'EN_ROUTE_TO_DROPOFF', 'ARRIVED_AT_DROPOFF'`
+
+// requireCarrying answers errNotDelivering unless accountID holds orderID's
+// live assignment in one of podUploadStates. It runs in the transaction that
+// allocates the upload, so nothing is written for a refused one
+// (https://github.com/shaiknoorullah/hg-mono/issues/370).
+func requireCarrying(ctx context.Context, tx pgx.Tx, accountID, orderID string) error {
+	if !uuidRe.MatchString(orderID) || !uuidRe.MatchString(accountID) {
+		return errNotDelivering
+	}
+	var carrying bool
+	if err := tx.QueryRow(ctx, `
+SELECT EXISTS (
+  SELECT 1 FROM assignment
+   WHERE order_id = $1::uuid AND rider_account_id = $2::uuid AND terminated_at IS NULL
+     AND state IN (`+podUploadStates+`))`, orderID, accountID).Scan(&carrying); err != nil {
+		return err
+	}
+	if !carrying {
+		return errNotDelivering
+	}
+	return nil
+}
+
+// uuidRe matches a canonical UUID, so a malformed order_id is refused like any
+// other order the caller is not carrying instead of failing the ::uuid cast.
+var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+// presignUpload signs a PUT that only succeeds with exactly the declared
+// Content-Type, Content-Length and SHA-256: each is a signed header, so changing
+// any one of them fails the signature, and the store checks the bytes against
+// the signed checksum. A link minted for a 1 MiB JPEG cannot push a 9 MiB PDF
+// (docs/spec/01-platform.md, "P-28 — Presigned upload and download", the first
+// rule and the first acceptance criterion; contract openapi.yaml
+// PresignedUpload.required_headers).
+//
+// The headers the client is told to send and the headers that are signed are
+// the same map, so the two cannot drift apart.
+func presignUpload(ctx context.Context, p Presigner, bucket, key, contentType string, byteSize int64, sha []byte) (*url.URL, map[string]string, error) {
+	required := map[string]string{
 		"Content-Type":          contentType,
 		"Content-Length":        itoa(byteSize),
 		"x-amz-checksum-sha256": base64.StdEncoding.EncodeToString(sha),
 	}
-	return out, nil
+	signed := make(http.Header, len(required))
+	for k, v := range required {
+		signed.Set(k, v)
+	}
+	u, err := p.PresignHeader(ctx, http.MethodPut, bucket, key, uploadTTL, nil, signed)
+	if err != nil {
+		return nil, nil, err
+	}
+	return u, required, nil
 }
 
 // uploadResult is the internal shape the handler renders as PresignedUpload.
@@ -145,9 +214,12 @@ SELECT so.bucket, so.object_key, kd.subject_type::text, kd.subject_id::text
 		if err != nil {
 			return err
 		}
-		// Ownership: a partner may only fetch their own document. The global
-		// kyc_document.download action (admins) bypasses the ownership check.
-		if !canReadAny && !r.ownsSubject(ctx, tx, actor.AccountID, subjectType, subjectID) {
+		// Ownership: a partner may only fetch their own document, and only when
+		// the document's file is that subject's own upload. The global
+		// kyc_document.download action (admins) bypasses both checks, so an
+		// admin can still open a wrongly attached file to reject it.
+		if !canReadAny && (!r.ownsSubject(ctx, tx, actor.AccountID, subjectType, subjectID) ||
+			!r.fileBelongsToSubject(ctx, tx, documentID)) {
 			return ErrNotFound
 		}
 		return writeAudit(ctx, tx, auditEntry{
@@ -180,7 +252,10 @@ type downloadResult struct {
 
 // ownsSubject reports whether the account is the owner of the KYC subject. For a
 // RIDER the subject_id is the rider's account_id; for a RESTAURANT it is the
-// restaurant_id, which the account must hold a live RESTAURANT_* grant scoped to.
+// restaurant_id, which the account must hold a live owner or manager grant
+// scoped to. Restaurant staff cannot list the compliance documents
+// (listRestaurantDocuments is owner and manager only), so they cannot fetch
+// one either (https://github.com/shaiknoorullah/hg-mono/issues/359).
 func (r *Repo) ownsSubject(ctx context.Context, tx pgx.Tx, accountID, subjectType, subjectID string) bool {
 	if accountID == "" {
 		return false
@@ -193,10 +268,38 @@ func (r *Repo) ownsSubject(ctx context.Context, tx pgx.Tx, accountID, subjectTyp
 		err := tx.QueryRow(ctx, `
 SELECT true FROM account_role
  WHERE account_id=$1 AND scope_type='RESTAURANT' AND scope_id=$2::uuid AND revoked_at IS NULL
+   AND role::text IN ('RESTAURANT_OWNER', 'RESTAURANT_MANAGER')
  LIMIT 1`, accountID, subjectID).Scan(&ok)
 		return err == nil && ok
 	}
 	return false
+}
+
+// fileBelongsToSubject reports whether a document's file is its subject's own
+// compliance upload: a KYC_DOCUMENT uploaded by the rider, or by someone who
+// holds or held a grant at the restaurant. The attach paths already refuse any
+// other file; this is the second lock on the same door, so a document that
+// points at another account's file never yields a link to its owner
+// (https://github.com/shaiknoorullah/hg-mono/issues/359). A grant revoked since
+// the upload still counts: a manager who left does not orphan their uploads.
+func (r *Repo) fileBelongsToSubject(ctx context.Context, tx pgx.Tx, documentID string) bool {
+	var ok bool
+	err := tx.QueryRow(ctx, `
+SELECT EXISTS (
+  SELECT 1
+    FROM kyc_document kd
+    JOIN stored_object so ON so.id = kd.stored_object_id
+   WHERE kd.id = $1
+     AND so.purpose = 'KYC_DOCUMENT'
+     AND CASE kd.subject_type
+           WHEN 'RIDER' THEN so.uploaded_by = kd.subject_id
+           WHEN 'RESTAURANT' THEN so.restaurant_id = kd.subject_id
+             OR EXISTS (SELECT 1 FROM account_role ar
+                         WHERE ar.account_id = so.uploaded_by
+                           AND ar.scope_type = 'RESTAURANT' AND ar.scope_id = kd.subject_id)
+           ELSE false
+         END)`, documentID).Scan(&ok)
+	return err == nil && ok
 }
 
 // inTx runs fn in a transaction.
@@ -216,4 +319,9 @@ var (
 	errBadPurpose     = errors.New("files: purpose not allowed")
 	errBadContentType = errors.New("files: content type not accepted")
 	errBadChecksum    = errors.New("files: sha256 must be 64 lowercase hex chars")
+	// errNotDelivering refuses a POD upload for an order the caller is not
+	// carrying: not its live rider, not yet picked up or already delivered, or
+	// no such order. One answer for all of them, so it says nothing about an
+	// order that is not the caller's.
+	errNotDelivering = errors.New("files: not carrying this order")
 )

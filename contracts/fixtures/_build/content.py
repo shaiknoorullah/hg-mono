@@ -188,6 +188,10 @@ class Content:
             return ulid_for(label)
         if name == "Province":
             return "ON"
+        if name == "OrderingStatus":
+            # Ordering is open unless a fixture says otherwise; only
+            # dom_ordering_pause draws a pause (https://github.com/shaiknoorullah/hg-mono/issues/244).
+            return {"paused": False, "paused_since": None}
         return MISS
 
     # --------------------------------------------------------------- scalars --
@@ -443,7 +447,7 @@ class Content:
             "tax_registration_number": "812345678RT0001",
             "platform_tax_registration_number": "701234567RT0001",
             "restaurant_tax_registration_number": "812345678RT0001",
-            "platform_legal_name": "Halal Goes Technologies Inc.",
+            "platform_legal_name": "HalalGoes Technologies Inc.",
             "restaurant_legal_name": RESTAURANT_NAMES[n % len(RESTAURANT_NAMES)] + " Inc.",
             "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
             "menu_item_name": DISHES[n % len(DISHES)][0],

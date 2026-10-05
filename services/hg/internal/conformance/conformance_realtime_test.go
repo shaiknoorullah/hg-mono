@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/contract"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
@@ -26,9 +28,10 @@ import (
 //   - the WebSocket EVENT envelope — /v1/ws is NOT a JSON response body, so
 //     ValidateResponse does not apply to the socket. What IS validatable is the
 //     serialized EVENT PAYLOAD every socket carries: this file EMITS a real
-//     order.state_changed event through the production emit path (EmitInTx),
-//     reads it back through the production Replay path, reconstructs the wire
-//     Envelope the gateway sends, and validates that envelope's `data` payload
+//     order.state_changed event through the production emit path (EmitOrder),
+//     reads it back through the production Replay path, projects it for the
+//     order's customer as the gateway does, reconstructs the wire Envelope the
+//     gateway sends, and validates that envelope's `data` payload
 //     against the JSON Schema the contract advertises for that event type via
 //     getRealtimeSchema. Emit -> collect -> validate against the contract event
 //     schema, exactly as the class requires.
@@ -68,7 +71,7 @@ func newRealtimeHarness(t *testing.T) *realtimeHarness {
 	// are driven over HTTP, and neither touches Redis. The gateway is required
 	// by NewHandler's signature and by the WS upgrade route's registration, but
 	// the upgrade is never invoked in this file.
-	gw := realtime.NewGateway(store, nil, testLogger(), nil)
+	gw := realtime.NewGateway(store, nil, testLogger(), nil, 2000)
 	h := realtime.NewHandler(store, gw, testLogger(), []string{"https://conformance.local"})
 	realtime.Routes(router, h)
 
@@ -129,20 +132,19 @@ func TestConformance_Realtime_Schema(t *testing.T) {
 // TestConformance_Realtime_EventEnvelope is the WS-envelope oracle. /v1/ws is not
 // a JSON response body, so ValidateResponse cannot be pointed at the socket.
 // Instead this test validates what a socket actually carries: it emits a REAL
-// order.state_changed event through the production emit path (EmitInTx, in a
+// order.state_changed event through the production emit path (EmitOrder, in a
 // transaction, exactly as an order state change does), reads it back through the
-// production Replay path, reconstructs the wire Envelope the gateway serializes,
-// and then:
+// production Replay path, projects it for the customer as the gateway does at
+// send time, reconstructs the wire Envelope the gateway serializes, and then:
 //
 //  1. asserts the Envelope's structural shape (the §2 wire contract: id, seq,
 //     channel, type, v, ts, data all present and well-typed); and
 //  2. validates the event's `data` payload against the JSON Schema the contract
 //     advertises for order.state_changed@v1 via getRealtimeSchema.
 //
-// The schema bundle's per-event schemas are currently permissive object schemas
-// (documented TODO in realtime/schema.go), so (2) proves the payload conforms to
-// the advertised shape and that the advertised key exists for the emitted type —
-// the strongest validatable statement while the per-field schemas are pending.
+// The bundle's per-event schemas are closed: every contract field required, no
+// other field allowed, enums from openapi.yaml (internal/realtime/schema.go), so
+// (2) fails on a renamed, missing or extra field, or a value outside its enum.
 func TestConformance_Realtime_EventEnvelope(t *testing.T) {
 	h := newRealtimeHarness(t)
 	pool := openPool(t)
@@ -158,14 +160,15 @@ func TestConformance_Realtime_EventEnvelope(t *testing.T) {
 		_, _ = pool.Exec(bg, `DELETE FROM channel_cursor WHERE channel = $1`, channel)
 	})
 
-	// The contract-shaped order.state_changed payload (contract/websocket.md §4.2).
-	// This is the payload the orders module writes on a transition.
-	payload := json.RawMessage(`{
-		"order_id": "019ffb7c-dead-7bee-8fee-c0ffeec0ffee",
-		"from": "PREPARING",
-		"to": "READY",
-		"at": "2026-08-14T12:00:00.000Z"
-	}`)
+	// The order.state_changed the orders module writes on a transition
+	// (contracts/websocket.md section 4.2, "Order"), built with the production type.
+	from := contract.OrderStatePREPARING
+	at := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+	deadline := realtime.At(at.Add(15 * time.Minute))
+	event := realtime.OrderStateChanged{
+		OrderID: "019ffb7c-dead-7bee-8fee-c0ffeec0ffee", From: &from, To: contract.OrderStateREADYFORPICKUP,
+		At: realtime.At(at), ActorKind: contract.OrderActorKindRESTAURANT, DeadlineAt: &deadline,
+	}
 
 	// Emit the event in a transaction, exactly as a real state change does. The
 	// event exists iff the transaction commits (the transactional outbox).
@@ -173,16 +176,12 @@ func TestConformance_Realtime_EventEnvelope(t *testing.T) {
 	if err != nil {
 		t.Fatalf("begin tx: %v", err)
 	}
-	seq, ulid, err := realtime.EmitInTx(ctx, tx, channel, "order.state_changed", 1, nil, payload, nil, nil)
-	if err != nil {
+	if err := realtime.EmitOrder(ctx, tx, event.OrderID, event); err != nil {
 		_ = tx.Rollback(ctx)
-		t.Fatalf("EmitInTx: %v", err)
+		t.Fatalf("EmitOrder: %v", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit: %v", err)
-	}
-	if ulid == "" || seq < 1 {
-		t.Fatalf("emit produced ulid=%q seq=%d", ulid, seq)
 	}
 
 	// Collect the emitted event back through the production Replay path.
@@ -195,8 +194,14 @@ func TestConformance_Realtime_EventEnvelope(t *testing.T) {
 	}
 	ev := events[0]
 
-	// Reconstruct the wire Envelope the gateway serializes for this event, then
-	// marshal it — these are the bytes a socket would put on the wire.
+	// Reconstruct the wire Envelope the gateway serializes for this event, with
+	// the payload projected for the order's customer exactly as the gateway
+	// does at send time, then marshal it — these are the bytes a socket would
+	// put on the wire. The stored source record itself is never sent.
+	projected, ok := realtime.Project(ev.Type, realtime.ViewCustomer, ev.Audience, ev.Payload)
+	if !ok {
+		t.Fatalf("%s is not projected for the customer", ev.Type)
+	}
 	env := realtime.Envelope{
 		ID:      ev.ULID,
 		Seq:     ev.Seq,
@@ -204,7 +209,7 @@ func TestConformance_Realtime_EventEnvelope(t *testing.T) {
 		Type:    ev.Type,
 		V:       ev.V,
 		TS:      ev.TS.UTC().Format("2006-01-02T15:04:05.000Z"),
-		Data:    ev.Payload,
+		Data:    projected,
 	}
 	wire, err := json.Marshal(env)
 	if err != nil {
@@ -242,7 +247,7 @@ func TestConformance_Realtime_EventEnvelope(t *testing.T) {
 
 	schema := compileSchema(t, rawSchema)
 	var payloadVal any
-	if err := json.Unmarshal(ev.Payload, &payloadVal); err != nil {
+	if err := json.Unmarshal(projected, &payloadVal); err != nil {
 		t.Fatalf("decode payload: %v", err)
 	}
 	if err := schema.VisitJSON(payloadVal); err != nil {

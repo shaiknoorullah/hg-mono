@@ -1,0 +1,39 @@
+#!/bin/bash
+# hg-backup-status <name> <1|0|seed> [duration-seconds]
+# Writes one backup job's status where node-exporter reads it, for the alerts in
+# roles/monitoring (a job that failed, or has not succeeded within its allowed age).
+# "seed" starts the clock for a new job without claiming it ran.
+# Managed by Ansible (deploy/host/roles/backup).
+set -euo pipefail
+name=$1
+result=$2
+duration=${3:-0}
+dir=${TEXTFILE_DIR:-/var/lib/prometheus/node-exporter}
+file="$dir/hg_backup_${name//-/_}.prom"
+now=$(date +%s)
+
+last_success=$(sed -n "s/^hg_backup_last_success_timestamp_seconds{backup=\"$name\"} //p" "$file" 2>/dev/null || true)
+case $result in
+  1) ok=1; last_success=$now ;;
+  0) ok=0 ;;
+  seed) [ -f "$file" ] && exit 0; ok=1; last_success=$now ;;
+  *) echo "usage: hg-backup-status <name> <1|0|seed> [seconds]" >&2; exit 2 ;;
+esac
+
+{
+  echo "# HELP hg_backup_last_run_success 1 if the job's last run succeeded."
+  echo "# TYPE hg_backup_last_run_success gauge"
+  echo "hg_backup_last_run_success{backup=\"$name\"} $ok"
+  echo "# HELP hg_backup_last_run_timestamp_seconds When the job last ran."
+  echo "# TYPE hg_backup_last_run_timestamp_seconds gauge"
+  echo "hg_backup_last_run_timestamp_seconds{backup=\"$name\"} $now"
+  if [ -n "$last_success" ]; then
+    echo "# HELP hg_backup_last_success_timestamp_seconds When the job last succeeded."
+    echo "# TYPE hg_backup_last_success_timestamp_seconds gauge"
+    echo "hg_backup_last_success_timestamp_seconds{backup=\"$name\"} $last_success"
+  fi
+  echo "# HELP hg_backup_duration_seconds How long the job's last run took."
+  echo "# TYPE hg_backup_duration_seconds gauge"
+  echo "hg_backup_duration_seconds{backup=\"$name\"} $duration"
+} > "$file.tmp"
+mv "$file.tmp" "$file"

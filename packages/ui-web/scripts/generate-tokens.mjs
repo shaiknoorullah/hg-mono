@@ -12,6 +12,7 @@
  *   themes.ts   the `restaurant` and `admin` themes, light + dark
  *   tokens.css  CSS custom properties (:root, dark scheme, density, theme)
  *   theme.css   Tailwind v4 `@theme inline` block
+ *   grid-theme.css  LyteNyte Grid's `--ln-*` variables pointed at our roles
  *   index.ts    barrel
  *
  * Usage:
@@ -692,6 +693,163 @@ t.push('}');
 const themeCss = t.join('\n') + '\n';
 
 // ---------------------------------------------------------------------------
+// 10b. Emit — grid-theme.css (LyteNyte Grid, themed with our roles)
+// ---------------------------------------------------------------------------
+//
+// LyteNyte Core ships its structure (`grid.css`, every rule scoped under
+// `.ln-grid` inside `@layer ln-grid`) separately from its themes. Its themes
+// (light-dark.css, design.css, …) write ~90 `--ln-*` variables onto :root,
+// load Inter, include a solid green and key dark mode on a `.dark` class we
+// never set — so we never load them. This file is the theme instead: every
+// `--ln-*` variable grid.css reads, pointed at a role, plus the few rules where
+// LyteNyte's own choice breaks ours (focus, selection, header type).
+//
+// It is generated, not hand-kept, so a renamed or removed token fails here at
+// generate time instead of leaving the grid silently unstyled — the failure in
+// https://github.com/shaiknoorullah/hg-mono/issues/145. Every `var()` below
+// goes through `hg()`, which refuses a custom property tokens.css does not
+// declare.
+
+const declared = new Set([...tokensCss.matchAll(/^\s*(--hg-[a-z0-9-]+):/gm)].map((m) => m[1]));
+
+function hg(name) {
+  if (!declared.has(name)) {
+    throw new Error(
+      `grid-theme.css: ${name} is not declared in tokens.css. A token was renamed or removed; ` +
+        'point the LyteNyte variable at the role that replaced it.',
+    );
+  }
+  return `var(${name})`;
+}
+
+/** The focusable parts LyteNyte outlines on :focus (grid.css, last block). */
+const LN_FOCUSABLE =
+  ":is([data-ln-cell='true'], [data-ln-header-cell='true'], [data-ln-header-group='true'], [data-ln-rowtype='full-width'] > div)";
+
+const gridThemeCss = `${BANNER(SOURCE_REL)}
+/*
+ * LyteNyte Grid, themed with HalalGoes roles.
+ *
+ * A grid needs exactly two stylesheets and one class:
+ *
+ *   import '@1771technologies/lytenyte-core/grid.css'; // structure only
+ *   import '@hg/ui-web/grid-theme.css';                 // this file
+ *
+ *   <div className="ln-grid">  <Grid … />  </div>
+ *
+ * Every rule in grid.css is scoped under \`.ln-grid\`. Without that class on an
+ * ancestor of <Grid>, none of it applies and the grid renders unstyled
+ * (https://github.com/shaiknoorullah/hg-mono/issues/145).
+ *
+ * Do not also load one of LyteNyte's themes (light-dark.css, light.css, dark.css,
+ * design.css, …). This file replaces them.
+ *
+ * Deliberately UNLAYERED. grid.css sits in \`@layer ln-grid\`, and an unlayered
+ * rule beats every layer, so these win whichever order the two files load in.
+ * Dark mode needs nothing here: every value is a role, and roles flip on :root.
+ */
+
+/* The variables grid.css reads. Set on the wrapper, never on :root, so nothing
+   leaks into the rest of the page. */
+.ln-grid {
+  --ln-typeface: ${hg('--hg-font-ui')};
+  --ln-font-md: ${hg('--hg-text-body-sm-size')};
+  --ln-padding-horizontal-cell: ${hg('--hg-density-card-padding')};
+  --ln-bg-ui-panel: ${hg('--hg-surface-base')};
+  /* No zebra banding: a second cream reads as a selected row. Rules separate rows. */
+  --ln-bg-row-alternate: ${hg('--hg-surface-base')};
+  --ln-bg-row-hover: ${hg('--hg-state-hover-overlay')};
+  /* LyteNyte's accent. Focus and selection are re-drawn below, so the only thing
+     left reading it is the column-resize handle. */
+  --ln-primary-50: ${hg('--hg-border-interactive')};
+  --ln-text-dark: ${hg('--hg-text-primary')};
+  --ln-text: ${hg('--hg-text-secondary')};
+  --ln-border: ${hg('--hg-border-decorative')};
+  --ln-border-row: ${hg('--hg-border-decorative')};
+  --ln-border-strong: ${hg('--hg-border-interactive')};
+  --ln-border-xstrong: ${hg('--hg-border-strong')};
+
+  /* The frame, as DataTable draws it. The wrapper owns it (rounded, clipped), so
+     the viewport's own square border is dropped below. */
+  border: 1px solid ${hg('--hg-border-decorative')};
+  border-radius: ${hg('--hg-radius-md')};
+  overflow: hidden;
+  background-color: ${hg('--hg-surface-base')};
+}
+
+.ln-grid [data-ln-viewport='true'] {
+  border: 0;
+}
+
+/* grid.css turns text selection off for the whole grid. Body cells turn it back on,
+   so an order code or a name can still be copied. */
+.ln-grid [data-ln-cell='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Header: DataTable's header — the subtle surface, label type, secondary text. */
+.ln-grid [data-ln-header='true'],
+.ln-grid :is([data-ln-header-cell='true'], [data-ln-header-group='true']) {
+  background-color: ${hg('--hg-surface-subtle')};
+}
+
+.ln-grid :is([data-ln-header-cell='true'], [data-ln-header-group='true']) {
+  color: ${hg('--hg-text-secondary')};
+  font-size: ${hg('--hg-text-label-md-size')};
+  font-weight: ${hg('--hg-text-label-md-weight')};
+  letter-spacing: ${hg('--hg-text-label-md-tracking')};
+}
+
+/* Selected row: a fill, never a bar. LyteNyte paints selection as a translucent
+   overlay in its own blue; the selected tint is opaque, so it goes on the cells
+   (under their text) and the overlay is cleared. */
+.ln-grid [data-ln-row='true'][data-ln-selected='true']::before {
+  background: transparent;
+}
+
+.ln-grid [data-ln-row='true'][data-ln-selected='true'] [data-ln-cell='true'] {
+  background-color: ${hg('--hg-state-selected-tint')};
+}
+
+.ln-grid [data-ln-row='true'][data-ln-selected='true']:hover::before {
+  background: ${hg('--hg-state-hover-overlay')};
+}
+
+/* Focus (docs/decisions/focus-indicator.md): a cell is a borderless control in a
+   clipping container, so it takes the inset two-layer ring — the .hg-focus-inset
+   recipe — on :focus-visible only. LyteNyte draws a 1px ring in its own blue on
+   every :focus, a mouse click included; that one is removed. */
+.ln-grid ${LN_FOCUSABLE}:focus::before {
+  border: 0;
+}
+
+.ln-grid ${LN_FOCUSABLE}:focus-visible {
+  /* Drawn only in forced-colors mode, which strips box-shadow. */
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+
+.ln-grid ${LN_FOCUSABLE}:focus-visible::before {
+  box-shadow:
+    inset 0 0 0 2px ${hg('--hg-focus-ring-offset')},
+    inset 0 0 0 5px ${hg('--hg-focus-ring-color')};
+}
+
+/* The viewport is the grid's one Tab stop; arrow keys move between cells from
+   there. The cells would cover an inset ring, so the ring goes round the frame. */
+.ln-grid [data-ln-viewport='true']:focus-visible {
+  outline: 2px solid transparent;
+}
+
+.ln-grid:has([data-ln-viewport='true']:focus-visible) {
+  box-shadow:
+    0 0 0 2px ${hg('--hg-focus-ring-offset')},
+    0 0 0 5px ${hg('--hg-focus-ring-color')};
+}
+`;
+
+// ---------------------------------------------------------------------------
 // 11. Emit — index.ts
 // ---------------------------------------------------------------------------
 
@@ -709,6 +867,7 @@ const artifacts = {
   'themes.ts': themesTs,
   'tokens.css': tokensCss,
   'theme.css': themeCss,
+  'grid-theme.css': gridThemeCss,
   'index.ts': indexTs,
 };
 

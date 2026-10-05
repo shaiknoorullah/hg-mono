@@ -1,0 +1,34 @@
+{
+  "gitignore": true,
+  "absolute": false,
+  "noSymlinks": true,
+  "mode": "mild",
+  "maxSize": "1mb",
+  "maxLines": 5000,
+  "formatsExts": {
+    "txt": ["md", "html", "htm"],
+    "typescript": ["ts", "mts", "cts"],
+    "tsx": ["tsx"],
+    "javascript": ["js", "mjs", "cjs"],
+    "jsx": ["jsx"],
+    "go": ["go"]
+  },
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/generated/**",
+    "**/*.gen.go",
+    "**/*.d.ts",
+    "**/*.min.js",
+    "packages/ui-web/src/tokens/tokens.ts",
+    "packages/ui-web/src/tokens/themes.ts",
+    "packages/ui-web/src/tokens/tokens.css",
+    "packages/ui-web/src/tokens/theme.css",
+    "apps/marketing/experiments/**",
+    "contracts/fixtures/**",
+    "services/hg/internal/notify/emailtmpl/templates/**",
+    "pnpm-lock.yaml",
+    ".claude/**",
+    ".git/**"
+  ]
+}

@@ -13,12 +13,14 @@
  */
 import { createHgClient, type HgClient } from '@hg/api-client';
 
-import { getToken } from './token';
+import { getEpoch, getRefreshToken, getToken, setToken, setTokens } from './token';
 
 const DEFAULT_BASE_URL = 'http://localhost:4010';
 
-export const API_BASE_URL =
-  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_BASE_URL) || DEFAULT_BASE_URL;
+// Written as plain `process.env.EXPO_PUBLIC_…` on purpose: Expo swaps that exact expression for
+// the build's value. Optional chaining (`process.env?.…`) is not swapped, so a release build
+// read nothing at run time and fell back to the mock.
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || DEFAULT_BASE_URL;
 
 /**
  * Are we pointed at the local Prism mock, or a real backend? The demo scenario switchers and the
@@ -29,11 +31,61 @@ export const API_BASE_URL =
  */
 export const IS_MOCK = API_BASE_URL === DEFAULT_BASE_URL;
 
+/** A client with no 401 handler, used only to call the refresh operation itself. */
+export const refreshClient = createHgClient({
+  baseUrl: API_BASE_URL,
+  getToken: () => null,
+  clientSurface: 'rider-app',
+  clientVersion: '0.0.0',
+});
+
+let refreshing: Promise<boolean> | null = null;
+let refreshingEpoch = -1;
+
+/**
+ * On a 401: exchange the refresh token once (single-flight, so parallel 401s share one rotation —
+ * the server revokes the family on reuse). `true` tells the client to retry the request once;
+ * on failure the session is cleared, which sends the rider back to sign-in.
+ */
+export async function onUnauthorized(): Promise<boolean> {
+  const rt = getRefreshToken();
+  if (!rt) {
+    // Signed in without a refresh token (or not signed in): a 401 means the session is over.
+    if (getToken()) setToken(null);
+    return false;
+  }
+  // A refresh started for a session that has since ended must not be shared with the new one.
+  if (refreshing && refreshingEpoch !== getEpoch()) refreshing = null;
+  refreshingEpoch = getEpoch();
+  const mine = (refreshing ??= (async () => {
+    const epoch = getEpoch();
+    try {
+      const { data } = await refreshClient.POST('/v1/auth/refresh', { body: { refresh_token: rt } });
+      // The rider signed out or in again meanwhile: this result belongs to the old session.
+      if (getEpoch() !== epoch) return false;
+      const grant = data?.data;
+      if (!grant) {
+        setToken(null);
+        return false;
+      }
+      setTokens(grant.access_token, grant.refresh_token ?? null);
+      return true;
+    } catch {
+      if (getEpoch() === epoch) setToken(null); // refresh failed: back to sign-in, no retry loop
+      return false;
+    } finally {
+      if (refreshingEpoch === epoch) refreshing = null;
+    }
+  })());
+  return mine;
+}
+
 export const api = createHgClient({
   baseUrl: API_BASE_URL,
   getToken,
   clientSurface: 'rider-app',
   clientVersion: '0.0.0',
+  onUnauthorized,
 });
 
 const scenarioClients = new Map<string, HgClient>();
@@ -52,6 +104,7 @@ export function clientFor(scenario?: string): HgClient {
     getToken,
     clientSurface: 'rider-app',
     clientVersion: '0.0.0',
+    onUnauthorized,
     mockScenario: scenario,
   });
   scenarioClients.set(scenario, client);

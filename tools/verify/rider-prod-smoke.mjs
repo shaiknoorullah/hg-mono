@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
+import { VERIFY_OUT } from './env.mjs';
 
-const OUT = '/home/devsupreme/work/hg-mono/.claude/worktrees/wf_3a3764ca-14a-5/tools/verify';
+const OUT = VERIFY_OUT;
 
 (async () => {
   const browser = await chromium.launch();

@@ -1,4 +1,20 @@
-# Halal Goes — Component Inventory
+---
+covers:
+  - packages/ui-web/src/primitives/**
+  - packages/ui-web/src/certification/**
+  - packages/ui-web/src/content/**
+  - packages/ui-web/src/data/**
+  - packages/ui-web/src/feedback/**
+  - packages/ui-web/src/navigation/**
+  - packages/ui-native/src/primitives/**
+  - packages/ui-native/src/certification/**
+  - packages/ui-native/src/content/**
+  - packages/ui-native/src/feedback/**
+  - packages/ui-native/src/navigation/**
+reviewed: 2026-10-05
+---
+
+# HalalGoes — Component Inventory
 
 **Status:** system of record · **Date:** 2026-08-10
 **Depends on:** [`01-foundations.md`](./01-foundations.md), [`tokens.json`](./tokens.json)
@@ -23,6 +39,7 @@ These are stated once. No entry below re-litigates them.
 9. **Server state only.** No component derives a business state client-side. Notably: the halal badge renders from `halal_display_state` in the payload or renders nothing and logs a client error (C-12 R4 — "there is no 'assume certified'"); countdowns derive from server `expires_at` minus measured clock skew, never a local constant (D-14).
 10. **Unknown enum values do not crash.** Any component switching on a server enum has a documented fallback branch and reports it (rider spec §0.1: "Client must treat unknown enum values as 'unsupported — refresh app', never crash").
 11. **Every component ships a `testID` / `data-testid`** derived from its name, and snapshot coverage in both themes and both density modes.
+12. **Current and selected are a fill, never an edge.** A current page, active nav item, selected row or selected card is never marked with a bar, border or stripe on its inline-start edge. On the dark chrome it is an inverted tile: fill `text.onAccent`, with the label and icon in `surface.chrome`. On any other surface it is a `state.selectedTint` fill. Either way the label is bold and the state is in the markup (`aria-current` / `aria-selected`), so it never rests on colour alone. Owner decision, 1 Oct 2026; [issue #398](https://github.com/shaiknoorullah/hg-mono/issues/398) moved the web `SideNav` off its edge bar.
 
 ---
 
@@ -227,7 +244,7 @@ There is **no** `color`, `label`, `variant` or `icon` prop. The four states are 
 4. **Renewal note row** — rendered **only** when `state === 'EXPIRING_SOON'`: clock glyph + "Certificate renews {absolute date}" on `halal.expiring.tint`. Not an alert, not the warning ramp (foundations §2.5).
 5. Scope, when present (`WHOLE_ESTABLISHMENT` | `KITCHEN_ONLY` | `SPECIFIC_MENU_ITEMS` | `SUPPLIER_CHAIN_ONLY`, A-15) rendered as plain English.
 6. **"View certificate"** — `Button variant="tertiary"`, opens `DocumentViewer` via a per-request presigned GET, TTL 300 s, audited (C-12 R5).
-7. **Standing line**, `caption`, always present, never collapsible: *"Certification verified by Halal Goes on {verified_at}. Halal Goes does not itself certify food."* (C-12 R7).
+7. **Standing line**, `caption`, always present, never collapsible: *"Certification verified by HalalGoes on {verified_at}. HalalGoes does not itself certify food."* (C-12 R7).
 8. **"Report a halal concern"** — `Button variant="ghost"`, opens the C-39 grievance flow with category `HALAL_CONCERN` pre-set (server-assigned `CRITICAL`, 4 h acknowledge SLA).
 
 **States.**
@@ -605,6 +622,8 @@ There is no `seconds: number` prop. Clock skew is measured as `serverNow − dev
 | 4 — Navigation | 6 | AppBar, BottomNav, Tabs, Sheet, Modal, Toast |
 | 5 — Feedback & state | 9 | Skeleton, Spinner, EmptyState, ErrorState, Banner, Countdown, ListRow, Divider, Tooltip/Popover |
 | **Total** | **41** | |
+
+**Shipped beside the 41, not counted in them:** `Icon` (see [iconography](./01-foundations.md#11-iconography)) and `Wordmark`, the HalalGoes logo, in both `@hg/ui-web` and `@hg/ui-native`. `Wordmark` draws the approved traced artwork from `@hg/brand` ([packages/brand/README.md](../../packages/brand/README.md)); its letters take `text.primary` and its swash `action.primary`, so it has no green and never stands in for the halal seal. The rules for the mark are in Claude Design's [wordmark and app icon guideline](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv).
 
 **Deliberately absent, and why:**
 - **`SuccessButton` / filled green anything** — RULE H-1.

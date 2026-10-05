@@ -14,10 +14,15 @@
     "./navigation": "./src/navigation/index.ts",
     "./feedback": "./src/feedback/index.ts",
     "./data": "./src/data/index.ts",
+    "./live": "./src/live/index.ts",
+    "./email-links": "./src/emailLinks/index.ts",
+    "./link-token": "./src/emailLinks/linkToken.ts",
     "./lint": "./src/lint/index.ts",
+    "./testing": "./src/testing/index.ts",
     "./styles.css": "./src/styles/globals.css",
     "./tokens.css": "./src/tokens/tokens.css",
-    "./theme.css": "./src/tokens/theme.css"
+    "./theme.css": "./src/tokens/theme.css",
+    "./grid-theme.css": "./src/tokens/grid-theme.css"
   },
   "scripts": {
     "generate:tokens": "node scripts/generate-tokens.mjs",
@@ -32,6 +37,7 @@
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.2.5",
     "@hg/api-client": "workspace:*",
+    "@hg/brand": "workspace:*",
     "@iconify/react": "^5.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -63,7 +69,9 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "3.2.7",
     "jsdom": "^26.0.0",
+    "mapbox-gl": "^3.9.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tailwindcss": "^4.1.14",
@@ -71,7 +79,7 @@
     "typescript": "^5.9.0",
     "vitest": "^3.0.0"
   },
-  "description": "Halal Goes web component library \u2014 tokens, primitives, certification, content, navigation, feedback and data tiers.",
+  "description": "HalalGoes web component library \u2014 tokens, primitives, certification, content, navigation, feedback and data tiers.",
   "sideEffects": [
     "*.css"
   ]

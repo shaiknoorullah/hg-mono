@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 /**
  * The admin console consumes `@hg/ui-web` and `@hg/api-client` as workspace SOURCE
  * (their `main` points at `src/index.ts`, not a build output), so the dev server has to
- * be allowed to serve from the monorepo root — mirrors apps/gallery-web exactly.
+ * be allowed to serve from the monorepo root.
  */
 const monorepoRoot = fileURLToPath(new URL('../..', import.meta.url));
 

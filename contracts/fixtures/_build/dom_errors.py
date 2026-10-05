@@ -158,6 +158,18 @@ ERRORS = [
         "Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`.",
     ),
     (
+        "restaurant_unavailable",
+        409,
+        "RESTAURANT_UNAVAILABLE",
+        "This restaurant cannot take orders: it is not listed, or its halal certification is "
+        "not current. Your cart is saved.",
+        None,
+        "From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed "
+        "and live, or its halal certificate is not current as of the request, computed from "
+        "admin-verified certificate data. The apps show the halal copy and keep the cart. "
+        "Pairs with `cart_restaurant_unavailable`.",
+    ),
+    (
         "below_minimum_order",
         422,
         "BELOW_MINIMUM_ORDER",
@@ -224,14 +236,310 @@ ERRORS = [
     ),
 ]
 
+# The error states of the operations the owner moved into launch on 2026-10-01
+# (docs/decisions/README.md, "Settled — redesign decisions, round 2", "Launch scope and
+# contract"). Same tuple as ERRORS plus the operations each one is registered for, so the
+# mock lists them under the operation that returns them. Codes and messages match what
+# services/hg returns today. verifyEmail's link errors are here too: its success is a bare
+# 204 with no session (https://github.com/shaiknoorullah/hg-mono/issues/356), so its
+# errors are its only fixtures.
+LAUNCH_ERRORS = [
+    (
+        "refund_self_approval_forbidden",
+        409,
+        "SELF_APPROVAL_FORBIDDEN",
+        "Nobody may approve their own refund request.",
+        None,
+        "The person who asked for a refund, or who sent it up for a second person, tried to "
+        "approve it. A goodwill refund above CAD 50.00 always needs someone else.",
+        ["approveRefund", "issueRefund"],
+    ),
+    (
+        "refund_already_decided",
+        409,
+        "ALREADY_DECIDED",
+        "This refund is not waiting for a decision; it is AUTHORISED.",
+        None,
+        "Someone else decided it first, or it was never waiting. Reload the queue.",
+        ["approveRefund", "declineRefund"],
+    ),
+    (
+        "refund_approver_over_daily_limit",
+        409,
+        "DAILY_CAP_EXCEEDED",
+        "Approving this would take you past your 24-hour refund limit; a super admin can approve it.",
+        None,
+        "A second approver's own rolling 24-hour limit counts too. The request stays in the "
+        "queue for someone with room.",
+        ["approveRefund"],
+    ),
+    (
+        "refund_mfa_required",
+        403,
+        "MFA_REQUIRED",
+        "Refunds need a session signed in with your authenticator code. Sign in again with it.",
+        None,
+        "Money actions need a session signed in with an authenticator code (staff MFA for money "
+        "actions).",
+        ["approveRefund", "issueRefund"],
+    ),
+    (
+        "refund_needs_higher_role",
+        403,
+        "FORBIDDEN",
+        "This refund needs approval from someone with the ADMIN role.",
+        None,
+        "An approval request is decided by the role it was sent up to, or a super admin.",
+        ["approveRefund", "declineRefund"],
+    ),
+    (
+        "chargeback_closed",
+        409,
+        "ALREADY_DECIDED",
+        "Stripe has closed this chargeback (lost); it takes no more evidence.",
+        None,
+        "Evidence notes are for open chargebacks only.",
+        ["addChargebackEvidenceNote"],
+    ),
+    (
+        "verification_token_expired",
+        410,
+        "VERIFICATION_TOKEN_EXPIRED",
+        "This verification link has expired.",
+        None,
+        "`verifyEmail` with a token older than 24 hours. A token that never existed gets the "
+        "same code. The page offers \"Send a new link\" (`resendEmailVerification`).",
+        ["verifyEmail"],
+    ),
+    (
+        "verification_token_used",
+        410,
+        "VERIFICATION_TOKEN_USED",
+        "This verification link has already been used.",
+        None,
+        "`verifyEmail` with a token that was already used: the email is verified, so the page "
+        "sends the owner to sign in. Using the link never signs anyone in.",
+        ["verifyEmail"],
+    ),
+    (
+        "reset_token_not_valid",
+        400,
+        "TOKEN_CONSUMED",
+        "This reset link is not valid.",
+        None,
+        "`resetPassword` with a token that expired (30 minutes), was already used, or never "
+        "existed. One body for all three, so a link cannot be probed. The app offers "
+        "\"Send a new link\" (`requestPasswordReset`).",
+        ["resetPassword"],
+    ),
+    (
+        "breached_password",
+        422,
+        "BREACHED_PASSWORD",
+        "This password has appeared in a data breach. Choose another.",
+        None,
+        "The new password is on the breached-password list. Same body on reset and change.",
+        ["resetPassword", "changePassword"],
+    ),
+    (
+        "current_password_incorrect",
+        422,
+        "INVALID_CREDENTIALS",
+        "The current password is incorrect.",
+        None,
+        "`changePassword` with the wrong current password. Nothing changed and no session "
+        "was revoked. A 422, not a 401: the session is fine, and the client treats every 401 "
+        "as an expired session to refresh and retry.",
+        ["changePassword"],
+    ),
+    (
+        "totp_code_incorrect",
+        422,
+        "INVALID_CREDENTIALS",
+        "The TOTP code is incorrect.",
+        None,
+        "`verifyTotpEnrolment` with a code that does not match the authenticator. Enrolment "
+        "stays open: the person types the next code, they do not start again.",
+        ["verifyTotpEnrolment"],
+    ),
+    (
+        "staff_email_in_use",
+        409,
+        "EMAIL_IN_USE",
+        "This email already belongs to an account.",
+        None,
+        "`createStaffUser` for an email that already has a live account. No invite is sent.",
+        ["createStaffUser"],
+    ),
+    (
+        "price_out_of_range",
+        422,
+        "PRICE_OUT_OF_RANGE",
+        "Price must be between $0.50 and $500.00.",
+        [{"field": "price_cents", "code": "range", "message": "Must be between 50 and 50000 cents."}],
+        "The catalogue price band. The restaurant sets its own price; it is still never a "
+        "price a client sends for an order.",
+        ["createMenuItem", "updateMenuItem", "createMenuItemOnBehalf", "updateMenuItemOnBehalf"],
+    ),
+    (
+        "prohibited_ingredient",
+        422,
+        "PROHIBITED_INGREDIENT",
+        "HalalGoes does not list items that contain alcohol or pork.",
+        [{"field": "ingredients_text", "code": "prohibited", "message": "Mentions rum."}],
+        "Rejected outright, before review. The same check runs for restaurants and for "
+        "admins editing on their behalf.",
+        ["createMenuItem", "updateMenuItem", "createMenuItemOnBehalf", "updateMenuItemOnBehalf"],
+    ),
+    (
+        "halal_tag_not_writable",
+        403,
+        "FIELD_NOT_WRITABLE",
+        "Halal certified is set by HalalGoes from your approved certificate.",
+        [{"field": "dietary_tags[0]", "code": "not_writable", "message": "HALAL_CERTIFIED cannot be set by hand."}],
+        "Nobody types the halal claim onto a dish, not even an admin: it comes from the "
+        "restaurant's approved certificate. A missing claim shows no badge, never an "
+        "optimistic one.",
+        ["createMenuItem", "updateMenuItem", "createMenuItemOnBehalf", "updateMenuItemOnBehalf"],
+    ),
+    (
+        "category_name_taken",
+        409,
+        "CATEGORY_NAME_TAKEN",
+        "You already have a category called Desserts.",
+        None,
+        "Category names are unique per restaurant, ignoring case, on create and on rename.",
+        ["createMenuCategory", "updateMenuCategory", "createMenuCategoryOnBehalf"],
+    ),
+    (
+        "category_not_empty",
+        409,
+        "CATEGORY_NOT_EMPTY",
+        "Move or delete the 3 items in Desserts before deleting it.",
+        {"item_count": 3},
+        "`deleteMenuCategory` on a category that still holds items. Deleting a category "
+        "never deletes an item, so nothing changed; `details.item_count` says how many.",
+        ["deleteMenuCategory"],
+    ),
+    (
+        "item_blocked_by_admin",
+        403,
+        "ITEM_BLOCKED_BY_ADMIN",
+        "HalalGoes has blocked this item. Reason: the photo shows a different dish.",
+        None,
+        "`setMenuItemAvailability` on a `BLOCKED` item. The kitchen cannot un-block it; the "
+        "message carries the admin's reason.",
+        ["setMenuItemAvailability"],
+    ),
+    (
+        "menu_version_pending",
+        409,
+        "MENU_VERSION_PENDING",
+        "The restaurant has an edit to this item waiting for review. Decide it first.",
+        None,
+        "`updateMenuItemOnBehalf` with a claim-bearing field while the restaurant's own edit "
+        "is in the review queue. A restaurant's edit is never silently discarded.",
+        ["updateMenuItemOnBehalf"],
+    ),
+    (
+        "menu_version_already_decided",
+        409,
+        "ALREADY_DECIDED",
+        "Another reviewer already decided this version.",
+        None,
+        "Two reviewers on one version: the second decision is refused, never applied twice.",
+        ["decideMenuVersion"],
+    ),
+    (
+        "menu_version_item_deleted",
+        409,
+        "ITEM_DELETED",
+        "This item was removed from the menu.",
+        None,
+        "The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review.",
+        ["decideMenuVersion"],
+    ),
+    # The menu lock: while a restaurant is SUSPENDED or BANNED nobody changes its menu,
+    # its own staff and admins acting on its behalf alike, and a version waiting for
+    # review stays as it is. A DELISTED restaurant is not locked
+    # (docs/decisions/README.md, round 2, "A suspended or banned restaurant's menu";
+    # https://github.com/shaiknoorullah/hg-mono/issues/256).
+    (
+        "menu_locked",
+        403,
+        "MENU_LOCKED",
+        "This restaurant's menu is locked while the restaurant is suspended.",
+        {"account_state": "SUSPENDED"},
+        "A menu change while the restaurant is suspended, by its own staff or by an admin "
+        "on its behalf. The menu still reads normally; every edit control shows the "
+        "locked-menu state. Opening hours stay editable. Nothing was written.",
+        [
+            "createMenuCategory",
+            "updateMenuCategory",
+            "deleteMenuCategory",
+            "createMenuItem",
+            "updateMenuItem",
+            "deleteMenuItem",
+            "setMenuItemAvailability",
+            "createMenuCategoryOnBehalf",
+            "createMenuItemOnBehalf",
+            "updateMenuItemOnBehalf",
+            "deleteMenuItemOnBehalf",
+            "decideMenuVersion",
+        ],
+    ),
+    (
+        "menu_locked_banned",
+        403,
+        "MENU_LOCKED",
+        "This restaurant's menu is locked while the restaurant is banned.",
+        {"account_state": "BANNED"},
+        "An admin changing a banned restaurant's menu, or deciding one of its versions "
+        "waiting for review. A banned restaurant's own staff cannot sign in, so only "
+        "admins meet this one.",
+        [
+            "createMenuCategoryOnBehalf",
+            "createMenuItemOnBehalf",
+            "updateMenuItemOnBehalf",
+            "deleteMenuItemOnBehalf",
+            "decideMenuVersion",
+        ],
+    ),
+]
+
 
 def build(reg, synth) -> None:
     _errors(reg)
+    _operation_errors(reg)
     _realtime(reg)
 
 
+def _operation_errors(reg) -> None:
+    """Error answers pinned to the one operation that gives them."""
+    reg.add(
+        "error_register_restaurant_rate_limited",
+        "errors",
+        "ErrorEnvelope",
+        "`429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups "
+        "from one client address in an hour (docs/spec/03-restaurant.md, \"R-01 — Restaurant "
+        "account signup\"). Checked before the password is hashed, "
+        "so nothing was created; the response carries `Retry-After` in seconds.",
+        {
+            "error": {
+                "code": "RATE_LIMITED",
+                "message": "Too many sign-ups from this network. Please wait before trying again.",
+                "request_id": ulid_for("request:register_restaurant_rate_limited"),
+            }
+        },
+        operations=["registerRestaurant"],
+        status=429,
+        tags=["error-envelope", "error-path"],
+    )
+
+
 def _errors(reg) -> None:
-    for suffix, status, code, message, details, note in ERRORS:
+    entries = [(*entry, []) for entry in ERRORS] + LAUNCH_ERRORS
+    for suffix, status, code, message, details, note, operations in entries:
         envelope = {
             "error": {
                 "code": code,
@@ -247,6 +555,7 @@ def _errors(reg) -> None:
             "ErrorEnvelope",
             f"`{status}` · `{code}`. {note}",
             envelope,
+            operations=operations,
             status=status,
             tags=["error-envelope"],
         )

@@ -3,6 +3,7 @@ import { render, screen, waitFor, cleanup } from '@testing-library/react';
 
 import queueBusy from '../../../contracts/fixtures/orders/restaurant_order_queue_busy.json';
 import queueEmpty from '../../../contracts/fixtures/orders/restaurant_order_queue_empty.json';
+import { installDomShims } from '@hg/ui-web/testing';
 
 /**
  * `OrdersPage` drives all three states — loading, empty (queue drained, a *positive* tone —
@@ -26,20 +27,7 @@ async function renderOrders() {
 }
 
 describe('restaurant order queue — loading, empty, error, rows', () => {
-  beforeAll(() => {
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: (query: string) => ({
-        matches: false, media: query, onchange: null,
-        addListener: () => {}, removeListener: () => {},
-        addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
-      }),
-    });
-    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
-      observe() {} unobserve() {} disconnect() {}
-    };
-    Element.prototype.scrollIntoView = function scrollIntoView() {};
-  });
+  beforeAll(installDomShims);
 
   afterEach(() => {
     cleanup();
@@ -96,5 +84,21 @@ describe('restaurant order queue — loading, empty, error, rows', () => {
     await waitFor(() => {
       expect(container.textContent).toContain('HG-RENG-18X');
     });
+  });
+
+  it('shows the live rider map on an accepted order once a rider is assigned', async () => {
+    const orders = (queueBusy.payload as Array<Record<string, unknown>>).map((o, i) =>
+      i === 0 ? { ...o, state: 'READY_FOR_PICKUP', rider: { display_name: 'Yusuf K.', vehicle_type: 'BICYCLE', photo_url: null, eta_at: null } } : o,
+    );
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes('/v1/restaurant/profile')) return new Response('{}', { status: 500 });
+      return stubOk({ data: orders, meta: { next_cursor: null, has_more: false, total: orders.length } });
+    });
+
+    await renderOrders();
+
+    const maps = await screen.findAllByTestId('rider-approach-map');
+    expect(maps.some((m) => m.textContent?.includes('Yusuf K. · Bicycle'))).toBe(true);
   });
 });

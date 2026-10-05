@@ -1,7 +1,21 @@
-# Halal Goes — Cross-Cutting Platform Layer Specification
+---
+covers:
+  - services/hg/internal/auth/**
+  - services/hg/internal/session/**
+  - services/hg/internal/orders/**
+  - services/hg/internal/payments/**
+  - services/hg/internal/realtime/**
+  - services/hg/internal/notify/**
+  - services/hg/internal/files/**
+  - services/hg/internal/dispatch/**
+  - services/hg/internal/httpx/**
+reviewed: 2026-10-05
+---
 
-**Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Redis 7, MinIO, Traefik v3, docker compose.
-**Currency**: CAD only. **Market**: Canada.
+# HalalGoes — Cross-Cutting Platform Layer Specification
+
+**Target**: Go modular monolith, one binary. Postgres 17 + PostGIS 3.6, Valkey 9 (Redis-compatible), [Silo](https://github.com/pgsty/silo) object storage (the maintained fork of MinIO, with its S3 API; [object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)), Traefik v3, docker compose.
+**Currency**: CAD only. **Market**: Canada; launch in Ontario only ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 **Status**: normative. Every domain module (restaurant, menu, cart, order, dispatch, payments, admin) depends on this layer and may not re-implement any part of it.
 
 **Sources**: `sow.txt`; `scope/features-restaurant-admin-backend.md`; `fleet/crosscut-order-flow.md`.
@@ -28,7 +42,7 @@ These are not capabilities; they are constraints on all of them. Violating one i
 
 **G-8 — ULIDs for public identifiers, UUIDv7 for rows.** Primary keys are `uuid` generated as UUIDv7 (time-ordered, index-friendly). Externally visible correlation ids (`request_id`, event `id`, idempotency records) are ULID strings. No sequential integers are exposed.
 
-**G-9 — Time.** All timestamps are `timestamptz` stored in UTC. All API timestamps are RFC3339 with milliseconds and `Z`. "Local time" (trading hours, quiet hours, tax periods) is computed from the subject's IANA timezone (`restaurant.timezone`, `address.timezone`), never the server's.
+**G-9 — Time.** All timestamps are `timestamptz` stored in UTC. All API timestamps are RFC3339 with milliseconds and `Z`. "Local time" (trading hours, quiet hours, tax periods) is computed from the subject's IANA timezone (`restaurant.timezone`, `address.timezone`), never the server's. User-facing copy shows 12-hour times ("7:42 pm") through one shared formatter ([time format](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 ---
 
@@ -122,9 +136,9 @@ CREATE TABLE admin_profile   (account_id uuid PRIMARY KEY REFERENCES account(id)
 
 > **DECISION REQUIRED — one account across roles**: Should a single person be able to hold customer, rider and restaurant-staff roles on one account, or must riders/restaurants have separate logins? · **Proposed default**: one account, many roles, as specified above; a rider ordering food uses the same account. · **Why**: one identity is the only way session revocation, audit and fraud signals stay coherent, and it makes the "rider who also orders" case free.
 
-> **DECISION REQUIRED — restaurant staff granularity**: How many restaurant sub-roles at launch? · **Proposed default**: three — `RESTAURANT_OWNER` (billing, payouts, staff, everything), `RESTAURANT_MANAGER` (menu, hours, orders, no payouts/staff), `RESTAURANT_STAFF` (orders only). · **Why**: kitchen tablets must not be able to change bank details.
+> **Decided:** owner only at launch; manager and staff roles wait for a later version ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [restaurant staff](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
-> **DECISION REQUIRED — admin MFA**: Mandatory TOTP for `ADMIN`/`SUPER_ADMIN`/`SUPPORT_AGENT`? · **Proposed default**: mandatory, enrolled on first login, no grace period; recovery via a second super-admin. · **Why**: these roles can approve halal certification, issue refunds and read KYC documents.
+> **Decided:** TOTP mandatory for staff; no recovery codes; a super admin resets a lost authenticator after a call-back identity check ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 ---
 
@@ -149,6 +163,10 @@ CREATE TABLE admin_profile   (account_id uuid PRIMARY KEY REFERENCES account(id)
   **Audience**: the request carries `X-HG-Client` (`customer-app`, `rider-app`, `restaurant-web`, `admin-web`, `web`) validated against a registered client list; a signed-in-by-OTP session on `rider-app` grants `RIDER`, on `customer-app` grants `CUSTOMER`. An account may end up with both. The client header is *not* trusted for authorization — it only selects which role grant is created on first sign-up, and role creation for `RIDER` puts the rider in `onboarding_state='REGISTERED'`, not `APPROVED`.
 
   **Resend**: `POST /v1/auth/otp/request` with the same `{phone, purpose}` inside an open challenge's lifetime re-sends the **same** code (does not rotate it) and increments `sends`. Cooldown 60 s, max 3 sends per challenge, challenge lifetime 15 min, code validity 5 min from the most recent send.
+
+  **Provider**: sign-in codes go through Twilio Verify ([SMS carriers exception](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). When it is configured, Twilio generates, sends and checks the code and no code hash is stored locally; without it (development), the challenge table below is used. Sender registration is still open ([SMS registration](../decisions/README.md#open--blocking)).
+
+  **Reserved development range**: one fictional phone range is the exception. When the process environment is local or staging, a phone in that range stores a fixed development code and skips both the phone verifier and the SMS sender. Production and every other environment keep the normal path for every phone, including that range. The request and verify bodies do not change. The range and the code are named in the dev-world design ([scenario sign-in](../superpowers/specs/2026-09-28-devworld-harness-design.md#64-scenario-sign-in)).
 
 - **Data**:
 
@@ -208,15 +226,16 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
 
 - **Behaviour**:
   - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.**
-  - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, issues a session.
-  - `POST /v1/auth/email/resend` — rate limited 1/min, 5/day per account.
+  - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, answers `204`. **Issues no session and sets no cookie**: an emailed link never signs anyone in, or an attacker could send someone the link for the attacker's own account and have them work in it ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The owner then signs in with `login`.
+  - `POST /v1/auth/email/resend` — rate limited like the reset email below; a 429 only when the caller is over its own limits.
   - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when enrolled/required, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
   - `POST /v1/auth/password/forgot` `{email}` → always 200; sends reset token if the account exists.
-  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email.
-  - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued.
+  - **Link email limits** (verification and reset alike, as built Oct 2026): 3 an hour per address and client address (an IPv4 address or an IPv6 /64), so an attacker cannot use up the owner's own quota; 10 an hour per client address over all addresses; and a last-resort cap of 10 an hour and 20 a day per address, which answers generically and logs an alert. Addresses are counted in lower case with any `+tag` removed. Both operations answer in the same content and time whether or not the account exists. A new link does not cancel the earlier ones; at most 3 are live per account, and using one ends the rest.
+  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email. Answers `204` with no session and no cookie, also for a staff invitation setting a first password; the user then signs in with `login` (with the authenticator code where required).
+  - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued. A wrong current password is `422 INVALID_CREDENTIALS`, never `401`: the session is valid, and the shared client answers every `401` by refreshing and retrying, which would count the wrong password twice ([#238](https://github.com/shaiknoorullah/hg-mono/issues/238)).
   - `POST /v1/auth/totp/enroll` / `verify` / `disable` (step-up required).
 
-  Password hashing: **argon2id**, `t=3, m=64 MiB, p=2, saltLen=16, keyLen=32`, encoded in the standard `$argon2id$v=19$m=65536,t=3,p=2$…` string so parameters can be upgraded per-user on next successful login. Policy: minimum 12 characters, maximum 256 bytes, no composition rules, rejected against a bundled top-10k breached-password list.
+  Password hashing: **argon2id**, `t=3, m=64 MiB, p=2, saltLen=16, keyLen=32`, encoded in the standard `$argon2id$v=19$m=65536,t=3,p=2$…` string so parameters can be upgraded per-user on next successful login. Policy: minimum 12 characters, maximum 256 bytes, no composition rules, rejected against a bundled top-10k breached-password list. Each hash or verification allocates 64 MiB, so at most 3 run at once per replica (`HG_AUTH_HASH_CONCURRENCY`, at least 3), split across three gates so a flood on one public form cannot lock anyone else out: sign-up (restaurant sign-up and password reset), login (sign-in from every surface except the staff web app, and the password change of a session with no staff role), and staff (sign-in from the staff web app, `X-HG-Client: admin-web`, and the password change of a session holding `SUPPORT_AGENT`, `ADMIN` or `SUPER_ADMIN`), each with at least one slot. The gate is chosen from the request (its surface, or the session's roles), never from the account an email belongs to, so a `503` or the time spent waiting never tells which emails are registered or belong to staff. The per-IP, per-email and per-account rate limits run before a slot is taken, so a limited request never holds one; likewise a password-reset link that is unknown, used or expired is answered before a slot is taken ([#448](https://github.com/shaiknoorullah/hg-mono/issues/448)). A caller that waits more than 2 s for a slot (`HG_AUTH_HASH_WAIT`, at most 5 s), or finds the gate's queue full (`HG_AUTH_HASH_MAX_WAITERS`, default 4 per slot), gets `503` with `Retry-After` and error code `TIMEOUT`, nothing was executed, and the server logs one `password hashing at capacity` warning naming the gate. A busy login is not a failed attempt and never counts toward the lockout. Login for an email with no account, or an account with no password, verifies against a dummy hash on the request's gate, so its timing and its answer under load match a wrong password ([#216](https://github.com/shaiknoorullah/hg-mono/issues/216)).
 
   Tokens for email verification and password reset: 32 random bytes, base64url; stored as SHA-256; single-use; verification TTL 24 h, reset TTL 30 min.
 
@@ -246,7 +265,9 @@ CREATE TABLE login_attempt (
 CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
 ```
 
-  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min). Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account.
+  Redis: `rl:login:email:{email}` (10/15 min), `rl:login:ip:{ip}` (30/15 min); over either cap ⟹ 429 `rate_limited` with `Retry-After`, and the attempt is not evaluated or recorded. Lockout truth lives in `login_attempt` (Postgres): 10 consecutive `BAD_PASSWORD` within 15 min ⟹ 15-minute lock computed by query, so a Redis flush does not unlock an account. While Redis cannot answer, these two limits, restaurant sign-up's (`rl:register:ip:{ip}` and `rl:register:email:{email}`, 5/hour each, checked before the argon2id hash), password reset's (`rl:reset:ip:{ip}`, 10/hour) and password change's are counted in each API replica's memory instead, with the same keys and windows ([Redis-down policy under rate limiting](#p-38--rate-limiting)): login answers 429 over the limit, never 503, and is never unlimited.
+
+  Password change: `rl:password_change:account:{account_id}` (5/15 min), checked before the current password is verified; over the cap ⟹ 429 `rate_limited` with `Retry-After`. With Redis down it is counted in the replica's memory like login's limits; the hashing gate still bounds the work.
 
 - **Rules & invariants**:
   - **I-03.1** Plaintext passwords never appear in logs, audit payloads, error messages or panics. A `String()` method on the password type returns `"[REDACTED]"`.
@@ -290,8 +311,7 @@ CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
   |---|---|---|
   | Customer, Rider | 30 days | 180 days |
   | Restaurant | 14 days | 90 days |
-  | Support | 12 hours | 7 days |
-  | Admin, Super Admin | 8 hours | 24 hours |
+  | Support, Admin, Super Admin ([staff session length](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | 30 minutes | 12 hours |
 
   **Transport**:
   - Web surfaces (`restaurant-web`, `admin-web`): refresh token in `Set-Cookie: hg_rt=…; HttpOnly; Secure; SameSite=Lax; Path=/v1/auth; Max-Age=…`. Access token returned in the JSON body and held **in memory only**. `localStorage` is forbidden — this is the R17/A4 fix, enforced by a frontend lint rule banning `localStorage.setItem` with a key matching `token`.
@@ -345,13 +365,15 @@ CREATE TABLE signing_key (
   - **I-04.5** Clock skew tolerance for `exp`/`iat` is ±60 s and no more.
 - **Acceptance criteria**:
   1. Given refresh token R1 is exchanged for R2, When R1 is presented again, Then 401 `refresh_reuse_detected`, every session in the family shows `revoked_at`, and a security notification is sent.
-  2. Given an admin session, When 8 hours pass with no use, Then refresh returns 401 `session_expired`.
+  2. Given an admin session, When 30 minutes pass with no use, Then refresh returns 401 `session_expired`.
   3. Given `DELETE /v1/auth/sessions/{id}` succeeds, When an access token minted from that session is used 11 s later, Then 401 `session_revoked` — and this holds with Redis stopped.
   4. Given a restaurant-web login, When the response is inspected, Then the refresh token appears only in a `Set-Cookie` with `HttpOnly; Secure; SameSite=Lax` and never in the JSON body.
   5. Given a request with a valid access token but `Origin: https://evil.example`, When it targets a cookie-authenticated route, Then 403 `csrf_origin_rejected`.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — session lifetimes**: Are the per-role idle/absolute TTLs above acceptable to operations? · **Proposed default**: the table as written (customers 30/180 d, restaurants 14/90 d, admins 8/24 h). · **Why**: kitchen tablets and phones must not re-auth mid-shift, while an admin token must not survive a stolen laptop overnight.
+> **Decided:** support and admin staff, 30 minutes idle and 12 hours in total ([staff session length](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+
+> **Open:** are the customer, rider and restaurant lifetimes in the table acceptable to operations?
 
 ---
 
@@ -361,7 +383,7 @@ CREATE TABLE signing_key (
 
 - **Behaviour**: Authorization is `Can(principal, action, subject) → allow | deny`. `action` is a `noun.verb` string from a **closed, compile-time enumerated** set (`order.read`, `order.accept`, `menu_item.update`, `payout.read`, `kyc_document.download`, …). Permissions are a static Go map `role → set[action]`, versioned in-repo and covered by a golden test; they are **not** database-configurable in V1 (no runtime permission editing means no runtime permission bug). Scope narrows the subject set: a `RESTAURANT_MANAGER` scoped to R1 holding `order.accept` may only accept orders whose `restaurant_id = R1`, which is the *ownership* check (P-07), not the role check.
 
-  `SUPER_ADMIN` holds all actions. `ADMIN` holds all except `admin.grant_role`, `platform_config.write`, `payout_config.write`. `SUPPORT_AGENT` holds read actions plus `refund.request` (which requires admin approval above a threshold) and `order.annotate`.
+  `SUPER_ADMIN` holds all actions. `ADMIN` holds all except `admin.grant_role`, `platform_config.write`, `payout_config.write`. `SUPPORT_AGENT` holds read actions plus `refund.request` (which requires admin approval above a threshold) and `order.annotate`. So pausing new orders platform-wide (`ordering_pause.set`, [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) is `ADMIN` and `SUPER_ADMIN`; `SUPPORT_AGENT` only reads it (`ordering_pause.read`).
 
 - **Data**: no table in V1. `account_role` (P-01) is the only persisted authorization data. The permission matrix ships as `internal/authz/matrix.go` and is dumped into the OpenAPI description and into `docs/permissions.md` by `go generate`.
 
@@ -399,7 +421,7 @@ func (r *Router) Handle(method, path string, p Policy, h Handler)
   |---|---|---|---|
   | 1 | `RequestID` | read/generate `X-Request-ID` (ULID), put in ctx + response header | — |
   | 2 | `Recover` | catch panics, log with stack, alert | 500 `internal_error` |
-  | 3 | `RealIP` | trust `X-Forwarded-For` **only** from Traefik's IP | — |
+  | 3 | `RealIP` | trust `X-Forwarded-For` **only** from Traefik's IP: when the peer is in `HG_TRUSTED_PROXY_CIDRS` (required outside `HG_ENV=local`, where an empty list would give every caller Traefik's address; any range not wholly inside `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7`, `/0` included, refused at boot), the client is the right-most address in the header that is not a trusted proxy; otherwise the peer, and the header is ignored. Every reader of the client address uses this one result. A per-IP rate limit counts an IPv4 caller by address and an IPv6 caller by its /64 (a subscriber can send from any address in its /64), and a request with no resolved address in one shared bucket, never unlimited; logs and audit rows keep the exact address | — |
   | 4 | `AccessLog` | structured log, PII-redacted, sampled for 2xx reads | — |
   | 5 | `Timeout` | ctx deadline by `Class` (READ 5 s, WRITE 15 s, MONEY 20 s, UPLOAD 60 s) | 503 `timeout` |
   | 6 | `BodyLimit` | `Policy.MaxBody` (default 1 MiB, AUTH 16 KiB) | 413 `payload_too_large` |
@@ -454,7 +476,7 @@ SELECT o.id, d.rider_account_id, 'RIDER'
 
   and every order read is `… JOIN order_visibility v ON v.order_id = o.id AND v.account_id = $principal` unless the principal holds a global `order.read_any` action (admin/support), in which case the join is skipped **and** the access is written to the audit log as `order.read_any` (privileged reads are always audited).
 
-  **Field-level scoping** is part of ownership, not a separate concern: the same order is projected differently per `via`. The restaurant sees the customer's first name and a masked phone (`+1 416 ••• 0123`) and the delivery address only after `PREPARING`; the rider sees the full delivery address only after `PICKED_UP` and a platform-proxied phone number, never the raw one; the customer sees the rider's public profile (first name, photo, vehicle, rating) and never the rider's earnings or full record (the old `GET /riders/:id` leaked earnings to customers). Projections are separate Go structs (`OrderCustomerView`, `OrderRestaurantView`, `OrderRiderView`, `OrderAdminView`), never a single struct with conditional field blanking.
+  **Field-level scoping** is part of ownership, not a separate concern: the same order is projected differently per `via`. The restaurant sees the customer's first name, the masked phone (`+1 416 ••• 0123`) only once it accepts, enforced by the server ([masked phone](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)), and the delivery address only once it starts preparing; the rider sees an approximate area on the offer and the full delivery address once it accepts ([address on a rider's offer](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)), and a platform-proxied phone number, never the raw one; the customer sees the rider's public profile (first name, photo, vehicle, rating) and never the rider's earnings or full record (the old `GET /riders/:id` leaked earnings to customers). Projections are separate Go structs (`OrderCustomerView`, `OrderRestaurantView`, `OrderRiderView`, `OrderAdminView`), never a single struct with conditional field blanking.
 
   Owned-entity families and their predicates:
 
@@ -471,11 +493,11 @@ SELECT o.id, d.rider_account_id, 'RIDER'
 - **Rules & invariants**:
   - **I-07.1** `arch-lint` fails the build if any exported repository function whose name matches `Get|List|Update|Delete` on an owned entity lacks a `Principal` (or explicit `SystemPrincipal`) parameter.
   - **I-07.2** Every privileged cross-tenant read (`*.read_any`) writes an audit event before returning.
-  - **I-07.3** Customer PII is never present in a `OrderRiderView` before `PICKED_UP` nor in an `OrderRestaurantView` before `ACCEPTED`.
+  - **I-07.3** Customer PII is never present in a `OrderRiderView` before the rider accepts the offer nor in an `OrderRestaurantView` before acceptance.
   - **I-07.4** A rider removed from a dispatch loses order visibility immediately (`d.state <> 'WITHDRAWN'`).
 - **Acceptance criteria**:
   1. Given the full route table, When the IDOR sweep test runs (for every route with a path `{id}` parameter, call it as an unrelated principal of each role), Then every call returns 404 or 403 — zero 2xx. This test is generated from the route registry, so a new route is covered automatically.
-  2. Given rider R is assigned to order O, When R fetches O before `PICKED_UP`, Then `delivery_address.line1` is absent and `customer_phone` is a proxy number.
+  2. Given rider R holds an unaccepted offer for order O, When R views it, Then only the approximate drop-off area is present; When R accepts, Then `delivery_address.line1` is present and `customer_phone` is a proxy number.
   3. Given a support agent reads order O, Then an `order.read_any` audit row exists with `actor_id`, `subject_id`, `request_id`.
   4. Given a rider is unassigned from O, When the rider re-fetches O, Then 404.
 - **Version**: V1 · **Size**: L
@@ -546,6 +568,8 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
   `POST /v1/orders` `{ "quote_id":"…", "payment_method_id":"…", "delivery_instructions":[…], "idempotency_key" via header }`.
   The server **re-executes** `Quote()` at order time and compares to the stored quote. Identical ⟹ proceed. Different (price changed, item went unavailable, address changed) ⟹ `409 quote_stale` with the new quote embedded; the client must show the difference and get explicit re-confirmation. Expired ⟹ `409 quote_expired`.
 
+  **The restaurant must be able to take the order, at every step.** Adding a cart line, quoting (`POST /v1/quotes`), placing the order (`POST /v1/orders`) and the restaurant accepting it each lock the restaurant row `FOR SHARE` inside their own transaction, then refuse with `409 RESTAURANT_UNAVAILABLE` unless the restaurant is listed, `LIVE`, and its halal certificate is current as of that transaction. "Current" is computed from the admin-verified certificate data at that moment (`halal_certification_at(restaurant, now())`), not read from the stored `halal_status`, which can lag behind the calendar: the stored state can refuse an order but never admit one on its own. A suspension, ban, delisting or certificate expiry writes the same row, so it either commits first and is seen, or waits until the order's transaction has committed and then finds the order. The saved cart is kept, but cannot be quoted until the restaurant can take orders again ([halal display, rule 3](02-customer.md#c-12--halal-certification-display-and-verification--critical)).
+
   **The computation, in order. Each step is a pure function of DB state; none of it reads the request body for money.**
 
   **Step 1 — line unit price.** For each cart line, with the menu item, chosen variant and chosen add-ons re-read from Postgres inside the quote transaction (`FOR SHARE` on the menu item so a concurrent price edit cannot interleave):
@@ -606,13 +630,10 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
   ```
   commission_cents      = round_half_up((subtotal_cents − restaurant_funded_discount_cents) × restaurant.commission_rate)
   restaurant_net_cents  = subtotal_cents − restaurant_funded_discount_cents − commission_cents
-  rider_base_cents      = dispatch_config.base_cents
-  rider_distance_cents  = billable_km × dispatch_config.per_km_cents
-  rider_earnings_cents  = rider_base_cents + rider_distance_cents + surge_cents + tip_cents
-  platform_gross_cents  = commission_cents + service_fee_cents + delivery_fee_cents
-                          − (rider_base_cents + rider_distance_cents + surge_cents)
-                          − platform_funded_discount_cents
+  rider_earnings_cents  = delivery_fee_cents + tip_cents          -- pure pass-through, no rate card
+  platform_gross_cents  = commission_cents + service_fee_cents
   ```
+  Launch values: commission rate 0% ([commission](../decisions/README.md#settled--client-decisions)); service fee $0.00, shown as "Service fee $0.00" ([service fee](../decisions/README.md#settled--reconciliations)); every discount restaurant-funded ([discount funding](../decisions/README.md#settled--reconciliations)); the rider receives the whole delivery fee and every tip ([rider pay](../decisions/README.md#settled--reconciliations)). Wait-time pay is deferred to a later version ([wait-time pay](../decisions/README.md#settled--reconciliations)).
 
 - **Data**:
 
@@ -625,7 +646,6 @@ CREATE TABLE pricing_config (
   small_order_threshold_cents bigint NOT NULL, small_order_surcharge_cents bigint NOT NULL,
   service_fee_rate numeric(12,8) NOT NULL, service_fee_min_cents bigint NOT NULL, service_fee_max_cents bigint NOT NULL,
   default_commission_rate numeric(12,8) NOT NULL,
-  rider_base_cents bigint NOT NULL, rider_per_km_cents bigint NOT NULL,
   quote_ttl_seconds int NOT NULL DEFAULT 600,
   created_by uuid NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -716,6 +736,7 @@ CREATE TABLE quote_line_addon (
   - **I-09.5** An order can only be created from a non-expired quote whose recomputation matches; there is no code path that accepts a total from the request.
   - **I-09.6** Every rounding operation appends to `rounding_log`; the log's replay reproduces the stored totals exactly (test).
   - **I-09.7** A quote referencing an unavailable item, a closed restaurant, or an address outside the restaurant's delivery radius fails at quote time with a typed error listing the offending lines — it never silently zeroes.
+  - **I-09.8** While staff have paused new orders platform-wide during an incident ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244); `setOrderingPause`), quote and order creation answer `409 ORDERING_PAUSED` and store nothing, and the cart reports `ORDERING_PAUSED` in `blocking_reasons`. Orders already placed carry on to the end. The switch is one Postgres row with no cache in front of it; order creation reads it `FOR SHARE` in the transaction that inserts the order, so an order never commits after the pause did.
 - **Acceptance criteria**:
   1. Given a checkout request containing `total_cents`, `pricing`, or any monetary field, When posted, Then 422 `unknown_field` and no order, quote or PaymentIntent is created.
   2. Given a quote for $50.00 with promo `SAVE10` (10%), Then `discount_items_cents = 500` and `total_cents` reflects $45.00 + fees + tax; a snapshot test pins the exact integer.
@@ -728,7 +749,9 @@ CREATE TABLE quote_line_addon (
 
 > **DECISION REQUIRED — variant pricing semantics**: Does a chosen variant replace the base price or adjust it? · **Proposed default**: both, made explicit per variant via `pricing_mode ∈ {ABSOLUTE, DELTA}`, defaulting to `ABSOLUTE` on import of existing data. · **Why**: the old data contains both intents and guessing one silently mis-charges every order of the other kind.
 
-> **DECISION REQUIRED — fee parameters**: Launch values for base delivery fee, per-km, included km, min/max, small-order threshold and surcharge, service-fee rate and caps, default commission rate. · **Proposed default**: base $2.99, included 3 km, $1.20/km thereafter, min $2.99 / max $12.99, small-order threshold $15.00 with $2.50 surcharge, service fee 8% clamped to [$0.99, $6.99], default commission 20%. · **Why**: placeholder values that are plausible for the Canadian market and, critically, live in `pricing_config` so changing them is a config edit, not a deploy.
+> **Decided:** delivery fee $2.99 + $1.00/km; service fee $0.00; commission 0% ([delivery fee](../decisions/README.md#settled--client-decisions), [service fee](../decisions/README.md#settled--reconciliations)).
+
+> **Open:** included km, minimum and maximum delivery fee, and any small-order surcharge?
 
 > **DECISION REQUIRED — quote TTL**: How long is a quoted price honoured? · **Proposed default**: 10 minutes, with mandatory re-confirmation on any change. · **Why**: long enough to complete 3-D Secure, short enough that a menu price change is not honoured for an hour.
 
@@ -862,9 +885,9 @@ CREATE TABLE quote_tax_line (
   7. Given a province with no configured rate, When quoted, Then 422 `tax_profile_missing` and no order is created.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — GST/HST supplier position**: Is Halal Goes the deemed supplier for orders from non-registrant (small-supplier) restaurants, or does each restaurant remain the supplier? · **Proposed default**: platform is the deemed supplier for restaurants without a GST/HST number and collects/remits their food tax; registrant restaurants remain the supplier and receive their tax in their payout. Both paths are modelled by `restaurant.tax_role`. · **Why**: this determines who remits food tax and is the single highest-consequence tax question; it must be signed off by Canadian tax counsel before launch, and the data model supports either answer without a code change.
+> **DECISION REQUIRED — GST/HST supplier position**: Is HalalGoes the deemed supplier for orders from non-registrant (small-supplier) restaurants, or does each restaurant remain the supplier? · **Proposed default**: platform is the deemed supplier for restaurants without a GST/HST number and collects/remits their food tax; registrant restaurants remain the supplier and receive their tax in their payout. Both paths are modelled by `restaurant.tax_role`. · **Why**: this determines who remits food tax and is the single highest-consequence tax question; it must be signed off by Canadian tax counsel before launch, and the data model supports either answer without a code change. Still open and blocking: [HST registration](../decisions/README.md#open--blocking).
 
-> **DECISION REQUIRED — QST registration**: Will the platform register for QST and operate in Quebec at launch? · **Proposed default**: no Quebec launch in V1; QC addresses are rejected at quote time with `province_not_served`. · **Why**: QST registration, French-language (Charter) obligations and Revenu Québec filing are a distinct workstream.
+> **Decided:** no Quebec at launch; Ontario only, other provinces rejected with `province_not_served` ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
 > **DECISION REQUIRED — tip taxation**: Confirm tips are treated as voluntary untaxed gratuities and that 100% flows to the rider. · **Proposed default**: yes to both; no commission and no tax on tips. · **Why**: it is the correct CRA treatment for a voluntary gratuity and the only defensible position with riders.
 
@@ -922,23 +945,28 @@ CREATE TABLE quote_tax_line (
   | `REFUNDS` | debit (+) | money returned to customers |
   | `PLATFORM_ABSORBED` | debit (+) | goodwill / no-rider write-offs |
 
-  Postings happen at four moments: **capture** (customer charge recognised), **delivery/settlement** (split to restaurant, rider, platform, tax), **refund** (reversal), **payout** (payable → transferred). Each is a *balanced batch*: a set of `ledger_entry` rows written in one transaction whose `amount_cents` sum to zero.
+  Postings happen at four moments: **capture** (customer charge recognised and split to restaurant, tax and the platform's held share), **delivery** (the rider's share moved to the rider), **refund** (reversal), **payout** (payable → transferred). Each is a *balanced batch*: a set of `ledger_entry` rows written in one transaction whose `amount_cents` sum to zero. **Settlement posts nothing**: when a delivered order's `SETTLE` deadline passes it moves `DELIVERED → COMPLETED` and its receipt is written, and every cent has already been placed by the capture and the delivery ([#511](https://github.com/shaiknoorullah/hg-mono/issues/511), [#514](https://github.com/shaiknoorullah/hg-mono/pull/514)).
 
-  Worked example — Ontario, subtotal $30.00, restaurant-funded promo $3.00, delivery $4.19, service $2.40, HST 13% on ($27.00 + $4.19 + $2.40) = $33.59 → $4.37, tip $5.00, total **$46.96**. Commission 20% of $27.00 = $5.40. Rider base $3.50 + 3 km × $0.80 = $5.90, plus tip $5.00 = $10.90. Restaurant is a registrant (`RESTAURANT_IS_SUPPLIER`), so food HST ($27.00 × 13% = $3.51) is restaurant-remittable; delivery+service HST ($6.59 × 13% = $0.86) is platform-remittable.
+  Worked example, at launch values (commission 0%, service fee $0.00, rider paid the delivery fee plus the tip) — Ontario, subtotal $30.00, restaurant-funded promo $3.00, delivery $5.99 ($2.99 + 3 km × $1.00), service $0.00, HST 13% on ($27.00 + $5.99) = $32.99 → $4.29, tip $5.00, total **$42.28**. Rider $5.99 + tip $5.00 = $10.99. Restaurant is a registrant (`RESTAURANT_IS_SUPPLIER`), so food HST ($27.00 × 13% = $3.51) is restaurant-remittable; delivery HST ($5.99 × 13% = $0.78) is platform-remittable.
 
   | Entry | Account | Amount (cents) |
   |---|---|---|
-  | capture | `CUSTOMER_CHARGES` | −4696 |
-  | capture | `PSP_CLEARING` | +4696 |
-  | settle | `PSP_CLEARING` | −4696 |
-  | settle | `RESTAURANT_PAYABLE` | +2160 ($27.00 − $5.40 commission) |
-  | settle | `TAX_PAYABLE` (restaurant) | +351 |
-  | settle | `RIDER_PAYABLE` | +1090 |
-  | settle | `PLATFORM_REVENUE` | +1009 ($5.40 + $2.40 + $4.19 − $5.90 rider distance/base) |
-  | settle | `TAX_PAYABLE` (platform) | +86 |
+  | capture | `CUSTOMER_CHARGES` | −4228 |
+  | capture | `PSP_CLEARING` | +4228 |
+  | capture | `PSP_CLEARING` | −4228 |
+  | capture | `RESTAURANT_PAYABLE` | +2700 ($27.00, no commission) |
+  | capture | `TAX_PAYABLE` | +429 (restaurant's $3.51 + platform's $0.78, one row) |
+  | capture | `PLATFORM_REVENUE` | +1099 (delivery fee + tip, held until a rider delivers) |
+  | delivery | `PLATFORM_REVENUE` | −599 |
+  | delivery | `RIDER_PAYABLE` | +599 (`DELIVERY_FEE`) |
+  | delivery | `PLATFORM_REVENUE` | −500 |
+  | delivery | `RIDER_PAYABLE` | +500 (`TIP`) |
   | **Σ** | | **0** |
 
-  The customer's $46.96 decomposes to restaurant $21.60 + restaurant tax $3.51 + rider $10.90 (incl. $5.00 tip) + platform $10.09 + platform tax $0.86 = $46.96. Zero residual. (Stripe fees are posted separately against `PLATFORM_REVENUE` when the balance-transaction webhook arrives, keeping the customer-facing decomposition clean.)
+  The customer's $42.28 decomposes to restaurant $27.00 + tax $4.29 (restaurant-remittable $3.51, platform-remittable $0.78, per the quote's tax lines) + rider $10.99 (incl. $5.00 tip) = $42.28. Zero residual; with commission and service fee at zero, `PLATFORM_REVENUE` nets to zero once the rider is paid. Settling the order (`DELIVERED → COMPLETED`) adds no rows. (Stripe fees are posted separately against `PLATFORM_REVENUE` when the balance-transaction webhook arrives, keeping the customer-facing decomposition clean.)
+
+  **When the rider's share is posted.** The rider is not known at capture, so the capture batch leaves the delivery fee and the tip in `PLATFORM_REVENUE`, where a cancelled order's refund finds them. The rider's own `DELIVERED` transition then posts, in the same transaction, one balanced pair per earning: the delivery fee and the tip, exactly as priced, move from that held share to the `RIDER_PAYABLE` of the rider whose assignment is `DELIVERED` with its proof of delivery, read and locked from the database (the rider named on the request is only checked against it). One rider earning line mirrors each posting ([earnings formula and per-delivery ledger](04-rider.md#d-26--earnings-formula-and-per-delivery-ledger)). The batch is keyed by the order, so a replay posts nothing. No other path pays a rider: not a cancelled order, not one refunded in full before delivery, not a reassigned or returned assignment, not another actor's state change. A later refund that charges the rider back writes the reversing `RIDER_PAYABLE` entry and a mirroring `CLAWBACK` line; nothing is updated or deleted. Whether the platform makes up a tip lowered after the rider accepts is the owner's open question ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)); until it is decided it does not (`HG_RIDER_TIP_MAKEUP`, off).
+  Built in [#306](https://github.com/shaiknoorullah/hg-mono/issues/306).
 
 - **Data**:
 
@@ -990,19 +1018,19 @@ CREATE INDEX ledger_entry_cp ON ledger_entry(counterparty_type, counterparty_id,
   - **I-13.6 (immutability)** Zero `UPDATE`/`DELETE` on `ledger_entry` ever succeeds.
   - **I-13.7 (global balance)** `SELECT SUM(amount_cents) FROM ledger_entry` = 0 at all times.
 - **Acceptance criteria**:
-  1. Given the worked example order, When settled, Then `SUM(amount_cents) WHERE order_id = X` is exactly 0 and the six settlement rows match the table above cent-for-cent.
+  1. Given the worked example order, When captured and delivered, Then `SUM(amount_cents) WHERE order_id = X` is exactly 0 and the rows match the table above cent-for-cent; When it is then settled, Then no row is added.
   2. Given an attempt to write an unbalanced batch, When the transaction commits, Then it fails with `ledger_batch_unbalanced` and nothing is persisted.
   3. Given a partial refund of $10.00 on the worked example, When posted, Then a new balanced batch exists, `SUM` over the order is still 0, and the restaurant/rider/platform reversals sum to exactly 1000.
   4. Given any attempt to `UPDATE ledger_entry SET amount_cents = …`, Then the statement raises `ledger_is_append_only`.
   5. Given the nightly reconciliation job, When it compares `PSP_CLEARING` to the Stripe balance-transaction total for the day, Then the difference is 0 or an ops alert fires with the offending order ids.
-  6. Given an order with a $5.00 tip, Then the rider's payable increases by exactly 500 more than their base+distance earnings, and `PLATFORM_REVENUE` has no `TIP` component row.
+  6. Given an order with a $5.00 tip, Then the rider's payable increases by exactly 500 more than the delivery fee, and `PLATFORM_REVENUE` has no `TIP` component row.
 - **Version**: V1 · **Size**: L
 
 > **DECISION REQUIRED — Stripe fee absorption**: Who bears Stripe's processing fee (~2.9% + $0.30 on Canadian cards)? · **Proposed default**: the platform absorbs it entirely; it is posted to `PSP_FEES` against `PLATFORM_REVENUE` and never affects restaurant or rider payouts. · **Why**: partner payouts must be predictable and computable before the fee webhook arrives.
 
 > **DECISION REQUIRED — commission base**: Is commission charged on the subtotal before or after a restaurant-funded discount? · **Proposed default**: after (on `subtotal − restaurant_funded_discount`), so a restaurant running its own promo is not charged commission on money it discounted. · **Why**: charging commission on a discount the restaurant funded is the most common source of partner disputes.
 
-> **DECISION REQUIRED — rider earnings formula**: Base + per-km + surge + 100% tip, with what launch values and what minimum per delivery? · **Proposed default**: $3.50 base + $0.80/km + surge (0 at launch) + 100% of tip, with a $6.00 guaranteed minimum per completed delivery, the shortfall posted to `PLATFORM_ABSORBED`. · **Why**: a guaranteed floor is necessary for rider supply and must be visible in the ledger rather than hidden in the fee maths.
+> **Decided:** pure pass-through: the whole delivery fee plus every tip; no rate card, no floor ([rider pay](../decisions/README.md#settled--reconciliations), [delivery fee recipient](../decisions/README.md#settled--client-decisions)).
 
 ---
 
@@ -1030,25 +1058,27 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
   | T2 | `CREATED` | `FAILED` | PaymentIntent permanently failed | system | none |
   | T3 | `CREATED` | `CANCELLED` | customer abandons, or 15-min deadline | customer, system | PI cancelled |
   | T4 | `AUTHORIZED` | `RESTAURANT_PENDING` | offer emitted to restaurant | system | none |
-  | T5 | `AUTHORIZED` | `CANCELLED` | restaurant closed / not accepting / item unavailable at offer time | system | auth voided |
+  | T5 | `AUTHORIZED` | `CANCELLED` | restaurant closed / not accepting / item unavailable at offer time, or customer cancels | system, customer | auth voided |
   | T6 | `RESTAURANT_PENDING` | `PREPARING` | restaurant accepts **and** capture succeeds | restaurant staff (`order.accept`) | **capture** |
   | T7 | `RESTAURANT_PENDING` | `REJECTED` | restaurant declines with a reason | restaurant staff (`order.reject`) | auth voided |
   | T8 | `RESTAURANT_PENDING` | `CANCELLED` | 180-s acceptance deadline expires | system | auth voided |
   | T9 | `RESTAURANT_PENDING` | `CANCELLED` | customer cancels before acceptance | customer (`order.cancel`) | auth voided, no fee |
   | T10 | `PREPARING` | `READY_FOR_PICKUP` | restaurant marks ready | restaurant staff (`order.mark_ready`) | none |
-  | T11 | `PREPARING` | `CANCELLED` | admin/support cancels, or prep escalation cap reached | support/admin, system | refund per policy |
-  | T12 | `READY_FOR_PICKUP` | `PICKED_UP` | dispatch → `CARRYING` (rider confirms pickup) | rider (`dispatch.confirm_pickup`) | none |
+  | T11 | `PREPARING` | `CANCELLED` | staff cancel, no support case needed, reason on the audit log ([cancellation policy](../decisions/README.md#settled--client-decisions)); or prep escalation cap reached | admin (whether support agents may too is open), system | refund per policy |
+  | T12 | `READY_FOR_PICKUP` | `PICKED_UP` | dispatch → `CARRYING` (rider types the pickup code the kitchen reads out; [contract change](https://github.com/shaiknoorullah/hg-mono/issues/183)) | rider (`dispatch.confirm_pickup`) | none |
   | T13 | `READY_FOR_PICKUP` | `CANCELLED` | no-rider escalation cap reached | system | refund customer, pay restaurant |
   | T14 | `PICKED_UP` | `ARRIVED` | dispatch → `AT_CUSTOMER` (geofence or rider tap) | rider | none |
   | T15 | `PICKED_UP` | `DELIVERED` | rider completes without an arrival ping | rider (`dispatch.complete`) | none |
-  | T16 | `ARRIVED` | `DELIVERED` | rider completes handover (+ proof of delivery) | rider (`dispatch.complete`) | none |
+  | T16 | `ARRIVED` | `DELIVERED` | rider completes handover with the customer's delivery code, or a photo plus statement for leave-at-door | rider (`dispatch.complete`) | none |
   | T17 | `PICKED_UP`/`ARRIVED` | `DISPUTED` | support opens an incident mid-delivery | support/admin | none yet |
-  | T18 | `DELIVERED` | `COMPLETED` | settlement batch posted successfully | system | **settle** (P-13) |
+  | T18 | `DELIVERED` | `COMPLETED` | `SETTLE` deadline passed with the order still `DELIVERED`; the receipt is written in the same transaction (P-10) | system | none: the capture and the delivery already posted every cent (P-13) |
   | T19 | `DELIVERED`/`COMPLETED` | `DISPUTED` | customer or restaurant raises a dispute within the window | customer, restaurant staff, support | none yet |
   | T20 | `DISPUTED` | `RESOLVED` | support resolves (refund / partial / no action) | support/admin (`dispute.resolve`) | refund + adjustment batch |
   | T21 | `PREPARING`/`READY_FOR_PICKUP` | `DISPUTED` | restaurant reports an unrecoverable problem | restaurant staff | none yet |
 
-  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal.
+  Terminal: `COMPLETED`, `CANCELLED`, `REJECTED`, `FAILED`, `RESOLVED`. `DISPUTED` is non-terminal, but it is the one unfinished state that is not the customer's active order: every problem report puts an order there, and an order under review after a problem report does not block a new checkout ([narrowed one-active-order rule](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). Its only way out is T20 to `RESOLVED`, so an order that stopped counting as active never counts again.
+
+  A support agent or admin may also cancel an order before the restaurant accepts it, from `CREATED`, `AUTHORIZED` or `RESTAURANT_PENDING`, recorded with actor `ADMIN` ([admin order intervention](05-admin.md#a-38--order-lookup-and-admin-order-intervention)).
 
   **The dispatch sub-machine** (table `dispatch`, one row per order, created at T6):
 
@@ -1058,13 +1088,13 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
                  └──────────┘         └────────────┴─────────────┴──► UNASSIGNED → SEARCHING
                  └───────────────────────────────────────────────────► NO_RIDER_FOUND
   ```
-  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13).
+  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13). A pickup moves the order in the same transaction as the dispatch step, so a refused order move refuses the pickup ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317)). Only the rider who holds the order's delivery can move it, checked where the order is locked. A pickup while the order is still `PREPARING` is refused until the kitchen's pickup code is checked: marking ready is the kitchen's step, never the rider's word alone ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
 
   **Enforcement.** A single function owns every transition:
   ```go
   func (s *OrderService) Transition(ctx, tx, orderID uuid, to OrderState, by Actor, reason string, effects ...Effect) error
   ```
-  It (a) `SELECT … FOR UPDATE` the order, (b) looks the pair up in a compile-time transition table that also declares the required `authz.Action` and the permitted actor kinds, (c) rejects illegal pairs with `409 illegal_transition{from,to,allowed}`, (d) writes the new state, the new `deadline_at` (P-15) and an `order_transition` row, (e) enqueues outbox events, all in **one** transaction. There is no other writer of `order.state` — arch-lint bans `UPDATE "order" SET state` outside this file, and the DB grants no direct `UPDATE(state)` to any other code path. The old `PUT /orders/:id/status` with `as any` and no auth (B57) has no successor endpoint; admins move orders only through named actions.
+  It (a) `SELECT … FOR UPDATE` the order, (b) looks the pair up in a compile-time transition table that also declares the required `authz.Action` and the permitted actor kinds, (c) rejects illegal pairs with `409 illegal_transition{from,to,allowed}`, (d) writes the new state, the new `deadline_at` (P-15) and an `order_transition` row, (e) enqueues outbox events, all in **one** transaction. There is no other writer of `order.state` — arch-lint bans `UPDATE "order" SET state` outside this file, and the DB grants no direct `UPDATE(state)` to any other code path. No code outside `internal/orders` writes an order's `deadline_at` or its `order_transition` log either: the restaurant's prep delay, which moves the deadline without changing state, goes through the orders module's `DelayInTx` ([restaurant delay, rule 8](03-restaurant.md#r-26--delay-handling-and-rider-communication); [#351](https://github.com/shaiknoorullah/hg-mono/issues/351)), and a test in `internal/orders` fails on any other writer. The old `PUT /orders/:id/status` with `as any` and no auth (B57) has no successor endpoint; admins move orders only through named actions.
 
 - **Data**:
 
@@ -1162,7 +1192,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
 - **Rules & invariants**:
   - **I-14.1** `order.state` is only ever written by `OrderService.Transition`.
   - **I-14.2** Every state change appends exactly one `order_transition` row in the same transaction; the row count equals the number of state changes.
-  - **I-14.3** No transition exists that reaches `PREPARING` without a successful capture; no transition reaches `COMPLETED` without a balanced settlement batch.
+  - **I-14.3** No transition exists that reaches `PREPARING` without a successful capture; no transition reaches `COMPLETED` without its `receipt_snapshot` written in the same transaction.
   - **I-14.4** `dispatch` can only be created for orders in `PREPARING` or later, and only one dispatch row per order.
   - **I-14.5** A rider may only act on a dispatch where `dispatch.rider_account_id = principal`.
   - **I-14.6** Terminal states never transition again (`order_state_is_terminal(from)` ⟹ reject).
@@ -1171,9 +1201,9 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   1. Given an order in `RESTAURANT_PENDING`, When a `PUT` attempts to set it to `DELIVERED`, Then 409 `illegal_transition` listing `["PREPARING","REJECTED","CANCELLED"]`, and no row changes.
   2. Given restaurant staff scoped to R1 and an order for R2 in `RESTAURANT_PENDING`, When they accept it, Then 404 and no transition occurs. (Old system: any caller with two ids could accept.)
   3. Given an order accepted by the restaurant, When capture fails permanently, Then the order does not enter `PREPARING`; it reaches `CANCELLED` with `cancel_reason='capture_failed'` and the restaurant is notified.
-  4. Given an order in `PREPARING`, When the rider marks pickup before the restaurant marks ready, Then 409 — `PREPARING → PICKED_UP` is not in the table; the rider sees "waiting for the kitchen".
+  4. Given an order in `PREPARING`, When the rider marks pickup before the restaurant marks ready, Then 409 — `PREPARING → PICKED_UP` is not in the table; the rider sees "waiting for the kitchen", and neither the assignment nor the order moves. The same holds for an order the rider cannot collect (cancelled, rejected, disputed or not yet accepted). A rider who does not hold the order's delivery gets 404, as for any assignment that is not theirs ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317); the early handover with the kitchen's code is [#413](https://github.com/shaiknoorullah/hg-mono/issues/413)).
   5. Given the state machine, When the exhaustive transition test runs (all 14 × 14 ordered pairs × 6 actor kinds), Then exactly the 21 rows above are permitted and all 1155 other combinations are rejected.
-  6. Given an order reaching `DELIVERED`, When settlement fails, Then the order stays `DELIVERED` with an armed deadline and retries; it never silently sits without a deadline.
+  6. Given an order reaching `DELIVERED`, When settlement fails (its receipt cannot be issued), Then the order stays `DELIVERED` with an armed deadline and retries; it never silently sits without a deadline.
 
 - **Version**: V1 · **Size**: L
 
@@ -1191,10 +1221,10 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   | `AUTHORIZED` | `+60 s` | `OFFER_RESTAURANT` — emit the offer, transition T4 (or T5 if the restaurant is closed/paused) | 3 (retry every 60 s) | T5 `CANCELLED` + void |
   | `RESTAURANT_PENDING` | `+180 s` | `RESTAURANT_TIMEOUT` — transition T8, void auth, notify customer, decrement the restaurant's acceptance SLA | 0 | — |
   | `PREPARING` | `accepted_at + prep_eta + 10 min` | `PREP_OVERDUE` — notify customer with a new ETA, alert ops, re-arm `+10 min` | 3 | T11 `CANCELLED`, full customer refund, restaurant paid per policy |
-  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (widen radius / manual assign), alert ops, re-arm `+10 min` | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` |
+  | `READY_FOR_PICKUP` | `ready_at + 15 min` | `PICKUP_OVERDUE` — escalate dispatch (restart a search that found no rider, widen radius / manual assign), alert ops, notify the customer, re-arm `+10 min` (pickup escalation, shipped) | 3 | T13 `CANCELLED`, full customer refund, restaurant paid in full, cost to `PLATFORM_ABSORBED` (shipped, [#336](https://github.com/shaiknoorullah/hg-mono/issues/336); only when no rider holds the order, otherwise ops are alerted and it keeps escalating) |
   | `PICKED_UP` | `picked_up_at + 75 min` | `DELIVERY_OVERDUE` — ping rider, alert ops, re-arm `+15 min` | 3 | T17 `DISPUTED` + ops case. **Never auto-delivers.** |
   | `ARRIVED` | `+15 min` | `HANDOVER_OVERDUE` — notify customer, alert ops, re-arm `+10 min` | 2 | T17 `DISPUTED` + ops case |
-  | `DELIVERED` | `+2 min` | `SETTLE` — post the settlement batch, transition T18; on failure re-arm with exponential backoff (2 m, 4 m, 8 m, …) | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
+  | `DELIVERED` | `+2 min` | `SETTLE` — transition T18 and write the receipt, posting nothing (P-13); on failure re-arm 2 m on | 8 | page on-call; order stays `DELIVERED` with an armed deadline, never abandoned |
   | `DISPUTED` | `+48 h` | `DISPUTE_SLA_BREACH` — escalate to senior ops, re-arm `+24 h` | 3 | auto-resolve in the customer's favour per policy, transition T20 |
 
   **Dispatch deadlines:**
@@ -1244,19 +1274,25 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   6. Given Redis is flushed while 200 orders are mid-flight, Then every deadline still fires and every order reaches a terminal state.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — restaurant acceptance window**: How long does a restaurant have to accept? · **Proposed default**: 180 s, with a visible countdown; expiry cancels and voids the authorisation. Closing the tablet dialog does **not** reject (the old popup auto-rejected on dismissal and on expiry, losing paid orders — R26). · **Why**: 60 s is too short for a busy kitchen; an accidental dismissal must never destroy an order.
+> **Decided:** 180 s; expiry cancels and voids the authorisation ([acceptance window](../decisions/README.md#settled--reconciliations)). Closing the tablet dialog still never rejects an order.
 
-> **DECISION REQUIRED — no-rider-found policy**: Who pays when food is cooked and no rider is ever found? · **Proposed default**: customer fully refunded; restaurant paid `restaurant_net_cents` in full; the difference posted to `PLATFORM_ABSORBED`; the customer is offered a pickup option before cancellation. · **Why**: the restaurant did its job; making them eat the cost destroys supply.
+> **Decided:** customer fully refunded, restaurant paid in full, the platform absorbs the cost ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
+
+> **Owner question:** is the customer offered a pickup option before the order is cancelled? ([cancel at the pickup cap](https://github.com/shaiknoorullah/hg-mono/issues/336)) As built, they are not: they are told of the delay on each lapse, and at the cap the order is cancelled and refunded.
+
+  As built ([#336](https://github.com/shaiknoorullah/hg-mono/issues/336)): at the third lapse, in the deadline runner's one transaction, the search for a rider is closed (`NO_RIDER_FOUND`, pending offers withdrawn), the full refund is posted `AUTHORISED` with its balanced REFUND batch (`payments.RefundSystemCancelTx`), and the order moves to `CANCELLED` with `cancel_reason = NO_RIDER_FOUND`, so `order.cancelled` carries the refund and the refund sender sends it to Stripe. A refund needs an account that asked for it and one that approved it; a deadline has no person, so both are the platform's own account (migration `00056`), which cannot sign in and holds no role. An order a rider holds is not cancelled: the rider may be at the counter, so ops decide.
 
 > **DECISION REQUIRED — prep overdue cancellation**: When a kitchen blows through three escalations, is the restaurant still paid? · **Proposed default**: no — full customer refund, no restaurant payout, incident recorded against the restaurant's SLA. · **Why**: unlike the no-rider case, the failure is the restaurant's.
 
-> **DECISION REQUIRED — customer cancellation window and fee**: Until when may a customer cancel free of charge? · **Proposed default**: free until the restaurant accepts (T9); after acceptance, cancellation requires support and the default outcome is a full refund with the food cost charged to `PLATFORM_ABSORBED` for the first two occurrences per customer per 90 days, then no refund. · **Why**: the FAQ already promises customers a cancel button that does not exist (M5); shipping it without an abuse rule invites loss.
+> **Decided:** free until the restaurant accepts; after that, staff may cancel without a support case, reason on the audit log ([cancellation policy](../decisions/README.md#settled--client-decisions)).
 
 > **DECISION REQUIRED — dispute window**: How long after delivery may a dispute be raised? · **Proposed default**: 72 hours for the customer, 7 days for the restaurant, with a 48-hour support SLA. · **Why**: it bounds the period during which a settled payout can be clawed back.
 
 ---
 
 # 5. Payments (Stripe, CAD, Canada)
+
+**One keyed Stripe client.** Every Stripe call the server makes (PaymentIntents, SetupIntents, refunds, Connect accounts and onboarding links, transfers) goes through the one client built from `HG_STRIPE_SECRET_KEY`. The SDK's package-level functions read a global key that nothing sets, so a call made through one would reach Stripe with no key and fail with 401; they are not used, and a test fails if one comes back ([issue #338](https://github.com/shaiknoorullah/hg-mono/issues/338)). Every call is made in the Stripe API version that the stripe-go major version pins, which the server logs at startup (`api_version`); the webhook endpoints are created in that same version, because signature verification refuses an event sent in any other, and a test pins the version so a library upgrade that moves it fails until the endpoints move with it.
 
 ### P-16 — PaymentIntent lifecycle and capture timing
 
@@ -1363,8 +1399,8 @@ CREATE TABLE saved_payment_method (
 
   Processing is **store-then-process**:
   1. Verify signature. Insert `webhook_event {stripe_event_id UNIQUE, type, payload, received_at}`. A duplicate `stripe_event_id` returns `200` immediately — this is the idempotency boundary, and it is a Postgres unique index, not a Redis key.
-  2. Commit, return `200` within the request. Processing happens in the deadline-runner loop (`webhook_event.deadline_at`), so a slow handler never causes Stripe to retry against a half-done state.
-  3. The handler processes the event under `FOR UPDATE SKIP LOCKED`, applies it, sets `processed_at`, and re-arms on failure with backoff (1 m, 2 m, 4 m … cap 8 attempts, then ops page).
+  2. Commit, return `200` within the request. Processing happens in the webhook worker, from the stored row, once its `webhook_event.deadline_at` comes due, so a slow handler never causes Stripe to retry against a half-done state.
+  3. The handler processes the event under `FOR UPDATE SKIP LOCKED`, applies it, sets `processed_at`, and re-arms on failure with backoff (1 m, 2 m, 4 m … cap 8 attempts, then ops page). One replica works at a time, holding an advisory-lock lease; the effect and `processed_at` commit in one transaction. The eighth failure sets the event aside (`dead_lettered_at`, its error kept) and pages on-call with an `admin.alert` in the same transaction; the catch-up below retries it once the cause is fixed ([#231](https://github.com/shaiknoorullah/hg-mono/issues/231)).
   4. **Out-of-order safety**: every handler is a *state assertion*, not a delta. `handleAmountCapturableUpdated` sets state to `REQUIRES_CAPTURE` only if the local state is earlier in the lifecycle; it never moves a PI backwards. Each `payment_intent` row carries `last_stripe_event_created_at`; events older than the last applied one are recorded and skipped.
 
   **Handled events:**
@@ -1377,14 +1413,16 @@ CREATE TABLE saved_payment_method (
   | `payment_intent.payment_failed` | → `FAILED`, order T2/T3 per retry policy, notify |
   | `payment_intent.canceled` | → `CANCELED` |
   | `charge.refunded` | reconcile `refund` rows, post the REFUND batch if not already posted |
-  | `charge.dispute.created` / `.closed` | open/close a chargeback record, freeze affected payouts |
+  | `charge.dispute.created` / `.updated` / `.closed` | open, update or close a chargeback record, freeze affected payouts, notify ops; a lost dispute is a `reconciliation_exception`. The order's state is left alone: T19 is the customer's, the restaurant's or support's, and ops review the chargeback |
   | `balance.available` | trigger payout reconciliation |
   | `account.updated` (Connect) | update `connect_account` capabilities, `charges_enabled`, `payouts_enabled`, requirements |
-  | `capability.updated` | same |
+  | `capability.updated` | none: Stripe sends `account.updated` for every capability change, and that event carries `payouts_enabled` |
   | `transfer.created` / `transfer.reversed` | reconcile payout ledger |
   | `payout.paid` / `payout.failed` | update partner payout state, notify |
 
   **Reconciliation** (nightly, and on demand): pull Stripe balance transactions for the day and compare against `ledger_entry` on `PSP_CLEARING` and `PSP_FEES`. Any order present in one and not the other, or with an amount mismatch, is written to `reconciliation_exception` and paged. This is the backstop for a webhook that never arrived.
+
+  **Catch-up after a failover or a restore** (on demand): a failover or a restore from backup loses the last moments of writes, and with them any webhook stored in that window. `hg stripe-catchup --since <time>` closes the gap without waiting for the nightly run. It lists the Stripe events created since `<time>` and stores each one through the same store step a delivered webhook takes, so the unique index on the event id drops the ones already here, then applies every stored event in that window that has not been applied yet, oldest first. Next it reads back from Stripe every payment intent written in the last 24 hours (or since `<time>`, if that is earlier) and asserts its state through the same handlers; it never writes a payment state directly. It applies every stored event through the same step the webhook worker takes, including one the worker set aside after repeated failures, so running it is also how such an event is retried ([#249](https://github.com/shaiknoorullah/hg-mono/issues/249)). It prints the transitions it applied. Each disagreement it will not settle by itself (a payment Stripe knows and the database does not, one the database has further along than Stripe, or a captured payment Stripe reports cancelled or the other way round, which it never moves by itself) is written to `reconciliation_exception` in the same transaction that marks its event applied, at most one unresolved row per kind and payment. A late decline for a payment already captured or cancelled is an old event, not a disagreement. Every run lists all the unresolved ones and exits non-zero while any remain, until a person resolves them. It is a command of the `hg` binary, not an HTTP route, so only someone holding the server's own secrets can run it. A second run changes nothing.
 
 - **Data**:
 
@@ -1456,6 +1494,7 @@ CREATE TABLE reconciliation_exception (
   | `RESTAURANT_REJECTED` (pre-capture) | n/a — voided | — | — | — |
   | `ITEM_MISSING` / `WRONG_ITEM` | item + its tax | item net + its commission reversed | — | — |
   | `FOOD_QUALITY` | per support judgement | yes, if substantiated | — | remainder |
+  | `HALAL_CONCERN` (filed by staff with evidence) | item + its tax | item net, only when substantiated | — | all of it otherwise, as goodwill |
   | `NEVER_DELIVERED` (no POD) | full | — | rider earnings reversed, minus a proven-effort payment | remainder |
   | `LATE_DELIVERY` | fees only | — | — | full |
   | `NO_RIDER_FOUND` | full | — | — | full (restaurant still paid) |
@@ -1463,6 +1502,10 @@ CREATE TABLE reconciliation_exception (
   | `PLATFORM_ERROR` | full | — | — | full |
 
   **Compensation is transactional, not best-effort.** Every cancelling transition writes the refund request, the ledger batch and the state change in **one** Postgres transaction; the Stripe call happens afterwards from the outbox with retries. A Stripe refund that fails permanently leaves `refund.state='FAILED'`, pages on-call, and keeps the order out of `COMPLETED` — it is never silently swallowed. This is the direct replacement for the old `"Payment refund would be initiated here"` TODO and the saga branch that fell through to rider assignment when compensation returned false (B48, §7.6).
+
+  **Sending a refund** ([#318](https://github.com/shaiknoorullah/hg-mono/issues/318)). Only an approved refund is sent: `AUTHORISED`, with the member of staff who approved it recorded on the row (the schema refuses a refund that moves money without one). A customer's own request (`POST /v1/refunds`) is recorded in `REQUESTED` with no ledger batch and waits for staff review ([C-37](02-customer.md#c-37--refund-requests-and-refund-tracking): human-reviewed at launch); an approval request (`PENDING_APPROVAL`, a goodwill refund above CAD 50 or one past the requester's cap) waits for a second person holding the role it was escalated to, never the requester. Approval posts the REFUND batch and puts the refund on the sender's clock in one transaction. The refund sender works on one replica at a time, holding an advisory-lock lease. For each due refund it first commits the attempt (counted, the row leased, the next retry time set), then calls `Refund.create` keyed `rf:<refund id>` with `metadata.refund_id`, then records `stripe_refund_id` and `SUBMITTED`; the refund webhooks ([P-17](#p-17--webhooks-idempotency-and-reconciliation)) take it on to `SUCCEEDED` or `FAILED`. Before calling Stripe it checks the payment was captured (an uncaptured authorisation is voided, never refunded) and that the refund is no more than the capture minus what is already refunded, by this system or in Stripe's dashboard; a refund that fails either check is `FAILED` without a call. A network error, a Stripe 5xx, a rate limit or a request still in flight is retried after 1 m, 2 m, 4 m …; the eighth failure sets the refund aside (still `AUTHORISED`, its money still counted against the capture, deadline action `review_unsent_refund`) and pages on-call. A refund Stripe refuses outright is `FAILED`, filed as a `reconciliation_exception` and paged.
+
+  **Reviewing a refund** ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)). Staff see what waits for a person in the review queue (`GET /v1/admin/refunds`, oldest first) and approve (`POST /v1/admin/refunds/{refundId}/approve`) or decline (`…/decline`) it, each with a reason kept on the refund and in the audit trail. A customer's request within the approver's rolling 24-hour limit is approved at once; above it, it is sent up to the role one level higher (`PENDING_APPROVAL`, naming who sent it up), never rejected. Nobody approves a refund they asked for or sent up (the schema refuses the second, `refund_second_person`), and a second approver needs room under their own limit. A person's limit counts the refunds they approved in the last 24 hours, summed under a per-person lock inside the approving transaction ([A-33](05-admin.md#a-33--refund-issuance-and-authority-limits) R3). Approving and issuing need a session signed in with an authenticator code ([A-02](05-admin.md#a-02--role-based-access-control-model) R4). A decline moves nothing; when the customer asked, they are told through the notification outbox in the decline's own transaction, never the staff reason. Chargebacks are read from the rows the dispute webhooks keep, with their evidence deadline, and staff add evidence notes to an open one (append-only, audited); sending evidence to Stripe is [#319](https://github.com/shaiknoorullah/hg-mono/issues/319). The admin order view carries the order's money timeline: the payment's steps from its row, each refund's request from its row, and every later refund and chargeback step from the audit trail, with who took it and why.
 
   **Chargebacks** (`charge.dispute.created`): freeze the restaurant's and rider's next payout up to the disputed amount, open a `chargeback` row with the evidence-due deadline, auto-attach the receipt, POD photo, delivery GPS track and timeline as evidence, and notify ops.
 
@@ -1515,9 +1558,9 @@ CREATE TABLE chargeback (
   5. Given a chargeback is created, Then the restaurant's and rider's next payouts are held up to the disputed amount and evidence is assembled automatically.
 - **Version**: V1 · **Size**: L
 
-> **DECISION REQUIRED — refund liability matrix**: Confirm the reason-code → who-pays table above. · **Proposed default**: as tabled, with `FOOD_QUALITY` requiring photo evidence before charging the restaurant. · **Why**: this table is the difference between a partner-trusted platform and a stream of disputes; it must be a commercial decision, not an engineering guess.
+> **Decided:** by fault, per reason code, as tabled; a halal concern charges the restaurant only when substantiated ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1), [halal complaint](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
-> **DECISION REQUIRED — goodwill refund authority**: What can a support agent refund without approval? · **Proposed default**: up to $25.00 per order and $200/day per agent; above that a second admin approval. · **Why**: bounded blast radius on the only human-entered monetary amount in the system.
+> **Decided:** a second approver above CAD 50, for every role ([goodwill approval](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 
 ---
 
@@ -1531,7 +1574,7 @@ CREATE TABLE chargeback (
   1. `POST /v1/connect/account` — creates the Express account, stores `connect_account`. Requires the partner to be admin-approved first (restaurant KYC verified / rider approved).
   2. `POST /v1/connect/onboarding-link` `{return_url, refresh_url}` → Stripe `AccountLink` (TTL ~5 min). The **return and refresh URLs are server-generated** from a configured base; the client cannot supply arbitrary URLs. (The old restaurant-web error path redirected to `/auth/login`, a route that does not exist — R23; here the return handler resolves the partner's onboarding state from the server and routes accordingly.)
   3. `GET /v1/connect/status` → `{charges_enabled, payouts_enabled, details_submitted, requirements: {currently_due, eventually_due, past_due, disabled_reason}, deadline}`.
-  4. `account.updated` webhooks keep `connect_account` current. `payouts_enabled=false` blocks payout execution but never blocks order flow.
+  4. `account.updated` webhooks keep `connect_account` current. `payouts_enabled=false` blocks payout execution. A partner whose payouts worked before keeps taking orders and offers while Stripe restricts payouts; a new partner finishes Stripe setup before a first order ([restricted payouts](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
 
   **Canadian KYC requirements Stripe will demand** (surfaced verbatim to the partner, never guessed at):
   - *Individual / sole proprietor (most riders)*: legal name, DOB, home address, phone, email, **SIN** (Stripe may request the full SIN or last 4 for identity verification), a government photo ID when verification fails automatically.
@@ -1539,7 +1582,7 @@ CREATE TABLE chargeback (
   - *Bank account for CAD payouts*: **transit number (5 digits) + institution number (3 digits) + account number (7–12 digits)**, account holder name and type. Validated client-side for shape and by Stripe on submission.
   - Riders under 18 cannot be onboarded (`rider_profile.date_of_birth` gate).
 
-  **Payout execution**: connected accounts are set to `payout_schedule: manual` so the platform controls timing; we create `Transfer` (platform → connected account) on a schedule, then `Payout` (connected balance → bank) per the partner's preference. Each `payout` row aggregates ledger entries and is executed once, keyed by `idempotency_key = 'po:' || payout_id`.
+  **Payout execution**: connected accounts are set to `payout_schedule: manual` so the platform controls timing; we create `Transfer` (platform → connected account) on a schedule, then `Payout` (connected balance → bank) per the partner's preference. Each `payout` row aggregates ledger entries and is executed once, keyed by `idempotency_key = 'po:' || payout_id`. The run asks for the bank payout straight after the transfer, on the connected account, keyed by `'pb:' || payout_id || ':' || attempt`: the payout is `TRANSFERRED` once the transfer is made and `PAID` only when Stripe reports the bank payout paid (`payout.paid`). A bank payout that fails or is returned puts the money back in the partner's Stripe balance; the payout goes back to `TRANSFERRED`, a `payout_failed` exception is opened, and the next run asks again as a new attempt. At most one bank payout per payout is ever on its way (`payout_bank_attempt`). The platform ledger does not move for the bank payout: the partner's payable was discharged when the run stamped the payout on its entries ([#301](https://github.com/shaiknoorullah/hg-mono/issues/301)).
 
   ```
   payout.amount_cents = SUM(ledger_entry.amount_cents)
@@ -1551,7 +1594,7 @@ CREATE TABLE chargeback (
   ```
   Posting a payout batch stamps `payout_id` on exactly those entries, so a ledger row can never be paid twice (unique partial index).
 
-  **Schedules**: restaurants weekly (Monday cutoff, paid Wednesday) or daily on request; riders weekly by default with **instant cash-out** as a V2 feature. Minimum payout $25.00; below that the balance rolls forward. Negative partner balances (from chargebacks/refund chargebacks) are carried and netted against future payouts; a balance negative for more than 30 days escalates to collections and blocks new orders for that restaurant.
+  **Schedules**: restaurants and riders are paid weekly, every Monday, automatically, with no minimum ([payout cadence](../decisions/README.md#settled--client-decisions)); a held payout is released on the next Monday run ([held payout](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). **Instant cash-out** is a V2 feature. Negative partner balances (from chargebacks/refund chargebacks) are carried and netted against future payouts; a balance negative for more than 30 days escalates to collections and blocks new orders for that restaurant.
 
   **Cross-border**: platform and all connected accounts are Canadian; payouts are CAD to Canadian bank accounts only in V1. Non-CA partners are rejected at onboarding.
 
@@ -1572,7 +1615,7 @@ CREATE TABLE connect_account (
   disabled_reason text,
   payout_interval text NOT NULL DEFAULT 'WEEKLY',   -- 'DAILY'|'WEEKLY'
   payout_anchor int NOT NULL DEFAULT 1,
-  minimum_payout_cents bigint NOT NULL DEFAULT 2500,
+  minimum_payout_cents bigint NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX connect_account_owner ON connect_account(owner_type, owner_id);
@@ -1597,24 +1640,28 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
 - **Rules & invariants**:
   - **I-19.1** A ledger entry belongs to at most one payout. Enforced by the partial unique index plus `UPDATE … WHERE payout_id IS NULL`.
   - **I-19.2** `payout.amount_cents = SUM(ledger_entry.amount_cents WHERE payout_id = payout.id)` exactly.
-  - **I-19.3** No transfer is created for an account with `payouts_enabled=false`; the payout goes `HELD` with a reason surfaced in the partner dashboard.
+  - **I-19.3** No transfer is created for an account with `payouts_enabled=false`; the payout goes `HELD` with a reason surfaced in the partner dashboard, and is released on the next Monday run after Stripe re-enables payouts.
   - **I-19.4** Every Stripe transfer/payout call is idempotency-keyed by `payout.id`.
-  - **I-19.5** No order settles into a payable for a partner without a `connect_account`; such balances accrue and are paid retroactively once onboarding completes.
+  - **I-19.5** No partner takes a first order or offer before Stripe onboarding completes; a partner restricted later keeps working, and its balance accrues until payouts are re-enabled.
   - **I-19.6** Rider `date_of_birth` implies age ≥ 18 at onboarding.
+  - **I-19.7** A payout run on request is authorised on the database's live state, not on the access token alone. The account must be active, hold a live platform-wide `ADMIN` or `SUPER_ADMIN` grant, and not be suspended staff, both when the run is queued and again when it starts. An admin's run never pays the admin's own rider account or restaurants ([#457](https://github.com/shaiknoorullah/hg-mono/issues/457)).
+  - **I-19.8** Whether to pay a restaurant is decided inside the transaction that builds or claims its payout, under a lock on the restaurant row. A restaurant suspended partway through a run is not paid; its balance is kept until it is reinstated.
 - **Acceptance criteria**:
   1. Given a restaurant completes Express onboarding, Then `charges_enabled` remains false, `payouts_enabled` becomes true, and `capabilities.transfers` is `active`.
   2. Given a weekly payout run, Then every included ledger entry is stamped with the payout id and a second run produces `amount_cents = 0` for the same period.
   3. Given the transfer API call is retried after a timeout, Then exactly one Stripe transfer exists.
   4. Given a partner with `payouts_enabled=false`, Then the payout is `HELD`, the partner sees the exact Stripe `currently_due` requirement list, and no transfer is attempted.
-  5. Given a rider with a $12.00 balance and a $25.00 minimum, Then no payout is created and the balance appears in next week's run.
+  5. Given a rider with a $12.00 balance, When the Monday run executes, Then a $12.00 payout is created; there is no minimum.
   6. Given a chargeback of $30 against a restaurant with a $200 pending payout, Then the payout is reduced by $30 and the hold is visible with its reason.
 - **Version**: V1 · **Size**: L
 
 > **DECISION REQUIRED — Connect account type**: Express (Stripe-hosted onboarding and dashboard) or Custom (fully white-label, platform owns all KYC UX and liability)? · **Proposed default**: **Express**. · **Why**: Stripe handles Canadian KYC collection, SIN/BN handling and the requirements UI, which removes the highest-liability screens from our scope; Custom can be adopted later without changing the ledger.
 
-> **DECISION REQUIRED — payout schedule and minimum**: Cadence and floor for restaurants and riders. · **Proposed default**: restaurants weekly (Mon cutoff, Wed paid), riders weekly, $25.00 minimum, manual schedule on the connected account with platform-initiated transfers. · **Why**: weekly bounds reconciliation work and cash exposure at launch; daily and instant payouts are V2 once the ledger has run clean for a quarter.
+> **Decided:** weekly, every Monday, automatic, no minimum, for restaurants and riders ([payout cadence](../decisions/README.md#settled--client-decisions), [payout minimum](../decisions/README.md#settled--reconciliations)).
 
-> **DECISION REQUIRED — negative partner balances**: What happens when refunds and chargebacks exceed a partner's future earnings? · **Proposed default**: carry the negative balance, net it against future payouts, block new orders after 30 days negative, and never debit a partner's bank account. · **Why**: debiting partners is a legal and reputational minefield; blocking supply is reversible.
+> **Decided (riders):** no automatic block at launch; operations follow up by hand ([rider balance below zero](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+
+> **Owner question:** is a restaurant negative for 30 days barred from new orders, and is a partner's bank account never debited? Until the owner answers ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)), the weekly payout run stops new orders for that restaurant after `HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS` days (default 30; 0 turns this off) and allows them again once the balance recovers ([#251](https://github.com/shaiknoorullah/hg-mono/issues/251)).
 
 ---
 
@@ -1637,6 +1684,8 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
   **Session binding**: the connection carries `session_id`. When that session is revoked, the connection is closed with code `4401 session_revoked` within 10 s (same deny-set as P-04). Access-token expiry does **not** close the socket; instead the client must send a `reauth {access_token}` frame every ≤10 minutes, and a socket that has not reauthenticated within 15 minutes is closed `4401`. This keeps long-lived sockets bound to live sessions.
 
   **Limits per connection**: 64 KiB max frame, 20 inbound frames/second, 50 subscriptions, 4 concurrent connections per session, 10 per account. Heartbeat: server `ping` every 25 s, client must `pong` within 10 s or the socket is terminated. Origin is checked against the CORS allowlist on upgrade.
+
+  **Back-pressure**: fan-out never waits on a socket. Each connection has its own writer and a queue of 64 unsent frames; a connection that falls further behind is closed `1013 slow_consumer` and resumes from Postgres. Each replica holds at most `HG_REALTIME_MAX_SOCKETS` sockets (default 2,000); an upgrade beyond that is closed `1013 at_capacity`, so the client retries and may land on the other replica.
 
 - **Data**:
 
@@ -1677,6 +1726,7 @@ CREATE TABLE realtime_connection (
   3. Given a session is revoked, When 10 s pass, Then every socket bound to it is closed with 4401.
   4. Given Redis is flushed, When a status change occurs, Then the customer still receives it (over the live socket if the node holds it, else via push).
   5. Given 21 frames in one second, Then the 21st receives `error{code:"rate_limited"}` and the socket stays open; 100 frames in one second closes it with 4429.
+  6. Given one subscriber that stops reading, When events are published to its channel, Then every other subscriber still receives each one without waiting on it, and the stalled one is closed with 1013 once 64 frames are queued for it.
 - **Version**: V1 · **Size**: L
 
 ---
@@ -1704,6 +1754,7 @@ CREATE TABLE realtime_connection (
   - **I-21.2** A principal can never receive an event for a channel it is not subscribed to, and can never subscribe to a channel it cannot pass the ownership check for.
   - **I-21.3** Losing dispatch of an order revokes the rider's `order:{id}` subscription within 2 s.
   - **I-21.4** Payloads are projected per role by the same projection types as HTTP (P-07); there is one serializer per (event, role), not a shared struct with conditional blanking.
+    A subscriber who holds several roles is projected for the one role that authorised the subscription (customer, then rider, then restaurant staff, then support), never for the union of their roles. Projection fails closed: an event type that has no projection for a role sends that role nothing, and the drop is logged ([realtime events in the contract's shapes](https://github.com/shaiknoorullah/hg-mono/issues/247)).
 - **Acceptance criteria**:
   1. Given customer C2, When C2 subscribes to `order:{X}` belonging to C1, Then `subscribe_error{code:"not_found"}` and no events are ever delivered.
   2. Given a rider is unassigned, When 2 s pass, Then the rider's socket receives `unsubscribed{channel:"order:X", reason:"no_longer_authorized"}` and subsequent events for X are not delivered to it.
@@ -1845,7 +1896,9 @@ CREATE INDEX realtime_event_created ON realtime_event(created_at);
   - **I-22.1** `seq` is strictly increasing and gapless per channel, allocated inside the same transaction as the state change that caused the event.
   - **I-22.2** Every event type in the catalogue has a Go struct, a JSON-Schema entry and at least one integration test that observes it end-to-end. A test enumerates the catalogue and fails on any type with no producer or no test (the "every write has a reader" check).
   - **I-22.3** No event payload contains a raw customer phone number, a full address for an unauthorised audience, a card number, a token, or any monetary value not sourced from the order/quote.
+    Every rider in a wave receives `dispatch.offer` before accepting, so its drop-off `lat`/`lng` is the approximate area, rounded to about a kilometre, never the delivery address's own point; the stored event holds the same rounded point ([the customer's address on a rider's offer](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   - **I-22.4** `rider.location` is throttled to at most one event per 5 s per order and is only published while the order is in `PICKED_UP`/`ARRIVED` or dispatch is `ASSIGNED`+.
+    It goes only to an order the rider is still carrying out: the rider's assignment is on its way to the restaurant or the customer, and the order is being prepared or delivered. An assignment that ends without a delivery, or an order cancelled under a live assignment, ends it, even though the dispatch row still names the rider ([realtime events in the contract's shapes](https://github.com/shaiknoorullah/hg-mono/issues/247)).
 - **Acceptance criteria**:
   1. Given the catalogue test, When it runs, Then every listed type is produced by at least one integration scenario and validated against its schema.
   2. Given an order progresses from creation to completion, Then the customer's socket observes a strictly increasing `seq` with no gaps.
@@ -1938,8 +1991,9 @@ CREATE INDEX outbox_pending ON outbox_message(available_at) WHERE published_at I
   | `order.cancelled` (any) | RT, P, E, I | RT, P, I | RT, P, I | RT |
   | `refund.created` / `refund.settled` | RT, P, E, I | RT, I (if charged back) | — | — |
   | `refund.failed` | — | — | — | **RT, E, page** |
-  | `document.review_state_changed` | — | P, E, I | P, E, I | — |
+  | `document.review_state_changed` | — | P, E, I | — (only the application decision notifies a rider: [one message per review](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) | — |
   | `onboarding.state_changed` | — | E, I | P, I | — |
+  | Paused rider reinstated ([reinstatement notice](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | — | — | P, I | — |
   | `connect.requirements_changed` / `payouts_enabled=false` | — | P, E, I | P, E, I | RT |
   | `payout.paid` / `payout.failed` | — | E, I | P, E, I | RT (on failed) |
   | `chargeback.created` | — | E, I | — | RT, E |
@@ -2014,6 +2068,8 @@ CREATE TABLE notification_delivery (
 
 ### P-25 — Push notifications (Expo)
 
+> **2026-10-01:** [The self-hosted, open-source rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01) allows Apple and Google push services. Expo Push is a hosted relay in front of them and is not on the exception list. Whether it stays is tracked in [#199](https://github.com/shaiknoorullah/hg-mono/issues/199).
+
 - **Behaviour**: Expo Push (`https://exp.host/--/api/v2/push/send`) fronts both FCM and APNs, which matches the Expo SDK 53 apps. Tokens are registered by the app after an explicit permission prompt and are bound to `(account_id, device_id, role_context)`.
 
   `POST /v1/devices` `{expo_push_token, device_id, platform, app_version, os_version, locale}` — upsert on `(account_id, device_id)`. `DELETE /v1/devices/{device_id}` on logout. **Logout always deletes the token**, so a shared phone never receives the previous user's orders.
@@ -2060,9 +2116,10 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
 ### P-26 — SMS and email
 
 - **Behaviour**:
-  - **SMS**: one provider behind a `SMSSender` interface (Twilio at launch), Canadian long code or toll-free number **registered for A2P/short-code compliance**; Canadian carriers require pre-registration for application-to-person traffic. Messages: OTP, `must_reach` escalations, critical account/security. Every SMS includes the brand name; no marketing SMS in V1. Per-message cost is recorded in `notification_delivery.cost_cents`, with a daily spend circuit breaker.
-  - **Email**: one provider behind an `EmailSender` interface (Postmark/SES at launch) on a subdomain (`mail.halalgoes.com`) with **SPF, DKIM and DMARC** configured and a boot-time DNS probe that alerts if any is missing. Transactional and marketing streams are separated so a marketing complaint cannot damage transactional deliverability.
-  - **Templates**: stored in the repo as MJML→HTML + plaintext, versioned, rendered server-side, localised `en-CA` / `fr-CA`, with a golden-file test per template per locale. Admin-editable templates (`A37`) are V2 and, when added, are stored as `email_template` rows with a version history and a preview/approval step — never free-form HTML injected without sanitisation.
+  - **SMS**: one provider behind a `SMSSender` interface (Twilio at launch; sign-in codes through Twilio Verify, as in the phone sign-in feature above), Canadian long code or toll-free number **registered for A2P/short-code compliance**, which is still open ([SMS registration](../decisions/README.md#open--blocking)); Canadian carriers require pre-registration for application-to-person traffic. Messages: OTP, `must_reach` escalations, critical account/security. Every SMS includes the brand name; no marketing SMS in V1. Per-message cost is recorded in `notification_delivery.cost_cents`, with a daily spend circuit breaker.
+  - **Email**: one provider behind an `EmailSender` interface ([Resend](https://resend.com), on HalalGoes's Resend accounts: [email decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)) on a subdomain (`mail.halalgoes.com`) with **SPF, DKIM and DMARC** configured and a boot-time DNS probe that alerts if any is missing. Transactional and marketing streams are separated so a marketing complaint cannot damage transactional deliverability.
+  - **Templates**: built with [React Email](https://react.email) and stored in the repo, exported to HTML + plaintext, versioned, rendered server-side, localised `en-CA` / `fr-CA`, with a golden-file test per template per locale. They live in [`packages/emails`](../../packages/emails) and are exported with `{{.Var}}` slots to [`services/hg/internal/notify/emailtmpl/templates`](../../services/hg/internal/notify/emailtmpl), which the Go binary embeds and fills with `html/template`, so no Node runs in production; CI fails when the export is stale. Only `en-CA` exists so far.
+  - **Outside production, email reaches only an allow-list.** With a Resend key set, an address not on `HG_EMAIL_ALLOWLIST` is logged and recorded `SUPPRESSED` (`NOT_ON_ALLOW_LIST`), never sent; with no key, every email is logged instead of sent. The list is refused in production ([dev environment beside production](https://github.com/shaiknoorullah/hg-mono/issues/235)). Admin-editable templates (`A37`) are V2 and, when added, are stored as `email_template` rows with a version history and a preview/approval step — never free-form HTML injected without sanitisation.
   - Required templates at launch: email verification, password reset, security alert, order receipt, order cancelled + refund, refund settled, restaurant application approved/rejected, rider application approved/rejected, payout statement, Connect requirements due, monthly commission invoice.
 
 - **Data**: `notification_delivery` (P-24) carries provider ids and cost. `email_suppression (email, reason, at)` records bounces and complaints; a suppressed address is never emailed again for marketing and only for critical transactional mail.
@@ -2080,19 +2137,23 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
 
 ---
 
-# 8. Files and documents (MinIO)
+# 8. Files and documents (Silo object storage)
 
 ### P-27 — Bucket layout and private-by-default
 
 - **Behaviour**: Five buckets, explicit policies, and a **boot-time probe that refuses to start if a private bucket is publicly readable or writable**. The old platform uploaded restaurant licences and halal certificates to a bucket that was world-readable *and* world-writable (R9), and the backend's own `FilesModule` was commented out with mismatched env var names (B93). Both failure modes are made impossible here: the module is mandatory, and the privacy probe is a boot gate.
 
+  The store is [Silo](https://github.com/pgsty/silo), which keeps MinIO's S3 API ([object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). Every bucket is private, and neither the console nor the S3 API is reachable from the public internet ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)).
+
   | Bucket | Visibility | Contents | Versioning | Retention |
   |---|---|---|---|---|
-  | `hg-kyc` | **private** | restaurant business licence, halal certificate, food-safety cert, owner ID; rider licence, vehicle registration, insurance, profile photo | on | 7 years after account closure |
-  | `hg-pod` | **private** | proof-of-delivery photos and signatures | off | 90 days, then delete |
-  | `hg-media` | **public-read**, private-write | menu item photos, restaurant logos and covers, rider profile photos (the cropped public one) | off | lifetime of the entity |
-  | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | off | 30 days |
-  | `hg-tmp` | **private** | unconfirmed uploads | off | 24 h lifecycle rule |
+  | `hg-kyc` | **private** | restaurant business licence, halal certificate, food-safety cert, owner ID; rider licence, vehicle registration, insurance, profile photo | on, old versions kept 35 days | 7 years after account closure |
+  | `hg-pod` | **private** | proof-of-delivery photos and signatures | on, old versions kept 35 days | 90 days, then delete |
+  | `hg-media` | **private**, read through presigned URLs | menu item photos, restaurant logos and covers, rider profile photos (the cropped public one) | on, old versions kept 35 days | lifetime of the entity |
+  | `hg-exports` | **private** | admin CSV/PDF exports, payout statements, monthly invoices | on, old versions kept 35 days | 30 days |
+  | `hg-tmp` | **private** | unconfirmed uploads | on, old versions kept 35 days | 24 h lifecycle rule |
+
+  Every bucket is versioned so an overwrite or a delete made by hand in the console can be undone; a version that is no longer current is deleted 35 days later. When the API deletes an object (a rejected upload, or a deletion under the [document lifecycle and retention rules](#p-29--document-lifecycle-review-and-retention)), it deletes every version of that key, so the bytes are gone at once rather than kept for 35 days. The retention column applies to the current version ([object storage decision](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). Until `hg-media` is private ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)), the compose file serves it public-read, and an anonymous reader may fetch an object by its key and nothing else: no bucket listing and no version listing, so an old or deleted version cannot be found or downloaded.
 
   Object keys are server-generated and unguessable:
   ```
@@ -2151,7 +2212,7 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   - **I-27.4** `stored_object.state='READY'` requires a server-side verification of size, content type and SHA-256.
 - **Acceptance criteria**:
   1. Given the anonymous policy on `hg-kyc` is set to `download`, When the binary starts, Then it exits non-zero naming the bucket.
-  2. Given a KYC object key, When fetched without a presigned signature, Then MinIO returns 403.
+  2. Given a KYC object key, When fetched without a presigned signature, Then Silo returns 403.
   3. Given a compose file whose MinIO secret var is renamed, When CI runs, Then the env-name consistency check fails.
 - **Version**: V1 · **Size**: M
 
@@ -2163,8 +2224,8 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
 
   1. `POST /v1/uploads` `{purpose, content_type, byte_size, sha256}` →
      server validates the purpose against the principal's role and against the per-purpose allowlist (below), allocates bucket + key, inserts `stored_object` in `PENDING` with `deadline_at = now() + 1 hour`, and returns a presigned `PUT` (TTL **300 s**) whose signature **binds `Content-Type` and `Content-Length`** so the client cannot upload something other than what it declared, plus the required `x-amz-checksum-sha256` header.
-  2. Client `PUT`s the bytes directly to MinIO.
-  3. `POST /v1/uploads/{id}/confirm` → server `HEAD`s the object, verifies size, content type and checksum, sniffs magic bytes (a `.pdf` that is really a `.exe` is rejected), enqueues a virus scan for KYC uploads, and sets `state='READY'` (or `REJECTED` with a reason). Only a `READY` object may be attached to a `kyc_document` or a menu item.
+  2. Client `PUT`s the bytes directly to Silo.
+  3. `POST /v1/uploads/{id}/confirm` → server `HEAD`s the object, verifies size, content type and checksum, sniffs magic bytes (a `.pdf` that is really a `.exe` is rejected), enqueues a virus scan for KYC uploads, and sets `state='READY'` (or `REJECTED` with a reason). Only a `READY` object may be attached to a `kyc_document` or a menu item. An attach takes only an upload made for that use, by the caller: a document takes the subject's own `KYC_DOCUMENT` upload that is not already another subject's document, a menu photo a `MENU_IMAGE` uploaded by the caller or someone at the restaurant (by the admin, on its behalf) or already one of its photos, a proof-of-delivery photo the `POD` the delivering rider uploaded for that order, a handover photo a `POD` uploaded by whoever attaches it, and an avatar the account's own `AVATAR`. Any other file is `404`, the same answer as a file that does not exist, and nothing is written ([#359](https://github.com/shaiknoorullah/hg-mono/issues/359)).
 
   Unconfirmed objects are deleted by the deadline runner after 1 hour.
 
@@ -2174,11 +2235,11 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   |---|---|---|---|
   | `KYC_DOCUMENT` | `image/jpeg`, `image/png`, `image/heic`, `application/pdf` | 10 MiB | the subject's owner account |
   | `MENU_IMAGE` | `image/jpeg`, `image/png`, `image/webp` | 5 MiB | restaurant staff with `menu_item.update` |
-  | `POD` | `image/jpeg` | 3 MiB | the assigned rider only, only while dispatch is `AT_CUSTOMER`/`CARRYING` |
+  | `POD` | `image/jpeg` | 1 MiB (the rider app shrinks the photo before upload) | the assigned rider only, only while carrying the order (assignment `PICKED_UP`, `EN_ROUTE_TO_DROPOFF` or `ARRIVED_AT_DROPOFF`); anyone else, or an unknown order, gets `422` on `order_id` and nothing is allocated ([#370](https://github.com/shaiknoorullah/hg-mono/issues/370)) |
   | `AVATAR` | `image/jpeg`, `image/png` | 2 MiB | the account itself |
   | `EXPORT` | server-generated only | — | no client uploads |
 
-  **Download**: `GET /v1/documents/{kyc_document_id}/download-url` → ownership/permission check (`kyc_document.download`, always audited), returns a presigned `GET` with TTL **120 s**, `response-content-disposition: attachment`, and a single-use nonce recorded in the audit trail. Public bucket objects (`hg-media`) are served by URL directly through Traefik with long cache headers and no signature.
+  **Download**: `GET /v1/documents/{kyc_document_id}/download-url` → ownership/permission check (`kyc_document.download`, always audited), returns a presigned `GET` with TTL **120 s**, `response-content-disposition: attachment`, and a single-use nonce recorded in the audit trail. A customer's view of a restaurant's halal certificate (`POST /v1/restaurants/{restaurantId}/certificate-url`) is a presigned `GET` with TTL **300 s**, issued per request and audited, as the contract has it. Media objects (`hg-media`) are private too and are read through presigned URLs ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)).
 
   **Image processing**: menu images are transcoded server-side to WebP at three sizes on confirm, EXIF stripped (including GPS), and the derived objects placed in `hg-media`; the original stays private in `hg-tmp` for 24 h. The old `fixImageUrl()` client hack that stripped malformed `host:0/path` URLs (R40) has no counterpart — URLs are built from a configured public base and validated by a test.
 
@@ -2186,15 +2247,16 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
 - **Rules & invariants**:
   - **I-28.1** A presigned upload URL is bound to exactly one object key, content type and length; altering any of them invalidates the signature.
   - **I-28.2** No object is usable before `confirm` verifies the checksum server-side.
-  - **I-28.3** Presigned download URLs expire in ≤120 s and every issuance is audited with actor, subject and request id.
+  - **I-28.3** Presigned download URLs expire in ≤120 s for KYC documents and ≤300 s for a halal certificate view, and every issuance is audited with actor, subject and request id.
   - **I-28.4** A rider may upload a POD only for their own in-flight dispatch.
-  - **I-28.5** EXIF GPS is stripped from every image before it enters a public bucket.
+  - **I-28.5** EXIF GPS is stripped from every image before it enters `hg-media`.
+  - **I-28.6** No caller can attach an upload another account made, or one made for another use; a download link goes to whoever owns the document, so attaching a file another account uploaded would hand over its bytes.
 - **Acceptance criteria**:
-  1. Given an upload URL issued for `image/jpeg` at 1 MiB, When the client PUTs a 9 MiB PDF, Then MinIO rejects the request on signature mismatch and `stored_object` stays `PENDING`.
+  1. Given an upload URL issued for `image/jpeg` at 1 MiB, When the client PUTs a 9 MiB PDF, Then Silo rejects the request on signature mismatch and `stored_object` stays `PENDING`.
   2. Given a confirmed upload whose bytes do not match the declared SHA-256, Then confirm returns 422 and the object is marked `REJECTED` and deleted.
   3. Given an admin fetches a KYC download URL, Then an audit row exists with the admin id, the document id and the request id, and the URL 403s after 120 s.
   4. Given a restaurant owner requests a download URL for another restaurant's document, Then 404 and no URL is issued.
-  5. Given an upload is never confirmed, When 1 h passes, Then the object is deleted from MinIO and the row is `DELETED`.
+  5. Given an upload is never confirmed, When 1 h passes, Then the object is deleted from Silo and the row is `DELETED`.
 - **Version**: V1 · **Size**: L
 
 ---
@@ -2203,9 +2265,9 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
 
 - **Behaviour**: A KYC document moves `SUBMITTED → IN_REVIEW → APPROVED | REJECTED`, with `EXPIRED` and `SUPERSEDED` as time/replacement outcomes. Review has a **72-hour SLA** carried on `kyc_document.deadline_at`; breach escalates to `admin:ops` and appears in `admin.queue_depth`.
 
-  Halal certificates carry `valid_until`; a daily job moves expired certificates to `EXPIRED`, which flips the restaurant's `halal_status` (P-34) and removes it from the certified-only search default. Restaurants are warned at 30, 14 and 7 days before expiry.
+  Halal certificates carry `valid_until`; a daily job moves expired certificates to `EXPIRED`, which flips the restaurant's `halal_status` (P-34) and removes it from every listing. Restaurants are warned at 30, 14, 7 and 1 days before expiry ([renewal reminders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 
-  Retention: KYC documents are kept **7 years** after the partner relationship ends (a defensible default for Canadian business records and CRA requirements), then deleted from MinIO with a tombstone left in `stored_object`. POD photos are deleted at 90 days. A privacy request (PIPEDA access/deletion) produces an export of everything tied to the account and deletes what is not legally required to retain, replacing audit payloads with tombstones while preserving the hash chain (P-35).
+  Retention: KYC documents are kept **7 years** after the partner relationship ends (a defensible default for Canadian business records and CRA requirements), then deleted from Silo with a tombstone left in `stored_object`. POD photos are deleted at 90 days. A privacy request (PIPEDA access/deletion) produces an export of everything tied to the account and deletes what is not legally required to retain, replacing audit payloads with tombstones while preserving the hash chain (P-35).
 
 - **Data**: `kyc_document`, `stored_object.retention_until`; `privacy_request (id, account_id, kind, state, requested_at, completed_at, export_object_id)`.
 - **Rules & invariants**:
@@ -2214,7 +2276,7 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   - **I-29.3** Expiry is enforced by a job **and** by a read-time check, so a stale row never presents an expired certificate as valid.
   - **I-29.4** Deleted objects leave a tombstone row; the audit chain never loses an entry.
 - **Acceptance criteria**:
-  1. Given a halal certificate expires overnight, Then the restaurant's `halal_status` changes, it disappears from the default search, and the owner is notified.
+  1. Given a halal certificate expires overnight, Then the restaurant's `halal_status` changes, it disappears from search and browse, and the owner is notified.
   2. Given a document is rejected with a reason, Then the partner sees the exact reason and can re-upload, creating a new document that `SUPERSEDES` the old one rather than mutating it.
   3. Given a review is untouched for 72 h, Then it escalates and appears in the admin queue-depth event.
   4. Given a PIPEDA deletion request, Then the account's KYC objects outside the legal retention window are deleted and the audit chain still verifies.
@@ -2222,7 +2284,9 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
 
 > **DECISION REQUIRED — KYC retention period**: How long are partner identity documents kept after the relationship ends? · **Proposed default**: 7 years, matching CRA business-record expectations, then hard delete. · **Why**: shorter risks non-compliance; longer increases breach exposure. Needs a privacy-counsel confirmation.
 
-> **DECISION REQUIRED — halal certificate expiry grace**: What happens the day a certificate expires? · **Proposed default**: the restaurant keeps trading but loses the "Halal Certified" badge and drops out of the certified-only default search; after 14 days it is suspended. · **Why**: the platform's entire value proposition is certification integrity, but an admin backlog should not instantly kill a partner's revenue.
+> **Decided:** on expiry the restaurant leaves every listing at once; only certified restaurants are listed ([self-declared listing](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
+
+> **Open:** is the restaurant also suspended after 14 days expired?
 
 ---
 
@@ -2234,7 +2298,7 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
 
   `geography` rather than `geometry` is deliberate: `ST_Distance` returns **metres** and `ST_DWithin` takes **metres**, on the spheroid. This deletes the `POINT <-> POINT × 111` degrees-to-kilometres approximation that mis-priced delivery fees and mis-ranked the feed (B31/B38).
 
-  Address capture: the client sends a structured address plus coordinates from the map picker; the server geocodes/validates and **stores its own resolved point**, never the client's raw value alone. `province` is derived from the resolved address and is what drives tax (P-11).
+  Address capture: the client types into a map search and drags the pin, then sends a structured address plus coordinates; the server geocodes/validates and **stores its own resolved point**, never the client's raw value alone. Address search, place details and reverse geocoding go through our API, which forwards to Mapbox and keeps the secret key on the server; map tiles also come from Mapbox ([map address search](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#57](https://github.com/shaiknoorullah/hg-mono/issues/57)). `province` is derived from the resolved address and is what drives tax (P-11).
 
 - **Data**:
 
@@ -2312,7 +2376,7 @@ CREATE INDEX ON rider_position_history (order_id, recorded_at);
 
 - **Behaviour**: Two distances, used for different things, never confused:
   - **Geodesic distance** — `ST_Distance(a, b)` on `geography`, in metres. Used for eligibility (delivery radius, rider search radius) and as the fallback for pricing.
-  - **Route distance and duration** — from a routing provider (Google Directions/Distance Matrix at launch, behind a `Router` interface). Used for delivery-fee `billable_km`, rider earnings distance, and ETA. Cached in `route_estimate` keyed by rounded origin/destination geohashes for 24 h, because the same restaurant→neighbourhood pair repeats constantly.
+  - **Route distance and duration** — from a self-hosted, open-source routing engine (engine not chosen yet) behind a `Router` interface; the Mapbox exception covers maps and address search, not routing ([self-hosted rule](../decisions/README.md#settled--platform-decisions-owner-2026-10-01)). Used for delivery-fee `billable_km`, rider earnings distance, and ETA. Cached in `route_estimate` keyed by rounded origin/destination geohashes for 24 h, because the same restaurant→neighbourhood pair repeats constantly.
   - When the routing provider is unavailable, `billable_km = ceil(geodesic_m × 1.30 / 1000)` (a detour factor), the quote records `route_source='FALLBACK'`, and an alert fires. The fee is never silently zero and never derived from a degrees×111 approximation.
 
   **ETA** = `now + prep_eta_remaining + pickup_route_duration + handover_buffer + dropoff_route_duration`, recomputed on every relevant state change and on rider-position updates at most once per 30 s. Published as `order.eta_updated`. Each component is stored so a late delivery can be attributed.
@@ -2371,6 +2435,12 @@ SELECT r.account_id,
  LIMIT $4;
 ```
   `ST_DWithin` on `geography` uses the GiST index. Waves: **3 000 m → 6 000 m → 10 000 m**, 20 s each, `LIMIT 8` per wave, offers broadcast **in parallel** (the old code looped riders sequentially, B71/B82). Exhausting all three waves sets `dispatch.state='NO_RIDER_FOUND'`, which arms the order's `READY_FOR_PICKUP` escalation (P-15) and raises `admin.dispatch_failure`.
+
+  **A wave that finds nobody still counts** ([#294](https://github.com/shaiknoorullah/hg-mono/issues/294)). It is recorded with no offers and holds the search for the `SEARCHING` deadline (20 s, in the dispatch deadline table of [deadlines and timeout actions](#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable)), and the next wave searches one radius wider. So with nobody online the search runs 3 km, then 6 km, then 10 km until its wave or time budget, and a rider who comes online inside the radius meanwhile is offered the order. After a wave whose riders all let it lapse, the next wave searches the same radius again and widens at once while a radius has nobody left. Only the budget ends the search in `NO_RIDER_FOUND`, never one pass that found nobody.
+
+  **At `NO_RIDER_FOUND` the order is untouched.** It stays `READY_FOR_PICKUP` on its own pickup deadline, which escalates every 10 minutes ([#293](https://github.com/shaiknoorullah/hg-mono/issues/293)) and, at its cap, cancels the order with a full refund to the customer (the no-rider row of [the order transition table](#p-14--order-lifecycle-states-and-transitions); automating that cancel is [#336](https://github.com/shaiknoorullah/hg-mono/issues/336)). No money moves when the search ends: the payment was captured when the restaurant accepted, and its refund belongs to that cancel. The same transaction that ends the search writes `dispatch.state_changed` to the order's channel and `admin.dispatch_failure` to `admin:ops`.
+
+  **Every replica runs the dispatch runner.** Two sweeps of the same new order queue on the dispatch row the first wave creates, and the second finds the wave already run. A search that is due for its next wave is claimed under the dispatch row's lease (`lease_until`, as in the runner mechanics of [deadlines and timeout actions](#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable)), so each wave runs once and the search ends once.
 
   **Acceptance is a race resolved in Postgres**, not in a workflow signal:
 ```sql
@@ -2466,7 +2536,7 @@ RETURNING *;
 
   | Filter | Predicate |
   |---|---|
-  | `halal` (`CERTIFIED_ONLY` \| `INCLUDE_SELF_DECLARED` \| `ANY`) | `restaurant.halal_status` |
+  | no `halal` filter: halal is a precondition for listing, and the contract has no such parameter | `restaurant.halal_status` is always applied |
   | `certifier_ids[]` | the approved certificate's issuing authority |
   | `cuisine_ids[]` | join on restaurant cuisines |
   | `open_now` | trading-hours window evaluated in the restaurant's timezone **and** `is_accepting_orders` |
@@ -2485,24 +2555,24 @@ RETURNING *;
   ```
   computed by a trigger on `kyc_document` plus a daily expiry sweep, and re-checked at read time. The restaurant page shows the certifying authority, the certificate number, the issue and expiry dates, and a link to the (redacted) certificate image — the platform's core promise made inspectable.
 
-  **Default filter**: `halal = CERTIFIED_ONLY`. Relaxing it is an explicit user action with an on-screen explanation. Self-declared restaurants are visibly badged differently and never described as "certified".
+  **Listing rule**: only certified restaurants (including those expiring soon) are listed; self-declared and non-halal restaurants are hidden entirely and there is no way to relax this ([self-declared listing](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
 - **Data**: `restaurant.halal_status` (derived), `halal_certifier (id, name, country, website, is_recognised, recognised_by_admin_id, notes)`, `kyc_document.issuer` FK to `halal_certifier`.
 - **Rules & invariants**:
   - **I-34.1** `halal_status='CERTIFIED'` is impossible without an approved, unexpired certificate from a `is_recognised` certifier. Enforced by trigger + a nightly consistency check that must return zero rows.
-  - **I-34.2** The default search excludes non-certified restaurants.
+  - **I-34.2** Search and browse exclude non-certified restaurants, always.
   - **I-34.3** The word "certified" never appears in any UI string for a `SELF_DECLARED` restaurant — a copy lint over the i18n bundles.
   - **I-34.4** Filter combinations are all index-backed; the query planner test asserts no sequential scan on `restaurant` or `menu_item` for any single-filter query at production data volume.
 - **Acceptance criteria**:
-  1. Given a restaurant whose certificate expired yesterday, Then it is absent from the default search and its badge reads "Certification expired".
-  2. Given `halal=ANY`, Then self-declared and non-halal restaurants appear, each with the correct badge.
+  1. Given a restaurant whose certificate expired yesterday, Then it is absent from search and browse and its badge reads "Certification expired".
+  2. Given self-declared and non-halal restaurants near the customer, Then none of them appears in any search or browse result.
   3. Given `open_now` at 02:00 in Toronto for a restaurant whose hours are 11:00–22:00 America/Toronto, Then it is excluded — hours are evaluated in the restaurant's timezone, not the server's.
   4. Given an admin marks a certifier as not recognised, Then every restaurant relying on it drops to `SELF_DECLARED` within the nightly sweep and owners are notified.
 - **Version**: V1 · **Size**: M
 
-> **DECISION REQUIRED — recognised halal certifiers**: Which certifying bodies does Halal Goes accept? · **Proposed default**: an admin-managed allowlist seeded with the major Canadian bodies, with anything else requiring manual admin review before `CERTIFIED` is granted. · **Why**: the platform's entire premise is that "certified" means something; an open list makes the badge worthless.
+> **Decided:** the three accepted Canadian bodies, in a seeded registry a super admin can extend ([accepted certifying bodies](../decisions/README.md#settled--client-decisions)).
 
-> **DECISION REQUIRED — self-declared restaurants**: Are non-certified halal restaurants listed at all? · **Proposed default**: yes, but hidden behind an explicit filter change, badged "Self-declared, not verified", and never described as certified. · **Why**: supply at launch will be thin, but conflating the two destroys the product.
+> **Decided:** hidden entirely; no filter shows them ([self-declared listing](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
 ---
 
@@ -2629,6 +2699,10 @@ CREATE INDEX audit_event_action ON audit_event(action, at DESC);
 
   The record is written in the **same transaction** as the business effect, so "money moved but the idempotency record did not commit" cannot happen.
 
+  As built, the claim and replay live in `internal/idempotency` and run for `createOrder`, `createRefund`, `issueRefund`, `approveRefund`, `declineRefund` and `addChargebackEvidenceNote` ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172), [#363](https://github.com/shaiknoorullah/hg-mono/issues/363)): the response body is stored as the exact bytes sent, so a replay is byte-identical. Every other route still only requires the header; on those a retry is stopped by the effect's own guard (a state check, a unique index or a deterministic Stripe key), not replayed.
+
+  `createOrder` claims the key first in the order's transaction, before the one-active-order check, so a retried checkout gets the first answer (order and `client_secret`) rather than `ACTIVE_ORDER_EXISTS`. The PaymentIntent is a network call made after that transaction commits, so the record commits `IN_PROGRESS` with the order attached (`resource_id`) and is completed with the answer once the gateway replies; that work finishes even if the client has disconnected. If the process dies in between, a retry after the one-minute lease takes the record over and finishes the same order: the PaymentIntent is keyed by the order id, so asking again creates no second authorisation. A server error other than the gateway's 503 is not recorded, so it is never replayed.
+
   Routes requiring a key: `POST /v1/orders`, `POST /v1/quotes`, `POST /v1/payments/*`, `POST /v1/refunds`, `POST /v1/payouts/*`, `POST /v1/tips`, `POST /v1/connect/account`, `POST /v1/uploads`, `POST /v1/disputes`, and every admin money action.
 
 - **Data**:
@@ -2682,16 +2756,18 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 
-  Additional domain limits: 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day.
+  Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day. The one-active-order rule is enforced in the order-creation transaction, not by the limiter: the transaction first takes a per-customer lock, so two checkouts racing for the same customer queue, and the second counts only after the first has committed. The active order that `getActiveOrder` returns is the one that refuses a second checkout, so a lone order under review is not it; the order history's active section still lists every unfinished order.
 
   Responses carry `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and, on 429, `Retry-After`.
 
   **Redis-down policy** is explicit per class, and this is where the disposability rule needs care: rate limiting is *protection*, not *correctness*, so losing counters is acceptable — but not for authentication.
-  - `AUTH`: **fail closed** (503). A brute-force window is worse than a brief outage, and the Postgres-backed lockout in P-03 still applies.
+  - `AUTH`, sign-in codes (OTP request and verify): **fail closed** (503 `rate_limiter_unavailable`), as [phone sign-in](#p-02--phone-otp-authentication-customers-riders) requires.
+  - `AUTH`, login, restaurant sign-up, password reset and password change: **fall back to a count in the replica's memory**, with the same key, limit and window, instead of letting the request through or refusing it. Each API replica counts on its own, so a caller gets at most the limit times the number of replicas running (twice, with two), and a replica that restarts during the outage starts with no counts. This is the degraded mode, not a second source of truth: a count is dropped when its window ends, the next answer from Redis is the count again, and the Postgres-backed lockout of [email and password sign-in](#p-03--email--password-authentication-restaurants-admins-support) applies throughout. The local count uses the Redis key (canonical email, IPv6 per /64, one `unknown` bucket), the same fixed window (so, as with Redis, up to twice the limit across a window boundary), and one lock around each check and increment; its window starts at the first request Redis could not answer. The memory is bounded: at most 100,000 counts per limit, keys stored as fixed-size hashes (about 11 MB per limit at the cap). When a limit is full, a new caller takes the place of the lowest count among 16 sampled, as Redis samples keys for eviction (an ended window counts as zero; on a tie, the oldest goes). A flood of made-up emails or addresses creates counts of one, so those are what it evicts: a caller who is really guessing keeps a count it cannot shed, losing a count of one gives back at most one attempt, and every new caller still gets a count of its own, so the flood neither resets a budget nor locks anyone out. While it is in use, each limit logs one error per window (`rate limiter unavailable; counting in this replica's memory`), not one per request, so an alert can fire without flooding the logs.
+  - `AUTH`, the emailed-link limits (sign-up verification, resend, password reset): **fail closed**, so no email is sent while Redis is down; restaurant sign-up therefore answers 503 `rate_limiter_unavailable` after its own limits are counted, and the resend and reset requests give their usual generic answer.
   - `MONEY`: fail open, because idempotency (P-37) and the state machine already prevent duplicate effects; an alert fires.
   - All other classes: fail open with an alert.
 
-  Traefik additionally applies a coarse per-IP limit and connection caps in front of the application, so an application-level Redis outage is never the only defence.
+  Traefik additionally applies a coarse per-address limit to every `/v1/auth/` route, in front of the application and independent of Redis, so an application-level Redis outage is never the only defence: 120 requests a minute with bursts of 60, far above the application's own limits, counted on the connection's address (IPv6 per /64), never on `X-Forwarded-For`, since Traefik is the edge (`deploy/docker-compose.yml`, the `hg-auth` router).
 
 - **Data**: none in Postgres. Redis keys: `rl:{class}:{key}` (TTL = window), `rl:block:{ip}` for temporary bans after sustained abuse (TTL 15 min). Both disposable.
 - **Rules & invariants**:
@@ -2701,7 +2777,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   - **I-38.4** Webhook endpoints are never rate-limited below Stripe's retry rate.
 - **Acceptance criteria**:
   1. Given 11 OTP requests in 15 minutes from one IP, Then the 11th is 429 with `Retry-After` and no SMS is sent.
-  2. Given Redis is stopped, When a login is attempted, Then 503 `rate_limiter_unavailable`; When a search is attempted, Then it succeeds with an alert recorded.
+  2. Given Redis is stopped, When a sign-in code is requested, Then 503 `rate_limiter_unavailable`; When the 31st login from one address in 15 minutes, or the 6th restaurant sign-up from one address in an hour, is attempted, Then 429 with `Retry-After`; no sign-up runs a password hash, and the Postgres login lockout still applies; When a search is attempted, Then it succeeds with an alert recorded.
   3. Given a 429, Then no partial effect exists — no order row, no Stripe call, no ledger entry.
   4. Given the rate-limit headers, Then `RateLimit-Remaining` decreases monotonically within a window and resets exactly at `RateLimit-Reset`.
 - **Version**: V1 · **Size**: M
@@ -2721,12 +2797,14 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | Notification sender | 500 ms | `notification_delivery WHERE state='QUEUED'` |
   | Push receipt poller | 30 s | Expo receipts |
   | Reconciliation | daily 03:00 ET | Stripe balance transactions vs ledger |
-  | Payout run | per schedule | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances |
+  | Payout run | Mondays 09:00 America/Toronto, and on request (`createPayoutRun`) | `RESTAURANT_PAYABLE` / `RIDER_PAYABLE` balances, held and unfinished payouts |
   | Expiry sweeps | hourly | quotes, tickets, OTP challenges, certificates, unconfirmed uploads |
-  | Partition maintenance | daily | create/drop `realtime_event`, `rider_position_history`, `audit_event` partitions |
+  | Rider stale-location sweep | at start-up, then every 15 s (`HG_RIDER_STALE_SWEEP_INTERVAL`) | `ONLINE` riders whose last location is older than 120 s (`HG_RIDER_STALE_AFTER`) move to `ONLINE_STALE` and are offered nothing until their next location update; one replica at a time, under an advisory-lock lease |
+  | Rider availability reconciliation | at start-up, then every 60 s (`HG_RIDER_RECONCILE_INTERVAL`) | riders still `ON_DELIVERY` with no live assignment go back online, or offline if they asked to stop after the delivery, each recorded as `RECONCILED` in `rider_availability_event` and sent `rider.availability_changed` on `rider:{id}` in the same transaction ([#379](https://github.com/shaiknoorullah/hg-mono/issues/379)); same lease |
+  | Partition maintenance | at start-up, then hourly | create `realtime_event`, `rider_position_history`, `audit_event` partitions ahead of the clock, drop the expired ones (`audit_event` never), and alert on any row in a `*_default` partition |
   | Audit chain verification | daily | `verify_audit_chain(yesterday)` |
 
-  Every loop exposes `hg_worker_lag_seconds`, `hg_worker_claimed_total`, `hg_worker_failed_total` and a per-loop health entry in `GET /internal/health`. `GET /health` (liveness) and `GET /health/ready` (readiness: Postgres, Redis, MinIO, Stripe reachable) exist from day one — the old Dockerfile probed a `/health` that did not exist, so every container was permanently unhealthy (B104).
+  Every loop exposes `hg_worker_lag_seconds`, `hg_worker_claimed_total`, `hg_worker_failed_total` and a per-loop health entry in `GET /internal/health`. `GET /health` (liveness) and `GET /health/ready` (readiness: Postgres, Redis, Silo, Stripe reachable) exist from day one — the old Dockerfile probed a `/health` that did not exist, so every container was permanently unhealthy (B104).
 
 - **Data**: lease columns on the claimed tables; `job_run (id, job, started_at, finished_at, claimed, succeeded, failed, error)` for observability.
 - **Rules & invariants**:
@@ -2736,7 +2814,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   - **I-39.4** A loop that fails repeatedly opens a circuit and pages, rather than spinning.
 - **Acceptance criteria**:
   1. Given three worker replicas and 5 000 due deadlines, Then each deadline action executes exactly once.
-  2. Given `GET /health/ready` with MinIO stopped, Then 503 naming MinIO, and Traefik removes the replica from rotation.
+  2. Given `GET /health/ready` with Silo stopped, Then 503 naming the object store, and Traefik removes the replica from rotation.
   3. Given a worker is killed mid-claim, When the lease expires, Then another worker completes the work and the final state is identical.
 - **Version**: V1 · **Size**: M
 
@@ -2744,19 +2822,21 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
 
 ## 13. Remaining business rules that cannot be derived
 
-> **DECISION REQUIRED — provinces served at launch**: Which provinces will accept orders on day one? · **Proposed default**: Ontario only at launch (HST 13%, largest target market, one tax regime to verify end-to-end), with the tax engine already carrying every province so expansion is a data change. · **Why**: each province adds a distinct tax configuration that must be verified with real receipts before it can be trusted.
+> **Decided:** Ontario only at launch; the tax engine still carries every province ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)).
 
-> **DECISION REQUIRED — proof of delivery**: Is a photo or delivery code required at handover? · **Proposed default**: required photo for leave-at-door, optional otherwise, stored in `hg-pod` for 90 days; without it, `NEVER_DELIVERED` disputes default to the customer. · **Why**: today nothing is captured at handover, so every "I never got my food" claim is unresolvable (M10).
+> **Decided:** the customer's 4-digit delivery code, never shown to the rider; for leave-at-door, photo plus statement at once ([handover](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); contract change: [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
 
 > **DECISION REQUIRED — rider location retention**: How long is a rider's GPS track kept? · **Proposed default**: 30 days in `rider_position_history` (payout distance evidence and dispute evidence), aggregated to per-order distance thereafter, raw points dropped. · **Why**: it is employee-adjacent location data under PIPEDA; keeping it indefinitely is an unnecessary liability.
 
-> **DECISION REQUIRED — CASL marketing consent**: Single opt-in or double opt-in for marketing email and push? · **Proposed default**: express single opt-in with a recorded timestamp, source and IP, plus a confirmation email; unsubscribe honoured immediately. · **Why**: CASL requires demonstrable express consent and the record is what a complaint is defended with.
+> **Decided:** record the consent at sign-up; send nothing until the email is confirmed ([marketing consent](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
 
 > **DECISION REQUIRED — trading-hours enforcement**: Are orders rejected outside a restaurant's opening hours? · **Proposed default**: yes — quoting outside the trading window fails with `restaurant_closed`, and `is_accepting_orders=false` does the same, both evaluated in the restaurant's timezone. · **Why**: hours are stored today and enforced nowhere, so orders can be placed at 03:00 (B28).
 
 > **DECISION REQUIRED — scheduled orders**: Can a customer order for later? · **Proposed default**: not in V1; the quote's `scheduled_for` field exists and is rejected as non-null. · **Why**: scheduling multiplies the state machine's deadline logic and can be added additively.
 
-> **DECISION REQUIRED — account deletion**: What does "delete my account" do for each role? · **Proposed default**: immediate sign-out and status `DELETED`, PII tombstoned within 30 days, orders and ledger retained with a pseudonymous reference; riders and restaurants with an outstanding balance must be paid out first. · **Why**: app-store policy requires in-app deletion, and both apps currently fake it.
+> **Decided:** at launch staff delete accounts by hand on request; in-app deletion ships before the store release ([account deletion](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#67](https://github.com/shaiknoorullah/hg-mono/issues/67)).
+
+> **Open:** what does deletion do for each role, and how long is each kind of data kept?
 
 > **DECISION REQUIRED — support impersonation**: May support act as a user? · **Proposed default**: yes, time-boxed to 30 minutes, always audited with `on_behalf_of`, with money actions and KYC downloads blocked while impersonating. · **Why**: it is the fastest way to resolve a customer issue and the most dangerous capability in the system.
 
@@ -2807,44 +2887,44 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
 | # | Topic | Question | Proposed default |
 |---|---|---|---|
 | 1 | One account across roles | Can one person hold customer, rider and restaurant roles on one account? | One account, many roles |
-| 2 | Restaurant staff granularity | How many restaurant sub-roles at launch? | Owner / Manager / Staff |
-| 3 | Admin MFA | Mandatory TOTP for admin, super-admin, support? | Mandatory, no grace period |
-| 4 | Session lifetimes | Per-role idle and absolute TTLs? | Customer 30/180 d, restaurant 14/90 d, support 12 h/7 d, admin 8/24 h |
+| 2 | Restaurant staff granularity | How many restaurant sub-roles at launch? | **Decided:** owner only at launch ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
+| 3 | Admin MFA | Mandatory TOTP for admin, super-admin, support? | **Decided:** mandatory; no recovery codes, a super admin resets a lost authenticator ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| 4 | Session lifetimes | Per-role idle and absolute TTLs? | **Decided** for staff: 30 min idle, 12 h total ([staff session length](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); open: customer 30/180 d, restaurant 14/90 d |
 | 5 | Variant pricing semantics | Does a variant replace or adjust the base price? | Explicit per variant: `ABSOLUTE` \| `DELTA`, default `ABSOLUTE` |
-| 6 | Fee parameters | Launch delivery/service/commission values? | $2.99 base + 3 km included + $1.20/km, min $2.99/max $12.99, $15 small-order threshold + $2.50, service 8% clamped [$0.99, $6.99], commission 20% |
+| 6 | Fee parameters | Launch delivery/service/commission values? | **Decided:** delivery $2.99 + $1.00/km, service fee $0.00, commission 0% ([delivery fee](../decisions/README.md#settled--client-decisions), [service fee](../decisions/README.md#settled--reconciliations)); open: included km, min/max, small-order surcharge |
 | 7 | Quote TTL | How long is a quoted price honoured? | 10 minutes, re-confirmation on change |
-| 8 | **GST/HST supplier position** | Is the platform the deemed supplier for non-registrant restaurants? | Platform is deemed supplier for non-registrants; registrants remain supplier. **Tax counsel sign-off required.** |
-| 9 | QST / Quebec | Register for QST and launch in QC? | No QC at launch; QC addresses rejected |
+| 8 | **GST/HST supplier position** | Is the platform the deemed supplier for non-registrant restaurants? | Platform is deemed supplier for non-registrants; registrants remain supplier. **Tax counsel sign-off required.** Open, blocking: [HST registration](../decisions/README.md#open--blocking) |
+| 9 | QST / Quebec | Register for QST and launch in QC? | **Decided:** no Quebec at launch ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)) |
 | 10 | Tip taxation | Tips untaxed and 100% to the rider? | Yes to both |
 | 11 | Commission tax invoicing | How is GST/HST on commission billed to restaurants? | Accrued per order, self-billed monthly invoice netted from payouts |
 | 12 | Stripe fee absorption | Who bears the ~2.9% + $0.30? | Platform absorbs entirely |
 | 13 | Commission base | Before or after a restaurant-funded discount? | After |
-| 14 | Rider earnings formula | Base, per-km, minimum? | $3.50 + $0.80/km + 100% tip, $6.00 guaranteed minimum |
-| 15 | Restaurant acceptance window | How long to accept? | 180 s; dismissing the dialog never rejects |
-| 16 | No-rider-found policy | Who pays for cooked food nobody collects? | Customer refunded, restaurant paid, platform absorbs |
+| 14 | Rider earnings formula | Base, per-km, minimum? | **Decided:** pass-through: the delivery fee plus 100% of tips, no floor ([rider pay](../decisions/README.md#settled--reconciliations)) |
+| 15 | Restaurant acceptance window | How long to accept? | **Decided:** 180 s ([acceptance window](../decisions/README.md#settled--reconciliations)); dismissing the dialog never rejects |
+| 16 | No-rider-found policy | Who pays for cooked food nobody collects? | **Decided:** customer refunded, restaurant paid, platform absorbs ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)) |
 | 17 | Prep-overdue cancellation | Is the restaurant paid when the kitchen blows its SLA? | No; full customer refund, SLA incident recorded |
-| 18 | Customer cancellation | Until when is cancellation free, and what after? | Free until acceptance; after acceptance, support-mediated, twice free per 90 days |
+| 18 | Customer cancellation | Until when is cancellation free, and what after? | **Decided:** free until acceptance; after it, staff cancel without a support case, reason audited ([cancellation policy](../decisions/README.md#settled--client-decisions)) |
 | 19 | Dispute window | How long after delivery? | 72 h customer, 7 days restaurant, 48 h support SLA |
 | 20 | Capture timing | Auth-then-capture or immediate capture? | Auth at checkout, capture on restaurant acceptance |
-| 21 | Refund liability matrix | Who is charged back per reason code? | The table in P-18; `FOOD_QUALITY` requires evidence |
-| 22 | Goodwill refund authority | What can a support agent refund unaided? | $25/order, $200/day, second approval above |
+| 21 | Refund liability matrix | Who is charged back per reason code? | **Decided:** by fault, per reason code; a halal concern charges the restaurant only when substantiated ([refund liability](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1), [halal complaint](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| 22 | Goodwill refund authority | What can a support agent refund unaided? | **Decided:** second approver above CAD 50, for every role ([goodwill approval](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
 | 23 | Connect account type | Express or Custom? | Express |
-| 24 | Payout schedule and minimum | Cadence and floor? | Weekly (Mon cutoff, Wed paid), $25 minimum, platform-initiated transfers |
-| 25 | Negative partner balances | What if refunds exceed earnings? | Carry and net; block new orders after 30 days; never debit a partner's bank |
+| 24 | Payout schedule and minimum | Cadence and floor? | **Decided:** weekly, Monday, automatic, no minimum ([payout cadence](../decisions/README.md#settled--client-decisions)) |
+| 25 | Negative partner balances | What if refunds exceed earnings? | **Decided** for riders: no automatic block ([rider balance below zero](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); open for restaurants: carry and net, block after 30 days, never debit |
 | 26 | Restaurant offer escalation | Escalate an unanswered offer to SMS/voice? | SMS at 60 s, automated voice call at 120 s |
 | 27 | KYC retention | How long after the relationship ends? | 7 years, then hard delete |
-| 28 | Halal certificate expiry grace | What happens on expiry day? | Badge lost + dropped from default search immediately; suspended after 14 days |
+| 28 | Halal certificate expiry grace | What happens on expiry day? | **Decided:** leaves every listing at once ([self-declared listing](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)); open: suspended after 14 days |
 | 29 | Offer strategy | Broadcast or sequential? | Broadcast to 8 per wave, 30 s TTL |
-| 30 | Recognised halal certifiers | Which bodies count as "certified"? | Admin-managed allowlist, manual review for anything else |
-| 31 | Self-declared restaurants | List them at all? | Yes, behind an explicit filter, badged "Self-declared, not verified" |
+| 30 | Recognised halal certifiers | Which bodies count as "certified"? | **Decided:** three accepted Canadian bodies, in a registry a super admin can extend ([accepted certifying bodies](../decisions/README.md#settled--client-decisions)) |
+| 31 | Self-declared restaurants | List them at all? | **Decided:** no, hidden entirely ([self-declared listing](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)) |
 | 32 | Audit retention | How long? | 7 years money/KYC, 24 months otherwise, redaction not deletion |
-| 33 | Provinces served at launch | Where do we take orders? | Ontario only; engine supports all provinces |
-| 34 | Proof of delivery | Photo or code required? | Photo required for leave-at-door, optional otherwise; absence favours the customer in disputes |
+| 33 | Provinces served at launch | Where do we take orders? | **Decided:** Ontario only; engine supports all provinces ([launch province](../decisions/README.md#settled--launch-decisions-sep-2026-client-confirmed-at-rc1)) |
+| 34 | Proof of delivery | Photo or code required? | **Decided:** 4-digit delivery code; photo plus statement for leave-at-door ([handover](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | 35 | Rider location retention | How long is the GPS track kept? | 30 days raw, then per-order aggregates only |
-| 36 | CASL marketing consent | Single or double opt-in? | Express single opt-in with recorded timestamp/source/IP + confirmation email |
+| 36 | CASL marketing consent | Single or double opt-in? | **Decided:** record consent; send nothing until the email is confirmed ([marketing consent](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
 | 37 | Trading-hours enforcement | Reject orders outside opening hours? | Yes, evaluated in the restaurant's timezone |
 | 38 | Scheduled orders | Order-for-later in V1? | No; field exists, rejected as non-null |
-| 39 | Account deletion | What does deletion do per role? | Immediate sign-out, PII tombstoned in 30 days, financial records retained; outstanding balances paid first |
+| 39 | Account deletion | What does deletion do per role? | **Decided:** staff delete by hand at launch; in-app deletion before the store release ([account deletion](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); open: per-role effects |
 | 40 | Support impersonation | May support act as a user? | Yes, 30-minute box, always audited, money and KYC actions blocked |
 
-**Blocking for launch**: #8 (tax counsel), #21 (refund liability), #6 and #14 (unit economics), #23–25 (payout terms), #30 (certifier list). Everything else can ship on its proposed default and be changed as configuration.
+**Blocking for launch**: #8 (tax counsel; [HST registration](../decisions/README.md#open--blocking)), #23 (Connect account type) and the restaurant half of #25. Rows #6, #14, #21, #24 and #30 are now decided. Everything else can ship on its proposed default and be changed as configuration.
