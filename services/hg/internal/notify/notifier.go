@@ -14,6 +14,9 @@ type Message struct {
 	Body     string
 	DeepLink string
 	Data     map[string]any
+	// Priority is the notification's; the push sender sends HIGH and
+	// CRITICAL at high priority with a sound.
+	Priority Priority
 	// IdempotencyKey is stable across retries of the same (notification,
 	// channel) pair — it is notificationID+":"+channel. Real providers accept
 	// this as a client reference / idempotency key so a retried River job
@@ -34,6 +37,13 @@ var ErrChannelNotConfigured = errors.New("notify: no sender registered for chann
 // EMAIL. INAPP has no external sender — see Notifier.Send.
 type ChannelSender interface {
 	Send(ctx context.Context, target string, msg Message) (providerMessageID string, err error)
+}
+
+// BatchSender is a ChannelSender that can send one message to several targets
+// in one call: ExpoSender sends a push to every live device of an account in
+// one request.
+type BatchSender interface {
+	SendBatch(ctx context.Context, targets []string, msg Message) (providerMessageID string, err error)
 }
 
 // SMSSender is the seam auth's phone-OTP path (P-02) sends through — the
@@ -127,4 +137,20 @@ func (n *Notifier) Send(ctx context.Context, ch Channel, target string, msg Mess
 		return "", fmt.Errorf("%w: %s", ErrChannelNotConfigured, ch)
 	}
 	return s.Send(ctx, target, msg)
+}
+
+// SendAll dispatches one message to every target on ch: in one call when the
+// sender is a BatchSender, otherwise to the first target only, as Send would.
+func (n *Notifier) SendAll(ctx context.Context, ch Channel, targets []string, msg Message) (string, error) {
+	s, ok := n.senders[ch]
+	if !ok {
+		return "", fmt.Errorf("%w: %s", ErrChannelNotConfigured, ch)
+	}
+	if b, ok := s.(BatchSender); ok && len(targets) > 1 {
+		return b.SendBatch(ctx, targets, msg)
+	}
+	if len(targets) == 0 {
+		return s.Send(ctx, "", msg)
+	}
+	return s.Send(ctx, targets[0], msg)
 }

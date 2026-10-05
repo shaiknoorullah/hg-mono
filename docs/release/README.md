@@ -201,6 +201,9 @@ your shell wins over the profile's `env`).
 `extra.eas.projectId` is only written into the app config when `EAS_PROJECT_ID` is set, so a local
 `npx expo prebuild` or Gradle build never needs EAS. Using EAS Build is an owner step: run
 `eas init` once, then export the id it prints as `EAS_PROJECT_ID` (or set it in the profile's `env`).
+Push notifications need that id too: without it an app with the `expo-notifications` plugin (the
+rider app, `apps/rider/app.config.js`) gets no push token and carries on without push, and Android
+also needs the project's FCM credentials uploaded to Expo.
 
 ## The release key
 

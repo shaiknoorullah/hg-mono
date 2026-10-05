@@ -104,6 +104,9 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    start with a key and localhost links). With no key the API logs each email instead of sending
    it. Outside production only the addresses in `HG_EMAIL_ALLOWLIST` are ever really emailed;
    that list is refused in production.
+   **Push (Expo)** is off until `HG_PUSH_ENABLED=true`; `EXPO_ACCESS_TOKEN` is needed only when the
+   Expo project has enhanced push security on, and Android delivery needs the project's FCM
+   credentials in Expo ([#58](https://github.com/shaiknoorullah/hg-mono/issues/58)).
 8. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from.
    On the production server that is `hg-proxy`, `10.88.0.0/29`, which only Traefik and the API join
    ([deploy/host](deploy/host/README.md#what-productions-compose-file-must-do)). Unset, the stack refuses to start: every request's client

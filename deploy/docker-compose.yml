@@ -94,6 +94,11 @@ x-api-env: &api-env
   HG_RESTAURANT_WEB_URL: ${HG_RESTAURANT_WEB_URL:-http://localhost:5183}
   HG_ADMIN_WEB_URL: ${HG_ADMIN_WEB_URL:-http://localhost:5175}
 
+  # Push (internal/notify, issue #58). Off unless HG_PUSH_ENABLED=true; off,
+  # every push is recorded as not sent and the in-app inbox is the record.
+  HG_PUSH_ENABLED: ${HG_PUSH_ENABLED:-false}
+  EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
+
   # Payments (internal/payments). Without a secret key the payment routes answer 503.
   HG_STRIPE_SECRET_KEY: ${HG_STRIPE_SECRET_KEY:-}
   HG_STRIPE_WEBHOOK_SECRET: ${HG_STRIPE_WEBHOOK_SECRET:-}
