@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Drive the restaurant web app against the contract mock with agent-browser.
+# Drive the restaurant web app against the contract mock or a real backend with agent-browser.
 #
-#   driver.sh up        start mock (:4010) + vite (:5183) in the background, wait until both answer
-#   driver.sh smoke     sign in, screenshot Orders/Menu/Hours, click Accept, print the network calls + console errors
-#   driver.sh shot URL  screenshot one route (e.g. /payouts) using the signed-in session
-#   driver.sh down      close the browser and kill both servers
+#   driver.sh [--backend local|staging] up        start backend/vite in the background, wait until answering
+#   driver.sh [--backend local|staging] smoke     sign in, screenshot Orders/Menu/Hours, click Accept, print network calls
+#   driver.sh [--backend local|staging] shot URL  screenshot one route using the signed-in session
+#   driver.sh down                                close the browser and kill servers
 #
 # Paths resolve from this file, so it runs from any cwd. Output lands in $OUT (default /tmp/hg-restaurant-run).
 set -euo pipefail
@@ -14,12 +14,42 @@ APP="$(cd "$HERE/../../.." && pwd)"          # apps/restaurant
 ROOT="$(cd "$APP/../.." && pwd)"             # monorepo root
 OUT="${OUT:-/tmp/hg-restaurant-run}"
 WEB=http://localhost:5183
-MOCK=http://localhost:4010
 SESSION=hg-restaurant
 mkdir -p "$OUT"
 
+BACKEND="${BACKEND:-mock}"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --backend)
+      BACKEND="$2"
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+case "$BACKEND" in
+  staging)
+    API_URL="https://api.halalgoes.com"
+    API_CHECK="$API_URL/health/ready"
+    USE_MOCK=false
+    ;;
+  local)
+    API_URL="http://localhost:8080"
+    API_CHECK="$API_URL/health/ready"
+    USE_MOCK=false
+    ;;
+  mock|*)
+    API_URL="http://localhost:4010"
+    API_CHECK="$API_URL/__mock/scenarios"
+    USE_MOCK=true
+    ;;
+esac
+
 ab() { agent-browser --session "$SESSION" "$@"; }
-code() { curl -s -o /dev/null -w '%{http_code}' "$1" || true; }
+code() { curl -s -k -o /dev/null -w '%{http_code}' "$1" || true; }
 
 wait_for() { # url label
   for _ in $(seq 1 60); do [ "$(code "$1")" != 000 ] && { echo "$2 up: $1"; return 0; }; sleep 1; done
@@ -27,14 +57,18 @@ wait_for() { # url label
 }
 
 up() {
-  # pnpm is often not on PATH here; the workspace's local binaries are enough.
-  if [ "$(code $MOCK/__mock/scenarios)" = 000 ]; then
-    (cd "$ROOT/tools/mock-server" && nohup ./node_modules/.bin/tsx src/index.ts >"$OUT/mock.log" 2>&1 &)
+  if [ "$USE_MOCK" = true ]; then
+    if [ "$(code "$API_CHECK")" = 000 ]; then
+      (cd "$ROOT/tools/mock-server" && nohup ./node_modules/.bin/tsx src/index.ts >"$OUT/mock.log" 2>&1 &)
+    fi
+    wait_for "$API_CHECK" mock
+  else
+    wait_for "$API_CHECK" "backend ($BACKEND)"
   fi
-  if [ "$(code $WEB)" = 000 ]; then
-    (cd "$APP" && nohup ./node_modules/.bin/vite >"$OUT/vite.log" 2>&1 &)
+
+  if [ "$(code "$WEB")" = 000 ]; then
+    (cd "$APP" && VITE_API_BASE_URL="$API_URL" nohup ./node_modules/.bin/vite >"$OUT/vite.log" 2>&1 &)
   fi
-  wait_for "$MOCK/__mock/scenarios" mock
   wait_for "$WEB" vite
 }
 
@@ -42,8 +76,13 @@ signin() {
   ab open "$WEB/login" >/dev/null
   ab wait --load networkidle >/dev/null
   if [ "$(ab get url)" != "$WEB/login" ]; then return 0; fi   # session already in localStorage
-  ab find label "Business email" fill "owner@restaurant.ca" >/dev/null
-  ab find label "Password" fill "password123" >/dev/null       # the mock accepts any credentials
+  if [ "$USE_MOCK" = true ]; then
+    ab find label "Business email" fill "owner@restaurant.ca" >/dev/null
+    ab find label "Password" fill "password123" >/dev/null
+  else
+    ab find label "Business email" fill "${RESTO_EMAIL:-owner@restaurant.ca}" >/dev/null
+    ab find label "Password" fill "${RESTO_PASSWORD:-SecurePassword123!}" >/dev/null
+  fi
   ab find role button click --name "Sign in" >/dev/null
   ab wait --load networkidle >/dev/null
   sleep 1
@@ -67,7 +106,7 @@ smoke() {
   ab open "$WEB/orders" >/dev/null
   ab wait --load networkidle >/dev/null
   ab network requests --clear >/dev/null 2>&1 || true
-  ab find role button click --name "Accept" >/dev/null
+  ab find role button click --name "Accept" >/dev/null 2>&1 || true
   sleep 1.5
   echo "--- network after Accept"
   ab network requests | grep -E "POST|GET" | grep -v "5183" || true
@@ -77,15 +116,13 @@ smoke() {
 
 down() {
   ab close >/dev/null 2>&1 || true
-  # Kill by listening port: tsx re-execs node with a loader, so the cmdline never
-  # matches what was launched and pkill -f on the launch command misses it.
   for port in 4010 5183; do
     for pid in $(ss -ltnp "sport = :$port" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | sort -u); do
       kill "$pid" 2>/dev/null || true
     done
   done
   sleep 1
-  echo "stopped (4010: $(code $MOCK/__mock/scenarios), 5183: $(code $WEB) — 000 means down)"
+  echo "stopped (web: $(code "$WEB") — 000 means down)"
 }
 
 case "${1:-smoke}" in
@@ -93,5 +130,5 @@ case "${1:-smoke}" in
   smoke) smoke ;;
   shot) up; signin; shot "${2:?route}" "$(echo "${2}" | tr -c 'a-z0-9\n' '-' | sed 's/^-*//')" ;;
   down) down ;;
-  *) echo "usage: $0 {up|smoke|shot /route|down}" >&2; exit 2 ;;
+  *) echo "usage: $0 [--backend local|staging] {up|smoke|shot /route|down}" >&2; exit 2 ;;
 esac
