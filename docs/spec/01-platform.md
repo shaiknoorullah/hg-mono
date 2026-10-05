@@ -224,11 +224,11 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
 
 - **Behaviour**:
   - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.**
-  - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, issues a session.
+  - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, answers `204`. **Issues no session and sets no cookie**: an emailed link never signs anyone in, or an attacker could send someone the link for the attacker's own account and have them work in it ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The owner then signs in with `login`.
   - `POST /v1/auth/email/resend` — rate limited 1/min, 5/day per account.
   - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when enrolled/required, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
   - `POST /v1/auth/password/forgot` `{email}` → always 200; sends reset token if the account exists.
-  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email.
+  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email. Answers `204` with no session and no cookie, also for a staff invitation setting a first password; the user then signs in with `login` (with the authenticator code where required).
   - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued.
   - `POST /v1/auth/totp/enroll` / `verify` / `disable` (step-up required).
 
@@ -957,6 +957,9 @@ CREATE TABLE quote_tax_line (
   | **Σ** | | **0** |
 
   The customer's $42.28 decomposes to restaurant $27.00 + restaurant tax $3.51 + rider $10.99 (incl. $5.00 tip) + platform tax $0.78 = $42.28. Zero residual; with commission and service fee at zero the platform posts no revenue row. (Stripe fees are posted separately against `PLATFORM_REVENUE` when the balance-transaction webhook arrives, keeping the customer-facing decomposition clean.)
+
+  **When the rider's share is posted.** The rider is not known at capture, so the capture batch leaves the delivery fee and the tip in `PLATFORM_REVENUE`, where a cancelled order's refund finds them. The rider's own `DELIVERED` transition then posts, in the same transaction, one balanced pair per earning: the delivery fee and the tip, exactly as priced, move from that held share to the `RIDER_PAYABLE` of the rider whose assignment is `DELIVERED` with its proof of delivery, read and locked from the database (the rider named on the request is only checked against it). One rider earning line mirrors each posting ([earnings formula and per-delivery ledger](04-rider.md#d-26--earnings-formula-and-per-delivery-ledger)). The batch is keyed by the order, so a replay posts nothing. No other path pays a rider: not a cancelled order, not one refunded in full before delivery, not a reassigned or returned assignment, not another actor's state change. A later refund that charges the rider back writes the reversing `RIDER_PAYABLE` entry and a mirroring `CLAWBACK` line; nothing is updated or deleted. Whether the platform makes up a tip lowered after the rider accepts is the owner's open question ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)); until it is decided it does not (`HG_RIDER_TIP_MAKEUP`, off).
+  Built in [#306](https://github.com/shaiknoorullah/hg-mono/issues/306).
 
 - **Data**:
 

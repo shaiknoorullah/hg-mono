@@ -165,7 +165,7 @@ func (s *Service) ApproveRefund(ctx context.Context, refundID string, by Staff, 
 // caller's transaction. Until it commits nothing about the refund reaches
 // Stripe, and the schema refuses a refund that moves money without an
 // approver (refund_money_needs_approver, 00046) or one approved by whoever
-// sent it up (refund_second_person, 00039).
+// sent it up (refund_second_person, 00048).
 func (s *Service) authoriseTx(ctx context.Context, tx pgx.Tx, p pendingRefund, by Staff, reason string, caseID *string, authority map[string]any) (Outcome, error) {
 	money, _, err := getOrderMoney(ctx, tx, p.OrderID)
 	if err != nil {
@@ -175,7 +175,13 @@ func (s *Service) authoriseTx(ctx context.Context, tx pgx.Tx, p pendingRefund, b
 	// is (webhook_effects.go), so the refund's batch is posted once.
 	batch := BuildRefundBatch(money, p.Split, p.AmountCents, "refund:"+p.ID, "admin:"+by.AccountID)
 	batch.RefundID = p.ID
-	if err := insertBatch(ctx, tx, batch); err != nil {
+	posted, err := postBatchTx(ctx, tx, batch)
+	if err != nil {
+		return Outcome{}, err
+	}
+	// A rider chargeback reverses the rider's earnings in the same transaction
+	// (rider_earnings.go), as a refund recorded at creation does.
+	if err := writeRiderClawbacksTx(ctx, tx, batch, posted); err != nil {
 		return Outcome{}, err
 	}
 	if _, err := tx.Exec(ctx, `
