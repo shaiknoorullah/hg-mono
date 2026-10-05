@@ -158,16 +158,20 @@ export async function listOrders(input?: {
 /**
  * One-tap reorder (no dedicated endpoint in the contract): re-adds every line of a past order
  * to the cart via the same `POST /v1/cart/lines` the restaurant screen uses, one call per line
- * so a since-removed item fails independently rather than aborting the whole reorder. Add-ons
- * and special requests are not replayed — the contract's `addCartLine` takes a bare
- * `menu_item_id` + `quantity`, so a reorder restores the base items only.
+ * so a since-removed item fails independently rather than aborting the whole reorder. Each
+ * line keeps its chosen variants (`variants`, one per group); add-ons and special requests are
+ * not replayed, so a dish whose add-on group requires a choice fails here and is listed.
  */
 export async function reorder(orderId: string): Promise<{ failedLines: string[] }> {
   const order = await getOrder(orderId);
   const failedLines: string[] = [];
   for (const line of order.lines) {
     try {
-      await addToCart(line.menu_item_id, line.quantity);
+      await addToCart(
+        line.menu_item_id,
+        line.quantity,
+        (line.variants ?? []).map((v) => v.variant_id),
+      );
     } catch {
       failedLines.push(line.name);
     }

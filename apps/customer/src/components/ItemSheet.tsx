@@ -43,6 +43,7 @@ import {
   addonLegend,
   blockReason,
   chooseVariant,
+  chosenVariantIds,
   headerPriceCents,
   initialSelection,
   setQuantity,
@@ -94,9 +95,14 @@ export function dietaryBadges(tags: readonly string[] | undefined): string[] {
 
 /** Finds the line the server added or incremented, to name it in the confirmation. */
 function addedLine(cart: Cart, item: MenuItem, sel: ItemSelection): Schema['CartLine'] | null {
-  const variantId = Object.values(sel.variants)[0] ?? null;
+  const key = (ids: string[]): string => [...ids].sort().join(',');
+  const chosen = key(chosenVariantIds(item, sel));
   const lines = cart.lines.filter((l) => l.menu_item_id === item.id);
-  return lines.find((l) => (l.variant?.variant_id ?? null) === variantId) ?? lines[lines.length - 1] ?? null;
+  return (
+    lines.find((l) => key((l.variants ?? []).map((v) => v.variant_id)) === chosen) ??
+    lines[lines.length - 1] ??
+    null
+  );
 }
 
 export function ItemSheet({
@@ -154,7 +160,7 @@ export function ItemSheet({
     } catch (e) {
       const f = classifyAddError(e);
       if (f.kind === 'differentRestaurant') {
-        let { restaurantName: name, lineCount: count } = f;
+        let { restaurantName: name, itemCount: count } = f;
         if (!name || count === null) {
           // The details are documented but optional on the wire; the cart itself knows both.
           try {

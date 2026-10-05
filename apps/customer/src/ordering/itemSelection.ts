@@ -85,14 +85,7 @@ export function blockReason(item: MenuItem, sel: ItemSelection): string | null {
   if (item.availability_state !== 'AVAILABLE') {
     return `${item.name} is out of stock.`;
   }
-  const groups = item.variant_groups ?? [];
-  // The contract's CartLineInput carries one `variant_id`, so a dish with two or more variant
-  // groups cannot send all of its choices. Sending only one would drop the rest without the
-  // customer knowing; refusing is the honest option until the contract changes.
-  if (groups.length > 1) {
-    return "This dish has more choices than the app can send yet. Ask the restaurant, or choose another dish.";
-  }
-  for (const g of groups) {
+  for (const g of item.variant_groups ?? []) {
     if (g.required && !sel.variants[g.id]) {
       const name = g.name.toLowerCase();
       return `Choose ${article(name)} ${name} to add this to your cart`;
@@ -110,10 +103,19 @@ export function blockReason(item: MenuItem, sel: ItemSelection): string | null {
   return null;
 }
 
-/** The add request. Identifiers, quantities and the note — the DTO has no price field (G-3). */
-export function toCartLineInput(item: MenuItem, sel: ItemSelection): CartLineInput {
+/** Every chosen variant id, one per group, in the menu's group order. */
+export function chosenVariantIds(item: MenuItem, sel: ItemSelection): string[] {
   const groups: VariantGroup[] = item.variant_groups ?? [];
-  const variantId = groups.length === 1 ? (sel.variants[groups[0]!.id] ?? null) : null;
+  return groups.map((g) => sel.variants[g.id]).filter((v): v is string => Boolean(v));
+}
+
+/**
+ * The add request. Identifiers, quantities and the note — the DTO has no price field (G-3).
+ * `variant_ids` carries one chosen variant per group, so a dish with a size *and* a rice
+ * choice sends both (#628).
+ */
+export function toCartLineInput(item: MenuItem, sel: ItemSelection): CartLineInput {
+  const variantIds = chosenVariantIds(item, sel);
   const addons = (item.addon_groups ?? []).flatMap((g) =>
     (sel.addons[g.id] ?? []).map((addon_id) => ({ addon_id, quantity: 1 })),
   );
@@ -121,7 +123,7 @@ export function toCartLineInput(item: MenuItem, sel: ItemSelection): CartLineInp
   return {
     menu_item_id: item.id,
     quantity: sel.quantity,
-    ...(variantId ? { variant_id: variantId } : {}),
+    ...(variantIds.length ? { variant_ids: variantIds } : {}),
     ...(addons.length ? { addons } : {}),
     ...(note ? { special_request: note } : {}),
   };
@@ -141,9 +143,10 @@ export function addonLegend(group: AddonGroup, chosen: number): string {
   return group.max_select === 1 ? `${name} · choose 1` : `${name} · choose up to ${group.max_select}`;
 }
 
-/** "Mixed grill · For two · Garlic toum" from the line the server returned. */
+/** "Mixed grill · For two · Kabuli pulao · Garlic toum" from the line the server returned. */
 export function lineSummary(line: Schema['CartLine']): string {
-  return [line.name, line.variant?.name, ...(line.addons ?? []).map((a) => a.name)]
+  const variants = line.variants?.length ? line.variants.map((v) => v.variant_name) : [line.variant?.name];
+  return [line.name, ...variants, ...(line.addons ?? []).map((a) => a.name)]
     .filter(Boolean)
     .join(' · ');
 }

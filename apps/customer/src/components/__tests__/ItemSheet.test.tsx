@@ -5,12 +5,14 @@
  *     same line again with `replace=true` — one call, never clear-then-add (C-20).
  *  2. A required add-on group blocks Add, with the reason shown, until it is satisfied (C-16).
  *  3. The add request never carries a price: ids, quantities and the note only (G-3).
+ *  4. A dish with several variant groups sends one choice per group in `variant_ids` (#628).
  */
 import * as React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import menuFull from '../../../../../contracts/fixtures/catalogue/menu_full.json';
 import cartSingleLine from '../../../../../contracts/fixtures/cart/cart_single_line.json';
+import cartMultiVariant from '../../../../../contracts/fixtures/cart/cart_multi_variant_line.json';
 
 jest.mock('react-native-safe-area-context', () => {
   const mod = require('react-native-safe-area-context/jest/mock');
@@ -163,8 +165,31 @@ describe('ItemSheet', () => {
     const keys = keysOf(sent[0]!.body);
     expect(keys.filter((k) => /price|cents|total|amount/i.test(k))).toEqual([]);
     expect(new Set(keys)).toEqual(
-      new Set(['menu_item_id', 'quantity', 'variant_id', 'special_request']),
+      new Set(['menu_item_id', 'quantity', 'variant_ids', 'special_request']),
     );
     expect(sent[0]!.body.special_request).toBe('No coriander');
+  });
+
+  it('sends one choice per variant group for a dish with three groups', async () => {
+    const sent = stubCart(() => json(200, { data: cartMultiVariant.payload }));
+    const platter = byName('Mixed Charcoal Grill Platter');
+    const onAdded = renderSheet(platter);
+    const [size, rice, heat] = platter.variant_groups!;
+    const id = (g: typeof size, name: string): string => g!.variants.find((v) => v.name === name)!.id;
+
+    fireEvent.press(screen.getByText('For two'));
+    fireEvent.press(screen.getByText('No rice'));
+    fireEvent.press(screen.getByText('Medium'));
+    fireEvent.press(screen.getByText('Mint raita'));
+    expect(screen.queryByTestId('ItemSheet-reason')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('ItemSheet-add'));
+    await waitFor(() => expect(onAdded).toHaveBeenCalledTimes(1));
+    expect(sent[0]!.body.variant_ids).toEqual([
+      id(size, 'For two'),
+      id(rice, 'No rice'),
+      id(heat, 'Medium'),
+    ]);
+    expect(sent[0]!.body).not.toHaveProperty('variant_id');
   });
 });
