@@ -1671,7 +1671,7 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
 
 - **Behaviour**: The old gateway trusted a client-sent `connect_user {userId, userType}` frame and let `join_channel` auto-authenticate from the message body (B77). Any client could impersonate any restaurant and drain another user's notifications. The replacement has **no client-asserted identity at any point**.
 
-  The socket is served by the same binary at `wss://api.halalgoes.com/v1/ws` behind Traefik (TLS terminated at Traefik; no separate port 9080, no plaintext WS, no wildcard CORS).
+  The socket is served by the same binary at `wss://api.halalgoes.com/v1/ws` behind Traefik (TLS terminated at Traefik; no separate port 9080, no plaintext WS, no wildcard CORS). The upgrade passes through the same middleware chain as every route, so it takes over the connection through the response controller, which reaches the server's writer beneath the access log's wrapper.
 
   **Ticket handshake** (browsers cannot set `Authorization` on a WebSocket upgrade):
   1. `POST /v1/realtime/ticket` — a normal authenticated REST call through the full middleware chain (P-06). Returns `{ticket, expires_at}` where `ticket` is 32 random bytes base64url.
