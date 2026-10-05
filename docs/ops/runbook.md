@@ -2,7 +2,7 @@
 covers:
   - deploy/**
   - services/hg/internal/orders/runner*.go
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Incident runbook
@@ -75,6 +75,8 @@ Images are pulled by digest ([#78][i78]) and deployed by the rollout script in t
 
 1. Deploy the previous digest the same way. Nothing else.
 2. If the release ran a migration, check that the old code still works on the new schema. If it doesn't, go to the next section.
+
+If the new API stops at start-up, read its log before rolling back: outside local it refuses to start, and names the setting, when a secret still holds a placeholder, a key is too short or shared with another, or a secret file is missing, empty, or readable by anyone but its owner (mode 0400, owned by user ID 65532). Fix that secret in the secrets store and start the API again.
 
 Before any deploy that runs a migration, take a Contabo snapshot and write down the UTC time: that time is the restore point if the migration goes wrong.
 

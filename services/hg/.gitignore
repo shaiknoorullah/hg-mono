@@ -3,10 +3,12 @@
 # `go build` inside cmd/<name> writes it next to main.go. A new command under
 # cmd/ needs both of its lines added here.
 /hg
+/migrate
 /seedpw
 /seedtotp
 /totpnow
 /cmd/hg/hg
+/cmd/migrate/migrate
 /cmd/seedpw/seedpw
 /cmd/seedtotp/seedtotp
 /cmd/totpnow/totpnow

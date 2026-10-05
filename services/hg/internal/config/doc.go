@@ -19,6 +19,15 @@
 // variable's name in the message, and every load error is reported at once
 // rather than one boot attempt at a time.
 //
+// Secrets (secrets.go): every name in SecretSettings may be given as NAME_FILE,
+// the path of a file holding the value, so that production keeps secrets out of
+// the container's environment (issue #309:
+// https://github.com/shaiknoorullah/hg-mono/issues/309). Outside HG_ENV=local a
+// secret file readable by its group or everyone, or a secret still set to a
+// deploy/.env.example placeholder, is refused (issue #316:
+// https://github.com/shaiknoorullah/hg-mono/issues/316). No secret value, file
+// content or length is ever written to an error, a warning or the log.
+//
 // TODO(siblings): as modules land, extend Config with their required variables
 // and add them to deploy/.env.example in the same commit — P-27 notes that a CI
 // check parses both files and fails on a name mismatch (the MINIO_ACCESS_SECRET

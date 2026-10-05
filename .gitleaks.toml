@@ -21,6 +21,15 @@ description = "Idempotency-Key header values are not credentials"
 regexTarget = "line"
 regexes = ['''Idempotency-Key''']
 
+# The config package's secret-file tests load a made-up 32-byte data key from a
+# file. It seals nothing but test data. Matched by exact value, in that file only.
+[[allowlists]]
+description = "a fabricated data key in the config package's tests"
+condition = "AND"
+paths = ['''^services/hg/internal/config/secrets_test\.go$''']
+regexTarget = "secret"
+regexes = ['''^5f2b9c0e7a1d4e8f3b6c9a0d2e5f8b1c4a7d0e3f6b9c2a5d8e1f4b7c0a3d6e9f$''']
+
 # Contract fixtures: fabricated values shaped like the real thing so the mock
 # server and the generated client are exercised with realistic strings.
 # Matched by exact value (Stripe-shaped test client secrets, a fake push

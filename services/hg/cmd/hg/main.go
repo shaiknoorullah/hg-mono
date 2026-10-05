@@ -431,6 +431,10 @@ func run() error {
 		slog.String("minio", cfg.MinIO.Endpoint),
 		slog.String("minio_presign_base", cfg.MinIO.PresignBaseURL),
 		slog.Int("cors_origins", len(cfg.CORSOrigins)))
+	// Where each secret came from (file, environment, not set) and any
+	// tolerated problem, such as a group-readable secret file in local. Never
+	// a value (issue #309: https://github.com/shaiknoorullah/hg-mono/issues/309).
+	cfg.LogSecretSources(log)
 
 	// 2. Dependencies. Open dials all three and fails rather than returning a
 	// half-connected Store.
@@ -493,8 +497,12 @@ func run() error {
 	//
 	// B3 (auth) provides the real P-04 token authenticator and the P-05
 	// role→action matrix, replacing the AnonymousAuthenticator/DenyAllAuthorizer
-	// stubs. Its secrets are loaded from the environment here (fail-loud, G-7).
-	authSecrets, err := auth.LoadSecrets(os.Getenv, !cfg.Env.IsLocal())
+	// stubs. Its secrets are read through cfg.Lookup, so each may come from a
+	// file (HG_APP_DATA_KEY_FILE and so on). A bad one stops the boot (fail
+	// loud on config: docs/spec/01-platform.md, "Ground rules that bind every
+	// section"), and outside local so does a missing, all-zero, placeholder or
+	// reused key (issue #316: https://github.com/shaiknoorullah/hg-mono/issues/316).
+	authSecrets, err := auth.LoadSecrets(cfg.Lookup, !cfg.Env.IsLocal())
 	if err != nil {
 		return err
 	}
