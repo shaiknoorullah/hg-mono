@@ -7,14 +7,21 @@
  * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
  * API but production's. How to build each: docs/release/README.md.
  *
- * `@rnmapbox/maps` stays out of autolinking (package.json `expo.autolinking.exclude`) and has no
- * config plugin here until the rider screens use a native map.
+ * Maps: the offer and active-delivery screens draw a live Mapbox map (`src/map/`). The native SDK
+ * is linked, and the `@rnmapbox/maps` config plugin added, only when `RNMAPBOX_MAPS_DOWNLOAD_TOKEN`
+ * is set (see `react-native.config.js`); without it the build has no map and the screens show
+ * their distance-and-ETA text instead. The plugin gets no options: the Android build reads the
+ * download token from the environment, so the token never enters this config, which is embedded
+ * in the app. The public tile token is `EXPO_PUBLIC_MAPBOX_TOKEN`, inlined into the JS bundle.
  *
  * `extra.eas.projectId` is only added when `EAS_PROJECT_ID` is set, so a local
  * `npx expo prebuild` / gradle build does not need EAS. Run `eas init` (owner step) before using
  * EAS Build and put the id it prints in `EAS_PROJECT_ID`.
  */
 const { expoAppEnv } = require('../../scripts/release/app-env.cjs');
+
+// Same condition as react-native.config.js: link the Mapbox SDK and add its plugin together.
+const MAPBOX_NATIVE = Boolean(process.env.RNMAPBOX_MAPS_DOWNLOAD_TOKEN);
 
 const CAMERA_REASON =
   'HalalGoes needs the camera to scan the handoff QR code at pickup and drop-off.';
@@ -84,9 +91,11 @@ module.exports = () => {
               "HalalGoes uses your location so dispatch can route you and find you while you're online.",
           },
         ],
+        ...(MAPBOX_NATIVE ? ['@rnmapbox/maps'] : []),
       ],
       extra: {
         appEnv: env.name,
+        mapboxPublicTokenConfigured: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
         ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {}),
       },
     },

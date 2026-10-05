@@ -153,8 +153,12 @@ A dev build can be pointed at another API with `API_BASE_URL`, for example an AP
 machine as an emulator sees it: `API_BASE_URL=http://10.0.2.2:8080`.
 
 The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
-`MAPBOX_PUBLIC_TOKEN_MOBILE`). No Mapbox download token is needed: Mapbox serves the native SDK
-without one.
+`MAPBOX_PUBLIC_TOKEN_MOBILE`). The rider app links the Mapbox native SDK, and adds the
+`@rnmapbox/maps` config plugin, only when `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` (a secret `sk.` token with
+`DOWNLOADS:READ`) is set for the build: `apps/rider/react-native.config.js` and
+`apps/rider/app.config.js` read the same variable. Without it the build has no native map and the
+offer and delivery screens show their distance-and-ETA text instead. The token is read by Gradle
+from the environment; it is never written into the app config, the bundle or a log.
 
 For a local `eas build`, the customer's `eas.json` `preview` and `production` profiles set
 `EXPO_PUBLIC_API_BASE_URL` to the placeholder `https://api.halalgoes.com`. To point a build at
