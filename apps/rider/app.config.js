@@ -85,6 +85,10 @@ module.exports = () => {
               "HalalGoes uses your location so dispatch can route you and find you while you're online.",
           },
         ],
+        // Push notifications (src/push.ts): adds the Android notification permission and the
+        // iOS push entitlement. Android delivery also needs the project's FCM credentials in
+        // Expo; without them the app gets no token and carries on without push.
+        'expo-notifications',
         ...mapboxPlugins(),
       ],
       extra: {
