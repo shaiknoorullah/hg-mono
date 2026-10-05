@@ -174,6 +174,23 @@ function main(): number {
       failures += 1;
     }
 
+    // A list fixture shows distinct things: two rows with one `id` are one record shown twice,
+    // which a client renders as duplicate rows (and React flags as duplicate keys). Issue #31.
+    if (fixture.schema.startsWith('array<') && Array.isArray(fixture.payload)) {
+      const seenIds = new Map<unknown, number>();
+      fixture.payload.forEach((row, i) => {
+        const id = (row as { id?: unknown } | null)?.id;
+        if (id === undefined || id === null) return;
+        const first = seenIds.get(id);
+        if (first !== undefined) {
+          console.error(`FAIL ${rel}\n  /${i} repeats id \`${String(id)}\` from /${first}: list rows must be distinct`);
+          failures += 1;
+        } else {
+          seenIds.set(id, i);
+        }
+      });
+    }
+
     if (fixture.meta !== undefined && fixture.meta !== null) {
       const metaSchema = fixture.schema.startsWith('array<RestaurantCard')
         ? 'RestaurantListMeta'

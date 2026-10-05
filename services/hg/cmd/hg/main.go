@@ -324,11 +324,12 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 // assignment machine and the P-14 order state machine: dispatch may not write
 // order.state directly; it must call through this interface (P-14).
 //
-// Both calls use ActorRider because the transition is triggered by the rider
-// completing a physical step (picking up / delivering the order). The orders
-// module validates the pair against the compile-time transition table, so an
-// invalid call (e.g. wrong current state) returns IllegalTransitionError and the
-// lifecycle call is a no-op.
+// The three dispatch calls use ActorRider because each transition is triggered
+// by the rider completing a physical step (picking up, arriving at the
+// customer, delivering the order). The orders module validates the pair
+// against the compile-time transition table, so an invalid call (e.g. wrong
+// current state) returns IllegalTransitionError and the lifecycle call is a
+// no-op.
 type orderLifecycleAdapter struct {
 	store *orders.Store
 }
@@ -340,6 +341,20 @@ func (a *orderLifecycleAdapter) ConfirmPickup(ctx context.Context, orderID, ride
 		Actor:          machine.ActorRider,
 		ActorAccountID: riderAccountID,
 		Reason:         "rider confirmed pickup",
+	})
+}
+
+// MarkArrived is the picked-up to arrived step, taken when the rider taps "I'm
+// here" at the drop-off (issue #250). Going through Transition arms the
+// 15-minute handover-overdue deadline and emits the same order.state_changed
+// event as every other step.
+func (a *orderLifecycleAdapter) MarkArrived(ctx context.Context, orderID, riderAccountID string) error {
+	return a.store.Transition(ctx, orders.TransitionRequest{
+		OrderID:        orderID,
+		To:             machine.StateArrived,
+		Actor:          machine.ActorRider,
+		ActorAccountID: riderAccountID,
+		Reason:         "rider arrived at the drop-off",
 	})
 }
 
@@ -634,7 +649,7 @@ func run() error {
 
 	// B11 — Handoff (internal/handoff, migration 00027): package-seal chain of
 	// custody. Reuses the same orderLifecycleAdapter instance dispatch is wired
-	// with above — it already satisfies dispatch.OrderLifecycle's two methods
+	// with above — it already satisfies dispatch.OrderLifecycle's three methods
 	// plus handoff.OrderLifecycle's OpenDispute — and auth's P-04 Ed25519 signing
 	// key, so no second key pair is minted for this module alone.
 	handoffStore := handoff.NewStore(st.DB().Pool)
@@ -646,7 +661,10 @@ func run() error {
 	// restaurantPay bridges restaurant.PaymentActions to the payments sibling so
 	// AcceptOrder captures (T6) and RejectOrder voids (T7) without importing the
 	// payments package from the restaurant package (modular-monolith seam).
-	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
+	// ordersStore carries the realtime emitter, so accept, reject and
+	// mark-ready reach the customer like every other order move
+	// (https://github.com/shaiknoorullah/hg-mono/issues/337).
+	restaurantRepo := restaurant.NewRepo(st.DB().Pool, ordersStore)
 	restaurantPay := restaurantPayAdapter{svc: paymentsSvc}
 	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil, restaurantPay))
 
