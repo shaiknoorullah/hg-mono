@@ -8841,7 +8841,7 @@ type StaffUser struct {
 	Id          openapi_types.UUID  `json:"id"`
 	LastLoginAt *time.Time          `json:"last_login_at,omitempty"`
 
-	// MfaEnrolled Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period.
+	// MfaEnrolled Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it.
 	MfaEnrolled bool `json:"mfa_enrolled"`
 
 	// Role P-01. Roles are grants, not table membership. One person is one account no matter how

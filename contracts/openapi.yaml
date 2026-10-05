@@ -480,7 +480,8 @@ paths:
       summary: Email + password sign-in (restaurants, admins, support)
       description: |
         P-03. Argon2id verification, account status check, role auth-policy check, TOTP
-        when enrolled or required. Wrong email, wrong password and unverified email all
+        when the account has turned it on (it is opt-in for every role; `403 MFA_REQUIRED`
+        asks for the code). Wrong email, wrong password and unverified email all
         return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
         sets `error.details.email_verification_required` **only after** the credentials
         were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
@@ -813,8 +814,13 @@ paths:
       tags: [auth]
       summary: Begin TOTP enrolment
       description: |
-        P-01/P-03/A-03. Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`, optional
-        for restaurant staff. Returns the provisioning URI and recovery codes exactly once.
+        P-01/P-03/A-03. Opt-in for every email account, staff included: an invited admin or a
+        new restaurant signs in with the password alone and turns two-step sign-in on here
+        afterwards. Moving money still needs a session signed in with an authenticator code.
+        Returns the provisioning URI (shown as a QR code) and recovery codes exactly once.
+        While an authenticator is confirmed this answers `409 STEP_NOT_AVAILABLE`: turn it off
+        with `disableTotp` first, so a working authenticator is never replaced by an
+        unconfirmed one.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V0
       responses:
@@ -860,8 +866,8 @@ paths:
       operationId: disableTotp
       tags: [auth]
       summary: Disable TOTP (step-up required)
-      description: 'Refused for roles whose policy requires TOTP (`403 MFA_REQUIRED`).'
-      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      description: 'Turns two-step sign-in off with a current authenticator code. Two-step sign-in is opt-in for every email account, so staff may turn it off too.'
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V1
       requestBody:
         required: true
@@ -12350,7 +12356,7 @@ components:
           $ref: '#/components/schemas/StaffStatus'
         mfa_enrolled:
           type: boolean
-          description: 'Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period.'
+          description: 'Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it.'
         last_login_at:
           type: [string, 'null']
           format: date-time

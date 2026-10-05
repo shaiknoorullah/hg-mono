@@ -278,7 +278,7 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
     20 failed attempts per IP per 15 min → IP throttled. Lockout does not reveal account existence.
   - R2 Login response is identical (timing-normalised, same error `401 INVALID_CREDENTIALS`) for
     unknown email, wrong password, and non-`ACTIVE` account.
-  - R3 MFA is mandatory for all three roles. An account without `mfa_enrolled` cannot reach `ACTIVE`.
+  - R3 MFA is opt-in for all three roles ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)): a staff member signs in with the password alone until they turn it on from the console with a QR code, and may turn it off with a current code. MONEY permissions still require a session signed in with it (R4).
   - R4 `mfa_verified_at` is stamped at login and re-stamped by a step-up prompt; MONEY/DESTRUCTIVE
     permissions require it within 12 hours (A-02 R4).
   - R5 Password change or reset revokes all other sessions for that account.

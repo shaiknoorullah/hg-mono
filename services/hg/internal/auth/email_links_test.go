@@ -288,23 +288,12 @@ func TestAcceptInviteIssuesNoSession(t *testing.T) {
 		map[string]any{"token": token, "new_password": pw})
 	requireNoSession(t, pool, accountID, resp)
 
-	// Signing in goes through login's own checks, which the right password
-	// passes and the missing second step stops: the authenticator code (an
-	// admin must have one; invitees enrol it through
-	// https://github.com/shaiknoorullah/hg-mono/issues/170), or, until reset
-	// also marks the invitee's email verified
-	// (https://github.com/shaiknoorullah/hg-mono/pull/350), the email
-	// verification, which login only reveals after a correct password.
-	status, code, details := linkErrorCode(t, postAs(t, srv, "/v1/auth/login", ClientAdminWeb,
-		map[string]any{"email": email, "password": pw}))
-	mfa := status == http.StatusForbidden && code == string(CodeMFARequired)
-	unverified := status == http.StatusUnauthorized && code == string(CodeInvalidCredentials) &&
-		details["email_verification_required"] == true
-	if !mfa && !unverified {
-		t.Fatalf("login after the invite = %d %s %v, want 403 %s or the email-verification answer",
-			status, code, details, CodeMFARequired)
-	}
-	if n := sessionCount(t, pool, accountID); n != 0 {
-		t.Fatalf("sessions after a refused sign-in = %d, want 0", n)
+	// The invitee then signs in with the password alone: two-step sign-in is
+	// opt-in, set up afterwards from the console (docs/decisions/README.md,
+	// "Two-step sign-in is opt-in"). Resetting also verified the email.
+	login := postAs(t, srv, "/v1/auth/login", ClientAdminWeb, map[string]any{"email": email, "password": pw})
+	defer login.Body.Close()
+	if login.StatusCode != http.StatusOK {
+		t.Fatalf("login after the invite = %d, want 200", login.StatusCode)
 	}
 }

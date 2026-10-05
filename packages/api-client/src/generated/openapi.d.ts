@@ -1149,7 +1149,8 @@ export interface paths {
         /**
          * Email + password sign-in (restaurants, admins, support)
          * @description P-03. Argon2id verification, account status check, role auth-policy check, TOTP
-         *     when enrolled or required. Wrong email, wrong password and unverified email all
+         *     when the account has turned it on (it is opt-in for every role; `403 MFA_REQUIRED`
+         *     asks for the code). Wrong email, wrong password and unverified email all
          *     return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
          *     sets `error.details.email_verification_required` **only after** the credentials
          *     were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
@@ -1449,7 +1450,7 @@ export interface paths {
         put?: never;
         /**
          * Disable TOTP (step-up required)
-         * @description Refused for roles whose policy requires TOTP (`403 MFA_REQUIRED`).
+         * @description Turns two-step sign-in off with a current authenticator code. Two-step sign-in is opt-in for every email account, so staff may turn it off too.
          */
         post: operations["disableTotp"];
         delete?: never;
@@ -1469,8 +1470,13 @@ export interface paths {
         put?: never;
         /**
          * Begin TOTP enrolment
-         * @description P-01/P-03/A-03. Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`, optional
-         *     for restaurant staff. Returns the provisioning URI and recovery codes exactly once.
+         * @description P-01/P-03/A-03. Opt-in for every email account, staff included: an invited admin or a
+         *     new restaurant signs in with the password alone and turns two-step sign-in on here
+         *     afterwards. Moving money still needs a session signed in with an authenticator code.
+         *     Returns the provisioning URI (shown as a QR code) and recovery codes exactly once.
+         *     While an authenticator is confirmed this answers `409 STEP_NOT_AVAILABLE`: turn it off
+         *     with `disableTotp` first, so a working authenticator is never replaced by an
+         *     unconfirmed one.
          */
         post: operations["enrollTotp"];
         delete?: never;
@@ -6957,7 +6963,7 @@ export interface components {
             id: string;
             /** Format: date-time */
             last_login_at?: string | null;
-            /** @description Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period. */
+            /** @description Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it. */
             mfa_enrolled: boolean;
             role: components["schemas"]["Role"];
             status: components["schemas"]["StaffStatus"];
