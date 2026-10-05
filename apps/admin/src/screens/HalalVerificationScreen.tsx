@@ -36,6 +36,7 @@ import {
 
 import { api } from '../lib/api.js';
 import { toAsyncError, unwrap, useLoad } from '../lib/load.js';
+import { HalalTranscriptionForm } from '../components/HalalTranscriptionForm.js';
 
 type HalalCertificate = Schema['HalalCertificate'];
 
@@ -200,6 +201,10 @@ export function HalalVerificationScreen() {
               </div>
             </dl>
           </Card>
+
+          {data.status === 'PENDING' ? (
+            <HalalTranscriptionForm key={data.id + (data.certificate_number ?? '')} certificate={data} onSaved={reload} />
+          ) : null}
 
           <HalalChecklist
             certificate={data}

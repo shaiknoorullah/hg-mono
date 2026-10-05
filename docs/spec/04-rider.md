@@ -2,7 +2,7 @@
 covers:
   - apps/rider/**
   - services/hg/internal/rider/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — RIDER Domain Specification
@@ -236,6 +236,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Accepted MIME: `image/jpeg`, `image/png`, `image/heic`, `application/pdf`. Max 15 MB per file, max 20 pages for PDF. Anything else ⇒ `415 UNSUPPORTED_MEDIA_TYPE`. Magic-byte check must match the declared content-type (`422 CONTENT_TYPE_MISMATCH`).
   - `expires_on` required for every type except `PROFILE_PHOTO`; must be ≥ 30 days in the future at submission (`422 DOCUMENT_EXPIRES_TOO_SOON`).
   - Re-uploading a type marks the previous row `SUPERSEDED` and increments `version`; history is never deleted.
+  - Attaching a file that is already attached as that type, including two attaches of it at once, returns the existing document and adds nothing. The database refuses a second document for one file ([#229](https://github.com/shaiknoorullah/hg-mono/issues/229)). A different file is a re-upload, as in the rule above ([#358](https://github.com/shaiknoorullah/hg-mono/issues/358)).
   - Objects live in a **private** bucket. Reads are only ever via a 5-minute presigned GET issued to the owning rider or to an admin/support principal, with an access-log row. No public URLs.
   - Submission is blocked with `422 DOCUMENTS_INCOMPLETE` and `details.missing[]` naming each missing type/expiry.
   - **Expiry enforcement**: a nightly job sets `status=EXPIRED` at `expires_on`. At `expires_on - 30d`, `-7d`, `-1d` the rider gets a push + inbox notice. On expiry the rider is forced `OFFLINE` and `account_status=SUSPENDED` with reason `DOCUMENT_EXPIRED` until a replacement is approved.
@@ -707,6 +708,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 - **SOW trace**: *"Real-Time Navigation: Integration with Google Maps or similar services for turn-by-turn directions and optimized routes."*
 - **Behaviour**: In-app the rider sees a map (Mapbox map tiles) with their position, the active waypoint (restaurant, then customer), and a route polyline with distance and ETA, refreshed every 30 s or on a >200 m deviation. Turn-by-turn is **handed off** to the rider's installed navigation app via a deep link (`google.navigation:q=lat,lng&mode=d|b|w`, iOS fallback `comgooglemaps://`, then Apple Maps `maps://`, then a universal `https://www.google.com/maps/dir/?api=1` URL). The route polyline and ETA come from **the server**: `GET /api/v1/riders/:id/assignments/:id/route?leg=PICKUP|DROPOFF` returns `{polyline, distance_m, duration_s, provider, computed_at}`.
+  **V0 build (rider app):** the active-delivery screen has two buttons, **Navigate to restaurant** and **Navigate to customer**, that hand the assignment's pickup or drop-off coordinates to the phone's maps app (Android `google.navigation:` then `geo:`; iOS `maps://` then Google Maps; then the https URL). There is no in-app map or route polyline yet.
 - **Data**: `assignment_route(id, assignment_id, leg, provider, polyline, distance_m, duration_s, computed_at)` — one row per recomputation, retained for distance auditing.
 - **States**: none.
 - **Rules**:

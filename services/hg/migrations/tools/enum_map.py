@@ -172,6 +172,30 @@ EXCLUSIONS = {
         "Request-only verb; outcome lands in kyc_document.state.",
     "HalalDecisionInput/properties/decision":
         "Request-only verb; outcome lands in halal_certificate.status.",
+    # The application decision bodies are one shape per decision (issue #163,
+    # https://github.com/shaiknoorullah/hg-mono/issues/163). Each shape pins its
+    # `decision` to one value so the body can only carry the reasons that fit it.
+    "RestaurantApplicationApproveInput/properties/decision":
+        "Single-value request discriminator; the decision is stored as "
+        "restaurant_application.decision (restaurant_decision).",
+    "RestaurantApplicationRejectInput/properties/decision":
+        "Single-value request discriminator; the decision is stored as "
+        "restaurant_application.decision (restaurant_decision).",
+    "RestaurantApplicationRequestChangesInput/properties/decision":
+        "Single-value request discriminator; the decision is stored as "
+        "restaurant_application.decision (restaurant_decision).",
+    "RiderApplicationApproveInput/properties/decision":
+        "Single-value request discriminator; the outcome lands in "
+        "rider_profile.onboarding_state.",
+    "RiderApplicationRejectInput/properties/decision":
+        "Single-value request discriminator; the outcome lands in "
+        "rider_profile.onboarding_state.",
+    "RiderApplicationRequestChangesInput/properties/decision":
+        "Single-value request discriminator; the outcome lands in "
+        "rider_profile.onboarding_state.",
+    "RiderApproveReasonCode":
+        "rider_application has no approval-reason column (only reject_reason_code); the "
+        "approval reason is kept as text on the decision's audit_event.reason_code.",
     "MenuItemAvailabilityInput/properties/availability_state":
         "Writable subset of menu_item_availability_state (HIDDEN/BLOCKED are not "
         "restaurant-settable). Enforced at the boundary.",
