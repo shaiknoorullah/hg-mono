@@ -148,7 +148,7 @@ If it came back by itself after a crash, nothing was lost. The runner's outage h
 
 Traefik renews the Let's Encrypt certificates itself, about 30 days before they expire, through port 443 ([#51][i51]). Let's Encrypt [stopped sending expiry emails in 2025](https://letsencrypt.org/2025/01/22/ending-expiration-emails/), so the watchers must check expiry dates ([#65][i65]).
 
-Every HTTPS host (the API, `files.`, partner and admin) sends `Strict-Transport-Security: max-age=31536000; includeSubDomains`, without preload ([#460](https://github.com/shaiknoorullah/hg-mono/issues/460)). Each container that routes HTTPS defines the same `hg-hsts` middleware, so one container being down never strips it from another's router. Check with `curl -sI https://<host>/ | grep -i strict-transport`.
+Every HTTPS host (the API, `files.`, partner and admin) sends `Strict-Transport-Security: max-age=31536000; includeSubDomains`; the domain is not yet on the browsers' built-in HTTPS list ([#460](https://github.com/shaiknoorullah/hg-mono/issues/460)). Each container that routes HTTPS defines the same `hg-hsts` middleware, so when one container is down the other containers' routers keep it. Check with `curl -sI https://<host>/ | grep -i strict-transport`.
 
 1. Check one: `echo | openssl s_client -connect <host>:443 -servername <host> 2>/dev/null | openssl x509 -noout -enddate`.
 2. Read `docker compose logs traefik | grep -i acme`. The usual causes: port 443 blocked; an A or AAAA record pointing somewhere else; `acme.json` missing or not mode 600.
