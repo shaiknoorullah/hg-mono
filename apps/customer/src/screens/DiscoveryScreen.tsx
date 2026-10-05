@@ -2,7 +2,9 @@
  * Home (Discover) — the approved "Discover & Order" canvas: Home, Home-no-address,
  * Home-loading, Home-error and Home-nothing-in-range.
  *
- * Layout, top to bottom: the "Deliver to" header; with no address, the address-first prompt;
+ * Layout, top to bottom: the "Deliver to" header; with an order under way, the "order in
+ * progress" strip (Home-order-in-progress), which opens tracking; with no address, the
+ * address-first prompt;
  * with one, two horizontal rows ("Open now, closest first" and "Quickest delivery"); then every
  * restaurant as a compact card; the cart bar and bottom navigation underneath.
  *
@@ -30,6 +32,7 @@ import {
   type Address,
 } from '../api/addresses';
 import { InlineAlert } from '../components/InlineAlert';
+import { ActiveOrderStrip } from '../components/discover/ActiveOrderStrip';
 import { DeliverToHeader } from '../components/discover/DeliverToHeader';
 import {
   RAIL_CARD_WIDTH,
@@ -41,6 +44,7 @@ import {
 import { useNavigation } from '../navigation/stack';
 import { CustomerTabBar } from '../navigation/TabBar';
 import { OrderingPausedNotice, useOrderingPause } from '../ordering/orderingPause';
+import { useActiveOrder } from '../tracking/useActiveOrder';
 
 type ListQuery = NonNullable<operations['listRestaurants']['parameters']['query']>;
 type Sort = Schema['RestaurantSort'];
@@ -80,6 +84,7 @@ export function DiscoveryScreen(): React.ReactElement {
   const { paused: orderingPaused } = useOrderingPause();
   const nav = useNavigation();
   const [status, setStatus] = React.useState<Status>({ kind: 'loading', address: null });
+  const activeOrder = useActiveOrder();
 
   const load = React.useCallback(async () => {
     setStatus((s) => ({ kind: 'loading', address: s.kind === 'ready' ? s.feed.address : s.address }));
@@ -140,6 +145,13 @@ export function DiscoveryScreen(): React.ReactElement {
         contentContainerStyle={styles.content}
         aria-busy={status.kind === 'loading'}
       >
+        {activeOrder ? (
+          <ActiveOrderStrip
+            order={activeOrder}
+            onPress={() => nav.push({ name: 'tracking', orderId: activeOrder.id })}
+          />
+        ) : null}
+
         {orderingPaused ? <OrderingPausedNotice /> : null}
 
         {status.kind === 'ready' && !status.feed.address ? (

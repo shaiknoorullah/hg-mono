@@ -5,15 +5,30 @@
  * contract's own populated fixture for the happy path.
  */
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import restaurantList from '../../../../../contracts/fixtures/catalogue/restaurant_list_populated.json';
+import orderPreparing from '../../../../../contracts/fixtures/orders/order_preparing.json';
 
 jest.mock('react-native-safe-area-context', () => {
   const mod = require('react-native-safe-area-context/jest/mock');
   return mod.default ?? mod;
 });
+
+// Home's order strip subscribes to the order's realtime channel; here the test holds the
+// handlers and plays the socket's part.
+type SocketHandlers = import('../../realtime/orderSocket').OrderSocketHandlers;
+const mockSockets: Array<{ orderId: string; handlers: SocketHandlers; closed: boolean }> = [];
+jest.mock('../../realtime/orderSocket', () => ({
+  openOrderSocket: (orderId: string, handlers: SocketHandlers) => {
+    const s = { orderId, handlers, closed: false };
+    mockSockets.push(s);
+    return () => {
+      s.closed = true;
+    };
+  },
+}));
 
 function stubOk(body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -31,6 +46,15 @@ function neverResolves(): Promise<Response> {
 // file redirect its behaviour with `.mockImplementation` without invalidating the reference
 // the (singleton, already-imported) client holds.
 const fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+const urlOf = (input: unknown): string => (input instanceof Request ? input.url : String(input));
+
+/** Every test but the strip's own answers "no active order" (`{ data: null }`). */
+function stubFetch(impl: (input: unknown) => Promise<Response>): void {
+  fetchSpy.mockImplementation(async (input) =>
+    urlOf(input).includes('/v1/orders/active') ? stubOk({ data: null }) : impl(input),
+  );
+}
 
 afterEach(() => {
   jest.useRealTimers();
@@ -77,9 +101,7 @@ describe('DiscoveryScreen — loading, empty, error', () => {
   });
 
   it('shows the empty state for zero restaurants', async () => {
-    fetchSpy.mockImplementation(async () =>
-      stubOk({ data: [], meta: { next_cursor: null, has_more: false, total: 0 } }),
-    );
+    stubFetch(async () => stubOk({ data: [], meta: { next_cursor: null, has_more: false, total: 0 } }));
 
     renderDiscovery();
 
@@ -87,9 +109,8 @@ describe('DiscoveryScreen — loading, empty, error', () => {
   });
 
   it('leads a customer with no address to add one, and still lists restaurants', async () => {
-    fetchSpy.mockImplementation(async (input) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url.includes('/v1/addresses')) return stubOk({ data: [] });
+    stubFetch(async (input) => {
+      if (urlOf(input).includes('/v1/addresses')) return stubOk({ data: [] });
       return stubOk({ data: restaurantList.payload, meta: restaurantList.meta });
     });
 
@@ -102,9 +123,8 @@ describe('DiscoveryScreen — loading, empty, error', () => {
   });
 
   it('opens the address form from the prompt, and a restaurant from its card', async () => {
-    fetchSpy.mockImplementation(async (input) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url.includes('/v1/addresses')) return stubOk({ data: [] });
+    stubFetch(async (input) => {
+      if (urlOf(input).includes('/v1/addresses')) return stubOk({ data: [] });
       return stubOk({ data: restaurantList.payload, meta: restaurantList.meta });
     });
     const tree = (initial: Parameters<typeof NavigationProvider>[0]['initial']) => (
@@ -129,7 +149,7 @@ describe('DiscoveryScreen — loading, empty, error', () => {
   });
 
   it('shows the error state with a retry action on failure', async () => {
-    fetchSpy.mockImplementation(async () =>
+    stubFetch(async () =>
       new Response(
         JSON.stringify({ error: { code: 'SERVER_UNAVAILABLE', message: 'Down for maintenance', request_id: 'req-1' } }),
         { status: 503, headers: { 'Content-Type': 'application/json' } },
@@ -144,12 +164,67 @@ describe('DiscoveryScreen — loading, empty, error', () => {
   });
 
   it('renders real restaurant cards once the fetch resolves with data', async () => {
-    fetchSpy.mockImplementation(async () =>
-      stubOk({ data: restaurantList.payload, meta: restaurantList.meta }),
-    );
+    stubFetch(async () => stubOk({ data: restaurantList.payload, meta: restaurantList.meta }));
 
     renderDiscovery();
 
     expect((await screen.findAllByText('Karachi Kitchen')).length).toBeGreaterThan(0);
+  });
+});
+
+describe('DiscoveryScreen — order in progress', () => {
+  const order = orderPreparing.payload;
+  const list = () => stubOk({ data: restaurantList.payload, meta: restaurantList.meta });
+  const tree = () => (
+    <ThemeProvider theme="customer" scheme="light">
+      <NavigationProvider initial={{ name: 'discovery' }}>
+        {(route) =>
+          route.name === 'discovery' ? (
+            <DiscoveryScreen />
+          ) : (
+            <Text>{`route:${route.name}:${'orderId' in route ? route.orderId : ''}`}</Text>
+          )
+        }
+      </NavigationProvider>
+    </ThemeProvider>
+  );
+
+  beforeEach(() => {
+    mockSockets.length = 0;
+  });
+
+  it('shows no strip without an active order', async () => {
+    stubFetch(async () => list());
+
+    render(tree());
+
+    expect((await screen.findAllByText('Karachi Kitchen')).length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('Discovery-activeOrder')).toBeNull();
+    expect(mockSockets).toHaveLength(0);
+  });
+
+  it('shows the active order, follows it over the socket, and opens tracking', async () => {
+    let current: unknown = order;
+    fetchSpy.mockImplementation(async (input) =>
+      urlOf(input).includes('/v1/orders/active') ? stubOk({ data: current }) : list(),
+    );
+
+    render(tree());
+
+    expect(await screen.findByText('Being prepared')).toBeTruthy();
+    expect(screen.getByText(`Order ${order.code} · ${order.restaurant.name}`)).toBeTruthy();
+    expect(mockSockets.map((s) => s.orderId)).toEqual([order.id]);
+
+    // The restaurant marks it ready: the socket's event makes Home re-read the order.
+    current = { ...order, state: 'READY_FOR_PICKUP' };
+    await act(async () => {
+      mockSockets[0]!.handlers.onOrderEvent?.('order.state_changed');
+    });
+    expect(await screen.findByText('Ready')).toBeTruthy();
+    expect(screen.queryByText('Being prepared')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('Discovery-activeOrder'));
+    expect(screen.getByText(`route:tracking:${order.id}`)).toBeTruthy();
+    expect(mockSockets[0]!.closed).toBe(true);
   });
 });
