@@ -8,12 +8,6 @@
  *                      server re-prices and compares, so a stale quote is rejected, not charged.
  *
  * Both writes are idempotent and require an `Idempotency-Key`.
- *
- * Note on the mock: `createOrder` has no registered fixture in `tools/mock-server`, so against
- * the mock the POST resolves to `INTERNAL_ERROR`. The checkout screen treats that specific case
- * as the known mock gap and recovers the order to track from `getActiveOrder`, which *is* served
- * from a real fixture — so the flow stays demoable end-to-end against real data while still
- * issuing the real `POST /v1/orders`.
  */
 import { idempotencyKey, unwrap } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';

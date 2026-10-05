@@ -6,11 +6,8 @@
  * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
  * API but production's. How to build each: docs/release/README.md.
  *
- * Mapbox: the runtime token is the PUBLIC `EXPO_PUBLIC_MAPBOX_TOKEN` (`pk.…`), read at render
- * time (see `.env.example`). The native SDK no longer needs a download token: Mapbox serves it
- * without one, and the `@rnmapbox/maps` plugin only adds credentials when
- * `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` is set. Never pass the public token as a download token: the
- * download server rejects a `pk.` token and the native build fails.
+ * Maps: the Mapbox plugin is not loaded (no screen uses a map yet); add `@rnmapbox/maps` back to
+ * `plugins` with the map screen. `EXPO_PUBLIC_MAPBOX_TOKEN` is still passed through for that.
  */
 const { expoAppEnv } = require('../../scripts/release/app-env.cjs');
 
@@ -53,7 +50,7 @@ module.exports = () => {
           backgroundColor: '#FFFAEA',
         },
       },
-      plugins: ['@rnmapbox/maps', 'expo-dev-client'],
+      plugins: ['expo-dev-client'],
       extra: {
         appEnv: env.name,
         // So `npx expo config --type public` shows whether a map token was present at build time.
