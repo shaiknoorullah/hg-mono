@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/internal/retention/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Decision: how long rows are kept in the tables that only grow
