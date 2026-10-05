@@ -738,9 +738,10 @@ func (r *Repo) markTransferred(ctx context.Context, payoutID, transferID string,
 
 // bankClaim is a transferred payout claimed for its bank payout.
 type bankClaim struct {
-	Claimed         bool // this worker may call Stripe
-	Attempt         int  // the attempt to make, or to find
-	Reuse           bool // an earlier call for this attempt may have reached Stripe: find it first
+	Claimed         bool   // this worker may call Stripe
+	Suspended       string // the restaurant's state when it is suspended or banned: no bank payout
+	Attempt         int    // the attempt to make, or to find
+	Reuse           bool   // an earlier call for this attempt may have reached Stripe: find it first
 	Since           time.Time
 	AmountCents     int64
 	StripeAccountID string
@@ -760,15 +761,30 @@ func (r *Repo) claimBankPayout(ctx context.Context, payoutID, owner string) (ban
 		// The account first, then the payout: the order every payout write takes.
 		var c ConnectRow
 		var reqs []byte
+		var ownerType, ownerID string
 		err := tx.QueryRow(ctx, `
-			SELECT ca.id::text, ca.stripe_account_id, ca.payouts_enabled, ca.requirements
+			SELECT ca.id::text, ca.stripe_account_id, ca.payouts_enabled, ca.requirements, ca.owner_type, ca.owner_id::text
 			  FROM connect_account ca
 			 WHERE ca.id = (SELECT connect_account_id FROM payout WHERE id = $1)
-			 FOR UPDATE`, payoutID).Scan(&c.ID, &c.StripeAccountID, &c.PayoutsEnabled, &reqs)
+			 FOR UPDATE`, payoutID).Scan(&c.ID, &c.StripeAccountID, &c.PayoutsEnabled, &reqs, &ownerType, &ownerID)
 		if err != nil {
 			return err
 		}
 		c.CurrentlyDue, c.EventuallyDue, c.PastDue, _ = parseRequirements(reqs)
+
+		// A suspended or banned restaurant's balance is kept until it is
+		// reinstated, the part already in its Stripe balance too: decided here,
+		// on the row as it is now, like the transfer claim.
+		if ownerType == PayeeRestaurant {
+			suspended, rstate, err := lockedRestaurantSuspended(ctx, tx, ownerID)
+			if err != nil {
+				return err
+			}
+			if suspended {
+				out.Suspended = rstate
+				return nil
+			}
+		}
 
 		var state string
 		var stripePayout *string

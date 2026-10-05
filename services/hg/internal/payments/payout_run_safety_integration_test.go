@@ -195,10 +195,14 @@ func TestPayoutRun_SuspensionMidRunStopsTheTransfer(t *testing.T) {
 	}
 	runAt(t, runner, toronto(2026, 8, 24, 10, 0))
 	stripe.afterCreate = nil
-	assertOutcomes(t, db, lastRun(t, db, week2), restaurant, OutcomeReleased, OutcomeBankPayout, OutcomePartnerSuspended)
+	assertOutcomes(t, db, lastRun(t, db, week2), restaurant, OutcomeReleased, OutcomePartnerSuspended)
 	assertPayouts(t, db, restaurant, want{end: week1, cents: 4000, state: "TRANSFERRED"})
 	if n := stripe.madeFor(restaurant.ID); n != 1 {
 		t.Fatalf("Stripe made %d transfers to a restaurant suspended mid-run, want 1 (the one before it)", n)
+	}
+	// Nor is its transferred balance paid out to its bank while it is suspended.
+	if n := len(stripe.bankPayouts(restaurant.ID)); n != 0 {
+		t.Fatalf("Stripe made %d bank payouts for a restaurant suspended mid-run, want 0", n)
 	}
 
 	// Reinstated, week 3's transfer is refused; then suspended again before
@@ -228,6 +232,9 @@ func TestPayoutRun_SuspensionMidRunStopsTheTransfer(t *testing.T) {
 		want{end: week1, cents: 4000, state: "TRANSFERRED"}, want{end: week3, cents: 3500, state: "TRANSFERRED"})
 	if n := stripe.madeFor(restaurant.ID); n != 2 {
 		t.Fatalf("Stripe made %d transfers in all, want 2: one per payout", n)
+	}
+	if n := len(stripe.bankPayouts(restaurant.ID)); n != 2 {
+		t.Fatalf("Stripe made %d bank payouts after reinstatement, want 2: one per payout", n)
 	}
 	assertLedgerAtZero(t, db)
 }

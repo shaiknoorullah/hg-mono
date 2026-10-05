@@ -477,6 +477,11 @@ func (r *PayoutRunner) bankPayout(ctx context.Context, run PayoutRunRow, payoutI
 		return
 	}
 	switch {
+	case claim.Suspended != "":
+		// Kept until reinstatement; the run's own line for this partner says
+		// so, and the run after reinstatement asks for it.
+		r.log.Info("bank payout kept: the restaurant is "+claim.Suspended, slog.String("payout_id", payoutID))
+		return
 	case claim.PayoutsOff != "":
 		line(OutcomeBankPayoutFailed, payoutID, claim.AmountCents,
 			"transferred, but Stripe has payouts to the bank turned off for this partner: "+claim.PayoutsOff+
