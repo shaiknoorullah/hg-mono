@@ -8,9 +8,9 @@
  * Live: one `order:{id}` subscription per order on the map, plus `admin:ops`. `rider.location`
  * glides that order's rider pin; a state or dispatch event refetches that one order;
  * `admin.dispatch_failure` raises a banner. The contract has no admin-wide "order created"
- * event, so the list is re-read every `DISCOVER_MS` to pick up new orders. While the socket is
- * down everything is re-read every `FALLBACK_POLL_MS` — slower than the single-order 5 s,
- * because each pass is one audited read per order on the map.
+ * event, so the list is re-read every `DISCOVER_MS` to pick up new orders (details only for
+ * the new ones). While the socket is down everything is re-read every `FALLBACK_POLL_MS` —
+ * slower than the single-order 5 s, because each pass is one audited read per order on the map.
  *
  * What it cannot show: riders who are online but idle. No operation or event in the contract
  * carries the position of a rider without an assignment, so the map shows riders on active
@@ -19,7 +19,7 @@
  * States: loading (skeleton), error (retry), empty ("no active orders"), and the map with an
  * accessible list of the same orders beneath it — the list is the map's text alternative.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 import { Banner, Card, Chip, EmptyState, ErrorState, Icon, Skeleton } from '@hg/ui-web';
@@ -63,18 +63,28 @@ async function getOrder(orderId: string): Promise<OrderAdminView | null> {
   }
 }
 
-/** Reads the active orders and their coordinates, a few at a time. */
-async function loadActiveOrders(): Promise<OrderAdminView[]> {
+/**
+ * Reads the active orders and their coordinates, a few at a time. Orders in `reuse` are not
+ * re-read: while the socket is up their channels keep them current, so a discovery pass costs
+ * one list read plus one detail read per *new* order.
+ */
+async function loadActiveOrders(reuse: ReadonlyMap<string, OrderAdminView> | null = null): Promise<OrderAdminView[]> {
   const list = await unwrap(
     api.GET('/v1/admin/orders', { params: { query: { state: [...TRACKED_STATES], limit: MAX_TRACKED } } }),
   );
   const ids = list.data.map((o) => o.id);
-  const out: OrderAdminView[] = [];
-  for (let i = 0; i < ids.length; i += 6) {
-    const batch = await Promise.all(ids.slice(i, i + 6).map(getOrder));
-    for (const order of batch) if (order) out.push(order);
+  const known = new Map<string, OrderAdminView>();
+  const missing: string[] = [];
+  for (const id of ids) {
+    const cached = reuse?.get(id);
+    if (cached) known.set(id, cached);
+    else missing.push(id);
   }
-  return out;
+  for (let i = 0; i < missing.length; i += 6) {
+    const batch = await Promise.all(missing.slice(i, i + 6).map(getOrder));
+    for (const order of batch) if (order) known.set(order.id, order);
+  }
+  return ids.flatMap((id) => (known.has(id) ? [known.get(id)!] : []));
 }
 
 const REFETCH_ON = new Set([
@@ -90,7 +100,9 @@ const REFETCH_ON = new Set([
 export function LiveOpsScreen() {
   const navigate = useNavigate();
   const status = useRealtimeStatus();
-  const { status: loadStatus, data, error, reload, refresh } = useLoad(loadActiveOrders);
+  /** Orders a discovery pass may keep as they are (set only while the socket is up). */
+  const reuseRef = useRef<ReadonlyMap<string, OrderAdminView> | null>(null);
+  const { status: loadStatus, data, error, reload, refresh } = useLoad(() => loadActiveOrders(reuseRef.current));
   /** Per-order overrides from realtime: a newer fix, or a re-read order. */
   const [liveFix, setLiveFix] = useState<Record<string, RiderFix | null>>({});
   const [patched, setPatched] = useState<Record<string, OrderAdminView | null>>({});
@@ -140,12 +152,18 @@ export function LiveOpsScreen() {
     }
   });
 
-  // A full re-read clears the per-order patches: the fresh list is the truth again.
-  const refreshAll = useCallback(async () => {
-    await refresh();
-    setPatched({});
-  }, [refresh]);
   const socketOpen = status === 'open';
+  // Socket up: re-read the list and only the new orders (the rest are kept, patches included).
+  // Socket down: re-read everything. Either way the result replaces the per-order patches.
+  const refreshAll = useCallback(async () => {
+    reuseRef.current = socketOpen ? new Map(orders.map((o) => [o.id, o])) : null;
+    try {
+      await refresh();
+    } finally {
+      reuseRef.current = null;
+    }
+    setPatched({});
+  }, [refresh, socketOpen, orders]);
   usePolling(refreshAll, socketOpen ? DISCOVER_MS : FALLBACK_POLL_MS, loadStatus === 'ready', { immediate: false });
 
   const places = useMemo(() => {
