@@ -99,6 +99,13 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 > **Decided:** Supabase is retired; the Go binary owns sign-in codes ([authentication location](../decisions/README.md#settled--client-decisions)).
 
+> **Customer app (Oct 2026), as the approved [Sign-in canvas](https://claude.ai/artifact/HdmzQ4h2D22cMZvJ17a8cX) draws it:**
+> - One screen signs in and creates the account: a mobile-number field with a fixed `+1`, formatted `416 555 0134`, that refuses an incomplete or non-Canadian number before sending.
+> - A `429` on sending or checking a code disables the button and shows the time it reopens, as a static clock time, never a ticking count.
+> - `503 RATE_LIMITER_UNAVAILABLE` says the problem is on our side and offers Try again and, while the phone line is open, Call support; any other failure keeps the number and offers Try again.
+> - The code step shows the tries left after a wrong code, offers "Send the code again" for an expired code, "Start again" after the last try or once the 15-minute window has closed, and enables Resend code only after the server's `resend_after_s`.
+> - After the code the app routes by `principal.next_route`: `PROFILE_CAPTURE` opens "Your details", `HOME` opens Home with "Welcome back", `ORDER_TRACKING` opens the active order, `SUSPENDED` opens a full-screen on-hold, closed or unavailable screen by `principal.status`, and `APP_UPDATE_REQUIRED` or an unknown route opens "Update HalalGoes".
+
 ---
 
 ### C-02 — Login, logout, session lifecycle
@@ -121,6 +128,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Out of scope**: "remember this device"; biometric unlock; concurrent-session limits; per-device session listing/revocation UI; social login.
 - **Version**: V1 · **Size**: M
 
+> **Customer app (Oct 2026):** Sign out asks first, then always signs the phone out at once, revoking the session with `POST /v1/auth/logout` best-effort, and the sign-in screen says "You're signed out".
+
 ---
 
 ### C-03 — Profile management (personal information)
@@ -142,6 +151,11 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. Given an email change, when the emailed link is opened within 24 h, then `email_verified=true`; when opened after 24 h, then `410 VERIFICATION_EXPIRED` and the email reverts to the previous verified value.
 - **Out of scope**: changing the phone number (no flow at any version — a phone change is an account migration and is deliberately deferred); merging accounts; profile visibility settings; gender/pronoun fields; marketing consent capture (see C-04).
 - **Version**: V1 · **Size**: M
+
+> **Customer app (Oct 2026):**
+> - A new account, or any account whose profile has no first name, is asked for its first name (last name and email optional) before anything else, with "Not you? Use a different number" to sign out.
+> - After saving, a customer with no default address is asked "Where should we deliver?", with "Add your address" opening the address form and "Not now" opening Home.
+> - Account shows the name, phone and email (with "Not confirmed" and "Send the link again" until it is verified), and edits them in a sheet where the phone number is read-only.
 
 ---
 
@@ -166,6 +180,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 > **DECISION REQUIRED — halal strictness preferences**: Should customers be able to filter by certifying body or halal school of thought (e.g. hand-slaughtered vs. machine, alcohol-serving premises)? · **Proposed default**: **No at V1–V3.** Certification is a single binary + the certifying body's name shown as text (C-12). No filtering by body or method. · **Why**: encoding madhhab distinctions is a religious-authority judgement the vendor cannot make, and getting it wrong is a brand-fatal error.
 
+> **Customer app (Oct 2026):** Notification settings shows whether this phone allows push, with a way to allow it or open the phone's settings, and one real switch, news by email (`marketing_consent`), disabled until the account has an email.
+
 ---
 
 ### C-05 — Account deletion
@@ -185,6 +201,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
   3. Given a deletion request 8 days old, when the purge job runs, then `users.first_name/last_name/email/date_of_birth` are `NULL`, `phone` no longer matches the original, and `orders` rows for that customer still exist with their totals.
 - **Out of scope**: data-export ("download my data"); selective deletion of individual orders or reviews; deletion initiated from the web.
 - **Version**: not at launch: in-app deletion ships before the store release ([#67](https://github.com/shaiknoorullah/hg-mono/issues/67)); at launch, staff delete an account by hand on request ([account deletion](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) · **Size**: M
+
+> **Customer app (Oct 2026):** Account says to ask for deletion by phone during support hours, and draws no in-app delete button until the in-app flow ships.
 
 ---
 
@@ -848,6 +866,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
   5. Given an address used by an order in `ON_THE_WAY`, when deletion is attempted, then `409 ADDRESS_IN_USE`.
 - **Out of scope**: address sharing between accounts; company/billing addresses; address verification against a postal authority database; delivery to coordinates without a street address; contact-book import.
 - **Version**: V1 · **Size**: M
+
+> **Customer app (Oct 2026):** Saved addresses are one list of rows that each open the address to edit, where Make default and Delete now live, with Add address below the list.
 
 ---
 

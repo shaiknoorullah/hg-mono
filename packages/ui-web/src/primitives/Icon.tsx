@@ -59,13 +59,17 @@ export type IconName =
   | 'check'
   | 'star'
   | 'clock'
-  | 'menu';
+  | 'menu'
+  // Not in the design system's map: Solar's own card and phone glyphs, for the customer Account
+  // canvas's Payment methods and Call support rows, added here too to keep the shared names.
+  | 'card'
+  | 'phone';
 
 /**
  * The semantic name -> Solar icon id map, read from `solar-icon-map.json` — the single
- * hand-authored source of truth `scripts/generate-icons.mjs` also reads. Kept in lockstep with
- * `@hg/ui-native`'s copy (`packages/ui-native/src/primitives/Icon.tsx`) by construction — same
- * keys, same Solar ids, minus the `solar:` collection prefix the native side doesn't need.
+ * hand-authored source of truth `scripts/generate-icons.mjs` also reads. Its keys are a subset of
+ * `@hg/ui-native`'s copy (`packages/ui-native/src/primitives/Icon.tsx`), with the same Solar ids
+ * for each, minus the `solar:` collection prefix the native side doesn't need.
  */
 export const SOLAR_ICON_IDS = solarIconMap as Record<IconName, Record<IconWeight, string>>;
 

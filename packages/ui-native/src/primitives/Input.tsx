@@ -43,16 +43,30 @@ const KEYBOARD: Record<InputVariant, KeyboardTypeOptions> = {
   otp: 'number-pad',
 };
 
-/** C-01: E.164 `+1`, displayed as `+1 (___) ___-____`. Digits in, mask out. */
+/**
+ * C-01: the `tel` field is Canadian national format behind a fixed `+1` prefix the field draws
+ * itself (the design system's `tel-national` field): digits in, `416 555 0134` out. A pasted or
+ * autofilled international number (`+44 …`) is kept as typed rather than having `+1` forced onto
+ * it, so the screen can say the number isn't supported instead of silently mangling it.
+ */
 export function formatTel(raw: string): string {
+  if (isInternationalTel(raw)) return raw;
   const digits = raw.replace(/\D/g, '').replace(/^1/, '').slice(0, 10);
   const area = digits.slice(0, 3);
   const mid = digits.slice(3, 6);
   const last = digits.slice(6, 10);
-  if (digits.length === 0) return '';
-  if (digits.length <= 3) return `+1 (${area}`;
-  if (digits.length <= 6) return `+1 (${area}) ${mid}`;
-  return `+1 (${area}) ${mid}-${last}`;
+  return [area, mid, last].filter(Boolean).join(' ');
+}
+
+/** A number that starts with `+` and a country code other than 1. */
+export function isInternationalTel(raw: string): boolean {
+  return /^\s*\+\s*[02-9]/.test(raw);
+}
+
+/** What the `tel` field hands to `onChange`: national digits, or an international number as typed. */
+function telValue(next: string): string {
+  if (isInternationalTel(next)) return next.trim();
+  return next.replace(/\D/g, '').replace(/^1/, '').slice(0, 10);
 }
 
 export interface InputProps {
@@ -112,7 +126,8 @@ export function Input({
 
   const hasError = Boolean(errorText);
   const height = Math.round(HEIGHTS[size] * scale);
-  const radius = tokens.radius.sm;
+  // The design system's field: radius md on surface.raised (white on the cream page).
+  const radius = tokens.radius.md;
 
   const borderColor = hasError
     ? theme.color.feedback.danger.border
@@ -130,7 +145,7 @@ export function Input({
     borderRadius: radius,
     borderWidth,
     borderColor,
-    backgroundColor: disabled ? theme.color.surface.subtle : theme.color.surface.base,
+    backgroundColor: disabled ? theme.color.surface.subtle : theme.color.surface.raised,
     opacity: disabled ? theme.color.state.disabledOpacity : 1,
   };
 
@@ -163,13 +178,23 @@ export function Input({
       </Text>
 
       <View style={field}>
+        {variant === 'tel' && !prefix && !isInternationalTel(value) ? (
+          <Text
+            testID={`${testID}-tel-prefix`}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ ...bodyType, color: theme.color.text.secondary }}
+          >
+            +1
+          </Text>
+        ) : null}
         {prefix}
         <TextInput
           testID={`${testID}-field`}
           value={variant === 'tel' ? formatTel(value) : value}
           onChangeText={(next) => {
             if (disabled || readOnly) return;
-            onChange(variant === 'tel' ? next.replace(/\D/g, '').replace(/^1/, '') : next);
+            onChange(variant === 'tel' ? telValue(next) : next);
           }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -227,7 +252,9 @@ export function Input({
         ) : helperText ? (
           <Text
             testID={`${testID}-helper`}
-            style={{ ...captionType, color: theme.color.text.tertiary, flexShrink: 1 }}
+            // text.secondary, not tertiary: tertiary is 4.18:1 on the cream page (Claude Design,
+            // DS issue 11 on the Sign-in canvas).
+            style={{ ...captionType, color: theme.color.text.secondary, flexShrink: 1 }}
           >
             {helperText}
           </Text>
@@ -241,7 +268,7 @@ export function Input({
             accessibilityLabel={
               nearLimit ? `${maxLength - value.length} characters remaining` : undefined
             }
-            style={{ ...captionType, color: theme.color.text.tertiary }}
+            style={{ ...captionType, color: theme.color.text.secondary }}
           >
             {value.length}/{maxLength}
           </Text>
@@ -295,7 +322,11 @@ function OtpInput({
       <Pressable
         accessibilityRole="none"
         onPress={() => ref.current?.focus()}
-        style={{ flexDirection: 'row', gap: tokens.space['2'] }}
+        style={{
+          flexDirection: 'row',
+          gap: tokens.space['2'],
+          opacity: disabled ? theme.color.state.disabledOpacity : 1,
+        }}
       >
         {cells.map((char, i) => (
           <View
@@ -313,7 +344,7 @@ function OtpInput({
                 : focused && value.length === i
                   ? theme.color.border.brand
                   : theme.color.border.interactive,
-              backgroundColor: theme.color.surface.base,
+              backgroundColor: theme.color.surface.raised,
             }}
           >
             <Text style={{ ...headingType, color: theme.color.text.primary }}>{char}</Text>
@@ -351,7 +382,7 @@ function OtpInput({
       ) : helperText ? (
         <Text
           testID={`${testID}-helper`}
-          style={{ ...captionType, color: theme.color.text.tertiary }}
+          style={{ ...captionType, color: theme.color.text.secondary }}
         >
           {helperText}
         </Text>
