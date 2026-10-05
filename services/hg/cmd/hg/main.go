@@ -22,7 +22,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -60,42 +59,27 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
 
-// orderRealtimeEmitter bridges the orders module to the realtime module: it
-// implements orders.EventEmitter by calling realtime.EmitInTx inside the
-// caller's transaction, so the outbox event and the state change commit
-// atomically (the transactional outbox). The store field is set once
-// realtime.NewStore is called in run() and before the HTTP server starts, so
-// it is always non-nil by the time any Transition can run.
+// orderRealtimeEmitter implements orders.EventEmitter: it writes the
+// order-lifecycle notifications inside the transition's transaction. The
+// realtime events themselves are written by orders.Transition directly, in the
+// contract's shapes (internal/orders/events.go;
+// https://github.com/shaiknoorullah/hg-mono/issues/247), so this type no longer
+// touches the realtime outbox.
 type orderRealtimeEmitter struct {
+	// store is no longer read: the realtime write moved into orders.Transition.
+	// It goes when the realtime wiring in run() is next edited (open
+	// https://github.com/shaiknoorullah/hg-mono/pull/291 edits those lines).
 	store *realtime.Store
 	// notify is the transactional-outbox enqueuer (P-24). It is optional: when
 	// nil (e.g. a build without the notify module wired) EmitOrderTransition
-	// still emits the realtime event and simply skips the notification. When
-	// set, the order-lifecycle notification is written into the SAME tx as the
-	// state change, so it commits or rolls back atomically with the transition
-	// (notify/doc.go: a notification is a row first, a delivery attempt second).
+	// does nothing. When set, the order-lifecycle notification is written into
+	// the SAME tx as the state change, so it commits or rolls back atomically
+	// with the transition (notify/doc.go: a notification is a row first, a
+	// delivery attempt second).
 	notify *notify.Enqueuer
 }
 
 func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error {
-	payload, err := json.Marshal(struct {
-		State string `json:"state"`
-	}{State: newState})
-	if err != nil {
-		return fmt.Errorf("marshal order transition payload: %w", err)
-	}
-	oid := orderID
-	if _, _, err = realtime.EmitInTx(ctx, tx,
-		"order:"+orderID,
-		"order.state_changed",
-		1,
-		nil,
-		json.RawMessage(payload),
-		&oid,
-		nil,
-	); err != nil {
-		return err
-	}
 	if e.notify == nil {
 		return nil
 	}
@@ -634,10 +618,8 @@ func run() error {
 	// to provide; until it is wired, orders uses the honest unwired gateway that
 	// 503s rather than fabricating a client_secret, and createOrder answers 503.
 	//
-	// The realtime emitter (Seam C) is created now and its store field is set
-	// after rtStore is built (B8 below). The HTTP server starts only after all
-	// wiring completes, so emitter.store is always non-nil before any Transition
-	// can be called.
+	// The order-lifecycle notifier. Transition writes the realtime events
+	// itself (internal/orders/events.go); this carries only the notifications.
 	rtEmitter := &orderRealtimeEmitter{notify: notifyClient.Enqueue}
 	// O-01 (HST registration): HG_TAX_HST_REGISTRATION_NUMBER is the one-line
 	// flip that stamps the platform's registration number onto every receipt

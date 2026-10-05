@@ -171,12 +171,30 @@ func (s *Store) ConsumeCredentialToken(ctx context.Context, kind string, tokenHa
 		return ConsumeCredentialTokenResult{}, err
 	}
 
-	// Inspect why: consumed already, expired, or unknown.
+	// Inspect why: consumed already, expired, or unknown. A token another
+	// request consumed between the two statements reads as used. Nothing was
+	// consumed here, so this never answers with an AccountID: a token that reads
+	// as live now, after the update passed it by, is answered as expired.
+	res, err := s.CredentialTokenState(ctx, kind, tokenHash)
+	if err == nil && res.AccountID != "" {
+		return ConsumeCredentialTokenResult{Expired: true}, nil
+	}
+	return res, err
+}
+
+// CredentialTokenState reads a token without consuming it: NotFound, Used or
+// Expired when it cannot be used, otherwise its AccountID. A caller that must
+// do costly work before consuming a token (ResetPassword waits for a hashing
+// slot) checks it here first, so a link that cannot be used costs a lookup and
+// nothing more. ConsumeCredentialToken still decides: the token can be used up
+// in between.
+func (s *Store) CredentialTokenState(ctx context.Context, kind string, tokenHash []byte) (ConsumeCredentialTokenResult, error) {
+	var accountID string
 	var consumed *time.Time
-	var expires time.Time
-	err = s.pool.QueryRow(ctx, `
-		SELECT consumed_at, expires_at FROM credential_token
-		WHERE token_hash = $1 AND kind = $2`, tokenHash, kind).Scan(&consumed, &expires)
+	var live bool
+	err := s.pool.QueryRow(ctx, `
+		SELECT account_id, consumed_at, expires_at > now() FROM credential_token
+		WHERE token_hash = $1 AND kind = $2`, tokenHash, kind).Scan(&accountID, &consumed, &live)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ConsumeCredentialTokenResult{NotFound: true}, nil
 	}
@@ -186,7 +204,10 @@ func (s *Store) ConsumeCredentialToken(ctx context.Context, kind string, tokenHa
 	if consumed != nil {
 		return ConsumeCredentialTokenResult{Used: true}, nil
 	}
-	return ConsumeCredentialTokenResult{Expired: true}, nil
+	if !live {
+		return ConsumeCredentialTokenResult{Expired: true}, nil
+	}
+	return ConsumeCredentialTokenResult{AccountID: accountID}, nil
 }
 
 // SetPassword sets the account's argon2id hash and stamps password_set_at.

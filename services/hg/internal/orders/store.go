@@ -17,15 +17,18 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
 )
 
-// EventEmitter is the boundary to the realtime module. orders.Store calls it
-// inside Transition — in the same database transaction — so the outbox event
-// and the state change commit atomically (the transactional outbox pattern).
+// EventEmitter is the boundary to the notify module. orders.Store calls it
+// inside Transition — in the same database transaction — so the order-lifecycle
+// notification and the state change commit atomically (the transactional
+// outbox pattern). The concrete implementation lives in cmd/hg/main.go.
 //
-// The concrete implementation lives in cmd/hg/main.go and calls
-// realtime.EmitInTx; the orders package declares only this interface so it
-// never imports realtime (the two modules are siblings, not dependents).
+// The realtime events are not behind this seam: Transition writes them itself
+// (events.go), through the realtime package's Emit functions, so every
+// orders.Store — however it was built — emits them
+// (https://github.com/shaiknoorullah/hg-mono/issues/247). The realtime package
+// imports no domain module, so the dependency runs one way.
 type EventEmitter interface {
-	// EmitOrderTransition writes a realtime outbox event for the state change
+	// EmitOrderTransition enqueues the notifications for the state change
 	// inside the caller's transaction tx. It must not commit or roll back the
 	// transaction; that responsibility stays with Transition.
 	EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error
@@ -38,7 +41,7 @@ type EventEmitter interface {
 // GetOrderForCustomer(accountID, id).
 type Store struct {
 	pool    *pgxpool.Pool
-	emitter EventEmitter    // optional; nil means no realtime events
+	emitter EventEmitter    // optional; nil means no notifications
 	media   MediaURLBuilder // optional; nil renders every image URL as null
 	// riderEarnings pays the rider inside the DELIVERED transition. Optional:
 	// nil (tests, minimal wiring) delivers without writing earnings.
