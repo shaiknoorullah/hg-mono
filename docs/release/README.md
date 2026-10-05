@@ -158,7 +158,7 @@ The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
 **The live map needs a second, secret Mapbox token to build for Android.** Mapbox's Maven
 repository serves the native SDK (`@rnmapbox/maps`) only with a download token: a secret `sk.`
 token with the `DOWNLOADS:READ` scope, given to the build as `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` (in CI,
-the repo secret of the same name, passed to the Android prebuild and build steps only). Without it
+the repo secret of the same name, passed to the Android project-generation and build steps only). Without it
 Gradle fails with "Could not find com.mapbox.maps:android-ndk27" ([#468](https://github.com/shaiknoorullah/hg-mono/issues/468)),
 so the build leaves the SDK out instead:
 
