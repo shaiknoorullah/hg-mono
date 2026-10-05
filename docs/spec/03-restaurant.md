@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -103,9 +103,9 @@ edit a menu while orders are in flight" — see R-15.
 |---|---|---|---|---|
 | `PENDING` | system on signup | no | n/a | yes |
 | `ACTIVE` | admin approval + payout account ready | yes (subject to hours/toggle) | continue | yes |
-| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours; the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `SUSPENDED` | admin, or automatic compliance rule | no | **continue to completion** | yes; read-only except disputes and opening hours; the menu is locked for everyone, admins included: every menu write is `403 MENU_LOCKED` ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [how it is enforced](#r-15--menu-item-authoring)) |
 | `REJECTED` | admin at onboarding review | no | n/a | yes, to re-submit documents |
-| `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no; the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `BANNED` | admin (irreversible without super-admin) | no | force-cancelled | no; the menu is locked for everyone, admins included: every menu write is `403 MENU_LOCKED` ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [how it is enforced](#r-15--menu-item-authoring)) |
 | `CLOSED` | restaurant self-service offboarding | no | continue to completion | yes for 90 days |
 
 Full transition and in-flight-order semantics are specified in **R-36**.
@@ -975,6 +975,22 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   party pays. There is no "orders in flight" guard and no version pinning beyond the snapshot. Only the
   account state locks the menu: nobody edits it while the restaurant is suspended or banned ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
+  **The menu lock.** While `account_state` is `SUSPENDED` or `BANNED`, every menu write answers
+  `403 MENU_LOCKED`, with the state in `details.account_state`, and writes nothing. That is every
+  write to [categories](#r-14--menu-and-category-management), items and prices (this section),
+  [photos](#r-16--menu-item-images), [availability](#r-18--item-availability-and-out-of-stock-management),
+  and every save that would send a change to [menu review](#r-17--menu-change-approval-workflow-admin)
+  or replace one already waiting there: a version waiting for review stays as it is. The
+  restaurant's own staff and admins acting on its behalf are refused alike, and admins cannot decide
+  the restaurant's waiting versions either. A `DELISTED` restaurant is not locked: delisting is not a penalty, and the restaurant
+  keeps its menu ready to be listed again. Reading the menu is never locked; the restaurant learns the
+  menu is locked from `account_state` on its profile before it saves. Each write takes a share lock on
+  the restaurant row and reads `account_state` in the transaction that makes the write, so a save that
+  races a suspension either commits before the suspension or is refused, never after it. `MENU_LOCKED`
+  is not `ACCOUNT_SUSPENDED`: that code means the caller's own account is suspended and sends the app
+  to the suspension screen, while here the caller stays signed in and only the menu is locked
+  ([#256](https://github.com/shaiknoorullah/hg-mono/issues/256)).
+
 - **Data**:
   ```
   menu_item(id, restaurant_id, category_id, live_version_id NULL, pending_version_id NULL,
@@ -1020,6 +1036,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   3. **Given** a create payload with `dietary_tags:["HALAL_CERTIFIED"]`, **when** it is submitted, **then** `403 field_not_writable` and the item is not created.
   4. **Given** an item whose `ingredients_text` contains "pork belly", **when** it is submitted, **then** `422 prohibited_ingredient` naming the matched term.
   5. **Given** an item referenced by a delivered order, **when** it is deleted, **then** `deleted_at` is set, the customer menu omits it, and the historical order still renders its name and price from the snapshot.
+  6. **Given** a suspended restaurant, **when** its owner changes an item's price or marks it out of stock, **then** `403 MENU_LOCKED` with `details.account_state:"SUSPENDED"` and the item is unchanged; **when** the restaurant is delisted instead, **then** the same change succeeds.
+  7. **Given** a save that holds the restaurant row's share lock, **when** an admin suspends the restaurant, **then** the suspension waits and commits after the save; **given** a suspension in progress, **when** a save arrives, **then** it waits and is refused with `403 MENU_LOCKED`.
 
 - **Out of scope**: nutritional information / calorie counts (SOW mentions it for the *customer* app — deferred to V2 and sourced from the restaurant then); structured ingredient lists with quantities; recipe/inventory deduction; item-level tax codes (**D-19**); multi-language item names (V3); CSV/bulk menu import (V2); menu scraping from a photographed menu.
 
@@ -1095,9 +1113,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   |---|---|---|
   | — | `PENDING_REVIEW` | restaurant saves a reviewed field; no drafts at launch ([menu drafts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
   | — | `APPROVED` | an admin creates the item on the restaurant's behalf; the creator is the reviewer ([menu approval](../decisions/README.md#settled--reconciliations)). Never while the restaurant is suspended or banned ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
-  | `PENDING_REVIEW` | `APPROVED` | admin approves |
-  | `PENDING_REVIEW` | `REJECTED` | admin rejects with a reason code |
-  | `PENDING_REVIEW` | `WITHDRAWN` | restaurant saves again (creates a newer pending version) or cancels |
+  | `PENDING_REVIEW` | `APPROVED` | admin approves. Not while the restaurant is suspended or banned: the version waits, and deciding it is `403 MENU_LOCKED` ([menu lock](#r-15--menu-item-authoring)) |
+  | `PENDING_REVIEW` | `REJECTED` | admin rejects with a reason code. Not while the restaurant is suspended or banned, as above |
+  | `PENDING_REVIEW` | `WITHDRAWN` | restaurant saves again (creates a newer pending version) or cancels. Not while the restaurant is suspended or banned, as above |
   | `APPROVED` | `SUPERSEDED` | a newer version is approved |
 
 - **Rules**:
@@ -1543,6 +1561,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `CANCELLED_PAYMENT_FAILED`, the restaurant is notified, and rider dispatch is **not** enqueued.
      There is no path where a failed money operation lets the flow continue. *(Today the saga falls
      through to rider assignment when cancel/refund returns false.)*
+     Accept first checks that the restaurant can still take orders, under the same lock as checkout
+     ([one check for every order path](01-platform.md#p-09--canonical-price-computation-the-quote)): if it is
+     not listed, not `LIVE`, or its halal certificate is not current at that moment, accept answers
+     `409 RESTAURANT_UNAVAILABLE`, nothing is captured, and the order times out and releases its authorisation.
   4. **Reject** performs, in one transaction: status → `CANCELLED_BY_RESTAURANT`; store reason;
      void the authorisation; notify the customer; release any offer budget (R-21). A void failure
      leaves the order in `CANCELLED_BY_RESTAURANT` and raises an operational alert with a retry job —
@@ -1580,6 +1602,14 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Behaviour**: After acceptance the restaurant advances the order through exactly two
   restaurant-owned transitions: `ACCEPTED → PREPARING` and `PREPARING → READY_FOR_PICKUP`. Marking
   ready notifies the assigned rider (R-26) and the customer. All later statuses belong to the rider.
+
+  Marking ready starts the order's pickup deadline from the [platform deadline table](./01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable):
+  when no rider has collected the order 15 minutes later, and every 10 minutes after that, the
+  search for a rider is re-opened, ops are alerted and the customer is told
+  ([pickup escalation](https://github.com/shaiknoorullah/hg-mono/issues/293)). A rider cannot pick
+  up an order the kitchen has not marked ready: the pickup is refused and the rider is told to wait
+  for the kitchen, until the kitchen's pickup code is checked
+  ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
 
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,

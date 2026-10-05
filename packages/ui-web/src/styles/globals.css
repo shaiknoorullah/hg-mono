@@ -171,6 +171,23 @@
   box-shadow: inset 0 0 0 1px var(--hg-focus-ring-color);
 }
 
+/* Browser autofill paints its own (olive-yellow) background, which breaks the
+   dark theme. Re-cover it with the field's own fill and text colour: a huge
+   inset shadow beats the UA background, and -webkit-text-fill-color beats its
+   forced text colour. Covers the standard :autofill and the WebKit prefix. */
+.hg-focus-field input:-webkit-autofill,
+.hg-focus-field input:-webkit-autofill:hover,
+.hg-focus-field input:-webkit-autofill:focus,
+.hg-focus-field input:autofill,
+.hg-focus-field input:autofill:hover,
+.hg-focus-field input:autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--hg-control-bg) inset;
+  box-shadow: 0 0 0 1000px var(--hg-control-bg) inset;
+  -webkit-text-fill-color: var(--hg-text-primary);
+  caret-color: var(--hg-text-primary);
+  transition: background-color 600000s 0s;
+}
+
 .hg-focus-field:is([data-hg-state='error'], [aria-invalid='true']):is(
     :focus-visible,
     :has(:focus-visible)

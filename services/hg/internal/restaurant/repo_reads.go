@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // ErrNotFound is returned when a queried entity does not exist or belongs to
@@ -414,6 +416,10 @@ func (r *Repo) SetHours(ctx context.Context, restaurantID string, in hoursInputD
 		}
 	}
 
+	// Hours are one of the gates to ACTIVE (R-06): re-evaluate in this transaction.
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -869,14 +875,25 @@ func (r *Repo) loadItemVersion(ctx context.Context, versionID string) (*MenuItem
 }
 
 // CreateCategory creates a new menu category and returns its view.
-// Returns ErrCategoryNameTaken if a category with the same name exists.
+// Returns ErrCategoryNameTaken if a category with the same name exists, and
+// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go).
 func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categoryInputDTO) (*MenuCategoryView, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
 	var id string
 	sortOrder := 0
 	if in.SortOrder != nil {
 		sortOrder = *in.SortOrder
 	}
-	err := r.db.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO menu_category (restaurant_id, name, description, sort_order)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id::text`,
@@ -886,6 +903,9 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 			return nil, ErrCategoryNameTaken
 		}
 		return nil, fmt.Errorf("create category: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 	return &MenuCategoryView{
 		ID:          id,
@@ -905,6 +925,11 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go).
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 
 	// IDOR guard: the target category must belong to THIS restaurant. The FK on
 	// menu_item.category_id references menu_category(id) globally, so without this
@@ -971,6 +996,11 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 		return nil, fmt.Errorf("set live_version_id: %w", err)
 	}
 
+	// A live item is one of the gates to ACTIVE (R-17): re-evaluate in this transaction.
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -986,6 +1016,12 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go): no
+	// price, photo or other field changes, and a version waiting for review stays.
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 
 	// Load current item (ownership check in WHERE clause).
 	var currentCategoryID string
@@ -1085,6 +1121,9 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 		return nil, fmt.Errorf("set live_version: %w", err)
 	}
 
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -1092,6 +1131,8 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 }
 
 // SetMenuItemAvailability sets a menu item's availability state. Validates ownership.
+// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go): an item
+// cannot be marked out of stock or back in stock.
 func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID string, in availabilityInputDTO) (*MenuItemView, error) {
 	// availability_state is the contract enum [AVAILABLE, OUT_OF_STOCK]; the
 	// handler validates it before we reach the ::menu_item_availability_state cast.
@@ -1105,7 +1146,17 @@ func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID
 		}
 	}
 
-	tag, err := r.db.Exec(ctx, `
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
+	tag, err := tx.Exec(ctx, `
 		UPDATE menu_item SET availability_state=$2::menu_item_availability_state,
 		       out_of_stock_until=$3, updated_at=now()
 		 WHERE id=$1 AND restaurant_id=$4 AND deleted_at IS NULL`,
@@ -1115,6 +1166,9 @@ func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID
 	}
 	if tag.RowsAffected() == 0 {
 		return nil, ErrNotFound
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 	return r.getMenuItemByID(ctx, restaurantID, itemID)
 }
@@ -1322,14 +1376,27 @@ func maskPhone(p *string) string {
 }
 
 // AcceptOrder transitions RESTAURANT_PENDING → PREPARING.
-// Returns ErrOfferExpired if the deadline has passed; ErrIllegalTransition if
-// the order is not in RESTAURANT_PENDING.
+// Returns orders.ErrRestaurantUnavailable if the restaurant cannot take orders
+// now; ErrOfferExpired if the deadline has passed; ErrIllegalTransition if the
+// order is not in RESTAURANT_PENDING.
 func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAccountID string, promisedReadyMinutes *int) (*OrderRestaurantView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	// A restaurant that is not LIVE, or whose halal certificate is not current
+	// now, cannot take an order by accepting one either. The order stays
+	// RESTAURANT_PENDING until its deadline cancels it and releases the
+	// authorisation, so nothing is captured. The restaurant row is locked FOR
+	// SHARE before the order is locked FOR UPDATE, the same order an
+	// account-state action takes, so a suspension either committed first and
+	// is refused here, or waits for this accept and then settles the PREPARING
+	// order. https://github.com/shaiknoorullah/hg-mono/issues/328
+	if err := orders.LockOrderableRestaurant(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 
 	var state string
 	var deadlineAt *time.Time
@@ -1350,12 +1417,12 @@ func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAcco
 		return nil, ErrOfferExpired
 	}
 
-	// Compute PREPARING deadline (prep_eta + 10 minutes).
+	// The transition function arms the PREPARING deadline from the prep ETA
+	// (accepted_at + prep ETA + 10 minutes, PREP_OVERDUE).
 	prepMins := 30
 	if promisedReadyMinutes != nil {
 		prepMins = *promisedReadyMinutes
 	}
-	newDeadline := time.Now().UTC().Add(time.Duration(prepMins)*time.Minute + 10*time.Minute)
 
 	var promisedReadyAt *time.Time
 	if promisedReadyMinutes != nil {
@@ -1363,25 +1430,18 @@ func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAcco
 		promisedReadyAt = &t
 	}
 
-	_, err = tx.Exec(ctx, `
-		UPDATE "order" SET
-			state='PREPARING', state_since=now(),
-			deadline_at=$2, deadline_action='PREP_OVERDUE',
-			accepted_at=now(), promised_ready_at=$3,
-			prep_eta_minutes=$4,
-			updated_at=now()
-		WHERE id=$1`,
-		orderID, newDeadline, promisedReadyAt, prepMins)
-	if err != nil {
-		return nil, fmt.Errorf("accept order: %w", err)
+	// The prep ETA and promised ready time are the restaurant's own columns;
+	// they commit in the transition's transaction, after the state change.
+	recordPrep := func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `
+			UPDATE "order" SET promised_ready_at=$2, prep_eta_minutes=$3 WHERE id=$1`,
+			orderID, promisedReadyAt, prepMins); err != nil {
+			return fmt.Errorf("record prep eta: %w", err)
+		}
+		return nil
 	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason)
-		VALUES ($1,'RESTAURANT_PENDING','PREPARING','RESTAURANT',$2,'restaurant accepted')`,
-		orderID, actorAccountID)
-	if err != nil {
-		return nil, fmt.Errorf("insert transition: %w", err)
+	if err := r.acceptTx(ctx, tx, orderID, actorAccountID, prepMins, recordPrep); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -1415,24 +1475,9 @@ func (r *Repo) RejectOrder(ctx context.Context, restaurantID, orderID, actorAcco
 	// CANCELLED, so cancel_reason must stay NULL (there is no RESTAURANT_REJECTED
 	// member of order_cancellation_reason_code; setting it 22P02'd → 500 on every
 	// real rejection). The CHECK order_reject_has_reason is satisfied by
-	// reject_reason alone.
-	_, err = tx.Exec(ctx, `
-		UPDATE "order" SET
-			state='REJECTED', state_since=now(),
-			deadline_at=NULL, deadline_action=NULL,
-			reject_reason=$2::restaurant_reject_reason_code, reject_note=$3,
-			updated_at=now()
-		WHERE id=$1`, orderID, reason, note)
-	if err != nil {
-		return nil, fmt.Errorf("reject order: %w", err)
-	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason)
-		VALUES ($1,'RESTAURANT_PENDING','REJECTED','RESTAURANT',$2,'restaurant rejected')`,
-		orderID, actorAccountID)
-	if err != nil {
-		return nil, fmt.Errorf("insert transition: %w", err)
+	// reject_reason alone. The transition function clears the deadline.
+	if err := r.rejectTx(ctx, tx, orderID, actorAccountID, reason, note); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -1462,24 +1507,9 @@ func (r *Repo) MarkOrderReady(ctx context.Context, restaurantID, orderID, actorA
 		return nil, ErrIllegalTransition
 	}
 
-	// READY_FOR_PICKUP: rider pickup expected within 15 minutes.
-	newDeadline := time.Now().UTC().Add(15 * time.Minute)
-	_, err = tx.Exec(ctx, `
-		UPDATE "order" SET
-			state='READY_FOR_PICKUP', state_since=now(),
-			deadline_at=$2, deadline_action='RIDER_NO_SHOW',
-			ready_at=now(), updated_at=now()
-		WHERE id=$1`, orderID, newDeadline)
-	if err != nil {
-		return nil, fmt.Errorf("mark ready: %w", err)
-	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason)
-		VALUES ($1,'PREPARING','READY_FOR_PICKUP','RESTAURANT',$2,'order ready')`,
-		orderID, actorAccountID)
-	if err != nil {
-		return nil, fmt.Errorf("insert transition: %w", err)
+	// READY_FOR_PICKUP takes its deadline from the deadline table (readyTx).
+	if err := r.readyTx(ctx, tx, orderID, actorAccountID); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {

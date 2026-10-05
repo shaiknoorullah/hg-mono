@@ -5,8 +5,7 @@
   "describes": "A rider application with six documents and a vehicle on file.",
   "operations": [
     "getRiderApplication",
-    "takeNextRiderApplication",
-    "decideRiderApplication"
+    "takeNextRiderApplication"
   ],
   "status": 200,
   "tags": [

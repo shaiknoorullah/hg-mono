@@ -56,7 +56,8 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 dev-reset                                         (planned make target)
   └─ cmd/devworld reset
        1. guard: HG_ENV=local and DB host is local, else refuse
-       2. drop schema public, migrate up, flush Redis
+       2. drop schema public, re-run migrations/roles/roles.sql as the superuser
+          (it hands the new schema to hg_migrator), migrate up as hg_migrator, flush Redis
        3. load migrations/seed/*            (reference data — unchanged)
        4. load migrations/devworld/*.sql    (the static world)
        5. set credentials                   (password hash + encrypted TOTP, via the seedpw/seedtotp code paths)
@@ -155,7 +156,7 @@ For `bismillah-grill`: 3 DELIVERED orders (via `journey --auto=all --speed=max`)
 4. The simulator walks the route polyline, posting `/v1/riders/me/positions` every 5 s (the contract's throttle), advancing assignment transitions at the pickup and drop-off points, entering the seal code at pickup, and submitting proof of delivery with a bundled test image.
 5. Terminates at DELIVERED (or reports the state it stopped in and why).
 
-Flags: `--route=short|long|early-rider` (early-rider arrives before the food is ready), `--speed=1x|4x|max` (default 1x, real pace), `--auto=none|restaurant|all`, `--manual=rider`.
+Flags: `--route=short|long|early-rider` (early-rider arrives before the food is ready; a pickup confirmed before the kitchen taps ready marks the order ready in the same step, [early pickup](https://github.com/shaiknoorullah/hg-mono/issues/317)), `--speed=1x|4x|max` (default 1x, real pace), `--auto=none|restaurant|all`, `--manual=rider`.
 
 Routes are fixed JSON route lines between seeded coordinates (restaurant ↔ customer addresses), so a run is identical every time and no external routing service is called.
 
@@ -214,9 +215,10 @@ The harness produces real realtime events (order state changes, offers, `rider.l
 
 ## 12. Risks to settle in planning
 
-- **Payout seeds vs the ledger.** The [zero-residual ledger rule (invariant 6)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) requires every order's money to decompose to zero via the append-only ledger. If payout rows need backing ledger batches the SQL cannot honestly produce, payouts move from SQL to an admin payout run over the API; any state the API cannot reach (e.g. FAILED) is listed as a gap rather than forged.
+- **Payout seeds vs the ledger.** The [zero-residual ledger rule (invariant 6)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) requires every order's money to decompose to zero via the append-only ledger. If payout rows need backing ledger batches the SQL cannot honestly produce, payouts move from SQL to an admin payout run over the API; any state the API cannot reach (e.g. FAILED) is listed as a gap rather than forged. Against a Stripe sandbox, Stripe's own test-mode events reach those states: the webhook worker applies `transfer.*` and `payout.*` to the payout, `account.updated` to the payout account and `charge.dispute.*` to a chargeback ([#249](https://github.com/shaiknoorullah/hg-mono/issues/249)).
 - **Proof of delivery.** If PoD requires an uploaded object in MinIO, the simulator uploads a bundled test image through the documented presigned flow.
 - **Dispatch reach.** The journey assumes dispatch offers to an online rider within range of the restaurant. `rider-sim` starts at the route's origin inside that radius; planning confirms the radius and offer loop in `internal/dispatch`.
 - **Drift.** The world SQL must follow schema migrations. Mitigated by the world verify in CI (see [verification](#8-verification)) — a migration that breaks the world fails the build.
+- **One document per rider file.** The world SQL cannot give a rider two live `kyc_document` rows for the same document type and `stored_object`; the database refuses the second (`kyc_document_rider_file_once`, `services/hg/migrations/00038_rider_document_attached_once.sql`). Each seeded rider document needs its own file.
 - **CORS.** `HG_CORS_ALLOWED_ORIGINS` must include each app's dev origin (restaurant `http://localhost:5183`); `.env.example` has them, and `devworld reset` warns when the running config lacks one.
 - **Trusted proxy.** The compose stack refuses to start without `HG_TRUSTED_PROXY_CIDRS`, the networks whose forwarded client address the API believes (see the client-address step of the [middleware chain](../../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)). A `deploy/.env` copied before the setting existed needs the line from `.env.example`. Without it every request would carry Traefik's address, and the per-address sign-in limit would throttle every persona as one caller.

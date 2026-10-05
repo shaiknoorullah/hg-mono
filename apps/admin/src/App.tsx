@@ -9,6 +9,7 @@ import {
   SideNav,
   ToastProvider,
   TooltipProvider,
+  Wordmark,
   themeAttributes,
   type IconName,
   type SideNavItem,
@@ -91,6 +92,7 @@ function LoginGate() {
             aria-label="Admin sign-in"
             style={{ display: 'flex', flexDirection: 'column', gap: 'var(--hg-space-4)', minWidth: 320 }}
           >
+            <Wordmark height={48} className="adm-login-mark" />
             <h1 className="text-title-md text-fg-primary">Admin sign in</h1>
 
             <Input
@@ -163,7 +165,12 @@ function AdminSideNav() {
     <SideNav
       groups={[{ key: 'primary', items }]}
       activeKey={activeKey}
-      header={<span className="text-title-sm text-fg-primary adm-brand">HalalGoes — Admin</span>}
+      header={
+        <span className="adm-brand">
+          <Wordmark height={32} />
+          <span className="text-label-sm text-fg-tertiary">Admin console</span>
+        </span>
+      }
       footer={
         <button type="button" className="adm-signout" onClick={() => logout()}>
           <Icon name="close" size={18} />
