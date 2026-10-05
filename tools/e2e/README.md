@@ -163,7 +163,7 @@ on macOS runners and are not part of this workflow
 | [`web/`](web/) | `serve.sh`, the Playwright config and the restaurant and admin tests |
 | [`native/`](native/) | The Maestro flows for the customer and rider apps |
 | [`lib/`](lib/) | The API client, the sign-in code reader, the TOTP generator, the run summary |
-| [`android/allow-cleartext.sh`](android/allow-cleartext.sh) | Lets the emulator's APKs reach the runner over plain HTTP |
+| [`android/allow-cleartext.sh`](android/allow-cleartext.sh) | Lets the emulator's APKs reach the runner over plain HTTP. The release-builds workflow also uses it, for a dev build given an `http://` `api_base_url` ([docs/release/README.md](../../docs/release/README.md#a-build-without-a-tag)). |
 | [`run.sh`](run.sh) | Runs the flows in order and records each result |
 
 ## API journey runner

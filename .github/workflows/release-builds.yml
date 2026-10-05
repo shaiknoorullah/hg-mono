@@ -38,6 +38,11 @@ on:
         description: Semantic version, for example 1.0.0 or 1.0.0-rc.1
         type: string
         required: true
+      api_base_url:
+        description: 'Dev only: the API this build talks to, for example http://192.168.1.8:8080 for a local dev world. Empty: the dev environment. An http:// address also allows plain HTTP in the APK.'
+        type: string
+        required: false
+        default: ''
   pull_request:
     paths:
       - scripts/release/**
@@ -88,6 +93,7 @@ jobs:
       version: ${{ steps.plan.outputs.version }}
       kind: ${{ steps.plan.outputs.kind }}
       name: ${{ steps.plan.outputs.name }}
+      api_base_url: ${{ steps.plan.outputs.api_base_url }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -105,6 +111,7 @@ jobs:
           IN_APP: ${{ inputs.app }}
           IN_ENV: ${{ inputs.env }}
           IN_VERSION: ${{ inputs.version }}
+          IN_API: ${{ inputs.api_base_url }}
         run: |
           refuse() { echo "::error title=Build refused::$*"; printf '### Build refused\n\n%s\n' "$*" >>"$GITHUB_STEP_SUMMARY"; exit 1; }
           if [ "$EVENT" = push ]; then
@@ -139,9 +146,16 @@ jobs:
             fi
           fi
 
+          # A dev build may talk to another API, such as a dev world on a laptop (scripts/release/app-env.cjs).
+          api="${IN_API:-}"
+          if [ -n "$api" ]; then
+            [ "$env" = dev ] || refuse "api_base_url is for dev builds only: a prod build always talks to the production API"
+            [[ "$api" =~ ^https?://[A-Za-z0-9.:-]+(/[A-Za-z0-9._/-]*)?$ ]] || refuse "api_base_url \"$api\" is not an http:// or https:// address"
+          fi
+
           if [ "$env" = prod ]; then name="halalgoes-$app-$version"; else name="halalgoes-$app-dev-$version"; fi
           {
-            echo "app=$app"; echo "env=$env"; echo "version=$version"; echo "kind=$kind"; echo "name=$name"
+            echo "app=$app"; echo "env=$env"; echo "version=$version"; echo "kind=$kind"; echo "name=$name"; echo "api_base_url=$api"
           } >>"$GITHUB_OUTPUT"
           echo "Building **$name** ($kind, $env) from \`${GITHUB_SHA::7}\`." >>"$GITHUB_STEP_SUMMARY"
 
@@ -163,6 +177,7 @@ jobs:
       APP_VERSION: ${{ needs.plan.outputs.version }}
       NAME: ${{ needs.plan.outputs.name }}
       PROD: ${{ needs.plan.outputs.env == 'prod' }}
+      API_BASE_URL: ${{ needs.plan.outputs.api_base_url }}
       # Public (pk.) token, read by the maps at run time. Optional: without it there is no map.
       EXPO_PUBLIC_MAPBOX_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN_MOBILE }}
       # Public (pk_) Stripe key for the customer's payment sheet. Without it a customer cannot pay.
@@ -246,6 +261,13 @@ jobs:
           # Room for Gradle and Kotlin on a small runner.
           printf '\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError\norg.gradle.workers.max=2\n' \
             >>android/gradle.properties
+
+      # Only a dev build pointed at a plain-HTTP API (a dev world on a laptop) gets cleartext:
+      # Android refuses it in a release build otherwise. Prod and https:// builds keep it off.
+      - name: Allow plain HTTP to a local API
+        if: env.PROD != 'true' && startsWith(needs.plan.outputs.api_base_url, 'http://')
+        working-directory: apps/${{ env.APP }}
+        run: bash ../../tools/e2e/android/allow-cleartext.sh android
 
       - name: Unpack the release key
         if: env.PROD == 'true'
@@ -364,6 +386,7 @@ jobs:
       APP_VERSION: ${{ needs.plan.outputs.version }}
       NAME: ${{ needs.plan.outputs.name }}
       PROD: ${{ needs.plan.outputs.env == 'prod' }}
+      API_BASE_URL: ${{ needs.plan.outputs.api_base_url }}
       # Public (pk.) token for the admin's live map, restricted to the admin's web address.
       VITE_MAPBOX_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN_WEB }}
     steps:

@@ -95,6 +95,13 @@ The files are on the run's page under Artifacts for 14 days. Dev builds run from
 builds run from `main` only (choose `main` in "Use workflow from"); use one to try a prod build
 before tagging it.
 
+A dev build can talk to another API with `-f api_base_url=…`. For example, point it at a dev world
+on your laptop (`make up`, `make migrate`, `make dev-reset` in `services/hg`), using the laptop's
+address on your Wi-Fi: `-f api_base_url=http://192.168.1.8:8080`. The phone must be on the same
+network, and an emulator on that laptop can use the same address. An `http://` address also allows
+plain HTTP in that APK. Prod builds refuse the input. The dev world's personas sign in with phone
+numbers `+1 555 0100 1xx` and the code `000000`; `go run ./cmd/devworld list` names them.
+
 ### What each build checks
 
 - The APK's package, version name and version code are the ones expected for its environment.
