@@ -388,15 +388,15 @@ func (s *Service) Login(ctx context.Context, email, password string, totp *strin
 	}
 	// Redis request-rate limits, per IP then per email (docs/spec/01-platform.md,
 	// "P-03 — Email + password authentication"). An over-the-cap answer stops
-	// the attempt before anything is read or recorded. They fail open: the
-	// lockout below lives in Postgres and survives a Redis outage, and Traefik
-	// keeps its own per-IP limit in front of the app.
+	// the attempt before anything is read or recorded. With Redis down they
+	// count in this replica's memory instead (FallBackLocally), so login keeps
+	// working and stays limited; the lockout below lives in Postgres either way.
 	if err := s.rl.Allow(ctx, Limit{Name: "login:ip", Subject: ipSubject(ip),
-		Max: 30, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		Max: 30, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if err := s.rl.Allow(ctx, Limit{Name: "login:email", Subject: email,
-		Max: 10, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		Max: 10, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 
@@ -499,14 +499,14 @@ func (s *Service) RegisterRestaurant(ctx context.Context, email, password, busin
 	// 5 sign-ups per hour per IP (docs/spec/03-restaurant.md, "R-01 — Restaurant
 	// account signup") and 5 per hour per email, both checked before the argon2id
 	// hash and a hashing slot, so a limited request costs no CPU and holds no
-	// slot (#216). They fail open: a sign-up creates an unverified account and
-	// issues no session, and Traefik keeps its own per-IP limit in front of the app.
+	// slot (#216). With Redis down they count in this replica's memory instead
+	// (FallBackLocally), still before the hash.
 	if err := s.rl.Allow(ctx, Limit{Name: "register:ip", Subject: clientKey,
-		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		Max: 5, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if err := s.rl.Allow(ctx, Limit{Name: "register:email", Subject: canonicalEmail(email),
-		Max: 5, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		Max: 5, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	if isBreachedPassword(password) {
@@ -662,10 +662,11 @@ func resetTokenErr(res ConsumeCredentialTokenResult) error {
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, ip *string) error {
 	// 10 resets per hour per IP, checked before a hashing slot is taken, so a
 	// flood of made-up tokens never holds one (#216). The token itself is 256
-	// random bits, so this limit is about the hashing cost, not guessing; it
-	// fails open like sign-up.
+	// random bits, so this limit is about the hashing cost, not guessing. With
+	// Redis down it counts in this replica's memory, like sign-up
+	// (FallBackLocally).
 	if err := s.rl.Allow(ctx, Limit{Name: "reset:ip", Subject: ipSubject(ip),
-		Max: 10, Window: time.Hour, OnUnavailable: FailOpen}); err != nil {
+		Max: 10, Window: time.Hour, OnUnavailable: FallBackLocally}); err != nil {
 		return err
 	}
 	if isBreachedPassword(newPassword) {
@@ -829,12 +830,12 @@ func (s *Service) ChangePassword(ctx context.Context, p httpx.Principal, current
 		return nil, errWeakPassword
 	}
 	// 5 attempts per account per 15 minutes, checked before anything is read or
-	// a hashing slot is taken, so a limited request never holds one (#216). It
-	// fails open like login's limits: the hashing gate below still bounds the
-	// work, and Redis is disposable (docs/spec/01-platform.md, "G-1 — Postgres
-	// is the only source of truth").
+	// a hashing slot is taken, so a limited request never holds one (#216).
+	// With Redis down it counts in this replica's memory, like login's limits
+	// (FallBackLocally): Redis is disposable (docs/spec/01-platform.md, "G-1 —
+	// Postgres is the only source of truth").
 	if err := s.rl.Allow(ctx, Limit{Name: "password_change:account", Subject: p.AccountID,
-		Max: 5, Window: 15 * time.Minute, OnUnavailable: FailOpen}); err != nil {
+		Max: 5, Window: 15 * time.Minute, OnUnavailable: FallBackLocally}); err != nil {
 		return nil, err
 	}
 	acct, err := s.store.AccountByID(ctx, p.AccountID)

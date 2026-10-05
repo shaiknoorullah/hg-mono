@@ -10,6 +10,8 @@
 #   * The API runs 2 replicas and Traefik load-balances them. Anything that only
 #     works with one replica — in-memory sessions, a local rate-limit counter, a
 #     per-process WebSocket registry — breaks here rather than in production.
+#     (The sign-in limits count in each replica's memory only while Redis is
+#     down, so a caller then gets at most twice a limit; that is by design.)
 #   * Every dependency is addressed by its compose service name, never by
 #     localhost. G-7 refuses to boot on a loopback dependency outside local, and
 #     /debug/deps shows the address actually connected to.
@@ -172,6 +174,28 @@ services:
       - traefik.http.routers.hg-internal.service=hg-api
       - traefik.http.routers.hg-internal.middlewares=hg-internal-only@docker
       - traefik.http.middlewares.hg-internal-only.ipallowlist.sourcerange=127.0.0.1/32
+
+      # Sign-in router: the same service with a per-address limit at the edge,
+      # on every /v1/auth/ route (restaurant sign-up is /v1/auth/register/restaurant).
+      # A backstop against floods, independent of Redis, not the real limits:
+      # the API's own per-address limits are 30 logins and 20 sign-in codes per
+      # 15 minutes and 5 sign-ups an hour, and they hold, counted per replica,
+      # while Redis is down (docs/spec/01-platform.md, "P-38 — Rate limiting").
+      # 120 a minute with bursts of 60 is far above any of them, so households,
+      # offices and phone carriers sharing one address are never stopped here.
+      # The address is the connection's own, never X-Forwarded-For, which only a
+      # client could have written: Traefik is the edge, with nothing in front.
+      # IPv6 is counted per /64, as the API counts it. Until IPv6 clients reach
+      # Traefik with their own address (issue #267), they share one bucket here.
+      - traefik.http.routers.hg-auth.rule=PathPrefix(`/v1/auth/`)
+      - traefik.http.routers.hg-auth.entrypoints=web
+      - traefik.http.routers.hg-auth.priority=5
+      - traefik.http.routers.hg-auth.service=hg-api
+      - traefik.http.routers.hg-auth.middlewares=hg-auth-ratelimit@docker
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.average=120
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.period=1m
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.burst=60
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.sourcecriterion.ipstrategy.ipv6subnet=64
 
       - traefik.http.services.hg-api.loadbalancer.server.port=8080
       # Traefik polls readiness and pulls an unready replica out of rotation —
