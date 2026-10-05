@@ -2222,7 +2222,7 @@ CREATE INDEX kyc_document_subject ON kyc_document(subject_type, subject_id, doc_
   |---|---|---|---|
   | `KYC_DOCUMENT` | `image/jpeg`, `image/png`, `image/heic`, `application/pdf` | 10 MiB | the subject's owner account |
   | `MENU_IMAGE` | `image/jpeg`, `image/png`, `image/webp` | 5 MiB | restaurant staff with `menu_item.update` |
-  | `POD` | `image/jpeg` | 1 MiB (the rider app shrinks the photo before upload) | the assigned rider only, only while dispatch is `AT_CUSTOMER`/`CARRYING` |
+  | `POD` | `image/jpeg` | 1 MiB (the rider app shrinks the photo before upload) | the assigned rider only, only while carrying the order (assignment `PICKED_UP`, `EN_ROUTE_TO_DROPOFF` or `ARRIVED_AT_DROPOFF`); anyone else, or an unknown order, gets `422` on `order_id` and nothing is allocated ([#370](https://github.com/shaiknoorullah/hg-mono/issues/370)) |
   | `AVATAR` | `image/jpeg`, `image/png` | 2 MiB | the account itself |
   | `EXPORT` | server-generated only | — | no client uploads |
 
