@@ -15,8 +15,10 @@ export type PhoneCheck =
 export function checkPhone(value: string): PhoneCheck {
   if (isInternationalTel(value)) return { ok: false, reason: 'unsupported' };
   const digits = value.replace(/\D/g, '');
-  // NANP: ten digits, and neither the area code nor the exchange starts with 0 or 1.
-  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) return { ok: false, reason: 'incomplete' };
+  // Ten digits with a real area code (not starting 0 or 1). The exchange is the server's call: it
+  // answers its own error for a number it can't reach, and the local fixed-code test numbers
+  // (+1 555 010 01NN) have an exchange that a strict NANP rule would refuse.
+  if (!/^[2-9]\d{9}$/.test(digits)) return { ok: false, reason: 'incomplete' };
   return { ok: true, e164: `+1${digits}` };
 }
 
