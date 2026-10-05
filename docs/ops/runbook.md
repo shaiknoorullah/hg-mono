@@ -2,7 +2,7 @@
 covers:
   - deploy/**
   - services/hg/internal/orders/runner*.go
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Incident runbook
@@ -139,9 +139,10 @@ If it came back by itself after a crash, nothing was lost. The runner's outage h
 1. Find what grew: `df -h /`, `docker system df`, `du -xh --max-depth=2 /var/lib/docker/volumes | sort -h | tail`.
 2. Safe to clear: old images (`docker image prune -af --filter until=168h`), the build cache (`docker builder prune -f`), the journal (`journalctl --vacuum-size=200M`), and dev's data (it resets from the fixtures).
 3. **Never delete by hand:** anything in Postgres's data folder, `pg_wal` included; the pgBackRest repository (use `pgbackrest expire`); the restic repository (use `restic forget --prune`); Silo's data folder.
-4. A growing `pg_wal` means WAL archiving is failing. Run `pgbackrest --stanza=<stanza> check` and fix the archive; don't remove WAL.
-5. If Postgres stopped, free space and start it again. It recovers by itself.
-6. Afterwards, apply the disk trigger in [the hosting plan][i207]: over 70% full, or due to reach 85% within 60 days, means a bigger disk.
+4. Silo keeps the old version of every overwritten or deleted file, in every bucket, for 35 days, so space freed by deleting files comes back only as those versions expire. Don't remove versions by hand: within those 35 days they are how a file deleted by mistake comes back.
+5. A growing `pg_wal` means WAL archiving is failing. Run `pgbackrest --stanza=<stanza> check` and fix the archive; don't remove WAL.
+6. If Postgres stopped, free space and start it again. It recovers by itself.
+7. Afterwards, apply the disk trigger in [the hosting plan][i207]: over 70% full, or due to reach 85% within 60 days, means a bigger disk.
 
 ## Certificates are expiring
 
@@ -199,6 +200,13 @@ Each password check takes 64 MiB, so each API replica runs at most `HG_AUTH_HASH
 1. Open the order.
 2. Follow this runbook before changing anything: compare the order with its payment in Stripe's dashboard. If Stripe has events the order hasn't seen, run the catch-up for that window.
 3. Call on-call if the customer was overcharged or the order can't be matched.
+
+## A ready order nobody collects
+
+- **Signs:** an `admin.alert` of kind `PICKUP_OVERDUE` on the ops channel. The first comes 15 minutes after the kitchen marked the order ready, then one every 10 minutes until a rider picks it up ([pickup escalation][i293]). The customer is told each time.
+- **What the system has already done:** if the search for a rider had found nobody, it is searching again from the nearest radius. The alert says so, or says that a rider is assigned but late, or that no search has started.
+- **From the third alert** (45 minutes after ready, severity `CRITICAL`) the order needs a person. Cancelling with a full refund is not automatic yet, and the admin console cannot cancel a ready order ([#336][i336]): call on-call, and call the restaurant and the customer meanwhile.
+- **Never** edit the order's state or `deadline_at` by hand ([deadlines spec][p15]).
 
 ## A suspected breach
 
@@ -259,6 +267,8 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [i171]: https://github.com/shaiknoorullah/hg-mono/issues/171
 [i244]: https://github.com/shaiknoorullah/hg-mono/issues/244
 [i222]: https://github.com/shaiknoorullah/hg-mono/issues/222
+[i293]: https://github.com/shaiknoorullah/hg-mono/issues/293
+[i336]: https://github.com/shaiknoorullah/hg-mono/issues/336
 [i78]: https://github.com/shaiknoorullah/hg-mono/issues/78
 [i208]: https://github.com/shaiknoorullah/hg-mono/issues/208
 [i209]: https://github.com/shaiknoorullah/hg-mono/issues/209

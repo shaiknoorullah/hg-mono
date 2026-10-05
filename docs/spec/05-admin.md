@@ -834,8 +834,8 @@ REGISTERED → EMAIL_VERIFIED → PROFILE_SUBMITTED → DOCUMENTS_SUBMITTED
 |---|---|---|---|---|---|
 | `LIVE` | system, on READY | — | Yes (subject to hours + accepting toggle) | Yes | Full |
 | `DELISTED` | **system**, non-punitive (halal cert lapsed, docs expired, no approved menu) | Auto, when the cause clears | No | No | Full, with a blocking remediation banner; the menu stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
-| `SUSPENDED` | **Admin**, punitive, reversible, optionally time-boxed | Yes, by Admin+ | No | No | Restricted: read own data, upload documents, respond to cases, edit opening hours ([hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
-| `BANNED` | **Admin** proposes, **Super Admin** confirms; punitive, permanent | Only by Super Admin | No | No | Blocked entirely (`403 ACCOUNT_BANNED`); the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `SUSPENDED` | **Admin**, punitive, reversible, optionally time-boxed | Yes, by Admin+ | No | No | Restricted: read own data, upload documents, respond to cases, edit opening hours ([hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); the menu is locked for everyone, admins included: every menu write is `403 MENU_LOCKED` ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [how it is enforced](#a-19--menu-approval-queue)) |
+| `BANNED` | **Admin** proposes, **Super Admin** confirms; punitive, permanent | Only by Super Admin | No | No | Blocked entirely (`403 ACCOUNT_BANNED`); the menu is locked for everyone, admins included: every menu write is `403 MENU_LOCKED` ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [how it is enforced](#a-19--menu-approval-queue)) |
 | `DEACTIVATED` | **the restaurant itself**, or staff on the restaurant's written request; non-punitive voluntary exit | Yes, by the restaurant or Support Agent | No | No | Full, with a "reactivate" call to action; opening hours read-only |
 | `CLOSED` | Super Admin, after `BANNED` or `DEACTIVATED` + retention period, or on erasure request | No — terminal | No | No | Blocked |
 
@@ -1344,9 +1344,19 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). An item an admin creates
     is approved on creation and audited, with the creating admin recorded as its reviewer
     ([menu approval](../decisions/README.md#settled--reconciliations)). Updating or removing an item on
-    a restaurant's behalf is a launch operation the contract does not have yet ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
-    [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)); it never silently discards a
-    restaurant edit that is waiting for review.
+    a restaurant's behalf is a launch operation ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
+    [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)) the contract has and the backend
+    does not build yet; it never silently discards a restaurant edit that is waiting for review.
+  - R8 The menu lock is enforced, not advisory ([#256](https://github.com/shaiknoorullah/hg-mono/issues/256)).
+    While the restaurant's `account_state` is `SUSPENDED` or `BANNED`, every menu write on its behalf
+    answers `403 MENU_LOCKED`, with the state in `details.account_state`, and writes nothing: creating,
+    updating or removing a category or an item, and approving or rejecting one of its versions waiting
+    for review, which stays `PENDING_REVIEW` until the suspension is lifted. The review queue still
+    lists it, and every read stays open. `ADMIN` and `SUPER_ADMIN` are refused alike. A `DELISTED`
+    restaurant is not locked. The check is the same one the restaurant's own menu writes make
+    ([the menu lock](03-restaurant.md#r-15--menu-item-authoring)): each write locks the restaurant row
+    and reads its state in the transaction that makes the write, so a write racing a suspension
+    commits before it or is refused, never after it.
 - **Acceptance criteria**:
   1. Given a restaurant with no published menu, when everything else is approved, then `account_state`
      is not `LIVE` and `delist_reasons` contains `NO_APPROVED_MENU`; when menu v1 is approved, then it
@@ -1362,6 +1372,10 @@ These six words mean exactly this everywhere in the product, in the API, and in 
      `HALAL_INTEGRITY` case exists.
   5. Given an `ADMIN` creates a menu item on a restaurant's behalf, then the item is approved without
      entering the review queue, the admin is its recorded reviewer, and an `audit_event` exists.
+  6. Given a suspended or banned restaurant with a version waiting for review, when a `SUPER_ADMIN`
+     creates a menu item on its behalf or approves that version, then `403 MENU_LOCKED`, nothing is
+     written, and the version is still `PENDING_REVIEW` in the queue; when the restaurant is delisted
+     instead, then both succeed.
 - **Out of scope**: nutritional-data validation; automated image moderation (V2); ingredient-level
   halal verification (V3); per-item halal certification.
 - **Version**: V1 · **Size**: L
@@ -2780,8 +2794,8 @@ is enforced server-side. `Deny` = `403 FORBIDDEN_PERMISSION`.
 | `restaurant.approve` / `restaurant.reject` / `restaurant.request_changes` | A-18 | Allow | Allow | Deny |
 | `restaurant.reverse_rejection` | A-18 | Limited — ≤30 days | Deny | Deny |
 | `menu.read_queue` | A-19 | Allow | Allow | Allow — position, SLA, findings |
-| `menu.review` (approve / reject / partial) | A-19 | Allow | Allow | Deny |
-| `menu.bulk_approve` | A-19 | Allow | Deny | Deny |
+| `menu.review` (approve / reject / partial; refused while the restaurant is suspended or banned, [menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | A-19 | Allow | Allow | Deny |
+| `menu.bulk_approve` (refused while the restaurant is suspended or banned, as above) | A-19 | Allow | Deny | Deny |
 | `menu.edit` (create, update or remove on a restaurant's behalf; refused while it is suspended or banned, [menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | A-19 | Allow | Allow | Deny |
 | `compliance.read` | A-20 | Allow | Allow | Limited — violation summary only |
 | `compliance.raise_violation` | A-20 | Allow | Allow | Deny |

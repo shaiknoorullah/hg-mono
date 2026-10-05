@@ -10,6 +10,7 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 )
 
 // restaurantProfileRow is the full restaurant projection the review screen needs.
@@ -577,6 +578,10 @@ RETURNING decided_at`, accountID, rc, reasonText, decidedBy).Scan(&decidedNow); 
 			if _, err := tx.Exec(ctx, `
 UPDATE rider_profile SET onboarding_state=$2::rider_onboarding_state, approved_by=$3, approved_at=now()
  WHERE account_id=$1`, accountID, toState, decidedBy); err != nil {
+				return err
+			}
+			// Payouts may already be enabled: go straight to ACTIVE.
+			if err := rider.RecomputeOnboarding(ctx, tx, accountID); err != nil {
 				return err
 			}
 		} else {

@@ -126,3 +126,13 @@ export async function reorder(orderId: string): Promise<{ failedLines: string[] 
   }
   return { failedLines };
 }
+
+export type OrderTracking = Schema['OrderTracking'];
+
+/** `GET /v1/orders/{orderId}/tracking` — the REST twin of the socket's tracking projection. */
+export async function getOrderTracking(orderId: string): Promise<OrderTracking> {
+  const body = await unwrap(
+    api.GET('/v1/orders/{orderId}/tracking', { params: { path: { orderId } } }),
+  );
+  return body.data as unknown as OrderTracking;
+}

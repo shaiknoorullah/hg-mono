@@ -48,7 +48,7 @@ export function App() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
-            path="/onboarding"
+            path="/onboarding/*"
             element={
               <RequireAuth>
                 <OnboardingPage />

@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Schema } from '@hg/api-client';
 import { Button, Card, EmptyState, ErrorState, Icon } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
-import { useAsync } from '../lib/useAsync';
 import { DeadlineTimer } from '../components/DeadlineTimer';
 import { PageLoading } from '../components/PageLoading';
 import { StatusChip } from '../components/StatusChip';
@@ -28,16 +27,92 @@ function money(value: unknown) {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Number(value) / 100);
 }
 
-export function OrdersPage() {
-  const { status, data, error, reload } = useAsync(
-    () =>
-      unwrapOrThrow(
-        api.GET('/v1/restaurant/orders', {
-          params: { query: { state: ['RESTAURANT_PENDING', 'PREPARING', 'READY_FOR_PICKUP'] } },
-        }),
-      ),
-    [],
+const POLL_MS = 7_000;
+
+/** Short two-tone chime; best-effort (browsers block audio until the page has had a gesture). */
+function chime() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    [880, 1175].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.18 + 0.16);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.18);
+      osc.stop(ctx.currentTime + i * 0.18 + 0.17);
+    });
+    window.setTimeout(() => void ctx.close(), 800);
+  } catch {
+    /* no audio available */
+  }
+}
+
+type OrderList = Awaited<ReturnType<typeof fetchOrders>>;
+function fetchOrders() {
+  return unwrapOrThrow(
+    api.GET('/v1/restaurant/orders', {
+      params: { query: { state: ['RESTAURANT_PENDING', 'PREPARING', 'READY_FOR_PICKUP'] } },
+    }),
   );
+}
+
+export function OrdersPage() {
+  const [data, setData] = useState<OrderList | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const seen = useRef<Set<string> | null>(null);
+
+  // Polling (not the WebSocket): every POLL_MS while the tab is visible; paused when hidden
+  // and refreshed immediately on focus. New RESTAURANT_PENDING ids ring and highlight.
+  const reload = useCallback(async () => {
+    try {
+      const list = await fetchOrders();
+      setData(list);
+      setError(null);
+      setStatus('ready');
+      const pendingIds = list.filter((o) => o.state === 'RESTAURANT_PENDING').map((o) => o.id);
+      if (seen.current) {
+        const added = pendingIds.filter((id) => !seen.current!.has(id));
+        if (added.length) {
+          chime();
+          setFresh((f) => new Set([...f, ...added]));
+        }
+      }
+      seen.current = new Set([...(seen.current ?? []), ...pendingIds]);
+    } catch (e) {
+      // Keep showing the last good list on a transient poll failure.
+      if (!seen.current) {
+        setError(isApiError(e) ? e.message : 'Could not reach the server. Check your connection and try again.');
+        setStatus('error');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const stop = () => {
+      if (timer !== undefined) window.clearInterval(timer);
+      timer = undefined;
+    };
+    const start = () => {
+      stop();
+      void reload();
+      timer = window.setInterval(() => void reload(), POLL_MS);
+    };
+    const onVisibility = () => (document.hidden ? stop() : start());
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onVisibility);
+    };
+  }, [reload]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<RejectableOrder | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -46,7 +121,7 @@ export function OrdersPage() {
   if (status === 'error') {
     return (
       <div className="p-6">
-        <ErrorState description={error ?? undefined} onRetry={reload} />
+        <ErrorState description={error ?? undefined} onRetry={() => void reload()} />
       </div>
     );
   }
@@ -80,7 +155,7 @@ export function OrdersPage() {
           <h1 className="text-heading-md font-extrabold text-fg-primary">Live orders</h1>
           <p className="text-body-sm text-fg-secondary">Sorted by the most urgent deadline first.</p>
         </div>
-        <Button variant="secondary" onPress={reload}>
+        <Button variant="secondary" onPress={() => void reload()}>
           Refresh
         </Button>
       </header>
@@ -101,7 +176,12 @@ export function OrdersPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {pending.map((order) => (
-            <Card key={order.id} className="hg-fade-up border-line-brand">
+            <div
+              key={order.id}
+              data-new-order={fresh.has(order.id) ? 'true' : undefined}
+              className={fresh.has(order.id) ? 'rounded-lg ring-4 ring-action-primary-bg' : undefined}
+            >
+            <Card className="hg-fade-up border-line-brand">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-label-md font-extrabold text-fg-primary">#{order.code}</span>
                 <DeadlineTimer deadlineAt={order.deadline_at} />
@@ -137,6 +217,7 @@ export function OrdersPage() {
                 </Button>
               </div>
             </Card>
+            </div>
           ))}
 
           {inKitchen.map((order) => (

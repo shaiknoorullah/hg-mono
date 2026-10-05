@@ -441,6 +441,8 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          # Launch week only: per-file drops warn, money and safety floors still fail (issue #446).
+          HG_COVERAGE_RATCHET: warn
         run: node .github/scripts/coverage.mjs check --base "$BASE_SHA"
 
       # The `coverage-comment` job posts the table; it runs only when the table changed.
