@@ -2,6 +2,8 @@
 # Drive the restaurant web app against the contract mock or a real backend with agent-browser.
 #
 #   driver.sh [--backend mock|local] up        start backend/vite in the background, wait until answering
+#                                              (local: `make up` when the API is down, then `make dev-reset`;
+#                                               RESET=0 keeps the current dev world)
 #   driver.sh [--backend mock|local] smoke     sign in, screenshot Orders/Menu/Hours, click Accept, print network calls
 #   driver.sh [--backend mock|local] shot URL  screenshot one route using the signed-in session
 #   driver.sh down                                close the browser and kill servers
@@ -51,6 +53,24 @@ wait_for() { # url label
   echo "$2 did not come up; see $OUT/$2.log" >&2; exit 1
 }
 
+ready() { curl -s -k "$API_CHECK" 2>/dev/null | grep -q '"ready":true'; }
+
+# The Go stack (Traefik, 2 API replicas, Postgres, Redis, MinIO) from services/hg, then a fresh
+# dev world. dev-reset recreates the schema and applies the migrations, so no separate migrate.
+up_local() {
+  if ! ready; then
+    echo "backend (local) down; starting the Go stack (make up, logs in $OUT/stack.log)"
+    make --no-print-directory -C "$ROOT/services/hg" up >"$OUT/stack.log" 2>&1 || { echo "make up failed; see $OUT/stack.log" >&2; exit 1; }
+  fi
+  for _ in $(seq 1 120); do ready && break; sleep 1; done
+  ready || { echo "backend (local) not ready at $API_CHECK; see $OUT/stack.log" >&2; exit 1; }
+  echo "backend (local) ready: $API_CHECK"
+  if [ "${RESET:-1}" != 0 ]; then
+    make --no-print-directory -C "$ROOT/services/hg" dev-reset >"$OUT/dev-reset.log" 2>&1 || { echo "make dev-reset failed; see $OUT/dev-reset.log" >&2; exit 1; }
+    echo "dev world reset: $(tail -n1 "$OUT/dev-reset.log")"
+  fi
+}
+
 up() {
   if [ "$USE_MOCK" = true ]; then
     if [ "$(code "$API_CHECK")" = 000 ]; then
@@ -58,7 +78,7 @@ up() {
     fi
     wait_for "$API_CHECK" mock
   else
-    wait_for "$API_CHECK" "backend ($BACKEND)"
+    up_local
   fi
 
   if [ "$(code "$WEB")" = 000 ]; then
