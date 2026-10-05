@@ -224,7 +224,7 @@ type Email struct {
 }
 
 // Push holds the push-notification settings (docs/spec/01-platform.md,
-// "P-25 — Devices and push"; issue #58). Push is off unless HG_PUSH_ENABLED
+// "P-25 — Push notifications (Expo)"; issue #58). Push is off unless HG_PUSH_ENABLED
 // is true: off, every push is recorded SUPPRESSED and the in-app inbox is the
 // record, as before.
 type Push struct {
