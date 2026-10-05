@@ -58,7 +58,8 @@ dev-reset                                         (make dev-reset)
        1. guard: HG_ENV=local, and the database host is loopback, a Unix socket,
           or the compose service name postgres. Anything else is refused.
        2. drop schema public (topology extensions first, they pin objects), then goose up
-          as the same local superuser
+          as the same local superuser (new orders start open: migrating recreates the
+          ordering-pause row switched off)
        3. load the reference seed
        4. load migrations/devworld/001_personas.sql
        5. set one shared password hash. The admin authenticator is enrolled only when
