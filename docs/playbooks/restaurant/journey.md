@@ -5,7 +5,7 @@ reviewed: 2026-10-05
 
 # Restaurant Playbook: End-to-End Live Journey
 
-This playbook walks an operator and an automation agent through a complete live order journey using the [dev world simulator](../../superpowers/specs/2026-09-28-devworld-harness-design.md#63-journey). It describes today's behaviour: the queue does not update live yet, so some steps press **Refresh**.
+This playbook walks an operator and an automation agent through a complete live order journey using the [dev world simulator](../../superpowers/specs/2026-09-28-devworld-harness-design.md#63-journey). The queue updates by itself: an event on the realtime socket refetches it at once, and it also refetches every 7 seconds whatever the socket does. No step needs **Refresh**; it is still there as a manual option. If the header says "Live updates paused, refreshing every few seconds", the socket is down and changes take up to 7 seconds to show.
 
 Terminal commands run from `services/hg`. The browser is the restaurant console on `http://localhost:5183`.
 
@@ -33,10 +33,10 @@ Terminal commands run from `services/hg`. The browser is the restaurant console 
    make dev-journey          # route=short speed=1x auto=none: the restaurant steps are yours
    ```
 2. **Browser action**:
-   - Press **Refresh**.
+   - Watch **Live orders**. Do not press **Refresh**.
 3. **Visible assertion**:
    - Terminal prints `placed  HG-XXXXXX  RESTAURANT_PENDING`, then `waiting  HG-XXXXXX  RESTAURANT_PENDING`.
-   - A card `#HG-XXXXXX` appears with the same code. It shows `Amina R.`, `Toronto`, `1× Chicken Karahi  $18.99`, **You earn** `$18.99`, and **Reject** and **Accept** buttons.
+   - Without any click, a card `#HG-XXXXXX` appears with the same code, within a few seconds of `placed` (at most 7 seconds if the socket is down). It shows `Amina R.`, `Toronto`, `1× Chicken Karahi  $18.99`, **You earn** `$18.99`, and **Reject** and **Accept** buttons.
    - The clock chip counts down from `3:00`.
 
 ---
@@ -83,6 +83,6 @@ The dev world issues no physical seals, so every seal code is refused. The journ
    - `seal refused  http 404  SEAL_NOT_FOUND` (no seal, as in step 3), then `assignment  PICKED_UP`.
    - `assignment  DELIVERED`. About two minutes later it prints `state  HG-XXXXXX  COMPLETED`, then `receipt  http 200`, `rating  http 200`, `restaurant  http 200  COMPLETED` and `refund  http 201 …`, and exits 0.
 3. **Browser action**:
-   - Press **Refresh**.
+   - None: wait up to 7 seconds for the queue to update by itself.
 4. **Visible assertion**:
    - Today the card stays on **Live orders** with the chip `COMPLETED` and no buttons. The order list ignores its state filter ([#601](https://github.com/shaiknoorullah/hg-mono/issues/601)). Once that is fixed, the order leaves the queue at pickup.

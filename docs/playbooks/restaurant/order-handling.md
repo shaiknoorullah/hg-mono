@@ -18,9 +18,9 @@ This playbook scripts the end-to-end order processing lifecycle for restaurant o
    ```
 2. **Browser action**:
    - Open `/orders` as the active restaurant operator.
-   - Note: If live socket updates are not connected in your environment, click **Refresh**.
+   - Do not click anything: the queue updates by itself from the realtime socket, and every 7 seconds even when the socket is down. **Refresh** stays available as a manual option.
 3. **Visible assertion**:
-   - A new order card appears displaying the order code (e.g. `#HG-…`), customer name, delivery destination, and ordered items.
+   - Without a click, within 7 seconds, a new order card appears displaying the order code (e.g. `#HG-…`), customer name, delivery destination, and ordered items.
    - A 180-second countdown timer is active (enforcing [Platform Invariant 4](../../../AGENTS.md#3-non-negotiable-invariants) — non-terminal states have a deadline).
    - An attention ring highlights newly arrived orders.
 
@@ -72,7 +72,7 @@ This playbook scripts the end-to-end order processing lifecycle for restaurant o
    cmd/devworld scenario new-order --persona bismillah-grill
    ```
 2. **Browser action**:
-   - Refresh `/orders` to display the incoming order.
+   - Wait for the incoming order to appear on `/orders` by itself (at most 7 seconds).
    - Click **Reject**.
    - In the confirmation dialog, select a reason: `KITCHEN_AT_CAPACITY` or `ITEM_UNAVAILABLE`.
    - Click **Confirm rejection**.

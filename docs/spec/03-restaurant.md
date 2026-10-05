@@ -1497,6 +1497,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   [desktop working pages](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [where the live strip sits](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   It loads via REST and then stays current via the SSE stream (R-09).
 
+  > **Built (Oct 2026):** the queue (`apps/restaurant/src/routes/OrdersPage.tsx`) listens on `restaurant:{id}` and on each shown order's `order:{id}` ([realtime contract, restaurant events](../../contracts/websocket.md#4-event-catalogue)) and refetches over REST on every offer, expired or withdrawn offer, accept, reject, state change and reconnect, while the 7-second poll keeps running underneath, so the socket only makes changes appear sooner.
+
 - **Data**: `GET /v1/restaurant/orders` returns the contract's `OrderRestaurantView` (its shape wins
   where this sketch differs), projected from `order` + `order_line`:
   ```
