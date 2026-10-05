@@ -259,7 +259,7 @@ func TestIntegration_GetOnboardingStatus_NoGrant_Returns404(t *testing.T) {
 	// completely unscoped account:
 	var noGrantAccountID string
 	if err := pool.QueryRow(context.Background(),
-		`INSERT INTO account (email, status) VALUES ('ng-'||substr(uuid_generate_v7()::text,1,8)||'@test.local','ACTIVE') RETURNING id`,
+		`INSERT INTO account (email, status) VALUES ('ng-'||right(uuid_generate_v7()::text, 12)||'@test.local','ACTIVE') RETURNING id`,
 	).Scan(&noGrantAccountID); err != nil {
 		t.Fatalf("seed no-grant account: %v", err)
 	}

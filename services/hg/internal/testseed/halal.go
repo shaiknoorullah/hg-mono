@@ -36,7 +36,7 @@ func CertifyRestaurant(t testing.TB, pool *pgxpool.Pool, restaurantID string, ex
 	// refuses an approval nobody is accountable for.
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO account (email, status)
-		VALUES ('halal-reviewer-'||substr(uuid_generate_v7()::text, 1, 13)||'@test.local', 'ACTIVE')
+		VALUES ('halal-reviewer-'||right(uuid_generate_v7()::text, 12)||'@test.local', 'ACTIVE')
 		RETURNING id`).Scan(&reviewerID); err != nil {
 		t.Fatalf("certify restaurant: reviewer: %v", err)
 	}
