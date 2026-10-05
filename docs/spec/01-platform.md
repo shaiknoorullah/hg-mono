@@ -2692,7 +2692,9 @@ CREATE INDEX audit_event_action ON audit_event(action, at DESC);
 
   The record is written in the **same transaction** as the business effect, so "money moved but the idempotency record did not commit" cannot happen.
 
-  As built, the claim and replay run for `issueRefund`, `approveRefund`, `declineRefund` and `addChargebackEvidenceNote` (`internal/payments/idempotency.go`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)): the response body is stored as the exact bytes sent, so a replay is byte-identical. Every other route still only requires the header.
+  As built, the claim and replay live in `internal/idempotency` and run for `createOrder`, `createRefund`, `issueRefund`, `approveRefund`, `declineRefund` and `addChargebackEvidenceNote` ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172), [#363](https://github.com/shaiknoorullah/hg-mono/issues/363)): the response body is stored as the exact bytes sent, so a replay is byte-identical. Every other route still only requires the header; on those a retry is stopped by the effect's own guard (a state check, a unique index or a deterministic Stripe key), not replayed.
+
+  `createOrder` claims the key first in the order's transaction, before the one-active-order check, so a retried checkout gets the first answer (order and `client_secret`) rather than `ACTIVE_ORDER_EXISTS`. The PaymentIntent is a network call made after that transaction commits, so the record commits `IN_PROGRESS` with the order attached (`resource_id`) and is completed with the answer once the gateway replies; that work finishes even if the client has disconnected. If the process dies in between, a retry after the one-minute lease takes the record over and finishes the same order: the PaymentIntent is keyed by the order id, so asking again creates no second authorisation. A server error other than the gateway's 503 is not recorded, so it is never replayed.
 
   Routes requiring a key: `POST /v1/orders`, `POST /v1/quotes`, `POST /v1/payments/*`, `POST /v1/refunds`, `POST /v1/payouts/*`, `POST /v1/tips`, `POST /v1/connect/account`, `POST /v1/uploads`, `POST /v1/disputes`, and every admin money action.
 
