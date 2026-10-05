@@ -7,8 +7,12 @@
  * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
  * API but production's. How to build each: docs/release/README.md.
  *
- * `@rnmapbox/maps` stays out of autolinking (package.json `expo.autolinking.exclude`) until the
- * rider screens use a native map; its plugin only pins the SDK version.
+ * `@rnmapbox/maps` stays out of autolinking (package.json `expo.autolinking.exclude`) and has no
+ * config plugin here until the rider screens use a native map.
+ *
+ * `extra.eas.projectId` is only added when `EAS_PROJECT_ID` is set, so a local
+ * `npx expo prebuild` / gradle build does not need EAS. Run `eas init` (owner step) before using
+ * EAS Build and put the id it prints in `EAS_PROJECT_ID`.
  */
 const { expoAppEnv } = require('../../scripts/release/app-env.cjs');
 
@@ -80,13 +84,10 @@ module.exports = () => {
               "HalalGoes uses your location so dispatch can route you and find you while you're online.",
           },
         ],
-        ['@rnmapbox/maps', { RNMapboxMapsVersion: '11.8.0' }],
       ],
       extra: {
         appEnv: env.name,
-        eas: {
-          projectId: 'TODO-set-after-eas-init',
-        },
+        ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {}),
       },
     },
   };
