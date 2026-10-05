@@ -1,0 +1,185 @@
+{
+  "scenario": "payout_run_detail_every_outcome",
+  "domain": "admin",
+  "schema": "PayoutRunDetail",
+  "describes": "A run's audit trail with one line for every outcome a run can record.",
+  "operations": [
+    "getPayoutRun"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "money",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "a00327d0-3e66-4a2f-a513-8919012732e0",
+    "kind": "SCHEDULED",
+    "state": "FAILED",
+    "payee": null,
+    "period_start": "2026-08-03T04:00:00.000Z",
+    "period_end": "2026-08-10T04:00:00.000Z",
+    "as_of": "2026-08-10T13:00:00.000Z",
+    "due_at": "2026-08-10T13:00:00.000Z",
+    "requested_by": null,
+    "reason": null,
+    "started_at": "2026-08-10T13:00:00.000Z",
+    "finished_at": "2026-08-10T13:00:04.180Z",
+    "attempts": 1,
+    "partners": 42,
+    "paid": 36,
+    "held": 2,
+    "released": 1,
+    "carried": 2,
+    "failed": 1,
+    "paid_cents": 179710,
+    "held_cents": 1950,
+    "error": null,
+    "created_at": "2026-08-10T13:00:00.000Z",
+    "lines": [
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "8ab9775a-1712-4fa6-a53c-909dd6b73968"
+        },
+        "outcome": "PAID",
+        "payout_id": "4ef58979-2dd3-429c-a87c-8dd36436b9ac",
+        "amount_cents": 2099,
+        "detail": "Stripe transfer tr_1Q2w3E4r5T6y7U8i",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "69c59662-bd3d-4e46-aad8-0bbab5321e98"
+        },
+        "outcome": "HELD",
+        "payout_id": "3a76c59e-40e9-4361-aeb9-145a6cedd0fc",
+        "amount_cents": 700,
+        "detail": "Stripe has payouts turned off for this partner: requirements_due: external_account",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "54c735c1-b39d-4de1-a314-0e1d508f3912"
+        },
+        "outcome": "STILL_HELD",
+        "payout_id": "24f3e2b4-830a-4f33-a072-62396418e948",
+        "amount_cents": 1250,
+        "detail": "Stripe still has payouts turned off: requirements_due: individual.verification.document",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "1fe4d83d-2125-425f-a44f-3de0638dd6be"
+        },
+        "outcome": "RELEASED",
+        "payout_id": "636a6f3a-2b06-4608-a3b4-45a70b00f4bb",
+        "amount_cents": 650,
+        "detail": "Stripe transfer tr_9O8i7U6y5T4r3E2w",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "6bef3d80-c3bc-4813-af24-4008ca426bdf"
+        },
+        "outcome": "TRANSFER_FAILED",
+        "payout_id": "6d11a375-d867-4dca-a05f-8bf40110522e",
+        "amount_cents": 4500,
+        "detail": "stripe create transfer: insufficient available balance",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "9fa2f5c2-418c-4772-a117-11ae00302aaa"
+        },
+        "outcome": "ALREADY_PAID",
+        "payout_id": "3fec7484-0151-4a09-a5b7-48146d0785e5",
+        "amount_cents": 3000,
+        "detail": "this period's payout already exists (PAID)",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "dd6abc4b-968f-42cc-a4c0-a4776e4f84f3"
+        },
+        "outcome": "NOTHING_DUE",
+        "payout_id": null,
+        "amount_cents": 0,
+        "detail": null,
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "3db1f6cb-4f53-4d81-a145-17466ab272fa"
+        },
+        "outcome": "CARRIED_NEGATIVE",
+        "payout_id": null,
+        "amount_cents": -500,
+        "detail": "below zero since 2026-08-05; carried to the next run",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "a094948a-0eb8-4ac1-a15a-a61e13436b2c"
+        },
+        "outcome": "NO_PAYOUT_ACCOUNT",
+        "payout_id": null,
+        "amount_cents": 0,
+        "detail": "no Stripe account yet; the balance is paid once onboarding is complete",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RESTAURANT",
+          "id": "e7ffb621-5327-40d3-abbf-7e026caa7856"
+        },
+        "outcome": "PARTNER_SUSPENDED",
+        "payout_id": null,
+        "amount_cents": 0,
+        "detail": "the restaurant is SUSPENDED; its balance is kept until it is reinstated",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RESTAURANT",
+          "id": "3f26c87b-8fde-4965-a2a1-c54b1764040e"
+        },
+        "outcome": "ORDERS_BLOCKED",
+        "payout_id": null,
+        "amount_cents": -500,
+        "detail": "balance below zero since 2026-07-05, more than 30 days: no new orders until it recovers",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RESTAURANT",
+          "id": "24a0baab-7c1e-4e74-ac4c-e076c4f25682"
+        },
+        "outcome": "ORDERS_UNBLOCKED",
+        "payout_id": null,
+        "amount_cents": 0,
+        "detail": "the balance has recovered",
+        "at": "2026-08-10T13:00:02.517Z"
+      },
+      {
+        "payee": {
+          "type": "RIDER",
+          "id": "d8654a7f-3ba2-4d92-ae65-c2f11ebb1bb6"
+        },
+        "outcome": "ERROR",
+        "payout_id": null,
+        "amount_cents": 0,
+        "detail": "build payout: connection reset by peer",
+        "at": "2026-08-10T13:00:02.517Z"
+      }
+    ]
+  }
+}

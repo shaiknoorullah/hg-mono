@@ -16,7 +16,7 @@ import (
 // with ErrOrderingPaused and the cart says it cannot be quoted. Nothing else in
 // this package reads it: every order already placed carries on to the end.
 //
-// The switch is one row in Postgres (migration 00041_ordering_pause.sql). It is
+// The switch is one row in Postgres (migration 00050_ordering_pause.sql). It is
 // read on every quote, order and cart, with no cache in front of it, so every
 // API replica sees a change on its next request and flushing Redis can never
 // make it wrong (AGENTS.md, "Architecture in one picture").

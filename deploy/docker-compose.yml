@@ -28,8 +28,15 @@ x-api-env: &api-env
   HG_HTTP_ADDR: ":8080"
   HG_LOG_LEVEL: ${HG_LOG_LEVEL:-info}
   HG_SHUTDOWN_TIMEOUT: ${HG_SHUTDOWN_TIMEOUT:-20s}
+  # Rider availability sweeps (docs/spec/04-rider.md, "D-10 — Availability:
+  # online / offline"; see .env.example).
+  HG_RIDER_STALE_AFTER: ${HG_RIDER_STALE_AFTER:-120s}
+  HG_RIDER_STALE_SWEEP_INTERVAL: ${HG_RIDER_STALE_SWEEP_INTERVAL:-15s}
+  HG_RIDER_RECONCILE_INTERVAL: ${HG_RIDER_RECONCILE_INTERVAL:-60s}
   HG_CORS_ALLOWED_ORIGINS: ${HG_CORS_ALLOWED_ORIGINS:?set HG_CORS_ALLOWED_ORIGINS in .env}
   HG_REALTIME_MAX_SOCKETS: ${HG_REALTIME_MAX_SOCKETS:-2000}
+  HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: ${HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS:-30}
+  HG_PAYOUT_RESTAURANT_HOLD_HOURS: ${HG_PAYOUT_RESTAURANT_HOLD_HOURS:-72}
   # Traefik's network, so the API reads the client address Traefik forwards
   # rather than Traefik's own. Required, not defaulted: this stack always runs
   # the API behind Traefik, and an empty list there makes every per-IP limit
@@ -62,6 +69,23 @@ x-api-env: &api-env
   HG_AUTH_SIGNING_KID: ${HG_AUTH_SIGNING_KID:-k1}
   HG_AUTH_TERMS_VERSION: ${HG_AUTH_TERMS_VERSION:-2026-01}
   HG_APP_DATA_KEY: ${HG_APP_DATA_KEY:-}
+  # Rider pay the owner has not settled (#164); the default is the documented
+  # behaviour.
+  HG_RIDER_TIP_MAKEUP: ${HG_RIDER_TIP_MAKEUP:-false}
+  HG_AUTH_HASH_CONCURRENCY: ${HG_AUTH_HASH_CONCURRENCY:-3}
+  HG_AUTH_HASH_WAIT: ${HG_AUTH_HASH_WAIT:-2s}
+  HG_AUTH_HASH_MAX_WAITERS: ${HG_AUTH_HASH_MAX_WAITERS:-}
+
+  # Email (internal/notify). Optional: with no Resend key the API logs every
+  # email instead of sending it, and outside production only allow-listed
+  # addresses are ever really emailed (see .env.example).
+  HG_EMAIL_PROVIDER: ${HG_EMAIL_PROVIDER:-}
+  HG_RESEND_API_KEY: ${HG_RESEND_API_KEY:-}
+  HG_EMAIL_FROM: ${HG_EMAIL_FROM:-}
+  HG_EMAIL_REPLY_TO: ${HG_EMAIL_REPLY_TO:-}
+  HG_EMAIL_ALLOWLIST: ${HG_EMAIL_ALLOWLIST:-}
+  HG_RESTAURANT_WEB_URL: ${HG_RESTAURANT_WEB_URL:-http://localhost:5183}
+  HG_ADMIN_WEB_URL: ${HG_ADMIN_WEB_URL:-http://localhost:5175}
 
 services:
   # ---------------------------------------------------------------------------
@@ -189,13 +213,19 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:7-alpine
+    # Valkey, the open-source (BSD) continuation of Redis: same protocol, same
+    # commands, same flags. The service keeps the name `redis` so HG_REDIS_ADDR
+    # and every client stay as they are. Pinned by release and digest, so a
+    # retagged or deleted tag cannot change what boots (issue #202:
+    # https://github.com/shaiknoorullah/hg-mono/issues/202).
+    image: docker.io/valkey/valkey:9.1.2-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
     restart: unless-stopped
-    # Redis is disposable (G-1): it holds cache, pub/sub fan-out, rate-limit
-    # counters and OTP codes, and every key names its Postgres rebuild source.
+    # The cache is disposable: it holds cache, pub/sub fan-out, rate-limit
+    # counters and OTP codes, and every key names its Postgres rebuild source
+    # (docs/spec/01-platform.md, "Postgres is the only source of truth").
     # appendonly is on so a restart is not a thundering herd, not for durability.
     command: >
-      redis-server
+      valkey-server
       --appendonly yes
       --maxmemory ${REDIS_MAXMEMORY:-256mb}
       --maxmemory-policy allkeys-lru
@@ -205,13 +235,19 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     networks: [hg-net]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 20
 
   minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    # Silo, the maintained open-source (AGPL) fork of MinIO. It keeps MinIO's
+    # environment variables, S3 API and on-disk format, so the service name, the
+    # MINIO_* settings and the minio-go client stay as they are. The MinIO
+    # images this file pinned before can no longer be pulled (issue #202:
+    # https://github.com/shaiknoorullah/hg-mono/issues/202). Pinned by release
+    # and digest, per the "Object storage" row of docs/decisions/README.md.
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -230,33 +266,72 @@ services:
       timeout: 5s
       retries: 20
 
-  # Creates the P-27 bucket layout and sets exactly one of them public.
+  # Creates the bucket layout (docs/spec/01-platform.md, "Bucket layout and
+  # private-by-default") and sets exactly one bucket public.
   # The API's boot probe independently verifies the result, so a mistake here
   # fails the API's boot rather than quietly shipping world-readable KYC.
+  #
+  # Every step must succeed. `sh -e` stops at the first failure, and the API
+  # waits for this job to complete successfully, so a failed step keeps the API
+  # down. Never silence a step with `|| true`: that hid failed expiry rules.
+  #
+  # Every bucket is versioned, so an overwrite or a delete made by hand can be
+  # undone. Old versions are deleted 35 days after they stop being current. When
+  # the API deletes an object it removes every version of the key at once
+  # (services/hg/internal/files/objects.go). Lifecycle rules
+  # are imported, not added: an import replaces the bucket's whole rule set, so
+  # running this job again leaves the same rules instead of duplicates.
   createbuckets:
-    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    image: docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z@sha256:cfc83108c3abb371f8fb84d99c1fdc88f8c237e022409b0081fb7c0a3be634dd
     depends_on:
       minio:
         condition: service_healthy
     networks: [hg-net]
-    entrypoint: >
-      /bin/sh -c "
-      set -e;
-      mc alias set hg http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-      for b in hg-kyc hg-pod hg-media hg-exports hg-tmp; do
-        mc mb --ignore-existing hg/$$b;
-      done;
-      mc version enable hg/hg-kyc;
-      mc anonymous set none hg/hg-kyc;
-      mc anonymous set none hg/hg-pod;
-      mc anonymous set none hg/hg-exports;
-      mc anonymous set none hg/hg-tmp;
-      mc anonymous set download hg/hg-media;
-      mc ilm rule add --expire-days 90 hg/hg-pod  || true;
-      mc ilm rule add --expire-days 30 hg/hg-exports || true;
-      mc ilm rule add --expire-days 1  hg/hg-tmp  || true;
-      echo 'buckets ready: hg-kyc, hg-pod, hg-exports, hg-tmp private; hg-media public-read';
-      "
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        mc alias set hg http://minio:9000 "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}"
+
+        # lifecycle BUCKET [DAYS]: old versions expire 35 days after they stop
+        # being current. With DAYS, the current version also expires DAYS days
+        # after it is written.
+        lifecycle() {
+          current=''
+          if [ -n "$${2:-}" ]; then current="\"Expiration\":{\"Days\":$$2},"; fi
+          printf '{"Rules":[{"ID":"hg-retention","Status":"Enabled",%s"NoncurrentVersionExpiration":{"NoncurrentDays":35}}]}' "$$current" \
+            | mc ilm import "hg/$$1"
+        }
+
+        for b in hg-kyc hg-pod hg-media hg-exports hg-tmp; do
+          mc mb --ignore-existing "hg/$$b"
+          mc version enable "hg/$$b"
+        done
+
+        mc anonymous set none hg/hg-kyc
+        mc anonymous set none hg/hg-pod
+        mc anonymous set none hg/hg-exports
+        mc anonymous set none hg/hg-tmp
+        # Media stays public-read until the owner decides otherwise in issue
+        # #200: https://github.com/shaiknoorullah/hg-mono/issues/200
+        #
+        # Anonymous readers get s3:GetObject on hg-media and nothing else. Do
+        # not use `mc anonymous set download`: that preset also grants
+        # s3:ListBucket, and Silo accepts ListBucket for `?versions`, so anyone
+        # could list every old version and delete marker and then download
+        # deleted or overwritten media for 35 days. Without ListBucket, old
+        # version IDs (random UUIDs) cannot be discovered. Do not add a Deny on
+        # s3:GetObjectVersion either: Silo checks it on a plain GET too, so it
+        # would hide current media as well.
+        printf '%s' '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::hg-media/*"]}]}' > /tmp/media.json
+        mc anonymous set-json /tmp/media.json hg/hg-media
+
+        lifecycle hg-kyc
+        lifecycle hg-media
+        lifecycle hg-pod 90
+        lifecycle hg-exports 30
+        lifecycle hg-tmp 1
+
+        echo 'buckets ready: all five versioned; hg-kyc, hg-pod, hg-exports, hg-tmp private; hg-media public-read, objects only'
 
   # Creates the database roles, as the superuser, before anything else logs in:
   # hg_migrator, which owns the schema and is the only role goose runs as;

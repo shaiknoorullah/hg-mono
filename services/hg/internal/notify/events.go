@@ -121,6 +121,36 @@ func NotifyOrderReady(e OrderEvent) New {
 	return withDeadline(n, e.DeadlineAt, true)
 }
 
+// NotifyPickupDelayed tells the customer their ready order has waited too long
+// for pickup, and when they will hear next. The deadline runner sends it on
+// every lapse of the order's pickup deadline, so the dedupe key carries the
+// lapse: one notice per lapse, however often the lapse is retried. It follows
+// the no-rider notice in docs/spec/04-rider.md, "D-15 — Offer expiry, wave
+// escalation, and the no-rider-found path", in words that also fit a rider
+// who is assigned but late. Whether the customer is offered to collect the
+// order is still open (docs/spec/01-platform.md, "P-15 — Deadlines and
+// timeout actions"; https://github.com/shaiknoorullah/hg-mono/issues/336), so
+// it offers nothing.
+func NotifyPickupDelayed(e OrderEvent, lapse int, nextUpdateWithin time.Duration) New {
+	minutes := int(nextUpdateWithin / time.Minute)
+	if minutes < 1 {
+		minutes = 1
+	}
+	return New{
+		AccountID:   e.AccountID,
+		RoleContext: RoleCustomer,
+		Kind:        KindOrderPickupDelayed,
+		Title:       "Your order is waiting for pickup",
+		Body: fmt.Sprintf("Order %s is ready at %s, but its pickup is running late. We're on it, "+
+			"and you'll hear from us again within %d minutes.", e.OrderShortCode, e.RestaurantName, minutes),
+		Priority:  PriorityHigh,
+		Channels:  standardChannels(),
+		DedupeKey: fmt.Sprintf("order_pickup_delayed:%s:%d", e.OrderID, lapse),
+		GroupKey:  "order:" + e.OrderID.String(),
+		OrderID:   uuid.NullUUID{UUID: e.OrderID, Valid: true},
+	}
+}
+
 // NotifyRiderAssigned tells the customer a rider is on the way.
 func NotifyRiderAssigned(e OrderEvent) New {
 	return New{

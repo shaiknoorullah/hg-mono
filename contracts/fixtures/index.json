@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 378,
+  "count": 390,
   "counts_by_domain": {
-    "admin": 29,
-    "cart": 13,
+    "admin": 35,
+    "cart": 14,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 42,
+    "errors": 47,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -201,6 +201,102 @@
         "state-matrix"
       ],
       "file": "admin/ordering_pause_open.json"
+    },
+    {
+      "scenario": "payout_run_detail_every_outcome",
+      "domain": "admin",
+      "schema": "PayoutRunDetail",
+      "describes": "A run's audit trail with one line for every outcome a run can record.",
+      "operations": [
+        "getPayoutRun"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "state-matrix"
+      ],
+      "file": "admin/payout_run_detail_every_outcome.json"
+    },
+    {
+      "scenario": "payout_run_failed",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "One transfer failed. The payout stays owed and the next run tries it again.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_failed.json"
+    },
+    {
+      "scenario": "payout_run_list_empty",
+      "domain": "admin",
+      "schema": "array<PayoutRun>",
+      "describes": "No payout run has happened yet.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "admin/payout_run_list_empty.json"
+    },
+    {
+      "scenario": "payout_run_queued",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "An admin asked to run the payout now; the worker picks it up within seconds.",
+      "operations": [
+        "createPayoutRun"
+      ],
+      "status": 202,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_queued.json"
+    },
+    {
+      "scenario": "payout_run_running",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "The Monday run is paying partners. A worker that stops mid-run is relieved by the next.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_running.json"
+    },
+    {
+      "scenario": "payout_run_succeeded",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "The Monday run paid everyone it could; holds and carried balances are not failures.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_succeeded.json"
     },
     {
       "scenario": "restaurant_application_approved",
@@ -542,6 +638,21 @@
         "degraded"
       ],
       "file": "cart/cart_ordering_paused.json"
+    },
+    {
+      "scenario": "cart_restaurant_unavailable",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "The restaurant's halal certificate expired after these items were added. The cart is kept as it was, the badge reads `EXPIRED` (cool slate, never a red one) and `blocking_reasons: [RESTAURANT_UNAVAILABLE]` with `is_quotable: false`. Adding, quoting and ordering answer `409 RESTAURANT_UNAVAILABLE` (`error_restaurant_unavailable`).",
+      "operations": [
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "error-path",
+        "halal"
+      ],
+      "file": "cart/cart_restaurant_unavailable.json"
     },
     {
       "scenario": "cart_single_line",
@@ -2323,6 +2434,47 @@
       "file": "errors/error_item_blocked_by_admin.json"
     },
     {
+      "scenario": "error_menu_locked",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MENU_LOCKED`. A menu change while the restaurant is suspended, by its own staff or by an admin on its behalf. The menu still reads normally; every edit control shows the locked-menu state. Opening hours stay editable. Nothing was written.",
+      "operations": [
+        "createMenuCategory",
+        "updateMenuCategory",
+        "createMenuItem",
+        "updateMenuItem",
+        "setMenuItemAvailability",
+        "createMenuCategoryOnBehalf",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf",
+        "deleteMenuItemOnBehalf",
+        "decideMenuVersion"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_locked.json"
+    },
+    {
+      "scenario": "error_menu_locked_banned",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MENU_LOCKED`. An admin changing a banned restaurant's menu, or deciding one of its versions waiting for review. A banned restaurant's own staff cannot sign in, so only admins meet this one.",
+      "operations": [
+        "createMenuCategoryOnBehalf",
+        "createMenuItemOnBehalf",
+        "updateMenuItemOnBehalf",
+        "deleteMenuItemOnBehalf",
+        "decideMenuVersion"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_menu_locked_banned.json"
+    },
+    {
       "scenario": "error_menu_version_already_decided",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2563,6 +2715,18 @@
       "file": "errors/error_restaurant_closed.json"
     },
     {
+      "scenario": "error_restaurant_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RESTAURANT_UNAVAILABLE`. From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed and live, or its halal certificate is not current as of the request, computed from admin-verified certificate data. The apps show the halal copy and keep the cart. Pairs with `cart_restaurant_unavailable`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_restaurant_unavailable.json"
+    },
+    {
       "scenario": "error_review_edit_window_closed",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2651,6 +2815,34 @@
         "error-envelope"
       ],
       "file": "errors/error_validation_failed.json"
+    },
+    {
+      "scenario": "error_verification_token_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`410` · `VERIFICATION_TOKEN_EXPIRED`. `verifyEmail` with a token older than 24 hours. A token that never existed gets the same code. The page offers \"Send a new link\" (`resendEmailVerification`).",
+      "operations": [
+        "verifyEmail"
+      ],
+      "status": 410,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_verification_token_expired.json"
+    },
+    {
+      "scenario": "error_verification_token_used",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`410` · `VERIFICATION_TOKEN_USED`. `verifyEmail` with a token that was already used: the email is verified, so the page sends the owner to sign in. Using the link never signs anyone in.",
+      "operations": [
+        "verifyEmail"
+      ],
+      "status": 410,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_verification_token_used.json"
     },
     {
       "scenario": "certification_panel_certified",
@@ -4858,8 +5050,7 @@
       "operations": [
         "verifyOtp",
         "login",
-        "refreshSession",
-        "verifyEmail"
+        "refreshSession"
       ],
       "status": 200,
       "tags": [
@@ -5819,20 +6010,26 @@
     ],
     "createMenuCategory": [
       "error_category_name_taken",
+      "error_menu_locked",
       "menu_category_created"
     ],
     "createMenuCategoryOnBehalf": [
       "error_category_name_taken",
+      "error_menu_locked",
+      "error_menu_locked_banned",
       "menu_category_created"
     ],
     "createMenuItem": [
       "error_halal_tag_not_writable",
+      "error_menu_locked",
       "error_price_out_of_range",
       "error_prohibited_ingredient",
       "menu_item_created_pending_review"
     ],
     "createMenuItemOnBehalf": [
       "error_halal_tag_not_writable",
+      "error_menu_locked",
+      "error_menu_locked_banned",
       "error_price_out_of_range",
       "error_prohibited_ingredient",
       "menu_item_created_by_admin"
@@ -5842,6 +6039,9 @@
     ],
     "createPaymentMethodSetupIntent": [
       "setup_intent"
+    ],
+    "createPayoutRun": [
+      "payout_run_queued"
     ],
     "createQuote": [
       "error_ordering_paused",
@@ -5886,6 +6086,8 @@
       "halal_certificate_status_superseded"
     ],
     "decideMenuVersion": [
+      "error_menu_locked",
+      "error_menu_locked_banned",
       "error_menu_version_already_decided",
       "error_menu_version_item_deleted",
       "menu_version_approved",
@@ -5915,6 +6117,10 @@
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
       "restaurant_order_restaurant_pending"
+    ],
+    "deleteMenuItemOnBehalf": [
+      "error_menu_locked",
+      "error_menu_locked_banned"
     ],
     "enrollTotp": [
       "totp_enrolment"
@@ -5971,6 +6177,7 @@
       "cart_has_unavailable_items",
       "cart_many_lines",
       "cart_ordering_paused",
+      "cart_restaurant_unavailable",
       "cart_single_line"
     ],
     "getConnectStatus": [
@@ -6084,6 +6291,9 @@
     ],
     "getOwnMenu": [
       "owned_menu_with_pending_version"
+    ],
+    "getPayoutRun": [
+      "payout_run_detail_every_outcome"
     ],
     "getPublicConfig": [
       "public_config",
@@ -6256,6 +6466,12 @@
       "payment_methods_at_limit",
       "payment_methods_empty",
       "payment_methods_list"
+    ],
+    "listPayoutRuns": [
+      "payout_run_failed",
+      "payout_run_list_empty",
+      "payout_run_running",
+      "payout_run_succeeded"
     ],
     "listRefunds": [
       "refund_approved",
@@ -6451,6 +6667,7 @@
     ],
     "setMenuItemAvailability": [
       "error_item_blocked_by_admin",
+      "error_menu_locked",
       "menu_item_marked_available",
       "menu_item_marked_out_of_stock_indefinitely",
       "menu_item_marked_out_of_stock_until"
@@ -6557,10 +6774,12 @@
     ],
     "updateMenuCategory": [
       "error_category_name_taken",
+      "error_menu_locked",
       "menu_category_updated"
     ],
     "updateMenuItem": [
       "error_halal_tag_not_writable",
+      "error_menu_locked",
       "error_price_out_of_range",
       "error_prohibited_ingredient",
       "menu_item_edit_pending_review",
@@ -6568,6 +6787,8 @@
     ],
     "updateMenuItemOnBehalf": [
       "error_halal_tag_not_writable",
+      "error_menu_locked",
+      "error_menu_locked_banned",
       "error_menu_version_pending",
       "error_price_out_of_range",
       "error_prohibited_ingredient",
@@ -6575,7 +6796,8 @@
       "menu_item_edited_by_admin"
     ],
     "verifyEmail": [
-      "session_grant_customer"
+      "error_verification_token_expired",
+      "error_verification_token_used"
     ],
     "verifyOtp": [
       "session_grant_customer",
@@ -6613,6 +6835,7 @@
     "createMenuItem": "menu_item_created_pending_review",
     "createMenuItemOnBehalf": "menu_item_created_by_admin",
     "createPaymentMethodSetupIntent": "setup_intent",
+    "createPayoutRun": "payout_run_queued",
     "createQuote": "quote_standard",
     "createRealtimeTicket": "realtime_ticket",
     "createRefund": "refund_requested",
@@ -6645,6 +6868,7 @@
     "getOrderTracking": "tracking_picked_up",
     "getOrderingPause": "ordering_pause_open",
     "getOwnMenu": "owned_menu_with_pending_version",
+    "getPayoutRun": "payout_run_detail_every_outcome",
     "getPublicConfig": "public_config",
     "getQuote": "quote_standard",
     "getReadiness": "readiness_ok",
@@ -6672,6 +6896,7 @@
     "listOrders": "order_list_active",
     "listOrdersAdmin": "order_list_past",
     "listPaymentMethods": "payment_methods_list",
+    "listPayoutRuns": "payout_run_succeeded",
     "listRefunds": "refund_list_empty",
     "listRestaurantApplications": "restaurant_application_queue",
     "listRestaurantDocuments": "restaurant_document_pack_complete",
@@ -6724,7 +6949,6 @@
     "updateMenuCategory": "menu_category_updated",
     "updateMenuItem": "menu_item_edit_pending_review",
     "updateMenuItemOnBehalf": "menu_item_edited_by_admin",
-    "verifyEmail": "session_grant_customer",
     "verifyOtp": "session_grant_customer"
   }
 }

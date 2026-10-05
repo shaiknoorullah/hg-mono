@@ -1,16 +1,16 @@
 /**
- * Post-delivery ratings — food and rider, separately.
+ * Post-delivery ratings — food and rider, submitted together.
  *
- * **Known contract gap**: `contracts/openapi.yaml` has no rating-submission endpoint at any
- * version (there is `rating_avg`/`rating_count` on the restaurant and rider read models, but
- * nothing a customer can `POST` to produce them). Rather than invent an endpoint the generated
- * `@hg/api-client` doesn't have — hand-writing a type the generator would emit is forbidden by
- * `AGENTS.md` §6 — this module holds submitted ratings in memory only, the same in-memory-only
- * pattern `token.ts` uses for the session. The screen is fully real: star input, comment, the
- * submitted state persisting for the rest of the session. Wiring it to a server round-trip is a
- * one-line change in `submitRating` once `POST /v1/orders/{orderId}/rating` (or similar) lands
- * in the contract and the client regenerates.
+ * `PUT /v1/orders/{orderId}/rating` (C-38). Both halves are optional in the contract; the screen
+ * sends the food score always and the rider score when the order had a rider. The free-text
+ * comment goes to the food `review`. The last submitted rating per order is cached in memory
+ * only so the screen can show "Update rating" for the rest of the session; the server is the
+ * record.
  */
+import { idempotencyKey, unwrap } from '@hg/api-client';
+
+import { api } from './client';
+
 export interface OrderRating {
   orderId: string;
   foodRating: number;
@@ -41,6 +41,19 @@ export async function submitRating(input: {
   riderRating: number | null;
   comment: string;
 }): Promise<OrderRating> {
+  const comment = input.comment.trim();
+  await unwrap(
+    api.PUT('/v1/orders/{orderId}/rating', {
+      params: {
+        path: { orderId: input.orderId },
+        header: { 'Idempotency-Key': idempotencyKey() },
+      },
+      body: {
+        food: { score: input.foodRating, ...(comment ? { review: comment } : {}) },
+        ...(input.riderRating ? { rider: { score: input.riderRating } } : {}),
+      },
+    }),
+  );
   const rating: OrderRating = { ...input, submittedAt: new Date().toISOString() };
   store.set(input.orderId, rating);
   notify();

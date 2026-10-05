@@ -29,6 +29,7 @@ const (
 	codeDifferentRestaurant httpx.ErrorCode = "DIFFERENT_RESTAURANT"
 	codeItemUnavailable     httpx.ErrorCode = "ITEM_UNAVAILABLE"
 	codeRestaurantClosed    httpx.ErrorCode = "RESTAURANT_CLOSED"
+	codeRestaurantUnavail   httpx.ErrorCode = "RESTAURANT_UNAVAILABLE"
 	codeCartHasUnavailable  httpx.ErrorCode = "CART_HAS_UNAVAILABLE_ITEMS"
 	codeBelowMinimum        httpx.ErrorCode = "BELOW_MINIMUM_ORDER"
 	codeProvinceNotServed   httpx.ErrorCode = "PROVINCE_NOT_SERVED"
@@ -449,6 +450,13 @@ func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, ErrOrderingPaused):
 		httpx.Fail(w, r, http.StatusConflict, codeOrderingPaused,
 			"Ordering is paused on HalalGoes right now. Nothing was charged; please try again later.", nil)
+	case errors.Is(err, ErrRestaurantUnavailable):
+		// The apps show the halal-specific copy for this code and keep the cart
+		// (the halal display spec, rule 3:
+		// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/02-customer.md#c-12--halal-certification-display-and-verification--critical).
+		// https://github.com/shaiknoorullah/hg-mono/issues/292
+		httpx.Fail(w, r, http.StatusConflict, codeRestaurantUnavail,
+			"This restaurant cannot take orders: it is not listed, or its halal certification is not current. Your cart is saved.", nil)
 	case errors.Is(err, ErrRestaurantClosed):
 		httpx.Fail(w, r, http.StatusConflict, codeRestaurantClosed, "The restaurant is not accepting orders right now.", nil)
 	case errors.Is(err, ErrCartEmpty):

@@ -1,0 +1,19 @@
+HalalGoes
+
+Your payout is on its way
+
+We sent a HalalGoes payout. It can take a few business days to show in your bank account.
+
+Payout
+
+{{.Amount}} to {{.PayeeName}}
+For {{.PeriodText}}
+Sent {{.SentAt}}
+
+You can see this payout, and the orders in it, under Payouts in HalalGoes.
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

@@ -20,7 +20,7 @@
  *   ready   — the assignment with pickup, drop-off, items and the next action.
  */
 import * as React from 'react';
-import { Linking, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Text } from 'react-native';
 import {
   Badge,
@@ -45,6 +45,7 @@ import { sha256HexBytes } from '../sha256';
 import { Screen, LoadingView, ErrorView } from './Screen';
 import { SealScanCard } from '../components/SealScanCard';
 import { useNav } from '../nav';
+import { openNavigation } from '../navigate';
 
 /** Runs the same real 3-call private-bucket upload flow the onboarding screen uses, for a POD
  *  photo instead of a KYC document, and returns the confirmed `stored_object` id. */
@@ -116,11 +117,6 @@ const FORWARD: Partial<
     at: 'dropoff',
   },
 };
-
-/** Deep-links out to the device's own maps app for turn-by-turn — no in-app map view is built. */
-function mapsUrl(loc: { latitude: number; longitude: number }): string {
-  return `https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}&travelmode=driving`;
-}
 
 /** Demo-only: the assignment fixtures the mock serves, exposed as a picker. */
 const SCENARIOS: { value: string; label: string }[] = [
@@ -410,12 +406,23 @@ export function AssignmentScreen({
                   size="lg"
                   fullWidth
                   onPress={() =>
-                    void Linking.openURL(
-                      mapsUrl(step.at === 'pickup' ? state.assignment.pickup : state.assignment.dropoff),
+                    void openNavigation(
+                      { ...state.assignment.pickup, label: state.assignment.pickup.restaurant_name },
+                      Platform.OS,
                     )
                   }
                 >
-                  Open in Maps
+                  Navigate to restaurant
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  fullWidth
+                  onPress={() =>
+                    void openNavigation(state.assignment.dropoff, Platform.OS)
+                  }
+                >
+                  Navigate to customer
                 </Button>
                 <Button
                   variant="primary"

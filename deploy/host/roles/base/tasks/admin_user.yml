@@ -1,0 +1,41 @@
+# Also run by bootstrap.yml, as root, before anything else exists.
+- name: Refuse to continue without the owner's SSH key
+  ansible.builtin.assert:
+    that:
+      - hg_admin_ssh_keys | default([]) | length > 0
+      - hg_admin_ssh_keys | default([]) | select('search', '__') | list | length == 0
+      - hg_admin_password_hash is defined and hg_admin_password_hash | length > 0
+    fail_msg: "Set hg_admin_ssh_keys in the inventory, and hg_admin_password_hash in host.sops.yaml."
+    quiet: true
+
+- name: Create the admin account (SSH keys only; the password is for the console alone)
+  ansible.builtin.user:
+    name: "{{ hg_admin_user }}"
+    shell: /bin/bash
+    groups: [sudo]
+    append: true
+    create_home: true
+    password: "{{ hg_admin_password_hash }}"
+    update_password: always
+  no_log: true
+
+- name: Authorise the owner's SSH keys, and only those
+  ansible.posix.authorized_key:
+    user: "{{ hg_admin_user }}"
+    key: "{{ hg_admin_ssh_keys | join('\n') }}"
+    exclusive: true
+
+- name: Let the admin account use sudo without a password (it can only log in with a key)
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/90-hg-admin
+    content: "{{ hg_admin_user }} ALL=(ALL) NOPASSWD: ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+
+- name: Lock root's password (Contabo emails it in plain text; rescue mode still works)
+  ansible.builtin.user:
+    name: root
+    password_lock: true
+  when: hg_lock_root_password

@@ -69,13 +69,25 @@ func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quo
 			return ErrQuoteExpired
 		}
 
-		// One active order per customer (C-26).
+		// One active order per customer, where an order under review after a
+		// problem report does not count (machine.CountsAsActive holds the rule
+		// and the owner's decision behind it; issue
+		// https://github.com/shaiknoorullah/hg-mono/issues/260).
+		//
+		// The same customer's checkouts queue on this lock until this
+		// transaction ends, so a second one counts only after the first has
+		// committed. Without it two racing checkouts both counted zero and both
+		// placed an order.
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
+			"order.create:"+in.AccountID); err != nil {
+			return fmt.Errorf("lock the customer's checkout: %w", err)
+		}
 		var activeCount int
 		err = tx.QueryRow(ctx, `
 			SELECT count(*) FROM "order"
 			 WHERE account_id = $1
-			   AND state NOT IN ('COMPLETED','CANCELLED','REJECTED','FAILED','RESOLVED')`,
-			in.AccountID).Scan(&activeCount)
+			   AND state::text = ANY($2)`,
+			in.AccountID, machine.ActiveStates()).Scan(&activeCount)
 		if err != nil {
 			return fmt.Errorf("count active: %w", err)
 		}

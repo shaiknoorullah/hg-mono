@@ -47,10 +47,11 @@ func seedPaymentAndRefund(t *testing.T, pool *pgxpool.Pool, orderID, requestedBy
 	}
 	_, err = pool.Exec(ctx, `
 		INSERT INTO refund (
-			order_id, payment_intent_id, kind, scope, reason_code, amount_cents,
-			state, requested_by, settled_at
+			order_id, payment_intent_id, stripe_refund_id, kind, scope, reason_code, amount_cents,
+			state, requested_by, approved_by, settled_at
 		) VALUES (
-			$1, $2, 'FULL', 'FULL', 'PLATFORM_ERROR', 500, 'SETTLED', $3, now()
+			$1, $2, 're_test_'||substr(md5(random()::text),1,12), 'FULL', 'FULL', 'PLATFORM_ERROR', 500,
+			'SETTLED', $3, $3, now()
 		)`, orderID, piID, requestedBy)
 	if err != nil {
 		t.Fatalf("seed refund: %v", err)

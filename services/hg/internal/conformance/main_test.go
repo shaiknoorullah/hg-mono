@@ -113,6 +113,8 @@ var expectedCovered = []string{
 	"createQuote", "createOrder", "cancelOrder",
 	"acceptOffer", "getAssignment",
 	"createRealtimeTicket", "receiveStripeWebhook",
+	// admin payout runs (conformance_payout_runs_test.go, issue #251)
+	"createPayoutRun", "getPayoutRun", "listPayoutRuns",
 	// the platform-wide pause on new orders, on a database of its own
 	// (conformance_ordering_pause_test.go; https://github.com/shaiknoorullah/hg-mono/issues/244).
 	"getOrderingPause", "setOrderingPause",

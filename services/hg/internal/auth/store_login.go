@@ -62,6 +62,70 @@ func (s *Store) InsertCredentialToken(ctx context.Context, accountID, kind strin
 	return err
 }
 
+// IssueCredentialToken stores a token hash like InsertCredentialToken and, in
+// the same transaction, runs issued — which enqueues the email that carries
+// the token, so a token row never exists without its email queued, nor an
+// email without its token.
+func (s *Store) IssueCredentialToken(ctx context.Context, accountID, kind string, tokenHash []byte, ttl time.Duration, issued TokenIssued) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var tokenID string
+	var expiresAt time.Time
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO credential_token (account_id, kind, token_hash, expires_at)
+		VALUES ($1, $2, $3, now() + $4::interval)
+		RETURNING id, expires_at`,
+		accountID, kind, tokenHash, ttl.String()).Scan(&tokenID, &expiresAt); err != nil {
+		return err
+	}
+	if err := capLiveTokens(ctx, tx, accountID, kind); err != nil {
+		return err
+	}
+	if issued != nil {
+		if err := issued(ctx, tx, accountID, tokenID, expiresAt); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+// capLiveTokens ends all but the newest liveTokensPerKind live tokens of a
+// kind for an account. Issuing a token does not cancel the earlier ones, so
+// someone asking for links to another person's address cannot cancel the link
+// that person is about to use; the cap bounds how many links are live at once.
+func capLiveTokens(ctx context.Context, tx pgx.Tx, accountID, kind string) error {
+	_, err := tx.Exec(ctx, `
+		UPDATE credential_token
+		SET expires_at = LEAST(expires_at, now())
+		WHERE account_id = $1 AND kind = $2 AND consumed_at IS NULL AND expires_at > now()
+		  AND id NOT IN (
+			SELECT id FROM credential_token
+			 WHERE account_id = $1 AND kind = $2 AND consumed_at IS NULL AND expires_at > now()
+			 ORDER BY created_at DESC, id DESC
+			 LIMIT $3)`, accountID, kind, liveTokensPerKind)
+	return err
+}
+
+// PasswordSurface names the web app an account signs in to with a password:
+// "ADMIN" for platform staff, "RESTAURANT" for restaurant owners, managers and
+// staff, and "" for an account that signs in by phone (customers and riders),
+// which has no password to reset.
+func (s *Store) PasswordSurface(ctx context.Context, accountID string) (string, error) {
+	var surface string
+	err := s.pool.QueryRow(ctx, `
+		SELECT CASE
+		         WHEN bool_or(role IN ('SUPPORT_AGENT', 'ADMIN', 'SUPER_ADMIN')) THEN 'ADMIN'
+		         WHEN bool_or(role IN ('RESTAURANT_OWNER', 'RESTAURANT_MANAGER', 'RESTAURANT_STAFF')) THEN 'RESTAURANT'
+		         ELSE ''
+		       END
+		  FROM account_role
+		 WHERE account_id = $1 AND revoked_at IS NULL`, accountID).Scan(&surface)
+	return surface, err
+}
+
 // ConsumeCredentialTokenResult distinguishes the token outcomes so the handler
 // can return the contract's precise code.
 type ConsumeCredentialTokenResult struct {
@@ -78,14 +142,28 @@ type ConsumeCredentialTokenResult struct {
 // single conditional UPDATE prevents a replay winning a race (P-03 acceptance
 // #3). On zero rows it inspects the row (if any) to report used vs expired vs
 // unknown.
+//
+// Using a token ends every other live token of the same kind for the account
+// in the same statement: once a reset link has set the password, an older
+// reset link (perhaps requested by someone else) no longer works.
 func (s *Store) ConsumeCredentialToken(ctx context.Context, kind string, tokenHash []byte) (ConsumeCredentialTokenResult, error) {
 	var accountID string
 	err := s.pool.QueryRow(ctx, `
-		UPDATE credential_token
-		SET consumed_at = now()
-		WHERE token_hash = $1 AND kind = $2
-		  AND consumed_at IS NULL AND expires_at > now()
-		RETURNING account_id`, tokenHash, kind).Scan(&accountID)
+		WITH used AS (
+			UPDATE credential_token
+			SET consumed_at = now()
+			WHERE token_hash = $1 AND kind = $2
+			  AND consumed_at IS NULL AND expires_at > now()
+			RETURNING id, account_id
+		), others AS (
+			UPDATE credential_token c
+			SET expires_at = LEAST(c.expires_at, now())
+			FROM used
+			WHERE c.account_id = used.account_id AND c.kind = $2
+			  AND c.id <> used.id AND c.consumed_at IS NULL
+			RETURNING c.id
+		)
+		SELECT account_id FROM used`, tokenHash, kind).Scan(&accountID)
 	if err == nil {
 		return ConsumeCredentialTokenResult{AccountID: accountID}, nil
 	}

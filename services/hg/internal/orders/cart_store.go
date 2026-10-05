@@ -116,7 +116,7 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	var c Cart
 	var cartID, restaurantID, restaurantName string
 	var addressID *string
-	var slug, halalStatus, accountState string
+	var slug, accountState string
 	var priceBand *string
 	var ratingAvg *float64
 	var ratingCount int32
@@ -124,30 +124,41 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	var minOrder *int64
 	var accepting bool
 	var logoBucket, logoKey, coverBucket, coverKey *string
+	var gate restaurantGate
 	// The RestaurantCard on the cart re-asserts the chosen restaurant's halal seal
-	// before checkout (C-12): join the active certificate + issuing body so the
-	// badge carries the certifying body name and expiry, exactly as the catalog
-	// card does. LEFT JOIN because the certificate row is optional in principle.
+	// before checkout (C-12): join the certificate + issuing body so the badge
+	// carries the certifying body name and expiry, exactly as the catalog card
+	// does. The badge is the halal state as of now, from admin-verified data
+	// (halal_certification_at, migration 00033), and the certificate that state
+	// was computed from: the stored restaurant.halal_status can still say
+	// CERTIFIED after the certificate lapsed
+	// (https://github.com/shaiknoorullah/hg-mono/issues/252), and a missing
+	// halal field renders no badge, never an optimistic one
+	// (https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants).
+	// LEFT JOIN because there may be no certificate at all.
 	// The logo/hero objects (READY only) are joined from stored_object so the
 	// card carries their public URLs without a per-object lookup.
 	err := tx.QueryRow(ctx, `
 		SELECT c.id, c.restaurant_id, r.display_name, c.delivery_address_id,
 		       r.slug, r.rating_avg, r.rating_count, r.price_band::text,
-		       r.halal_status::text, b.name AS certifying_body, cert.expires_on AS cert_expires_on,
+		       b.name AS certifying_body, cert.expires_on AS cert_expires_on,
 		       r.is_accepting_orders, r.account_state::text, r.minimum_order_cents,
-		       so_logo.bucket, so_logo.object_key, so_cover.bucket, so_cover.object_key
+		       so_logo.bucket, so_logo.object_key, so_cover.bucket, so_cover.object_key,
+		       r.deleted_at IS NULL, r.halal_status::text, hn.halal_status::text
 		  FROM cart c
 		  JOIN restaurant r ON r.id = c.restaurant_id
-		  LEFT JOIN halal_certificate cert ON cert.id = r.halal_certificate_id
+		  LEFT JOIN LATERAL halal_certification_at(r.id, now()) hn ON true
+		  LEFT JOIN halal_certificate cert ON cert.id = hn.certificate_id
 		  LEFT JOIN halal_issuing_body b ON b.id = cert.issuing_body_id
 		  LEFT JOIN stored_object so_logo ON so_logo.id = r.logo_object_id AND so_logo.state = 'READY'
 		  LEFT JOIN stored_object so_cover ON so_cover.id = r.cover_object_id AND so_cover.state = 'READY'
 		 WHERE c.account_id = $1 AND c.deleted_at IS NULL`, accountID).
 		Scan(&cartID, &restaurantID, &restaurantName, &addressID,
 			&slug, &ratingAvg, &ratingCount, &priceBand,
-			&halalStatus, &c.HalalCertifyingBody, &certExpiresOn,
+			&c.HalalCertifyingBody, &certExpiresOn,
 			&accepting, &accountState, &minOrder,
-			&logoBucket, &logoKey, &coverBucket, &coverKey)
+			&logoBucket, &logoKey, &coverBucket, &coverKey,
+			&gate.Listed, &gate.StoredHalal, &gate.HalalNow)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// No cart: return an empty one (id blank until first add).
 		return &Cart{Currency: "CAD", IsQuotable: false}, nil
@@ -189,7 +200,11 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	if ratingAvg != nil && ratingCount >= 5 {
 		c.RestaurantRatingAvg = ratingAvg
 	}
-	c.HalalStatus = halalStatus
+	// No answer is no badge: UNVERIFIED renders none.
+	c.HalalStatus = "UNVERIFIED"
+	if gate.HalalNow != nil {
+		c.HalalStatus = *gate.HalalNow
+	}
 	if certExpiresOn != nil {
 		s := certExpiresOn.Format("2006-01-02")
 		c.HalalExpiresOn = &s
@@ -303,8 +318,9 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	}
 	c.tmpUnit = nil
 
-	// Quotability + blocking reasons. Minimum-order, accepting-orders and
-	// account-state were read alongside the restaurant card fields above.
+	// Quotability + blocking reasons. Minimum-order, accepting-orders and the
+	// restaurant gate were read alongside the restaurant card fields above.
+	gate.AccountState = &accountState
 	var minOrderCents int64
 	if c.RestaurantMinOrder != nil {
 		minOrderCents = *c.RestaurantMinOrder
@@ -315,7 +331,14 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 		c.IsQuotable = false
 		c.BlockingReasons = appendReason(c.BlockingReasons, "CART_HAS_UNAVAILABLE_ITEMS")
 	}
-	if c.RestaurantAccountState != "LIVE" || !c.RestaurantIsAccepting {
+	// A restaurant that cannot take orders blocks the cart without emptying it:
+	// the halal display spec, rule 3
+	// (https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/02-customer.md#c-12--halal-certification-display-and-verification--critical).
+	// Unavailable outranks closed. https://github.com/shaiknoorullah/hg-mono/issues/292
+	if !gate.orderable() {
+		c.IsQuotable = false
+		c.BlockingReasons = appendReason(c.BlockingReasons, "RESTAURANT_UNAVAILABLE")
+	} else if !c.RestaurantIsAccepting {
 		c.IsQuotable = false
 		c.BlockingReasons = appendReason(c.BlockingReasons, "RESTAURANT_CLOSED")
 	}
@@ -344,14 +367,25 @@ func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string,
 	var out *Cart
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
 		// The menu item's restaurant is authoritative; the caller passes it but
-		// we re-read it to avoid trusting a client-supplied restaurant.
+		// we re-read it to avoid trusting a client-supplied restaurant. A client
+		// that still knows an item id (an old cart, a cached menu) cannot add it
+		// once the restaurant cannot take orders (orderable.go), and the
+		// restaurant row stays locked until the line is written.
+		// https://github.com/shaiknoorullah/hg-mono/issues/292
+		// https://github.com/shaiknoorullah/hg-mono/issues/328
 		var itemRestaurant, availability string
-		err := tx.QueryRow(ctx, `SELECT restaurant_id, availability_state::text FROM menu_item WHERE id = $1 AND deleted_at IS NULL`,
+		err := tx.QueryRow(ctx, `
+			SELECT restaurant_id, availability_state::text
+			  FROM menu_item
+			 WHERE id = $1 AND deleted_at IS NULL`,
 			in.MenuItemID).Scan(&itemRestaurant, &availability)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrItemUnavailable
 		}
 		if err != nil {
+			return err
+		}
+		if err := LockOrderableRestaurant(ctx, tx, itemRestaurant); err != nil {
 			return err
 		}
 		if availability != "AVAILABLE" {

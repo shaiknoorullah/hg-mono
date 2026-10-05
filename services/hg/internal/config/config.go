@@ -46,11 +46,59 @@ type Config struct {
 	Postgres Postgres
 	Redis    Redis
 	MinIO    MinIO
+	Dispatch Dispatch
 	Stripe   Stripe
 	SMS      SMS
 	OTP      OTP
+	Email    Email
+	RiderPay RiderPay
 	Tax      Tax
 	Realtime Realtime
+	Payouts  Payouts
+}
+
+// Payouts holds the payout settings the owner may still change.
+type Payouts struct {
+	// RestaurantNegativeBalanceBlockDays: a restaurant whose payout balance
+	// has been below zero for longer than this many days takes no new orders
+	// until it recovers; 0 turns the block off. The default, 30, is the
+	// documented behaviour (docs/spec/01-platform.md, "P-19 — Stripe Connect:
+	// onboarding and payouts (Canada)", Schedules). Whether to block at all is
+	// still the owner's open question:
+	// https://github.com/shaiknoorullah/hg-mono/issues/164.
+	RestaurantNegativeBalanceBlockDays int
+	// RestaurantHoldHours: a restaurant's earning from an order is paid once
+	// the order has been settled this long, so a dispute raised inside the
+	// window is netted before the money leaves. The default, 72, is the
+	// proposed three-day hold that stands until the owner decides
+	// (docs/spec/03-restaurant.md, "R-32 — Payout schedule, preferences and
+	// payout requests").
+	RestaurantHoldHours int
+}
+
+// RiderPay holds the rider-pay rules the owner has not settled yet. Each
+// default is the behaviour the specs document today; the owner's open
+// questions are on https://github.com/shaiknoorullah/hg-mono/issues/164.
+//
+// Pay for an interrupted delivery (an order brought back, a reassignment) is
+// not here: nothing pays it automatically, because a rider's own exception
+// step never moves money (docs/spec/04-rider.md, "D-32 — Incident reporting &
+// mid-delivery exceptions"); it waits for a server-side decision.
+type RiderPay struct {
+	// TipMakeUp: when the tip at delivery is lower than the tip the rider saw
+	// on the offer they accepted, the platform pays the difference as an
+	// adjustment. Default false: riders are paid by pure pass-through, the
+	// tip the customer actually pays and nothing on top
+	// (docs/decisions/README.md, "Settled — reconciliations", rider pay; and
+	// the tip shown before accepting, "Settled — redesign decisions (owner,
+	// 2026-09-28)"). Whether the platform makes up a lowered tip is the
+	// owner's open question, item 15 on #164.
+	TipMakeUp bool
+}
+
+// DefaultRiderPay is the documented behaviour, used when nothing is set.
+func DefaultRiderPay() RiderPay {
+	return RiderPay{TipMakeUp: false}
 }
 
 // Realtime holds the WebSocket gateway's per-replica limits.
@@ -120,6 +168,39 @@ type TwilioSMS struct {
 func (t TwilioSMS) Configured() bool {
 	return t.AccountSID != "" && t.AuthToken != "" && (t.FromNumber != "" || t.MessagingServiceSID != "")
 }
+
+// Email holds the transactional email settings (docs/spec/01-platform.md,
+// "P-26 — SMS and email"). Mail goes through Resend, the one approved hosted
+// email provider (docs/decisions/README.md, "Settled — platform decisions",
+// Email row); with no API key the binary uses the log sender, which sends
+// nothing and records every email in the log.
+type Email struct {
+	// Provider is "log" or "resend". Unset means "resend" when
+	// HG_RESEND_API_KEY is set and "log" otherwise, so a dev box with no key
+	// never needs a flag to stay quiet.
+	Provider     string
+	ResendAPIKey string
+	// From is the sender, e.g. "HalalGoes <notifications@mail.halalgoes.com>",
+	// on a domain verified in Resend.
+	From    string
+	ReplyTo string
+	// AllowList is the only set of addresses a non-production environment
+	// may really email ("someone@example.com" or a whole "@example.com").
+	// Outside production every other address is logged, not sent, so dev
+	// never messages a real person (issue #235). Empty blocks everyone. It
+	// must be empty in production, where it would silently drop real mail.
+	AllowList []string
+	// RestaurantWebURL and AdminWebURL are the web apps an email's button
+	// opens (scheme://host only).
+	RestaurantWebURL string
+	AdminWebURL      string
+}
+
+// EmailLinkDomain is the only domain an email may link to outside local.
+const EmailLinkDomain = "halalgoes.com"
+
+// Configured reports whether real email can be sent.
+func (e Email) Configured() bool { return e.Provider == "resend" && e.ResendAPIKey != "" }
 
 // Tax holds the O-01 tax-registration settings that flow into every
 // customer-facing receipt (contract: Receipt.platform_tax_registration_number).
@@ -232,6 +313,23 @@ func (b Buckets) Private() []string {
 // All returns every configured bucket name.
 func (b Buckets) All() []string {
 	return []string{b.KYC, b.POD, b.Media, b.Exports, b.Tmp}
+}
+
+// Dispatch holds the rider availability sweeps' threshold and schedule
+// (internal/dispatch/availability_sweeper.go). The defaults are the values
+// docs/spec/04-rider.md sets in "D-10 — Availability: online / offline".
+type Dispatch struct {
+	// RiderStaleAfter (HG_RIDER_STALE_AFTER, default 120s): an online rider
+	// whose last location is older than this is moved to ONLINE_STALE and
+	// offered no work until their next location update.
+	RiderStaleAfter time.Duration
+	// RiderStaleSweepEvery (HG_RIDER_STALE_SWEEP_INTERVAL, default 15s): how
+	// often the stale-location sweep runs.
+	RiderStaleSweepEvery time.Duration
+	// RiderReconcileEvery (HG_RIDER_RECONCILE_INTERVAL, default 60s): how often
+	// a rider stuck ON_DELIVERY with no live assignment is looked for and
+	// restored.
+	RiderReconcileEvery time.Duration
 }
 
 // Load reads the environment into a Config.
@@ -365,6 +463,64 @@ func Load(getenv func(string) string) (*Config, error) {
 		}
 	}
 
+	cfg.Email = Email{
+		ResendAPIKey: l.optional("HG_RESEND_API_KEY", ""),
+		From:         l.optional("HG_EMAIL_FROM", "HalalGoes <notifications@mail.halalgoes.com>"),
+		ReplyTo:      l.optional("HG_EMAIL_REPLY_TO", ""),
+		AllowList:    l.list("HG_EMAIL_ALLOWLIST"),
+		RestaurantWebURL: l.baseURL("HG_RESTAURANT_WEB_URL",
+			l.optional("HG_RESTAURANT_WEB_URL", "http://localhost:5183")),
+		AdminWebURL: l.baseURL("HG_ADMIN_WEB_URL", l.optional("HG_ADMIN_WEB_URL", "http://localhost:5175")),
+	}
+	defaultEmailProvider := "log"
+	if cfg.Email.ResendAPIKey != "" {
+		defaultEmailProvider = "resend"
+	}
+	cfg.Email.Provider = l.optional("HG_EMAIL_PROVIDER", defaultEmailProvider)
+	switch cfg.Email.Provider {
+	case "log", "resend":
+	default:
+		l.errf("HG_EMAIL_PROVIDER: %q is not one of log, resend", cfg.Email.Provider)
+	}
+	if cfg.Email.Provider == "resend" {
+		if cfg.Email.ResendAPIKey == "" {
+			l.errf("HG_EMAIL_PROVIDER=resend requires HG_RESEND_API_KEY")
+		}
+		if !strings.Contains(cfg.Email.From, "@") {
+			l.errf("HG_EMAIL_FROM: %q is not a sender address", cfg.Email.From)
+		}
+	}
+	for _, a := range cfg.Email.AllowList {
+		if at := strings.LastIndexByte(a, '@'); at < 0 || at == len(a)-1 {
+			l.errf("HG_EMAIL_ALLOWLIST: %q is neither an address nor an @domain", a)
+		}
+	}
+	if cfg.Env == EnvProduction && len(cfg.Email.AllowList) > 0 {
+		l.errf("HG_EMAIL_ALLOWLIST is for non-production environments only: in production it would " +
+			"silently stop email to every customer not on it")
+	}
+
+	cfg.RiderPay = RiderPay{
+		TipMakeUp: l.boolVal("HG_RIDER_TIP_MAKEUP", DefaultRiderPay().TipMakeUp),
+	}
+	cfg.Dispatch = Dispatch{
+		RiderStaleAfter:      l.duration("HG_RIDER_STALE_AFTER", 120*time.Second),
+		RiderStaleSweepEvery: l.duration("HG_RIDER_STALE_SWEEP_INTERVAL", 15*time.Second),
+		RiderReconcileEvery:  l.duration("HG_RIDER_RECONCILE_INTERVAL", 60*time.Second),
+	}
+	for _, v := range []struct {
+		key string
+		d   time.Duration
+	}{
+		{"HG_RIDER_STALE_AFTER", cfg.Dispatch.RiderStaleAfter},
+		{"HG_RIDER_STALE_SWEEP_INTERVAL", cfg.Dispatch.RiderStaleSweepEvery},
+		{"HG_RIDER_RECONCILE_INTERVAL", cfg.Dispatch.RiderReconcileEvery},
+	} {
+		if v.d <= 0 {
+			l.errf("%s: %s must be more than zero", v.key, v.d)
+		}
+	}
+
 	cfg.Tax = Tax{
 		HSTRegistrationNumber: l.optional("HG_TAX_HST_REGISTRATION_NUMBER", ""),
 		PlatformLegalName:     l.optional("HG_TAX_PLATFORM_LEGAL_NAME", ""),
@@ -375,6 +531,18 @@ func Load(getenv func(string) string) (*Config, error) {
 	}
 	if cfg.Realtime.MaxSockets < 1 {
 		l.errf("HG_REALTIME_MAX_SOCKETS: %d must be at least 1", cfg.Realtime.MaxSockets)
+	}
+
+	cfg.Payouts = Payouts{
+		RestaurantNegativeBalanceBlockDays: l.intVal("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS", 30),
+		RestaurantHoldHours:                l.intVal("HG_PAYOUT_RESTAURANT_HOLD_HOURS", 72),
+	}
+	if cfg.Payouts.RestaurantHoldHours < 0 {
+		l.errf("HG_PAYOUT_RESTAURANT_HOLD_HOURS: %d must be 0 or more", cfg.Payouts.RestaurantHoldHours)
+	}
+	if cfg.Payouts.RestaurantNegativeBalanceBlockDays < 0 {
+		l.errf("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: %d must be 0 (off) or more",
+			cfg.Payouts.RestaurantNegativeBalanceBlockDays)
 	}
 
 	// G-7: outside local, no dependency may point at loopback. This is the
@@ -411,6 +579,25 @@ func Load(getenv func(string) string) (*Config, error) {
 		if len(cfg.TrustedProxies) == 0 {
 			l.errf("HG_TRUSTED_PROXY_CIDRS: required outside local; behind Traefik an empty list " +
 				"makes every per-IP limit global")
+		}
+
+		// A real email's button must open one of our own web apps over TLS:
+		// never a developer's localhost, never another domain.
+		if cfg.Email.Provider == "resend" {
+			for _, key := range []string{"HG_RESTAURANT_WEB_URL", "HG_ADMIN_WEB_URL"} {
+				raw := map[string]string{
+					"HG_RESTAURANT_WEB_URL": cfg.Email.RestaurantWebURL,
+					"HG_ADMIN_WEB_URL":      cfg.Email.AdminWebURL,
+				}[key]
+				u, err := url.Parse(raw)
+				if err != nil || u.Scheme != "https" {
+					l.errf("%s must be an https URL when HG_ENV is not local and email is sent", key)
+					continue
+				}
+				if host := strings.ToLower(u.Hostname()); host != EmailLinkDomain && !strings.HasSuffix(host, "."+EmailLinkDomain) {
+					l.errf("%s: %q is not on %s; emails link only to our own domain", key, raw, EmailLinkDomain)
+				}
+			}
 		}
 	}
 
@@ -563,6 +750,17 @@ func (l *loader) baseURL(key, raw string) string {
 		return ""
 	}
 	return u.Scheme + "://" + u.Host
+}
+
+// list splits a comma-separated value, trimming spaces and dropping empties.
+func (l *loader) list(key string) []string {
+	var out []string
+	for _, part := range strings.Split(l.getenv(key), ",") {
+		if p := strings.TrimSpace(part); p != "" {
+			out = append(out, strings.ToLower(p))
+		}
+	}
+	return out
 }
 
 // trustableProxyRanges is the address space a trusted proxy may sit in: the

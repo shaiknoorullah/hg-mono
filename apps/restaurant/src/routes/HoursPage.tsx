@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import * as Switch from '@radix-ui/react-switch';
 import { isApiError, type Schema } from '@hg/api-client';
-import { Button, Card, ErrorState, HG_FOCUS_FIELD, cx } from '@hg/ui-web';
+import { Button, Card, ErrorState, HG_FOCUS, HG_FOCUS_FIELD, cx } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
 import { useAsync } from '../lib/useAsync';
 import { PageLoading } from '../components/PageLoading';
@@ -35,9 +35,17 @@ const OPEN_STATE_LABEL: Record<Schema['RestaurantOpenState'], string> = {
  * halal seal's green (RULE H-1: solid green is reserved to `color.halal.*`) and never red
  * (RULE H-3: red reads as a religious ruling). "Live" pulses a soft glow; "paused" settles to
  * slate — an operational state, not a certification state.
+ *
+ * The card has no visible "Accepting orders" text (its headline is the computed open state, which
+ * can read "Closed" while the switch is on), so the switch is named with `aria-label` and points at
+ * the open state and its reason as its description. Focus is the two-layer ring (`HG_FOCUS`), the
+ * same as the design-system `Switch`: the ring sits outside the track, on the card, so it keeps
+ * the card's offset and the theme's focus colour whether the switch is on or off. See
+ * docs/decisions/focus-indicator.md and issue #401.
  */
 function AvailabilityCard() {
   const { status, data, error, reload } = useAsync(() => unwrapOrThrow(api.GET('/v1/restaurant/availability', {})), []);
+  const ids = useId();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -76,16 +84,23 @@ function AvailabilityCard() {
             <IconPower size={20} />
           </div>
           <div>
-            <p className="text-label-lg font-extrabold text-fg-primary">{OPEN_STATE_LABEL[data.open_state]}</p>
-            <p className="text-caption text-fg-secondary">{data.reason}</p>
+            <p id={`${ids}-state`} className="text-label-lg font-extrabold text-fg-primary">
+              {OPEN_STATE_LABEL[data.open_state]}
+            </p>
+            <p id={`${ids}-reason`} className="text-caption text-fg-secondary">
+              {data.reason}
+            </p>
           </div>
         </div>
         <Switch.Root
           checked={data.is_accepting_orders}
           disabled={busy}
           onCheckedChange={toggle}
+          aria-label="Accepting orders"
+          aria-describedby={`${ids}-state ${ids}-reason`}
           className={cx(
-            'relative h-8 w-14 rounded-full transition-colors duration-300 ease-out outline-none disabled:opacity-50',
+            'relative h-8 w-14 rounded-full transition-colors duration-300 ease-out disabled:opacity-50',
+            HG_FOCUS,
             data.is_accepting_orders ? 'bg-action-primary-bg' : 'bg-surface-subtle',
           )}
         >
@@ -111,6 +126,9 @@ function WeeklyHours() {
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [local, setLocal] = useState<Schema['TradingInterval'][] | null>(null);
+  // Each time input is named by its row's visible day plus a hidden "opening time" or "closing
+  // time", so a screen reader hears "Monday opening time" rather than just "time" (issue #401).
+  const ids = useId();
 
   if (status === 'loading') return <PageLoading label="Loading trading hours…" />;
   if (status === 'error' || !data) return <ErrorState description={error ?? undefined} onRetry={reload} />;
@@ -158,17 +176,26 @@ function WeeklyHours() {
           </Button>
         )}
       </div>
+      <span id={`${ids}-opens`} hidden>
+        opening time
+      </span>
+      <span id={`${ids}-closes`} hidden>
+        closing time
+      </span>
       <div className="divide-y divide-line-decorative">
         {DAYS.map((label, day) => {
           const interval = intervals.find((i) => i.day_of_week === day);
           return (
             <div key={day} className="flex items-center justify-between gap-3 py-3">
-              <span className="w-24 flex-none text-label-md font-bold text-fg-primary">{label}</span>
+              <span id={`${ids}-day-${day}`} className="w-24 flex-none text-label-md font-bold text-fg-primary">
+                {label}
+              </span>
               {interval ? (
                 <div className="flex items-center gap-2">
                   <input
                     type="time"
                     value={interval.opens_at}
+                    aria-labelledby={`${ids}-day-${day} ${ids}-opens`}
                     onChange={(e) => updateDay(day, 'opens_at', e.target.value)}
                     className={TIME_FIELD}
                   />
@@ -176,6 +203,7 @@ function WeeklyHours() {
                   <input
                     type="time"
                     value={interval.closes_at}
+                    aria-labelledby={`${ids}-day-${day} ${ids}-closes`}
                     onChange={(e) => updateDay(day, 'closes_at', e.target.value)}
                     className={TIME_FIELD}
                   />

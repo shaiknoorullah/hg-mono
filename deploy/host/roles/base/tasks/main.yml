@@ -1,0 +1,51 @@
+- name: Refuse an operating system these roles were not written for
+  ansible.builtin.assert:
+    that: >-
+      (ansible_distribution == 'Debian' and ansible_distribution_major_version | int >= 13) or
+      (ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('24.04', '>='))
+    fail_msg: "Debian 13 or Ubuntu 24.04 LTS or later only (restic 0.16+ and systemd timers with time zones)."
+    quiet: true
+
+- name: Install the base packages
+  ansible.builtin.apt:
+    name: "{{ hg_base_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Gather installed packages
+  ansible.builtin.package_facts:
+
+- name: Keep the clock synchronised (chrony, if the image already has it, does the same)
+  ansible.builtin.apt:
+    name: systemd-timesyncd
+    state: present
+  when: "'chrony' not in ansible_facts.packages"
+
+- name: Name the server after its inventory entry, so alerts and logs say which box
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  when: not hg_in_container
+
+- name: Keep that name across reboots (cloud-init would reset it)
+  ansible.builtin.copy:
+    dest: /etc/cloud/cloud.cfg.d/99-hg-hostname.cfg
+    content: "preserve_hostname: true\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: not hg_in_container and ansible_facts.packages['cloud-init'] is defined
+
+- name: Keep the system clock in UTC (schedules name their own time zone)
+  community.general.timezone:
+    name: Etc/UTC
+  when: not hg_in_container
+
+- name: Set up the admin account
+  ansible.builtin.include_tasks: admin_user.yml
+
+- name: Set up updates and reboots
+  ansible.builtin.include_tasks: updates.yml
+
+- name: Set up memory and logs
+  ansible.builtin.include_tasks: memory_and_logs.yml
