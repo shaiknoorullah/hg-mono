@@ -80,11 +80,11 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*wsConn, error) {
 		return nil, errors.New("missing Sec-WebSocket-Key")
 	}
 
-	hj, ok := w.(http.Hijacker)
-	if !ok {
-		return nil, errors.New("response writer does not support hijacking")
-	}
-	conn, brw, err := hj.Hijack()
+	// Through the ResponseController, not a type assertion on w: the access log wraps every
+	// response writer (httpx.AccessLog), and the controller follows the wrapper's Unwrap down
+	// to the server's writer. A plain w.(http.Hijacker) failed behind the middleware, so every
+	// upgrade answered an empty 200 and no client ever got a socket.
+	conn, brw, err := http.NewResponseController(w).Hijack()
 	if err != nil {
 		return nil, fmt.Errorf("hijack: %w", err)
 	}
