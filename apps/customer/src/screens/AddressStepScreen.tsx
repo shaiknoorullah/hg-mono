@@ -89,7 +89,7 @@ export function AddressStepScreen(): React.ReactElement {
         Where should we deliver?
       </Text>
       <Text style={[body, { color: theme.color.text.primary }]}>
-        Search for your address, then drag the pin onto your door. You don't need to be there.
+        Type the street address your rider should come to. You don't need to be there.
       </Text>
       <Text style={[body, { color: theme.color.text.secondary }]}>
         Then we'll show the restaurants that deliver to you, each with a halal certificate we've

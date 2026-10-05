@@ -84,7 +84,7 @@ export function AddressesScreen(): React.ReactElement {
             tone="empty"
             icon="map"
             title="No saved addresses"
-            description="Search for an address and drag the pin onto the door your rider should use. You don't need to be there."
+            description="Add the street address your rider should come to, with a unit or buzzer if there is one. You don't need to be there."
             testID="Addresses-empty"
           />
         ) : (
