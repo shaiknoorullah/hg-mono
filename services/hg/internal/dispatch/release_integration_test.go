@@ -5,7 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // A rider whose assignment ends without a delivery stops holding the order, in
@@ -17,7 +20,13 @@ import (
 // its own end (the platform cancels the assignment) and its order's
 // cancellation.
 func TestRelease_ARiderWhoseAssignmentEndedNoLongerHoldsTheOrder(t *testing.T) {
-	pool := openPool(t)
+	// A database of its own, so the test runs in CI too (testcontainers),
+	// not only where HG_TEST_POSTGRES_DSN names a shared one.
+	pool, err := pgxpool.New(context.Background(), testseed.FreshDatabase(t, "hg_dispatch_release"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
 	store := NewStore(pool)
 	svc := NewService(store, &fakeLifecycle{})
 	rt := realtime.NewStore(pool, "release-test")
