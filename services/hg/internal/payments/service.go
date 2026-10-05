@@ -342,25 +342,66 @@ func scopeToKind(scope RefundScope, reasonCode string) RefundKind {
 	}
 }
 
+// hasRole reports whether roles holds r.
+func hasRole(roles []string, r string) bool {
+	for _, x := range roles {
+		if x == r {
+			return true
+		}
+	}
+	return false
+}
+
 // operatorCap returns the trailing-24h authority cap for the highest role the
 // operator holds. A SUPER_ADMIN is the terminal approver and is uncapped.
 func operatorCap(roles []string) (cap int64, uncapped bool) {
-	has := func(r string) bool {
-		for _, x := range roles {
-			if x == r {
-				return true
-			}
-		}
-		return false
-	}
 	switch {
-	case has("SUPER_ADMIN"):
+	case hasRole(roles, "SUPER_ADMIN"):
 		return 0, true
-	case has("ADMIN"):
+	case hasRole(roles, "ADMIN"):
 		return CapAdminCents, false
 	default:
 		return CapSupportAgentCents, false
 	}
+}
+
+// orderLimits is what the highest role a person holds may approve alone on
+// one order (A-33). Zero is no limit of that kind: an admin's per-order limit
+// is the order total, which the capture already bounds.
+type orderLimits struct {
+	PerOrderCents int64
+	MaxOrderAge   time.Duration
+}
+
+func operatorOrderLimits(roles []string) orderLimits {
+	switch {
+	case hasRole(roles, "SUPER_ADMIN"):
+		return orderLimits{}
+	case hasRole(roles, "ADMIN"):
+		return orderLimits{MaxOrderAge: MaxOrderAgeAdmin}
+	default:
+		return orderLimits{PerOrderCents: PerOrderCapSupportAgentCents, MaxOrderAge: MaxOrderAgeSupportAgent}
+	}
+}
+
+// Which order limit a refund is past, as audited (limit_exceeded).
+const (
+	limitPerOrder = "per_order"
+	limitOrderAge = "order_age"
+)
+
+// orderLimitExceeded is the pure per-order and order-age half of the A-33
+// authority decision: the limit this refund is past, or "". approvedOnOrder
+// is what the same person already approved on the order, so one refund split
+// in two is held to the same limit.
+func orderLimitExceeded(l orderLimits, amount, approvedOnOrder int64, orderAge time.Duration) string {
+	if l.PerOrderCents > 0 && approvedOnOrder+amount > l.PerOrderCents {
+		return limitPerOrder
+	}
+	if l.MaxOrderAge > 0 && orderAge > l.MaxOrderAge {
+		return limitOrderAge
+	}
+	return ""
 }
 
 // requiresApproval is the pure A-33 authority decision: does this refund need a
@@ -370,6 +411,7 @@ func operatorCap(roles []string) (cap int64, uncapped bool) {
 // window, so the very first large goodwill of the day still gets a second pair
 // of eyes. A SUPER_ADMIN (uncapped) still escalates a large goodwill, because
 // the threshold is about the *nature* of the refund, not the operator's balance.
+// The per-order and order-age limits are orderLimitExceeded.
 func requiresApproval(kind RefundKind, amount, issued24h, cap int64, uncapped bool) bool {
 	if kind == RefundGoodwill && amount > GoodwillApprovalThresholdCents {
 		return true
@@ -381,17 +423,10 @@ func requiresApproval(kind RefundKind, amount, issued24h, cap int64, uncapped bo
 }
 
 // escalationRole returns the role that must approve an above-cap request by the
-// given operator (one level up the authority ladder).
-func escalationRole(roles []string) string {
-	has := func(r string) bool {
-		for _, x := range roles {
-			if x == r {
-				return true
-			}
-		}
-		return false
-	}
-	if has("ADMIN") {
+// given operator: one level up the authority ladder, or a super admin when the
+// order is past an admin's age limit too, as nobody below could approve it.
+func escalationRole(roles []string, orderAge time.Duration) string {
+	if hasRole(roles, "ADMIN") || orderAge > MaxOrderAgeAdmin {
 		return "SUPER_ADMIN"
 	}
 	return "ADMIN"
@@ -502,17 +537,28 @@ func (s *Service) IssueAdminRefund(ctx context.Context, in AdminRefundInput, by 
 		if err != nil {
 			return Outcome{}, err
 		}
+		limits := operatorOrderLimits(by.Roles)
+		onOrder, age, err := orderAuthority(ctx, tx, by.AccountID, in.OrderID, s.now())
+		if err != nil {
+			return Outcome{}, err
+		}
+		over := orderLimitExceeded(limits, amount, onOrder, age)
 		after := map[string]any{"cap_applied_cents": cap, "uncapped": uncapped, "used_24h_cents": used,
+			"per_order_cap_cents": limits.PerOrderCents, "max_order_age_days": int(limits.MaxOrderAge.Hours() / 24),
+			"approved_on_order_cents": onOrder, "order_age_days": int(age.Hours() / 24),
 			"kind": kind, "scope": in.Scope, "case_id": in.CaseID}
 
-		if requiresApproval(kind, amount, used, cap, uncapped) {
+		if requiresApproval(kind, amount, used, cap, uncapped) || over != "" {
 			// Above authority: create a PENDING_APPROVAL refund (the approval
 			// request) and escalate. No ledger batch is posted and no Stripe
 			// call is made: the money only moves once an authorised approver
 			// acts (ApproveRefund). The row keeps the role it was escalated
 			// to, which the approver must hold, and who sent it up, who may
 			// not approve it.
-			required := escalationRole(by.Roles)
+			required := escalationRole(by.Roles, age)
+			if over != "" {
+				after["limit_exceeded"] = over
+			}
 			refundID, err := insertRefund(ctx, tx, CreateRefundParams{
 				OrderID: in.OrderID, PaymentIntentID: intent.ID, Kind: kind, Scope: in.Scope,
 				ReasonCode: in.ReasonCode, Note: in.ReasonText, AmountCents: amount, TaxCents: tax, Split: split,
