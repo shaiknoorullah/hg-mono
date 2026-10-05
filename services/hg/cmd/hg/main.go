@@ -633,7 +633,8 @@ func run() error {
 		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
 	}
 	paymentsRepo := payments.NewRepo(st.DB().Pool)
-	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log)
+	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log).
+		WithOrderHooks(ordersStore)
 	// The weekly payout run (issue #251): Monday 09:00 America/Toronto, for
 	// every rider and restaurant, and on demand through createPayoutRun. It
 	// needs Stripe, so without a client there is no runner and createPayoutRun
@@ -648,6 +649,13 @@ func run() error {
 		paymentsSvc.WithPayoutRunner(payoutRunner)
 	}
 	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
+	// The webhook worker applies stored Stripe events from the database: one
+	// replica at a time under an advisory-lock lease, each event's effect and
+	// its processed_at in one transaction, retried with backoff and
+	// dead-lettered with an ops alert after eight failures (#231, #249). An
+	// authorisation event moves its order through the orders store
+	// (orders.Store.PaymentAuthorised) in that same transaction.
+	go payments.NewWebhookWorker(paymentsSvc, cfg.Env == config.EnvProduction).Run(ctx)
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
