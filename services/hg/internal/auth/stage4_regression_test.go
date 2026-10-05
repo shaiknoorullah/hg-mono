@@ -306,7 +306,7 @@ func TestChangePassword_AtomicNoPartialWrite(t *testing.T) {
 	if hash == nil {
 		t.Fatal("changePassword: password_hash must be set")
 	}
-	ok, err := VerifyPassword(*hash, next)
+	ok, err := VerifyPassword(context.Background(), *hash, next)
 	if err != nil || !ok {
 		t.Fatalf("changePassword: new password must verify (err=%v ok=%v)", err, ok)
 	}
