@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -79,6 +80,11 @@ func (r *Repo) AllocateUpload(ctx context.Context, actor Actor, p Purpose, in ke
 	}
 
 	err = inTx(ctx, r.pool, func(tx pgx.Tx) error {
+		if p == PurposePOD {
+			if err := requireCarrying(ctx, tx, actor.AccountID, in.orderID); err != nil {
+				return err
+			}
+		}
 		const ins = `
 INSERT INTO stored_object
   (bucket, object_key, purpose, owner_account_id, restaurant_id, order_id,
@@ -119,6 +125,38 @@ RETURNING id`
 	out.RequiredHeaders = headers
 	return out, nil
 }
+
+// podUploadStates are the assignment states in which the order is in the
+// rider's hands, so a delivery photo can be taken: picked up, on the way, at the
+// drop-off. docs/spec/01-platform.md, "P-28 — Presigned upload and download"
+// (POD: the assigned rider only, only while carrying the order).
+const podUploadStates = `'PICKED_UP', 'EN_ROUTE_TO_DROPOFF', 'ARRIVED_AT_DROPOFF'`
+
+// requireCarrying answers errNotDelivering unless accountID holds orderID's
+// live assignment in one of podUploadStates. It runs in the transaction that
+// allocates the upload, so nothing is written for a refused one
+// (https://github.com/shaiknoorullah/hg-mono/issues/370).
+func requireCarrying(ctx context.Context, tx pgx.Tx, accountID, orderID string) error {
+	if !uuidRe.MatchString(orderID) || !uuidRe.MatchString(accountID) {
+		return errNotDelivering
+	}
+	var carrying bool
+	if err := tx.QueryRow(ctx, `
+SELECT EXISTS (
+  SELECT 1 FROM assignment
+   WHERE order_id = $1::uuid AND rider_account_id = $2::uuid AND terminated_at IS NULL
+     AND state IN (`+podUploadStates+`))`, orderID, accountID).Scan(&carrying); err != nil {
+		return err
+	}
+	if !carrying {
+		return errNotDelivering
+	}
+	return nil
+}
+
+// uuidRe matches a canonical UUID, so a malformed order_id is refused like any
+// other order the caller is not carrying instead of failing the ::uuid cast.
+var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 // presignUpload signs a PUT that only succeeds with exactly the declared
 // Content-Type, Content-Length and SHA-256: each is a signed header, so changing
@@ -281,4 +319,9 @@ var (
 	errBadPurpose     = errors.New("files: purpose not allowed")
 	errBadContentType = errors.New("files: content type not accepted")
 	errBadChecksum    = errors.New("files: sha256 must be 64 lowercase hex chars")
+	// errNotDelivering refuses a POD upload for an order the caller is not
+	// carrying: not its live rider, not yet picked up or already delivered, or
+	// no such order. One answer for all of them, so it says nothing about an
+	// order that is not the caller's.
+	errNotDelivering = errors.New("files: not carrying this order")
 )

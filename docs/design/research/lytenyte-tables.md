@@ -7,6 +7,10 @@ reviewed: 2026-10-05
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
 
+> **2026-10-05:** `packages/ui-web/src/live/` (the realtime socket and `LiveMap`) and the admin's
+> live operations map are outside this draft's scope; the operations map lists its orders as plain
+> text beneath the map rather than in a grid.
+
 _Draft for issue #141 (design-first, #108). Status: **draft for owner review in Claude Design**; #110 builds it in `@hg/ui-web`. Research date 28 Sep 2026, against `@1771technologies/lytenyte-core@2.2.1` (the version in `pnpm-lock.yaml`)._
 
 ---

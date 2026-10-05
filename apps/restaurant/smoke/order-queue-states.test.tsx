@@ -85,4 +85,20 @@ describe('restaurant order queue — loading, empty, error, rows', () => {
       expect(container.textContent).toContain('HG-RENG-18X');
     });
   });
+
+  it('shows the live rider map on an accepted order once a rider is assigned', async () => {
+    const orders = (queueBusy.payload as Array<Record<string, unknown>>).map((o, i) =>
+      i === 0 ? { ...o, state: 'READY_FOR_PICKUP', rider: { display_name: 'Yusuf K.', vehicle_type: 'BICYCLE', photo_url: null, eta_at: null } } : o,
+    );
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes('/v1/restaurant/profile')) return new Response('{}', { status: 500 });
+      return stubOk({ data: orders, meta: { next_cursor: null, has_more: false, total: orders.length } });
+    });
+
+    await renderOrders();
+
+    const maps = await screen.findAllByTestId('rider-approach-map');
+    expect(maps.some((m) => m.textContent?.includes('Yusuf K. · Bicycle'))).toBe(true);
+  });
 });
