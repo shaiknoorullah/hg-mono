@@ -285,6 +285,7 @@ func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ReceiveStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	payload, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
+		h.svc.logWebhookRejected(r.Context(), "unreadable body", "")
 		httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed, "Unreadable body.", nil)
 		return
 	}
@@ -293,7 +294,8 @@ func (h *Handler) ReceiveStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var de *DomainError
 		if errors.As(err, &de) {
-			// A signature or livemode failure is a 400; the body is not logged.
+			// A signature or livemode failure is a 400, logged once by the
+			// service with its reason (#516); the body is not logged.
 			httpx.Fail(w, r, de.Status, httpx.ErrorCode(de.Code), de.Message, nil)
 			return
 		}

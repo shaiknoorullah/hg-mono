@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/stripe/stripe-go/v79/webhook"
 )
 
 // Webhook handling (docs/spec/01-platform.md, "P-17 — Webhooks, idempotency
@@ -42,6 +44,8 @@ func (s *Service) ReceiveWebhook(ctx context.Context, payload []byte, sigHeader 
 	ev, err := s.stripe.VerifyWebhook(payload, sigHeader)
 	if err != nil {
 		// Signature failure: 400, zero rows change, body not logged.
+		s.logWebhookRejected(ctx, "signature", unverifiedEventID(payload),
+			"detail", signatureFailureKind(err))
 		return webhookResult{}, &DomainError{Code: "VALIDATION_FAILED", Status: 400,
 			Message: "Webhook signature verification failed."}
 	}
@@ -57,8 +61,8 @@ func (s *Service) storeEvent(ctx context.Context, ev StripeEvent, envIsLive bool
 	// Livemode on the event must match the environment (live in production,
 	// test elsewhere), or the event is refused and logged.
 	if ev.LiveMode != envIsLive {
-		s.log.ErrorContext(ctx, "stripe webhook livemode mismatch — rejected",
-			"event_id", ev.ID, "event_livemode", ev.LiveMode, "env_live", envIsLive)
+		s.logWebhookRejected(ctx, "livemode", ev.ID,
+			"event_livemode", ev.LiveMode, "env_live", envIsLive)
 		return webhookResult{}, &DomainError{Code: "VALIDATION_FAILED", Status: 400,
 			Message: "Webhook livemode does not match this environment."}
 	}
@@ -68,6 +72,56 @@ func (s *Service) storeEvent(ctx context.Context, ev StripeEvent, envIsLive bool
 	}
 	// Whether newly stored or a duplicate, the answer is 200 (acceptance 1).
 	return webhookResult{Acknowledged: true, Duplicate: !inserted}, nil
+}
+
+// logWebhookRejected leaves the one WARN line a refused webhook gets (#516):
+// the reason (signature, livemode, unreadable body) and the event id when one
+// can be read. Never the body or the Stripe-Signature header.
+func (s *Service) logWebhookRejected(ctx context.Context, reason, eventID string, attrs ...any) {
+	args := append([]any{"reason", reason}, attrs...)
+	if eventID != "" {
+		args = append(args, "event_id", eventID)
+	}
+	s.log.WarnContext(ctx, "stripe webhook rejected", args...)
+}
+
+// stripeEventIDRe is the shape of a Stripe event id. The id read from a body
+// whose signature failed is unverified, so only a value of this shape — which
+// cannot carry anything else — is logged.
+var stripeEventIDRe = regexp.MustCompile(`^evt_[A-Za-z0-9]{1,255}$`)
+
+// unverifiedEventID reads the top-level id from a body whose signature did
+// not verify, for the log line only. It returns "" for anything that is not
+// shaped like an event id.
+func unverifiedEventID(payload []byte) string {
+	var head struct {
+		ID string `json:"id"`
+	}
+	if json.Unmarshal(payload, &head) != nil || !stripeEventIDRe.MatchString(head.ID) {
+		return ""
+	}
+	return head.ID
+}
+
+// signatureFailureKind names why verification failed in fixed words, so the
+// log says "no valid signature" (a signing secret that is not this
+// endpoint's) apart from a missing header or a stale timestamp, without
+// copying any part of the request into the log.
+func signatureFailureKind(err error) string {
+	switch {
+	case errors.Is(err, webhook.ErrNotSigned):
+		return "no signature header"
+	case errors.Is(err, webhook.ErrInvalidHeader):
+		return "malformed signature header"
+	case errors.Is(err, webhook.ErrNoValidSignature):
+		return "no valid signature"
+	case errors.Is(err, webhook.ErrTooOld):
+		return "timestamp outside tolerance"
+	case strings.Contains(err.Error(), "expects API version"):
+		return "api version mismatch"
+	default:
+		return "unverifiable"
+	}
 }
 
 // ---------------------------------------------------------------------------

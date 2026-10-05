@@ -124,9 +124,11 @@ runner in Settings → Actions → Runners.
 ### What a runner machine needs
 
 - Linux, x64 or arm64, with a systemd user manager and unprivileged user namespaces.
-- **Docker**, usable by the runner's user. The `migrations` job uses a Postgres service container,
-  and the Go tests start Postgres with testcontainers: in the `go` job, or in `coverage` for the
-  weekly scan. Without Docker those jobs fail.
+- **Docker**, usable by the runner's user. The `migrations` job and the `go` job each use a
+  Postgres service container (the `go` job's is the seeded database behind `HG_TEST_POSTGRES_DSN`,
+  on port 55433 so the two jobs can run side by side), and the Go tests also start Postgres with
+  testcontainers: in the `go` job, or in `coverage` for the weekly scan. Without Docker those
+  jobs fail.
 - No `psql`, Go, Node or Python setup is needed: jobs install Go and Node into the runner's own
   tool cache, use the machine's `python3` in a private venv, and run `psql` from the Postgres image.
 - **No KVM on the workstation** (`/dev/kvm` is missing), so it cannot boot an Android emulator.
@@ -165,7 +167,7 @@ that:
   container. Write only inside the workspace, `$RUNNER_TEMP` or the runner's own home.
 - Containers: label any container a step starts with the job, and remove it in an `if: always()`
   step (see the `migrations` job). Never turn off the testcontainers reaper. Publish ports other
-  than the defaults (Postgres on 55432, the mock on 54010): a developer's own stack may hold 5432
+  than the defaults (Postgres on 55432 and 55433, the mock on 54010): a developer's own stack may hold 5432
   and 4010.
 - Caches: on GitHub's runners, the Actions cache (keyed by `pnpm-lock.yaml` and `go.sum`); on ours,
   the runner's own home, never uploaded. Release builds run on GitHub's runners and restore no

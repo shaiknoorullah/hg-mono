@@ -7,7 +7,8 @@ name: ci
 #                 every one of them is regenerated here and any difference fails the build.
 #   js            lint and every JS unit-test suite. No baseline: a known-failing test stays red
 #                 until it is fixed, not hidden.
-#   go            go vet and the Go test suite (testcontainers-backed tests need Docker).
+#   go            go vet and the Go test suite, against a migrated, seeded Postgres service
+#                 (HG_TEST_POSTGRES_DSN, issue #520); testcontainers-backed tests need Docker.
 #   coverage      measured on every PR, never allowed to drop, with fixed floors only where money
 #                 and safety live (issue #118). On a PR every changed file must stay at or above
 #                 coverage/baseline.json and every area in coverage/floors.json at or above its
@@ -272,10 +273,35 @@ jobs:
          contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.event.pull_request.user.login))))
     runs-on: ${{ fromJSON(vars.HG_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 30
+    # The shared, seeded test database (issue #520): migrated and seeded the way the migrations
+    # workflow and RELEASING.md "Verify the gate" do it, so the tests that read
+    # HG_TEST_POSTGRES_DSN run here instead of skipping. Not 55432: the migrations job may hold
+    # that port on the same self-hosted runner.
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: hg
+          POSTGRES_PASSWORD: hg
+          POSTGRES_DB: hg
+        ports: ['55433:5432']
+        # Ready over TCP, not the socket (see migrations.yml).
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432 -U hg -d hg"
+          --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       # The testcontainers reaper removes the tests' containers when the test process ends,
       # even when it crashes or the job is cancelled. Never let a runner turn it off.
       TESTCONTAINERS_RYUK_DISABLED: 'false'
+      # The superuser: creates the roles, seeds, and is the tests' DSN. Throwaway CI values.
+      DATABASE_URL: postgres://hg:hg@localhost:55433/hg?sslmode=disable
+      PGPASSWORD: hg
+      # goose runs as the schema's owner, never as the superuser — as in compose.
+      HG_DB_MIGRATOR_PASSWORD: migrator
+      HG_DB_APP_PASSWORD: app
+      MIGRATOR_URL: postgres://hg_migrator:migrator@localhost:55433/hg?sslmode=disable
+      # Labels the psql containers a self-hosted runner starts, for the cleanup step.
+      HG_CI_JOB: ${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
     defaults:
       run:
         working-directory: services/hg
@@ -300,12 +326,42 @@ jobs:
       - name: vet
         run: make vet
 
-      # `make test` (go test -race ./...) with coverage on, once: tests that need
-      # HG_TEST_POSTGRES_DSN skip when it is unset; the testcontainers-backed ones run here
-      # because the runner has Docker. Red tests fail this step after coverage is written.
+      # psql as in migrations.yml: from apt on GitHub's runners, else a wrapper that runs it
+      # from the Postgres image (as the runner's user, the working tree mounted read-only).
+      - name: psql client
+        working-directory: .
+        run: |
+          if command -v psql >/dev/null; then exit 0; fi
+          if [ "$RUNNER_ENVIRONMENT" = "github-hosted" ]; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+          else
+            mkdir -p "$RUNNER_TEMP/bin"
+            # shellcheck disable=SC2016 # expanded when the wrapper runs, not here
+            printf '%s\n' '#!/bin/sh' 'exec docker run --rm -i --network host --user "$(id -u):$(id -g)" --label "hg-ci-job=$HG_CI_JOB" -e PGPASSWORD -e HG_DB_MIGRATOR_PASSWORD -e HG_DB_APP_PASSWORD -e HG_DB_MONITOR_PASSWORD -v "$PWD:$PWD:ro" -w "$PWD" postgis/postgis:17-3.5 psql "$@"' > "$RUNNER_TEMP/bin/psql"
+            chmod +x "$RUNNER_TEMP/bin/psql"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          fi
+
+      # The test database, as migrations.yml builds it: the superuser creates the roles,
+      # goose migrates as hg_migrator, then the reference data and the fixed-UUID fixtures
+      # load (the files testseed.Seed(dsn, true) loads; both idempotent).
+      - name: test database
+        working-directory: services/hg/migrations
+        run: |
+          go install github.com/pressly/goose/v3/cmd/goose@v3.28.0
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f roles/roles.sql
+          "$(go env GOPATH)/bin/goose" -dir . postgres "$MIGRATOR_URL" up
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f seed/seed.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f test/fixtures.sql
+
+      # `make test` (go test -race ./...) with coverage on, once, against the database above;
+      # the testcontainers-backed tests run too, because the runner has Docker. Red tests
+      # fail this step after coverage is written.
       - name: test
         if: ${{ !cancelled() }}
         working-directory: .
+        env:
+          HG_TEST_POSTGRES_DSN: ${{ env.DATABASE_URL }}
         run: node .github/scripts/coverage.mjs collect --go --fail-on-red
 
       # A few KB of JSON for the coverage job, kept even when tests were red.
@@ -317,6 +373,15 @@ jobs:
           path: coverage/.out/summary.json
           retention-days: 3
           overwrite: true # a re-run replaces it
+
+      # The Postgres service container is removed by the runner. This removes any psql
+      # container a cancelled step left running.
+      - name: remove this job's containers
+        if: always()
+        working-directory: .
+        run: |
+          command -v docker >/dev/null || exit 0
+          docker ps -aq --filter "label=hg-ci-job=$HG_CI_JOB" | xargs -r docker rm -f
 
   # Compares; measures nothing itself unless a suite's job did not run (see "which suites to
   # measure here"). Waits for go and js, and runs when they failed: red tests do not stop it.

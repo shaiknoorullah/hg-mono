@@ -59,10 +59,23 @@ const GoodwillApprovalThresholdCents int64 = 5000
 // the operator's trailing-24h issued total over their cap is not rejected — it
 // creates an approval request and escalates to the next role up, so a customer's
 // refund is never lost. Support agents have the tightest window; a super admin
-// is the terminal approver (their above-cap path escalates to nobody).
+// is the terminal approver (their above-cap path escalates to nobody). The
+// figures are the spec's proposed defaults, shipped until the owner confirms
+// them (docs/decisions/README.md, "Open — non-blocking", #364).
 const (
-	CapSupportAgentCents int64 = 20000  // CAD 200.00 trailing 24h
+	CapSupportAgentCents int64 = 15000  // CAD 150.00 trailing 24h
 	CapAdminCents        int64 = 200000 // CAD 2000.00 trailing 24h
+)
+
+// Per-order and order-age authority limits (A-33, #364), escalated like the
+// 24-hour cap. A support agent may approve up to CAD 25.00 on one order; an
+// admin up to what was captured, which every refund is held to anyway. An
+// order's age counts from its delivery, or from when it was placed if it was
+// never delivered. A super admin has neither limit.
+const (
+	PerOrderCapSupportAgentCents int64 = 2500 // CAD 25.00 per order
+	MaxOrderAgeSupportAgent            = 14 * 24 * time.Hour
+	MaxOrderAgeAdmin                   = 90 * 24 * time.Hour
 )
 
 // PaymentState mirrors the contract PaymentState enum.

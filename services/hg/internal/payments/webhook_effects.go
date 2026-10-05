@@ -311,10 +311,13 @@ type stripeDisputeObject struct {
 	} `json:"evidence_details"`
 }
 
-// disputeClosed reports whether a dispute status is final.
+// disputeClosed reports whether a dispute status is final. Stripe's final
+// statuses are won, lost, warning_closed, charge_refunded and prevented
+// (https://docs.stripe.com/api/disputes/object#dispute_object-status); a
+// prevented dispute is closed in the merchant's favour (#365).
 func disputeClosed(status string) bool {
 	switch status {
-	case "won", "lost", "warning_closed", "charge_refunded":
+	case "won", "lost", "warning_closed", "charge_refunded", "prevented":
 		return true
 	}
 	return false
